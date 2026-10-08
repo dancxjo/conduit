@@ -1,0 +1,394 @@
+[
+  {
+    "id": "record-pair",
+    "text": "I record the record.",
+    "forms": [
+      "I",
+      "record",
+      "the",
+      "record",
+      "."
+    ],
+    "pos": [
+      10,
+      15,
+      5,
+      7,
+      12
+    ],
+    "heads": [
+      1,
+      8,
+      3,
+      1,
+      1
+    ],
+    "relations": [
+      "nsubj",
+      "root",
+      "det",
+      "obj",
+      "punct"
+    ],
+    "provenance": "separately authored TRAIN-only teaching graph; no held-out accuracy claim"
+  },
+  {
+    "id": "refuse-pair",
+    "text": "They refuse the refuse",
+    "forms": [
+      "They",
+      "refuse",
+      "the",
+      "refuse"
+    ],
+    "pos": [
+      10,
+      15,
+      5,
+      7
+    ],
+    "heads": [
+      1,
+      8,
+      3,
+      1
+    ],
+    "relations": [
+      "nsubj",
+      "root",
+      "det",
+      "obj"
+    ],
+    "provenance": "separately authored TRAIN-only teaching graph; no held-out accuracy claim"
+  },
+  {
+    "id": "garden-path",
+    "text": "The horse raced past the barn fell",
+    "forms": [
+      "The",
+      "horse",
+      "raced",
+      "past",
+      "the",
+      "barn",
+      "fell"
+    ],
+    "pos": [
+      5,
+      7,
+      15,
+      1,
+      5,
+      7,
+      15
+    ],
+    "heads": [
+      1,
+      6,
+      1,
+      5,
+      5,
+      2,
+      8
+    ],
+    "relations": [
+      "det",
+      "nsubj",
+      "acl",
+      "case",
+      "det",
+      "obl",
+      "root"
+    ],
+    "provenance": "separately authored TRAIN-only teaching graph; no held-out accuracy claim"
+  },
+  {
+    "id": "complement",
+    "text": "I think you record songs",
+    "forms": [
+      "I",
+      "think",
+      "you",
+      "record",
+      "songs"
+    ],
+    "pos": [
+      10,
+      15,
+      10,
+      15,
+      7
+    ],
+    "heads": [
+      1,
+      8,
+      3,
+      1,
+      3
+    ],
+    "relations": [
+      "nsubj",
+      "root",
+      "nsubj",
+      "ccomp",
+      "obj"
+    ],
+    "provenance": "separately authored TRAIN-only teaching graph; no held-out accuracy claim"
+  },
+  {
+    "id": "coordination",
+    "text": "I record songs and stories",
+    "forms": [
+      "I",
+      "record",
+      "songs",
+      "and",
+      "stories"
+    ],
+    "pos": [
+      10,
+      15,
+      7,
+      4,
+      7
+    ],
+    "heads": [
+      1,
+      8,
+      1,
+      4,
+      2
+    ],
+    "relations": [
+      "nsubj",
+      "root",
+      "obj",
+      "cc",
+      "conj"
+    ],
+    "provenance": "separately authored TRAIN-only teaching graph; no held-out accuracy claim"
+  },
+  {
+    "id": "apposition",
+    "text": "Travis my friend arrived",
+    "forms": [
+      "Travis",
+      "my",
+      "friend",
+      "arrived"
+    ],
+    "pos": [
+      11,
+      10,
+      7,
+      15
+    ],
+    "heads": [
+      3,
+      2,
+      0,
+      8
+    ],
+    "relations": [
+      "nsubj",
+      "nmod:poss",
+      "appos",
+      "root"
+    ],
+    "provenance": "separately authored TRAIN-only teaching graph; no held-out accuracy claim"
+  },
+  {
+    "id": "parenthetical",
+    "text": "Travis I think arrived",
+    "forms": [
+      "Travis",
+      "I",
+      "think",
+      "arrived"
+    ],
+    "pos": [
+      11,
+      10,
+      15,
+      15
+    ],
+    "heads": [
+      3,
+      2,
+      3,
+      8
+    ],
+    "relations": [
+      "nsubj",
+      "nsubj",
+      "parataxis",
+      "root"
+    ],
+    "provenance": "separately authored TRAIN-only teaching graph; no held-out accuracy claim"
+  },
+  {
+    "id": "question",
+    "text": "Do they record songs ?",
+    "forms": [
+      "Do",
+      "they",
+      "record",
+      "songs",
+      "?"
+    ],
+    "pos": [
+      3,
+      10,
+      15,
+      7,
+      12
+    ],
+    "heads": [
+      2,
+      2,
+      8,
+      2,
+      2
+    ],
+    "relations": [
+      "aux",
+      "nsubj",
+      "root",
+      "obj",
+      "punct"
+    ],
+    "provenance": "separately authored TRAIN-only teaching graph; no held-out accuracy claim"
+  },
+  {
+    "id": "vocative-greeting",
+    "text": "Hello, Travis.",
+    "forms": [
+      "Hello",
+      ",",
+      "Travis",
+      "."
+    ],
+    "pos": [
+      6,
+      12,
+      11,
+      12
+    ],
+    "heads": [
+      8,
+      0,
+      0,
+      0
+    ],
+    "relations": [
+      "root",
+      "punct",
+      "vocative",
+      "punct"
+    ],
+    "provenance": "separately authored TRAIN-only vocative supervision; not held-out or human-reviewed accuracy evidence"
+  },
+  {
+    "id": "vocative-initial",
+    "text": "Travis, record songs.",
+    "forms": [
+      "Travis",
+      ",",
+      "record",
+      "songs",
+      "."
+    ],
+    "pos": [
+      11,
+      12,
+      15,
+      7,
+      12
+    ],
+    "heads": [
+      2,
+      2,
+      8,
+      2,
+      2
+    ],
+    "relations": [
+      "vocative",
+      "punct",
+      "root",
+      "obj",
+      "punct"
+    ],
+    "provenance": "separately authored TRAIN-only vocative supervision; not held-out or human-reviewed accuracy evidence"
+  },
+  {
+    "id": "vocative-medial",
+    "text": "I record, Travis, songs.",
+    "forms": [
+      "I",
+      "record",
+      ",",
+      "Travis",
+      ",",
+      "songs",
+      "."
+    ],
+    "pos": [
+      10,
+      15,
+      12,
+      11,
+      12,
+      7,
+      12
+    ],
+    "heads": [
+      1,
+      8,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "relations": [
+      "nsubj",
+      "root",
+      "punct",
+      "vocative",
+      "punct",
+      "obj",
+      "punct"
+    ],
+    "provenance": "separately authored TRAIN-only vocative supervision; not held-out or human-reviewed accuracy evidence"
+  },
+  {
+    "id": "vocative-final",
+    "text": "Thanks, Travis.",
+    "forms": [
+      "Thanks",
+      ",",
+      "Travis",
+      "."
+    ],
+    "pos": [
+      6,
+      12,
+      11,
+      12
+    ],
+    "heads": [
+      8,
+      0,
+      0,
+      0
+    ],
+    "relations": [
+      "root",
+      "punct",
+      "vocative",
+      "punct"
+    ],
+    "provenance": "separately authored TRAIN-only vocative supervision; not held-out or human-reviewed accuracy evidence"
+  }
+]
