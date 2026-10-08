@@ -5,8 +5,11 @@ fn provenance() -> LinguisticDerivationProvenance {
         .unwrap()
 }
 fn port() -> PreparedLexicalProposerPort {
+    port_for("record", "unknown-policy")
+}
+fn port_for(surface: &str, policy_identity: &str) -> PreparedLexicalProposerPort {
     let dictionary = resource::PreparedLexicalDictionary::prepare(
-        vec![shard("record", "language/en")],
+        vec![shard(surface, "language/en")],
         "language/en",
         limits(),
     )
@@ -25,7 +28,7 @@ fn port() -> PreparedLexicalProposerPort {
             BoundedSequence::try_from_iter([LanguageLexicalPos::Noun, LanguageLexicalPos::Verb])
                 .unwrap(),
             LanguageLexicalUnknownCommitPolicy::StableInputConsensus,
-            "unknown-policy".into(),
+            policy_identity.into(),
             provenance(),
         )
         .unwrap(),
@@ -228,7 +231,7 @@ fn complete_original_revision_successor_custody_and_atomic_refusal() {
             .tape()
             .tokens()
             .iter()
-            .nth(0)
+            .next()
             .unwrap()
             .candidates()
             .len(),
@@ -252,7 +255,7 @@ fn complete_original_revision_successor_custody_and_atomic_refusal() {
         next.tape()
             .tokens()
             .iter()
-            .nth(0)
+            .next()
             .unwrap()
             .prior_occurrence()
             .as_ref(),
@@ -261,7 +264,7 @@ fn complete_original_revision_successor_custody_and_atomic_refusal() {
                 .tape()
                 .tokens()
                 .iter()
-                .nth(0)
+                .next()
                 .unwrap()
                 .identity()
         )
@@ -456,6 +459,32 @@ fn distinct_proposal_model_declaration_full_material_and_foreign_refusals() {
         selected.declaration().segmentation_abi(),
         ProposalSegmentationAbi::UnicodeScalarAlphanumericApostropheV1
     );
+    assert_eq!(
+        definition.proposal_source_material(),
+        include_bytes!("../lexical_proposer.conduit")
+    );
+    assert_ne!(definition.proposal_source_identity(), [0; 32]);
+    for foreign_port in [
+        port_for("old", "unknown-policy"),
+        port_for("record", "foreign-policy"),
+    ] {
+        let foreign_owner =
+            lexical_proposer_port::token_producer::revision::PreparedRevisionProducer::prepare(
+                PreparedTokenProducer::prepare(foreign_port, producer_limits()).unwrap(),
+                revision_limits(),
+            )
+            .unwrap();
+        assert_eq!(
+            PreparedProposalModelSelection::prepare(
+                &foreign_owner,
+                model.clone(),
+                definition.clone(),
+                &source
+            )
+            .err(),
+            Some(ProposalModelRefusal::Proposer)
+        );
+    }
     let mut foreign = source.clone();
     foreign.feature_contract[0] ^= 1;
     assert_eq!(
