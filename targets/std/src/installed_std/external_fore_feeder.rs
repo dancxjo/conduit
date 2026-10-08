@@ -94,6 +94,9 @@ impl<'a> PreparedForeInputs<'a> {
     }
 
     pub(super) fn start(&mut self, scheduler: &mut InstalledScheduler) -> Result<(), String> {
+        if let Self::Live(feeder) = self {
+            return feeder.start(scheduler);
+        }
         let Self::Single(entries) = self else {
             return Ok(());
         };
@@ -144,7 +147,7 @@ impl<'a> PreparedForeInputs<'a> {
         if feeder.full {
             return Err("live Fore input remained pressured without kernel progress".into());
         }
-        feeder.queue.wait_if_empty(observed);
+        feeder.queue.wait_if_empty(observed)?;
         Ok(true)
     }
 }
@@ -152,6 +155,8 @@ impl<'a> PreparedForeInputs<'a> {
 pub(super) struct LiveForeFeeder {
     queue: BodyLiveForeQueue,
     targets: Vec<(RemoteEndpointId, CordId)>,
+    initial_targets: Vec<(RemoteEndpointId, CordId)>,
+    initial_started: bool,
     closed: bool,
     full: bool,
 }
@@ -159,8 +164,17 @@ pub(super) struct LiveForeFeeder {
 impl LiveForeFeeder {
     fn prepare(planned: &[&LoweredForePort], queue: &BodyLiveForeQueue) -> Result<Self, String> {
         let expected = queue.port();
-        if planned.len() != 1
+        let initial = queue.initial().map(|(port, _)| port);
+        if planned.len() != 1 + usize::from(initial.is_some())
+            || planned
+                .iter()
+                .filter(|port| port.front_port_id == expected.front_port_id)
+                .count()
+                != 1
             || planned.iter().any(|port| {
+                let expected = initial
+                    .filter(|initial| initial.front_port_id == port.front_port_id)
+                    .unwrap_or(expected);
                 port.direction != PortDirection::Input
                     || port.front_port_id != expected.front_port_id
                     || port.track != expected.track
@@ -178,11 +192,41 @@ impl LiveForeFeeder {
             queue: queue.clone(),
             targets: planned
                 .iter()
+                .filter(|port| port.front_port_id == expected.front_port_id)
                 .map(|port| (port.endpoint, port.cord))
                 .collect(),
+            initial_targets: planned
+                .iter()
+                .filter(|port| {
+                    initial.is_some_and(|initial| initial.front_port_id == port.front_port_id)
+                })
+                .map(|port| (port.endpoint, port.cord))
+                .collect(),
+            initial_started: false,
             closed: false,
             full: false,
         })
+    }
+
+    fn start(&mut self, ingress: &mut impl ForeIngress) -> Result<(), String> {
+        if self.initial_started {
+            return Ok(());
+        }
+        if let Some((_, bytes)) = self.queue.initial() {
+            match ingress.admit(&self.initial_targets, 0, bytes)? {
+                RemoteIngressOutcome::Accepted { sequence: 0 } => {}
+                outcome => {
+                    return Err(format!(
+                        "checkpoint initial Fore was not admitted exactly: {outcome:?}"
+                    ))
+                }
+            }
+            for &(endpoint, cord) in &self.initial_targets {
+                ingress.close(endpoint, cord)?;
+            }
+        }
+        self.initial_started = true;
+        Ok(())
     }
 
     fn feed_next(&mut self, ingress: &mut impl ForeIngress) -> Result<(), String> {
@@ -199,8 +243,20 @@ impl LiveForeFeeder {
         match outcome {
             Some(RemoteIngressOutcome::Accepted { sequence }) => {
                 self.queue.acknowledge(sequence)?;
+                if self.queue.initial().is_some() {
+                    for &(endpoint, cord) in &self.targets {
+                        ingress.close(endpoint, cord)?;
+                    }
+                    self.queue.mark_checkpoint_kernel_closed()?;
+                    self.closed = true;
+                }
             }
             Some(RemoteIngressOutcome::Full { sequence }) => {
+                if self.queue.initial().is_some() {
+                    return Err(format!(
+                        "waiting checkpoint command ingress pressured at sequence {sequence}"
+                    ));
+                }
                 let expected = self
                     .queue
                     .with_front(|front, _| front.map(|(next, _)| next));

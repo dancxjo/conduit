@@ -45,6 +45,18 @@ pub struct BodyForeExchange<'a> {
     pub output: &'a mut dyn BodyForeOutputAdapter,
 }
 
+/// Wake an external producer on every preparation, admission, and start
+/// refusal, including paths before the kernel has begun to run.
+struct LiveForeTerminalGuard<'a>(Option<&'a BodyLiveForeQueue>);
+
+impl Drop for LiveForeTerminalGuard<'_> {
+    fn drop(&mut self) {
+        if let Some(queue) = self.0 {
+            queue.mark_play_terminal();
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct BodyRunReport {
     pub play: BodyPlayIdentity,
@@ -305,6 +317,40 @@ impl StdHost {
         )
     }
 
+    /// Wait for one later typed command in the same ordinary Body Play. The
+    /// selected current state is already bound to the queue's exact Plan; the
+    /// publisher is attached before start and no output precedes its Host Call.
+    pub fn run_body_plan_with_waiting_todo_checkpoint_to_with_start<W: Write, T: TimerAdapter, F>(
+        &mut self,
+        request: BodyRunRequest<'_>,
+        queue: &BodyLiveForeQueue,
+        fore_output: &mut dyn BodyForeOutputAdapter,
+        checkpoint: TodoCheckpointSelection<'_>,
+        output: &mut W,
+        timer: &mut T,
+        started: F,
+    ) -> Result<BodyRunReport, String>
+    where
+        F: FnMut(&BodyPlayIdentity, &Wake) -> Result<(), String>,
+    {
+        let _live_guard = LiveForeTerminalGuard(Some(queue));
+        if queue.initial().is_none() {
+            return Err("waiting checkpoint requires an admitted current state".into());
+        }
+        self.require_selected_todo_checkpoint_root(checkpoint.root)?;
+        self.run_body_plan_to_with_start_and_clock(
+            request,
+            output,
+            timer,
+            None,
+            None,
+            None,
+            Some((queue, fore_output)),
+            Some((checkpoint.root, checkpoint.identity)),
+            started,
+        )
+    }
+
     /// Publish the exact admitted Play before the kernel advances. A caller may
     /// durably retain the start and refuse execution if that publication fails.
     /// The callback is never invoked for preparation or reservation refusal.
@@ -433,6 +479,7 @@ impl StdHost {
     where
         F: FnMut(&BodyPlayIdentity, &Wake) -> Result<(), String>,
     {
+        let _live_guard = LiveForeTerminalGuard(live.as_ref().map(|(queue, _)| *queue));
         request
             .plan
             .validate_for(request.wake)
@@ -526,7 +573,15 @@ impl StdHost {
                 .body_plan_ready(request.plan, sign(0).sign_id)
                 .and_then(|wake| wake.body_play_started(request.plan, &play, sign(1).sign_id))
                 .map_err(|error| format!("Body start lifecycle: {error:?}"))?;
-            started(&play, &wake_at_start)?;
+            if let Err(error) = started(&play, &wake_at_start) {
+                if let Some(queue) = live_queue {
+                    queue.mark_play_terminal();
+                }
+                return Err(error);
+            }
+            if let Some(queue) = live_queue {
+                queue.mark_play_started();
+            }
             let terminal_sign = sign(2);
             let fore_output = if let Some((_, adapter)) = live {
                 Some(adapter)
