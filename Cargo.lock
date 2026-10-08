@@ -1469,6 +1469,7 @@ dependencies = [
  "conduit-synth",
  "conduit-text",
  "conduit-time",
+ "conduit-todo-plot",
  "conduit-tongues",
  "conduit-web",
  "conduit-wire",
@@ -1561,6 +1562,15 @@ dependencies = [
  "conduit-plot",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "conduit-todo-plot"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
+ "conduit-web",
 ]
 
 [[package]]
