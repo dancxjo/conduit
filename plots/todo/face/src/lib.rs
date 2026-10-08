@@ -97,6 +97,15 @@ pub fn todo_fragment(
             explanation: "This Todo Play has no admitted action return route.".into(),
         }
     };
+    let add_availability =
+        if actions_admitted && state.items.len() == conduit_todo_plot::MAX_TODO_ITEMS {
+            PresentationActionAvailability::Unavailable {
+                reason_code: "todo-list-full".into(),
+                explanation: "The list has reached its admitted item capacity.".into(),
+            }
+        } else {
+            availability.clone()
+        };
     fragment.actions.push(PresentationAction {
         identity: "todo.add".into(),
         intent: "todo/add@1".into(),
@@ -110,7 +119,7 @@ pub fn todo_fragment(
         )
         .map_err(|_| TodoFaceError::InvalidActionContract)?],
         disclosure: PresentationDisclosureLevel::CurrentAction,
-        availability: availability.clone(),
+        availability: add_availability,
     });
     for (order, item) in state.items.iter().enumerate() {
         let identity = format!("todo/item/{}", item.id);

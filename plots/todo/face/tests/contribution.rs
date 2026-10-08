@@ -78,10 +78,12 @@ fn same_todo_truth_is_ready_for_distinct_masks_without_reading_seventeen_complet
         action.identity == "todo.add"
             && action.target == "todo/list"
             && action.arguments.len() == 1
-            && action.availability == PresentationActionAvailability::Available
+            && matches!(&action.availability, PresentationActionAvailability::Unavailable { reason_code, .. } if reason_code == "todo-list-full")
     }));
     assert!(fragment.actions.iter().any(|action| {
-        action.identity == "todo.complete.task-1" && action.target == "todo/item/task-1"
+        action.identity == "todo.complete.task-1"
+            && action.target == "todo/item/task-1"
+            && action.availability == PresentationActionAvailability::Available
     }));
     assert!(fragment.actions.iter().any(|action| {
         action.identity == "todo.reopen.task-4" && action.target == "todo/item/task-4"
