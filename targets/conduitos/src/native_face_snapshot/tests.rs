@@ -173,6 +173,37 @@ fn whole_valid_face_above_profile_capacity_is_refused_before_execution() {
 }
 
 #[test]
+fn long_semantic_face_crosses_the_admitted_native_fore() {
+    let mut producer = producer();
+    let face = Presentation::new_with_semantics(
+        1,
+        basis(&producer),
+        vec![PresentationSubject {
+            identity: "host/snapshot".into(),
+            role: PresentationRole::Host,
+            name: "Long owner observation".into(),
+        }],
+        vec![],
+        vec![],
+        (0..40)
+            .map(|_| PresentationText {
+                subject: "host/snapshot".into(),
+                text: "x".repeat(900),
+            })
+            .collect(),
+        vec![],
+        vec![],
+    )
+    .unwrap();
+    let length = serde_json::to_vec(&face).unwrap().len();
+    assert!(length > 32 * 1024 && length < MAX_SNAPSHOT_BYTES);
+    let published = producer.forward(face.clone(), 1, 1).unwrap();
+    assert_eq!(published.presentation, face);
+    assert_eq!(published.receipt.encoded_bytes as usize, length);
+    assert!(published.receipt.kernel_signs > 0);
+}
+
+#[test]
 fn prepared_kernel_can_cancel_without_publishing_or_changing_the_snapshot() {
     let mut producer = producer();
     let face = arrival(&producer);
