@@ -1,0 +1,14 @@
+    Finished `test` profile [unoptimized] target(s) in 0.08s
+     Running unittests src/lib.rs (work/native-reuse-sdk-target/debug/deps/conduit_plot-2300a7f06de0e279)
+
+running 8 tests
+test rust_binding::prepared_invariants_tests::actual_language_complete_native_bank_readiness ... ignored, checks the complete Language authored Source closure
+test rust_binding::prepared_family_external::tests::metadata_observation_does_not_apply_type_count_to_law_count ... ok
+test rust_binding::prepared_family_external::tests::metadata_observation_does_not_apply_type_byte_extent_to_program_bytes ... ok
+test expression_prepared::preparation::tests::cumulative_quota_refuses_checked_overflow_before_allocation ... ok
+test rust_binding::prepared_invariants_tests::bounded_native_bank_refuses_every_unsupported_law_at_its_original_index ... ok
+test rust_binding::prepared_invariants_tests::prepared_native_bank_preserves_order_and_law_refusals ... ok
+test rust_binding::prepared_invariants_tests::prepared_native_bank_checks_nested_members_and_foreign_exact_types ... ok
+test rust_binding::generate_tests::imported_prepared_descriptors_keep_original_guards_and_owner_metadata ... ok
+
+test result: ok. 7 passed; 0 failed; 1 ignored; 0 measured; 319 filtered out; finished in 0.24s

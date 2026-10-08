@@ -1,0 +1,23 @@
+{
+  "scope": "exact-Type field recipe and prepared Native component validation; not whole merge/Session acceptance",
+  "baseline_commit": "0481aff6ebfb455d45c34c95c463940dfbea8e1a",
+  "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)\nbinary: rustc\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\ncommit-date: 2026-09-01\nhost: x86_64-unknown-linux-gnu\nrelease: 1.98.1\nLLVM version: 22.1.8\n",
+  "files": {
+    "architecture/core/src/structured_info/borrowed/record_access.rs": "ab8a67ce2a3b219fe5be84c4c7263711d66d3a69fc4c480968c65df9386ac7c0",
+    "architecture/core/tests/record_access_storage.rs": "c63baaa2230ce64ba9dedb79b1f50cc1ea9ddd6060dd35a85441fd710258246c",
+    "architecture/core/src/structured_info/borrowed.rs": "2643b3a34be6450e028944ada002157a58d0e7537cd7cef744ac40886872647d",
+    "architecture/plot/src/rust_binding/borrowed_contracts.rs": "1531142c96c2ffa470e990812a3f46f19646edef9b89cebb285685391cb8b72c",
+    "architecture/plot/src/rust_binding/prepared_family.rs": "1b568ecdec14ff507f7628f1d439222461b24e6cb257c21945cb5ac4890cd276",
+    "architecture/plot/src/rust_binding/generate_prepared_family.rs": "c2e4560fa66db3811fed98afd9d72940ef122d3e5ccdfa4d6d5029f7f4e3e602",
+    "work/native-child-rank/epoch-0.bin": "62b43dc4d36e935c94111fcaa74656943ede7132a9fd166a92a1a7c2d0d67219",
+    "work/native-record-recipe/fixture.rs": "57c3f4e1e3d4c568d6c63963f2da12a48cf50c4b62e4f8e3d9a5da5087519ceb",
+    "work/native-record-recipe/fixture": "8bd42fb008f47b36e83cc3fb6c2f5c4d24a7dea710c824147d5ae375b4c6ca51"
+  },
+  "limitations": [
+    "No fresh coherent complete Language/Plan/Kernel merge runtime after this Core/Plot change.",
+    "Field timing diagnostic links only newly built Core and reads an original immutable canonical frame; it does not use an old Language SDK.",
+    "Prepared family receipts increase and require recalibration before production adoption.",
+    "Nested contract path traversal retains the original fallback; this slice accelerates prepared record root lookup.",
+    "Recipe storage preflight refuses before recipe allocation; no new whole-family allocation-free preflight is claimed."
+  ]
+}

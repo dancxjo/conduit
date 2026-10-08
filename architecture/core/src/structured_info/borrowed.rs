@@ -14,6 +14,8 @@ pub use collection_iter::ValidatedCanonicalCollectionIter;
 mod nominal;
 mod projection;
 mod record;
+mod record_access;
+pub use record_access::PreparedCanonicalRecordAccess;
 mod shape_observation;
 mod validated_extent;
 mod visit;

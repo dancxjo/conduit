@@ -1,0 +1,18 @@
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/conduit-4907-native-reuse/architecture/plot)
+    Finished `test` profile [unoptimized] target(s) in 4.74s
+     Running tests/native_family_decode_storage.rs (work/native-reuse-sdk-target/debug/deps/native_family_decode_storage-070c670ebba16ddf)
+
+running 1 test
+test law_free_nominal_preparation_refuses_one_under_complete_decode_bound ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/native_family_external_edges.rs (work/native-reuse-sdk-target/debug/deps/native_family_external_edges-9d76bdf5a44e1f81)
+
+running 4 tests
+test exact_owning_descriptor_passes_and_equal_schema_with_different_type_refuses ... ok
+test metadata_member_extent_is_bounded_before_comparison_or_allocation ... ok
+test omitted_reordered_laws_and_changed_leaf_contracts_refuse_before_allocation ... ok
+test referenced_child_must_be_present_as_the_complete_original_parent_type ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s

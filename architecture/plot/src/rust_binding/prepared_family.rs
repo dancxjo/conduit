@@ -1,16 +1,15 @@
 //! Finite, explicitly owned metadata for generated recursive Native conversion.
 use super::prepared_family_contracts::{self, NativeFamilyContractDescriptor};
 use super::{
-    validate_borrowed_native_contracts, NativeBindingRefusal, NativeRustBinding,
-    PreparedNativeInvariantAdmission, PreparedNativeInvariantRefusal,
-    PreparedNativeInvariantStorageLimits,
+    NativeBindingRefusal, NativeRustBinding, PreparedNativeInvariantAdmission,
+    PreparedNativeInvariantRefusal, PreparedNativeInvariantStorageLimits,
 };
 use crate::NativeTypeValueContract;
 use alloc::vec::Vec;
 use conduit_core::{
-    validate_canonical_structured_value, StructuredInfoRefusal, StructuredInfoType,
-    StructuredInfoTypeShape, ValidatedCanonicalStructuredValue, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
-    MAXIMUM_STRUCTURED_INFO_NODES,
+    MAXIMUM_STRUCTURED_CANONICAL_BYTES, MAXIMUM_STRUCTURED_INFO_NODES, StructuredInfoRefusal,
+    StructuredInfoType, StructuredInfoTypeShape, ValidatedCanonicalStructuredValue,
+    validate_canonical_structured_value,
 };
 use core::mem::size_of;
 
@@ -80,6 +79,7 @@ pub(super) struct PreparedType {
     contracts: Vec<NativeTypeValueContract>,
     laws: PreparedNativeInvariantAdmission,
     framing: Vec<u8>,
+    record_access: Option<conduit_core::PreparedCanonicalRecordAccess<'static>>,
 }
 
 pub struct PreparedNativeFamily {
@@ -185,7 +185,15 @@ impl PreparedNativeFamily {
             } else {
                 limits.maximum_input_bytes
             };
+            let record_heap = if descriptor.type_bytes.first() == Some(&2) {
+                conduit_core::PreparedCanonicalRecordAccess::storage_bound(descriptor.type_bytes)
+                    .map_err(Refusal::InvalidType)?
+            } else {
+                0
+            };
             let metadata_heap = contract_heap
+                .checked_add(record_heap)
+                .ok_or(Refusal::Capacity)?
                 .checked_add(framing_heap)
                 .ok_or(Refusal::Capacity)?;
             let base = retained
@@ -198,6 +206,17 @@ impl PreparedNativeFamily {
             let contracts = prepared_family_contracts::materialize(descriptor.contracts)
                 .map_err(Refusal::InvalidContract)?;
             let framing = Vec::with_capacity(framing_heap);
+            let record_access = if descriptor.type_bytes.first() == Some(&2) {
+                Some(
+                    conduit_core::PreparedCanonicalRecordAccess::prepare(
+                        descriptor.type_bytes,
+                        record_heap,
+                    )
+                    .map_err(Refusal::InvalidType)?,
+                )
+            } else {
+                None
+            };
             let (laws, law_receipt) =
                 PreparedNativeInvariantAdmission::from_canonical_laws_with_storage_limits(
                     &value_type,
@@ -233,6 +252,7 @@ impl PreparedNativeFamily {
                 contracts,
                 laws,
                 framing,
+                record_access,
             });
         }
         let conversion = maximum_inline
@@ -294,6 +314,26 @@ impl PreparedNativeFamily {
         Ok(())
     }
 
+    /// Exact prepared record framing; complete descriptor identity remains required.
+    pub fn record_field<'a>(
+        &self,
+        descriptor: &'static NativeFamilyTypeDescriptor,
+        value: ValidatedCanonicalStructuredValue<'a>,
+        name: &str,
+    ) -> Result<Option<ValidatedCanonicalStructuredValue<'a>>, NativeBindingRefusal> {
+        self.check_type(descriptor, value)?;
+        let ty = self
+            .types
+            .iter()
+            .find(|ty| core::ptr::eq(ty.descriptor, descriptor))
+            .ok_or_else(wrong_type)?;
+        ty.record_access
+            .as_ref()
+            .ok_or_else(wrong_type)?
+            .field(value, name)
+            .map_err(NativeBindingRefusal::InvalidValue)
+    }
+
     /// Generated converters call after their children in the original constructor order.
     pub fn validate(
         &mut self,
@@ -306,7 +346,11 @@ impl PreparedNativeFamily {
             .iter_mut()
             .find(|ty| core::ptr::eq(ty.descriptor, descriptor))
             .ok_or_else(wrong_type)?;
-        validate_borrowed_native_contracts(value, &ty.contracts)?;
+        super::borrowed_contracts::validate_borrowed_native_contracts_with_record_access(
+            value,
+            &ty.contracts,
+            ty.record_access.as_ref(),
+        )?;
         if descriptor.laws.is_empty() {
             return Ok(());
         }
