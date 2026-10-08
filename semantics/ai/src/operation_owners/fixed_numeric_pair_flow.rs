@@ -58,10 +58,22 @@ impl KernelOperationFactory for FixedFlowPairOperationFactory {
         gear: &PlannedGear,
         _values: &mut HostedValueStore,
     ) -> Result<Box<dyn StepBack<PORTS> + Send>, String> {
+        self.prepare_with_inventory(gear)
+            .map(|prepared| prepared.into_back())
+    }
+}
+
+impl FixedFlowPairOperationFactory {
+    pub fn prepare_with_inventory(
+        &self,
+        gear: &PlannedGear,
+    ) -> Result<super::prepared_numeric_back::PreparedNumericBack, String> {
         self.verify(gear)?;
-        Ok(Box::new(
-            FixedFlowPairBack::prepare_planned::<PORTS>(gear, 3)
-                .map_err(|error| format!("{error:?}"))?,
+        let back = FixedFlowPairBack::prepare_planned::<PORTS>(gear, 3)
+            .map_err(|error| format!("{error:?}"))?;
+        let local = back.local_accounted_heap_bytes();
+        Ok(super::prepared_numeric_back::PreparedNumericBack::new(
+            back, local,
         ))
     }
 }

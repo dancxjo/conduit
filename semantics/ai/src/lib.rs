@@ -291,6 +291,8 @@ pub mod native_traversal;
 #[cfg(feature = "fixed-numeric-owners")]
 pub mod nominal_weakening;
 #[cfg(feature = "fixed-numeric-owners")]
+pub mod numeric_resource_owners;
+#[cfg(feature = "fixed-numeric-owners")]
 pub mod operation_owners;
 #[cfg(feature = "fixed-numeric-owners")]
 pub mod transport_envelope;

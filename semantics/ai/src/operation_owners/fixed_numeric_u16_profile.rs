@@ -90,11 +90,26 @@ impl KernelOperationFactory for U16ProfileOperationFactory {
         gear: &PlannedGear,
         _values: &mut HostedValueStore,
     ) -> Result<Box<dyn StepBack<FIXED_KERNEL_STORAGE_PORTS_PER_NODE> + Send>, String> {
+        self.prepare_with_inventory(gear)
+            .map(|prepared| prepared.into_back())
+    }
+}
+
+impl U16ProfileOperationFactory {
+    pub fn prepare_with_inventory(
+        &self,
+        gear: &PlannedGear,
+    ) -> Result<super::prepared_numeric_back::PreparedNumericBack, String> {
         let selected = self.selected(gear)?;
-        Ok(Box::new(U16ProfileBack::prepare_planned::<
-            FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
-        >(
-            gear, 2, &selected.profile, selected.flow
-        )?))
+        let back = U16ProfileBack::prepare_planned::<FIXED_KERNEL_STORAGE_PORTS_PER_NODE>(
+            gear,
+            2,
+            &selected.profile,
+            selected.flow,
+        )?;
+        let local = back.local_accounted_heap_bytes();
+        Ok(super::prepared_numeric_back::PreparedNumericBack::new(
+            back, local,
+        ))
     }
 }

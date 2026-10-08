@@ -189,3 +189,180 @@ fn original_content_authority_and_signature_refusals_remain() {
         }
     }
 }
+
+#[test]
+#[ignore = "requires exact original FARGAN fixture and artifact roots"]
+fn aggregate_original_owners_deduplicate_identity_and_reserve_before_copy() {
+    use conduit_ai::{
+        fixed_tensor_resource::AdmittedFixedTensorResource, numeric_resource_owners::*,
+    };
+    use conduit_data::{TensorAxis, TensorAxisRole, TensorBacking, TensorElement, TensorValue};
+    use conduit_plot::rust_binding::BoundedSequence;
+    let (artifact, signature, bytes, binding, _) = fixture();
+    let model = Arc::new(
+        AdmittedModelResource::adopt(artifact, signature, bytes.clone(), &binding).unwrap(),
+    );
+    let project = std::path::PathBuf::from(
+        std::env::var_os("CONDUIT_FARGAN_PREPARATION_ARTIFACT_ROOT").unwrap(),
+    );
+    let plan = Arc::new(
+        serde_json::from_slice::<Plan>(
+            &std::fs::read(
+                project.join("outputs/committed-common-fargan-greeting/sealed-epoch-plan.json"),
+            )
+            .unwrap(),
+        )
+        .unwrap(),
+    );
+    let source: Arc<str> = std::fs::read_to_string(
+        project.join("outputs/committed-common-fargan-greeting/checked-epoch-source.conduit"),
+    )
+    .unwrap()
+    .into();
+    let digest = conduit_data::tensor_content_digest(&bytes[..4]);
+    let reference = BoundedResourceRef {
+        identity: ResourceSemanticIdentity::from_digest(digest),
+        content_profile: kind_id("tensor/elements-ieee754-f32-le@1"),
+        access_class: "private-tensor/read@1".into(),
+        extent: ResourceExtent {
+            bytes: 4,
+            items: Some(1),
+        },
+        lifetime: binding_version(&binding),
+    };
+    let tensor = Arc::new(TensorValue {
+        element: TensorElement::F32,
+        dimensions: BoundedSequence::try_from_iter([1]).unwrap(),
+        axes: BoundedSequence::try_from_iter([TensorAxis {
+            identity: None,
+            role: TensorAxisRole::other("parameter".into()).unwrap(),
+            unit: None,
+        }])
+        .unwrap(),
+        backing: TensorBacking::Resource(reference.clone()),
+        content_digest: digest,
+    });
+    let tensor_binding = ResourceReferenceBinding {
+        identity: reference.identity,
+        version: reference.lifetime.version,
+        content_profile: reference.content_profile.clone(),
+        access_class: reference.access_class.clone(),
+        handle: "tensor-handle".into(),
+        authority_contract: conduit_ai::fixed_numeric_preparation::TENSOR_READ_AUTHORITY.into(),
+        authority_grant: "tensor-grant".into(),
+        maximum_bytes: 4,
+        maximum_items: Some(1),
+        availability: ResourceReferenceAvailability::Available,
+    };
+    let first = Arc::new(
+        AdmittedFixedTensorResource::adopt_shared_slice(
+            tensor.clone(),
+            bytes.clone(),
+            0..4,
+            &tensor_binding,
+        )
+        .unwrap(),
+    );
+    let second = Arc::new(
+        AdmittedFixedTensorResource::adopt_shared_slice(
+            tensor.clone(),
+            bytes.clone(),
+            0..4,
+            &tensor_binding,
+        )
+        .unwrap(),
+    );
+    let tensors = [first.clone(), first.clone(), second.clone()];
+    let equal_distinct: Arc<[u8]> = Arc::from(bytes.as_ref());
+    let buffers = [bytes.clone(), bytes.clone(), equal_distinct.clone()];
+    let (reservation, probe) = allocation_probe::observe(|| {
+        PreparedNumericResourceOwners::storage_reservation(
+            &model, &plan, &source, &tensors, &buffers,
+        )
+        .unwrap()
+    });
+    assert_eq!((probe.allocations, probe.reallocations), (0, 0));
+    assert_eq!(reservation.unique_tensor_resources(), 2);
+    assert_eq!(reservation.unique_tensor_descriptors(), 1);
+    assert_eq!(reservation.unique_byte_backings(), 2);
+    assert_eq!(reservation.shared_allocations(), 8);
+    let limits = NumericResourceStorageLimits {
+        maximum_preparation_requested_bytes: reservation.preparation_requested_bytes_bound(),
+        maximum_retained_payload_bytes: reservation.retained_payload_bytes(),
+        maximum_shared_allocations: reservation.shared_allocations(),
+    };
+    for which in 0..3 {
+        let mut under = limits;
+        match which {
+            0 => under.maximum_preparation_requested_bytes -= 1,
+            1 => under.maximum_retained_payload_bytes -= 1,
+            _ => under.maximum_shared_allocations -= 1,
+        };
+        let (result, observed) = allocation_probe::observe(|| {
+            PreparedNumericResourceOwners::prepare(
+                &model, &plan, &source, &tensors, &buffers, under,
+            )
+        });
+        assert!(matches!(
+            result,
+            Err(NumericResourceStorageRefusal::Capacity)
+        ));
+        assert_eq!((observed.allocations, observed.reallocations), (0, 0));
+    }
+    let (owner, observed) = allocation_probe::observe(|| {
+        PreparedNumericResourceOwners::prepare(&model, &plan, &source, &tensors, &buffers, limits)
+            .unwrap()
+    });
+    assert_eq!(
+        observed.requested_bytes,
+        reservation.preparation_requested_bytes_bound()
+    );
+    assert_eq!(
+        observed.live_bytes,
+        reservation.preparation_requested_bytes_bound()
+    );
+    assert_eq!(owner.receipt(), reservation);
+    assert!(Arc::ptr_eq(owner.model(), &model));
+    assert!(Arc::ptr_eq(owner.plan(), &plan));
+    assert!(Arc::ptr_eq(owner.source(), &source));
+    for (actual, original) in owner.tensors().iter().zip(&tensors) {
+        assert!(Arc::ptr_eq(actual, original));
+    }
+    for (actual, original) in owner.buffers().iter().zip(&buffers) {
+        assert!(Arc::ptr_eq(actual, original));
+    }
+    assert!(!Arc::ptr_eq(&buffers[0], &buffers[2]));
+    let more = Arc::new(
+        AdmittedFixedTensorResource::adopt_shared_slice(
+            Arc::new((*tensor).clone()),
+            bytes.clone(),
+            0..4,
+            &tensor_binding,
+        )
+        .unwrap(),
+    );
+    let distinct = [first, second, more];
+    let r = PreparedNumericResourceOwners::storage_reservation(
+        &model, &plan, &source, &distinct, &buffers,
+    )
+    .unwrap();
+    assert_eq!(r.unique_tensor_descriptors(), 2);
+    assert_eq!(r.unique_tensor_resources(), 3);
+    assert_eq!(r.unique_byte_backings(), 2);
+    assert!(r.retained_payload_bytes() > reservation.retained_payload_bytes());
+    println!(
+        "aggregate original owners requested={} retained_payload={} shared_allocations={} resources={} descriptors={} backings={}",
+        reservation.preparation_requested_bytes_bound(),
+        reservation.retained_payload_bytes(),
+        reservation.shared_allocations(),
+        reservation.unique_tensor_resources(),
+        reservation.unique_tensor_descriptors(),
+        reservation.unique_byte_backings()
+    );
+}
+fn binding_version(binding: &ResourceReferenceBinding) -> ResourceLifetime {
+    ResourceLifetime {
+        version: binding.version,
+        expires_at: None,
+    }
+}

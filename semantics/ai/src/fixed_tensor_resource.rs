@@ -75,6 +75,10 @@ impl AdmittedFixedTensorResource {
     pub fn retained_storage_bytes(&self) -> usize {
         self.bytes.len()
     }
+    /// Allocation identity only; equal content in another backing stays distinct.
+    pub fn shares_storage_arc(&self, other: &Arc<[u8]>) -> bool {
+        Arc::ptr_eq(&self.bytes, other)
+    }
     pub fn shares_storage_with(&self, other: &Self) -> bool {
         Arc::ptr_eq(&self.bytes, &other.bytes)
     }

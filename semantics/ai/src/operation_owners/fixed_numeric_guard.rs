@@ -68,10 +68,20 @@ impl KernelOperationFactory for FixedGuardOperationFactory {
         gear: &PlannedGear,
         _values: &mut HostedValueStore,
     ) -> Result<Box<dyn StepBack<PORTS> + Send>, String> {
-        Ok(Box::new(FixedGuardBack::prepare_planned::<PORTS>(
-            self.profile(gear)?,
-            gear,
-            3,
-        )?))
+        self.prepare_with_inventory(gear)
+            .map(|prepared| prepared.into_back())
+    }
+}
+
+impl FixedGuardOperationFactory {
+    pub fn prepare_with_inventory(
+        &self,
+        gear: &PlannedGear,
+    ) -> Result<super::prepared_numeric_back::PreparedNumericBack, String> {
+        let back = FixedGuardBack::prepare_planned::<PORTS>(self.profile(gear)?, gear, 3)?;
+        let local = back.local_accounted_heap_bytes();
+        Ok(super::prepared_numeric_back::PreparedNumericBack::new(
+            back, local,
+        ))
     }
 }
