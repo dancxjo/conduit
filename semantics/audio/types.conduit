@@ -207,3 +207,21 @@ form audio/gate = Gate as u8
     on
 
 form audio/modulation-destination = ModulationDestination as u8
+
+# Exact acoustic quantities, independent of any renderer or sample rate.
+# Authored fractions are retained without normalization.
+type AudioFrequencyHz = {
+    numerator_hz: U64 in 1..=18446744073709551615
+    denominator: U64 in 1..=18446744073709551615
+}
+
+type AudioCycleDuration = {
+    numerator_seconds: U64 in 1..=18446744073709551615
+    denominator: U64 in 1..=18446744073709551615
+}
+
+# Bandwidth is independent from center frequency, not a normalized Q factor.
+type AudioResonator = {
+    center: AudioFrequencyHz
+    bandwidth: AudioFrequencyHz
+}
