@@ -93,6 +93,29 @@ mod tests {
     }
 
     #[test]
+    fn tour_timer_domain_copy_preserves_forward_overlap() {
+        let original: [u8; 256] = core::array::from_fn(|index| index as u8);
+        for destination in 16..16 + WORD {
+            for distance in 0..=2 * WORD {
+                for length in 0..=128 {
+                    let mut actual = original;
+                    let mut expected = original;
+                    let source = destination + distance;
+                    expected.copy_within(source..source + length, destination);
+                    unsafe {
+                        copy_forward(
+                            actual.as_mut_ptr().add(destination),
+                            actual.as_ptr().add(source),
+                            length,
+                        );
+                    }
+                    assert_eq!(actual, expected);
+                }
+            }
+        }
+    }
+
+    #[test]
     fn tour_timer_domain_fill_preserves_all_alignment_tails_and_canaries() {
         for offset in 16..16 + WORD {
             for value in [0, 1, 0x80, 0xff] {
