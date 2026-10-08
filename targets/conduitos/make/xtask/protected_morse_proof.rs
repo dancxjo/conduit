@@ -113,10 +113,10 @@ mod tests {
         }
         let mut fixture = cost.clone();
         fixture["fixture"] = Value::Bool(true);
-        assert!(
-            validate(&(transcript(&sign, &cost) + &format!("CONDUIT_DOMAIN_COST {fixture}\n")))
-                .is_ok()
-        );
+        assert!(validate(
+            &(transcript(&sign, &cost) + &format!("CONDUIT_DOMAIN_COST {fixture}\n"))
+        )
+        .is_ok());
         for field in [
             "plan_id",
             "play_id",

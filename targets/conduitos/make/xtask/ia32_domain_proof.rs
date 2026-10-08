@@ -1,8 +1,9 @@
 //! Normal IA-32 Source/Play followed by architecture-specific hostile entries.
 use super::{
-    ConduitosArch, ConduitosError, build, ia32_product_boot, image, live_media,
+    build, ia32_product_boot, image, live_media,
     profile::Paths,
     report::{git_head, sha256_file},
+    ConduitosArch, ConduitosError,
 };
 use crate::cli::GlobalOpts;
 use std::fs;

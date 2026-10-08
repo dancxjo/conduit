@@ -7,7 +7,7 @@ use std::{
 
 use crate::cli::GlobalOpts;
 
-use super::{ConduitosArch, ConduitosError, build, image, profile::Paths, report::ArtifactRole};
+use super::{build, image, profile::Paths, report::ArtifactRole, ConduitosArch, ConduitosError};
 
 const PREFIX: &str = "CONDUIT_ORDINARY_DOMAIN_SIGN ";
 
