@@ -1,0 +1,203 @@
+   Compiling conduit-speech v0.1.0 (/home/dancxjo/conduit-unicode-ipa/semantics/speech)
+error[E0061]: this function takes 5 arguments but 1 argument was supplied
+     --> semantics/speech/src/ipa_authoring.rs:44:20
+      |
+   44 |                return SpeechPhoneticIpaOutcome::refused(whole(
+      |  _____________________^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^--
+      | | _____________________________________________________|
+      | ||
+   45 | ||                 request.original(),
+   46 | ||                 notation_reason(error),
+   47 | ||             ))
+      | ||_____________-- multiple arguments are missing
+      | |______________|
+      |                expected `u64`, found `SpeechIpaLocatedRefusal`
+      |
+note: associated function defined here
+     --> /home/dancxjo/conduit/target/debug/build/conduit-speech-661748fbf35e4668/out/semantic_types.rs:19128:12
+      |
+19128 |     pub fn refused(byte_end: u64, byte_start: u64, reason: SpeechIpaRefusalReason, scalar_end: u64, scalar_start: u64) -> Result<...
+      |            ^^^^^^^ -------------  ---------------  ------------------------------  ---------------  -----------------
+help: provide the arguments
+      |
+   44 -             return SpeechPhoneticIpaOutcome::refused(whole(
+   45 -                 request.original(),
+   46 -                 notation_reason(error),
+   47 -             ))
+   44 +             return SpeechPhoneticIpaOutcome::refused(/* u64 */, /* u64 */, /* semantic::SpeechIpaRefusalReason */, /* u64 */, /* u64 */)
+      |
+
+error[E0308]: mismatched types
+  --> semantics/speech/src/ipa_authoring.rs:44:20
+   |
+40 |   pub fn phonetic_from_ipa(request: &SpeechPhoneticIpaRequest) -> SpeechPhoneticIpaOutcome {
+   |                                                                   ------------------------ expected `semantic::SpeechPhoneticIpaOutcome` because of return type
+...
+44 |               return SpeechPhoneticIpaOutcome::refused(whole(
+   |  ____________________^
+45 | |                 request.original(),
+46 | |                 notation_reason(error),
+47 | |             ))
+   | |______________^ expected `SpeechPhoneticIpaOutcome`, found `Result<SpeechPhoneticIpaOutcome, ...>`
+   |
+   = note: expected enum `semantic::SpeechPhoneticIpaOutcome`
+              found enum `Result<semantic::SpeechPhoneticIpaOutcome, NativeBindingRefusal>`
+help: consider using `Result::expect` to unwrap the `Result<semantic::SpeechPhoneticIpaOutcome, NativeBindingRefusal>` value, panicking if the value is a `Result::Err`
+   |
+47 |             )).expect("REASON")
+   |               +++++++++++++++++
+
+error[E0061]: this function takes 4 arguments but 1 argument was supplied
+     --> semantics/speech/src/ipa_authoring.rs:51:25
+      |
+   51 |         Ok(admitted) => SpeechPhoneticIpaOutcome::admitted(admitted.transcription().clone()),
+      |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^----------------------------------
+      |                                                           ||
+      |                                                           |expected `String`, found `SpeechPhoneticIpaTranscription`
+      |                                                           three arguments of type `semantic::SpeechPhoneticIpaProfile`, `semantic::SpeechEvidenceProvenance`, and `BoundedSequence<semantic::SpeechIpaUnitOccurrence, 256>` are missing
+      |
+note: associated function defined here
+     --> /home/dancxjo/conduit/target/debug/build/conduit-speech-661748fbf35e4668/out/semantic_types.rs:19127:12
+      |
+19127 | ...fn admitted(original: String, profile: SpeechPhoneticIpaProfile, provenance: SpeechEvidenceProvenance, units: BoundedSequence<SpeechIpaUnitOccurrence, 256>) -...
+      |       ^^^^^^^^ ----------------  ---------------------------------  ------------------------------------  ----------------------------------------------------
+help: provide the arguments
+      |
+   51 -         Ok(admitted) => SpeechPhoneticIpaOutcome::admitted(admitted.transcription().clone()),
+   51 +         Ok(admitted) => SpeechPhoneticIpaOutcome::admitted(/* alloc::string::String */, /* semantic::SpeechPhoneticIpaProfile */, /* semantic::SpeechEvidenceProvenance */, /* BoundedSequence<semantic::SpeechIpaUnitOccurrence, 256> */),
+      |
+
+error[E0308]: mismatched types
+  --> semantics/speech/src/ipa_authoring.rs:51:25
+   |
+40 | pub fn phonetic_from_ipa(request: &SpeechPhoneticIpaRequest) -> SpeechPhoneticIpaOutcome {
+   |                                                                 ------------------------ expected `semantic::SpeechPhoneticIpaOutcome` because of return type
+...
+51 |         Ok(admitted) => SpeechPhoneticIpaOutcome::admitted(admitted.transcription().clone()),
+   |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `SpeechPhoneticIpaOutcome`, found `Result<SpeechPhoneticIpaOutcome, ...>`
+   |
+   = note: expected enum `semantic::SpeechPhoneticIpaOutcome`
+              found enum `Result<semantic::SpeechPhoneticIpaOutcome, NativeBindingRefusal>`
+help: consider using `Result::expect` to unwrap the `Result<semantic::SpeechPhoneticIpaOutcome, NativeBindingRefusal>` value, panicking if the value is a `Result::Err`
+   |
+51 |         Ok(admitted) => SpeechPhoneticIpaOutcome::admitted(admitted.transcription().clone()).expect("REASON"),
+   |                                                                                             +++++++++++++++++
+
+error[E0061]: this function takes 5 arguments but 1 argument was supplied
+     --> semantics/speech/src/ipa_authoring.rs:52:23
+      |
+   52 |         Err(error) => SpeechPhoneticIpaOutcome::refused(located(error)),
+      |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^----------------
+      |                                                        ||
+      |                                                        |expected `u64`, found `SpeechIpaLocatedRefusal`
+      |                                                        multiple arguments are missing
+      |
+note: associated function defined here
+     --> /home/dancxjo/conduit/target/debug/build/conduit-speech-661748fbf35e4668/out/semantic_types.rs:19128:12
+      |
+19128 |     pub fn refused(byte_end: u64, byte_start: u64, reason: SpeechIpaRefusalReason, scalar_end: u64, scalar_start: u64) -> Result<...
+      |            ^^^^^^^ -------------  ---------------  ------------------------------  ---------------  -----------------
+help: provide the arguments
+      |
+   52 -         Err(error) => SpeechPhoneticIpaOutcome::refused(located(error)),
+   52 +         Err(error) => SpeechPhoneticIpaOutcome::refused(/* u64 */, /* u64 */, /* semantic::SpeechIpaRefusalReason */, /* u64 */, /* u64 */),
+      |
+
+error[E0308]: mismatched types
+   --> semantics/speech/src/ipa_authoring.rs:62:65
+    |
+ 62 |         SpeechPhoneticIpaOutcome::Refused(reason) => return Err(reason),
+    |                                                             --- ^^^^^^ expected `SpeechIpaLocatedRefusal`, found `SpeechPhoneticIpaOutcomeRefused`
+    |                                                             |
+    |                                                             arguments to this enum variant are incorrect
+    |
+help: the type constructed contains `SpeechPhoneticIpaOutcomeRefused` due to the type of the argument passed
+   --> semantics/speech/src/ipa_authoring.rs:62:61
+    |
+ 62 |         SpeechPhoneticIpaOutcome::Refused(reason) => return Err(reason),
+    |                                                             ^^^^------^
+    |                                                                 |
+    |                                                                 this argument influences the type of `Err`
+note: tuple variant defined here
+   --> /home/dancxjo/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/result.rs:566:5
+    |
+566 |     Err(#[stable(feature = "rust1", since = "1.0.0")] E),
+    |     ^^^
+
+error[E0308]: mismatched types
+     --> semantics/speech/src/ipa_authoring.rs:75:64
+      |
+   75 |     SpeechPhoneticIpaPhone::new(PhoneSpecification::unknown(), transcription)
+      |     ---------------------------                                ^^^^^^^^^^^^^ expected `SpeechPhoneticIpaTranscription`, found `SpeechPhoneticIpaOutcomeAdmitted`
+      |     |
+      |     arguments to this function are incorrect
+      |
+note: associated function defined here
+     --> /home/dancxjo/conduit/target/debug/build/conduit-speech-661748fbf35e4668/out/semantic_types.rs:18518:12
+      |
+18518 |     pub fn new(identity: PhoneSpecification, transcription: SpeechPhoneticIpaTranscription) -> Result<Self, NativeBindingRefusal> {
+      |            ^^^                               ---------------------------------------------
+
+error[E0061]: this function takes 4 arguments but 1 argument was supplied
+     --> semantics/speech/src/ipa_authoring.rs:84:22
+      |
+   84 |         Ok(value) => SpeechPhonemicIpaOutcome::admitted(value),
+      |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^------- three arguments of type `semantic::SpeechInventoryId`, `semantic::SpeechIpaProfileMatch`, and `BoundedSequence<PhonemeId, 256>` are missing
+      |
+note: expected `BoundedSequence<..., 64>`, found `SpeechPhonemicIpaTranscription`
+     --> semantics/speech/src/ipa_authoring.rs:84:57
+      |
+   84 |         Ok(value) => SpeechPhonemicIpaOutcome::admitted(value),
+      |                                                         ^^^^^
+      = note: expected struct `BoundedSequence<semantic::SpeechIpaPhonemeDefinitionBinding, 64>`
+                 found struct `semantic::SpeechPhonemicIpaTranscription`
+note: associated function defined here
+     --> /home/dancxjo/conduit/target/debug/build/conduit-speech-661748fbf35e4668/out/semantic_types.rs:19284:12
+      |
+19284 | ...fn admitted(bindings: BoundedSequence<SpeechIpaPhonemeDefinitionBinding, 64>, inventory_id: SpeechInventoryId, notation: SpeechIpaProfileMatch, phonemes: BoundedSequence<PhonemeId, 256>) -...
+      |       ^^^^^^^^ ----------------------------------------------------------------  -------------------------------  -------------------------------  -----------------------------------------
+help: provide the arguments
+      |
+   84 -         Ok(value) => SpeechPhonemicIpaOutcome::admitted(value),
+   84 +         Ok(value) => SpeechPhonemicIpaOutcome::admitted(/* BoundedSequence<semantic::SpeechIpaPhonemeDefinitionBinding, 64> */, /* semantic::SpeechInventoryId */, /* semantic::SpeechIpaProfileMatch */, /* BoundedSequence<PhonemeId, 256> */),
+      |
+
+error[E0308]: mismatched types
+  --> semantics/speech/src/ipa_authoring.rs:84:22
+   |
+82 | ) -> SpeechPhonemicIpaOutcome {
+   |      ------------------------ expected `semantic::SpeechPhonemicIpaOutcome` because of return type
+83 |     match admit_phonemic(request, inventory) {
+84 |         Ok(value) => SpeechPhonemicIpaOutcome::admitted(value),
+   |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `SpeechPhonemicIpaOutcome`, found `Result<SpeechPhonemicIpaOutcome, ...>`
+   |
+   = note: expected enum `semantic::SpeechPhonemicIpaOutcome`
+              found enum `Result<semantic::SpeechPhonemicIpaOutcome, NativeBindingRefusal>`
+help: consider using `Result::expect` to unwrap the `Result<semantic::SpeechPhonemicIpaOutcome, NativeBindingRefusal>` value, panicking if the value is a `Result::Err`
+   |
+84 |         Ok(value) => SpeechPhonemicIpaOutcome::admitted(value).expect("REASON"),
+   |                                                               +++++++++++++++++
+
+error[E0061]: this function takes 5 arguments but 1 argument was supplied
+     --> semantics/speech/src/ipa_authoring.rs:85:24
+      |
+   85 |         Err(reason) => SpeechPhonemicIpaOutcome::refused(reason),
+      |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^--------
+      |                                                         ||
+      |                                                         |expected `u64`, found `SpeechIpaLocatedRefusal`
+      |                                                         multiple arguments are missing
+      |
+note: associated function defined here
+     --> /home/dancxjo/conduit/target/debug/build/conduit-speech-661748fbf35e4668/out/semantic_types.rs:19285:12
+      |
+19285 |     pub fn refused(byte_end: u64, byte_start: u64, reason: SpeechIpaRefusalReason, scalar_end: u64, scalar_start: u64) -> Result<...
+      |            ^^^^^^^ -------------  ---------------  ------------------------------  ---------------  -----------------
+help: provide the arguments
+      |
+   85 -         Err(reason) => SpeechPhonemicIpaOutcome::refused(reason),
+   85 +         Err(reason) => SpeechPhonemicIpaOutcome::refused(/* u64 */, /* u64 */, /* semantic::SpeechIpaRefusalReason */, /* u64 */, /* u64 */),
+      |
+
+Some errors have detailed explanations: E0061, E0308.
+For more information about an error, try `rustc --explain E0061`.
+error: could not compile `conduit-speech` (lib) due to 10 previous errors

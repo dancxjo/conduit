@@ -1,0 +1,684 @@
+   Compiling conduit-time v0.1.0 (/home/dancxjo/conduit-unicode-ipa/semantics/time)
+   Compiling conduit-audio v0.1.0 (/home/dancxjo/conduit-unicode-ipa/semantics/audio)
+   Compiling conduit-speech v0.1.0 (/home/dancxjo/conduit-unicode-ipa/semantics/speech)
+   Compiling conduit-data v0.1.0 (/home/dancxjo/conduit-unicode-ipa/semantics/data)
+    Finished `test` profile [unoptimized] target(s) in 3m 10s
+     Running unittests src/lib.rs (/home/dancxjo/conduit/target/debug/deps/conduit_speech-dd5cd36dba640b79)
+
+running 70 tests
+test connection_parity::sonorant_joins_share_an_exact_midpoint_without_merging_durations ... ok
+test duration_parity::frame_span_uses_checked_subtraction ... ok
+test allophone_selection_parity::eligibility_and_request_state_laws_match_checked_portable_evaluation ... ok
+test frication_parity::voiced_fricatives_have_a_stable_low_bar_and_retain_their_noise_bands ... ok
+test frication_parity::low_voicing_is_noise_independent_and_upper_noise_is_phase_independent ... ok
+test connection_parity::boundaries_and_noise_or_stop_neighbors_keep_isolated_envelopes ... ok
+test frication_transfer::diffuse_frication_is_direct_noise_and_keeps_its_source_class ... ok
+test frication_transfer::unused_bypass_does_not_refuse_but_selected_overflow_does ... ok
+test connection_parity::connected_context_keeps_stop_place_stress_and_history_distinct ... ok
+test glottal_parity::fixed_period_flow_has_zero_dc_closed_phase_and_bounded_excitation ... ok
+test differential::compiled_integer_operations_match_checked_overflow_and_boundary_behavior ... ok
+test arithmetic_bounds::all_intermediate_profile_operations_fit_signed_32_bits ... ok
+test inflection_parity::every_stem_class_and_suffix_matches_portable_eligibility ... ok
+test duration_parity::sum_preserves_exact_values_and_checked_refusals ... ok
+test inflection_parity::every_declared_stem_and_unknown_controls_match_portable_stem_class ... ok
+test intensity_parity::local_intensity_is_neutral_at_joins_and_monotone_on_each_edge ... ok
+test ipa_partition::tests::ambiguous_complete_partition_refuses_instead_of_longest_match ... ok
+test ipa_partition::tests::multicodepoint_units_and_explicit_alias_preserve_source ... ok
+test ipa_partition::tests::no_partial_success_or_silent_truncation ... ok
+test ipa_unicode::tests::declared_unicode_units_survive_without_ascii_reinterpretation ... ok
+test ipa_unicode::tests::suprasegmentals_have_distinct_kinds ... ok
+test frication_transfer::sibilants_emphasize_upper_spectrum_and_retain_distinct_place_cues ... ok
+test neighbor_match_parity::every_alternative_pair_matches_portable_evaluation ... ok
+test control_parity::fractional_cycles_retain_subframe_offset_and_bound_every_advance ... ok
+test allophone_selection_parity::every_finish_carrier_matches_checked_portable_evaluation ... ok
+test arithmetic_bounds::every_profile_target_stays_inside_the_fixed_arithmetic_envelope ... ok
+test neighbor_match_parity::every_neighbor_carrier_matches_portable_evaluation ... ok
+test onset_parity::onset_models_restore_targets_keep_stable_poles_and_respect_boundaries ... ok
+test output_features_parity::every_default_feature_presence_pair_matches_portable_native_meaning ... ok
+test output_features_parity::every_output_feature_layer_carrier_matches_portable_native_meaning ... ok
+test allophone_selection_parity::every_status_mask_matches_portable_law_and_uses_the_original_native_type ... ok
+test intensity_parity::neutral_branch_is_exact_and_selected_scaling_refuses_overflow ... ok
+test frame_parity::frame_history_matches_the_original_checked_scalar_composition ... ok
+test onset_parity::stop_place_is_derived_from_the_exact_selected_phone ... ok
+test inflection_parity::scanner_length_and_character_equivalence_classes_match_portable_candidates ... ok
+test realization_parity::projected_phone_model_matches_every_retained_phone_and_stress ... ok
+test prosody_parity::pitch_policy_stays_bounded_monotone_and_retains_uncertainty ... ok
+test rule_conditions_parity::explicit_style_carriers_agree_with_checked_portable_law ... ok
+test rule_conditions_parity::feature_presence_policy_agrees_with_checked_portable_law ... ok
+test rule_input_parity::every_identity_pattern_carrier_agrees_with_checked_portable_policy ... ok
+test source_balance::hello_noise_and_vowel_have_audible_bounded_levels_and_exact_pause ... ok
+test source_balance::turbulent_source_energy_does_not_overpower_the_voiced_source ... ok
+test timing_parity::exact_rate_projection_matches_portable_unsigned_arithmetic ... ok
+test trajectory_parity::diphthongs_move_spectrum_without_changing_duration_or_segment_identity ... ok
+test trajectory_parity::plain_stops_have_silent_closure_and_audible_finite_release ... ok
+test trajectory_parity::stop_place_and_voicing_have_distinct_bounded_realizations ... ok
+test inflection_parity::every_final_phoneme_and_suffix_matches_portable_ending_meaning ... ok
+test pronunciation_parity::digit_normalization_has_exact_portable_values_and_matches_digit_name_lexicon ... ok
+test trajectory_parity::unvoiced_stop_spectra_separate_low_mid_and_high_energy_models ... ok
+test upper_source_parity::steady_voicing_is_rejected_and_unused_history_cannot_refuse_noise ... ok
+test upper_source_parity::upper_voicing_difference_tracks_exact_source_and_keeps_noise_unchanged ... ok
+test differential::all_compiled_phone_targets_match_the_portable_typed_program ... ok
+test aspiration_parity::every_aspiration_carrier_matches_the_portable_plot ... ok
+test context_match_parity::every_context_carrier_matches_the_checked_portable_program ... ok
+test rule_conditions_parity::every_stress_mask_presence_state_and_tag_agrees_with_checked_portable_law ... ok
+test allophone_selection_parity::every_legal_priority_fold_carrier_matches_checked_portable_evaluation ... ok
+test duration_parity::admitted_grid_domain_and_duration_targets_match_portable_plots ... ok
+test glottal_parity::source_graph_matches_portable_at_open_closure_and_refusal_edges ... ok
+test pronunciation_parity::lexicon_and_spelling_outputs_match_portable_exact_native_values ... ok
+test control_parity::resolved_cycle_frames_match_the_portable_graph_at_phase_and_domain_edges ... ok
+test intensity_parity::every_phone_and_stress_preserves_context_and_has_exact_portable_intensity ... ok
+test neighbor_parity::both_neighbor_endpoints_match_portable_graph_and_scalar_composition ... ok
+test onset_parity::onset_graph_matches_portable_models_for_every_phone_place_and_window_edge ... ok
+test trajectory_parity::temporal_targets_match_portable_graph_for_every_phone_and_transition_edge ... ok
+test frame_parity::composed_frame_agrees_with_portable_graph_at_all_phone_and_envelope_edges ... ok
+test realization_parity::every_realization_preserves_typed_input_phone_and_derivation ... ok
+test connection_parity::connected_target_graph_matches_portable_models_at_every_transition_edge ... ok
+test prosody_parity::authored_pitch_and_dsp_chain_matches_portable_graph_with_exact_context ... ok
+test onset_parity::contextual_frame_preserves_onset_context_and_matches_the_portable_chain has been running for over 60 seconds
+test trajectory_parity::temporal_frame_preserves_typed_context_and_matches_portable_specialization has been running for over 60 seconds
+test trajectory_parity::temporal_frame_preserves_typed_context_and_matches_portable_specialization ... ok
+test onset_parity::contextual_frame_preserves_onset_context_and_matches_the_portable_chain ... ok
+
+test result: ok. 70 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 210.52s
+
+     Running tests/allophone_selection.rs (/home/dancxjo/conduit/target/debug/deps/allophone_selection-d3363e1b4f1355ec)
+
+running 8 tests
+test an_excluded_unsupported_rule_is_not_compared_but_an_allowed_one_refuses ... ok
+test mismatch_exclusion_default_permission_and_missing_default_are_distinct ... ok
+test known_phone_constraints_are_never_replaced_and_unresolved_requests_are_retained ... ok
+test a_higher_priority_unknown_blocks_lower_matches_and_default ... ok
+test first_eligible_choice_keeps_every_receipt_and_full_bound ... ok
+test selected_phone_lowers_through_exact_profile_without_rewriting_intent ... ok
+test native_receipt_admits_only_the_26_meaningful_choice_states ... ok
+test all_status_masks_are_explicit_and_keep_original_declarations ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.50s
+
+     Running tests/boundary_intent.rs (/home/dancxjo/conduit/target/debug/deps/boundary_intent-fc64936584237fab)
+
+running 4 tests
+test native_binding_admits_only_exact_supported_relations ... ok
+test exact_boundary_intent_retains_sources_and_renders_only_silence ... ok
+test unresolved_kind_and_duration_states_are_preserved ... ok
+test boundary_match_laws_preserve_all_seven_kinds_without_collapsing_them ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+     Running tests/chosen_global_rule_profile.rs (/home/dancxjo/conduit/target/debug/deps/chosen_global_rule_profile-ca7f47dc0ef86daf)
+
+running 4 tests
+test selected_rule_binds_exact_definition_and_profile_with_original_default_evidence ... ok
+test deferral_and_selected_unknown_output_remain_distinct_typed_refusals ... ok
+test foreign_basis_occurrence_missing_duplicate_and_stale_definitions_refuse ... ok
+test inherited_features_are_refused_instead_of_discarded_by_compact_voice ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.13s
+
+     Running tests/context_match.rs (/home/dancxjo/conduit/target/debug/deps/context_match-25a20381810daa55)
+
+running 2 tests
+test all_specification_pairs_preserve_original_values_and_distinct_decisions ... ok
+test all_scalar_environment_domains_compare_exact_known_values ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/contextual_intent.rs (/home/dancxjo/conduit/target/debug/deps/contextual_intent-e8a648b1f7ed233f)
+
+running 5 tests
+test missing_or_misaligned_context_refuses_before_quantitative_preparation ... ok
+test stale_late_source_and_missing_coverage_cannot_return_a_playable_result ... ok
+test choice_timing_and_silent_boundary_keep_original_identity_and_chunk_invariance ... ok
+test sourced_choice_keeps_exact_materials_and_original_occurrences_through_pcm ... ok
+test deferred_or_missing_late_choice_returns_no_partially_playable_utterance ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s
+
+     Running tests/control.rs (/home/dancxjo/conduit/target/debug/deps/control-ac15151f15f16578)
+
+running 7 tests
+test controls_cannot_replace_the_admitted_realization_after_play_starts ... ok
+test unsupported_controls_and_arithmetic_have_distinct_refusals ... ok
+test projections_keep_requested_units_and_quantization_remainders ... ok
+test quantization_receipts_refuse_changed_coordinates_and_remainders ... ok
+test exact_duration_and_selected_phone_survive_combined_controls ... ok
+test output_gain_scales_voicing_and_noise_and_zero_is_still_completed_speech ... ok
+test fractional_pitch_is_block_invariant_and_pressure_can_discard_the_entire_candidate ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+     Running tests/declared_context.rs (/home/dancxjo/conduit/target/debug/deps/declared_context-d75fb9f581657183)
+
+running 6 tests
+test unobserved_endpoint_cannot_satisfy_a_required_neighbor ... ok
+test syntax_refusal_remains_distinct_even_when_scalar_requirement_mismatches ... ok
+test scalar_mismatch_keeps_unresolved_conditions_and_every_original_component ... ok
+test original_declaration_gets_one_consistent_occurrence_context_without_becoming_selected ... ok
+test a_known_feature_on_the_definition_does_not_become_neighbor_observation ... ok
+test asymmetric_stress_conditions_use_the_same_exact_sides_as_matcher_context ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+     Running tests/declared_realization.rs (/home/dancxjo/conduit/target/debug/deps/declared_realization-8f309662e537770c)
+
+running 8 tests
+test allophone_scalar_context_retains_rule_and_unresolved_observations ... ok
+test allophone_neighbor_receipt_keeps_original_rule_and_immediate_sides ... ok
+test allophone_comparison_keeps_each_scalar_domain_separate ... ok
+test named_environment_specs_keep_six_states_through_native_round_trips ... ok
+test retains_all_declaration_paths_without_selecting_or_discharging_context ... ok
+test missing_duplicate_undeclared_and_wrong_events_remain_distinct ... ok
+test unresolved_phonemes_preserve_all_original_states_and_event ... ok
+test all_seventeen_declarations_are_retained_and_native_identity_cannot_be_forged ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+     Running tests/default_output_features.rs (/home/dancxjo/conduit/target/debug/deps/default_output_features-168c58b63a4dcb46)
+
+running 2 tests
+test occurrence_overrides_whole_definition_specification_preserving_borrowed_layers_and_order ... ok
+test duplicate_keys_and_merged_capacity_refuse_without_normalizing_unicode_ids ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/direct_phones.rs (/home/dancxjo/conduit/target/debug/deps/direct_phones-b4c309e1762bfc4a)
+
+running 3 tests
+test exact_timing_and_voice_controls_apply_to_direct_phone_events ... ok
+test direct_allophones_are_not_selected_again_and_pressure_preserves_the_cursor ... ok
+test directly_supplied_phones_preserve_waveforms_without_inventing_phonemes ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.12s
+
+     Running tests/duration.rs (/home/dancxjo/conduit/target/debug/deps/duration-ae15d5d133a38d57)
+
+running 8 tests
+test native_span_law_refuses_an_inconsistent_frame_count ... ok
+test preparation_refuses_bounds_and_overflow_without_changing_inputs ... ok
+test mixed_bases_and_zero_time_retain_the_original_durations ... ok
+test duration_refusal_is_transactional_and_distinct_from_shape_and_storage ... ok
+test cumulative_floor_preserves_fractional_frames_without_drift ... ok
+test timed_intake_preserves_an_explicit_phone_and_its_neighbor_model ... ok
+test source_durations_drive_actual_pcm_length_and_pressure_safe_blocks ... ok
+test profile_duration_retains_exact_audio_and_zero_boundaries_add_no_samples ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.20s
+
+     Running tests/feature_bundle.rs (/home/dancxjo/conduit/target/debug/deps/feature_bundle-3a3862bf42b6065b)
+
+running 4 tests
+test duplicate_keys_refuse_on_the_exact_side_before_returning_receipts ... ok
+test exact_keys_and_missing_values_keep_original_receipts_without_defaults ... ok
+test empty_and_sixteen_feature_bundles_have_exact_fixed_receipt_counts ... ok
+test every_bundle_conjunction_pair_retains_components_and_native_policy ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/feature_match.rs (/home/dancxjo/conduit/target/debug/deps/feature_match-5369e506cb456005)
+
+running 3 tests
+test every_feature_specification_state_keeps_its_original_evidence ... ok
+test native_feature_law_preserves_ieee_bits_and_full_vector_bound ... ok
+test full_feature_value_domain_uses_native_equality_without_cross_domain_coercion ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/global_intent_realization.rs (/home/dancxjo/conduit/target/debug/deps/global_intent_realization-a9839128064e1d6b)
+
+running 17 tests
+test deferred_choice_preserves_its_exact_reason_in_the_utterance_refusal ... ok
+test evidence_alignment_refuses_before_timing_or_choice ... ok
+test frozen_global_choices_timing_and_boundary_preserve_original_receipts_and_pcm ... ok
+test late_missing_phoneme_refuses_even_when_a_wildcard_rule_and_phone_would_match ... ok
+test default_intent_cases::default_permission_never_replaces_earlier_deferral ... ok
+test selected_default_voice_retains_exact_inputs_and_refuses_foreign_defaults ... ok
+test aspiration_cases::rule_override_is_realized_as_a_whole_specification_and_all_keys_need_coverage ... ok
+test sourced_intent_cases::sourced_global_admission_retains_exact_coverage_and_refuses_stale_late_material ... ok
+test declared_global_default_preserves_policy_constraints_winners_and_deferral ... ok
+test aspiration_cases::explicit_known_boolean_changes_acoustics_and_retains_original_feature_and_phone ... ok
+test aspiration_default_cases::unknown_occurrence_default_replaces_known_definition_and_refuses_at_late_event ... ok
+test default_intent_cases::mixed_rules_defaults_and_boundary_are_admitted_as_one_immutable_intent ... ok
+test late_foreign_default_or_unselected_rule_cannot_return_a_renderable_result ... ok
+test aspiration_default_cases::phone_definition_features_realize_in_rules_and_declared_defaults_without_rewriting_identity ... ok
+test aspiration_default_cases::occurrence_default_overrides_definition_only_in_declared_default_branch ... ok
+test aspiration_default_cases::sourced_feature_realization_retains_exact_coverage_and_refuses_stale_material_before_choices ... ok
+test aspiration_cases::later_unsupported_key_and_unresolved_value_refuse_entire_intent_at_exact_event ... ok
+
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.52s
+
+     Running tests/global_rule_selection.rs (/home/dancxjo/conduit/target/debug/deps/global_rule_selection-df741a63f13004b2)
+
+running 7 tests
+test foreign_profile_basis_and_invalid_feature_evidence_refuse_before_empty_choice ... ok
+test foreign_feature_occurrence_refuses_even_when_profile_is_empty ... ok
+test later_unsupported_obligations_refuse_and_experimental_permission_is_explicit ... ok
+test unresolved_requested_phone_is_refused_but_unconstrained_selection_is_not_realization ... ok
+test first_permitted_match_retains_every_original_candidate_and_phone_constraint ... ok
+test earlier_unresolved_requirements_and_phone_observations_block_lower_matches ... ok
+test empty_and_full_profiles_preserve_bounds_without_inventing_default_selection ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.09s
+
+     Running tests/graph_admission.rs (/home/dancxjo/conduit/target/debug/deps/graph_admission-79bb3cce103156d0)
+
+running 6 tests
+test profile_constants_require_closed_literal_trees ... ok
+test checked_connections_determine_static_order_and_front_result ... ok
+test numeric_stages_and_standalone_helpers_keep_normal_inlining ... ok
+test generic_context_carriers_expand_to_closed_exact_expression_graphs ... ok
+test unbound_cycles_duplicate_writers_temporal_edges_and_large_graphs_refuse ... ok
+test large_context_selectors_keep_normal_compiler_sharing ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/intent_inventory.rs (/home/dancxjo/conduit/target/debug/deps/intent_inventory-58942e706a6a52af)
+
+running 7 tests
+test lookup_borrows_exact_intent_and_definition ... ok
+test event_basis_and_definition_failures_are_distinct ... ok
+test states_remain_unresolved ... ok
+test intent_definition_features_cannot_be_discarded_by_profile_selection ... ok
+test intent_profile_preserves_receipts_and_matches_direct_pcm ... ok
+test intent_stress_refusals_return_original_specifications ... ok
+test intent_profile_refuses_foreign_missing_duplicate_and_changed_definitions ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.16s
+
+     Running tests/intent_phoneme_inventory.rs (/home/dancxjo/conduit/target/debug/deps/intent_phoneme_inventory-88b9f47ef997fab6)
+
+running 4 tests
+test original_occurrence_and_complete_phoneme_definition_are_retained_without_feature_inference ... ok
+test foreign_inventory_basis_and_invalid_event_context_refuse_before_lookup ... ok
+test all_five_nonknown_states_refuse_with_the_original_specification ... ok
+test missing_duplicate_case_and_unicode_identities_have_no_notation_or_base_fallback ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+     Running tests/intent_prosody.rs (/home/dancxjo/conduit/target/debug/deps/intent_prosody-5fb9895ecce9b91c)
+
+running 3 tests
+test finite_preparation_and_renderer_admission_remain_distinct ... ok
+test rich_intent_renders_with_exact_existing_projection_and_block_invariance ... ok
+test every_unresolved_quantity_retains_its_exact_state_and_event ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/intent_realization.rs (/home/dancxjo/conduit/target/debug/deps/intent_realization-babdd7c867d7944b)
+
+running 5 tests
+test empty_realization_is_terminal ... ok
+test late_phone_and_profile_errors_return_no_partial_preparation ... ok
+test original_identity_and_pcm_survive_ordered_realization ... ok
+test renderer_limits_refuse_during_preparation_before_a_receipt_escapes ... ok
+test unresolved_phone_keeps_original_state_and_global_index ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.26s
+
+     Running tests/intent_sources.rs (/home/dancxjo/conduit/target/debug/deps/intent_sources-7c95a626432ede84)
+
+running 4 tests
+test phoneme_sources_retain_their_original_phone_evidence ... ok
+test covers_original_segment_and_boundary_sources_without_resolving_intent_specs ... ok
+test wrong_count_kind_revision_and_recognition_identity_refuse_exactly ... ok
+test empty_and_maximum_source_coverage_are_finite_and_complete ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.23s
+
+     Running tests/inventory_definitions.rs (/home/dancxjo/conduit/target/debug/deps/inventory_definitions-e8c942356612ca50)
+
+running 5 tests
+test native_definition_receipt_refuses_an_unrelated_identity ... ok
+test definition_resolution_retains_the_exact_material_and_inventory ... ok
+test same_ipa_does_not_substitute_for_identity_and_duplicates_are_ambiguous ... ok
+test inventory_and_language_mismatch_refuse_before_lookup ... ok
+test unresolved_specs_are_returned_exactly_without_a_default_or_selection ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/ipa_inventory.rs (/home/dancxjo/conduit/target/debug/deps/ipa_inventory-f03dc90300e01fc9)
+
+running 2 tests
+test exact_definitions_keep_distinct_identities_and_executed_notation ... ok
+test foreign_basis_missing_bindings_and_provider_codes_refuse ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s
+
+     Running tests/ipa_membership.rs (/home/dancxjo/conduit/target/debug/deps/ipa_membership-fbce4e6ff15612f3)
+
+running 2 tests
+test duplicate_definitions_and_guessed_aliases_cannot_prepare ... ok
+test executed_ipa_retains_full_profile_and_refuses_foreign_basis ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+
+     Running tests/ipa_notation.rs (/home/dancxjo/conduit/target/debug/deps/ipa_notation-2b4b3d62f22bac36)
+
+running 2 tests
+test unsupported_notation_delimiters_and_suprasegmental_order_refuse ... ok
+test checked_unicode_profile_retains_original_spelling_and_all_unit_spans ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.17s
+
+     Running tests/ipa_source_execution.rs (/home/dancxjo/conduit/target/debug/deps/ipa_source_execution-f7729bef07211b8e)
+
+running 2 tests
+test actual_source_laws_refuse_unsupported_units_and_wrong_kinds ... ok
+test actual_source_unit_laws_and_pure_projection_preserve_complete_definition ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.32s
+
+     Running tests/kernel_allocation.rs (/home/dancxjo/conduit/target/debug/deps/kernel_allocation-8d49ec39c28ddcf9)
+
+running 1 test
+test prepared_planned_speech_play_has_no_heap_growth ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.24s
+
+     Running tests/kernel_speech.rs (/home/dancxjo/conduit/target/debug/deps/kernel_speech-ad84df7fff8088a6)
+
+running 4 tests
+test proposal_pressure_and_rejected_transaction_preserve_the_cursor ... ok
+test preparation_rejects_fore_artifact_pool_and_configuration_drift ... ok
+test cancellation_invalid_text_and_empty_utterance_are_distinct ... ok
+test planned_kernel_fanout_preserves_every_frame_and_drains_before_completion ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.41s
+
+     Running tests/language_projection.rs (/home/dancxjo/conduit/target/debug/deps/language_projection-295d5a0176572e9a)
+
+running 1 test
+test asr_language_hypothesis_consumes_exact_projection_and_keeps_variety ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/language_revision.rs (/home/dancxjo/conduit/target/debug/deps/language_revision-957c34f5be1aef86)
+
+running 3 tests
+test foreign_stability_snapshot_refuses ... ok
+test utf8_stability_is_explicit_and_checked ... ok
+test scalar_replacements_keep_exact_envelope_and_cancellation ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/language_syntax_owner.rs (/home/dancxjo/conduit/target/debug/deps/language_syntax_owner-1eeb55007806728c)
+
+running 2 tests
+test downstream_language_and_text_carriers_have_one_authoritative_owner ... ok
+test speech_syntax_is_the_same_native_and_rust_language_type ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/linguistic_prosody.rs (/home/dancxjo/conduit/target/debug/deps/linguistic_prosody-21a447ff46d3ade9)
+
+running 3 tests
+test exact_rich_plan_lowers_into_existing_rate_independent_segment_and_boundary_seams ... ok
+test fallback_does_not_satisfy_rich_choice_and_none_boundary_has_no_silent_pause ... ok
+test pitch_movement_and_foreign_profile_refuse_instead_of_being_hidden ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.23s
+
+     Running tests/material_references.rs (/home/dancxjo/conduit/target/debug/deps/material_references-1d0b7280e1dd5e2c)
+
+running 4 tests
+test phonemes_remain_phonemes_and_retain_their_realization_evidence ... ok
+test stale_revision_sequence_and_missing_ordinal_are_distinct_native_laws ... ok
+test phone_resolution_borrows_material_without_selecting_specifications ... ok
+test match_receipts_check_all_basis_fields_and_material_counts ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.13s
+
+     Running tests/neighbor_match.rs (/home/dancxjo/conduit/target/debug/deps/neighbor_match-c325311d6df6b6c6)
+
+running 7 tests
+test exact_neighbor_identity_and_missing_evidence_remain_distinct ... ok
+test phoneme_comparison_never_substitutes_same_spelled_phone ... ok
+test any_requires_observed_neighbor_and_empty_features_are_unconstrained ... ok
+test bounded_alternatives_share_one_neighbor_and_preserve_every_receipt ... ok
+test feature_neighbors_retain_bundle_evidence_and_distinct_uncertainty ... ok
+test boundary_observations_keep_kind_uncertainty_and_segment_domains_separate ... ok
+test all_boundary_kinds_follow_the_exact_native_equality_law ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+     Running tests/normalization.rs (/home/dancxjo/conduit/target/debug/deps/normalization-ba6cc0c559b4cb3a)
+
+running 3 tests
+test normalization_preflight_preserves_atomic_refusal ... ok
+test digit_names_keep_each_original_scalar_and_lexical_realization ... ok
+test normalized_digit_audio_is_block_invariant ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s
+
+     Running tests/occurrence_context.rs (/home/dancxjo/conduit/target/debug/deps/occurrence_context-7e92735faca5d3c8)
+
+running 5 tests
+test native_adjacency_checks_every_basis_axis_and_u32_edges ... ok
+test boundaries_are_retained_events_and_are_never_skipped_or_inferred ... ok
+test immediate_segments_keep_nonzero_ordinals_and_unknown_endpoints ... ok
+test duplicate_gap_reversal_foreign_sequence_and_foreign_membership_are_refused ... ok
+test full_native_event_bound_is_traversed_without_treating_indices_as_ordinals ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.52s
+
+     Running tests/occurrence_membership.rs (/home/dancxjo/conduit/target/debug/deps/occurrence_membership-ecbd696ec73ad526)
+
+running 4 tests
+test structurally_valid_foreign_revision_is_refused_on_decode ... ok
+test same_ordinal_cannot_authorize_another_revision_or_inventory ... ok
+test requested_membership_preserves_sequence_and_ordinal_and_roundtrips ... ok
+test intent_checks_its_occurrences_without_resolving_specs_or_rebinding_sources ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/output_features.rs (/home/dancxjo/conduit/target/debug/deps/output_features-204b1084a658314f)
+
+running 4 tests
+test later_layers_override_entire_specifications_and_preserve_original_references ... ok
+test wrong_phone_duplicate_layers_and_overflow_refuse_without_partial_output ... ok
+test every_rule_feature_specification_replaces_known_lower_layers_without_resolution ... ok
+test missing_layers_stay_missing_and_nonknown_phones_do_not_inherit_defaults ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/pitch_trajectory.rs (/home/dancxjo/conduit/target/debug/deps/pitch_trajectory-13b697c4e247298a)
+
+running 5 tests
+test exact_quantity_overflow_refuses_without_partial_realization ... ok
+test exact_endpoint_and_midpoint_receipts_share_physical_time_across_cadences ... ok
+test native_direction_duration_and_start_cycle_refuse_substitution ... ok
+test actual_formant_contour_is_block_invariant_and_staged_cursor_can_be_discarded ... ok
+test rich_linguistic_choice_profile_and_exact_source_survive_acceptance_and_refusal ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.26s
+
+     Running tests/profile_phones.rs (/home/dancxjo/conduit/target/debug/deps/profile_phones-b12c3d59c9e54723)
+
+running 7 tests
+test stress_states_are_preserved_or_returned_unresolved ... ok
+test native_binding_refuses_a_conflicting_ipa_model ... ok
+test supplied_feature_constraints_are_never_silently_discarded ... ok
+test mismatching_definition_metadata_refuses_even_with_the_same_id_and_ipa ... ok
+test observed_token_feature_constraints_refuse_separately ... ok
+test rich_definition_renders_without_fabricating_a_source_phoneme ... ok
+test unsupported_and_ambiguous_profile_bindings_are_distinct ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.12s
+
+     Running tests/projection_report.rs (/home/dancxjo/conduit/target/debug/deps/projection_report-3040ffb02d43c602)
+
+running 1 test
+test private_vocabulary_requires_exact_admission_of_aspiration_approximation ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/pronunciation.rs (/home/dancxjo/conduit/target/debug/deps/pronunciation-400d86de431f6730)
+
+running 4 tests
+test punctuation_decisions_and_empty_text_remain_explicit ... ok
+test dictionary_and_spelling_decisions_preserve_source_ranges_and_uncertainty ... ok
+test refusal_is_atomic_and_never_returns_a_silently_truncated_prefix ... ok
+test source_metadata_does_not_change_the_realization_or_block_invariance ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.09s
+
+     Running tests/regular_inflection.rs (/home/dancxjo/conduit/target/debug/deps/regular_inflection-bbd52df412585f91)
+
+running 4 tests
+test exact_words_keep_priority_and_undeclared_stems_keep_spelling_origin ... ok
+test suffix_ranges_are_scalar_offsets_in_the_original_capitalized_sentence ... ok
+test regular_suffixes_follow_the_final_phoneme_and_preserve_stem_stress_and_source_spans ... ok
+test expanded_endings_respect_atomic_capacity_and_pcm_chunk_invariance ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.11s
+
+     Running tests/render.rs (/home/dancxjo/conduit/target/debug/deps/render-c5f61288fee62417)
+
+running 6 tests
+test realization_preserves_the_input_and_distinguishes_allophone_derivation ... ok
+test bounds_refuse_before_rendering_and_empty_input_completes ... ok
+test voiced_and_fricated_segments_are_not_silent_or_identical ... ok
+test explicit_phone_is_not_reselected_from_its_phoneme ... ok
+test selected_realizations_match_frontend_results_across_neighbors_and_blocks ... ok
+test output_is_invariant_to_block_boundaries_and_pressure_can_discard_a_candidate ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.13s
+
+     Running tests/revision.rs (/home/dancxjo/conduit/target/debug/deps/revision-fbb237696897e1ab)
+
+running 2 tests
+test listening_mapping_refuses_wrong_subject_role_and_unbounded_scalar_ranges ... ok
+test native_asr_keeps_scalar_ranges_committed_text_and_delivery_separate ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/rule_conditions.rs (/home/dancxjo/conduit/target/debug/deps/rule_conditions-184ea04dfc633cc0)
+
+running 3 tests
+test missing_style_keeps_uncertainty_instead_of_defaulting_to_careful_or_casual ... ok
+test unsupported_syntax_after_mismatch_is_an_indexed_refusal ... ok
+test empty_and_full_condition_sets_retain_every_original_and_do_not_short_circuit ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/rule_context.rs (/home/dancxjo/conduit/target/debug/deps/rule_context-519fba9687aa8bef)
+
+running 6 tests
+test unsupported_syntax_is_an_indexed_refusal_even_after_a_scalar_mismatch ... ok
+test full_alternative_and_condition_bounds_are_retained_on_the_same_neighbors ... ok
+test all_original_requirements_share_one_exact_occurrence_without_selecting_a_rule ... ok
+test occurrence_failures_remain_typed_before_any_context_comparison ... ok
+test scalar_mismatch_and_requirement_uncertainty_retain_unresolved_components ... ok
+test unknown_endpoints_and_real_boundaries_keep_distinct_neighbor_and_stress_views ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+     Running tests/rule_evaluation.rs (/home/dancxjo/conduit/target/debug/deps/rule_evaluation-85cb7d70d1abc76b)
+
+running 4 tests
+test input_and_context_share_exact_original_occurrence_and_feature_provenance ... ok
+test input_mismatch_keeps_unresolved_context_and_present_feature_evidence ... ok
+test absent_features_preserve_input_uncertainty_and_context_mismatch ... ok
+test every_foreign_feature_occurrence_axis_refuses_without_becoming_mismatch ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/rule_features.rs (/home/dancxjo/conduit/target/debug/deps/rule_features-35f5801ba1d8fb88)
+
+running 1 test
+test feature_conditions_keep_original_key_value_and_exact_neighbor_side ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/rule_input.rs (/home/dancxjo/conduit/target/debug/deps/rule_input-be234cd9deec0e4e)
+
+running 6 tests
+test phoneme_states_keep_exact_original_patterns ... ok
+test phone_states_keep_exact_original_patterns ... ok
+test identity_is_exact_utf8_without_notation_normalization_or_base_id_fallback ... ok
+test invalid_feature_evidence_refuses_even_after_phoneme_mismatch ... ok
+test whole_rule_input_retains_both_components_without_inference_or_selection ... ok
+test mismatch_retains_uncertainty_and_requirement_uncertainty_precedes_observation_uncertainty ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/rule_neighbors.rs (/home/dancxjo/conduit/target/debug/deps/rule_neighbors-48bb5302652b385b)
+
+running 1 test
+test conditions_preserve_original_matcher_and_select_exact_immediate_side ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/rule_stress.rs (/home/dancxjo/conduit/target/debug/deps/rule_stress-6f2329d0c43f378a)
+
+running 2 tests
+test absent_boundary_and_all_unresolved_stress_states_remain_explicit ... ok
+test stress_singletons_and_sets_keep_exact_sides_and_original_specs ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/rule_style.rs (/home/dancxjo/conduit/target/debug/deps/rule_style-0ec3c6a9bed0166f)
+
+running 1 test
+test explicit_style_keeps_all_six_states_and_original_condition ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/semantic.rs (/home/dancxjo/conduit/target/debug/deps/semantic-e5766f7126adaa6c)
+
+running 6 tests
+test phone_and_phoneme_identity_never_alias_or_decode_as_one_another ... ok
+test specification_states_roundtrip_without_turning_absence_into_a_phone ... ok
+test frame_spans_and_listening_ranges_have_distinct_units_and_enforce_order ... ok
+test acoustic_evidence_keeps_feature_values_optional_time_and_float_precision ... ok
+test translations_allow_many_to_many_links_but_do_not_invent_empty_matches ... ok
+test recognition_revisions_commits_and_cancellation_remain_different_events ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/semantic_admission.rs (/home/dancxjo/conduit/target/debug/deps/semantic_admission-da0b8f00bed67ece)
+
+running 2 tests
+test seconds_ordering_is_checked_after_native_construction_or_decode ... ok
+test probability_checks_do_not_reinterpret_provider_or_log_scores ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/semantic_collections.rs (/home/dancxjo/conduit/target/debug/deps/semantic_collections-86d603e404cbaa5c)
+
+running 3 tests
+test malformed_stability_metadata_refuses_after_decode_without_clamping ... ok
+test stability_snapshots_preserve_utf8_bytes_and_pinned_word_boundaries ... ok
+test feature_maps_refuse_duplicate_keys_without_merging_uncertainty ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/text_references.rs (/home/dancxjo/conduit/target/debug/deps/text_references-88422b3e390e7222)
+
+running 3 tests
+test empty_material_and_maximum_scalar_extent_are_exact ... ok
+test identical_spelling_cannot_resolve_foreign_basis_or_out_of_range ... ok
+test resolves_unicode_scalars_and_preserves_borrowed_material ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/timing.rs (/home/dancxjo/conduit/target/debug/deps/timing-98f613f8491116e1)
+
+running 4 tests
+test checked_projection_overflow_refuses_without_mutating_the_basis ... ok
+test exact_time_and_cycle_never_alias_renderer_frames_or_each_other ... ok
+test shared_prosody_retains_all_six_specification_states ... ok
+test projection_retains_fractional_frames_and_original_authored_ratio ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/utterance_timing.rs (/home/dancxjo/conduit/target/debug/deps/utterance_timing-abcfa3494faf00a4)
+
+running 5 tests
+test empty_and_zero_duration_boundary_have_exact_terminal_behavior ... ok
+test event_shape_count_and_binding_refusals_remain_distinct ... ok
+test mixed_timeline_retains_exact_sources_and_one_cumulative_grid ... ok
+test unresolved_boundary_quantities_keep_the_original_global_event ... ok
+test boundary_kinds_and_late_segment_refusals_keep_global_identity ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
