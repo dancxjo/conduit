@@ -60,10 +60,10 @@ impl StdHost {
         };
         let old_offer = match current.access {
             ResourceAccessMode::WriteCandidatePublish => {
-                conduit_std_offers::todo_checkpoint_offer(current)
+                conduit_std_offers::todo_checkpoint_offer(current.clone())
             }
             ResourceAccessMode::ReadPublished => {
-                conduit_std_offers::todo_checkpoint_read_offer(current)
+                conduit_std_offers::todo_checkpoint_read_offer(current.clone())
             }
         }
         .map_err(str::to_string)?;
@@ -158,5 +158,128 @@ impl StdHost {
         self.kernel_resources = ledger;
         self.todo_checkpoint_root = next.todo_checkpoint_root;
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{
+        hosted_audio::{AlsaPlaybackObservation, HostedPlaybackSelection},
+        hosted_wav_artifact::WavArtifactSelection,
+    };
+    use conduit_core::{
+        kind_id, BootId, HostId, ResourceRetention, ResourceSemanticIdentity, ResourceSharing,
+        ResourceVersionIdentity,
+    };
+
+    fn content(access: ResourceAccessMode, version: u8) -> ResourceContentRequirement {
+        ResourceContentRequirement {
+            identity: ResourceSemanticIdentity::from_digest([1; 32]),
+            version: ResourceVersionIdentity::from_digest([version; 32]),
+            content_profile: kind_id("conduit.todo/checkpoint-envelope@1"),
+            maximum_bytes: conduit_std_offers::TODO_CHECKPOINT_MAX_BYTES,
+            maximum_items: 1,
+            retention: ResourceRetention::ExternalDurable,
+            sharing: ResourceSharing::SingleWriterPublished,
+            access,
+            generation_slots: 1,
+            reader_leases: 1,
+            publication_slots: if access == ResourceAccessMode::WriteCandidatePublish {
+                1
+            } else {
+                0
+            },
+            sensitive: false,
+        }
+    }
+
+    #[test]
+    fn checkpoint_offer_transition_keeps_selected_speaker_and_artifact_on_same_boot() {
+        let root = std::env::temp_dir().join(format!(
+            "conduit-todo-spoken-transition-{}-{:?}",
+            std::process::id(),
+            std::thread::current().id()
+        ));
+        let artifact_root = root.join("audio");
+        std::fs::create_dir_all(&artifact_root).unwrap();
+        let config = StdHostConfig {
+            host_id: HostId::from("host/todo-spoken-transition"),
+            boot_id: BootId::from("boot/todo-spoken-transition"),
+            offer_generation: OfferGeneration(1),
+        };
+        let mut host = StdHost::new_for_todo_checkpoint_once(
+            config.clone(),
+            &root,
+            content(ResourceAccessMode::WriteCandidatePublish, 1),
+        )
+        .unwrap();
+        let speaker = HostedPlaybackSelection::from_observation(
+            AlsaPlaybackObservation {
+                card_index: 1,
+                card_id: "SELECTED".into(),
+                card_name: "Selected speaker".into(),
+                device: 0,
+                device_name: "Playback".into(),
+                base_identity: "selected-test".into(),
+            },
+            config.boot_id.clone(),
+            config.offer_generation,
+        );
+        host.attach_selected_playback(speaker).unwrap();
+        host.attach_deterministic_speech_and_wav_artifact(
+            WavArtifactSelection::per_play_root(
+                &artifact_root,
+                config.boot_id.clone(),
+                config.offer_generation,
+            )
+            .unwrap(),
+        )
+        .unwrap();
+        let spoken_resource_ids: Vec<_> = host
+            .advertisement()
+            .resources
+            .iter()
+            .filter(|offer| offer.pool_id.as_str() != "std/todo-checkpoint")
+            .map(|offer| offer.pool_id.clone())
+            .collect();
+        let old_generation = host.advertisement().offer_generation;
+        host.transition_todo_checkpoint_offer(&root, content(ResourceAccessMode::ReadPublished, 2))
+            .unwrap();
+        assert!(host.advertisement().offer_generation > old_generation);
+        assert_eq!(host.advertisement().boot_id, config.boot_id);
+        assert_eq!(
+            host.playback.as_ref().unwrap().offer_generation,
+            host.advertisement().offer_generation
+        );
+        assert_eq!(
+            host.wav_artifact.as_ref().unwrap().offer_generation,
+            host.advertisement().offer_generation
+        );
+        for pool in &spoken_resource_ids {
+            assert!(host
+                .advertisement()
+                .resources
+                .iter()
+                .any(|offer| &offer.pool_id == pool));
+        }
+        let before_refusal = host.advertisement().clone();
+        assert!(host
+            .transition_todo_checkpoint_offer(
+                &root,
+                ResourceContentRequirement {
+                    identity: ResourceSemanticIdentity::from_digest([9; 32]),
+                    ..content(ResourceAccessMode::WriteCandidatePublish, 3)
+                },
+            )
+            .is_err());
+        assert_eq!(host.advertisement(), &before_refusal);
+        host.transition_todo_checkpoint_offer(
+            &root,
+            content(ResourceAccessMode::WriteCandidatePublish, 3),
+        )
+        .unwrap();
+        assert_eq!(host.advertisement().boot_id, config.boot_id);
+        std::fs::remove_dir_all(root).unwrap();
     }
 }

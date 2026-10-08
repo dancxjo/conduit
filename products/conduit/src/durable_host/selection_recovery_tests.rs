@@ -131,17 +131,6 @@ fn todo_selection_survives_reinstall_and_refuses_rebound_root_before_boot() {
         selected_todo::Change::Replace(selected),
     )
     .unwrap();
-    let before = fs::read(state.join("installation.json")).unwrap();
-    assert!(install_configured_with_todo(
-        &manifest,
-        &state,
-        selected_speech::Change::Replace(selected_speech::fixture_retained_selection()),
-        selected_model::Change::Preserve,
-        selected_todo::Change::Preserve,
-    )
-    .unwrap_err()
-    .contains("cannot compose"));
-    assert_eq!(fs::read(state.join("installation.json")).unwrap(), before);
     assert!(inspect_installation(&state.join("installation.json"))
         .unwrap()
         .contains(&version));
@@ -178,6 +167,29 @@ fn todo_selection_survives_reinstall_and_refuses_rebound_root_before_boot() {
     )
     .unwrap();
     assert!(selected_todo_checkpoint(&state).unwrap().is_none());
+    fs::remove_dir_all(state.parent().unwrap()).unwrap();
+}
+
+#[test]
+fn todo_checkpoint_and_speech_selection_survive_one_installation() {
+    let (manifest, state) = super::tests::fixture();
+    let root = state.join("todo-checkpoint");
+    fs::create_dir_all(&root).unwrap();
+    install_configured_with_todo(
+        &manifest,
+        &state,
+        selected_speech::Change::Replace(selected_speech::fixture_retained_selection()),
+        selected_model::Change::Preserve,
+        selected_todo::Change::Replace(selected_todo::Selection::select(&root, None).unwrap()),
+    )
+    .unwrap();
+    let installation = read_installation(&state.join("installation.json")).unwrap();
+    assert!(installation.selected_speech.is_some());
+    assert!(installation.selected_todo_checkpoint.is_some());
+    let retained = install(&manifest, &state).unwrap();
+    assert_eq!(retained.host_id, installation.host_id);
+    // The fixture's speech selection is identity-only; physical provider and
+    // speaker reobservation remains a separate fresh-Boot proof.
     fs::remove_dir_all(state.parent().unwrap()).unwrap();
 }
 
