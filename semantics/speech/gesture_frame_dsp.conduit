@@ -1,0 +1,18 @@
+# Additive actual renderer entrance. Legacy speech/trajectory-release retains
+# its 96-frame default. This explicit entrance never applies that default.
+# One declared broadband turbulence stream serves disjoint release/aspiration/
+# frication windows. Frication additionally uses the existing 64/256 broadband bypass. Aspiration
+# and release use the resonator branches. No simultaneous lanes are claimed.
+# Existing frame phase/noise/filter recurrence and limiters remain unchanged.
+type SpeechGestureControlledFrame = {
+    gates: SpeechGestureFrameGates
+    frame: SpeechFrameInput
+}
+plot speech/gesture-controlled-frame (
+    >> value: SpeechGestureControlledFrame
+    result: SpeechFrameResult >>
+) {
+    render: speech/frame
+    value >> ({cycle: .frame.cycle, attack: false, release: false, target: {f1: .frame.target.f1, f2: .frame.target.f2, f3: .frame.target.f3, b1: .frame.target.b1, b2: .frame.target.b2, b3: .frame.target.b3, c1: .frame.target.c1, c2: .frame.target.c2, c3: .frame.target.c3, gain1: .frame.target.gain1, gain2: .frame.target.gain2, gain3: .frame.target.gain3, bypass_gain: .gates.frication ? 64 : .frame.target.bypass_gain, voiced: .gates.voiced ? 1 : 0, frication: (.gates.release || .gates.aspiration || .gates.frication) ? 1 : 0, frames: .frame.target.frames, closure: .gates.closure ? .frame.target.frames : 0}, period: .frame.period, frame: .frame.frame, state: .frame.state}) >> render.value
+    render.result >> result
+}

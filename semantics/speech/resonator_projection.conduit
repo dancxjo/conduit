@@ -1,0 +1,113 @@
+# Generic bounded coefficient preparation; acoustic units remain Audio-owned.
+type SpeechResonatorCoefficientProfile =
+    q20_series8_q14_nearest
+
+type SpeechResonatorProjectionRequest = {
+    profile: SpeechResonatorCoefficientProfile
+    resonator: AudioResonator
+    sample_rate_hz: U64 in 1..=192000
+}
+type SpeechResonatorIntegerHzEligibility = {
+    request: SpeechResonatorProjectionRequest
+    where .request.sample_rate_hz == 8000 || .request.sample_rate_hz == 16000 || .request.sample_rate_hz == 48000
+    where .request.resonator.center.denominator == 1
+    where .request.resonator.bandwidth.denominator == 1
+    where .request.resonator.center.numerator_hz <= 192000 ? .request.resonator.center.numerator_hz * 20 <= .request.sample_rate_hz * 9 : false
+    where .request.resonator.bandwidth.numerator_hz >= 10
+    where .request.resonator.bandwidth.numerator_hz <= 192000 ? .request.resonator.bandwidth.numerator_hz * 8 <= .request.sample_rate_hz : false
+}
+# Exact signed field copies of admitted integer-Hz/rate operands.
+type SpeechResonatorNumericInput = {
+    center_hz: I64 in 1..=192000
+    bandwidth_hz: I64 in 10..=192000
+    sample_rate_hz: I64 in 8000..=48000
+    where .center_hz * 20 <= .sample_rate_hz * 9
+    where .bandwidth_hz * 8 <= .sample_rate_hz
+}
+type SpeechResonatorAngles = {
+    cosine_square_q20: I64
+    decay_q20: I64
+}
+# pi*2^20 nearest =3294199; 2*pi*2^20 nearest =6588397.
+plot speech/resonator-angles-q20 (
+    >> value: SpeechResonatorNumericInput
+    result: SpeechResonatorAngles >>
+) = ({cosine_square_q20: ((.center_hz * 6588397 / .sample_rate_hz) * (.center_hz * 6588397 / .sample_rate_hz)) / 1048576, decay_q20: .bandwidth_hz * 3294199 / .sample_rate_hz})
+
+type SpeechResonatorPolynomialMode =
+    cosine
+    | decay
+
+type SpeechResonatorRawPolynomialState = {
+    argument_q20: I64
+    index: I64
+    mode: SpeechResonatorPolynomialMode
+    sum_q20: I64
+    term_q20: I64
+}
+type SpeechResonatorPolynomialState = {
+    argument_q20: I64 in 0..=8388608
+    index: I64 in 0..=8
+    mode: SpeechResonatorPolynomialMode
+    sum_q20: I64 in -4194304..=4194304
+    term_q20: I64 in -4194304..=4194304
+    where .mode is decay ? .argument_q20 <= 411775 : true
+}
+type SpeechResonatorPolynomialSeed = {
+    angles: SpeechResonatorAngles
+    mode: SpeechResonatorPolynomialMode
+}
+plot speech/resonator-polynomial-seed (
+    >> value: SpeechResonatorPolynomialSeed
+    result: SpeechResonatorRawPolynomialState >>
+) = ({argument_q20: .mode is cosine ? .angles.cosine_square_q20 : .angles.decay_q20, index: 0, mode: .mode, sum_q20: 1048576, term_q20: 1048576})
+type SpeechResonatorPolynomialStep = {
+    state: SpeechResonatorPolynomialState
+    where .state.index < 8
+}
+# Products <=4*2^20*8*2^20 <2^46; index divisors are positive.
+plot speech/resonator-polynomial-step (
+    >> value: SpeechResonatorPolynomialStep
+    result: SpeechResonatorRawPolynomialState >>
+) = ({argument_q20: .state.argument_q20, index: .state.index + 1, mode: .state.mode, sum_q20: .state.sum_q20 + ((0 - .state.term_q20) * .state.argument_q20 / (1048576 * (.state.mode is cosine ? ((.state.index + 1) * 2) * ((.state.index + 1) * 2 - 1) : .state.index + 1))), term_q20: (0 - .state.term_q20) * .state.argument_q20 / (1048576 * (.state.mode is cosine ? ((.state.index + 1) * 2) * ((.state.index + 1) * 2 - 1) : .state.index + 1))})
+
+type SpeechResonatorPolynomialResult = {
+    cosine: SpeechResonatorPolynomialState
+    decay: SpeechResonatorPolynomialState
+    where .cosine.mode is cosine && .cosine.index == 8
+    where .decay.mode is decay && .decay.index == 8
+    where .cosine.sum_q20 >= -1048576 && .cosine.sum_q20 <= 1048576
+    where .decay.sum_q20 > 0 && .decay.sum_q20 <= 1048576
+}
+type SpeechResonatorRawQ20 = {
+    b: I64
+    c: I64
+}
+plot speech/resonator-combine-q20 (
+    >> value: SpeechResonatorPolynomialResult
+    result: SpeechResonatorRawQ20 >>
+) = ({b: 2 * .decay.sum_q20 * .cosine.sum_q20 / 1048576, c: (0 - .decay.sum_q20) * .decay.sum_q20 / 1048576})
+# Separate numerical eligibility before signed rounding addition.
+type SpeechResonatorRoundQ20 = {
+    input: SpeechResonatorRawQ20
+    where .input.b >= -2097152 && .input.b <= 2097152
+    where .input.c >= -1048576 && .input.c < 0
+}
+type SpeechResonatorRawQ14 = {
+    b: I64
+    c: I64
+}
+plot speech/resonator-round-q14 (
+    >> value: SpeechResonatorRoundQ20
+    result: SpeechResonatorRawQ14 >>
+) = ({b: (.input.b >= 0 ? .input.b + 32 : .input.b - 32) / 64, c: (.input.c - 32) / 64})
+# Strict Jury stability for z^2 - b*z/2^14 - c/2^14. Quantization can refuse a
+# stable real pole; never repair it by clamping. Constant-coefficient segments.
+type SpeechStableResonatorQ14 = {
+    b: I64 in -32767..=32767
+    c: I64 in -16383..=-1
+    where 16384 - .b - .c > 0
+    where 16384 + .b - .c > 0
+    where .b * .b + 4 * .c * 16384 < 0
+}
+

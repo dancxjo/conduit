@@ -28,7 +28,8 @@ pub fn audio_types() -> Vec<CheckedNativeType> {
 pub fn is_rust_binding(name: &str) -> bool {
     matches!(
         name,
-        "AudioFrequencyHz"
+        "AudioResonator"
+            | "AudioFrequencyHz"
             | "AudioTrajectoryAnchor"
             | "AudioTrajectoryProvenance"
             | "AudioTrajectoryQuantity"
