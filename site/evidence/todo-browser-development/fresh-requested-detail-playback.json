@@ -1,0 +1,47 @@
+{
+  "authority_grant_id": "grant/conduit/installed-screen-free-selected-speaker",
+  "boot_id": "boot/installed/e033e64eef3d69064089b063be3d124926d2342a244aa581ae7c908a9544cb92",
+  "checked_plot_id": "8be0db87ed93e1e45c05c809382727adfb019874336068fdb54cd1711d0d473d",
+  "face_id": "bfd8d9c17febe14a5421709e4ca191e2a537c73113e8fe2d8fbea5b183ee5aec",
+  "face_revision": 7150306028042729967,
+  "face_revision_decimal": "7150306028042729967",
+  "host_id": "host/installed/6b3dffaf4e8d9bd12a706830a9b4b3fbd228641f55307e68a6f8d79fed1f1282",
+  "offer_generation": 2,
+  "outcome": "Completed",
+  "plan_id": "249b98ac6fec6b748c20d09660aa79c992648b07c0d721a10a96ad45d231f4fa",
+  "play_id": "b55111cef6f76a2fb4df359b021665e2c1e0b695f0e5528b3c7d8d55877642b2",
+  "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+  "same_play_capture": {
+    "pcm_blocks": 1273,
+    "pcm_bytes": 276944,
+    "pcm_sha256": "7947c978f79f2b0efa113c8023ef56e6ef34144761be19f622b6f8400f30d2af",
+    "wav_artifact_locator": "/home/dancxjo/Documents/Codex/2026-10-08/todo-fresh-611df0/owner-state/screen-free-spoken-artifacts/play-4cc96e3cfd5980377c92e696972b81ba9fa17868163731abcd132414ce995134.wav",
+    "wav_bytes": 276988,
+    "wav_sha256": "4433f3ab0f2b530be0deccd0f87a38d7eccd6520ccdf04b827d610ec9a7b754f"
+  },
+  "schema": "conduit.body/spoken-face-playback@1",
+  "selected_resource_pool_id": "std/audio/alsa/skl_hda_dsp_generic/card-sofhdadsp/device-0",
+  "source_document_id": "338d018990f4ace633fdc895832e735569117460fcfdd24318df3fd54c8837d5",
+  "source_segments_sha256": "14ea18106aa5890fb7eb6482a61624a815321104421ce5cd38c8ca8dffd2aeba",
+  "source_show_id": "show/db0c694d7bdda9b9cc2d093388c5c3a8f4a8c07b4352ced61ec263711fa9f71d",
+  "speaker_blocks_committed": 1273,
+  "speaker_frames_committed": 69236,
+  "speaker_lifecycle": "StoppedClosed",
+  "speaker_underruns": 0,
+  "spoken_segments": [
+    {
+      "clause_index": 5,
+      "clause_provenance_debug": "Some(Subject(FaceUtteranceProvenanceSubject { identity: \"todo/item/task-1\" }))",
+      "face_id": "bfd8d9c17febe14a5421709e4ca191e2a537c73113e8fe2d8fbea5b183ee5aec",
+      "face_revision_decimal": "7150306028042729967",
+      "reason": "final-flush",
+      "reason_code": 1,
+      "sequence": 0,
+      "show_id": "show/db0c694d7bdda9b9cc2d093388c5c3a8f4a8c07b4352ced61ec263711fa9f71d",
+      "text": "Buy milk, item.",
+      "text_sha256": "c4865e3f465cb583a52c1c60c952b6e2f5a4892b1a7aaeef23081b237205d042"
+    }
+  ],
+  "stream_identity": "face/bfd8d9c17febe14a5421709e4ca191e2a537c73113e8fe2d8fbea5b183ee5aec/7150306028042729967/turn/2/batch/0",
+  "voice": "en-us"
+}
