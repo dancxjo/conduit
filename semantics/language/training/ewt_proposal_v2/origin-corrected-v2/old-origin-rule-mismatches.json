@@ -1,0 +1,35 @@
+{
+  "scope": "Offline mismatch count from frozen oldtraining rule versus corrected previous-origin rule; actualSource parity independently running",
+  "mismatches": {
+    "initial": 15318,
+    "total": 77756,
+    "interior": 31583,
+    "terminal": 30855
+  },
+  "examples": {
+    "initial": {
+      "id": "weblog-juancole.com_juancole_20051126063000_ENG_20051126_063000-0040",
+      "unread": 0,
+      "token_count": 7,
+      "policy": "reviewed",
+      "old_training_feature": 408,
+      "actual_source_feature": 410
+    },
+    "interior": {
+      "id": "weblog-juancole.com_juancole_20051126063000_ENG_20051126_063000-0040",
+      "unread": 1,
+      "token_count": 7,
+      "policy": "alternating",
+      "old_training_feature": 409,
+      "actual_source_feature": 408
+    },
+    "terminal": {
+      "id": "weblog-juancole.com_juancole_20051126063000_ENG_20051126_063000-0040",
+      "unread": 7,
+      "token_count": 7,
+      "policy": "reviewed",
+      "old_training_feature": 410,
+      "actual_source_feature": 408
+    }
+  }
+}

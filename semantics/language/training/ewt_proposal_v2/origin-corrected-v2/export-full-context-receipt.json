@@ -1,0 +1,9 @@
+{
+  "scope": "All covered TRAIN and22reviewed teaching oracle states including terminal; all permitted top/current candidate variants preserving selected history; synthetic unknown/alternating origins are arithmetic parity only, not lexical admission",
+  "train_rows": 3530,
+  "teaching_rows": 22,
+  "states": 33094,
+  "vectors": 140922,
+  "train_sha256": "d68e06122a702464c613076523d56740f047e5bbe89dd90ec32737e04d952143",
+  "vectors_sha256": "2b40d59eb165930f8ccf1626133660cafdc484f7652a7a8fdfd489b6f2492fb8"
+}

@@ -1,0 +1,124 @@
+{
+  "scope": "Recoverable distinct corrected external TRAIN+22 teaching candidate and exact Source arithmetic proof, not runtime quality/heldout/commit acceptance",
+  "original_model_and_all_original_evaluation_outputs_unchanged": true,
+  "arithmetic_contexts_are_structural_diagnostics_not_Native_lexical_admission": true,
+  "historical_reproducer_paths": "Exact source files retain original audit machine paths; no runtime execution authority is derived from those paths",
+  "files": {
+    "actual-source-full-context.log": {
+      "sha256": "ed8b0a2cd2f2d7c1514b2cd4dd717f0d8b57aeffc20caa248043576f5cb2bb2f",
+      "bytes": 164
+    },
+    "actual-source.log": {
+      "sha256": "c7de29e01df1cf9a827fe822701590f4d7e0a6760bfc2ef3426e8cf3d7940f69",
+      "bytes": 155
+    },
+    "actual_source.rs": {
+      "sha256": "3018ecfed3dddbc60d9ad8afab357ef833e9d8ac9fa44a35f3f1739c07ce9505",
+      "bytes": 4582
+    },
+    "actual_source_full_context.rs": {
+      "sha256": "946ea6d11c9fe00bacb894e9fb64bc237cd5519f6de76db575a5952b8e57974b",
+      "bytes": 5678
+    },
+    "corrected_expected_metadata.rs": {
+      "sha256": "bae6c134040154cdad4b0e3e3babc0277f03686a41d7089809db7225d83d5e8c",
+      "bytes": 8486
+    },
+    "declaration-material-receipt.json": {
+      "sha256": "eb2afaf594173b80f4bec0d88239b996af4aa3222e55030c0490ac06fe94211d",
+      "bytes": 694
+    },
+    "declared-model-training-manifest.json": {
+      "sha256": "f2b7a02b85a3b177b5eb807642fcfe6fcdc53ac6e168a170a5a5c5af6c906c33",
+      "bytes": 67174
+    },
+    "expected-metadata/artifact-full.debug.txt": {
+      "sha256": "41a61fd4fce4d562ba77c9e8d41fa3a92fba6248989e2000cf926a1eab1f12e1",
+      "bytes": 2705
+    },
+    "expected-metadata/artifact-reference.bin": {
+      "sha256": "d6bb249d402645fc17988a5469097b353c19733fc6fe9c5339c11bb00714efbe",
+      "bytes": 151
+    },
+    "expected-metadata/expected.json": {
+      "sha256": "373c79c42cbe55b39fd4e4217b4cc22bc78d35576ab739c3ecbc9a6cc9d15c29",
+      "bytes": 1270
+    },
+    "expected-metadata/numeric-indices.type.bin": {
+      "sha256": "c71c657455b5c2038385133ccb1ee9f60f8218af1d1111623b6b2e0c19e83a67",
+      "bytes": 17
+    },
+    "expected-metadata/numeric-scores.type.bin": {
+      "sha256": "20e1cc29b858f4ddde0e9295d58ad0a09042254f76152b26ea095ad8eb96049b",
+      "bytes": 17
+    },
+    "expected-metadata/proposer-definition.native.bin": {
+      "sha256": "e0efb3346305149f4dcbeb17db0d969a7b92c2483a152b1fef6193b9e6440c08",
+      "bytes": 3287
+    },
+    "expected-metadata/signature.native.bin": {
+      "sha256": "442156610399aae8c7e970edf22b8b18e4fd8dddbcb7f4d1f50d0d332ba2fe70",
+      "bytes": 17161
+    },
+    "expected-metadata/unknown-policy.native.bin": {
+      "sha256": "9db5503e2454ada0bfdb5508ae362a5751e4da1fb18fdd3abbc7ceab06720cde",
+      "bytes": 2013
+    },
+    "export-full-context-receipt.json": {
+      "sha256": "eb371e50f7ff08d53881b88ca052d0654e09ddfc0e31e3287c05a221afa1a875",
+      "bytes": 513
+    },
+    "export-receipt.json": {
+      "sha256": "a3e6c685d2165a7f7eebe344375e2048bbddac1552e48f3f2cc0072d2cfd291b",
+      "bytes": 513
+    },
+    "export_vectors.py": {
+      "sha256": "9811b8eaa95ec58c7940a733101db635b5c05342e14c3c549a75f495eb21bd83",
+      "bytes": 2836
+    },
+    "export_vectors_full_context.py": {
+      "sha256": "cd83ff956248cee05a4e9093357b9087d9ecbb9d20aa61585fa1127acd4fcc8c",
+      "bytes": 2921
+    },
+    "extract_corrected_training.py": {
+      "sha256": "e17e041253d7ae575c7c9664dd6559d2406a61efb07614eb389d949e612d0f24",
+      "bytes": 3800
+    },
+    "gate-inputs.json": {
+      "sha256": "3a0737cbdc360b9170f7d1cbc23fd099a292fe11569ab360eae9699e7928e15b",
+      "bytes": 2354
+    },
+    "launch.json": {
+      "sha256": "06d007475c419e0b5491cb8b1701cb89ed2af14313d60971efec1fb3f39fcc2f",
+      "bytes": 591
+    },
+    "manifest.json": {
+      "sha256": "b658e39fe8efe617681689743f7e8ca08efd736b0e5b83bc9ff23856fb110f5e",
+      "bytes": 1679
+    },
+    "old-origin-rule-mismatches.json": {
+      "sha256": "18502aee017d05b1c640784e09027aebdfa8ac9192e692bcfa190dc73766b377",
+      "bytes": 1032
+    },
+    "proposal_window8.i16": {
+      "sha256": "400b304df9050715151878af0058620f7f04f471cd289e81c850a1b8e4211f15",
+      "bytes": 62492
+    },
+    "reference_v2_corrected.py": {
+      "sha256": "f3cae572b1ed31cffb89dfdb2553f2721057c92aaa1763221f3432e68477e428",
+      "bytes": 2180
+    },
+    "samples.bin": {
+      "sha256": "8e439ecdad8c6bb9b2dd7643c3fd1239b0dc40fd4af6f6ab3d18d691a13d5ccc",
+      "bytes": 4996850
+    },
+    "training-receipt.json": {
+      "sha256": "5f2c9d662b7d9e71287b52455b0f91c959c0fda741c8f50d0d5a5c57a84f4041",
+      "bytes": 795
+    },
+    "training.log": {
+      "sha256": "600206cc197e6494caa1179c824882af22cbe7b3fe83587c970a9bfe9962e76e",
+      "bytes": 657
+    }
+  }
+}
