@@ -41,19 +41,19 @@ fn reciprocal_source_executes_exact_authored_fractions() {
         let input = hz.into_structured().unwrap().canonical_bytes().unwrap();
         let output = to_cycle.evaluate(&input).unwrap();
         let receipt = seam.frequency_to_cycle(&input).unwrap();
-        assert_eq!(receipt.input, hz);
-        assert_eq!(receipt.original_canonical, input);
-        assert_eq!(receipt.result_canonical, output);
+        assert_eq!(receipt.input(), &hz);
+        assert_eq!(receipt.original_canonical(), input);
+        assert_eq!(receipt.result_canonical(), output);
         let retained =
-            PortableExpressionProgram::from_canonical_hex(receipt.source_program_hex).unwrap();
+            PortableExpressionProgram::from_canonical_hex(receipt.source_program_hex()).unwrap();
         assert_eq!(
-            retained.evaluate(&receipt.original_canonical).unwrap(),
-            receipt.result_canonical
+            retained.evaluate(receipt.original_canonical()).unwrap(),
+            receipt.result_canonical()
         );
         assert_eq!(
             seam.frequency_to_cycle(&input)
                 .unwrap()
-                .result
+                .result()
                 .encode()
                 .unwrap(),
             output
@@ -61,7 +61,7 @@ fn reciprocal_source_executes_exact_authored_fractions() {
         assert_eq!(
             seam.cycle_to_frequency(&output)
                 .unwrap()
-                .result
+                .result()
                 .encode()
                 .unwrap(),
             input

@@ -60,7 +60,7 @@ decoder. Corrupted zero quantities refuse at this composed seam. Preparation
 and Native decoding allocate: this API is a semantic preparation/conformance
 seam, not an allocation-free Play Back.
 
-Each `AcousticConversion` retains typed admitted input/result, the unchanged
+Each opaque `AcousticConversion` exposes borrowed access to typed admitted input/result, the unchanged
 original canonical input frame, the admitted result frame and exact canonical
 Source program hex. Inspection can reproduce the executed conversion without
 recovering intent from a rounded numeric output.
