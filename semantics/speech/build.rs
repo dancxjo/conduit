@@ -34,6 +34,8 @@ fn main() {
         "ipa.conduit",
         "ipa_syntax.conduit",
         "ipa_inventory.conduit",
+        "ipa_constructors.conduit",
+        "../language/identity.conduit",
         "build_support/semantic_source.rs",
     ] {
         println!("cargo:rerun-if-changed={path}");
@@ -54,10 +56,23 @@ fn main() {
             }),
     );
     let mut semantic_catalog = StartupCatalog::new();
+    let language_identities =
+        semantic_source::language_identities().expect("Language-owned identity declarations check");
     for (name, ty) in &language_types {
-        semantic_catalog
-            .insert_structured_type(*name, ty.clone())
-            .expect("Language-owned Type installs once");
+        if let Some(checked) = language_identities
+            .native_types
+            .iter()
+            .find(|ty| ty.name == *name)
+        {
+            assert_eq!(&checked.value_type, ty, "Language owner Type differs");
+            semantic_catalog
+                .insert_checked_native_type(*name, checked)
+                .expect("Language-owned checked Type installs once");
+        } else {
+            semantic_catalog
+                .insert_structured_type(*name, ty.clone())
+                .expect("Language-owned Type installs once");
+        }
     }
     let semantic =
         check_syntax_document(&parse_syntax_document(&semantic_source), &semantic_catalog)
@@ -145,7 +160,11 @@ fn main() {
     .expect("Speaking bindings consume Language-owned identities");
     fs::write(
         PathBuf::from(env::var_os("OUT_DIR").unwrap()).join("semantic_types.rs"),
-        bindings.source,
+        format!(
+            "pub const IPA_CONSTRUCTOR_SOURCE_ID: &str = {:?};\n{}",
+            semantic.source_document_id.as_str(),
+            bindings.source
+        ),
     )
     .unwrap();
     let path = "voice.conduit";

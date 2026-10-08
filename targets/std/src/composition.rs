@@ -20,7 +20,7 @@ pub struct StdHostComposition {
     /// Ordered nominal pulse observation; selected independently of the broad reference image.
     pub pulse_observation: bool,
     pub text: bool,
-    /// Compiled checked English pronunciation and voice, independent of devices/providers.
+    /// Checked IPA preparation and compiled English voice, independent of devices/providers.
     pub native_speech: bool,
     pub input: bool,
     pub state: bool,
@@ -257,6 +257,10 @@ pub(super) fn build_advertisement(
     }
     if composition.native_speech {
         capabilities.push(conduit_speech::kernel::offer());
+        capabilities.extend(
+            conduit_speech::ipa_constructors::IpaConstructor::ALL
+                .map(conduit_speech::ipa_constructors::offer),
+        );
     }
     if composition.input {
         capabilities.extend([

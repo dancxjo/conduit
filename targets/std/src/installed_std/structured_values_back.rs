@@ -40,7 +40,11 @@ impl<const PORTS: usize> StepBack<PORTS> for StructuredLiteralBack {
     }
 }
 
-impl StructuredLiteralBack {}
+impl StructuredLiteralBack {
+    pub(super) fn prepared(value: ValueRef) -> Self {
+        Self { value: Some(value) }
+    }
+}
 
 pub(super) struct StructuredPresentationBack {
     pending: Option<RequestId>,
