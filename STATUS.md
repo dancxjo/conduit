@@ -42,7 +42,11 @@ text request before preparation; its separate A3 execution remains cooperative.
 Normal product collectors on all five protected targets require the same
 checked Source and sealed semantic Plan shape. The IA-32 boundary lane retains
 two independent normal BIOS boots separately from its instrumented checks.
-Broader ordinary implementation coverage remains unfinished.
+The standing timer product now owns its production fixed scheduler and Count
+state inside a private domain, with separate capability-gated Timer and Count
+presentation operations. Its first local x86_64 physical 120 ms proof passed;
+current cross-architecture validation remains pending. Broader ordinary
+implementation coverage remains unfinished.
 DMA/driver isolation remain false; this is not accepted-release evidence.
 See the [exact per-target boundary](docs/architecture/conduitos-protection-domains.md#ordinary-execution-work-in-progress-5113).
 

@@ -226,6 +226,53 @@ changed-input refusal and independent Unicode transformation outcomes.
 This is freestanding emulator evidence through a serial diagnostic provider;
 it does not establish a physical indicator or a graphical Morse interaction.
 
+### Private standing timer execution
+
+The native count-over-time product now prepares a protected three-placement
+region for Every, Count and Count Presentation. Root retains the verified
+Plan/Play binding, numeric preparation data, capability table and provider
+tokens. The separately compiled domain image owns the production fixed
+scheduler, Count state, Cord movement and decimal rendering. Root enters at
+actual effect/completion boundaries; an idle domain stays suspended while its
+physical timer is pending. Other semantic families retain their separately
+declared execution profiles.
+
+Timer and Count Presentation receive separate opaque handles. Admission pins
+Host/Boot, Plan/Play, implementation artifact and contract, Base/resource
+identity and generation, operation, parameter/work limits and independent
+in-flight/operation bounds. Every's selected provider identity seals both its
+physical Timer and Clock; replacing either changes the current scope. A timer
+lease remains in flight until the exact current provider wake matches the
+entire pending interest. Count's semantic input is eight bytes; its physical
+presentation window allows at most twenty decimal digits. Root validates that
+window without computing or substituting the semantic count.
+
+The reviewed finite product arms 120 milliseconds. Conversion rounds upward
+using the platform frequency. IA-32 retains one logical timer across bounded
+PIT counts; intermediate interrupts do not publish a semantic wake. AArch64
+uses CNTFRQ, LoongArch64 uses the CPUCFG counter-frequency ratio, and the pinned
+RISC-V QEMU virt profile uses its 10 MHz timebase. x86_64 waits against its
+admitted calibrated TSC/HPET counter. An unavailable duration basis refuses
+instead of substituting the diagnostic timer arm.
+
+The shared image now admits a 128 KiB immutable code/constant window, a 32 KiB
+non-executable stack and 16 KiB of private non-executable retained state.
+The numeric graph wire fits within 256 bytes; mutable shared request storage
+is a separate 4 KiB page. Guard gaps separate these windows. Architecture
+translation/exception storage and Root metadata remain separately accounted
+and admitted. The earlier text/Morse measurements in this document record the
+former image profile; new receipts report the enlarged reservation and exact
+zeroization rather than reusing those historical costs.
+
+Stop cancels the physical arm before revoking capabilities and zeroing domain
+storage. A retired owner refuses a second run before touching any provider.
+The native proof exercises the ordinary Tour product entrance with actual
+providers, separately from the explicitly synthetic private-runtime fixture.
+Its timer receipt retains effect gates, copies, shared-window occupancy,
+interrupts, setup/teardown, address-space switches and memory. The first local
+x86_64 physical product proof passed; current cross-architecture validation and
+accepted-release evidence are still pending.
+
 Broader ordinary implementation coverage remains unfinished.
 This is development emulator evidence, not accepted-release evidence.
 
@@ -445,16 +492,17 @@ physical execution or accepted-release parity.
 
 The ordinary text serial presentation now passes through its domain capability
 gate, and the supplemental Sign reports `effect_capability_gates:true`.
-The current native workset, timer/Morse and other paths have not been migrated.
+The reviewed protected text, Keyboard, Memory Lantern, Morse and standing
+timer paths do not implicitly protect other native workset implementations.
 DMA and driver isolation remain false.
 Issue #5113 stays open until its complete cross-architecture product and proof
 criteria are earned; the local emulator run is not accepted-release evidence.
 
 ## Deliberate limits
 
-This profile proves CPU page, privilege, I/O-port, handle, and one serial base
-boundary on emulated x86_64. It does not prove an IOMMU, DMA containment,
-mutually isolated kernel drivers/providers, physical hardware execution, SMP,
-or any non-x86_64 target. The sign reports `dma_isolation:false` and
-`driver_isolation:false`. Follow-on architecture profiles must earn their own
-mechanism-level evidence; none inherit this proof by analogy.
+Each reviewed emulator profile proves its own CPU page, privilege, handle and
+admitted Base boundaries. Architecture-specific evidence above does not prove
+an IOMMU, DMA containment, mutually isolated kernel drivers/providers, physical
+hardware execution, SMP or an unsupported backend. Receipts report
+`dma_isolation:false` and `driver_isolation:false`. Each architecture earns its
+own mechanism-level evidence; none inherits another target's proof by analogy.
