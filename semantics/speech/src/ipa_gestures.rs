@@ -35,16 +35,22 @@ pub struct SharedGestureSyllableLink<'a, 'material> {
     pub stress: SpeechGestureOriginalStressMatch,
     pub selected_position: Option<SpeechGestureOriginalSyllablePositionMatch>,
 }
-pub struct PreparedIpaContextualPhoneGestures<'a, 'joined, 'material> {
+pub struct PreparedIpaContextualPhoneGestures<
+    'a,
+    'joined,
+    'material,
+    Contextual = PreparedContextualPhoneGestures<'a, 'material>,
+> {
     joined: &'a PreparedIpaSpeechUtteranceIntent<'joined, 'material>,
-    contextual: PreparedContextualPhoneGestures<'a, 'material>,
+    contextual: Contextual,
     phone: &'material SpeechPhoneToken,
     phone_basis: SpeechSequenceReferenceMatch,
     phone_specification: SpeechGestureOriginalPhoneMatch,
     syllables: Vec<SharedGestureSyllableLink<'a, 'material>>,
     links: Vec<SharedGesturePhonemeLink<'a, 'material>>,
 }
-impl<'a, 'joined, 'material> PreparedIpaContextualPhoneGestures<'a, 'joined, 'material>
+impl<'a, 'joined, 'material, Contextual>
+    PreparedIpaContextualPhoneGestures<'a, 'joined, 'material, Contextual>
 where
     'material: 'a,
     'joined: 'a,
@@ -52,7 +58,7 @@ where
     pub fn joined(&self) -> &'a PreparedIpaSpeechUtteranceIntent<'joined, 'material> {
         self.joined
     }
-    pub fn contextual(&self) -> &PreparedContextualPhoneGestures<'a, 'material> {
+    pub fn contextual(&self) -> &Contextual {
         &self.contextual
     }
     pub fn phone(&self) -> &'material SpeechPhoneToken {
@@ -70,10 +76,10 @@ where
     pub fn syllable_links(&self) -> &[SharedGestureSyllableLink<'a, 'material>] {
         &self.syllables
     }
-    pub fn prepare(
+    fn prepare_with(
         joined: &'a PreparedIpaSpeechUtteranceIntent<'joined, 'material>,
         choice: &'a IntentAllophoneChoice<'material>,
-        timing: &SpeechGestureTiming,
+        lower: impl FnOnce() -> Result<Contextual, ContextualGestureRefusal>,
     ) -> Result<Self, SharedGestureRefusal> {
         use SharedGestureRefusal::*;
         if !core::ptr::eq(choice.inventory(), joined.ipa().inventory()) {
@@ -190,7 +196,7 @@ where
         if syllables.is_empty() {
             return Err(MissingSyllable);
         }
-        let contextual = prepare_contextual_phone_gestures(choice, timing).map_err(Gesture)?;
+        let contextual = lower().map_err(Gesture)?;
         Ok(Self {
             joined,
             contextual,
@@ -201,4 +207,43 @@ where
             syllables,
         })
     }
+}
+
+impl<'a, 'joined, 'material> PreparedIpaContextualPhoneGestures<'a, 'joined, 'material>
+where
+    'material: 'a,
+    'joined: 'a,
+{
+    pub fn prepare(
+        joined: &'a PreparedIpaSpeechUtteranceIntent<'joined, 'material>,
+        choice: &'a IntentAllophoneChoice<'material>,
+        timing: &SpeechGestureTiming,
+    ) -> Result<Self, SharedGestureRefusal> {
+        Self::prepare_with(joined, choice, || {
+            prepare_contextual_phone_gestures(choice, timing)
+        })
+    }
+}
+/// Greeting profile uses precisely the same original IPA/correspondence/syllable
+/// custody admission as the v1 component profile. Loss policy is explicit.
+pub type PreparedIpaContextualGreetingPhoneGestures<'a, 'joined, 'material> =
+    PreparedIpaContextualPhoneGestures<
+        'a,
+        'joined,
+        'material,
+        crate::PreparedContextualGreetingPhoneGestures<'a, 'material>,
+    >;
+pub fn prepare_ipa_contextual_greeting_phone_gestures<'a, 'joined, 'material>(
+    joined: &'a PreparedIpaSpeechUtteranceIntent<'joined, 'material>,
+    choice: &'a IntentAllophoneChoice<'material>,
+    timing: &SpeechGestureTiming,
+    policy: SpeechGreetingLossPolicy,
+) -> Result<PreparedIpaContextualGreetingPhoneGestures<'a, 'joined, 'material>, SharedGestureRefusal>
+where
+    'material: 'a,
+    'joined: 'a,
+{
+    PreparedIpaContextualGreetingPhoneGestures::prepare_with(joined, choice, || {
+        crate::prepare_contextual_greeting_phone_gestures(choice, timing, policy)
+    })
 }
