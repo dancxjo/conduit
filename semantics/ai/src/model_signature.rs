@@ -93,12 +93,14 @@ impl ModelSignature {
         for port in inputs.iter().chain(outputs) {
             validate_tensor(port)?;
         }
-        let input_identities = inputs.iter().map(|port| &port.identity).collect::<Vec<_>>();
-        let output_identities = outputs
-            .iter()
-            .map(|port| &port.identity)
-            .collect::<Vec<_>>();
-        if has_duplicate(&input_identities) || has_duplicate(&output_identities) {
+        let duplicate_ports = |ports: &[ModelPortConstraint]| {
+            ports.iter().enumerate().any(|(i, port)| {
+                ports[i + 1..]
+                    .iter()
+                    .any(|later| later.identity == port.identity)
+            })
+        };
+        if duplicate_ports(inputs) || duplicate_ports(outputs) {
             return Err(ModelSignatureRefusal::DuplicatePort);
         }
         Ok(())
@@ -106,17 +108,87 @@ impl ModelSignature {
 
     pub fn semantic_digest(&self) -> Result<[u8; 32], ModelSignatureRefusal> {
         self.validate()?;
-        let mut bytes = Vec::new();
-        push_text(&mut bytes, &self.identity);
+        let mut bytes = Vec::with_capacity(self.digest_encoding_length()?);
+        self.write_digest_bytes(&mut bytes);
+        Ok(semantic_digest(MODEL_SIGNATURE_INFO_ID, &bytes))
+    }
+    /// Allocation-free length of the unchanged v1 manual digest encoding.
+    pub fn digest_encoding_length(&self) -> Result<usize, ModelSignatureRefusal> {
+        self.validate()?;
+        let mut bytes = CountingSignatureBytes(0);
+        self.write_digest_bytes(&mut bytes);
+        if bytes.0 == usize::MAX {
+            return Err(ModelSignatureRefusal::InvalidTensorConstraint);
+        }
+        Ok(bytes.0)
+    }
+    fn write_digest_bytes(&self, bytes: &mut impl SignatureBytes) {
+        push_text(bytes, &self.identity);
         bytes.extend_from_slice(&self.compatibility_version.to_le_bytes());
         let operations = self.operations.get().as_slice();
-        push_len(&mut bytes, operations.len());
+        push_len(bytes, operations.len());
         for operation in operations {
             bytes.push(ModelOperationForm::encode(*operation)[0]);
         }
-        encode_ports(&mut bytes, self.inputs.get().as_slice(), 0);
-        encode_ports(&mut bytes, self.outputs.get().as_slice(), 1);
-        Ok(semantic_digest(MODEL_SIGNATURE_INFO_ID, &bytes))
+        encode_ports(bytes, self.inputs.get().as_slice(), 0);
+        encode_ports(bytes, self.outputs.get().as_slice(), 1);
+    }
+    /// Actual owned requested payload capacities; inline root and allocator
+    /// bookkeeping are separate. Includes all spare bounded sequence slots.
+    pub fn owned_heap_bytes(&self) -> usize {
+        let mut bytes = self
+            .identity
+            .capacity()
+            .saturating_add(
+                self.operations
+                    .get()
+                    .allocated_capacity()
+                    .saturating_mul(core::mem::size_of::<ModelOperation>()),
+            )
+            .saturating_add(
+                self.inputs
+                    .get()
+                    .allocated_capacity()
+                    .saturating_mul(core::mem::size_of::<ModelPortConstraint>()),
+            )
+            .saturating_add(
+                self.outputs
+                    .get()
+                    .allocated_capacity()
+                    .saturating_mul(core::mem::size_of::<ModelPortConstraint>()),
+            );
+        for port in self.inputs.get().iter().chain(self.outputs.get().iter()) {
+            bytes = bytes
+                .saturating_add(port.identity.get().capacity())
+                .saturating_add(port.semantic_kind.get().capacity());
+            let tensor = match &port.value {
+                ModelValueConstraint::Tensor(v) => v.constraint(),
+                ModelValueConstraint::SampledSignal(v) => v.constraint(),
+                ModelValueConstraint::ProbabilisticTensor(v) => v.constraint(),
+                ModelValueConstraint::ProbabilisticSignal(v) => v.constraint(),
+            };
+            bytes = bytes
+                .saturating_add(
+                    tensor
+                        .elements
+                        .get()
+                        .allocated_capacity()
+                        .saturating_mul(core::mem::size_of::<conduit_data::TensorElement>()),
+                )
+                .saturating_add(
+                    tensor
+                        .axes
+                        .get()
+                        .allocated_capacity()
+                        .saturating_mul(core::mem::size_of::<crate::ModelAxisConstraint>()),
+                );
+            for axis in tensor.axes.get() {
+                if let TensorAxisRole::Other(v) = &axis.role {
+                    bytes = bytes.saturating_add(v.identity().capacity());
+                }
+            }
+        }
+        bytes
     }
 }
 
@@ -207,7 +279,29 @@ fn validate_tensor(port: &ModelPortConstraint) -> Result<(), ModelSignatureRefus
     Ok(())
 }
 
-fn encode_ports(output: &mut Vec<u8>, ports: &[ModelPortConstraint], direction: u8) {
+trait SignatureBytes {
+    fn push(&mut self, value: u8);
+    fn extend_from_slice(&mut self, value: &[u8]);
+}
+impl SignatureBytes for Vec<u8> {
+    fn push(&mut self, value: u8) {
+        Vec::push(self, value);
+    }
+    fn extend_from_slice(&mut self, value: &[u8]) {
+        Vec::extend_from_slice(self, value);
+    }
+}
+struct CountingSignatureBytes(usize);
+impl SignatureBytes for CountingSignatureBytes {
+    fn push(&mut self, _: u8) {
+        self.0 = self.0.saturating_add(1);
+    }
+    fn extend_from_slice(&mut self, value: &[u8]) {
+        self.0 = self.0.saturating_add(value.len());
+    }
+}
+
+fn encode_ports(output: &mut impl SignatureBytes, ports: &[ModelPortConstraint], direction: u8) {
     output.push(direction);
     push_len(output, ports.len());
     for port in ports {
@@ -245,7 +339,7 @@ fn encode_ports(output: &mut Vec<u8>, ports: &[ModelPortConstraint], direction: 
     }
 }
 
-fn push_dimension_constraint(output: &mut Vec<u8>, value: &ModelDimensionConstraint) {
+fn push_dimension_constraint(output: &mut impl SignatureBytes, value: &ModelDimensionConstraint) {
     match value {
         ModelDimensionConstraint::Fixed(value) => {
             output.push(0);
@@ -259,7 +353,7 @@ fn push_dimension_constraint(output: &mut Vec<u8>, value: &ModelDimensionConstra
     }
 }
 
-fn encode_axis_role(output: &mut Vec<u8>, role: &TensorAxisRole) {
+fn encode_axis_role(output: &mut impl SignatureBytes, role: &TensorAxisRole) {
     match role {
         TensorAxisRole::Batch => output.push(0),
         TensorAxisRole::Time => output.push(1),
@@ -282,11 +376,11 @@ fn has_duplicate<T: PartialEq>(values: &[T]) -> bool {
         .any(|(index, value)| values[index + 1..].contains(value))
 }
 
-fn push_len(output: &mut Vec<u8>, value: usize) {
+fn push_len(output: &mut impl SignatureBytes, value: usize) {
     output.extend_from_slice(&(value as u16).to_le_bytes());
 }
 
-fn push_text(output: &mut Vec<u8>, value: &str) {
+fn push_text(output: &mut impl SignatureBytes, value: &str) {
     push_len(output, value.len());
     output.extend_from_slice(value.as_bytes());
 }
@@ -312,7 +406,9 @@ mod tests {
         );
         assert_eq!(
             bytes,
-            [1, 8, 7, 6, 5, 4, 3, 2, 1, 0x18, 0x17, 0x16, 0x15, 0x14, 0x13, 0x12, 0x11,]
+            [
+                1, 8, 7, 6, 5, 4, 3, 2, 1, 0x18, 0x17, 0x16, 0x15, 0x14, 0x13, 0x12, 0x11,
+            ]
         );
     }
 }
