@@ -99,6 +99,9 @@ impl<'a, E: ParserSessionExecutor, S: ParserCanonicalSourceExecutor, N: ParserNu
         }
         let result = (|| {
             let book = Rc::get_mut(&mut self.book).ok_or(R::Closed)?;
+            if book.seed_admission.is_none() || !original_tape_matches(book, query) {
+                return Err(R::Closed);
+            }
             let frames = book.model_frames().map_err(R::Storage)?;
             let history = self
                 .guard
@@ -244,6 +247,9 @@ fn seed_matches_original_tape(book: &ParserRevisionCustody, query: &[u8]) -> boo
     {
         return false;
     }
+    original_tape_matches(book, query)
+}
+fn original_tape_matches(book: &ParserRevisionCustody, query: &[u8]) -> bool {
     fn field<'a>(
         value: conduit_core::ValidatedCanonicalStructuredValue<'a>,
         name: &str,

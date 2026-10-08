@@ -132,12 +132,72 @@ impl<
             return Err(R::Ports);
         }
 
-        let (verifier, input, output, verification_storage) =
+        let prepared =
             PreparedSourceVerification::prepare(entry, verification).map_err(|e| match e {
                 VerificationRefusal::Program => R::Verification,
                 VerificationRefusal::Ports => R::Ports,
                 VerificationRefusal::Storage(_) => R::Storage,
             })?;
+        Self::from_prepared(
+            entry,
+            executor,
+            family,
+            limits,
+            verification,
+            usize::MAX,
+            prepared,
+        )
+    }
+    /// Whole Session preparation may retain and verify the original Source Plan
+    /// after this exact verifier is prepared, then move it here without decoding
+    /// the entire checked Source composition a second time.
+    pub(crate) fn from_prepared(
+        entry: ParserSessionEntry,
+        executor: E,
+        family: Rc<RefCell<PreparedNativeFamily>>,
+        limits: ParserCanonicalIngressLimits,
+        verification: ParserSessionVerificationLimits,
+        maximum_endpoint_encoding_requested_bytes: usize,
+        prepared: (
+            PreparedSourceVerification,
+            conduit_core::StructuredInfoType,
+            conduit_core::StructuredInfoType,
+            ParserSessionVerificationReceipt,
+        ),
+    ) -> Result<Self, ParserCanonicalIngressRefusal<E::Error>> {
+        use ParserCanonicalIngressRefusal as R;
+        if limits.maximum_invocations == 0
+            || limits.maximum_input_bytes == 0
+            || limits.maximum_output_bytes == 0
+            || limits.maximum_input_bytes > conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES
+            || limits.maximum_output_bytes > conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES
+        {
+            return Err(R::Limits);
+        }
+        if executor.entry() != entry.name() || prepared.0.entry() != entry {
+            return Err(R::Entry);
+        }
+        if !family.borrow().contains_descriptor(I::PREPARED_DESCRIPTOR)
+            || !family.borrow().contains_descriptor(O::PREPARED_DESCRIPTOR)
+        {
+            return Err(R::Ports);
+        }
+        let (verifier, input, output, mut verification_storage) = prepared;
+        let endpoint = input
+            .canonical_byte_length()
+            .map_err(|_| R::Ports)?
+            .checked_add(output.canonical_byte_length().map_err(|_| R::Ports)?)
+            .ok_or(R::Storage)?;
+        let preparation = verification_storage
+            .preparation_peak_heap_bytes_bound
+            .checked_add(endpoint)
+            .ok_or(R::Storage)?;
+        if endpoint > maximum_endpoint_encoding_requested_bytes
+            || preparation > verification.preparation_peak_bytes
+        {
+            return Err(R::Storage);
+        }
+        verification_storage.preparation_peak_heap_bytes_bound = preparation;
         let input_bytes = input.canonical_bytes().map_err(|_| R::Ports)?;
         let output_bytes = output.canonical_bytes().map_err(|_| R::Ports)?;
         if input_bytes != I::PREPARED_DESCRIPTOR.type_bytes

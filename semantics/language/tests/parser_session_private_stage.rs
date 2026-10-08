@@ -72,6 +72,12 @@ mod parser_canonical_nominal;
 #[path = "../src/parser_session_seed_admission.rs"]
 mod parser_session_seed_admission;
 
+#[path = "../src/parser_session_numeric_plan.rs"]
+mod parser_session_numeric_plan;
+
+#[path = "../src/parser_session_mixed_preparation.rs"]
+mod parser_session_mixed_preparation;
+
 extern crate conduitos as actual_expression_owner;
 use parser_session_numeric_custody as numeric_custody;
 #[path = "common/parser_model_resource.rs"]
@@ -370,6 +376,25 @@ impl parser_session_fixed_ingress::ParserSessionExecutor for &mut KernelAdapter 
         numeric_custody::ParserNumericExecutor::plan(&self.execution)
     }
 }
+impl numeric_custody::ParserNumericExecutor for &mut KernelAdapter {
+    type Error = &'static str;
+    fn plan(&self) -> &conduit_core::Plan {
+        numeric_custody::ParserNumericExecutor::plan(&self.execution)
+    }
+    fn cancel(&mut self) {
+        parser_session_canonical_ingress::ParserCanonicalSourceExecutor::cancel(self);
+    }
+    fn transact(
+        &mut self,
+        ordinal: u64,
+        input: &[u8],
+        output: &mut [u8],
+    ) -> Result<usize, &'static str> {
+        parser_session_canonical_ingress::ParserCanonicalSourceExecutor::transact(
+            self, ordinal, input, output,
+        )
+    }
+}
 impl parser_session_target_contract::ParserSessionPreparedTarget for &mut KernelAdapter {
     fn checked_source(&self) -> &conduit_plot::CheckedSyntaxDocument {
         &self.execution.checked_source
@@ -442,7 +467,7 @@ fn actual_kernel_fixed_seed_preparation_execution_replay_and_late_output_refusal
         + receipt.static_resources.source_canonical_bytes_bound
         + profile.storage_receipt().unwrap().retained_heap_bytes_bound
         + GIB // independently reserved complete seed refinement preparation
-        + 2 * conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES;
+        + 4 * conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES;
     let limits = FixedPreparationLimits {
         verification: parser_session_execution::ParserSessionVerificationLimits {
             decoded_program_bytes: GIB,
@@ -577,4 +602,205 @@ fn actual_kernel_fixed_seed_preparation_execution_replay_and_late_output_refusal
         Err(FixedRefusal::Cancelled)
     ));
     assert_eq!(calls.get(), 2);
+}
+
+#[test]
+fn actual_kernel_complete_mixed_factory_preserves_original_plans_and_cancels_both_targets() {
+    use conduit_ai::integer_categorical_step::{
+        CategoricalCanonicalAdmissionLimits, PreparedCategoricalCanonicalAdmission,
+    };
+    use numeric_custody::{ParserNumericFrames, ParserNumericReadmissionBudget};
+    use parser_session_canonical_ingress::PreparedParserExecutionFrames;
+    use parser_session_execution::{
+        verification::PreparedSourceVerification, ParserSessionEntry as Entry,
+    };
+    use parser_session_mixed_preparation::*;
+    const GIB: usize = 1024 * 1024 * 1024;
+    let model = profile();
+    let lexical = parser_model_selection::pinned_v2_lexical_profile().unwrap();
+    let selection = Arc::new(
+        parser_model_selection::PreparedParserModelSelection::prepare(model.clone(), &lexical)
+            .unwrap(),
+    );
+    let document=format!("{}\nplot production-model (\n features: LanguageParserV2ModelFeatures...| >> observed: LanguageParserV2ModelScores...|\n) {{ features >> language-parser-v2-feature-indices() >> {}() >> language-parser-v2-score-observation() >> observed }}\n",source(),model.kind_identity(true));
+    let numeric_execution =
+        runtime::prepare_source_with_storage(model.clone(), document, "production-model", Some(2));
+    let source_execution = runtime::prepare_checked_source(
+        model.clone(),
+        numeric_execution.source_document.clone(),
+        numeric_execution.checked_source.clone(),
+        Entry::V2ModelFeatures.name(),
+        Some(2),
+    );
+    assert!(Rc::ptr_eq(
+        &numeric_execution.checked_source,
+        &source_execution.checked_source
+    ));
+    assert!(Rc::ptr_eq(
+        &numeric_execution.source_document,
+        &source_execution.source_document
+    ));
+    let source_plan = source_execution.original_plan.clone();
+    let numeric_plan = numeric_execution.original_plan.clone();
+    let source_calls = Rc::new(std::cell::Cell::new(0));
+    let numeric_calls = Rc::new(std::cell::Cell::new(0));
+    let source_cancels = Rc::new(std::cell::Cell::new(0));
+    let numeric_cancels = Rc::new(std::cell::Cell::new(0));
+    let corrupt = Rc::new(std::cell::Cell::new(false));
+    let contract = |input, output| {
+        parser_session_target_contract::ParserSessionTargetStorageContract::new(
+            12 * GIB,
+            GIB,
+            input,
+            output,
+        )
+        .unwrap()
+    };
+    let mut source_adapter = KernelAdapter {
+        execution: source_execution,
+        contract: contract(conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES, 4096),
+        calls: source_calls.clone(),
+        cancels: source_cancels.clone(),
+        corrupt: Rc::new(std::cell::Cell::new(false)),
+    };
+    let mut numeric_adapter = KernelAdapter {
+        execution: numeric_execution,
+        contract: contract(4096, 4096),
+        calls: numeric_calls.clone(),
+        cancels: numeric_cancels.clone(),
+        corrupt: corrupt.clone(),
+    };
+    let families = families::PreparedProductionParserFamilies::prepare(family_limits()).unwrap();
+    let all = families.receipt();
+    let family = families
+        .for_values::<LanguageParserV2ChoiceQuery, LanguageParserV2ModelFeatures>()
+        .unwrap();
+    let verification = parser_session_execution::ParserSessionVerificationLimits {
+        decoded_program_bytes: GIB,
+        preparation_peak_bytes: GIB,
+        retained_bytes: GIB,
+    };
+    let (mut feature_replay, _, _, feature_receipt) =
+        PreparedSourceVerification::prepare(Entry::V2ModelFeatures, verification).unwrap();
+    let (mut index_replay, _, _, index_receipt) =
+        PreparedSourceVerification::prepare(Entry::V2FeatureIndices, verification).unwrap();
+    let (mut scores_replay, _, _, scores_receipt) =
+        PreparedSourceVerification::prepare(Entry::V2ScoreObservation, verification).unwrap();
+    let canonical_limits = CategoricalCanonicalAdmissionLimits {
+        maximum_preparation_peak_bytes: 4 * 1024 * 1024,
+        maximum_retained_bytes: 4 * 1024 * 1024,
+    };
+    let mut numerical_replay =
+        PreparedCategoricalCanonicalAdmission::prepare(model.clone(), canonical_limits).unwrap();
+    let prepared_profile = parser_session_profile::PreparedParserSessionProfile::admit(
+        parser_session_profile::ParserSessionProfile::PinnedFourSlotV2(selection.clone()),
+        GIB,
+    )
+    .unwrap();
+    let other = all.retained_heap_bytes_bound
+        + all.static_resources.canonical_bytes_bound
+        + all.static_resources.descriptor_storage_bytes_bound
+        + all.static_resources.source_canonical_bytes_bound
+        + prepared_profile.storage.combined_existing_input_bytes_bound
+        + feature_receipt.retained_heap_bytes_bound
+        + index_receipt.retained_heap_bytes_bound
+        + scores_receipt.retained_heap_bytes_bound
+        + numerical_replay.storage_receipt().retained_heap_bytes
+        + 4 * conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES;
+    let limits = MixedPreparationLimits {
+        verification,
+        canonical: canonical_limits,
+        maximum_metadata_temporary_bytes: GIB,
+        maximum_plan_validation_temporary_bytes: 16 * GIB,
+        maximum_endpoint_encoding_requested_bytes: 1024 * 1024,
+        other_existing_session_reserved_bytes: other,
+        maximum_combined_bytes: 64 * GIB,
+        maximum_invocations: 2,
+    };
+    let (mut owner, receipt) = prepare_mixed_targets(
+        &mut source_adapter,
+        &mut numeric_adapter,
+        selection,
+        family.clone(),
+        limits,
+    )
+    .unwrap();
+    assert_eq!(source_calls.get(), 0);
+    assert_eq!(numeric_calls.get(), 0);
+    assert_eq!(
+        receipt.concurrently_live_native_bytes_bound,
+        2 * family
+            .borrow()
+            .storage_receipt()
+            .conversion_requested_bytes_bound
+    );
+    let mut frames = Vec::with_capacity(3);
+    for _ in 0..3 {
+        let source = PreparedParserExecutionFrames::prepare(
+            conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+            4096,
+        )
+        .unwrap();
+        let mut output = Vec::with_capacity(4096);
+        output.resize(4096, 0);
+        frames.push((
+            source,
+            ParserNumericFrames {
+                indices: Vec::with_capacity(4096),
+                scores: Vec::with_capacity(4096),
+                output,
+            },
+        ));
+    }
+    let input = query().encode().unwrap();
+    let (source, numeric) = frames.pop().unwrap();
+    let history = owner.execute(&input, source, numeric).unwrap();
+    assert_eq!(source_calls.get(), 1);
+    assert_eq!(numeric_calls.get(), 1);
+    assert!(Rc::ptr_eq(&history.original_source_plan, &source_plan));
+    assert!(Rc::ptr_eq(&history.numeric.original_plan, &numeric_plan));
+    assert!(Arc::ptr_eq(&history.numeric.original_model, &model));
+    let mut budget = ParserNumericReadmissionBudget {
+        maximum_live_native_bytes: receipt.concurrently_live_native_bytes_bound,
+    };
+    let typed = history
+        .replay_and_readmit(
+            &mut feature_replay,
+            &mut index_replay,
+            &mut scores_replay,
+            &mut numerical_replay,
+            &mut family.borrow_mut(),
+            &source_plan,
+            &numeric_plan,
+            &mut budget,
+        )
+        .unwrap();
+    assert_eq!(typed.output.scores().len(), 76);
+    drop(typed);
+    let mut changed = history.numeric.output.clone();
+    *changed.last_mut().unwrap() ^= 1;
+    family
+        .borrow_mut()
+        .decode::<LanguageParserV2ModelScores>(&changed)
+        .unwrap();
+    corrupt.set(true);
+    let (source, numeric) = frames.pop().unwrap();
+    assert!(matches!(
+        owner.execute(&input, source, numeric),
+        Err(parser_session_mixed_custody::ParserMixedRefusal::Numeric(
+            numeric_custody::ParserNumericRefusal::DifferentOutput
+        ))
+    ));
+    assert_eq!(source_calls.get(), 2);
+    assert_eq!(numeric_calls.get(), 2);
+    assert!(source_cancels.get() > 0);
+    assert!(numeric_cancels.get() > 0);
+    let (source, numeric) = frames.pop().unwrap();
+    assert!(matches!(
+        owner.execute(&input, source, numeric),
+        Err(parser_session_mixed_custody::ParserMixedRefusal::Cancelled)
+    ));
+    assert_eq!(source_calls.get(), 2);
+    assert_eq!(numeric_calls.get(), 2);
+    eprintln!("complete actual mixed factory receipt={receipt:?}");
 }

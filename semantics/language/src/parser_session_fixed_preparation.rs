@@ -53,6 +53,14 @@ pub(crate) fn prepare_fixed_target<E: ParserSessionPreparedTarget>(
     let combined = limits
         .other_existing_session_reserved_bytes
         .checked_add(contract.combined_bytes())
+        .and_then(|n| {
+            n.checked_add(
+                family
+                    .borrow()
+                    .storage_receipt()
+                    .conversion_requested_bytes_bound,
+            )
+        })
         .and_then(|n| n.checked_add(limits.verification.preparation_peak_bytes))
         .and_then(|n| n.checked_add(limits.maximum_metadata_temporary_bytes))
         .and_then(|n| n.checked_add(limits.maximum_plan_validation_temporary_bytes))
