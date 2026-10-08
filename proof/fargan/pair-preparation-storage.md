@@ -34,3 +34,20 @@ All 88 Core unit tests, five existing typed pair tests, two validator allocator
 tests and three new composition allocator tests pass. Core all-target Clippy and
 no-default-features library checking pass. Evidence is retained in project
 outputs/fargan-pair-preparation-storage.
+
+The follow-up Composite `FlowZipBack` entrance composes that reservation with
+encoder boxing, left/right/candidate buffers and the exact nonleaf transport
+identity hash encoding. It checks both ceilings before hashing or allocation,
+then checks the original complete transport Kind. Separate finite and feedback
+entrances preserve the existing state-return/closure policies. The typed-only
+inventory explicitly refuses the unsupported legacy primitive encoder owner.
+This does not charge a caller's boxed Back root, selected offers or contracts.
+
+A dependency-only scratch crate avoids Composite's broad catalog development
+dependencies. Its two actual allocator/runtime tests cover four primitive/nominal
+pair preparations, one-under zero-allocation refusal, foreign Kind refusal and
+all three StepBack modes under 1000 blocked output steps each. Canonical output,
+normal/finite flush and feedback final-state return are checked with zero runtime
+allocations. Composite library and probe all-target Clippy pass. The initially
+chosen broad Cargo development graph was stopped when it began unnecessary
+Language generation; that interrupted gate is not counted as a pass.

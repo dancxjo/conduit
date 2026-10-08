@@ -347,3 +347,5 @@ fn fail(detail: u16) -> StepOutcome {
 
 #[cfg(test)]
 mod tests;
+
+mod storage;
