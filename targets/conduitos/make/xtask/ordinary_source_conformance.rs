@@ -207,7 +207,7 @@ fn semantic_shape(plan: &Plan) -> Result<Value, ConduitosError> {
             .map(|id| gear(id.as_str()))
             .collect::<Result<Vec<_>, _>>()?;
         members.sort();
-        let mut requirements = serde_json::to_value(&region.requirements)
+        let mut requirements = serde_json::to_value(region.requirements)
             .map_err(|error| refusal(error.to_string()))?;
         requirements
             .as_object_mut()
