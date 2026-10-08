@@ -1,0 +1,11 @@
+# Minimal architectural reproducer: a generic Known payload is flattened.
+# Its parent record where law must survive instantiation and Native admission.
+type ParentLawProbe = {
+    numerator: U64
+    denominator: U64 in 1..=18446744073709551615
+    where .numerator <= .denominator
+}
+type ParentLawSpec<T> =
+    known T
+    | unknown
+type ParentLawKnownProbe = ParentLawSpec<ParentLawProbe>
