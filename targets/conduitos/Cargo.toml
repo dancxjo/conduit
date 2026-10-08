@@ -6,6 +6,13 @@ publish = false
 build = "build.rs"
 
 [[bin]]
+name = "conduitos-numeric-topology-host"
+path = "src/numeric_topology_proof/host_meter.rs"
+test = false
+bench = false
+required-features = ["numeric-topology-proof"]
+
+[[bin]]
 name = "conduitos"
 path = "src/main.rs"
 test = false
