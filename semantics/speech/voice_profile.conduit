@@ -33,8 +33,8 @@ type SpeechFormantPhoneBinding = {
     where .phone is z ? .definition.ipa == "z" : true
     where .phone is sh ? .definition.ipa == "ʃ" : true
     where .phone is zh ? .definition.ipa == "ʒ" : true
-    where .phone is ch ? .definition.ipa == "tʃ" : true
-    where .phone is jh ? .definition.ipa == "dʒ" : true
+    where .phone is ch ? .definition.ipa == "t͡ʃ" : true
+    where .phone is jh ? .definition.ipa == "d͡ʒ" : true
     where .phone is m ? .definition.ipa == "m" : true
     where .phone is n ? .definition.ipa == "n" : true
     where .phone is ng ? .definition.ipa == "ŋ" : true
