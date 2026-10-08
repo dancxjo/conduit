@@ -3,7 +3,7 @@
 //! typed action return through the retained Mask Play.
 
 use crate::durable_host_control::terminal_attach::TerminalWardrobeCommand;
-use conduit_presentation::{FaceInteraction, FaceInteractionArgument};
+use conduit_presentation::{FaceInteraction, FaceInteractionArgument, MaskShow, Presentation};
 use std::{
     io::{BufRead, Read, Write},
     path::Path,
@@ -102,46 +102,30 @@ pub(crate) fn run(
             report_wardrobe(output, &wardrobe)?;
             continue;
         }
-        if let Some(value) = command.strip_prefix("apply ") {
+        if command == "actions" {
+            report_actions(output, &attached.face)?;
+            continue;
+        }
+        let action_input = command.strip_prefix("action ").map(|input| {
+            input
+                .split_once(' ')
+                .map_or((input, ""), |(id, value)| (id, value))
+        });
+        if let Some((identity, value)) = action_input
+            .map(|(id, value)| (Some(id), value))
+            .or_else(|| command.strip_prefix("apply ").map(|value| (None, value)))
+        {
             if wardrobe["show_id"].is_null() {
                 writeln!(output, "Action refused: no current selected Mask Show. Enter show to present a fresh Show on this terminal.")
                     .map_err(|error| format!("write stale Show refusal: {error}"))?;
                 continue;
             }
-            let mut available = attached
-                .face
-                .actions
-                .iter()
-                .filter(|action| action.availability.is_available());
-            let selected = available.next();
-            if available.next().is_some()
-                || selected.is_none_or(|action| action.arguments.len() != 1)
-            {
-                writeln!(
-                    output,
-                    "Apply needs exactly one available, single-value action."
-                )
-                .map_err(|error| format!("write owner terminal help: {error}"))?;
-                continue;
-            }
-            let action = selected.expect("checked one available action");
-            let argument = &action.arguments[0];
-            let interaction = FaceInteraction::new(
-                &attached.face,
-                &attached.show,
-                &action.identity,
-                &action.target,
-                vec![FaceInteractionArgument {
-                    name: argument.name.clone(),
-                    value_kind: argument.contract.value_kind.as_str().into(),
-                    value: value.as_bytes().to_vec(),
-                }],
-                1,
-            );
+            let interaction =
+                interaction_for_action(&attached.face, &attached.show, identity, value);
             let interaction = match interaction {
                 Ok(interaction) => interaction,
                 Err(error) => {
-                    writeln!(output, "Action refused: {error:?}")
+                    writeln!(output, "Action refused: {error}")
                         .map_err(|error| format!("write owner terminal refusal: {error}"))?;
                     continue;
                 }
@@ -172,11 +156,81 @@ pub(crate) fn run(
         }
         writeln!(
             output,
-            "Enter wardrobe (inspect), wardrobe wear/doff/prefer (this terminal Mask only), show to present again, apply <value>, or quit to detach."
+            "Enter wardrobe (inspect), wardrobe wear/doff/prefer (this terminal Mask only), show to present again, actions to list choices, action <identity> [value], apply <value>, or quit to detach."
         )
         .map_err(|error| format!("write owner terminal help: {error}"))?;
     }
 }
+
+fn report_actions(output: &mut impl Write, face: &Presentation) -> Result<(), String> {
+    let mut count = 0;
+    for action in face
+        .actions
+        .iter()
+        .filter(|action| action.availability.is_available())
+    {
+        let target = face
+            .subjects
+            .iter()
+            .find(|subject| subject.identity == action.target)
+            .map_or(action.target.as_str(), |subject| subject.name.as_str());
+        let argument = action
+            .arguments
+            .first()
+            .map_or(String::new(), |argument| format!(" <{}>", argument.name));
+        writeln!(
+            output,
+            "{} — {}: action {}{}",
+            action.name, target, action.identity, argument
+        )
+        .map_err(|error| format!("write terminal actions: {error}"))?;
+        count += 1;
+    }
+    if count == 0 {
+        writeln!(output, "No available actions on this Face.")
+            .map_err(|error| format!("write terminal actions: {error}"))?;
+    }
+    output
+        .flush()
+        .map_err(|error| format!("flush terminal actions: {error}"))
+}
+
+fn interaction_for_action(
+    face: &Presentation,
+    show: &MaskShow,
+    identity: Option<&str>,
+    value: &str,
+) -> Result<FaceInteraction, String> {
+    let mut available = face.actions.iter().filter(|action| {
+        action.availability.is_available()
+            && identity.is_none_or(|id| action.identity.as_str() == id)
+    });
+    let selected = available.next();
+    if available.next().is_some()
+        || selected.is_none_or(|action| {
+            action.arguments.len() > 1
+                || (identity.is_none() && action.arguments.len() != 1)
+                || (action.arguments.is_empty() && !value.is_empty())
+        })
+    {
+        return Err("Choose one available action: action <identity> [value]. Apply needs exactly one available, single-value action.".into());
+    }
+    let action = selected.expect("checked one available action");
+    let arguments = action
+        .arguments
+        .iter()
+        .map(|argument| FaceInteractionArgument {
+            name: argument.name.clone(),
+            value_kind: argument.contract.value_kind.as_str().into(),
+            value: value.as_bytes().to_vec(),
+        })
+        .collect();
+    FaceInteraction::new(face, show, &action.identity, &action.target, arguments, 1)
+        .map_err(|error| format!("{error:?}"))
+}
+
+#[cfg(test)]
+mod tests;
 
 fn report_wardrobe(output: &mut impl Write, report: &serde_json::Value) -> Result<(), String> {
     let worn = report["wardrobe"]["worn"]
@@ -208,7 +262,7 @@ fn report_show(
 ) -> Result<(), String> {
     writeln!(
         output,
-        "\r\nOwner terminal Show {} · route Plan {} · Host {} · Boot {} · offer generation {} · {} bytes written and flushed. Enter apply <value> for the available action, show to present again, or quit to detach.",
+        "\r\nOwner terminal Show {} · route Plan {} · Host {} · Boot {} · offer generation {} · {} bytes written and flushed. Enter actions to list choices, action <identity> [value] for an available action, apply <value> when only one value action is available, show to present again, or quit to detach.",
         attached.show.show_id.as_str(),
         attached.route_plan_id.as_str(),
         attached.advertisement.host_id.as_str(),

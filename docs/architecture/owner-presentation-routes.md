@@ -52,6 +52,18 @@ Mask Fore and replaces the same Body's retained clock workset while leaving it
 lulled. The consumed route cannot be submitted again; reattachment seals the new
 Face. Unsupported values and stale action bases refuse.
 
+When the current Face has several actions, enter `actions` to list available
+choices with their target names and command syntax. `action <identity> [value]`
+selects one exact action from that Show; it accepts zero arguments or one typed
+value. For example, a current Todo Face can offer `action todo.add Buy tea`,
+`action todo.complete.task-1`, `action todo.reopen.task-1`, or
+`action todo.remove.task-1`. Use the identities actually listed by `actions`;
+item identities are retained application truth, not list positions. A successful
+mutation reattaches to the new Face. Unknown or unavailable actions, unsupported
+values and stale Shows refuse through the existing interaction boundary.
+`apply <value>` remains a shortcut when exactly one single-value action is
+available. Listing choices does not refresh a stale Show; enter `show` explicitly.
+
 Disconnect, missing acknowledgement, stale Face, or changed Host/Boot/offer
 retires the attachment and Show. Cancellation retires the bounded Mask execution.
 Starting workload execution requires detaching this provider because the current
