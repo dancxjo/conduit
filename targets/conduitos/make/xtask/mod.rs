@@ -1,5 +1,6 @@
 mod aarch64_a0;
 mod aarch64_a1;
+mod aarch64_domain_proof;
 mod acceptance;
 mod active_rescue_proof;
 mod architecture_matrix;
@@ -32,7 +33,6 @@ mod ia32_a0;
 mod ia32_a1;
 mod ia32_a2;
 mod ia32_domain_proof;
-mod ia32_domain_receipt;
 mod ia32_physical_proof;
 mod ia32_product_boot;
 mod ia32_vga_receipt;
@@ -71,6 +71,7 @@ mod product_journey_gate;
 mod product_patchbay;
 mod product_readiness_matrix;
 mod profile;
+mod protected_product_receipt;
 mod protocol_image;
 mod protocol_input;
 mod protocol_run;
@@ -519,6 +520,7 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
         ConduitosCommand::IsolationProof => isolation_proof::execute(opts),
         ConduitosCommand::OrdinaryDomainProof => ordinary_domain_proof::execute(opts),
         ConduitosCommand::Ia32OrdinaryDomainProof => ia32_domain_proof::execute(opts),
+        ConduitosCommand::Aarch64OrdinaryDomainProof => aarch64_domain_proof::execute(opts),
         ConduitosCommand::VirtioNetProof => virtio_net_proof::execute(opts),
     }
 }

@@ -296,7 +296,7 @@ fn boot_once(
             let observatory: serde_json::Value = serde_json::from_str(observatory_json)
                 .map_err(|error| refusal("malformed-ia32-observatory", error.to_string()))?;
             validate_observatory(&observatory, &value, firmware_mode.expected_firmware())?;
-            match super::ia32_domain_receipt::capture(&transcript, &value) {
+            match super::protected_product_receipt::capture(&transcript, &value, "ia32") {
                 Ok(cost) => value["ordinary_domain_cost"] = cost,
                 Err(error) => {
                     let _ = child.kill();

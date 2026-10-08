@@ -130,3 +130,22 @@ pub use x86_64::run_usb_endpoint_read_proof;
     )
 ))]
 mod domain_context_probe;
+
+#[cfg(all(
+    target_arch = "aarch64",
+    conduitos_protected_execution,
+    feature = "ordinary-domain-proof"
+))]
+pub use aarch64::start_pending_source_timer;
+#[cfg(all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5")))]
+pub use aarch64::{RndrEntropy as DomainEntropy, early_write};
+#[cfg(all(
+    target_arch = "aarch64",
+    target_os = "none",
+    not(feature = "aarch64-orange-pi-5")
+))]
+pub use aarch64::{TextDomain, initialize_domains};
+#[cfg(target_arch = "x86")]
+pub use ia32::RdrandEntropy as DomainEntropy;
+#[cfg(target_arch = "x86_64")]
+pub use x86_64::RdrandEntropy as DomainEntropy;

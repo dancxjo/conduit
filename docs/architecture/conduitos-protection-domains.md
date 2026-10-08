@@ -170,7 +170,7 @@ a complete normal graphical Body run.
 |---|---|---|
 | x86_64 | Checked text Source, retained keymap and hostile-entry proofs; ordinary graphical Keyboard canvas uses actual Body-bound CPL3 execution and a gated serial effect | Broader ordinary implementation coverage, complete conformance and release acceptance remain unfinished |
 | IA-32 | The normal legacy BIOS product's checked text region runs in CPL3 through the shared production adapter; independent emulator checks cover memory/privilege denials, capability/lifecycle refusals, loop preemption, floating-state restoration and Source timer coexistence | Broader ordinary implementation coverage, complete cost accounting and release acceptance remain unfinished |
-| AArch64 | Separately compiled pure image only | No earned ordinary EL0 execution proof |
+| AArch64 | Local development emulator runs the normal text region at EL0, with a gated serial effect, completion revocation, eighteen independent boundary checks and Source timer coexistence | Supported-command validation, floating-state restoration proof, broader implementation coverage and release acceptance remain unfinished |
 | RISC-V64 | Separately compiled pure image only | No earned ordinary U-mode execution proof |
 | LoongArch64 | Separately compiled pure image only | No earned ordinary least-privileged execution proof |
 | ARMv6 | No earned protected backend | Protected execution is unsupported; cooperative execution is not confinement |
@@ -211,6 +211,26 @@ registers. A separate pending Source timer delivers exactly one wake while
 the independent RTC budget preempts user execution; retiring Source IRQ0
 preserves the RTC cascade's PIC mask. These are local emulator results, not
 physical-machine or accepted-release evidence.
+
+AArch64's development backend uses 4 KiB translation tables and a bounded EL1
+exception stack. Each domain has immutable EL0 code, non-executable private
+storage, and privileged inherited Root mappings. A separate physical timer
+returns control after three budget interrupts; the existing virtual timer
+retains Source wake ownership. The reviewed emulator CPU is `neoverse-n2`,
+whose architectural RNDR provider supplies opaque capability material.
+Unsupported translation regimes or absent entropy refuse admission.
+
+The local AArch64 product run completed the original text-and-timer Source
+with three EL0 entries, one serial Base gate, six translation/TLB switches,
+64 shared-window copy bytes, a 32-byte window peak, 126,976 backend bytes and
+22,390 Root metadata bytes. Completion revoked the domain and zeroed its
+backend storage. An independently instrumented image exercised eighteen
+memory, privilege, alternate-gate and loop cases, the shared capability and
+lifecycle checks, and exactly one Source wake during budget preemption.
+These development diagnostics do not yet establish the supported proof
+entrance, explicit floating-register preservation evidence, physical hardware
+or release acceptance. The remaining full cost-accounting gaps above also
+apply to this backend.
 
 The ordinary text serial presentation now passes through its domain capability
 gate, and the supplemental Sign reports `effect_capability_gates:true`.

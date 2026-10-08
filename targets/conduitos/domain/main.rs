@@ -14,6 +14,9 @@ mod probes;
 #[cfg(all(feature = "proof", target_arch = "x86"))]
 #[path = "probes_ia32.rs"]
 mod probes;
+#[cfg(all(feature = "proof", target_arch = "aarch64"))]
+#[path = "probes_aarch64.rs"]
+mod probes;
 use frame::{TEXT_CAPACITY, TextFrame};
 #[path = "../src/text_transform.rs"]
 mod text_transform;

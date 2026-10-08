@@ -163,10 +163,7 @@ pub fn prepare_source(
     let mut kernel = TextPlannedKernel::prepare_with_literal(fragment, &lowered, expected_literal)
         .map_err(|_| PreparationError::KernelRejected)?;
     let active_play = new_play(&plan.plan_id, &fragment.host_id, &fragment.boot_id)?;
-    #[cfg(any(
-        all(target_arch = "x86_64", target_os = "none"),
-        all(target_arch = "x86", feature = "ia32-product")
-    ))]
+    #[cfg(conduitos_protected_execution)]
     kernel
         .protect(&plan, &active_play, fixed_offer)
         .map_err(|error| match error {
@@ -455,10 +452,7 @@ fn bind_native_capability(
     portable.implementation.artifact_id = ArtifactId::from(format!("conduitos-build/{build_id}"));
     #[allow(unused_mut)]
     let mut memory_bytes = 4096;
-    #[cfg(any(
-        all(target_arch = "x86_64", target_os = "none"),
-        all(target_arch = "x86", feature = "ia32-product")
-    ))]
+    #[cfg(conduitos_protected_execution)]
     if fixed.kind == conduit_text::TEXT_UPPER_KIND {
         memory_bytes +=
             crate::arch::TextDomain::RESERVED_BYTES + crate::text_protection::ROOT_METADATA_CEILING;

@@ -49,10 +49,7 @@ pub struct DualRegionKernel {
     tick_presentation_node: NodeId,
     upper_node: NodeId,
     text_presentation_node: NodeId,
-    #[cfg(any(
-        all(target_arch = "x86_64", target_os = "none"),
-        all(target_arch = "x86", feature = "ia32-product")
-    ))]
+    #[cfg(conduitos_protected_execution)]
     protected: Option<crate::text_protection::ProtectedText>,
 }
 
@@ -145,10 +142,7 @@ impl DualRegionKernel {
             tick_presentation_node: NodeId(tick_presentation_index as u16),
             upper_node: NodeId(upper_index as u16),
             text_presentation_node: NodeId(text_presentation_index as u16),
-            #[cfg(any(
-                all(target_arch = "x86_64", target_os = "none"),
-                all(target_arch = "x86", feature = "ia32-product")
-            ))]
+            #[cfg(conduitos_protected_execution)]
             protected: None,
         })
     }
@@ -165,10 +159,7 @@ impl DualRegionKernel {
         self.scheduler.host_value(value)
     }
 
-    #[cfg(any(
-        all(target_arch = "x86_64", target_os = "none"),
-        all(target_arch = "x86", feature = "ia32-product")
-    ))]
+    #[cfg(conduitos_protected_execution)]
     pub(crate) fn protect(
         &mut self,
         plan: &conduit_core::Plan,
@@ -198,20 +189,14 @@ impl DualRegionKernel {
             .scheduler
             .host_value(request.input.value)
             .map_err(|_| Error::KernelFailure)?;
-        #[cfg(any(
-            all(target_arch = "x86_64", target_os = "none"),
-            all(target_arch = "x86", feature = "ia32-product")
-        ))]
+        #[cfg(conduitos_protected_execution)]
         {
             self.protected
                 .as_mut()
                 .ok_or(Error::KernelConstruction)?
                 .uppercase(input)
         }
-        #[cfg(not(any(
-            all(target_arch = "x86_64", target_os = "none"),
-            all(target_arch = "x86", feature = "ia32-product")
-        )))]
+        #[cfg(not(conduitos_protected_execution))]
         {
             crate::text_upper::uppercase(input).map_err(|error| match error {
                 crate::text_upper::UppercaseError::MalformedUtf8 => Error::TextMalformedUtf8,
@@ -234,20 +219,14 @@ impl DualRegionKernel {
             .host_value(request.input.value)
             .map_err(|_| Error::KernelFailure)?;
         core::str::from_utf8(input).map_err(|_| Error::SerialBaseFailure)?;
-        #[cfg(any(
-            all(target_arch = "x86_64", target_os = "none"),
-            all(target_arch = "x86", feature = "ia32-product")
-        ))]
+        #[cfg(conduitos_protected_execution)]
         {
             self.protected
                 .as_mut()
                 .ok_or(Error::KernelConstruction)?
                 .present(input, serial)
         }
-        #[cfg(not(any(
-            all(target_arch = "x86_64", target_os = "none"),
-            all(target_arch = "x86", feature = "ia32-product")
-        )))]
+        #[cfg(not(conduitos_protected_execution))]
         {
             serial.present(input).map_err(|_| Error::SerialBaseFailure)
         }
@@ -257,17 +236,11 @@ impl DualRegionKernel {
         &mut self,
         cause: crate::protection_domain::KernelRevocationCause,
     ) {
-        #[cfg(any(
-            all(target_arch = "x86_64", target_os = "none"),
-            all(target_arch = "x86", feature = "ia32-product")
-        ))]
+        #[cfg(conduitos_protected_execution)]
         if let Some(mut domain) = self.protected.take() {
             domain.revoke(cause);
         }
-        #[cfg(not(any(
-            all(target_arch = "x86_64", target_os = "none"),
-            all(target_arch = "x86", feature = "ia32-product")
-        )))]
+        #[cfg(not(conduitos_protected_execution))]
         let _ = cause;
     }
 

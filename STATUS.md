@@ -24,7 +24,11 @@ actual Plan/Play, one serial Base gate and completion revocation checked by
 the supported product receipt. Its independent emulator proof also checks
 memory and privilege denials, bounded loop preemption, exact capability and
 lifecycle refusals, floating-state restoration and one retained Source timer
-wake during preemption. Other ordinary implementations and architectures remain unfinished.
+wake during preemption. AArch64 development emulator diagnostics now execute
+the normal text region at EL0 and check eighteen independent boundary entries,
+capability/lifecycle refusals and Source timer coexistence. Its supported proof
+entrance and explicit floating-state proof remain under validation.
+Other ordinary implementations and architectures remain unfinished.
 DMA/driver isolation remain false; this is not accepted-release evidence.
 See the [exact per-target boundary](docs/architecture/conduitos-protection-domains.md#ordinary-execution-work-in-progress-5113).
 

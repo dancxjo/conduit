@@ -27,6 +27,8 @@ pub(super) fn run() {
     timer
         .arm(interest)
         .unwrap_or_else(|_| refuse("timer-fixture-arm"));
+    #[cfg(target_arch = "aarch64")]
+    arch::start_pending_source_timer();
     let returned = domain.enter(1);
     let mut sign = crate::sign_format::FixedText::new();
     use core::fmt::Write;
