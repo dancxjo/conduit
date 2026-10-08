@@ -374,6 +374,35 @@ fn waiting_owner_admits_exact_show_action_then_retains_commit_and_sign() {
         .subjects
         .iter()
         .any(|subject| subject.name == "Buy milk"));
+    let old_read_play = second_read_receipt["read_play"]["active_play_id"].clone();
+    let old_read_sign = second_read_receipt["read_terminal_sign"]["sign_id"].clone();
+    drop(owner);
+    let selected = super::super::super::super::selected_todo_checkpoint(&state_root)
+        .unwrap()
+        .unwrap();
+    let next_host = StdHost::new_for_todo_checkpoint_once(
+        StdHostConfig {
+            host_id: HostId::from("host/todo-owner-test"),
+            boot_id: BootId::from("boot/todo-owner-reencounter"),
+            offer_generation: OfferGeneration(1),
+        },
+        &selected.root,
+        selected.content.clone(),
+    )
+    .unwrap();
+    let mut owner = super::super::super::resume_service(next_host, &state_root).unwrap();
+    assert_eq!(owner.session.evidence().body_id.as_str(), body);
+    assert_ne!(owner.host.advertisement().boot_id, boot);
+    let new_read = owner.todo_verified_read_receipt().unwrap();
+    assert_ne!(new_read["read_play"]["active_play_id"], old_read_play);
+    assert_ne!(new_read["read_terminal_sign"]["sign_id"], old_read_sign);
+    assert_eq!(new_read["write"]["plan_id"], second_receipt["plan_id"]);
+    assert!(owner
+        .local_face_snapshot()
+        .unwrap()
+        .subjects
+        .iter()
+        .any(|subject| subject.name == "Buy milk"));
     let mut stale_write = next_write.clone();
     stale_write.version = ResourceVersionIdentity::from_digest([10; 32]);
     owner
@@ -381,6 +410,26 @@ fn waiting_owner_admits_exact_show_action_then_retains_commit_and_sign() {
         .transition_todo_checkpoint_offer(&checkpoint_root, stale_write)
         .unwrap();
     assert!(owner.local_face_snapshot().is_err());
+    owner.last_execution.as_mut().unwrap()["read_terminal_sign"] = serde_json::Value::Null;
+    super::super::super::state::retain(
+        &state_root,
+        owner.session.evidence(),
+        owner.last_execution.as_ref(),
+        owner.admissions.as_ref(),
+    )
+    .unwrap();
+    drop(owner);
+    let missing_sign_host = StdHost::new_for_todo_checkpoint_once(
+        StdHostConfig {
+            host_id: HostId::from("host/todo-owner-test"),
+            boot_id: BootId::from("boot/todo-owner-missing-sign"),
+            offer_generation: OfferGeneration(1),
+        },
+        &selected.root,
+        selected.content.clone(),
+    )
+    .unwrap();
+    assert!(super::super::super::resume_service(missing_sign_host, &state_root).is_err());
     std::fs::remove_dir_all(state_root).unwrap();
 }
 

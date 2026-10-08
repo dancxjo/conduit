@@ -35,7 +35,13 @@ pub(crate) fn resume_service(
         owner.set_resident_plot_name(&checked)?;
     }
     owner.restore_execution(root)?;
-    owner.persist(root)?;
+    if owner.has_retained_verified_todo_read() {
+        let selected = super::selected_todo_checkpoint(root)?
+            .ok_or("Todo re-encounter has no selected checkpoint")?;
+        owner.reencounter_committed_todo(root, &selected.root, &selected.content, 5_000)?;
+    } else {
+        owner.persist(root)?;
+    }
     Ok(owner)
 }
 
