@@ -143,7 +143,7 @@ pub(super) fn emit_variant_binding(
     };
     writeln!(out, "        let StructuredInfoValueShape::Variant {{ tag, {payload_pattern} }} = value.shape() else {{ return Err(NativeBindingRefusal::InvalidValue(conduit_core::StructuredInfoRefusal::WrongType)); }};")
         .expect("String writing is infallible");
-    writeln!(out, "        match tag {{").expect("String writing is infallible");
+    writeln!(out, "        let candidate = match tag {{").expect("String writing is infallible");
     for case in cases {
         let variant = rust_pascal_identifier(case.tag())?;
         let boxed =
@@ -192,7 +192,7 @@ pub(super) fn emit_variant_binding(
                 .expect("String writing is infallible");
         }
     }
-    writeln!(out, "            _ => Err(NativeBindingRefusal::InvalidValue(conduit_core::StructuredInfoRefusal::UnknownVariantTag)),\n        }}\n    }}\n}}\n")
+    writeln!(out, "            _ => Err(NativeBindingRefusal::InvalidValue(conduit_core::StructuredInfoRefusal::UnknownVariantTag)),\n        }}?;\n        conduit_plot::rust_binding::validate_native_contracts(&value, &Self::value_contracts())?;\n        Ok(candidate)\n    }}\n}}\n")
         .expect("String writing is infallible");
     Ok(())
 }

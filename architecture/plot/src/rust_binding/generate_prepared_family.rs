@@ -256,7 +256,7 @@ fn emit_converter(
         StructuredInfoTypeShape::Variant { cases, .. } => {
             writeln!(
                 out,
-                "        match value.variant_tag().map_err(NativeBindingRefusal::InvalidValue)? {{"
+                "        let candidate = match value.variant_tag().map_err(NativeBindingRefusal::InvalidValue)? {{"
             )
             .unwrap();
             for case in cases {
@@ -287,7 +287,7 @@ fn emit_converter(
                 };
                 writeln!(out, "            {:?} => {{ let payload = {payload}; let _ = payload; Ok({result}) }},", case.tag()).unwrap();
             }
-            writeln!(out, "            _ => Err(NativeBindingRefusal::InvalidValue(conduit_core::StructuredInfoRefusal::WrongType)),\n        }}").unwrap();
+            writeln!(out, "            _ => Err(NativeBindingRefusal::InvalidValue(conduit_core::StructuredInfoRefusal::WrongType)),\n        }}?;\n        family.validate(Self::PREPARED_DESCRIPTOR, value)?;\n        Ok(candidate)").unwrap();
         }
         _ => return Err(Error::InvalidSemanticType),
     }

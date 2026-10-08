@@ -252,11 +252,6 @@ impl PreparedNativeFamily {
             .iter_mut()
             .find(|ty| core::ptr::eq(ty.descriptor, descriptor))
             .ok_or_else(wrong_type)?;
-        // The legacy variant from_structured entrance decodes its children and
-        // directly constructs the case, without invoking the public case constructor.
-        if descriptor.conversion_profile == NativeFamilyConversionProfile::Variant {
-            return Ok(());
-        }
         validate_borrowed_native_contracts(value, &ty.contracts)?;
         if descriptor.laws.is_empty() {
             return Ok(());
