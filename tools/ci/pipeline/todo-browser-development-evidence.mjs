@@ -5,7 +5,9 @@ import path from 'node:path';
 
 export const TODO_BROWSER_DEVELOPMENT_ROOT = 'site/evidence/todo-browser-development';
 const FILES = ['browser-after.png', 'browser-before.png', 'browser-card-after.png',
-  'browser-full-after.png', 'index.html', 'read-only-card-receipt.json', 'receipt.json'];
+  'browser-full-after.png', 'index.html', 'long-list-browser-receipt.json',
+  'long-list-terminal-summary.json', 'read-only-card-receipt.json', 'receipt.json',
+  'todo-20-card.png', 'todo-20-full.png'];
 const sha = bytes => `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
 const commit = value => /^[a-f0-9]{40}$/.test(value ?? '');
 
@@ -26,6 +28,8 @@ export function retainedTodoBrowserDevelopmentEvidence(root = TODO_BROWSER_DEVEL
   const actionBytes = bytes('receipt.json');
   const action = JSON.parse(actionBytes);
   const card = JSON.parse(bytes('read-only-card-receipt.json'));
+  const longList = JSON.parse(bytes('long-list-terminal-summary.json'));
+  const longListBrowser = JSON.parse(bytes('long-list-browser-receipt.json'));
   if (!commit(publicationCommit) || !commit(action.owner_source_commit)
       || !commit(action.browser_runtime_source_commit)
       || action.schema !== 'conduit.proof/todo-owner-browser@1'
@@ -46,7 +50,28 @@ export function retainedTodoBrowserDevelopmentEvidence(root = TODO_BROWSER_DEVEL
       || card.original_receipt_sha256 !== sha(actionBytes)) {
     throw new Error('Todo browser development receipts do not describe one truthful Add');
   }
-  for (const source of [action.owner_source_commit, action.browser_runtime_source_commit]) {
+  if (longList.schema !== 'conduit.proof/todo-long-list-terminal@1'
+      || longListBrowser.schema !== 'conduit.proof/todo-owner-browser-long-list@1'
+      || longList.body_id !== action.body_id || longListBrowser.body_id !== action.body_id
+      || !commit(longList.owner_source_commit)
+      || longListBrowser.terminal_actions_source_identity !== longList.owner_source_commit
+      || !commit(longListBrowser.owner_source_identity)
+      || longListBrowser.owner_source_identity !== longListBrowser.browser_source_identity
+      || longListBrowser.source_relation !== 'exact-source'
+      || longListBrowser.open !== 3 || longListBrowser.completed !== 17
+      || longListBrowser.item_count !== 20 || longList.open !== 3
+      || longList.completed !== 17 || longList.status !== '3 things left · 17 completed'
+      || longList.action_count !== 19
+      || !Array.isArray(longList.items) || longList.items.length !== 20
+      || longList.items.filter(item => item.complete === true).length !== 17
+      || longList.items.filter(item => item.complete === false).length !== 3
+      || !longListBrowser.browser_face_id
+      || Number(longListBrowser.browser_face_revision) <= Number(longList.face_revision)
+      || !Array.isArray(longListBrowser.errors) || longListBrowser.errors.length !== 0) {
+    throw new Error('Todo long-list evidence lacks one matching Body and exact browser rejoin');
+  }
+  for (const source of [action.owner_source_commit, action.browser_runtime_source_commit,
+    longList.owner_source_commit, longListBrowser.owner_source_identity]) {
     try { execFileSync('git', ['merge-base', '--is-ancestor', source, publicationCommit]); }
     catch { throw new Error('Todo browser capture source is absent from publication ancestry'); }
   }
@@ -59,17 +84,24 @@ export function retainedTodoBrowserDevelopmentEvidence(root = TODO_BROWSER_DEVEL
     if (card.screenshots?.[name] && card.screenshots[name] !== sha(image)) {
       throw new Error(`Todo browser card capture differs from its receipt: ${name}`);
     }
+    if (longListBrowser.screenshots?.[name] && longListBrowser.screenshots[name] !== sha(image)) {
+      throw new Error(`Todo browser long-list capture differs from its receipt: ${name}`);
+    }
   }
   if (action.screenshots?.join(',') !== 'browser-before.png,browser-after.png'
       || !card.screenshots?.['browser-card-after.png']
-      || !card.screenshots?.['browser-full-after.png']) {
+      || !card.screenshots?.['browser-full-after.png']
+      || !longListBrowser.screenshots?.['todo-20-card.png']
+      || !longListBrowser.screenshots?.['todo-20-full.png']) {
     throw new Error('Todo browser receipts omit captured images');
   }
   const page = bytes('index.html').toString('utf8');
   if (!page.includes('cross-source development evidence')
       || !page.includes('This run proves one browser Add action')
       || !page.includes(action.owner_source_commit.slice(0, 9))
-      || !page.includes(action.browser_runtime_source_commit.slice(0, 9))) {
+      || !page.includes(action.browser_runtime_source_commit.slice(0, 9))
+      || !page.includes(longList.owner_source_commit.slice(0, 9))
+      || !page.includes(longListBrowser.owner_source_identity.slice(0, 9))) {
     throw new Error('Todo browser development page overclaims its capture');
   }
   for (const [, reference] of page.matchAll(/\b(?:href|src)="([^"]+)"/g)) {
@@ -80,5 +112,7 @@ export function retainedTodoBrowserDevelopmentEvidence(root = TODO_BROWSER_DEVEL
     }
   }
   return { root, sourceCommit: action.owner_source_commit,
-    browserRuntimeCommit: action.browser_runtime_source_commit, bodyId: action.body_id };
+    browserRuntimeCommit: action.browser_runtime_source_commit, bodyId: action.body_id,
+    longListActionsCommit: longList.owner_source_commit,
+    longListBrowserCommit: longListBrowser.owner_source_identity };
 }

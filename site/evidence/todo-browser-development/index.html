@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Add to a Todo Body in the browser · Conduit development journey</title>
+  <title>Grow a Todo Body across Masks · Conduit development journey</title>
   <link rel="stylesheet" href="/conduit/site.css">
   <style>
     .todo-journey { max-width: 72rem; margin: auto; padding: 2rem 1.25rem 5rem; }
@@ -34,8 +34,8 @@
   <main id="main-content" class="todo-journey">
     <p><a href="/conduit/journeys/">All journeys</a></p>
     <p class="eyebrow">Local development journey · one Body · live Chromium</p>
-    <h1>Add an item to Groceries</h1>
-    <p class="lede">The browser joins an installed Todo Body, wears its browser Mask, and adds “Pick up prescription.” The new item appears in a fresh Face and Show from that same Body.</p>
+    <h1>Grow a Groceries list across Masks</h1>
+    <p class="lede">First, the browser adds “Pick up prescription.” Later, terminal actions build the same Body into a 20-item list. The browser rejoins and shows the result: three things left, seventeen completed.</p>
     <p class="boundary">This run proves one browser Add action. It does not prove the other Todo actions, the native or spoken Masks, lull and wake, a complete multi-host journey, or stable release acceptance. The installed owner was built from source <code>99399c157</code>; the packaged browser runtime came from <code>f7778c323</code>. The Handbook UI bytes match clean source <code>99399c157</code>, so this is explicitly cross-source development evidence.</p>
     <h2>What happened</h2>
     <ol>
@@ -59,6 +59,13 @@
       <figcaption>The card after Add, captured by a read-only browser rejoin of the same Body. No second Todo action was taken for this image.</figcaption>
     </figure>
     <p>The before and after screenshots come from the action-performing browser session. A <a href="browser-full-after.png">full-page capture</a> shows the read-only rejoin around the cleaner card. The <a href="receipt.json">action receipt</a> records the Body, browser Host, Face revisions, and distinct Show identities. The <a href="read-only-card-receipt.json">card observation receipt</a> binds the cleaner images to that original run.</p>
+    <h2>Return after the list grows</h2>
+    <p>On that same Body, a person used terminal actions to add the remaining items and complete seventeen of the twenty. Each action committed and was read back from the selected checkpoint. The last three items remain open. A fresh installed Host Boot then recovered that Body; an exact-source browser Mask joined and displayed the changed Face without another Birth.</p>
+    <figure>
+      <img src="todo-20-card.png" width="1133" height="413" loading="lazy" alt="Live browser Todo card showing Groceries with three open items and seventeen completed items">
+      <figcaption>The browser shows the same Groceries list after terminal mutations: three open, seventeen completed. Completed items are visually subordinate.</figcaption>
+    </figure>
+    <p>The <a href="todo-20-full.png">full-page screenshot</a> shows this card in the browser workspace. The <a href="long-list-terminal-summary.json">terminal summary</a> records all twenty items and their completion flags; the <a href="long-list-browser-receipt.json">browser receipt</a> records its matching Body, Face, counts, and screenshot hashes. Terminal actions used source <code>88f187fdb</code>; the rejoined owner and browser both used source <code>459e672cb</code>. This proves durable cross-Mask state across a fresh Boot. It does not claim a browser action in the long-list capture, a native graphical view of that list, or a spoken long-list Play.</p>
   </main>
 </body>
 </html>
