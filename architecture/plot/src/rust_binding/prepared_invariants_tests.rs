@@ -3,7 +3,9 @@ use super::{
     PreparedNativeInvariantRefusal, PreparedNativeInvariantStorageLimits,
 };
 use crate::{check_syntax_document, parse_syntax_document, StartupCatalog};
+use alloc::vec::Vec;
 use conduit_core::{StructuredFieldValue, StructuredInfoTypeShape, StructuredInfoValue};
+use std::eprintln;
 
 #[test]
 fn prepared_native_bank_preserves_order_and_law_refusals() {
