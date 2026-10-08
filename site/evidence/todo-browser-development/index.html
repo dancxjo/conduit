@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Add to a Todo Body in the browser · Conduit development journey</title>
+  <link rel="stylesheet" href="/conduit/site.css">
+  <style>
+    .todo-journey { max-width: 72rem; margin: auto; padding: 2rem 1.25rem 5rem; }
+    .todo-journey h1 { font-size: clamp(2.5rem, 6vw, 4.8rem); line-height: 1.08; }
+    .todo-journey .lede { font-size: 1.2rem; max-width: 65ch; }
+    .todo-journey .boundary { border-left: .3rem solid var(--conduit-emphasis); padding: 1rem; background: var(--conduit-surface); }
+    .todo-journey figure { margin: 1.5rem 0 2.5rem; }
+    .todo-journey img { display: block; width: min(100%, 69.75rem); height: auto; border: 1px solid var(--conduit-structure-secondary); border-radius: .5rem; }
+    .todo-journey figcaption { margin-top: .6rem; }
+    .todo-journey ol { padding-left: 1.5rem; }
+    .todo-journey li { padding: .55rem 0; }
+    .todo-journey code { overflow-wrap: anywhere; }
+  </style>
+</head>
+<body data-application-theme="conduit.presentation/phosphor@1">
+  <a class="conduit-skip-link" href="#main-content">Skip to the journey</a>
+  <header class="site-header">
+    <a class="site-brand" href="/conduit/" aria-label="Conduit home">Conduit</a>
+    <nav aria-label="Main navigation">
+      <a data-section="home" href="/conduit/">Home</a>
+      <a data-section="journeys" aria-current="page" href="/conduit/journeys/">Journeys</a>
+      <a data-section="handbook" href="/conduit/handbook/">Handbook</a>
+      <a data-section="downloads" href="/conduit/#get-conduit">Downloads</a>
+      <a data-section="workspace" href="/conduit/workspace/">Open Conduit</a>
+    </nav>
+    <a class="site-source" href="https://github.com/dancxjo/conduit">Source</a>
+  </header>
+  <main id="main-content" class="todo-journey">
+    <p><a href="/conduit/journeys/">All journeys</a></p>
+    <p class="eyebrow">Local development journey · one Body · live Chromium</p>
+    <h1>Add an item to Groceries</h1>
+    <p class="lede">The browser joins an installed Todo Body, wears its browser Mask, and adds “Pick up prescription.” The new item appears in a fresh Face and Show from that same Body.</p>
+    <p class="boundary">This run proves one browser Add action. It does not prove the other Todo actions, the native or spoken Masks, lull and wake, a complete multi-host journey, or stable release acceptance. The installed owner was built from source <code>99399c157</code>; the packaged browser runtime came from <code>f7778c323</code>. The Handbook UI bytes match clean source <code>99399c157</code>, so this is explicitly cross-source development evidence.</p>
+    <h2>What happened</h2>
+    <ol>
+      <li>An installed Linux Host offered Todo during Crèche Birth. The owner selected it and gave the new Body a Groceries list.</li>
+      <li>Chromium joined that Body through an authorized owner window, inspected its wardrobe, and selected the browser Mask.</li>
+      <li>The owner started a Todo Play. The browser received an available Add action, entered “Pick up prescription,” and activated it.</li>
+      <li>The browser received a different Show with the new item. A separate owner Face read confirmed that the same Body contains it.</li>
+    </ol>
+    <figure>
+      <img src="browser-card-after.png" width="1116" height="195" alt="Live browser Todo card for Groceries showing one thing left and the item Pick up prescription">
+      <figcaption>The card after Add, captured by a read-only browser rejoin of the same Body. No second Todo action was taken for this image.</figcaption>
+    </figure>
+    <p>The <a href="browser-before.png">before</a> and <a href="browser-after.png">after</a> screenshots come from the action-performing browser session. Its <a href="receipt.json">action receipt</a> records the Body, browser Host, Face revisions, and distinct Show identities. The <a href="read-only-card-receipt.json">card observation receipt</a> binds this cleaner image to that original run.</p>
+  </main>
+</body>
+</html>
