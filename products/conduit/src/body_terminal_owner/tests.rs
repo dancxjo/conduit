@@ -75,7 +75,13 @@ fn named_todo_actions_keep_exact_ids_targets_and_arguments() {
     assert_eq!(add.arguments.len(), 1);
     assert_eq!(add.arguments[0].value, "Tea 茶".as_bytes());
     assert!(interaction_for_action(&face, &show, None, "Tea").is_err());
-    assert!(interaction_for_action(&face, &show, Some("todo.add"), &"a".repeat(65)).is_err());
+    assert!(interaction_for_action(
+        &face,
+        &show,
+        Some("todo.add"),
+        &"a".repeat(conduit_todo_plot::MAX_TODO_TEXT_BYTES + 1)
+    )
+    .is_err());
     assert!(interaction_for_action(&face, &show, Some("todo.complete.task-1"), "extra").is_err());
     assert!(interaction_for_action(&face, &show, Some("invented"), "").is_err());
 }
