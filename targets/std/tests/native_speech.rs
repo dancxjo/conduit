@@ -194,7 +194,17 @@ fn minimal_and_reference_compositions_truthfully_select_the_native_family() {
         .iter()
         .filter(|offer| !baseline.contains(offer))
         .collect();
-    assert_eq!(added, vec![&conduit_speech::kernel::offer()]);
+    // #5327's offer-fixture repair exposed this assumption. The reconciled
+    // native family contains the voice Back and exactly four static IPA Backs.
+    let mut expected = vec![conduit_speech::kernel::offer()];
+    expected.extend(
+        conduit_speech::ipa_constructors::IpaConstructor::ALL
+            .map(conduit_speech::ipa_constructors::offer),
+    );
+    assert_eq!(added.len(), expected.len());
+    for offer in &expected {
+        assert!(added.contains(&offer));
+    }
     assert!(offers(StdHostComposition::reference())
         .iter()
         .any(|o| *o == conduit_speech::kernel::offer()));

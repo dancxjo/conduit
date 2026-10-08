@@ -83,6 +83,18 @@ pub fn prepare_configuration(
     {
         return Err(D::configuration());
     }
+    for (name, _, ty) in &parameters {
+        let entry = configuration
+            .iter()
+            .find(|entry| entry.key == *name)
+            .unwrap();
+        let ConfigurationValue::Structured(value) = &entry.value else {
+            return Err(D::configuration());
+        };
+        if value.profile() != ty.profile().expect("finite parameter").value_kind() {
+            return Err(D::configuration());
+        }
+    }
     let request: SpeechIpaUniversalRequest = decode(configuration, "request")?;
     let original = request.original();
     let whole = || {
