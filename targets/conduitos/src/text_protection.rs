@@ -34,9 +34,17 @@ pub(crate) trait TextOwner: DomainBinding {
     fn region_id(&self) -> &str;
     fn plan_id(&self) -> &str;
     fn play_id(&self) -> &str;
+    fn partition_plan_id(&self) -> &str;
+    fn checked_plot_id(&self) -> &str;
 }
 
 impl TextOwner for RegionBinding {
+    fn partition_plan_id(&self) -> &str {
+        self.active.plan_id.as_str()
+    }
+    fn checked_plot_id(&self) -> &str {
+        ""
+    }
     fn scope(
         &self,
         serial: &crate::domain_serial_scope::SerialScope,
@@ -58,6 +66,12 @@ impl TextOwner for RegionBinding {
     }
 }
 impl TextOwner for crate::protected_region::BodyRegionBinding {
+    fn partition_plan_id(&self) -> &str {
+        self.partition_plan.as_str()
+    }
+    fn checked_plot_id(&self) -> &str {
+        self.plot.checked_plot_id.as_str()
+    }
     fn scope(
         &self,
         serial: &crate::domain_serial_scope::SerialScope,
@@ -86,6 +100,7 @@ pub(crate) struct ProtectedText<I: TextOwner = RegionBinding> {
     serial: crate::domain_serial_scope::SerialScope,
     serial_handle: crate::protection_domain::KernelCapabilityHandle,
     diagnostic_fixture: bool,
+    editor: bool,
 }
 
 impl ProtectedText {
@@ -152,6 +167,7 @@ impl ProtectedText {
             serial,
             serial_handle,
             diagnostic_fixture: false,
+            editor: false,
         };
         let heap_bytes = [&protected.current, protected.region.binding()]
             .into_iter()
@@ -183,7 +199,19 @@ impl ProtectedText {
 }
 
 impl<I: TextOwner> ProtectedText<I> {
+    pub fn reset_editor(&mut self, maximum: u64) -> Result<(), MachineRunError> {
+        self.region
+            .backend_mut()
+            .map_err(MachineRunError::ProtectionDomain)?
+            .initialize_editor(maximum)
+            .map_err(MachineRunError::ProtectionDomain)?;
+        self.return_from_pure()?;
+        self.editor = true;
+        Ok(())
+    }
+
     pub fn reset_keymap(&mut self) -> Result<(), MachineRunError> {
+        self.editor = false;
         self.region
             .backend_mut()
             .map_err(MachineRunError::ProtectionDomain)?
@@ -433,9 +461,9 @@ impl<I: TextOwner> Drop for ProtectedText<I> {
             return;
         }
         let mut sign = crate::sign_format::FixedText::new();
-        if writeln!(sign, "CONDUIT_DOMAIN_COST {{\"schema\":\"conduit.conduitos/domain-cost@1\",\"architecture\":\"{}\",\"region_id\":\"{}\",\"plan_id\":\"{}\",\"play_id\":\"{}\",\"domain_id\":{},\"fixture\":{},\"state\":\"{:?}\",\"entries\":{},\"interrupt_entries\":{},\"source_timer_interrupts\":{},\"privilege_transitions\":{},\"gate_transitions\":{},\"copied_bytes\":{},\"setup_copied_bytes\":{},\"base_gate_transitions\":{},\"tlb_flushes\":{},\"setup_ticks\":{},\"teardown_ticks\":{},\"tick_unit\":\"{}\",\"teardown_zeroed_bytes\":{},\"shared_peak_bytes\":{},\"root_metadata_bytes\":{},\"shared_page_bytes\":4096,\"ring_slots\":0,\"address_space_switches\":{},\"scheduler_returns\":{},\"preemptions\":{},\"reserved_bytes\":{},\"dma_isolation\":false,\"driver_isolation\":false}}",
+        if writeln!(sign, "CONDUIT_DOMAIN_COST {{\"schema\":\"conduit.conduitos/domain-cost@1\",\"architecture\":\"{}\",\"region_id\":\"{}\",\"plan_id\":\"{}\",\"play_id\":\"{}\",\"partition_plan_id\":\"{}\",\"checked_plot_id\":\"{}\",\"domain_id\":{},\"fixture\":{},\"state\":\"{:?}\",\"entries\":{},\"interrupt_entries\":{},\"source_timer_interrupts\":{},\"privilege_transitions\":{},\"gate_transitions\":{},\"copied_bytes\":{},\"setup_copied_bytes\":{},\"base_gate_transitions\":{},\"tlb_flushes\":{},\"setup_ticks\":{},\"teardown_ticks\":{},\"tick_unit\":\"{}\",\"teardown_zeroed_bytes\":{},\"shared_peak_bytes\":{},\"root_metadata_bytes\":{},\"shared_page_bytes\":4096,\"ring_slots\":0,\"address_space_switches\":{},\"scheduler_returns\":{},\"preemptions\":{},\"reserved_bytes\":{},\"dma_isolation\":false,\"driver_isolation\":false}}",
             crate::arch::ARCHITECTURE, self.current.region_id(), self.current.plan_id(),
-            self.current.play_id(), self.current.domain().0, self.diagnostic_fixture, self.region.state(),
+            self.current.play_id(), self.current.partition_plan_id(), self.current.checked_plot_id(), self.current.domain().0, self.diagnostic_fixture, self.region.state(),
             cost.entries, cost.interrupt_entries, cost.source_timer_interrupts, cost.privilege_transitions, cost.gate_transitions, cost.copied_bytes, cost.setup_copied_bytes,
             cost.base_gate_transitions, cost.tlb_flushes, cost.setup_ticks, cost.teardown_ticks,
             TextDomain::TICK_UNIT, cost.teardown_zeroed_bytes, cost.shared_peak_bytes, cost.root_metadata_bytes, cost.address_space_switches,

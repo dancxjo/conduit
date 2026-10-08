@@ -11,7 +11,7 @@ use crate::{
 };
 use conduit_core::Plan;
 
-fn fixture(plan: &Plan, offer: &HostOffer<'_>) -> ProtectedText {
+pub(super) fn fixture(plan: &Plan, offer: &HostOffer<'_>) -> ProtectedText {
     let fragment = &plan.fragments[0];
     let active =
         crate::ordinary_plan::new_play(&plan.plan_id, &fragment.host_id, &fragment.boot_id)

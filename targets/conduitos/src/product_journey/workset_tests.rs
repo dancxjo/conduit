@@ -97,6 +97,7 @@ fn native_birth_keeps_four_plots_in_one_body_plan_play_and_switches_only_foregro
         journey.foreground_input_owner().unwrap().plot,
         native_workset::resident(NativePlot::KeyboardCanvas).unwrap()
     );
+    let canvas_partition = journey.projection().partition_plan_id.unwrap();
     type_key(&mut journey, 4);
     assert_eq!(journey.projection().result.as_deref(), Some("A"));
     select(&mut journey, NativePlot::MemoryLantern);
@@ -104,10 +105,16 @@ fn native_birth_keeps_four_plots_in_one_body_plan_play_and_switches_only_foregro
         journey.foreground_input_owner().unwrap().plot,
         native_workset::resident(NativePlot::MemoryLantern).unwrap()
     );
+    let editor_partition = journey.projection().partition_plan_id.unwrap();
+    assert_ne!(canvas_partition, editor_partition);
     type_key(&mut journey, 5);
     type_key(&mut journey, 6);
     assert_eq!(journey.projection().result.as_deref(), Some("bc"));
     select(&mut journey, NativePlot::KeyboardCanvas);
+    assert_eq!(
+        journey.projection().partition_plan_id.as_ref(),
+        Some(&canvas_partition)
+    );
     type_key(&mut journey, 7);
     assert_eq!(journey.projection().result.as_deref(), Some("AD"));
     select(&mut journey, NativePlot::MemoryLantern);

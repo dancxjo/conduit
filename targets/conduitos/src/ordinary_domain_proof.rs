@@ -2,6 +2,7 @@
 use crate::{arch, boot, identity, offer, ordinary_plan, text_composition};
 
 mod gates;
+mod retained_text;
 mod timer;
 
 pub fn run(record: &boot::BootRecord) -> ! {
@@ -42,6 +43,7 @@ pub fn run(record: &boot::BootRecord) -> ! {
     drop(prepared);
     gates::run(&plan, &offer);
     keymap_entries();
+    retained_text::run(&plan, &offer);
     hostile_entries();
     timer::run();
     arch::early_write(b"CONDUIT_ORDINARY_DOMAIN_SIGN {\"status\":\"completed\",\"proof_class\":\"freestanding-emulator\",\"architecture\":\"x86_64\",\"privilege\":\"ring3\",\"ordinary_source\":true,\"protected_computation\":true,\"effect_capability_gates\":true,\"dma_isolation\":false,\"driver_isolation\":false,\"bounded\":true}\n");

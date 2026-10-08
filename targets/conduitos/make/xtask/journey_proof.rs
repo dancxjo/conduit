@@ -135,6 +135,12 @@ pub(super) fn execute_supplied(
             keyboard_domain::exercise(&serial_path, &mut child, &mut qmp, &mut reader)?;
         artifacts.capture(&mut qmp, &mut reader, "protected-keyboard-canvas", true)?;
 
+        let editor_identity =
+            keyboard_domain::exercise_editor(&serial_path, &mut child, &mut qmp, &mut reader)?;
+        artifacts.capture(&mut qmp, &mut reader, "protected-memory-lantern", true)?;
+
+        keyboard_domain::verify_sibling(&serial_path, &mut child, &mut qmp, &mut reader)?;
+
         journey_input::key_pair(&mut qmp, &mut reader, "esc", "journey-home")?;
         hid_qmp::wait_for_stage(
             &serial_path,
@@ -184,7 +190,15 @@ pub(super) fn execute_supplied(
         let serial = fs::read_to_string(&serial_path).map_err(io_error)?;
         let records = journey_records::decode(&serial)?;
         let identity = validate(&records, &serial)?;
-        let keyboard_cost = keyboard_domain::validate_cost(&serial, &keyboard_identity)?;
+        let keyboard_cost = keyboard_domain::validate_cost(&serial, &keyboard_identity, 5, 1)?;
+        let editor_cost = keyboard_domain::validate_cost(&serial, &editor_identity, 21, 5)?;
+        if keyboard_cost["domain_id"] == editor_cost["domain_id"]
+            || keyboard_cost["partition_plan_id"] == editor_cost["partition_plan_id"]
+        {
+            return Err(refusal(
+                "keyboard and retained editor shared a protection domain or partition",
+            ));
+        }
         if child.try_wait().map_err(io_error)?.is_some() {
             return Err(refusal("guest exited before the journey finished"));
         }
@@ -198,7 +212,8 @@ pub(super) fn execute_supplied(
             "body_id":records.iter().find(|r|r["status"]=="born-lulled").unwrap()["body_id"],
             "input":"real-qmp-keyboard", "screenshots":"journey-frames/manifest.json",
             "protected_keyboard_domain": keyboard_cost,
-            "steps":["arrive","birth","wake","plan","play","protected-keyboard-canvas","home","patchbay","face","diagram","stop"],
+            "protected_retained_text_domain": editor_cost,
+            "steps":["arrive","birth","wake","plan","play","protected-keyboard-canvas","protected-memory-lantern","home","patchbay","face","diagram","stop"],
             "physical_evidence":false, "human_enactment":false,
         });
         fs::write(
