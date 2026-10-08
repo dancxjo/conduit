@@ -1,10 +1,9 @@
 //! Terminal selection against the actual Todo Face; Show is a presentation fixture.
 use super::*;
+use crate::mask_test_common as common;
 use conduit_core::{ActivePlayId, CheckedPlotId, ExpandedPlotId, PlanId, SourceDocumentId};
 use conduit_presentation::*;
 use conduit_todo_plot::{TodoItem, TodoState};
-#[path = "../../../../semantics/presentation/tests/common/mod.rs"]
-mod common;
 
 fn todo(open: usize, total: usize, actions: bool) -> Presentation {
     let state = TodoState {

@@ -4,8 +4,7 @@ use conduit_presentation::{FaceInteraction, FaceInteractionArgument, UTF8_TEXT_V
 use conduit_std_host::todo_durable_resource::MissingV2Disposition;
 use conduit_std_host::{StdHost, StdHostConfig};
 
-#[path = "../../../../semantics/presentation/tests/common/mod.rs"]
-mod mask_test_common;
+use crate::mask_test_common;
 
 const SOURCE: &str = include_str!("../../../../plots/todo/checkpoint-once.conduit");
 
