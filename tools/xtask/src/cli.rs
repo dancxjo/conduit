@@ -290,9 +290,27 @@ pub enum ProveCommand {
     Pete(PeteArgs),
     /// Exercise one reviewed Plot or journey through its exact repository proof path.
     Journey(DemoArgs),
+    /// Capture a live, partial Todo owner/terminal encounter without publishing a journey.
+    TodoJourney(TodoJourneyArgs),
     /// Produce, verify, or publish bounded proof evidence.
     #[command(flatten)]
     Evidence(EvidenceCommand),
+}
+
+#[derive(Args, Debug)]
+pub struct TodoJourneyArgs {
+    /// Installed owner state whose current Face will be observed.
+    #[arg(long)]
+    pub state_dir: std::path::PathBuf,
+    /// Executable from the reviewed Host release that owns this installation.
+    #[arg(long)]
+    pub conduit_bin: std::path::PathBuf,
+    /// New directory in which to retain the exact command outputs.
+    #[arg(long)]
+    pub output: std::path::PathBuf,
+    /// UTF-8 terminal commands (defaults to one read followed by quit).
+    #[arg(long)]
+    pub terminal_script: Option<std::path::PathBuf>,
 }
 
 #[derive(ValueEnum, Debug, Clone, Copy, PartialEq, Eq)]

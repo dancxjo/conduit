@@ -61,7 +61,26 @@ requested-detail steps. A declared transcript must match the spoken-text
 digest in both source and capture receipts, and its words appear alongside
 the player. Automated playback is not attended human listening.
 
-The live capture entrance remains to be built. It must be a trusted
+The first live capture entrance is `cargo xtask prove todo-journey`. Given an
+installed owner state and its exact copied release executable, it reads the
+current Body status and Face, runs an actual terminal Mask session, then reads
+the status and Face again. For example:
+
+```sh
+cargo xtask prove todo-journey \
+  --state-dir /path/to/installed-host-state \
+  --conduit-bin /path/to/installed-host-state/releases/HASH/conduit-linux-x86_64 \
+  --output /path/to/new-capture-directory \
+  --terminal-script /path/to/utf8-commands-ending-in-quit
+```
+
+The retained `partial-run.json` records the exact installed release, command
+outputs, digests, same-Body before/after Face revisions, and any refusal. The
+terminal script is retained with the output, so use only journey content. The
+default script reads the Face and quits; a supplied script may exercise actual
+Face controls. This entrance does **not** claim to complete the Todo journey,
+write `manifest.json`, or unlock publication. The remaining producer must
+be a trusted
 `cargo xtask prove` capture command that retains its own completed terminal
 receipt and records the exact source commit, run, Body, Host/Boot, Plan/Play,
 Face/Show, interaction, and media identities used in the per-chapter producer
