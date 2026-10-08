@@ -1,8 +1,9 @@
 //! Borrowed, bounded traversal of already validated canonical records.
 
+use super::validated_extent::{skip_validated_value, split_validated_type};
 use super::{
-    malformed, split_type, validate_value, Cursor, StructuredInfoRefusal,
-    ValidatedCanonicalStructuredValue, MAXIMUM_STRUCTURED_INFO_NODES,
+    malformed, Cursor, StructuredInfoRefusal, ValidatedCanonicalStructuredValue,
+    MAXIMUM_STRUCTURED_INFO_NODES,
 };
 
 impl<'a> ValidatedCanonicalStructuredValue<'a> {
@@ -22,14 +23,13 @@ impl<'a> ValidatedCanonicalStructuredValue<'a> {
         let mut nodes = MAXIMUM_STRUCTURED_INFO_NODES;
         for _ in 0..count {
             let field_name = kind.text()?;
-            let mut scratch = MAXIMUM_STRUCTURED_INFO_NODES;
-            let (field_type, remaining) = split_type(kind.remaining, 1, &mut scratch)?;
+            let (field_type, remaining) = split_validated_type(kind.remaining)?;
             kind.remaining = remaining;
             if value.text()? != field_name {
                 return Err(malformed());
             }
             let beginning = value.remaining;
-            validate_value(field_type, &mut value, 1, &mut nodes)?;
+            skip_validated_value(&mut value, &mut nodes)?;
             if field_name == name {
                 return Ok(Some(Self {
                     type_bytes: field_type,
