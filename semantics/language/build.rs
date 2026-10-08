@@ -62,6 +62,7 @@ fn main() {
         include_str!("text_revision.conduit"),
         include_str!("revision_lineage.conduit"),
         include_str!("lexical.conduit"),
+        include_str!("lexical_proposer.conduit"),
         include_str!("parser.conduit"),
         include_str!("parser_window8.conduit"),
         include_str!("parser_window8_search.conduit"),
@@ -295,6 +296,10 @@ fn main() {
             "window8_move_legal_right_nonroot.hex",
         ),
         ("language-window8-move-apply", "window8_move_apply.hex"),
+        (
+            "language-lexical-token-proposal",
+            "lexical_token_proposal.hex",
+        ),
         ("language-window8-complete", "window8_complete.hex"),
         ("language-window8-rank-insert", "window8_rank_insert.hex"),
         (
@@ -447,6 +452,23 @@ fn main() {
                 "LanguageParserV2ModelFeatures",
                 "LanguageParserV2PosContext",
                 "LanguageParserWaitState",
+                "LanguageLexicalTokenProposal",
+                "LanguageLexicalProposedTape",
+                "LanguageParserWindow8StableLexicalFact",
+                "LanguageParserWindow8RawState",
+                "LanguageParserWindow8RawWalk",
+                "LanguageParserWindow8RootCount",
+                "LanguageParserWindow8RawClassIndex",
+                "LanguageParserWindow8RawClassRelations",
+                "LanguageParserWindow8RawClass",
+                "LanguageParserWindow8RawBeam",
+                "LanguageParserWindow8RawContext",
+                "LanguageParserWindow8RawResult",
+                "LanguageParserWindow8Completion",
+                "LanguageParserWindow8Selected",
+                "LanguageParserWindow8RawHypothesis",
+                "LanguageParserWindow8RawFeatureContext",
+                "LanguageParserWindow8RawModelFeatures",
             ]
             .into_iter()
             .map(str::to_owned)
