@@ -46,6 +46,8 @@ pub enum CheckSuite {
     QuantityMapping,
     /// Prove bounded Todo state transitions and recursive Plot execution.
     TodoState,
+    /// Prove bounded speech selection and explicit detail from exact Faces.
+    TodoSpeech,
     InputSemantics,
     /// Prove owner-issued presentation routes without waking the workload.
     OwnerPresentation,

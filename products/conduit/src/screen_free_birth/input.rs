@@ -12,7 +12,7 @@ mod tests;
 
 pub(super) const MAX_SCREEN_FREE_COMMAND_BYTES: usize = 4_096;
 #[cfg(test)]
-pub(super) const SCREEN_FREE_COMMANDS: &str = "Commands: help, summary, read current items, read all, review, next, previous, repeat, next/previous subject, next/previous main, article, or navigation, next/previous action, focus subject ID, focus ACTION, edit value TEXT, activate, stop, quit.";
+pub(super) const SCREEN_FREE_COMMANDS: &str = "Commands: help, summary, read remaining, more items, read current items, read all, review, next, previous, repeat, next/previous subject, next/previous main, article, or navigation, next/previous action, focus subject ID, focus ACTION, edit value TEXT, activate, stop, quit.";
 
 /// Bound one command without allocating an arbitrarily long terminal line.
 /// A rejected line is consumed completely so its tail cannot become an action.
@@ -78,6 +78,8 @@ pub(super) fn parse_command(
         "summary" => Ok(ReaderCommand::Summary),
         "read all" => Ok(ReaderCommand::ReadAll),
         "read current items" => Ok(ReaderCommand::ReadCurrentItems),
+        "read remaining" => Ok(ReaderCommand::ReadItemPage),
+        "more items" => Ok(ReaderCommand::MoreItems),
         "review"
             if face
                 .subjects

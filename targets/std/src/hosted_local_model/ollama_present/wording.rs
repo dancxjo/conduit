@@ -25,9 +25,12 @@ pub(super) fn finish_wording(
         None
     } else {
         proposal.as_ref().and_then(|proposal| {
-            proposal
-                .render_exact(&prepared.request.semantic_data.presentation)
-                .ok()
+            crate::spoken_face_mask::select_spoken_outline(
+                &prepared.request.semantic_data.presentation,
+            )
+            .ok()?
+            .render_model_wording(&prepared.request.semantic_data.presentation, proposal)
+            .ok()
         })
     };
     let mut correlations = Vec::new();
@@ -89,7 +92,12 @@ pub(super) fn finish_wording(
                     .iter()
                     .enumerate()
                     .find(|(_, action)| {
-                        action.identity == identity && action.availability.is_available()
+                        action.identity == identity
+                            && action.availability.is_available()
+                            && crate::spoken_face_mask::select_spoken_outline(
+                                &prepared.request.semantic_data.presentation,
+                            )
+                            .is_ok_and(|outline| outline.action_ids.contains(&identity))
                     })
                 else {
                     valid = false;

@@ -1,44 +1,37 @@
 //! Provider-side grammar guidance for the finite wording proposal.
 //! Exact Face grounding is still checked by `GenerativePresenterRequest`.
 
-use conduit_presentation::{GenerativePresenterInput, PresentationPropertyValue};
+use conduit_presentation::GenerativePresenterInput;
 use serde_json::{json, Value};
 
 pub(in crate::hosted_local_model) fn wording_format(
     input: &GenerativePresenterInput,
     available_actions: &[String],
 ) -> Result<Value, String> {
+    let outline = crate::spoken_face_mask::select_spoken_outline(&input.presentation)
+        .map_err(|error| format!("select finite speech grammar: {error:?}"))?;
+    let available_actions = available_actions
+        .iter()
+        .filter(|identity| outline.action_ids.contains(identity))
+        .cloned()
+        .collect::<Vec<_>>();
     let action_items = if available_actions.is_empty() {
         json!({ "type": "string" })
     } else {
         json!({ "type": "string", "enum": available_actions })
     };
     let mut clauses = Vec::new();
-    for (index, text) in input.presentation.text.iter().enumerate() {
+    for (index, text) in input
+        .presentation
+        .text
+        .iter()
+        .enumerate()
+        .filter(|(index, _)| outline.text_indices.contains(&(*index as u32)))
+    {
         clauses.push(clause(
             "text",
             index,
             &[("subject", &text.subject), ("value", &text.text)],
-        ));
-    }
-    for (index, property) in input.presentation.properties.iter().enumerate() {
-        let value = match &property.value {
-            PresentationPropertyValue::Text(value) | PresentationPropertyValue::Identity(value) => {
-                value.clone()
-            }
-            PresentationPropertyValue::Count(value) => value.to_string(),
-            PresentationPropertyValue::Signed(value) => value.to_string(),
-            PresentationPropertyValue::Flag(value) => value.to_string(),
-            _ => continue,
-        };
-        clauses.push(clause(
-            "property",
-            index,
-            &[
-                ("subject", &property.subject),
-                ("name", &property.name),
-                ("value", &value),
-            ],
         ));
     }
     for (index, action) in input.presentation.actions.iter().enumerate() {
@@ -116,66 +109,54 @@ fn clause(kind: &str, index: usize, fields: &[(&str, &str)]) -> Value {
 #[cfg(test)]
 mod tests {
     use super::wording_format;
-    use conduit_presentation::{PresentationProperty, PresentationPropertyValue, PresentationText};
-
     #[test]
-    fn schema_binds_source_identity_and_requires_tagged_claims() {
-        let mut input = super::super::proof_request().unwrap().semantic_data;
-        input.presentation.text.push(PresentationText {
-            subject: "body/other".into(),
-            text: "Another current fact.".into(),
-        });
-        input.presentation.properties.push(PresentationProperty {
-            subject: "body/current".into(),
-            name: "count".into(),
-            value: PresentationPropertyValue::Count(2),
-        });
+    fn schema_binds_source_identity_and_only_selected_tagged_claims() {
+        let input = super::super::proof_request().unwrap().semantic_data;
+        let outline = crate::spoken_face_mask::select_spoken_outline(&input.presentation).unwrap();
         let format = wording_format(&input, &["body.inspect".into()]).unwrap();
+        let proposal = &format["properties"]["proposal"]["properties"];
         assert_eq!(
-            format["properties"]["proposal"]["properties"]["source_presentation_identity"]["const"],
-            input.source_presentation_identity,
+            proposal["source_presentation_identity"]["const"],
+            input.source_presentation_identity
         );
         assert_eq!(
-            format["properties"]["proposal"]["properties"]["source_presentation_revision"]["const"],
-            input.source_presentation_revision,
+            proposal["source_presentation_revision"]["const"],
+            input.source_presentation_revision
         );
-        let variants = &format["properties"]["proposal"]["properties"]["clauses"]["items"]["oneOf"];
+        assert_eq!(proposal["clauses"]["maxItems"], 1);
+        let variants = proposal["clauses"]["items"]["oneOf"].as_array().unwrap();
         assert_eq!(
-            format["properties"]["proposal"]["properties"]["clauses"]["maxItems"],
-            1,
+            variants.len(),
+            outline.text_indices.len() + outline.action_ids.len()
         );
-        assert_eq!(variants.as_array().unwrap().len(), 4);
-        assert!(variants[0]["required"]
-            .as_array()
-            .unwrap()
+        assert!(variants
             .iter()
-            .any(|field| field == "style"));
-        assert_eq!(variants[0]["properties"]["index"]["const"], 0);
-        assert_eq!(
-            variants[0]["properties"]["subject"]["const"],
-            "body/current"
-        );
-        assert_eq!(variants[0]["properties"]["value"]["const"], "I am awake.");
-        assert_eq!(variants[1]["properties"]["index"]["const"], 1);
-        assert_eq!(variants[1]["properties"]["subject"]["const"], "body/other");
-        assert_eq!(
-            variants[2]["properties"]["subject"]["const"],
-            "body/current"
-        );
-        assert_eq!(variants[2]["properties"]["name"]["const"], "count");
-        assert_eq!(variants[2]["properties"]["value"]["const"], "2");
-        assert_eq!(
-            variants[3]["properties"]["identity"]["const"],
-            "body.inspect"
-        );
-        assert_eq!(variants[3]["properties"]["name"]["const"], "Inspect Body");
+            .all(|variant| variant["properties"]["kind"]["const"] != "property"));
+        for variant in variants {
+            assert!(variant["required"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|field| field == "style"));
+            if variant["properties"]["kind"]["const"] == "text" {
+                let index = variant["properties"]["index"]["const"].as_u64().unwrap() as usize;
+                assert!(outline.text_indices.contains(&(index as u32)));
+                assert_eq!(
+                    variant["properties"]["value"]["const"],
+                    input.presentation.text[index].text
+                );
+            }
+        }
         let without_action = wording_format(&input, &[]).unwrap();
         assert_eq!(
             without_action["properties"]["proposal"]["properties"]["clauses"]["items"]["oneOf"]
                 .as_array()
                 .unwrap()
                 .len(),
-            3,
+            outline.text_indices.len()
         );
+        let mut invalid = input;
+        invalid.presentation.revision += 1;
+        assert!(wording_format(&invalid, &[]).is_err());
     }
 }
