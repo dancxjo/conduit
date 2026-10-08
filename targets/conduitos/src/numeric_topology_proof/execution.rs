@@ -48,6 +48,10 @@ impl<'a> PreparedExecution<'a> {
         )
         .map_err(|e| format!("numeric lowering: {e:?}"))?;
         let active = bind_active_play(&fragment.plan_id, &fragment.host_id, &fragment.boot_id, 0);
+        let expression_fragment = crate::expression_host_call::PreparedExpressionFragment::prepare(
+            fragment, &lowered, &active,
+        )
+        .map_err(|e| format!("expression fragment: {e:?}"))?;
         let factories = factories::prepare(topology, &ingress)?;
         let mut hosted = HostedValueStore::new(1024, 16384, 16 * 1024 * 1024)
             .map_err(|e| format!("ingress store: {e:?}"))?;
@@ -79,13 +83,9 @@ impl<'a> PreparedExecution<'a> {
                 ));
             } else if gear.implementation_id.as_str() == crate::expression_host_call::IMPLEMENTATION
             {
-                let owner = crate::expression_host_call::ExpressionHostCall::prepare(
-                    fragment,
-                    &lowered,
-                    &active,
-                    &gear.placement_id,
-                )
-                .map_err(|e| format!("expression owner: {e:?}"))?;
+                let owner = expression_fragment
+                    .owner(&gear.placement_id)
+                    .map_err(|e| format!("expression owner: {e:?}"))?;
                 expressions.insert(conduit_kernel::NodeId(index as u16), owner);
                 drivers.push(Driver::Operation(Box::new(
                     conduit_kernel::scheduler::HostCallBack::new(
