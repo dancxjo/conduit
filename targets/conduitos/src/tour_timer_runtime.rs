@@ -11,7 +11,7 @@ use conduit_kernel::{
 
 #[path = "tour_timer_runtime/preparation.rs"]
 mod preparation;
-#[cfg(any(test, conduitos_domain_image))]
+#[cfg(any(test, conduitos_domain_image, conduitos_domain_backend))]
 #[path = "tour_timer_runtime/wire.rs"]
 mod wire;
 pub(crate) use preparation::{PreparedTimerGraph, PreparedTimerRoute};
