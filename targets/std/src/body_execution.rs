@@ -14,6 +14,8 @@ use conduit_plan_lowering::lowering::KernelIdentityMap;
 use std::io::Write;
 use std::path::Path;
 
+mod todo_checkpoint;
+
 #[derive(Debug, Clone)]
 pub struct ObservedKernelEvent {
     pub sequence: u32,
@@ -43,6 +45,18 @@ pub struct TodoCheckpointSelection<'a> {
 pub struct BodyForeExchange<'a> {
     pub inputs: &'a [ExternalForeInput],
     pub output: &'a mut dyn BodyForeOutputAdapter,
+}
+
+/// Wake an external producer on every preparation, admission, and start
+/// refusal, including paths before the kernel has begun to run.
+struct LiveForeTerminalGuard<'a>(Option<&'a BodyLiveForeQueue>);
+
+impl Drop for LiveForeTerminalGuard<'_> {
+    fn drop(&mut self) {
+        if let Some(queue) = self.0 {
+            queue.mark_play_terminal();
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -148,114 +162,6 @@ impl StdHost {
             None,
             |_, _| Ok(()),
         )
-    }
-
-    /// Run one exact Todo command with a selected checkpoint residence. The
-    /// committed Fore state is available only after its admitted Host Call.
-    pub fn run_body_plan_with_todo_checkpoint_to<W: Write, T: TimerAdapter>(
-        &mut self,
-        request: BodyRunRequest<'_>,
-        fore: BodyForeExchange<'_>,
-        checkpoint: TodoCheckpointSelection<'_>,
-        output: &mut W,
-        timer: &mut T,
-    ) -> Result<BodyRunReport, String> {
-        self.run_body_plan_with_todo_checkpoint_to_with_start(
-            request,
-            fore,
-            checkpoint,
-            output,
-            timer,
-            |_, _| Ok(()),
-        )
-    }
-
-    /// Retain the exact started Play before any checkpoint Host Call can
-    /// publish state. A refused start leaves the selected residence untouched.
-    pub fn run_body_plan_with_todo_checkpoint_to_with_start<W: Write, T: TimerAdapter, F>(
-        &mut self,
-        request: BodyRunRequest<'_>,
-        fore: BodyForeExchange<'_>,
-        checkpoint: TodoCheckpointSelection<'_>,
-        output: &mut W,
-        timer: &mut T,
-        started: F,
-    ) -> Result<BodyRunReport, String>
-    where
-        F: FnMut(&BodyPlayIdentity, &Wake) -> Result<(), String>,
-    {
-        self.require_selected_todo_checkpoint_root(checkpoint.root)?;
-        self.run_body_plan_to_with_start_and_clock(
-            request,
-            output,
-            timer,
-            None,
-            None,
-            Some((fore.inputs, false, fore.output)),
-            None,
-            Some((checkpoint.root, checkpoint.identity)),
-            started,
-        )
-    }
-
-    /// Restore one typed published state through its selected read Host Call.
-    /// The start callback runs before any external read or Fore delivery.
-    pub fn run_body_plan_with_todo_checkpoint_read_to_with_start<W: Write, T: TimerAdapter, F>(
-        &mut self,
-        request: BodyRunRequest<'_>,
-        fore_output: &mut dyn BodyForeOutputAdapter,
-        checkpoint: TodoCheckpointSelection<'_>,
-        output: &mut W,
-        timer: &mut T,
-        started: F,
-    ) -> Result<BodyRunReport, String>
-    where
-        F: FnMut(&BodyPlayIdentity, &Wake) -> Result<(), String>,
-    {
-        self.require_selected_todo_checkpoint_root(checkpoint.root)?;
-        self.run_body_plan_to_with_start_and_clock(
-            request,
-            output,
-            timer,
-            None,
-            None,
-            Some((&[], false, fore_output)),
-            None,
-            Some((checkpoint.root, checkpoint.identity)),
-            started,
-        )
-    }
-
-    fn require_selected_todo_checkpoint_root(&self, root: &Path) -> Result<(), String> {
-        let selected = self
-            .todo_checkpoint_root
-            .as_ref()
-            .ok_or("std Host has no selected Todo checkpoint residence")?;
-        if root
-            .symlink_metadata()
-            .map_err(|error| format!("Todo checkpoint root: {error}"))?
-            .file_type()
-            .is_symlink()
-        {
-            return Err("Todo checkpoint root changed to a symlink".into());
-        }
-        let actual = root
-            .canonicalize()
-            .map_err(|error| format!("Todo checkpoint root: {error}"))?;
-        if actual != selected.path {
-            return Err("Todo checkpoint root differs from advertised residence".into());
-        }
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::MetadataExt;
-            let metadata = actual
-                .metadata()
-                .map_err(|error| format!("Todo checkpoint root: {error}"))?;
-            if metadata.dev() != selected.device || metadata.ino() != selected.inode {
-                return Err("Todo checkpoint residence was rebound after advertisement".into());
-            }
-        }
-        Ok(())
     }
 
     /// Run one retained Body Play while an admitted typed queue receives
@@ -433,6 +339,7 @@ impl StdHost {
     where
         F: FnMut(&BodyPlayIdentity, &Wake) -> Result<(), String>,
     {
+        let _live_guard = LiveForeTerminalGuard(live.as_ref().map(|(queue, _)| *queue));
         request
             .plan
             .validate_for(request.wake)
@@ -526,7 +433,15 @@ impl StdHost {
                 .body_plan_ready(request.plan, sign(0).sign_id)
                 .and_then(|wake| wake.body_play_started(request.plan, &play, sign(1).sign_id))
                 .map_err(|error| format!("Body start lifecycle: {error:?}"))?;
-            started(&play, &wake_at_start)?;
+            if let Err(error) = started(&play, &wake_at_start) {
+                if let Some(queue) = live_queue {
+                    queue.mark_play_terminal();
+                }
+                return Err(error);
+            }
+            if let Some(queue) = live_queue {
+                queue.mark_play_started();
+            }
             let terminal_sign = sign(2);
             let fore_output = if let Some((_, adapter)) = live {
                 Some(adapter)
