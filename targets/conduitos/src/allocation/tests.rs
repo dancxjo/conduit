@@ -334,3 +334,41 @@ bounded_arena_test!(
     resize_moves_only_when_a_live_neighbor_prevents_growth,
     resize_moves_only_when_a_live_neighbor_prevents_growth_contract
 );
+
+fn allocation_request_receipt_counts_refused_sealed_calls_contract() {
+    let fixture = Fixture::new(4096);
+    let arena = &fixture.arena;
+    let layout = Layout::from_size_align(64, 32).unwrap();
+    let pointer = unsafe { arena.alloc_zeroed(layout) };
+    assert!(!pointer.is_null());
+    assert_eq!(
+        arena.allocation_requests(),
+        AllocationRequests {
+            total: 1,
+            after_seal: 0
+        }
+    );
+    arena.seal();
+    assert!(unsafe { arena.alloc(layout) }.is_null());
+    assert!(unsafe { arena.realloc(pointer, layout, 128) }.is_null());
+    assert_eq!(
+        arena.allocation_requests(),
+        AllocationRequests {
+            total: 3,
+            after_seal: 2
+        }
+    );
+    unsafe { arena.dealloc(pointer, layout) };
+    assert_eq!(arena.live_bytes(), 0);
+    assert_eq!(
+        arena.allocation_requests(),
+        AllocationRequests {
+            total: 3,
+            after_seal: 2
+        }
+    );
+}
+bounded_arena_test!(
+    allocation_request_receipt_counts_refused_sealed_calls,
+    allocation_request_receipt_counts_refused_sealed_calls_contract
+);
