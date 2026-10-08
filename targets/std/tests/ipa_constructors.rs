@@ -16,6 +16,8 @@ const PHONETIC: &str =
     include_str!("../../../semantics/speech/examples/ipa/quoted-transcriptions.conduit");
 const PHONEMIC: &str =
     include_str!("../../../semantics/speech/examples/ipa/quoted-phonemic.conduit");
+#[path = "ipa_constructors/readmission.rs"]
+mod readmission;
 struct NoTimer;
 impl TimerAdapter for NoTimer {
     fn wait(&mut self, _: Duration) {
@@ -128,6 +130,11 @@ fn installed_constructors_emit_exact_typed_values_once_without_play_storage_grow
             .unwrap();
         assert_eq!(collected.values, [expected.bytes().to_vec()]);
         let bytes = &collected.values[0];
+        readmission::check(
+            constructor,
+            &authored.expanded.gears[0].configuration,
+            bytes,
+        );
         match constructor {
             IpaConstructor::Phone => assert_eq!(
                 SpeechPhoneNotation::decode(bytes).unwrap().spelling().get(),

@@ -58,8 +58,35 @@ fn installed_preparation_refuses_foreign_artifact_front_contract_and_arguments()
     profile.execution_profile_id = "foreign/profile".into();
     let mut limits = correct.clone();
     limits.limits.max_queue_items += 1;
+    let mut implementation = correct.clone();
+    implementation.implementation_id = "foreign/implementation".into();
+    let mut capability = correct.clone();
+    capability.capability_id = "foreign/capability".into();
+    let mut temporal = correct.clone();
+    temporal.outputs[0].temporal = conduit_core::PortTemporal::Flow { closes: true };
+    let mut host_call = correct.clone();
+    host_call
+        .host_calls
+        .push(conduit_core::HostCallRequirement {
+            contract_id: "conduit.host/ipa-admission@1".into(),
+            target_kind: Some(correct.kind_id.clone()),
+            maximum_in_flight: 1,
+            maximum_input_bytes: 32,
+            maximum_output_bytes: 262_144,
+        });
     for invalid in [
-        artifact, front, contract, extra, wrong_type, revision, profile, limits,
+        artifact,
+        front,
+        contract,
+        extra,
+        wrong_type,
+        revision,
+        profile,
+        limits,
+        implementation,
+        capability,
+        temporal,
+        host_call,
     ] {
         assert!(admitted(&invalid).is_err());
     }
@@ -83,4 +110,22 @@ fn prepared_value_survives_pressure_and_is_emitted_only_once() {
     let mut next = StepIo::test_frame([None; 1], [false; 1], [Some(value.byte_len)], None, 8);
     assert_eq!(back.step(&mut next, &input), StepOutcome::Complete);
     assert!(next.test_output(PortId(0)).is_none());
+}
+
+#[test]
+fn cancelling_a_pressured_prepared_value_prevents_later_delivery() {
+    let value = ValueRef {
+        slot: 1,
+        generation: 1,
+        byte_len: 32,
+    };
+    let mut back = StructuredLiteralBack::prepared(value);
+    let input = StepInputBytes::test_frame([None; 1], None);
+    let mut blocked = StepIo::test_frame([None; 1], [false; 1], [None; 1], None, 8);
+    assert_eq!(back.step(&mut blocked, &input), StepOutcome::Await);
+    <StructuredLiteralBack as StepBack<1>>::cancel(&mut back);
+    <StructuredLiteralBack as StepBack<1>>::cancel(&mut back);
+    let mut ready = StepIo::test_frame([None; 1], [false; 1], [Some(32)], None, 8);
+    assert_eq!(back.step(&mut ready, &input), StepOutcome::Complete);
+    assert!(ready.test_output(PortId(0)).is_none());
 }

@@ -38,6 +38,10 @@ impl<const PORTS: usize> StepBack<PORTS> for StructuredLiteralBack {
         self.value = None;
         StepOutcome::Progress
     }
+
+    fn cancel(&mut self) {
+        self.value = None;
+    }
 }
 
 impl StructuredLiteralBack {
