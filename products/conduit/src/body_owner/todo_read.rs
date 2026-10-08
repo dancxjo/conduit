@@ -221,13 +221,20 @@ impl Owner {
                 return Err(error);
             }
         };
-        state::retain_with_source(
+        if let Err(error) = state::retain_with_source(
             state_root,
             staged.evidence(),
             Some(&write_receipt),
             self.admissions.as_ref(),
             Some(READ_SOURCE.as_bytes()),
-        )?;
+        ) {
+            self.host
+                .transition_todo_checkpoint_offer(checkpoint_root, selected_write.clone())
+                .map_err(|rollback| {
+                    format!("Todo read retention failed: {error}; Host rollback failed: {rollback}")
+                })?;
+            return Err(error);
+        }
         self.session = staged;
         self.resident = Some(read_resident.clone());
         self.resident_name = Some(plot.expanded.name);

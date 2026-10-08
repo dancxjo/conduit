@@ -209,6 +209,36 @@ fn waiting_owner_admits_exact_show_action_then_retains_commit_and_sign() {
         .unwrap()
         .contract
         .clone();
+    let blocked_state_root = state_root.join("blocked-state-root");
+    std::fs::write(&blocked_state_root, b"not a directory").unwrap();
+    assert!(owner
+        .read_committed_todo(
+            &blocked_state_root,
+            &checkpoint_root,
+            &selected_write,
+            &committed,
+            5_000,
+        )
+        .is_err());
+    assert_eq!(
+        owner
+            .host
+            .advertisement()
+            .resources
+            .iter()
+            .find(|resource| resource.class_id.as_str() == "resource/todo-checkpoint@1")
+            .unwrap()
+            .content
+            .as_ref()
+            .unwrap()
+            .contract,
+        selected_write
+    );
+    assert_eq!(
+        owner.resident.as_ref().unwrap().checked_plot_id,
+        plot.expanded.checked_plot_id
+    );
+    std::fs::remove_file(blocked_state_root).unwrap();
     let restored = owner
         .read_committed_todo(
             &state_root,
