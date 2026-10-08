@@ -1,9 +1,8 @@
 //! Normal IA-32 Source/Play followed by architecture-specific hostile entries.
 use super::{
-    build, ia32_product_boot, image, live_media,
+    ConduitosArch, ConduitosError, build, ia32_product_boot, image, live_media,
     profile::Paths,
     report::{git_head, sha256_file},
-    ConduitosArch, ConduitosError,
 };
 use crate::cli::GlobalOpts;
 use std::fs;
@@ -43,6 +42,7 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
             ConduitosError::refusal("domain-proof-log-unavailable", error.to_string())
         })?;
     let morse = super::protected_morse_proof::validate(&transcript)?;
+    let timer = super::protected_timer_proof::validate(&transcript, "ia32")?;
     let negatives = "CONDUIT_IA32_DOMAIN_NEGATIVES root-memory capability-memory sibling-memory root-entry mmio ports cli loop direction-flag syscall sysenter divide breakpoint single-step rdtsc code-write data-execute";
     if !transcript.lines().any(|line| line == negatives)
         || !transcript
@@ -69,7 +69,7 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         "architecture": "ia32", "privilege": "ring3",
         "proof_class": "freestanding-ia32-legacy-bios-emulator",
         "image_sha256": sha256_file(&paths.iso)?,
-        "ordinary_product_play": normal, "protected_tour_morse": morse, "instrumented_product_play": product,
+        "ordinary_product_play": normal, "protected_tour_morse": morse, "protected_standing_timer": timer, "instrumented_product_play": product,
         "negative_entries": negatives,
         "floating_state_restored_before_rust": true,
         "capability_and_lifecycle_negatives": true,

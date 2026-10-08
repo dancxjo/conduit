@@ -78,6 +78,7 @@ mod product_readiness_matrix;
 mod profile;
 mod protected_morse_proof;
 mod protected_product_receipt;
+mod protected_timer_proof;
 mod protocol_image;
 mod protocol_input;
 mod protocol_run;
