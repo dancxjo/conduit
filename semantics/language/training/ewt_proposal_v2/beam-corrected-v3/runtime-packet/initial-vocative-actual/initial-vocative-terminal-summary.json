@@ -1,0 +1,41 @@
+{
+  "scope": "One TRAIN/22-reviewed-teaching diagnostic; static Final stable_prefix=None; no stable-fact, commit, heldout or public Session acceptance",
+  "artifact_sha256": "f70f560d54a81dd34d005254985dbfd394363def5f5a4ffe3e97e7c90306d2c5",
+  "selected_inputs_unchanged": true,
+  "exit_status": 0,
+  "metrics": {
+    "base_las": 1.0,
+    "correct_base_labels": 5,
+    "correct_heads": 5,
+    "correct_pos": 5,
+    "exact_graphs": 1,
+    "pos_accuracy": 1.0,
+    "refused_rows": 0,
+    "token_scope": "all supplied original tokens, including refused rows and punctuation",
+    "tokens": 5,
+    "uas": 1.0,
+    "vocative_fn": 0,
+    "vocative_fp": 0,
+    "vocative_precision": 1.0,
+    "vocative_recall": 1.0,
+    "vocative_tp": 1
+  },
+  "actual_model_calls": 44,
+  "row_elapsed_seconds": 722.247710202,
+  "whole_test_elapsed_seconds": 785.1,
+  "whole_process_maximum_rss_kib": 328240,
+  "merge_components": {
+    "merges": 1718,
+    "encode_seconds": 17.35432789,
+    "fresh_cap_issuance_seconds": 43.309285762,
+    "canonical_source_native_seconds": 439.288752251,
+    "final_native_seconds": 24.15074165,
+    "maximum_five_cap_retained_bytes_bound": 61778
+  },
+  "files": {
+    "work/beam-candidate-actual/initial-vocative-results.json": "5476e64a52f0345dda4773ad30c826d9b539f96bfb066c30d737f37c612d1e87",
+    "work/beam-candidate-actual/initial-vocative-runtime.log": "dc8c6771542abe161c2e03ed9d4f0d50e0eefb7237a6cc2117fba52592c0479f",
+    "work/beam-candidate-actual/initial-vocative-rusage.log": "50f9a998fb573b174ea20a7082b6e8d82ee3a9bbb9e56ac2ec48fb569c03ec6c",
+    "work/beam-candidate-actual/initial-vocative-launch-pins.json": "3fa2729b3d3c139664e449a9c3dfcbedcfb35652d9fec1d7a5e2360014dbd219"
+  }
+}

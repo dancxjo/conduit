@@ -1,0 +1,12 @@
+{
+  "scope": "Live whole-process snapshot, not terminal rusage or complete retained allocation bound",
+  "pid": 1640609,
+  "captured_unix_seconds": 1791482255.7130468,
+  "executable_sha256": "4fbbff203a4bf9741f2b6297a5822eefe4ea3d1485311dd94a892a9e2f9d3c49",
+  "starttime_clock_ticks": "50246544",
+  "user_cpu_ticks": "42581",
+  "system_cpu_ticks": "10",
+  "VmHWM": "328220 kB",
+  "VmRSS": "328220 kB",
+  "launch_pins_sha256": "3fa2729b3d3c139664e449a9c3dfcbedcfb35652d9fec1d7a5e2360014dbd219"
+}

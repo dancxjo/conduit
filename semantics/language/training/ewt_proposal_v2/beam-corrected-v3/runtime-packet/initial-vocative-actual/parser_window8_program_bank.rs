@@ -1,0 +1,480 @@
+//! Explicitly owned Source program bank with optional bounded Native output admission.
+//! Default Source execution uses Reference; explicit preparation preserves exact laws.
+use crate::parser_window8::{lexical, Window8Refusal};
+use crate::*;
+use alloc::{collections::BTreeMap, vec::Vec};
+use conduit_plot::{
+    rust_binding::{
+        NativeRustBinding, PreparedNativeFamily, PreparedNativeFamilyLimits,
+        PreparedNativeFamilyRefusal, PreparedNativeFamilyStorageReceipt, PreparedNativeRustBinding,
+    },
+    PortableExpressionProgram,
+};
+use core::cell::RefCell;
+
+#[derive(Debug)]
+pub enum Window8PreparedBankRefusal {
+    NativePreparation(PreparedNativeFamilyRefusal),
+    SourcePreparation(Window8Refusal),
+    SourceCapacity,
+    SourceEvaluator(conduit_plot::PreparedExpressionStorageRefusal),
+}
+pub struct Window8ProgramBank {
+    programs: BTreeMap<&'static str, PortableExpressionProgram>,
+    native: Option<RefCell<PreparedNativeFamily>>,
+    prepared: Option<Vec<PreparedBankProgram>>,
+    prepared_receipt: Option<Window8PreparedSourceReceipt>,
+    maximum_prepared_input_bytes: usize,
+}
+#[derive(Clone)]
+pub struct Window8BankState {
+    proof: LanguageParserWindow8StateProof,
+}
+impl Window8BankState {
+    pub fn state(&self) -> &LanguageParserWindow8RawState {
+        self.proof.state()
+    }
+    pub fn proof(&self) -> &LanguageParserWindow8StateProof {
+        &self.proof
+    }
+}
+pub struct Window8BankContext<'a> {
+    bank: &'a Window8ProgramBank,
+    prior: Window8BankState,
+    seed: LanguageParserWindow8RawContext,
+}
+pub struct Window8BankProposal {
+    prior: Window8BankState,
+    proposal: LanguageParserWindow8RawResult,
+}
+impl Window8BankProposal {
+    pub fn prior(&self) -> &Window8BankState {
+        &self.prior
+    }
+    pub fn proposal(&self) -> &LanguageParserWindow8RawResult {
+        &self.proposal
+    }
+}
+pub struct Window8BankFeatures {
+    state: Window8BankState,
+    lexical: LanguageParserWindow8Lexical,
+    query: LanguageParserWindow8RawFeatureQuery,
+    features: LanguageParserWindow8Features,
+}
+impl Window8BankFeatures {
+    pub fn state(&self) -> &Window8BankState {
+        &self.state
+    }
+    pub fn lexical(&self) -> &LanguageParserWindow8Lexical {
+        &self.lexical
+    }
+    pub fn query(&self) -> &LanguageParserWindow8RawFeatureQuery {
+        &self.query
+    }
+    pub fn features(&self) -> &LanguageParserWindow8Features {
+        &self.features
+    }
+}
+impl Window8ProgramBank {
+    /// Native output admission is bounded separately from the allocating
+    /// Reference Source evaluator and retained Source programs.
+    pub fn prepare_native(
+        limits: PreparedNativeFamilyLimits,
+    ) -> Result<Self, Window8PreparedBankRefusal> {
+        let family =
+            prepare_native_family(limits).map_err(Window8PreparedBankRefusal::NativePreparation)?;
+        let mut bank = Self::prepare().map_err(Window8PreparedBankRefusal::SourcePreparation)?;
+        bank.native = Some(RefCell::new(family));
+        Ok(bank)
+    }
+    pub fn native_storage_receipt(&self) -> Option<PreparedNativeFamilyStorageReceipt> {
+        self.native
+            .as_ref()
+            .map(|family| family.borrow().storage_receipt())
+    }
+    pub fn prepare() -> Result<Self, Window8Refusal> {
+        let mut programs = BTreeMap::new();
+        for (name, encoded) in source_entries() {
+            programs.insert(
+                name,
+                PortableExpressionProgram::from_canonical_hex(encoded)
+                    .map_err(|_| Window8Refusal::Program)?,
+            );
+        }
+        Ok(Self {
+            programs,
+            native: None,
+            prepared: None,
+            prepared_receipt: None,
+            maximum_prepared_input_bytes: 0,
+        })
+    }
+    fn run<I: NativeRustBinding, O: PreparedNativeRustBinding>(
+        &self,
+        name: &str,
+        input: I,
+    ) -> Result<O, Window8Refusal> {
+        let input = input.encode().map_err(Window8Refusal::Native)?;
+        if let Some(prepared) = &self.prepared {
+            if input.len() > self.maximum_prepared_input_bytes {
+                return Err(Window8Refusal::Program);
+            }
+            let program = prepared
+                .iter()
+                .find(|program| program.name == name)
+                .ok_or(Window8Refusal::Program)?;
+            let mut evaluator = program
+                .evaluator
+                .try_borrow_mut()
+                .map_err(|_| Window8Refusal::Program)?;
+            let bytes = evaluator
+                .evaluate(&input)
+                .map_err(|_| Window8Refusal::Program)?;
+            return self.decode_output(bytes);
+        }
+        let program = self.programs.get(name).ok_or(Window8Refusal::Program)?;
+        let bytes = program
+            .evaluate(&input)
+            .map_err(|_| Window8Refusal::Program)?;
+        self.decode_output(&bytes)
+    }
+    fn decode_output<O: PreparedNativeRustBinding>(
+        &self,
+        bytes: &[u8],
+    ) -> Result<O, Window8Refusal> {
+        match &self.native {
+            Some(family) => family
+                .try_borrow_mut()
+                .map_err(|_| Window8Refusal::Program)?
+                .decode::<O>(bytes)
+                .map_err(Window8Refusal::Native),
+            None => O::decode(bytes).map_err(Window8Refusal::Native),
+        }
+    }
+    pub fn admit_state(
+        &self,
+        state: &LanguageParserWindow8RawState,
+    ) -> Result<Window8BankState, Window8Refusal> {
+        let mut ancestry = Vec::with_capacity(8);
+        for start in 0..8 {
+            let query = LanguageParserWindow8WalkQuery::new(*state.heads(), start)
+                .map_err(Window8Refusal::Native)?;
+            let mut walk: LanguageParserWindow8RawWalk =
+                self.run("window8_walk_initialize", query)?;
+            for _ in 0..8 {
+                walk = self.run("window8_walk_follow", walk)?;
+            }
+            ancestry.push(
+                LanguageParserWindow8Ancestry::new(*walk.query().heads(), *walk.path(), start)
+                    .map_err(Window8Refusal::Native)?,
+            );
+        }
+        let roots: LanguageParserWindow8RootCount =
+            self.run("window8_root_count", state.clone())?;
+        let proof = LanguageParserWindow8StateProof::new(
+            ancestry.try_into().map_err(|_| Window8Refusal::Program)?,
+            *roots.count(),
+            state.clone(),
+        )
+        .map_err(Window8Refusal::Native)?;
+        Ok(Window8BankState { proof })
+    }
+    pub fn initialize(
+        &self,
+        begin: &LanguageParserWindow8Begin,
+    ) -> Result<Window8BankState, Window8Refusal> {
+        let raw = self.run("window8_initialize", begin.clone())?;
+        self.admit_state(&raw)
+    }
+    pub fn class(
+        &self,
+        code: u64,
+        relation: &LanguageParserRelation,
+    ) -> Result<LanguageParserWindow8RawClass, Window8Refusal> {
+        let query = LanguageParserWindow8ClassQuery::new(code, relation.clone())
+            .map_err(Window8Refusal::Native)?;
+        let index: LanguageParserWindow8RawClassIndex = self.run("window8_class_index", query)?;
+        let relations: LanguageParserWindow8RawClassRelations =
+            self.run("window8_class_relations", index)?;
+        self.run("window8_class_relation", relations)
+    }
+    /// Raw ranking only: complete-body equality does not authorize a graph.
+    pub fn rank(
+        &self,
+        mut beam: LanguageParserWindow8RawBeam,
+    ) -> Result<LanguageParserWindow8RawBeam, Window8Refusal> {
+        for name in [
+            "window8_rank_0_1",
+            "window8_rank_2_3",
+            "window8_rank_0_2",
+            "window8_rank_1_3",
+            "window8_rank_1_2",
+        ] {
+            beam = self.run(name, beam)?;
+        }
+        Ok(beam)
+    }
+    pub fn merge(
+        &self,
+        beam: LanguageParserWindow8RawBeam,
+        proposal: LanguageParserWindow8RawHypothesis,
+    ) -> Result<LanguageParserWindow8RawBeam, Window8Refusal> {
+        let query = LanguageParserWindow8RawMerge::new(self.rank(beam)?, proposal)
+            .map_err(Window8Refusal::Native)?;
+        self.rank(self.run("window8_rank_insert", query)?)
+    }
+    pub fn context<'a>(
+        &'a self,
+        prior: &Window8BankState,
+        basis: &LanguageParserBasis,
+    ) -> Result<Window8BankContext<'a>, Window8Refusal> {
+        let top = prior.state().stack()[(*prior.state().depth() - 1) as usize];
+        let witness = prior.proof().ancestry()[if top < 8 { top as usize } else { 0 }].clone();
+        let request = LanguageParserWindow8RawRequest::new(
+            LanguageParserAction::RightArc,
+            basis.clone(),
+            prior.state().relation0().clone(),
+            prior.proof().clone(),
+            witness,
+        )
+        .map_err(Window8Refusal::Native)?;
+        let seed = self.run("window8_move_context", request)?;
+        Ok(Window8BankContext {
+            bank: self,
+            prior: prior.clone(),
+            seed,
+        })
+    }
+    pub fn complete(&self, state: &Window8BankState) -> Result<bool, Window8Refusal> {
+        let result: LanguageParserWindow8Completion =
+            self.run("window8_complete", state.state().clone())?;
+        Ok(*result.complete())
+    }
+    pub fn choice_frontier(
+        &self,
+        query: LanguageParserWindow8ChoiceQuery,
+    ) -> Result<LanguageParserWindow8Selected, Window8Refusal> {
+        self.run("window8_choice_frontier", query)
+    }
+    pub fn score_advance(
+        &self,
+        query: LanguageParserWindow8RawAdvance,
+    ) -> Result<LanguageParserWindow8RawHypothesis, Window8Refusal> {
+        self.run("window8_score_advance", query)
+    }
+    /// Full native lexical custody remains separate from compact feature data.
+    pub fn features(
+        &self,
+        state: &Window8BankState,
+        lexical: &lexical::PreparedWindow8Lexical,
+        basis: &LanguageParserBasis,
+        choices: [u64; 8],
+    ) -> Result<Window8BankFeatures, Window8Refusal> {
+        let query = LanguageParserWindow8RawFeatureQuery::new(
+            choices,
+            basis.clone(),
+            lexical.projection().clone(),
+            state.state().clone(),
+        )
+        .map_err(Window8Refusal::Native)?;
+        let context: LanguageParserWindow8RawFeatureContext =
+            self.run("window8_feature_context", query.clone())?;
+        let raw = self.run("window8_feature_values", context)?;
+        let features = LanguageParserWindow8Features::new(raw).map_err(Window8Refusal::Native)?;
+        Ok(Window8BankFeatures {
+            state: state.clone(),
+            lexical: lexical.lexical().clone(),
+            query,
+            features,
+        })
+    }
+}
+impl Window8BankContext<'_> {
+    pub fn prior(&self) -> &Window8BankState {
+        &self.prior
+    }
+    pub fn propose(
+        &self,
+        class: &LanguageParserWindow8RawClass,
+    ) -> Result<Window8BankProposal, Window8Refusal> {
+        let query = LanguageParserWindow8RawClassContext::new(class.clone(), self.seed.clone())
+            .map_err(Window8Refusal::Native)?;
+        let mut context: LanguageParserWindow8RawContext =
+            self.bank.run("window8_class_context", query)?;
+        for name in [
+            "window8_move_legal_shift",
+            "window8_move_legal_reduce",
+            "window8_move_legal_left",
+            "window8_move_legal_right_root",
+            "window8_move_legal_right_nonroot",
+        ] {
+            context = self.bank.run(name, context)?;
+        }
+        let proposal = self.bank.run("window8_move_apply", context)?;
+        Ok(Window8BankProposal {
+            prior: self.prior.clone(),
+            proposal,
+        })
+    }
+}
+
+fn prepare_native_family(
+    limits: PreparedNativeFamilyLimits,
+) -> Result<PreparedNativeFamily, PreparedNativeFamilyRefusal> {
+    PreparedNativeFamily::prepare(
+        &[
+            LanguageParserWindow8StableLexicalFact::PREPARED_DESCRIPTOR,
+            LanguageParserWindow8RawState::PREPARED_DESCRIPTOR,
+            LanguageParserWindow8RawWalk::PREPARED_DESCRIPTOR,
+            LanguageParserWindow8RootCount::PREPARED_DESCRIPTOR,
+            LanguageParserWindow8RawClassIndex::PREPARED_DESCRIPTOR,
+            LanguageParserWindow8RawClassRelations::PREPARED_DESCRIPTOR,
+            LanguageParserWindow8RawClass::PREPARED_DESCRIPTOR,
+            LanguageParserWindow8RawBeam::PREPARED_DESCRIPTOR,
+            LanguageParserWindow8RawContext::PREPARED_DESCRIPTOR,
+            LanguageParserWindow8RawResult::PREPARED_DESCRIPTOR,
+            LanguageParserWindow8Completion::PREPARED_DESCRIPTOR,
+            LanguageParserWindow8Selected::PREPARED_DESCRIPTOR,
+            LanguageParserWindow8RawHypothesis::PREPARED_DESCRIPTOR,
+            LanguageParserWindow8RawFeatureContext::PREPARED_DESCRIPTOR,
+            LanguageParserWindow8RawModelFeatures::PREPARED_DESCRIPTOR,
+        ],
+        limits,
+    )
+}
+
+fn source_entries() -> [(&'static str, &'static str); 26] {
+    [
+        (
+            "window8_initialize",
+            include_str!(concat!(env!("OUT_DIR"), "/window8_initialize.hex")),
+        ),
+        (
+            "window8_walk_initialize",
+            include_str!(concat!(env!("OUT_DIR"), "/window8_walk_initialize.hex")),
+        ),
+        (
+            "window8_walk_follow",
+            include_str!(concat!(env!("OUT_DIR"), "/window8_walk_follow.hex")),
+        ),
+        (
+            "window8_root_count",
+            include_str!(concat!(env!("OUT_DIR"), "/window8_root_count.hex")),
+        ),
+        (
+            "window8_move_context",
+            include_str!(concat!(env!("OUT_DIR"), "/window8_move_context.hex")),
+        ),
+        (
+            "window8_class_context",
+            include_str!(concat!(env!("OUT_DIR"), "/window8_class_context.hex")),
+        ),
+        (
+            "window8_move_legal_shift",
+            include_str!(concat!(env!("OUT_DIR"), "/window8_move_legal_shift.hex")),
+        ),
+        (
+            "window8_move_legal_reduce",
+            include_str!(concat!(env!("OUT_DIR"), "/window8_move_legal_reduce.hex")),
+        ),
+        (
+            "window8_move_legal_left",
+            include_str!(concat!(env!("OUT_DIR"), "/window8_move_legal_left.hex")),
+        ),
+        (
+            "window8_move_legal_right_root",
+            include_str!(concat!(
+                env!("OUT_DIR"),
+                "/window8_move_legal_right_root.hex"
+            )),
+        ),
+        (
+            "window8_move_legal_right_nonroot",
+            include_str!(concat!(
+                env!("OUT_DIR"),
+                "/window8_move_legal_right_nonroot.hex"
+            )),
+        ),
+        (
+            "window8_move_apply",
+            include_str!(concat!(env!("OUT_DIR"), "/window8_move_apply.hex")),
+        ),
+        (
+            "window8_complete",
+            include_str!(concat!(env!("OUT_DIR"), "/window8_complete.hex")),
+        ),
+        (
+            "window8_class_index",
+            include_str!(concat!(env!("OUT_DIR"), "/window8_class_index.hex")),
+        ),
+        (
+            "window8_class_relations",
+            include_str!(concat!(env!("OUT_DIR"), "/window8_class_relations.hex")),
+        ),
+        (
+            "window8_class_relation",
+            include_str!(concat!(env!("OUT_DIR"), "/window8_class_relation.hex")),
+        ),
+        (
+            "window8_rank_0_1",
+            include_str!(concat!(env!("OUT_DIR"), "/window8_rank_0_1.hex")),
+        ),
+        (
+            "window8_rank_2_3",
+            include_str!(concat!(env!("OUT_DIR"), "/window8_rank_2_3.hex")),
+        ),
+        (
+            "window8_rank_0_2",
+            include_str!(concat!(env!("OUT_DIR"), "/window8_rank_0_2.hex")),
+        ),
+        (
+            "window8_rank_1_3",
+            include_str!(concat!(env!("OUT_DIR"), "/window8_rank_1_3.hex")),
+        ),
+        (
+            "window8_rank_1_2",
+            include_str!(concat!(env!("OUT_DIR"), "/window8_rank_1_2.hex")),
+        ),
+        (
+            "window8_rank_insert",
+            include_str!(concat!(env!("OUT_DIR"), "/window8_rank_insert.hex")),
+        ),
+        (
+            "window8_choice_frontier",
+            include_str!(concat!(env!("OUT_DIR"), "/window8_choice_frontier.hex")),
+        ),
+        (
+            "window8_score_advance",
+            include_str!(concat!(env!("OUT_DIR"), "/window8_score_advance.hex")),
+        ),
+        (
+            "window8_feature_context",
+            include_str!(concat!(env!("OUT_DIR"), "/window8_feature_context.hex")),
+        ),
+        (
+            "window8_feature_values",
+            include_str!(concat!(env!("OUT_DIR"), "/window8_feature_values.hex")),
+        ),
+    ]
+}
+include!("parser_window8_program_bank_prepared.rs");
+
+include!("parser_window8_program_bank_proposal.rs");
+// WORK-only representation helper. This is no Source/fact/commit authority.
+impl Window8ProgramBank {
+ pub fn scoped_rank_merge_fixture(&self, beam:&[u8],proposal:&[u8],family:&mut PreparedNativeFamily,children:&[&conduit_plot::rust_binding::AdmittedNativeChild],composer:&mut conduit_language::parser_canonical_composition::PreparedParserCanonicalComposer)->Result<Vec<u8>,Window8Refusal>{
+  let mut frame=beam.to_vec();
+  for name in ["window8_rank_0_1","window8_rank_2_3","window8_rank_0_2","window8_rank_1_3","window8_rank_1_2"]{frame=self.fixture_hop(name,&frame,family,children)?;}
+  let query=composer.record(&[conduit_core::validate_canonical_structured_value(&frame).map_err(|_|Window8Refusal::Program)?,conduit_core::validate_canonical_structured_value(proposal).map_err(|_|Window8Refusal::Program)?]).map_err(|_|Window8Refusal::Program)?;
+  let _=family.decode_with_admitted_children::<LanguageParserWindow8RawMerge>(query,children,conduit_plot::rust_binding::NativeChildAdmissionScope::maximum_scope_state_bytes()).map_err(Window8Refusal::Native)?;
+  frame=self.fixture_hop("window8_rank_insert",query,family,children)?;
+  for name in ["window8_rank_0_1","window8_rank_2_3","window8_rank_0_2","window8_rank_1_3","window8_rank_1_2"]{frame=self.fixture_hop(name,&frame,family,children)?;}
+  Ok(frame)
+ }
+ fn fixture_hop(&self,name:&str,input:&[u8],family:&mut PreparedNativeFamily,children:&[&conduit_plot::rust_binding::AdmittedNativeChild])->Result<Vec<u8>,Window8Refusal>{
+  let program=self.prepared.as_ref().ok_or(Window8Refusal::Program)?.iter().find(|p|p.name==name).ok_or(Window8Refusal::Program)?;
+  let mut evaluator=program.evaluator.try_borrow_mut().map_err(|_|Window8Refusal::Program)?;let bytes=evaluator.evaluate(input).map_err(|_|Window8Refusal::Program)?;
+  let _=family.decode_with_admitted_children::<LanguageParserWindow8RawBeam>(bytes,children,conduit_plot::rust_binding::NativeChildAdmissionScope::maximum_scope_state_bytes()).map_err(Window8Refusal::Native)?;
+  Ok(bytes.to_vec())
+ }
+}
