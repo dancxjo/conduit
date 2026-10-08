@@ -26,6 +26,16 @@ pub(super) fn prepare(
     let mut references: Vec<_> = fixtures.values().flatten().copied().collect();
     references.sort_by_key(|reference| reference.slot);
     references.dedup();
+    let maximum_live = references
+        .iter()
+        .map(|reference| source.get(*reference).unwrap().len())
+        .max()
+        .unwrap_or(0);
+    assert!(
+        maximum_live <= 16384,
+        "exact fixed-cell admission; full Native custody stays session-owned"
+    );
+    eprintln!("fixed ingress: {} live cells, maximum{}B, retained{}B, selected item budget{}/byte budget{}B", references.len(), maximum_live, source.used_bytes(), source.item_capacity(), source.byte_capacity());
     // The hosted proof gives construction ample stack; a target must place its
     // fixed storage in explicitly admitted static memory instead of this Box.
     let maximum_items = source.item_capacity();
