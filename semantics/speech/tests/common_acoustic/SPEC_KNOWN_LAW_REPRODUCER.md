@@ -19,3 +19,13 @@ there is no arithmetic, recast, normalized value or weakened law.
 The adjacent isolated Source is architectural bug evidence, not an accepted
 alternative owner. No Source checker/kernel change is included here. Raw generic
 Known construction must not be described as proving its nested parent where law.
+
+A follow-up adversarial probe extracts the accepted Known payload as a Core
+structural value. Re-admission as `SpeechUnitInterval` refuses, so it cannot be
+obtained as an admitted typed candidate without bypassing the original owner.
+The same original payload is placed in exact Core-structural Variable and
+Gradient wrappers. Native `SpeechProbabilitySpecification::from_structured`
+refuses both: these branches explicitly invoke `SpeechUnitInterval` admission.
+Raw canonical nested curve and both evidence probability fields also refuse
+through the public preparation seams. No additional production workaround was
+necessary for those states. The separate Known flattening defect remains open.
