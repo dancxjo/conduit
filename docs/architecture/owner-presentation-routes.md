@@ -55,17 +55,18 @@ Face. Unsupported values and stale action bases refuse.
 When the current Face has several actions, enter `actions` to list available
 choices with their target names and command syntax. `action <identity> [value]`
 selects one exact action from that Show; it accepts zero arguments or one typed
-value. For example, a current Todo Face can offer `action todo.add Buy tea`,
+value. The command parser accepts the typed action forms of a Todo Face, such as `action todo.add Buy tea`,
 `action todo.complete.task-1`, `action todo.reopen.task-1`, or
 `action todo.remove.task-1`. Use the identities actually listed by `actions`;
-item identities are retained application truth, not list positions. A successful
-mutation reattaches to the new Face. Unknown or unavailable actions, unsupported
+item identities are retained application truth, not list positions. The installed terminal return currently applies clock actions only; these Todo
+forms have parser coverage but do not yet establish a terminal Todo mutation.
+A successful clock mutation reattaches to the new Face. Unknown or unavailable actions, unsupported
 values and stale Shows refuse through the existing interaction boundary.
 `apply <value>` remains a shortcut when exactly one single-value action is
 available. Listing choices does not refresh a stale Show; enter `show` explicitly.
 
-The repository capture entrance can exercise a fresh Todo browser checklist and
-this terminal on one installed Body:
+The repository capture entrance attempts a fresh Todo browser checklist and
+terminal interaction on one installed Body:
 
 ```sh
 cargo xtask prove todo-journey --state-dir /absolute/host-state \
@@ -76,10 +77,12 @@ cargo xtask prove todo-journey --state-dir /absolute/host-state \
   --cross-mask-actions --output /absolute/new-capture
 ```
 
-This optional trace adds three items in the browser, completes the first through
-the selected terminal Show, refuses a stale browser action without changing
-Todo, and encounters the committed result in the browser.
-It retains the terminal input/output and owner Faces beside the screenshots.
+The current live trace commits three items through the browser, then refuses
+terminal attachment with `terminal-route-requires-lulled-body`: the next Todo
+action needs an active waiting Play, while the installed terminal route requires
+a lulled Body. Terminal completion, stale browser refusal after that completion,
+and the subsequent browser encounter remain unproven. The capture retains the
+three additions and terminal refusal beside the screenshots.
 The capture remains partial: direct spoken playback, rejoin, failure traces and
 publication acceptance require their own evidence. The default capture still
 performs one browser Add followed by a terminal read.
