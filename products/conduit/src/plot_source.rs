@@ -50,6 +50,13 @@ fn load_with_catalogs(
 }
 
 impl CanonicalSource {
+    // The library entrance compiles this source loader independently of the
+    // installed owner binary.
+    #[allow(dead_code)]
+    pub(crate) fn authoring_catalog(&self) -> &ProfileCatalog {
+        &self.profiles
+    }
+
     pub(crate) fn check(&self) -> Result<conduit_plot::CheckedSyntaxDocument, String> {
         if let Some(diagnostic) = self.syntax.diagnostics.first() {
             return Err(format!("{}: {}", diagnostic.code, diagnostic.message));
