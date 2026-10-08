@@ -3,7 +3,7 @@
 //! correlation before assembling ports; histories retain complete original frames.
 use crate::{
     parser_session_canonical_ingress::ParserCanonicalSourceExecutor,
-    parser_session_execution::{ParserSessionEntry, verification::PreparedSourceVerification},
+    parser_session_execution::{verification::PreparedSourceVerification, ParserSessionEntry},
 };
 use alloc::{rc::Rc, vec::Vec};
 use conduit_core::Plan;
@@ -63,9 +63,42 @@ impl ParserFixedFrames {
         self.input.capacity().checked_add(self.output.capacity())
     }
 }
+/// Fixed driver-selected record paths. Indices locate full retained execution
+/// frames; equality below is over complete canonical Types and values.
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct ParserSourceParentLink {
+    pub(crate) execution: usize,
+    pub(crate) output_path: &'static [&'static str],
+    pub(crate) input_path: &'static [&'static str],
+}
+impl ParserSourceParentLink {
+    pub(crate) fn matches(&self, parent: &[u8], input: &[u8]) -> bool {
+        fn select<'a>(
+            bytes: &'a [u8],
+            path: &[&str],
+        ) -> Option<conduit_core::ValidatedCanonicalStructuredValue<'a>> {
+            if path.len() > 8 {
+                return None;
+            }
+            let mut value = conduit_core::validate_canonical_structured_value(bytes).ok()?;
+            for name in path {
+                value = value.record_field(name).ok()??;
+            }
+            Some(value)
+        }
+        match (
+            select(parent, self.output_path),
+            select(input, self.input_path),
+        ) {
+            (Some(parent), Some(input)) => parent == input,
+            _ => false,
+        }
+    }
+}
 pub(crate) struct ParserFixedHistory {
     pub(crate) entry: ParserSessionEntry,
     pub(crate) ordinal: u64,
+    pub(crate) parent_links: [Option<ParserSourceParentLink>; 4],
     pub(crate) input: Vec<u8>,
     pub(crate) output: Vec<u8>,
     pub(crate) original_plan: Rc<Plan>,
@@ -183,6 +216,24 @@ impl<E: ParserSessionExecutor> PreparedParserFixedIngress<E> {
             cancelled: false,
         })
     }
+    /// Reuses the factory's already admitted single-live Native reservation and
+    /// prepared Source scratch sequentially, without consuming a target ingress.
+    pub(crate) fn replay_history(
+        &mut self,
+        history: &ParserFixedHistory,
+    ) -> Result<(), FixedRefusal<core::convert::Infallible>> {
+        if self.cancelled {
+            return Err(FixedRefusal::Cancelled);
+        }
+        let mut family = self.family.borrow_mut();
+        let maximum = family.storage_receipt().conversion_requested_bytes_bound;
+        history.replay(
+            &mut self.verifier,
+            &mut family,
+            &self.original_plan,
+            maximum,
+        )
+    }
     pub(crate) fn entry(&self) -> ParserSessionEntry {
         self.entry
     }
@@ -257,6 +308,7 @@ impl<E: ParserSessionExecutor> PreparedParserFixedIngress<E> {
         let history = ParserFixedHistory {
             entry: self.entry,
             ordinal: self.next_ordinal,
+            parent_links: [None; 4],
             input: frames.input,
             output: frames.output,
             original_plan: self.original_plan.clone(),

@@ -437,6 +437,17 @@ impl ParserRevisionCustody {
                     if index != source || self.source_histories.get(index).is_none() {
                         return Err(RevisionStorageRefusal::OriginalTape);
                     }
+                    let history = &self.source_histories[index];
+                    for link in history.parent_links.iter().flatten() {
+                        if link.execution >= index
+                            || !link.matches(
+                                &self.source_histories[link.execution].output,
+                                &history.input,
+                            )
+                        {
+                            return Err(RevisionStorageRefusal::OriginalTape);
+                        }
+                    }
                     source = add(source, 1)?;
                 }
                 ParserRevisionEvent::Model(index) => {

@@ -24,6 +24,7 @@ pub(crate) enum RevisionStageRefusal<E, S, N> {
     Closed,
     Storage(RevisionStorageRefusal),
     Registry(RegistryRefusal),
+    ParentReplay(FixedRefusal<core::convert::Infallible>),
     Source(FixedRefusal<E>),
     Model(ParserMixedRefusal<S, N>),
     StableCandidate(StableCandidateRefusal),
@@ -65,6 +66,16 @@ impl<'a, E: ParserSessionExecutor, S: ParserCanonicalSourceExecutor, N: ParserNu
         entry: ParserSessionEntry,
         query: &[u8],
     ) -> Result<usize, RevisionStageRefusal<E::Error, S::Error, N::Error>> {
+        self.source_with_parents(entry, query, &[])
+    }
+    /// Closed drivers select these fixed paths; this is not a public query API.
+    /// Replay every prior retained Source frame before consuming the new query.
+    pub(crate) fn source_with_parents(
+        &mut self,
+        entry: ParserSessionEntry,
+        query: &[u8],
+        links: &[crate::parser_session_fixed_ingress::ParserSourceParentLink],
+    ) -> Result<usize, RevisionStageRefusal<E::Error, S::Error, N::Error>> {
         use RevisionStageRefusal as R;
         if self.poisoned {
             return Err(R::Closed);
@@ -74,14 +85,37 @@ impl<'a, E: ParserSessionExecutor, S: ParserCanonicalSourceExecutor, N: ParserNu
             if entry == ParserSessionEntry::Seed && !seed_matches_original_tape(book, query) {
                 return Err(R::Closed);
             }
+            if links.len() > 4 {
+                return Err(R::Closed);
+            }
+            if !links.is_empty() {
+                book.validate_event_order().map_err(R::Storage)?;
+                for link in links {
+                    let parent = book.source_histories.get(link.execution).ok_or(R::Closed)?;
+                    if !link.matches(&parent.output, query) {
+                        return Err(R::Closed);
+                    }
+                }
+                for parent in &book.source_histories {
+                    self.guard
+                        .targets()
+                        .port(parent.entry)
+                        .map_err(R::Registry)?
+                        .replay_history(parent)
+                        .map_err(R::ParentReplay)?;
+                }
+            }
             let frames = book.source_frame().map_err(R::Storage)?;
-            let history = self
+            let mut history = self
                 .guard
                 .targets()
                 .port(entry)
                 .map_err(R::Registry)?
                 .execute(query, frames)
                 .map_err(R::Source)?;
+            for (slot, link) in history.parent_links.iter_mut().zip(links) {
+                *slot = Some(*link);
+            }
             book.retain_source(history).map_err(R::Storage)
         })();
         if result.is_err() {
