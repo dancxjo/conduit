@@ -141,7 +141,7 @@ fn first_caller_supplied_action_commits_under_retained_body_before_ack() {
             CheckpointIdentity {
                 body: body_id.as_str().into(),
                 plot: plot.expanded.checked_plot_id.as_str().into(),
-                workload: "todo-list".into()
+                workload: "todo-list".into(),
                 missing_v2: MissingV2Disposition::StartNewList,
             },
             &committed,
