@@ -565,7 +565,7 @@ pub(super) fn opening_commands(spoken: bool) -> impl Iterator<Item = ReaderComma
 /// to read the whole view. Reading it automatically can outlast a live Play
 /// and make its current Stop action unreachable through nonvisual input.
 fn opening_body_commands(_spoken: bool) -> impl Iterator<Item = ReaderCommand> {
-    // Start both nonvisual realizations with the useful summary. The person
-    // can explicitly request `read all` when they want the full Face detail.
-    std::iter::once(ReaderCommand::Repeat)
+    // Reuse the direct spoken Mask's Face-derived summary instead of reading
+    // whichever structural clause happens to occupy the cursor's first slot.
+    std::iter::once(ReaderCommand::Summary)
 }

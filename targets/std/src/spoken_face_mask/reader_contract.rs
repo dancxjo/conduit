@@ -10,6 +10,8 @@ use super::SpokenTurnReceipt;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ReaderCommand {
     Help,
+    /// Give the same concise Face-derived opening as the direct spoken Mask.
+    Summary,
     ReadAll,
     /// Read the currently primary Item subjects without selected-detail spill.
     ReadCurrentItems,

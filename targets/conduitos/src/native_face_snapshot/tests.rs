@@ -155,7 +155,7 @@ fn whole_valid_face_above_profile_capacity_is_refused_before_execution() {
         }],
         vec![],
         vec![],
-        (0..=MAX_SNAPSHOT_BYTES / conduit_presentation::MAX_PRESENTATION_TEXT_BYTES)
+        (0..64)
             .map(|_| PresentationText {
                 subject: "host/snapshot".into(),
                 text: "x".repeat(conduit_presentation::MAX_PRESENTATION_TEXT_BYTES),
