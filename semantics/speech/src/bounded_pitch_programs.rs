@@ -1,5 +1,11 @@
+//! Bounded owners of original pitch Source ASTs and prepared evaluators.
+//! These quotas cover this program component, not the complete renderer or queue.
 use alloc::{rc::Rc, vec::Vec};
-use conduit_plot::PortableExpressionProgram;
+use conduit_plot::{
+    PortableExpressionProgram, PreparedExpressionStorageRefusal,
+    PreparedPortableExpressionEvaluator,
+};
+use core::cell::RefCell;
 #[derive(Clone, Copy, Debug)]
 pub struct Limits {
     pub retained: usize,
@@ -14,12 +20,14 @@ pub struct Storage {
 #[derive(Debug)]
 pub enum Refusal {
     Capacity,
+    Borrow,
     Program,
     Evaluation(conduit_plot::PortableExpressionEvaluationRefusal),
 }
 struct Entry {
     original: &'static str,
     parsed: PortableExpressionProgram,
+    prepared: RefCell<PreparedPortableExpressionEvaluator>,
 }
 pub struct PitchPrograms {
     entries: [Entry; 3],
@@ -60,11 +68,12 @@ impl PitchPrograms {
                 )
                 .ok_or(Refusal::Capacity)?;
         }
-        // Sum of all decode allocation bounds conservatively covers retained prior
-        // owners plus the next sequential decoder and its canonical re-encoding.
+        // Account for retained original ASTs and their prepared evaluators. The
+        // separate preparation quota also covers the sequential decoder and
+        // evaluator construction while previous entries remain retained.
         Ok(Storage {
-            retained_bound: total,
-            preparation_bound: total,
+            retained_bound: total.checked_mul(2).ok_or(Refusal::Capacity)?,
+            preparation_bound: total.checked_mul(3).ok_or(Refusal::Capacity)?,
             actual_retained: 0,
         })
     }
@@ -85,11 +94,38 @@ impl PitchPrograms {
             let parsed =
                 PortableExpressionProgram::from_canonical_bytes_with_storage_limit(bytes, bound)
                     .map_err(|_| Refusal::Program)?;
+            let retained_before = storage.actual_retained;
+            let decoded = parsed.owned_heap_bytes();
+            let maximum_preparation = storage
+                .preparation_bound
+                .checked_sub(retained_before)
+                .ok_or(Refusal::Capacity)?;
+            let maximum_retained = storage
+                .retained_bound
+                .checked_sub(retained_before)
+                .and_then(|n| n.checked_sub(decoded))
+                .ok_or(Refusal::Capacity)?;
+            let (prepared, _) = PreparedPortableExpressionEvaluator::new_with_storage_limits(
+                &parsed,
+                bound,
+                maximum_preparation,
+                maximum_retained,
+            )
+            .map_err(|e| match e {
+                PreparedExpressionStorageRefusal::Capacity => Refusal::Capacity,
+                _ => Refusal::Program,
+            })?;
+            let prepared_heap = prepared.owned_heap_bytes();
             storage.actual_retained = storage
                 .actual_retained
-                .checked_add(parsed.owned_heap_bytes())
+                .checked_add(decoded)
+                .and_then(|n| n.checked_add(prepared_heap))
                 .ok_or(Refusal::Capacity)?;
-            Ok(Entry { original, parsed })
+            Ok(Entry {
+                original,
+                parsed,
+                prepared: RefCell::new(prepared),
+            })
         };
         let entries = [parse(0)?, parse(1)?, parse(2)?];
         storage.actual_retained = storage
@@ -110,11 +146,20 @@ impl PitchPrograms {
     pub fn storage(&self) -> Storage {
         self.storage
     }
+    pub fn original_program(&self, index: usize) -> Option<&PortableExpressionProgram> {
+        self.entries.get(index).map(|e| &e.parsed)
+    }
     pub fn execute(&self, index: usize, input: &[u8]) -> Result<(&'static str, Vec<u8>), Refusal> {
         let entry = self.entries.get(index).ok_or(Refusal::Program)?;
         Ok((
             entry.original,
-            entry.parsed.evaluate(input).map_err(Refusal::Evaluation)?,
+            entry
+                .prepared
+                .try_borrow_mut()
+                .map_err(|_| Refusal::Borrow)?
+                .evaluate(input)
+                .map_err(Refusal::Evaluation)?
+                .to_vec(),
         ))
     }
 }
