@@ -363,18 +363,25 @@ pub(super) fn verified_spoken_segments(
     batch
         .validate(face, show)
         .map_err(|error| format!("selected speech source digest refused: {error:?}"))?;
-    if batch.segments.len() != 1 || batch.segments[0].segment.text.len() > 64 {
-        return Err("selected Birth speech exceeds its one-segment, 64-byte batch bound".into());
+    if batch.segments.len() > 4
+        || batch
+            .segments
+            .iter()
+            .any(|item| item.segment.text.len() > 64)
+    {
+        return Err("selected speech exceeds its four-segment, 64-byte segment bound".into());
     }
     Ok(batch
         .segments
         .iter()
         .map(|item| {
+            let reason = serde_json::json!(item.segment.reason);
             serde_json::json!({
                 "sequence": item.segment.sequence,
                 "text": item.segment.text,
                 "text_sha256": item.text_sha256,
-                "reason_code": 1,
+                "reason_code": if reason == "final-flush" { 1 } else { 0 },
+                "reason": reason,
                 "face_id": item.face_id,
                 "face_revision_decimal": item.face_revision.to_string(),
                 "show_id": item.show_id,
