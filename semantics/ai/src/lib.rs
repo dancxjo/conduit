@@ -205,3 +205,9 @@ pub mod fixed_tensor_linear;
 pub mod fixed_tensor_resource;
 mod model_work_contract;
 pub use model_work_contract::*;
+
+pub mod integer_categorical;
+pub mod model_resource;
+pub use model_resource::{AdmittedModelResource, ModelResourceRefusal, MODEL_READ_AUTHORITY};
+#[cfg(feature = "kernel-step")]
+pub mod integer_categorical_step;
