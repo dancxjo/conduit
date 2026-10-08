@@ -3,7 +3,7 @@ use super::*;
 use conduit_core::PlannedActivationEntry;
 use conduit_core::{BootId, HostId, OfferGeneration};
 use conduit_presentation::PresentationRole;
-use conduit_std_host::StdHostConfig;
+use conduit_std_host::{StdHostComposition, StdHostConfig};
 const SOURCE: &str = "plot hello {\n show: presentation/text\n \"Hello.\" >> show\n}.";
 const CLOCK_SOURCE: &str = include_str!("../../../../plots/clock/main.conduit");
 const TODO_SOURCE: &str = include_str!("../../../../plots/todo/live.conduit");
@@ -104,6 +104,44 @@ fn spoken_next_play_capacity_report_is_safe_while_worker_owns_host() {
     assert!(owner.host.is_playing());
     assert!(!super::presentation_wardrobe_report::spoken_artifact_can_start_new_play(&owner.host));
     owner.host.restore_after_play(taken).unwrap();
+}
+
+#[test]
+fn owner_refuses_worker_host_with_drifted_offer_generation() {
+    let checked = source();
+    let mut owner = Owner::open(host("boot/generation"), resident(&checked), None, "Test").unwrap();
+    let original = owner.host.take_for_play().unwrap();
+    let drifted = StdHost::new_with_config(StdHostConfig {
+        host_id: owner.host.advertisement().host_id.clone(),
+        boot_id: owner.host.advertisement().boot_id.clone(),
+        offer_generation: OfferGeneration(2),
+    });
+    assert!(owner.host.restore_after_play(drifted).is_err());
+    assert!(owner.host.is_playing());
+    owner.host.restore_after_play(original).unwrap();
+    assert_eq!(
+        owner.host.advertisement().offer_generation,
+        OfferGeneration(1)
+    );
+}
+
+#[test]
+fn owner_refuses_worker_host_with_changed_offers_at_same_generation() {
+    let checked = source();
+    let mut owner = Owner::open(host("boot/offers"), resident(&checked), None, "Test").unwrap();
+    let original = owner.host.take_for_play().unwrap();
+    let changed = StdHost::new_with_composition(
+        StdHostConfig {
+            host_id: owner.host.advertisement().host_id.clone(),
+            boot_id: owner.host.advertisement().boot_id.clone(),
+            offer_generation: owner.host.advertisement().offer_generation,
+        },
+        StdHostComposition::minimal(),
+    );
+    assert_ne!(changed.advertisement(), owner.host.advertisement());
+    assert!(owner.host.restore_after_play(changed).is_err());
+    assert!(owner.host.is_playing());
+    owner.host.restore_after_play(original).unwrap();
 }
 
 #[test]
