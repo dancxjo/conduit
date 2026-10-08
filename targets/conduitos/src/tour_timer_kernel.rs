@@ -21,7 +21,7 @@ use runtime::{CORDS, NODES, PORTS, PreparedTimerGraph, PreparedTimerRoute};
 const _: () = assert!(PORTS <= FIXED_KERNEL_STORAGE_PORTS_PER_NODE);
 
 impl TourTimerKernel {
-    #[cfg(not(conduitos_protected_execution))]
+    #[cfg(all(test, not(conduitos_protected_execution)))]
     pub fn prepare(
         fragment: &PlanFragment,
         lowered: &LoweredPlanFragment,
