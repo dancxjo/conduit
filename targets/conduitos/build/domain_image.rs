@@ -81,9 +81,11 @@ pub fn generate() {
         "relocation-model=static".into(),
         "-C".into(),
         // Match the target sysroot for cross-crate optimization. These targets
-        // ship medium-model core/alloc, whose LLVM module flag must agree.
+        // ship target-specific core/alloc, whose LLVM module flag must agree.
         if matches!(architecture.as_str(), "riscv64" | "loongarch64") {
             "code-model=medium".into()
+        } else if architecture == "x86_64" {
+            "code-model=kernel".into()
         } else {
             "code-model=small".into()
         },
