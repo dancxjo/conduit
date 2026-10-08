@@ -2,6 +2,9 @@
 //! The guest rechecks Source and plans for its current Host/Boot. Reference
 //! transport never supplies current-Boot authority or a pretrained model.
 mod catalog;
+mod driver;
+pub mod execution;
+mod factories;
 mod recipe;
 pub mod resources;
 pub mod storage;
@@ -193,3 +196,6 @@ impl<'a> PreparedTopology<'a> {
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod execution_tests;
