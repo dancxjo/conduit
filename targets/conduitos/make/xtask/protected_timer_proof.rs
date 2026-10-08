@@ -97,6 +97,16 @@ mod tests {
             assert!(validate(&transcript(&altered), "ia32").is_err(), "{field}");
         }
         assert!(validate(&transcript(&cost), "aarch64").is_err());
+        assert!(
+            validate(
+                &transcript(&cost).replace(
+                    "CONDUIT_DOMAIN_TIMER_REPLAY refused-before-provider-access\n",
+                    ""
+                ),
+                "ia32"
+            )
+            .is_err()
+        );
         assert!(validate(&format!("CONDUIT_DOMAIN_TIMER_COST {cost}\n"), "ia32").is_err());
         assert!(validate(MARKER, "ia32").is_err());
     }
