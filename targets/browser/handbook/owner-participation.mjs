@@ -20,11 +20,25 @@ export function projectFaceCollections(view) {
     })) continue;
     const open = items.filter(item => !item.flags.find(flag => flag.name === 'complete').value);
     const completed = items.filter(item => item.flags.find(flag => flag.name === 'complete').value);
-    collections.push({ collection, open, completed });
+    const count = `${open.length} ${open.length === 1 ? 'thing' : 'things'} left · ${completed.length} completed`;
+    // The collection count is a Mask-local arrangement of the same flags.
+    // Only fold away a Status subject when its exact Face wording agrees.
+    const matchingStatus = (view.relationships ?? [])
+      .filter(relation => relation.kind === 'Contains' && relation.source === collection.identity)
+      .map(relation => subjects.get(relation.target))
+      .find(subject => subject?.role === 'Status' && subject.text?.length === 1
+        && subject.text[0] === count);
+    collections.push({ collection, open, completed, count });
     placed.add(collection.identity);
     for (const item of items) placed.add(item.identity);
+    if (matchingStatus) placed.add(matchingStatus.identity);
   }
   return { collections, placed };
+}
+
+export function faceActionReady(view, action) {
+  return view.interactions_admitted === true && view.show_state === 'available'
+    && action.availability === 'available';
 }
 
 export function checkedLoopbackOwnerWindow(value) {
@@ -251,6 +265,7 @@ export async function startOwnerParticipation(application, root) {
     const names = new Map(view.subjects.map(subject => [subject.identity, subject.name]));
     const documentNode = faceNode('article', '', 'owner-face-document');
     const { collections, placed } = projectFaceCollections(view);
+    const actionReady = action => faceActionReady(view, action);
     const actionControl = (action, itemName) => {
       const control = document.createElement('form');
       control.dataset.ownerAction = action.identity;
@@ -292,9 +307,7 @@ export async function startOwnerParticipation(application, root) {
       }
       const button = faceNode('button', itemName ? `${action.name} ${itemName}` : action.name);
       button.type = 'submit';
-      button.disabled = !view.interactions_admitted || view.show_state !== 'available'
-        || !supported || inputs.length !== action.arguments.length
-        || action.availability !== 'available';
+      button.disabled = !actionReady(action) || !supported || inputs.length !== action.arguments.length;
       control.append(button);
       if (button.disabled) control.append(faceNode('p', action.explanation ??
         (supported ? 'This owner action is unavailable.' : 'This input has no supported browser form.')));
@@ -341,12 +354,12 @@ export async function startOwnerParticipation(application, root) {
       }
       return node;
     };
-    for (const { collection, open, completed } of collections) {
+    for (const { collection, open, completed, count } of collections) {
       const section = document.createElement('section');
       section.className = 'owner-face-collection';
       section.append(faceNode('h4', collection.name));
       for (const text of collection.text) section.append(faceNode('p', text));
-      section.append(faceNode('p', `${open.length} ${open.length === 1 ? 'thing' : 'things'} left · ${completed.length} completed`, 'owner-face-collection-count'));
+      section.append(faceNode('p', count, 'owner-face-collection-count'));
       const openList = document.createElement('ol');
       openList.className = 'owner-face-items';
       openList.setAttribute('aria-label', `Things left in ${collection.name}`);
@@ -354,7 +367,7 @@ export async function startOwnerParticipation(application, root) {
         const row = document.createElement('li');
         row.append(faceNode('span', item.name, 'owner-face-item-name'));
         for (const action of view.actions.filter(action => action.target === item.identity
-          && action.availability === 'available' && action.disclosure === 'CurrentAction')) {
+          && actionReady(action) && action.disclosure === 'CurrentAction')) {
           row.append(actionControl(action, item.name));
         }
         openList.append(row);
@@ -372,7 +385,7 @@ export async function startOwnerParticipation(application, root) {
           const row = document.createElement('li');
           row.append(faceNode('span', item.name, 'owner-face-item-name'));
           for (const action of view.actions.filter(action => action.target === item.identity
-            && action.availability === 'available' && action.disclosure === 'CurrentAction')) {
+            && actionReady(action) && action.disclosure === 'CurrentAction')) {
             row.append(actionControl(action, item.name));
           }
           completedList.append(row);
@@ -380,7 +393,7 @@ export async function startOwnerParticipation(application, root) {
         details.append(completedList); section.append(details);
       }
       for (const action of view.actions.filter(action => action.target === collection.identity
-        && action.availability === 'available' && action.disclosure === 'CurrentAction')) {
+        && actionReady(action) && action.disclosure === 'CurrentAction')) {
         section.append(actionControl(action));
       }
       documentNode.append(section);
@@ -390,7 +403,7 @@ export async function startOwnerParticipation(application, root) {
     for (const subject of view.subjects) {
       if (placed.has(subject.identity)) continue;
       const main = ['Primary', 'Context'].includes(subject.disclosure)
-        && (!collections.length || !['Body', 'Plot'].includes(subject.role));
+        && (!collections.length || subject.role === 'Status');
       (main ? documentNode : inspection).append(renderSubject(subject));
     }
     if (inspection.children.length > 1) documentNode.append(inspection);
@@ -411,9 +424,9 @@ export async function startOwnerParticipation(application, root) {
       const secondary = document.createElement('details');
       secondary.append(faceNode('summary', 'More actions and unavailable controls'));
       for (const action of view.actions) {
-        if (placed.has(action.target) && action.availability === 'available'
+        if (placed.has(action.target) && actionReady(action)
           && action.disclosure === 'CurrentAction') continue;
-        const container = action.availability === 'available'
+        const container = actionReady(action)
           && action.disclosure === 'CurrentAction' ? actions : secondary;
         container.append(actionControl(action));
       }
