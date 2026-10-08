@@ -15,11 +15,29 @@ pub enum AcousticQuantityRefusal {
 
 /// Exact admitted source, executed program and admitted result for audit.
 pub struct AcousticConversion<Input, Output> {
-    pub input: Input,
-    pub result: Output,
-    pub original_canonical: Vec<u8>,
-    pub result_canonical: Vec<u8>,
-    pub source_program_hex: &'static str,
+    input: Input,
+    result: Output,
+    original_canonical: Vec<u8>,
+    result_canonical: Vec<u8>,
+    source_program_hex: &'static str,
+}
+
+impl<Input, Output> AcousticConversion<Input, Output> {
+    pub fn input(&self) -> &Input {
+        &self.input
+    }
+    pub fn result(&self) -> &Output {
+        &self.result
+    }
+    pub fn original_canonical(&self) -> &[u8] {
+        &self.original_canonical
+    }
+    pub fn result_canonical(&self) -> &[u8] {
+        &self.result_canonical
+    }
+    pub fn source_program_hex(&self) -> &'static str {
+        self.source_program_hex
+    }
 }
 
 pub struct PreparedAcousticReciprocal {
