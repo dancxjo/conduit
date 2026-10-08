@@ -269,5 +269,7 @@
         "punct"
       ]
     }
-  ]
+  ],
+  "full_train_form_sequence_overlap": false,
+  "train_sha256": "d68e06122a702464c613076523d56740f047e5bbe89dd90ec32737e04d952143"
 }
