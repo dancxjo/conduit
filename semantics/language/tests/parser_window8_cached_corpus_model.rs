@@ -19,16 +19,74 @@ mod planned;
 #[path = "common/parser_model_resource.rs"]
 mod resource;
 use conduit_core::*;
-use conduit_language::{
-    parser_model_selection::*,
-    parser_window8::lexical::*,
-    *,
-};
+use conduit_language::{parser_model_selection::*, parser_window8::lexical::*, *};
 use conduit_plot::rust_binding::NativeRustBinding;
 use serde_json::{json, Value};
 use std::path::PathBuf;
 fn bytes_hex(bytes: &[u8]) -> String {
     bytes.iter().map(|byte| format!("{byte:02x}")).collect()
+}
+fn evaluation_source_ids(id: &str) -> (LanguageTextId, LanguageTextRevisionId) {
+    let material = format!("window8/{id}");
+    let revision = format!("window8/{id}/r0");
+    let (material, revision) = if material.len() <= 64 && revision.len() <= 64 {
+        (material, revision)
+    } else {
+        (
+            model::hex(semantic_digest(
+                "language/window8-evaluation-material-id@1",
+                id.as_bytes(),
+            )),
+            model::hex(semantic_digest(
+                "language/window8-evaluation-revision-id@1",
+                id.as_bytes(),
+            )),
+        )
+    };
+    (
+        LanguageTextId::new(material).unwrap(),
+        LanguageTextRevisionId::new(revision).unwrap(),
+    )
+}
+#[test]
+fn evaluation_source_ids_preserve_short_ids_and_bound_full_original_identity() {
+    let (material, revision) = evaluation_source_ids("reviewed-example");
+    assert_eq!(material.get(), "window8/reviewed-example");
+    assert_eq!(revision.get(), "window8/reviewed-example/r0");
+    let id = "weblog-blogspot.com_tacitusproject_20040712123425_ENG_20040712_123425-0030";
+    let (material, revision) = evaluation_source_ids(id);
+    assert_eq!(
+        material.get(),
+        "96c982be5867f5eec4487c84e002de6ebfe8dcc3bbb1f9e48513c932e27b8629"
+    );
+    assert_eq!(
+        revision.get(),
+        "4e3274c7b95bd9ac9e4772a6d703f2647c7a386aaa5b22189b7737f6c70c5d54"
+    );
+    assert_eq!(material.get().len(), 64);
+    assert_eq!(revision.get().len(), 64);
+    assert_ne!(
+        evaluation_source_ids(&format!("{id}-different")).0,
+        material
+    );
+    let boundary = "x".repeat(53);
+    assert_eq!(
+        evaluation_source_ids(&boundary).1.get(),
+        &format!("window8/{boundary}/r0")
+    );
+    assert_eq!(
+        evaluation_source_ids(&format!("{boundary}x")).1.get().len(),
+        64
+    );
+    let unicode = "é".repeat(26);
+    assert_eq!(
+        evaluation_source_ids(&unicode).1.get(),
+        &format!("window8/{unicode}/r0")
+    );
+    assert_eq!(
+        evaluation_source_ids(&format!("{unicode}é")).1.get().len(),
+        64
+    );
 }
 #[test]
 #[ignore = "explicit long native window8 teaching decode; no heldout accuracy claim"]
@@ -196,12 +254,13 @@ fn actual_cached_window8_reviewed_clause_decode() {
     let started = std::time::Instant::now();
     for row in rows.as_array().unwrap() {
         let id = row["id"].as_str().unwrap();
+        let (material_id, revision_id) = evaluation_source_ids(id);
         let source = LanguageTextRevision::new(
             LanguageTextFinality::Final,
             LanguageText::new(
-                LanguageTextId::new(format!("window8/{id}")).unwrap(),
+                material_id,
                 LanguageId::new("language/en".into()).unwrap(),
-                LanguageTextRevisionId::new(format!("window8/{id}/r0")).unwrap(),
+                revision_id,
                 row["text"].as_str().unwrap().into(),
             )
             .unwrap(),
