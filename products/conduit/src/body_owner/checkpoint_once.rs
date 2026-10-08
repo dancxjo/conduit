@@ -9,7 +9,9 @@ use conduit_core::{
     TerminalDisposition,
 };
 use conduit_planner::{ConnectionQueueLimits, ForeBoundaryKey, PlanningOptions};
-use conduit_std_host::body_execution::{BodyForeOutputAdapter, BodyRunRequest};
+use conduit_std_host::body_execution::{
+    BodyForeExchange, BodyForeOutputAdapter, BodyRunRequest, TodoCheckpointSelection,
+};
 use conduit_std_host::todo_durable_resource::CheckpointIdentity;
 use conduit_std_host::{ExternalForeDelivery, ExternalForeInput, RunControl, RunControlRequestId};
 use conduit_todo_plot::{TodoCommand, TodoState, COMMAND_MAX_BYTES, STATE_MAX_BYTES};
@@ -207,10 +209,14 @@ impl Owner {
                             control: &control,
                             keyboard: None,
                         },
-                        &inputs,
-                        &mut fore,
-                        checkpoint_root,
-                        identity,
+                        BodyForeExchange {
+                            inputs: &inputs,
+                            output: &mut fore,
+                        },
+                        TodoCheckpointSelection {
+                            root: checkpoint_root,
+                            identity,
+                        },
                         &mut output,
                         &mut timer,
                         |play, wake| {
