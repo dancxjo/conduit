@@ -39,8 +39,9 @@ Source timer coexistence checked. Stock QEMU 10.2.1 lacks the required writable
 counter-disable control and receives `protected-execution-unsupported`.
 ARMv6's native diagnostic verifies the same refusal for an explicit protected
 text request before preparation; its separate A3 execution remains cooperative.
-Normal product collectors on all five protected targets require the same
-checked Source and sealed semantic Plan shape. The IA-32 boundary lane retains
+Normal text-and-timer proof collectors on all five protected targets require
+the same checked Source and sealed semantic Plan shape; x86_64 uses the
+headless `prove` entrance separately from its graphical product journey. The IA-32 boundary lane retains
 two independent normal BIOS boots separately from its instrumented checks.
 The standing timer product now owns its production fixed scheduler and Count
 state inside a private domain, with separate capability-gated Timer and Count

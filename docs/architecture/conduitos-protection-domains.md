@@ -95,9 +95,10 @@ backend and Root metadata reservation. `cargo xtask make conduitos prove
 --arch x86-64` uses a private short QMP endpoint so the supported command also
 works from long checkout paths.
 
-Every ordinary product proof now checks its sealed five-placement text-and-timer
+The normal text-and-timer proof collectors check their sealed five-placement
 Plan against the current exact checked Source, using one shared conformance
-projection. Placement references normalize to authored Gear identities; the
+projection. The x86_64 collector runs through `cargo xtask make conduitos prove`;
+its graphical product journey proves separate Body-bound domains. Placement references normalize to authored Gear identities; the
 projection retains configuration, typed ports and semantic contracts, Cord
 contracts and capacities, region membership, startup dependencies, cancellation,
 completion, terminal and sign requirements. Machine identities, selected Backs,
