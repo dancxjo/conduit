@@ -204,15 +204,18 @@ impl SpokenFaceSession {
             self.pending = None;
             segments.push(segment);
         }
+        if let Some(last) = segments.last_mut() {
+            // A lookahead may discover that no further clauses match this
+            // reading after the last segment was provisionally continued.
+            // Every delivered batch is its own closing Flow.
+            last.segment.reason = SpeechCommitReason::FinalFlush;
+        }
         if segments.len() == maximum_segments
             && self.reading.is_some()
             && maximum_segments < conduit_tongues::MAXIMUM_COMMITTED_SEGMENTS
         {
             // A separate Play must receive a separately closed Flow. The
             // reader's semantic place is retained for the next batch.
-            if let Some(last) = segments.last_mut() {
-                last.segment.reason = SpeechCommitReason::FinalFlush;
-            }
             self.batch += 1;
             self.sequence = 0;
         }
