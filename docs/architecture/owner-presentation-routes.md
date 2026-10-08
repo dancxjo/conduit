@@ -77,7 +77,8 @@ cargo xtask prove todo-journey --state-dir /absolute/host-state \
 ```
 
 This optional trace adds three items in the browser, completes the first through
-the selected terminal Show, and encounters the committed result in the browser.
+the selected terminal Show, refuses a stale browser action without changing
+Todo, and encounters the committed result in the browser.
 It retains the terminal input/output and owner Faces beside the screenshots.
 The capture remains partial: direct spoken playback, rejoin, failure traces and
 publication acceptance require their own evidence. The default capture still
