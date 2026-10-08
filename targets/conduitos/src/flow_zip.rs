@@ -1,5 +1,5 @@
 //! Native finite pairing retains the exact schemas and Back offered before planning.
-use alloc::{boxed::Box, collections::BTreeMap, format, string::String, vec::Vec};
+use alloc::{boxed::Box, format, string::String, vec::Vec};
 use conduit_composite::{FlowZipBack, KernelOperationBudget, KernelOperationFactory};
 use conduit_core::*;
 use conduit_kernel::{HostedValueStore, scheduler::StepBack};
@@ -108,14 +108,14 @@ struct OfferedPair {
 pub struct FlowZipOperationFactory {
     implementation: ImplementationId,
     profile: PairProfile,
-    pairs: BTreeMap<CapabilityId, OfferedPair>,
+    pairs: Vec<(CapabilityId, OfferedPair)>,
 }
 impl Default for FlowZipOperationFactory {
     fn default() -> Self {
         Self {
             implementation: ImplementationId::from(IMPLEMENTATION),
             profile: DEFAULT_PAIR_PROFILE,
-            pairs: BTreeMap::new(),
+            pairs: Vec::new(),
         }
     }
 }
@@ -127,8 +127,31 @@ impl FlowZipOperationFactory {
         Self {
             implementation: ImplementationId::from(FRAME16K_IMPLEMENTATION),
             profile: FRAME16K_PAIR_PROFILE,
-            pairs: BTreeMap::new(),
+            pairs: Vec::new(),
         }
+    }
+
+    /// Reserves the unchanged finite16-specialization array before installation.
+    /// This quota covers the selected array only, not Type/offer construction.
+    pub fn frame16k_with_selection_storage_limit(
+        maximum_requested_bytes: usize,
+    ) -> Result<Self, &'static str> {
+        let bytes = MAXIMUM_SPECIALIZATIONS
+            .checked_mul(core::mem::size_of::<(CapabilityId, OfferedPair)>())
+            .ok_or("zip selection storage overflow")?;
+        if bytes > maximum_requested_bytes {
+            return Err("zip selection storage capacity");
+        }
+        Ok(Self {
+            implementation: ImplementationId::from(FRAME16K_IMPLEMENTATION),
+            profile: FRAME16K_PAIR_PROFILE,
+            pairs: Vec::with_capacity(MAXIMUM_SPECIALIZATIONS),
+        })
+    }
+    pub fn selection_array_capacity_bytes(&self) -> usize {
+        self.pairs
+            .capacity()
+            .saturating_mul(core::mem::size_of::<(CapabilityId, OfferedPair)>())
     }
 
     pub fn install(
@@ -192,23 +215,34 @@ impl FlowZipOperationFactory {
             specialized,
             self.profile,
         )?;
-        if self.pairs.contains_key(&offer.capability_id) {
+        if self
+            .pairs
+            .binary_search_by(|(id, _)| id.cmp(&offer.capability_id))
+            .is_ok()
+        {
             return Err("native finite zip specialization is already installed".into());
         }
+        let position = self
+            .pairs
+            .binary_search_by(|(id, _)| id.cmp(&offer.capability_id))
+            .unwrap_err();
         self.pairs.insert(
-            offer.capability_id.clone(),
-            OfferedPair {
-                left: left_type.clone(),
-                right: right_type.clone(),
-                offer: offer.clone(),
-                feedback,
-            },
+            position,
+            (
+                offer.capability_id.clone(),
+                OfferedPair {
+                    left: left_type.clone(),
+                    right: right_type.clone(),
+                    offer: offer.clone(),
+                    feedback,
+                },
+            ),
         );
         Ok(offer)
     }
 
     pub fn offers(&self) -> impl Iterator<Item = &CapabilityOffer> {
-        self.pairs.values().map(|pair| &pair.offer)
+        self.pairs.iter().map(|(_, pair)| &pair.offer)
     }
 
     pub fn validate_plan(&self, plan: &Plan) -> Result<(), String> {
@@ -239,7 +273,9 @@ impl FlowZipOperationFactory {
     > {
         let types = self
             .pairs
-            .get(&gear.capability_id)
+            .binary_search_by(|(id, _)| id.cmp(&gear.capability_id))
+            .ok()
+            .map(|index| &self.pairs[index].1)
             .ok_or("native finite zip has no exact retained offer")?;
         let expected = &types.offer;
         let contract_at = |name| {

@@ -31,6 +31,7 @@ pub trait ModelComputeRuntimeDriver {
     type Error;
     type Batch;
     type ResourceReceipt;
+    type PreparationReceipt;
     type WarmReceipt;
     type Completion;
     type StopReceipt;
@@ -39,6 +40,25 @@ pub trait ModelComputeRuntimeDriver {
     fn plan(&self) -> &Arc<Plan>;
     fn runtime(&self) -> &ModelComputeRuntimeIdentity;
     fn offer(&self) -> &ModelComputeOffer;
+    /// Must refuse unknown preparation storage before Plan verification, Source
+    /// hashing, offer cloning, or lifecycle construction. Includes their peak.
+    fn admit_preparation(
+        &self,
+        requirement: &ModelComputeRequirement,
+    ) -> Result<Self::PreparationReceipt, Self::Error>;
+    fn validate_preparation(
+        &self,
+        receipt: &Self::PreparationReceipt,
+        requirement: &ModelComputeRequirement,
+    ) -> Result<(), Self::Error>;
+    /// Fail-closed cleanup of these exact retained originals. Must not advance
+    /// input/model state or act upon a replacement basis.
+    fn abandon_original(
+        &mut self,
+        model: &Arc<AdmittedModelResource>,
+        source: &Arc<str>,
+        plan: &Arc<Plan>,
+    ) -> Result<(), Self::Error>;
     fn admit_resources(
         &self,
         requirement: &ModelComputeRequirement,
@@ -73,6 +93,7 @@ pub struct OwnedModelComputeSession<D: ModelComputeRuntimeDriver> {
     driver: D,
     queued: Option<D::Batch>,
     resources: Option<D::ResourceReceipt>,
+    preparation: D::PreparationReceipt,
     queued_bytes: u64,
     stopped: bool,
     cancellation_supported: bool,
@@ -95,9 +116,15 @@ impl<D: ModelComputeRuntimeDriver> OwnedModelComputeSession<D> {
         if &runtime != driver.runtime() || &offer != driver.offer() {
             return Err(OwnedModelComputeRefusal::ForeignRuntimeOffer);
         }
+        let preparation = driver
+            .admit_preparation(&requirement)
+            .map_err(OwnedModelComputeRefusal::Driver)?;
+        driver
+            .validate_preparation(&preparation, &requirement)
+            .map_err(OwnedModelComputeRefusal::Driver)?;
         if !verify_plan(driver.plan())
-            || conduit_plot::source_document_identity(driver.source())
-                != driver.plan().source_document_id.as_str()
+            || conduit_plot::syntax_source_document_identity(driver.source())
+                != driver.plan().source_document_id
         {
             return Err(OwnedModelComputeRefusal::ForeignSourcePlan);
         }
@@ -121,6 +148,7 @@ impl<D: ModelComputeRuntimeDriver> OwnedModelComputeSession<D> {
             driver,
             queued: None,
             resources: None,
+            preparation,
             queued_bytes: 0,
             stopped: false,
             cancellation_supported,
@@ -138,11 +166,25 @@ impl<D: ModelComputeRuntimeDriver> OwnedModelComputeSession<D> {
         if self.lifecycle.runtime() != self.driver.runtime() || &self.offer != self.driver.offer() {
             return Err(OwnedModelComputeRefusal::ForeignRuntimeOffer);
         }
-        if !verify_plan(self.driver.plan())
-            || conduit_plot::source_document_identity(self.driver.source())
-                != self.driver.plan().source_document_id.as_str()
-        {
-            return Err(OwnedModelComputeRefusal::ForeignSourcePlan);
+        // prepare checked this exact immutable Source/Plan once. Both this
+        // session and the driver retain Arc clones, so safe mutation requires a
+        // different allocation, which the pointer checks above refuse. Avoid
+        // allocating a complete Plan verification on each scheduler poll.
+        Ok(())
+    }
+    fn stop_basis(&mut self) -> Result<(), OwnedModelComputeRefusal<D::Error>> {
+        if let Err(refusal) = self.basis() {
+            // Invalidate the session even if cleanup fails; never emit a normal
+            // stop/unload receipt for a replacement driver basis.
+            self.stopped = true;
+            self.lifecycle.provider_lost();
+            self.loaded = None;
+            self.queued = None;
+            self.queued_bytes = 0;
+            self.driver
+                .abandon_original(&self.original, &self.source, &self.plan)
+                .map_err(OwnedModelComputeRefusal::Driver)?;
+            return Err(refusal);
         }
         Ok(())
     }
@@ -313,6 +355,7 @@ impl<D: ModelComputeRuntimeDriver> OwnedModelComputeSession<D> {
         }
     }
     pub fn cancel(&mut self) -> Result<D::StopReceipt, OwnedModelComputeRefusal<D::Error>> {
+        self.stop_basis()?;
         if !self.cancellation_supported {
             return Err(OwnedModelComputeRefusal::Compute(
                 ModelComputeRefusal::CancellationUnsupported,
@@ -332,6 +375,7 @@ impl<D: ModelComputeRuntimeDriver> OwnedModelComputeSession<D> {
         Ok(receipt)
     }
     pub fn provider_lost(&mut self) -> Result<D::StopReceipt, OwnedModelComputeRefusal<D::Error>> {
+        self.stop_basis()?;
         let receipt = self
             .driver
             .provider_lost()
@@ -344,6 +388,7 @@ impl<D: ModelComputeRuntimeDriver> OwnedModelComputeSession<D> {
         Ok(receipt)
     }
     pub fn unload(&mut self) -> Result<(), OwnedModelComputeRefusal<D::Error>> {
+        self.stop_basis()?;
         if self.queued.is_some() || self.lifecycle.state() != ModelComputeLifecycle::Ready {
             return Err(OwnedModelComputeRefusal::Compute(
                 ModelComputeRefusal::InvalidLifecycleTransition,
@@ -376,6 +421,9 @@ impl<D: ModelComputeRuntimeDriver> OwnedModelComputeSession<D> {
     }
     pub fn runtime(&self) -> &ModelComputeRuntimeIdentity {
         self.lifecycle.runtime()
+    }
+    pub fn preparation(&self) -> &D::PreparationReceipt {
+        &self.preparation
     }
     pub fn resources(&self) -> Option<&D::ResourceReceipt> {
         self.resources.as_ref()

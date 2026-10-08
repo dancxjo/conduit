@@ -128,8 +128,24 @@ fn specialized_factory_retains_multiple_exact_kinds_and_feedback_modes() {
             .is_err()
     );
     assert_eq!(factory.offers().count(), 3);
-    assert!(!factory.pairs[&first.capability_id].feedback);
-    assert!(factory.pairs[&feedback.capability_id].feedback);
+    assert!(
+        !factory
+            .pairs
+            .iter()
+            .find(|(id, _)| id == &first.capability_id)
+            .unwrap()
+            .1
+            .feedback
+    );
+    assert!(
+        factory
+            .pairs
+            .iter()
+            .find(|(id, _)| id == &feedback.capability_id)
+            .unwrap()
+            .1
+            .feedback
+    );
     assert_eq!(
         first.kind_contract_revision.as_str(),
         conduit_semantic_catalog::FLOW_ZIP_FINITE_SPECIALIZED_REVISION
@@ -138,4 +154,18 @@ fn specialized_factory_retains_multiple_exact_kinds_and_feedback_modes() {
         feedback.kind_contract_revision.as_str(),
         conduit_semantic_catalog::FLOW_ZIP_FEEDBACK_SPECIALIZED_REVISION
     );
+}
+
+#[test]
+fn selected_array_reservation_refuses_before_allocation_and_preserves_profile() {
+    let bytes = MAXIMUM_SPECIALIZATIONS * core::mem::size_of::<(CapabilityId, OfferedPair)>();
+    let allocations = crate::test_allocations::allocations(|| {
+        assert!(FlowZipOperationFactory::frame16k_with_selection_storage_limit(bytes - 1).is_err());
+    });
+    assert_eq!(allocations, 0);
+    let factory = FlowZipOperationFactory::frame16k_with_selection_storage_limit(bytes).unwrap();
+    assert_eq!(factory.selection_array_capacity_bytes(), bytes);
+    assert_eq!(factory.offers().count(), 0);
+    assert_eq!(factory.implementation.as_str(), FRAME16K_IMPLEMENTATION);
+    assert_eq!(factory.profile.maximum_input, MAXIMUM_PAIR_BYTES);
 }

@@ -30,6 +30,8 @@ pub mod pending_host_output;
 pub mod flow_concat_finite;
 pub mod flow_merge_finite;
 pub mod flow_zip;
+#[cfg(feature = "fixed-numeric-owners")]
+pub mod fargan_runtime_profiles;
 #[cfg(any(
     test,
     target_arch = "x86_64",
