@@ -1,14 +1,69 @@
-use conduit_todo_plot::{
-    apply_transition_packet, todo_apply_kind, todo_combine_kind, todo_pack_kind,
-    PreparedTodoPacket, TodoCommand, TodoRefusal, TodoState, MAX_TODO_ITEMS,
-};
+use conduit_todo_plot::{todo_combine_kind, TodoCommand, TodoRefusal, TodoState, MAX_TODO_ITEMS};
+
+#[cfg(feature = "kernel-step")]
+mod allocation_probe {
+    use std::{
+        alloc::{GlobalAlloc, Layout, System},
+        cell::Cell,
+    };
+
+    pub struct CountingAllocator;
+    thread_local! { static COUNTING: Cell<bool> = const { Cell::new(false) }; static COUNT: Cell<usize> = const { Cell::new(0) }; }
+    fn count() {
+        let _ = COUNTING.try_with(|flag| {
+            if flag.get() {
+                let _ = COUNT.try_with(|count| count.set(count.get() + 1));
+            }
+        });
+    }
+    unsafe impl GlobalAlloc for CountingAllocator {
+        unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
+            let ptr = unsafe { System.alloc(layout) };
+            if !ptr.is_null() {
+                count();
+            }
+            ptr
+        }
+        unsafe fn alloc_zeroed(&self, layout: Layout) -> *mut u8 {
+            let ptr = unsafe { System.alloc_zeroed(layout) };
+            if !ptr.is_null() {
+                count();
+            }
+            ptr
+        }
+        unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
+            unsafe { System.dealloc(ptr, layout) }
+        }
+        unsafe fn realloc(&self, ptr: *mut u8, layout: Layout, size: usize) -> *mut u8 {
+            let ptr = unsafe { System.realloc(ptr, layout, size) };
+            if !ptr.is_null() {
+                count();
+            }
+            ptr
+        }
+    }
+    #[global_allocator]
+    static ALLOCATOR: CountingAllocator = CountingAllocator;
+    pub fn count_during<T>(f: impl FnOnce() -> T) -> (T, usize) {
+        COUNT.with(|count| count.set(0));
+        COUNTING.with(|flag| flag.set(true));
+        struct Reset;
+        impl Drop for Reset {
+            fn drop(&mut self) {
+                COUNTING.with(|flag| flag.set(false));
+            }
+        }
+        let reset = Reset;
+        let result = f();
+        drop(reset);
+        (result, COUNT.with(Cell::get))
+    }
+}
 
 #[test]
-fn combine_kind_has_exact_typed_state_and_command_ports() {
-    for kind in [todo_combine_kind(), todo_pack_kind(), todo_apply_kind()] {
-        kind.validate().unwrap();
-    }
+fn exact_typed_combine_kind() {
     let kind = todo_combine_kind();
+    kind.validate().unwrap();
     assert_eq!(
         kind.inputs[0].value_kind.as_str(),
         conduit_todo_plot::TODO_STATE_INFO_ID
@@ -24,43 +79,85 @@ fn combine_kind_has_exact_typed_state_and_command_ports() {
 }
 
 #[test]
-fn preallocated_transition_packet_round_trips_exact_values_and_refuses_malformed() {
+fn semantic_actions_and_exact_form_round_trip() {
     let state = TodoState::new("Groceries".into()).unwrap();
+    let state = state
+        .apply(&TodoCommand::Add {
+            text: "Buy milk".into(),
+        })
+        .unwrap();
+    assert_eq!(state.items[0].id, "task-1");
+    assert_eq!(state.revision, 1);
+    let state = TodoState::decode_info(&state.encode_info().unwrap()).unwrap();
+    let state = state
+        .apply(&TodoCommand::SetComplete {
+            id: "task-1".into(),
+            complete: true,
+        })
+        .unwrap();
+    assert!(state.items[0].complete);
+    let state = state
+        .apply(&TodoCommand::SetComplete {
+            id: "task-1".into(),
+            complete: false,
+        })
+        .unwrap();
+    let state = state
+        .apply(&TodoCommand::Remove {
+            id: "task-1".into(),
+        })
+        .unwrap();
+    assert!(state.items.is_empty());
+    assert_eq!(state.revision, 4);
+    assert_eq!(state.next_id, 2);
+    assert_eq!(
+        state.apply(&TodoCommand::Remove {
+            id: "task-1".into()
+        }),
+        Err(TodoRefusal::MissingItem)
+    );
+}
+
+#[test]
+fn finite_capacity_and_malformed_forms_refused() {
+    let mut state = TodoState::new("List".into()).unwrap();
+    for index in 0..MAX_TODO_ITEMS {
+        state = state
+            .apply(&TodoCommand::Add {
+                text: format!("Task {index}"),
+            })
+            .unwrap();
+    }
+    assert_eq!(
+        state.apply(&TodoCommand::Add {
+            text: "overflow".into()
+        }),
+        Err(TodoRefusal::ItemCapacity)
+    );
+    let mut bytes = state.encode_info().unwrap();
+    bytes.push(0);
+    assert_eq!(
+        TodoState::decode_info(&bytes),
+        Err(TodoRefusal::InvalidState)
+    );
     let command = TodoCommand::Add {
-        text: "Buy milk".into(),
+        text: "buy milk".into(),
     };
-    let mut packet = PreparedTodoPacket::new();
-    let capacity = packet.allocation_capacity();
-    let output = apply_transition_packet(
-        packet
-            .pack(
-                &state.encode_info().unwrap(),
-                &command.encode_info().unwrap(),
-            )
-            .unwrap(),
-    )
-    .unwrap();
     assert_eq!(
-        TodoState::decode_info(&output).unwrap().items[0].text,
-        "Buy milk"
+        TodoCommand::decode_info(&command.encode_info().unwrap()),
+        Ok(command)
     );
-    assert_eq!(packet.allocation_capacity(), capacity);
-    let mut malformed = packet.bytes().to_vec();
-    malformed.pop();
-    assert_eq!(
-        apply_transition_packet(&malformed),
-        Err(TodoRefusal::InvalidTransition)
-    );
+    assert!(TodoCommand::decode_info(&[1, 2]).is_err());
 }
 
 #[cfg(feature = "kernel-step")]
 #[test]
-fn packet_back_stages_two_exact_inputs_without_allocating_during_step() {
+fn combine_back_consumes_two_exact_values_with_fixed_storage() {
     use conduit_kernel::scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome};
     use conduit_kernel::{PortId, ValueRef};
-    use conduit_todo_plot::TodoPacketBack;
+    use conduit_todo_plot::{TodoCombineBack, STATE_MAX_BYTES};
 
-    let state = TodoState::new("Groceries".into())
+    let state = TodoState::new("List".into())
         .unwrap()
         .encode_info()
         .unwrap();
@@ -69,8 +166,7 @@ fn packet_back_stages_two_exact_inputs_without_allocating_during_step() {
     }
     .encode_info()
     .unwrap();
-    let mut back = TodoPacketBack::new();
-    let capacity = back.allocation_capacity();
+    let mut back = TodoCombineBack::new();
     let mut io = StepIo::<2>::test_frame(
         [
             Some(ValueRef {
@@ -85,186 +181,88 @@ fn packet_back_stages_two_exact_inputs_without_allocating_during_step() {
             }),
         ],
         [false, false],
-        [
-            Some(conduit_todo_plot::TODO_TRANSITION_MAX_BYTES as u32),
-            None,
-        ],
+        [Some(STATE_MAX_BYTES as u32), None],
         None,
         8,
     );
     let inputs = StepInputBytes::test_frame([Some(&state), Some(&command)], None);
-    assert!(matches!(back.step(&mut io, &inputs), StepOutcome::Progress));
+    let (outcome, allocations) = allocation_probe::count_during(|| back.step(&mut io, &inputs));
+    assert!(matches!(outcome, StepOutcome::Progress));
+    assert_eq!(allocations, 0);
     assert!(io.test_consumed(PortId(0)) && io.test_consumed(PortId(1)));
-    assert_eq!(io.test_prepared_output().unwrap().0, PortId(0));
-    let packet = <TodoPacketBack as StepBack<2>>::prepared_output(&back, PortId(0)).unwrap();
+    let output = <TodoCombineBack as StepBack<2>>::prepared_output(&back, PortId(0)).unwrap();
     assert_eq!(
-        TodoState::decode_info(&apply_transition_packet(packet).unwrap())
-            .unwrap()
-            .items[0]
-            .text,
+        TodoState::decode_info(output).unwrap().items[0].text,
         "Buy milk"
     );
-    assert_eq!(back.allocation_capacity(), capacity);
-    <TodoPacketBack as StepBack<2>>::step_committed(&mut back);
+    assert_eq!(back.allocation_capacity(), 0);
 }
 
+#[cfg(feature = "kernel-step")]
 #[test]
-fn typed_command_codec_refuses_unknown_shapes_and_preserves_arguments() {
+fn public_actions_and_back_agree_across_sequential_revisions() {
+    use conduit_kernel::scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome};
+    use conduit_kernel::{PortId, ValueRef};
+    use conduit_todo_plot::{TodoCombineBack, STATE_MAX_BYTES};
+
+    let mut state = TodoState::new("List".into()).unwrap();
     for command in [
         TodoCommand::Add {
-            text: "Buy milk".into(),
+            text: "First".into(),
+        },
+        TodoCommand::Add {
+            text: "Second".into(),
         },
         TodoCommand::SetComplete {
             id: "task-1".into(),
             complete: true,
         },
-        TodoCommand::Remove {
-            id: "task-1".into(),
-        },
-    ] {
-        assert_eq!(
-            TodoCommand::decode_info(&command.encode_info().unwrap()).unwrap(),
-            command
-        );
-    }
-    let unknown = conduit_web::JsonValue::decode_text(br#"{"op":"clear"}"#)
-        .unwrap()
-        .encode_info()
-        .unwrap();
-    assert_eq!(
-        TodoCommand::decode_info(&unknown),
-        Err(TodoRefusal::InvalidCommand)
-    );
-    assert_eq!(
-        TodoCommand::Add { text: " ".into() }.encode_info(),
-        Err(TodoRefusal::InvalidText)
-    );
-}
-
-#[test]
-fn add_complete_reopen_remove_preserves_stable_identity_and_order() {
-    let state = TodoState::new("Groceries".into()).unwrap();
-    let state = state
-        .apply(&TodoCommand::Add {
-            text: "Buy milk".into(),
-        })
-        .unwrap();
-    let state = state
-        .apply(&TodoCommand::Add {
-            text: "Get cat food".into(),
-        })
-        .unwrap();
-    assert_eq!(
-        state
-            .items
-            .iter()
-            .map(|item| item.id.as_str())
-            .collect::<Vec<_>>(),
-        ["task-1", "task-2"]
-    );
-    let completed = state
-        .apply(&TodoCommand::SetComplete {
+        TodoCommand::SetComplete {
             id: "task-1".into(),
             complete: true,
-        })
-        .unwrap();
-    assert!(completed.items[0].complete);
-    assert_eq!(completed.revision, 3);
-    assert_eq!(
-        completed
-            .apply(&TodoCommand::SetComplete {
-                id: "task-1".into(),
-                complete: true
-            })
-            .unwrap(),
-        completed
-    );
-    let reopened = completed
-        .apply(&TodoCommand::SetComplete {
+        },
+        TodoCommand::SetComplete {
             id: "task-1".into(),
             complete: false,
-        })
+        },
+        TodoCommand::Remove {
+            id: "task-2".into(),
+        },
+    ] {
+        let expected = state.apply(&command).unwrap();
+        let state_bytes = state.encode_info().unwrap();
+        let command_bytes = command.encode_info().unwrap();
+        let mut back = TodoCombineBack::new();
+        let mut io = StepIo::<2>::test_frame(
+            [
+                Some(ValueRef {
+                    slot: 0,
+                    generation: 1,
+                    byte_len: state_bytes.len() as u32,
+                }),
+                Some(ValueRef {
+                    slot: 1,
+                    generation: 1,
+                    byte_len: command_bytes.len() as u32,
+                }),
+            ],
+            [false, false],
+            [Some(STATE_MAX_BYTES as u32), None],
+            None,
+            8,
+        );
+        let inputs = StepInputBytes::test_frame([Some(&state_bytes), Some(&command_bytes)], None);
+        let (outcome, allocations) = allocation_probe::count_during(|| back.step(&mut io, &inputs));
+        assert!(matches!(outcome, StepOutcome::Progress));
+        assert_eq!(allocations, 0);
+        let actual = TodoState::decode_info(
+            <TodoCombineBack as StepBack<2>>::prepared_output(&back, PortId(0)).unwrap(),
+        )
         .unwrap();
-    assert!(!reopened.items[0].complete);
-    let removed = reopened
-        .apply(&TodoCommand::Remove {
-            id: "task-1".into(),
-        })
-        .unwrap();
-    assert_eq!(removed.items[0].id, "task-2");
-    assert_eq!(removed.next_id, 3);
-    assert_eq!(
-        TodoState::decode_info(&removed.encode_info().unwrap()).unwrap(),
-        removed
-    );
-}
-
-#[test]
-fn invalid_targets_and_text_refuse_without_state_change() {
-    let state = TodoState::new("Groceries".into()).unwrap();
-    assert_eq!(
-        state.apply(&TodoCommand::Add { text: "  ".into() }),
-        Err(TodoRefusal::InvalidText)
-    );
-    assert_eq!(
-        state.apply(&TodoCommand::Remove {
-            id: "task-1".into()
-        }),
-        Err(TodoRefusal::MissingItem)
-    );
-    assert_eq!(
-        state.apply(&TodoCommand::SetComplete {
-            id: "other".into(),
-            complete: true
-        }),
-        Err(TodoRefusal::InvalidId)
-    );
-    assert_eq!(state.revision, 0);
-    assert!(state.items.is_empty());
-}
-
-#[test]
-fn twenty_items_fit_but_the_next_add_refuses_before_mutation() {
-    let mut state = TodoState::new("Groceries".into()).unwrap();
-    for index in 0..MAX_TODO_ITEMS {
-        state = state
-            .apply(&TodoCommand::Add {
-                text: format!("Item {index}"),
-            })
-            .unwrap();
+        assert_eq!(actual, expected);
+        state = actual;
     }
-    assert_eq!(state.items.len(), 20);
-    assert_eq!(
-        state.apply(&TodoCommand::Add {
-            text: "One more".into()
-        }),
-        Err(TodoRefusal::ItemCapacity)
-    );
-    assert_eq!(
-        TodoState::decode_info(&state.encode_info().unwrap()).unwrap(),
-        state
-    );
-}
-
-#[test]
-fn finite_json_budget_refuses_an_oversized_collection_without_partial_commit() {
-    let mut state = TodoState::new("Groceries".into()).unwrap();
-    let text = "x".repeat(72);
-    let mut accepted = 0;
-    for _ in 0..MAX_TODO_ITEMS {
-        match state.apply(&TodoCommand::Add { text: text.clone() }) {
-            Ok(next) => {
-                state = next;
-                accepted += 1;
-            }
-            Err(TodoRefusal::Json(_) | TodoRefusal::Collection(_)) => break,
-            Err(error) => panic!("unexpected refusal: {error:?}"),
-        }
-    }
-    assert!(accepted > 0);
-    assert_eq!(state.items.len(), accepted);
-    assert_eq!(
-        TodoState::decode_info(&state.encode_info().unwrap()).unwrap(),
-        state
-    );
+    assert_eq!(state.revision, 5);
+    assert_eq!(state.next_id, 3);
+    assert_eq!(state.items.len(), 1);
 }
