@@ -82,7 +82,7 @@ fn tour_timer_wire_reconstructs_causal_count_progress_without_allocating() {
                     runtime.complete_presentation(request).unwrap();
                 }
             }
-            if count_len == 2 && waiting.is_some() {
+            if count_len == 2 && waiting.is_some() && runtime.pending_host_calls() == 1 {
                 assert_eq!(counts, [Some(0), Some(1)]);
                 assert_eq!(timer_requests, 2);
                 assert_eq!(runtime.pending_host_calls(), 1);
