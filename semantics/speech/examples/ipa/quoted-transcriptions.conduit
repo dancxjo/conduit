@@ -1,0 +1,7 @@
+# Reviewed qualified constructors, independent of optional p[...] notation.
+plot quoted-phonetic (
+    value: SpeechPhoneticTranscription <= 262144B >>
+) {
+    parsed: speech/phonetic-from-ipa(request = {original: "ˈt͡ʃãː.n̩", provenance: {method: "quoted transcription fixture", source: manual(""), version: none("")}})
+    parsed.value >> value
+}.
