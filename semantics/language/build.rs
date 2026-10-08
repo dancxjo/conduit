@@ -1,3 +1,5 @@
+#[path = "build_window8_session.rs"]
+mod window8_session;
 #[path = "build_session_chain.rs"]
 mod session_chain;
 use conduit_plot::rust_binding::{generate_rust_bindings, RustBindingOptions};
@@ -5,6 +7,10 @@ use conduit_plot::{check_syntax_document, parse_syntax_document, StartupCatalog}
 use std::{env, fs, path::PathBuf};
 
 fn main() {
+    println!("cargo:rerun-if-changed=build_window8_session.rs");
+    for (file, _) in window8_session::SOURCE_ADDITIONS {
+        println!("cargo:rerun-if-changed={file}");
+    }
     println!("cargo:rerun-if-changed=build_session_chain.rs");
     println!("cargo:rerun-if-changed=types.conduit");
     println!("cargo:rerun-if-changed=identity.conduit");
@@ -109,11 +115,16 @@ fn main() {
         include_str!("prosody.conduit"),
         include_str!("pronunciation_selection.conduit"),
     ]
+    .into_iter()
+    .chain(window8_session::SOURCE_ADDITIONS.iter().map(|(_, source)| *source))
+    .collect::<Vec<_>>()
     .join("\n");
     let mut startup = StartupCatalog::new();
     for (name, element, length) in [
         ("LanguageParserCategoricalIndices", "value/u64", 25),
         ("LanguageParserCategoricalScores", "value/i64", 76),
+        ("LanguageParserWindow8ProposerV2CategoricalIndices", "value/u64", 27),
+        ("LanguageParserWindow8ProposerV2CategoricalScores", "value/i64", 76),
     ] {
         let ty = conduit_core::StructuredInfoType::collection(
             conduit_core::StructuredInfoType::leaf(conduit_core::kind_id(element)).unwrap(),
@@ -124,6 +135,13 @@ fn main() {
     }
     let checked = check_syntax_document(&parse_syntax_document(&source), &startup)
         .expect("language semantic Types must check");
+    for (plot, file) in window8_session::PORTS {
+        let expanded = conduit_plot::expand_canonical_plot_for_authoring(
+            &checked, plot, &conduit_plot::ProfileCatalog::new(),
+        ).expect("fixed whole Window8 Source chain expands");
+        session_chain::retain(&expanded,
+            &PathBuf::from(env::var_os("OUT_DIR").unwrap()).join(file));
+    }
     for (plot, file) in [
         ("language-parser-availability", "parser_availability.hex"),
         (
@@ -484,6 +502,7 @@ fn main() {
                 "LanguageParserProposalWindow8V2Features",
             ]
             .into_iter()
+            .chain(window8_session::ROOTS.iter().copied())
             .map(str::to_owned)
             .collect(),
             ..RustBindingOptions::default()

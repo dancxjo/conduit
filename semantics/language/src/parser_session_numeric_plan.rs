@@ -1,7 +1,7 @@
 //! Exact selected mixed Plan correlation. No identity is resealed here.
 use crate::parser_session_execution::ParserSessionEntry;
 use conduit_ai::integer_categorical_step::{
-    PreparedCategoricalStep, CATEGORICAL_STEP_IMPLEMENTATION,
+    CATEGORICAL_STEP_IMPLEMENTATION, PreparedCategoricalStep,
 };
 use conduit_core::{ConfigurationValue, ConnectionTrack, Plan, PortDirection};
 use conduit_plot::{CheckedGear, ExpandedAuthoringPlot};
@@ -21,6 +21,21 @@ pub(crate) enum NumericPlanRefusal {
 pub(crate) fn validate_numeric_plan_structure(
     expanded: &ExpandedAuthoringPlot,
     plan: &Plan,
+) -> Result<[usize; 3], NumericPlanRefusal> {
+    validate_numeric_plan_structure_for(
+        expanded,
+        plan,
+        ParserSessionEntry::V2FeatureIndices,
+        ParserSessionEntry::V2ScoreObservation,
+    )
+}
+/// Exact sealed profile entries, preserving the complete original three-Gear
+/// topology, ordered cords, Types and original expression bytes.
+pub(crate) fn validate_numeric_plan_structure_for(
+    expanded: &ExpandedAuthoringPlot,
+    plan: &Plan,
+    projector: ParserSessionEntry,
+    wrapper: ParserSessionEntry,
 ) -> Result<[usize; 3], NumericPlanRefusal> {
     use NumericPlanRefusal as R;
     let source = &expanded.expanded;
@@ -95,11 +110,7 @@ pub(crate) fn validate_numeric_plan_structure(
             return Err(R::Source);
         }
         if position != 1 {
-            let entry = if position == 0 {
-                ParserSessionEntry::V2FeatureIndices
-            } else {
-                ParserSessionEntry::V2ScoreObservation
-            };
+            let entry = if position == 0 { projector } else { wrapper };
             validate_fixed_expression(gear, entry)?;
         }
         let mut candidates = fragment
@@ -255,7 +266,22 @@ pub(crate) fn validate_numeric_plan_seal_and_resource(
     plan: &Plan,
     profile: &PreparedCategoricalStep,
 ) -> Result<(), NumericPlanRefusal> {
-    let order = validate_numeric_plan_structure(expanded, plan)?;
+    validate_numeric_plan_seal_and_resource_for(
+        expanded,
+        plan,
+        profile,
+        ParserSessionEntry::V2FeatureIndices,
+        ParserSessionEntry::V2ScoreObservation,
+    )
+}
+pub(crate) fn validate_numeric_plan_seal_and_resource_for(
+    expanded: &ExpandedAuthoringPlot,
+    plan: &Plan,
+    profile: &PreparedCategoricalStep,
+    projector: ParserSessionEntry,
+    wrapper: ParserSessionEntry,
+) -> Result<(), NumericPlanRefusal> {
+    let order = validate_numeric_plan_structure_for(expanded, plan, projector, wrapper)?;
     let model = &expanded.expanded.gears[order[1]];
     let placement = plan.fragments[0]
         .placements

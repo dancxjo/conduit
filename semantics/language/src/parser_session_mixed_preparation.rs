@@ -7,15 +7,12 @@ use crate::{
         PreparedCanonicalParserSessionPort,
     },
     parser_session_execution::{
-        verification::PreparedSourceVerification, ParserSessionEntry as Entry,
+        verification::PreparedSourceVerification,
         ParserSessionVerificationLimits,
     },
     parser_session_fixed_ingress::ParserSessionExecutor,
     parser_session_mixed_custody::PreparedParserMixedCustody,
     parser_session_numeric_custody::{ParserNumericExecutor, PreparedParserNumericCustody},
-    parser_session_numeric_plan::{
-        validate_numeric_plan_seal_and_resource, validate_numeric_plan_structure,
-    },
     parser_session_numeric_plan_storage::{
         numeric_plan_preparation_reservation, numeric_plan_retained_bytes,
     },
@@ -27,7 +24,6 @@ use crate::{
         ParserSessionPreparedTarget, ParserSessionTargetStorageContract,
     },
     parser_source_native_parity::verify_source_native_parity,
-    LanguageParserV2ChoiceQuery, LanguageParserV2ModelFeatures, LanguageParserV2ModelScores,
 };
 use alloc::{rc::Rc, sync::Arc};
 use conduit_ai::integer_categorical_step::{
@@ -163,19 +159,31 @@ pub(crate) struct MixedPreparationReceipt {
 /// Both targets are already constructed caller input. All their complete owned
 /// metadata is retained and declared separately from Session-owned preparation.
 pub(crate) fn prepare_mixed_targets<S, N>(
+    source: S, numeric: N, selection: Arc<PreparedParserModelSelection>,
+    family: Rc<RefCell<PreparedNativeFamily>>, limits: MixedPreparationLimits,
+) -> Result<(PreparedParserMixedCustody<OwnedSourceTarget<S>, OwnedNumericTarget<N>>, MixedPreparationReceipt), MixedPreparationRefusal>
+where S: ParserSessionPreparedTarget,
+N: ParserSessionPreparedTarget + ParserNumericExecutor<Error = <N as ParserCanonicalSourceExecutor>::Error>,
+{
+    prepare_mixed_targets_for::<crate::parser_session_numeric_profile::PinnedFourSlotNumericProfile, _, _>(source, numeric, selection, family, limits, None)
+}
+
+pub(crate) fn prepare_mixed_targets_for<P, S, N>(
     source: S,
     numeric: N,
-    selection: Arc<PreparedParserModelSelection>,
+    selection: Arc<P::Selection>,
     family: Rc<RefCell<PreparedNativeFamily>>,
     limits: MixedPreparationLimits,
+    feature_guard: Option<crate::parser_session_feature_guard::PreparedParserFeatureGuard>,
 ) -> Result<
     (
-        PreparedParserMixedCustody<OwnedSourceTarget<S>, OwnedNumericTarget<N>>,
+        PreparedParserMixedCustody<OwnedSourceTarget<S>, OwnedNumericTarget<N>, P>,
         MixedPreparationReceipt,
     ),
     MixedPreparationRefusal,
 >
 where
+    P: crate::parser_session_numeric_profile::FixedParserNumericProfile,
     S: ParserSessionPreparedTarget,
     N: ParserSessionPreparedTarget
         + ParserNumericExecutor<Error = <N as ParserCanonicalSourceExecutor>::Error>,
@@ -237,7 +245,7 @@ where
     }
     if !crate::parser_session_target_contract::validate_shared_source_owner(&source.target)
         || !crate::parser_session_target_contract::validate_shared_source_owner(&numeric.target)
-        || selection.declaration().is_some()
+        || !P::admits_selection(selection.as_ref())
         || source.target.original_plan() != source_plan.as_ref()
         || ParserSessionExecutor::original_plan(&numeric.target) != numeric_plan.as_ref()
         || ParserNumericExecutor::plan(&numeric.target) != numeric_plan.as_ref()
@@ -247,10 +255,10 @@ where
     validate_fixed_source_plan_structure(
         source.target.expanded_source(),
         &source_plan,
-        Entry::V2ModelFeatures,
+        P::FEATURES,
     )
     .map_err(|_| R::Plan)?;
-    validate_numeric_plan_structure(numeric.target.expanded_source(), &numeric_plan)
+    crate::parser_session_numeric_plan::validate_numeric_plan_structure_for(numeric.target.expanded_source(), &numeric_plan, P::INDICES, P::SCORES)
         .map_err(|_| R::Plan)?;
     if numeric_plan_retained_bytes(&source_plan).map_err(|_| R::Pressure)?
         > source_contract.retained_bytes()
@@ -262,9 +270,9 @@ where
     {
         let family = family.borrow();
         for descriptor in [
-            LanguageParserV2ChoiceQuery::PREPARED_DESCRIPTOR,
-            LanguageParserV2ModelFeatures::PREPARED_DESCRIPTOR,
-            LanguageParserV2ModelScores::PREPARED_DESCRIPTOR,
+            P::Query::PREPARED_DESCRIPTOR,
+            P::Features::PREPARED_DESCRIPTOR,
+            P::Scores::PREPARED_DESCRIPTOR,
         ] {
             if !family.contains_descriptor(descriptor) {
                 return Err(R::Descriptor);
@@ -274,8 +282,8 @@ where
             source.target.checked_source(),
             &family,
             &[
-                LanguageParserV2ChoiceQuery::PREPARED_DESCRIPTOR,
-                LanguageParserV2ModelFeatures::PREPARED_DESCRIPTOR,
+                P::Query::PREPARED_DESCRIPTOR,
+                P::Features::PREPARED_DESCRIPTOR,
             ],
             limits.maximum_metadata_temporary_bytes,
         )
@@ -284,20 +292,20 @@ where
             numeric.target.checked_source(),
             &family,
             &[
-                LanguageParserV2ModelFeatures::PREPARED_DESCRIPTOR,
-                LanguageParserV2ModelScores::PREPARED_DESCRIPTOR,
+                P::Features::PREPARED_DESCRIPTOR,
+                P::Scores::PREPARED_DESCRIPTOR,
             ],
             limits.maximum_metadata_temporary_bytes,
         )
         .map_err(|_| R::Descriptor)?;
     }
     let (projector, _, _, projector_receipt) =
-        PreparedSourceVerification::prepare(Entry::V2FeatureIndices, limits.verification)
+        PreparedSourceVerification::prepare(P::INDICES, limits.verification)
             .map_err(|_| R::Source)?;
     let (wrapper, _, _, wrapper_receipt) =
-        PreparedSourceVerification::prepare(Entry::V2ScoreObservation, limits.verification)
+        PreparedSourceVerification::prepare(P::SCORES, limits.verification)
             .map_err(|_| R::Source)?;
-    let model = selection.prepared_categorical().clone();
+    let model = P::selected_model_owner(selection.as_ref()).clone();
     let model_storage = model
         .storage_receipt()
         .map_err(|_| R::Model)?
@@ -312,20 +320,22 @@ where
         limits.maximum_plan_validation_temporary_bytes,
     )
     .map_err(|_| R::Pressure)?;
-    validate_numeric_plan_seal_and_resource(
+    crate::parser_session_numeric_plan::validate_numeric_plan_seal_and_resource_for(
         numeric.target.expanded_source(),
         &numeric_plan,
         &model,
+        P::INDICES,
+        P::SCORES,
     )
     .map_err(|_| R::Plan)?;
     // Source preparation and its original Plan validation remain independently
     // charged; no single-program approximation replaces expanded composition.
     let source_verification =
-        PreparedSourceVerification::prepare(Entry::V2ModelFeatures, limits.verification)
+        PreparedSourceVerification::prepare(P::FEATURES, limits.verification)
             .map_err(|_| R::Source)?;
     source_plan_preparation_reservation(
         &source_plan,
-        Entry::V2ModelFeatures,
+        P::FEATURES,
         source_verification.3.preparation_peak_heap_bytes_bound,
         limits.maximum_plan_validation_temporary_bytes,
     )
@@ -333,15 +343,15 @@ where
     validate_fixed_source_plan_seal(
         source.target.expanded_source(),
         &source_plan,
-        Entry::V2ModelFeatures,
+        P::FEATURES,
     )
     .map_err(|_| R::Plan)?;
     let source_port = PreparedCanonicalParserSessionPort::<
-        LanguageParserV2ChoiceQuery,
-        LanguageParserV2ModelFeatures,
+        P::Query,
+        P::Features,
         _,
     >::from_prepared(
-        Entry::V2ModelFeatures,
+        P::FEATURES,
         source,
         family.clone(),
         ParserCanonicalIngressLimits {
@@ -358,7 +368,7 @@ where
     let canonical = PreparedCategoricalCanonicalAdmission::prepare(model, limits.canonical)
         .map_err(|_| R::Model)?;
     let canonical_storage = canonical.storage_receipt();
-    let numeric_port = PreparedParserNumericCustody::from_prepared(
+    let numeric_port = PreparedParserNumericCustody::<_, P>::from_prepared_with_feature_guard(
         numeric,
         family,
         projector,
@@ -367,6 +377,7 @@ where
         numeric_plan,
         limits.maximum_invocations,
         selection.as_ref(),
+        feature_guard,
     )
     .map_err(|_| R::Model)?;
     let owner = PreparedParserMixedCustody::from_prepared(source_port, numeric_port, source_plan);

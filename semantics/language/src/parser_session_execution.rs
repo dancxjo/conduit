@@ -50,6 +50,9 @@ pub enum ParserSessionEntry {
     V2FeatureIndices,
     V2ScoreObservation,
     V2Pos,
+    ProposalWindow8V2Features,
+    ProposalWindow8V2Indices,
+    ProposalWindow8V2Scores,
     WaitState,
 }
 impl ParserSessionEntry {
@@ -85,6 +88,9 @@ impl ParserSessionEntry {
             Self::V2ModelFeatures => "language-parser-v2-model-features",
             Self::V2FeatureIndices => "language-parser-v2-feature-indices",
             Self::V2ScoreObservation => "language-parser-v2-score-observation",
+            Self::ProposalWindow8V2Features => "language-proposal-window8-v2-feature-values",
+            Self::ProposalWindow8V2Indices => "language-proposal-window8-v2-feature-indices",
+            Self::ProposalWindow8V2Scores => "language-proposal-window8-v2-score-observation",
             Self::V2Pos => "language-parser-v2-pos",
             Self::WaitState => "language-parser-wait-state",
         }
@@ -130,6 +136,9 @@ impl ParserSessionEntry {
             Self::V2ModelFeatures => generated!("/parser_v2_model_features.hex"),
             Self::V2FeatureIndices => generated!("/parser_v2_feature_indices.hex"),
             Self::V2ScoreObservation => generated!("/parser_v2_score_observation.hex"),
+            Self::ProposalWindow8V2Features => generated!("/window8_session_03.hex"),
+            Self::ProposalWindow8V2Indices => generated!("/window8_session_02.hex"),
+            Self::ProposalWindow8V2Scores => generated!("/window8_session_04.hex"),
             Self::V2Pos => generated!("/parser_v2_pos.hex"),
             Self::WaitState => generated!("/parser_wait_state.hex"),
         }
@@ -177,6 +186,9 @@ impl ParserSessionEntry {
             Self::V2ModelFeatures => generated!("/parser_v2_model_features.custody"),
             Self::V2FeatureIndices => generated!("/parser_v2_feature_indices.custody"),
             Self::V2ScoreObservation => generated!("/parser_v2_score_observation.custody"),
+            Self::ProposalWindow8V2Features => generated!("/window8_session_03.custody"),
+            Self::ProposalWindow8V2Indices => generated!("/window8_session_02.custody"),
+            Self::ProposalWindow8V2Scores => generated!("/window8_session_04.custody"),
             Self::V2Pos => generated!("/parser_v2_pos.custody"),
             Self::WaitState => generated!("/parser_wait_state.custody"),
         }

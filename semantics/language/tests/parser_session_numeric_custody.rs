@@ -1,6 +1,8 @@
 #![cfg(all(feature = "parser-model-selection", target_has_atomic = "ptr"))]
 #![allow(dead_code, unused_attributes)]
 extern crate alloc;
+#[path = "../src/parser_session_feature_guard.rs"]
+mod parser_session_feature_guard;
 extern crate conduitos as actual_expression_owner;
 #[path = "../src/lib.rs"]
 mod language;
@@ -14,10 +16,10 @@ mod mixed_custody;
 mod model_resource;
 #[path = "../src/parser_source_native_parity.rs"]
 mod native_parity;
-#[path = "../src/parser_session_numeric_profile.rs"]
-mod parser_session_numeric_profile;
 #[path = "../src/parser_session_numeric_custody.rs"]
 mod parser_session_numeric_custody;
+#[path = "../src/parser_session_numeric_profile.rs"]
+mod parser_session_numeric_profile;
 use parser_session_numeric_custody as numeric_custody;
 #[path = "../src/parser_session_numeric_plan.rs"]
 mod numeric_plan;
@@ -416,6 +418,7 @@ fn actual_source_feature_plan_numeric_plan_and_complete_retained_replay() {
             )
             .unwrap(),
             ParserNumericFrames {
+                feature_guard: Vec::new(),
                 indices: Vec::with_capacity(4096),
                 scores: Vec::with_capacity(4096),
                 output,
@@ -685,6 +688,7 @@ fn paired_ingresses_cancel_both_targets_on_late_refusal_and_each_unwind() {
             (
                 PreparedParserExecutionFrames::prepare(262144, 4096).unwrap(),
                 ParserNumericFrames {
+                    feature_guard: Vec::new(),
                     indices: Vec::with_capacity(4096),
                     scores: Vec::with_capacity(4096),
                     output,

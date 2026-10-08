@@ -3,12 +3,12 @@
 //! canonical programs and complete historical frames remain independently owned.
 use alloc::{rc::Rc, vec::Vec};
 use conduit_plot::{
+    PortableExpressionProgram, PreparedExpressionStorageReceipt,
+    PreparedPortableExpressionEvaluator,
     rust_binding::{
         NativeBindingRefusal, NativeFamilyTypeDescriptor, PreparedNativeFamily,
         PreparedNativeRustBinding,
     },
-    PortableExpressionProgram, PreparedExpressionStorageReceipt,
-    PreparedPortableExpressionEvaluator,
 };
 use core::{cell::RefCell, mem::size_of};
 
@@ -73,11 +73,49 @@ pub(crate) struct PureSourceHistory {
     pub(crate) output: Vec<u8>,
     pub(crate) intermediates: Vec<Vec<u8>>,
     original_program: &'static str,
+    source_custody: Option<&'static str>,
     input_descriptor: &'static NativeFamilyTypeDescriptor,
     output_descriptor: &'static NativeFamilyTypeDescriptor,
 }
+impl PureSourceHistory {
+    pub(crate) fn original_programs(&self) -> &'static str {
+        self.original_program
+    }
+    pub(crate) fn source_custody(&self) -> Option<&'static str> {
+        self.source_custody
+    }
+    pub(crate) fn matches_fixed(
+        &self,
+        programs: &'static str,
+        custody: &'static str,
+        input: &'static NativeFamilyTypeDescriptor,
+        output: &'static NativeFamilyTypeDescriptor,
+    ) -> bool {
+        self.original_program == programs
+            && self.source_custody == Some(custody)
+            && core::ptr::eq(self.input_descriptor, input)
+            && core::ptr::eq(self.output_descriptor, output)
+    }
+    /// Heap backing only; inline history lives in the pre-reserved book slots.
+    pub(crate) fn retained_frame_capacity_bytes(&self) -> Option<usize> {
+        let mut bytes = self
+            .input
+            .capacity()
+            .checked_add(self.output.capacity())?
+            .checked_add(
+                self.intermediates
+                    .capacity()
+                    .checked_mul(size_of::<Vec<u8>>())?,
+            )?;
+        for frame in &self.intermediates {
+            bytes = bytes.checked_add(frame.capacity())?;
+        }
+        Some(bytes)
+    }
+}
 pub(crate) struct PreparedParserPureSource {
     original_program: &'static str,
+    source_custody: Option<&'static str>,
     evaluators: Vec<PreparedPortableExpressionEvaluator>,
     input_family: Rc<RefCell<PreparedNativeFamily>>,
     output_family: Rc<RefCell<PreparedNativeFamily>>,
@@ -207,6 +245,7 @@ impl PreparedParserPureSource {
         }
         Ok(Self {
             original_program,
+            source_custody: None,
             evaluators,
             input_family,
             output_family,
@@ -227,6 +266,24 @@ impl PreparedParserPureSource {
     }
     /// Allocation-free readiness and whole-port reservation for the enclosing
     /// bank: it sums every selected port before constructing the first one.
+    /// Production fixed-port preparation retains the original checked topology
+    /// witness alongside every exact program and historical frame. The enclosing
+    /// fixed registry supplies these generated artifacts, never callers.
+    pub(crate) fn prepare_fixed<I: PreparedNativeRustBinding, O: PreparedNativeRustBinding>(
+        original_program: &'static str,
+        source_custody: &'static str,
+        input_family: Rc<RefCell<PreparedNativeFamily>>,
+        output_family: Rc<RefCell<PreparedNativeFamily>>,
+        limits: PureSourceLimits,
+    ) -> Result<Self, PureSourceRefusal> {
+        if !source_custody.starts_with("fixed Source chain v1\n") {
+            return Err(PureSourceRefusal::Program);
+        }
+        let mut owner =
+            Self::prepare::<I, O>(original_program, input_family, output_family, limits)?;
+        owner.source_custody = Some(source_custody);
+        Ok(owner)
+    }
     pub(crate) fn reservation<I: PreparedNativeRustBinding, O: PreparedNativeRustBinding>(
         original_program: &'static str,
         input_family: &Rc<RefCell<PreparedNativeFamily>>,
@@ -337,6 +394,89 @@ impl PreparedParserPureSource {
             .iter()
             .map(|e| e.output_capacity())
     }
+    /// Exact backing-array requests for one complete historical execution.
+    /// The enclosing revision admits this before any frame allocation.
+    pub(crate) fn frame_reservation(&self, input_bytes: usize) -> Result<usize, PureSourceRefusal> {
+        if input_bytes > self.limits.maximum_input_bytes {
+            return Err(PureSourceRefusal::Pressure);
+        }
+        let output = self
+            .evaluators
+            .last()
+            .ok_or(PureSourceRefusal::Program)?
+            .output_capacity();
+        let mut bytes = add(input_bytes, output)?;
+        bytes = add(
+            bytes,
+            self.evaluators
+                .len()
+                .saturating_sub(1)
+                .checked_mul(size_of::<Vec<u8>>())
+                .ok_or(PureSourceRefusal::Pressure)?,
+        )?;
+        for capacity in self.intermediate_capacities() {
+            bytes = add(bytes, capacity)?;
+        }
+        if add(bytes, size_of::<PureSourceHistory>())? > self.limits.maximum_history_retained_bytes
+        {
+            return Err(PureSourceRefusal::Pressure);
+        }
+        Ok(bytes)
+    }
+    pub(crate) fn prepare_frames(
+        &self,
+        input_bytes: usize,
+        maximum_requested_bytes: usize,
+    ) -> Result<PureSourceFrames, PureSourceRefusal> {
+        if self.closed || self.frame_reservation(input_bytes)? > maximum_requested_bytes {
+            return Err(PureSourceRefusal::Pressure);
+        }
+        fn buffer(capacity: usize) -> Result<Vec<u8>, PureSourceRefusal> {
+            let mut bytes = Vec::new();
+            bytes
+                .try_reserve_exact(capacity)
+                .map_err(|_| PureSourceRefusal::Pressure)?;
+            if bytes.capacity() != capacity {
+                return Err(PureSourceRefusal::Pressure);
+            }
+            Ok(bytes)
+        }
+        let count = self.evaluators.len().saturating_sub(1);
+        let mut intermediates = Vec::new();
+        intermediates
+            .try_reserve_exact(count)
+            .map_err(|_| PureSourceRefusal::Pressure)?;
+        if intermediates.capacity() != count {
+            return Err(PureSourceRefusal::Pressure);
+        }
+        for capacity in self.intermediate_capacities() {
+            intermediates.push(buffer(capacity)?);
+        }
+        Ok(PureSourceFrames {
+            input: buffer(input_bytes)?,
+            output: buffer(
+                self.evaluators
+                    .last()
+                    .ok_or(PureSourceRefusal::Program)?
+                    .output_capacity(),
+            )?,
+            intermediates,
+        })
+    }
+    /// Registry readiness binds the exact complete selected programs and owning
+    /// descriptor statics. Equal Type bytes alone never authorize a port.
+    pub(crate) fn matches_fixed(
+        &self,
+        original_program: &'static str,
+        source_custody: &'static str,
+        input: &'static NativeFamilyTypeDescriptor,
+        output: &'static NativeFamilyTypeDescriptor,
+    ) -> bool {
+        self.original_program == original_program
+            && self.source_custody == Some(source_custody)
+            && core::ptr::eq(self.input_descriptor, input)
+            && core::ptr::eq(self.output_descriptor, output)
+    }
     pub(crate) fn cancel(&mut self) {
         self.closed = true;
     }
@@ -370,8 +510,9 @@ impl PreparedParserPureSource {
         }
         if self.next_ordinal >= u64::from(self.limits.maximum_invocations)
             || query.len() > self.limits.maximum_input_bytes
-            || frames.input.capacity() < self.limits.maximum_input_bytes
-            || frames.output.capacity() < self.limits.maximum_output_bytes
+            || frames.input.capacity() < query.len()
+            || frames.output.capacity()
+                < self.evaluators.last().ok_or(R::Program)?.output_capacity()
             || frames.intermediates.len() + 1 != self.evaluators.len()
             || frames
                 .intermediates
@@ -409,6 +550,7 @@ impl PreparedParserPureSource {
             output: frames.output,
             intermediates: frames.intermediates,
             original_program: self.original_program,
+            source_custody: self.source_custody,
             input_descriptor: self.input_descriptor,
             output_descriptor: self.output_descriptor,
         };
@@ -422,6 +564,7 @@ impl PreparedParserPureSource {
         use PureSourceRefusal as R;
         let result = (|| {
             if !core::ptr::eq(history.original_program, self.original_program)
+                || history.source_custody != self.source_custody
                 || !core::ptr::eq(history.input_descriptor, self.input_descriptor)
                 || !core::ptr::eq(history.output_descriptor, self.output_descriptor)
                 || history.ordinal >= self.next_ordinal

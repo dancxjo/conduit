@@ -326,6 +326,7 @@ impl ParserRevisionCustody {
             mixed_frames.push(ReservedMixedFrames {
                 source,
                 numeric: ParserNumericFrames {
+                    feature_guard: Vec::new(),
                     indices,
                     scores,
                     output,

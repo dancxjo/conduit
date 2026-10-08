@@ -4,6 +4,8 @@
 extern crate alloc;
 #[path = "../src/lib.rs"]
 mod language;
+#[path = "../src/parser_session_feature_guard.rs"]
+mod parser_session_feature_guard;
 pub use language::revision;
 pub use language::*;
 #[path = "../src/parser_session_fixed_ingress.rs"]
@@ -12,12 +14,12 @@ mod parser_session_fixed_ingress;
 mod parser_session_historical_base;
 #[path = "../src/parser_session_mixed_custody.rs"]
 mod parser_session_mixed_custody;
-#[path = "../src/parser_session_numeric_profile.rs"]
-mod parser_session_numeric_profile;
 #[path = "../src/parser_session_numeric_custody.rs"]
 mod parser_session_numeric_custody;
 #[path = "../src/parser_session_numeric_plan_storage.rs"]
 mod parser_session_numeric_plan_storage;
+#[path = "../src/parser_session_numeric_profile.rs"]
+mod parser_session_numeric_profile;
 #[path = "../src/parser_session_profile.rs"]
 mod parser_session_profile;
 #[path = "../src/parser_session_revision_custody.rs"]
@@ -760,6 +762,7 @@ fn actual_kernel_complete_mixed_factory_preserves_original_plans_and_cancels_bot
         frames.push((
             source,
             ParserNumericFrames {
+                feature_guard: Vec::new(),
                 indices: Vec::with_capacity(4096),
                 scores: Vec::with_capacity(4096),
                 output,
@@ -868,7 +871,8 @@ fn whole_session_preparation_refuses_aggregate_budget_before_metadata_or_ingress
         }
         fn storage_contract(&self) -> ParserSessionTargetStorageContract {
             if self.0 == "missing-shared" {
-                return ParserSessionTargetStorageContract::excluding_shared_storage(1, 0, 1, 1).unwrap();
+                return ParserSessionTargetStorageContract::excluding_shared_storage(1, 0, 1, 1)
+                    .unwrap();
             }
             ParserSessionTargetStorageContract::new(1, 0, 1, 1).unwrap()
         }
@@ -942,14 +946,19 @@ fn whole_session_preparation_refuses_aggregate_budget_before_metadata_or_ingress
     let mut missing_owner_limits = limits;
     missing_owner_limits.maximum_combined_bytes = usize::MAX;
     let refused = prepare_session_owners(
-        parser_session_target_registry::REQUIRED.iter()
-            .map(|entry| Target(entry.name(), cancellations.clone())).collect(),
+        parser_session_target_registry::REQUIRED
+            .iter()
+            .map(|entry| Target(entry.name(), cancellations.clone()))
+            .collect(),
         Target("missing-shared", cancellations.clone()),
         NumericTargetBridge(Target("model", cancellations.clone())),
         parser_session_profile::ParserSessionProfile::PinnedFourSlotV2(selection.clone()),
         missing_owner_limits,
     );
-    assert!(matches!(refused, Err(ParserSessionPreparationRefusal::Pressure)));
+    assert!(matches!(
+        refused,
+        Err(ParserSessionPreparationRefusal::Pressure)
+    ));
     assert_eq!(cancellations.get(), 30);
     cancellations.set(0);
     let targets = (0..28)
@@ -1141,22 +1150,34 @@ fn revision_storage_reserves_ordered_events_and_refuses_locators_without_parent_
 
 #[test]
 fn actual_kernel_adapter_reports_expression_owner_storage_separately() {
-    let execution = runtime::prepare_source_with_storage(profile(),
-        "plot counted (\n input: U64...| >> output: U64...|\n) {\n input >> (. + 1) >> output\n}\n".into(), "counted", Some(1));
+    let execution = runtime::prepare_source_with_storage(
+        profile(),
+        "plot counted (\n input: U64...| >> output: U64...|\n) {\n input >> (. + 1) >> output\n}\n"
+            .into(),
+        "counted",
+        Some(1),
+    );
     let receipt = execution.expression_owner_storage_receipt().unwrap();
     assert!(receipt.evaluator_heap_bytes_bound > 0);
     assert!(receipt.owner_slots_bytes > 0);
-    assert_eq!(receipt.combined_bytes_bound,
-        receipt.evaluator_heap_bytes_bound + receipt.owner_slots_bytes);
-    assert_eq!(execution.expression_owner_storage_receipt().unwrap().combined_bytes_bound,
-        receipt.combined_bytes_bound);
+    assert_eq!(
+        receipt.combined_bytes_bound,
+        receipt.evaluator_heap_bytes_bound + receipt.owner_slots_bytes
+    );
+    assert_eq!(
+        execution
+            .expression_owner_storage_receipt()
+            .unwrap()
+            .combined_bytes_bound,
+        receipt.combined_bytes_bound
+    );
     eprintln!("expression-only retained={receipt:?}; catalog/Plan/kernel/payload/scratch excluded");
 }
 
 #[test]
 fn source_parent_links_compare_complete_type_and_value() {
+    use parser_canonical_schema::SchemaStep::{Case, Field};
     use parser_session_fixed_ingress::ParserSourceParentLink;
-    use parser_canonical_schema::SchemaStep::{Field, Case};
     let query = query();
     let input = query.clone().encode().unwrap();
     let parent = query.state().clone().encode().unwrap();
@@ -1170,11 +1191,30 @@ fn source_parent_links_compare_complete_type_and_value() {
     let variant = ParserSourceParentLink {
         prior_revisions: 0,
         execution: 0,
-        output_path: &[Field("state"), Field("relation0"), Field("base"), Case("dep")],
-        input_path: &[Field("state"), Field("relation0"), Field("base"), Case("dep")],
+        output_path: &[
+            Field("state"),
+            Field("relation0"),
+            Field("base"),
+            Case("dep"),
+        ],
+        input_path: &[
+            Field("state"),
+            Field("relation0"),
+            Field("base"),
+            Case("dep"),
+        ],
     };
     assert!(variant.matches(&input, &input));
-    assert!(!ParserSourceParentLink { input_path: &[Field("state"), Field("relation0"), Field("base"), Case("root")], ..variant }.matches(&input, &input));
+    assert!(!ParserSourceParentLink {
+        input_path: &[
+            Field("state"),
+            Field("relation0"),
+            Field("base"),
+            Case("root")
+        ],
+        ..variant
+    }
+    .matches(&input, &input));
 
     assert!(!link.matches(&input, &input)); // complete different Type
     assert!(!ParserSourceParentLink {
@@ -1182,9 +1222,28 @@ fn source_parent_links_compare_complete_type_and_value() {
         execution: 0,
         output_path: &[Field("state"), Field("unread")],
         input_path: &[Field("state"), Field("token_count")],
-    }.matches(&input, &input)); // equal scalar representation, different value
+    }
+    .matches(&input, &input)); // equal scalar representation, different value
 
     assert!(!link.matches(&parent[..parent.len() - 1], &input));
-    assert!(!ParserSourceParentLink { input_path: &[Field("missing")], ..link }.matches(&parent, &input));
-    assert!(!ParserSourceParentLink { input_path: &[Field("state"), Field("x"), Field("x"), Field("x"), Field("x"), Field("x"), Field("x"), Field("x"), Field("x")], ..link }.matches(&parent, &input));
+    assert!(!ParserSourceParentLink {
+        input_path: &[Field("missing")],
+        ..link
+    }
+    .matches(&parent, &input));
+    assert!(!ParserSourceParentLink {
+        input_path: &[
+            Field("state"),
+            Field("x"),
+            Field("x"),
+            Field("x"),
+            Field("x"),
+            Field("x"),
+            Field("x"),
+            Field("x"),
+            Field("x")
+        ],
+        ..link
+    }
+    .matches(&parent, &input));
 }

@@ -33,13 +33,15 @@ pub(crate) struct ParserNumericFrames {
     pub indices: Vec<u8>,
     pub scores: Vec<u8>,
     pub output: Vec<u8>,
+    pub feature_guard: Vec<u8>,
 }
 impl ParserNumericFrames {
     pub(crate) fn retained_capacity_bytes(&self) -> Option<usize> {
         self.indices
             .capacity()
             .checked_add(self.scores.capacity())?
-            .checked_add(self.output.capacity())
+            .checked_add(self.output.capacity())?
+            .checked_add(self.feature_guard.capacity())
     }
 }
 
@@ -49,6 +51,7 @@ pub(crate) struct ParserNumericHistory<P: FixedParserNumericProfile = PinnedFour
     pub(crate) indices: Vec<u8>,
     pub(crate) scores: Vec<u8>,
     pub(crate) output: Vec<u8>,
+    pub(crate) feature_guard: Vec<u8>,
     pub(crate) original_model: Arc<PreparedCategoricalStep>,
     // Complete original selected Plan, shared immutably and charged once
     // by its preparation owner. This is not an authorization digest.
@@ -82,10 +85,12 @@ pub(crate) struct PreparedParserNumericCustody<
     maximum_invocations: u32,
     next_ordinal: u64,
     cancelled: bool,
+    feature_guard: Option<crate::parser_session_feature_guard::PreparedParserFeatureGuard>,
 }
 impl<E: ParserNumericExecutor, P: FixedParserNumericProfile> PreparedParserNumericCustody<E, P> {
     /// Only the fixed mixed Plan owner may assemble this after complete Source,
     /// resource, ordered-cord, endpoint and selected-placement admission.
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn from_prepared(
         executor: E,
         family: Rc<RefCell<PreparedNativeFamily>>,
@@ -95,6 +100,30 @@ impl<E: ParserNumericExecutor, P: FixedParserNumericProfile> PreparedParserNumer
         original_plan: Rc<conduit_core::Plan>,
         maximum_invocations: u32,
         selection: &P::Selection,
+    ) -> Result<Self, ParserNumericRefusal<E::Error>> {
+        Self::from_prepared_with_feature_guard(
+            executor,
+            family,
+            projector,
+            wrapper,
+            numerical,
+            original_plan,
+            maximum_invocations,
+            selection,
+            None,
+        )
+    }
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn from_prepared_with_feature_guard(
+        executor: E,
+        family: Rc<RefCell<PreparedNativeFamily>>,
+        projector: PreparedSourceVerification,
+        wrapper: PreparedSourceVerification,
+        numerical: PreparedCategoricalCanonicalAdmission,
+        original_plan: Rc<conduit_core::Plan>,
+        maximum_invocations: u32,
+        selection: &P::Selection,
+        feature_guard: Option<crate::parser_session_feature_guard::PreparedParserFeatureGuard>,
     ) -> Result<Self, ParserNumericRefusal<E::Error>> {
         use ParserNumericRefusal as R;
         if !P::admits_selection(selection)
@@ -111,6 +140,14 @@ impl<E: ParserNumericExecutor, P: FixedParserNumericProfile> PreparedParserNumer
             || !family
                 .borrow()
                 .contains_descriptor(P::Scores::PREPARED_DESCRIPTOR)
+            || match (P::feature_guard_descriptor(), feature_guard.as_ref()) {
+                (None, None) => false,
+                (Some(expected), Some(guard)) => {
+                    !core::ptr::eq(expected, guard.descriptor())
+                        || !family.borrow().contains_descriptor(expected)
+                }
+                _ => true,
+            }
         {
             return Err(R::Parent);
         }
@@ -125,6 +162,7 @@ impl<E: ParserNumericExecutor, P: FixedParserNumericProfile> PreparedParserNumer
             maximum_invocations,
             next_ordinal: 0,
             cancelled: false,
+            feature_guard,
         })
     }
 
@@ -192,6 +230,22 @@ impl<E: ParserNumericExecutor, P: FixedParserNumericProfile> PreparedParserNumer
                 .decode::<P::Features>(history.output_bytes())
                 .map_err(|_| R::Native)?,
         );
+        frames.feature_guard.clear();
+        if let Some(guard) = &mut self.feature_guard {
+            let encoded = guard
+                .compose(history.output_bytes())
+                .map_err(|_| R::Native)?;
+            if encoded.len() > frames.feature_guard.capacity() {
+                return Err(R::Pressure);
+            }
+            frames.feature_guard.extend_from_slice(encoded);
+        }
+        P::admit_feature_guard(
+            &mut self.family.borrow_mut(),
+            history.output_bytes(),
+            &frames.feature_guard,
+        )
+        .map_err(|_| R::Native)?;
         let indices = self
             .projector
             .evaluate(history.output_bytes())
@@ -258,6 +312,7 @@ impl<E: ParserNumericExecutor, P: FixedParserNumericProfile> PreparedParserNumer
             indices: frames.indices,
             scores: frames.scores,
             output: frames.output,
+            feature_guard: frames.feature_guard,
             original_model: self.numerical.profile().clone(),
             original_plan: self.original_plan.clone(),
             ordinal: self.next_ordinal,
@@ -327,6 +382,8 @@ impl<P: FixedParserNumericProfile> ParserNumericHistory<P> {
                 .replay_and_readmit(feature_verifier, family, &mut parent_budget)
                 .map_err(|_| R::Source)?,
         );
+        P::admit_feature_guard(family, self.features.output_bytes(), &self.feature_guard)
+            .map_err(|_| R::Native)?;
         if projector
             .evaluate(self.features.output_bytes())
             .map_err(|_| R::Source)?
