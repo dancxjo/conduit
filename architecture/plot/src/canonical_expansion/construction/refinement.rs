@@ -37,6 +37,13 @@ fn proves_at(
     let Some((value, remaining)) = selected else {
         return true;
     };
+    if let Some(rest) = remaining.strip_prefix("[]") {
+        if let Op::Collection(values) = &value.operation {
+            return values
+                .iter()
+                .all(|item| proves_at(item, rest, required, input, types));
+        }
+    }
     if let Op::Conditional {
         when_true,
         when_false,
@@ -55,9 +62,17 @@ fn proves_at(
             output_type: value.value_type.clone(),
             root: value.clone(),
         };
-        return constant
-            .evaluate(&[])
-            .is_ok_and(|bytes| required.validate(&bytes).is_ok());
+        return constant.evaluate(&[]).is_ok_and(|bytes| {
+            if matches!(value.value_type.shape(), StructuredInfoTypeShape::Leaf(_)) {
+                return required.validate(&bytes).is_ok();
+            }
+            conduit_core::StructuredInfoValue::from_canonical_bytes(&bytes).is_ok_and(|value| {
+                let conduit_core::StructuredInfoValueShape::Leaf(bytes) = value.shape() else {
+                    return false;
+                };
+                required.validate(bytes).is_ok()
+            })
+        });
     }
     let Some(mut path) = input_path(value) else {
         return false;
@@ -101,6 +116,7 @@ fn constructed_member<'a>(
     path: &'a str,
 ) -> Result<Option<(&'a PortableExpressionNode, &'a str)>, ()> {
     if path.is_empty()
+        || path.starts_with("[]")
         || matches!(
             node.operation,
             Op::Input | Op::Projection { .. } | Op::Conditional { .. }
