@@ -12,7 +12,7 @@ struct FaceRequest {
     request: OwnerFaceSnapshotRequest,
 }
 
-pub(super) fn decode_face_request(
+pub(crate) fn decode_face_request(
     bytes: &[u8],
 ) -> Result<(OwnerFaceSnapshotRequest, bool), String> {
     if let Ok(wrapper) = serde_json::from_slice::<FaceRequest>(bytes) {
