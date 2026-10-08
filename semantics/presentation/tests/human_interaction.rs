@@ -314,6 +314,83 @@ fn exact_available_interaction_round_trips_and_evidence_omits_plaintext() {
 }
 
 #[test]
+fn finite_evidence_ack_retains_all_sixty_four_receipts_and_duplicate_guard() {
+    let (face, show) = available_interaction_basis();
+    let make = |sequence| {
+        FaceInteraction::new(
+            &face,
+            &show,
+            "message/send",
+            "patchbay/plot",
+            vec![argument("message/input", b"ok")],
+            sequence,
+        )
+        .unwrap()
+    };
+    let mut ledger = FaceInteractionLedger::new(1, 1).unwrap();
+    let mut retained = Vec::new();
+    for sequence in 0..64 {
+        let interaction = make(sequence);
+        ledger.admit(interaction.clone()).unwrap();
+        let evidence = ledger
+            .finish_front(FaceInteractionDisposition::Accepted {
+                operation_request_id: format!("request/{sequence}"),
+            })
+            .unwrap()
+            .clone();
+        assert_eq!(ledger.evidence(), [evidence.clone()]);
+        assert_eq!(
+            ledger.acknowledge_persisted_evidence_prefix(&[make(sequence + 1).identity]),
+            Err(conduit_presentation::FaceEvidenceAckRefusal::MismatchedPrefix)
+        );
+        assert_eq!(ledger.evidence(), [evidence.clone()]);
+        retained.push(evidence.clone());
+        ledger
+            .acknowledge_persisted_evidence_prefix(&[evidence.interaction_id])
+            .unwrap();
+        assert!(ledger.evidence().is_empty());
+        assert_eq!(
+            ledger.admit(interaction),
+            Err(FaceInteractionRefusal::DuplicateDelivery)
+        );
+    }
+    assert_eq!(retained.len(), 64);
+    assert_eq!(
+        ledger.admit(make(64)),
+        Err(FaceInteractionRefusal::EvidenceExhausted)
+    );
+}
+
+#[test]
+fn invalid_disposition_keeps_queued_interaction_for_retry() {
+    let (face, show) = available_interaction_basis();
+    let interaction = FaceInteraction::new(
+        &face,
+        &show,
+        "message/send",
+        "patchbay/plot",
+        vec![argument("message/input", b"ok")],
+        12,
+    )
+    .unwrap();
+    let mut ledger = FaceInteractionLedger::new(1, 1).unwrap();
+    ledger.admit(interaction.clone()).unwrap();
+    assert_eq!(
+        ledger.finish_front(FaceInteractionDisposition::Accepted {
+            operation_request_id: "".into(),
+        }),
+        Err(FaceInteractionRefusal::MalformedEncoding)
+    );
+    assert_eq!(ledger.queued_len(), 1);
+    assert!(ledger.evidence().is_empty());
+    ledger
+        .finish_front(FaceInteractionDisposition::Accepted {
+            operation_request_id: "request/12".into(),
+        })
+        .unwrap();
+}
+
+#[test]
 fn changing_only_interaction_context_stales_action_and_input_correlation() {
     let (presentation, show) = available_interaction_basis();
     let interaction = FaceInteraction::new(

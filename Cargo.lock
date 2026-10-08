@@ -584,6 +584,7 @@ dependencies = [
  "conduit-std-offers",
  "conduit-text",
  "conduit-time",
+ "conduit-todo-face",
  "conduit-todo-plot",
  "conduit-web",
  "conduit-wire",
