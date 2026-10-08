@@ -29,3 +29,7 @@ its first reported difference was approximately `2.26e-4`. The revised profile
 separates accumulated training drift from inference on an identical checkpoint,
 reports both maxima, and uses `1e-3` for this fixture. The failed run remains
 failure evidence; it does not establish the revised profile.
+
+[Retained clean-source evidence](evidence/0d8aca837/README.md) includes the actual
+CPU resume/inference objects, measured metrics, CUDA comparisons, and inventory.
+[Development failures](development/README.md) remain separate from acceptance.

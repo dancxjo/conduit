@@ -40,7 +40,9 @@ The fixture's synthetic resource/build identities are fixture evidence only.
 | Native plot composition | Checked typed ports, finite plan, selected operation backs | Plot, plan, realization, and resource identities |
 | Numerical operation, service, or future mechanism | The particular kind/fore and its admitted authority | Local/external identities and exact supported meaning |
 
-These are independent entry levels. Burn does not become a required universal
+These are independent entry levels. Other backs can use the existing
+`ModelSignature` and `ModelComputeOffer` contracts directly; they need no
+`conduit-burn-model` or Burn dependency. Burn does not become a required universal
 registry. An operation back cannot claim whole-model equivalence just because
 one tensor looks similar. The existing planner/kernel laws continue to apply;
 this library does not implement additional native plot or service backs.

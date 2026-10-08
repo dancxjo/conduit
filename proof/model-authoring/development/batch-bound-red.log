@@ -1,0 +1,23 @@
+    Blocking waiting for file lock on build directory
+   Compiling conduit-burn-model v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-07/take-on-dancxjo-conduit-5205-5207/work/conduit/mechanisms/implementations/burn-model)
+    Finished `test` profile [unoptimized] target(s) in 3m 11s
+     Running tests/authoring_contract.rs (target/debug/deps/authoring_contract-37cbd8039c93108c)
+
+running 1 test
+test signature_batch_bound_cannot_exceed_realization_admission ... FAILED
+
+failures:
+
+---- signature_batch_bound_cannot_exceed_realization_admission stdout ----
+
+thread 'signature_batch_bound_cannot_exceed_realization_admission' (2244092) panicked at mechanisms/implementations/burn-model/tests/authoring_contract.rs:56:5:
+assertion failed: descriptor.validate().is_err()
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    signature_batch_bound_cannot_exceed_realization_admission
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `-p conduit-burn-model --test authoring_contract`

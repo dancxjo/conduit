@@ -59,8 +59,8 @@ profile. An arbitrary mel spectrogram cannot substitute.
 The Rust authoring seam declares architecture/version, bounded signatures,
 parameter groups, trainable/frozen policy, checkpoint schema, supported
 precision/device profiles, and a finite resource estimate. See the
-[hosted authoring contract](../targets/std/model-authoring.md) and existing
-[model-compute semantics](../semantics/ai/src/model_compute.rs).
+[hosted authoring contract](https://github.com/dancxjo/conduit/blob/dev/targets/std/model-authoring.md) and existing
+[model-compute semantics](https://github.com/dancxjo/conduit/blob/dev/semantics/ai/src/model_compute.rs).
 
 ## Implement the model once
 
@@ -71,7 +71,7 @@ is versioned data. One model definition serves training and inference;
 inference needs no optimizer or trainer-only modules.
 
 Its training forward participates in the existing
-[training semantics](../semantics/ai/src/training.rs). The tiny tutorial uses
+[training semantics](https://github.com/dancxjo/conduit/blob/dev/semantics/ai/src/training.rs). The tiny tutorial uses
 the same model with a smaller configuration. A tiny adjacent regression model
 demonstrates generic reuse without replacing the voice walkthrough.
 
@@ -239,8 +239,11 @@ another back and export evidence through the same explicit artifact boundary.
 ## Promises and executable proof
 
 These proof cases distinguish hosted-library evidence from the proposed capstone.
-The [evidence guide](../proof/model-authoring/README.md) records proof scope and
+The [evidence guide](https://github.com/dancxjo/conduit/blob/dev/proof/model-authoring/README.md) records proof scope and
 the separately pinned FARGAN dependency inspection.
+[Retained clean-source proof](https://github.com/dancxjo/conduit/blob/dev/proof/model-authoring/evidence/0d8aca837/README.md)
+includes real regression resume/inference artifacts, CPU loss improvement, and
+separate CUDA training/inference comparisons. It does not establish a voice.
 
 | Promise | Proof | Status |
 |---|---|---|
@@ -257,13 +260,15 @@ the separately pinned FARGAN dependency inspection.
 | Safe reload preserves inference | `checkpoint_reload_preserves_inference` | hosted library tested |
 | Durable objects precede cursor | `checkpoint_failure_retains_durable_cursor` | hosted library tested |
 | Fresh runtime resumes next step | `fresh_runtime_resumes_recorded_step_cursor` | hosted library tested; corpus cursor proposed |
+| Snapshot staging is exclusive | `BurnAdapter::checkpoint` / `export_inference` compile-fail examples | hosted library tested |
+| Explicit CUDA learns and resumes | `admitted_cuda_training_and_resume` | local RTX 3060 tested; fixture tolerance `1e-3` |
 | Natural targets match reference | `natural_speech_reference_feature_differential` | proposed |
 | Recorded features reconstruct | `recorded_features_authored_fargan_reconstruction` | proposed |
 | Ordinary planner selects voice | `planned_conduitvoice_feature_contract` | proposed |
 | Interchange refuses incompatible meaning | `model_interchange_preserves_contract_and_provenance` | proposed |
 | Docs commands stay executable | `model_authoring_documented_commands` | hosted command extracted and executed |
 
-The [hosted contract](../targets/std/model-authoring.md) records current v1 limits,
+The [hosted contract](https://github.com/dancxjo/conduit/blob/dev/targets/std/model-authoring.md) records current v1 limits,
 including the explicit resume-device refusal and missing corpus cursor/held-out
 split/best-checkpoint integration. Its inference off-ramp now reaches the existing
 std-host model-compute interface; ordinary plot selection remains proposed.
