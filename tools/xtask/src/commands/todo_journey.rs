@@ -49,13 +49,15 @@ fn invoke(
     root: &Path,
     state: &Path,
     label: &str,
-    args: &[&str],
+    command: &[&str],
+    after_state: &[&str],
     input: Option<&[u8]>,
 ) -> Result<Value, String> {
     let mut child = Command::new(bin)
-        .args(["body", args[0], "--state-dir"])
+        .args(command)
+        .arg("--state-dir")
         .arg(state)
-        .args(&args[1..])
+        .args(after_state)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -74,8 +76,8 @@ fn invoke(
         .map_err(|e| format!("wait for {label}: {e}"))?;
     let stdout = retain(root, &format!("{label}.stdout"), &output.stdout)?;
     let stderr = retain(root, &format!("{label}.stderr"), &output.stderr)?;
-    let receipt = json!({"command":["body",args[0],"--state-dir",state],
-        "arguments_after_state_dir":&args[1..],"exit_code":output.status.code(),"stdout":stdout,"stderr":stderr});
+    let receipt = json!({"command":command,"state_dir":state,
+        "arguments_after_state_dir":after_state,"exit_code":output.status.code(),"stdout":stdout,"stderr":stderr});
     if !output.status.success() {
         return Err(format!("{label} failed; raw output retained"));
     }
@@ -108,14 +110,22 @@ pub fn run(args: TodoJourneyArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::
     if bundle.len() != 64 || !bundle.bytes().all(|byte| byte.is_ascii_hexdigit()) {
         return Err("installed release bundle digest is invalid".into());
     }
-    let filename = Path::new(
+    let recorded_executable = Path::new(
         install["product_executable"]
             .as_str()
             .ok_or("installed executable missing")?,
-    )
-    .file_name()
-    .ok_or("installed executable name missing")?;
+    );
+    let filename = recorded_executable
+        .file_name()
+        .ok_or("installed executable name missing")?;
     let installed_bin = fs::canonicalize(state.join("releases").join(bundle).join(filename))?;
+    if recorded_executable.is_absolute() {
+        if fs::canonicalize(recorded_executable)? != installed_bin {
+            return Err("recorded installed executable differs from release copy".into());
+        }
+    } else if !recorded_executable.ends_with(Path::new("releases").join(bundle).join(filename)) {
+        return Err("relative installed executable lacks the selected release path".into());
+    }
     if install["schema"] != "conduit.install/durable-host@1" || installed_bin != bin {
         return Err("capture executable differs from installed Host release".into());
     }
@@ -163,7 +173,8 @@ pub fn run(args: TodoJourneyArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::
             &output,
             &state,
             "before-status",
-            &["status", "--json"],
+            &["host", "service", "status"],
+            &["--json"],
             None,
         )?);
         steps.push(invoke(
@@ -171,7 +182,8 @@ pub fn run(args: TodoJourneyArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::
             &output,
             &state,
             "before-face",
-            &["face", "--json"],
+            &["body", "face"],
+            &["--json"],
             None,
         )?);
         let before_status = parse_capture(&output, "before-status")?;
@@ -179,9 +191,7 @@ pub fn run(args: TodoJourneyArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::
         let body_id = before_face["presentation"]["basis"]["body_id"]
             .as_str()
             .ok_or("owner Face has no Body ID")?;
-        if before_status["biography"]["body_id"].as_str() != Some(body_id)
-            && before_status["body_id"].as_str() != Some(body_id)
-        {
+        if before_status["body_id"].as_str() != Some(body_id) {
             return Err("status and Face name different Bodies".into());
         }
         if !before_face.to_string().contains("todo") {
@@ -193,7 +203,8 @@ pub fn run(args: TodoJourneyArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::
             &output,
             &state,
             "terminal",
-            &["terminal"],
+            &["body", "terminal"],
+            &[],
             Some(&script),
         )?);
         steps.push(invoke(
@@ -201,7 +212,8 @@ pub fn run(args: TodoJourneyArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::
             &output,
             &state,
             "after-status",
-            &["status", "--json"],
+            &["host", "service", "status"],
+            &["--json"],
             None,
         )?);
         steps.push(invoke(
@@ -209,7 +221,8 @@ pub fn run(args: TodoJourneyArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::
             &output,
             &state,
             "after-face",
-            &["face", "--json"],
+            &["body", "face"],
+            &["--json"],
             None,
         )?);
         let after_face = parse_capture(&output, "after-face")?;
