@@ -23,6 +23,19 @@ pub struct TextFrame {
     pub morse_status: u32,
     pub morse_length: u32,
     pub morse: [u8; MORSE_CAPACITY],
+    pub timer_handle: u64,
+    pub count_handle: u64,
+    pub timer_node: u32,
+    pub timer_request: u32,
+    pub timer_slot: u32,
+    pub timer_generation: u32,
+    pub timer_value_bytes: u32,
+    pub timer_admitted_bytes: u32,
+    pub timer_kind: u32,
+    pub timer_decisions: u32,
+    pub timer_signs: u32,
+    pub timer_pending: u32,
+    pub timer_status: u32,
 }
 
 const _: () = assert!(core::mem::size_of::<TextFrame>() <= 4096);

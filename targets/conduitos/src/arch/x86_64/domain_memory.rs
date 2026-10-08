@@ -1,4 +1,5 @@
 //! Fixed, disjoint address spaces for two admitted ordinary regions.
+use crate::domain_layout::{RETAINED_BYTES, RETAINED_PAGE, STACK_BYTES, STACK_PAGE};
 use crate::{
     boot,
     domain_image::{DomainImage, MAXIMUM_IMAGE_BYTES, USER_TEXT_START},
@@ -11,7 +12,7 @@ use core::{
 };
 
 pub(super) const USER_FRAME: u64 = USER_TEXT_START + MAXIMUM_IMAGE_BYTES;
-pub(super) const USER_STACK_TOP: u64 = USER_TEXT_START + 0x24_000;
+pub(super) const USER_STACK_TOP: u64 = USER_TEXT_START + 0x28_000;
 const NX: u64 = 1 << 63;
 const PAGE: usize = 4096;
 
@@ -28,7 +29,8 @@ struct Slot {
     pt: Table,
     code: Bytes<65536>,
     frame: Bytes<4096>,
-    stack: Bytes<16384>,
+    stack: Bytes<STACK_BYTES>,
+    retained: Bytes<RETAINED_BYTES>,
     trap: Bytes<16384>,
 }
 impl Slot {
@@ -40,7 +42,8 @@ impl Slot {
             pt: Table([0; 512]),
             code: Bytes([0; 65536]),
             frame: Bytes([0; 4096]),
-            stack: Bytes([0; 16384]),
+            stack: Bytes([0; STACK_BYTES]),
+            retained: Bytes([0; RETAINED_BYTES]),
             trap: Bytes([0; 16384]),
         }
     }
@@ -63,7 +66,7 @@ pub(super) struct AddressSpace {
 }
 
 impl AddressSpace {
-    pub const RESERVED_BYTES: u32 = 4 * 4096 + 65536 + 4096 + 2 * 16384;
+    pub const RESERVED_BYTES: u32 = core::mem::size_of::<Slot>() as u32;
     pub fn install(image: &DomainImage<'_>) -> Result<Self, DomainRefusal> {
         let hhdm = HHDM.load(Ordering::Acquire);
         if hhdm == 0 {
@@ -102,6 +105,7 @@ impl AddressSpace {
             let slot = &mut (*POOL.0.get())[self.slot];
             slot.frame.0.fill(0);
             slot.stack.0.fill(0);
+            slot.retained.0.fill(0);
             slot.trap.0.fill(0);
             slot.code.0.fill(0);
             slot.pml4.0.fill(0);
@@ -142,6 +146,7 @@ unsafe fn install(
     slot_memory.code.0.fill(0);
     slot_memory.frame.0.fill(0);
     slot_memory.stack.0.fill(0);
+    slot_memory.retained.0.fill(0);
     slot_memory.pml4.0[0] = physical(&slot_memory.pdpt)? | 7;
     slot_memory.pdpt.0[0] = physical(&slot_memory.pd)? | 7;
     slot_memory.pd.0[2] = physical(&slot_memory.pt)? | 7;
@@ -165,8 +170,13 @@ unsafe fn install(
         }
     }
     slot_memory.pt.0[16] = physical(&slot_memory.frame)? | 7 | NX;
-    for page in 0..4 {
-        slot_memory.pt.0[32 + page] = physical(&slot_memory.stack)? + (page * PAGE) as u64 | 7 | NX;
+    for page in 0..STACK_BYTES / PAGE {
+        slot_memory.pt.0[STACK_PAGE + page] =
+            physical(&slot_memory.stack)? + (page * PAGE) as u64 | 7 | NX;
+    }
+    for page in 0..RETAINED_BYTES / PAGE {
+        slot_memory.pt.0[RETAINED_PAGE + page] =
+            physical(&slot_memory.retained)? + (page * PAGE) as u64 | 7 | NX;
     }
     Ok(AddressSpace {
         slot,

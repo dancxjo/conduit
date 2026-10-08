@@ -16,11 +16,11 @@ pub(super) fn capture(
 
 fn validate(cost: &Value, product: &Value, architecture: &str) -> Result<(), ConduitosError> {
     let (reserved, tick_unit) = match architecture {
-        "x86_64" => (118784, "tsc"),
-        "ia32" => (131072, "tsc"),
-        "aarch64" => (126976, "cntvct"),
-        "riscv64" => (118784, "time"),
-        "loongarch64" => (126976, "rdtime"),
+        "x86_64" => (151552, "tsc"),
+        "ia32" => (163840, "tsc"),
+        "aarch64" => (159744, "cntvct"),
+        "riscv64" => (151552, "time"),
+        "loongarch64" => (159744, "rdtime"),
         _ => return Err(refusal("unreviewed product domain architecture")),
     };
     if cost["schema"] != "conduit.conduitos/domain-cost@1"
@@ -88,8 +88,8 @@ mod tests {
             "entries":3, "gate_transitions":3, "base_gate_transitions":1,
             "address_space_switches":6, "tlb_flushes":6, "scheduler_returns":3,
             "privilege_transitions":6, "copied_bytes":64, "shared_peak_bytes":32,
-            "shared_page_bytes":4096, "reserved_bytes":131072,
-            "teardown_zeroed_bytes":131072, "root_metadata_bytes":21878,
+            "shared_page_bytes":4096, "reserved_bytes":163840,
+            "teardown_zeroed_bytes":163840, "root_metadata_bytes":21878,
             "setup_copied_bytes":13194, "setup_ticks":1, "teardown_ticks":1,
             "tick_unit":"tsc", "preemptions":0, "dma_isolation":false,
             "driver_isolation":false
@@ -130,8 +130,8 @@ mod tests {
     fn aarch64_cost_requires_its_own_storage_clock_and_current_owner() {
         let (mut cost, mut product) = records();
         cost["architecture"] = json!("aarch64");
-        cost["reserved_bytes"] = json!(126976);
-        cost["teardown_zeroed_bytes"] = json!(126976);
+        cost["reserved_bytes"] = json!(159744);
+        cost["teardown_zeroed_bytes"] = json!(159744);
         cost["tick_unit"] = json!("cntvct");
         assert!(validate(&cost, &product, "aarch64").is_ok());
         assert!(validate(&cost, &product, "ia32").is_err());
@@ -148,12 +148,12 @@ mod tests {
     fn riscv64_cost_requires_its_own_storage_clock_and_current_owner() {
         let (mut cost, product) = records();
         cost["architecture"] = json!("riscv64");
-        cost["reserved_bytes"] = json!(118784);
-        cost["teardown_zeroed_bytes"] = json!(118784);
+        cost["reserved_bytes"] = json!(151552);
+        cost["teardown_zeroed_bytes"] = json!(151552);
         cost["tick_unit"] = json!("time");
         assert!(validate(&cost, &product, "riscv64").is_ok());
         for (field, replacement) in [
-            ("reserved_bytes", json!(126976)),
+            ("reserved_bytes", json!(159744)),
             ("tick_unit", json!("cntvct")),
             ("plan_id", json!("stale")),
             ("play_id", json!("stale")),
@@ -168,12 +168,12 @@ mod tests {
     fn loongarch64_cost_requires_its_own_storage_clock_and_current_owner() {
         let (mut cost, product) = records();
         cost["architecture"] = json!("loongarch64");
-        cost["reserved_bytes"] = json!(126976);
-        cost["teardown_zeroed_bytes"] = json!(126976);
+        cost["reserved_bytes"] = json!(159744);
+        cost["teardown_zeroed_bytes"] = json!(159744);
         cost["tick_unit"] = json!("rdtime");
         assert!(validate(&cost, &product, "loongarch64").is_ok());
         for (field, replacement) in [
-            ("reserved_bytes", json!(118784)),
+            ("reserved_bytes", json!(151552)),
             ("tick_unit", json!("time")),
             ("plan_id", json!("stale")),
             ("play_id", json!("stale")),
