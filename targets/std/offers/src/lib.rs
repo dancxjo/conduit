@@ -289,7 +289,6 @@ pub fn supported_nucleus_offers() -> Vec<CapabilityOffer> {
         quantity_map_offer(),
         distance_frequency_map_offer(),
         quantity_info_offer(),
-        quantity_presentation_std_offer(),
         layout_viewport_offer(),
         layout_inset_offer(),
         layout_row_offer(),
