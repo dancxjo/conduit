@@ -30,7 +30,8 @@ use core::mem::size_of;
 #[derive(Clone, Copy)]
 pub(crate) struct ParserSessionPreparationLimits {
     pub family: ProductionFamilyLimits,
-    pub fixed: FixedPreparationLimits,
+    /// Fixed REQUIRED-order quotas, summed before any allocation.
+    pub fixed: [FixedPreparationLimits; 28],
     pub mixed: MixedPreparationLimits,
     pub queries: ParserQueryPreparationLimits,
     pub maximum_existing_profile_bytes: usize,
@@ -99,6 +100,24 @@ fn add(a: usize, b: usize) -> Option<usize> {
 }
 fn mul(a: usize, b: usize) -> Option<usize> {
     a.checked_mul(b)
+}
+
+/// Complete fixed-port budgets are accepted as a finite stack table. Retained
+/// owners coexist; only preparation scratch from the largest phase coexists.
+fn fixed_preparation_reservation(limits: &[FixedPreparationLimits; 28]) -> Option<(usize, usize)> {
+    let mut retained = 0usize;
+    let mut peak = 0usize;
+    for selected in limits {
+        retained = retained.checked_add(selected.verification.retained_bytes)?;
+        let scratch = selected
+            .verification
+            .preparation_peak_bytes
+            .checked_add(selected.maximum_plan_validation_temporary_bytes)?
+            .checked_add(selected.maximum_metadata_temporary_bytes)?
+            .checked_add(selected.maximum_endpoint_encoding_requested_bytes)?;
+        peak = peak.max(scratch);
+    }
+    Some((retained, peak))
 }
 
 /// Targets are original caller-owned objects. Their complete immutable Source
@@ -221,22 +240,11 @@ where
     .ok_or(R::Pressure)?;
     // All retained Source reservations coexist. Preparation scratch is reserved
     // once for the largest sequential phase, in addition to these full quotas.
+    let (fixed_retained, fixed_scratch) =
+        fixed_preparation_reservation(&limits.fixed).ok_or(R::Pressure)?;
     let source_retained = add(
-        mul(REQUIRED.len(), limits.fixed.verification.retained_bytes).ok_or(R::Pressure)?,
+        fixed_retained,
         mul(3, limits.mixed.verification.retained_bytes).ok_or(R::Pressure)?,
-    )
-    .ok_or(R::Pressure)?;
-    let fixed_scratch = add(
-        add(
-            limits.fixed.verification.preparation_peak_bytes,
-            limits.fixed.maximum_plan_validation_temporary_bytes,
-        )
-        .ok_or(R::Pressure)?,
-        add(
-            limits.fixed.maximum_metadata_temporary_bytes,
-            limits.fixed.maximum_endpoint_encoding_requested_bytes,
-        )
-        .ok_or(R::Pressure)?,
     )
     .ok_or(R::Pressure)?;
     let mixed_scratch = add(
@@ -318,7 +326,11 @@ where
             .find(|entry| entry.name() == target.entry())
             .ok_or(R::Entries)?;
         plans.push(target.original_plan_owner());
-        let mut selected = limits.fixed;
+        let index = REQUIRED
+            .iter()
+            .position(|required| *required == entry)
+            .ok_or(R::Entries)?;
+        let mut selected = limits.fixed[index];
         selected.other_existing_session_reserved_bytes = add(
             base_reserved,
             add(retained_sources, limits.revision_and_driver_reserved_bytes).ok_or(R::Pressure)?,
@@ -469,5 +481,36 @@ impl<T: ParserSessionPreparedTarget> ParserNumericExecutor for NumericTargetBrid
     }
     fn cancel(&mut self) {
         ParserCanonicalSourceExecutor::cancel(&mut self.0)
+    }
+}
+
+#[cfg(test)]
+mod reservation_tests {
+    use super::*;
+    #[test]
+    fn unequal_port_quotas_sum_retained_and_share_only_sequential_scratch() {
+        let small = FixedPreparationLimits {
+            verification: crate::parser_session_execution::ParserSessionVerificationLimits {
+                decoded_program_bytes: 1,
+                preparation_peak_bytes: 2,
+                retained_bytes: 3,
+            },
+            maximum_metadata_temporary_bytes: 5,
+            maximum_plan_validation_temporary_bytes: 7,
+            maximum_endpoint_encoding_requested_bytes: 11,
+            maximum_existing_target_bytes: 0,
+            other_existing_session_reserved_bytes: 0,
+            maximum_combined_bytes: usize::MAX,
+            maximum_invocations: 1,
+        };
+        let mut ports = [small; 28];
+        ports[9].verification.retained_bytes = 100;
+        ports[9].verification.preparation_peak_bytes = 200;
+        assert_eq!(fixed_preparation_reservation(&ports), Some((181, 223)));
+        ports[9].verification.retained_bytes = usize::MAX;
+        assert_eq!(fixed_preparation_reservation(&ports), None);
+        ports[9].verification.retained_bytes = 100;
+        ports[9].maximum_plan_validation_temporary_bytes = usize::MAX;
+        assert_eq!(fixed_preparation_reservation(&ports), None);
     }
 }

@@ -911,7 +911,7 @@ fn whole_session_preparation_refuses_aggregate_budget_before_metadata_or_ingress
     };
     let limits = ParserSessionPreparationLimits {
         family: family_limits(),
-        fixed,
+        fixed: [fixed; 28],
         mixed,
         queries: parser_session_queries::ParserQueryPreparationLimits {
             maximum_frame_bytes: 262144,
