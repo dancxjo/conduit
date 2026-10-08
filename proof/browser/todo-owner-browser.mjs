@@ -63,13 +63,13 @@ const face = () => owner(['body', 'face', '--state-dir', state, '--json']);
 const beforeOwner = face();
 const bodyId = beforeOwner.presentation.basis.body_id;
 await mkdir(output, { mode: 0o700 });
-let server, browser;
+let server, browser, page;
+const errors = [];
 try {
   server = await startStaticProduct(handbook);
   browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
-  const page = await context.newPage();
-  const errors = [];
+  page = await context.newPage();
   page.on('pageerror', error => errors.push(error.message));
   await page.goto(`${server.url}?participate=owner#your-handbook`);
   await page.locator('[data-owner-key]').waitFor();
@@ -247,6 +247,19 @@ try {
     screenshots: scenario === 'cross-mask' ? ['browser-before.png', 'browser-stale.png', 'browser-after.png']
       : ['browser-before.png', 'browser-after.png'],
   }, null, 2)}\n`);
+} catch (error) {
+  // Preserve the actual failed UI and owner state without retrying its action.
+  const diagnostics = [writeFile(path.join(output, 'failure.json'), `${JSON.stringify({
+    error: String(error), page_errors: errors, ...sourceRecord,
+  }, null, 2)}\n`)];
+  if (page) {
+    diagnostics.push(page.screenshot({ path: path.join(output, 'browser-failed.png') }));
+    diagnostics.push(page.content().then(html => writeFile(path.join(output, 'browser-failed.html'), html)));
+    diagnostics.push(page.evaluate(() => globalThis.__conduitOwnerParticipation?.face())
+      .then(view => writeFile(path.join(output, 'browser-failed-face.json'), `${JSON.stringify(view, null, 2)}\n`)));
+  }
+  await Promise.allSettled(diagnostics);
+  throw error;
 } finally {
   await browser?.close();
   server?.child.kill();
