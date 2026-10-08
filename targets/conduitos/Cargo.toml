@@ -167,6 +167,7 @@ required-features = ["loongarch64-a4"]
 
 [features]
 local-plan-images = []
+numeric-topology-proof = ["local-plan-images", "fixed-numeric-owners", "finite-value-owners", "dep:conduit-data"]
 finite-value-owners = ["conduit-semantic-catalog/kernel-operation-owners"]
 fixed-numeric-owners = ["dep:conduit-ai", "conduit-ai/kernel-operation-owners"]
 default = []
@@ -226,6 +227,7 @@ patchbay-control = { path = "../../plots/patchbay" }
 patchbay-application = { path = "../../plots/patchbay/application" }
 conduit-plot = { path = "../../architecture/plot" }
 conduit-composite = { path = "../../architecture/composite" }
+conduit-data = { path = "../../semantics/data", default-features = false, optional = true }
 conduit-kernel = { path = "../../architecture/kernel", features = ["alloc"] }
 conduit-observatory = { path = "../../architecture/observatory" }
 conduit-planner = { path = "../../architecture/planner" }

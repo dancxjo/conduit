@@ -1,3 +1,7 @@
+#[cfg(feature = "numeric-topology-proof")]
+#[path = "build/numeric_fixture.rs"]
+mod numeric_fixture;
+
 #[cfg(feature = "native-compositor")]
 #[path = "build/typography.rs"]
 mod typography;
@@ -21,6 +25,8 @@ fn main() {
     println!("cargo:rerun-if-env-changed=CONDUITOS_IMAGE_ID");
     println!("cargo:rerun-if-env-changed=CONDUITOS_MAKE_RECORD");
     generate_unifont_subset();
+    #[cfg(feature = "numeric-topology-proof")]
+    numeric_fixture::generate();
     #[cfg(feature = "native-compositor")]
     typography::generate();
     let output =
