@@ -418,6 +418,9 @@ pub trait ValueStorage {
     fn clear(&mut self);
 }
 
+mod fixed_ingress;
+pub use fixed_ingress::{transfer as transfer_fixed_value_ingress, FixedIngressRefusal};
+
 mod fixed_value_store;
 pub use fixed_value_store::FixedValueStore;
 
