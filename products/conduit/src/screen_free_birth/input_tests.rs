@@ -8,6 +8,31 @@ use patchbay_hosted::HostedPatchbayAdapter;
 use std::sync::Arc;
 
 #[test]
+fn read_current_items_is_a_generic_spoken_command() {
+    let advertisement = StdHost::new().advertisement().clone();
+    let door = ZeroBodyFrontDoor::from_model(
+        Arc::new(HostedPatchbayAdapter),
+        PatchbayModel::from_advertisement(advertisement.clone()),
+    )
+    .unwrap();
+    let encounter = "00112233-4455-6677-8899-aabbccddeeff";
+    let draft = door.creche_draft(encounter.into()).unwrap();
+    let basis = HostOwnedBirthFaceBasis {
+        host_id: advertisement.host_id.clone(),
+        boot_id: advertisement.boot_id.clone(),
+        encounter_id: encounter.into(),
+    };
+    let mut execution = HostedTerminalMaskExecution::new(&advertisement).unwrap();
+    let (face, show) =
+        super::super::present(&draft, &basis, &mut execution, &mut Vec::new()).unwrap();
+    let reader = SpokenFaceSession::new(face.clone(), show).unwrap();
+    assert_eq!(
+        parse_command("read current items", &reader, &face),
+        Ok(ReaderCommand::ReadCurrentItems)
+    );
+}
+
+#[test]
 fn plot_argument_reached_by_reading_accepts_boolean_edits_on_current_birth_face() {
     let advertisement = StdHost::new().advertisement().clone();
     let door = ZeroBodyFrontDoor::from_model(

@@ -11,7 +11,7 @@ use conduit_std_host::spoken_face_mask::{ReaderCommand, SpokenFaceSession};
 mod tests;
 
 pub(super) const MAX_SCREEN_FREE_COMMAND_BYTES: usize = 4_096;
-pub(super) const SCREEN_FREE_COMMANDS: &str = "Commands: help, read all, review, next, previous, repeat, next/previous subject, next/previous main, article, or navigation, next/previous action, focus subject ID, focus ACTION, edit value TEXT, activate, stop, quit.";
+pub(super) const SCREEN_FREE_COMMANDS: &str = "Commands: help, read current items, read all, review, next, previous, repeat, next/previous subject, next/previous main, article, or navigation, next/previous action, focus subject ID, focus ACTION, edit value TEXT, activate, stop, quit.";
 
 /// Bound one command without allocating an arbitrarily long terminal line.
 /// A rejected line is consumed completely so its tail cannot become an action.
@@ -75,6 +75,7 @@ pub(super) fn parse_command(
     match line {
         "help" => Ok(ReaderCommand::Help),
         "read all" => Ok(ReaderCommand::ReadAll),
+        "read current items" => Ok(ReaderCommand::ReadCurrentItems),
         "review"
             if face
                 .subjects
