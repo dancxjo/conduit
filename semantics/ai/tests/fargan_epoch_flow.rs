@@ -17,6 +17,10 @@ mod native_session;
 mod native_startup;
 #[path = "fargan_epoch_flow/repeat_capacity.rs"]
 mod repeat_capacity;
+#[path = "fargan_epoch_flow/trace_cycle.rs"]
+mod trace_cycle;
+#[path = "fargan_epoch_flow/trace_observer.rs"]
+mod trace_observer;
 use conduit_ai::{
     fixed_numeric_catalog::*, fixed_numeric_pair_catalog::*, native_profile::PreparedNativeProfile,
     nominal_weakening::PreparedNominalWeakening,

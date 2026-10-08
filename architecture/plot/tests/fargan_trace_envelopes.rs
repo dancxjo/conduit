@@ -72,6 +72,9 @@ fn exact_source_trace_profiles_fit_separate_frames_and_refuse_combined_history()
     source.push_str(include_str!(
         "../../../semantics/speech/fargan_epoch_trace.conduit"
     ));
+    source.push_str(include_str!(
+        "../../../semantics/speech/fargan_trace_flow.conduit"
+    ));
     source.push_str("\ntype FarganOversizedTrace = {\n result: FarganPcm16EpochResult\n features: NumericF32Vector20\n condition: NumericF32Vector320\n history: NumericHistory2x64\n}\n");
     let checked =
         check_syntax_document(&parse_syntax_document(&source), &StartupCatalog::new()).unwrap();
@@ -173,6 +176,7 @@ fn bounded_observer_refuses_gaps_foreign_anchor_nonfinite_and_overbooking() {
     let mut recorder =
         DevelopmentTraceRecorder::prepare(&ty("TraceRow"), &selected, 1, 2, maximum).unwrap();
     assert_eq!(recorder.prepared_payload_capacity(), maximum * 2);
+    assert_eq!(recorder.recorded_rows(), 0);
     assert_eq!(recorder.finish().err(), Some(TraceRefusal::Incomplete));
     assert_eq!(
         recorder.record(&row(2, selected.clone(), 0.0)),

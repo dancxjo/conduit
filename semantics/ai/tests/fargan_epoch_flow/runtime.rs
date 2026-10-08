@@ -18,6 +18,8 @@ mod native_control;
 mod native_startup;
 #[path = "runtime/native_utterance.rs"]
 mod native_utterance;
+#[path = "runtime/trace_outputs.rs"]
+mod trace_outputs;
 pub(super) use native_control::run_native_period_controls;
 pub(super) use native_startup::{
     run_native_first_feature, run_native_startup_feedback, run_native_warm_startup,

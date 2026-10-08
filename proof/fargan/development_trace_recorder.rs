@@ -62,7 +62,7 @@ impl DevelopmentTraceRecorder {
     }
     /// Validates borrowed canonical framing and correlation before copying into
     /// prepared storage. This observer deliberately does not grant Native laws.
-    pub fn record(&mut self, encoded: &[u8]) -> Result<(), TraceRefusal> {
+    pub fn validate_next(&self, encoded: &[u8]) -> Result<(), TraceRefusal> {
         if self.committed == self.rows.len() {
             return Err(TraceRefusal::Capacity);
         }
@@ -110,9 +110,16 @@ impl DevelopmentTraceRecorder {
         if epochs != 1 {
             return Err(TraceRefusal::Epoch);
         }
+        Ok(())
+    }
+    pub fn record(&mut self, encoded: &[u8]) -> Result<(), TraceRefusal> {
+        self.validate_next(encoded)?;
         self.rows[self.committed].extend_from_slice(encoded);
         self.committed += 1;
         Ok(())
+    }
+    pub fn recorded_rows(&self) -> usize {
+        self.committed
     }
     pub fn finish(&self) -> Result<&[Vec<u8>], TraceRefusal> {
         if self.committed != self.rows.len() {
