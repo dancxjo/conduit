@@ -224,6 +224,7 @@ installed_step_dispatch!(
     StateSelectScalar,
     CurrentSample,
     CombineLatest,
+    TodoCombine,
     FlowZip,
     FlowGateScalar,
     FlowFirst,

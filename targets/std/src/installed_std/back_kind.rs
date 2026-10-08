@@ -91,7 +91,11 @@ use super::vision_describe_back::VisionDescribeBack;
 use super::vision_experience_back::VisionExperienceBack;
 use super::wav_artifact_back::WavArtifactBack;
 use conduit_data::FlowCollectBack;
+use conduit_todo_plot::TodoCombineBack;
 
+// Todo's admitted fixed scratch stays inline so preparing and stepping a Back
+// cannot acquire hidden heap capacity. The enum's larger static size is finite.
+#[allow(clippy::large_enum_variant)]
 pub(super) enum InstalledBack {
     NativeSpeech(Box<conduit_speech::kernel::NativeSpeechBack>),
     DistanceFrequency(DistanceFrequencyBack),
@@ -143,6 +147,7 @@ pub(super) enum InstalledBack {
     StateSelectScalar(StateSelectScalarBack),
     CurrentSample(CurrentSampleBack),
     CombineLatest(CombineLatestBack),
+    TodoCombine(TodoCombineBack),
     FlowZip(FlowZipBack),
     FlowCollect(Box<FlowCollectBack>),
     FlowJoinByKey(Box<FlowJoinByKeyBack>),

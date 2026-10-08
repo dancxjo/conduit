@@ -107,6 +107,9 @@ impl CanonicalSource {
 fn standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), String> {
     let mut startup = conduit_signal::primary_signal_startup_catalog();
     let mut profiles = conduit_signal::primary_signal_profile_catalog();
+    // This first Todo vertical has one exact authored initial Form and a leaf
+    // combine Kind. Retained source uses the same catalog after owner restart.
+    conduit_todo_plot::install_todo_catalogs(&mut startup, &mut profiles, "Groceries")?;
     conduit_presentation::install_mask_plot_value_aliases(&mut startup)?;
     conduit_presentation::install_mask_mechanism_catalog(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profiles)?;
