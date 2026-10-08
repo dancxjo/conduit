@@ -412,3 +412,8 @@ pub mod word_pitch_programs {
 
 #[cfg(feature = "semantic-bindings")]
 pub mod rendered_gesture_occurrence;
+
+#[cfg(feature = "semantic-bindings")]
+pub mod gesture_sequence;
+#[cfg(feature = "semantic-bindings")]
+pub mod committed_gesture_sequence;

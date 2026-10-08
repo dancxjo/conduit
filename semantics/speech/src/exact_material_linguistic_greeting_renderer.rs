@@ -43,6 +43,9 @@ pub struct ExactMaterialLinguisticGreetingRenderedFrame {
     rendered: GreetingRenderedFrame,
 }
 impl ExactMaterialLinguisticGreetingRenderedFrame {
+    pub(crate) fn into_parts(self) -> (ExactMaterialLinguisticGreetingPitchFrame, GreetingRenderedFrame) {
+        (self.pitch, self.rendered)
+    }
     pub fn pitch(&self) -> &ExactMaterialLinguisticGreetingPitchFrame {
         &self.pitch
     }

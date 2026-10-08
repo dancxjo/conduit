@@ -147,6 +147,20 @@
  let constant_renderers=realized_gestures.iter().take(4).zip(cycles.iter().take(4)).map(|(gesture,cycle)|prepare_greeting_renderer_q8(gesture.contextual().profile(),&grid,cycle.admitted_canonical()).unwrap()).collect::<Vec<_>>();
  for (gesture,renderer) in realized_gestures.iter().take(4).zip(&constant_renderers) {Mapped::prepare(prepared.realized(),gesture,Actual::Constant(renderer)).unwrap();}
  assert!(matches!(Mapped::prepare(prepared.realized(),&realized_gestures[1],Actual::Constant(&constant_renderers[0])),Err(MapRefusal::ForeignGesture)));
+ let mut mapped=Vec::new();
+ for (gesture,renderer) in realized_gestures.iter().take(4).zip(&constant_renderers) {mapped.push(Mapped::prepare(prepared.realized(),gesture,Actual::Constant(renderer)).unwrap());}
+ for (gesture,renderer) in realized_gestures.iter().skip(4).zip(&renderers) {mapped.push(Mapped::prepare(prepared.realized(),gesture,Actual::Exact(renderer)).unwrap());}
+ let sequence=conduit_speech::gesture_sequence::PreparedGestureSequence::prepare(&mapped).unwrap();let mut sequence_cursor=sequence.cursor();
+ for _ in 0..3 {let frame=sequence.next(&mut sequence_cursor).unwrap().unwrap();assert!(frame.pitch().is_none());assert!(frame.rendered().rendered().sample().abs()<=32768);}
+
+ let bound=conduit_speech::committed_gesture_sequence::PreparedCommittedGestureSequence::prepare(&prepared,&sequence).unwrap();assert!(core::ptr::eq(bound.pitch(),&prepared));assert!(core::ptr::eq(bound.sequence(),&sequence));
+ let incomplete=conduit_speech::gesture_sequence::PreparedGestureSequence::prepare(&mapped[..9]).unwrap();assert!(matches!(conduit_speech::committed_gesture_sequence::PreparedCommittedGestureSequence::prepare(&prepared,&incomplete),Err(conduit_speech::committed_gesture_sequence::CommittedSequenceRefusal::Count)));
+ println!("PASS actual complete ten-phone coverage/commitment/renderer custody and six exact rich-prosody owner links; missing coverage refused; no queue or played claim");
+
+ let other_sequence=conduit_speech::gesture_sequence::PreparedGestureSequence::prepare(&mapped).unwrap();assert!(matches!(other_sequence.next(&mut sequence_cursor),Err(SpeechGestureRenderRefusal::ForeignBasis)));
+ assert!(matches!(conduit_speech::gesture_sequence::PreparedGestureSequence::prepare(&mapped[..0]),Err(SpeechGestureRenderRefusal::ResourceBound)));
+ println!("PASS actual adjacent ten-owner sequence preparation, three original Hello Source/DSP frames and foreign sequence cursor refusal; no queue or full rerender claim");
+
  println!("PASS actual ten original committed IPA gesture/renderer mappings, six exact pitch wrappers, four original constant cycles, admitted frame ranges, foreign intent and foreign gesture refusals; no queued/played claim");
 
  if let Ok(output_directory)=std::env::var("CONDUIT_WORD_PITCH_FULL_OUTPUT") {
