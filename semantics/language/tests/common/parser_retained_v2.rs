@@ -7,6 +7,16 @@ use std::io::Write;
 mod protection;
 #[path = "parser_session_sources.rs"]
 mod sources;
+pub fn inactive_protected_edge(state: &LanguageParserState) -> LanguageParserProtectedEdgeProposal {
+    protection::inactive_edge(state)
+}
+pub fn independent_mask_query(
+    mask: LanguageParserLegalMask,
+    retained: LanguageParserProtectedSetProposal,
+    relation: LanguageParserRelation,
+) -> Result<LanguageParserIndependentMaskQuery, conduit_plot::rust_binding::NativeBindingRefusal> {
+    protection::independent_mask_query(mask, retained, relation)
+}
 pub use sources::{protected_source, source};
 pub struct Session {
     pub flows: Pipelines,
