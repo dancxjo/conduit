@@ -60,7 +60,13 @@ profile refusal. No missing field may be silently reconstructed from PCM or IPA.
 ## IPA and projection boundary
 
 `SpeechPhone.ipa` and `SpeechPhoneme.notation` currently accept nonempty bounded
-Text. That is not IPA validation. Public data must use actual Unicode IPA and
+Text. That raw Native constraint is not IPA validation. The prepared notation and
+inventory entrance now executes the finite declared Unicode IPA profile and
+retains the whole inventory, explicit phone/phoneme bindings, original spelling
+and complete parsing receipts; see [speech-ipa-notation.md](speech-ipa-notation.md).
+Raw construction alone does not establish that receipt. The common utterance
+owner and terminal projections still need to consume this admission.
+Public data must use actual Unicode IPA and
 explicit supported parsing/normalization conventions, preserving original
 spelling and provenance. Multicodepoint affricates, diacritics, aspiration,
 syllabicity, nasalization, stress and length need conformance proof. Delimiters
