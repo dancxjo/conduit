@@ -282,9 +282,14 @@ impl StdHost {
             .map_or((&[][..], false, false), |(inputs, sequential, _)| {
                 (*inputs, *sequential, true)
             });
+        // Bind the prospective identity without consuming the sequence. The
+        // exact child pool must be prepared and correlated before Play start;
+        // a preparation refusal leaves the Host sequence untouched.
+        let prospective_play = BodyPlayIdentity::bind(request.plan, self.next_kernel_play_sequence);
         let kernel = BodyKernel::prepare(
             &request.plan.plots,
             request.keyboard.is_some(),
+            &prospective_play.active_play_id,
             fore_inputs,
             sequential_fore,
             has_fore_output,
@@ -302,7 +307,10 @@ impl StdHost {
             self.next_kernel_play_sequence = sequence
                 .checked_add(1)
                 .ok_or_else(|| "Body Play sequence exhausted".to_string())?;
-            let play = BodyPlayIdentity::bind(request.plan, sequence);
+            let play = prospective_play;
+            if play.play_sequence != sequence {
+                return Err("Body prospective Play identity changed before start".into());
+            }
             // Body lifecycle signs are scoped by this unique admitted Play.
             // The shared lifecycle session and browser producer use 0/1/2;
             // reusing the Host-wide cursor would make a second genuine start

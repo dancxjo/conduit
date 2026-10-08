@@ -25,6 +25,7 @@ use std::io::Write;
 
 mod clock_observation;
 mod fore_route;
+mod scan_route;
 use crate::body_execution::ObservedKernelEvent;
 use clock_observation::KernelClockObservations;
 use fore_route::BodyForeRoute;
@@ -116,6 +117,7 @@ impl<'a> BodyKernel<'a> {
     pub(crate) fn prepare(
         partitions: &[BodyPlotPlan],
         has_keyboard: bool,
+        parent_play: &conduit_core::ActivePlayId,
         fore_inputs: &'a [ExternalForeInput],
         sequential_fore: bool,
         has_fore_output: bool,
@@ -134,6 +136,7 @@ impl<'a> BodyKernel<'a> {
         // Activation coordinators belong to the whole sealed Plan. Bind each
         // entry to its exact local fragment before lowering ordinary nodes.
         let activations = bind_body_activations(partitions, &fragments)?;
+        let mut scans = scan_route::prepare(partitions, parent_play)?;
         let lowered = lower_local_fragment_set(
             &fragments,
             FIXED_KERNEL_STORAGE_PROFILE,
@@ -177,22 +180,34 @@ impl<'a> BodyKernel<'a> {
         let mut maximum = 1_u32;
         let mut sign_items = 32_u16;
         let mut request_capacity = 0_usize;
-        for placement in fragments.iter().flat_map(|part| &part.placements) {
-            let budget = preparation::back_budget(placement)?;
-            items = items
-                .checked_add(budget.value_items)
-                .ok_or("Body value item overflow")?;
-            bytes = bytes
-                .checked_add(budget.value_bytes)
-                .filter(|bytes| *bytes <= 16 * 1024 * 1024)
-                .ok_or("Body value byte capacity exceeded")?;
-            maximum = maximum.max(budget.maximum_value_bytes);
-            sign_items = sign_items
-                .checked_add(budget.sign_items)
-                .ok_or("Body Sign overflow")?;
-            request_capacity = request_capacity
-                .checked_add(budget.host_requests)
-                .ok_or("Body request overflow")?;
+        for (partition_index, fragment) in fragments.iter().enumerate() {
+            for placement in &fragment.placements {
+                let ordinary;
+                let budget = if let Some(scan) = scans.iter().find(|scan| {
+                    scan.partition == partition_index && scan.owner == placement.placement_id
+                }) {
+                    &scan.budget
+                } else {
+                    // Ordinary Backs are budgeted only after exact activation
+                    // owners have been consumed by the whole-Plan scan route.
+                    ordinary = preparation::back_budget(placement)?;
+                    &ordinary
+                };
+                items = items
+                    .checked_add(budget.value_items)
+                    .ok_or("Body value item overflow")?;
+                bytes = bytes
+                    .checked_add(budget.value_bytes)
+                    .filter(|bytes| *bytes <= 16 * 1024 * 1024)
+                    .ok_or("Body value byte capacity exceeded")?;
+                maximum = maximum.max(budget.maximum_value_bytes);
+                sign_items = sign_items
+                    .checked_add(budget.sign_items)
+                    .ok_or("Body Sign overflow")?;
+                request_capacity = request_capacity
+                    .checked_add(budget.host_requests)
+                    .ok_or("Body request overflow")?;
+            }
         }
         for port in fore.input_ports() {
             items = items
@@ -210,14 +225,30 @@ impl<'a> BodyKernel<'a> {
         let mut values = HostedValueStore::new(items.max(1), maximum, bytes.max(1))
             .map_err(|error| format!("Body value store: {error:?}"))?;
         let mut drivers = core::array::from_fn(|_| InstalledBack::inactive());
-        for (fragment, part) in fragments.iter().zip(&lowered.partitions) {
+        for (partition_index, (fragment, part)) in
+            fragments.iter().zip(&lowered.partitions).enumerate()
+        {
             for node in &part.nodes {
-                drivers[usize::from(node.node.0)] = preparation::prepare_ordinary_operation(
-                    fragment,
-                    &node.placement_id,
-                    &mut values,
-                )?;
+                drivers[usize::from(node.node.0)] = if let Some(scan) =
+                    scans.iter_mut().find(|scan| {
+                        scan.partition == partition_index && scan.owner == node.placement_id
+                    }) {
+                    InstalledBack::BodyScan(Box::new(
+                        scan.back
+                            .take()
+                            .ok_or("installed scan owner was prepared twice")?,
+                    ))
+                } else {
+                    preparation::prepare_ordinary_operation(
+                        fragment,
+                        &node.placement_id,
+                        &mut values,
+                    )?
+                };
             }
+        }
+        if scans.iter().any(|scan| scan.back.is_some()) {
+            return Err("installed scan has no lowered owner node".into());
         }
         let tables = KernelTables::prepare(&lowered.partitions.iter().collect::<Vec<_>>())?;
         let signs = fore_sign_storage::prepare(sign_items, fore.has_ports())?;
