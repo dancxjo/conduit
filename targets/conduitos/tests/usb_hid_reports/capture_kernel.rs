@@ -56,7 +56,7 @@ fn eight_live_endpoint_calls_complete_out_of_order_and_drain_without_growth() {
         .external_capability
         .outputs
         .clone();
-    let package = conduitos::protocol_source::usb_hid_keyboard_order_package().unwrap();
+    let package = super::order_lifecycle::package();
     let entry = conduitos::protocol_source::PreparedProtocolEntry::prepare(
         &serde_json::to_vec(&package).unwrap(),
         "usb-hid-keyboard-capture-window",
