@@ -357,3 +357,31 @@ pub use resonator_projection_report::*;
 pub mod gesture_renderer;
 #[cfg(feature = "semantic-bindings")]
 pub use gesture_renderer::*;
+
+#[cfg(feature = "semantic-bindings")]
+pub mod committed_plan_coverage;
+#[cfg(feature = "semantic-bindings")]
+pub mod phonemic_pronunciation;
+#[cfg(feature = "semantic-bindings")]
+pub mod phonemic_pronunciation_intent;
+
+#[cfg(feature = "semantic-bindings")]
+mod greeting_programs {
+    include!(concat!(env!("OUT_DIR"), "/greeting_programs.rs"));
+}
+#[cfg(feature = "semantic-bindings")]
+mod greeting_gestures;
+#[cfg(feature = "semantic-bindings")]
+pub use greeting_gestures::*;
+#[cfg(feature = "semantic-bindings")]
+mod greeting_renderer;
+#[cfg(feature = "semantic-bindings")]
+pub use greeting_renderer::*;
+#[cfg(feature = "semantic-bindings")]
+mod greeting_projection_report;
+#[cfg(feature = "semantic-bindings")]
+pub use greeting_projection_report::*;
+#[cfg(feature = "semantic-bindings")]
+mod contextual_greeting_gestures;
+#[cfg(feature = "semantic-bindings")]
+pub use contextual_greeting_gestures::*;

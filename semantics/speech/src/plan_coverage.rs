@@ -1,6 +1,7 @@
 //! Complete Source participation and exact native phone coverage.
 //! This admission grants no parser commitment or playback authority.
 use crate::{
+    phonemic_pronunciation_intent::PreparedPhonemicPronunciationIntent,
     pronunciation_intent::PreparedPronunciationIntent, semantic::*,
     text_token_role::PreparedTextTokenRole,
 };
@@ -106,9 +107,33 @@ pub fn prepare_complete_spoken_order<'a>(
     })
 }
 
+/// Closed set of original checked pronunciation owners. Both compose into the
+/// same existing utterance/coverage Source contracts; neither grants playback.
+#[derive(Clone, Copy)]
+pub enum PreparedSpeechPronunciationWord<'a, 'word, 'basis> {
+    Phone(&'a PreparedPronunciationIntent<'word, 'basis>),
+    Phoneme(&'a PreparedPhonemicPronunciationIntent<'word, 'basis>),
+}
+impl<'a, 'word, 'basis> PreparedSpeechPronunciationWord<'a, 'word, 'basis> {
+    pub fn intent(&self) -> &SpeechUtteranceIntent {
+        match self {
+            Self::Phone(word) => word.intent(),
+            Self::Phoneme(word) => word.intent(),
+        }
+    }
+    pub fn selection(
+        &self,
+    ) -> &conduit_language::pronunciation_selection::PreparedPronunciationSelection {
+        match self {
+            Self::Phone(word) => word.pronunciation().selection(),
+            Self::Phoneme(word) => word.pronunciation().selection(),
+        }
+    }
+}
+
 pub struct PreparedSpeechPlanCoverage<'a, 'word, 'basis> {
     order: &'a PreparedSpeechSpokenOrder<'a>,
-    words: Vec<&'a PreparedPronunciationIntent<'word, 'basis>>,
+    words: Vec<PreparedSpeechPronunciationWord<'a, 'word, 'basis>>,
     intent: &'a SpeechUtteranceIntent,
     layout: SpeechCompletePhoneLayout4,
     witnesses: &'a [SpeechPhoneCompositionWitness],
@@ -118,7 +143,7 @@ impl<'a, 'word, 'basis> PreparedSpeechPlanCoverage<'a, 'word, 'basis> {
     pub fn order(&self) -> &PreparedSpeechSpokenOrder<'a> {
         self.order
     }
-    pub fn words(&self) -> &[&'a PreparedPronunciationIntent<'word, 'basis>] {
+    pub fn words(&self) -> &[PreparedSpeechPronunciationWord<'a, 'word, 'basis>] {
         &self.words
     }
     pub fn intent(&self) -> &'a SpeechUtteranceIntent {
@@ -140,6 +165,21 @@ pub fn prepare_complete_phone_layout<'a, 'word, 'basis>(
     order: &PreparedSpeechSpokenOrder<'a>,
     words: &[&'a PreparedPronunciationIntent<'word, 'basis>],
 ) -> Result<SpeechCompletePhoneLayout4, SpeechPlanCoverageRefusal> {
+    if words.len() > 4 {
+        return Err(SpeechPlanCoverageRefusal::Capacity);
+    }
+    let words = words
+        .iter()
+        .map(|word| PreparedSpeechPronunciationWord::Phone(word))
+        .collect::<Vec<_>>();
+    prepare_complete_pronunciation_layout(order, &words)
+}
+
+/// Complete layout for either original phone or phonemic pronunciation owner.
+pub fn prepare_complete_pronunciation_layout<'a, 'word, 'basis>(
+    order: &PreparedSpeechSpokenOrder<'a>,
+    words: &[PreparedSpeechPronunciationWord<'a, 'word, 'basis>],
+) -> Result<SpeechCompletePhoneLayout4, SpeechPlanCoverageRefusal> {
     validated_words(order, words).map(|(layout, _)| layout)
 }
 
@@ -150,7 +190,7 @@ type ValidatedWordSegments = (
 
 fn validated_words<'a, 'word, 'basis>(
     order: &PreparedSpeechSpokenOrder<'a>,
-    words: &[&'a PreparedPronunciationIntent<'word, 'basis>],
+    words: &[PreparedSpeechPronunciationWord<'a, 'word, 'basis>],
 ) -> Result<ValidatedWordSegments, SpeechPlanCoverageRefusal> {
     use SpeechPlanCoverageRefusal::*;
     if words.len() != order.ordinals.len() {
@@ -159,7 +199,7 @@ fn validated_words<'a, 'word, 'basis>(
     let mut original = Vec::with_capacity(32);
     let mut lengths = [0u32; 4];
     for (word, (pronounced, ordinal)) in words.iter().zip(&order.ordinals).enumerate() {
-        let selection = pronounced.pronunciation().selection();
+        let selection = pronounced.selection();
         let request = selection.request();
         let role = &order.roles[*ordinal];
         if request.source() != order.lexical.tape().source()
@@ -196,6 +236,24 @@ fn validated_words<'a, 'word, 'basis>(
 pub fn prepare_speech_plan_coverage<'a, 'word, 'basis>(
     order: &'a PreparedSpeechSpokenOrder<'a>,
     words: &[&'a PreparedPronunciationIntent<'word, 'basis>],
+    intent: &'a SpeechUtteranceIntent,
+    witnesses: &'a [SpeechPhoneCompositionWitness],
+) -> Result<PreparedSpeechPlanCoverage<'a, 'word, 'basis>, SpeechPlanCoverageRefusal> {
+    if words.len() > 4 {
+        return Err(SpeechPlanCoverageRefusal::Capacity);
+    }
+    let words = words
+        .iter()
+        .map(|word| PreparedSpeechPronunciationWord::Phone(word))
+        .collect::<Vec<_>>();
+    prepare_pronunciation_plan_coverage(order, &words, intent, witnesses)
+}
+
+/// Admit complete original phonemic/phone words with the same full Source
+/// segment witnesses and commitment adapter as the established phone entrance.
+pub fn prepare_pronunciation_plan_coverage<'a, 'word, 'basis>(
+    order: &'a PreparedSpeechSpokenOrder<'a>,
+    words: &[PreparedSpeechPronunciationWord<'a, 'word, 'basis>],
     intent: &'a SpeechUtteranceIntent,
     witnesses: &'a [SpeechPhoneCompositionWitness],
 ) -> Result<PreparedSpeechPlanCoverage<'a, 'word, 'basis>, SpeechPlanCoverageRefusal> {

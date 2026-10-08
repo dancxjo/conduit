@@ -1,0 +1,37 @@
+# Finite supplied phonemic pronunciation data. Exact original lexical candidate owns selection.
+# This profile names phonemes; it does not rewrite a known phone as a phoneme.
+type SpeechPhonemicPronunciationPhoneme = {
+    phoneme: PhonemeId
+    stress: SpeechStress
+}
+type SpeechPhonemicPronunciationRow = {
+    candidate: LanguageLexicalCandidate
+    phonemes: sequence SpeechPhonemicPronunciationPhoneme in 1..=8
+}
+type SpeechPhonemicPronunciationProfile = {
+    identity: Text <= 64B not in [""]
+    language: LanguageId
+    rows: sequence SpeechPhonemicPronunciationRow in 1..=4
+    provenance: SpeechEvidenceProvenance
+}
+type SpeechPhonemicPronunciationRequest = {
+    candidate: LanguageLexicalCandidate
+    language: LanguageId
+    profile: SpeechPhonemicPronunciationProfile
+    where .language == .profile.language
+}
+type SpeechPhonemicPronunciationResult = {
+    accepted: Boolean
+    phonemes: sequence SpeechPhonemicPronunciationPhoneme <= 8
+}
+type SpeechPhonemicPronunciationQuery = {
+    candidate: LanguageLexicalCandidate
+    rows: sequence SpeechPhonemicPronunciationRow in 1..=4
+}
+type SpeechPhonemicPronunciationRowIndex = {
+    index: U64
+}
+plot speech/phonemic-pronunciation (
+    >> value: SpeechPhonemicPronunciationQuery
+    result: SpeechPhonemicPronunciationRowIndex >>
+) = ({ index: ((((sequence/length(.rows) > 0 ? sequence/at(.rows, 0).candidate == .candidate : false)) || ((sequence/length(.rows) > 1 ? sequence/at(.rows, 1).candidate == .candidate : false)) || ((sequence/length(.rows) > 2 ? sequence/at(.rows, 2).candidate == .candidate : false)) || ((sequence/length(.rows) > 3 ? sequence/at(.rows, 3).candidate == .candidate : false))) && !(((sequence/length(.rows) > 0 ? sequence/at(.rows, 0).candidate == .candidate : false)) && ((sequence/length(.rows) > 1 ? sequence/at(.rows, 1).candidate == .candidate : false))) && !(((sequence/length(.rows) > 0 ? sequence/at(.rows, 0).candidate == .candidate : false)) && ((sequence/length(.rows) > 2 ? sequence/at(.rows, 2).candidate == .candidate : false))) && !(((sequence/length(.rows) > 0 ? sequence/at(.rows, 0).candidate == .candidate : false)) && ((sequence/length(.rows) > 3 ? sequence/at(.rows, 3).candidate == .candidate : false))) && !(((sequence/length(.rows) > 1 ? sequence/at(.rows, 1).candidate == .candidate : false)) && ((sequence/length(.rows) > 2 ? sequence/at(.rows, 2).candidate == .candidate : false))) && !(((sequence/length(.rows) > 1 ? sequence/at(.rows, 1).candidate == .candidate : false)) && ((sequence/length(.rows) > 3 ? sequence/at(.rows, 3).candidate == .candidate : false))) && !(((sequence/length(.rows) > 2 ? sequence/at(.rows, 2).candidate == .candidate : false)) && ((sequence/length(.rows) > 3 ? sequence/at(.rows, 3).candidate == .candidate : false)))) ? ((sequence/length(.rows) > 0 ? sequence/at(.rows, 0).candidate == .candidate : false) ? 0 : ((sequence/length(.rows) > 1 ? sequence/at(.rows, 1).candidate == .candidate : false) ? 1 : ((sequence/length(.rows) > 2 ? sequence/at(.rows, 2).candidate == .candidate : false) ? 2 : ((sequence/length(.rows) > 3 ? sequence/at(.rows, 3).candidate == .candidate : false) ? 3 : 4)))) : 4 })

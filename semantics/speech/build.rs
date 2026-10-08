@@ -6,6 +6,8 @@ mod gesture_dsp;
 mod gesture_lowering;
 #[path = "build_support/graph.rs"]
 mod graph;
+#[path = "build_support/greeting_gestures.rs"]
+mod greeting_gestures;
 #[path = "build_support/lower.rs"]
 mod lower;
 #[path = "build_support/resonator_projection.rs"]
@@ -49,6 +51,7 @@ fn main() {
     println!("cargo:rerun-if-changed=pitch_trajectory.conduit");
     println!("cargo:rerun-if-changed=playback.conduit");
     println!("cargo:rerun-if-changed=lexical_pronunciation.conduit");
+    println!("cargo:rerun-if-changed=phonemic_pronunciation.conduit");
     println!("cargo:rerun-if-changed=pitch_projection.conduit");
     println!("cargo:rerun-if-changed=text_token_role.conduit");
     println!("cargo:rerun-if-changed=spoken_order.conduit");
@@ -84,12 +87,14 @@ fn main() {
         include_str!("pitch_trajectory.conduit"),
         include_str!("playback.conduit"),
         include_str!("lexical_pronunciation.conduit"),
+        include_str!("phonemic_pronunciation.conduit"),
         include_str!("text_token_role.conduit"),
         include_str!("spoken_order.conduit"),
         include_str!("phone_layout.conduit"),
         include_str!("phone_composition.conduit"),
         include_str!("common_acoustic_targets.conduit"),
         include_str!("gesture_lowering.conduit"),
+        include_str!("greeting_gestures.conduit"),
         include_str!("resonator_projection.conduit"),
         include_str!("gesture_frame_control.conduit"),
         include_str!("gesture_shared.conduit"),
@@ -192,6 +197,7 @@ fn main() {
             .expect("Speaking segment and listening contracts check");
     common_acoustic::write_programs(&semantic);
     gesture_lowering::write_programs(&semantic);
+    greeting_gestures::write_programs(&semantic);
     resonator_projection::write_programs(&semantic);
     let expanded = expand_canonical_plot_for_authoring(
         &semantic,
@@ -271,6 +277,24 @@ fn main() {
         program,
     )
     .expect("retain pronunciation lookup");
+    let pronunciation = expand_canonical_plot_for_authoring(
+        &semantic,
+        "speech/phonemic-pronunciation",
+        &ProfileCatalog::new(),
+    )
+    .expect("checked phonemic pronunciation lookup expands");
+    assert_eq!(pronunciation.expanded.gears.len(), 1);
+    let [entry] = pronunciation.expanded.gears[0].configuration.as_slice() else {
+        panic!("one phonemic pronunciation program")
+    };
+    let conduit_core::ConfigurationValue::Text(program) = &entry.value else {
+        panic!("phonemic pronunciation program")
+    };
+    fs::write(
+        PathBuf::from(env::var_os("OUT_DIR").unwrap()).join("phonemic_pronunciation_program.hex"),
+        program,
+    )
+    .expect("retain phonemic pronunciation lookup");
     let participation = expand_canonical_plot_for_authoring(
         &semantic,
         "speech/text-token-role",
@@ -388,14 +412,17 @@ fn main() {
     );
     let source = format!("{}\n{}", source, include_str!("pitch_projection.conduit"));
     let source = format!(
-        "{}\n{}\n{}",
+        "{}\n{}\n{}\n{}",
         source,
         include_str!("gesture_frame_control.conduit"),
-        include_str!("gesture_frame_dsp.conduit")
+        include_str!("gesture_frame_dsp.conduit"),
+        include_str!("greeting_frame_dsp.conduit")
     );
     println!("cargo:rerun-if-changed=resonator_projection.conduit");
     println!("cargo:rerun-if-changed=gesture_frame_control.conduit");
     println!("cargo:rerun-if-changed=gesture_frame_dsp.conduit");
+    println!("cargo:rerun-if-changed=greeting_gestures.conduit");
+    println!("cargo:rerun-if-changed=greeting_frame_dsp.conduit");
     let syntax = parse_syntax_document(&source);
     assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);
     let checked =
