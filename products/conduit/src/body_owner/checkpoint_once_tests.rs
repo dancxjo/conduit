@@ -120,14 +120,16 @@ fn waiting_owner_admits_exact_show_action_then_retains_commit_and_sign() {
             &source,
             &plot,
             &grant,
-            checkpoint_root,
-            CheckpointIdentity {
-                body,
-                plot: plot.expanded.checked_plot_id.as_str().into(),
-                workload: "todo-list".into(),
-                missing_v2: MissingV2Disposition::StartNewList,
+            super::super::todo_waiting::NewTodoCheckpoint {
+                root: checkpoint_root,
+                identity: CheckpointIdentity {
+                    body,
+                    plot: plot.expanded.checked_plot_id.as_str().into(),
+                    workload: "todo-list".into(),
+                    missing_v2: MissingV2Disposition::StartNewList,
+                },
+                current: TodoState::new("Groceries".into()).unwrap(),
             },
-            TodoState::new("Groceries".into()).unwrap(),
             5_000,
         )
         .unwrap();

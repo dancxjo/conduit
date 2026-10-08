@@ -53,6 +53,12 @@ pub(crate) struct TodoWaitingWorker {
     thread: Option<JoinHandle<Outcome>>,
 }
 
+pub(crate) struct NewTodoCheckpoint {
+    pub(crate) root: PathBuf,
+    pub(crate) identity: CheckpointIdentity,
+    pub(crate) current: TodoState,
+}
+
 impl Owner {
     pub(crate) fn start_selected_new_todo_list(
         &mut self,
@@ -114,14 +120,16 @@ impl Owner {
             &source,
             &plot,
             &grant,
-            checkpoint_root,
-            CheckpointIdentity {
-                body,
-                plot: plot.expanded.checked_plot_id.as_str().to_owned(),
-                workload: list_key.clone(),
-                missing_v2: MissingV2Disposition::StartNewList,
+            NewTodoCheckpoint {
+                root: checkpoint_root,
+                identity: CheckpointIdentity {
+                    body,
+                    plot: plot.expanded.checked_plot_id.as_str().to_owned(),
+                    workload: list_key.clone(),
+                    missing_v2: MissingV2Disposition::StartNewList,
+                },
+                current: TodoState::new(list_key).map_err(debug)?,
             },
-            TodoState::new(list_key).map_err(debug)?,
             maximum_millis,
         )
     }
@@ -140,11 +148,14 @@ impl Owner {
         source: &crate::plot_source::CanonicalSource,
         plot: &conduit_plot::ExpandedAuthoringPlot,
         grant: &AuthorityGrant,
-        checkpoint_root: PathBuf,
-        identity: CheckpointIdentity,
-        current: TodoState,
+        checkpoint: NewTodoCheckpoint,
         maximum_millis: u64,
     ) -> Result<TodoWaitingWorker, String> {
+        let NewTodoCheckpoint {
+            root: checkpoint_root,
+            identity,
+            current,
+        } = checkpoint;
         if !(1..=300_000).contains(&maximum_millis)
             || current.revision != 0
             || !current.items.is_empty()

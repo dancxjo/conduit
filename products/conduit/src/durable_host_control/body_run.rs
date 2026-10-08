@@ -14,7 +14,7 @@ use std::{
 
 pub(super) enum OwnedRunWorker {
     General(crate::durable_host::owner::RunWorker),
-    Todo(crate::durable_host::owner::TodoWaitingWorker),
+    Todo(Box<crate::durable_host::owner::TodoWaitingWorker>),
 }
 
 impl OwnedRunWorker {
@@ -132,13 +132,13 @@ impl DurableHostRuntime {
         }
         *running = Some(match (todo_new_list, selected) {
             (Some(list_key), Some(selected)) => {
-                OwnedRunWorker::Todo(owner.start_selected_new_todo_list(
+                OwnedRunWorker::Todo(Box::new(owner.start_selected_new_todo_list(
                     root,
                     selected.root,
                     &selected.content,
                     list_key,
                     maximum_millis,
-                )?)
+                )?))
             }
             (None, None) => OwnedRunWorker::General(owner.start_service_run(root, maximum_millis)?),
             _ => return Err("selected Todo list and Host residence differ".into()),
