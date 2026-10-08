@@ -212,3 +212,38 @@ fn current_offer_contract_must_match_the_sealed_selection() {
     fixed.validate().unwrap();
     assert!(SerialScope::admit(&plan, &binding, &fixed).is_err());
 }
+
+#[test]
+fn presentation_completion_envelope_is_independent_of_semantic_output() {
+    let (mut plan, binding, fixed) = fixture();
+    let placement = plan.fragments[0]
+        .placements
+        .iter_mut()
+        .find(|placement| {
+            placement.kind_id.as_str() == conduit_semantic_catalog::TEXT_PRESENTATION_KIND
+        })
+        .unwrap();
+    assert_eq!(
+        placement.host_calls[0].maximum_output_bytes,
+        conduit_core::MAX_PRESENTATION_COMPLETION_BYTES
+    );
+    placement.host_calls[0].maximum_output_bytes += 1;
+    // Re-seal the changed test Plan so refusal cannot be attributed to its seal.
+    let plan = conduit_core::seal_plan_with_completion(
+        conduit_core::PlotIdentity {
+            source_document_id: plan.source_document_id,
+            checked_plot_id: plan.checked_plot_id,
+            expanded_plot_id: plan.expanded_plot_id,
+        },
+        plan.completion_policy,
+        plan.fragments,
+    );
+    let active = conduit_core::bind_active_play(
+        &plan.plan_id,
+        &binding.active.host_id,
+        &binding.active.boot_id,
+        binding.active.play_sequence,
+    );
+    let binding = RegionBinding::admit(&plan, &active, &binding.region, binding.domain).unwrap();
+    assert!(SerialScope::admit(&plan, &binding, &fixed).is_err());
+}

@@ -33,7 +33,7 @@ pub(super) fn run(_: &Plan, offer: &HostOffer<'_>) {
         &mut arch::Interrupts::new(),
         &mut arch::Idle::new(),
     )
-    .unwrap_or_else(|_| refuse("morse-product-run"));
+    .unwrap_or_else(|error| refuse(error.as_str()));
     let (state, cost) = prepared.protected.proof_state();
     if !serial.text
         || !serial.pattern
@@ -112,7 +112,7 @@ fn independent_handles(offer: &HostOffer<'_>) {
             .unwrap_or_else(|_| refuse("morse-handle-fixture-compute"));
         let mut pattern = [0; conduit_text::MAXIMUM_MORSE_PATTERN_BYTES];
         let value = domain
-            .morse(b"SOS")
+            .morse(b"sos")
             .unwrap_or_else(|_| refuse("morse-handle-fixture-cord"));
         let length = value.len();
         pattern[..length].copy_from_slice(value);

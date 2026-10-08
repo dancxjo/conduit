@@ -21,7 +21,7 @@ impl TextDomain {
         let length = frame.morse_length as usize;
         if self.quarantined
             || frame.command != 8
-            || frame.status != 0
+            || frame.status > 2
             || length > MORSE_CAPACITY
             || frame.morse_status > 10
             || (frame.morse_status == 0 && length == 0)

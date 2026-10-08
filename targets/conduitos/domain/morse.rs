@@ -1,4 +1,4 @@
-//! Canonical uppercase and Morse semantics share one bounded user entry.
+//! Canonical uppercase and Morse consume the same Source input in one user entry.
 use crate::{
     frame::{MORSE_CAPACITY, TEXT_CAPACITY, TextFrame},
     gate, text_transform,
@@ -25,16 +25,10 @@ pub fn chain(frame: &mut TextFrame) -> ! {
         Err(text_transform::UppercaseError::MalformedUtf8) => 1,
         Err(text_transform::UppercaseError::OutputOverflow) => 2,
     };
-    if frame.status == 0 {
-        let output = encode(
-            &frame.output[..frame.output_length as usize],
-            frame.unit_millis,
-            &mut frame.morse,
-        );
-        match output {
-            Ok(length) => frame.morse_length = length as u32,
-            Err(error) => frame.morse_status = refusal_code(error),
-        }
+    let output = encode(&frame.input[..length], frame.unit_millis, &mut frame.morse);
+    match output {
+        Ok(length) => frame.morse_length = length as u32,
+        Err(error) => frame.morse_status = refusal_code(error),
     }
     gate::finish(frame.status)
 }

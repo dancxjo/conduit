@@ -10,6 +10,10 @@ pub(crate) struct ProtectedMorse {
     indicator: SerialScope,
     indicator_handle: KernelCapabilityHandle,
     unit: u16,
+    source: [u8; MAXIMUM_BYTES],
+    source_length: usize,
+    upper_status: u32,
+    upper_served: bool,
     upper: UppercaseText,
     pattern: [u8; PATTERN_BYTES],
     pattern_length: usize,
@@ -81,6 +85,10 @@ impl ProtectedMorse {
             indicator,
             indicator_handle,
             unit,
+            source: [0; MAXIMUM_BYTES],
+            source_length: 0,
+            upper_status: 0,
+            upper_served: false,
             upper: UppercaseText {
                 bytes: [0; MAXIMUM_BYTES],
                 len: 0,
@@ -93,9 +101,13 @@ impl ProtectedMorse {
         })
     }
 
-    pub fn uppercase(&mut self, input: &[u8]) -> Result<&[u8], MachineRunError> {
+    fn compute(&mut self, input: &[u8]) -> Result<(), MachineRunError> {
         if self.computed {
-            return Err(MachineRunError::KernelFailure);
+            return if input == &self.source[..self.source_length] {
+                Ok(())
+            } else {
+                Err(MachineRunError::KernelFailure)
+            };
         }
         self.domain
             .region
@@ -103,39 +115,53 @@ impl ProtectedMorse {
             .map_err(MachineRunError::ProtectionDomain)?
             .morse_chain_input(input, self.unit)
             .map_err(MachineRunError::ProtectionDomain)?;
+        self.source[..input.len()].copy_from_slice(input);
+        self.source_length = input.len();
         self.domain.return_from_pure()?;
         let backend = self
             .domain
             .region
             .backend_mut()
             .map_err(MachineRunError::ProtectionDomain)?;
-        match backend.status() {
-            0 => {}
-            1 => return Err(MachineRunError::TextMalformedUtf8),
-            2 => return Err(MachineRunError::TextOutputOverflow),
-            _ => return Err(MachineRunError::KernelFailure),
+        self.upper_status = backend.status();
+        if self.upper_status > 2 {
+            return Err(MachineRunError::KernelFailure);
         }
-        self.upper.len = backend
-            .output(&mut self.upper.bytes)
-            .map_err(MachineRunError::ProtectionDomain)?;
-        if core::str::from_utf8(self.upper.as_bytes()).is_err() {
-            return Err(MachineRunError::ProtectionDomain(
-                crate::protected_region::DomainRefusal::InvalidMemory,
-            ));
+        if self.upper_status == 0 {
+            self.upper.len = backend
+                .output(&mut self.upper.bytes)
+                .map_err(MachineRunError::ProtectionDomain)?;
+            if core::str::from_utf8(self.upper.as_bytes()).is_err() {
+                return Err(MachineRunError::ProtectionDomain(
+                    crate::protected_region::DomainRefusal::InvalidMemory,
+                ));
+            }
         }
         (self.pattern_length, self.morse_status) = backend
             .morse_output(&mut self.pattern)
             .map_err(MachineRunError::ProtectionDomain)?;
         self.computed = true;
+        Ok(())
+    }
+
+    pub fn uppercase(&mut self, input: &[u8]) -> Result<&[u8], MachineRunError> {
+        self.compute(input)?;
+        if self.upper_served {
+            return Err(MachineRunError::KernelFailure);
+        }
+        match self.upper_status {
+            0 => {}
+            1 => return Err(MachineRunError::TextMalformedUtf8),
+            2 => return Err(MachineRunError::TextOutputOverflow),
+            _ => return Err(MachineRunError::KernelFailure),
+        }
+        self.upper_served = true;
         Ok(self.upper.as_bytes())
     }
 
     pub fn morse(&mut self, input: &[u8]) -> Result<&[u8], MachineRunError> {
-        if !self.computed
-            || self.morse_served
-            || input != self.upper.as_bytes()
-            || self.morse_status != 0
-        {
+        self.compute(input)?;
+        if self.morse_served || self.morse_status != 0 {
             return Err(MachineRunError::KernelFailure);
         }
         self.morse_served = true;
@@ -149,7 +175,7 @@ impl ProtectedMorse {
         serial: &mut impl crate::machine::SerialBase,
     ) -> Result<(), MachineRunError> {
         if !self.computed
-            || (text && input != self.upper.as_bytes())
+            || (text && (!self.upper_served || input != self.upper.as_bytes()))
             || (!text && (!self.morse_served || input != &self.pattern[..self.pattern_length]))
         {
             return Err(MachineRunError::KernelFailure);
