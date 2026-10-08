@@ -198,7 +198,7 @@ pub(super) fn run_mask(
             connection_bases: &connection_bases,
             line_candidates: &line_candidates,
             connection_item_capacity: 1,
-            connection_byte_capacity: 64 * 1024,
+            connection_byte_capacity: 16_384,
             authority_grants: &authority,
             protected_resource_grants: &[],
             line_offers: &[],

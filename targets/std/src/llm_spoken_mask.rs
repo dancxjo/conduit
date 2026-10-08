@@ -102,7 +102,7 @@ impl crate::StdHost {
                 connection_bases: &BTreeMap::new(),
                 line_candidates: &BTreeMap::new(),
                 connection_item_capacity: 1,
-                connection_byte_capacity: 64 * 1024,
+                connection_byte_capacity: 16_384,
                 authority_grants: &authority_grants,
                 protected_resource_grants: &[],
                 line_offers: &[],
