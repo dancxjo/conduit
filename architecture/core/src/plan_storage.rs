@@ -24,13 +24,10 @@ impl Counter {
         )
     }
     fn contract(&mut self, c: &CheckedValueContract) -> Result<(), PlanStorageRefusal> {
-        self.add(c.value_kind.0.capacity())?;
-        self.vector(&c.constraints)?;
-        if !c.constraints.is_empty() {
-            return Err(PlanStorageRefusal::Unsupported);
-        }
-        Ok(())
+        let storage = c.clone_storage_reservation().map_err(|_| PlanStorageRefusal::Overflow)?;
+        self.add(storage.retained_heap_bytes_bound)
     }
+
     fn resource(&mut self, r: &ResourceBinding) -> Result<(), PlanStorageRefusal> {
         self.add(r.pool_id.0.capacity())?;
         self.add(r.class_id.0.capacity())?;
