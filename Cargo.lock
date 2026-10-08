@@ -885,6 +885,7 @@ name = "conduit-core"
 version = "0.1.0"
 dependencies = [
  "conduit-assigned-plan",
+ "conduit-kernel",
  "libm",
  "postcard",
  "serde",
