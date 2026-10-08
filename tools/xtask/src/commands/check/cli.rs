@@ -46,6 +46,8 @@ pub enum CheckSuite {
     QuantityMapping,
     /// Prove bounded Todo state transitions and recursive Plot execution.
     TodoState,
+    /// Prove selected Todo checkpoint persistence and same-Body Host continuity.
+    TodoDurability,
     InputSemantics,
     /// Prove owner-issued presentation routes without waking the workload.
     OwnerPresentation,
