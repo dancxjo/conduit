@@ -26,8 +26,12 @@ use core::{
     cell::RefCell,
     mem::{align_of, size_of},
 };
-#[derive(Clone, Copy, Debug)]
-pub(crate) struct Window8PreparationRefusal;
+#[derive(Debug)]
+pub(crate) enum Window8PreparationRefusal {
+    Contract,
+    WorkingSet(crate::parser_session_window8_working_set::WorkingSetRefusal),
+    Mixed(crate::parser_session_mixed_preparation::MixedPreparationRefusal),
+}
 pub(crate) struct PreparedWindow8Factory<
     S: ParserSessionPreparedTarget,
     N: ParserSessionPreparedTarget + ParserNumericExecutor,
@@ -39,7 +43,7 @@ pub(crate) struct PreparedWindow8Factory<
     pub(crate) mixed_receipt: MixedPreparationReceipt,
 }
 fn add(a: usize, b: usize) -> Result<usize, Window8PreparationRefusal> {
-    a.checked_add(b).ok_or(Window8PreparationRefusal)
+    a.checked_add(b).ok_or(Window8PreparationRefusal::Contract)
 }
 impl<S, N> PreparedWindow8Factory<S, N>
 where
@@ -65,16 +69,16 @@ where
         crate::parser_session_window8_corrected_declaration::check_fixed_declaration(
             selection.declaration(),
         )
-        .map_err(|_| Window8PreparationRefusal)?;
+        .map_err(|_| Window8PreparationRefusal::Contract)?;
         let incoming = crate::parser_session_window8_model::incoming_storage(&selection)
-            .map_err(|_| Window8PreparationRefusal)?;
+            .map_err(|_| Window8PreparationRefusal::Contract)?;
         let producer = proposer
             .try_borrow()
-            .map_err(|_| Window8PreparationRefusal)?;
+            .map_err(|_| Window8PreparationRefusal::Contract)?;
         if producer.canonical_proposer_definition()
             != selection.declaration().canonical_proposer_definition()
         {
-            return Err(Window8PreparationRefusal);
+            return Err(Window8PreparationRefusal::Contract);
         }
         let producer_owner = add(
             add(
@@ -91,11 +95,11 @@ where
         )?;
         existing = add(
             existing,
-            target_declared_bytes(source_guard.get()).ok_or(Window8PreparationRefusal)?,
+            target_declared_bytes(source_guard.get()).ok_or(Window8PreparationRefusal::Contract)?,
         )?;
         existing = add(
             existing,
-            target_declared_bytes(numeric_guard.get()).ok_or(Window8PreparationRefusal)?,
+            target_declared_bytes(numeric_guard.get()).ok_or(Window8PreparationRefusal::Contract)?,
         )?;
         existing = add(existing, mixed_limits.maximum_combined_bytes)?;
         existing = add(
@@ -126,11 +130,11 @@ where
         let mut preflight = working_limits;
         preflight.existing_owner_bytes = add(preflight.existing_owner_bytes, existing)?;
         PreparedWindow8WorkingSet::reservation(&preflight)
-            .map_err(|_| Window8PreparationRefusal)?;
+            .map_err(|_| Window8PreparationRefusal::Contract)?;
         let resources = crate::parser_session_window8_static::descriptor_resources(&[
             conduit_ai::ModelSignature::PREPARED_DESCRIPTOR,
         ])
-        .ok_or(Window8PreparationRefusal)?;
+        .ok_or(Window8PreparationRefusal::Contract)?;
         let static_bytes = add(
             add(
                 resources.canonical_bytes_bound,
@@ -139,16 +143,16 @@ where
             resources.source_canonical_bytes_bound,
         )?;
         if static_bytes > working_limits.families.maximum_static_bytes {
-            return Err(Window8PreparationRefusal);
+            return Err(Window8PreparationRefusal::Contract);
         }
         drop(producer);
         let mut signature = conduit_plot::rust_binding::PreparedNativeFamily::prepare(
             &[conduit_ai::ModelSignature::PREPARED_DESCRIPTOR],
             signature_limits,
         )
-        .map_err(|_| Window8PreparationRefusal)?;
+        .map_err(|_| Window8PreparationRefusal::Contract)?;
         let model = VerifiedWindow8Model::admit(selection, &mut signature, model_limits)
-            .map_err(|_| Window8PreparationRefusal)?;
+            .map_err(|_| Window8PreparationRefusal::Contract)?;
         drop(signature);
         Self::prepare_verified(
             source_guard.release(),
@@ -175,11 +179,11 @@ where
         let mut numeric_guard = ParserTargetPreparationGuard::new(numeric);
         let producer = proposer
             .try_borrow()
-            .map_err(|_| Window8PreparationRefusal)?;
+            .map_err(|_| Window8PreparationRefusal::Contract)?;
         if producer.canonical_proposer_definition()
             != model.declaration().canonical_proposer_definition()
         {
-            return Err(Window8PreparationRefusal);
+            return Err(Window8PreparationRefusal::Contract);
         }
         let receipt = producer.storage_receipt();
         let producer_owner = add(
@@ -198,11 +202,11 @@ where
         existing = add(existing, model.expected_signature_frame().len())?;
         existing = add(
             existing,
-            target_declared_bytes(source_guard.get()).ok_or(Window8PreparationRefusal)?,
+            target_declared_bytes(source_guard.get()).ok_or(Window8PreparationRefusal::Contract)?,
         )?;
         existing = add(
             existing,
-            target_declared_bytes(numeric_guard.get()).ok_or(Window8PreparationRefusal)?,
+            target_declared_bytes(numeric_guard.get()).ok_or(Window8PreparationRefusal::Contract)?,
         )?;
         // The mixed constructor separately proves all metadata/Plan/codec
         // ceilings. Admit its entire declared ceiling before any earlier owner.
@@ -220,15 +224,15 @@ where
             working_limits,
             &[conduit_ai::ModelSignature::PREPARED_DESCRIPTOR],
         )
-        .map_err(|_| Window8PreparationRefusal)?;
+        .map_err(Window8PreparationRefusal::WorkingSet)?;
         let family = Rc::clone(&working.numeric_family.owner);
         let guard = PreparedParserFeatureGuard::prepare(
-            &*family.try_borrow().map_err(|_| Window8PreparationRefusal)?,
+            &*family.try_borrow().map_err(|_| Window8PreparationRefusal::Contract)?,
             crate::generated::LanguageParserProposalWindow8V2RawFeatures::PREPARED_DESCRIPTOR,
             crate::generated::LanguageParserProposalWindow8V2Features::PREPARED_DESCRIPTOR,
             guard_limits,
         )
-        .map_err(|_| Window8PreparationRefusal)?;
+        .map_err(|_| Window8PreparationRefusal::Contract)?;
         let (mixed, mixed_receipt) = parser_session_mixed_preparation::prepare_mixed_targets_for::<
             ProposalWindow8V2NumericProfile,
             _,
@@ -241,10 +245,10 @@ where
             mixed_limits,
             Some(guard),
         )
-        .map_err(|_| Window8PreparationRefusal)?;
+        .map_err(Window8PreparationRefusal::Mixed)?;
         let source = core::mem::take(&mut working.source);
         let registry =
-            Window8Registry::from_prepared(source, mixed).map_err(|_| Window8PreparationRefusal)?;
+            Window8Registry::from_prepared(source, mixed).map_err(|_| Window8PreparationRefusal::Contract)?;
         Ok(Self {
             registry,
             working,

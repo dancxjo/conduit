@@ -74,6 +74,12 @@ impl PreparedObservationFrames {
             candidates,
         })
     }
+    pub(crate) fn snapshot(&self) -> &[u8] {
+        &self.snapshot
+    }
+    pub(crate) fn snapshot_capacity(&self) -> usize {
+        self.snapshot.capacity()
+    }
     pub(crate) fn available_candidates(&self) -> usize {
         self.candidates.len()
     }

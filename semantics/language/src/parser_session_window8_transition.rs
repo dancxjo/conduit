@@ -41,7 +41,14 @@ pub(crate) fn propose<S: ParserCanonicalSourceExecutor, N: ParserNumericExecutor
         let mut history = stage
             .source_named("language-window8-class-context", query, epoch, model_calls)
             .map_err(|_| TransitionRefusal)?;
-        for name in ["language-window8-move-legal", "language-window8-move-apply"] {
+        for name in [
+            "language-window8-move-legal-shift",
+            "language-window8-move-legal-reduce",
+            "language-window8-move-legal-left",
+            "language-window8-move-legal-right-root",
+            "language-window8-move-legal-right-nonroot",
+            "language-window8-move-apply",
+        ] {
             let query = queries
                 .copy_record(
                     name,
@@ -146,13 +153,21 @@ pub(crate) fn advance<S: ParserCanonicalSourceExecutor, N: ParserNumericExecutor
         // Indices locate retained parents only; complete fixed programs and
         // every original whole-frame edge are checked before score advancement.
         let chain = [
+            outcome.checked_sub(6).ok_or(TransitionRefusal)?,
+            outcome.checked_sub(5).ok_or(TransitionRefusal)?,
+            outcome.checked_sub(4).ok_or(TransitionRefusal)?,
+            outcome.checked_sub(3).ok_or(TransitionRefusal)?,
             outcome.checked_sub(2).ok_or(TransitionRefusal)?,
             outcome.checked_sub(1).ok_or(TransitionRefusal)?,
             outcome,
         ];
         let names = [
             "language-window8-class-context",
-            "language-window8-move-legal",
+            "language-window8-move-legal-shift",
+            "language-window8-move-legal-reduce",
+            "language-window8-move-legal-left",
+            "language-window8-move-legal-right-root",
+            "language-window8-move-legal-right-nonroot",
             "language-window8-move-apply",
         ];
         for (index, name) in chain.into_iter().zip(names) {

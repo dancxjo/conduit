@@ -79,11 +79,34 @@ pub(crate) struct PreparedWindow8WorkingSet {
         alloc::rc::Rc<core::cell::RefCell<conduit_plot::rust_binding::PreparedNativeFamily>>,
     pub(crate) receipt: WorkingSetReceipt,
     history: Window8HistoryOwnership,
+    maximum_complete_bytes: usize,
 }
 fn add(a: usize, b: usize) -> Result<usize, WorkingSetRefusal> {
     a.checked_add(b).ok_or(WorkingSetRefusal)
 }
 impl PreparedWindow8WorkingSet {
+    /// Adds an enclosing owner's fully declared inline/backing storage before
+    /// that owner allocates. The original complete profile remains immutable.
+    pub(crate) fn reserve_owner_delta(
+        &mut self,
+        preparation: usize,
+        retained: usize,
+    ) -> Result<(), WorkingSetRefusal> {
+        let complete = add(
+            self.receipt.complete_declared_bytes_bound,
+            preparation.max(retained),
+        )?;
+        let new_preparation = add(self.receipt.new_preparation_bytes_bound, preparation)?;
+        let new_retained = add(self.receipt.new_retained_bytes_bound, retained)?;
+        if complete > self.maximum_complete_bytes {
+            return Err(WorkingSetRefusal);
+        }
+        self.receipt.complete_declared_bytes_bound = complete;
+        self.receipt.new_preparation_bytes_bound = new_preparation;
+        self.receipt.new_retained_bytes_bound = new_retained;
+        Ok(())
+    }
+
     /// Normal shared-history entrance. Callers cannot substitute per-revision
     /// limits after aggregate preparation; every linked book uses this profile.
     pub(crate) fn prepare_book(
@@ -370,6 +393,7 @@ impl PreparedWindow8WorkingSet {
             observation_family,
             receipt,
             history: limits.history,
+            maximum_complete_bytes: limits.maximum_complete_bytes,
         })
     }
 }

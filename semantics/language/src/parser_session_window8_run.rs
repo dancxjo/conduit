@@ -48,11 +48,26 @@ pub(crate) enum InitialRunStop {
     Complete,
     EpochLimit,
 }
+#[derive(Clone, Copy, Debug)]
 pub(crate) struct InitialRunResult {
     pub(crate) stop: InitialRunStop,
     pub(crate) beam: Option<usize>,
     pub(crate) epochs: u64,
     pub(crate) model_calls: u64,
+}
+/// Every locator resolves only in the Book published alongside this cursor.
+/// No Native snapshot supplied by a caller can construct this cursor.
+pub(crate) struct InitialRunCursor {
+    pub(crate) availability: usize,
+    pub(crate) initializer: usize,
+    pub(crate) seed: Option<usize>,
+    pub(crate) beam: Option<usize>,
+    pub(crate) token_count: u64,
+    pub(crate) next_identity: u64,
+    pub(crate) classes: Option<[crate::parser_session_window8_classes::Window8ClassDerivation; 76]>,
+    pub(crate) observations: Option<crate::parser_session_window8_observe::EpochObservations>,
+    pub(crate) snapshot: alloc::vec::Vec<u8>,
+    pub(crate) progress: InitialRunResult,
 }
 #[derive(Debug)]
 pub(crate) struct InitialRunRefusal;
@@ -62,16 +77,20 @@ pub(crate) fn execute<'a, S: ParserCanonicalSourceExecutor, N: ParserNumericExec
     banks: InitialRunBanks<'_>,
     analysis_identity: &[u8; 64],
     limits: InitialRunLimits<'_>,
+    mut retained_snapshot: alloc::vec::Vec<u8>,
 ) -> Result<
     (
         ParserSessionStage<'a, Window8Registry<S, N>>,
         Window8Book,
-        InitialRunResult,
+        InitialRunCursor,
     ),
     InitialRunRefusal,
 > {
     let result = (|| {
-        if limits.maximum_epochs == 0 {
+        if limits.maximum_epochs == 0
+            || !retained_snapshot.is_empty()
+            || retained_snapshot.capacity() < banks.observations.snapshot_capacity()
+        {
             return Err(InitialRunRefusal);
         }
         let initial = crate::parser_session_window8_initialize::initialize(
@@ -82,11 +101,22 @@ pub(crate) fn execute<'a, S: ParserCanonicalSourceExecutor, N: ParserNumericExec
         )
         .map_err(|_| InitialRunRefusal)?;
         let Some(seed) = initial.beam else {
-            return Ok(InitialRunResult {
-                stop: InitialRunStop::WaitingEmpty,
+            return Ok(InitialRunCursor {
+                availability: initial.availability,
+                initializer: initial.initial,
+                seed: None,
                 beam: None,
-                epochs: 0,
-                model_calls: 0,
+                token_count: initial.count,
+                next_identity: 0,
+                classes: None,
+                observations: None,
+                snapshot: retained_snapshot,
+                progress: InitialRunResult {
+                    stop: InitialRunStop::WaitingEmpty,
+                    beam: None,
+                    epochs: 0,
+                    model_calls: 0,
+                },
             });
         };
         let observations = limits
@@ -118,6 +148,7 @@ pub(crate) fn execute<'a, S: ParserCanonicalSourceExecutor, N: ParserNumericExec
         let mut calls = 0;
         let mut epochs = 0;
         let mut stop = InitialRunStop::EpochLimit;
+        let mut observations = None;
         for epoch in 0..limits.maximum_epochs {
             beam = crate::parser_session_window8_epoch::execute(
                 &mut stage,
@@ -146,33 +177,52 @@ pub(crate) fn execute<'a, S: ParserCanonicalSourceExecutor, N: ParserNumericExec
             if completion.active == 0 {
                 return Err(InitialRunRefusal);
             }
-            crate::parser_session_window8_observe::observe(
-                &mut stage,
-                banks.queries,
-                banks.atoms,
-                banks.ancestry,
-                banks.snapshots,
-                banks.observations,
-                banks.fact,
-                banks.refinement,
-                banks.family,
-                &classes,
-                beam,
-                limits.maximum_observation_native_conversion_requested_bytes,
-                epoch,
-                calls,
-            )
-            .map_err(|_| InitialRunRefusal)?;
+            observations = Some(
+                crate::parser_session_window8_observe::observe(
+                    &mut stage,
+                    banks.queries,
+                    banks.atoms,
+                    banks.ancestry,
+                    banks.snapshots,
+                    banks.observations,
+                    banks.fact,
+                    banks.refinement,
+                    banks.family,
+                    &classes,
+                    beam,
+                    limits.maximum_observation_native_conversion_requested_bytes,
+                    epoch,
+                    calls,
+                )
+                .map_err(|_| InitialRunRefusal)?,
+            );
+            let snapshot = banks.observations.snapshot();
+            if snapshot.len() > retained_snapshot.capacity() {
+                return Err(InitialRunRefusal);
+            }
+            retained_snapshot.clear();
+            retained_snapshot.extend_from_slice(snapshot);
             if completion.all_complete {
                 stop = InitialRunStop::Complete;
                 break;
             }
         }
-        Ok(InitialRunResult {
-            stop,
+        Ok(InitialRunCursor {
+            availability: initial.availability,
+            initializer: initial.initial,
+            seed: Some(seed),
             beam: Some(beam),
-            epochs,
-            model_calls: calls,
+            token_count: initial.count,
+            next_identity: identity,
+            classes: Some(classes),
+            observations,
+            snapshot: retained_snapshot,
+            progress: InitialRunResult {
+                stop,
+                beam: Some(beam),
+                epochs,
+                model_calls: calls,
+            },
         })
     })();
     match result {
