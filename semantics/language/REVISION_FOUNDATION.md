@@ -20,6 +20,13 @@ that four tokens suffice for general English or the later Window8 parser.
 prefix waits; final input requires all tape tokens and explicit source finality.
 Availability does not imply stable dependencies or parser commitment.
 
+The availability schema checks occurrence metadata; it does not independently
+prove that a token surface equals a source substring, or validate span ordering
+and range. Consumers must derive tapes through the existing
+`prepare_lexical_tape` path and validate source revisions with
+`validate_text_revision`. An arbitrarily constructed tape is not lexical truth
+merely because its availability metadata admits.
+
 The original #5196 availability-state, action-mask, growth and scorer operations
 are deliberately separate follow-on slices. The public schemas are installed
 in the Language catalog; the derivation's exact checked program is generated
@@ -39,5 +46,8 @@ cargo +stable clippy --locked -p conduit-language --lib \
 The Source checker and generated Native bindings run as part of Cargo's Language
 build. No extra model files, F32/affine owners, Burn runtime, optional parser
 features, or #5196 shared-infrastructure changes are included. These commands
-have not yet been run on this extracted tree; source review and diff checks are
-not runtime evidence. Keep #4907 open.
+passed on source commit `482954f7de4c625cb886980c8497130c3eb47bb5`:18 focused tests,
+0 failures and0 ignored; the library check and strict Clippy also passed.
+Exact commands, byte-exact producer logs and source hashes are retained in
+`proof/evidence/language/revision-foundation/receipt.json`. This is local scoped
+evidence, not final-head CI or public Session acceptance. Keep #4907 open.
