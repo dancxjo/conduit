@@ -1,6 +1,11 @@
 //! Fixed affine reference computation over admitted Data tensor content.
 //! Resource access/authority and ModelArtifact admission belong to the caller.
 use crate::fixed_neural::FixedNumericRefusal;
+#[cfg(target_has_atomic = "ptr")]
+use crate::fixed_tensor_resource::AdmittedFixedTensorResource;
+use crate::fixed_tensor_resource::FixedTensorView;
+#[cfg(target_has_atomic = "ptr")]
+use alloc::sync::Arc;
 use conduit_data::{tensor_content_digest, TensorElement, TensorRefusal, TensorValue};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -20,10 +25,8 @@ pub enum FixedTensorRefusal {
 /// Packed little-endian f32 weights, without unsafe alignment assumptions or a
 /// second copied model. Shape, packing order and exact content remain explicit.
 pub struct FixedTensorAffine<'a, const INPUT: usize, const OUTPUT: usize> {
-    weights: &'a TensorValue,
-    bias: &'a TensorValue,
-    weight_bytes: &'a [u8],
-    bias_bytes: &'a [u8],
+    weights: FixedTensorView<'a>,
+    bias: FixedTensorView<'a>,
     order: FixedMatrixOrder,
 }
 impl<'a, const INPUT: usize, const OUTPUT: usize> FixedTensorAffine<'a, INPUT, OUTPUT> {
@@ -34,6 +37,31 @@ impl<'a, const INPUT: usize, const OUTPUT: usize> FixedTensorAffine<'a, INPUT, O
         bias_bytes: &'a [u8],
         order: FixedMatrixOrder,
     ) -> Result<Self, FixedTensorRefusal> {
+        Self::prepare_views(
+            FixedTensorView::borrowed(weights, weight_bytes),
+            FixedTensorView::borrowed(bias, bias_bytes),
+            order,
+        )
+    }
+    #[cfg(target_has_atomic = "ptr")]
+    pub fn prepare_owned(
+        weights: Arc<AdmittedFixedTensorResource>,
+        bias: Arc<AdmittedFixedTensorResource>,
+        order: FixedMatrixOrder,
+    ) -> Result<Self, FixedTensorRefusal> {
+        Self::prepare_views(
+            FixedTensorView::Owned(weights),
+            FixedTensorView::Owned(bias),
+            order,
+        )
+    }
+    fn prepare_views(
+        weights: FixedTensorView<'a>,
+        bias: FixedTensorView<'a>,
+        order: FixedMatrixOrder,
+    ) -> Result<Self, FixedTensorRefusal> {
+        let weight_bytes = weights.bytes();
+        let bias_bytes = bias.bytes();
         if INPUT == 0 || OUTPUT == 0 {
             return Err(FixedTensorRefusal::Numeric(FixedNumericRefusal::EmptyShape));
         }
@@ -41,8 +69,8 @@ impl<'a, const INPUT: usize, const OUTPUT: usize> FixedTensorAffine<'a, INPUT, O
             FixedMatrixOrder::OutputMajor => [OUTPUT as u64, INPUT as u64],
             FixedMatrixOrder::InputMajor => [INPUT as u64, OUTPUT as u64],
         };
-        validate_tensor(weights, weight_bytes, &shape)?;
-        validate_tensor(bias, bias_bytes, &[OUTPUT as u64])?;
+        validate_tensor(weights.tensor(), weight_bytes, &shape)?;
+        validate_tensor(bias.tensor(), bias_bytes, &[OUTPUT as u64])?;
         if weight_bytes
             .as_chunks::<4>()
             .0
@@ -66,16 +94,14 @@ impl<'a, const INPUT: usize, const OUTPUT: usize> FixedTensorAffine<'a, INPUT, O
         Ok(Self {
             weights,
             bias,
-            weight_bytes,
-            bias_bytes,
             order,
         })
     }
-    pub fn weights(&self) -> &'a TensorValue {
-        self.weights
+    pub fn weights(&self) -> &TensorValue {
+        self.weights.tensor()
     }
-    pub fn bias(&self) -> &'a TensorValue {
-        self.bias
+    pub fn bias(&self) -> &TensorValue {
+        self.bias.tensor()
     }
     pub fn order(&self) -> FixedMatrixOrder {
         self.order
@@ -91,15 +117,17 @@ impl<'a, const INPUT: usize, const OUTPUT: usize> FixedTensorAffine<'a, INPUT, O
         if input.iter().any(|value| !value.is_finite()) {
             return Err(FixedNumericRefusal::NonfiniteInput);
         }
+        let weight_bytes = self.weights.bytes();
+        let bias_bytes = self.bias.bytes();
         let mut staged = [0.0; OUTPUT];
         for (row, result) in staged.iter_mut().enumerate() {
-            let mut sum = read_f32(&self.bias_bytes[row * 4..row * 4 + 4]);
+            let mut sum = read_f32(&bias_bytes[row * 4..row * 4 + 4]);
             for (column, value) in input.iter().enumerate() {
                 let index = match self.order {
                     FixedMatrixOrder::OutputMajor => row * INPUT + column,
                     FixedMatrixOrder::InputMajor => column * OUTPUT + row,
                 };
-                sum += read_f32(&self.weight_bytes[index * 4..index * 4 + 4]) * value;
+                sum += read_f32(&weight_bytes[index * 4..index * 4 + 4]) * value;
             }
             if !sum.is_finite() {
                 return Err(FixedNumericRefusal::NonfiniteOutput);
@@ -113,11 +141,21 @@ impl<'a, const INPUT: usize, const OUTPUT: usize> FixedTensorAffine<'a, INPUT, O
 /// An exact resource-backed row-major table. Index policy belongs to the
 /// authored caller; this primitive only admits and copies a generic row.
 pub struct FixedTensorEmbedding<'a, const ROWS: usize, const WIDTH: usize> {
-    tensor: &'a TensorValue,
-    bytes: &'a [u8],
+    view: FixedTensorView<'a>,
 }
 impl<'a, const ROWS: usize, const WIDTH: usize> FixedTensorEmbedding<'a, ROWS, WIDTH> {
     pub fn prepare(tensor: &'a TensorValue, bytes: &'a [u8]) -> Result<Self, FixedTensorRefusal> {
+        Self::prepare_view(FixedTensorView::borrowed(tensor, bytes))
+    }
+    #[cfg(target_has_atomic = "ptr")]
+    pub fn prepare_owned(
+        resource: Arc<AdmittedFixedTensorResource>,
+    ) -> Result<Self, FixedTensorRefusal> {
+        Self::prepare_view(FixedTensorView::Owned(resource))
+    }
+    fn prepare_view(view: FixedTensorView<'a>) -> Result<Self, FixedTensorRefusal> {
+        let tensor = view.tensor();
+        let bytes = view.bytes();
         if ROWS == 0 || WIDTH == 0 {
             return Err(FixedTensorRefusal::Numeric(FixedNumericRefusal::EmptyShape));
         }
@@ -132,10 +170,10 @@ impl<'a, const ROWS: usize, const WIDTH: usize> FixedTensorEmbedding<'a, ROWS, W
                 FixedNumericRefusal::NonfiniteWeight,
             ));
         }
-        Ok(Self { tensor, bytes })
+        Ok(Self { view })
     }
-    pub fn tensor(&self) -> &'a TensorValue {
-        self.tensor
+    pub fn tensor(&self) -> &TensorValue {
+        self.view.tensor()
     }
     pub fn lookup(
         &self,
@@ -145,10 +183,11 @@ impl<'a, const ROWS: usize, const WIDTH: usize> FixedTensorEmbedding<'a, ROWS, W
         if index >= ROWS {
             return Err(FixedNumericRefusal::Index);
         }
+        let bytes = self.view.bytes();
         let mut staged = [0.0; WIDTH];
         for (column, value) in staged.iter_mut().enumerate() {
             let offset = (index * WIDTH + column) * 4;
-            *value = read_f32(&self.bytes[offset..offset + 4]);
+            *value = read_f32(&bytes[offset..offset + 4]);
         }
         *output = staged;
         Ok(())

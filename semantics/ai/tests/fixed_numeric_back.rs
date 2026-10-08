@@ -12,7 +12,8 @@ use conduit_kernel::{
 };
 use conduit_plot::rust_binding::BoundedSequence;
 const PORTS: usize = conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
-use std::{cell::Cell, rc::Rc};
+use conduit_ai::fixed_tensor_resource::AdmittedFixedTensorResource;
+use std::{cell::Cell, rc::Rc, sync::Arc};
 
 fn tensor(shape: &[u64], bytes: &[u8]) -> TensorValue {
     let digest = tensor_content_digest(bytes);
@@ -326,7 +327,7 @@ fn scheduler<'a>(
                 sent: false,
             },
             "numeric/dense3x2" => Driver::Affine(Box::new(
-                FixedAffineBack::prepare_planned::<PORTS>(
+                FixedAffineBack::prepare_owned_planned::<PORTS>(
                     gear,
                     lowered.node_specs[fragment
                         .placements
@@ -334,12 +335,22 @@ fn scheduler<'a>(
                         .position(|placement| placement.gear_id == gear.gear_id)
                         .unwrap()]
                     .maximum_step_fuel,
-                    weights,
-                    weight_bytes,
-                    &access(weights),
-                    bias,
-                    bias_bytes,
-                    &access(bias),
+                    Arc::new(
+                        AdmittedFixedTensorResource::adopt(
+                            Arc::new(weights.clone()),
+                            Arc::from(weight_bytes),
+                            &access(weights),
+                        )
+                        .unwrap(),
+                    ),
+                    Arc::new(
+                        AdmittedFixedTensorResource::adopt(
+                            Arc::new(bias.clone()),
+                            Arc::from(bias_bytes),
+                            &access(bias),
+                        )
+                        .unwrap(),
+                    ),
                 )
                 .unwrap(),
             )),
@@ -382,7 +393,7 @@ fn scheduler<'a>(
     .unwrap()
 }
 #[test]
-fn ordinary_plan_play_executes_exact_borrowed_tensor_affine() {
+fn ordinary_plan_play_executes_exact_owned_tensor_affine() {
     let bytes = packed(&[1., 4., 2., 5., 3., 6.]);
     let weights = tensor(&[3, 2], &bytes);
     let biases = packed(&[0.5, -0.5]);
