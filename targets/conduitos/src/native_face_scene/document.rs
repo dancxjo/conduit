@@ -5,7 +5,7 @@ use super::*;
 use alloc::{format, string::String};
 use conduit_presentation::{
     FaceUtteranceProvenance as Provenance, PresentationActionAvailability,
-    PresentationDisclosureLevel, PresentationRole, plan_face_utterances,
+    PresentationDisclosureLevel, PresentationPropertyValue, PresentationRole, plan_face_utterances,
     readable_finite_text_choices,
 };
 
@@ -122,7 +122,22 @@ pub(super) fn prepare(
             item.indent = depth;
             primary.push(item);
         };
-        let mut heading = item(subject.name.clone(), role);
+        let name = if subject.role == PresentationRole::Item {
+            face.properties
+                .iter()
+                .find(|property| {
+                    property.subject == subject.identity && property.name == "complete"
+                })
+                .and_then(|property| match &property.value {
+                    PresentationPropertyValue::Flag(complete) => Some(*complete),
+                    _ => None,
+                })
+                .map(|complete| format!("[{}] {}", if complete { 'x' } else { ' ' }, subject.name))
+                .unwrap_or_else(|| subject.name.clone())
+        } else {
+            subject.name.clone()
+        };
+        let mut heading = item(name, role);
         heading.paint = match subject.role {
             PresentationRole::Diagnostic => GraphicsPaintRole::Warning,
             PresentationRole::Status => GraphicsPaintRole::Foreground,
