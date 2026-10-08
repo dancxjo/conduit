@@ -541,6 +541,58 @@ fn second_host_restores_exact_published_state_through_fore() {
     });
 }
 #[test]
+fn read_body_play_transfers_large_admitted_state_and_refuses_oversize_checkpoint() {
+    on_body_stack(|| {
+        for (title, count, text) in [
+            ("Groceries".to_owned(), 4, "Long-list item".to_owned()),
+            ("L".repeat(64), 20, "I".repeat(72)),
+        ] {
+            let root = root();
+            let (_, plan) = planned(Mode::Write, &root, 2);
+            let placement = plan.fragments[0]
+                .placements
+                .iter()
+                .find(|placement| {
+                    placement.implementation_id.as_str()
+                        == conduit_std_offers::TODO_CHECKPOINT_IMPLEMENTATION
+                })
+                .unwrap();
+            let residence = SelectedTodoResidence::prepare(&root, placement, identity()).unwrap();
+            let mut state = TodoState::new(title).unwrap();
+            for _ in 0..count {
+                state = state
+                    .apply(&TodoCommand::Add { text: text.clone() })
+                    .unwrap();
+                residence.commit(&placement.authority[0], &state).unwrap();
+            }
+            let bytes = state.encode_info().unwrap();
+            assert!(bytes.len() > 100);
+            if count == 20 {
+                assert_eq!(bytes.len(), STATE_MAX_BYTES);
+            }
+            let (report, fore) = restore(&root, 2);
+            assert_eq!(report.terminal, TerminalDisposition::Completed);
+            assert_eq!(fore.0.len(), 1);
+            assert_eq!(fore.0[0].bytes, bytes);
+
+            if count == 20 {
+                let candidate = std::fs::read_dir(&root)
+                    .unwrap()
+                    .map(|entry| entry.unwrap().path())
+                    .find(|path| path.extension().is_some_and(|ext| ext == "checkpoint"))
+                    .unwrap();
+                let mut oversized = std::fs::read(&candidate).unwrap();
+                oversized.push(0);
+                std::fs::write(candidate, oversized).unwrap();
+                let (refused, fore) = restore(&root, 2);
+                assert_ne!(refused.terminal, TerminalDisposition::Completed);
+                assert!(fore.0.is_empty());
+            }
+            std::fs::remove_dir_all(root).unwrap();
+        }
+    });
+}
+#[test]
 fn old_plot_keyed_checkpoint_requires_explicit_migration() {
     on_body_stack(|| {
         let root = root();
