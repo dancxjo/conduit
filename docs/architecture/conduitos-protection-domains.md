@@ -298,6 +298,15 @@ wake keeps its original owner. Three budget interrupts return a looping domain.
 Admission requires the reviewed translation regime and SHA-256-conditioned
 Zkr entropy; missing mechanisms refuse rather than supply weaker capability
 material. The reviewed emulator CPU is `rv64,zkr=true,sv57=off,sv48=off`.
+The supported proof-tool preparation entrance is
+`cargo xtask make conduitos prepare-riscv64-domain-emulator`. It builds pinned
+QEMU 10.2.1 and verifies pinned OpenSBI 1.8.1 firmware before selecting them.
+The CI QEMU 8.2/OpenSBI 1.3 pair refuses the required supervisor entropy access;
+upgrading either component alone still refuses. The reviewed pair completed
+the ordinary product boot locally with the same older U-Boot artifact.
+Tool preparation is separate from execution proof and records both content
+identities; it does not weaken entropy, page or capability admission.
+
 
 `cargo xtask make conduitos riscv64-ordinary-domain-proof` completed two normal
 product boots and two independently instrumented boots. The original

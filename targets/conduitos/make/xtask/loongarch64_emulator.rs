@@ -1,4 +1,5 @@
 //! Pinned preparation of the reviewed diagnostic emulator, separate from stock QEMU.
+use super::qemu_source::version;
 use super::{profile::Paths, report::sha256_file, ConduitosArch, ConduitosError};
 use crate::cli::GlobalOpts;
 use serde::{Deserialize, Serialize};
@@ -6,10 +7,8 @@ use sha2::{Digest, Sha256};
 use std::{
     fs,
     path::{Path, PathBuf},
-    process::Command,
 };
 
-const ARCHIVE: &str = "qemu-10.2.1.tar.xz";
 const ARCHIVE_SHA256: &str = "a3717477d8e2c84d630bfffbc20f6cd3293eb45aa1e6dac6d0cc27689991c9e1";
 const VERSION: &str = "QEMU emulator version 10.2.1 (conduit-diagnostic-misc-drdtl)";
 const PATCHES: [&str; 2] = ["qemu-misc-drdtl.patch", "qemu-nonfault-badi.patch"];
@@ -75,21 +74,6 @@ fn directory(paths: &Paths, inputs: &Inputs) -> Result<PathBuf, ConduitosError> 
         .root
         .join("target/conduitos/toolchain/loongarch64-domain-qemu")
         .join(key))
-}
-fn version(program: &Path, args: &[&str]) -> Result<String, ConduitosError> {
-    let output = Command::new(program).args(args).output().map_err(refusal)?;
-    if !output.status.success() {
-        return Err(refusal(format!(
-            "{}: {}",
-            program.display(),
-            String::from_utf8_lossy(&output.stderr)
-        )));
-    }
-    Ok(String::from_utf8_lossy(&output.stdout)
-        .lines()
-        .next()
-        .unwrap_or_default()
-        .to_owned())
 }
 fn validate(
     receipt: &Receipt,
@@ -180,46 +164,13 @@ pub(super) fn prepare(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         }
         return Ok(());
     }
-    fs::create_dir_all(&destination).map_err(refusal)?;
-    let archive = destination.join(ARCHIVE);
-    if !archive.exists() {
-        let download = destination.join(format!("download-{}", std::process::id()));
-        run(Command::new("curl")
-            .args(["--fail", "--location", "--remove-on-error", "--output"])
-            .arg(&download)
-            .arg(format!("https://download.qemu.org/{ARCHIVE}")))?;
-        verify_archive(&download)?;
-        fs::rename(download, &archive).map_err(refusal)?;
-    }
-    verify_archive(&archive)?;
-    // Each cold attempt owns a fresh source/build directory. Interrupted or
-    // failed attempts remain inspectable and cannot masquerade as a warm tool.
-    let attempt = destination.join(format!("attempt-{}", std::process::id()));
-    fs::create_dir(&attempt).map_err(refusal)?;
-    let source = attempt.join("source");
-    let build = attempt.join("build");
-    fs::create_dir(&source).map_err(refusal)?;
-    fs::create_dir(&build).map_err(refusal)?;
-    run(Command::new("tar")
-        .args(["--extract", "--file"])
-        .arg(&archive)
-        .args(["--strip-components=1", "--no-same-owner", "--directory"])
-        .arg(&source))?;
-    for name in PATCHES {
-        run(Command::new("patch")
-            .args(["--batch", "--forward", "--fuzz=0", "-p1", "--input"])
-            .arg(patch(&paths, name))
-            .current_dir(&source))?;
-    }
-    run(Command::new(source.join("configure"))
-        .args(CONFIGURE)
-        .current_dir(&build))?;
-    run(Command::new("ninja").args(["-C"]).arg(&build).args([
-        "-j",
-        "4",
+    let built = super::qemu_source::build(
+        &destination,
+        ARCHIVE_SHA256,
+        CONFIGURE,
+        &PATCHES.map(|name| patch(&paths, name)),
         "qemu-system-loongarch64",
-    ]))?;
-    let built = build.join("qemu-system-loongarch64");
+    )?;
     let actual_version = version(&built, &["--version"])?;
     let receipt = Receipt {
         inputs: inputs.clone(),
@@ -258,19 +209,6 @@ pub(super) fn prepare(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         );
     } else if !opts.quiet {
         println!("Prepared diagnostic emulator: {}", binary.display());
-    }
-    Ok(())
-}
-fn verify_archive(path: &Path) -> Result<(), ConduitosError> {
-    if sha256_file(path)? != ARCHIVE_SHA256 {
-        return Err(refusal("QEMU source archive digest mismatch"));
-    }
-    Ok(())
-}
-fn run(command: &mut Command) -> Result<(), ConduitosError> {
-    let status = command.status().map_err(refusal)?;
-    if !status.success() {
-        return Err(refusal(format!("{command:?} exited {status}")));
     }
     Ok(())
 }

@@ -42,3 +42,11 @@ test('curated caches exclude product evidence, installed system packages and arb
   }
   assert.throws(() => acquisitionIdentity('../../escape', options));
 });
+
+test('RISC-V64 caches only verified emulator outputs and its receipt', () => {
+  const { paths } = acquisitionIdentity('conduitos-riscv64', { root: '/test/repo', home: '/test/home' });
+  const tools = paths.filter(value => value.includes('riscv64-domain-qemu'));
+  assert.equal(tools.length, 3);
+  assert.ok(tools.some(value => value.endsWith('/receipt.json')));
+  assert.ok(tools.every(value => !value.includes('attempt-') && !value.endsWith('/build')));
+});

@@ -85,6 +85,7 @@ mod prove;
 mod prove_many;
 mod ps2_input_proof;
 mod qemu_artifacts;
+mod qemu_source;
 mod qmp;
 mod qmp_display;
 mod removable_media;
@@ -99,6 +100,7 @@ mod riscv64_a2;
 mod riscv64_a3;
 mod riscv64_a4;
 mod riscv64_domain_proof;
+mod riscv64_emulator;
 mod riscv64_product_boot;
 mod run;
 mod screen_free_three_host_proof;
@@ -529,6 +531,7 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
         ConduitosCommand::Aarch64OrdinaryDomainProof => aarch64_domain_proof::execute(opts),
         ConduitosCommand::Riscv64OrdinaryDomainProof => riscv64_domain_proof::execute(opts),
         ConduitosCommand::Loongarch64OrdinaryDomainProof => loongarch64_domain_proof::execute(opts),
+        ConduitosCommand::PrepareRiscv64DomainEmulator => riscv64_emulator::prepare(opts),
         ConduitosCommand::PrepareLoongarch64DomainEmulator => loongarch64_emulator::prepare(opts),
         ConduitosCommand::VirtioNetProof => virtio_net_proof::execute(opts),
     }

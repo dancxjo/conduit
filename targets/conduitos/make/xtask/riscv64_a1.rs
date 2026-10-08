@@ -314,18 +314,23 @@ pub(super) fn validate(sign: &EntrySign, paths: &Paths) -> Result<(), ConduitosE
 
 pub(super) fn tools(paths: &Paths) -> Result<(PathBuf, PathBuf, PathBuf), ConduitosError> {
     let local = paths.root.join("target/conduitos/toolchain/riscv64-root");
-    let qemu = [
-        PathBuf::from("/usr/bin/qemu-system-riscv64"),
-        local.join("usr/bin/qemu-system-riscv64"),
-    ]
-    .into_iter()
-    .find(|p| p.is_file());
-    let opensbi = [
-        PathBuf::from("/usr/share/qemu/opensbi-riscv64-generic-fw_dynamic.bin"),
-        local.join("usr/share/qemu/opensbi-riscv64-generic-fw_dynamic.bin"),
-    ]
-    .into_iter()
-    .find(|p| p.is_file());
+    let prepared = super::riscv64_emulator::selected(paths)?;
+    let qemu = prepared.as_ref().map(|tools| tools.0.clone()).or_else(|| {
+        [
+            PathBuf::from("/usr/bin/qemu-system-riscv64"),
+            local.join("usr/bin/qemu-system-riscv64"),
+        ]
+        .into_iter()
+        .find(|p| p.is_file())
+    });
+    let opensbi = prepared.map(|tools| tools.1).or_else(|| {
+        [
+            PathBuf::from("/usr/share/qemu/opensbi-riscv64-generic-fw_dynamic.bin"),
+            local.join("usr/share/qemu/opensbi-riscv64-generic-fw_dynamic.bin"),
+        ]
+        .into_iter()
+        .find(|p| p.is_file())
+    });
     let uboot = [
         PathBuf::from("/usr/lib/u-boot/qemu-riscv64_smode/uboot.elf"),
         local.join("usr/lib/u-boot/qemu-riscv64_smode/uboot.elf"),

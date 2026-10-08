@@ -13,7 +13,7 @@ export function targetPackages(target) {
     const byArch = {
       x86_64: ['qemu-system-x86'], ia32: ['qemu-system-x86', 'ovmf-ia32'],
       aarch64: ['qemu-system-arm', 'qemu-efi-aarch64'],
-      riscv64: ['qemu-system-misc', 'u-boot-qemu'],
+      riscv64: ['qemu-system-misc', 'u-boot-qemu', 'libglib2.0-dev', 'libfdt-dev', 'zlib1g-dev', 'ninja-build', 'python3-venv'],
       loongarch64: ['qemu-system-misc', 'libglib2.0-dev', 'libfdt-dev', 'zlib1g-dev', 'ninja-build', 'python3-venv', 'patch'],
     };
     const required = byArch[target.id.slice('conduitos-'.length)];
@@ -76,6 +76,7 @@ export function setup(target) {
     };
     rustTargets(...triples[arch]);
     rustComponents('rust-src', 'llvm-tools-preview');
+    if (arch === 'riscv64') xtask('make', 'conduitos', 'prepare-riscv64-domain-emulator');
     if (arch === 'loongarch64') xtask('make', 'conduitos', 'prepare-loongarch64-domain-emulator');
   } else if (target.family === 'esp32') {
     if (target.id === 'esp32-c3') {
