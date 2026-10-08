@@ -36,3 +36,12 @@ Source byte. The old diagnostic `source-document:` hash is not the checker seal.
 A tiny additive identity façade against the unchanged coherent Plot implements
 that exact existing checker algorithm for this component gate; production reuse
 requires the published Plot helper and a coherent dependent rebuild.
+
+The archived-plan public guard test now executes preparation one-under refusal,
+nine foreign equal-material model/Source/Plan stop/loss/unload cases, and three
+unchanged-basis controls. It verifies original Arc cleanup and no foreign stop
+calls through the actual public session implementation. The controlled driver
+is deliberately not a FARGAN inference provider or complete resource inventory.
+The explicit ignored integration gate requires
+`CONDUIT_FARGAN_SESSION_PLAN_FIXTURE` pointing at the archived exact Source and
+958-node sealed Plan; its coherent standalone façade run passed all three tests.
