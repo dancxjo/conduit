@@ -710,3 +710,70 @@ fn pinned_learned_v2_parameter_blob_matches_all_76_scores_through_prepared_step(
     }
     assert_eq!(back.committed_invocations(), 3);
 }
+
+#[test]
+fn canonical_admission_replays_exact_model_without_play_allocations() {
+    let profile = profile();
+    let input = indices(&profile, &[0, 2]);
+    let limits = CategoricalCanonicalAdmissionLimits {
+        maximum_preparation_peak_bytes: 4 * 1024 * 1024,
+        maximum_retained_bytes: 4 * 1024 * 1024,
+    };
+    let (owner, observed) = allocation_probe::observe(|| {
+        PreparedCategoricalCanonicalAdmission::prepare(profile.clone(), limits)
+    });
+    let mut owner = owner.unwrap();
+    assert!(observed.peak_bytes <= owner.storage_receipt().preparation_peak_heap_bytes_bound);
+    assert!(Arc::ptr_eq(owner.profile(), &profile));
+    let (result, observed) = allocation_probe::observe(|| owner.evaluate(&input));
+    let output = result.unwrap();
+    assert_eq!(observed.allocations, 0);
+    assert_eq!(observed.reallocations, 0);
+    assert_eq!(scores(output), vec![3, 8]);
+    let mut corrupt = input.clone();
+    corrupt[0] ^= 1;
+    assert_eq!(
+        owner.evaluate(&corrupt),
+        Err(CategoricalCanonicalAdmissionRefusal::Input)
+    );
+    let mut under = limits;
+    under.maximum_preparation_peak_bytes -= 1;
+    let (result, observed) = allocation_probe::observe(|| {
+        PreparedCategoricalCanonicalAdmission::prepare(profile, under)
+    });
+    assert!(matches!(
+        result,
+        Err(CategoricalCanonicalAdmissionRefusal::Pressure)
+    ));
+    assert_eq!(observed.allocations, 0);
+    assert_eq!(observed.reallocations, 0);
+}
+
+#[test]
+fn canonical_admission_largest_supported_shape_has_bounded_preparation() {
+    let mut bytes = b"CI16SUM1".to_vec();
+    for n in [3u32, 128, 64] {
+        bytes.extend_from_slice(&n.to_le_bytes());
+    }
+    for _ in 0..384 {
+        bytes.extend_from_slice(&1i16.to_le_bytes());
+    }
+    let (model, residence) = fixture_model(bytes, 64, 128);
+    let profile = Arc::new(
+        PreparedCategoricalStep::prepare(model, "test/model-pool".into(), residence).unwrap(),
+    );
+    let input = indices(&profile, &[2; 64]);
+    let limits = CategoricalCanonicalAdmissionLimits {
+        maximum_preparation_peak_bytes: 4 * 1024 * 1024,
+        maximum_retained_bytes: 4 * 1024 * 1024,
+    };
+    let (owner, observed) = allocation_probe::observe(|| {
+        PreparedCategoricalCanonicalAdmission::prepare(profile, limits)
+    });
+    let mut owner = owner.unwrap();
+    assert!(observed.peak_bytes <= owner.storage_receipt().preparation_peak_heap_bytes_bound);
+    let (result, observed) = allocation_probe::observe(|| owner.evaluate(&input));
+    assert_eq!(observed.allocations, 0);
+    assert_eq!(observed.reallocations, 0);
+    assert_eq!(scores(result.unwrap()), vec![64; 128]);
+}

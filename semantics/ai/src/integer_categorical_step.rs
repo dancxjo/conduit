@@ -115,6 +115,18 @@ fn text(bytes: &mut Vec<u8>, value: &str) {
     bytes.extend_from_slice(value.as_bytes());
 }
 impl PreparedCategoricalStep {
+    /// Re-evaluate the exact adopted model into caller-prepared storage.
+    /// This does not execute a target Plan or publish an invocation receipt.
+    /// A custody owner can compare these scores with a target response while
+    /// retaining the original model resource and full numeric input/output.
+    pub fn infer_indices_into(
+        &self,
+        indices: &[u64],
+        scores: &mut [i64],
+    ) -> Result<(), crate::integer_categorical::CategoricalRefusal> {
+        self.model.infer_indices_into(indices, scores)
+    }
+
     /// Preparation-time conservative range for typed downstream admission.
     pub fn maximum_score_magnitude(&self) -> u64 {
         self.model.maximum_score_magnitude()
@@ -612,3 +624,7 @@ pub mod owner {
         }
     }
 }
+
+// Canonical numerical replay retains the exact adopted resource through this
+// existing owner. It does not stand in for ordinary target Plan execution.
+include!("integer_categorical_canonical_admission.rs");
