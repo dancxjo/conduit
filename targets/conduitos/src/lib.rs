@@ -29,8 +29,6 @@ mod domain_scope_identity;
 pub mod domain_serial_scope;
 pub mod domain_timer_gate;
 pub mod domain_timer_scope;
-#[cfg(conduitos_protected_execution)]
-mod protected_timer;
 pub mod dual_region_composition;
 pub mod dual_region_kernel;
 pub mod dual_region_plan;
@@ -153,6 +151,8 @@ pub mod protected_line_support;
 pub mod protected_region;
 #[cfg(feature = "native-owner-network")]
 pub mod protected_relay_support;
+#[cfg(conduitos_protected_execution)]
+mod protected_timer;
 pub mod protected_wire_session;
 pub mod protection_domain;
 mod protocol_call_refusal;
