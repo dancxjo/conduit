@@ -309,6 +309,7 @@ fn report(terminal: TerminalDisposition) -> BodyRunReport {
         partitions: Vec::new(),
         requests: Vec::new(),
         kernel_events: Vec::new(),
+        fore_deliveries: Vec::new(),
         clock_observations: Vec::new(),
         clock_quality: None,
         clock_execution_bounds: None,

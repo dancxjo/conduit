@@ -45,7 +45,8 @@ impl Ord for ForeBoundaryKey {
 
 mod authoring;
 pub use authoring::{
-    plan_expanded_authoring_with_connection_limits, plan_expanded_authoring_with_options,
+    plan_expanded_authoring_with_activations, plan_expanded_authoring_with_connection_limits,
+    plan_expanded_authoring_with_options,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
