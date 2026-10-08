@@ -1,0 +1,50 @@
+{
+  "scope": "Actual retained RawState through all76 original Source class/legal requests and38 accepted zero-increment score-advance/merge requests; timing component only, no model-score/corpus/Source-custody/public Session/whole-memory or per-incoming-token claim",
+  "session": 76747,
+  "natural_exit_status": 0,
+  "coherent_closed_manifest_sha256": "4331f154a74edf8c4f7b0a32e1e50bc9aa563010fd2f554e849322b7c5ea2718",
+  "actual_classes": 76,
+  "accepted_proposals": 38,
+  "zero_score_increments_are_authored_benchmark_inputs_not_actual_model_observations": true,
+  "original_merge_seconds": 18.045444938,
+  "scoped_merge_seconds": 9.590164307,
+  "fresh_5caps_per_merge_seconds": 0.948955769,
+  "proposal_encode_seconds": 0.065933815,
+  "combined_scoped_merge_issuance_encode_seconds": 10.605053891,
+  "maximum5cap_combined_bound_bytes": 61732,
+  "additional_Native_family": {
+    "types": 11,
+    "retained_heap_bytes_bound": 19919,
+    "preparation_peak_heap_bytes_bound": 754801,
+    "conversion_requested_bytes_bound": 196870190
+  },
+  "bounded_composer": {
+    "preparation_requested_bytes_bound": 1457725,
+    "retained_requested_bytes_bound": 703908
+  },
+  "logical_scope_state_bytes": 2184,
+  "wall_seconds": 40.32,
+  "whole_process_VmHWM_KiB": 214624,
+  "default_bank_methods_unchanged": true,
+  "WORK_only_optin_methods": [
+    "scoped_rank_merge_fixture",
+    "fixture_hop"
+  ],
+  "all38_canonical_outputs_identical_original": true,
+  "parent_contracts_and_crossfield_laws_remain_fresh": true,
+  "cap_issuance_independently_revalidates_complete_actual_subtrees": true,
+  "limitations": [
+    "Output/cap/frame/Source-derived storage must be admitted by production owner; this fixture is not a complete aggregate resource gate",
+    "No production Source custody history retained per hop; actual Session must preserve all original derivation ancestry",
+    "Numerical candidate quality and genuine stable producer availability are separate"
+  ],
+  "files": {
+    "context.rs": "f909875e85d26289f171283142597afd160fdfbca97db7fdb371d9792fbdbca8",
+    "input.json": "0cc015e082298dc3d72c9adb1f1121e1f2f97115ca106c26a85e91d4d0aaf5de",
+    "parser_window8_program_bank.rs": "f748576e16880fb03f522588f2a7f38dd13a59b606f0a415a2b31266b1d8da17",
+    "parser_window8_program_bank_prepared.rs": "b5b0647798bf5430b91ecfa381ae2ad5d7e6bd138729f1aad7f7021caf04df80",
+    "parser_window8_program_bank_proposal.rs": "8e50c38ba29a2f4b8106cd5b07c6511bbb35eb15576f668a67152d65d5cf1b4a",
+    "runtime.log": "f5f230b3b77266ca86d0cf287dddc0803acc7ca669080d8c61c1a1f3a3d32ecf",
+    "rusage.log": "471b096c7e22929cf1c5f9d3e9eefcc9871010f79995b48e226e6497c8531939"
+  }
+}
