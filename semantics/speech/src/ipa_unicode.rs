@@ -11,66 +11,19 @@ pub(crate) enum UnitKind {
     SyllableBoundary,
 }
 
+pub(crate) const SUPPORTED_SEGMENTS: &[&str] = &[
+    "p", "b", "t", "d", "k", "ɡ", "m", "n", "ŋ", "f", "v", "θ", "ð", "s", "z", "ʃ", "ʒ", "h", "ɹ",
+    "r", "ɾ", "l", "j", "w", "i", "ɪ", "e", "ɛ", "æ", "a", "ɑ", "ɒ", "ɔ", "o", "ʊ", "u", "ə", "ʌ",
+    "ɜ", "t͡ʃ", "d͡ʒ", "pʰ", "tʰ", "kʰ", "n̩", "ã", "ã",
+];
+
 pub(crate) fn supported_unit(spelling: &str, kind: UnitKind) -> bool {
     match kind {
         UnitKind::PrimaryStress => spelling == "ˈ",
         UnitKind::SecondaryStress => spelling == "ˌ",
         UnitKind::Length => spelling == "ː",
         UnitKind::SyllableBoundary => spelling == ".",
-        UnitKind::Segment => {
-            // Explicit versioned multi-scalar units. Precomposed and combining
-            // nasalization are both supported spellings, never implicit aliases.
-            if matches!(spelling, "t͡ʃ" | "d͡ʒ" | "pʰ" | "tʰ" | "kʰ" | "n̩" | "ã" | "ã")
-            {
-                return true;
-            }
-            let mut chars = spelling.chars();
-            let Some(base) = chars.next() else {
-                return false;
-            };
-            chars.next().is_none()
-                && matches!(
-                    base,
-                    'p' | 'b'
-                        | 't'
-                        | 'd'
-                        | 'k'
-                        | 'ɡ'
-                        | 'm'
-                        | 'n'
-                        | 'ŋ'
-                        | 'f'
-                        | 'v'
-                        | 'θ'
-                        | 'ð'
-                        | 's'
-                        | 'z'
-                        | 'ʃ'
-                        | 'ʒ'
-                        | 'h'
-                        | 'ɹ'
-                        | 'r'
-                        | 'ɾ'
-                        | 'l'
-                        | 'j'
-                        | 'w'
-                        | 'i'
-                        | 'ɪ'
-                        | 'e'
-                        | 'ɛ'
-                        | 'æ'
-                        | 'a'
-                        | 'ɑ'
-                        | 'ɒ'
-                        | 'ɔ'
-                        | 'o'
-                        | 'ʊ'
-                        | 'u'
-                        | 'ə'
-                        | 'ʌ'
-                        | 'ɜ'
-                )
-        }
+        UnitKind::Segment => SUPPORTED_SEGMENTS.contains(&spelling),
     }
 }
 #[cfg(test)]
