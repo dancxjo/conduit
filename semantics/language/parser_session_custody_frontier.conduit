@@ -1,0 +1,74 @@
+# Exact snapshot/fact correlation; Native stable laws still own eligibility.
+type LanguageParserRetainedFactReceipt = {
+ fact: LanguageParserJointStableFact
+ beam: LanguageParserJointBeam
+ where .fact.query.beam == .beam
+}
+type LanguageParserRetainedSnapshotReceipt = {
+ beam: LanguageParserJointBeam
+ available: LanguageParserAvailableState
+ where .beam.candidate0.parser.active
+ where .available.state == .beam.candidate0.parser.state
+ where .available.lexical.tape == .beam.lexical.tape
+ where .available.lexical.token_count == .beam.lexical.token_count
+}
+# The private preparation retains the whole Native commit query and exact
+# Source input/output with this compact projection. It is not a played ACK.
+type LanguageParserRetainedCommitAnchor = {
+ basis: LanguageParserBasis
+ dependent: U64
+ where .dependent < 4
+}
+plot language-parser-retained-commit-anchor (
+ input: LanguageParserJointCommitQuery...| >> anchor: LanguageParserRetainedCommitAnchor...|
+) = { basis: .fact.query.beam.basis, dependent: .fact.query.dependent }
+type LanguageParserRetainedCommitReceipt = {
+ previous: LanguageParserJointBeam
+ next: LanguageParserJointBeam
+ anchor: LanguageParserRetainedCommitAnchor
+ where .anchor.basis == .previous.basis
+ where .next.basis == .previous.basis
+ where .next.lexical == .previous.lexical
+ where .next.epoch == .previous.epoch
+ where .next.invocation == .previous.invocation
+ where .previous.candidate0.parser.active ? .previous.candidate0.parser.state.committed == .anchor.dependent : true
+ where (.next.candidate0.parser.active == .previous.candidate0.parser.active) && (.next.candidate0.parser.identity == .previous.candidate0.parser.identity) && (.next.candidate0.parser.score == .previous.candidate0.parser.score)
+ where .next.candidate0.choices == .previous.candidate0.choices
+ where (.next.candidate0.parser.state.basis == .previous.candidate0.parser.state.basis) && (.next.candidate0.parser.state.token_count == .previous.candidate0.parser.state.token_count) && (.next.candidate0.parser.state.unread == .previous.candidate0.parser.state.unread)
+ where (.next.candidate0.parser.state.depth == .previous.candidate0.parser.state.depth) && (.next.candidate0.parser.state.stack == .previous.candidate0.parser.state.stack) && (.next.candidate0.parser.state.heads == .previous.candidate0.parser.state.heads)
+ where (variant/tag(.next.candidate0.parser.state.relation0.base) == variant/tag(.previous.candidate0.parser.state.relation0.base)) && (.next.candidate0.parser.state.relation0.subtype == .previous.candidate0.parser.state.relation0.subtype)
+ where (variant/tag(.next.candidate0.parser.state.relation1.base) == variant/tag(.previous.candidate0.parser.state.relation1.base)) && (.next.candidate0.parser.state.relation1.subtype == .previous.candidate0.parser.state.relation1.subtype)
+ where (variant/tag(.next.candidate0.parser.state.relation2.base) == variant/tag(.previous.candidate0.parser.state.relation2.base)) && (.next.candidate0.parser.state.relation2.subtype == .previous.candidate0.parser.state.relation2.subtype)
+ where (variant/tag(.next.candidate0.parser.state.relation3.base) == variant/tag(.previous.candidate0.parser.state.relation3.base)) && (.next.candidate0.parser.state.relation3.subtype == .previous.candidate0.parser.state.relation3.subtype)
+ where .next.candidate0.parser.state.committed == (.previous.candidate0.parser.active ? .previous.candidate0.parser.state.committed + 1 : .previous.candidate0.parser.state.committed)
+ where .previous.candidate1.parser.active ? .previous.candidate1.parser.state.committed == .anchor.dependent : true
+ where (.next.candidate1.parser.active == .previous.candidate1.parser.active) && (.next.candidate1.parser.identity == .previous.candidate1.parser.identity) && (.next.candidate1.parser.score == .previous.candidate1.parser.score)
+ where .next.candidate1.choices == .previous.candidate1.choices
+ where (.next.candidate1.parser.state.basis == .previous.candidate1.parser.state.basis) && (.next.candidate1.parser.state.token_count == .previous.candidate1.parser.state.token_count) && (.next.candidate1.parser.state.unread == .previous.candidate1.parser.state.unread)
+ where (.next.candidate1.parser.state.depth == .previous.candidate1.parser.state.depth) && (.next.candidate1.parser.state.stack == .previous.candidate1.parser.state.stack) && (.next.candidate1.parser.state.heads == .previous.candidate1.parser.state.heads)
+ where (variant/tag(.next.candidate1.parser.state.relation0.base) == variant/tag(.previous.candidate1.parser.state.relation0.base)) && (.next.candidate1.parser.state.relation0.subtype == .previous.candidate1.parser.state.relation0.subtype)
+ where (variant/tag(.next.candidate1.parser.state.relation1.base) == variant/tag(.previous.candidate1.parser.state.relation1.base)) && (.next.candidate1.parser.state.relation1.subtype == .previous.candidate1.parser.state.relation1.subtype)
+ where (variant/tag(.next.candidate1.parser.state.relation2.base) == variant/tag(.previous.candidate1.parser.state.relation2.base)) && (.next.candidate1.parser.state.relation2.subtype == .previous.candidate1.parser.state.relation2.subtype)
+ where (variant/tag(.next.candidate1.parser.state.relation3.base) == variant/tag(.previous.candidate1.parser.state.relation3.base)) && (.next.candidate1.parser.state.relation3.subtype == .previous.candidate1.parser.state.relation3.subtype)
+ where .next.candidate1.parser.state.committed == (.previous.candidate1.parser.active ? .previous.candidate1.parser.state.committed + 1 : .previous.candidate1.parser.state.committed)
+ where .previous.candidate2.parser.active ? .previous.candidate2.parser.state.committed == .anchor.dependent : true
+ where (.next.candidate2.parser.active == .previous.candidate2.parser.active) && (.next.candidate2.parser.identity == .previous.candidate2.parser.identity) && (.next.candidate2.parser.score == .previous.candidate2.parser.score)
+ where .next.candidate2.choices == .previous.candidate2.choices
+ where (.next.candidate2.parser.state.basis == .previous.candidate2.parser.state.basis) && (.next.candidate2.parser.state.token_count == .previous.candidate2.parser.state.token_count) && (.next.candidate2.parser.state.unread == .previous.candidate2.parser.state.unread)
+ where (.next.candidate2.parser.state.depth == .previous.candidate2.parser.state.depth) && (.next.candidate2.parser.state.stack == .previous.candidate2.parser.state.stack) && (.next.candidate2.parser.state.heads == .previous.candidate2.parser.state.heads)
+ where (variant/tag(.next.candidate2.parser.state.relation0.base) == variant/tag(.previous.candidate2.parser.state.relation0.base)) && (.next.candidate2.parser.state.relation0.subtype == .previous.candidate2.parser.state.relation0.subtype)
+ where (variant/tag(.next.candidate2.parser.state.relation1.base) == variant/tag(.previous.candidate2.parser.state.relation1.base)) && (.next.candidate2.parser.state.relation1.subtype == .previous.candidate2.parser.state.relation1.subtype)
+ where (variant/tag(.next.candidate2.parser.state.relation2.base) == variant/tag(.previous.candidate2.parser.state.relation2.base)) && (.next.candidate2.parser.state.relation2.subtype == .previous.candidate2.parser.state.relation2.subtype)
+ where (variant/tag(.next.candidate2.parser.state.relation3.base) == variant/tag(.previous.candidate2.parser.state.relation3.base)) && (.next.candidate2.parser.state.relation3.subtype == .previous.candidate2.parser.state.relation3.subtype)
+ where .next.candidate2.parser.state.committed == (.previous.candidate2.parser.active ? .previous.candidate2.parser.state.committed + 1 : .previous.candidate2.parser.state.committed)
+ where .previous.candidate3.parser.active ? .previous.candidate3.parser.state.committed == .anchor.dependent : true
+ where (.next.candidate3.parser.active == .previous.candidate3.parser.active) && (.next.candidate3.parser.identity == .previous.candidate3.parser.identity) && (.next.candidate3.parser.score == .previous.candidate3.parser.score)
+ where .next.candidate3.choices == .previous.candidate3.choices
+ where (.next.candidate3.parser.state.basis == .previous.candidate3.parser.state.basis) && (.next.candidate3.parser.state.token_count == .previous.candidate3.parser.state.token_count) && (.next.candidate3.parser.state.unread == .previous.candidate3.parser.state.unread)
+ where (.next.candidate3.parser.state.depth == .previous.candidate3.parser.state.depth) && (.next.candidate3.parser.state.stack == .previous.candidate3.parser.state.stack) && (.next.candidate3.parser.state.heads == .previous.candidate3.parser.state.heads)
+ where (variant/tag(.next.candidate3.parser.state.relation0.base) == variant/tag(.previous.candidate3.parser.state.relation0.base)) && (.next.candidate3.parser.state.relation0.subtype == .previous.candidate3.parser.state.relation0.subtype)
+ where (variant/tag(.next.candidate3.parser.state.relation1.base) == variant/tag(.previous.candidate3.parser.state.relation1.base)) && (.next.candidate3.parser.state.relation1.subtype == .previous.candidate3.parser.state.relation1.subtype)
+ where (variant/tag(.next.candidate3.parser.state.relation2.base) == variant/tag(.previous.candidate3.parser.state.relation2.base)) && (.next.candidate3.parser.state.relation2.subtype == .previous.candidate3.parser.state.relation2.subtype)
+ where (variant/tag(.next.candidate3.parser.state.relation3.base) == variant/tag(.previous.candidate3.parser.state.relation3.base)) && (.next.candidate3.parser.state.relation3.subtype == .previous.candidate3.parser.state.relation3.subtype)
+ where .next.candidate3.parser.state.committed == (.previous.candidate3.parser.active ? .previous.candidate3.parser.state.committed + 1 : .previous.candidate3.parser.state.committed)
+}
