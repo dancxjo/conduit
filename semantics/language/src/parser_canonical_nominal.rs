@@ -20,6 +20,10 @@ pub(crate) struct PreparedParserNominal {
     maximum_bytes: usize,
 }
 impl PreparedParserNominal {
+    /// Borrow the current nominal representation without granting admission.
+    pub(crate) fn encoded(&self) -> &[u8] {
+        &self.encoded
+    }
     /// The single requested buffer capacity is admitted before allocation. All
     /// Type bytes are borrowed from the original exact static descriptor.
     pub(crate) fn prepare<T: PreparedNativeRustBinding>(

@@ -135,6 +135,10 @@ pub(crate) fn encoded_composer_requests(
     Ok(bytes)
 }
 impl PreparedParserCanonicalComposer {
+    /// Borrow the current representation without allocating or granting admission.
+    pub fn encoded(&self) -> &[u8] {
+        self.composer.encoded()
+    }
     /// Allocation-free reservation for the exact ready descriptor field. Whole
     /// Session construction sums these before preparing its first composer.
     pub fn descriptor_reservation(
