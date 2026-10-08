@@ -43,7 +43,13 @@ unsafe extern "C" fn memmove(
                 destination
                     .cast::<u8>()
                     .add(index)
-                    .write_volatile(source.cast::<u8>().add(index).read_volatile());
+                    .cast::<core::mem::MaybeUninit<u8>>()
+                    .write_volatile(
+                        source
+                            .cast::<core::mem::MaybeUninit<u8>>()
+                            .add(index)
+                            .read_volatile(),
+                    );
             }
         }
         destination
