@@ -796,12 +796,10 @@ pub fn lower_plan_fragment_from_plan(
 > {
     let activations = crate::activation_fragment::lower_fragment_activations(plan, fragment_id)
         .map_err(|_| LoweringError::InvalidFragment)?;
-    let fragment = plan
-        .fragments
-        .iter()
-        .find(|part| &part.fragment_id == fragment_id)
-        .ok_or(LoweringError::InvalidFragment)?;
-    Ok((lower_plan_fragment(fragment)?, activations))
+    Ok((
+        lower_plan_fragment_for_profile_from_plan(plan, fragment_id, FIXED_KERNEL_STORAGE_PROFILE)?,
+        activations,
+    ))
 }
 
 /// Lowers fragment-local kernel facts only. This API cannot establish whether
@@ -818,6 +816,32 @@ pub fn lower_plan_fragment_for_profile(
     profile: KernelStorageProfile,
 ) -> Result<LoweredPlanFragment, LoweringError> {
     admission::validate_fragment(fragment, profile)?;
+    lower_verified_fragment_for_profile(fragment, profile)
+}
+
+/// Lower a fragment whose identity is committed by the complete sealed Plan.
+/// This entrance is required when the PlanId also commits activation entries.
+pub fn lower_plan_fragment_for_profile_from_plan(
+    plan: &conduit_core::Plan,
+    fragment_id: &FragmentId,
+    profile: KernelStorageProfile,
+) -> Result<LoweredPlanFragment, LoweringError> {
+    if !conduit_core::verify_plan(plan) {
+        return Err(LoweringError::InvalidFragment);
+    }
+    let fragment = plan
+        .fragments
+        .iter()
+        .find(|part| &part.fragment_id == fragment_id)
+        .ok_or(LoweringError::InvalidFragment)?;
+    admission::validate_verified_fragment(fragment, profile)?;
+    lower_verified_fragment_for_profile(fragment, profile)
+}
+
+fn lower_verified_fragment_for_profile(
+    fragment: &PlanFragment,
+    profile: KernelStorageProfile,
+) -> Result<LoweredPlanFragment, LoweringError> {
     let mut placement_nodes = BTreeMap::new();
     let mut nodes = Vec::with_capacity(fragment.placements.len());
     let mut node_specs = Vec::with_capacity(fragment.placements.len());

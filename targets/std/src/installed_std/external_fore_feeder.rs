@@ -10,7 +10,7 @@ use conduit_kernel::scheduler::RemoteIngressOutcome;
 use conduit_kernel::{CordId, RemoteEndpointId};
 use conduit_plan_lowering::lowering::LoweredForePort;
 
-pub(super) const MAX_SEQUENCE_ITEMS: u16 = 32;
+pub(super) const MAX_SEQUENCE_ITEMS: u16 = 64;
 
 pub(super) enum PreparedForeInputs<'a> {
     Single(Vec<SingleInput<'a>>),
@@ -152,7 +152,7 @@ impl<'a> SequentialForeFeeder<'a> {
     ) -> Result<Self, String> {
         if planned.is_empty() || inputs.is_empty() || inputs.len() > usize::from(MAX_SEQUENCE_ITEMS)
         {
-            return Err("external Fore sequence requires one to 32 admitted input values".into());
+            return Err("external Fore sequence requires one to 64 admitted input values".into());
         }
         let first = planned[0];
         if first.direction != PortDirection::Input
@@ -251,6 +251,48 @@ impl ForeIngress for InstalledScheduler {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn sixty_four_values_fit_the_finite_fore_envelope_and_sixty_five_refuse() {
+        let port = LoweredForePort {
+            front_port_id: conduit_core::port_id("commands"),
+            direction: PortDirection::Input,
+            track: conduit_core::ConnectionTrack::Payload,
+            endpoint: RemoteEndpointId(0),
+            cord: CordId(0),
+            value_kind: conduit_core::kind_id("test/command"),
+            value_contract: Some(
+                conduit_core::CheckedValueContract::new(
+                    conduit_core::kind_id("test/command"),
+                    1,
+                    vec![],
+                )
+                .unwrap(),
+            ),
+            abnormal_kind: None,
+            temporal: PortTemporal::Flow { closes: true },
+            item_capacity: 1,
+            byte_capacity: 1,
+            selected_line: None,
+        };
+        let values = (0..64)
+            .map(|_| ExternalForeInput {
+                front_port_id: conduit_core::port_id("commands"),
+                track: conduit_core::ConnectionTrack::Payload,
+                bytes: vec![1],
+            })
+            .collect::<Vec<_>>();
+        let mut feeder = SequentialForeFeeder::prepare(&[&port], &values).unwrap();
+        let mut ingress = PressuredIngress::default();
+        for _ in 0..65 {
+            feeder.feed_next(&mut ingress).unwrap();
+        }
+        assert_eq!(ingress.accepted, (0..64).collect::<Vec<_>>());
+        assert_eq!(ingress.closed, vec![(RemoteEndpointId(0), CordId(0))]);
+        let mut over = values.clone();
+        over.push(values[0].clone());
+        assert!(SequentialForeFeeder::prepare(&[&port], &over).is_err());
+    }
 
     #[derive(Default)]
     struct PressuredIngress {

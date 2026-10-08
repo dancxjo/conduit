@@ -18,7 +18,7 @@ use conduit_kernel::{
 };
 use conduit_plan_lowering::{
     activation_fragment::{lower_fragment_activations, LoweredFragmentActivations},
-    fragment_set::{lower_local_fragment_set, FragmentSetBounds},
+    fragment_set::{lower_local_fragment_set_from_plans, FragmentSetBounds},
     lowering::{KernelIdentityMap, LoweredHostCall, FIXED_KERNEL_STORAGE_PROFILE},
 };
 use std::io::Write;
@@ -141,8 +141,12 @@ impl<'a> BodyKernel<'a> {
         // entry to its exact local fragment before lowering ordinary nodes.
         let activations = bind_body_activations(partitions, &fragments)?;
         let mut scans = scan_route::prepare(partitions, parent_play)?;
-        let lowered = lower_local_fragment_set(
-            &fragments,
+        let plans = partitions
+            .iter()
+            .map(|partition| &partition.plan)
+            .collect::<Vec<_>>();
+        let lowered = lower_local_fragment_set_from_plans(
+            &plans,
             FIXED_KERNEL_STORAGE_PROFILE,
             FragmentSetBounds {
                 fragments: conduit_body::MAX_BODY_PLOTS as u16,
@@ -859,6 +863,60 @@ fn bind_body_activations(
 mod activation_binding_tests {
     use super::*;
     use conduit_body::ResidentPlot;
+
+    #[test]
+    fn authored_todo_prepares_typed_body_fore_but_cannot_start_play() {
+        let plan = crate::flow_activation::authored_todo_plan();
+        assert!(conduit_core::verify_plan(&plan));
+        let partition = BodyPlotPlan {
+            plot: ResidentPlot::new(
+                plan.source_document_id.clone(),
+                plan.checked_plot_id.clone(),
+            ),
+            plan,
+        };
+        let command = ExternalForeInput {
+            front_port_id: conduit_core::port_id("commands"),
+            track: conduit_core::ConnectionTrack::Payload,
+            bytes: conduit_todo_plot::TodoCommand::Add {
+                text: "Milk".into(),
+            }
+            .encode_info()
+            .unwrap(),
+        };
+        let inputs = vec![command.clone(); 64];
+        let over_plan = partition.plan.clone();
+        let kernel = BodyKernel::prepare(
+            &[partition],
+            false,
+            &conduit_core::ActivePlayId::from("body/play/prepared-only"),
+            &inputs,
+            true,
+            true,
+        )
+        .expect("exact Todo Plan, child pool and typed Fore must prepare");
+        assert_eq!(
+            kernel.require_supported_execution().unwrap_err(),
+            "Body activation coordinator is not installed"
+        );
+        let mut over_capacity = inputs.clone();
+        over_capacity.push(command);
+        assert!(BodyKernel::prepare(
+            &[BodyPlotPlan {
+                plot: ResidentPlot::new(
+                    over_plan.source_document_id.clone(),
+                    over_plan.checked_plot_id.clone(),
+                ),
+                plan: over_plan,
+            }],
+            false,
+            &conduit_core::ActivePlayId::from("body/play/over-capacity"),
+            &over_capacity,
+            true,
+            true,
+        )
+        .is_err());
+    }
 
     #[test]
     fn installed_body_preparation_retains_exact_todo_scan_entry() {
