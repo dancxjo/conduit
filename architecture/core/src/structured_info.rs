@@ -11,6 +11,7 @@ use crate::{validate_primitive_info, KindId, PrimitiveInfoRefusal};
 
 mod borrowed;
 mod canonical;
+mod decode_storage;
 pub use borrowed::*;
 mod inspection;
 mod prepared_composition;

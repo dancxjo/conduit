@@ -11,6 +11,8 @@ use conduit_core::{
     MAXIMUM_STRUCTURED_NAME_BYTES,
 };
 
+mod storage;
+
 const HEADER: &[u8] = b"conduit.pure-expression.program.v2";
 
 impl PortableExpressionProgram {

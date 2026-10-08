@@ -4,9 +4,10 @@ use conduit_core::{
 };
 use conduit_plot::{
     check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
-    PortableExpressionEvaluationRefusal, PortableExpressionNode, PortableExpressionOperation,
-    PortableExpressionProgram, PreparedExpressionStorageRefusal,
-    PreparedPortableExpressionEvaluator, ProfileCatalog, StartupCatalog,
+    BinaryOperator, PortableExpressionEvaluationRefusal, PortableExpressionNode,
+    PortableExpressionOperation, PortableExpressionProgram, PortableExpressionProgramRefusal,
+    PortableExpressionProjection, PreparedExpressionStorageRefusal,
+    PreparedPortableExpressionEvaluator, ProfileCatalog, StartupCatalog, UnaryOperator,
 };
 use std::alloc::{GlobalAlloc, Layout, System};
 use std::sync::atomic::{AtomicIsize, Ordering};
@@ -101,6 +102,72 @@ fn capacity_slack_and_recursive_prepared_storage_bound_actual_live_allocations()
     ));
     drop(malformed);
 
+    // Decode every operation shape, including capacity growth and boxed branches.
+    // These supplied ASTs test representation accounting, not expression meaning.
+    let scalar = StructuredInfoType::leaf(KindId::from("value/u64")).unwrap();
+    let child = PortableExpressionNode {
+        value_type: scalar.clone(),
+        operation: PortableExpressionOperation::Input,
+    };
+    let operations = vec![
+        PortableExpressionOperation::Input,
+        PortableExpressionOperation::Literal("123".into()),
+        PortableExpressionOperation::Projection {
+            value: Box::new(child.clone()),
+            member: PortableExpressionProjection::Field("member".into()),
+        },
+        PortableExpressionOperation::Unary {
+            operator: UnaryOperator::Negate,
+            operand: Box::new(child.clone()),
+        },
+        PortableExpressionOperation::Binary {
+            operator: BinaryOperator::Add,
+            proven: false,
+            left: Box::new(child.clone()),
+            right: Box::new(child.clone()),
+        },
+        PortableExpressionOperation::Conditional {
+            condition: Box::new(child.clone()),
+            when_true: Box::new(child.clone()),
+            when_false: Box::new(child.clone()),
+        },
+        PortableExpressionOperation::Tuple(vec![child.clone(); 17]),
+        PortableExpressionOperation::Record(vec![
+            ("first".into(), child.clone()),
+            ("second".into(), child.clone()),
+        ]),
+        PortableExpressionOperation::Collection(vec![child.clone(); 17]),
+        PortableExpressionOperation::Variant {
+            tag: "Only".into(),
+            payload: Box::new(child.clone()),
+        },
+        PortableExpressionOperation::SemanticCall {
+            kind: "fixture/decode-only".into(),
+            arguments: vec![child; 17],
+        },
+    ];
+    for operation in operations {
+        let program = PortableExpressionProgram {
+            input_type: scalar.clone(),
+            output_type: scalar.clone(),
+            root: PortableExpressionNode {
+                value_type: scalar.clone(),
+                operation,
+            },
+        };
+        let encoded = program.canonical_bytes().unwrap();
+        let bound = PortableExpressionProgram::canonical_decode_storage_bound(&encoded).unwrap();
+        let before = live();
+        PEAK.store(before, Ordering::SeqCst);
+        let decoded =
+            PortableExpressionProgram::from_canonical_bytes_with_storage_limit(&encoded, bound)
+                .unwrap();
+        assert_eq!(decoded, program);
+        assert!(bound >= (PEAK.load(Ordering::SeqCst) - before) as usize);
+        drop(decoded);
+        assert_eq!(live(), before);
+    }
+
     let unit = StructuredInfoType::leaf(KindId::from("value/unit")).unwrap();
     let variant = StructuredInfoType::variant(
         KindId::from("fixture/choice"),
@@ -149,6 +216,58 @@ fn capacity_slack_and_recursive_prepared_storage_bound_actual_live_allocations()
             law.output_type.canonical_byte_length().unwrap(),
             law.output_type.canonical_bytes().unwrap().len()
         );
+        let encoded_program = law.canonical_bytes().unwrap();
+        let decode_bound =
+            PortableExpressionProgram::canonical_decode_storage_bound(&encoded_program).unwrap();
+        let before_decode = live();
+        PEAK.store(before_decode, Ordering::SeqCst);
+        let decoded = PortableExpressionProgram::from_canonical_bytes_with_storage_limit(
+            &encoded_program,
+            decode_bound,
+        )
+        .unwrap();
+        assert_eq!(decoded, law);
+        assert!(
+            decode_bound >= (PEAK.load(Ordering::SeqCst) - before_decode) as usize,
+            "{entry}: decoding peak exceeds structural bound"
+        );
+        drop(decoded);
+        assert_eq!(live(), before_decode);
+        assert_eq!(
+            PortableExpressionProgram::from_canonical_bytes_with_storage_limit(
+                &encoded_program,
+                decode_bound - 1
+            ),
+            Err(PortableExpressionProgramRefusal::TooLarge)
+        );
+        assert_eq!(live(), before_decode);
+        for length in 0..encoded_program.len().min(128) {
+            let partial = &encoded_program[..length];
+            assert_eq!(
+                PortableExpressionProgram::from_canonical_bytes_with_storage_limit(
+                    partial,
+                    usize::MAX
+                ),
+                PortableExpressionProgram::from_canonical_bytes(partial)
+            );
+            assert_eq!(live(), before_decode);
+        }
+        let encoded_type = law.input_type.canonical_bytes().unwrap();
+        let type_bound = StructuredInfoType::canonical_decode_storage_bound(&encoded_type).unwrap();
+        let before_type = live();
+        PEAK.store(before_type, Ordering::SeqCst);
+        let decoded_type = StructuredInfoType::from_canonical_bytes(&encoded_type).unwrap();
+        assert!(type_bound >= (PEAK.load(Ordering::SeqCst) - before_type) as usize);
+        drop(decoded_type);
+        assert_eq!(live(), before_type);
+        for length in 0..encoded_type.len() {
+            assert_eq!(
+                StructuredInfoType::canonical_decode_storage_bound(&encoded_type[..length])
+                    .unwrap_err(),
+                StructuredInfoType::from_canonical_bytes(&encoded_type[..length]).unwrap_err()
+            );
+            assert_eq!(live(), before_type);
+        }
         let before = live();
         let evaluator = PreparedPortableExpressionEvaluator::new(&law).unwrap();
         let actual = (live() - before) as usize;
