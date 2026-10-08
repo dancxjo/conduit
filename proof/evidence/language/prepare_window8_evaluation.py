@@ -51,10 +51,26 @@ def main(args):
     # All TRAIN sequences participate, including trees excluded by profile/oracle.
     train = form_sequences(args.corpus / "en_ewt-ud-train.conllu")
     train.update(tuple(row["forms"]) for row in json.loads(teaching_path.read_text()))
+    authored_rows = None
+    if args.authored_rows:
+        authored_rows = json.loads(args.authored_rows.read_text())
+        assert authored_rows and len({row["id"] for row in authored_rows}) == len(authored_rows)
+        for row in authored_rows:
+            count = len(row["forms"])
+            assert 1 <= count <= 8
+            assert all(len(row[field]) == count for field in ["pos", "heads", "relations"])
+            assert row["provenance"]["model_artifact_sha256"] == manifest["artifact_sha256"]
+            # Reference graph shape only; no actions enter decoder inputs.
+            reference.oracle(row)
     args.output.mkdir(parents=True, exist_ok=True)
     summary = {}
-    for split in ["dev", "test"]:
-        rows, excluded = reference.read(args.corpus / f"en_ewt-ud-{split}.conllu")
+    splits = ["dev", "test"] + (["authored_vocative"] if args.authored_rows else [])
+    for split in splits:
+        authored = split == "authored_vocative"
+        if authored:
+            rows, excluded = authored_rows, {}
+        else:
+            rows, excluded = reference.read(args.corpus / f"en_ewt-ud-{split}.conllu")
         accepted, reasons = [], collections.Counter()
         for row in rows:
             if any(form not in profile for form in row["forms"]):
@@ -67,12 +83,16 @@ def main(args):
                 reasons["exact_train_or_teaching_form_sequence_overlap"] += 1
                 continue
             row = {key: value for key, value in row.items() if key != "oracle"}
-            row["text"] = " ".join(row["forms"])
+            authored_provenance = row.get("provenance") if authored else None
+            if not authored:
+                row["text"] = " ".join(row["forms"])
             row["provenance"] = {
-                "dataset": manifest["dataset"], "commit": manifest["commit"],
-                "split": split, "license": manifest["license"],
-                "text_policy": "UD forms joined with one scalar space; original whitespace not claimed",
+                "dataset": "separately authored evaluation" if authored else manifest["dataset"],
+                "commit": None if authored else manifest["commit"],
+                "split": split, "license": None if authored else manifest["license"],
+                "text_policy": "original authored text" if authored else "UD forms joined with one scalar space; original whitespace not claimed",
                 "labels": "reference only; never decoder constraints",
+                "authored_reference": authored_provenance,
             }
             accepted.append(row)
         accepted.sort(key=lambda row: row["id"])
@@ -92,12 +112,13 @@ def main(args):
         "teaching_content_identity": teaching_identity,
         "preparer_sha256": digest(Path(__file__)),
         "corpus_sha256": manifest["corpus_sha256"],
+        "authored_rows_sha256": digest(args.authored_rows) if args.authored_rows else None,
         "exact_form_sequence_disjoint_from_all_pinned_train_and_teaching": True,
         "native_decoding_performed": False, "heldout_accuracy_claim": False,
         "scope": "reference preparation and exact sequence exclusion; full trainer provenance audit and Native replay remain required",
     })
     (args.output / "manifest.json").write_text(json.dumps(summary, indent=2) + "\n")
-    print(json.dumps({split: summary[split]["accepted"] for split in ["dev", "test"]}))
+    print(json.dumps({split: summary[split]["accepted"] for split in splits}))
 
 
 if __name__ == "__main__":
@@ -106,4 +127,6 @@ if __name__ == "__main__":
         parser.add_argument(f"--{argument}", type=Path, required=True)
     parser.add_argument("--teaching", type=Path,
                         help="Exact TRAIN teaching input pinned by the model manifest")
+    parser.add_argument("--authored-rows", type=Path,
+                        help="Separately authored evaluation references pinned to this model")
     main(parser.parse_args())

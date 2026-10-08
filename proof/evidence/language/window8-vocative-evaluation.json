@@ -1,0 +1,294 @@
+[
+  {
+    "id": "authored-vocative-initial-I",
+    "forms": [
+      "Travis",
+      ",",
+      "I",
+      "record",
+      "songs",
+      "."
+    ],
+    "pos": [
+      11,
+      12,
+      10,
+      15,
+      7,
+      12
+    ],
+    "heads": [
+      3,
+      3,
+      3,
+      8,
+      3,
+      3
+    ],
+    "relations": [
+      "vocative",
+      "punct",
+      "nsubj",
+      "root",
+      "obj",
+      "punct"
+    ],
+    "text": "Travis, I record songs.",
+    "provenance": {
+      "kind": "separately authored evaluation reference after fixed candidate training",
+      "model_artifact_sha256": "08425a686e679feeb92a6efcfe120429d3b4ca61e41bcae8eb72ac3444e145ac",
+      "labels": "analyst-authored UD-base references; not independently human reviewed",
+      "scope": "small lexical/structural contrasts; shared templates and vocabulary, no broad English accuracy claim"
+    }
+  },
+  {
+    "id": "authored-vocative-final-I",
+    "forms": [
+      "I",
+      "record",
+      "songs",
+      ",",
+      "Travis",
+      "."
+    ],
+    "pos": [
+      10,
+      15,
+      7,
+      12,
+      11,
+      12
+    ],
+    "heads": [
+      1,
+      8,
+      1,
+      1,
+      1,
+      1
+    ],
+    "relations": [
+      "nsubj",
+      "root",
+      "obj",
+      "punct",
+      "vocative",
+      "punct"
+    ],
+    "text": "I record songs, Travis.",
+    "provenance": {
+      "kind": "separately authored evaluation reference after fixed candidate training",
+      "model_artifact_sha256": "08425a686e679feeb92a6efcfe120429d3b4ca61e41bcae8eb72ac3444e145ac",
+      "labels": "analyst-authored UD-base references; not independently human reviewed",
+      "scope": "small lexical/structural contrasts; shared templates and vocabulary, no broad English accuracy claim"
+    }
+  },
+  {
+    "id": "authored-vocative-thanks",
+    "forms": [
+      "Thanks",
+      "Travis",
+      "."
+    ],
+    "pos": [
+      6,
+      11,
+      12
+    ],
+    "heads": [
+      8,
+      0,
+      0
+    ],
+    "relations": [
+      "root",
+      "vocative",
+      "punct"
+    ],
+    "text": "Thanks Travis.",
+    "provenance": {
+      "kind": "separately authored evaluation reference after fixed candidate training",
+      "model_artifact_sha256": "08425a686e679feeb92a6efcfe120429d3b4ca61e41bcae8eb72ac3444e145ac",
+      "labels": "analyst-authored UD-base references; not independently human reviewed",
+      "scope": "small lexical/structural contrasts; shared templates and vocabulary, no broad English accuracy claim"
+    }
+  },
+  {
+    "id": "authored-vocative-medial-They",
+    "forms": [
+      "They",
+      "record",
+      ",",
+      "Travis",
+      ",",
+      "songs",
+      "."
+    ],
+    "pos": [
+      10,
+      15,
+      12,
+      11,
+      12,
+      7,
+      12
+    ],
+    "heads": [
+      1,
+      8,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "relations": [
+      "nsubj",
+      "root",
+      "punct",
+      "vocative",
+      "punct",
+      "obj",
+      "punct"
+    ],
+    "text": "They record, Travis, songs.",
+    "provenance": {
+      "kind": "separately authored evaluation reference after fixed candidate training",
+      "model_artifact_sha256": "08425a686e679feeb92a6efcfe120429d3b4ca61e41bcae8eb72ac3444e145ac",
+      "labels": "analyst-authored UD-base references; not independently human reviewed",
+      "scope": "small lexical/structural contrasts; shared templates and vocabulary, no broad English accuracy claim"
+    }
+  },
+  {
+    "id": "authored-vocative-object-I",
+    "forms": [
+      "I",
+      "record",
+      "Travis",
+      "."
+    ],
+    "pos": [
+      10,
+      15,
+      11,
+      12
+    ],
+    "heads": [
+      1,
+      8,
+      1,
+      1
+    ],
+    "relations": [
+      "nsubj",
+      "root",
+      "obj",
+      "punct"
+    ],
+    "text": "I record Travis.",
+    "provenance": {
+      "kind": "separately authored evaluation reference after fixed candidate training",
+      "model_artifact_sha256": "08425a686e679feeb92a6efcfe120429d3b4ca61e41bcae8eb72ac3444e145ac",
+      "labels": "analyst-authored UD-base references; not independently human reviewed",
+      "scope": "small lexical/structural contrasts; shared templates and vocabulary, no broad English accuracy claim"
+    }
+  },
+  {
+    "id": "authored-vocative-object-They",
+    "forms": [
+      "They",
+      "record",
+      "Travis",
+      "."
+    ],
+    "pos": [
+      10,
+      15,
+      11,
+      12
+    ],
+    "heads": [
+      1,
+      8,
+      1,
+      1
+    ],
+    "relations": [
+      "nsubj",
+      "root",
+      "obj",
+      "punct"
+    ],
+    "text": "They record Travis.",
+    "provenance": {
+      "kind": "separately authored evaluation reference after fixed candidate training",
+      "model_artifact_sha256": "08425a686e679feeb92a6efcfe120429d3b4ca61e41bcae8eb72ac3444e145ac",
+      "labels": "analyst-authored UD-base references; not independently human reviewed",
+      "scope": "small lexical/structural contrasts; shared templates and vocabulary, no broad English accuracy claim"
+    }
+  },
+  {
+    "id": "authored-vocative-object-imperative",
+    "forms": [
+      "record",
+      "Travis",
+      "."
+    ],
+    "pos": [
+      15,
+      11,
+      12
+    ],
+    "heads": [
+      8,
+      0,
+      0
+    ],
+    "relations": [
+      "root",
+      "obj",
+      "punct"
+    ],
+    "text": "record Travis.",
+    "provenance": {
+      "kind": "separately authored evaluation reference after fixed candidate training",
+      "model_artifact_sha256": "08425a686e679feeb92a6efcfe120429d3b4ca61e41bcae8eb72ac3444e145ac",
+      "labels": "analyst-authored UD-base references; not independently human reviewed",
+      "scope": "small lexical/structural contrasts; shared templates and vocabulary, no broad English accuracy claim"
+    }
+  },
+  {
+    "id": "authored-vocative-object-refuse",
+    "forms": [
+      "I",
+      "refuse",
+      "Travis",
+      "."
+    ],
+    "pos": [
+      10,
+      15,
+      11,
+      12
+    ],
+    "heads": [
+      1,
+      8,
+      1,
+      1
+    ],
+    "relations": [
+      "nsubj",
+      "root",
+      "obj",
+      "punct"
+    ],
+    "text": "I refuse Travis.",
+    "provenance": {
+      "kind": "separately authored evaluation reference after fixed candidate training",
+      "model_artifact_sha256": "08425a686e679feeb92a6efcfe120429d3b4ca61e41bcae8eb72ac3444e145ac",
+      "labels": "analyst-authored UD-base references; not independently human reviewed",
+      "scope": "small lexical/structural contrasts; shared templates and vocabulary, no broad English accuracy claim"
+    }
+  }
+]

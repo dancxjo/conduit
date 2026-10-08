@@ -2,6 +2,8 @@
 //! evaluation only. Independent lexical consensus is checked separately.
 #![cfg(feature = "parser-model-selection")]
 extern crate alloc;
+#[path = "common/dependency_metrics.rs"]
+mod dependency_metrics;
 #[path = "common/window8_fact_replay.rs"]
 mod facts;
 #[path = "common/parser_fixture.rs"]
@@ -147,6 +149,7 @@ fn actual_cached_window8_reviewed_clause_decode() {
     eprintln!("window8 cached corpus: fact Source preparation start");
     let fact_schema = facts::FactSchema::prepare();
     eprintln!("window8 cached corpus: fact Source preparation complete");
+    let mut vocative_edges = dependency_metrics::VocativeEdges::default();
     let mut tokens = 0usize;
     let mut correct_heads = 0usize;
     let mut correct_base_labels = 0usize;
@@ -182,6 +185,21 @@ fn actual_cached_window8_reviewed_clause_decode() {
         .unwrap();
         let tape = conduit_language::lexical::prepare_lexical_tape(&source, &lexical_profile, None)
             .unwrap();
+        assert_eq!(
+            tape.tape()
+                .tokens()
+                .as_slice()
+                .iter()
+                .map(|token| token.surface().as_str())
+                .collect::<Vec<_>>(),
+            row["forms"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|form| form.as_str().unwrap())
+                .collect::<Vec<_>>(),
+            "reference token occurrences must match actual lexical reconstruction"
+        );
         let lexical = prepare_window8_lexical(&tape).unwrap();
         let mut analysis_material = tape.tape().clone().encode().unwrap();
         analysis_material.extend_from_slice(&selected.compatibility().model_content);
@@ -400,6 +418,16 @@ fn actual_cached_window8_reviewed_clause_decode() {
         tokens += count;
         for ordinal in 0..count {
             let head_matches = predicted[ordinal]["head"] == row["heads"][ordinal];
+            vocative_edges.observe(
+                predicted[ordinal]["base"].as_str() == Some("vocative"),
+                row["relations"][ordinal]
+                    .as_str()
+                    .unwrap()
+                    .split(':')
+                    .next()
+                    == Some("vocative"),
+                head_matches,
+            );
             correct_heads += usize::from(head_matches);
             correct_base_labels += usize::from(
                 head_matches
@@ -423,6 +451,16 @@ fn actual_cached_window8_reviewed_clause_decode() {
         .unwrap();
     }
     let result = json!({"receipts":receipts,"exact_base_graphs":correct,"exact_reference_teaching_graphs":if evaluation {None} else {Some(correct)},"examples":rows.as_array().unwrap().len(),"actual_model_invocations":invocations,"admitted_inference_bound":4096,"elapsed_nanos":started.elapsed().as_nanos().to_string(),"heldout_accuracy_claim":false,"stable_or_played_fact_claim":false,"external_evaluation_references":evaluation,"training_membership_disjointness_verified":false,"metric_token_scope":"all supplied tokens including punctuation; universal base labels only, subtypes excluded","tokens":tokens,"correct_heads":correct_heads,"correct_base_labels":correct_base_labels,"correct_pos":correct_pos,"uas":correct_heads as f64 / tokens as f64,"base_las":correct_base_labels as f64 / tokens as f64,"pos_accuracy":correct_pos as f64 / tokens as f64});
+    let mut result = result;
+    result["vocative_edges"] = json!({
+        "scope": "exact dependent occurrence, governor and universal base relation; wrong governor counts as both false positive and false negative",
+        "true_positive": vocative_edges.true_positive,
+        "false_positive": vocative_edges.false_positive,
+        "false_negative": vocative_edges.false_negative,
+        "precision": vocative_edges.precision(),
+        "recall": vocative_edges.recall(),
+        "undefined_denominator": "null; no perfect-score substitution",
+    });
     std::fs::write(
         output_directory.join("native_cached_clause_decode.json"),
         serde_json::to_vec_pretty(&result).unwrap(),

@@ -37,6 +37,17 @@ runner verifies that identity before Source/model preparation. Legacy manifests
 without this field permit only the original embedded teaching input and its
 original SHA-256. Actual candidate decoding remains a separate gate.
 
+`--authored-rows proof/evidence/language/window8-vocative-evaluation.json`
+adds a separate eight-instance slice pinned to the vocative candidate's exact
+artifact. It includes initial, medial and final addressees and four ordinary
+object uses of the same proper name. Preparation verifies the reference profile,
+lexical coverage and exact sequence exclusion against all pinned TRAIN and
+teaching data. These analyst-authored references share vocabulary and templates;
+they are not independently reviewed corpus gold or broad English evidence.
+No oracle actions are exported. Use `authored_vocative.json` as the external
+reference input and the candidate's exact `WINDOW8_TEACHING_ROWS` when replaying.
+Preparation alone does not establish any vocative precision or recall.
+
 Actual decoding uses the existing ordinary model and checked Source bank:
 
 ```sh
@@ -51,7 +62,11 @@ cargo +stable test -p conduit-language --features parser-model-selection \
 The external-reference mode refuses reviewed teaching text overlap and the
 model-directory output path. It retains actual Native states/model invocations
 and reports all-token UAS, universal-base LAS and POS accuracy, including
-punctuation. Subtypes are excluded from base LAS. Model failures remain evidence;
+punctuation. Subtypes are excluded from base LAS. Vocative edge precision/recall
+requires the exact dependent occurrence, governor and universal base relation.
+A predicted vocative with the wrong governor counts as both a false positive
+and a false negative when the reference also marks that occurrence vocative.
+A zero denominator is reported as null, never a perfect score. Model failures remain evidence;
 external mode does not assert that every reference graph was predicted correctly.
 An aborted run is incomplete evaluation, not a successful zero-error result.
 
