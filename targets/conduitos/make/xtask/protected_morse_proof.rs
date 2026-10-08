@@ -1,6 +1,7 @@
 //! Require the actual Tour Play's independent output observation and bound cost.
 use super::ConduitosError;
 use serde_json::Value;
+const FANOUT: &str = "CONDUIT_DOMAIN_MORSE_FANOUT original-input either-request-order independent-refusals changed-input-refused";
 const HANDLES: &str = "CONDUIT_DOMAIN_MORSE_HANDLES text-indicator-cross-use-refused fault-revoked no-effect replay-refused";
 
 pub(super) fn validate(transcript: &str) -> Result<Value, ConduitosError> {
@@ -17,7 +18,10 @@ pub(super) fn validate(transcript: &str) -> Result<Value, ConduitosError> {
             .map(|line| serde_json::from_str(line).map_err(|_| refusal()))
             .collect()
     };
-    if !transcript.lines().any(|line| line == HANDLES) {
+    if ![HANDLES, FANOUT]
+        .iter()
+        .all(|expected| transcript.lines().any(|line| line == *expected))
+    {
         return Err(refusal());
     }
     let signs = parse("CONDUIT_DOMAIN_MORSE ")?;
@@ -97,14 +101,16 @@ mod tests {
         (sign, cost)
     }
     fn transcript(sign: &Value, cost: &Value) -> String {
-        format!("CONDUIT_DOMAIN_MORSE {sign}\nCONDUIT_DOMAIN_COST {cost}\n{HANDLES}\n")
+        format!("CONDUIT_DOMAIN_MORSE {sign}\nCONDUIT_DOMAIN_COST {cost}\n{HANDLES}\n{FANOUT}\n")
     }
     #[test]
     fn canonical_observation_requires_its_own_current_completed_cost() {
         let (sign, cost) = evidence();
         assert!(validate(&transcript(&sign, &cost)).is_ok());
         assert!(validate("").is_err());
-        assert!(validate(&transcript(&sign, &cost).replace(HANDLES, "")).is_err());
+        for missing in [HANDLES, FANOUT] {
+            assert!(validate(&transcript(&sign, &cost).replace(missing, "")).is_err());
+        }
         let mut fixture = cost.clone();
         fixture["fixture"] = Value::Bool(true);
         assert!(validate(

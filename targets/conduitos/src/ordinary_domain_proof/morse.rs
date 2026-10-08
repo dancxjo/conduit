@@ -59,6 +59,7 @@ pub(super) fn run(_: &Plan, offer: &HostOffer<'_>) {
     drop(prepared);
     arch::early_write(sign.as_bytes());
     independent_handles(offer);
+    independent_branches(offer, &expected);
 }
 
 // Observe the existing serial provider. This proves a serial diagnostic effect,
@@ -133,4 +134,46 @@ fn independent_handles(offer: &HostOffer<'_>) {
         }
     }
     arch::early_write(b"CONDUIT_DOMAIN_MORSE_HANDLES text-indicator-cross-use-refused fault-revoked no-effect replay-refused\n");
+}
+
+fn independent_branches(offer: &HostOffer<'_>, expected: &[u8]) {
+    use crate::composition::MachineRunError as Error;
+    let ids = crate::identity::BootIdentities {
+        host: offer.host_id,
+        boot: offer.boot_id,
+    };
+    for morse_first in [false, true] {
+        let mut prepared =
+            crate::tour_morse_plan::prepare(&ids, offer, crate::make::EMBEDDED_MAKE.build_id)
+                .unwrap_or_else(|_| refuse("morse-order-fixture-prepare"));
+        let domain = &mut prepared.protected;
+        domain.proof_fixture(false);
+        if morse_first {
+            if domain.morse(b"sos").map(|value| value == expected) != Ok(true)
+                || domain.uppercase(b"sos").map(|value| value == b"SOS") != Ok(true)
+            {
+                refuse("morse-first-fanout");
+            }
+        } else if domain.uppercase(b"sos").map(|value| value == b"SOS") != Ok(true)
+            || domain.morse(b"sos").map(|value| value == expected) != Ok(true)
+        {
+            refuse("uppercase-first-fanout");
+        }
+        if domain.proof_state().1.entries != 1 || domain.morse(b"SOS").is_ok() {
+            refuse("morse-fanout-entry-or-cord");
+        }
+    }
+    let mut prepared =
+        crate::tour_morse_plan::prepare(&ids, offer, crate::make::EMBEDDED_MAKE.build_id)
+            .unwrap_or_else(|_| refuse("morse-refusal-fixture-prepare"));
+    let domain = &mut prepared.protected;
+    domain.proof_fixture(false);
+    if domain.uppercase("ß".as_bytes()).map(|value| value == b"SS") != Ok(true)
+        || domain.morse("ß".as_bytes()) != Err(Error::KernelFailure)
+        || domain.proof_state().1.entries != 1
+    {
+        refuse("morse-was-fed-uppercase-output");
+    }
+    drop(prepared);
+    arch::early_write(b"CONDUIT_DOMAIN_MORSE_FANOUT original-input either-request-order independent-refusals changed-input-refused\n");
 }
