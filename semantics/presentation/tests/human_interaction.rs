@@ -338,12 +338,12 @@ fn finite_evidence_ack_retains_all_sixty_four_receipts_and_duplicate_guard() {
             })
             .unwrap()
             .clone();
-        assert_eq!(ledger.evidence(), [evidence.clone()]);
+        assert_eq!(ledger.evidence(), core::slice::from_ref(&evidence));
         assert_eq!(
             ledger.acknowledge_persisted_evidence_prefix(&[make(sequence + 1).identity]),
             Err(conduit_presentation::FaceEvidenceAckRefusal::MismatchedPrefix)
         );
-        assert_eq!(ledger.evidence(), [evidence.clone()]);
+        assert_eq!(ledger.evidence(), core::slice::from_ref(&evidence));
         retained.push(evidence.clone());
         ledger
             .acknowledge_persisted_evidence_prefix(&[evidence.interaction_id])
