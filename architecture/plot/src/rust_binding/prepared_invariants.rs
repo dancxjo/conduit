@@ -7,6 +7,13 @@ use conduit_core::{InfoBool, StructuredInfoType};
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PreparedNativeInvariantRefusal {
     Capacity,
+    InvalidEncoding {
+        index: usize,
+        refusal: crate::PortableExpressionProgramRefusal,
+    },
+    UnsupportedTemporaryLaw {
+        index: usize,
+    },
     InvalidLaw {
         index: usize,
         refusal: crate::PortableExpressionEvaluationRefusal,
@@ -23,8 +30,8 @@ pub enum PreparedNativeInvariantRefusal {
 /// evaluator storage. The complete canonical input is validated once; every
 /// law still verifies its exact immutable input Type.
 pub struct PreparedNativeInvariantAdmission {
-    laws: Vec<PreparedPortableExpressionEvaluator>,
-    maximum_input_bytes: usize,
+    pub(super) laws: Vec<PreparedPortableExpressionEvaluator>,
+    pub(super) maximum_input_bytes: usize,
 }
 
 impl PreparedNativeInvariantAdmission {

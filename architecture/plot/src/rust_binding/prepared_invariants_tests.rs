@@ -1,6 +1,6 @@
 use super::{
     validate_native_invariants, NativeBindingRefusal, PreparedNativeInvariantAdmission,
-    PreparedNativeInvariantRefusal,
+    PreparedNativeInvariantRefusal, PreparedNativeInvariantStorageLimits,
 };
 use crate::{check_syntax_document, parse_syntax_document, StartupCatalog};
 use alloc::vec::Vec;
@@ -13,6 +13,64 @@ fn prepared_native_bank_preserves_order_and_law_refusals() {
     let ty = &checked.native_types[0];
     let mut prepared =
         PreparedNativeInvariantAdmission::new(&ty.value_type, &ty.invariants, 2, 65536).unwrap();
+    let encoded = ty
+        .invariants
+        .iter()
+        .map(|law| law.canonical_bytes().unwrap())
+        .collect::<Vec<_>>();
+    let encoded_refs = encoded.iter().map(Vec::as_slice).collect::<Vec<_>>();
+    let limits = PreparedNativeInvariantStorageLimits {
+        maximum_laws: 2,
+        maximum_input_bytes: 65536,
+        maximum_retained_bytes: usize::MAX,
+        maximum_preparation_peak_bytes: usize::MAX,
+    };
+    let (mut bounded, receipt) =
+        PreparedNativeInvariantAdmission::from_canonical_laws_with_storage_limits(
+            &ty.value_type,
+            &encoded_refs,
+            limits,
+        )
+        .unwrap();
+    assert_eq!(
+        bounded.owned_heap_bytes(),
+        receipt.retained_heap_bytes_bound
+    );
+    for reduced in [
+        PreparedNativeInvariantStorageLimits {
+            maximum_retained_bytes: receipt.retained_heap_bytes_bound - 1,
+            ..limits
+        },
+        PreparedNativeInvariantStorageLimits {
+            maximum_preparation_peak_bytes: receipt.preparation_peak_heap_bytes_bound - 1,
+            ..limits
+        },
+        PreparedNativeInvariantStorageLimits {
+            maximum_laws: 1,
+            ..limits
+        },
+        PreparedNativeInvariantStorageLimits {
+            maximum_input_bytes: 1,
+            ..limits
+        },
+    ] {
+        assert!(matches!(
+            PreparedNativeInvariantAdmission::from_canonical_laws_with_storage_limits(
+                &ty.value_type,
+                &encoded_refs,
+                reduced
+            ),
+            Err(PreparedNativeInvariantRefusal::Capacity)
+        ));
+    }
+    assert!(matches!(
+        PreparedNativeInvariantAdmission::from_canonical_laws_with_storage_limits(
+            &ty.value_type,
+            &[&[0]],
+            limits
+        ),
+        Err(PreparedNativeInvariantRefusal::InvalidEncoding { index: 0, .. })
+    ));
     let StructuredInfoTypeShape::Record { fields, .. } = ty.value_type.shape() else {
         panic!()
     };
@@ -48,6 +106,10 @@ fn prepared_native_bank_preserves_order_and_law_refusals() {
         let value = StructuredInfoValue::record(ty.value_type.clone(), values).unwrap();
         assert_eq!(validate_native_invariants(&value, &ty.invariants), expected);
         assert_eq!(
+            bounded.validate(&value.canonical_bytes().unwrap()),
+            expected
+        );
+        assert_eq!(
             prepared.validate(&value.canonical_bytes().unwrap()),
             expected
         );
@@ -81,6 +143,19 @@ fn prepared_native_bank_checks_nested_members_and_foreign_exact_types() {
     let mut prepared =
         PreparedNativeInvariantAdmission::new(&outer.value_type, &outer.invariants, 1, 65536)
             .unwrap();
+    let encoded = outer.invariants[0].canonical_bytes().unwrap();
+    let (mut bounded, _) =
+        PreparedNativeInvariantAdmission::from_canonical_laws_with_storage_limits(
+            &outer.value_type,
+            &[&encoded],
+            PreparedNativeInvariantStorageLimits {
+                maximum_laws: 1,
+                maximum_input_bytes: 65536,
+                maximum_retained_bytes: usize::MAX,
+                maximum_preparation_peak_bytes: usize::MAX,
+            },
+        )
+        .unwrap();
     let StructuredInfoTypeShape::Record { fields, .. } = outer.value_type.shape() else {
         panic!()
     };
@@ -109,6 +184,10 @@ fn prepared_native_bank_checks_nested_members_and_foreign_exact_types() {
             prepared.validate(&value.canonical_bytes().unwrap()),
             validate_native_invariants(&value, &outer.invariants)
         );
+        assert_eq!(
+            bounded.validate(&value.canonical_bytes().unwrap()),
+            validate_native_invariants(&value, &outer.invariants)
+        );
     }
     let foreign = checked.native_types.iter().find(|ty| matches!(ty.value_type.shape(), StructuredInfoTypeShape::Record { fields, .. } if fields[0].name() == "different")).unwrap();
     let StructuredInfoTypeShape::Record { fields, .. } = foreign.value_type.shape() else {
@@ -125,6 +204,10 @@ fn prepared_native_bank_checks_nested_members_and_foreign_exact_types() {
     .unwrap();
     assert_eq!(
         prepared.validate(&value.canonical_bytes().unwrap()),
+        validate_native_invariants(&value, &outer.invariants)
+    );
+    assert_eq!(
+        bounded.validate(&value.canonical_bytes().unwrap()),
         validate_native_invariants(&value, &outer.invariants)
     );
     assert!(matches!(
@@ -204,4 +287,75 @@ fn actual_language_complete_native_bank_readiness() {
         eprintln!("complete_bank={} refusal={:?}", bank.is_ok(), bank.err());
     }
     assert!(inspected >= 2);
+}
+
+#[test]
+fn bounded_native_bank_refuses_every_unsupported_law_at_its_original_index() {
+    use crate::{
+        BinaryOperator, PortableExpressionNode as Node, PortableExpressionOperation as Operation,
+        PortableExpressionProgram as Program,
+    };
+    use conduit_core::{StructuredInfoType, StructuredVariantCase};
+    let checked = check_syntax_document(
+        &parse_syntax_document("type Item = {\n value: U32\n where .value < 10\n}\n"),
+        &StartupCatalog::new(),
+    )
+    .unwrap();
+    let ty = &checked.native_types[0];
+    let unit = StructuredInfoType::leaf(conduit_core::kind_id(conduit_core::UNIT_INFO_ID)).unwrap();
+    let variant = StructuredInfoType::variant(
+        conduit_core::kind_id("fixture/bounded-constant"),
+        vec![StructuredVariantCase::new("Only", unit).unwrap()],
+    )
+    .unwrap();
+    let boolean =
+        StructuredInfoType::leaf(conduit_core::kind_id(conduit_core::BOOL_INFO_ID)).unwrap();
+    let constant = Node {
+        value_type: variant,
+        operation: Operation::Literal("Only".into()),
+    };
+    let law = Program {
+        input_type: ty.value_type.clone(),
+        output_type: boolean.clone(),
+        root: Node {
+            value_type: boolean,
+            operation: Operation::Binary {
+                operator: BinaryOperator::Equal,
+                proven: false,
+                left: alloc::boxed::Box::new(constant.clone()),
+                right: alloc::boxed::Box::new(constant),
+            },
+        },
+    };
+    // This complete law is supported by the ordinary preparer; the quota entrance
+    // refuses its unaccounted structured-literal temporary, never drops the law.
+    crate::PreparedPortableExpressionEvaluator::new(&law).unwrap();
+    let first = ty.invariants[0].canonical_bytes().unwrap();
+    let second = law.canonical_bytes().unwrap();
+    let limits = PreparedNativeInvariantStorageLimits {
+        maximum_laws: 2,
+        maximum_input_bytes: usize::MAX,
+        maximum_retained_bytes: usize::MAX,
+        maximum_preparation_peak_bytes: usize::MAX,
+    };
+    assert!(matches!(
+        PreparedNativeInvariantAdmission::from_canonical_laws_with_storage_limits(
+            &ty.value_type,
+            &[&first, &second],
+            limits
+        ),
+        Err(PreparedNativeInvariantRefusal::UnsupportedTemporaryLaw { index: 1 })
+    ));
+    let foreign = StructuredInfoType::leaf(conduit_core::kind_id("value/u64")).unwrap();
+    assert!(matches!(
+        PreparedNativeInvariantAdmission::from_canonical_laws_with_storage_limits(
+            &foreign,
+            &[&first],
+            limits
+        ),
+        Err(PreparedNativeInvariantRefusal::InvalidLaw {
+            index: 0,
+            refusal: crate::PortableExpressionEvaluationRefusal::InvalidProgram
+        })
+    ));
 }
