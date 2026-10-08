@@ -91,3 +91,14 @@ plot speech/greeting-role-split-v2 (
     >> value: SpeechGreetingRoleRequest
     result: Boolean >>
 ) = (.phone is ow && (.channel is formant_center || .channel is formant_bandwidth))
+
+# Exact metadata recognized only by reviewed/greeting profile. Empty bundles are
+# the existing profile. Other values, states, effects and feature IDs refuse.
+type SpeechGreetingReviewedFeatureRequest = {
+    ipa: Text <= 64B
+    features: sequence SpeechFeature <= 16
+}
+plot speech/greeting-reviewed-features-v1 (
+    >> value: SpeechGreetingReviewedFeatureRequest
+    result: Boolean >>
+) = (sequence/length(.features) == 0 ? true : sequence/length(.features) != 3 ? false : (sequence/at(.features,0).identity == "reviewed/greeting/segment-class" && (sequence/at(.features,0).specification is known ? (sequence/at(.features,0).specification.known is category ? sequence/at(.features,0).specification.known.category == (.ipa == "ə" || .ipa == "oʊ" || .ipa == "æ" || .ipa == "ɪ" ? "vowel" : "consonant") : false) : false)) && (sequence/at(.features,1).identity == "reviewed/greeting/laryngeal-voice" && (sequence/at(.features,1).specification is known ? (sequence/at(.features,1).specification.known is category ? sequence/at(.features,1).specification.known.category == (.ipa == "h" || .ipa == "t" || .ipa == "tʰ" || .ipa == "s" ? "voiceless" : "voiced") : false) : false)) && (sequence/at(.features,2).identity == "reviewed/greeting/aspiration" && (sequence/at(.features,2).specification is known ? (sequence/at(.features,2).specification.known is category ? sequence/at(.features,2).specification.known.category == (.ipa == "tʰ" ? "aspirated" : "unaspirated") : false) : false)))

@@ -292,3 +292,105 @@ fn every_required_greeting_phone_reaches_actual_dsp_at_declared_16khz() {
         std::fs::write(path, wav).unwrap();
     }
 }
+
+#[test]
+fn reviewed_features_survive_and_unresolved_or_foreign_values_refuse() {
+    let timing = t(time(0, 10), time(1, 10), time(0, 10), time(1, 10));
+    let value = SpeechFeatureValue::category("voiceless".into()).unwrap();
+    let states = [
+        FeatureSpecification::known(value.clone()).unwrap(),
+        FeatureSpecification::unknown(),
+        FeatureSpecification::unspecified(),
+        FeatureSpecification::not_applicable(),
+        FeatureSpecification::variable(BoundedSequence::try_from_iter([value.clone()]).unwrap())
+            .unwrap(),
+        FeatureSpecification::gradient(
+            SpeechConfidence::new(conduit_core::IeeeF32::from_value(0.5)).unwrap(),
+            value,
+        )
+        .unwrap(),
+        FeatureSpecification::known(SpeechFeatureValue::category("voiced".into()).unwrap())
+            .unwrap(),
+    ];
+    for (index, state) in states.into_iter().enumerate() {
+        let feature = |name: &str, value| {
+            SpeechFeature::new(
+                SpeechFeatureId::new(format!("reviewed/greeting/{name}")).unwrap(),
+                value,
+            )
+            .unwrap()
+        };
+        let bundle = SpeechFeatureBundle::new(
+            BoundedSequence::try_from_iter([
+                feature(
+                    "segment-class",
+                    FeatureSpecification::known(
+                        SpeechFeatureValue::category("consonant".into()).unwrap(),
+                    )
+                    .unwrap(),
+                ),
+                feature("laryngeal-voice", state),
+                feature(
+                    "aspiration",
+                    FeatureSpecification::known(
+                        SpeechFeatureValue::category("aspirated".into()).unwrap(),
+                    )
+                    .unwrap(),
+                ),
+            ])
+            .unwrap(),
+        )
+        .unwrap();
+        let original = SpeechPhone::new(
+            BoundedSequence::new(),
+            bundle,
+            PhoneId::new("phone/t".into()).unwrap(),
+            "tʰ".into(),
+            SpeechSegmentStatus::Allophonic,
+        )
+        .unwrap();
+        let result = prepare_greeting_phone_gestures(
+            &event().encode().unwrap(),
+            &membership().encode().unwrap(),
+            &original.clone().encode().unwrap(),
+            &selected().encode().unwrap(),
+            &timing.clone().encode().unwrap(),
+            policy(),
+        );
+        if index == 0 {
+            let prepared = result.unwrap();
+            assert_eq!(prepared.lowered().declared_phone(), &original);
+            assert_eq!(
+                prepared.lowered().declared_phone().features().get().len(),
+                3
+            );
+            assert!(prepared
+                .lowered()
+                .executions()
+                .iter()
+                .any(|e| e.input_canonical()
+                    == SpeechGreetingReviewedFeatureRequest::new(
+                        original.features().get().clone(),
+                        original.ipa().clone()
+                    )
+                    .unwrap()
+                    .encode()
+                    .unwrap()));
+        } else {
+            assert!(matches!(
+                result,
+                Err(SpeechGestureRefusal::UnsupportedFeatures)
+            ));
+        }
+        assert!(matches!(
+            prepare_declared_phone_gestures(
+                &event().encode().unwrap(),
+                &membership().encode().unwrap(),
+                &original.encode().unwrap(),
+                &selected().encode().unwrap(),
+                &timing.clone().encode().unwrap()
+            ),
+            Err(SpeechGestureRefusal::UnsupportedFeatures)
+        ));
+    }
+}

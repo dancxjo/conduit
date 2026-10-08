@@ -89,23 +89,34 @@ open until implementation and conformance are verified on accepted `dev`.
 
 ## Current proof boundary
 
-The actual fifteen-target workspace gate passed 39 tests with warnings-denied
-Clippy. The subsequent contextual gesture/probability integration gate passed
-16 tests with all 534 selected inputs unchanged. It includes the actual existing
-opaque allophone choice: stressed onset `t` selects `tʰ`, unstressed onset selects
-`t`, and the original phoneme/utterance stays intact. This does not bind that
-choice to a separately prepared IPA/shared owner yet.
+The shared owner now binds exact original IPA inventory/notation, Language/Variety,
+phoneme and phone sequences, supplied syllables, correspondence and context to the
+original SpeechUtteranceIntent. The prepared acoustic owner retains the original
+five typed quantity ports, every supplied candidate and exact Source scope/event
+witnesses. It does not select unknown intent or grant play authority. The original
+retained-commit translation replay passes18.67s; target alignment remains supplied.
 
-Audio step evaluation now has a separate U32 temporal cross-product profile and
-copies full U64 quantities; the original bounded linear profile is unchanged.
-Full-frequency values can execute at sample-time fractions without lowering
-frequencies or changing canonical quantity limits. Actual acoustic-owner
-composition passes three workspace tests covering all five ports, candidate
-retention, original phone/text/event custody, scope/anchor refusals and actual
-full-Hz sample-time evaluation. All 536 selected inputs stayed unchanged.
-Warnings-denied Clippy and original-commit translation replay are running.
+The greeting entrance reuses the exact IPA/correspondence/syllable custody check
+for contextual allophone choices and explicit v2 losses. Its reviewed descriptive
+feature policy executes Source against every complete original feature record;
+only the declared IDs and Known supported values accept. Unknown, Unspecified,
+NotApplicable, Variable and Gradient refuse without losing the original material.
+The existing v1 entrance continues to refuse nonempty bundles.
 
-Gesture construction remains separate from renderer execution. Exact rate
-projection, coefficients, closure/release/aspiration PCM contrasts, joined
-committed multiword formant/FARGAN projections and attended listening remain
-acceptance work. The original greeting WAV is not evidence for those additions.
+The four-target actual workspace gate passes11 tests with all563 selected inputs
+unchanged. The complete two-word phonemic greeting also passes its actual workspace
+check173.16s with all564 selected inputs unchanged. Both original learned lexical
+commitments and all ten phonemic events survive the shared IPA route; contextual
+stressed onset /t/ selects [tʰ]. The complete formant output is32,000 PCM16 frames
+at16kHz. Independent verification checks every canonical DSP input/output Type and
+output-to-WAV sample,23 selected full Source DSP graph replays, and all64,001 retained
+per-frame Source control executions. Actual retained Audio cycles/grid independently
+project through Source to80frames per cycle with zero remainder.
+
+This is a deliberately scoped approximation: static200Hz, uniform0.2-second
+segments, explicit lateral/rhotic mechanism omissions, and an authored diphthong
+step with filter-history reset. It is not rich prosody, continuous coarticulation,
+naturalness, attended intelligibility or physical playback evidence. Both synthesis
+families must still consume the same original carrier; the full trained neural
+continuation remains pending. Whole-session admission, played-frontier behavior,
+public product proof and acceptance on dev remain separate requirements.

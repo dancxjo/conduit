@@ -94,6 +94,23 @@ pub fn prepare_declared_phone_gestures(
     choice_frame: &[u8],
     timing_frame: &[u8],
 ) -> Result<PreparedDeclaredPhoneGestures, SpeechGestureRefusal> {
+    prepare_declared_phone_gestures_with_profile(
+        segment_frame,
+        membership_frame,
+        phone_frame,
+        choice_frame,
+        timing_frame,
+        false,
+    )
+}
+pub(crate) fn prepare_declared_phone_gestures_with_profile(
+    segment_frame: &[u8],
+    membership_frame: &[u8],
+    phone_frame: &[u8],
+    choice_frame: &[u8],
+    timing_frame: &[u8],
+    reviewed_greeting_features: bool,
+) -> Result<PreparedDeclaredPhoneGestures, SpeechGestureRefusal> {
     let event = SpeechUtteranceIntentEvent::decode(segment_frame)?;
     let SpeechUtteranceIntentEvent::Segment(segment) = &event else {
         return Err(SpeechGestureRefusal::ForeignOccurrence);
@@ -116,10 +133,12 @@ pub fn prepare_declared_phone_gestures(
     if let PhoneSpecification::Known(required) = segment.phone() {
         SpeechPhoneDefinitionMatch::new(phone.identity().clone(), required.clone())?;
     }
-    if !phone.features().get().as_slice().is_empty() {
+    let mut executions = Vec::new();
+    if reviewed_greeting_features {
+        crate::greeting_gestures::admit_reviewed_features(&phone, &mut executions)?;
+    } else if !phone.features().get().as_slice().is_empty() {
         return Err(SpeechGestureRefusal::UnsupportedFeatures);
     }
-    let mut executions = Vec::new();
     if !boolean(CHOICE, choice.clone(), &mut executions)? {
         return Err(SpeechGestureRefusal::UnselectedChoice);
     }

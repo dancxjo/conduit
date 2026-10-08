@@ -60,12 +60,13 @@ pub fn prepare_greeting_phone_gestures(
     policy: SpeechGreetingLossPolicy,
 ) -> Result<PreparedGreetingPhoneGestures, SpeechGestureRefusal> {
     let policy_frame = policy.encode()?;
-    match prepare_declared_phone_gestures(
+    match crate::gesture_lowering::prepare_declared_phone_gestures_with_profile(
         segment_frame,
         membership_frame,
         phone_frame,
         choice_frame,
         timing_frame,
+        true,
     ) {
         Ok(mut lowered) => {
             let symbol_frame = lowered
@@ -115,10 +116,8 @@ pub fn prepare_greeting_phone_gestures(
     if let PhoneSpecification::Known(required) = segment.phone() {
         SpeechPhoneDefinitionMatch::new(phone.identity().clone(), required.clone())?;
     }
-    if !phone.features().get().as_slice().is_empty() {
-        return Err(SpeechGestureRefusal::UnsupportedFeatures);
-    }
     let mut executions = Vec::new();
+    admit_reviewed_features(&phone, &mut executions)?;
     if !boolean(
         crate::gesture_programs::CHOICE,
         choice.clone(),
@@ -281,4 +280,21 @@ pub fn prepare_greeting_phone_gestures(
         effect_frame,
         second_start,
     })
+}
+
+/// Recognizes exact descriptive metadata of this authored profile. The original
+/// phone and every feature remain in the lowered owner; no feature is erased or
+/// interpreted as measured anatomy. Nonmatching states/values/IDs refuse.
+pub(crate) fn admit_reviewed_features(
+    phone: &SpeechPhone,
+    executions: &mut Vec<crate::SpeechCommonAcousticExecution>,
+) -> Result<(), SpeechGestureRefusal> {
+    let request = SpeechGreetingReviewedFeatureRequest::new(
+        phone.features().get().clone(),
+        phone.ipa().clone(),
+    )?;
+    if !boolean(FEATURES, request, executions)? {
+        return Err(SpeechGestureRefusal::UnsupportedFeatures);
+    }
+    Ok(())
 }
