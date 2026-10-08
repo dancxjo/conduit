@@ -249,20 +249,17 @@ impl MonotonicClockBase for Clock {
 pub struct Timer {
     state: TimerState,
     wakes: u32,
+    duration: Option<(TimerToken, crate::timer_duration::PitDuration)>,
 }
 impl Timer {
     pub const fn new() -> Self {
         Self {
             state: TimerState::new(),
             wakes: 0,
+            duration: None,
         }
     }
-}
-impl TimerBase for Timer {
-    fn provider_generation(&self) -> Option<u64> {
-        Some(1)
-    }
-    fn arm(&mut self, interest: KernelInterest) -> Result<TimerToken, BaseError> {
+    fn arm_count(&mut self, interest: KernelInterest, ticks: u16) -> Result<TimerToken, BaseError> {
         with_interrupts_masked(|| {
             let token = self
                 .state
@@ -287,7 +284,32 @@ impl TimerBase for Timer {
                     .map_err(|error| timer_refusal("arm-rollback", error))?;
                 return Err(error);
             }
-            timer_hardware::start();
+            timer_hardware::start_count(ticks);
+            Ok(token)
+        })
+    }
+}
+impl TimerBase for Timer {
+    fn provider_generation(&self) -> Option<u64> {
+        Some(1)
+    }
+    fn arm_after_milliseconds(
+        &mut self,
+        interest: KernelInterest,
+        milliseconds: u64,
+    ) -> Result<TimerToken, BaseError> {
+        let mut duration = crate::timer_duration::PitDuration::new(milliseconds)?;
+        let ticks = duration.next_count().ok_or(BaseError::Unavailable)?;
+        with_interrupts_masked(|| {
+            let token = self.arm_count(interest, ticks)?;
+            self.duration = Some((token, duration));
+            Ok(token)
+        })
+    }
+    fn arm(&mut self, interest: KernelInterest) -> Result<TimerToken, BaseError> {
+        with_interrupts_masked(|| {
+            let token = self.arm_count(interest, 1193)?;
+            self.duration = None;
             Ok(token)
         })
     }
@@ -298,6 +320,7 @@ impl TimerBase for Timer {
                 .state
                 .cancel(token)
                 .map_err(|error| timer_refusal("cancel-slot", error))?;
+            self.duration = None;
             TIMER_IRQ.retire();
             timer_hardware::quiesce().map_err(|error| timer_refusal("cancel-quiesce", error))?;
             Ok(interest)
@@ -311,10 +334,23 @@ impl TimerBase for Timer {
             else {
                 return Ok(None);
             };
+            if let Some((token, duration)) = self.duration.as_mut() {
+                if token.generation != generation {
+                    return Err(BaseError::StaleWake);
+                }
+                if let Some(ticks) = duration.next_count() {
+                    TIMER_IRQ.retire();
+                    timer_hardware::quiesce()?;
+                    TIMER_IRQ.start(generation)?;
+                    timer_hardware::start_count(ticks);
+                    return Ok(None);
+                }
+            }
             let interest = self
                 .state
                 .wake(generation)
                 .map_err(|error| timer_refusal("wake-slot", error))?;
+            self.duration = None;
             TIMER_IRQ.retire();
             timer_hardware::quiesce().map_err(|error| timer_refusal("wake-quiesce", error))?;
             self.wakes = self

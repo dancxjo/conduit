@@ -294,6 +294,7 @@ pub mod text_planned_kernel;
 mod text_protection;
 mod text_transform;
 pub mod text_upper;
+pub mod timer_duration;
 #[cfg(any(test, target_arch = "x86_64"))]
 pub mod timer_nucleus;
 mod timing_plan;
