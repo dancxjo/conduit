@@ -271,6 +271,10 @@ fn tour_timer_count_scope_distinguishes_semantic_value_and_physical_digits() {
         .find(|p| p.kind_id.as_str() == conduit_semantic_catalog::COUNT_PRESENTATION_KIND)
         .unwrap();
     assert_eq!(placement.host_calls[0].maximum_input_bytes, 8);
+    assert_eq!(
+        placement.host_calls[0].maximum_output_bytes,
+        conduit_core::MAX_PRESENTATION_COMPLETION_BYTES
+    );
     assert_eq!(count.scope.maximum_parameter_bytes, 20);
     assert_eq!(count.scope.maximum_operations, 2);
     assert_eq!(count.scope.maximum_in_flight, 1);
