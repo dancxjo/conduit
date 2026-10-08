@@ -8,6 +8,8 @@ use super::{
 use crate::cli::GlobalOpts;
 use std::fs;
 
+mod normal_product;
+
 pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     if opts.dry_run {
         return Err(ConduitosError::refusal(
@@ -20,6 +22,8 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     let output = paths.root.join("target/conduitos/live/ia32-pc");
     let manifest = crate::commands::host::host_target::verify_target(&output)
         .map_err(|error| ConduitosError::refusal("proof-product-invalid", error.to_string()))?;
+    let normal =
+        normal_product::capture(&paths, &output.join(&manifest.image.file), &manifest, opts)?;
     build::ia32_domain::execute(
         &manifest.profile_id,
         &manifest.build_id,
@@ -59,12 +63,13 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     )
     .map_err(|error| ConduitosError::refusal("domain-proof-receipt-invalid", error.to_string()))?;
     let receipt = serde_json::json!({
-        "schema": "conduit.conduitos/ia32-ordinary-domain-proof@1",
+        "schema": "conduit.conduitos/ia32-ordinary-domain-proof@2",
         "base_commit": git_head(&paths.root)?,
         "architecture": "ia32", "privilege": "ring3",
         "proof_class": "freestanding-ia32-legacy-bios-emulator",
         "image_sha256": sha256_file(&paths.iso)?,
-        "ordinary_product_play": product, "negative_entries": negatives,
+        "ordinary_product_play": normal, "instrumented_product_play": product,
+        "negative_entries": negatives,
         "floating_state_restored_before_rust": true,
         "capability_and_lifecycle_negatives": true,
         "source_timer_wake_retained_during_budget_preemption": true,

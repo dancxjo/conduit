@@ -285,43 +285,47 @@ fn boot_once(
             matches!(firmware_mode, FirmwareMode::Uefi32)
                 || super::ia32_vga_receipt::completed_boot(&transcript).is_some(),
         ) {
-            let mut value: serde_json::Value = serde_json::from_str(json)
-                .map_err(|error| refusal("malformed-ia32-product-sign", error.to_string()))?;
-            validate_sign(
-                &value,
-                expected_profile_id,
-                expected_build_id,
-                expected_image_binding,
-            )?;
-            let observatory: serde_json::Value = serde_json::from_str(observatory_json)
-                .map_err(|error| refusal("malformed-ia32-observatory", error.to_string()))?;
-            validate_observatory(&observatory, &value, firmware_mode.expected_firmware())?;
-            let ordinary_plan: conduit_core::Plan =
-                serde_json::from_value(observatory["plans"][0].clone())
-                    .map_err(|error| refusal("ordinary-product-plan-invalid", error.to_string()))?;
-            value["ordinary_source_conformance"] =
-                super::ordinary_source_conformance::capture(&ordinary_plan)?;
-            match super::protected_product_receipt::capture(&transcript, &value, "ia32") {
-                Ok(cost) => value["ordinary_domain_cost"] = cost,
+            let captured = (|| {
+                let mut value: serde_json::Value = serde_json::from_str(json)
+                    .map_err(|error| refusal("malformed-ia32-product-sign", error.to_string()))?;
+                validate_sign(
+                    &value,
+                    expected_profile_id,
+                    expected_build_id,
+                    expected_image_binding,
+                )?;
+                let observatory: serde_json::Value = serde_json::from_str(observatory_json)
+                    .map_err(|error| refusal("malformed-ia32-observatory", error.to_string()))?;
+                validate_observatory(&observatory, &value, firmware_mode.expected_firmware())?;
+                let ordinary_plan: conduit_core::Plan =
+                    serde_json::from_value(observatory["plans"][0].clone()).map_err(|error| {
+                        refusal("ordinary-product-plan-invalid", error.to_string())
+                    })?;
+                value["ordinary_source_conformance"] =
+                    super::ordinary_source_conformance::capture(&ordinary_plan)?;
+                value["ordinary_domain_cost"] =
+                    super::protected_product_receipt::capture(&transcript, &value, "ia32")?;
+                if matches!(firmware_mode, FirmwareMode::LegacyBios) {
+                    super::ia32_vga_receipt::validate_completion(&transcript, &value).and_then(
+                        |()| {
+                            super::ia32_vga_receipt::capture_and_validate(
+                                &monitor_path,
+                                &vga_path,
+                                &value,
+                            )
+                        },
+                    )?;
+                }
+                Ok::<_, ConduitosError>((value, observatory))
+            })();
+            let (value, observatory) = match captured {
+                Ok(captured) => captured,
                 Err(error) => {
                     let _ = child.kill();
                     let _ = child.wait();
                     return Err(error);
                 }
-            }
-            if matches!(firmware_mode, FirmwareMode::LegacyBios) {
-                if let Err(error) = super::ia32_vga_receipt::validate_completion(
-                    &transcript,
-                    &value,
-                )
-                .and_then(|()| {
-                    super::ia32_vga_receipt::capture_and_validate(&monitor_path, &vga_path, &value)
-                }) {
-                    let _ = child.kill();
-                    let _ = child.wait();
-                    return Err(error);
-                }
-            }
+            };
             thread::sleep(Duration::from_millis(250));
             if child
                 .try_wait()

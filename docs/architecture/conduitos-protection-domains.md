@@ -234,10 +234,16 @@ The copy and TLB counters currently describe shared-window transfers and CR3
 reloads; complete accounting for floating-state transfers, paging-mode changes
 and other scheduler copies remains unfinished.
 
-`cargo xtask make conduitos ia32-ordinary-domain-proof` builds the normal live
-product and then instruments that product for independent IA-32 checks. It
-retains the actual product Plan/Play receipt and image hash, checks seventeen
-memory/privilege/loop cases, and runs the shared capability/lifecycle checks.
+`cargo xtask make conduitos ia32-ordinary-domain-proof` builds and boots the
+normal live BIOS product twice before instrumenting it for independent IA-32
+checks. Its version-2 receipt retains both normal Plan/Play and sealed
+Observatory exports separately from the instrumented product. Normal boots
+must preserve the image and checked Source/semantic Plan shape, refresh Host,
+Boot, Plan and Play identities, and contain no diagnostic-negative entries.
+Each normal UART/VGA record is retained before another boot replaces its
+conventional path. Receipt-validation refusals stop and reap the guest.
+The instrumented image checks seventeen memory/privilege/loop cases and the
+shared capability/lifecycle checks.
 The two loop cases require three budget interrupts before returning, including
 one case with the user direction flag set. Root interrupt entry clears that
 flag before calling Rust. The IRQ frame accounts for the assembler's two-byte

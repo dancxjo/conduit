@@ -39,7 +39,10 @@ Source timer coexistence checked. Stock QEMU 10.2.1 lacks the required writable
 counter-disable control and receives `protected-execution-unsupported`.
 ARMv6's native diagnostic verifies the same refusal for an explicit protected
 text request before preparation; its separate A3 execution remains cooperative.
-Other ordinary implementations and architectures remain unfinished.
+Normal product collectors on all five protected targets require the same
+checked Source and sealed semantic Plan shape. The IA-32 boundary lane retains
+two independent normal BIOS boots separately from its instrumented checks.
+Broader ordinary implementation coverage remains unfinished.
 DMA/driver isolation remain false; this is not accepted-release evidence.
 See the [exact per-target boundary](docs/architecture/conduitos-protection-domains.md#ordinary-execution-work-in-progress-5113).
 
