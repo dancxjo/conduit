@@ -624,6 +624,14 @@ fn generated_bindings_compile_as_an_independent_rust_library() {
     let generated = generate_rust_bindings(
         &checked_types(),
         &RustBindingOptions {
+            prepared_family_roots: [
+                "Chord".into(),
+                "MusicEvent".into(),
+                "Observation".into(),
+                "Interval".into(),
+                "Input".into(),
+            ]
+            .into(),
             boxed_variant_payloads: ["MusicEvent.note".into()].into(),
             copy_nominal_types: ["Digest".into()].into(),
             hash_nominal_types: ["Digest".into()].into(),
@@ -765,7 +773,66 @@ mod generated_round_trip {
 }
 
 "#;
-    fs::write(&source, format!("{}{}", generated.source, exercise)).unwrap();
+    let prepared_exercise = r#"
+#[test]
+fn prepared_recursive_family_matches_existing_entrances() {
+    use conduit_plot::rust_binding::{PreparedNativeFamily, PreparedNativeFamilyLimits};
+    let limits = PreparedNativeFamilyLimits {
+        maximum_types: 64, maximum_laws_per_type: 64,
+        maximum_input_bytes: conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+        maximum_retained_bytes: 64 * 1024 * 1024,
+        maximum_preparation_peak_bytes: 128 * 1024 * 1024,
+        maximum_conversion_requested_bytes: usize::MAX,
+    };
+    let mut family = PreparedNativeFamily::prepare(PREPARED_NATIVE_FAMILY_ROOTS, limits).unwrap();
+    let chord = Chord::new([Note::new(3).unwrap(), Note::new(7).unwrap(), Note::new(9).unwrap()]).unwrap();
+    let encoded = chord.clone().encode().unwrap();
+    assert_eq!(family.decode::<Chord>(&encoded), Chord::decode(&encoded));
+    assert!(family.decode::<Note>(&encoded).is_err());
+    let chord_type = Chord::semantic_type().unwrap();
+    let notes_type = conduit_plot::rust_binding::record_field_type(&chord_type, "notes").unwrap();
+    let note_type = Note::semantic_type().unwrap();
+    let representation = conduit_plot::rust_binding::nominal_representation_type(&note_type).unwrap();
+    let bad_note = StructuredInfoValue::nominal(note_type,
+        conduit_plot::rust_binding::primitive_into_structured(representation, &128u8).unwrap()).unwrap();
+    let invalid_child = StructuredInfoValue::record(chord_type, vec![StructuredFieldValue::new("notes",
+        StructuredInfoValue::collection(notes_type, vec![bad_note, Note::new(7).unwrap().into_structured().unwrap(), Note::new(9).unwrap().into_structured().unwrap()]).unwrap()).unwrap()]).unwrap().canonical_bytes().unwrap();
+    assert_eq!(family.decode::<Chord>(&invalid_child), Chord::decode(&invalid_child));
+    assert!(family.decode::<Chord>(&invalid_child).is_err());
+    // The reference from_structured variant entrance does not call the public
+    // case constructor. Preserve that distinction, including its own bounds.
+    let music_type = MusicEvent::semantic_type().unwrap();
+    let payload_type = conduit_plot::rust_binding::variant_payload_type(&music_type, "note").unwrap();
+    let pitches_type = conduit_plot::rust_binding::record_field_type(&payload_type, "pitches").unwrap();
+    let velocity_type = conduit_plot::rust_binding::record_field_type(&payload_type, "velocity").unwrap();
+    let variant = StructuredInfoValue::variant(music_type, "note", StructuredInfoValue::record(payload_type, vec![
+        StructuredFieldValue::new("pitches", StructuredInfoValue::sequence(pitches_type, vec![]).unwrap()).unwrap(),
+        StructuredFieldValue::new("velocity", conduit_plot::rust_binding::primitive_into_structured(velocity_type, &128u8).unwrap()).unwrap(),
+    ]).unwrap()).unwrap().canonical_bytes().unwrap();
+    assert_eq!(family.decode::<MusicEvent>(&variant), MusicEvent::decode(&variant));
+    assert!(family.decode::<MusicEvent>(&variant).is_ok());
+    let semantic = Interval::semantic_type().unwrap();
+    let end = conduit_plot::rust_binding::record_field_type(&semantic, "end").unwrap();
+    let start = conduit_plot::rust_binding::record_field_type(&semantic, "start").unwrap();
+    let invalid = StructuredInfoValue::record(semantic, vec![
+        StructuredFieldValue::new("end", conduit_plot::rust_binding::primitive_into_structured(end, &3u32).unwrap()).unwrap(),
+        StructuredFieldValue::new("start", conduit_plot::rust_binding::primitive_into_structured(start, &7u32).unwrap()).unwrap(),
+    ]).unwrap().canonical_bytes().unwrap();
+    assert_eq!(family.decode::<Interval>(&invalid), Interval::decode(&invalid));
+    let mut malformed = encoded.clone(); malformed.pop();
+    assert!(family.decode::<Chord>(&malformed).is_err());
+    let receipt = family.storage_receipt();
+    assert!(PreparedNativeFamily::prepare(PREPARED_NATIVE_FAMILY_ROOTS,
+        PreparedNativeFamilyLimits { maximum_retained_bytes: receipt.retained_heap_bytes_bound - 1, ..limits }).is_err());
+    assert!(PreparedNativeFamily::prepare(PREPARED_NATIVE_FAMILY_ROOTS,
+        PreparedNativeFamilyLimits { maximum_preparation_peak_bytes: receipt.preparation_peak_heap_bytes_bound - 1, ..limits }).is_err());
+}
+"#;
+    fs::write(
+        &source,
+        format!("{}{}{}", generated.source, exercise, prepared_exercise),
+    )
+    .unwrap();
     let executable = directory.join("bindings-test");
     let output = Command::new(std::env::var_os("RUSTC").unwrap_or_else(|| "rustc".into()))
         .args(["--edition=2021", "--test"])

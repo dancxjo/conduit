@@ -14,6 +14,7 @@ use super::generate::{
 use super::generate_direct::{emit_direct_integer_checks, emit_direct_record_checks};
 
 pub(super) struct RecordBindingOptions<'a> {
+    pub prepared_family: bool,
     pub nominal_copy: bool,
     pub copy: bool,
     pub value_getters: bool,
@@ -38,6 +39,7 @@ pub(super) fn emit_value_impl(
         rust_name,
         &value_type.value_contracts,
         &value_type.invariants,
+        record_options.prepared_family,
     );
     match value_type.value_type.shape() {
         StructuredInfoTypeShape::Nominal { representation, .. } => emit_nominal(
@@ -99,7 +101,11 @@ fn emit_contracts(
     rust_name: &str,
     contracts: &[NativeTypeValueContract],
     invariants: &[crate::PortableExpressionProgram],
+    prepared_family: bool,
 ) {
+    if prepared_family {
+        super::generate_invariant::emit_table(out, rust_name, invariants);
+    }
     writeln!(out, "impl {rust_name} {{").expect("String writing is infallible");
     if let Some(root) = contracts
         .iter()
@@ -128,7 +134,11 @@ fn emit_contracts(
         .expect("String writing is infallible");
     }
     writeln!(out, "        ]\n    }}").expect("String writing is infallible");
-    super::generate_invariant::emit(out, invariants);
+    if prepared_family {
+        super::generate_invariant::emit_from_table(out, rust_name);
+    } else {
+        super::generate_invariant::emit(out, invariants);
+    }
     writeln!(out, "}}\n").expect("String writing is infallible");
 }
 
