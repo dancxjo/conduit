@@ -66,6 +66,7 @@ fn validate_node(
             || (is_native && native.is_none()))
             && !native.is_some_and(|native| refinement::proves(node, input_type, native, types))
         {
+            let mut admitted_closed = false;
             if closed(node) {
                 if let Some(native) = native.filter(|ty| ty.value_type == node.value_type) {
                     // A closed constant can establish its own laws before Play.
@@ -89,10 +90,14 @@ fn validate_node(
                             )
                         })
                         .map_err(|_| refusal())?;
-                    return Ok(());
+                    // The parent's own laws do not establish nested Types'
+                    // where laws. Continue through every constructed child.
+                    admitted_closed = true;
                 }
             }
-            return Err(refusal());
+            if !admitted_closed {
+                return Err(refusal());
+            }
         }
     }
     match &node.operation {
