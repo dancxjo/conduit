@@ -824,7 +824,9 @@ fn prepared_recursive_family_matches_existing_entrances() {
         StructuredFieldValue::new("velocity", conduit_plot::rust_binding::primitive_into_structured(velocity_type, &128u8).unwrap()).unwrap(),
     ]).unwrap()).unwrap().canonical_bytes().unwrap();
     assert_eq!(family.decode::<MusicEvent>(&variant), MusicEvent::decode(&variant));
-    assert!(family.decode::<MusicEvent>(&variant).is_ok());
+    // Anonymous variant payloads retain their original leaf contracts at both
+    // decoding entrances, just as the public case constructor does.
+    assert!(family.decode::<MusicEvent>(&variant).is_err());
     let semantic = Interval::semantic_type().unwrap();
     let end = conduit_plot::rust_binding::record_field_type(&semantic, "end").unwrap();
     let start = conduit_plot::rust_binding::record_field_type(&semantic, "start").unwrap();

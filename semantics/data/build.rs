@@ -44,6 +44,10 @@ fn main() {
             rust_type_path: "conduit_time::NativeTemporalInstant",
         }],
         &RustBindingOptions {
+            // These complete Data-owned variants are embedded in model
+            // signatures. Consumers reuse their checked descriptors instead of
+            // generating converters for a foreign semantic owner.
+            prepared_family_roots: ["TensorElement".into(), "TensorAxisRole".into()].into(),
             boxed_variant_payloads: [
                 "ObservationValue.sampled-signal".into(),
                 "ObservationValue.tensor".into(),
