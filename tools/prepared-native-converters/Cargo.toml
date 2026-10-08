@@ -1,0 +1,15 @@
+[package]
+name = "conduit-prepared-native-converters"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[dependencies]
+conduit-plot = { path = "../../architecture/plot" }
+syn = { version = "=2.0.119", features = ["full", "visit"] }
+quote = "=1.0.47"
+proc-macro2 = { version = "=1.0.107", features = ["span-locations"] }
+serde_json = "1"
+sha2 = "=0.10.9"

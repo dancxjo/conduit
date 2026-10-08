@@ -2004,3 +2004,58 @@ fn external_descendants_count_toward_complete_root_and_generated_union() {
         ))
     ));
 }
+
+#[test]
+fn converter_only_regeneration_retains_complete_original_conversion() {
+    let source = "type Pitch = U8 in 0..=127\ntype Event =\n    note {\n        pitch: Pitch\n    }\n    | rest\ntype Envelope = {\n    event: Event\n    pitch: Pitch\n}\n";
+    let types = crate::check_syntax_document(
+        &crate::parse_syntax_document(source),
+        &crate::StartupCatalog::default(),
+    )
+    .unwrap()
+    .native_types;
+    let options = RustBindingOptions {
+        prepared_family_roots: ["Envelope".into()].into(),
+        boxed_variant_payloads: ["Event.note".into()].into(),
+        ..Default::default()
+    };
+    let original = generate_rust_bindings(&types, &options).unwrap();
+    let shapes = types
+        .iter()
+        .map(|ty| PreparedNativeConverterShape {
+            name: &ty.name,
+            identity: &ty.identity,
+            value_type: &ty.value_type,
+        })
+        .collect::<Vec<_>>();
+    let converters = generate_prepared_native_converters(&shapes, &options).unwrap();
+    assert_eq!(converters.len(), types.len());
+    for converter in converters {
+        assert!(original.source.contains(&converter.source));
+        assert!(converter
+            .source
+            .contains("family.validate(Self::PREPARED_DESCRIPTOR, value)"));
+        assert!(!converter.source.contains("pub static"));
+    }
+    assert!(generate_prepared_native_converters(&[], &options).is_err());
+    let foreign = conduit_core::kind_id("type/Foreign@different");
+    let invalid = [PreparedNativeConverterShape {
+        name: shapes[0].name,
+        identity: &foreign,
+        value_type: shapes[0].value_type,
+    }];
+    assert!(generate_prepared_native_converters(&invalid, &options).is_err());
+    let duplicate = [
+        PreparedNativeConverterShape {
+            name: shapes[0].name,
+            identity: shapes[0].identity,
+            value_type: shapes[0].value_type,
+        },
+        PreparedNativeConverterShape {
+            name: shapes[0].name,
+            identity: shapes[0].identity,
+            value_type: shapes[0].value_type,
+        },
+    ];
+    assert!(generate_prepared_native_converters(&duplicate, &options).is_err());
+}

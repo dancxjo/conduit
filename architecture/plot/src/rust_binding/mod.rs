@@ -15,7 +15,12 @@ mod generate_layout_tests;
 mod generate_options;
 pub use generate_options::MAXIMUM_GENERATED_NATIVE_FAMILY_TYPES;
 mod generate_package;
+mod generate_prepared_converters;
 mod generate_prepared_family;
+pub use generate_prepared_converters::{
+    generate_prepared_native_converters, GeneratedPreparedNativeConverter,
+    PreparedNativeConverterShape,
+};
 #[cfg(test)]
 mod generate_tests;
 mod generate_value;

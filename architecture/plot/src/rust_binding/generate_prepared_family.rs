@@ -271,7 +271,7 @@ pub(super) fn emit(
             writeln!(out, "        ] }},").unwrap();
         }
         writeln!(out, "    ],\n    children: &[{}],\n    external_edges: &[{}],\n    conversion_profile: conduit_plot::rust_binding::NativeFamilyConversionProfile::{profile},\n    maximum_inline_bytes: {},\n}};", children.iter().map(|child| format!("&{}_PREPARED_NATIVE_DESCRIPTOR", names[child.identity.as_str()])).chain(external_children.iter().map(|child| format!("<{} as conduit_plot::rust_binding::PreparedNativeRustBinding>::PREPARED_DESCRIPTOR", child.rust_type_path))).collect::<Vec<_>>().join(", "), external_edges.join(", "), layout_bound(ty, name, names)?).unwrap();
-        emit_converter(out, ty, name, names, options)?;
+        emit_converter(out, &ty.value_type, &ty.name, name, names, options)?;
     }
     writeln!(out, "pub static PREPARED_NATIVE_FAMILY_ROOTS: &[&conduit_plot::rust_binding::NativeFamilyTypeDescriptor] = &[{}];", selected.iter().filter(|ty| options.prepared_family_roots.contains(&ty.name)).map(|ty| format!("&{}_PREPARED_NATIVE_DESCRIPTOR", names[ty.identity.as_str()])).collect::<Vec<_>>().join(", ")).unwrap();
     Ok(())
@@ -352,9 +352,10 @@ fn layout_bound(
     ))
 }
 
-fn emit_converter(
+pub(super) fn emit_converter(
     out: &mut String,
-    ty: &CheckedNativeType,
+    value_type: &StructuredInfoType,
+    authored_name: &str,
     name: &str,
     names: &BTreeMap<String, String>,
     options: &RustBindingOptions,
@@ -363,9 +364,9 @@ fn emit_converter(
     let mut generated = String::new();
     let out = &mut generated;
     writeln!(out, "impl conduit_plot::rust_binding::PreparedNativeRustBinding for {name} {{\n    const PREPARED_DESCRIPTOR: &'static conduit_plot::rust_binding::NativeFamilyTypeDescriptor = &{name}_PREPARED_NATIVE_DESCRIPTOR;\n    fn from_borrowed_prepared(value: conduit_core::ValidatedCanonicalStructuredValue<'_>, family: &mut conduit_plot::rust_binding::PreparedNativeFamily) -> Result<Self, NativeBindingRefusal> {{\n        family.check_type(Self::PREPARED_DESCRIPTOR, value)?;").unwrap();
-    match ty.value_type.shape() {
+    match value_type.shape() {
         StructuredInfoTypeShape::Record { fields, .. } => {
-            let order = options.record_constructor_orders.get(&ty.name);
+            let order = options.record_constructor_orders.get(authored_name);
             let fields = order
                 .map(|order| {
                     order
@@ -396,10 +397,11 @@ fn emit_converter(
             .unwrap();
             for case in cases {
                 let variant = rust_pascal_identifier(case.tag())?;
-                let boxed =
-                    options
-                        .boxed_variant_payloads
-                        .contains(&format!("{}.{}", ty.name, case.tag()));
+                let boxed = options.boxed_variant_payloads.contains(&format!(
+                    "{}.{}",
+                    authored_name,
+                    case.tag()
+                ));
                 let payload = format!("value.variant_payload({:?}).map_err(NativeBindingRefusal::InvalidValue)?.ok_or(NativeBindingRefusal::InvalidValue(conduit_core::StructuredInfoRefusal::WrongType))?", case.tag());
                 let result = if unit_type(case.payload_type()) {
                     format!("Self::{variant}")
