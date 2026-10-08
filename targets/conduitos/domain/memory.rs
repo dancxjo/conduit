@@ -2,6 +2,20 @@
 use core::ffi::c_void;
 
 #[unsafe(no_mangle)]
+unsafe extern "C" fn bcmp(left: *const c_void, right: *const c_void, length: usize) -> i32 {
+    for index in 0..length {
+        // Volatile reads keep this compiler support routine from lowering its
+        // own loop back into a call to bcmp. Page permissions still bound access.
+        if unsafe { left.cast::<u8>().add(index).read_volatile() }
+            != unsafe { right.cast::<u8>().add(index).read_volatile() }
+        {
+            return 1;
+        }
+    }
+    0
+}
+
+#[unsafe(no_mangle)]
 unsafe extern "C" fn memcpy(
     destination: *mut c_void,
     source: *const c_void,
