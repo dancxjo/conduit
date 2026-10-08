@@ -43,11 +43,14 @@ pub(super) fn quiesce() -> Result<(), BaseError> {
 }
 
 pub(super) fn start() {
-    const TICKS: u16 = 1193;
+    start_count(1193);
+}
+
+pub(super) fn start_count(ticks: u16) {
     unsafe {
         outb(0x43, 0x30);
-        outb(0x40, TICKS as u8);
-        outb(0x40, (TICKS >> 8) as u8);
+        outb(0x40, ticks as u8);
+        outb(0x40, (ticks >> 8) as u8);
         outb(0x21, inb(0x21) & !1);
     }
 }

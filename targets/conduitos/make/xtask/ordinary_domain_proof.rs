@@ -81,6 +81,7 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
             format!("{status}; {transcript}"),
         ));
     }
+    let timer = super::protected_timer_proof::validate(&transcript, "x86_64")?;
     let signs = transcript
         .lines()
         .filter_map(|line| line.strip_prefix(PREFIX))
@@ -91,9 +92,10 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
             format!("expected one Sign, found {}; {transcript}", signs.len()),
         ));
     }
-    let sign: serde_json::Value = serde_json::from_str(signs[0]).map_err(|error| {
+    let mut sign: serde_json::Value = serde_json::from_str(signs[0]).map_err(|error| {
         ConduitosError::refusal("ordinary-domain-proof-sign-invalid", error.to_string())
     })?;
+    sign["protected_standing_timer"] = timer;
     if sign["status"] != "completed"
         || sign["proof_class"] != "freestanding-emulator"
         || sign["architecture"] != "x86_64"
@@ -193,13 +195,13 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
             != (conduitos::ordinary_plan::TEXT_LITERAL.len()
                 + 3 * conduitos::ordinary_plan::TEXT_RESULT.len()) as u64
         || cost["tlb_flushes"] != 6
-        || cost["teardown_zeroed_bytes"] != 118784
+        || cost["teardown_zeroed_bytes"] != 217088
         || cost["shared_peak_bytes"]
             != (conduitos::ordinary_plan::TEXT_LITERAL.len()
                 + conduitos::ordinary_plan::TEXT_RESULT.len()) as u64
         || cost["ring_slots"] != 0
         || cost["state"] != "Revoked(PlayCompleted)"
-        || cost["reserved_bytes"] != 118784
+        || cost["reserved_bytes"] != 217088
         || cost["dma_isolation"] != false
         || cost["driver_isolation"] != false
     {

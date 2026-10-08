@@ -15,11 +15,16 @@ conduit-human = { path = "../../../semantics/human" }
 
 conduit-text = { path = "../../../semantics/text", default-features = false }
 
+conduit-kernel = { path = "../../../architecture/kernel" }
+conduit-time = { path = "../../../semantics/time", default-features = false }
+
 [features]
 proof = []
 
 [profile.release]
 panic = "abort"
+# The separately admitted image has a fixed 128 KiB code/constant window.
 opt-level = 2
 codegen-units = 1
-lto = false
+# Eliminate intermediate fixed-state copies across kernel crate boundaries.
+lto = "thin"

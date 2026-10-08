@@ -134,6 +134,10 @@ pub fn initialize_machine() {
 
 pub fn timer_arm() {
     let ticks = (counter_frequency() / 1_000).max(1);
+    timer_arm_ticks(ticks);
+}
+
+fn timer_arm_ticks(ticks: u64) {
     unsafe {
         core::arch::asm!("msr cntv_tval_el0, {ticks:x}", ticks = in(reg) ticks, options(nostack));
         core::arch::asm!("msr cntv_ctl_el0, {enabled:x}", enabled = in(reg) 1_u64, options(nostack));

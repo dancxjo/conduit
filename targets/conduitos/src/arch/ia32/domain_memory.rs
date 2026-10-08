@@ -1,4 +1,5 @@
 //! Fixed PAE address spaces: Root identity mappings and a disjoint user range.
+use crate::domain_layout::{RETAINED_BYTES, RETAINED_PAGE, STACK_BYTES, STACK_PAGE};
 use crate::{
     domain_image::{DomainImage, IA32_USER_TEXT_START, MAXIMUM_IMAGE_BYTES},
     protected_region::DomainRefusal,
@@ -10,7 +11,7 @@ use core::{
 
 use super::ordinary_domain::TextFrame;
 pub(super) const USER_FRAME: u32 = (IA32_USER_TEXT_START + MAXIMUM_IMAGE_BYTES) as u32;
-pub(super) const USER_STACK_TOP: u32 = IA32_USER_TEXT_START as u32 + 0x24000 - 20;
+pub(super) const USER_STACK_TOP: u32 = IA32_USER_TEXT_START as u32 + 0x48000 - 20;
 const PAGE: usize = 4096;
 const NX: u64 = 1 << 63;
 
@@ -25,9 +26,10 @@ struct Slot {
     pdpt: Table,
     directories: [Table; 4],
     user: Table,
-    code: Bytes<65536>,
+    code: Bytes<131072>,
     frame: Bytes<4096>,
-    stack: Bytes<16384>,
+    stack: Bytes<STACK_BYTES>,
+    retained: Bytes<RETAINED_BYTES>,
     trap: Bytes<16384>,
     root_floating: FloatingState,
     user_floating: FloatingState,
@@ -38,9 +40,10 @@ impl Slot {
             pdpt: Table([0; 512]),
             directories: [const { Table([0; 512]) }; 4],
             user: Table([0; 512]),
-            code: Bytes([0; 65536]),
+            code: Bytes([0; 131072]),
             frame: Bytes([0; 4096]),
-            stack: Bytes([0; 16384]),
+            stack: Bytes([0; STACK_BYTES]),
+            retained: Bytes([0; RETAINED_BYTES]),
             trap: Bytes([0; 16384]),
             root_floating: FloatingState([0; 512]),
             user_floating: FloatingState([0; 512]),
@@ -119,13 +122,19 @@ impl AddressSpace {
                     | if segment.executable { 0 } else { NX };
             }
         }
-        memory.user.0[16] = address(&memory.frame) | 7 | NX;
+        memory.user.0[32] = address(&memory.frame) | 7 | NX;
         // The independently compiled image uses the i386 C calling convention.
-        memory.stack.0[16368..16372].copy_from_slice(&USER_FRAME.to_le_bytes());
+        memory.stack.0[STACK_BYTES - 16..STACK_BYTES - 12]
+            .copy_from_slice(&USER_FRAME.to_le_bytes());
         memory.user_floating.0[..2].copy_from_slice(&0x037fu16.to_le_bytes());
         memory.user_floating.0[24..28].copy_from_slice(&0x1f80u32.to_le_bytes());
-        for page in 0..4 {
-            memory.user.0[32 + page] = address(&memory.stack) + (page * PAGE) as u64 | 7 | NX;
+        for page in 0..STACK_BYTES / PAGE {
+            memory.user.0[STACK_PAGE + page] =
+                address(&memory.stack) + (page * PAGE) as u64 | 7 | NX;
+        }
+        for page in 0..RETAINED_BYTES / PAGE {
+            memory.user.0[RETAINED_PAGE + page] =
+                address(&memory.retained) + (page * PAGE) as u64 | 7 | NX;
         }
         space.cr3 = address(&memory.pdpt) as u32;
         space.entry = u32::try_from(image.entry).map_err(|_| DomainRefusal::InvalidMemory)?;

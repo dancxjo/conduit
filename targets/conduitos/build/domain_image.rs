@@ -7,11 +7,17 @@ mod image;
 pub fn generate() {
     for source in [
         "domain/main.rs",
+        "domain/build.rs",
         "domain/Cargo.toml",
         "domain/Cargo.lock",
         "domain/allocation.rs",
         "domain/keymap.rs",
         "domain/morse.rs",
+        "domain/timer.rs",
+        "src/tour_timer_runtime.rs",
+        "src/tour_timer_runtime",
+        "../../architecture/kernel",
+        "../../semantics/time",
         "../../semantics/text",
         "../../semantics/catalog/src/text_state/retained.rs",
         "../../semantics/human",
@@ -20,7 +26,9 @@ pub fn generate() {
         "../../architecture/plot",
         "domain/gate.rs",
         "domain/memory.rs",
+        "domain/memory_words.rs",
         "domain/frame.rs",
+        "domain/layout.rs",
         "domain/probes.rs",
         "domain/probes_ia32.rs",
         "domain/probes_aarch64.rs",
@@ -35,6 +43,8 @@ pub fn generate() {
     let architecture = env::var("CARGO_CFG_TARGET_ARCH").expect("Cargo sets architecture");
     let target_os = env::var("CARGO_CFG_TARGET_OS").expect("Cargo sets target OS");
     println!("cargo:rustc-check-cfg=cfg(conduitos_protected_execution)");
+    println!("cargo:rustc-check-cfg=cfg(conduitos_domain_image)");
+    println!("cargo:rustc-check-cfg=cfg(conduitos_domain_backend)");
     let protected = match architecture.as_str() {
         "x86_64" => target_os == "none",
         "x86" => target_os == "linux" && env::var_os("CARGO_FEATURE_IA32_PRODUCT").is_some(),
@@ -60,6 +70,7 @@ pub fn generate() {
     {
         return;
     }
+    println!("cargo:rustc-cfg=conduitos_domain_backend");
     let manifest = PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").expect("Cargo sets manifest"));
     let output = PathBuf::from(env::var_os("OUT_DIR").expect("Cargo sets output"));
     let target = env::var("TARGET").expect("Cargo sets target");
@@ -69,7 +80,15 @@ pub fn generate() {
         "-C".into(),
         "relocation-model=static".into(),
         "-C".into(),
-        "code-model=small".into(),
+        // Match the target sysroot for cross-crate optimization. These targets
+        // ship target-specific core/alloc, whose LLVM module flag must agree.
+        if matches!(architecture.as_str(), "riscv64" | "loongarch64") {
+            "code-model=medium".into()
+        } else if architecture == "x86_64" {
+            "code-model=kernel".into()
+        } else {
+            "code-model=small".into()
+        },
         "-C".into(),
         format!("link-arg=-T{}", manifest.join("domain/linker.ld").display()),
         "-C".into(),

@@ -2,7 +2,7 @@ use crate::machine::{
     BaseError, FixedTimerSlots, IdleBase, InterruptBase, InterruptState, KernelInterest,
     MonotonicClockBase, SerialBase, TimerBase, TimerToken,
 };
-use core::sync::atomic::{AtomicBool, Ordering};
+use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
 use super::{
     InterruptFact, disable_interrupts, enable_interrupts, interruptible_idle, interrupts_enabled,
@@ -10,10 +10,16 @@ use super::{
 };
 
 static TIMER_ARM_PENDING: AtomicBool = AtomicBool::new(false);
+static TIMER_PENDING_TICKS: AtomicU64 = AtomicU64::new(0);
 
 pub(super) fn start_pending_source_timer() {
     if TIMER_ARM_PENDING.swap(false, Ordering::AcqRel) {
-        timer_arm();
+        let ticks = TIMER_PENDING_TICKS.swap(0, Ordering::AcqRel);
+        if ticks == 0 {
+            timer_arm();
+        } else {
+            super::timer_arm_ticks(ticks);
+        }
     }
 }
 
@@ -26,6 +32,9 @@ impl Clock {
 }
 
 impl MonotonicClockBase for Clock {
+    fn provider_generation(&self) -> Option<u64> {
+        Some(1)
+    }
     fn now(&mut self) -> u64 {
         self.0 = read_counter().max(self.0);
         self.0
@@ -49,19 +58,45 @@ impl Timer {
 }
 
 impl TimerBase for Timer {
+    fn arm_after_milliseconds(
+        &mut self,
+        interest: KernelInterest,
+        milliseconds: u64,
+    ) -> Result<TimerToken, BaseError> {
+        let ticks =
+            crate::timer_duration::duration_ticks(milliseconds, super::counter_frequency(), 1)?;
+        if ticks > i32::MAX as u64 {
+            return Err(BaseError::Unavailable);
+        }
+        let token = self.slots.arm(interest)?;
+        self.active = Some(token);
+        TIMER_PENDING_TICKS.store(ticks, Ordering::Release);
+        TIMER_ARM_PENDING.store(true, Ordering::Release);
+        Ok(token)
+    }
+
+    fn provider_generation(&self) -> Option<u64> {
+        Some(1)
+    }
     fn arm(&mut self, interest: KernelInterest) -> Result<TimerToken, BaseError> {
         let token = self.slots.arm(interest)?;
         if self.active.replace(token).is_some() {
             return Err(BaseError::SlotFull);
         }
+        TIMER_PENDING_TICKS.store(0, Ordering::Release);
         TIMER_ARM_PENDING.store(true, Ordering::Release);
         Ok(token)
     }
 
     fn cancel(&mut self, token: TimerToken) -> Result<KernelInterest, BaseError> {
+        let interest = self.slots.cancel(token)?;
         self.active = None;
         TIMER_ARM_PENDING.store(false, Ordering::Release);
-        self.slots.cancel(token)
+        TIMER_PENDING_TICKS.store(0, Ordering::Release);
+        unsafe {
+            core::arch::asm!("msr cntv_ctl_el0, {disabled:x}", "isb", disabled = in(reg) 0_u64, options(nostack));
+        }
+        Ok(interest)
     }
 
     fn take_wake(&mut self) -> Result<Option<KernelInterest>, BaseError> {
