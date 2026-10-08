@@ -269,9 +269,36 @@ storage. A retired owner refuses a second run before touching any provider.
 The native proof exercises the ordinary Tour product entrance with actual
 providers, separately from the explicitly synthetic private-runtime fixture.
 Its timer receipt retains effect gates, copies, shared-window occupancy,
-interrupts, setup/teardown, address-space switches and memory. The first local
-x86_64 physical product proof passed; current cross-architecture validation and
-accepted-release evidence are still pending.
+interrupts, setup/teardown, address-space switches and memory. Local proofs
+passed on all five supported protected architectures, including the actual
+120 ms product and terminal replay refusal. Each used eleven domain entries,
+four Base gates, 313 runtime bytes copied, a 163-byte shared-window peak,
+22 address-space switches/TLB flushes and eleven scheduler returns. The product
+completed without budget preemption; independent hostile-loop fixtures still
+prove bounded preemption. Teardown zeroed the entire reservation in every case.
+
+| Target | Privilege transitions | User IRQ entries | Setup bytes copied | Reserved / zeroed bytes | Root metadata bytes |
+|---|---:|---:|---:|---:|---:|
+| x86_64 | 38 | 8 | 71,639 | 217,088 | 5,280 |
+| IA-32 | 38 | 8 | 64,865 | 229,376 | 5,008 |
+| AArch64 | 32 | 5 | 64,460 | 225,280 | 5,296 |
+| RISC-V64 | 22 | 0 | 54,456 | 217,088 | 5,280 |
+| LoongArch64 | 22 | 0 | 67,796 | 225,280 | 5,288 |
+
+| Target | Setup ticks | Teardown ticks | Counter unit |
+|---|---:|---:|---|
+| x86_64 | 6,918,183 | 26,234,556 | TSC |
+| IA-32 | 9,068,216 | 20,430,106 | TSC |
+| AArch64 | 189,101 | 710,699 | CNTVCT |
+| RISC-V64 | 43,730 | 195,497 | time |
+| LoongArch64 | 291,825 | 1,678,133 | RDTIME |
+
+These are retained emulator measurements from one candidate, with
+architecture-specific counters; they are not cross-platform latency rankings.
+The private image uses speed optimization and thin LTO, and initializes its
+kernel directly in retained state. This removed IA-32 initialization overhead
+that exhausted the existing watchdog; its three-interrupt budget was unchanged.
+Accepted-release evidence remains pending.
 
 Broader ordinary implementation coverage remains unfinished.
 This is development emulator evidence, not accepted-release evidence.
