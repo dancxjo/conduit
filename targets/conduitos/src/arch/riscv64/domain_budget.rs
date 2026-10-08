@@ -71,10 +71,19 @@ impl Drop for Budget {
 }
 
 pub(super) fn source_arm() -> bool {
-    SOURCE.store(
-        super::read_counter().saturating_add(100_000),
-        Ordering::Release,
-    );
+    source_arm_ticks(100_000)
+}
+pub(super) fn source_arm_ticks(ticks: u64) -> bool {
+    let Some(deadline) = super::read_counter()
+        .checked_add(ticks)
+        .filter(|deadline| *deadline != NONE)
+    else {
+        return false;
+    };
+    if ticks == 0 {
+        return false;
+    }
+    SOURCE.store(deadline, Ordering::Release);
     program()
 }
 pub(super) fn source_cancel() {

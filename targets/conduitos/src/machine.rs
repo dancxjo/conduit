@@ -319,6 +319,15 @@ pub trait MonotonicClockBase {
 }
 
 pub trait TimerBase {
+    /// Arm a finite physical duration. A provider lacking calibrated duration
+    /// support refuses; the caller must not substitute its diagnostic arm.
+    fn arm_after_milliseconds(
+        &mut self,
+        _interest: KernelInterest,
+        _milliseconds: u64,
+    ) -> Result<TimerToken, BaseError> {
+        Err(BaseError::Unavailable)
+    }
     fn arm(&mut self, interest: KernelInterest) -> Result<TimerToken, BaseError>;
     fn cancel(&mut self, token: TimerToken) -> Result<KernelInterest, BaseError>;
     fn take_wake(&mut self) -> Result<Option<KernelInterest>, BaseError>;

@@ -1,4 +1,4 @@
-use core::sync::atomic::{AtomicBool, Ordering};
+use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
 use crate::machine::{
     BaseError, FixedTimerSlots, IdleBase, InterruptBase, InterruptState, KernelInterest,
@@ -11,9 +11,23 @@ use super::{
 };
 
 static TIMER_ARM_PENDING: AtomicBool = AtomicBool::new(false);
+static TIMER_PENDING_TICKS: AtomicU64 = AtomicU64::new(0);
+
+fn arm_pending_source() -> bool {
+    if !TIMER_ARM_PENDING.swap(false, Ordering::AcqRel) {
+        return true;
+    }
+    let ticks = TIMER_PENDING_TICKS.swap(0, Ordering::AcqRel);
+    if ticks == 0 {
+        timer_arm()
+    } else {
+        super::domain_budget::source_arm_ticks(ticks)
+    }
+}
+
 #[cfg(feature = "ordinary-domain-proof")]
 pub(super) fn start_pending_source_timer() {
-    if TIMER_ARM_PENDING.swap(false, Ordering::AcqRel) && !timer_arm() {
+    if !arm_pending_source() {
         super::emergency_halt();
     }
 }
@@ -49,6 +63,22 @@ impl Timer {
     }
 }
 impl TimerBase for Timer {
+    fn arm_after_milliseconds(
+        &mut self,
+        interest: KernelInterest,
+        milliseconds: u64,
+    ) -> Result<TimerToken, BaseError> {
+        // This backend admits the pinned QEMU virt machine whose ACLINT
+        // timebase is 10 MHz; this is not hardware frequency discovery.
+        let (numerator, denominator) = (10_000_000, 1);
+        let ticks = crate::timer_duration::duration_ticks(milliseconds, numerator, denominator)?;
+        let token = self.slots.arm(interest)?;
+        self.active = Some(token);
+        TIMER_PENDING_TICKS.store(ticks, Ordering::Release);
+        TIMER_ARM_PENDING.store(true, Ordering::Release);
+        Ok(token)
+    }
+
     fn provider_generation(&self) -> Option<u64> {
         Some(1)
     }
@@ -57,6 +87,7 @@ impl TimerBase for Timer {
         if self.active.replace(token).is_some() {
             return Err(BaseError::SlotFull);
         }
+        TIMER_PENDING_TICKS.store(0, Ordering::Release);
         TIMER_ARM_PENDING.store(true, Ordering::Release);
         Ok(token)
     }
@@ -64,6 +95,7 @@ impl TimerBase for Timer {
         let interest = self.slots.cancel(token)?;
         self.active = None;
         TIMER_ARM_PENDING.store(false, Ordering::Release);
+        TIMER_PENDING_TICKS.store(0, Ordering::Release);
         super::domain_budget::source_cancel();
         Ok(interest)
     }
@@ -144,7 +176,7 @@ impl Idle {
 impl IdleBase for Idle {
     fn wait_for_interrupt(&mut self) -> Result<(), BaseError> {
         self.0 = self.0.checked_add(1).ok_or(BaseError::Unavailable)?;
-        if TIMER_ARM_PENDING.swap(false, Ordering::AcqRel) && !timer_arm() {
+        if !arm_pending_source() {
             return Err(BaseError::Unavailable);
         }
         enable_interrupts();
