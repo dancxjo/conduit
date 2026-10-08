@@ -55,4 +55,3 @@ type LanguageParserRawAvailability = {
 plot language-parser-availability (
     input: LanguageParserAvailableLexical...| >> output: LanguageParserRawAvailability...|
 ) = { lexical: ., waiting: .token_count == 0, final_input: (.token_count == sequence/length(.tape.tokens) && variant/is(.tape.source.finality,"final")) }
-
