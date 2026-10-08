@@ -44,7 +44,7 @@ Preparation allocates and does not claim bounded Flow execution.
 
 Recovered source: `origin/codex/5212-common-intent` at
 `6806f08fbb07723237441b97c93cebf5d1e72138`. Historical proof on that branch does
-not prove the current candidate; current validation remains pending.
+not prove the current candidate; current validation is recorded below.
 
 ## Proposed typed delimiter glyphs
 
@@ -65,7 +65,8 @@ would disambiguate conflicts with sequence literals, division or operation paths
 failed decoding would never silently fall back to a competing interpretation.
 
 A single-phone value, a single-phoneme value and a transcription sequence remain
-different results. Resolving any of them into inventory references requires an
+different results. Universal phonetic notation needs no language inventory.
+Phonemic notation and resolving notation into inventory references require an
 explicit supplied inventory/variety basis. The extension must preserve ordinary
 checked identities and use finite deterministic preparation rather than arbitrary
 host evaluation. Broader utterance/syllable/prosody/acoustic work remains governed
@@ -87,8 +88,77 @@ An inventory may be assembled and domain-checked during preparation. Execution
 planning may select support for it, but never invent its phonological contrasts.
 
 The notation mechanism must be reusable for DSLs. A proposed regex consumer
-`r/[A-Z]+/` uses the same prefix/delimiter contract, with regex-specific escape
-and flag rules owned by that parser. Existing `Text ~ /[A-Z]+/` remains valid;
-accepting `Text ~ r/[A-Z]+/` would be a separately checked consumer integration.
+`r/[A-Z]+/` uses the same prefix/delimiter contract. The existing slash form
+and prefixed form must share the same portable pattern parser, flags, matching
+semantics and admitted bounds. Existing `Text ~ /[A-Z]+/` remains valid.
+The proposed `Text ~ r/[A-Z]+/` must check to the identical pattern constraint;
+accepting typed pattern values at this consumer remains implementation work
+under #5317, not a second regex engine.
 Each binding has one output Type, bounded parsing, source custody and explicit
 fallback. A non-speech fixture is required by #5317 before generality is claimed.
+
+
+### Delimiter and payload escaping proposal
+
+The common scanner owns where a literal ends; the domain parser owns the inner
+language. Both receive the exact raw body and its source map. Prefixes are
+recognized only when immediately adjacent to the opening delimiter, at an
+admitted expression entry, under a unique explicit binding. Whitespace inside
+the delimiters is payload. Whitespace between prefix and opener is ordinary
+Conduit syntax. These lexical rules do not resolve collisions with indexing or
+slash: conflicts still refuse with the qualified constructor suggested.
+
+For the first version, use a shared backslash-aware delimiter scanner. A closing
+delimiter preceded by an odd run of backslashes is quoted; an even run leaves
+it active. A trailing escape or missing closing delimiter refuses at its source
+span. Scanning does not consume or reinterpret payload escapes. The parser
+contract declares which escapes it accepts and how they map to semantic values;
+unknown escapes refuse rather than dropping backslashes. No generic string
+unescaping is applied before parsing. This avoids double decoding regex escapes
+such as `\.` or `\\` and gives other DSLs the same source-custody mechanism.
+
+The regex consumer must route both `/a\/b/` and `r/a\/b/` through the same
+scanner and parser, matching the literal slash between `a` and `b`. Likewise,
+flags, escaped backslashes, character classes and anchor handling must have
+identical meanings. Parser-specific suffixes such as regex `i` are part of the
+reviewed parser contract and source identity; there is no universal flag syntax.
+The existing regex scanner already accounts for character classes (so a slash
+inside a class keeps its existing meaning); the prefixed form must use that same
+reviewed lexical policy. Other DSLs do not inherit regex classes, comments,
+interpolation or nesting. Such features require an explicit bounded lexical
+policy in their own parser contract. Quoted delimiter escapes cannot make unsupported
+IPA or invalid domain values admissible.
+
+#5317 must verify malformed and unknown escapes, odd/even backslash runs,
+escaped closers, adjacent literals, Unicode byte/scalar mappings, capacity
+refusals and formatter idempotence, alongside an independent non-speech
+consumer. The design remains proposed until that conformance passes.
+
+
+`r/…/flags` denotes a checked portable pattern specification, rather than Text
+or an executable host regex. The notation parser checks syntax and flags within
+its declared preparation budget. A consumer such as a Text refinement supplies
+the finite input bound before compiling the existing deterministic automaton.
+Passing a pattern as typed Info must not bypass that admission step. Supporting
+`r` does not imply support for regex constructs outside the current portable
+subset; duplicate/unknown flags and unsupported expressions still refuse.
+
+
+## Current development evidence
+
+The ordinary [quoted-phone constructor](../../semantics/speech/examples/ipa/quoted-phone.conduit)
+checks a single universal phone through `SpeechPhoneNotation`, including its
+finite supported-spelling law. It needs no notation import, language inventory
+or renderer. The Source conformance admits affricates, aspiration, syllabicity
+and both declared nasal spellings; it refuses provider codes, orphan marks,
+unsupported combinations, sequences and suprasegmentals at this single-phone
+entrance. It verifies exact Native decoding, lossless CST source custody,
+quoted-string highlighting and prepared/allocating evaluator parity.
+
+Current focused proof passes 16 IPA tests and 18 generic construction/projection
+tests. All 313 Plot library tests pass. Product catalog integration, lint and
+no_std checks are running. This is development evidence, not stable acceptance.
+Located parser diagnostics and full quoted-transcription Source constructors
+remain unfinished. The existing `SpeechPhoneticTranscription` profile wrapper
+still carries an inventory basis; universal full phonetic transcription is an
+explicit remaining correction. #5260 remains open and its PR remains a draft.
