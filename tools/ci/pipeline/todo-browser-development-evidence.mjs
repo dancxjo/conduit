@@ -6,7 +6,9 @@ import path from 'node:path';
 export const TODO_BROWSER_DEVELOPMENT_ROOT = 'site/evidence/todo-browser-development';
 const FILES = ['browser-after.png', 'browser-before.png', 'browser-card-after.png',
   'browser-full-after.png', 'index.html', 'long-list-browser-receipt.json',
-  'long-list-terminal-summary.json', 'read-only-card-receipt.json', 'receipt.json',
+  'long-list-spoken-proof.json', 'long-list-spoken-same-play.wav',
+  'long-list-spoken-status.json', 'long-list-terminal-summary.json',
+  'read-only-card-receipt.json', 'receipt.json',
   'todo-20-card.png', 'todo-20-full.png'];
 const sha = bytes => `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
 const commit = value => /^[a-f0-9]{40}$/.test(value ?? '');
@@ -30,6 +32,8 @@ export function retainedTodoBrowserDevelopmentEvidence(root = TODO_BROWSER_DEVEL
   const card = JSON.parse(bytes('read-only-card-receipt.json'));
   const longList = JSON.parse(bytes('long-list-terminal-summary.json'));
   const longListBrowser = JSON.parse(bytes('long-list-browser-receipt.json'));
+  const spoken = JSON.parse(bytes('long-list-spoken-proof.json'));
+  const spokenStatus = JSON.parse(bytes('long-list-spoken-status.json'));
   if (!commit(publicationCommit) || !commit(action.owner_source_commit)
       || !commit(action.browser_runtime_source_commit)
       || action.schema !== 'conduit.proof/todo-owner-browser@1'
@@ -70,8 +74,33 @@ export function retainedTodoBrowserDevelopmentEvidence(root = TODO_BROWSER_DEVEL
       || !Array.isArray(longListBrowser.errors) || longListBrowser.errors.length !== 0) {
     throw new Error('Todo long-list evidence lacks one matching Body and exact browser rejoin');
   }
+  const speechBatch = spokenStatus.speaker_playback?.batches?.[0];
+  const wav = bytes('long-list-spoken-same-play.wav');
+  if (spoken.body_id !== action.body_id || !commit(spoken.source_identity)
+      || spoken.source_identity !== '801c83b46cb46296f0a198df2b0b7538bada09c3'
+      || spoken.face_id !== spokenStatus.source_face_id
+      || spoken.show_id !== spokenStatus.show_id
+      || spoken.mask_plan_id !== spokenStatus.route_plan_id
+      || spoken.mask_play_id !== spokenStatus.active_play_id
+      || spoken.speaker_plan_id !== speechBatch?.plan_id
+      || spoken.speaker_play_id !== speechBatch?.play_id
+      || spoken.spoken_words !== spokenStatus.direct_opening_wording
+      || spoken.spoken_words !== speechBatch.spoken_segments.join('')
+      || spoken.speaker_outcome !== 'completed'
+      || spokenStatus.direct_reading_complete !== true
+      || spokenStatus.speaker_playback?.completed_batch_count !== 1
+      || spokenStatus.speaker_playback?.source_show_id !== spoken.show_id
+      || spoken.speaker_frames_committed !== speechBatch.speaker_frames_committed
+      || spoken.speaker_wav_sha256 !== sha(wav).slice(7)
+      || speechBatch.wav_sha256 !== spoken.speaker_wav_sha256
+      || wav.toString('ascii', 0, 4) !== 'RIFF'
+      || wav.toString('ascii', 8, 12) !== 'WAVE'
+      || wav.readUInt32LE(24) !== 48000 || wav.readUInt16LE(22) !== 2
+      || wav.readUInt16LE(34) !== 16 || wav.length !== speechBatch.wav_bytes) {
+    throw new Error('Todo spoken evidence is not one completed selected-speaker Play');
+  }
   for (const source of [action.owner_source_commit, action.browser_runtime_source_commit,
-    longList.owner_source_commit, longListBrowser.owner_source_identity]) {
+    longList.owner_source_commit, longListBrowser.owner_source_identity, spoken.source_identity]) {
     try { execFileSync('git', ['merge-base', '--is-ancestor', source, publicationCommit]); }
     catch { throw new Error('Todo browser capture source is absent from publication ancestry'); }
   }
@@ -97,11 +126,13 @@ export function retainedTodoBrowserDevelopmentEvidence(root = TODO_BROWSER_DEVEL
   }
   const page = bytes('index.html').toString('utf8');
   if (!page.includes('cross-source development evidence')
-      || !page.includes('This run proves one browser Add action')
+      || !page.includes('proves one browser Add action')
       || !page.includes(action.owner_source_commit.slice(0, 9))
       || !page.includes(action.browser_runtime_source_commit.slice(0, 9))
       || !page.includes(longList.owner_source_commit.slice(0, 9))
-      || !page.includes(longListBrowser.owner_source_identity.slice(0, 9))) {
+      || !page.includes(longListBrowser.owner_source_identity.slice(0, 9))
+      || !page.includes(spoken.source_identity.slice(0, 9))
+      || !page.includes('This WAV captures the audio delivered by the completed selected-speaker Play')) {
     throw new Error('Todo browser development page overclaims its capture');
   }
   for (const [, reference] of page.matchAll(/\b(?:href|src)="([^"]+)"/g)) {
@@ -114,5 +145,6 @@ export function retainedTodoBrowserDevelopmentEvidence(root = TODO_BROWSER_DEVEL
   return { root, sourceCommit: action.owner_source_commit,
     browserRuntimeCommit: action.browser_runtime_source_commit, bodyId: action.body_id,
     longListActionsCommit: longList.owner_source_commit,
-    longListBrowserCommit: longListBrowser.owner_source_identity };
+    longListBrowserCommit: longListBrowser.owner_source_identity,
+    spokenCommit: spoken.source_identity };
 }
