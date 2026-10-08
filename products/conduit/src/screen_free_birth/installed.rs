@@ -564,10 +564,8 @@ pub(super) fn opening_commands(spoken: bool) -> impl Iterator<Item = ReaderComma
 /// A returning spoken user gets immediate orientation, then chooses whether
 /// to read the whole view. Reading it automatically can outlast a live Play
 /// and make its current Stop action unreachable through nonvisual input.
-fn opening_body_commands(spoken: bool) -> impl Iterator<Item = ReaderCommand> {
-    std::iter::once(if spoken {
-        ReaderCommand::Repeat
-    } else {
-        ReaderCommand::ReadAll
-    })
+fn opening_body_commands(_spoken: bool) -> impl Iterator<Item = ReaderCommand> {
+    // Start both nonvisual realizations with the useful summary. The person
+    // can explicitly request `read all` when they want the full Face detail.
+    std::iter::once(ReaderCommand::Repeat)
 }
