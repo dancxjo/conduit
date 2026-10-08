@@ -82,3 +82,13 @@ pub use generated::{
 pub use rate_projection::*;
 mod rate_projection_report;
 pub use rate_projection_report::*;
+
+mod decibel_projection;
+pub use decibel_projection::*;
+pub use generated::{
+    AudioAmplitudePowerReferences, AudioDecibelBasis, AudioDecibelConvention, AudioDecibelFraction,
+    AudioDecibelLevel, AudioDecibelReference, AudioDecibelReferenceRole, AudioDecibelValue,
+    AudioLevelRatio, AudioReferencedAmplitudePowerRequest, AudioReferencedLevelRatio,
+};
+mod decibel_projection_report;
+pub use decibel_projection_report::*;
