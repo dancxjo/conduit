@@ -4,6 +4,7 @@ use super::*;
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum KeyboardChainError {
     InputRefused,
+    StateCapacityExhausted,
     Execution(MachineRunError),
 }
 impl From<MachineRunError> for KeyboardChainError {
@@ -21,7 +22,7 @@ impl PureKeyboardOutput {
     pub fn source(&self) -> &[u8] {
         &self.source[..self.source_length]
     }
-    pub fn upper(&self) -> &[u8] {
+    pub fn transformed(&self) -> &[u8] {
         self.upper.as_bytes()
     }
 }
@@ -31,11 +32,16 @@ impl<I: TextOwner> ProtectedText<I> {
         &mut self,
         input: &[u8],
     ) -> Result<Option<PureKeyboardOutput>, KeyboardChainError> {
-        self.region
+        let backend = self
+            .region
             .backend_mut()
-            .map_err(MachineRunError::ProtectionDomain)?
-            .keymap_chain_input(input)
             .map_err(MachineRunError::ProtectionDomain)?;
+        if self.editor {
+            backend.keymap_edit_chain_input(input)
+        } else {
+            backend.keymap_chain_input(input)
+        }
+        .map_err(MachineRunError::ProtectionDomain)?;
         self.return_from_pure()?;
         let backend = self
             .region
@@ -44,6 +50,7 @@ impl<I: TextOwner> ProtectedText<I> {
         match backend.status() {
             0 => {}
             1 => return Err(KeyboardChainError::InputRefused),
+            2 if self.editor => return Err(KeyboardChainError::StateCapacityExhausted),
             2 => return Err(MachineRunError::TextOutputOverflow.into()),
             _ => return Err(MachineRunError::KernelFailure.into()),
         }
@@ -64,8 +71,9 @@ impl<I: TextOwner> ProtectedText<I> {
         let source_valid = core::str::from_utf8(result.source())
             .is_ok_and(|source| source.chars().count() == usize::from(result.source_length != 0));
         if !source_valid
-            || core::str::from_utf8(result.upper()).is_err()
-            || (result.source_length == 0) != (result.upper.len == 0)
+            || core::str::from_utf8(result.transformed()).is_err()
+            || (result.source_length == 0 && result.upper.len != 0)
+            || (!self.editor && result.source_length != 0 && result.upper.len == 0)
         {
             self.region.fault(
                 crate::protected_region::DomainFault::InvalidGate,

@@ -166,6 +166,16 @@ and cleared on revocation. The focused chain fixture also expands `ß` to `SS`
 in one entry. The first graphical checkpoint used six entries, twelve
 privilege transitions, 11 copy bytes and a four-byte shared-window peak;
 batching removes one entry and copy while retaining the same Source flow.
+Memory Lantern's connected keyboard/keymap/edit/presentation region now has a
+separate Body-bound domain admission. Its keymap and bounded retained editor
+share one entry and private storage. The editor uses the same allocation-free
+semantic owner as the hosted implementation; Root forwards its result through
+the existing typed Cord and capability-gated presentation path. Preparation
+reserves the domain and Root staging before Play. Cancellation retires both
+text domains and clears pending results. The journey collector exercises
+retention, deletion to an empty value, sibling presentation independence and
+exact per-partition retirement costs. Native validation of this extension is
+in progress; the preceding keyboard measurements remain scoped to that run.
 Broader ordinary implementation coverage remains unfinished.
 This is development emulator evidence, not accepted-release evidence.
 

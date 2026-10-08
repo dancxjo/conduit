@@ -12,6 +12,7 @@ pub(crate) struct BodyTextAdmission {
     region: ExecutionRegionId,
     serial: SerialScope,
     generation: u64,
+    editor_capacity: Option<u64>,
 }
 
 impl BodyTextAdmission {
@@ -31,6 +32,24 @@ impl BodyTextAdmission {
         let [region] = fragment.execution_regions.as_slice() else {
             return Err(MachineRunError::KernelConstruction);
         };
+        let editor_capacity = fragment
+            .placements
+            .iter()
+            .find(|p| p.kind_id.as_str() == conduit_semantic_catalog::TEXT_EDIT_KIND)
+            .map(|p| {
+                p.configuration
+                    .iter()
+                    .find_map(|field| match (&*field.key, &field.value) {
+                        ("maximum-bytes", conduit_core::ConfigurationValue::U64(value))
+                            if (1..=256).contains(value) =>
+                        {
+                            Some(*value)
+                        }
+                        _ => None,
+                    })
+                    .ok_or(MachineRunError::KernelConstruction)
+            })
+            .transpose()?;
         let serial = SerialScope::prepare_body(
             plan,
             plot,
@@ -47,6 +66,7 @@ impl BodyTextAdmission {
             region: region.region_id.clone(),
             serial,
             generation: fixed.generation,
+            editor_capacity,
         })
     }
 
@@ -125,8 +145,13 @@ impl BodyTextAdmission {
             serial,
             serial_handle,
             diagnostic_fixture: false,
+            editor: false,
         };
-        protected.reset_keymap()?;
+        if let Some(maximum) = self.editor_capacity {
+            protected.reset_editor(maximum)?;
+        } else {
+            protected.reset_keymap()?;
+        }
         Ok(protected)
     }
 }

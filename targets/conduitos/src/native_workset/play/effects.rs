@@ -26,6 +26,9 @@ impl NativeWorksetPlay {
                         Err(crate::text_protection::KeyboardChainError::InputRefused) => {
                             return self.failed(request, FailureCode::InvalidInput, 72);
                         }
+                        Err(crate::text_protection::KeyboardChainError::StateCapacityExhausted) => {
+                            return self.failed(request, FailureCode::StateCapacityExhausted, 82);
+                        }
                         Err(crate::text_protection::KeyboardChainError::Execution(error)) => {
                             return self.protected_failure(request, error);
                         }
@@ -65,7 +68,7 @@ impl NativeWorksetPlay {
                     }
                     // This is the result already computed in the domain. The
                     // existing kernel retains the original typed Cord flow.
-                    self.output(request, Some(result.upper()))
+                    self.output(request, Some(result.transformed()))
                 }
                 #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
                 {
@@ -75,19 +78,38 @@ impl NativeWorksetPlay {
                 }
             }
             Effect::Edit => {
-                let output = match self.editors[plot]
-                    .as_mut()
-                    .ok_or(PlayRefusal::Kernel)?
-                    .apply(input)
+                #[cfg(all(target_arch = "x86_64", target_os = "none"))]
                 {
-                    Ok(Some(text)) => Some(NativePresentation::new(text)?),
-                    Ok(None) => None,
-                    Err(conduit_semantic_catalog::TextStateRefusal::CapacityExhausted) => {
-                        return self.failed(request, FailureCode::StateCapacityExhausted, 82);
+                    let Some(result) = self.pure_results[plot].take() else {
+                        return self.protected_failure(
+                            request,
+                            crate::composition::MachineRunError::KernelFailure,
+                        );
+                    };
+                    if result.source() != input {
+                        return self.protected_failure(
+                            request,
+                            crate::composition::MachineRunError::KernelFailure,
+                        );
                     }
-                    Err(_) => return self.failed(request, FailureCode::InvalidInput, 83),
-                };
-                self.output(request, output.as_ref().map(|text| text.text().as_bytes()))
+                    return self.output(request, Some(result.transformed()));
+                }
+                #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
+                {
+                    let output = match self.editors[plot]
+                        .as_mut()
+                        .ok_or(PlayRefusal::Kernel)?
+                        .apply(input)
+                    {
+                        Ok(Some(text)) => Some(NativePresentation::new(text)?),
+                        Ok(None) => None,
+                        Err(conduit_semantic_catalog::TextStateRefusal::CapacityExhausted) => {
+                            return self.failed(request, FailureCode::StateCapacityExhausted, 82);
+                        }
+                        Err(_) => return self.failed(request, FailureCode::InvalidInput, 83),
+                    };
+                    self.output(request, output.as_ref().map(|text| text.text().as_bytes()))
+                }
             }
             Effect::Presentation => {
                 let text = NativePresentation::new(input)?;

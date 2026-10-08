@@ -31,6 +31,7 @@ pub struct TextDomain {
     cost: DomainCost,
     quarantined: bool,
     keymap_initialized: bool,
+    editor_initialized: bool,
     #[cfg(feature = "ordinary-domain-proof")]
     gate_probe: (u32, u64),
 }
@@ -72,6 +73,7 @@ impl TextDomain {
             },
             quarantined: false,
             keymap_initialized: false,
+            editor_initialized: false,
             #[cfg(feature = "ordinary-domain-proof")]
             gate_probe: (0, 0),
         })
@@ -122,6 +124,22 @@ impl TextDomain {
         self.input(&[])?;
         self.space.frame().command = 3;
         self.keymap_initialized = false;
+        self.editor_initialized = false;
+        Ok(())
+    }
+    pub fn initialize_editor(&mut self, maximum: u64) -> Result<(), DomainRefusal> {
+        self.input(&maximum.to_le_bytes())?;
+        self.space.frame().command = 6;
+        self.keymap_initialized = false;
+        self.editor_initialized = false;
+        Ok(())
+    }
+    pub fn keymap_edit_chain_input(&mut self, input: &[u8]) -> Result<(), DomainRefusal> {
+        if !self.editor_initialized {
+            return Err(DomainRefusal::InvalidLifecycle);
+        }
+        self.keymap_input(input)?;
+        self.space.frame().command = 7;
         Ok(())
     }
     pub fn keymap_input(&mut self, input: &[u8]) -> Result<(), DomainRefusal> {
@@ -140,7 +158,7 @@ impl TextDomain {
     pub fn intermediate(&mut self, output: &mut [u8; 4]) -> Result<usize, DomainRefusal> {
         let frame = self.space.frame();
         let length = frame.intermediate_length as usize;
-        if self.quarantined || frame.command != 5 || frame.status != 0 || length > 4 {
+        if self.quarantined || !matches!(frame.command, 5 | 7) || frame.status != 0 || length > 4 {
             return Err(DomainRefusal::InvalidMemory);
         }
         output[..length].copy_from_slice(&frame.intermediate[..length]);
@@ -213,12 +231,13 @@ impl DomainBackend for TextDomain {
         self.cost.entries += 1;
         self.cost.address_space_switches += 2;
         self.cost.tlb_flushes += 2;
-        if self.space.frame().command == 3
+        if matches!(self.space.frame().command, 3 | 6)
             && self.space.frame().status == 0
             && result.origin == 0
             && result.value == 0
         {
             self.keymap_initialized = true;
+            self.editor_initialized = self.space.frame().command == 6;
         }
         self.cost.scheduler_returns += 1;
         let (budget_irqs, source_irqs) = super::domain_budget::user_interrupts();
