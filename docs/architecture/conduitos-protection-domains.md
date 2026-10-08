@@ -182,6 +182,50 @@ A separate native diagnostic verifies that a one-byte editor preserves state
 across capacity refusal and deletion. The mapped input still crosses its original
 Cord; capacity refusal completes the Edit Host Call. The diagnostic is distinct
 from the ordinary Body journey.
+The native Tour Morse region now uses the same protected realization. Its
+original Source fans the literal input independently to uppercase and Morse;
+uppercase output is not the Morse input. Both transformations execute in one
+pure domain entry using the canonical allocation-free semantic owners. Root
+stages their bounded results and forwards them only through the original typed
+Cords when the production kernel requests the matching branch. Either branch
+may be requested first. A changed input cannot consume the other branch's
+completion, and a Morse refusal does not alter the uppercase result.
+
+Preparation checks the selected artifact and kind contract against the current
+Host offer for all five placements. Text and indicator presentation receive
+separate opaque handles, exact operation scopes and one-effect limits. Their
+copy windows are bounded to 256 and 645 bytes respectively. Text's admitted
+completion envelope retains its portable 256-byte limit; indicator completion
+has no payload. A handle issued for one presentation cannot authorize the
+other. Completion, cancellation and terminal gate faults revoke the domain.
+
+All five supported ordinary-domain emulator lanes exercised the production
+Tour kernel and runner, observed `SOS` and the canonical Morse pattern through
+the serial provider, and verified completion revocation and full backend
+zeroization. They retain identical Source, checked-plot and expanded-plot
+identities; each architecture retains its own exact Plan and Play.
+Every nonfixture Morse cost record reports five entries and scheduler returns,
+two Base gates, 129 runtime copy bytes, a 45-byte shared-window peak and ten
+address-space switches/TLB flushes. Per-target memory and setup costs are:
+
+| Architecture | Backend reserved and zeroed bytes | Root metadata bytes | Setup image copy bytes | Observed privilege transitions |
+|---|---:|---:|---:|---:|
+| x86_64 | 118,784 | 66,272 | 23,005 | 12 |
+| IA-32 | 131,072 | 65,616 | 23,854 | 12 |
+| AArch64 | 126,976 | 66,288 | 22,080 | 12 |
+| RISC-V64 | 118,784 | 66,272 | 17,946 | 10 |
+| LoongArch64 | 126,976 | 66,280 | 23,576 | 10 |
+
+The first three observations include one user interrupt; the last two include
+none. Interrupt entries and their additional privilege transitions are
+reported separately, so transition counts can vary across runs. These are
+per-region costs, not the total trusted kernel or Body memory.
+Independent fixtures on every lane verify text/indicator handle
+cross-use refusal without an effect, replay refusal, either branch order,
+changed-input refusal and independent Unicode transformation outcomes.
+This is freestanding emulator evidence through a serial diagnostic provider;
+it does not establish a physical indicator or a graphical Morse interaction.
+
 Broader ordinary implementation coverage remains unfinished.
 This is development emulator evidence, not accepted-release evidence.
 
