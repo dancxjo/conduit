@@ -1,6 +1,10 @@
 //! Unpublished revision execution. Each successful component is retained before
 //! another ingress can run; every error poisons and cancels the whole registry.
 use crate::{
+    parser_canonical_refinement::PreparedParserCanonicalRefinement,
+    parser_session_candidate_admission::{
+        ParserStableCandidateAdmission, StableCandidateOutcome, StableCandidateRefusal,
+    },
     parser_session_canonical_ingress::ParserCanonicalSourceExecutor,
     parser_session_execution::ParserSessionEntry,
     parser_session_fixed_ingress::{FixedRefusal, ParserSessionExecutor},
@@ -9,8 +13,10 @@ use crate::{
     parser_session_revision_custody::{ParserRevisionCustody, RevisionStorageRefusal},
     parser_session_stage::{ParserSessionStage, ParserSessionTargets},
     parser_session_target_registry::{ParserSessionTargetRegistry, RegistryRefusal},
+    LanguageParserJointStableFact, LanguageParserJointStableFactProposal,
 };
 use alloc::rc::Rc;
+use conduit_plot::rust_binding::PreparedNativeFamily;
 #[derive(Debug)]
 pub(crate) enum RevisionStageRefusal<E, S, N> {
     Closed,
@@ -18,6 +24,7 @@ pub(crate) enum RevisionStageRefusal<E, S, N> {
     Registry(RegistryRefusal),
     Source(FixedRefusal<E>),
     Model(ParserMixedRefusal<S, N>),
+    StableCandidate(StableCandidateRefusal),
 }
 pub(crate) struct ParserRevisionStage<
     'a,
@@ -109,6 +116,58 @@ impl<'a, E: ParserSessionExecutor, S: ParserCanonicalSourceExecutor, N: ParserNu
             .source_histories
             .get(execution)
             .map(|history| history.output.as_slice())
+    }
+    /// Admit only the complete proposal returned by this revision's actual
+    /// stable-fact Source execution. Semantic refusal is retained as evidence;
+    /// every other refusal closes the entire unpublished revision.
+    pub(crate) fn admit_stable_candidate(
+        &mut self,
+        execution: usize,
+        refinement: &mut PreparedParserCanonicalRefinement<
+            LanguageParserJointStableFactProposal,
+            LanguageParserJointStableFact,
+        >,
+        family: &mut PreparedNativeFamily,
+    ) -> Result<(usize, StableCandidateOutcome), RevisionStageRefusal<E::Error, S::Error, N::Error>>
+    {
+        use RevisionStageRefusal as R;
+        if self.poisoned {
+            return Err(R::Closed);
+        }
+        let result = (|| {
+            let book = Rc::get_mut(&mut self.book).ok_or(R::Closed)?;
+            // One reserved frame supplies the retained candidate buffer. No
+            // candidate-buffer allocation follows consumption. Full Native
+            // readmission still uses its separately admitted conversion bound.
+            let buffer = book
+                .source_frame()
+                .map_err(R::Storage)?
+                .into_candidate_buffer();
+            let origin = book.source_histories.get(execution).ok_or(R::Closed)?;
+            let admission = ParserStableCandidateAdmission::admit(
+                execution, origin, refinement, family, buffer,
+            )
+            .map_err(R::StableCandidate)?;
+            let outcome = admission.outcome;
+            let index = book
+                .retain_stable_admission(admission)
+                .map_err(R::Storage)?;
+            Ok((index, outcome))
+        })();
+        if result.is_err() {
+            self.poison();
+        }
+        result
+    }
+    /// An accepted candidate is borrowed from retained custody. Its index is
+    /// only a locator; rejected proposals never become commitment input.
+    pub(crate) fn accepted_stable_candidate(&self, admission: usize) -> Option<&[u8]> {
+        if self.poisoned {
+            return None;
+        }
+        let admission = self.book.stable_admissions.get(admission)?;
+        (admission.outcome == StableCandidateOutcome::Accepted)
+            .then_some(admission.original_candidate.as_slice())
     }
     /// The fixed Session policy calls this only after seed/advance/rebase and
     /// commitment witnesses are complete. No intermediate component publishes.
