@@ -1,0 +1,27 @@
+# Counts are admitted before retaining component receipt collections.
+type SpeechSharedAcousticComponentCounts = {
+    timing_pitch: U64 in 0..=32
+    linguistic_rate: U64 in 0..=32
+    intensity: U64 in 0..=32
+    formants: U64 in 0..=32
+    voice_quality: U64 in 0..=32
+    observations: U64 in 0..=32
+}
+# Exact scope-source membership grants no text/speech/recognition authority.
+# The prepared owner resolves each retained reference in actual supplied material.
+type SpeechAcousticScopeSourceMatch = {
+    scope: SpeechAcousticScope
+    index: U64 in 0..=7
+    requested: LanguageSegmentRef
+    where .index < sequence/length(.scope.sources)
+    where .index < sequence/length(.scope.sources) ? .requested == sequence/at(.scope.sources,.index) : false
+}
+# A recognition/source reference can also be retained from an original event.
+# It proves exact original provenance membership, not authenticity or playback.
+type SpeechAcousticEventSourceMatch = {
+    event: SpeechUtteranceIntentEvent
+    index: U64 in 0..=7
+    requested: LanguageSegmentRef
+    where .event is segment ? .index < sequence/length(.event.segment.sources) : .index < sequence/length(.event.boundary.sources)
+    where .event is segment ? (.index < sequence/length(.event.segment.sources) ? .requested == sequence/at(.event.segment.sources,.index) : false) : (.index < sequence/length(.event.boundary.sources) ? .requested == sequence/at(.event.boundary.sources,.index) : false)
+}

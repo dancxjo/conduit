@@ -122,7 +122,7 @@ fn composed_owner_retains_exact_original_and_every_component_receipt() {
     let actual = phone();
     let p = SpeechPhonemeSequence::new(
         basis("r1"),
-        BoundedSequence::try_from_iter([phoneme(&[actual.clone()])]).unwrap(),
+        BoundedSequence::try_from_iter([phoneme(core::slice::from_ref(&actual))]).unwrap(),
     )
     .unwrap();
     let q = SpeechPhoneSequence::new(

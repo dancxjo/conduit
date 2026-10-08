@@ -1,0 +1,33 @@
+# Scalar basis facts are projected only from retained whole prepared owners.
+type SpeechSharedIntentIpaBasis = {
+    intent_inventory_id: SpeechInventoryId
+    intent_language: LanguageId
+    intent_revision: SpeechSegmentRevisionId
+    context_variety: LanguageVariety
+    ipa_basis: SpeechIpaInventoryNotationBasis
+    where .intent_inventory_id == .ipa_basis.inventory_id
+    where .intent_language == .ipa_basis.language
+    where .intent_revision == .ipa_basis.revision
+    where .context_variety == .ipa_basis.variety
+}
+# Candidate membership preserves uncertainty; it never chooses a candidate.
+type SpeechPhoneInventoryCandidate = {
+    token: SpeechPhoneToken
+    index: U64 in 0..=3
+    requested: PhoneId
+    where .token.phone is known || .token.phone is variable || .token.phone is gradient
+    where .token.phone is known ? .index == 0 && .requested == .token.phone.known : true
+    where .token.phone is gradient ? .index == 0 && .requested == .token.phone.gradient.value : true
+    where .token.phone is variable ? .index < sequence/length(.token.phone.variable) : true
+    where .token.phone is variable ? (.index < sequence/length(.token.phone.variable) ? .requested == sequence/at(.token.phone.variable,.index) : false) : true
+}
+type SpeechPhonemeInventoryCandidate = {
+    token: SpeechPhonemeToken
+    index: U64 in 0..=3
+    requested: PhonemeId
+    where .token.phoneme is known || .token.phoneme is variable || .token.phoneme is gradient
+    where .token.phoneme is known ? .index == 0 && .requested == .token.phoneme.known : true
+    where .token.phoneme is gradient ? .index == 0 && .requested == .token.phoneme.gradient.value : true
+    where .token.phoneme is variable ? .index < sequence/length(.token.phoneme.variable) : true
+    where .token.phoneme is variable ? (.index < sequence/length(.token.phoneme.variable) ? .requested == sequence/at(.token.phoneme.variable,.index) : false) : true
+}

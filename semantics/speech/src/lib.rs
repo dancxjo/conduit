@@ -295,3 +295,31 @@ pub mod ipa_admission;
 
 #[cfg(feature = "semantic-bindings")]
 pub mod ipa_inventory;
+
+#[cfg(feature = "semantic-bindings")]
+mod common_acoustic_programs {
+    include!(concat!(env!("OUT_DIR"), "/common_acoustic_programs.rs"));
+}
+
+#[cfg(feature = "semantic-bindings")]
+mod common_acoustic_quantities;
+#[cfg(feature = "semantic-bindings")]
+pub use common_acoustic_quantities::*;
+
+#[cfg(feature = "semantic-bindings")]
+mod common_acoustic_curves;
+#[cfg(feature = "semantic-bindings")]
+pub use common_acoustic_curves::*;
+
+#[cfg(feature = "semantic-bindings")]
+mod common_acoustic_evidence;
+#[cfg(feature = "semantic-bindings")]
+pub use common_acoustic_evidence::*;
+
+#[cfg(feature = "semantic-bindings")]
+mod common_audio_targets;
+#[cfg(feature = "semantic-bindings")]
+pub use common_audio_targets::*;
+
+#[cfg(feature = "semantic-bindings")]
+pub mod ipa_shared;

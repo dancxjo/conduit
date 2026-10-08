@@ -1,3 +1,5 @@
+#[path = "build_support/common_acoustic.rs"]
+mod common_acoustic;
 #[path = "build_support/graph.rs"]
 mod graph;
 #[path = "build_support/lower.rs"]
@@ -28,6 +30,8 @@ fn main() {
     println!("cargo:rerun-if-changed=ipa.conduit");
     println!("cargo:rerun-if-changed=ipa_syntax.conduit");
     println!("cargo:rerun-if-changed=ipa_inventory.conduit");
+    println!("cargo:rerun-if-changed=shared_acoustic.conduit");
+    println!("cargo:rerun-if-changed=ipa_shared.conduit");
     println!("cargo:rerun-if-changed=profile_phones.conduit");
     println!("cargo:rerun-if-changed=voice_profile.conduit");
     println!("cargo:rerun-if-changed=timing_projection.conduit");
@@ -44,6 +48,7 @@ fn main() {
     println!("cargo:rerun-if-changed=spoken_order.conduit");
     println!("cargo:rerun-if-changed=phone_layout.conduit");
     println!("cargo:rerun-if-changed=phone_composition.conduit");
+    println!("cargo:rerun-if-changed=common_acoustic_targets.conduit");
     let semantic_source = [
         include_str!("types.conduit"),
         include_str!("rule_status.conduit"),
@@ -63,6 +68,7 @@ fn main() {
         include_str!("ipa.conduit"),
         include_str!("ipa_syntax.conduit"),
         include_str!("ipa_inventory.conduit"),
+        include_str!("ipa_shared.conduit"),
         include_str!("profile_phones.conduit"),
         include_str!("voice_profile.conduit"),
         include_str!("context_match.conduit"),
@@ -74,6 +80,8 @@ fn main() {
         include_str!("spoken_order.conduit"),
         include_str!("phone_layout.conduit"),
         include_str!("phone_composition.conduit"),
+        include_str!("common_acoustic_targets.conduit"),
+        include_str!("shared_acoustic.conduit"),
     ]
     .join("\n");
     let mut language_types = conduit_language::identity_types();
@@ -156,6 +164,12 @@ fn main() {
         ),
     ]);
     let mut semantic_catalog = StartupCatalog::new();
+    let audio_types = common_acoustic::audio_types();
+    for ty in &audio_types {
+        semantic_catalog
+            .insert_checked_native_type(&ty.name, ty)
+            .expect("exact Audio owner");
+    }
     for (name, ty) in &language_types {
         semantic_catalog
             .insert_structured_type(*name, ty.clone())
@@ -164,6 +178,7 @@ fn main() {
     let semantic =
         check_syntax_document(&parse_syntax_document(&semantic_source), &semantic_catalog)
             .expect("Speaking segment and listening contracts check");
+    common_acoustic::write_programs(&semantic);
     let expanded = expand_canonical_plot_for_authoring(
         &semantic,
         "speech/linguistic-prosody",
@@ -274,7 +289,7 @@ fn main() {
         .map(|(name, _)| format!("conduit_language::{name}"))
         .collect::<Vec<_>>();
     // IPA profiles retain exact LanguageVariety values.
-    let bindings = identities
+    let mut bindings = identities
         .iter()
         .zip(&paths)
         .zip(&language_types)
@@ -294,10 +309,25 @@ fn main() {
             },
         )
         .collect::<Vec<_>>();
-    let external_types = language_types
+    let mut external_types = language_types
         .iter()
         .map(|(_, ty)| ty.clone())
         .collect::<Vec<_>>();
+    let audio_bindings = audio_types
+        .iter()
+        .filter(|ty| common_acoustic::is_rust_binding(&ty.name))
+        .collect::<Vec<_>>();
+    let audio_paths = audio_bindings
+        .iter()
+        .map(|ty| format!("conduit_audio::{}", ty.name))
+        .collect::<Vec<_>>();
+    bindings.extend(audio_bindings.iter().zip(&audio_paths).map(|(ty, path)| {
+        conduit_plot::rust_binding::ExternalNativeRustBinding {
+            semantic_identity: ty.identity.as_str(),
+            rust_type_path: path,
+        }
+    }));
+    external_types.extend(audio_types.iter().map(|ty| ty.value_type.clone()));
     let bindings = conduit_plot::rust_binding::generate_rust_bindings_with_external_bindings(
         &semantic.native_types,
         &external_types,
