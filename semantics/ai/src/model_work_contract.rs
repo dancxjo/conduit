@@ -6,13 +6,7 @@ use crate::{
     EvaluationReceipt, ModelCheckpoint, TrainStepOutcome, TrainStepRequest, TrainingBatch,
     TrainingCheckpointReceipt, TrainingMetric, TrainingState,
 };
-use alloc::{
-    boxed::Box,
-    format,
-    string::{String, ToString},
-    vec,
-    vec::Vec,
-};
+use alloc::{boxed::Box, format, string::String, vec, vec::Vec};
 use conduit_core::*;
 use conduit_data::TensorValue;
 use conduit_plot::rust_binding::NativeRustBinding;
@@ -27,6 +21,8 @@ pub const MODEL_WORK_RESOURCE_CLASS: &str = "model/session-work";
 pub const MODEL_WORK_MAXIMUM_INPUT_BYTES: u32 = 1_048_576;
 pub const MODEL_WORK_MAXIMUM_OUTPUT_BYTES: u32 = 1_048_576;
 pub const MODEL_WORK_MAXIMUM_TENSORS: usize = 32;
+#[cfg(feature = "plot-catalog")]
+use alloc::string::ToString;
 const REVISION: &str = "conduit.ai/model-work@1";
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -40,6 +36,8 @@ pub struct ModelWorkRequest {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub enum ModelWorkOperation {
+    /// The prepared provider owns the exact corpus and next batch.
+    TrainNext,
     Train {
         #[serde(with = "native")]
         request: TrainStepRequest,

@@ -19,6 +19,9 @@ pub(crate) struct Descriptor {
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct Resume {
+    /// Absent schema-1 checkpoints are explicitly manual-batch only.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) corpus_cursor: Option<crate::CorpusCursor>,
     pub(crate) context_identity: [u8; 32],
     pub(crate) recipe: OptimizerRecipe,
     pub(crate) model: BlobRef,
@@ -39,7 +42,11 @@ pub(crate) fn read_descriptor(
     let bytes = store.read_descriptor(id)?;
     let descriptor: Descriptor =
         serde_json::from_slice(&bytes).map_err(|_| Error::CorruptCheckpoint)?;
-    if descriptor.schema != 1
+    let has_cursor = descriptor
+        .resume
+        .as_ref()
+        .is_some_and(|resume| resume.corpus_cursor.is_some());
+    if !matches!((descriptor.schema, has_cursor), (1, false) | (2, true))
         || descriptor.architecture != authoring.architecture
         || descriptor.config_identity != authoring.config_identity
         || descriptor.signature_identity

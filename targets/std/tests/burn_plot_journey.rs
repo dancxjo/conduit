@@ -1,6 +1,8 @@
 #![cfg(feature = "burn-model")]
 #[path = "../../../mechanisms/implementations/burn-model/tests/common/mod.rs"]
 mod common;
+#[path = "../../../mechanisms/implementations/burn-model/tests/common/corpus.rs"]
+mod corpus_fixture;
 use conduit_ai::*;
 use conduit_burn_model::{
     BurnAdapter, DeviceRequest, DirectoryCheckpointStore, InferenceContext, OptimizerRecipe,
@@ -413,4 +415,139 @@ fn ordinary_plot_trains_saves_reloads_and_infers() {
     );
     assert_eq!(advanced.generation, 81);
     println!("ordinary model Plot: loss {} -> {} millionths; 80 steps; fresh resume80 ->81; exact inference reload; 90 successful HostCalls; stale step refused", before.metrics[0].value_millionths(),after.metrics[0].value_millionths());
+}
+
+#[test]
+fn ordinary_plot_train_next_resumes_actual_corpus_on_a_fresh_host() {
+    fn corpus_host(directory: &std::path::Path, name: &str) -> StdHost {
+        let context = common::context();
+        let corpus = corpus_fixture::finite_corpus(&context, 41, false);
+        let mut training = BurnAdapter::initialize(
+            common::RegressionDefinition,
+            DeviceRequest::Cpu,
+            OptimizerRecipe {
+                learning_rate: 0.05,
+                weight_decay: 0.,
+                gradient_clip: 10.,
+                seed: 42,
+            },
+            context.clone(),
+        )
+        .unwrap();
+        training.attach_corpus(corpus).unwrap();
+        let inference = InferenceContext {
+            artifact: context.artifact,
+            runtime: training.runtime().clone(),
+            determinism_profile: context.realization.deterministic_profile,
+        };
+        let store = DirectoryCheckpointStore::new(directory, 65536, 16).unwrap();
+        let adapter = HostedBurnWork::prepare(
+            training,
+            || common::RegressionDefinition,
+            DeviceRequest::Cpu,
+            inference,
+            store,
+            name,
+        )
+        .unwrap();
+        StdHost::new_with_model_work(
+            StdHostConfig {
+                host_id: name.into(),
+                boot_id: format!("{name}/boot").into(),
+                offer_generation: conduit_core::OfferGeneration(1),
+            },
+            StdHostComposition::minimal(),
+            Box::new(adapter),
+        )
+        .unwrap()
+    }
+    let directory = tempfile::tempdir().unwrap();
+    let mut host = corpus_host(directory.path(), "corpus-first");
+    let plan = make_plan(&host);
+    let session = common::context().session.identity;
+    for (step, batch) in [(1, 32), (2, 31), (3, 32)] {
+        let reply = invoke(
+            &mut host,
+            &plan,
+            session,
+            step - 1,
+            step as u8,
+            ModelWorkOperation::TrainNext,
+        );
+        let ModelWorkResult::Trained(TrainStepOutcome::Committed(result)) = reply.result else {
+            panic!("committed corpus step")
+        };
+        assert_eq!(result.receipt.batch_identity, [batch; 32]);
+    }
+    let metrics = invoke(
+        &mut host,
+        &plan,
+        session,
+        3,
+        10,
+        ModelWorkOperation::Evaluate {
+            batch: common::request(1).batch,
+            inputs: common::batch().inputs,
+            targets: common::batch().targets,
+        },
+    );
+    let ModelWorkResult::Evaluated(metrics) = metrics.result else {
+        panic!("evaluation")
+    };
+    let saved = invoke(
+        &mut host,
+        &plan,
+        session,
+        3,
+        11,
+        ModelWorkOperation::Checkpoint {
+            metrics: metrics.metrics,
+        },
+    );
+    let ModelWorkResult::Checkpointed(saved) = saved.result else {
+        panic!("durable checkpoint")
+    };
+    let id = saved.checkpoint.content.identity.digest();
+    drop(host);
+    let mut fresh = corpus_host(directory.path(), "corpus-fresh");
+    let plan = make_plan(&fresh);
+    let resumed = invoke(
+        &mut fresh,
+        &plan,
+        session,
+        0,
+        12,
+        ModelWorkOperation::Resume {
+            checkpoint_identity: id,
+        },
+    );
+    assert_eq!(resumed.generation, 3);
+    for (step, batch) in [(4, 31), (5, 31), (6, 32), (7, 31), (8, 32)] {
+        let reply = invoke(
+            &mut fresh,
+            &plan,
+            session,
+            step - 1,
+            step as u8 + 12,
+            ModelWorkOperation::TrainNext,
+        );
+        let ModelWorkResult::Trained(TrainStepOutcome::Committed(result)) = reply.result else {
+            panic!("committed corpus resume")
+        };
+        assert_eq!(result.receipt.batch_identity, [batch; 32]);
+        assert_eq!(result.state.completed_steps, step);
+    }
+    let exhausted = invoke(
+        &mut fresh,
+        &plan,
+        session,
+        8,
+        30,
+        ModelWorkOperation::TrainNext,
+    );
+    assert!(matches!(
+        exhausted.result,
+        ModelWorkResult::Refused(ModelWorkRefusal::ResourceBound)
+    ));
+    assert_eq!(exhausted.generation, 8);
 }

@@ -58,7 +58,7 @@ impl<D: BurnModelDefinition> BurnAdapter<D> {
             .into_bytes()
             .map_err(|_| Error::NumericFailure)?;
         let descriptor = Descriptor {
-            schema: 1,
+            schema: if self.corpus.is_some() { 2 } else { 1 },
             architecture: self.descriptor.architecture.clone(),
             config_identity: self.descriptor.config_identity,
             signature_identity: self
@@ -74,6 +74,7 @@ impl<D: BurnModelDefinition> BurnAdapter<D> {
             group_identity: self.group_identity()?,
             inference: BlobRef::of(&inference),
             resume: Some(Resume {
+                corpus_cursor: self.corpus_cursor().cloned(),
                 context_identity: self.context_identity()?,
                 recipe: self.recipe.clone(),
                 model: BlobRef::of(&model_bytes),
@@ -223,6 +224,11 @@ impl<D: BurnModelDefinition> BurnAdapter<D> {
         {
             return Err(Error::IncompatibleCheckpoint);
         }
+        match (&self.corpus, &resume.corpus_cursor) {
+            (Some(owner), Some(saved)) => owner.validate_resume(saved, resume.steps)?,
+            (None, None) => {} // Explicit legacy/manual-batch profile.
+            _ => return Err(Error::IncompatibleCheckpoint),
+        }
         // Verify every member before creating candidate state; never partially load self.
         let inference = store.read_blob(&descriptor.inference)?;
         let model_bytes = burn::tensor::Bytes::from_bytes_vec(store.read_blob(&resume.model)?);
@@ -282,6 +288,9 @@ impl<D: BurnModelDefinition> BurnAdapter<D> {
         self.state.model.generation = resume.generation;
         self.state.completed_steps = resume.steps;
         self.state.consumed_work_units = resume.work;
+        if let (Some(owner), Some(saved)) = (&mut self.corpus, resume.corpus_cursor) {
+            owner.restore(saved);
+        }
         self.inference_only = false;
         self.inference_generation = None;
         self.inference_checkpoint_identity = Some(*identity);

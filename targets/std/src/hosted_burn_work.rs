@@ -32,6 +32,8 @@ impl<D: BurnModelDefinition, F: FnMut() -> D> HostedBurnWork<D, F> {
     ) -> Result<Self, Error> {
         // Establish every mutating receipt's wire bound before retaining this
         // provider. A committed update must never become an encoding failure.
+        // TrainNext returns the same already-bounded TrainStepOutcome as Train;
+        // no caller-sized tensor/cursor value enters its mutating reply.
         let reply_bound = conduit_ai::model_work_mutating_reply_bytes_bound()
             .map_err(|_| Error::InvalidDescriptor)?;
         if reply_bound > conduit_ai::MODEL_WORK_MAXIMUM_OUTPUT_BYTES as usize {
@@ -100,6 +102,9 @@ impl<D: BurnModelDefinition, F: FnMut() -> D> HostedBurnWork<D, F> {
             return Err(TrainingRefusal::StaleState.into());
         }
         let result = match request.operation {
+            ModelWorkOperation::TrainNext => {
+                ModelWorkResult::Trained(self.training.train_next(&self.cancellation)?)
+            }
             ModelWorkOperation::Train {
                 request,
                 inputs,

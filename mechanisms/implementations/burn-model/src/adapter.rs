@@ -27,6 +27,7 @@ pub struct BurnAdapter<D: BurnModelDefinition> {
     pub(crate) model: Option<D::Model>,
     pub(crate) optimizer: ModuleOptimizer,
     pub(crate) state: TrainingState,
+    pub(crate) corpus: Option<crate::PreparedTrainingCorpus>,
     pub(crate) session: ModelComputeSession,
     pub(crate) offer: ModelComputeOffer,
     pub(crate) lifecycle: TrainingLifecycle,
@@ -170,6 +171,7 @@ impl<D: BurnModelDefinition> BurnAdapter<D> {
             model: Some(model),
             optimizer,
             state,
+            corpus: None,
             session,
             offer,
             lifecycle,
@@ -276,6 +278,14 @@ impl<D: BurnModelDefinition> BurnAdapter<D> {
                 .descriptor
                 .resources
                 .working_bytes()
+                .and_then(|base| {
+                    base.checked_add(
+                        self.corpus
+                            .as_ref()
+                            .map_or(Ok(0), crate::PreparedTrainingCorpus::working_bytes)?,
+                    )
+                    .ok_or(Error::ResourceBound)
+                })
                 .unwrap_or(u64::MAX),
             device_memory_bytes: if limits.compute.class == PortableComputeClass::Accelerator {
                 self.descriptor.resources.model_bytes.saturating_add(
@@ -374,6 +384,7 @@ impl<D: BurnModelDefinition> BurnAdapter<D> {
         self.lifecycle
             .transition(TrainingLifecyclePhase::Unloaded)?;
         self.model = None;
+        self.corpus = None;
         self.optimizer = self.recipe.optimizer()?;
         Ok(())
     }

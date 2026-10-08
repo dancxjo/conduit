@@ -15,8 +15,13 @@ pub use recipe::OptimizerRecipe;
 mod prepared_model;
 pub use prepared_model::PreparedBurnModel;
 mod adapter;
+mod corpus;
 mod training_step;
 pub use adapter::{BurnAdapter, TrainingContext};
+pub use corpus::{
+    CorpusBatch, CorpusCursor, CorpusLimits, CorpusRecipe, CorpusStorageEstimate,
+    PreparedTrainingCorpus, CORPUS_ORDER_PROFILE,
+};
 mod cancellation;
 pub use cancellation::Cancellation;
 mod checkpoint_manifest;

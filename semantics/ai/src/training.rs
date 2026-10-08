@@ -136,6 +136,15 @@ impl TrainingBatch {
 }
 
 impl TrainingSession {
+    /// Validate one prepared batch without invoking evaluation cadence or
+    /// consuming a training step. Dataset/session admission remains separate.
+    pub fn admit_batch(
+        &self,
+        batch: &TrainingBatch,
+        split: &DatasetSplitMembership,
+    ) -> Result<(), TrainingRefusal> {
+        batch.validate_for(self, split)
+    }
     pub fn objectives_slice(&self) -> &[TrainingObjective] {
         self.objectives.get().as_slice()
     }

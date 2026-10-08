@@ -67,6 +67,17 @@ impl<D: BurnModelDefinition> BurnAdapter<D> {
         batch: &ModelBatch,
         cancel: &Cancellation,
     ) -> Result<TrainStepOutcome, Error> {
+        if self.corpus.is_some() {
+            return Err(Error::InvalidDescriptor);
+        }
+        self.train_step_inner(request, batch, cancel)
+    }
+    pub(crate) fn train_step_inner(
+        &mut self,
+        request: &TrainStepRequest,
+        batch: &ModelBatch,
+        cancel: &Cancellation,
+    ) -> Result<TrainStepOutcome, Error> {
         self.ready()?;
         if self.inference_only {
             return Err(Error::IncompatibleCheckpoint);
@@ -211,7 +222,11 @@ impl<D: BurnModelDefinition> BurnAdapter<D> {
         })?)
     }
 
-    fn validate_batch(&self, batch: &ModelBatch, identity: &TrainingBatch) -> Result<(), Error> {
+    pub(crate) fn validate_batch(
+        &self,
+        batch: &ModelBatch,
+        identity: &TrainingBatch,
+    ) -> Result<(), Error> {
         let inputs = validate_values(
             &batch.inputs,
             self.descriptor.signature.inputs.get().as_slice(),
