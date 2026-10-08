@@ -283,6 +283,7 @@ installed_step_dispatch!(
     GeneratedSpeechCommit,
     Navigation,
     VectorSearch,
+    ModelWork,
     HttpClient,
     HttpServer,
     Json,

@@ -6,6 +6,7 @@ use std::{error::Error, fs, path::PathBuf, process::Command};
 pub fn run(arguments: &[String]) -> Result<(), Box<dyn Error>> {
     let mut output = PathBuf::from("work/model-authoring");
     let mut cuda = false;
+    let mut plot_journey = false;
     let mut documented_command = false;
     let mut options = arguments.iter();
     while let Some(option) = options.next() {
@@ -14,13 +15,19 @@ pub fn run(arguments: &[String]) -> Result<(), Box<dyn Error>> {
                 output = PathBuf::from(options.next().ok_or("--output needs a new directory")?)
             }
             "--cuda" => cuda = true,
+            "--plot-journey" => plot_journey = true,
             "--documented-command" => documented_command = true,
             "--help" | "-h" => {
-                println!("cargo xtask prove model-authoring [--output NEW_DIRECTORY] [--cuda | --documented-command]\nProves the hosted Burn library contracts; ConduitVoice/ordinary Plot integration remains separate.");
+                println!("cargo xtask prove model-authoring [--output NEW_DIRECTORY] [--cuda | --documented-command | --plot-journey]\nProves the hosted Burn library contracts, or the ordinary Plot journey with --plot-journey. ConduitVoice remains separate.");
                 return Ok(());
             }
             _ => return Err(format!("unknown model-authoring option: {option}").into()),
         }
+    }
+    if plot_journey && (cuda || documented_command) {
+        return Err(
+            "--plot-journey cannot be combined with CUDA or documentation extraction".into(),
+        );
     }
     if documented_command {
         if cuda {
@@ -39,8 +46,15 @@ pub fn run(arguments: &[String]) -> Result<(), Box<dyn Error>> {
         "--jobs",
         "2",
         "-p",
-        "conduit-burn-model",
+        if plot_journey {
+            "conduit-std-host"
+        } else {
+            "conduit-burn-model"
+        },
     ]);
+    if plot_journey {
+        command.args(["--features", "burn-model", "--test", "burn_plot_journey"]);
+    }
     if cuda {
         command.args([
             "--features",
@@ -64,15 +78,18 @@ pub fn run(arguments: &[String]) -> Result<(), Box<dyn Error>> {
         .env("CARGO_PROFILE_TEST_DEBUG", "0")
         .env("CARGO_INCREMENTAL", "0");
     let source_before = Command::new("git").args(["rev-parse", "HEAD"]).output()?;
+    // Proof output is evidence, not a concurrent source change. Keep every
+    // other tracked and untracked path in the before/after custody check.
+    let output_exclusion = format!(":(exclude,literal){}", fs::canonicalize(&output)?.display());
     let status_before = Command::new("git")
-        .args(["status", "--porcelain"])
+        .args(["status", "--porcelain", "--", ".", &output_exclusion])
         .output()?;
     let result = command.output()?;
     fs::write(output.join("stdout.log"), &result.stdout)?;
     fs::write(output.join("stderr.log"), &result.stderr)?;
     let source = Command::new("git").args(["rev-parse", "HEAD"]).output()?;
     let status = Command::new("git")
-        .args(["status", "--porcelain"])
+        .args(["status", "--porcelain", "--", ".", &output_exclusion])
         .output()?;
     let source_unchanged = source_before.status.success()
         && source.status.success()
@@ -90,12 +107,12 @@ pub fn run(arguments: &[String]) -> Result<(), Box<dyn Error>> {
         None
     };
     let manifest = json!({
-        "schema":"conduit.proof/model-authoring@1","proof_class":if cuda {"physical-local-hardware"} else {"deterministic-unit"},"scope":"hosted-model-library",
+        "schema":"conduit.proof/model-authoring@1","proof_class":if cuda {"physical-local-hardware"} else {"deterministic-unit"},"scope":if plot_journey {"ordinary-plot-model-work"} else {"hosted-model-library"},
         "source_head":String::from_utf8_lossy(&source_before.stdout).trim(),"working_tree_dirty":!status_before.stdout.is_empty() || !status.stdout.is_empty(),"source_unchanged":source_unchanged,
         "build_profile":{"debug_symbols":false,"incremental":false,"jobs":2},"device_evidence":device_evidence,"cuda_requested":cuda,"passed":passed,"exit_code":result.status.code(),
         "log_sha256":format!("{:x}",hash.finalize()),
-        "establishes":if passed {Some(if cuda {"explicit CUDA training, checkpoint and resume"} else {"Burn authoring, atomic training/evaluation, safe checkpoint and fresh-runtime resume contracts"})} else {None},
-        "does_not_establish":["ordinary Plot/HostCall execution","ConduitVoice training","FARGAN reconstruction","attended listening","stable acceptance"]
+        "establishes":if passed {Some(if cuda {"explicit CUDA training, checkpoint and resume"} else if plot_journey {"ordinary authored Plot, planner, installed Kernel HostCall training/checkpoint/export/reload/inference and fresh-runtime resume"} else {"Burn authoring, atomic training/evaluation, safe checkpoint and fresh-runtime resume contracts"})} else {None},
+        "does_not_establish":[if plot_journey {"trained voice"} else {"ordinary Plot/HostCall execution"},"ConduitVoice training","FARGAN reconstruction","attended listening","stable acceptance"]
     });
     fs::write(
         output.join("manifest.json"),

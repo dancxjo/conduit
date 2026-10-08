@@ -86,6 +86,8 @@ mod flow_collect_back;
 mod flow_join_by_key_back;
 mod flow_zip_back;
 mod fore_sign_storage;
+mod model_work_back;
+mod model_work_host;
 mod presentation_composition;
 mod presentation_construction_host;
 mod pulse_observation_back;
@@ -280,6 +282,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         keyboard,
         mut local_model,
         mut vector_search,
+        mut model_work,
         mut calendar,
         body_conversation_context,
     } = host;
@@ -643,6 +646,8 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         &lowered.identity,
         &active_play,
     )?;
+    let mut model_work_output =
+        Vec::with_capacity(conduit_ai::MODEL_WORK_MAXIMUM_OUTPUT_BYTES as usize);
     let mut local_model_output = Vec::with_capacity(conduit_ai::MAXIMUM_LLM_OUTPUT_BYTES as usize);
     let mut vector_search_output =
         Vec::with_capacity(conduit_ai::MAXIMUM_VECTOR_SEARCH_OUTPUT_BYTES as usize);
@@ -888,6 +893,10 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 == conduit_ai::VECTOR_SEARCH_OPERATION
             {
                 if let Some(adapter) = &mut vector_search {
+                    adapter.cancel();
+                }
+            } else if cancelled_operation.contract_id.as_str() == conduit_ai::MODEL_WORK_OPERATION {
+                if let Some(adapter) = &mut model_work {
                     adapter.cancel();
                 }
             } else {
@@ -2891,6 +2900,36 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 scheduler
                     .complete_host_call(request.node, request.request, completion.outcome(output))
                     .map_err(|error| format!("complete model operation: {error:?}"))?;
+                continue;
+            } else if contract.as_str() == conduit_ai::MODEL_WORK_OPERATION {
+                let placement = fragment
+                    .placements
+                    .get(usize::from(request.node.0))
+                    .ok_or_else(|| "model-work request has no exact placement".to_string())?;
+                let completion = model_work_host::execute(
+                    placement,
+                    input,
+                    match &mut model_work {
+                        Some(adapter) => Some(&mut **adapter),
+                        None => None,
+                    },
+                    &mut model_work_output,
+                )?;
+                let output = if completion.has_output() {
+                    let value = scheduler
+                        .store_host_value(&model_work_output)
+                        .map_err(|error| format!("store model-work output: {error:?}"))?;
+                    Some(
+                        BoundedValueRef::new(value, lowered_operation.binding.maximum_output_bytes)
+                            .map_err(|error| format!("bound model-work output: {error:?}"))?,
+                    )
+                } else {
+                    None
+                };
+                record_request(&mut requests, request);
+                scheduler
+                    .complete_host_call(request.node, request.request, completion.outcome(output))
+                    .map_err(|error| format!("complete model-work operation: {error:?}"))?;
                 continue;
             } else if contract.as_str() == conduit_ai::VECTOR_SEARCH_OPERATION {
                 let placement = fragment

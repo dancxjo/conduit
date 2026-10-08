@@ -100,6 +100,7 @@ fn reusable_named_template_storage_requires_a_slot_and_executes_without_play_all
             keyboard: None,
             local_model: None,
             vector_search: None,
+            model_work: None,
             calendar: None,
             body_conversation_context: None,
         },

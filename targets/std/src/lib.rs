@@ -99,6 +99,8 @@ pub trait ExternalForeOutputAdapter {
 }
 pub mod direct_spoken_mask;
 pub mod direct_spoken_mask_runtime;
+#[cfg(feature = "burn-model")]
+pub mod hosted_burn_work;
 pub mod hosted_linguistics;
 pub mod hosted_local_model;
 pub mod hosted_messaging;
@@ -106,6 +108,7 @@ pub mod hosted_microphone;
 pub mod hosted_midi;
 pub mod hosted_model;
 pub mod hosted_model_compute;
+pub mod hosted_model_work;
 pub mod hosted_network;
 pub mod hosted_reminder;
 pub mod hosted_resource;
@@ -525,6 +528,7 @@ pub struct StdHost {
     microphone: Option<hosted_microphone::AlsaMicrophoneAdapter>,
     base_registry: conduit_core::BaseRegistry,
     vector_search: Option<Box<dyn hosted_vector_search::HostedVectorSearchAdapter>>,
+    model_work: Option<Box<dyn hosted_model_work::HostedModelWorkAdapter>>,
     calendar: Option<Box<dyn hosted_calendar::HostedCalendarAdapter>>,
     body_conversation_context: Option<BodyConversationContextSource>,
     vision: Option<hosted_vision::FiniteHostedVisionBase>,
@@ -691,6 +695,7 @@ impl StdHost {
             microphone: None,
             base_registry: empty_base_registry(),
             vector_search: None,
+            model_work: None,
             calendar: None,
             body_conversation_context: None,
             vision: None,
@@ -760,6 +765,7 @@ impl StdHost {
             microphone: None,
             base_registry,
             vector_search: None,
+            model_work: None,
             calendar: None,
             body_conversation_context: None,
             vision: Some(vision),
@@ -840,6 +846,7 @@ impl StdHost {
             microphone: None,
             base_registry: empty_base_registry(),
             vector_search: None,
+            model_work: None,
             calendar: None,
             body_conversation_context: None,
             vision: None,
@@ -884,6 +891,52 @@ impl StdHost {
             microphone: None,
             base_registry: empty_base_registry(),
             vector_search: Some(adapter),
+            model_work: None,
+            calendar: None,
+            body_conversation_context: None,
+            vision: None,
+            kernel_resources,
+            next_kernel_play_sequence: 0,
+            next_kernel_sign_sequence: 0,
+            #[cfg(unix)]
+            terminal_attachment: None,
+        })
+    }
+
+    pub fn new_with_model_work(
+        config: StdHostConfig,
+        composition: StdHostComposition,
+        adapter: Box<dyn hosted_model_work::HostedModelWorkAdapter>,
+    ) -> Result<Self, String> {
+        let mut advertisement =
+            composition::build_advertisement(config, composition, None, None, None, false);
+        advertisement
+            .resources
+            .push(adapter.resource_offer().clone());
+        advertisement
+            .capabilities
+            .push(adapter.capability_offer().clone());
+        advertisement.resources.sort();
+        advertisement.capabilities.sort_by(|left, right| {
+            left.capability_id
+                .as_str()
+                .cmp(right.capability_id.as_str())
+        });
+        let kernel_resources = kernel_preparation::KernelResourceLedger::new(&advertisement)?;
+        Ok(Self {
+            advertisement,
+            image_identity: None,
+            playback: None,
+            wav_artifact: None,
+            speech_synthesis: None,
+            midi_input: None,
+            midi_output: None,
+            local_model: None,
+            speech_recognition: None,
+            microphone: None,
+            base_registry: empty_base_registry(),
+            vector_search: None,
+            model_work: Some(adapter),
             calendar: None,
             body_conversation_context: None,
             vision: None,
@@ -928,6 +981,7 @@ impl StdHost {
             microphone: None,
             base_registry: empty_base_registry(),
             vector_search: None,
+            model_work: None,
             calendar: Some(adapter),
             body_conversation_context: None,
             vision: None,
@@ -957,6 +1011,7 @@ impl StdHost {
             microphone: None,
             base_registry: empty_base_registry(),
             vector_search: None,
+            model_work: None,
             calendar: None,
             body_conversation_context: None,
             vision: None,
@@ -1010,6 +1065,7 @@ impl StdHost {
             microphone: None,
             base_registry: empty_base_registry(),
             vector_search: None,
+            model_work: None,
             calendar: None,
             body_conversation_context: None,
             vision: None,
@@ -1058,6 +1114,7 @@ impl StdHost {
             microphone: None,
             base_registry: empty_base_registry(),
             vector_search: None,
+            model_work: None,
             calendar: None,
             body_conversation_context: None,
             vision: None,
@@ -1095,6 +1152,7 @@ impl StdHost {
             microphone: None,
             base_registry: empty_base_registry(),
             vector_search: None,
+            model_work: None,
             calendar: None,
             body_conversation_context: None,
             vision: None,
@@ -1145,6 +1203,7 @@ impl StdHost {
             microphone: None,
             base_registry: empty_base_registry(),
             vector_search: None,
+            model_work: None,
             calendar: None,
             body_conversation_context: None,
             vision: None,

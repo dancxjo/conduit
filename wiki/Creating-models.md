@@ -1,8 +1,8 @@
 # Creating models: teach Conduit to speak
 
 **Development journey for #5205–#5207.** The hosted Burn library foundation is
-implemented and tested. ConduitVoice, corpus preparation, and ordinary training/
-inference plots remain proposed. Proposed examples are promises to test;
+implemented and tested. The generic regression journey also has an ordinary model-work Plot/HostCall
+path. ConduitVoice and corpus preparation remain proposed. Proposed examples are promises to test;
 the adjacent regression proof does not establish the voice journey.
 
 This chapter is for a Rust contributor who understands ordinary plots, plans,
@@ -180,10 +180,26 @@ Verify the documented command itself with
 The producer extracts the marked command, substitutes only the host-local evidence
 directory, executes it through `cargo xtask`, and retains document identity and logs.
 
-Public workflows use `conduit run` with checked training/evaluation/inference
-plots and prepared host/body resource configuration. Runnable CPU fixture,
-full local training, and CUDA commands will be added as those paths pass proof.
-Authored plots contain no paths or device bindings. Host preparation owns them.
+Run the generic Plot journey with:
+
+```sh
+cargo xtask prove model-authoring --plot-journey --output work/model-authoring-plot
+```
+
+The [authored Plot](https://github.com/dancxjo/conduit/blob/dev/plots/model-authoring/main.conduit)
+accepts canonical model-work byte envelopes through public external Fores. The
+prepared Host offers the model session; ordinary planning selects it, and the
+installed kernel dispatches each operation through its admitted Host Call.
+The regression journey trains, evaluates, checkpoints, exports, reloads for
+inference, restores a fresh training runtime, and advances the recorded step.
+It checks the actual Kernel request/completion records and exact inference output
+across reload. The byte envelope is a transport codec; its decoder retains the
+existing semantic training requests, tensors and receipts as payload authority.
+
+The CPU fixture uses F32 and constant-rate AdamW. Host preparation owns the
+compiled definition, checkpoint store and device. The Plot contains no filesystem
+or device bindings. Normal public CLI setup for arbitrary model families and the
+voice composition remain separate work.
 
 Inspect Plan/Play/Sign evidence as well as console progress: exact selected
 back/device/precision, admitted bounds, dataset/batch/objective identities,

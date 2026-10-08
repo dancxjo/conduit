@@ -251,6 +251,10 @@ impl<D: BurnModelDefinition> BurnAdapter<D> {
     pub fn state(&self) -> &TrainingState {
         &self.state
     }
+    /// Complete retained semantic context for Host admission and receipt bounds.
+    pub fn training_context(&self) -> &TrainingContext {
+        &self.context
+    }
     pub fn lifecycle(&self) -> &TrainingLifecycle {
         &self.lifecycle
     }

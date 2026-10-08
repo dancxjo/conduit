@@ -91,6 +91,7 @@ fn final_pattern_adapter_is_reused_for_calibration_revisions() {
             keyboard: None,
             local_model: None,
             vector_search: None,
+            model_work: None,
             calendar: None,
             body_conversation_context: None,
         },

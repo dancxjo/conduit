@@ -33,7 +33,7 @@ pub const MAXIMUM_BATCH_EXAMPLES: usize = 4096;
 pub const MAXIMUM_BATCH_MODALITIES: usize = 32;
 pub const MAXIMUM_METRICS: usize = 64;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct TrainingState {
     pub session_identity: [u8; 32],
     pub model: MutableModelState,
@@ -42,7 +42,7 @@ pub struct TrainingState {
     pub consumed_work_units: u64,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct HostTrainingRealization {
     pub implementation_identity: String,
     pub runtime_name: String,

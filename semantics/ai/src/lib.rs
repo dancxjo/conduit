@@ -185,3 +185,6 @@ mod provider;
 pub use provider::*;
 
 pub const TEXT_VALUE_KIND: &str = "value/text";
+
+mod model_work_contract;
+pub use model_work_contract::*;
