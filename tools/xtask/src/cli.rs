@@ -45,6 +45,9 @@ pub struct GlobalOpts {
 }
 
 #[derive(Subcommand, Debug)]
+// This one-shot CLI keeps Clap's owned subcommand shapes visible to its
+// parser tests; the largest Make arguments do not live in a hot path.
+#[allow(clippy::large_enum_variant)]
 pub enum Command {
     /// Execute repository validation check suites.
     Check(CheckArgs),
