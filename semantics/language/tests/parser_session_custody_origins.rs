@@ -26,8 +26,12 @@ fn staged_full_origin_projection_and_exact_native_correlation() {
             source.push('\n');
         }
     }
-    source.push_str(include_str!("../parser_session_custody.conduit"));
-    source.push_str(include_str!("../parser_session_custody_origins.conduit"));
+    if !block.contains("include_str!(\"parser_session_custody.conduit\")") {
+        source.push_str(include_str!("../parser_session_custody.conduit"));
+    }
+    if !block.contains("include_str!(\"parser_session_custody_origins.conduit\")") {
+        source.push_str(include_str!("../parser_session_custody_origins.conduit"));
+    }
     let checked =
         check_syntax_document(&parse_syntax_document(&source), &StartupCatalog::new()).unwrap();
     eprintln!(

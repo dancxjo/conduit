@@ -26,7 +26,9 @@ fn full_source_correlates_actual_rebase_output_and_refuses_foreign_previous_set(
             source.push('\n');
         }
     }
-    source.push_str(include_str!("../parser_session_custody.conduit"));
+    if !block.contains("include_str!(\"parser_session_custody.conduit\")") {
+        source.push_str(include_str!("../parser_session_custody.conduit"));
+    }
     let checked =
         check_syntax_document(&parse_syntax_document(&source), &StartupCatalog::new()).unwrap();
     eprintln!(
