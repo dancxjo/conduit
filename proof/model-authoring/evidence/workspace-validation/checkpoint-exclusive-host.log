@@ -1,0 +1,19 @@
+   Compiling conduit-browser-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-07/take-on-dancxjo-conduit-5205-5207/work/conduit/targets/browser/runtime)
+   Compiling conduit-burn-model v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-07/take-on-dancxjo-conduit-5205-5207/work/conduit/mechanisms/implementations/burn-model)
+   Compiling conduit-std-host v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-07/take-on-dancxjo-conduit-5205-5207/work/conduit/targets/std)
+    Finished `test` profile [unoptimized] target(s) in 26.65s
+     Running tests/burn_model_host.rs (target/debug/deps/burn_model_host-92d029548718bea1)
+
+running 1 test
+test exported_burn_checkpoint_uses_existing_host_boundary ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+     Running tests/model_compute_host.rs (target/debug/deps/model_compute_host-4eb1936f5a2d3b06)
+
+running 2 tests
+test wrong_loaded_model_and_known_resource_mismatch_refuse_before_compute ... ok
+test reference_adapter_proves_exact_boundary_and_real_linear_model_computes ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

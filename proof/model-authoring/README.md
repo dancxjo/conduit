@@ -33,3 +33,6 @@ failure evidence; it does not establish the revised profile.
 [Retained clean-source evidence](evidence/0d8aca837/README.md) includes the actual
 CPU resume/inference objects, measured metrics, CUDA comparisons, and inventory.
 [Development failures](development/README.md) remain separate from acceptance.
+
+[Stopping point and final local validation logs](evidence/workspace-validation/README.md)
+are retained for reprioritization.
