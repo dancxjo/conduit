@@ -72,6 +72,7 @@ fn main() {
                         }
                         ProveCommand::Pete(args) => commands::pete_std_observe::run(args, &opts),
                         ProveCommand::Journey(args) => run_journey(args, &opts),
+                        ProveCommand::TodoJourney(args) => commands::todo_journey::run(args, &opts),
                         ProveCommand::Evidence(evidence) => commands::evidence::run(evidence),
                     }
                 }

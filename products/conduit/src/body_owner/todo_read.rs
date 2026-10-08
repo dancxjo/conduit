@@ -28,6 +28,7 @@ use std::{
 };
 
 const READ_SOURCE: &str = include_str!("../../../../plots/todo/checkpoint-restore.conduit");
+const WRITE_SOURCE: &str = include_str!("../../../../plots/todo/checkpoint-once.conduit");
 const BODY_PLAY_STACK_BYTES: usize = 4 * 1024 * 1024;
 
 struct OneRestoredFore(u8);
@@ -64,36 +65,72 @@ impl Owner {
         committed: &TodoState,
         maximum_millis: u64,
     ) -> Result<TodoState, String> {
-        self.todo_verified = None;
-        if !(1..=60_000).contains(&maximum_millis)
-            || self.host.is_playing()
-            || self.session.realization().is_some()
-            || self.session.evidence().body.state != BodyState::Lulled
-            || self.resident_name.as_deref() != Some("todo/checkpoint-once")
-            || selected_write.access != ResourceAccessMode::WriteCandidatePublish
-        {
-            return Err("Todo read requires one retired selected write Play".into());
-        }
         let write_receipt = self
             .todo_commit_receipt()
             .ok_or("Todo read has no retained write receipt")?
             .clone();
-        let expected_bytes = committed.encode_info().map_err(debug)?;
-        let expected_digest = super::super::super::digest(&expected_bytes);
+        self.read_selected_todo(
+            state_root,
+            checkpoint_root,
+            selected_write,
+            Some(committed),
+            write_receipt,
+            maximum_millis,
+        )
+    }
+
+    pub(super) fn read_selected_todo(
+        &mut self,
+        state_root: &Path,
+        checkpoint_root: &Path,
+        selected_write: &ResourceContentRequirement,
+        committed: Option<&TodoState>,
+        write_receipt: serde_json::Value,
+        maximum_millis: u64,
+    ) -> Result<TodoState, String> {
+        self.todo_verified = None;
+        let fresh_boot = committed.is_none();
+        if !(1..=60_000).contains(&maximum_millis)
+            || self.host.is_playing()
+            || self.session.realization().is_some()
+            || self.session.evidence().body.state != BodyState::Lulled
+            || self.resident_name.as_deref()
+                != Some(if fresh_boot {
+                    "todo/checkpoint-restore"
+                } else {
+                    "todo/checkpoint-once"
+                })
+            || selected_write.access != ResourceAccessMode::WriteCandidatePublish
+        {
+            return Err("Todo read requires one retired selected write Play".into());
+        }
+        let expected_digest = write_receipt["committed_fore_sha256"]
+            .as_str()
+            .ok_or("Todo write receipt has no committed Fore digest")?
+            .to_owned();
+        let write_plot_id = crate::plot_source::parse(WRITE_SOURCE)?
+            .expand_entry_for_authoring()?
+            .expanded
+            .checked_plot_id;
+        if let Some(committed) = committed {
+            let expected_bytes = committed.encode_info().map_err(debug)?;
+            if super::super::super::digest(&expected_bytes) != expected_digest {
+                return Err("Todo write receipt differs from committed state".into());
+            }
+        }
         if write_receipt["terminal"] != serde_json::json!(TerminalDisposition::Completed)
             || write_receipt["failure"] != serde_json::Value::Null
             || write_receipt["cleanup_failure"] != serde_json::Value::Null
             || write_receipt["committed_fore_sha256"] != expected_digest
+            || !write_receipt["terminal_sign"]["sign_id"].is_string()
+            || write_receipt["terminal_sign"]["active_play_id"]
+                != write_receipt["play"]["active_play_id"]
             || write_receipt["selected_content"] != serde_json::json!(selected_write)
             || write_receipt["checkpoint_namespace"]["body_id"]
                 != self.session.evidence().body_id.as_str()
-            || write_receipt["checkpoint_namespace"]["write_plot_id"]
-                != self
-                    .resident
-                    .as_ref()
-                    .ok_or("Todo has no resident write Plot")?
-                    .checked_plot_id
-                    .as_str()
+            || write_receipt["checkpoint_namespace"]["write_plot_id"] != write_plot_id.as_str()
+            || (!fresh_boot
+                && self.resident.as_ref().map(|plot| &plot.checked_plot_id) != Some(&write_plot_id))
         {
             return Err("Todo read differs from the exact committed write".into());
         }
@@ -109,7 +146,7 @@ impl Owner {
         let old_resident = self
             .resident
             .as_ref()
-            .ok_or("Todo has no resident write Plot")?
+            .ok_or("Todo has no resident Plot")?
             .clone();
         let read_resident = ResidentPlot::new(
             plot.expanded.source_document_id.clone(),
@@ -183,24 +220,30 @@ impl Owner {
             .map_err(debug)?;
             let mut staged = self.session.clone();
             let revision = staged.evidence().body.workload_revision;
-            staged
-                .remove_plot(
-                    revision,
-                    &old_resident,
-                    &advertised.host_id,
-                    &advertised.boot_id,
-                )
-                .map_err(debug)?;
-            staged
-                .admit_plot(
-                    revision
-                        .checked_add(1)
-                        .ok_or("Todo workload revision exhausted")?,
-                    read_resident.clone(),
-                    &advertised.host_id,
-                    &advertised.boot_id,
-                )
-                .map_err(debug)?;
+            if fresh_boot {
+                if old_resident != read_resident {
+                    return Err("Todo re-encounter resident Plot changed".into());
+                }
+            } else {
+                staged
+                    .remove_plot(
+                        revision,
+                        &old_resident,
+                        &advertised.host_id,
+                        &advertised.boot_id,
+                    )
+                    .map_err(debug)?;
+                staged
+                    .admit_plot(
+                        revision
+                            .checked_add(1)
+                            .ok_or("Todo workload revision exhausted")?,
+                        read_resident.clone(),
+                        &advertised.host_id,
+                        &advertised.boot_id,
+                    )
+                    .map_err(debug)?;
+            }
             staged
                 .propose(
                     vec![BodyPlotPlan {
@@ -226,7 +269,11 @@ impl Owner {
             staged.evidence(),
             Some(&write_receipt),
             self.admissions.as_ref(),
-            Some(READ_SOURCE.as_bytes()),
+            if fresh_boot {
+                None
+            } else {
+                Some(READ_SOURCE.as_bytes())
+            },
         ) {
             self.host
                 .transition_todo_checkpoint_offer(checkpoint_root, selected_write.clone())
@@ -359,7 +406,7 @@ impl Owner {
             let restored_bytes = &report.fore_deliveries[0].bytes;
             let restored = TodoState::decode_info(restored_bytes).map_err(debug)?;
             if super::super::super::digest(restored_bytes) != expected_digest
-                || restored != *committed
+                || committed.is_some_and(|expected| restored != *expected)
             {
                 return Err("Todo read differs from the committed generation".into());
             }

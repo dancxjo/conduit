@@ -6,7 +6,10 @@ use crate::{
     RendererAdapterIdentity, RendererAdapterKind,
 };
 use conduit_body::{AuthenticatedHostObservation, BodyMembership, MembershipProofId, PartId};
-use conduit_core::{BootId, HostId, OfferGeneration};
+use conduit_core::{
+    kind_id, BootId, HostId, OfferGeneration, ResourceAccessMode, ResourceContentRequirement,
+    ResourceRetention, ResourceSemanticIdentity, ResourceSharing, ResourceVersionIdentity,
+};
 use conduit_presentation::{PresentationPropertyValue, PresentationRole};
 use patchbay_application::{EntranceAction, PatchbayEntranceState};
 
@@ -237,6 +240,63 @@ fn creche_session(suffix: &str) -> ZeroBodyFrontDoor {
         )
         .unwrap();
     session
+}
+
+#[test]
+fn selected_checkpoint_host_offers_todo_at_birth() {
+    let root = std::env::temp_dir().join(format!(
+        "conduit-creche-todo-{}-{:?}",
+        std::process::id(),
+        std::thread::current().id()
+    ));
+    std::fs::create_dir_all(&root).unwrap();
+    let content = ResourceContentRequirement {
+        identity: ResourceSemanticIdentity::from_digest([1; 32]),
+        version: ResourceVersionIdentity::from_digest([2; 32]),
+        content_profile: kind_id("conduit.todo/checkpoint-envelope@1"),
+        maximum_bytes: conduit_std_offers::TODO_CHECKPOINT_MAX_BYTES,
+        maximum_items: 1,
+        retention: ResourceRetention::ExternalDurable,
+        sharing: ResourceSharing::SingleWriterPublished,
+        access: ResourceAccessMode::WriteCandidatePublish,
+        generation_slots: 1,
+        reader_leases: 1,
+        publication_slots: 1,
+        sensitive: false,
+    };
+    let host = conduit_std_host::StdHost::new_for_todo_checkpoint_once(
+        conduit_std_host::StdHostConfig {
+            host_id: HostId::from("creche/todo/host"),
+            boot_id: BootId::from("creche/todo/boot"),
+            offer_generation: OfferGeneration(1),
+        },
+        &root,
+        content,
+    )
+    .unwrap();
+    let door = ZeroBodyFrontDoor::from_model(
+        crate::host_adapter::test_host_adapter_arc(),
+        PatchbayModel::from_advertisement(host.advertisement().clone()),
+    )
+    .unwrap();
+    let mut draft = door
+        .creche_draft("00112233-4455-6677-8899-000000000003".into())
+        .unwrap();
+    assert_eq!(draft.choices().len(), 3);
+    assert_eq!(draft.choices()[2].title, "Todo list");
+    draft.select(draft.revision(), 2, true).unwrap();
+    let selection = draft.selection(draft.revision()).unwrap();
+    assert_eq!(selection.workset.plots().len(), 1);
+    assert_eq!(
+        door.primary_selected_source(&selection).unwrap(),
+        Some(include_str!(
+            "../../../../../plots/todo/checkpoint-once.conduit"
+        ))
+    );
+    let revision = door.revision();
+    let born = door.birth_from_creche(selection, revision).unwrap();
+    assert_eq!(born.body().workset.plots().len(), 1);
+    std::fs::remove_dir_all(root).unwrap();
 }
 
 #[test]
