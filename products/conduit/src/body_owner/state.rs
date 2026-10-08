@@ -112,6 +112,7 @@ fn commit(root: &Path, transaction: &Transaction) -> Result<(), String> {
     write_json_atomic(&root.join("installation.json"), &transaction.installation)
 }
 
+#[cfg(test)]
 pub(super) fn retain(
     root: &Path,
     biography: &BodyBiographyEvidence,
