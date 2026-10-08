@@ -1,0 +1,246 @@
+warning: enum `Window8PreparedBankRefusal` is never used
+  --> work/canonical-bank-prototype/parser_window8_program_bank.rs:16:10
+   |
+16 | pub enum Window8PreparedBankRefusal {
+   |          ^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: struct `Window8ProgramBank` is never constructed
+  --> work/canonical-bank-prototype/parser_window8_program_bank.rs:22:12
+   |
+22 | pub struct Window8ProgramBank {
+   |            ^^^^^^^^^^^^^^^^^^
+
+warning: struct `Window8BankState` is never constructed
+  --> work/canonical-bank-prototype/parser_window8_program_bank.rs:30:12
+   |
+30 | pub struct Window8BankState {
+   |            ^^^^^^^^^^^^^^^^
+
+warning: methods `state` and `proof` are never used
+  --> work/canonical-bank-prototype/parser_window8_program_bank.rs:34:12
+   |
+33 | impl Window8BankState {
+   | --------------------- methods in this implementation
+34 |     pub fn state(&self) -> &LanguageParserWindow8RawState {
+   |            ^^^^^
+...
+37 |     pub fn proof(&self) -> &LanguageParserWindow8StateProof {
+   |            ^^^^^
+
+warning: struct `Window8BankContext` is never constructed
+  --> work/canonical-bank-prototype/parser_window8_program_bank.rs:41:12
+   |
+41 | pub struct Window8BankContext<'a> {
+   |            ^^^^^^^^^^^^^^^^^^
+
+warning: struct `Window8BankProposal` is never constructed
+  --> work/canonical-bank-prototype/parser_window8_program_bank.rs:46:12
+   |
+46 | pub struct Window8BankProposal {
+   |            ^^^^^^^^^^^^^^^^^^^
+
+warning: methods `prior` and `proposal` are never used
+  --> work/canonical-bank-prototype/parser_window8_program_bank.rs:51:12
+   |
+50 | impl Window8BankProposal {
+   | ------------------------ methods in this implementation
+51 |     pub fn prior(&self) -> &Window8BankState {
+   |            ^^^^^
+...
+54 |     pub fn proposal(&self) -> &LanguageParserWindow8RawResult {
+   |            ^^^^^^^^
+
+warning: struct `Window8BankFeatures` is never constructed
+  --> work/canonical-bank-prototype/parser_window8_program_bank.rs:58:12
+   |
+58 | pub struct Window8BankFeatures {
+   |            ^^^^^^^^^^^^^^^^^^^
+
+warning: methods `state`, `lexical`, `query`, and `features` are never used
+  --> work/canonical-bank-prototype/parser_window8_program_bank.rs:65:12
+   |
+64 | impl Window8BankFeatures {
+   | ------------------------ methods in this implementation
+65 |     pub fn state(&self) -> &Window8BankState {
+   |            ^^^^^
+...
+68 |     pub fn lexical(&self) -> &LanguageParserWindow8Lexical {
+   |            ^^^^^^^
+...
+71 |     pub fn query(&self) -> &LanguageParserWindow8RawFeatureQuery {
+   |            ^^^^^
+...
+74 |     pub fn features(&self) -> &LanguageParserWindow8Features {
+   |            ^^^^^^^^
+
+warning: multiple associated items are never used
+   --> work/canonical-bank-prototype/parser_window8_program_bank.rs:81:12
+    |
+ 78 | impl Window8ProgramBank {
+    | ----------------------- associated items in this implementation
+...
+ 81 |     pub fn prepare_native(
+    |            ^^^^^^^^^^^^^^
+...
+ 90 |     pub fn native_storage_receipt(&self) -> Option<PreparedNativeFamilyStorageReceipt> {
+    |            ^^^^^^^^^^^^^^^^^^^^^^
+...
+ 95 |     pub fn prepare() -> Result<Self, Window8Refusal> {
+    |            ^^^^^^^
+...
+112 |     fn run<I: NativeRustBinding, O: PreparedNativeRustBinding>(
+    |        ^^^
+...
+141 |     fn decode_output<O: PreparedNativeRustBinding>(
+    |        ^^^^^^^^^^^^^
+...
+154 |     pub fn admit_state(
+    |            ^^^^^^^^^^^
+...
+182 |     pub fn initialize(
+    |            ^^^^^^^^^^
+...
+189 |     pub fn class(
+    |            ^^^^^
+...
+202 |     pub fn rank(
+    |            ^^^^
+...
+217 |     pub fn merge(
+    |            ^^^^^
+...
+226 |     pub fn context<'a>(
+    |            ^^^^^^^
+...
+248 |     pub fn complete(&self, state: &Window8BankState) -> Result<bool, Window8Refusal> {
+    |            ^^^^^^^^
+...
+253 |     pub fn choice_frontier(
+    |            ^^^^^^^^^^^^^^^
+...
+259 |     pub fn score_advance(
+    |            ^^^^^^^^^^^^^
+...
+266 |     pub fn features(
+    |            ^^^^^^^^
+
+warning: methods `prior` and `propose` are never used
+   --> work/canonical-bank-prototype/parser_window8_program_bank.rs:293:12
+    |
+292 | impl Window8BankContext<'_> {
+    | --------------------------- methods in this implementation
+293 |     pub fn prior(&self) -> &Window8BankState {
+    |            ^^^^^
+...
+296 |     pub fn propose(
+    |            ^^^^^^^
+
+warning: function `prepare_native_family` is never used
+   --> work/canonical-bank-prototype/parser_window8_program_bank.rs:321:4
+    |
+321 | fn prepare_native_family(
+    |    ^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `source_entries` is never used
+   --> work/canonical-bank-prototype/parser_window8_program_bank.rs:346:4
+    |
+346 | fn source_entries() -> [(&'static str, &'static str); 26] {
+    |    ^^^^^^^^^^^^^^
+
+warning: struct `Window8SourcePreparationLimits` is never constructed
+ --> work/canonical-bank-prototype/parser_window8_program_bank_prepared.rs:7:12
+  |
+7 | pub struct Window8SourcePreparationLimits {
+  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: struct `Window8PreparedSourceReceipt` is never constructed
+  --> work/canonical-bank-prototype/parser_window8_program_bank_prepared.rs:13:12
+   |
+13 | pub struct Window8PreparedSourceReceipt {
+   |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: struct `PreparedBankProgram` is never constructed
+  --> work/canonical-bank-prototype/parser_window8_program_bank_prepared.rs:20:8
+   |
+20 | struct PreparedBankProgram {
+   |        ^^^^^^^^^^^^^^^^^^^
+
+warning: function `plus` is never used
+  --> work/canonical-bank-prototype/parser_window8_program_bank_prepared.rs:25:4
+   |
+25 | fn plus(a: usize, b: usize) -> Result<usize, Window8PreparedBankRefusal> {
+   |    ^^^^
+
+warning: function `ceiling` is never used
+  --> work/canonical-bank-prototype/parser_window8_program_bank_prepared.rs:29:4
+   |
+29 | fn ceiling(value: usize, maximum: usize) -> Result<(), Window8PreparedBankRefusal> {
+   |    ^^^^^^^
+
+warning: associated items `prepare_native_evaluator`, `prepare_evaluator_bank`, `prepared_source_receipt`, and `prepared_program_receipts` are never used
+   --> work/canonical-bank-prototype/parser_window8_program_bank_prepared.rs:40:12
+    |
+ 36 | impl Window8ProgramBank {
+    | ----------------------- associated items in this implementation
+...
+ 40 |     pub fn prepare_native_evaluator(
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^
+...
+ 51 |     fn prepare_evaluator_bank<const N: usize>(
+    |        ^^^^^^^^^^^^^^^^^^^^^^
+...
+163 |     pub fn prepared_source_receipt(&self) -> Option<Window8PreparedSourceReceipt> {
+    |            ^^^^^^^^^^^^^^^^^^^^^^^
+...
+166 |     pub fn prepared_program_receipts(
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `proposal_source_entries` is never used
+ --> work/canonical-bank-prototype/parser_window8_program_bank_proposal.rs:3:4
+  |
+3 | fn proposal_source_entries() -> [(&'static str, &'static str); 29] {
+  |    ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `prepare_proposal_native_family` is never used
+  --> work/canonical-bank-prototype/parser_window8_program_bank_proposal.rs:33:4
+   |
+33 | fn prepare_proposal_native_family(
+   |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `prepare_proposal_v2_native_family` is never used
+  --> work/canonical-bank-prototype/parser_window8_program_bank_proposal.rs:41:4
+   |
+41 | fn prepare_proposal_v2_native_family(
+   |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `prepare_proposal_family` is never used
+  --> work/canonical-bank-prototype/parser_window8_program_bank_proposal.rs:49:4
+   |
+49 | fn prepare_proposal_family(
+   |    ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: associated items `prepare_proposal_native_evaluator`, `proposal_origins`, `proposal_features`, `prepare_proposal_v2_native_evaluator`, and `proposal_v2_features` are never used
+   --> work/canonical-bank-prototype/parser_window8_program_bank_proposal.rs:80:12
+    |
+ 76 | impl Window8ProgramBank {
+    | ----------------------- associated items in this implementation
+...
+ 80 |     pub fn prepare_proposal_native_evaluator(
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+ 93 |     pub fn proposal_origins(
+    |            ^^^^^^^^^^^^^^^^
+...
+101 |     pub fn proposal_features(
+    |            ^^^^^^^^^^^^^^^^^
+...
+111 |     pub fn prepare_proposal_v2_native_evaluator(
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+132 |     pub fn proposal_v2_features(
+    |            ^^^^^^^^^^^^^^^^^^^^
+
+warning: 24 warnings emitted
+

@@ -1,0 +1,8 @@
+
+running 2 tests
+full ModelSignature family: PreparedNativeFamilyStorageReceipt { types: 16, retained_heap_bytes_bound: 24121, preparation_peak_heap_bytes_bound: 232410, conversion_requested_bytes_bound: 8126545 }
+test full_signature_imported_descriptors_and_archived_categorical_signature_admit_exactly ... ok
+test full_signature_accepts_every_imported_tensor_element_and_axis_role ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.26s
+

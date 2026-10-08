@@ -1,0 +1,57 @@
+warning: unused import: `PreparedNativeRustBinding`
+    --> work/native-child-rank/rank.rs:1744:82
+     |
+1744 | use conduit_plot::rust_binding::{PreparedNativeFamily,PreparedNativeFamilyLimits,PreparedNativeRustBinding,NativeChildAdmissionSco...
+     |                                                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: associated function `invariants` is never used
+  --> work/native-child-rank/rank.rs:37:8
+   |
+30 | impl LanguageAnalysisRevisionId {
+   | ------------------------------- associated function in this implementation
+...
+37 |     fn invariants() -> Result<Vec<conduit_plot::PortableExpressionProgram>, NativeBindingRefusal> {
+   |        ^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: associated function `invariants` is never used
+   --> work/native-child-rank/rank.rs:238:8
+    |
+231 | impl LanguageParserSubtype {
+    | -------------------------- associated function in this implementation
+...
+238 |     fn invariants() -> Result<Vec<conduit_plot::PortableExpressionProgram>, NativeBindingRefusal> {
+    |        ^^^^^^^^^^
+
+warning: associated function `invariants` is never used
+   --> work/native-child-rank/rank.rs:676:8
+    |
+669 | impl LanguageTextId {
+    | ------------------- associated function in this implementation
+...
+676 |     fn invariants() -> Result<Vec<conduit_plot::PortableExpressionProgram>, NativeBindingRefusal> {
+    |        ^^^^^^^^^^
+
+warning: associated function `invariants` is never used
+   --> work/native-child-rank/rank.rs:735:8
+    |
+728 | impl LanguageTextRevisionId {
+    | --------------------------- associated function in this implementation
+...
+735 |     fn invariants() -> Result<Vec<conduit_plot::PortableExpressionProgram>, NativeBindingRefusal> {
+    |        ^^^^^^^^^^
+
+warning: associated function `invariants` is never used
+   --> work/native-child-rank/rank.rs:827:8
+    |
+822 | impl LanguageUniversalDependencyRelation {
+    | ---------------------------------------- associated function in this implementation
+...
+827 |     fn invariants() -> Result<Vec<conduit_plot::PortableExpressionProgram>, NativeBindingRefusal> {
+    |        ^^^^^^^^^^
+
+warning: 6 warnings emitted
+

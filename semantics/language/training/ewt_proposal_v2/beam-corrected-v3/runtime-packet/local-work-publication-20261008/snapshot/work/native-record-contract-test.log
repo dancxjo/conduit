@@ -1,0 +1,10 @@
+   Compiling conduit-core v0.1.0 (/home/dancxjo/conduit-4907-native-reuse/architecture/core)
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/conduit-4907-native-reuse/architecture/plot)
+    Finished `test` profile [unoptimized] target(s) in 15.51s
+     Running unittests src/lib.rs (work/native-reuse-sdk-target/debug/deps/conduit_plot-2300a7f06de0e279)
+
+running 1 test
+test rust_binding::borrowed_contracts::tests::all_path_shapes_and_first_refusals_match_owned_reference ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 326 filtered out; finished in 0.00s
+

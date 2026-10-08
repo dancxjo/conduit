@@ -1,0 +1,30 @@
+{
+  "scope": "Single distinctf70f TRAINdiagnostic through originalSource/Plan/Kernel/opaqueproposer; originalstaticFinal stable_prefixNone preserved; only explicit Native-only canonicalmerge optimized, no stablefact/publicSessionclaim",
+  "closed_sdk_manifest": "/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-4907/work/production-custody/canonical-window8-scoped-coherent-sdk-closed.json",
+  "closed_sdk_manifest_sha256": "4331f154a74edf8c4f7b0a32e1e50bc9aa563010fd2f554e849322b7c5ea2718",
+  "files": {
+    "/home/dancxjo/conduit-4907-native-reuse/work/beam-candidate-actual/corpus.rs": "68474ed94cb5a7c209c6d478bd4da22eeb0a29591e98ac0d862e49b1276e9878",
+    "/home/dancxjo/conduit-4907-native-reuse/work/beam-candidate-actual/parser_window8_program_bank_proposal.rs": "8e50c38ba29a2f4b8106cd5b07c6511bbb35eb15576f668a67152d65d5cf1b4a",
+    "/home/dancxjo/conduit-4907-native-reuse/work/beam-candidate-actual/parser_window8_program_bank.rs": "f748576e16880fb03f522588f2a7f38dd13a59b606f0a415a2b31266b1d8da17",
+    "/home/dancxjo/conduit-4907-native-reuse/work/beam-candidate-actual/merge.rs": "872c4cdc6cdd3a7e4675af237b5d35e45babf6d6a11050fc2cf267a996f6c564",
+    "/home/dancxjo/conduit-4907-native-reuse/work/beam-candidate-actual/proposed.rs": "4727662bbf7d19d18e7e49b54a3d5b14a69770cc31ca3d335f35236467f9858f",
+    "/home/dancxjo/conduit-4907-native-reuse/work/beam-candidate-actual/parser_window8_program_bank_prepared.rs": "b5b0647798bf5430b91ecfa381ae2ad5d7e6bd138729f1aad7f7021caf04df80",
+    "/home/dancxjo/conduit-4907-native-reuse/work/beam-candidate-actual/corpus": "4fbbff203a4bf9741f2b6297a5822eefe4ea3d1485311dd94a892a9e2f9d3c49",
+    "/home/dancxjo/conduit-4907-native-reuse/work/beam-candidate-actual/initial-vocative-input.json": "8eeb2be71c53a5153560ef9d9c30ecda45f7e5b29fa1d8ba823c6920f4314f35",
+    "/home/dancxjo/conduit-4907-native-reuse/work/beam-training-candidate/candidate.rs": "b23abc419c705b269dd52c6545c01fb15a44e72ac3488aedf29a4c427593c9eb",
+    "/home/dancxjo/conduit-4907-native-reuse/work/beam-training-candidate/expected-metadata-new/artifact-reference.bin": "9f3d518ceb3b9b8607b898cdb9a4b2159edf2f81215f1b99277e75e0da686f21",
+    "/home/dancxjo/conduit-4907-native-reuse/work/beam-training-candidate/expected-metadata-new/proposer-definition.native.bin": "e0efb3346305149f4dcbeb17db0d969a7b92c2483a152b1fef6193b9e6440c08",
+    "/home/dancxjo/conduit-4907-native-reuse/work/beam-training-candidate/expected-metadata-new/numeric-scores.type.bin": "20e1cc29b858f4ddde0e9295d58ad0a09042254f76152b26ea095ad8eb96049b",
+    "/home/dancxjo/conduit-4907-native-reuse/work/beam-training-candidate/expected-metadata-new/signature.native.bin": "442156610399aae8c7e970edf22b8b18e4fd8dddbcb7f4d1f50d0d332ba2fe70",
+    "/home/dancxjo/conduit-4907-native-reuse/work/beam-training-candidate/expected-metadata-new/expected.json": "a8cb27bd3b72ea8ed6438729d4121ef6271749e2f8dc1e683c1fa0389398936b",
+    "/home/dancxjo/conduit-4907-native-reuse/work/beam-training-candidate/expected-metadata-new/numeric-indices.type.bin": "c71c657455b5c2038385133ccb1ee9f60f8218af1d1111623b6b2e0c19e83a67",
+    "/home/dancxjo/conduit-4907-native-reuse/work/beam-training-candidate/expected-metadata-new/unknown-policy.native.bin": "9db5503e2454ada0bfdb5508ae362a5751e4da1fb18fdd3abbc7ceab06720cde",
+    "/home/dancxjo/conduit-4907-native-reuse/work/beam-training-candidate/expected-metadata-new/artifact-full.debug.txt": "ca8ed489d1baea378b56d446ae58badf3bec6693dee6614faa495c8788d71e12",
+    "/home/dancxjo/conduit-4907-native-reuse/semantics/language/training/ewt_proposal_v2/beam-corrected-v3/proposal_window8.i16": "f70f560d54a81dd34d005254985dbfd394363def5f5a4ffe3e97e7c90306d2c5",
+    "/home/dancxjo/conduit-4907-native-reuse/semantics/language/training/ewt_proposal_v2/beam-corrected-v3/declared-model-training-manifest.json": "7ce7c6927e8e739113c4bc50f3cc1005f67ce9cc913ddf51a6ddd460d291afda"
+  },
+  "artifact_sha256": "f70f560d54a81dd34d005254985dbfd394363def5f5a4ffe3e97e7c90306d2c5",
+  "output": "initial-vocative-results.json",
+  "expected_row_count": 1,
+  "train_teaching_diagnostic_only": true
+}

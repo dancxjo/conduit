@@ -1,0 +1,240 @@
+{
+  "ai": {
+    "path": "/home/dancxjo/conduit-4907-native-reuse/work/native-reuse-sdk-target/debug/deps/libconduit_ai-5cb28f8b1c7e346f.rlib",
+    "sha256": "4a2a5a7fe137f7ec606ec09753a0ee9a6b2343b08df67b4d863be2f28fc9960e",
+    "fingerprint": {
+      "rustc": 1625334936438085654,
+      "features": "[\"kernel-operation-owners\", \"kernel-step\"]",
+      "declared_features": "[\"default\", \"kernel-operation-owners\", \"kernel-step\", \"plot-catalog\"]",
+      "target": 2778737868056203393,
+      "profile": 8378823585564974145,
+      "path": 883303820912104492,
+      "deps": [
+        [
+          5165953135393952275,
+          "conduit_kernel",
+          false,
+          9633343221921429642
+        ],
+        [
+          5330460842384404171,
+          "serde_json",
+          false,
+          5631299593269651823
+        ],
+        [
+          5350012018046393833,
+          "conduit_time",
+          false,
+          14837553529933223299
+        ],
+        [
+          5902474574174894583,
+          "conduit_plot",
+          false,
+          10543854770454908174
+        ],
+        [
+          6192132185396751148,
+          "build_script_build",
+          false,
+          14619124413330703390
+        ],
+        [
+          6557439603276904804,
+          "serde",
+          false,
+          10057975430758040397
+        ],
+        [
+          8471564120405487369,
+          "libm",
+          false,
+          7288810659266820324
+        ],
+        [
+          9857275760291862238,
+          "sha2",
+          false,
+          6298400643788733277
+        ],
+        [
+          9896203181720027582,
+          "conduit_data",
+          false,
+          9376325284132965991
+        ],
+        [
+          10007102555623561102,
+          "conduit_core",
+          false,
+          7514491458990659590
+        ],
+        [
+          14458983464013639273,
+          "conduit_plan_lowering",
+          false,
+          11341830501924965397
+        ],
+        [
+          15363707195071570988,
+          "conduit_composite",
+          false,
+          9328583906541051014
+        ]
+      ],
+      "local": [
+        {
+          "CheckDepInfo": {
+            "dep_info": "debug/.fingerprint/conduit-ai-5cb28f8b1c7e346f/dep-lib-conduit_ai",
+            "checksum": false
+          }
+        }
+      ],
+      "rustflags": [],
+      "config": 9396254390672932401,
+      "compile_kind": 0
+    }
+  },
+  "core": {
+    "path": "/home/dancxjo/conduit-4907-native-reuse/work/native-reuse-sdk-target/debug/deps/libconduit_core-165aa9b898de0d69.rlib",
+    "sha256": "1b0d3727e4b16549987a2e5144cfe50347a7f079b1a57e0b9c3994747539b036",
+    "fingerprint": {
+      "rustc": 1625334936438085654,
+      "features": "[]",
+      "declared_features": "[]",
+      "target": 11413314523732459012,
+      "profile": 8378823585564974145,
+      "path": 12867287330130983346,
+      "deps": [
+        [
+          6557439603276904804,
+          "serde",
+          false,
+          10057975430758040397
+        ],
+        [
+          7941790471658059500,
+          "conduit_assigned_plan",
+          false,
+          2013674009843437792
+        ],
+        [
+          8471564120405487369,
+          "libm",
+          false,
+          7288810659266820324
+        ],
+        [
+          9857275760291862238,
+          "sha2",
+          false,
+          6298400643788733277
+        ]
+      ],
+      "local": [
+        {
+          "CheckDepInfo": {
+            "dep_info": "debug/.fingerprint/conduit-core-165aa9b898de0d69/dep-lib-conduit_core",
+            "checksum": false
+          }
+        }
+      ],
+      "rustflags": [],
+      "config": 9396254390672932401,
+      "compile_kind": 0
+    }
+  },
+  "plot": {
+    "path": "/home/dancxjo/conduit-4907-native-reuse/work/native-reuse-sdk-target/debug/deps/libconduit_plot-9c32fb40f29f61fa.rlib",
+    "sha256": "517e432ad52734ef28722a4a616241df239ab5640a8086567e3a12b58e4f467d",
+    "fingerprint": {
+      "rustc": 1625334936438085654,
+      "features": "[]",
+      "declared_features": "[]",
+      "target": 10969450131698983384,
+      "profile": 8378823585564974145,
+      "path": 17464165896029791654,
+      "deps": [
+        [
+          6557439603276904804,
+          "serde",
+          false,
+          10057975430758040397
+        ],
+        [
+          9857275760291862238,
+          "sha2",
+          false,
+          6298400643788733277
+        ],
+        [
+          10007102555623561102,
+          "conduit_core",
+          false,
+          7514491458990659590
+        ]
+      ],
+      "local": [
+        {
+          "CheckDepInfo": {
+            "dep_info": "debug/.fingerprint/conduit-plot-9c32fb40f29f61fa/dep-lib-conduit_plot",
+            "checksum": false
+          }
+        }
+      ],
+      "rustflags": [],
+      "config": 9396254390672932401,
+      "compile_kind": 0
+    }
+  },
+  "data": {
+    "path": "/home/dancxjo/conduit-4907-native-reuse/work/native-reuse-sdk-target/debug/deps/libconduit_data-5026da13ac09c4a9.rlib",
+    "sha256": "3a6b74b866cefa0ea3fabadcb4e8e37b19ab11105d3c93c81f412674343fc2b1",
+    "fingerprint": {
+      "rustc": 1625334936438085654,
+      "features": "[\"default\"]",
+      "declared_features": "[\"default\", \"kernel-step\"]",
+      "target": 17773612830525833275,
+      "profile": 8378823585564974145,
+      "path": 9734136325386034894,
+      "deps": [
+        [
+          5350012018046393833,
+          "conduit_time",
+          false,
+          14837553529933223299
+        ],
+        [
+          5902474574174894583,
+          "conduit_plot",
+          false,
+          10543854770454908174
+        ],
+        [
+          9896203181720027582,
+          "build_script_build",
+          false,
+          5706077330246701648
+        ],
+        [
+          10007102555623561102,
+          "conduit_core",
+          false,
+          7514491458990659590
+        ]
+      ],
+      "local": [
+        {
+          "CheckDepInfo": {
+            "dep_info": "debug/.fingerprint/conduit-data-5026da13ac09c4a9/dep-lib-conduit_data",
+            "checksum": false
+          }
+        }
+      ],
+      "rustflags": [],
+      "config": 9396254390672932401,
+      "compile_kind": 0
+    }
+  }
+}

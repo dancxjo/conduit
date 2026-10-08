@@ -1,0 +1,104 @@
+   Compiling conduit-core v0.1.0 (/home/dancxjo/conduit-4907-native-reuse/architecture/core)
+    Finished `test` profile [unoptimized] target(s) in 8.40s
+     Running unittests src/lib.rs (work/native-reuse-sdk-target/debug/deps/conduit_core-be07b835276666ef)
+
+running 88 tests
+test capability_offer::tests::kind_fore_rejects_one_symbol_reused_across_directions ... ok
+test capability_offer::tests::construction_keeps_semantics_owned_by_the_contract ... ok
+test capability_offer::tests::semantic_contract_is_required_in_json_and_breaks_legacy_positional_frames_closed ... ok
+test capability_offer::tests::state_retention_is_offer_owned_validated_and_serialized ... ok
+test capability_offer::tests::realization_capacity_may_only_narrow ... ok
+test capability_offer::tests::abnormal_value_contract_must_name_the_exact_declared_terminal_kind ... ok
+test capability_offer::tests::terminal_transduction_keeps_types_and_three_behaviors_independent ... ok
+test characteristic::tests::finite_categories_reject_unknown_labels_and_implicit_ordering ... ok
+test characteristic::tests::planner_characteristic_quantities_converge_only_for_reviewed_units ... ok
+test characteristic::tests::quantity_validation_keeps_units_subject_and_stability_exact ... ok
+test capability_offer::tests::resource_ports_are_checked_fore_identity_without_bearer_material ... ok
+test capability_offer::tests::value_contracts_are_exact_checked_fore_identity_and_validate_fail_closed ... ok
+test deadline::tests::contract_is_exact_bounded_and_round_trips_every_boundary ... ok
+test capability_offer::tests::resource_port_must_name_one_real_fore_port ... ok
+test delivery::tests::accounting_exhaustion_returns_ownership_without_mutating_pending_state ... ok
+test delivery::tests::coherent_frames_are_replaced_only_as_whole_values ... ok
+test delivery::tests::delivery_meaning_changes_exact_contract_identity ... ok
+test delivery::tests::declared_state_coalescing_retains_the_newest_value_and_accounting ... ok
+test capability_offer::tests::semantic_contract_integers_remain_exact_across_json_and_positional_carriers ... ok
+test configuration::tests::structured_configuration_requires_matching_profile_and_canonical_value ... ok
+test delivery::tests::ordered_occurrences_refuse_pressure_without_overwriting ... ok
+test delivery::tests::renderer_coalescing_cannot_mutate_semantic_delivery_accounting ... ok
+test delivery::tests::request_and_signal_contracts_reject_coalescing ... ok
+test delivery::tests::supersession_and_cancellation_leave_exact_release_with_the_owner ... ok
+test capability_offer::tests::kind_validation_refuses_duplicate_or_front_mismatched_configuration ... ok
+test device::tests::old_truth_is_retained_only_when_explicitly_historical ... ok
+test device::tests::optional_and_composite_current_associations_validate ... ok
+test device::tests::stale_current_truth_and_dangling_capabilities_refuse ... ok
+test device::tests::vendor_product_facts_cannot_masquerade_as_physical_identity ... ok
+test front::tests::abnormal_tracks_receive_independent_canonical_finite_envelopes ... ok
+test front::tests::canonical_variable_size_kinds_supply_their_finite_default_envelopes ... ok
+test front::tests::abnormal_contract_changes_exact_fore_identity_without_changing_payload ... ok
+test front::tests::explicit_value_bound_replaces_the_default_at_the_same_location ... ok
+test front::tests::constraints_participate_in_exact_checked_fore_identity ... ok
+test ieee_float::tests::binary64_preserves_nan_payload_zero_and_subnormal_bits ... ok
+test ieee_float::tests::bit_identity_preserves_every_edge_class ... ok
+test ieee_float::tests::finite_and_ordered_contracts_refuse_nonfinite_and_out_of_range_values ... ok
+test interop::tests::direction_bounds_and_mapping_identity_are_exact ... ok
+test interop::tests::directional_bridge_does_not_assimilate_reflections_or_siblings ... ok
+test state_delay::tests::admission_accounts_current_candidate_and_mandatory_evidence ... ok
+test state_delay::tests::architecture_contract_keeps_state_explicit_and_non_authoritative ... ok
+test state_delay::tests::duplicate_unbounded_and_oversized_initial_state_refuse ... ok
+test state_delay::tests::lifetime_and_absent_initial_value_are_exact_plan_truth ... ok
+test stream_sampling::tests::oversize_and_exhaustion_return_exact_ownership_with_distinct_reasons ... ok
+test stream_sampling::tests::invalid_rules_and_changed_meaning_have_distinct_contract_identity ... ok
+test stream_sampling::tests::reviewed_rule_selects_exact_source_indices_and_accounts_omissions ... ok
+test structured_info::borrowed::leaf_sequence::tests::borrowed_copy_preserves_destination_on_capacity_identity_and_width_refusal ... ok
+test structured_info::borrowed::nominal::tests::nominal_child_observation_preserves_exact_outer_identity_and_bytes ... ok
+test stream_sampling::tests::sampling_vocabulary_cannot_report_pressure_or_supersession ... ok
+test structured_info::decode_storage::tests::storage_arithmetic_refuses_overflow ... ok
+test structured_info::decode_storage::tests::malformed_type_preflight_preserves_decoder_first_refusal ... ok
+test structured_info::prepared_composition::tests::borrowed_depth_exhaustion_remains_distinct_from_malformed_encoding ... ok
+test structured_info::sequence::tests::prepared_sequence_matches_the_canonical_bounded_sequence_type ... ok
+test structured_info::sequence::tests::prepared_sequence_refuses_excess_items_and_bytes ... ok
+test structured_info::tuple::tests::prepared_pair_is_the_same_canonical_tuple_used_by_expression_types ... ok
+test temporal_civil_conversion::tests::conversion_refuses_precision_loss_and_pre_epoch_instants ... ok
+test structured_info::validation::storage::tests::validator_storage_preserves_nested_envelopes_and_refusals ... ok
+test temporal_civil_conversion::tests::leap_day_and_offset_date_crossing_round_trip ... ok
+test structured_info::tuple::tests::prepared_triple_uses_the_canonical_three_member_tuple_without_growth ... ok
+test temporal_civil_conversion::tests::nanosecond_scale_refuses_unsigned_tick_overflow ... ok
+test temporal_civil_conversion::tests::reverse_conversion_requires_exact_unix_utc_truth ... ok
+test temporal_civil_conversion::tests::utc_epoch_and_explicit_offset_name_the_same_instant ... ok
+test temporal_quantity::tests::duration_construction_converts_exact_time_quantities ... ok
+test temporal_quantity::tests::duration_construction_refuses_loss_and_wrong_dimensions ... ok
+test temporal_quantity::tests::duration_construction_refuses_negative_quantity ... ok
+test temporal_quantity::tests::duration_exports_exact_quantity_or_refuses_range_loss ... ok
+test temporal_quantity::tests::temporal_scales_map_to_time_quantity_units ... ok
+test terminal_info::tests::every_category_round_trips_in_one_exact_bounded_shape ... ok
+test terminal_info::tests::causal_digest_binds_every_exact_origin_and_domain_fact ... ok
+test terminal_info::tests::malformed_values_and_unbounded_cause_sets_refuse ... ok
+test tests::execution_identity_chain_keeps_plan_play_sign_and_presentation_distinct ... ok
+test tests::mandatory_sign_budget_counts_items_and_identity_bytes_independently ... ok
+test value_constraint::storage::tests::storage_counter_overflow_refuses ... ok
+test value_constraint::tests::deterministic_text_pattern_is_full_match_and_work_bounded ... ok
+test value_constraint::tests::exact_contract_distinguishes_structure_from_constraint_refusal ... ok
+test value_constraint::tests::exclusive_interval_endpoints_are_exact_and_empty_ranges_refuse ... ok
+test value_constraint::tests::incompatible_and_malformed_constraints_refuse_before_play ... ok
+test value_constraint::tests::negated_membership_and_pattern_are_exact_checked_truth ... ok
+test value_constraint::tests::open_semantic_ranges_keep_finite_carrier_admission_separate ... ok
+test value_constraint::tests::overlapping_transitions_refuse_as_nondeterministic ... ok
+test value_constraint::tests::quantity_range_refuses_a_mismatched_kind_or_dimension ... ok
+test value_constraint::tests::semantic_openness_has_identity_distinct_from_carrier_extrema ... ok
+test value_constraint::tests::signed_and_quantity_ranges_compare_semantic_values ... ok
+test value_constraint::tests::text_contract_combines_bound_membership_and_pattern ... ok
+test value_constraint::tests::zero_byte_unit_and_exact_empty_text_remain_expressible ... ok
+test structured_info::borrowed::validated_extent::tests::validated_extent_views_match_owned_children_for_every_shape_and_empty_payload ... ok
+test structured_info::prepared_composition::tests::composed_envelope_identity_and_aggregate_node_limits_are_enforced ... ok
+test structured_info::prepared_composition::tests::prepared_composition_matches_owned_canonical_values_without_growth ... ok
+
+test result: ok. 88 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/structured_validator_storage_allocations.rs (work/native-reuse-sdk-target/debug/deps/structured_validator_storage_allocations-083808135fce0da7)
+
+running 2 tests
+test contract_storage_covers_all_constraint_payloads_and_capacity_slack ... ok
+test validator_storage_allocation_bound_and_early_refusal ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

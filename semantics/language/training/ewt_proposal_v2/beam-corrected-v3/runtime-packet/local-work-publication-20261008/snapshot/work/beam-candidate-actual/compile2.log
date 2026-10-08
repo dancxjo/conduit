@@ -1,0 +1,193 @@
+warning: field `0` is never read
+  --> work/beam-candidate-actual/parser_window8_program_bank.rs:17:23
+   |
+17 |     NativePreparation(PreparedNativeFamilyRefusal),
+   |     ----------------- ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |     |
+   |     field in this variant
+   |
+   = note: `Window8PreparedBankRefusal` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+help: consider changing the field to be of unit type to suppress this warning while preserving the field numbering, or remove the field
+   |
+17 -     NativePreparation(PreparedNativeFamilyRefusal),
+17 +     NativePreparation(()),
+   |
+
+warning: field `0` is never read
+  --> work/beam-candidate-actual/parser_window8_program_bank.rs:18:23
+   |
+18 |     SourcePreparation(Window8Refusal),
+   |     ----------------- ^^^^^^^^^^^^^^
+   |     |
+   |     field in this variant
+   |
+   = note: `Window8PreparedBankRefusal` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+help: consider changing the field to be of unit type to suppress this warning while preserving the field numbering, or remove the field
+   |
+18 -     SourcePreparation(Window8Refusal),
+18 +     SourcePreparation(()),
+   |
+
+warning: field `0` is never read
+  --> work/beam-candidate-actual/parser_window8_program_bank.rs:20:21
+   |
+20 |     SourceEvaluator(conduit_plot::PreparedExpressionStorageRefusal),
+   |     --------------- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |     |
+   |     field in this variant
+   |
+   = note: `Window8PreparedBankRefusal` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+help: consider changing the field to be of unit type to suppress this warning while preserving the field numbering, or remove the field
+   |
+20 -     SourceEvaluator(conduit_plot::PreparedExpressionStorageRefusal),
+20 +     SourceEvaluator(()),
+   |
+
+warning: field `prepared_receipt` is never read
+  --> work/beam-candidate-actual/parser_window8_program_bank.rs:26:5
+   |
+22 | pub struct Window8ProgramBank {
+   |            ------------------ field in this struct
+...
+26 |     prepared_receipt: Option<Window8PreparedSourceReceipt>,
+   |     ^^^^^^^^^^^^^^^^
+
+warning: field `prior` is never read
+  --> work/beam-candidate-actual/parser_window8_program_bank.rs:47:5
+   |
+46 | pub struct Window8BankProposal {
+   |            ------------------- field in this struct
+47 |     prior: Window8BankState,
+   |     ^^^^^
+
+warning: method `prior` is never used
+  --> work/beam-candidate-actual/parser_window8_program_bank.rs:51:12
+   |
+50 | impl Window8BankProposal {
+   | ------------------------ method in this implementation
+51 |     pub fn prior(&self) -> &Window8BankState {
+   |            ^^^^^
+
+warning: struct `Window8BankFeatures` is never constructed
+  --> work/beam-candidate-actual/parser_window8_program_bank.rs:58:12
+   |
+58 | pub struct Window8BankFeatures {
+   |            ^^^^^^^^^^^^^^^^^^^
+
+warning: methods `state`, `lexical`, `query`, and `features` are never used
+  --> work/beam-candidate-actual/parser_window8_program_bank.rs:65:12
+   |
+64 | impl Window8BankFeatures {
+   | ------------------------ methods in this implementation
+65 |     pub fn state(&self) -> &Window8BankState {
+   |            ^^^^^
+...
+68 |     pub fn lexical(&self) -> &LanguageParserWindow8Lexical {
+   |            ^^^^^^^
+...
+71 |     pub fn query(&self) -> &LanguageParserWindow8RawFeatureQuery {
+   |            ^^^^^
+...
+74 |     pub fn features(&self) -> &LanguageParserWindow8Features {
+   |            ^^^^^^^^
+
+warning: associated items `prepare_native`, `native_storage_receipt`, `prepare`, `rank`, `merge`, and `features` are never used
+   --> work/beam-candidate-actual/parser_window8_program_bank.rs:81:12
+    |
+ 78 | impl Window8ProgramBank {
+    | ----------------------- associated items in this implementation
+...
+ 81 |     pub fn prepare_native(
+    |            ^^^^^^^^^^^^^^
+...
+ 90 |     pub fn native_storage_receipt(&self) -> Option<PreparedNativeFamilyStorageReceipt> {
+    |            ^^^^^^^^^^^^^^^^^^^^^^
+...
+ 95 |     pub fn prepare() -> Result<Self, Window8Refusal> {
+    |            ^^^^^^^
+...
+202 |     pub fn rank(
+    |            ^^^^
+...
+217 |     pub fn merge(
+    |            ^^^^^
+...
+266 |     pub fn features(
+    |            ^^^^^^^^
+
+warning: method `prior` is never used
+   --> work/beam-candidate-actual/parser_window8_program_bank.rs:293:12
+    |
+292 | impl Window8BankContext<'_> {
+    | --------------------------- method in this implementation
+293 |     pub fn prior(&self) -> &Window8BankState {
+    |            ^^^^^
+
+warning: function `prepare_native_family` is never used
+   --> work/beam-candidate-actual/parser_window8_program_bank.rs:321:4
+    |
+321 | fn prepare_native_family(
+    |    ^^^^^^^^^^^^^^^^^^^^^
+
+warning: fields `retained_heap_bytes_bound`, `preparation_peak_heap_bytes_bound`, `programs`, and `native` are never read
+  --> work/beam-candidate-actual/parser_window8_program_bank_prepared.rs:15:9
+   |
+13 | pub struct Window8PreparedSourceReceipt {
+   |            ---------------------------- fields in this struct
+14 |     /// Includes exact prepared Native family and every prepared Source evaluator.
+15 |     pub retained_heap_bytes_bound: usize,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^
+16 |     pub preparation_peak_heap_bytes_bound: usize,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+17 |     pub programs: usize,
+   |         ^^^^^^^^
+18 |     pub native: PreparedNativeFamilyStorageReceipt,
+   |         ^^^^^^
+   |
+   = note: `Window8PreparedSourceReceipt` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+
+warning: field `receipt` is never read
+  --> work/beam-candidate-actual/parser_window8_program_bank_prepared.rs:23:5
+   |
+20 | struct PreparedBankProgram {
+   |        ------------------- field in this struct
+...
+23 |     receipt: PreparedExpressionStorageReceipt,
+   |     ^^^^^^^
+
+warning: associated items `prepare_native_evaluator`, `prepared_source_receipt`, and `prepared_program_receipts` are never used
+   --> work/beam-candidate-actual/parser_window8_program_bank_prepared.rs:40:12
+    |
+ 36 | impl Window8ProgramBank {
+    | ----------------------- associated items in this implementation
+...
+ 40 |     pub fn prepare_native_evaluator(
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^
+...
+163 |     pub fn prepared_source_receipt(&self) -> Option<Window8PreparedSourceReceipt> {
+    |            ^^^^^^^^^^^^^^^^^^^^^^^
+...
+166 |     pub fn prepared_program_receipts(
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `prepare_proposal_native_family` is never used
+  --> work/beam-candidate-actual/parser_window8_program_bank_proposal.rs:33:4
+   |
+33 | fn prepare_proposal_native_family(
+   |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: associated items `prepare_proposal_native_evaluator` and `proposal_features` are never used
+   --> work/beam-candidate-actual/parser_window8_program_bank_proposal.rs:80:12
+    |
+ 76 | impl Window8ProgramBank {
+    | ----------------------- associated items in this implementation
+...
+ 80 |     pub fn prepare_proposal_native_evaluator(
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+101 |     pub fn proposal_features(
+    |            ^^^^^^^^^^^^^^^^^
+
+warning: 16 warnings emitted
+

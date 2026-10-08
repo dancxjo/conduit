@@ -1,0 +1,31 @@
+{
+  "commands": [
+    {
+      "name": "plot-library",
+      "exit": 0,
+      "seconds": 0.09799182700226083
+    },
+    {
+      "name": "generation",
+      "exit": 0,
+      "seconds": 8.300585724995472
+    },
+    {
+      "name": "runtime",
+      "exit": 0,
+      "seconds": 5.750427312974352
+    },
+    {
+      "name": "data",
+      "exit": 0,
+      "seconds": 6.8135799409938045
+    },
+    {
+      "name": "clippy",
+      "exit": 0,
+      "seconds": 7.434113974974025
+    }
+  ],
+  "unchanged": true,
+  "source_files": 471
+}

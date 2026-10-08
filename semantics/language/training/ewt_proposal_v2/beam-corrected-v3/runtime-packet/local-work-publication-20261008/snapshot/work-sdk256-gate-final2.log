@@ -1,0 +1,9 @@
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/conduit-4907-native-reuse/architecture/plot)
+    Finished `test` profile [unoptimized] target(s) in 17.37s
+     Running unittests src/lib.rs (work/native-reuse-sdk-target/debug/deps/conduit_plot-2300a7f06de0e279)
+
+running 1 test
+test rust_binding::generate_tests::shared_generated_descriptor_union_has_separate_runtime_and_generation_ceilings ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 320 filtered out; finished in 0.73s
+

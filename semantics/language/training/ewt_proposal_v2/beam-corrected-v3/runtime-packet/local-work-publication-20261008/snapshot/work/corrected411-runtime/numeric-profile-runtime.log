@@ -1,0 +1,25 @@
+
+running 1 test
+phase=cold_dictionary_proposer_model_admission elapsed_nanos=1631762826
+full original proposer owner reservation: RevisionReceipt { retained_bytes_bound: 53843815, preparation_peak_bytes_bound: 85218156, admission_peak_bytes_bound: 396500237, response_retained_bytes_bound: 100978792 }
+distinct411 original numerical Source/Plan preparation start
+test exact_proposal_v2_source_model_outputs_match_full_resource has been running for over 60 seconds
+numeric Source Plan journal structural input: lowered_sign_items=7, active_nodes=2, active_cords=3, additional_model_calls=Some(2); full Kernel factory admission follows
+distinct411 original numerical Source/Plan preparation complete
+phase=warm_full_native_feature_query_decode elapsed_nanos=209983553
+phase=warm_source_context_and_feature_values_with_complete_native_output elapsed_nanos=34420386
+phase=warm_full_native_feature_wrapper elapsed_nanos=2114289
+phase=warm_native_feature_clone_into_structured elapsed_nanos=89476
+phase=warm_actual_source_plan_kernel_and_output elapsed_nanos=413898
+actual original411 Source/model target vocative all76scores exact
+phase=warm_full_native_feature_query_decode elapsed_nanos=211958241
+phase=warm_source_context_and_feature_values_with_complete_native_output elapsed_nanos=35176444
+phase=warm_full_native_feature_wrapper elapsed_nanos=2094049
+phase=warm_native_feature_clone_into_structured elapsed_nanos=54528
+phase=warm_actual_source_plan_kernel_and_output elapsed_nanos=411022
+actual original411 Source/model target object all76scores exact
+PASS two exact numeric target calls; pinned fullmodel/dictionary/proposer/Source; no corpus or publicSession claim
+test exact_proposal_v2_source_model_outputs_match_full_resource ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 85.43s
+

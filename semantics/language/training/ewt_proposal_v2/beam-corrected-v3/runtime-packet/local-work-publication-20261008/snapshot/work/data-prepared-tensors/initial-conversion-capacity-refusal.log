@@ -1,0 +1,62 @@
+   Compiling conduit-data v0.1.0 (/home/dancxjo/conduit-4907-native-reuse/semantics/data)
+    Finished `test` profile [unoptimized] target(s) in 0.64s
+     Running tests/native_data_types.rs (work/native-reuse-sdk-target/debug/deps/native_data_types-92943d9b8eae5004)
+
+running 20 tests
+test clock_relation_quality_keeps_duration_meaning_in_the_native_type ... ok
+test math_scalar_refusals_round_trip_through_their_exact_native_type ... ok
+test measurement_policy_variants_round_trip_through_exact_native_types ... ok
+test measurement_range_and_hysteresis_profile_are_native_records ... ok
+test data_text_terminals_round_trip_through_exact_native_types ... ok
+test measurement_threshold_policy_round_trips_exact_quantities ... ok
+test normalized_quantity_refusals_round_trip_through_their_exact_native_type ... ok
+test measurement_sample_uses_the_native_temporal_instant ... ok
+test quantity_mapping_vocabulary_round_trips_through_exact_native_types ... ok
+test dataset_split_membership_uses_native_bounded_identity_pages ... ok
+test sampled_signal_continuity_owns_its_identity_bounds ... ok
+test clock_relation_round_trips_exact_native_bounds ... ok
+test scalar_comparisons_round_trip_through_their_exact_native_type ... ok
+test tensor_axis_roles_keep_bounded_other_meaning_in_the_native_type ... ok
+test measurement_refusals_round_trip_through_exact_native_types ... ok
+test tensor_elements_round_trip_through_their_exact_native_type ... ok
+test sampled_signal_terminal_round_trips_through_its_exact_native_type ... ok
+test sampled_signal_start_uses_the_native_temporal_instant ... ok
+test tensor_family_round_trips_native_shape_axes_units_and_backing ... ok
+test sampled_signal_family_round_trips_native_cadence_and_tensor_meaning ... ok
+
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/prepared_tensor_descriptors.rs (work/native-reuse-sdk-target/debug/deps/prepared_tensor_descriptors-74e5cbf2522c1c94)
+
+running 3 tests
+test tensor_descriptor_family_refuses_one_under_preparation_and_retained_limits ... FAILED
+test data_owned_prepared_variants_preserve_every_tensor_tag_and_payload ... FAILED
+test prepared_tensor_variants_refuse_foreign_types_and_empty_other_identity ... FAILED
+
+failures:
+
+---- tensor_descriptor_family_refuses_one_under_preparation_and_retained_limits stdout ----
+
+thread 'tensor_descriptor_family_refuses_one_under_preparation_and_retained_limits' (1225776) panicked at semantics/data/tests/prepared_tensor_descriptors.rs:26:6:
+called `Result::unwrap()` on an `Err` value: Capacity
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- data_owned_prepared_variants_preserve_every_tensor_tag_and_payload stdout ----
+
+thread 'data_owned_prepared_variants_preserve_every_tensor_tag_and_payload' (1225774) panicked at semantics/data/tests/prepared_tensor_descriptors.rs:26:6:
+called `Result::unwrap()` on an `Err` value: Capacity
+
+---- prepared_tensor_variants_refuse_foreign_types_and_empty_other_identity stdout ----
+
+thread 'prepared_tensor_variants_refuse_foreign_types_and_empty_other_identity' (1225775) panicked at semantics/data/tests/prepared_tensor_descriptors.rs:26:6:
+called `Result::unwrap()` on an `Err` value: Capacity
+
+
+failures:
+    data_owned_prepared_variants_preserve_every_tensor_tag_and_payload
+    prepared_tensor_variants_refuse_foreign_types_and_empty_other_identity
+    tensor_descriptor_family_refuses_one_under_preparation_and_retained_limits
+
+test result: FAILED. 0 passed; 3 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p conduit-data --test prepared_tensor_descriptors`

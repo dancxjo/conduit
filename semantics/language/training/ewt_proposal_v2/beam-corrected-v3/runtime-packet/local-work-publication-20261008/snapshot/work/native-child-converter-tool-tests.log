@@ -1,0 +1,11 @@
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/conduit-4907-native-reuse/architecture/plot)
+   Compiling conduit-prepared-native-converters v0.1.0 (/home/dancxjo/conduit-4907-native-reuse/tools/prepared-native-converters)
+    Finished `test` profile [unoptimized] target(s) in 4.90s
+     Running unittests src/main.rs (work/native-reuse-sdk-target/debug/deps/conduit_prepared_native_converters-4a8c55bc628e28bb)
+
+running 2 tests
+test tests::rust_spans_keep_unicode_literals_comments_and_original_bytes ... ok
+test tests::changed_default_method_descriptor_and_repeated_grafts_refuse ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

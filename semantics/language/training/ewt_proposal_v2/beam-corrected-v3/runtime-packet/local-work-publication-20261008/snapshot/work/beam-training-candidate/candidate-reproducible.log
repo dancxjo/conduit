@@ -1,0 +1,19 @@
+{"epoch": 1, "rows_done": 0, "stats": {"correct": 1}, "elapsed": 0.2086795899667777}
+{"epoch": 1, "rows_done": 250, "stats": {"correct": 103, "final": 39, "early": 109}, "elapsed": 2.5314895719639026}
+{"epoch": 1, "rows_done": 500, "stats": {"correct": 206, "final": 68, "early": 227}, "elapsed": 5.025661084975582}
+{"epoch": 1, "rows_done": 750, "stats": {"correct": 331, "final": 94, "early": 326}, "elapsed": 7.694926219002809}
+{"epoch": 1, "rows_done": 1000, "stats": {"correct": 455, "final": 126, "early": 420}, "elapsed": 10.294685987988487}
+{"epoch": 1, "rows_done": 1250, "stats": {"correct": 589, "final": 146, "early": 516}, "elapsed": 13.084173392970115}
+{"epoch": 1, "rows_done": 1500, "stats": {"correct": 704, "final": 173, "early": 624}, "elapsed": 15.884100747003686}
+{"epoch": 1, "rows_done": 1750, "stats": {"correct": 830, "final": 200, "early": 721}, "elapsed": 18.636456470005214}
+{"epoch": 1, "rows_done": 2000, "stats": {"correct": 957, "final": 226, "early": 818}, "elapsed": 21.05472610000288}
+{"epoch": 1, "rows_done": 2250, "stats": {"correct": 1092, "final": 243, "early": 916}, "elapsed": 23.844123848015442}
+{"epoch": 1, "rows_done": 2500, "stats": {"correct": 1218, "final": 264, "early": 1019}, "elapsed": 26.491659173974767}
+{"epoch": 1, "rows_done": 2750, "stats": {"correct": 1350, "final": 284, "early": 1117}, "elapsed": 29.371684382960666}
+{"epoch": 1, "rows_done": 3000, "stats": {"correct": 1469, "final": 301, "early": 1231}, "elapsed": 31.835851726995315}
+{"epoch": 1, "rows_done": 3250, "stats": {"correct": 1589, "final": 325, "early": 1337}, "elapsed": 34.51320615696022}
+{"epoch": 1, "rows_done": 3500, "stats": {"correct": 1724, "final": 348, "early": 1429}, "elapsed": 37.24756786698708}
+{"epoch": 1, "rows_done": 3750, "stats": {"correct": 1849, "final": 374, "early": 1528}, "elapsed": 40.01273419597419}
+{"epoch": 1, "rows_done": 4000, "stats": {"correct": 1968, "final": 396, "early": 1637}, "elapsed": 42.417889235017356}
+{"epoch": 1, "stats": {"correct": 2097, "final": 419, "early": 1718}}
+{"scope": "TRAIN+22 reviewed teaching numerical warm-start beam correction only; no runtime selection, heldout metrics or Source equivalence claim", "warm_start_sha256": "400b304df9050715151878af0058620f7f04f471cd289e81c850a1b8e4211f15", "artifact_sha256": "f70f560d54a81dd34d005254985dbfd394363def5f5a4ffe3e97e7c90306d2c5", "train_sha256": "d68e06122a702464c613076523d56740f047e5bbe89dd90ec32737e04d952143", "dictionary_manifest_sha256": "4390281523cd89ef5e31dbccc9c2f9c049116dee3975fc6957f270ed8f195ebd", "teaching_sha256": "ebecbe9146c5a01a908d08f8a84ce19db7a057abb6c5f6d74083fd526efc434c", "trainer_sha256": "32974d1b843b167234fecbd2bd1e5a6f89efbe03d7bcf964e84a6cc894ec2e4d", "reference_sha256": "5fa22170428188c37a57f7706ae7bcd33f48a5b11f24c4326dd2da4374d46c1c", "legal_reference_sha256": "33f0016d26caa6439196948904c63cfc46c1eb6cdba46abe05f56ead8e7e4bc8", "train_rows": 3530, "teaching_rows": 22, "teaching_repetitions": 32, "excluded_train_rows": ["email-enronsent40_01-0023"], "shape_skips": {"over_eight_tokens": 8809, "multiword_or_empty_node": 196, "unreachable_projective_profile": 8}, "epochs": 1, "seed": 4907, "steps": 4234, "epoch_updates": [{"correct": 2097, "final": 419, "early": 1718}], "elapsed_seconds": 44.88943815801758, "maximum_weight": 23179, "RLIMIT_AS_bytes": 536870912, "child_maxrss_KiB": 94096}

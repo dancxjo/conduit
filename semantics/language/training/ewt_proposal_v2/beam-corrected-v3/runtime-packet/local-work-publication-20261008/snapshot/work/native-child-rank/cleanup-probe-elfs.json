@@ -1,0 +1,20 @@
+[
+  {
+    "path": "work/corrected411-runtime/numeric",
+    "bytes": 141791496,
+    "sha256": "b9540326ba0911b6d3cdeca26ac404b6aa1b5d9ff70fc57ac28e957ecc6f164a",
+    "class": "terminal regenerable standalone probe ELF; sources/compiler logs/runtime evidence/immutable old SDK preserved"
+  },
+  {
+    "path": "work/corrected411-runtime/numeric_profile",
+    "bytes": 141803248,
+    "sha256": "a770243ee5d79b46c119941fa3c790aa6e834743bf47291c7df46dbbd4b847f8",
+    "class": "terminal regenerable standalone probe ELF; sources/compiler logs/runtime evidence/immutable old SDK preserved"
+  },
+  {
+    "path": "work/corrected411-runtime/profile_actual_bank_full",
+    "bytes": 119042456,
+    "sha256": "64601ae7185f8f72bb60c38902e6ffee8bdf497c65c5ed478603d1ca0eeef5ee",
+    "class": "terminal regenerable standalone probe ELF; sources/compiler logs/runtime evidence/immutable old SDK preserved"
+  }
+]

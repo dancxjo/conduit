@@ -1,0 +1,14 @@
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/conduit-4907-native-reuse/architecture/plot)
+error[E0599]: no method named `unwrap` found for struct `syntax::SyntaxDocument` in the current scope
+    --> architecture/plot/src/rust_binding/generate_tests.rs:2011:84
+     |
+2011 | ...&crate::parse_syntax_document(source).unwrap(), &crate::StartupCatalog::default()).unwrap().native_types;
+     |                                          ^^^^^^ method not found in `syntax::SyntaxDocument`
+     |
+    ::: architecture/plot/src/syntax.rs:9:1
+     |
+   9 | pub struct SyntaxDocument {
+     | ------------------------- method `unwrap` not found for this struct
+
+For more information about this error, try `rustc --explain E0599`.
+error: could not compile `conduit-plot` (lib test) due to 1 previous error

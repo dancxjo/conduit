@@ -1,0 +1,539 @@
+diff --git a/architecture/core/src/structured_info/borrowed.rs b/architecture/core/src/structured_info/borrowed.rs
+index d4804ed69..8e9ad95ac 100644
+--- a/architecture/core/src/structured_info/borrowed.rs
++++ b/architecture/core/src/structured_info/borrowed.rs
+@@ -14,6 +14,8 @@ pub use collection_iter::ValidatedCanonicalCollectionIter;
+ mod nominal;
+ mod projection;
+ mod record;
++mod record_access;
++pub use record_access::PreparedCanonicalRecordAccess;
+ mod shape_observation;
+ mod validated_extent;
+ mod visit;
+diff --git a/architecture/core/src/structured_info/borrowed/record_access.rs b/architecture/core/src/structured_info/borrowed/record_access.rs
+new file mode 100644
+index 000000000..46544bfbe
+--- /dev/null
++++ b/architecture/core/src/structured_info/borrowed/record_access.rs
+@@ -0,0 +1,90 @@
++//! Finite field recipes pinned to one complete canonical record Type.
++use super::validated_extent::{skip_validated_value, split_validated_type};
++use super::{
++    Cursor, MAXIMUM_STRUCTURED_INFO_NODES, StructuredInfoRefusal, ValidatedCanonicalStructuredValue,
++};
++use alloc::vec::Vec;
++
++struct Field<'a> {
++    name: &'a str,
++    ty: &'a [u8],
++}
++/// Reuses only framing work. This grants no Native or law admission.
++pub struct PreparedCanonicalRecordAccess<'a> {
++    ty: &'a [u8],
++    fields: Vec<Field<'a>>,
++}
++impl<'a> PreparedCanonicalRecordAccess<'a> {
++    /// Validates the complete Type and reports the exact requested field storage
++    /// without allocating. The caller must reserve this before construction.
++    pub fn storage_bound(ty: &[u8]) -> Result<usize, StructuredInfoRefusal> {
++        let mut nodes = MAXIMUM_STRUCTURED_INFO_NODES;
++        let (_, rest) = super::split_type(ty, 1, &mut nodes)?;
++        if !rest.is_empty() {
++            return Err(StructuredInfoRefusal::MalformedCanonicalEncoding);
++        }
++        let mut cursor = Cursor::new(ty);
++        if cursor.byte()? != 2 {
++            return Err(StructuredInfoRefusal::WrongType);
++        }
++        cursor.text()?;
++        cursor
++            .length()?
++            .checked_mul(core::mem::size_of::<Field<'_>>())
++            .ok_or(StructuredInfoRefusal::TooManyFields)
++    }
++    /// A one-under ceiling refuses before any allocation.
++    pub fn prepare(
++        ty: &'a [u8],
++        maximum_storage_bytes: usize,
++    ) -> Result<Self, StructuredInfoRefusal> {
++        let bound = Self::storage_bound(ty)?;
++        if bound > maximum_storage_bytes {
++            return Err(StructuredInfoRefusal::CanonicalEncodingTooLarge);
++        }
++        let mut cursor = Cursor::new(ty);
++        cursor.byte()?;
++        cursor.text()?;
++        let count = cursor.length()?;
++        let mut fields = Vec::with_capacity(count);
++        for _ in 0..count {
++            let name = cursor.text()?;
++            let (ty, remaining) = split_validated_type(cursor.remaining)?;
++            cursor.remaining = remaining;
++            fields.push(Field { name, ty });
++        }
++        Ok(Self { ty, fields })
++    }
++    /// Checks the full original Type, then delimits immutable value extents.
++    pub fn field<'v>(
++        &self,
++        value: ValidatedCanonicalStructuredValue<'v>,
++        name: &str,
++    ) -> Result<Option<ValidatedCanonicalStructuredValue<'v>>, StructuredInfoRefusal>
++    where
++        'a: 'v,
++    {
++        if value.type_bytes() != self.ty {
++            return Err(StructuredInfoRefusal::WrongType);
++        }
++        let mut cursor = Cursor::new(value.value_node());
++        if cursor.byte()? != 2 || cursor.length()? != self.fields.len() {
++            return Err(StructuredInfoRefusal::MalformedCanonicalEncoding);
++        }
++        let mut nodes = MAXIMUM_STRUCTURED_INFO_NODES;
++        for field in &self.fields {
++            if cursor.text()? != field.name {
++                return Err(StructuredInfoRefusal::MalformedCanonicalEncoding);
++            }
++            let start = cursor.remaining;
++            skip_validated_value(&mut cursor, &mut nodes)?;
++            if field.name == name {
++                return Ok(Some(ValidatedCanonicalStructuredValue {
++                    type_bytes: field.ty,
++                    value_node: &start[..start.len() - cursor.remaining.len()],
++                }));
++            }
++        }
++        Ok(None)
++    }
++}
+diff --git a/architecture/core/tests/record_access_storage.rs b/architecture/core/tests/record_access_storage.rs
+new file mode 100644
+index 000000000..555248a3b
+--- /dev/null
++++ b/architecture/core/tests/record_access_storage.rs
+@@ -0,0 +1,146 @@
++use conduit_core::*;
++use std::alloc::{GlobalAlloc, Layout, System};
++#[derive(Clone, Copy)]
++struct Counts {
++    enabled: bool,
++    requested: usize,
++    live: usize,
++    peak: usize,
++    calls: usize,
++}
++std::thread_local! {static COUNTS:std::cell::Cell<Counts>=const{std::cell::Cell::new(Counts{enabled:false,requested:0,live:0,peak:0,calls:0})};}
++fn update(f: impl FnOnce(&mut Counts)) {
++    let _ = COUNTS.try_with(|cell| {
++        let mut c = cell.get();
++        if c.enabled {
++            f(&mut c);
++            cell.set(c);
++        }
++    });
++}
++struct Alloc;
++unsafe impl GlobalAlloc for Alloc {
++    unsafe fn alloc(&self, l: Layout) -> *mut u8 {
++        charge(l.size());
++        unsafe { System.alloc(l) }
++    }
++    unsafe fn alloc_zeroed(&self, l: Layout) -> *mut u8 {
++        charge(l.size());
++        unsafe { System.alloc_zeroed(l) }
++    }
++    unsafe fn dealloc(&self, p: *mut u8, l: Layout) {
++        update(|c| c.live -= l.size());
++        unsafe { System.dealloc(p, l) }
++    }
++    unsafe fn realloc(&self, p: *mut u8, l: Layout, n: usize) -> *mut u8 {
++        charge(n);
++        update(|c| c.live -= l.size());
++        unsafe { System.realloc(p, l, n) }
++    }
++}
++#[global_allocator]
++static ALLOC: Alloc = Alloc;
++fn charge(n: usize) {
++    update(|c| {
++        c.calls += 1;
++        c.requested += n;
++        c.live += n;
++        c.peak = c.peak.max(c.live);
++    });
++}
++fn measure<T>(f: impl FnOnce() -> T) -> (T, usize, usize, usize) {
++    COUNTS.with(|c| {
++        c.set(Counts {
++            enabled: true,
++            requested: 0,
++            live: 0,
++            peak: 0,
++            calls: 0,
++        })
++    });
++    let value = f();
++    let counts = COUNTS.with(|c| {
++        let mut v = c.get();
++        v.enabled = false;
++        c.set(v);
++        v
++    });
++    (value, counts.requested, counts.peak, counts.calls)
++}
++#[test]
++fn exact_record_recipes_preflight_and_preserve_every_field() {
++    let leaf = StructuredInfoType::leaf(kind_id("value/u16")).unwrap();
++    let nominal = StructuredInfoType::nominal(kind_id("test/number"), leaf.clone()).unwrap();
++    let sequence = StructuredInfoType::sequence(nominal.clone(), 4).unwrap();
++    let ty = StructuredInfoType::record(
++        kind_id("test/record"),
++        vec![
++            StructuredFieldType::new("first", sequence.clone()).unwrap(),
++            StructuredFieldType::new("last", leaf.clone()).unwrap(),
++        ],
++    )
++    .unwrap();
++    let encoded_type = ty.canonical_bytes().unwrap();
++    let (bound, _, _, calls) =
++        measure(|| PreparedCanonicalRecordAccess::storage_bound(&encoded_type).unwrap());
++    assert_eq!(calls, 0);
++    let (refused, _, _, calls) =
++        measure(|| PreparedCanonicalRecordAccess::prepare(&encoded_type, bound - 1));
++    assert!(refused.is_err());
++    assert_eq!(calls, 0);
++    let (recipe, requested, peak, calls) =
++        measure(|| PreparedCanonicalRecordAccess::prepare(&encoded_type, bound).unwrap());
++    assert_eq!(requested, bound);
++    assert_eq!(peak, bound);
++    assert_eq!(calls, 1);
++    for count in [0, 1, 4] {
++        let value = StructuredInfoValue::record(
++            ty.clone(),
++            vec![
++                StructuredFieldValue::new(
++                    "first",
++                    StructuredInfoValue::sequence(
++                        sequence.clone(),
++                        (0..count)
++                            .map(|i| {
++                                StructuredInfoValue::nominal(
++                                    nominal.clone(),
++                                    StructuredInfoValue::leaf(
++                                        leaf.clone(),
++                                        (i as u16).to_le_bytes().to_vec(),
++                                    )
++                                    .unwrap(),
++                                )
++                                .unwrap()
++                            })
++                            .collect(),
++                    )
++                    .unwrap(),
++                )
++                .unwrap(),
++                StructuredFieldValue::new(
++                    "last",
++                    StructuredInfoValue::leaf(leaf.clone(), 9u16.to_le_bytes().to_vec()).unwrap(),
++                )
++                .unwrap(),
++            ],
++        )
++        .unwrap()
++        .canonical_bytes()
++        .unwrap();
++        let view = validate_canonical_structured_value(&value).unwrap();
++        for name in ["first", "last", "missing"] {
++            let (actual, _, _, calls) = measure(|| recipe.field(view, name).unwrap());
++            assert_eq!(calls, 0);
++            assert_eq!(actual, view.record_field(name).unwrap());
++        }
++    }
++    let foreign = StructuredInfoValue::leaf(leaf, 1u16.to_le_bytes().to_vec())
++        .unwrap()
++        .canonical_bytes()
++        .unwrap();
++    let foreign = validate_canonical_structured_value(&foreign).unwrap();
++    let (refused, _, _, calls) = measure(|| recipe.field(foreign, "last"));
++    assert_eq!(refused, Err(StructuredInfoRefusal::WrongType));
++    assert_eq!(calls, 0);
++}
+diff --git a/architecture/plot/src/rust_binding/borrowed_contracts.rs b/architecture/plot/src/rust_binding/borrowed_contracts.rs
+index 14bd3a715..d0c1ab1b0 100644
+--- a/architecture/plot/src/rust_binding/borrowed_contracts.rs
++++ b/architecture/plot/src/rust_binding/borrowed_contracts.rs
+@@ -10,14 +10,26 @@ use conduit_core::{
+ pub fn validate_borrowed_native_contracts(
+     value: ValidatedCanonicalStructuredValue<'_>,
+     contracts: &[NativeTypeValueContract],
++) -> Result<(), NativeBindingRefusal> {
++    validate_borrowed_native_contracts_with_record_access(value, contracts, None)
++}
++
++pub(super) fn validate_borrowed_native_contracts_with_record_access(
++    value: ValidatedCanonicalStructuredValue<'_>,
++    contracts: &[NativeTypeValueContract],
++    access: Option<&conduit_core::PreparedCanonicalRecordAccess<'static>>,
+ ) -> Result<(), NativeBindingRefusal> {
+     for contract in contracts {
+-        validate_at_path(value, &contract.representation_path, &contract.contract).map_err(
+-            |refusal| NativeBindingRefusal::ViolatedConstraint {
+-                representation_path: contract.representation_path.clone(),
+-                refusal,
+-            },
+-        )?;
++        validate_at_path(
++            value,
++            &contract.representation_path,
++            &contract.contract,
++            access,
++        )
++        .map_err(|refusal| NativeBindingRefusal::ViolatedConstraint {
++            representation_path: contract.representation_path.clone(),
++            refusal,
++        })?;
+     }
+     Ok(())
+ }
+@@ -26,6 +38,7 @@ fn validate_at_path(
+     mut value: ValidatedCanonicalStructuredValue<'_>,
+     path: &str,
+     contract: &CheckedValueContract,
++    access: Option<&conduit_core::PreparedCanonicalRecordAccess<'static>>,
+ ) -> Result<(), ValueConstraintRefusal> {
+     let wrong = || ValueConstraintRefusal::WrongConstraintKind;
+     // Owned values expose the nominal representation shape directly.
+@@ -39,7 +52,7 @@ fn validate_at_path(
+     if let Some(rest) = path.strip_prefix("[]") {
+         for item in value.collection_elements().map_err(|_| wrong())? {
+             let item = item.map_err(|_| wrong())?;
+-            validate_at_path(item, rest, contract)?;
++            validate_at_path(item, rest, contract, None)?;
+         }
+         return Ok(());
+     }
+@@ -50,18 +63,20 @@ fn validate_at_path(
+                 .variant_payload("some")
+                 .map_err(|_| wrong())?
+                 .ok_or_else(wrong)?;
+-            validate_at_path(payload, rest, contract)
++            validate_at_path(payload, rest, contract, None)
+         } else {
+             Ok(())
+         };
+     }
+     if let Some(rest) = path.strip_prefix('.') {
+         let (name, remaining) = split_component(rest);
+-        let field = value
+-            .record_field(name)
+-            .map_err(|_| wrong())?
+-            .ok_or_else(wrong)?;
+-        return validate_at_path(field, remaining, contract);
++        let field = match access {
++            Some(access) if value.type_bytes().first() == Some(&2) => access.field(value, name),
++            _ => value.record_field(name),
++        }
++        .map_err(|_| wrong())?
++        .ok_or_else(wrong)?;
++        return validate_at_path(field, remaining, contract, None);
+     }
+     if let Some(rest) = path.strip_prefix('|') {
+         let (wanted, remaining) = split_component(rest);
+@@ -71,7 +86,7 @@ fn validate_at_path(
+                 .variant_payload(wanted)
+                 .map_err(|_| wrong())?
+                 .ok_or_else(wrong)?;
+-            validate_at_path(payload, remaining, contract)
++            validate_at_path(payload, remaining, contract, None)
+         } else {
+             Ok(())
+         };
+@@ -94,8 +109,8 @@ mod tests {
+     use super::*;
+     use alloc::{string::ToString, vec};
+     use conduit_core::{
+-        kind_id, validate_canonical_structured_value, StructuredFieldValue, StructuredInfoValue,
+-        ValueConstraint,
++        StructuredFieldValue, StructuredInfoValue, ValueConstraint, kind_id,
++        validate_canonical_structured_value,
+     };
+ 
+     #[test]
+@@ -128,11 +143,13 @@ mod tests {
+         let sequence_type = super::super::record_field_type(&envelope_type, "values").unwrap();
+         let envelope = StructuredInfoValue::record(
+             envelope_type,
+-            vec![StructuredFieldValue::new(
+-                "values",
+-                StructuredInfoValue::sequence(sequence_type, vec![byte(3), byte(7)]).unwrap(),
+-            )
+-            .unwrap()],
++            vec![
++                StructuredFieldValue::new(
++                    "values",
++                    StructuredInfoValue::sequence(sequence_type, vec![byte(3), byte(7)]).unwrap(),
++                )
++                .unwrap(),
++            ],
+         )
+         .unwrap();
+         let maybe_type = ty("Maybe");
+@@ -149,6 +166,12 @@ mod tests {
+         .unwrap();
+         let encoded = value.canonical_bytes().unwrap();
+         let borrowed = validate_canonical_structured_value(&encoded).unwrap();
++        let recipe_type: &'static [u8] =
++            alloc::boxed::Box::leak(ty("Wrapper").canonical_bytes().unwrap().into_boxed_slice());
++        let bound =
++            conduit_core::PreparedCanonicalRecordAccess::storage_bound(recipe_type).unwrap();
++        let recipe =
++            conduit_core::PreparedCanonicalRecordAccess::prepare(recipe_type, bound).unwrap();
+         for path in [
+             ".choice?some.values[]",
+             ".choice|some.values[]",
+@@ -171,6 +194,15 @@ mod tests {
+                     )
+                     .unwrap(),
+                 }];
++                assert_eq!(
++                    validate_borrowed_native_contracts_with_record_access(
++                        borrowed,
++                        &contracts,
++                        Some(&recipe)
++                    ),
++                    validate_borrowed_native_contracts(borrowed, &contracts),
++                    "prepared {path}"
++                );
+                 assert_eq!(
+                     validate_borrowed_native_contracts(borrowed, &contracts),
+                     super::super::validate_native_contracts(&value, &contracts),
+diff --git a/architecture/plot/src/rust_binding/generate_prepared_family.rs b/architecture/plot/src/rust_binding/generate_prepared_family.rs
+index 48da4b14f..72ed59e60 100644
+--- a/architecture/plot/src/rust_binding/generate_prepared_family.rs
++++ b/architecture/plot/src/rust_binding/generate_prepared_family.rs
+@@ -382,7 +382,7 @@ pub(super) fn emit_converter(
+                 .transpose()?
+                 .unwrap_or_else(|| fields.iter().collect());
+             for (index, field) in fields.iter().enumerate() {
+-                writeln!(out, "        let __conduit_prepared_field_{index} = {};", decode(field.value_type(), &format!("value.record_field({:?}).map_err(NativeBindingRefusal::InvalidValue)?.ok_or(NativeBindingRefusal::InvalidValue(conduit_core::StructuredInfoRefusal::WrongType))?", field.name()), names)?).unwrap();
++                writeln!(out, "        let __conduit_prepared_field_{index} = {};", decode(field.value_type(), &format!("family.record_field(Self::PREPARED_DESCRIPTOR, value, {:?})?.ok_or(NativeBindingRefusal::InvalidValue(conduit_core::StructuredInfoRefusal::WrongType))?", field.name()), names)?).unwrap();
+             }
+             writeln!(out, "        family.validate(Self::PREPARED_DESCRIPTOR, value)?;\n        Ok(Self {{ {} }})", fields.iter().enumerate().map(|(index, field)| Ok(format!("{}: __conduit_prepared_field_{index}", rust_snake_identifier(field.name())?))).collect::<Result<Vec<_>, Error>>()?.join(", ")).unwrap();
+         }
+diff --git a/architecture/plot/src/rust_binding/prepared_family.rs b/architecture/plot/src/rust_binding/prepared_family.rs
+index b8c4717e2..8a5c6dbdb 100644
+--- a/architecture/plot/src/rust_binding/prepared_family.rs
++++ b/architecture/plot/src/rust_binding/prepared_family.rs
+@@ -1,16 +1,15 @@
+ //! Finite, explicitly owned metadata for generated recursive Native conversion.
+ use super::prepared_family_contracts::{self, NativeFamilyContractDescriptor};
+ use super::{
+-    validate_borrowed_native_contracts, NativeBindingRefusal, NativeRustBinding,
+-    PreparedNativeInvariantAdmission, PreparedNativeInvariantRefusal,
+-    PreparedNativeInvariantStorageLimits,
++    NativeBindingRefusal, NativeRustBinding, PreparedNativeInvariantAdmission,
++    PreparedNativeInvariantRefusal, PreparedNativeInvariantStorageLimits,
+ };
+ use crate::NativeTypeValueContract;
+ use alloc::vec::Vec;
+ use conduit_core::{
+-    validate_canonical_structured_value, StructuredInfoRefusal, StructuredInfoType,
+-    StructuredInfoTypeShape, ValidatedCanonicalStructuredValue, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+-    MAXIMUM_STRUCTURED_INFO_NODES,
++    MAXIMUM_STRUCTURED_CANONICAL_BYTES, MAXIMUM_STRUCTURED_INFO_NODES, StructuredInfoRefusal,
++    StructuredInfoType, StructuredInfoTypeShape, ValidatedCanonicalStructuredValue,
++    validate_canonical_structured_value,
+ };
+ use core::mem::size_of;
+ 
+@@ -80,6 +79,7 @@ pub(super) struct PreparedType {
+     contracts: Vec<NativeTypeValueContract>,
+     laws: PreparedNativeInvariantAdmission,
+     framing: Vec<u8>,
++    record_access: Option<conduit_core::PreparedCanonicalRecordAccess<'static>>,
+ }
+ 
+ pub struct PreparedNativeFamily {
+@@ -185,7 +185,15 @@ impl PreparedNativeFamily {
+             } else {
+                 limits.maximum_input_bytes
+             };
++            let record_heap = if descriptor.type_bytes.first() == Some(&2) {
++                conduit_core::PreparedCanonicalRecordAccess::storage_bound(descriptor.type_bytes)
++                    .map_err(Refusal::InvalidType)?
++            } else {
++                0
++            };
+             let metadata_heap = contract_heap
++                .checked_add(record_heap)
++                .ok_or(Refusal::Capacity)?
+                 .checked_add(framing_heap)
+                 .ok_or(Refusal::Capacity)?;
+             let base = retained
+@@ -198,6 +206,17 @@ impl PreparedNativeFamily {
+             let contracts = prepared_family_contracts::materialize(descriptor.contracts)
+                 .map_err(Refusal::InvalidContract)?;
+             let framing = Vec::with_capacity(framing_heap);
++            let record_access = if descriptor.type_bytes.first() == Some(&2) {
++                Some(
++                    conduit_core::PreparedCanonicalRecordAccess::prepare(
++                        descriptor.type_bytes,
++                        record_heap,
++                    )
++                    .map_err(Refusal::InvalidType)?,
++                )
++            } else {
++                None
++            };
+             let (laws, law_receipt) =
+                 PreparedNativeInvariantAdmission::from_canonical_laws_with_storage_limits(
+                     &value_type,
+@@ -233,6 +252,7 @@ impl PreparedNativeFamily {
+                 contracts,
+                 laws,
+                 framing,
++                record_access,
+             });
+         }
+         let conversion = maximum_inline
+@@ -294,6 +314,26 @@ impl PreparedNativeFamily {
+         Ok(())
+     }
+ 
++    /// Exact prepared record framing; complete descriptor identity remains required.
++    pub fn record_field<'a>(
++        &self,
++        descriptor: &'static NativeFamilyTypeDescriptor,
++        value: ValidatedCanonicalStructuredValue<'a>,
++        name: &str,
++    ) -> Result<Option<ValidatedCanonicalStructuredValue<'a>>, NativeBindingRefusal> {
++        self.check_type(descriptor, value)?;
++        let ty = self
++            .types
++            .iter()
++            .find(|ty| core::ptr::eq(ty.descriptor, descriptor))
++            .ok_or_else(wrong_type)?;
++        ty.record_access
++            .as_ref()
++            .ok_or_else(wrong_type)?
++            .field(value, name)
++            .map_err(NativeBindingRefusal::InvalidValue)
++    }
++
+     /// Generated converters call after their children in the original constructor order.
+     pub fn validate(
+         &mut self,
+@@ -306,7 +346,11 @@ impl PreparedNativeFamily {
+             .iter_mut()
+             .find(|ty| core::ptr::eq(ty.descriptor, descriptor))
+             .ok_or_else(wrong_type)?;
+-        validate_borrowed_native_contracts(value, &ty.contracts)?;
++        super::borrowed_contracts::validate_borrowed_native_contracts_with_record_access(
++            value,
++            &ty.contracts,
++            ty.record_access.as_ref(),
++        )?;
+         if descriptor.laws.is_empty() {
+             return Ok(());
+         }

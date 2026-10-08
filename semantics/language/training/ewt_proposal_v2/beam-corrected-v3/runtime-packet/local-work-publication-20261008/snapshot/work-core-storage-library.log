@@ -1,0 +1,5 @@
+   Compiling serde_core v1.0.229
+   Compiling serde v1.0.229
+   Compiling conduit-assigned-plan v0.1.0 (/home/dancxjo/conduit-4907-native-reuse/architecture/assigned-plan)
+   Compiling conduit-core v0.1.0 (/home/dancxjo/conduit-4907-native-reuse/architecture/core)
+    Finished `dev` profile [unoptimized] target(s) in 11.48s

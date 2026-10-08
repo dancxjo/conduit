@@ -1,0 +1,33 @@
+   Compiling proc-macro2 v1.0.107
+   Compiling unicode-ident v1.0.26
+   Compiling version_check v0.9.5
+   Compiling quote v1.0.47
+   Compiling generic-array v0.14.7
+   Compiling serde_core v1.0.229
+   Compiling typenum v1.20.1
+   Compiling syn v3.0.6
+   Compiling serde v1.0.229
+   Compiling serde_derive v1.0.229
+   Compiling block-buffer v0.10.4
+   Compiling crypto-common v0.1.7
+   Compiling zmij v1.0.23
+   Compiling libm v0.2.16
+   Compiling digest v0.10.7
+   Compiling conduit-assigned-plan v0.1.0 (/home/dancxjo/conduit-4907-native-reuse/architecture/assigned-plan)
+   Compiling cpufeatures v0.2.17
+   Compiling serde_json v1.0.151
+   Compiling cfg-if v1.0.5
+   Compiling sha2 v0.10.9
+   Compiling itoa v1.0.18
+   Compiling memchr v2.8.3
+   Compiling conduit-core v0.1.0 (/home/dancxjo/conduit-4907-native-reuse/architecture/core)
+   Compiling conduit-kernel v0.1.0 (/home/dancxjo/conduit-4907-native-reuse/architecture/kernel)
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/conduit-4907-native-reuse/architecture/plot)
+    Finished `test` profile [unoptimized] target(s) in 34.80s
+     Running unittests src/lib.rs (work/native-reuse-sdk-target/debug/deps/conduit_plot-2300a7f06de0e279)
+
+running 1 test
+test rust_binding::generate_tests::shared_generated_descriptor_union_has_separate_runtime_and_generation_ceilings ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 320 filtered out; finished in 0.48s
+

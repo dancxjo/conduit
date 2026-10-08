@@ -1,0 +1,14 @@
+
+running 1 test
+full original proposer owner reservation: RevisionReceipt { retained_bytes_bound: 53843815, preparation_peak_bytes_bound: 85218156, admission_peak_bytes_bound: 396500237, response_retained_bytes_bound: 100978792 }
+distinct411 original numerical Source/Plan preparation start
+test exact_proposal_v2_source_model_outputs_match_full_resource has been running for over 60 seconds
+numeric Source Plan journal structural input: lowered_sign_items=7, active_nodes=2, active_cords=3, additional_model_calls=Some(2); full Kernel factory admission follows
+distinct411 original numerical Source/Plan preparation complete
+actual original411 Source/model target vocative all76scores exact
+actual original411 Source/model target object all76scores exact
+PASS two exact numeric target calls; pinned fullmodel/dictionary/proposer/Source; no corpus or publicSession claim
+test exact_proposal_v2_source_model_outputs_match_full_resource ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 80.98s
+

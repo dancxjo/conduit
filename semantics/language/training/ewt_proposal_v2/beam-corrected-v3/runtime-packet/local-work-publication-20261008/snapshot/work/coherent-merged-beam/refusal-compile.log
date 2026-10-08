@@ -1,0 +1,90 @@
+warning: variable does not need to be mutable
+  --> work/coherent-merged-beam/refusals.rs:22:6
+   |
+22 |  let mut composer=PreparedStructuredComposer::new(&merge_type,MAX).unwrap();
+   |      ----^^^^^^^^
+   |      |
+   |      help: remove this `mut`
+   |
+   = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: variable `retained` is assigned to, but never used
+  --> work/coherent-merged-beam/refusals.rs:16:32
+   |
+16 |  let mut stages=Vec::new();let mut retained=0;let mut prep=0;
+   |                                ^^^^^^^^^^^^
+   |
+   = note: consider using `_retained` instead
+   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: variable `prep` is assigned to, but never used
+  --> work/coherent-merged-beam/refusals.rs:16:51
+   |
+16 |  let mut stages=Vec::new();let mut retained=0;let mut prep=0;
+   |                                                   ^^^^^^^^
+   |
+   = note: consider using `_prep` instead
+
+warning: unused variable: `composer`
+  --> work/coherent-merged-beam/refusals.rs:22:6
+   |
+22 |  let mut composer=PreparedStructuredComposer::new(&merge_type,MAX).unwrap();
+   |      ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_composer`
+
+warning: variable `cap_bound` is assigned to, but never used
+  --> work/coherent-merged-beam/refusals.rs:23:156
+   |
+23 | ...with_capacity(10);let mut caps=Vec::with_capacity(14);let mut cap_bound=0;
+   |                                                              ^^^^^^^^^^^^^
+   |
+   = note: consider using `_cap_bound` instead
+
+warning: unused variable: `cap_prep`
+  --> work/coherent-merged-beam/refusals.rs:27:6
+   |
+27 |  let cap_prep=t.elapsed().as_nanos();let refs=caps.iter().collect::<Vec<_>>();
+   |      ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_cap_prep`
+
+warning: value assigned to `retained` is never read
+  --> work/coherent-merged-beam/refusals.rs:19:199
+   |
+19 | ...4*1024,128*1024*1024).unwrap();retained+=r.retained_heap_bytes_bound+r.decoded_program_heap_bytes;prep+=r.preparation_requested_b...
+   |                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: maybe it is overwritten before being read?
+   = note: `#[warn(unused_assignments)]` (part of `#[warn(unused)]`) on by default
+
+warning: value assigned to `prep` is never read
+  --> work/coherent-merged-beam/refusals.rs:19:266
+   |
+19 | ...ap_bytes_bound+r.decoded_program_heap_bytes;prep+=r.preparation_requested_bytes_bound;stages.push((p,e));
+   |                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: maybe it is overwritten before being read?
+
+warning: value assigned to `cap_bound` is never read
+  --> work/coherent-merged-beam/refusals.rs:26:400
+   |
+26 | ...s>(shared.clone(),usize::MAX).unwrap();cap_bound+=c.storage_receipt().combined_bytes_bound;caps.push(c);proposals.push(shared);}
+   |                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: maybe it is overwritten before being read?
+
+warning: value assigned to `cap_bound` is never read
+  --> work/coherent-merged-beam/refusals.rs:25:322
+   |
+25 | ...esis>(Rc::from(b),usize::MAX).unwrap();cap_bound+=c.storage_receipt().combined_bytes_bound;caps.push(c);}
+   |                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: maybe it is overwritten before being read?
+
+warning: function `decode` is never used
+ --> work/coherent-merged-beam/refusals.rs:8:4
+  |
+8 | fn decode(f:&mut PreparedNativeFamily,b:&[u8],caps:&[&AdmittedNativeChild],scoped:bool,merge:bool){
+  |    ^^^^^^
+  |
+  = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: 11 warnings emitted
+

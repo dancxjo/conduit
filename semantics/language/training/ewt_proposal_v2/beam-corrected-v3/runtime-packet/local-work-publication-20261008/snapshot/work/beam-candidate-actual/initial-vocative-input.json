@@ -1,0 +1,47 @@
+[
+  {
+    "id": "vocative-initial",
+    "text": "Travis, record songs.",
+    "forms": [
+      "Travis",
+      ",",
+      "record",
+      "songs",
+      "."
+    ],
+    "pos": [
+      11,
+      12,
+      15,
+      7,
+      12
+    ],
+    "heads": [
+      2,
+      2,
+      8,
+      2,
+      2
+    ],
+    "relations": [
+      "vocative",
+      "punct",
+      "root",
+      "obj",
+      "punct"
+    ],
+    "provenance": "separately authored TRAIN-only vocative supervision; not held-out or human-reviewed accuracy evidence",
+    "oracle": [
+      0,
+      0,
+      34,
+      37,
+      73,
+      67,
+      1,
+      71,
+      1,
+      1
+    ]
+  }
+]

@@ -1,0 +1,19 @@
+   Compiling conduit-core v0.1.0 (/home/dancxjo/conduit-4907-native-reuse/architecture/core)
+warning: taking a mutable reference to a `const` item
+  --> architecture/core/src/structured_info/borrowed/visit.rs:14:23
+   |
+14 |         self.visit(1, &mut MAXIMUM_STRUCTURED_INFO_NODES, visitor)
+   |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: each usage of a `const` item creates a new temporary
+   = note: the mutable reference will refer to this temporary, not the original `const` item
+note: `const` item defined here
+  --> architecture/core/src/structured_info.rs:50:1
+   |
+50 | pub const MAXIMUM_STRUCTURED_INFO_NODES: usize = 16_384;
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = note: `#[warn(const_item_mutation)]` on by default
+
+warning: `conduit-core` (lib) generated 1 warning
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/conduit-4907-native-reuse/architecture/plot)
+    Finished `dev` profile [unoptimized] target(s) in 11.31s

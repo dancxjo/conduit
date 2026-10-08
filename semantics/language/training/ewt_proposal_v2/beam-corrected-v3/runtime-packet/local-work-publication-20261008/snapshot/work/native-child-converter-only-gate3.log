@@ -1,0 +1,22 @@
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/conduit-4907-native-reuse/architecture/plot)
+    Finished `test` profile [unoptimized] target(s) in 6.05s
+     Running unittests src/lib.rs (work/native-reuse-sdk-target/debug/deps/conduit_plot-2300a7f06de0e279)
+
+running 1 test
+test rust_binding::generate_tests::converter_only_regeneration_retains_complete_original_conversion ... FAILED
+
+failures:
+
+---- rust_binding::generate_tests::converter_only_regeneration_retains_complete_original_conversion stdout ----
+
+thread 'rust_binding::generate_tests::converter_only_regeneration_retains_complete_original_conversion' (1564655) panicked at architecture/plot/src/rust_binding/generate_tests.rs:2011:120:
+called `Result::unwrap()` on an `Err` value: SyntaxCheckDiagnostic { code: "CND-FRM-019", span: Span { start: 44, end: 65, line: 3, column: 5, end_line: 3, end_column: 26 }, message: "invalid canonical plot syntax: note { pitch: Pitch }" }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    rust_binding::generate_tests::converter_only_regeneration_retains_complete_original_conversion
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 326 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p conduit-plot --lib`

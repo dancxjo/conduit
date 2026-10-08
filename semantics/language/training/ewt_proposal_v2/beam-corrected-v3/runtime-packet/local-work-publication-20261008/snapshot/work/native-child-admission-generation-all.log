@@ -1,0 +1,35 @@
+    Finished `test` profile [unoptimized] target(s) in 0.10s
+     Running unittests src/lib.rs (work/native-reuse-sdk-target/debug/deps/conduit_plot-2300a7f06de0e279)
+
+running 28 tests
+test rust_binding::generate_tests::byte_bindings_retain_the_full_checked_structured_capacity ... ok
+test rust_binding::generate_tests::constrained_integer_nominal_validates_without_structured_allocation ... ok
+test rust_binding::generate_tests::generated_code_preserves_explicit_iota_origin ... ok
+test rust_binding::generate_tests::checked_form_generates_the_only_rust_discriminant_table ... ok
+test rust_binding::generate_tests::generated_contracts_preserve_semantic_openness ... ok
+test rust_binding::generate_tests::constrained_copy_record_validation_does_not_clone_the_candidate ... ok
+test rust_binding::generate_tests::exact_reference_leaves_use_validated_native_bindings ... ok
+test rust_binding::generate_tests::ordinary_generation_refuses_missing_drifted_and_unused_external_bindings ... ok
+test rust_binding::generate_tests::locked_package_generation_revalidates_exact_source_without_network_work ... ok
+test rust_binding::generate_tests::quantity_unit_fields_use_the_canonical_native_unit_vocabulary ... ok
+test rust_binding::generate_tests::selected_constrained_record_validates_direct_integer_bounds_without_structured_allocation ... ok
+test rust_binding::generate_tests::selected_record_can_retain_established_constructor_argument_order ... ok
+test rust_binding::generate_tests::record_constructor_order_must_name_every_field_exactly_once ... ok
+test rust_binding::generate_tests::wide_record_constructor_allows_its_generated_argument_shape ... ok
+test rust_binding::generate_tests::exact_float_law_generates_semantic_wrappers_and_checked_refinements ... ok
+test rust_binding::generate_tests::selected_record_retains_copy_and_serde_binding_traits ... ok
+test rust_binding::generate_tests::selected_record_can_retain_established_public_fields ... ok
+test rust_binding::generate_tests::selected_serde_record_can_retain_deny_unknown_fields ... ok
+test rust_binding::generate_tests::binding_only_boxing_preserves_semantic_identity_and_refuses_invalid_targets ... ok
+test rust_binding::generate_tests::rust_only_variant_order_preserves_serde_abi_without_changing_type_identity ... ok
+test rust_binding::generate_tests::serde_variant_exclusion_preserves_a_non_serde_binding ... ok
+test rust_binding::generate_tests::generation_is_deterministic_and_keeps_rust_spelling_out_of_identity ... ok
+test rust_binding::generate_tests::colliding_or_invalid_rust_spellings_refuse_instead_of_rebinding ... ok
+test rust_binding::generate_tests::locked_dependency_types_come_only_from_their_exact_source_bundle ... ok
+test rust_binding::generate_tests::imported_prepared_descriptors_keep_original_guards_and_owner_metadata ... ok
+test rust_binding::generate_tests::shared_generated_descriptor_union_has_separate_runtime_and_generation_ceilings ... ok
+test rust_binding::generate_tests::external_descendants_count_toward_complete_root_and_generated_union ... ok
+test rust_binding::generate_tests::generated_bindings_compile_as_an_independent_rust_library ... ok
+
+test result: ok. 28 passed; 0 failed; 0 ignored; 0 measured; 298 filtered out; finished in 0.97s
+

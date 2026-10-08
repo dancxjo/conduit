@@ -1,0 +1,18 @@
+   Compiling conduit-core v0.1.0 (/home/dancxjo/conduit-4907-native-reuse/architecture/core)
+    Finished `test` profile [unoptimized] target(s) in 7.80s
+     Running tests/structured_validator_storage_allocations.rs (work/native-reuse-sdk-target/debug/deps/structured_validator_storage_allocations-083808135fce0da7)
+
+running 2 tests
+test contract_storage_covers_all_constraint_payloads_and_capacity_slack ... contract_clone_requests=598 peak=598 actual_clone_heap=598 source_spare_capacity_bound=2052
+ok
+test validator_storage_allocation_bound_and_early_refusal ... shape=0 requested=23 peak=23 actual_retained=23 bound=23
+shape=1 requested=106 peak=106 actual_retained=106 bound=106
+shape=2 requested=165 peak=165 actual_retained=165 bound=165
+shape=3 requested=226 peak=226 actual_retained=226 bound=226
+shape=4 requested=355 peak=355 actual_retained=355 bound=1795
+shape=5 requested=486 peak=486 actual_retained=486 bound=1286
+PASS six_shapes_spare_capacity_zero_allocation_reservations_and_one_under_before_allocation
+ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

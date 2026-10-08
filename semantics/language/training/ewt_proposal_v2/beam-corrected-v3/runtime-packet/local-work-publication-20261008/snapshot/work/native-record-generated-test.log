@@ -1,0 +1,142 @@
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/conduit-4907-native-reuse/architecture/plot)
+    Finished `test` profile [unoptimized] target(s) in 6.60s
+     Running unittests src/lib.rs (work/native-reuse-sdk-target/debug/deps/conduit_plot-2300a7f06de0e279)
+
+running 8 tests
+test rust_binding::prepared_invariants_tests::actual_language_complete_native_bank_readiness ... ignored, checks the complete Language authored Source closure
+test expression_prepared::preparation::tests::cumulative_quota_refuses_checked_overflow_before_allocation ... ok
+test rust_binding::prepared_family_external::tests::metadata_observation_does_not_apply_type_count_to_law_count ... ok
+test rust_binding::prepared_family_external::tests::metadata_observation_does_not_apply_type_byte_extent_to_program_bytes ... ok
+test rust_binding::prepared_invariants_tests::bounded_native_bank_refuses_every_unsupported_law_at_its_original_index ... ok
+test rust_binding::prepared_invariants_tests::prepared_native_bank_checks_nested_members_and_foreign_exact_types ... ok
+test rust_binding::prepared_invariants_tests::prepared_native_bank_preserves_order_and_law_refusals ... ok
+test rust_binding::generate_tests::imported_prepared_descriptors_keep_original_guards_and_owner_metadata ... FAILED
+
+failures:
+
+---- rust_binding::generate_tests::imported_prepared_descriptors_keep_original_guards_and_owner_metadata stdout ----
+
+thread 'rust_binding::generate_tests::imported_prepared_descriptors_keep_original_guards_and_owner_metadata' (1742466) panicked at architecture/plot/src/rust_binding/generate_tests.rs:1485:5:
+external generated Rust failed to compile:
+
+error[E0599]: no method named `record_field` found for mutable reference `&mut PreparedNativeFamily` in the current scope
+   --> /tmp/conduit-external-rust-bindings-1742464-prepared/bindings.rs:302:66
+    |
+302 | ...   let __conduit_prepared_field_0 = { let sequence = family.record_field(Self::PREPARED_DESCRIPTOR, value, "history")?.ok_or(Nat...
+    |                                                                ^^^^^^^^^^^^
+    |
+help: there is a method `decode` with a similar name, but with different arguments
+   --> /home/dancxjo/conduit-4907-native-reuse/architecture/plot/src/rust_binding/prepared_family.rs:265:4
+
+error[E0599]: no method named `record_field` found for mutable reference `&mut PreparedNativeFamily` in the current scope
+   --> /tmp/conduit-external-rust-bindings-1742464-prepared/bindings.rs:303:149
+    |
+303 | ...PreparedNativeRustBinding>::from_borrowed_prepared(family.record_field(Self::PREPARED_DESCRIPTOR, value, "pitch")?.ok_or(NativeB...
+    |                                                              ^^^^^^^^^^^^
+    |
+help: there is a method `decode` with a similar name, but with different arguments
+   --> /home/dancxjo/conduit-4907-native-reuse/architecture/plot/src/rust_binding/prepared_family.rs:265:4
+
+error[E0599]: no method named `record_field` found for mutable reference `&mut PreparedNativeFamily` in the current scope
+   --> /tmp/conduit-external-rust-bindings-1742464-prepared/bindings.rs:304:66
+    |
+304 | ...   let __conduit_prepared_field_2 = { let optional = family.record_field(Self::PREPARED_DESCRIPTOR, value, "previous")?.ok_or(Na...
+    |                                                                ^^^^^^^^^^^^
+    |
+help: there is a method `decode` with a similar name, but with different arguments
+   --> /home/dancxjo/conduit-4907-native-reuse/architecture/plot/src/rust_binding/prepared_family.rs:265:4
+
+error[E0599]: no method named `record_field` found for mutable reference `&mut PreparedNativeFamily` in the current scope
+   --> /tmp/conduit-external-rust-bindings-1742464-prepared/bindings.rs:312:66
+    |
+312 | ...   let __conduit_prepared_field_0 = { let sequence = family.record_field(Self::PREPARED_DESCRIPTOR, value, "history")?.ok_or(Nat...
+    |                                                                ^^^^^^^^^^^^
+    |
+help: there is a method `decode` with a similar name, but with different arguments
+   --> /home/dancxjo/conduit-4907-native-reuse/architecture/plot/src/rust_binding/prepared_family.rs:265:4
+
+error[E0599]: no method named `record_field` found for mutable reference `&mut PreparedNativeFamily` in the current scope
+   --> /tmp/conduit-external-rust-bindings-1742464-prepared/bindings.rs:313:163
+    |
+313 | ...RustBinding>::from_borrowed_prepared_with_children(family.record_field(Self::PREPARED_DESCRIPTOR, value, "pitch")?.ok_or(NativeB...
+    |                                                              ^^^^^^^^^^^^
+    |
+help: there is a method `decode` with a similar name, but with different arguments
+   --> /home/dancxjo/conduit-4907-native-reuse/architecture/plot/src/rust_binding/prepared_family.rs:265:4
+
+error[E0599]: no method named `record_field` found for mutable reference `&mut PreparedNativeFamily` in the current scope
+   --> /tmp/conduit-external-rust-bindings-1742464-prepared/bindings.rs:314:66
+    |
+314 | ...   let __conduit_prepared_field_2 = { let optional = family.record_field(Self::PREPARED_DESCRIPTOR, value, "previous")?.ok_or(Na...
+    |                                                                ^^^^^^^^^^^^
+    |
+help: there is a method `decode` with a similar name, but with different arguments
+   --> /home/dancxjo/conduit-4907-native-reuse/architecture/plot/src/rust_binding/prepared_family.rs:265:4
+
+error[E0599]: no method named `record_field` found for mutable reference `&mut PreparedNativeFamily` in the current scope
+   --> /tmp/conduit-external-rust-bindings-1742464-prepared/bindings.rs:575:66
+    |
+575 | ...   let __conduit_prepared_field_0 = { let sequence = family.record_field(Self::PREPARED_DESCRIPTOR, value, "history")?.ok_or(Nat...
+    |                                                                ^^^^^^^^^^^^
+    |
+help: there is a method `decode` with a similar name, but with different arguments
+   --> /home/dancxjo/conduit-4907-native-reuse/architecture/plot/src/rust_binding/prepared_family.rs:265:4
+
+error[E0599]: no method named `record_field` found for mutable reference `&mut PreparedNativeFamily` in the current scope
+   --> /tmp/conduit-external-rust-bindings-1742464-prepared/bindings.rs:576:149
+    |
+576 | ...PreparedNativeRustBinding>::from_borrowed_prepared(family.record_field(Self::PREPARED_DESCRIPTOR, value, "pitch")?.ok_or(NativeB...
+    |                                                              ^^^^^^^^^^^^
+    |
+help: there is a method `decode` with a similar name, but with different arguments
+   --> /home/dancxjo/conduit-4907-native-reuse/architecture/plot/src/rust_binding/prepared_family.rs:265:4
+
+error[E0599]: no method named `record_field` found for mutable reference `&mut PreparedNativeFamily` in the current scope
+   --> /tmp/conduit-external-rust-bindings-1742464-prepared/bindings.rs:577:66
+    |
+577 | ...   let __conduit_prepared_field_2 = { let optional = family.record_field(Self::PREPARED_DESCRIPTOR, value, "previous")?.ok_or(Na...
+    |                                                                ^^^^^^^^^^^^
+    |
+help: there is a method `decode` with a similar name, but with different arguments
+   --> /home/dancxjo/conduit-4907-native-reuse/architecture/plot/src/rust_binding/prepared_family.rs:265:4
+
+error[E0599]: no method named `record_field` found for mutable reference `&mut PreparedNativeFamily` in the current scope
+   --> /tmp/conduit-external-rust-bindings-1742464-prepared/bindings.rs:585:66
+    |
+585 | ...   let __conduit_prepared_field_0 = { let sequence = family.record_field(Self::PREPARED_DESCRIPTOR, value, "history")?.ok_or(Nat...
+    |                                                                ^^^^^^^^^^^^
+    |
+help: there is a method `decode` with a similar name, but with different arguments
+   --> /home/dancxjo/conduit-4907-native-reuse/architecture/plot/src/rust_binding/prepared_family.rs:265:4
+
+error[E0599]: no method named `record_field` found for mutable reference `&mut PreparedNativeFamily` in the current scope
+   --> /tmp/conduit-external-rust-bindings-1742464-prepared/bindings.rs:586:163
+    |
+586 | ...RustBinding>::from_borrowed_prepared_with_children(family.record_field(Self::PREPARED_DESCRIPTOR, value, "pitch")?.ok_or(NativeB...
+    |                                                              ^^^^^^^^^^^^
+    |
+help: there is a method `decode` with a similar name, but with different arguments
+   --> /home/dancxjo/conduit-4907-native-reuse/architecture/plot/src/rust_binding/prepared_family.rs:265:4
+
+error[E0599]: no method named `record_field` found for mutable reference `&mut PreparedNativeFamily` in the current scope
+   --> /tmp/conduit-external-rust-bindings-1742464-prepared/bindings.rs:587:66
+    |
+587 | ...   let __conduit_prepared_field_2 = { let optional = family.record_field(Self::PREPARED_DESCRIPTOR, value, "previous")?.ok_or(Na...
+    |                                                                ^^^^^^^^^^^^
+    |
+help: there is a method `decode` with a similar name, but with different arguments
+   --> /home/dancxjo/conduit-4907-native-reuse/architecture/plot/src/rust_binding/prepared_family.rs:265:4
+
+error: aborting due to 12 previous errors
+
+For more information about this error, try `rustc --explain E0599`.
+
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    rust_binding::generate_tests::imported_prepared_descriptors_keep_original_guards_and_owner_metadata
+
+test result: FAILED. 6 passed; 1 failed; 1 ignored; 0 measured; 319 filtered out; finished in 0.19s
+
+error: test failed, to rerun pass `-p conduit-plot --lib`

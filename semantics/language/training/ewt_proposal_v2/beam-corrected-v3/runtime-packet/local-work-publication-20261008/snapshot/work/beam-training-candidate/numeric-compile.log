@@ -1,0 +1,9 @@
+error[E0432]: unresolved import `conduit_language::parser_window8_program_bank`
+  --> work/beam-training-candidate/numeric.rs:13:24
+   |
+13 | use conduit_language::{parser_window8_program_bank::*, *};
+   |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^ could not find `parser_window8_program_bank` in `conduit_language`
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0432`.

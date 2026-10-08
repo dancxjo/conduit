@@ -1,0 +1,12 @@
+    Checking crypto-common v0.1.7
+    Checking digest v0.10.7
+    Checking unicode-ident v1.0.26
+    Checking sha2 v0.10.9
+    Checking proc-macro2 v1.0.107
+    Checking conduit-assigned-plan v0.1.0 (/home/dancxjo/conduit-4907-native-reuse/architecture/assigned-plan)
+    Checking conduit-core v0.1.0 (/home/dancxjo/conduit-4907-native-reuse/architecture/core)
+    Checking quote v1.0.47
+    Checking syn v2.0.119
+    Checking conduit-plot v0.1.0 (/home/dancxjo/conduit-4907-native-reuse/architecture/plot)
+    Checking conduit-prepared-native-converters v0.1.0 (/home/dancxjo/conduit-4907-native-reuse/tools/prepared-native-converters)
+    Finished `dev` profile [unoptimized] target(s) in 6.79s

@@ -1,0 +1,720 @@
+{
+  "scope": "External numerical width-four diagnostic only; Source-shaped selected-frontier/score/identity policy; no checked Source equivalence. Not original Source/Native parity, admitted parser output, heldout accuracy or stability proof",
+  "artifact_sha256": "f70f560d54a81dd34d005254985dbfd394363def5f5a4ffe3e97e7c90306d2c5",
+  "rows": [
+    {
+      "id": "record-pair",
+      "text": "I record the record.",
+      "epochs": 10,
+      "numeric_calls": 65,
+      "complete": true,
+      "elapsed_seconds": 0.021051742020063102,
+      "heads": [
+        1,
+        8,
+        3,
+        1,
+        1
+      ],
+      "relations": [
+        "nsubj",
+        "root",
+        "det",
+        "obj",
+        "punct"
+      ],
+      "pos": [
+        10,
+        15,
+        5,
+        7,
+        12
+      ],
+      "correct_heads": 5,
+      "correct_base_las": 5,
+      "correct_pos": 5,
+      "tokens": 5
+    },
+    {
+      "id": "refuse-pair",
+      "text": "They refuse the refuse",
+      "epochs": 8,
+      "numeric_calls": 44,
+      "complete": true,
+      "elapsed_seconds": 0.013770175981335342,
+      "heads": [
+        1,
+        8,
+        3,
+        1
+      ],
+      "relations": [
+        "nsubj",
+        "root",
+        "det",
+        "obj"
+      ],
+      "pos": [
+        10,
+        15,
+        5,
+        7
+      ],
+      "correct_heads": 4,
+      "correct_base_las": 4,
+      "correct_pos": 4,
+      "tokens": 4
+    },
+    {
+      "id": "garden-path",
+      "text": "The horse raced past the barn fell",
+      "epochs": 14,
+      "numeric_calls": 74,
+      "complete": true,
+      "elapsed_seconds": 0.024805031018331647,
+      "heads": [
+        1,
+        6,
+        1,
+        5,
+        5,
+        2,
+        8
+      ],
+      "relations": [
+        "det",
+        "nsubj",
+        "acl",
+        "case",
+        "det",
+        "obl",
+        "root"
+      ],
+      "pos": [
+        5,
+        7,
+        15,
+        1,
+        5,
+        7,
+        15
+      ],
+      "correct_heads": 7,
+      "correct_base_las": 7,
+      "correct_pos": 7,
+      "tokens": 7
+    },
+    {
+      "id": "complement",
+      "text": "I think you record songs",
+      "epochs": 10,
+      "numeric_calls": 48,
+      "complete": true,
+      "elapsed_seconds": 0.014874912973027676,
+      "heads": [
+        1,
+        8,
+        3,
+        1,
+        3
+      ],
+      "relations": [
+        "nsubj",
+        "root",
+        "nsubj",
+        "ccomp",
+        "obj"
+      ],
+      "pos": [
+        10,
+        15,
+        10,
+        15,
+        7
+      ],
+      "correct_heads": 5,
+      "correct_base_las": 5,
+      "correct_pos": 5,
+      "tokens": 5
+    },
+    {
+      "id": "coordination",
+      "text": "I record songs and stories",
+      "epochs": 10,
+      "numeric_calls": 58,
+      "complete": true,
+      "elapsed_seconds": 0.018035234010312706,
+      "heads": [
+        1,
+        8,
+        1,
+        4,
+        2
+      ],
+      "relations": [
+        "nsubj",
+        "root",
+        "obj",
+        "cc",
+        "conj"
+      ],
+      "pos": [
+        10,
+        15,
+        7,
+        4,
+        7
+      ],
+      "correct_heads": 5,
+      "correct_base_las": 5,
+      "correct_pos": 5,
+      "tokens": 5
+    },
+    {
+      "id": "apposition",
+      "text": "Travis my friend arrived",
+      "epochs": 8,
+      "numeric_calls": 29,
+      "complete": true,
+      "elapsed_seconds": 0.009767865994945168,
+      "heads": [
+        3,
+        2,
+        0,
+        8
+      ],
+      "relations": [
+        "nsubj",
+        "nmod",
+        "appos",
+        "root"
+      ],
+      "pos": [
+        11,
+        10,
+        7,
+        15
+      ],
+      "correct_heads": 4,
+      "correct_base_las": 4,
+      "correct_pos": 4,
+      "tokens": 4
+    },
+    {
+      "id": "parenthetical",
+      "text": "Travis I think arrived",
+      "epochs": 8,
+      "numeric_calls": 33,
+      "complete": true,
+      "elapsed_seconds": 0.010755074967164546,
+      "heads": [
+        3,
+        2,
+        3,
+        8
+      ],
+      "relations": [
+        "nsubj",
+        "nsubj",
+        "parataxis",
+        "root"
+      ],
+      "pos": [
+        11,
+        10,
+        15,
+        15
+      ],
+      "correct_heads": 4,
+      "correct_base_las": 4,
+      "correct_pos": 4,
+      "tokens": 4
+    },
+    {
+      "id": "question",
+      "text": "Do they record songs ?",
+      "epochs": 10,
+      "numeric_calls": 45,
+      "complete": true,
+      "elapsed_seconds": 0.01527951704338193,
+      "heads": [
+        2,
+        2,
+        8,
+        2,
+        2
+      ],
+      "relations": [
+        "aux",
+        "nsubj",
+        "root",
+        "obj",
+        "punct"
+      ],
+      "pos": [
+        3,
+        10,
+        15,
+        7,
+        12
+      ],
+      "correct_heads": 5,
+      "correct_base_las": 5,
+      "correct_pos": 5,
+      "tokens": 5
+    },
+    {
+      "id": "vocative-greeting",
+      "text": "Hello, Travis.",
+      "epochs": 8,
+      "numeric_calls": 28,
+      "complete": true,
+      "elapsed_seconds": 0.008066718000918627,
+      "heads": [
+        8,
+        0,
+        0,
+        0
+      ],
+      "relations": [
+        "root",
+        "punct",
+        "vocative",
+        "punct"
+      ],
+      "pos": [
+        6,
+        12,
+        11,
+        12
+      ],
+      "correct_heads": 4,
+      "correct_base_las": 4,
+      "correct_pos": 4,
+      "tokens": 4
+    },
+    {
+      "id": "vocative-initial",
+      "text": "Travis, record songs.",
+      "epochs": 10,
+      "numeric_calls": 44,
+      "complete": true,
+      "elapsed_seconds": 0.01401496201287955,
+      "heads": [
+        2,
+        2,
+        8,
+        2,
+        2
+      ],
+      "relations": [
+        "vocative",
+        "punct",
+        "root",
+        "obj",
+        "punct"
+      ],
+      "pos": [
+        11,
+        12,
+        15,
+        7,
+        12
+      ],
+      "correct_heads": 5,
+      "correct_base_las": 5,
+      "correct_pos": 5,
+      "tokens": 5
+    },
+    {
+      "id": "vocative-medial",
+      "text": "I record, Travis, songs.",
+      "epochs": 14,
+      "numeric_calls": 70,
+      "complete": true,
+      "elapsed_seconds": 0.02159933897200972,
+      "heads": [
+        1,
+        8,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "relations": [
+        "nsubj",
+        "root",
+        "punct",
+        "vocative",
+        "punct",
+        "obj",
+        "punct"
+      ],
+      "pos": [
+        10,
+        15,
+        12,
+        11,
+        12,
+        7,
+        12
+      ],
+      "correct_heads": 7,
+      "correct_base_las": 7,
+      "correct_pos": 7,
+      "tokens": 7
+    },
+    {
+      "id": "vocative-final",
+      "text": "Thanks, Travis.",
+      "epochs": 8,
+      "numeric_calls": 33,
+      "complete": true,
+      "elapsed_seconds": 0.009988188976421952,
+      "heads": [
+        8,
+        0,
+        0,
+        0
+      ],
+      "relations": [
+        "root",
+        "punct",
+        "vocative",
+        "punct"
+      ],
+      "pos": [
+        6,
+        12,
+        11,
+        12
+      ],
+      "correct_heads": 4,
+      "correct_base_las": 4,
+      "correct_pos": 4,
+      "tokens": 4
+    },
+    {
+      "id": "authored-vocative-final-I",
+      "text": "I record songs, Travis.",
+      "epochs": 12,
+      "numeric_calls": 55,
+      "complete": true,
+      "elapsed_seconds": 0.017265621980186552,
+      "heads": [
+        1,
+        8,
+        1,
+        1,
+        1,
+        1
+      ],
+      "relations": [
+        "nsubj",
+        "root",
+        "obj",
+        "punct",
+        "vocative",
+        "punct"
+      ],
+      "pos": [
+        10,
+        15,
+        7,
+        12,
+        11,
+        12
+      ],
+      "correct_heads": 6,
+      "correct_base_las": 6,
+      "correct_pos": 6,
+      "tokens": 6
+    },
+    {
+      "id": "authored-vocative-initial-I",
+      "text": "Travis, I record songs.",
+      "epochs": 12,
+      "numeric_calls": 56,
+      "complete": true,
+      "elapsed_seconds": 0.019980314013082534,
+      "heads": [
+        3,
+        3,
+        3,
+        8,
+        3,
+        3
+      ],
+      "relations": [
+        "vocative",
+        "punct",
+        "nsubj",
+        "root",
+        "obj",
+        "punct"
+      ],
+      "pos": [
+        11,
+        12,
+        10,
+        15,
+        7,
+        12
+      ],
+      "correct_heads": 6,
+      "correct_base_las": 6,
+      "correct_pos": 6,
+      "tokens": 6
+    },
+    {
+      "id": "authored-vocative-medial-They",
+      "text": "They record, Travis, songs.",
+      "epochs": 14,
+      "numeric_calls": 64,
+      "complete": true,
+      "elapsed_seconds": 0.01912906504003331,
+      "heads": [
+        1,
+        8,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "relations": [
+        "nsubj",
+        "root",
+        "punct",
+        "vocative",
+        "punct",
+        "obj",
+        "punct"
+      ],
+      "pos": [
+        10,
+        15,
+        12,
+        11,
+        12,
+        7,
+        12
+      ],
+      "correct_heads": 7,
+      "correct_base_las": 7,
+      "correct_pos": 7,
+      "tokens": 7
+    },
+    {
+      "id": "authored-vocative-object-I",
+      "text": "I record Travis.",
+      "epochs": 8,
+      "numeric_calls": 37,
+      "complete": true,
+      "elapsed_seconds": 0.010443828999996185,
+      "heads": [
+        1,
+        8,
+        1,
+        1
+      ],
+      "relations": [
+        "nsubj",
+        "root",
+        "obj",
+        "punct"
+      ],
+      "pos": [
+        10,
+        15,
+        11,
+        12
+      ],
+      "correct_heads": 4,
+      "correct_base_las": 4,
+      "correct_pos": 4,
+      "tokens": 4
+    },
+    {
+      "id": "authored-vocative-object-They",
+      "text": "They record Travis.",
+      "epochs": 8,
+      "numeric_calls": 30,
+      "complete": true,
+      "elapsed_seconds": 0.008032382000237703,
+      "heads": [
+        1,
+        8,
+        1,
+        1
+      ],
+      "relations": [
+        "nsubj",
+        "root",
+        "obj",
+        "punct"
+      ],
+      "pos": [
+        10,
+        15,
+        11,
+        12
+      ],
+      "correct_heads": 4,
+      "correct_base_las": 4,
+      "correct_pos": 4,
+      "tokens": 4
+    },
+    {
+      "id": "authored-vocative-object-imperative",
+      "text": "record Travis.",
+      "epochs": 6,
+      "numeric_calls": 23,
+      "complete": true,
+      "elapsed_seconds": 0.005299429991282523,
+      "heads": [
+        8,
+        0,
+        0
+      ],
+      "relations": [
+        "root",
+        "obj",
+        "punct"
+      ],
+      "pos": [
+        15,
+        11,
+        12
+      ],
+      "correct_heads": 3,
+      "correct_base_las": 3,
+      "correct_pos": 3,
+      "tokens": 3
+    },
+    {
+      "id": "authored-vocative-object-refuse",
+      "text": "I refuse Travis.",
+      "epochs": 8,
+      "numeric_calls": 33,
+      "complete": true,
+      "elapsed_seconds": 0.008828994003124535,
+      "heads": [
+        1,
+        8,
+        1,
+        1
+      ],
+      "relations": [
+        "nsubj",
+        "root",
+        "obj",
+        "punct"
+      ],
+      "pos": [
+        10,
+        15,
+        11,
+        12
+      ],
+      "correct_heads": 4,
+      "correct_base_las": 4,
+      "correct_pos": 4,
+      "tokens": 4
+    },
+    {
+      "id": "authored-vocative-thanks",
+      "text": "Thanks Travis.",
+      "epochs": 6,
+      "numeric_calls": 21,
+      "complete": true,
+      "elapsed_seconds": 0.004872513993177563,
+      "heads": [
+        8,
+        0,
+        0
+      ],
+      "relations": [
+        "root",
+        "vocative",
+        "punct"
+      ],
+      "pos": [
+        6,
+        11,
+        12
+      ],
+      "correct_heads": 3,
+      "correct_base_las": 3,
+      "correct_pos": 3,
+      "tokens": 3
+    },
+    {
+      "id": "authored-old-man-verbal",
+      "text": "The old man the boats.",
+      "epochs": 12,
+      "numeric_calls": 65,
+      "complete": true,
+      "elapsed_seconds": 0.020419799024239182,
+      "heads": [
+        1,
+        2,
+        8,
+        4,
+        2,
+        2
+      ],
+      "relations": [
+        "det",
+        "nsubj",
+        "root",
+        "det",
+        "obj",
+        "punct"
+      ],
+      "pos": [
+        5,
+        7,
+        15,
+        5,
+        7,
+        12
+      ],
+      "correct_heads": 6,
+      "correct_base_las": 6,
+      "correct_pos": 6,
+      "tokens": 6
+    },
+    {
+      "id": "authored-old-man-nominal",
+      "text": "The old man.",
+      "epochs": 8,
+      "numeric_calls": 37,
+      "complete": true,
+      "elapsed_seconds": 0.011599719990044832,
+      "heads": [
+        2,
+        2,
+        8,
+        2
+      ],
+      "relations": [
+        "det",
+        "amod",
+        "root",
+        "punct"
+      ],
+      "pos": [
+        5,
+        0,
+        7,
+        12
+      ],
+      "correct_heads": 4,
+      "correct_base_las": 4,
+      "correct_pos": 4,
+      "tokens": 4
+    }
+  ]
+}

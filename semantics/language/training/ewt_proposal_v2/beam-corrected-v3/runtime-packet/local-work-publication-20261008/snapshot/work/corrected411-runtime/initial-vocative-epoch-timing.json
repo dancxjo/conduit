@@ -1,0 +1,88 @@
+{
+  "scope": "Actual warm static Final beam epochs; includes all original Source/Native/legal/rank work, excludes cold candidate/Kernel/bank preparation and initial lexical/initialize/class setup; not per incoming revision or stabilization delay",
+  "incoming_original_tokens": 5,
+  "beam_total_seconds": 1080.545549594,
+  "beam_seconds_per_supplied_token": 216.10910991880002,
+  "epochs": [
+    {
+      "epoch": 0,
+      "elapsed_nanos": 5661893023,
+      "epoch_delta_nanos": 5661893023,
+      "cumulative_model_calls": 1,
+      "epoch_model_calls": 1,
+      "all_complete": false
+    },
+    {
+      "epoch": 1,
+      "elapsed_nanos": 122874139055,
+      "epoch_delta_nanos": 117212246032,
+      "cumulative_model_calls": 5,
+      "epoch_model_calls": 4,
+      "all_complete": false
+    },
+    {
+      "epoch": 2,
+      "elapsed_nanos": 606514082363,
+      "epoch_delta_nanos": 483639943308,
+      "cumulative_model_calls": 17,
+      "epoch_model_calls": 12,
+      "all_complete": false
+    },
+    {
+      "epoch": 3,
+      "elapsed_nanos": 746499167430,
+      "epoch_delta_nanos": 139985085067,
+      "cumulative_model_calls": 21,
+      "epoch_model_calls": 4,
+      "all_complete": false
+    },
+    {
+      "epoch": 4,
+      "elapsed_nanos": 800407128154,
+      "epoch_delta_nanos": 53907960724,
+      "cumulative_model_calls": 25,
+      "epoch_model_calls": 4,
+      "all_complete": false
+    },
+    {
+      "epoch": 5,
+      "elapsed_nanos": 912698230259,
+      "epoch_delta_nanos": 112291102105,
+      "cumulative_model_calls": 29,
+      "epoch_model_calls": 4,
+      "all_complete": false
+    },
+    {
+      "epoch": 6,
+      "elapsed_nanos": 996077042873,
+      "epoch_delta_nanos": 83378812614,
+      "cumulative_model_calls": 33,
+      "epoch_model_calls": 4,
+      "all_complete": false
+    },
+    {
+      "epoch": 7,
+      "elapsed_nanos": 1046516775889,
+      "epoch_delta_nanos": 50439733016,
+      "cumulative_model_calls": 37,
+      "epoch_model_calls": 4,
+      "all_complete": false
+    },
+    {
+      "epoch": 8,
+      "elapsed_nanos": 1065420379705,
+      "epoch_delta_nanos": 18903603816,
+      "cumulative_model_calls": 41,
+      "epoch_model_calls": 4,
+      "all_complete": false
+    },
+    {
+      "epoch": 9,
+      "elapsed_nanos": 1080545549594,
+      "epoch_delta_nanos": 15125169889,
+      "cumulative_model_calls": 44,
+      "epoch_model_calls": 3,
+      "all_complete": true
+    }
+  ]
+}
