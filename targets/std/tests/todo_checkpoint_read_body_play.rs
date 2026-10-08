@@ -7,7 +7,7 @@ use conduit_plot::{
 use conduit_std_host::body_execution::{
     BodyForeExchange, BodyForeOutputAdapter, BodyRunRequest, TodoCheckpointSelection,
 };
-use conduit_std_host::todo_durable_resource::CheckpointIdentity;
+use conduit_std_host::todo_durable_resource::{CheckpointIdentity, MissingV2Disposition};
 use conduit_std_host::todo_durable_resource::{Refusal, SelectedTodoResidence};
 use conduit_std_host::{
     ExternalForeDelivery, ExternalForeInput, RunControl, StdHost, StdHostConfig, ThreadTimer,
@@ -38,11 +38,13 @@ fn identity() -> CheckpointIdentity {
         body: "body-1".into(),
         plot: "checked-todo-1".into(),
         workload: "todo-list-1".into(),
+        missing_v2: MissingV2Disposition::StartNewList,
     }
 }
 fn read_identity() -> CheckpointIdentity {
     CheckpointIdentity {
         plot: "checked-todo-restore-2".into(),
+        missing_v2: MissingV2Disposition::InspectLegacyWritePlot("checked-todo-1".into()),
         ..identity()
     }
 }
@@ -545,10 +547,11 @@ fn old_plot_keyed_checkpoint_requires_explicit_migration() {
         let (host, plan) = planned(Mode::Read, &root, 2);
         let placement = &plan.fragments[0].placements[0];
         let selected = placement.resources[0].content.as_ref().unwrap();
-        let checkpoint = identity();
+        let checkpoint = read_identity();
+        let old_write_plot = "checked-todo-1".to_string();
         let mut key = Vec::new();
         key.extend_from_slice(&selected.contract.identity.digest());
-        for part in [&checkpoint.body, &checkpoint.plot, &checkpoint.workload] {
+        for part in [&checkpoint.body, &old_write_plot, &checkpoint.workload] {
             key.extend_from_slice(&(part.len() as u16).to_le_bytes());
             key.extend_from_slice(part.as_bytes());
         }
@@ -564,6 +567,38 @@ fn old_plot_keyed_checkpoint_requires_explicit_migration() {
             Err(Refusal::MigrationRequired)
         );
         drop(host);
+        std::fs::remove_dir_all(root).unwrap();
+    });
+}
+#[test]
+fn fresh_v2_publication_requires_explicit_new_list_choice() {
+    on_body_stack(|| {
+        let root = root();
+        let (_, plan) = planned(Mode::Write, &root, 2);
+        let placement = plan.fragments[0]
+            .placements
+            .iter()
+            .find(|placement| {
+                placement.implementation_id.as_str()
+                    == conduit_std_offers::TODO_CHECKPOINT_IMPLEMENTATION
+            })
+            .unwrap();
+        let checkpoint = CheckpointIdentity {
+            missing_v2: MissingV2Disposition::Refuse,
+            ..identity()
+        };
+        let residence = SelectedTodoResidence::prepare(&root, placement, checkpoint).unwrap();
+        let first = TodoState::new("Groceries".into())
+            .unwrap()
+            .apply(&TodoCommand::Add {
+                text: "Buy milk".into(),
+            })
+            .unwrap();
+        assert_eq!(
+            residence.commit(&placement.authority[0], &first),
+            Err(Refusal::Missing)
+        );
+        assert_eq!(std::fs::read_dir(&root).unwrap().count(), 0);
         std::fs::remove_dir_all(root).unwrap();
     });
 }
