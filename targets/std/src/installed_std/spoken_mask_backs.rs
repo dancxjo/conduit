@@ -84,35 +84,6 @@ impl<const PORTS: usize> StepBack<PORTS> for PresentationTeeBack {
     }
 }
 
-#[cfg(test)]
-mod tee_tests {
-    use super::*;
-
-    #[test]
-    fn long_face_needs_its_admitted_cord_and_never_panics_on_pressure() {
-        let face = ValueRef {
-            slot: 0,
-            generation: 1,
-            byte_len: 36_648,
-        };
-        let input = StepInputBytes::test_frame([None], None);
-        let mut small = StepIo::test_frame([Some(face)], [false], [Some(16_384)], None, 8);
-        assert_eq!(
-            PresentationTeeBack.step(&mut small, &input),
-            StepOutcome::Fail(Failure {
-                code: FailureCode::StorageExhausted,
-                detail: 40,
-            })
-        );
-        let mut admitted = StepIo::test_frame([Some(face)], [false], [Some(64 * 1024)], None, 8);
-        assert_eq!(
-            PresentationTeeBack.step(&mut admitted, &input),
-            StepOutcome::Progress
-        );
-        assert_eq!(admitted.test_output(PortId(0)), Some(face));
-    }
-}
-
 fn tee_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     validate(
         placement,
@@ -542,5 +513,34 @@ pub(super) fn execute_artifact(
     } else {
         host.session.write_frame(input)?;
         Ok(None)
+    }
+}
+
+#[cfg(test)]
+mod tee_tests {
+    use super::*;
+
+    #[test]
+    fn long_face_needs_its_admitted_cord_and_never_panics_on_pressure() {
+        let face = ValueRef {
+            slot: 0,
+            generation: 1,
+            byte_len: 36_648,
+        };
+        let input = StepInputBytes::test_frame([None], None);
+        let mut small = StepIo::test_frame([Some(face)], [false], [Some(16_384)], None, 8);
+        assert_eq!(
+            PresentationTeeBack.step(&mut small, &input),
+            StepOutcome::Fail(Failure {
+                code: FailureCode::StorageExhausted,
+                detail: 40,
+            })
+        );
+        let mut admitted = StepIo::test_frame([Some(face)], [false], [Some(64 * 1024)], None, 8);
+        assert_eq!(
+            PresentationTeeBack.step(&mut admitted, &input),
+            StepOutcome::Progress
+        );
+        assert_eq!(admitted.test_output(PortId(0)), Some(face));
     }
 }
