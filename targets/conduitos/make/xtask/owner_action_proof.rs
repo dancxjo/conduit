@@ -155,8 +155,12 @@ fn prove(
 ) -> Result<Value, ConduitosError> {
     let (mut qmp, mut reader) =
         qmp::connect_traced(qmp_path, child, Some(&directory.join("qmp.jsonl")))?;
-    let (standby_part, standby_face) =
-        wait_for_standby(serial_path, child, Duration::from_secs(120))?;
+    let (standby_part, standby_face, return_route_available) = wait_for_standby(
+        serial_path,
+        child,
+        Duration::from_secs(120),
+        expected_todo.is_some(),
+    )?;
     if let Some(args) = expected_todo {
         if standby_part["body_id"] != args.expected_body_id {
             return Err(refusal("native-todo-face-body-mismatch"));
@@ -169,6 +173,35 @@ fn prove(
         qmp_display::capture(&mut qmp, &mut reader, directory, "owner-standby")?;
     if let Some(error) = health {
         return Err(error);
+    }
+    if let (Some(todo_face), false) = (&todo_face, return_route_available) {
+        if child
+            .try_wait()
+            .map_err(|error| ConduitosError::refusal("native-todo-face-qemu", error.to_string()))?
+            .is_some()
+        {
+            return Err(refusal("native-todo-face-guest-not-live-at-capture"));
+        }
+        return Ok(json!({
+            "schema":"conduit.conduitos/native-todo-face-proof@1",
+            "proof_class":"live-local-qmp-installed-owner-read-only",
+            "source_commit":route.source_identity,
+            "spore_build_id":route.build_id,
+            "spore_sha256":route.artifact_sha256,
+            "candidate_id":route.candidate_id,
+            "reachability":route.reachability,
+            "qemu_argv":qemu_args,
+            "guest_part":standby_part,
+            "owner_todo_face":todo_face,
+            "face_shown":standby_face,
+            "show_ack":null,
+            "native_return_route_available":false,
+            "interactions_admitted":false,
+            "screenshots":[standby_image],
+            "qemu_alive_at_capture":true,
+            "coordinated":false,
+            "mutations":0,
+        }));
     }
     if coordinate {
         write_checkpoint(
@@ -313,7 +346,8 @@ fn wait_for_standby(
     serial_path: &std::path::Path,
     child: &mut Child,
     timeout: Duration,
-) -> Result<(Value, Value), ConduitosError> {
+    allow_read_only: bool,
+) -> Result<(Value, Value, bool), ConduitosError> {
     let deadline = Instant::now() + timeout;
     loop {
         let serial = bounded_serial(serial_path)?;
@@ -325,15 +359,16 @@ fn wait_for_standby(
                 && value.get("interactions_admitted") == Some(&Value::Bool(false))
                 && value.get("local_show_available") == Some(&Value::Bool(true))
         });
+        let route_available = routes.iter().any(|value| {
+            value.get("status").and_then(Value::as_str) == Some("standby")
+                && value.get("activation").and_then(Value::as_str) == Some("F5")
+        });
         if serial.contains("CONDUIT_BOOT_STAGE front-door-ready")
-            && routes.iter().any(|value| {
-                value.get("status").and_then(Value::as_str) == Some("standby")
-                    && value.get("activation").and_then(Value::as_str) == Some("F5")
-            })
+            && (route_available || allow_read_only)
         {
             if let (Some(part), Some(shown)) = (part.last(), shown) {
                 if part.get("membership_installed") == Some(&Value::Bool(true)) {
-                    return Ok((part.clone(), shown.clone()));
+                    return Ok((part.clone(), shown.clone(), route_available));
                 }
             }
         }
