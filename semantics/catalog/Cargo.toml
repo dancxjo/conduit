@@ -24,11 +24,15 @@ conduit-plot = { path = "../../architecture/plot" }
 conduit-planner = { path = "../../architecture/planner", optional = true }
 serde = { version = "1", default-features = false, features = ["alloc", "derive"] }
 
+conduit-composite = { path = "../../architecture/composite", optional = true }
+conduit-plan-lowering = { path = "../../architecture/plan-lowering", optional = true, default-features = false }
+
 [dev-dependencies]
 conduit-planner = { path = "../../architecture/planner" }
 
 [features]
 kernel-step = ["dep:conduit-kernel"]
+kernel-operation-owners = ["kernel-step", "dep:conduit-composite", "dep:conduit-plan-lowering", "conduit-data/kernel-step"]
 default = ["plot-catalog"]
 plot-catalog = ["conduit-time/plot-catalog", "conduit-web/plot-catalog", "conduit-text/plot-catalog"]
 text-lab-plan = ["plot-catalog", "dep:conduit-planner"]

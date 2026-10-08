@@ -310,3 +310,9 @@ pub mod protocol_boot;
 /// select these explicitly; this does not include or adopt any model weights.
 #[cfg(all(feature = "fixed-numeric-owners", target_has_atomic = "ptr"))]
 pub use conduit_ai::operation_owners as fixed_numeric_owners;
+
+#[cfg(feature = "finite-value-owners")]
+pub use conduit_semantic_catalog::operation_owners as finite_value_owners;
+
+#[cfg(feature = "finite-value-owners")]
+pub mod finite_value;
