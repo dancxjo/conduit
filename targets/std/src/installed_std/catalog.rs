@@ -207,6 +207,10 @@ const FACTORIES: &[&BackFactory] = &[
     &DISTANCE_FREQUENCY_FACTORY,
     &AUDIO_TONE_FACTORY,
     &super::native_speech_back::FACTORY,
+    &super::ipa_constructor_back::PHONE,
+    &super::ipa_constructor_back::PHONETIC,
+    &super::ipa_constructor_back::PHONEME,
+    &super::ipa_constructor_back::PHONEMIC,
     #[cfg(test)]
     &TEST_FREQUENCY_SOURCE_FACTORY,
     #[cfg(test)]

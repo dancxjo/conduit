@@ -169,8 +169,8 @@ own laws cannot bypass nested record, variant-payload or collection-element
 laws. The preceding universal-phonetic checkpoint passed all 72 Speech library
 tests; earlier product catalog integration, targeted lint and thumbv6m no_std
 checks also passed. Those broader checks must run again on the final implementation. This is development evidence, not stable
-acceptance. Full quoted-transcription Source constructors remain unfinished; complete phonemic inventory resolution
-now has its own focused proof below. #5260 remains open and its PR a draft.
+acceptance. Qualified quoted-transcription Source constructors are now implemented
+in the candidate; their final integration proof is in progress. #5260 remains open and its PR a draft.
 
 
 The new `phonetic_from_ipa` preparation entrance accepts an exact quoted IPA
@@ -181,8 +181,8 @@ It requires no language or inventory. The existing profile-scoped entrance
 retains its complete supplied basis and explicit alias policy. `parse_located`
 underlines unsupported scalars, invalid mark order and ambiguous suffixes;
 capacity refusal underlines the first excess scalar without scanning an
-unbounded body. These are preparation APIs; public qualified Source constructor
-integration is still required before #5260 can close.
+unbounded body. The qualified Source Kinds below invoke these same preparation
+APIs; their final supported proof is required before #5260 can close.
 
 
 ### Phonemic resolution under development
@@ -204,8 +204,8 @@ parser's two display slashes within its 4096-byte limit.
 
 Five phonemic conformance tests pass, covering explicit long/short contrasts,
 complete-parse ambiguity, alias evidence, source spans, foreign revision and
-inventory substitution, unsupported bindings and capacity. Qualified Source
-constructors remain required; these preparation APIs do not implement `p/.../` or `r/.../`.
+inventory substitution, unsupported bindings and capacity. These preparation
+APIs and the qualified Source Kinds do not implement `p/.../` or `r/.../`.
 
 
 ### Public notation and terminal projection audit
@@ -244,3 +244,61 @@ The public-boundary rerun passes 13 tests: three authoring cases, the Language
 owner-law/ABI test, quoted-phone conformance and eight formant projection tests.
 The supported suite includes the new Language and formant coverage; its final
 run and broader checking are still in progress.
+
+
+### Qualified quoted constructor candidate
+
+The candidate installs four ordinary checked Speech Kinds:
+
+| Kind | Result | Explicit scope |
+| --- | --- | --- |
+| `speech/phone-from-ipa` | `SpeechPhoneNotation` | Universal single phone |
+| `speech/phonetic-from-ipa` | `SpeechPhoneticTranscription` | Universal transcription |
+| `speech/phoneme-from-ipa` | `SpeechPhonemeNotation` | One complete supplied inventory/basis |
+| `speech/phonemic-from-ipa` | `SpeechPhonemicTranscription` | One complete supplied inventory/basis |
+
+Each requires `request = {original: "…", provenance: …}`. Scoped constructors
+also require separate typed `inventory`, `basis`, `phone-bindings` and
+`phoneme-bindings` arguments. The basis retains the Language, Variety, revision
+and full notation profile. Separating these arguments preserves the existing
+Core nesting bound; no wrapper or ambient inventory is synthesized. The external
+Fore declares the same finite `262144B` envelope as the selected constructor.
+
+See the ordinary [phonetic Source](../../semantics/speech/examples/ipa/quoted-transcriptions.conduit)
+and [explicit phonemic Source](../../semantics/speech/examples/ipa/quoted-phonemic.conduit).
+Invocations use the currently supported single-line syntax. Delimiters are
+produced display data, rather than the identity of the checked value.
+
+Concrete Source checking executes the same domain preparation as the installed
+std Back. Parameterized startup remains unresolved until concrete preparation;
+a checked reusable Plot is not an executed inventory-membership receipt. The
+immutable planned arguments retain the actual inventory used for resolution.
+Native decoding of a candidate value alone remains distinct from admission.
+
+Plot supplies a bounded quoted-Text source map using its existing five-escape
+decoder. IPA body spans map back to original quoted bytes; an invalid decoded
+newline underlines its authored `\n`. Scope failures point to their explicit
+basis fields. The product source boundary and human/JSON `conduit check` both
+invoke this domain check. Speech parsing remains outside the generic parser.
+
+Installed constructors revalidate the exact offer/front/revision/artifact,
+semantic contract, typed arguments and finite encoded output. Parsing, inventory
+resolution and encoding happen before Play. The existing structured-literal
+Back emits one prepared typed Value and retains it while output is pressured;
+it introduces no Host Calls, timer, playback, grants or parser allocation in Step.
+
+The supported `cargo xtask check speech-ipa` suite now includes these Source,
+installed-host, pressure and product-diagnostic contracts. The two focused installed-Back tests pass (exact offer/configuration refusal and
+pressure with one emission). The three Source conformance cases pass in a narrow
+diagnostic linked to the rebuilt libraries; normal Cargo and final supported
+results are still pending. Existing lossless CST and highlighter checks cover quoted Unicode.
+No `.conduit` formatter is available in the current product; CST round-trip is
+source custody, not a formatter-idempotence claim. Rust formatting is checked
+separately. Optional notation formatter conformance remains with #5317.
+
+
+Native binding generation now imports the same checked Language owner contracts
+as public authoring. The prior shape-only build basis produced different exact
+Speech inventory schema identities, correctly refused by configuration admission.
+The corrected schema IDs include the same owner laws on both paths. Older
+shape-only identities refuse rather than being coerced into the checked basis.

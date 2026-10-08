@@ -72,8 +72,11 @@ impl CanonicalSource {
         if let Some(diagnostic) = self.syntax.diagnostics.first() {
             return Err(format!("{}: {}", diagnostic.code, diagnostic.message));
         }
-        conduit_plot::check_syntax_document(&self.syntax, &self.startup)
-            .map_err(|diagnostic| format!("{}: {}", diagnostic.code, diagnostic.message))
+        let checked = conduit_plot::check_syntax_document(&self.syntax, &self.startup)
+            .map_err(|diagnostic| format!("{}: {}", diagnostic.code, diagnostic.message))?;
+        conduit_speech::ipa_constructors::validate_source(&self.syntax, &checked)
+            .map_err(|diagnostic| diagnostic.to_string())?;
+        Ok(checked)
     }
 
     pub(crate) fn expand_entry(&self) -> Result<ExpandedCanonicalPlot, String> {
@@ -123,6 +126,7 @@ fn standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), String> {
     conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profiles)?;
     conduit_speech::kernel::install(&mut startup, &mut profiles)?;
     conduit_speech::authoring::install(&mut startup)?;
+    conduit_speech::ipa_constructors::install(&mut startup, &mut profiles)?;
     conduit_text::install_morse_catalogs(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_indicator_presentation_catalog(&mut startup, &mut profiles)?;
     conduit_time::install_tick_catalog(&mut startup, &mut profiles)?;
@@ -200,6 +204,24 @@ mod tests {
         );
         let invalid = parse(&source.source.replace("tʰ", "p_aspirated")).unwrap();
         assert!(invalid.expand_entry_for_authoring().is_err());
+    }
+
+    #[test]
+    fn product_checks_qualified_quoted_transcriptions_and_located_refusals() {
+        for text in [
+            include_str!("../../../semantics/speech/examples/ipa/quoted-transcriptions.conduit"),
+            include_str!("../../../semantics/speech/examples/ipa/quoted-phonemic.conduit"),
+        ] {
+            let source = parse(text).unwrap();
+            assert!(source.expand_entry_for_authoring().is_ok());
+        }
+        let invalid = parse(
+            &include_str!("../../../semantics/speech/examples/ipa/quoted-transcriptions.conduit")
+                .replace("ˈt͡ʃãː.n̩", r"t͡ʃ\n"),
+        )
+        .unwrap();
+        let error = invalid.check().unwrap_err();
+        assert!(error.contains("CND-SPC-IPA at 5:"), "{error}");
     }
 
     #[test]

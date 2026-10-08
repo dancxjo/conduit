@@ -7,12 +7,24 @@ use std::path::Path;
 pub(crate) fn run(path: &Path, json: bool) -> Result<bool, String> {
     let document = crate::plot_source::load(path)?;
     let diagnostics = if document.syntax.diagnostics.is_empty() {
-        conduit_plot::check_syntax_document(&document.syntax, &document.startup)
-            .err()
-            .map(|diagnostic| structured(&document.source, &diagnostic))
-            .transpose()?
-            .into_iter()
-            .collect::<Vec<_>>()
+        let diagnostic =
+            match conduit_plot::check_syntax_document(&document.syntax, &document.startup) {
+                Err(diagnostic) => Some(structured(&document.source, &diagnostic)?),
+                Ok(checked) => {
+                    conduit_speech::ipa_constructors::validate_source(&document.syntax, &checked)
+                        .err()
+                        .map(|diagnostic| {
+                            structured_parts(
+                                &document.source,
+                                "CND-SPC-IPA",
+                                &format!("{:?}", diagnostic.cause.refusal),
+                                diagnostic.span,
+                            )
+                        })
+                        .transpose()?
+                }
+            };
+        diagnostic.into_iter().collect::<Vec<_>>()
     } else {
         document
             .syntax

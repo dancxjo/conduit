@@ -1,22 +1,38 @@
 use crate::prelude::*;
 
 pub(crate) fn parse_quoted_text(source: &str) -> Option<String> {
+    parse_quoted_text_mapped(source, usize::MAX, |_, _| {})
+}
+
+pub(crate) fn parse_quoted_text_mapped(
+    source: &str,
+    maximum: usize,
+    mut mapped: impl FnMut(core::ops::Range<usize>, core::ops::Range<usize>),
+) -> Option<String> {
     let body = source.strip_prefix('"')?.strip_suffix('"')?;
-    let mut decoded = String::with_capacity(body.len());
-    let mut chars = body.chars();
-    while let Some(character) = chars.next() {
-        if character != '\\' {
-            decoded.push(character);
-            continue;
+    let mut decoded = String::with_capacity(body.len().min(maximum));
+    let mut chars = body.char_indices();
+    while let Some((start, character)) = chars.next() {
+        let (character, end) = if character == '\\' {
+            let (offset, escaped) = chars.next()?;
+            let character = match escaped {
+                '"' => '"',
+                '\\' => '\\',
+                'n' => '\n',
+                'r' => '\r',
+                't' => '\t',
+                _ => return None,
+            };
+            (character, offset + escaped.len_utf8())
+        } else {
+            (character, start + character.len_utf8())
+        };
+        let decoded_start = decoded.len();
+        if decoded_start.checked_add(character.len_utf8())? > maximum {
+            return None;
         }
-        decoded.push(match chars.next()? {
-            '"' => '"',
-            '\\' => '\\',
-            'n' => '\n',
-            'r' => '\r',
-            't' => '\t',
-            _ => return None,
-        });
+        decoded.push(character);
+        mapped(decoded_start..decoded.len(), start + 1..end + 1);
     }
     Some(decoded)
 }
