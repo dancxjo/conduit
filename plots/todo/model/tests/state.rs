@@ -76,6 +76,27 @@ fn exact_typed_combine_kind() {
         kind.outputs[0].value_kind.as_str(),
         conduit_todo_plot::TODO_STATE_INFO_ID
     );
+    let contracts = kind
+        .semantic_laws
+        .iter()
+        .find_map(|law| match law {
+            conduit_core::KindSemanticLaw::ValueContracts(contracts) => Some(contracts),
+            _ => None,
+        })
+        .unwrap();
+    assert_eq!(contracts.len(), 3);
+    assert_eq!(
+        contracts[0].contract.maximum_bytes,
+        conduit_todo_plot::STATE_MAX_BYTES as u32
+    );
+    assert_eq!(
+        contracts[1].contract.maximum_bytes,
+        conduit_todo_plot::COMMAND_MAX_BYTES as u32
+    );
+    assert_eq!(
+        contracts[2].contract.maximum_bytes,
+        conduit_todo_plot::STATE_MAX_BYTES as u32
+    );
 }
 
 #[test]
