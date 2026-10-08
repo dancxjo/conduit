@@ -194,3 +194,16 @@ fn each_factored_target_component_actually_native_roundtrips() {
         .unwrap(),
     );
 }
+
+#[path = "common_acoustic/probability_parent_law.rs"]
+mod probability_parent_law;
+#[test]
+fn variable_and_gradient_cannot_reinject_invalid_known_parent_through_evidence() {
+    for candidate in probability_parent_law::forged_candidates() {
+        for field in ["voicing_probability", "periodicity"] {
+            let original = evidence(0, 1).into_structured().unwrap();
+            let forged = probability_parent_law::replace_record(original, field, candidate.clone());
+            assert!(prepare_speech_acoustic_evidence(&forged.canonical_bytes().unwrap()).is_err());
+        }
+    }
+}

@@ -181,3 +181,29 @@ fn independent_voicing_and_periodicity_controls_overlap_without_aliasing() {
     reproduce(ar.executions());
     reproduce(br.executions());
 }
+
+#[path = "common_acoustic/probability_parent_law.rs"]
+mod probability_parent_law;
+#[test]
+fn variable_and_gradient_cannot_reinject_invalid_known_parent_through_curve() {
+    use conduit_core::{StructuredInfoValue, StructuredInfoValueShape};
+    for candidate in probability_parent_law::forged_candidates() {
+        let curve = probability_curve(vec![probability_segment(
+            0,
+            1,
+            SpeechProbabilitySpecification::Unknown,
+            AudioTrajectoryInterpolation::Step,
+        )])
+        .into_structured()
+        .unwrap();
+        let segments = conduit_plot::rust_binding::record_field_value(&curve, "segments").unwrap();
+        let StructuredInfoValueShape::Collection(values) = segments.shape() else {
+            unreachable!()
+        };
+        let segment = probability_parent_law::replace_record(values[0].clone(), "value", candidate);
+        let segments =
+            StructuredInfoValue::sequence(segments.value_type().clone(), vec![segment]).unwrap();
+        let curve = probability_parent_law::replace_record(curve, "segments", segments);
+        assert!(prepare_speech_probability_step_curve(&curve.canonical_bytes().unwrap()).is_err());
+    }
+}
