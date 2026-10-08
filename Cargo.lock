@@ -1371,6 +1371,7 @@ version = "0.1.0"
 dependencies = [
  "conduit-alife",
  "conduit-audio",
+ "conduit-composite",
  "conduit-core",
  "conduit-data",
  "conduit-education",
@@ -1378,6 +1379,7 @@ dependencies = [
  "conduit-kernel",
  "conduit-midi",
  "conduit-net",
+ "conduit-plan-lowering",
  "conduit-planner",
  "conduit-plot",
  "conduit-presentation",
