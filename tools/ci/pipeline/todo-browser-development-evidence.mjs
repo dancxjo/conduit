@@ -11,7 +11,8 @@ const FILES = ['browser-after.png', 'browser-before.png', 'browser-card-after.pn
   'long-list-spoken-proof.json', 'long-list-spoken-same-play.wav',
   'long-list-spoken-status.json', 'long-list-terminal-summary.json',
   'read-only-card-receipt.json', 'receipt.json',
-  'todo-20-card.png', 'todo-20-full.png'];
+  'todo-20-card.png', 'todo-20-full.png', 'todo-native-fork-label.json',
+  'todo-native-read-only-receipt.json', 'todo-native-read-only.png'];
 const sha = bytes => `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
 const commit = value => /^[a-f0-9]{40}$/.test(value ?? '');
 
@@ -39,6 +40,8 @@ export function retainedTodoBrowserDevelopmentEvidence(root = TODO_BROWSER_DEVEL
   const detail = JSON.parse(bytes('long-list-requested-detail-proof.json'));
   const detailPlay = JSON.parse(bytes('long-list-requested-detail-playback.json'));
   const detailTurn = JSON.parse(bytes('long-list-requested-detail-turn.json'));
+  const native = JSON.parse(bytes('todo-native-read-only-receipt.json'));
+  const nativeFork = JSON.parse(bytes('todo-native-fork-label.json'));
   if (!commit(publicationCommit) || !commit(action.owner_source_commit)
       || !commit(action.browser_runtime_source_commit)
       || action.schema !== 'conduit.proof/todo-owner-browser@1'
@@ -128,9 +131,40 @@ export function retainedTodoBrowserDevelopmentEvidence(root = TODO_BROWSER_DEVEL
       || detailWav.length !== detailPlay.same_play_capture?.wav_bytes) {
     throw new Error('Todo requested detail is not one completed same-Body speaker Play');
   }
+  const nativePng = bytes('todo-native-read-only.png');
+  const nativeImage = native.screenshots?.[0];
+  if (native.schema !== 'conduit.conduitos/native-todo-face-proof@1'
+      || native.proof_class !== 'live-local-qmp-installed-owner-read-only'
+      || nativeFork.schema !== 'conduit.proof/todo-native-fork-label@1'
+      || nativeFork.proof_class !== 'forked-state-copy-local-qmp'
+      || native.guest_part?.body_id !== action.body_id
+      || nativeFork.body_id !== action.body_id
+      || !commit(native.source_commit) || !commit(nativeFork.harness_source_commit)
+      || native.source_commit !== nativeFork.product_source_commit
+      || native.owner_todo_face?.body_id !== action.body_id
+      || native.owner_todo_face?.face_id !== native.face_shown?.face_id
+      || native.owner_todo_face?.face_revision !== native.face_shown?.face_revision
+      || native.owner_todo_face?.item_count !== 20
+      || native.owner_todo_face?.status !== '3 things left · 17 completed'
+      || native.face_shown?.status !== 'shown'
+      || native.face_shown?.local_show_available !== true
+      || native.face_shown?.owner_show_acknowledged !== false
+      || native.face_shown?.interactions_admitted !== false
+      || native.native_return_route_available !== false
+      || native.interactions_admitted !== false || native.mutations !== 0
+      || nativeFork.native_actions !== 0
+      || nativeFork.owner_return_route_available !== false
+      || nativeFork.original_checkpoint_hash_mismatches !== 0
+      || native.qemu_alive_at_capture !== true
+      || nativeImage?.png !== 'owner-standby.png'
+      || nativeImage?.png_sha256 !== sha(nativePng).slice(7)
+      || nativeImage?.png_bytes !== nativePng.length
+      || nativeImage?.width !== 1280 || nativeImage?.height !== 800) {
+    throw new Error('Todo native QMP evidence is not a matching read-only forked Face');
+  }
   for (const source of [action.owner_source_commit, action.browser_runtime_source_commit,
     longList.owner_source_commit, longListBrowser.owner_source_identity, spoken.source_identity,
-    detail.release_source_identity]) {
+    detail.release_source_identity, native.source_commit, nativeFork.harness_source_commit]) {
     try { execFileSync('git', ['merge-base', '--is-ancestor', source, publicationCommit]); }
     catch { throw new Error('Todo browser capture source is absent from publication ancestry'); }
   }
@@ -163,6 +197,8 @@ export function retainedTodoBrowserDevelopmentEvidence(root = TODO_BROWSER_DEVEL
       || !page.includes(longListBrowser.owner_source_identity.slice(0, 9))
       || !page.includes(spoken.source_identity.slice(0, 9))
       || !page.includes(detail.release_source_identity.slice(0, 9))
+      || !page.includes(native.source_commit.slice(0, 9))
+      || !page.includes(nativeFork.harness_source_commit.slice(0, 9))
       || !page.includes('This WAV captures the audio delivered by the completed selected-speaker Play')) {
     throw new Error('Todo browser development page overclaims its capture');
   }
@@ -177,5 +213,6 @@ export function retainedTodoBrowserDevelopmentEvidence(root = TODO_BROWSER_DEVEL
     browserRuntimeCommit: action.browser_runtime_source_commit, bodyId: action.body_id,
     longListActionsCommit: longList.owner_source_commit,
     longListBrowserCommit: longListBrowser.owner_source_identity,
-    spokenCommit: spoken.source_identity, detailCommit: detail.release_source_identity };
+    spokenCommit: spoken.source_identity, detailCommit: detail.release_source_identity,
+    nativeCommit: native.source_commit, nativeHarnessCommit: nativeFork.harness_source_commit };
 }

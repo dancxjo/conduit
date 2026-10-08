@@ -1,0 +1,21 @@
+{
+  "schema": "conduit.proof/todo-native-fork-label@1",
+  "proof_class": "forked-state-copy-local-qmp",
+  "product_source_commit": "2924980b11a30466aa110904472e4659cd7439cc",
+  "harness_source_commit": "2086faa0c866bcc85d1de6cd5389bc3bc96d72eb",
+  "body_id": "335e956d4370f3373b62cdef8a6990b4a1ed414cd693f3d8ee92403b5fcff287",
+  "original_state": "/home/dancxjo/conduit-todo-browser-proof/attempt-5/host-state",
+  "fork_state": "/home/dancxjo/Documents/Codex/2026-10-08/todo-native-qmp-ee60-fork-1/host-state-fork3",
+  "original_checkpoint_root": "/home/dancxjo/conduit-todo-browser-proof/attempt-5/checkpoints",
+  "original_checkpoint_hash_manifest": "/home/dancxjo/Documents/Codex/2026-10-08/todo-native-qmp-ee60-fork-1/original-checkpoints-before.sha256",
+  "original_checkpoint_hash_mismatches": 0,
+  "qmp_receipt": "/home/dancxjo/Documents/Codex/2026-10-08/todo-native-qmp-ee60-fork-1/n2/owner-todo-face-proof.json",
+  "screenshot": "/home/dancxjo/Documents/Codex/2026-10-08/todo-native-qmp-ee60-fork-1/n2/owner-standby.png",
+  "native_actions": 0,
+  "owner_return_route_available": false,
+  "limitations": [
+    "forked Body state copy, not continuous original live owner",
+    "native screenshot shows viewport subset of 20 semantic Todo items",
+    "no native action or return Show acknowledgement"
+  ]
+}

@@ -66,6 +66,13 @@
       <figcaption>The browser shows the same Groceries list after terminal mutations: three open, seventeen completed. Completed items are visually subordinate.</figcaption>
     </figure>
     <p>The <a href="todo-20-full.png">full-page screenshot</a> shows this card in the browser workspace. The <a href="long-list-terminal-summary.json">terminal summary</a> records all twenty items and their completion flags; the <a href="long-list-browser-receipt.json">browser receipt</a> records its matching Body, Face, counts, and screenshot hashes. Terminal actions used source <code>88f187fdb</code>; the rejoined owner and browser both used source <code>459e672cb</code>. This proves durable cross-Mask state across a fresh Boot. It does not claim a browser action in the long-list capture or a native graphical view of that list.</p>
+    <h2>See the list on ConduitOS</h2>
+    <p>A read-only ConduitOS guest joined a labeled fork of that retained Body state. Its native Face shows Groceries, the three unfinished items, and the same progress count. The native viewport shows those three items; the matching Owner Face receipt contains all twenty semantic items.</p>
+    <figure>
+      <img src="todo-native-read-only.png" width="1280" height="800" loading="lazy" alt="Live QMP capture of the ConduitOS native Todo Face showing Groceries, items 18 through 20, and three things left with seventeen completed">
+      <figcaption>Actual QMP screenshot from a live ConduitOS guest. It is a read-only Face on a forked state copy, with no admitted native action return route or Owner Show acknowledgement.</figcaption>
+    </figure>
+    <p>The <a href="todo-native-read-only-receipt.json">QMP receipt</a> binds the guest Body, Boot, Face and Show to an independent installed Owner Face read and the PNG hash. The <a href="todo-native-fork-label.json">fork label</a> records source <code>2924980b1</code>, separate harness source <code>2086faa0c</code>, zero native mutations, and unchanged original checkpoint hashes. This proves native presentation of the copied Body state; it does not prove a native action or continuous use of the original Owner process.</p>
     <h2>Hear what remains</h2>
     <p>The direct spoken Mask then encountered this same persisted Body on a fresh installed Host Boot. It opened with the list name and counts, followed by only the three unfinished items: “Groceries. 3 things left · 17 completed Long-list item 18. Long-list item 19. Long-list item 20.” It did not recite the seventeen completed items or internal proof identities.</p>
     <audio controls preload="none" src="long-list-spoken-same-play.wav">Download the <a href="long-list-spoken-same-play.wav">selected-speaker WAV</a>.</audio>
@@ -73,7 +80,7 @@
     <h2>Ask for the unfinished items</h2>
     <p>On a later Boot of the same Body, the screen-free listener waited for the opening to finish and entered <code>read current items</code>. The next Play read only “Long-list item 18, item. Long-list item 19, item. Long-list item 20, item.” This is a separate Face and Show after a release upgrade, but the same retained Body and list state. No Todo mutation was issued in this step.</p>
     <audio controls preload="none" src="long-list-requested-detail-same-play.wav">Download the <a href="long-list-requested-detail-same-play.wav">requested-items WAV</a>.</audio>
-    <p>The <a href="long-list-requested-detail-proof.json">detail proof</a>, <a href="long-list-requested-detail-playback.json">completed selected-speaker Play receipt</a>, and <a href="long-list-requested-detail-turn.json">completed turn receipt</a> bind those three spoken segments to this actual WAV. The detail run used source <code>c49b89b58</code>. Model-assisted speech, native graphical presentation, a single complete journey bundle, and stable publication remain separate proof steps.</p>
+    <p>The <a href="long-list-requested-detail-proof.json">detail proof</a>, <a href="long-list-requested-detail-playback.json">completed selected-speaker Play receipt</a>, and <a href="long-list-requested-detail-turn.json">completed turn receipt</a> bind those three spoken segments to this actual WAV. The detail run used source <code>c49b89b58</code>. Model-assisted speech, an actionable native Show, a single complete journey bundle, and stable publication remain separate proof steps.</p>
   </main>
 </body>
 </html>
