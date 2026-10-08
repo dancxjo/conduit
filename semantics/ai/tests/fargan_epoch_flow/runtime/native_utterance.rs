@@ -42,7 +42,9 @@ pub(in super::super) fn run_native_trained_utterance(
         super::super::feature_cycle::prepare_feedback_with(context, seeded);
     let (context, tail, _, mut offers) = super::super::feature_cycle::prepare_tail(context, &ids);
     offers.extend(seeded.offers().cloned());
-    let source = super::super::feature_cycle::native_utterance_source(&ids, &tail);
+    let (context, source, entry, trace_directory) =
+        super::native_trace::prepare_source(context, &ids, &tail);
+    let analysis = analysis_resources();
     let mut startup_material = tape.immutable_material.clone();
     startup_material.extend_from_slice(include_bytes!(
         "../../../../speech/fargan_native_control.conduit"
@@ -60,13 +62,36 @@ pub(in super::super) fn run_native_trained_utterance(
     for value in [proposal].into_iter().chain(warm) {
         startup_material.extend_from_slice(&value.canonical_bytes().unwrap());
     }
+    if trace_directory.is_some() {
+        // The traced session additionally retains the exact analytic parameter
+        // resources and grants; these are never discovered during Play.
+        for (name, resource) in &analysis {
+            let grant = super::super::fixtures::access(resource.tensor());
+            let fields: Vec<(&str, Vec<u8>)> = vec![
+                ("name", name.as_bytes().to_vec()),
+                (
+                    "exact_source_type",
+                    resource.value_type.canonical_bytes().unwrap(),
+                ),
+                ("full_analytic_content", resource.bytes.to_vec()),
+                ("complete_read_grant", format!("{grant:?}").into_bytes()),
+            ];
+            for (name, bytes) in fields {
+                startup_material.extend_from_slice(&(name.len() as u64).to_le_bytes());
+                startup_material.extend_from_slice(name.as_bytes());
+                startup_material.extend_from_slice(&(bytes.len() as u64).to_le_bytes());
+                startup_material.extend_from_slice(&bytes);
+            }
+        }
+    }
     let basis = model.basis_material(
         &source,
         &startup_material,
         b"Source finite native63 epochs, two explicit continuation epochs; reference float32",
     );
     use sha2::{Digest, Sha256};
-    let anchor = super::super::custody::anchor_literal(model, Sha256::digest(&basis).into());
+    let basis_identity: [u8; 32] = Sha256::digest(&basis).into();
+    let anchor = super::super::custody::anchor_literal(model, basis_identity);
     let source = source
         .replace(
             "selected: FarganModelFrameAnchor\n",
@@ -186,17 +211,18 @@ pub(in super::super) fn run_native_trained_utterance(
         ),
         ("events".into(), events),
     ]);
-    let (plan, context) = super::super::prepare_authored_epoch_entry(
-        context,
-        source.clone(),
-        "speech/flow-fargan-native-utterance",
-        true,
-        offers,
-    )
-    .unwrap();
+    let (plan, context) =
+        super::super::prepare_authored_epoch_entry(context, source.clone(), entry, true, offers)
+            .unwrap();
     if let Ok(directory) = std::env::var("CONDUIT_FARGAN_NATIVE_OUTPUT") {
         let directory = std::path::PathBuf::from(directory);
         std::fs::create_dir_all(&directory).unwrap();
+        std::fs::write(directory.join("session-basis.bin"), &basis).unwrap();
+        std::fs::write(directory.join("bound-epoch-source.conduit"), &source).unwrap();
+        std::fs::write(directory.join("plan-debug.txt"), format!("{plan:#?}")).unwrap();
+    }
+    if let Some(directory) = &trace_directory {
+        std::fs::create_dir_all(directory).unwrap();
         std::fs::write(directory.join("session-basis.bin"), &basis).unwrap();
         std::fs::write(directory.join("bound-epoch-source.conduit"), &source).unwrap();
         std::fs::write(directory.join("plan-debug.txt"), format!("{plan:#?}")).unwrap();
@@ -206,22 +232,49 @@ pub(in super::super) fn run_native_trained_utterance(
         .iter()
         .map(|(name, value)| (name.clone(), NativeRuntimeResource::Model(value)))
         .collect::<BTreeMap<_, _>>();
-    for (name, resource) in analysis_resources() {
+    for (name, resource) in analysis {
         assert!(resources
             .insert(name, NativeRuntimeResource::Analysis(resource))
             .is_none());
     }
     assert_eq!(resources.len(), 36);
-    let result = run_epoch_stream_plan(
+    let traces = trace_directory
+        .as_ref()
+        .map(|_| super::native_trace::sinks(&context, &source, model, basis_identity));
+    let result = run_epoch_stream_plan_with_trace(
         plan,
         &context,
         &resources,
         inputs,
         Some(seeded),
-        64,
-        ExecutionMode::Normal,
+        StreamRun {
+            expected: 64,
+            mode: ExecutionMode::Normal,
+            trace: traces.as_ref(),
+        },
     )
     .unwrap();
+    if let (Some(directory), Some(traces)) = (&trace_directory, &traces) {
+        assert_eq!(result.scheduler_step_allocations, 0);
+        assert_eq!(result.prepared_expression_allocations, 0);
+        super::native_trace::write(directory, traces, proposal, warm);
+        let metrics = serde_json::json!({
+            "original_committed_handoff_sha256":"d4be97a0c8350c72df496cae35f817dd617e449157dbe6a25e5dbda79eee2c89",
+            "spoken_ordinals":[0],"complete_greeting":false,"native_epochs":63,"model_rows":64,"source_continuation_epochs":2,
+            "source_sha256":format!("{:x}", Sha256::digest(source.as_bytes())),
+            "private_basis_sha256":format!("{:x}", Sha256::digest(&basis)),
+            "nodes":result.nodes,"cords":result.cords,"drained":result.drained,
+            "preparation_seconds":result.preparation.as_secs_f64(),"execution_seconds":result.execution.as_secs_f64(),
+            "scheduler_step_allocations":result.scheduler_step_allocations,
+            "prepared_expression_allocations":result.prepared_expression_allocations,
+            "whole_target_noheap":false,"boot_execution":false,"physical_playback":false,"listening_acceptance":false,
+        });
+        std::fs::write(
+            directory.join("execution-metrics.json"),
+            serde_json::to_vec_pretty(&metrics).unwrap(),
+        )
+        .unwrap();
+    }
     assert!(result.drained);
     assert_eq!(result.values.len(), 64);
     eprintln!(
