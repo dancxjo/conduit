@@ -1,3 +1,7 @@
+#[cfg(test)]
+#[path = "../../../semantics/presentation/tests/common/mod.rs"]
+mod mask_test_common;
+
 mod birth_identity;
 mod body_face_json;
 mod body_product;
