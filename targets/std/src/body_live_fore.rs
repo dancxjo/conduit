@@ -201,8 +201,7 @@ impl BodyLiveForeQueue {
         }
         conduit_todo_plot::TodoState::decode_info(&current)
             .map_err(|error| format!("waiting checkpoint current: {error:?}"))?;
-        let mut slots = Vec::with_capacity(1);
-        slots.push(Vec::with_capacity(command.byte_capacity as usize));
+        let slots = vec![Vec::with_capacity(command.byte_capacity as usize)];
         Ok(Self {
             plan_id: plan.plan_id.clone(),
             port: (*command).clone(),

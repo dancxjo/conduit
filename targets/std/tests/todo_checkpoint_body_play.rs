@@ -2,6 +2,7 @@ use conduit_body::{Body, BodyPlan, BodyPlotPlan, ResidentPlot};
 use conduit_core::*;
 use conduit_std_host::body_execution::{
     BodyForeExchange, BodyForeOutputAdapter, BodyRunRequest, TodoCheckpointSelection,
+    WaitingTodoFore,
 };
 use conduit_std_host::todo_durable_resource::{
     CheckpointIdentity, MissingV2Disposition, SelectedTodoResidence, READ_OPERATION,
@@ -443,8 +444,10 @@ fn command_arrives_after_started_play_and_commits_once() {
                         control: &control,
                         keyboard: None,
                     },
-                    &queue,
-                    &mut captured,
+                    WaitingTodoFore {
+                        queue: &queue,
+                        output: &mut captured,
+                    },
                     TodoCheckpointSelection {
                         root: &root,
                         identity: checkpoint_identity(),
@@ -513,8 +516,10 @@ fn refused_start_cannot_publish_waiting_checkpoint() {
                         control: &control,
                         keyboard: None
                     },
-                    &queue,
-                    &mut captured,
+                    WaitingTodoFore {
+                        queue: &queue,
+                        output: &mut captured,
+                    },
                     TodoCheckpointSelection {
                         root: &root,
                         identity: checkpoint_identity()
@@ -564,8 +569,10 @@ fn cancelled_wait_has_no_command_effect_or_committed_delivery() {
                         control: &control,
                         keyboard: None,
                     },
-                    &queue,
-                    &mut captured,
+                    WaitingTodoFore {
+                        queue: &queue,
+                        output: &mut captured,
+                    },
                     TodoCheckpointSelection {
                         root: &root,
                         identity: checkpoint_identity(),
@@ -639,8 +646,10 @@ fn elapsed_wait_refuses_without_publishing() {
                         control: &control,
                         keyboard: None,
                     },
-                    &queue,
-                    &mut captured,
+                    WaitingTodoFore {
+                        queue: &queue,
+                        output: &mut captured,
+                    },
                     TodoCheckpointSelection {
                         root: &root,
                         identity: checkpoint_identity(),

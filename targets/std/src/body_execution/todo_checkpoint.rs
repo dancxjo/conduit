@@ -2,9 +2,9 @@
 
 use super::{
     BodyForeExchange, BodyForeOutputAdapter, BodyRunReport, BodyRunRequest, LiveForeTerminalGuard,
-    TodoCheckpointSelection,
+    TodoCheckpointSelection, WaitingTodoFore,
 };
-use crate::{BodyLiveForeQueue, StdHost, TimerAdapter};
+use crate::{StdHost, TimerAdapter};
 use conduit_body::{BodyPlayIdentity, Wake};
 use std::{io::Write, path::Path};
 
@@ -123,8 +123,7 @@ impl StdHost {
     pub fn run_body_plan_with_waiting_todo_checkpoint_to_with_start<W: Write, T: TimerAdapter, F>(
         &mut self,
         request: BodyRunRequest<'_>,
-        queue: &BodyLiveForeQueue,
-        fore_output: &mut dyn BodyForeOutputAdapter,
+        fore: WaitingTodoFore<'_>,
         checkpoint: TodoCheckpointSelection<'_>,
         output: &mut W,
         timer: &mut T,
@@ -133,8 +132,8 @@ impl StdHost {
     where
         F: FnMut(&BodyPlayIdentity, &Wake) -> Result<(), String>,
     {
-        let _live_guard = LiveForeTerminalGuard(Some(queue));
-        if queue.initial().is_none() {
+        let _live_guard = LiveForeTerminalGuard(Some(fore.queue));
+        if fore.queue.initial().is_none() {
             return Err("waiting checkpoint requires an admitted current state".into());
         }
         self.require_selected_todo_checkpoint_root(checkpoint.root)?;
@@ -145,7 +144,7 @@ impl StdHost {
             None,
             None,
             None,
-            Some((queue, fore_output)),
+            Some((fore.queue, fore.output)),
             Some((checkpoint.root, checkpoint.identity)),
             started,
         )

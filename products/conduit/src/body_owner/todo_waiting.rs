@@ -9,7 +9,7 @@ use conduit_core::{
 };
 use conduit_presentation::{FaceInteraction, FaceInteractionId, MaskShow};
 use conduit_std_host::body_execution::{
-    BodyForeOutputAdapter, BodyRunReport, BodyRunRequest, TodoCheckpointSelection,
+    BodyForeOutputAdapter, BodyRunReport, BodyRunRequest, TodoCheckpointSelection, WaitingTodoFore,
 };
 use conduit_std_host::todo_durable_resource::{CheckpointIdentity, MissingV2Disposition};
 use conduit_std_host::{
@@ -196,8 +196,10 @@ impl Owner {
                         control: &worker_control,
                         keyboard: None,
                     },
-                    &worker_queue,
-                    &mut fore,
+                    WaitingTodoFore {
+                        queue: &worker_queue,
+                        output: &mut fore,
+                    },
                     TodoCheckpointSelection {
                         root: &checkpoint_root,
                         identity,

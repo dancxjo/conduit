@@ -2,36 +2,21 @@
 
 use conduit_composite::{KernelOperationBudget, KernelOperationFactory};
 use conduit_core::{
-    ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
-    ImplementationId, PlannedGear, PlannedScanActivation, PortDirection, PortTemporal,
+    CapabilityOffer, ImplementationId, PlannedGear, PlannedScanActivation, PortDirection,
+    PortTemporal,
 };
 use conduit_kernel::{scheduler::StepBack, HostedValueStore};
 use conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 use conduit_todo_plot::{
-    todo_combine_kind, TodoCombineBack, COMMAND_MAX_BYTES, STATE_MAX_BYTES, TODO_COMBINE_KIND,
-    TODO_COMBINE_REVISION,
+    TodoCombineBack, COMMAND_MAX_BYTES, STATE_MAX_BYTES, TODO_COMBINE_KIND, TODO_COMBINE_REVISION,
 };
 
-pub const EXECUTION_PROFILE: &str = "conduit.std/todo-combine-kernel@1";
-pub const IMPLEMENTATION: &str = "std/kernel-todo-combine@1";
-pub const ARTIFACT: &str = "conduit-std-host/todo-combine@1";
+pub const IMPLEMENTATION: &str = conduit_std_offers::TODO_COMBINE_IMPLEMENTATION;
 
 pub struct TodoCombineFactory;
 
 pub fn offer() -> CapabilityOffer {
-    BackOfferBuilder::new(
-        todo_combine_kind(),
-        Back {
-            capability_id: CapabilityId::from("std/todo-combine@1"),
-            execution_profile_id: ExecutionProfileId::from(EXECUTION_PROFILE),
-            implementation_id: ImplementationId::from(IMPLEMENTATION),
-            artifact_id: ArtifactId::from(ARTIFACT),
-            host_calls: vec![],
-            resource_requirements: vec![],
-            authority_requirements: vec![],
-        },
-    )
-    .build()
+    conduit_std_offers::todo_combine_offer()
 }
 
 fn validate(placement: &PlannedGear) -> Result<(), String> {
