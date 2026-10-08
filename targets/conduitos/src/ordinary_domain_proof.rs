@@ -4,6 +4,7 @@ use crate::{arch, boot, identity, offer, ordinary_plan, text_composition};
 mod gates;
 mod morse;
 mod retained_text;
+mod timer_runtime;
 mod timer;
 
 pub fn run(record: &boot::BootRecord) -> ! {
@@ -44,6 +45,7 @@ pub fn run(record: &boot::BootRecord) -> ! {
     drop(prepared);
     gates::run(&plan, &offer);
     morse::run(&plan, &offer);
+    timer_runtime::run(&offer);
     keymap_entries();
     retained_text::run(&plan, &offer);
     hostile_entries();
