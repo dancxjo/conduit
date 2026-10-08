@@ -93,7 +93,11 @@ and prefixed form must share the same portable pattern parser, flags, matching
 semantics and admitted bounds. Existing `Text <= 64B ~ /[A-Z]+/` remains valid.
 The proposed `Text <= 64B ~ r/[A-Z]+/` must check to the identical pattern constraint;
 accepting typed pattern values at this consumer remains implementation work
-under #5317, not a second regex engine.
+under #5317. Today `parse_text_pattern` returns a checking-time
+`TextPatternExpression`, not a first-class Conduit Info Type. The proposal must
+define a finite checked pattern-spec Type, its explicit constructor and its
+ordinary constraint consumer before claiming standalone pattern values. It does
+not introduce a second regex engine.
 Each binding has one output Type, bounded parsing, source custody and explicit
 fallback. A non-speech fixture is required by #5317 before generality is claimed.
 
@@ -103,7 +107,8 @@ fallback. A non-speech fixture is required by #5317 before generality is claimed
 The common scanner owns where a literal ends; the domain parser owns the inner
 language. Both receive the exact raw body and its source map. Prefixes are
 recognized only when immediately adjacent to the opening delimiter, at an
-admitted expression entry, under a unique explicit binding. Whitespace inside
+explicitly admitted value-expression or pattern-constraint entry, under a unique
+explicit binding. Libraries cannot introduce additional grammar positions. Whitespace inside
 the delimiters is payload. Whitespace between prefix and opener is ordinary
 Conduit syntax. These lexical rules do not resolve collisions with indexing or
 slash: conflicts still refuse with the qualified constructor suggested.
@@ -158,12 +163,12 @@ unsupported combinations, sequences and suprasegmentals at this single-phone
 entrance. It verifies exact Native decoding, lossless CST source custody,
 quoted-string highlighting and prepared/allocating evaluator parity.
 
-Current focused proof passes 21 IPA tests and all 72 Speech library tests,
-including universal phonetic events, nested phone checking and located Unicode
-refusals. At the preceding quoted-phone checkpoint, 18 generic construction/
-projection tests, all 313 Plot library tests, product catalog integration,
-targeted lint and a thumbv6m no_std check also pass. The latter checks must run
-again on the final implementation. This is development evidence, not stable
+The nested-law checkpoint passes all 26 focused IPA tests, 19 generic
+construction/projection tests and all 313 Plot library tests. A closed parent's
+own laws cannot bypass nested record, variant-payload or collection-element
+laws. The preceding universal-phonetic checkpoint passed all 72 Speech library
+tests; earlier product catalog integration, targeted lint and thumbv6m no_std
+checks also passed. Those broader checks must run again on the final implementation. This is development evidence, not stable
 acceptance. Full quoted-transcription Source constructors remain unfinished; complete phonemic inventory resolution
 now has its own focused proof below. #5260 remains open and its PR a draft.
 
@@ -201,3 +206,41 @@ Five phonemic conformance tests pass, covering explicit long/short contrasts,
 complete-parse ambiguity, alias evidence, source spans, foreign revision and
 inventory substitution, unsupported bindings and capacity. Qualified Source
 constructors remain required; these preparation APIs do not implement `p/.../` or `r/.../`.
+
+
+### Public notation and terminal projection audit
+
+The authored IPA examples use `tʰ` for the phone and `t` for the explicitly
+scoped phoneme. Quoted-phone conformance additionally covers tied affricates,
+syllabic `n̩` and both declared nasal spellings. A repository-wide search of
+literal `.conduit` `ipa`/`notation` fields found these authored examples;
+provider-like strings in refusal fixtures remain deliberately invalid inputs.
+ASCII IDs such as `phone/t-aspirated` name entities, not their IPA spelling.
+
+`voice_profile.conduit` owns the finite checked relation between actual IPA
+and the explicitly named `EnglishPhone` terminal codes in
+`profile_phones.conduit`. The single-affricate bindings use `t͡ʃ` and `d͡ʒ`,
+matching this notation profile's convention; untied `tʃ`/`dʒ` do not establish a
+single affricate. The formant preparation receipt retains the original complete
+definition, selected binding, supplied voice profile and exact compiled renderer
+`SOURCE_ID`. That compiled projection cannot substitute for inventory membership
+or universal phone parsing.
+
+The `examples/first_samples/rich_phone.rs` fixture explicitly maps renderer
+codes to IPA (`ax` → `ə`, `ow` → `oʊ`, `er` → `ɝ`) before constructing rich
+phone definitions. Those are actual IPA spellings; some, including `ɝ`, are
+outside the conservative Version1 parser subset and must still refuse there.
+A finite parser's unsupported result is not a claim that the spelling is
+linguistically invalid. The fixture mapping is a local terminal declaration,
+not an alternate canonical alphabet or an automatic provider conversion.
+
+Source-authored inventory bases import Language's original checked identity
+definitions under qualified names such as `language/LanguageVariety`. These
+retain the owner bounds/laws and exact Native ABI, even where an existing catalog
+already registered the bare shapes. Speech does not replace or copy Language's
+identity definitions.
+
+The public-boundary rerun passes 13 tests: three authoring cases, the Language
+owner-law/ABI test, quoted-phone conformance and eight formant projection tests.
+The supported suite includes the new Language and formant coverage; its final
+run and broader checking are still in progress.
