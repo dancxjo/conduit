@@ -185,19 +185,23 @@ fn minimal_and_reference_compositions_truthfully_select_the_native_family() {
             .capabilities
             .clone()
     };
+    let expected = [
+        conduit_speech::kernel::offer(),
+        conduit_speech::ipa_contract::ipa_offer(false),
+        conduit_speech::ipa_contract::ipa_offer(true),
+    ];
     assert!(!offers(StdHostComposition::minimal())
         .iter()
-        .any(|o| o.kind_id.as_str() == conduit_speech::kernel::KIND));
+        .any(|offer| expected.iter().any(|native| offer.kind_id == native.kind_id)));
     let selected = offers(StdHostComposition::minimal().with_native_speech());
     let baseline = offers(StdHostComposition::minimal());
     let added: Vec<_> = selected
         .iter()
         .filter(|offer| !baseline.contains(offer))
         .collect();
-    assert_eq!(added, vec![&conduit_speech::kernel::offer()]);
-    assert!(offers(StdHostComposition::reference())
-        .iter()
-        .any(|o| *o == conduit_speech::kernel::offer()));
+    assert_eq!(added, expected.iter().collect::<Vec<_>>());
+    let reference = offers(StdHostComposition::reference());
+    assert!(expected.iter().all(|offer| reference.contains(offer)));
 }
 
 #[test]
