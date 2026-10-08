@@ -199,13 +199,17 @@ fn layout_bound(
         return Ok(layouts.remove(0));
     }
     Ok(format!(
-        "{{ let mut largest = {}; {} largest }}",
+        "{{
+        let mut largest = {};
+        {}
+        largest
+    }}",
         layouts[0],
         layouts[1..]
             .iter()
             .map(|layout| format!("if {layout} > largest {{ largest = {layout}; }}"))
             .collect::<Vec<_>>()
-            .join(" ")
+            .join("\n        ")
     ))
 }
 
