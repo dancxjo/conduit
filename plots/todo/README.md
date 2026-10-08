@@ -1,4 +1,36 @@
-# Todo state slice
+# Todo Plot
+
+## Typed application core
+
+`live.conduit` is the typed application entry for #5264. It composes the
+ordinary bounded `scan` with `todo/transition`; the selected `todo/combine`
+Back implements the application meaning in `model/`. The scan owns the retained
+state. No browser, speech, or storage policy participates in the transition.
+
+The state carries a list title, revision, next item identity, and ordered items.
+List identity belongs to the containing Plot/Body; the title is not an identity.
+Item IDs are monotonically allocated within that list and never reused after
+removal. `Add`, `SetComplete { complete: true }`,
+`SetComplete { complete: false }`, and `Remove` are exact typed commands.
+Repeated complete/reopen commands are idempotent; missing items refuse.
+
+The core admits 20 items, 72 UTF-8 bytes per item text, and 64 UTF-8 bytes for
+the title. Encoded state and command bounds are 1,635 and 75 bytes. The
+transition Back uses fixed storage and allocates nothing during a step. Item
+capacity, identity exhaustion, revision exhaustion, invalid text, and missing
+items have distinct refusals; a refused transition emits no successful state.
+The 64-command scan bound is separate from item capacity.
+
+Run `cargo xtask check todo-state` for typed application, source checking,
+planning, fixed-storage transition, and existing std/browser kernel conformance.
+The typed sequential test adds three items, completes and reopens the first,
+removes the second, and compares each Back result with the semantic transition.
+It verifies the surviving IDs, order, text, completion, and revision.
+Durability and Mask demonstrations have their own proof surfaces and are not
+established by this core check.
+
+## Earlier generic JSON composition
+
 
 `live.conduit` authors a bounded `scan` over the exact Todo state and command
 Info Kinds. Its `todo/transition` Plot wires the combine Kind's exact ports;
@@ -49,7 +81,7 @@ result. The proof explicitly plans 4,096-byte, capacity-one cords. Actual task
 capacity can be lower than 32 because records consume multiple JSON nodes and
 the command contributes to the request bounds.
 
-This is an executable state-transition slice, not the finished application.
+This earlier JSON composition is an executable state-transition slice.
 The browser runtime also tests admitted resource publish/read requests and
 restores only after a matching storage completion. Those Rust tests supply
 storage completions; they do not establish durable browser storage across

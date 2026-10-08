@@ -2,6 +2,19 @@ use crate::process::Step;
 
 pub(super) const TODO_STATE_STEPS: &[Step] = &[
     Step::new(
+        "todo-state.typed-plot",
+        "Prove typed Todo actions, finite state, authored scan and exact planning",
+        "cargo",
+        &[
+            "test",
+            "-p",
+            "conduit-todo-plot",
+            "--features",
+            "authoring,kernel-step",
+            "--locked",
+        ],
+    ),
+    Step::new(
         "todo-state.contract",
         "Prove bounded collection edits, exact commands, order and refusals",
         "cargo",
