@@ -117,8 +117,7 @@ fn execute_mode(
         &mut child,
         &route,
         &qemu_args,
-        args.coordinate,
-        expected_todo,
+        (args.coordinate, expected_todo),
     );
     let _ = child.kill();
     let _ = child.wait();
@@ -150,9 +149,9 @@ fn prove(
     child: &mut Child,
     route: &owner_boot::PreparedOwnerBoot,
     qemu_args: &[String],
-    coordinate: bool,
-    expected_todo: Option<&LiveOwnerTodoFaceProofArgs>,
+    mode: (bool, Option<&LiveOwnerTodoFaceProofArgs>),
 ) -> Result<Value, ConduitosError> {
+    let (coordinate, expected_todo) = mode;
     let (mut qmp, mut reader) =
         qmp::connect_traced(qmp_path, child, Some(&directory.join("qmp.jsonl")))?;
     let (standby_part, standby_face, return_route_available) = wait_for_standby(
