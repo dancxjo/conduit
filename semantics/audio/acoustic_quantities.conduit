@@ -1,0 +1,10 @@
+# Exact reciprocal conversion: no arithmetic rounding, normalization or rate.
+plot audio/frequency-to-cycle (
+    >> value: AudioFrequencyHz
+    result: AudioCycleDuration >>
+) = ({numerator_seconds: .denominator, denominator: .numerator_hz})
+
+plot audio/cycle-to-frequency (
+    >> value: AudioCycleDuration
+    result: AudioFrequencyHz >>
+) = ({numerator_hz: .denominator, denominator: .numerator_seconds})

@@ -26,15 +26,16 @@ mod generated {
 }
 
 pub use generated::{
-    AudioRenderDemand, AudioToneTerminal, AudioToneTerminalForm, BeatReference,
-    CancellationDisposition, Gate, GateForm, IncompatibilityReason, InstrumentAnalogEvent,
-    InstrumentButtonEvent, InstrumentControl, InstrumentMapping, InstrumentPitchMillihertz,
-    ModulationDestination, ModulationDestinationForm, MusicalControl, MusicalControlEvent,
-    MusicalControlModulation, MusicalControlPitchBend, MusicalControlSustain, MusicalNoteEvent,
-    MusicalPitch, NoteOccurrenceId, PcmChannelLayout, PcmChannelLayoutForm, PcmClipProfile,
-    PcmCompatibilityProfile, PcmFrameHeader, PcmSampleRepresentation, PcmSampleRepresentationForm,
-    PressureDisposition, RhythmRecoveryState, SoundSeam, SoundStreamState, SoundTerminalBehavior,
-    TimingClassification, TimingFeedback, ToneIntent,
+    AudioCycleDuration, AudioFrequencyHz, AudioRenderDemand, AudioResonator, AudioToneTerminal,
+    AudioToneTerminalForm, BeatReference, CancellationDisposition, Gate, GateForm,
+    IncompatibilityReason, InstrumentAnalogEvent, InstrumentButtonEvent, InstrumentControl,
+    InstrumentMapping, InstrumentPitchMillihertz, ModulationDestination, ModulationDestinationForm,
+    MusicalControl, MusicalControlEvent, MusicalControlModulation, MusicalControlPitchBend,
+    MusicalControlSustain, MusicalNoteEvent, MusicalPitch, NoteOccurrenceId, PcmChannelLayout,
+    PcmChannelLayoutForm, PcmClipProfile, PcmCompatibilityProfile, PcmFrameHeader,
+    PcmSampleRepresentation, PcmSampleRepresentationForm, PressureDisposition, RhythmRecoveryState,
+    SoundSeam, SoundStreamState, SoundTerminalBehavior, TimingClassification, TimingFeedback,
+    ToneIntent,
 };
 
 mod audio_info;
@@ -50,3 +51,6 @@ pub use pcm_clip::*;
 pub use sampled_signal_mapping::*;
 pub use sound_info::*;
 pub use tone_terminal::*;
+
+mod acoustic_quantities;
+pub use acoustic_quantities::*;
