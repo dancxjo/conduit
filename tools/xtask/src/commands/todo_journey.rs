@@ -91,6 +91,21 @@ fn parse_capture(root: &Path, label: &str) -> Result<Value, String> {
     .map_err(|e| format!("{label} did not return JSON: {e}"))
 }
 
+fn has_todo_list(face: &Value) -> bool {
+    let presentation = &face["presentation"];
+    presentation["subjects"].as_array().is_some_and(|subjects| {
+        subjects
+            .iter()
+            .any(|subject| subject["identity"] == "todo/list")
+    }) && presentation["properties"]
+        .as_array()
+        .is_some_and(|properties| {
+            properties.iter().any(|property| {
+                property["subject"] == "todo/list" && property["name"] == "todo-revision"
+            })
+        })
+}
+
 pub fn run(args: TodoJourneyArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
     let repository = workspace_root()?;
     let state = fs::canonicalize(&args.state_dir)?;
@@ -194,8 +209,8 @@ pub fn run(args: TodoJourneyArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::
         if before_status["body_id"].as_str() != Some(body_id) {
             return Err("status and Face name different Bodies".into());
         }
-        if !before_face.to_string().contains("todo") {
-            return Err("installed owner Face is not Todo".into());
+        if !has_todo_list(&before_face) {
+            return Err("installed owner Face has no Todo list contribution".into());
         }
         let script_receipt = retain(&output, "terminal.input", &script)?;
         steps.push(invoke(
@@ -228,6 +243,9 @@ pub fn run(args: TodoJourneyArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::
         let after_face = parse_capture(&output, "after-face")?;
         if after_face["presentation"]["basis"]["body_id"].as_str() != Some(body_id) {
             return Err("terminal encounter changed Body identity".into());
+        }
+        if !has_todo_list(&after_face) {
+            return Err("terminal encounter lost the Todo list contribution".into());
         }
         Ok(
             json!({"body_id":body_id,"before_face_revision":before_face["presentation"]["revision"],
