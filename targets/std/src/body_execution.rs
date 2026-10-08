@@ -270,19 +270,6 @@ impl StdHost {
         } else {
             None
         };
-        let fragments = request
-            .plan
-            .plots
-            .iter()
-            .map(|partition| {
-                if partition.plan.fragments.len() != 1 {
-                    return Err(
-                        "local body execution requires one local fragment per Plot".to_string()
-                    );
-                }
-                Ok(&partition.plan.fragments[0])
-            })
-            .collect::<Result<Vec<_>, _>>()?;
         let (fore_inputs, sequential_fore, has_fore_output) = fore
             .as_ref()
             .map_or((&[][..], false, false), |(inputs, sequential, _)| {
@@ -301,11 +288,13 @@ impl StdHost {
             has_fore_output,
         )?;
         kernel.require_supported_execution()?;
-        let reservations = self.kernel_resources.prepare_and_reserve_partitions(
+        let reservations = self.kernel_resources.prepare_and_reserve_plans(
             &self.advertisement,
-            &fragments
+            &request
+                .plan
+                .plots
                 .iter()
-                .map(|part| (*part, false))
+                .map(|part| (&part.plan, false))
                 .collect::<Vec<_>>(),
         )?;
         let result = (|| {
