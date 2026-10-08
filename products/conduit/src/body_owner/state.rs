@@ -3,7 +3,7 @@ use super::super::{
     bounded_read, digest, read_installation, restrict_directory, write_bytes_atomic,
     write_json_atomic, BodyBinding, Installation,
 };
-use conduit_body::{BodyBiographyArchiveSegment, BodyBiographyEvidence};
+use conduit_body::{BodyBiographyArchiveSegment, BodyBiographyEvidence, BodyLifecycleSession};
 #[path = "state_archive.rs"]
 mod archive;
 #[cfg(test)]
@@ -131,6 +131,7 @@ pub(super) fn retain_with_source(
     retain_with_source_and_todo_selection(root, biography, last_execution, admissions, source, None)
 }
 
+#[cfg(test)]
 pub(super) fn retain_with_archives(
     root: &Path,
     biography: &BodyBiographyEvidence,
@@ -147,6 +148,38 @@ pub(super) fn retain_with_archives(
         None,
         archives,
     )
+}
+
+/// Publish one lifecycle session and its archive obligation in the same
+/// recoverable owner transaction. The in-memory obligation is acknowledged
+/// only after the retained archive chain and active biography are durable.
+pub(super) fn retain_session(
+    root: &Path,
+    session: &mut BodyLifecycleSession,
+    last_execution: Option<&serde_json::Value>,
+    admissions: Option<&conduit_body::AdmissionManager>,
+    source: Option<&[u8]>,
+    todo_selection: Option<&super::super::selected_todo::Selection>,
+) -> Result<(), String> {
+    let head = session
+        .pending_archives()
+        .last()
+        .map(|segment| segment.digest);
+    retain_inner(
+        root,
+        session.evidence(),
+        last_execution,
+        admissions,
+        source,
+        todo_selection,
+        session.pending_archives(),
+    )?;
+    if let Some(head) = head {
+        session
+            .acknowledge_archives(head)
+            .map_err(|error| format!("acknowledge committed biography archive: {error:?}"))?;
+    }
+    Ok(())
 }
 
 /// One owner transaction changes the resident Plot and installed Host's exact

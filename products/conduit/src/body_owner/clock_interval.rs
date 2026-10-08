@@ -347,12 +347,13 @@ impl Owner {
                 &advertised.boot_id,
             )
             .map_err(debug)?;
-        state::retain_with_source(
+        state::retain_session(
             root,
-            staged.evidence(),
+            &mut staged,
             self.last_execution.as_ref(),
             self.admissions.as_ref(),
             Some(next_source.as_bytes()),
+            None,
         )?;
         self.session = staged;
         self.resident = Some(next_resident);

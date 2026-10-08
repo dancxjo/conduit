@@ -4,6 +4,7 @@ use conduit_body::{
     MembershipProofId, PartId, ResidentPlot,
 };
 use conduit_core::{seal_plan, BootId, HostId, OfferGeneration, PlotIdentity};
+use conduit_std_host::{StdHost, StdHostConfig};
 
 fn archive_fixture() -> (BodyBiographyEvidence, Vec<BodyBiographyArchiveSegment>) {
     let host: HostId = "host/archive-test".into();
@@ -152,7 +153,76 @@ fn archive_rejects_missing_predecessor_and_foreign_head_before_publication() {
     assert!(retain_with_archives(&root, &biography, &wrong, None, None).is_err());
     assert!(!root.join("body/owner-transaction.json").exists());
     retain_with_archives(&root, &biography, &segments, None, None).unwrap();
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::symlink;
+        let archive = root.join("body/archive");
+        let moved = root.join("body/archive-moved");
+        fs::rename(&archive, &moved).unwrap();
+        symlink(&moved, &archive).unwrap();
+        assert!(load(&root).is_err());
+        fs::remove_file(&archive).unwrap();
+        fs::rename(&moved, &archive).unwrap();
+    }
     fs::remove_file(archive_path(&root, segments[0].ordinal)).unwrap();
     assert!(load(&root).is_err());
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn installed_owner_continues_past_active_sign_capacity_and_resumes_same_body() {
+    use super::super::controller::Owner;
+
+    const SOURCE: &str = "plot hello {\n show: presentation/text\n \"Hello.\" >> show\n}.";
+    let root = std::env::temp_dir().join(super::super::super::fresh_identity(
+        "owner-archive-test",
+        "boundary",
+    ));
+    fs::create_dir_all(&root).unwrap();
+    installation(&root);
+    let plot = crate::plot_source::parse(SOURCE)
+        .unwrap()
+        .expand_entry_for_authoring()
+        .unwrap();
+    let resident = ResidentPlot::new(
+        plot.expanded.source_document_id.clone(),
+        plot.expanded.checked_plot_id.clone(),
+    );
+    let host = || {
+        StdHost::new_with_config(StdHostConfig {
+            host_id: HostId::from("host/archive-test"),
+            boot_id: BootId::from("boot/archive-test"),
+            offer_generation: OfferGeneration(1),
+        })
+    };
+    let mut owner = Owner::open(host(), resident, None, "Archive").unwrap();
+    let body_id = owner.truth()["biography"]["body_id"].clone();
+    owner.persist(&root).unwrap();
+    for _ in 0..8 {
+        owner.plan(&plot).unwrap();
+        owner.persist(&root).unwrap();
+        owner.lull().unwrap();
+        owner.persist(&root).unwrap();
+    }
+    assert_eq!(owner.truth()["biography"]["body_id"], body_id);
+    assert!(archive_path(&root, 1).is_file());
+    let retained = load(&root).unwrap().unwrap();
+    let next_host = StdHost::new_with_config(StdHostConfig {
+        host_id: HostId::from("host/archive-test"),
+        boot_id: BootId::from("boot/archive-test-next"),
+        offer_generation: OfferGeneration(1),
+    });
+    let mut resumed = Owner::resume(next_host, retained).unwrap();
+    assert_eq!(resumed.truth()["biography"]["body_id"], body_id);
+    resumed.persist(&root).unwrap();
+    resumed.plan(&plot).unwrap();
+    resumed.persist(&root).unwrap();
+    resumed.lull().unwrap();
+    resumed.persist(&root).unwrap();
+    assert_eq!(
+        load(&root).unwrap().unwrap().body_id.as_str(),
+        body_id.as_str().unwrap()
+    );
+    assert!(archive_path(&root, 2).is_file());
     fs::remove_dir_all(root).unwrap();
 }

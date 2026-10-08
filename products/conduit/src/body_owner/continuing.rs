@@ -131,11 +131,13 @@ impl Owner {
         let mut next = self.session.clone();
         next.started(&authority.host_id, &authority.boot_id, play, wake)
             .map_err(debug)?;
-        state::retain(
+        state::retain_session(
             root,
-            next.evidence(),
+            &mut next,
             self.last_execution.as_ref(),
             self.admissions.as_ref(),
+            None,
+            None,
         )?;
         self.session = next;
         Ok(())
@@ -185,11 +187,13 @@ impl Owner {
                 })
             }
         };
-        state::retain(
+        state::retain_session(
             root,
-            next.evidence(),
+            &mut next,
             Some(&receipt),
             self.admissions.as_ref(),
+            None,
+            None,
         )?;
         self.session = next;
         self.last_execution = Some(receipt);

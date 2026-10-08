@@ -9,6 +9,14 @@ pub(super) fn archive_path(root: &Path, ordinal: u64) -> std::path::PathBuf {
 }
 
 fn read_archive(root: &Path, ordinal: u64) -> Result<BodyBiographyArchiveSegment, String> {
+    let directory = root.join("body/archive");
+    if !fs::symlink_metadata(&directory)
+        .map_err(|error| format!("inspect biography archive residence: {error}"))?
+        .file_type()
+        .is_dir()
+    {
+        return Err("selected biography archive residence is not a directory".into());
+    }
     let path = archive_path(root, ordinal);
     if !fs::symlink_metadata(&path)
         .map_err(|error| format!("inspect biography archive {ordinal}: {error}"))?
