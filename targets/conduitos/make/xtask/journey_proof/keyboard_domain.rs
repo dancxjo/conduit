@@ -1,5 +1,5 @@
 //! Ordinary graphical input, exact Body identity, and retained domain cost.
-use super::super::{journey_input, journey_records, qmp, ConduitosError};
+use super::super::{ConduitosError, journey_input, journey_records, qmp};
 use serde_json::Value;
 use std::{fs, os::unix::net::UnixStream, path::Path, process::Child};
 
@@ -177,7 +177,7 @@ pub(super) fn validate_cost(
         || cost["base_gate_transitions"] != effects
         || cost["state"] != "Revoked(PlayCancelled)"
         || cost["partition_plan_id"].as_str().is_none_or(str::is_empty)
-        || cost["teardown_zeroed_bytes"] != 118784
+        || cost["teardown_zeroed_bytes"] != 151552
         || cost["dma_isolation"] != false
         || cost["driver_isolation"] != false
     {
@@ -198,7 +198,7 @@ mod tests {
         let identity = json!({"plan_id":"body-plan", "active_play_id":"play", "checked_plot_id":"editor", "partition_plan_id":"editor-partition"});
         let cost = json!({"plan_id":"body-plan", "play_id":"play", "checked_plot_id":"editor",
             "partition_plan_id":"editor-partition", "fixture":false, "entries":21,
-            "base_gate_transitions":5, "state":"Revoked(PlayCancelled)", "teardown_zeroed_bytes":118784,
+            "base_gate_transitions":5, "state":"Revoked(PlayCancelled)", "teardown_zeroed_bytes":151552,
             "dma_isolation":false, "driver_isolation":false});
         let line = |cost: &Value| format!("CONDUIT_DOMAIN_COST {cost}\n");
         assert!(validate_cost(&line(&cost), &identity, 21, 5).is_ok());

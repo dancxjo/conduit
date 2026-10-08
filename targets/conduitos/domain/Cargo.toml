@@ -15,6 +15,9 @@ conduit-human = { path = "../../../semantics/human" }
 
 conduit-text = { path = "../../../semantics/text", default-features = false }
 
+conduit-kernel = { path = "../../../architecture/kernel" }
+conduit-time = { path = "../../../semantics/time", default-features = false }
+
 [features]
 proof = []
 

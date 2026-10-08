@@ -45,6 +45,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-kernel"
+version = "0.1.0"
+dependencies = [
+ "conduit-assigned-plan",
+]
+
+[[package]]
 name = "conduit-plot"
 version = "0.1.0"
 dependencies = [
@@ -64,11 +71,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-time"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-plot",
+ "serde",
+]
+
+[[package]]
 name = "conduitos-domain"
 version = "0.1.0"
 dependencies = [
  "conduit-human",
+ "conduit-kernel",
  "conduit-text",
+ "conduit-time",
 ]
 
 [[package]]

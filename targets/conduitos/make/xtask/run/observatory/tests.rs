@@ -54,10 +54,10 @@ fn fixture() -> (conduit_observatory::ObservatorySnapshot, serde_json::Value) {
         .iter_mut()
         .find(|placement| placement.kind_id.as_str() == "text/upper")
         .unwrap();
-    upper.resources[0].units = 4096 + 118784 + 22480;
+    upper.resources[0].units = 4096 + 151552 + 22480;
     (
         snapshot,
-        serde_json::json!({"reserved_bytes":118784,"root_metadata_bytes":22374}),
+        serde_json::json!({"reserved_bytes":151552,"root_metadata_bytes":22374}),
     )
 }
 
@@ -65,7 +65,7 @@ fn fixture() -> (conduit_observatory::ObservatorySnapshot, serde_json::Value) {
 fn protected_text_reservation_covers_measured_storage_without_growing_other_gears() {
     let (snapshot, cost) = fixture();
     validate_protected_realization(&snapshot, &cost).unwrap();
-    for units in [4096, 118784, 4096 + 118784 + 22373, 1048576] {
+    for units in [4096, 151552, 4096 + 151552 + 22373, 1048576] {
         let mut changed = snapshot.clone();
         let upper = changed.plans[0].fragments[0]
             .placements
@@ -118,9 +118,11 @@ fn a_provider_in_machine_and_advertisement_inventory_is_one_base() {
         .collect::<Vec<_>>();
     let advertised = &snapshot.hosts[0].advertisement.bases;
     assert_eq!(advertised.len(), 1);
-    assert!(machine
-        .iter()
-        .any(|id| id == advertised[0].base_id.as_str()));
+    assert!(
+        machine
+            .iter()
+            .any(|id| id == advertised[0].base_id.as_str())
+    );
     let expected = expected_base_ids(&machine, advertised, "display");
     assert_eq!(expected.len(), machine.len() + 1);
     assert!(expected.contains(advertised[0].base_id.as_str()));
