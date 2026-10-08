@@ -27,6 +27,7 @@ pub mod domain_image;
 pub(crate) mod domain_layout;
 mod domain_scope_identity;
 pub mod domain_serial_scope;
+pub mod domain_timer_gate;
 pub mod domain_timer_scope;
 pub mod dual_region_composition;
 pub mod dual_region_kernel;
