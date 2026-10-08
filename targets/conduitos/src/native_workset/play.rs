@@ -15,6 +15,7 @@ use conduit_kernel::{
     FixedSignLog, FixedValueStore, KernelEvent, NodeId,
     scheduler::{FixedScheduler, HostCallRequest, SchedulerStatus},
 };
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 use conduit_semantic_catalog::BoundedTextState;
 
 const PLOTS: usize = super::NATIVE_PLOT_CAPACITY;
@@ -117,6 +118,7 @@ pub struct NativeWorksetPlay {
     scheduler: Box<Scheduler>,
     bindings: [Option<Binding>; NODES],
     keymaps: [ConduitIntlKeymap; PLOTS],
+    #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
     editors: [Option<BoundedTextState>; PLOTS],
     pending: [Option<HostCallRequest>; PLOTS],
     held: [Option<u8>; 256],

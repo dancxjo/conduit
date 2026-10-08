@@ -174,8 +174,10 @@ the existing typed Cord and capability-gated presentation path. Preparation
 reserves the domain and Root staging before Play. Cancellation retires both
 text domains and clears pending results. The journey collector exercises
 retention, deletion to an empty value, sibling presentation independence and
-exact per-partition retirement costs. Native validation of this extension is
-in progress; the preceding keyboard measurements remain scoped to that run.
+exact per-partition retirement costs. The canonical graphical proof passed locally: the editor recorded 21 entries,
+five Base gates and 58 runtime copy bytes; each domain revoked on Stop and
+zeroed its 118,784-byte allocation. Its per-domain Root metadata was 6,356 bytes.
+The preceding keyboard measurements remain scoped to that separate partition.
 Broader ordinary implementation coverage remains unfinished.
 This is development emulator evidence, not accepted-release evidence.
 
