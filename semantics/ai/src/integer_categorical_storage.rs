@@ -165,6 +165,40 @@ fn offer(v: &ResourceOffer) -> Result<usize, CategoricalStorageRefusal> {
     }
     Ok(bytes)
 }
+/// Complete original metadata retained by an independent model declaration.
+/// Inline storage is reported separately so an enclosing owner can charge it
+/// once. Heap bounds include actual Vec capacity and all signature, tensor,
+/// reference and String fields; content bytes, access grants and Rc/Arc/Box
+/// owners are separate obligations. This function allocates nothing.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct CategoricalModelMetadataStorageReceipt {
+    pub inline_bytes: usize,
+    pub owned_heap_bytes_bound: usize,
+    pub combined_bytes_bound: usize,
+}
+pub fn categorical_model_metadata_storage_receipt(
+    artifact: &crate::ModelArtifact,
+    model_signature: &crate::ModelSignature,
+) -> Result<CategoricalModelMetadataStorageReceipt, CategoricalStorageRefusal> {
+    let inline_bytes = add(
+        size_of::<crate::ModelArtifact>(),
+        size_of::<crate::ModelSignature>(),
+    )?;
+    let mut owned_heap_bytes_bound = signature(model_signature)?;
+    for bytes in [
+        artifact.architecture_profile.capacity(),
+        artifact.format_profile.capacity(),
+        artifact.precision_profile.capacity(),
+        reference(&artifact.content)?,
+    ] {
+        owned_heap_bytes_bound = add(owned_heap_bytes_bound, bytes)?;
+    }
+    Ok(CategoricalModelMetadataStorageReceipt {
+        inline_bytes,
+        owned_heap_bytes_bound,
+        combined_bytes_bound: add(inline_bytes, owned_heap_bytes_bound)?,
+    })
+}
 /// Allocation-free storage inspection; shared allocations are charged in full.
 /// The result includes every original signature field, vector spare capacity,
 /// artifact/reference metadata, adopted access grant, and immutable model bytes.

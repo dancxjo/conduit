@@ -158,3 +158,29 @@ fn largest_valid_model_has_bounded_private_construction_and_full_weights() {
     assert_eq!(observed.reallocations, 0);
     assert_eq!(scores, [64; 128]);
 }
+
+#[test]
+fn independent_model_metadata_counts_capacity_without_allocation() {
+    let (resource, _) = fixture();
+    let mut artifact = resource.artifact().clone();
+    let mut signature = resource.signature().clone();
+    let before = categorical_model_metadata_storage_receipt(&artifact, &signature).unwrap();
+    artifact.architecture_profile.reserve(4096);
+    artifact.content.content_profile.0.reserve(2048);
+    signature.identity.reserve(8192);
+    let (receipt, observed) = allocation_probe::observe(|| {
+        categorical_model_metadata_storage_receipt(&artifact, &signature)
+    });
+    let receipt = receipt.unwrap();
+    assert_eq!(observed.allocations, 0);
+    assert_eq!(observed.reallocations, 0);
+    assert_eq!(
+        receipt.inline_bytes,
+        core::mem::size_of::<ModelArtifact>() + core::mem::size_of::<ModelSignature>()
+    );
+    assert_eq!(
+        receipt.combined_bytes_bound,
+        receipt.inline_bytes + receipt.owned_heap_bytes_bound
+    );
+    assert!(receipt.owned_heap_bytes_bound >= before.owned_heap_bytes_bound + 12 * 1024);
+}
