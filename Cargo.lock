@@ -1564,6 +1564,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-todo-plot"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-web",
+]
+
+[[package]]
 name = "conduit-tongues"
 version = "0.1.0"
 dependencies = [
