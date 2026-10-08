@@ -7,6 +7,8 @@ pub enum InspectionEncoding {
     CanonicalNativeValue,
     CanonicalStructuredValue,
     CanonicalExpressionProgram,
+    /// Exact generated UTF-8 hex lines, not decoded binary program bytes.
+    ExactExpressionProgramHexLines,
     CanonicalType,
     ExactArtifactResource,
     ExactUtf8Manifest,
@@ -103,10 +105,22 @@ pub enum ExecutionEventKind {
 #[derive(Clone, Copy, Debug)]
 pub struct ExecutionEventView<'a> {
     pub kind: ExecutionEventKind,
+    /// Actual selected Source or model step; never inferred from an ordinal.
+    pub step_name: &'a str,
     pub ordinal: u64,
     pub epoch: u64,
     pub model_call: Option<u64>,
     pub original_program: Option<InspectionMaterial<'a>>,
+    pub source_custody: Option<InspectionMaterial<'a>>,
+    /// Borrow the original checked Plans rather than labeling Debug or JSON as
+    /// a portable Native encoding. Pure Source evaluation has no execution Plan.
+    pub source_plan: Option<&'a conduit_core::Plan>,
+    pub model_plan: Option<&'a conduit_core::Plan>,
+    /// Complete canonical Types embedded in the corresponding retained frames.
+    /// Malformed or absent frames have no embedded validated Type. Expected
+    /// declared Types remain separately inspectable in the original Plans.
+    pub input_type: Option<InspectionMaterial<'a>>,
+    pub output_type: Option<InspectionMaterial<'a>>,
     pub input: InspectionMaterial<'a>,
     pub output: Option<InspectionMaterial<'a>>,
     pub intermediates: InspectionFrames<'a>,
