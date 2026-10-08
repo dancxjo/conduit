@@ -22,6 +22,8 @@ use core::{cell::RefCell, marker::PhantomData};
 /// This contract is not evidence that a particular target actually executed it.
 pub trait ParserCanonicalSourceExecutor {
     type Error;
+    /// Permanently stop pending target work after refusal or abandonment.
+    fn cancel(&mut self);
     fn entry(&self) -> &str;
     fn input_type_bytes(&self) -> &[u8];
     fn output_type_bytes(&self) -> &[u8];
@@ -89,6 +91,7 @@ impl PreparedParserExecutionFrames {
 pub struct PreparedCanonicalParserSessionPort<I, O, E> {
     entry: ParserSessionEntry,
     executor: E,
+    cancel_executor: fn(&mut E),
     family: Rc<RefCell<PreparedNativeFamily>>,
     verifier: PreparedSourceVerification,
     verification_storage: ParserSessionVerificationReceipt,
@@ -147,6 +150,7 @@ impl<
         Ok(Self {
             entry,
             executor,
+            cancel_executor: |executor| executor.cancel(),
             family,
             verifier,
             verification_storage,
@@ -162,6 +166,7 @@ impl<
     }
     pub fn cancel(&mut self) {
         self.cancelled = true;
+        self.executor.cancel();
     }
     pub fn is_cancelled(&self) -> bool {
         self.cancelled
@@ -225,9 +230,24 @@ impl<
             .decode::<O>(expected)
             .map_err(R::Native)?;
         self.poisoned = true;
+        struct ConsumedTarget<'a, E: ParserCanonicalSourceExecutor> {
+            target: &'a mut E,
+            published: bool,
+        }
+        impl<E: ParserCanonicalSourceExecutor> Drop for ConsumedTarget<'_, E> {
+            fn drop(&mut self) {
+                if !self.published {
+                    self.target.cancel();
+                }
+            }
+        }
+        let mut consumed = ConsumedTarget {
+            target: &mut self.executor,
+            published: false,
+        };
         let result = (|| {
-            let length = self
-                .executor
+            let length = consumed
+                .target
                 .transact(
                     self.next_ordinal,
                     &frames.input,
@@ -245,6 +265,8 @@ impl<
         })();
         match result {
             Ok(()) => {
+                consumed.published = true;
+                drop(consumed);
                 let execution = ParserSessionExecution::from_verified_canonical(
                     self.entry,
                     self.next_ordinal,
@@ -262,5 +284,11 @@ impl<
                 Err(error)
             }
         }
+    }
+}
+
+impl<I, O, E> Drop for PreparedCanonicalParserSessionPort<I, O, E> {
+    fn drop(&mut self) {
+        (self.cancel_executor)(&mut self.executor);
     }
 }

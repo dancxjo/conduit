@@ -209,9 +209,14 @@ struct CanonicalFixture {
     source: execution::verification::PreparedSourceVerification,
     foreign: Option<Vec<u8>>,
     calls: alloc::rc::Rc<core::cell::Cell<u32>>,
+    cancellations: alloc::rc::Rc<core::cell::Cell<u32>>,
+    panic_on_call: bool,
 }
 impl canonical_ingress::ParserCanonicalSourceExecutor for CanonicalFixture {
     type Error = ();
+    fn cancel(&mut self) {
+        self.cancellations.set(self.cancellations.get() + 1);
+    }
     fn entry(&self) -> &str {
         "language-parser-session-seed"
     }
@@ -225,6 +230,7 @@ impl canonical_ingress::ParserCanonicalSourceExecutor for CanonicalFixture {
     }
     fn transact(&mut self, _: u64, input: &[u8], output: &mut [u8]) -> Result<usize, ()> {
         self.calls.set(self.calls.get() + 1);
+        assert!(!self.panic_on_call, "target panic");
         let expected = self
             .source
             .evaluate(self.foreign.as_deref().unwrap_or(input))?;
@@ -271,8 +277,9 @@ fn actual_seed_canonical_frames_replay_and_foreign_output_cancels() {
     let family = Rc::new(RefCell::new(family));
     let input = request();
     let input_bytes = input.clone().encode().unwrap();
-    for foreign in [false, true] {
+    for (foreign, panic_on_call) in [(false, false), (true, false), (false, true)] {
         let calls = Rc::new(Cell::new(0));
+        let cancellations = Rc::new(Cell::new(0));
         let (source, _, _, _) = execution::verification::PreparedSourceVerification::prepare(
             ParserSessionEntry::Seed,
             verification_limits(),
@@ -292,6 +299,8 @@ fn actual_seed_canonical_frames_replay_and_foreign_output_cancels() {
             source,
             foreign: foreign_input,
             calls: calls.clone(),
+            cancellations: cancellations.clone(),
+            panic_on_call,
         };
         let mut port = PreparedCanonicalParserSessionPort::<
             LanguageParserSessionSeedRequest,
@@ -314,7 +323,16 @@ fn actual_seed_canonical_frames_replay_and_foreign_output_cancels() {
             conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES,
         )
         .unwrap();
-        let result = port.execute(&input_bytes, frames);
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            port.execute(&input_bytes, frames)
+        }));
+        if panic_on_call {
+            assert!(result.is_err());
+            assert!(port.is_poisoned());
+            assert!(cancellations.get() > 0);
+            continue;
+        }
+        let result = result.unwrap();
         assert_eq!(calls.get(), 1);
         if foreign {
             assert!(matches!(
@@ -322,6 +340,7 @@ fn actual_seed_canonical_frames_replay_and_foreign_output_cancels() {
                 Err(ParserCanonicalIngressRefusal::DifferentOutput)
             ));
             assert!(port.is_cancelled());
+            assert!(cancellations.get() > 0);
         } else {
             let (original, output, history) =
                 ParserCanonicalHistory::from_execution(result.unwrap());
@@ -356,5 +375,8 @@ fn actual_seed_canonical_frames_replay_and_foreign_output_cancels() {
                 17
             );
         }
+        let before_drop = cancellations.get();
+        drop(port);
+        assert_eq!(cancellations.get(), before_drop + 1);
     }
 }
