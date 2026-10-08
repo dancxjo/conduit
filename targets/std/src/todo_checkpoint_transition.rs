@@ -1,15 +1,13 @@
 //! Idle transition between exact Todo checkpoint offers on one std Host Boot.
-use crate::{
-    composition, kernel_preparation::KernelResourceLedger, StdHost, StdHostComposition,
-    StdHostConfig,
-};
+use crate::{kernel_preparation::KernelResourceLedger, StdHost, StdHostConfig};
 use conduit_core::{OfferGeneration, ResourceAccessMode, ResourceContentRequirement};
 use std::path::Path;
 
 impl StdHost {
     /// Replace one selected Todo checkpoint generation while retaining this
     /// Host Boot's Play and Sign cursors. Only the exact scoped reference Todo
-    /// profile is eligible; other initialized equipment is refused unchanged.
+    /// profile is eligible; selected spoken output remains bound to this Boot.
+    /// Other initialized equipment is refused unchanged.
     /// The caller must plan again against the returned advertisement.
     pub fn transition_todo_checkpoint_offer(
         &mut self,
@@ -32,9 +30,6 @@ impl StdHost {
             return Err("Todo checkpoint transition changed semantic resource identity".into());
         }
         if self.image_identity.is_some()
-            || self.playback.is_some()
-            || self.wav_artifact.is_some()
-            || self.speech_synthesis.is_some()
             || self.midi_input.is_some()
             || self.midi_output.is_some()
             || self.local_model.is_some()
@@ -72,14 +67,6 @@ impl StdHost {
             }
         }
         .map_err(str::to_string)?;
-        let mut expected = composition::build_advertisement(
-            config.clone(),
-            StdHostComposition::reference(),
-            None,
-            None,
-            None,
-            false,
-        );
         let old_resource = self
             .advertisement
             .resources
@@ -87,14 +74,11 @@ impl StdHost {
             .find(|offer| offer.pool_id.as_str() == "std/todo-checkpoint")
             .expect("selected resource exists above")
             .clone();
-        expected.resources.push(old_resource);
-        expected.capabilities.push(old_offer);
-        expected.resources.sort();
-        expected
-            .capabilities
-            .sort_by(|a, b| a.capability_id.cmp(&b.capability_id));
-        if self.advertisement != expected {
-            return Err("Todo checkpoint transition refuses other selected Host equipment".into());
+        if old_resource.class_id.as_str() != "resource/todo-checkpoint@1"
+            || old_resource.content.as_ref().map(|value| &value.contract) != Some(&current)
+            || !self.advertisement.capabilities.contains(&old_offer)
+        {
+            return Err("current Todo checkpoint offer differs from selected residence".into());
         }
         let prior_root = self
             .todo_checkpoint_root
@@ -111,6 +95,15 @@ impl StdHost {
             offer_generation: next_generation,
             ..config
         };
+        let next_offer = match content.access {
+            ResourceAccessMode::WriteCandidatePublish => {
+                conduit_std_offers::todo_checkpoint_offer(content.clone())
+            }
+            ResourceAccessMode::ReadPublished => {
+                conduit_std_offers::todo_checkpoint_read_offer(content.clone())
+            }
+        }
+        .map_err(str::to_string)?;
         let next = match content.access {
             ResourceAccessMode::WriteCandidatePublish => {
                 Self::new_for_todo_checkpoint_once(next_config, root, content)?
@@ -130,9 +123,38 @@ impl StdHost {
         if next_root.device != prior_root.device || next_root.inode != prior_root.inode {
             return Err("Todo checkpoint transition rebound selected root".into());
         }
-        // Build before publication; on any refusal the old Host stays intact.
-        let ledger = KernelResourceLedger::new(&next.advertisement)?;
-        self.advertisement = next.advertisement;
+        // Preserve every separately selected spoken offer/resource while
+        // replacing only the exact checkpoint pair. The new pair comes from
+        // the same reviewed constructor used at a fresh Boot.
+        let mut advertisement = self.advertisement.clone();
+        advertisement.offer_generation = next_generation;
+        advertisement
+            .resources
+            .retain(|offer| offer.pool_id != old_resource.pool_id);
+        advertisement
+            .capabilities
+            .retain(|offer| offer != &old_offer);
+        if advertisement
+            .capabilities
+            .iter()
+            .any(|offer| offer.capability_id == next_offer.capability_id)
+        {
+            return Err("next Todo checkpoint offer collides with selected equipment".into());
+        }
+        advertisement.resources.push(
+            next.advertisement
+                .resources
+                .iter()
+                .find(|offer| offer.pool_id == old_resource.pool_id)
+                .ok_or("next Todo checkpoint residence is missing")?
+                .clone(),
+        );
+        advertisement.capabilities.push(next_offer);
+        advertisement.resources.sort();
+        crate::normalize_capability_offers(&mut advertisement.capabilities)?;
+        let ledger = KernelResourceLedger::new(&advertisement)?;
+        self.advance_retained_spoken_offer_generation(next_generation)?;
+        self.advertisement = advertisement;
         self.kernel_resources = ledger;
         self.todo_checkpoint_root = next.todo_checkpoint_root;
         Ok(())
