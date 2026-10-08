@@ -1,6 +1,6 @@
 //! The separately compiled text implementation runs outside privileged Root.
 use super::{
-    domain_memory::{enable_no_execute, AddressSpace},
+    domain_memory::{AddressSpace, enable_no_execute},
     domain_transition,
 };
 use crate::{
@@ -9,7 +9,7 @@ use crate::{
 };
 #[path = "../../domain/frame.rs"]
 mod frame;
-pub(super) use frame::{TextFrame, TEXT_CAPACITY};
+pub(super) use frame::{TEXT_CAPACITY, TextFrame};
 
 #[cfg(target_arch = "x86_64")]
 const IMAGE_MACHINE: u16 = 62;
