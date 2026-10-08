@@ -169,6 +169,7 @@ fn reference_host_advertises_every_supported_std_revision_and_no_legacy_revision
         .filter(|offer| {
             let revision = offer.kind_contract_revision.as_str();
             offer.kind_id.as_str() != conduit_semantic_catalog::INSTRUMENT_MAP_KIND
+                && offer.kind_id.as_str() != conduit_semantic_catalog::QUANTITY_PRESENTATION_KIND
                 && (revision.starts_with("conduit.std/")
                     || revision.starts_with("conduit.input/")
                     || offer.kind_id.as_str() == conduit_semantic_catalog::BOOL_PRESENTATION_KIND
@@ -193,6 +194,11 @@ fn reference_host_advertises_every_supported_std_revision_and_no_legacy_revision
         .capabilities
         .iter()
         .any(|offer| { offer == &conduit_std_offers::instrument_map_std_offer() }));
+    assert!(host
+        .advertisement()
+        .capabilities
+        .iter()
+        .any(|offer| { offer == &conduit_std_offers::quantity_presentation_std_offer() }));
 }
 
 #[test]
