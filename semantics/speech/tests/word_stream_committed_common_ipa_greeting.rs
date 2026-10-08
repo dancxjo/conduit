@@ -24,6 +24,14 @@ fn native<T: NativeRustBinding>(v: &serde_json::Value) -> T {
 #[test]
 #[ignore = "requires original retained four-revision Language commitments"]
 fn actual_committed_common_greeting_preserves_ipa_syllable_and_context_custody() {
+    run_greeting(false);
+}
+#[test]
+#[ignore = "requires original retained four-revision Language commitments"]
+fn actual_committed_common_greeting_projects_committed_linguistic_pitch() {
+    run_greeting(true);
+}
+fn run_greeting(linguistic: bool) {
     let material: serde_json::Value =
         serde_json::from_slice(&bounded_read("CONDUIT_WORD_STREAM_COMMITTED_ROLES")).unwrap();
     let events = String::from_utf8(bounded_read("CONDUIT_WORD_STREAM_EVENTS")).unwrap();
@@ -492,6 +500,10 @@ fn actual_committed_common_greeting_preserves_ipa_syllable_and_context_custody()
             .unwrap()
         })
         .collect::<Vec<_>>();
+    if linguistic {
+        include!("common/committed_greeting_linguistic_body.rs");
+        return;
+    }
     let pcm_evidence::PcmEvidence {
         samples,
         frame_counts,

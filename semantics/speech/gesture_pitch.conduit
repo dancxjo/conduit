@@ -1,0 +1,37 @@
+# Exact original admitted linguistic pitch, on the declared gesture sample grid.
+# Fractional segment anchors refuse; Q8 precision remains an explicit projection.
+type SpeechGesturePitchFrameRequest = {
+    pitch: SpeechPitchAtFrameRequest
+    timing: SpeechGestureTiming
+    global_frame: U64
+    where .timing.nominal_start.denominator == .timing.nominal_end.denominator
+    where .timing.nominal_start.numerator_seconds * .pitch.sample_rate_hz % .timing.nominal_start.denominator == 0
+    where .timing.nominal_end.numerator_seconds * .pitch.sample_rate_hz % .timing.nominal_end.denominator == 0
+    where .pitch.admission.trajectory.duration.numerator_seconds * .timing.nominal_start.denominator == (.timing.nominal_end.numerator_seconds - .timing.nominal_start.numerator_seconds) * .pitch.admission.trajectory.duration.denominator
+    where .global_frame >= .timing.nominal_start.numerator_seconds * .pitch.sample_rate_hz / .timing.nominal_start.denominator
+    where .global_frame < .timing.nominal_end.numerator_seconds * .pitch.sample_rate_hz / .timing.nominal_end.denominator
+    where .pitch.frame == .global_frame - .timing.nominal_start.numerator_seconds * .pitch.sample_rate_hz / .timing.nominal_start.denominator
+}
+type SpeechGesturePitchQ8Request = {
+    original: SpeechGesturePitchFrameRequest
+    fraction: SpeechPitchCycleFraction
+    projected: SpeechCycleQ8AtRate
+    where .fraction.denominator == .original.pitch.admission.trajectory.start.denominator * .original.pitch.admission.trajectory.end.denominator * .original.pitch.admission.trajectory.duration.numerator_seconds * .original.pitch.sample_rate_hz
+    where .fraction.numerator == .original.pitch.admission.trajectory.start.numerator_seconds * .original.pitch.admission.trajectory.end.denominator * (.original.pitch.admission.trajectory.duration.numerator_seconds * .original.pitch.sample_rate_hz - .original.pitch.frame * .original.pitch.admission.trajectory.duration.denominator) + .original.pitch.admission.trajectory.end.numerator_seconds * .original.pitch.admission.trajectory.start.denominator * .original.pitch.frame * .original.pitch.admission.trajectory.duration.denominator
+    where .projected.request.cycle.numerator_seconds * .fraction.denominator == .fraction.numerator * .projected.request.cycle.denominator
+    where .original.pitch.sample_rate_hz == .projected.request.sample_rate_hz
+    where .projected.whole_q8 >= 2048
+    where .projected.whole_q8 <= 131072
+}
+plot speech/gesture-pitch-grid-v1 (
+    >> value: SpeechGesturePitchFrameRequest
+    result: SpeechPitchProjectionInput >>
+) = ({start_numerator: .pitch.admission.trajectory.start.numerator_seconds, start_denominator: .pitch.admission.trajectory.start.denominator, end_numerator: .pitch.admission.trajectory.end.numerator_seconds, end_denominator: .pitch.admission.trajectory.end.denominator, duration_numerator: .pitch.admission.trajectory.duration.numerator_seconds, duration_denominator: .pitch.admission.trajectory.duration.denominator, sample_rate_hz: .pitch.sample_rate_hz, frame: .pitch.frame})
+type SpeechGesturePitchQ8Value = {
+    whole_q8: U64
+    remainder_numerator: U64
+}
+plot speech/gesture-pitch-cycle-q8-v1 (
+    >> value: SpeechCycleAtRateRequest
+    result: SpeechGesturePitchQ8Value >>
+) = ({whole_q8: .cycle.numerator_seconds * .sample_rate_hz * 256 / .cycle.denominator, remainder_numerator: (.cycle.numerator_seconds * .sample_rate_hz * 256) % .cycle.denominator})

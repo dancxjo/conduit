@@ -39,6 +39,13 @@ impl<'a> PreparedGreetingRenderer<'a> {
         &'p self,
         cursor: &mut GreetingRenderCursor<'p, 'a>,
     ) -> Result<Option<GreetingRenderedFrame>, SpeechGestureRenderRefusal> {
+        self.next_with_period(cursor, None)
+    }
+    pub(crate) fn next_with_period<'p>(
+        &'p self,
+        cursor: &mut GreetingRenderCursor<'p, 'a>,
+        period: Option<i32>,
+    ) -> Result<Option<GreetingRenderedFrame>, SpeechGestureRenderRefusal> {
         if !core::ptr::eq(self, cursor.owner) {
             return Err(SpeechGestureRenderRefusal::ForeignBasis);
         }
@@ -80,19 +87,27 @@ impl<'a> PreparedGreetingRenderer<'a> {
         } else {
             &self.first
         };
-        Ok(target
-            .next(&mut cursor.inner)?
-            .map(|rendered| GreetingRenderedFrame {
-                rendered,
-                second,
-                executions,
-            }))
+        let rendered = if let Some(period) = period {
+            target.next_with_period(&mut cursor.inner, period)?
+        } else {
+            target.next(&mut cursor.inner)?
+        };
+        Ok(rendered.map(|rendered| GreetingRenderedFrame {
+            rendered,
+            second,
+            executions,
+        }))
     }
 }
 pub struct GreetingRenderCursor<'p, 's> {
     owner: &'p PreparedGreetingRenderer<'s>,
     inner: SpeechGestureRenderCursor<'p, 's>,
     second: bool,
+}
+impl GreetingRenderCursor<'_, '_> {
+    pub(crate) fn frame_number(&self) -> i32 {
+        self.inner.frame_number()
+    }
 }
 pub struct GreetingRenderedFrame {
     rendered: SpeechGestureRenderedFrame,

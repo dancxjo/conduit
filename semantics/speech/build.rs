@@ -49,6 +49,8 @@ fn main() {
     println!("cargo:rerun-if-changed=context_match.conduit");
     println!("cargo:rerun-if-changed=linguistic_prosody.conduit");
     println!("cargo:rerun-if-changed=pitch_trajectory.conduit");
+    println!("cargo:rerun-if-changed=pitch_projection.conduit");
+    println!("cargo:rerun-if-changed=gesture_pitch.conduit");
     println!("cargo:rerun-if-changed=playback.conduit");
     println!("cargo:rerun-if-changed=lexical_pronunciation.conduit");
     println!("cargo:rerun-if-changed=phonemic_pronunciation.conduit");
@@ -85,6 +87,8 @@ fn main() {
         include_str!("context_match.conduit"),
         include_str!("linguistic_prosody.conduit"),
         include_str!("pitch_trajectory.conduit"),
+        include_str!("pitch_projection.conduit"),
+        include_str!("gesture_pitch.conduit"),
         include_str!("playback.conduit"),
         include_str!("lexical_pronunciation.conduit"),
         include_str!("phonemic_pronunciation.conduit"),

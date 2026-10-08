@@ -137,6 +137,13 @@ impl<'a> PreparedSpeechGestureRenderer<'a> {
         &self,
         cursor: &mut SpeechGestureRenderCursor<'_, 'a>,
     ) -> Result<Option<SpeechGestureRenderedFrame>, SpeechGestureRenderRefusal> {
+        self.next_with_period(cursor, self.period)
+    }
+    pub(crate) fn next_with_period(
+        &self,
+        cursor: &mut SpeechGestureRenderCursor<'_, 'a>,
+        period_q8: i32,
+    ) -> Result<Option<SpeechGestureRenderedFrame>, SpeechGestureRenderRefusal> {
         if !core::ptr::eq(cursor.owner, self) {
             return Err(SpeechGestureRenderRefusal::ForeignBasis);
         }
@@ -162,7 +169,7 @@ impl<'a> PreparedSpeechGestureRenderer<'a> {
                 cycle: dsp::SpeechFrameCycleControl {
                     mode: dsp::SpeechCycleControlMode::resolved,
                     phase_q8: cursor.phase_q8,
-                    period_q8: self.period,
+                    period_q8,
                 },
                 attack: false,
                 release: false,

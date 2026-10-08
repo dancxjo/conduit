@@ -5,6 +5,9 @@ pub fn write_programs(source: &CheckedSyntaxDocument) {
     let mut programs = String::new();
     for (name, constant) in [
         ("speech/greeting-symbol-v2", "SYMBOL"),
+        ("speech/gesture-pitch-grid-v1", "PITCH_GRID"),
+        ("speech/pitch-cycle-fraction", "PITCH_FRACTION"),
+        ("speech/gesture-pitch-cycle-q8-v1", "PITCH_Q8"),
         ("speech/greeting-reviewed-features-v1", "FEATURES"),
         ("speech/greeting-legacy-effect-v2", "LEGACY_EFFECT"),
         ("speech/greeting-effect-v2", "EFFECT"),

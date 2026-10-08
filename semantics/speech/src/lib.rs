@@ -385,3 +385,8 @@ pub use greeting_projection_report::*;
 mod contextual_greeting_gestures;
 #[cfg(feature = "semantic-bindings")]
 pub use contextual_greeting_gestures::*;
+
+#[cfg(feature = "semantic-bindings")]
+mod linguistic_greeting_renderer;
+#[cfg(feature = "semantic-bindings")]
+pub use linguistic_greeting_renderer::*;
