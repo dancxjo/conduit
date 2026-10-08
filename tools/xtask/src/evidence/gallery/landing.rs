@@ -73,9 +73,9 @@ pub(super) fn write_root_index(
         .is_file()
     {
         if one_body_development {
-            "<article class=\"journey-card\"><p class=\"eyebrow\">One Body · development recording</p><h2>Keep one clock with you across three hosts</h2><p>Follow the retained browser, ConduitOS, terminal, and speech actions that have been captured so far. This is a partial local proof; the complete eight-chapter journey is still in progress.</p><a href=\"current/one-body-five-masks/\">Inspect the current recording</a></article>"
+            "<article class=\"journey-card\"><p class=\"eyebrow\">One Body · development recording</p><h2>Keep one ticker running across three hosts</h2><p>Follow the retained ticker actions through browser, ConduitOS, terminal, and speech. This is a partial local proof; the complete eight-chapter journey is still in progress.</p><a href=\"current/one-body-five-masks/\">Inspect the current recording</a></article>"
         } else {
-            "<article class=\"journey-card\"><p class=\"eyebrow\">One Body · five Masks</p><h2>Keep one clock with you across three hosts</h2><p>Follow eight real actions through browser, ConduitOS, terminal, and speech, then inspect what happens when a host or model goes away.</p><a href=\"current/one-body-five-masks/\">Follow the captured journey</a></article>"
+            "<article class=\"journey-card\"><p class=\"eyebrow\">One Body · five Masks</p><h2>Keep one ticker running across three hosts</h2><p>Follow a continuous tick through browser, ConduitOS, terminal, and speech, then inspect what happens when a host or model goes away. The interval is a lifecycle example, not time of day.</p><a href=\"current/one-body-five-masks/\">Follow the captured journey</a></article>"
         }
     } else {
         ""
