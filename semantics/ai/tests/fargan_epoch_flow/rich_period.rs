@@ -911,3 +911,64 @@ fn rich_actual_committed_trajectory_cross_sdk_canonical_admission() {
         std::fs::write(path, serde_json::to_vec(&receipts).unwrap()).unwrap();
     }
 }
+
+#[test]
+#[ignore = "requires independently verified complete continuous-word onset carrier"]
+fn verified_full200_original_carrier_numeric_preflight() {
+    use sha2::{Digest, Sha256};
+    let input = std::fs::read(std::env::var("CONDUIT_FARGAN_FULL200_QUERIES").unwrap()).unwrap();
+    assert_eq!(format!("{:x}", Sha256::digest(&input)), "3c698c51a560bf3fad61740101decff6cf66957ebf60a1567e4380e130a66a2f");
+    assert!(input.len() < 32 * 1024 * 1024);
+    let original: serde_json::Value = serde_json::from_slice(&input).unwrap();
+    let queries = original["queries"].as_array().unwrap();
+    assert_eq!(queries.len(), 200);
+    assert_eq!(original["sample_rate_hz"], 16000);
+    assert_eq!(original["query_interval_frames"], 160);
+    let basis: Rc<[u8]> = Rc::from(serde_json::to_vec(&serde_json::json!({
+        "original_intent":original["original_intent"], "realized_intent":original["realized_intent"],
+        "rich_accepted":original["rich_accepted"], "word_admissions":original["word_admissions"],
+        "initializations":original["initializations"], "source_programs":original["source_programs"], "files":original["files"]
+    })).unwrap());
+    let projector = RichPeriodProjector::prepare(true).unwrap();
+    let d = &projector.document;
+    let mut receipts = Vec::with_capacity(200);
+    let mut constants = 0;
+    let mut varying = 0;
+    for (index, query) in queries.iter().enumerate() {
+        assert_eq!(query["query_index"], index);
+        assert_eq!(query["start_frame"], index * 160);
+        assert_eq!(query["end_frame"], (index + 1) * 160);
+        let segment = query["segment"].as_u64().unwrap() as usize;
+        assert_eq!(segment, index / 20);
+        assert_eq!(query["initialization_index"], segment);
+        let projected = if index < 80 {
+            assert_eq!(query["basis"], "original_constant_initializer");
+            assert!(query["pitch_admission"].as_array().unwrap().is_empty());
+            assert!(query["word_admission_index"].is_null());
+            constants += 1;
+            let bytes: Vec<u8> = serde_json::from_value(original["initializations"][segment]["q8_initialization"].clone()).unwrap();
+            let request = StructuredInfoValue::from_canonical_bytes(&bytes).unwrap();
+            field(&request, "projected").clone()
+        } else {
+            assert_eq!(query["basis"], "continuous_word_pitch_frame");
+            assert_eq!(query["word_admission_index"], segment - 4);
+            varying += 1;
+            let bytes: Vec<u8> = serde_json::from_value(query["pitch_admission"].clone()).unwrap();
+            let admission = StructuredInfoValue::from_canonical_bytes(&bytes).unwrap();
+            assert_eq!(number(field(field(&admission, "original"), "global_frame")), index as u64 * 160);
+            field(&admission, "projected").clone()
+        };
+        let cycle = field(field(&projected, "request"), "cycle");
+        let n = u128::from(number(field(cycle,"numerator_seconds")));
+        let den = u128::from(number(field(cycle,"denominator")));
+        let expected = (2*n*16000+den)/(2*den);
+        let receipt = PreparedRichPeriod::prepare_shared(&projector,&projected.canonical_bytes().unwrap(),&scalar(index as u64*160).canonical_bytes().unwrap(),Rc::clone(&basis),&serde_json::to_vec(query).unwrap(),index as u64,(named(ty(d,"FarganRichPeriodPolicy"),"nearest_whole_sample_ties_up"),named(ty(d,"FarganRichPeriodCadence"),"epoch_onset_160_frames_at_16000_hz"))).unwrap();
+        assert_eq!(u128::from(number(field(receipt.result(),"period"))),expected);
+        assert!(Rc::ptr_eq(&receipt.original_rich_basis,&basis));
+        receipts.push(serde_json::json!({"query_index":index,"original_q8":receipt.original_q8,"original_query_frame":receipt.original_query_frame,"eligible":receipt.eligible,"arithmetic":receipt.arithmetic,"raw":receipt.raw,"admitted_result":receipt.result.canonical_bytes().unwrap(),"admitted_model_period":receipt.period.canonical_bytes().unwrap(),"core_numeric_fidelity":projection::report_material(&receipt),"basis_kind":query["basis"]}));
+    }
+    assert_eq!((constants,varying),(80,120));
+    if let Ok(path)=std::env::var("CONDUIT_FARGAN_FULL200_PREFLIGHT_OUTPUT") {
+        std::fs::write(path,serde_json::to_vec(&serde_json::json!({"original_artifact_sha256":"3c698c51a560bf3fad61740101decff6cf66957ebf60a1567e4380e130a66a2f","shared_original_basis":basis.as_ref(),"source":source(),"numeric_program":projector.program.as_ref(),"receipts":receipts,"scope":"200 exact original onset inputs; Source numeric eligibility/conversion and independent u128; no temporal report or public runtime authorization"})).unwrap()).unwrap();
+    }
+}
