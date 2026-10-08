@@ -214,3 +214,11 @@ pub use generated::{
     LanguageParserIndependentCommitRequest, LanguageParserIndependentCommitSet,
     LanguageParserIndependentCommitSetProposal, LanguageParserProtectedInitializationReceipt,
 };
+
+/// Exact fixed Source execution custody used by the production parser owner.
+pub mod parser_session_execution;
+pub use generated::{LanguageParserSessionSeedProposal, LanguageParserSessionSeedRequest};
+
+pub mod parser_session_canonical_ingress;
+
+pub mod parser_canonical_history;

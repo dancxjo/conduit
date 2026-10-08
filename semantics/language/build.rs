@@ -1,8 +1,11 @@
+#[path = "build_session_chain.rs"]
+mod session_chain;
 use conduit_plot::rust_binding::{generate_rust_bindings, RustBindingOptions};
 use conduit_plot::{check_syntax_document, parse_syntax_document, StartupCatalog};
 use std::{env, fs, path::PathBuf};
 
 fn main() {
+    println!("cargo:rerun-if-changed=build_session_chain.rs");
     println!("cargo:rerun-if-changed=types.conduit");
     println!("cargo:rerun-if-changed=identity.conduit");
     println!("cargo:rerun-if-changed=coverage.conduit");
@@ -18,6 +21,7 @@ fn main() {
     println!("cargo:rerun-if-changed=parser_beam.conduit");
     println!("cargo:rerun-if-changed=parser_scorer.conduit");
     println!("cargo:rerun-if-changed=parser_mask.conduit");
+    println!("cargo:rerun-if-changed=parser_session_seed.conduit");
     println!("cargo:rerun-if-changed=parser_joint.conduit");
     println!("cargo:rerun-if-changed=parser_joint_decode.conduit");
     println!("cargo:rerun-if-changed=parser_available.conduit");
@@ -64,6 +68,7 @@ fn main() {
         include_str!("parser_scorer.conduit"),
         include_str!("parser_mask.conduit"),
         include_str!("parser_joint.conduit"),
+        include_str!("parser_session_seed.conduit"),
         include_str!("parser_joint_decode.conduit"),
         include_str!("parser_available.conduit"),
         include_str!("parser_revision.conduit"),
@@ -97,6 +102,112 @@ fn main() {
     let checked = check_syntax_document(&parse_syntax_document(&source), &StartupCatalog::new())
         .expect("language semantic Types must check");
     for (plot, file) in [
+        ("language-parser-availability", "parser_availability.hex"),
+        (
+            "language-parser-decode-complete",
+            "parser_decode_complete.hex",
+        ),
+        (
+            "language-parser-independent-branch",
+            "parser_independent_branch.hex",
+        ),
+        (
+            "language-parser-independent-commit",
+            "parser_independent_commit.hex",
+        ),
+        (
+            "language-parser-independent-commit-rebase",
+            "parser_independent_commit_rebase.hex",
+        ),
+        (
+            "language-parser-independent-commit-rebase-sets",
+            "parser_independent_commit_rebase_sets.hex",
+        ),
+        (
+            "language-parser-independent-mask",
+            "parser_independent_mask.hex",
+        ),
+        ("language-parser-joint-branch", "parser_joint_branch.hex"),
+        ("language-parser-joint-commit", "parser_joint_commit.hex"),
+        (
+            "language-parser-joint-consensus",
+            "parser_joint_consensus.hex",
+        ),
+        (
+            "language-parser-joint-expansion",
+            "parser_joint_expansion.hex",
+        ),
+        ("language-parser-joint-rebase", "parser_joint_rebase.hex"),
+        (
+            "language-parser-joint-runtime-merge",
+            "parser_joint_runtime_merge.hex",
+        ),
+        (
+            "language-parser-joint-score-band-1000",
+            "parser_joint_score_band_1000.hex",
+        ),
+        (
+            "language-parser-joint-stable-fact",
+            "parser_joint_stable_fact.hex",
+        ),
+        ("language-parser-legal-mask", "parser_legal_mask.hex"),
+        (
+            "language-parser-protected-origin-edge",
+            "parser_protected_origin_edge.hex",
+        ),
+        (
+            "language-parser-protected-set-initialize",
+            "parser_protected_set_initialize.hex",
+        ),
+        (
+            "language-parser-protected-set-insert",
+            "parser_protected_set_insert.hex",
+        ),
+        (
+            "language-parser-protected-set-rebase",
+            "parser_protected_set_rebase.hex",
+        ),
+        (
+            "language-parser-protection-forest-projection",
+            "parser_protection_forest_projection.hex",
+        ),
+        (
+            "language-parser-retained-commit-anchor",
+            "parser_retained_commit_anchor.hex",
+        ),
+        (
+            "language-parser-revision-reset",
+            "parser_revision_reset.hex",
+        ),
+        (
+            "language-parser-score-proposal",
+            "parser_score_proposal.hex",
+        ),
+        ("language-parser-session-seed", "parser_session_seed.hex"),
+        ("language-parser-transition", "parser_transition.hex"),
+        (
+            "language-parser-v2-model-features",
+            "parser_v2_model_features.hex",
+        ),
+        ("language-parser-v2-pos", "parser_v2_pos.hex"),
+        ("language-parser-wait-state", "parser_wait_state.hex"),
+    ] {
+        let expanded = conduit_plot::expand_canonical_plot_for_authoring(
+            &checked,
+            plot,
+            &conduit_plot::ProfileCatalog::new(),
+        )
+        .expect("fixed Source chain expands");
+        session_chain::retain(
+            &expanded,
+            &PathBuf::from(env::var_os("OUT_DIR").unwrap()).join(file),
+        );
+    }
+    for (plot, file) in [
+        (
+            "language-parser-protected-set-initialize",
+            "parser_protected_set_initialize.hex",
+        ),
         (
             "language-parser-independent-commit",
             "parser_independent_commit.hex",
@@ -229,8 +340,88 @@ fn main() {
         )
         .expect("retain checked language program");
     }
-    let generated = generate_rust_bindings(&checked.native_types, &RustBindingOptions::default())
-        .expect("language semantic Types must generate exact Rust bindings");
+    let generated = generate_rust_bindings(
+        &checked.native_types,
+        &RustBindingOptions {
+            prepared_family_roots: [
+                "LanguageAnalysisTokenRef",
+                "LanguageDependencyArc",
+                "LanguageDependencyHead",
+                "LanguageDependencyRelation",
+                "LanguageParserAvailability",
+                "LanguageParserAvailableLexical",
+                "LanguageParserAvailableState",
+                "LanguageParserHypothesis",
+                "LanguageParserIndependentBranchContext",
+                "LanguageParserIndependentCommitRebaseRequest",
+                "LanguageParserIndependentCommitRebaseSets",
+                "LanguageParserIndependentCommitRequest",
+                "LanguageParserIndependentCommitSet",
+                "LanguageParserIndependentCommitSetProposal",
+                "LanguageParserIndependentMaskQuery",
+                "LanguageParserIndependentProtectedAdmission",
+                "LanguageParserJointBeam",
+                "LanguageParserJointBranchQuery",
+                "LanguageParserJointBranchResult",
+                "LanguageParserJointCommitProposal",
+                "LanguageParserJointCommitQuery",
+                "LanguageParserJointConsensusObservation",
+                "LanguageParserJointConsensusQuery",
+                "LanguageParserJointExpansion",
+                "LanguageParserJointHypothesis",
+                "LanguageParserJointProtectedBranchQuery",
+                "LanguageParserJointRebaseContext",
+                "LanguageParserJointRebaseProposal",
+                "LanguageParserJointRuntimeHypothesis",
+                "LanguageParserJointRuntimeMerge",
+                "LanguageParserJointRuntimeRawBeam",
+                "LanguageParserJointRuntimeRawHypothesis",
+                "LanguageParserJointScoreBandProposal",
+                "LanguageParserJointScoreBandQuery",
+                "LanguageParserJointStableFactProposal",
+                "LanguageParserLegalMask",
+                "LanguageParserMaskQuery",
+                "LanguageParserProtectedEdgeProposal",
+                "LanguageParserProtectedInitialReceipt",
+                "LanguageParserProtectedInitializationReceipt",
+                "LanguageParserProtectedInsertContext",
+                "LanguageParserProtectedInsertReceipt",
+                "LanguageParserProtectedOriginCorrelation",
+                "LanguageParserProtectedRebaseReceipt",
+                "LanguageParserProtectedSetProposal",
+                "LanguageParserProtectedSetRebaseContext",
+                "LanguageParserProtectionForestProposal",
+                "LanguageParserProtectionForestQuery",
+                "LanguageParserRawAvailability",
+                "LanguageParserRawJointHypothesis",
+                "LanguageParserRawWaitState",
+                "LanguageParserRequest",
+                "LanguageParserResult",
+                "LanguageParserRetainedCommitAnchor",
+                "LanguageParserRetainedCommitAnchorProposal",
+                "LanguageParserRetainedCommitReceipt",
+                "LanguageParserRetainedFactReceipt",
+                "LanguageParserRetainedSnapshotReceipt",
+                "LanguageParserRevisionContext",
+                "LanguageParserRevisionResult",
+                "LanguageParserScoredClass",
+                "LanguageParserScoredProposal",
+                "LanguageParserSessionSeedProposal",
+                "LanguageParserSessionSeedRequest",
+                "LanguageParserStableDependencyAdmission",
+                "LanguageParserState",
+                "LanguageParserV2ChoiceQuery",
+                "LanguageParserV2ModelFeatures",
+                "LanguageParserV2PosContext",
+                "LanguageParserWaitState",
+            ]
+            .into_iter()
+            .map(str::to_owned)
+            .collect(),
+            ..RustBindingOptions::default()
+        },
+    )
+    .expect("language semantic Types must generate exact Rust bindings");
     let output = PathBuf::from(env::var_os("OUT_DIR").expect("Cargo supplies OUT_DIR"))
         .join("semantic_types.rs");
     let source = retain_binding_bytes(&generated.source, output.parent().unwrap());
@@ -245,6 +436,8 @@ fn retain_binding_bytes(source: &str, directory: &std::path::Path) -> String {
     for line in source.lines() {
         if (line.starts_with("pub const ") && line.contains("_SEMANTIC_TYPE: &[u8]"))
             || line.contains("PortableExpressionProgram::from_canonical_bytes(&[")
+            // Preserve each shared ordered law array as exact binary bytes.
+            || line.trim_start().starts_with("&[")
         {
             let start = line.find("&[").expect("generated literal bytes");
             // Constants have an earlier slice Type spelling; their literal starts

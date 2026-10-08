@@ -1,0 +1,19 @@
+# Production seed. The complete lexical tape and exact parser basis are inputs;
+# a structurally admitted arbitrary state cannot initialize a Session.
+type LanguageParserSessionSeedRequest = {
+ begin: LanguageParserBegin
+ lexical: LanguageParserJointLexical
+ identity: U64
+ where .begin.basis.text == .lexical.tape.source.material.identity
+ where .begin.basis.source_revision == .lexical.tape.source.material.revision
+ where .begin.token_count == .lexical.token_count
+}
+type LanguageParserSessionSeedProposal = {
+ candidate0: LanguageParserJointRuntimeRawHypothesis
+ candidate1: LanguageParserJointRuntimeRawHypothesis
+ candidate2: LanguageParserJointRuntimeRawHypothesis
+ candidate3: LanguageParserJointRuntimeRawHypothesis
+}
+plot language-parser-session-seed (
+ input: LanguageParserSessionSeedRequest...| >> output: LanguageParserSessionSeedProposal...|
+) = { candidate0: { hypothesis: { parser: { state: { basis: .begin.basis, token_count: .begin.token_count, unread: 0, depth: 1, stack: [4,4,4,4,4], heads: [5,5,5,5,4], relation0: .begin.default_relation, relation1: .begin.default_relation, relation2: .begin.default_relation, relation3: .begin.default_relation, committed: 0 }, active: true, identity: .identity, score: 0 }, choices: [0,0,0,0] }, selected: 0 }, candidate1: { hypothesis: { parser: { state: { basis: .begin.basis, token_count: .begin.token_count, unread: 0, depth: 1, stack: [4,4,4,4,4], heads: [5,5,5,5,4], relation0: .begin.default_relation, relation1: .begin.default_relation, relation2: .begin.default_relation, relation3: .begin.default_relation, committed: 0 }, active: false, identity: 0, score: 0 }, choices: [0,0,0,0] }, selected: 0 }, candidate2: { hypothesis: { parser: { state: { basis: .begin.basis, token_count: .begin.token_count, unread: 0, depth: 1, stack: [4,4,4,4,4], heads: [5,5,5,5,4], relation0: .begin.default_relation, relation1: .begin.default_relation, relation2: .begin.default_relation, relation3: .begin.default_relation, committed: 0 }, active: false, identity: 0, score: 0 }, choices: [0,0,0,0] }, selected: 0 }, candidate3: { hypothesis: { parser: { state: { basis: .begin.basis, token_count: .begin.token_count, unread: 0, depth: 1, stack: [4,4,4,4,4], heads: [5,5,5,5,4], relation0: .begin.default_relation, relation1: .begin.default_relation, relation2: .begin.default_relation, relation3: .begin.default_relation, committed: 0 }, active: false, identity: 0, score: 0 }, choices: [0,0,0,0] }, selected: 0 } }
