@@ -66,6 +66,9 @@ mod parser_session_fixed_preparation;
 #[path = "../src/parser_session_queries.rs"]
 mod parser_session_queries;
 
+#[path = "../src/parser_canonical_nominal.rs"]
+mod parser_canonical_nominal;
+
 extern crate conduitos as actual_expression_owner;
 use parser_session_numeric_custody as numeric_custody;
 #[path = "common/parser_model_resource.rs"]
@@ -187,6 +190,54 @@ fn complete_fixed_query_bank_preserves_native_input_and_refuses_aggregate_pressu
     assert!(matches!(
         bank.record(Entry::DecodeComplete, &selected[..count]),
         Err(ParserQueryRefusal::Entry)
+    ));
+    let family = families.for_entry(Entry::Seed).unwrap();
+    let mut nominal = parser_canonical_nominal::PreparedParserNominal::prepare::<
+        LanguageParserSessionSeedRequest,
+    >(
+        &family.borrow(),
+        &["begin", "basis", "analysis_revision"],
+        256,
+        256,
+        256,
+    )
+    .unwrap();
+    assert_eq!(nominal.requested_bytes_bound(), 256);
+    assert_eq!(nominal.retained_capacity_bytes(), 256);
+    let oracle = LanguageAnalysisRevisionId::new("session/analysis/1".into())
+        .unwrap()
+        .encode()
+        .unwrap();
+    assert_eq!(nominal.leaf(b"session/analysis/1").unwrap(), oracle);
+    let original = conduit_core::validate_canonical_structured_value(&oracle).unwrap();
+    assert_eq!(
+        nominal
+            .compose(original.nominal_representation().unwrap())
+            .unwrap(),
+        oracle
+    );
+    assert!(matches!(
+        nominal.compose(original),
+        Err(parser_canonical_nominal::NominalRefusal::Type)
+    ));
+    family
+        .borrow_mut()
+        .decode::<LanguageAnalysisRevisionId>(nominal.leaf(b"session/analysis/1").unwrap())
+        .unwrap();
+    // Canonical framing does not waive the original nominal value contract.
+    assert!(family
+        .borrow_mut()
+        .decode::<LanguageAnalysisRevisionId>(nominal.leaf(&[b'x'; 65]).unwrap())
+        .is_err());
+    assert!(matches!(
+        parser_canonical_nominal::PreparedParserNominal::prepare::<LanguageParserSessionSeedRequest>(
+            &family.borrow(),
+            &["begin", "basis", "analysis_revision"],
+            256,
+            255,
+            256
+        ),
+        Err(parser_canonical_nominal::NominalRefusal::Pressure)
     ));
     eprintln!("complete fixed query bank receipt={receipt:?}");
 }

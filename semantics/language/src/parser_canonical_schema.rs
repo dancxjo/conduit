@@ -11,7 +11,7 @@ pub(crate) enum Shape<'a> {
     Leaf(&'a str),
     Collection { element: &'a [u8], length: u16 },
     Sequence,
-    Nominal,
+    Nominal { representation: &'a [u8] },
     Record(Fields<'a>),
     Variant(Fields<'a>),
 }
@@ -125,7 +125,12 @@ pub(crate) fn shape(mut encoded: &[u8]) -> Result<Shape<'_>, SchemaRefusal> {
             }
         }
         4 => Shape::Sequence,
-        5 => Shape::Nominal,
+        5 => {
+            text(&mut encoded)?;
+            Shape::Nominal {
+                representation: child(&mut encoded)?,
+            }
+        }
         _ => return Err(SchemaRefusal),
     })
 }

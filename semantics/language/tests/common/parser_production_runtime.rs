@@ -8,7 +8,7 @@ use conduit_ai::integer_categorical_step::{
 use conduit_composite::*;
 use conduit_core::*;
 use conduit_plot::*;
-use std::{collections::BTreeMap, sync::Arc};
+use std::{collections::BTreeMap, rc::Rc, sync::Arc};
 enum Pure {
     Expression(ExpressionHostCall),
 }
@@ -16,8 +16,8 @@ pub struct Execution {
     kernel: KernelCompositeHost,
     pure: Vec<(conduit_kernel::NodeId, Pure)>,
     remaining_inferences: Option<u16>,
-    pub source_document: String,
-    pub checked_source: CheckedSyntaxDocument,
+    pub source_document: Rc<String>,
+    pub checked_source: Rc<CheckedSyntaxDocument>,
     pub expanded_source: ExpandedAuthoringPlot,
     pub original_plan: std::rc::Rc<Plan>,
     input_payload: ValuePayload,
@@ -58,11 +58,15 @@ pub fn prepare_source_with_storage(
 
 pub fn prepare_checked_source(
     profile: Arc<PreparedCategoricalStep>,
-    document: String,
-    checked: CheckedSyntaxDocument,
+    document: impl Into<Rc<String>>,
+    checked: impl Into<Rc<CheckedSyntaxDocument>>,
     entry: &str,
     maximum_inferences: Option<u16>,
 ) -> Execution {
+    // The exact complete checked package is immutable and retained by every
+    // realized port. Sharing never imports a Type-only subset or drops laws.
+    let document = document.into();
+    let checked = checked.into();
     let mut startup = StartupCatalog::new();
     let mut catalogs = ProfileCatalog::new();
     profile.install(&mut startup, &mut catalogs, true).unwrap();
