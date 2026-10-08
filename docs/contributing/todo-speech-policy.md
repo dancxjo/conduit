@@ -33,7 +33,8 @@ fabrication refusals. Existing ticker presentation uses this same policy;
 #5269's interval-ticker wording is a separate change.
 
 These deterministic checks prove policy and input behavior. They do not prove
-acoustic quality, speaker playback or human perception. Neither `espeak-ng` nor
-`espeak` is installed on this validation host, so this change records no new
-physical or synthesized audio demonstration. The selected-equipment speech
-proof remains separate from the selection contract.
+acoustic quality, speaker playback or human perception. The existing eSpeak
+provider can be selected explicitly using the runtime speech workflow; its
+executable, library and voice data remain separate admitted resources. This
+change records no new audio demonstration. The same-Face spoken capture remains
+part of cross-Mask journey acceptance, separate from this selection contract.
