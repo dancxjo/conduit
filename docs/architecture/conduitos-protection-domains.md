@@ -298,7 +298,7 @@ architecture-specific counters; they are not cross-platform latency rankings.
 The private image uses speed optimization and thin LTO, and initializes its
 kernel directly in retained state. This removed IA-32 initialization overhead
 that exhausted the existing watchdog; its three-interrupt budget was unchanged.
-Accepted-release evidence remains pending.
+Release acceptance is recorded separately from these local emulator receipts.
 
 Broader ordinary implementation coverage remains unfinished.
 This is development emulator evidence, not accepted-release evidence.
