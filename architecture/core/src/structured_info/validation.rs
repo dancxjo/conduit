@@ -5,6 +5,8 @@ use super::{
     MAXIMUM_STRUCTURED_INFO_NODES, MAXIMUM_STRUCTURED_LEAF_BYTES,
 };
 use alloc::vec::Vec;
+mod storage;
+pub use storage::*;
 
 /// Retains one checked finite schema and its exact canonical prefix.
 /// Leaf payload meaning remains owned by its kind; this validates the canonical
