@@ -7,7 +7,7 @@
 extern crate alloc;
 
 mod interaction;
-pub use interaction::todo_command_from_interaction;
+pub use interaction::{todo_command_from_contributed_interaction, todo_command_from_interaction};
 
 use alloc::{format, string::ToString, vec, vec::Vec};
 use conduit_presentation::{
