@@ -968,6 +968,11 @@ impl<const EVENTS: usize> SignQuery for FixedSignLog<EVENTS> {
 }
 
 #[cfg(feature = "alloc")]
+mod hosted_sign_storage;
+#[cfg(feature = "alloc")]
+pub use hosted_sign_storage::{HostedSignLogPreparationRefusal, HostedSignLogStorageReceipt};
+
+#[cfg(feature = "alloc")]
 pub struct HostedSignLog {
     entries: alloc::vec::Vec<Option<KernelEvent>>,
     len: u16,
