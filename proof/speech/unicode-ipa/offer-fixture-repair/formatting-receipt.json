@@ -1,0 +1,9 @@
+{
+  "source_commit": "6b8081a1859d767e20ef551aeb467e86ecc10740",
+  "change": "rustfmt whitespace only in exact three-offer assertion",
+  "implementation_36_hashes_unchanged": true,
+  "fmt_check_exit": 0,
+  "failed_ci_run": 37861332365,
+  "failed_ci_job": 113598588732,
+  "failed_log_sha256": "0f61ed7f07b7a740fc2eaf7b0b4eecee02eec0c1461f2f036325b49941eac54c"
+}
