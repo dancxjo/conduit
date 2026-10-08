@@ -225,6 +225,7 @@ impl Session {
         ))
         .unwrap();
         let mut event = serde_json::json!({"event":"availability","text":input.tape().source().material().text(),"actual_elapsed_ms":self.started.elapsed().as_millis(),"source_revision":input.tape().source().material().revision().get(),"source_sequence":input.tape().source().sequence(),"lexical_profile_identity":input.tape().profile().identity(),"waiting":status.waiting(),"final_input":status.final_input(),"available":input.token_count(),"revision_bytes":input.tape().source().clone().into_structured().unwrap().canonical_bytes().unwrap(),"invocation":self.flows.flows[0].sequence-1});
+        event["stable_source_prefix"] = serde_json::json!(input.tape().source().stable_prefix());
         if let Some(protection) = self.protection.as_ref() {
             event["independent_protection"] = serde_json::json!({
                 "source_identity": joint::hex(protection.source_identity()),
@@ -475,6 +476,8 @@ impl runtime::Observer for Session {
             .unwrap(),
         );
         let mut event = serde_json::json!({"event":"snapshot","text":beam.lexical().tape().source().material().text(),"preferred_candidate":beam.candidate0().parser().active().then_some(beam.candidate0().parser().identity()),"preferred_selection":"Source cumulative score and identity rank","model_execution":"ordinary-admitted-resource-Plan-Play","model_invocations":self.numeric_sequence,"model_content_identity":joint::hex(self.model.compatibility().model_content),"model_signature_identity":joint::hex(self.model.compatibility().signature),"session_source_identity":joint::hex(conduit_core::semantic_digest("language/parser-v2-retained-session-source@1",source().as_bytes())),"actual_elapsed_ms":self.started.elapsed().as_millis(),"source_revision":beam.basis().source_revision().get(),"analysis_revision":beam.basis().analysis_revision().get(),"source_sequence":beam.epoch(),"lexical_profile_identity":beam.lexical().tape().profile().identity(),"candidates":candidates,"outcome":self.outcome,"joint_lexical_arc_agreement":agreed,"beam_bytes":owned.clone().into_structured().unwrap().canonical_bytes().unwrap(),"wait_calls":self.waits,"stable":stable_facts.len(),"stable_fact_bytes":stable_facts.iter().map(|fact|fact.clone().into_structured().unwrap().canonical_bytes().unwrap()).collect::<Vec<_>>(),"retained_stable_fact_count":self.retained_facts.len(),"branch_policy_refusals":self.branch_refusals,"committed":preferred.committed(),"frontier_policy":if self.policy {"Source uncalibrated score-band1000; Native stable laws and contiguous commit"}else{"provisional snapshots only; stabilization not advanced"},"retained_executions":true,"flow_invocations":self.flows.flows.iter().map(|f|f.sequence).collect::<Vec<_>>()});
+        event["stable_source_prefix"] =
+            serde_json::json!(beam.lexical().tape().source().stable_prefix());
         if let Some(protection) = self.protection.as_ref() {
             event["independent_protection"] = serde_json::json!({
                 "source_identity": joint::hex(protection.source_identity()),
