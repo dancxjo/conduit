@@ -1,0 +1,26 @@
+# Explicit definition-to-notation relation. IPA unit identity never invents
+# phone or phoneme identity, variety, allophony or permission to speak.
+type SpeechIpaPhoneDefinitionBinding = {
+ phone: PhoneId
+ units: sequence SpeechIpaUnitId in 1..=8
+ provenance: SpeechEvidenceProvenance
+}
+type SpeechIpaPhonemeDefinitionBinding = {
+ phoneme: PhonemeId
+ units: sequence SpeechIpaUnitId in 1..=8
+ provenance: SpeechEvidenceProvenance
+}
+# The definition owner supplies the actual whole inventory alongside this
+# checked notation basis. Inventory content remains retained, not reconstructed
+# from these names; this record grants no commitment or playback authority.
+type SpeechIpaInventoryNotationBasis = {
+ inventory_id: SpeechInventoryId
+ language: LanguageId
+ variety: LanguageVariety
+ revision: SpeechSegmentRevisionId
+ profile: SpeechIpaNotationProfile
+ where .inventory_id == .profile.inventory_id
+ where .language == .variety.language
+ where .variety == .profile.variety
+ where .revision == .profile.revision
+}
