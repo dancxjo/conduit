@@ -83,26 +83,58 @@ pub fn prepare_source_with_inference_budget(
         .expect("journal item bound overflows");
     prepare_source_with_storage(profile, document, entry, Some(maximum_inferences))
 }
+/// Distinct fixed aliases preserve the legacy 25-feature catalog identity.
+#[allow(dead_code)]
+pub fn prepare_proposal_window8_v2_source_with_inference_budget(
+    profile: Arc<PreparedCategoricalStep>,
+    document: String,
+    entry: &str,
+    maximum_inferences: u16,
+) -> Execution {
+    assert!(maximum_inferences > 0);
+    maximum_inferences
+        .checked_mul(4)
+        .expect("journal item bound overflows");
+    prepare_source_with_aliases(
+        profile,
+        document,
+        entry,
+        Some(maximum_inferences),
+        "LanguageParserWindow8ProposerV2CategoricalIndices",
+        "LanguageParserWindow8ProposerV2CategoricalScores",
+    )
+}
 fn prepare_source_with_storage(
     profile: Arc<PreparedCategoricalStep>,
     document: String,
     entry: &str,
     maximum_inferences: Option<u16>,
 ) -> Execution {
+    prepare_source_with_aliases(
+        profile,
+        document,
+        entry,
+        maximum_inferences,
+        "LanguageParserCategoricalIndices",
+        "LanguageParserCategoricalScores",
+    )
+}
+fn prepare_source_with_aliases(
+    profile: Arc<PreparedCategoricalStep>,
+    document: String,
+    entry: &str,
+    maximum_inferences: Option<u16>,
+    indices_alias: &str,
+    scores_alias: &str,
+) -> Execution {
     let mut startup = StartupCatalog::new();
     let mut catalogs = ProfileCatalog::new();
     profile.install(&mut startup, &mut catalogs, true).unwrap();
     startup
-        .insert_structured_type(
-            "LanguageParserCategoricalIndices",
-            profile.indices_type().clone(),
-        )
+        .insert_structured_type(indices_alias, profile.indices_type().clone())
         .unwrap();
     startup
-        .insert_structured_type(
-            "LanguageParserCategoricalScores",
-            profile.scores_type().clone(),
-        )
+        .insert_structured_type(scores_alias, profile.scores_type().clone())
         .unwrap();
     let checked = check_syntax_document(&parse_syntax_document(&document), &startup).unwrap();
     let expanded = expand_canonical_plot_for_authoring(&checked, entry, &catalogs).unwrap();
