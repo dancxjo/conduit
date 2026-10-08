@@ -37,6 +37,9 @@ fn main() {
     println!("cargo:rerun-if-changed=parser_session_protected_forest.conduit");
     println!("cargo:rerun-if-changed=parser_session_protected_branch.conduit");
     println!("cargo:rerun-if-changed=parser_session_protected_mask.conduit");
+    println!("cargo:rerun-if-changed=parser_session_custody.conduit");
+    println!("cargo:rerun-if-changed=parser_session_custody_origins.conduit");
+    println!("cargo:rerun-if-changed=parser_session_custody_frontier.conduit");
     println!("cargo:rerun-if-changed=parser_scorer_v2.conduit");
     println!("cargo:rerun-if-changed=discourse.conduit");
     println!("cargo:rerun-if-changed=prosody.conduit");
@@ -77,6 +80,9 @@ fn main() {
         include_str!("parser_session_protected_forest.conduit"),
         include_str!("parser_session_protected_branch.conduit"),
         include_str!("parser_session_protected_mask.conduit"),
+        include_str!("parser_session_custody.conduit"),
+        include_str!("parser_session_custody_origins.conduit"),
+        include_str!("parser_session_custody_frontier.conduit"),
         include_str!("discourse.conduit"),
         include_str!("prosody.conduit"),
         include_str!("pronunciation_selection.conduit"),
@@ -85,6 +91,14 @@ fn main() {
     let checked = check_syntax_document(&parse_syntax_document(&source), &StartupCatalog::new())
         .expect("language semantic Types must check");
     for (plot, file) in [
+        (
+            "language-parser-retained-commit-anchor",
+            "parser_retained_commit_anchor.hex",
+        ),
+        (
+            "language-parser-protected-origin-edge",
+            "parser_protected_origin_edge.hex",
+        ),
         ("language-window8-initialize", "window8_initialize.hex"),
         (
             "language-window8-stable-lexical-candidate",

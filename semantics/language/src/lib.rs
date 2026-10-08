@@ -194,3 +194,16 @@ pub use generated::{
     LanguageParserProtectedSetRebaseContext, LanguageParserProtectionForest,
     LanguageParserProtectionForestProposal, LanguageParserProtectionForestQuery,
 };
+
+/// Exact Source-checked protection witnesses; private custody retains whole origins.
+pub use generated::{
+    LanguageParserProtectedInitialReceipt, LanguageParserProtectedInsertReceipt,
+    LanguageParserProtectedOriginCorrelation, LanguageParserProtectedRebaseReceipt,
+};
+
+/// Source-correlated retained frontier witnesses; commitment requires whole receipt custody.
+pub use generated::{
+    LanguageParserRetainedCommitAnchor, LanguageParserRetainedCommitAnchorProposal,
+    LanguageParserRetainedCommitReceipt, LanguageParserRetainedFactReceipt,
+    LanguageParserRetainedSnapshotReceipt,
+};
