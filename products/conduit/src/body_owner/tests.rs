@@ -1,3 +1,4 @@
+use super::super::scoped_todo_initial;
 use super::*;
 use conduit_core::{
     ArtifactId, CapabilityId, CapabilityLimits, ExecutionProfileId, ImplementationId,
@@ -27,6 +28,47 @@ fn resident(plot: &conduit_plot::ExpandedAuthoringPlot) -> ResidentPlot {
         plot.expanded.source_document_id.clone(),
         plot.expanded.checked_plot_id.clone(),
     )
+}
+
+#[test]
+fn checked_todo_initial_selects_the_installed_host_before_owner_planning() {
+    let source = crate::plot_source::parse(TODO_SOURCE).unwrap();
+    let plot = source.expand_entry_for_authoring().unwrap();
+    let (initial, maximum) = scoped_todo_initial(&plot).unwrap().unwrap();
+    assert_eq!(initial.title, "Groceries");
+    assert_eq!(maximum, 64);
+    let scoped = StdHost::new_for_todo_scan(
+        StdHostConfig {
+            host_id: HostId::from("host/owner-test"),
+            boot_id: BootId::from("boot/todo-scoped"),
+            offer_generation: OfferGeneration(1),
+        },
+        &initial,
+        maximum,
+    )
+    .unwrap();
+    let advertised = scoped.advertisement().clone();
+    let mut owner = Owner::open(scoped, resident(&plot), None, "Groceries").unwrap();
+    owner.plan_with_source(&source, &plot).unwrap();
+    let planned = &owner.session.realization().unwrap().plan.plots[0].plan;
+    assert!(conduit_core::verify_plan(planned));
+    assert_eq!(planned.activations.len(), 1);
+    assert_eq!(owner.host.advertisement(), &advertised);
+    assert_eq!(
+        owner.execute(1).unwrap_err(),
+        "installed Body Play has no activation ingress or egress"
+    );
+}
+
+#[test]
+fn scoped_todo_host_refuses_invalid_checked_form_and_keeps_ordinary_source() {
+    assert!(scoped_todo_initial(&source()).unwrap().is_none());
+    let mut checked = crate::plot_source::parse(TODO_SOURCE)
+        .unwrap()
+        .expand_entry_for_authoring()
+        .unwrap();
+    checked.expanded.activations[0].initial_accumulator_bytes = Some(vec![0xff]);
+    assert!(scoped_todo_initial(&checked).is_err());
 }
 
 #[test]
