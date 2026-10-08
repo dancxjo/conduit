@@ -110,6 +110,14 @@ mod tests {
 
     fn compare(view: super::super::ValidatedCanonicalStructuredValue<'_>, value: &V) {
         let bytes = value.canonical_bytes().unwrap();
+        assert_eq!(value.canonical_byte_length().unwrap(), bytes.len());
+        let bounded = value.canonical_bytes_with_limit(bytes.len()).unwrap();
+        assert_eq!(bounded, bytes);
+        assert_eq!(bounded.capacity(), bytes.len());
+        assert_eq!(
+            value.canonical_bytes_with_limit(bytes.len() - 1),
+            Err(crate::StructuredInfoRefusal::CanonicalEncodingTooLarge)
+        );
         let expected = validate_canonical_structured_value(&bytes).unwrap();
         assert_eq!(view, expected);
         if let TS::Nominal { representation, .. } = value.value_type().shape() {
