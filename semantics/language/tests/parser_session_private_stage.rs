@@ -1131,3 +1131,17 @@ fn revision_storage_reserves_ordered_events_and_refuses_locators_without_parent_
         Err(RevisionStorageRefusal::Pressure)
     ));
 }
+
+#[test]
+fn actual_kernel_adapter_reports_expression_owner_storage_separately() {
+    let execution = runtime::prepare_source_with_storage(profile(),
+        "plot counted (\n input: U64...| >> output: U64...|\n) {\n input >> (. + 1) >> output\n}\n".into(), "counted", Some(1));
+    let receipt = execution.expression_owner_storage_receipt().unwrap();
+    assert!(receipt.evaluator_heap_bytes_bound > 0);
+    assert!(receipt.owner_slots_bytes > 0);
+    assert_eq!(receipt.combined_bytes_bound,
+        receipt.evaluator_heap_bytes_bound + receipt.owner_slots_bytes);
+    assert_eq!(execution.expression_owner_storage_receipt().unwrap().combined_bytes_bound,
+        receipt.combined_bytes_bound);
+    eprintln!("expression-only retained={receipt:?}; catalog/Plan/kernel/payload/scratch excluded");
+}

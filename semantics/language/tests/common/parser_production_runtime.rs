@@ -323,7 +323,31 @@ pub fn prepare_checked_source_with_catalog(
     execution.kernel.start().unwrap();
     execution
 }
+/// Exact structurally counted expression-owner portion only. Original checked
+/// document/catalog/Plan, kernel storage, payloads and scratch are separate.
+#[derive(Clone, Copy, Debug)]
+pub struct ExpressionOwnerStorageReceipt {
+    pub evaluator_heap_bytes_bound: usize,
+    pub owner_slots_bytes: usize,
+    pub combined_bytes_bound: usize,
+}
 impl Execution {
+    pub fn expression_owner_storage_receipt(&self) -> Option<ExpressionOwnerStorageReceipt> {
+        let owner_slots_bytes = self
+            .pure
+            .capacity()
+            .checked_mul(core::mem::size_of::<(conduit_kernel::NodeId, Pure)>())?;
+        let mut evaluator_heap_bytes_bound = 0usize;
+        for (_, Pure::Expression(owner)) in &self.pure {
+            evaluator_heap_bytes_bound =
+                evaluator_heap_bytes_bound.checked_add(owner.evaluator_retained_heap_bytes()?)?;
+        }
+        Some(ExpressionOwnerStorageReceipt {
+            evaluator_heap_bytes_bound,
+            owner_slots_bytes,
+            combined_bytes_bound: evaluator_heap_bytes_bound.checked_add(owner_slots_bytes)?,
+        })
+    }
     fn step(&mut self) {
         self.kernel.step().unwrap();
         if let Some(request) = self.kernel.next_host_request() {
