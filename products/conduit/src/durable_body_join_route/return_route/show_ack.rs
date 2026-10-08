@@ -33,6 +33,7 @@ pub(super) fn acknowledge_show(
     grant: &Grant,
     sequence: u8,
     deadline: Instant,
+    allow_refresh: bool,
 ) -> Result<ShowGate, String> {
     let Some(left) = deadline.checked_duration_since(Instant::now()) else {
         return Ok(ShowGate::Stopped);
@@ -52,7 +53,10 @@ pub(super) fn acknowledge_show(
         Err(_) => return Ok(ShowGate::Stopped),
     };
     if document.get("schema").and_then(serde_json::Value::as_str) == Some(refresh::REFRESH_SCHEMA) {
-        return refresh::serve(&mut line, listener, state_dir, grant, document);
+        if !allow_refresh {
+            return Ok(ShowGate::Stopped);
+        }
+        return refresh::serve(&mut line, listener, state_dir, grant, sequence, document);
     }
     let outcome = match serde_json::from_value::<ShowAcknowledgement>(document) {
         Ok(ack)

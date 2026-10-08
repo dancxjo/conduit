@@ -30,6 +30,7 @@ pub(super) fn serve(
     listener: &SecureWebSocketListener,
     state_dir: &Path,
     old: &Grant,
+    next_sequence: u8,
     document: serde_json::Value,
 ) -> Result<show_ack::ShowGate, String> {
     let mut request: Refresh = serde_json::from_value(document)
@@ -54,7 +55,12 @@ pub(super) fn serve(
     let mut next = if matches!(&face, OwnerFaceSnapshotResponse::Snapshot { presentation, .. }
         if crate::durable_host_control::has_native_return_route_intent(presentation))
     {
-        Some(Grant::issue(&old.receipt)?)
+        let mut grant = Grant::issue(&old.receipt)?;
+        // Refresh changes the Face and bearer, not the finite action budget.
+        grant.maximum_actions = old
+            .maximum_actions
+            .saturating_sub(next_sequence.saturating_sub(1));
+        Some(grant)
     } else {
         None
     };
