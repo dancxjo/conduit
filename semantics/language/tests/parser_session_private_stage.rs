@@ -622,7 +622,7 @@ fn actual_kernel_complete_mixed_factory_preserves_original_plans_and_cancels_bot
         parser_model_selection::PreparedParserModelSelection::prepare(model.clone(), &lexical)
             .unwrap(),
     );
-    let document=format!("{}\nplot production-model (\n features: LanguageParserV2ModelFeatures...| >> observed: LanguageParserV2ModelScores...|\n) {{ features >> language-parser-v2-feature-indices() >> {}() >> language-parser-v2-score-observation() >> observed }}\n",source(),model.kind_identity(true));
+    let document=format!("{}\nplot production-model (\n features: LanguageParserV2ModelFeatures...| >> observed: LanguageParserV2ModelScores...|\n) {{\n features >> language-parser-v2-feature-indices() >> {}() >> language-parser-v2-score-observation() >> observed\n}}\n",source(),model.kind_identity(true));
     let numeric_execution =
         runtime::prepare_source_with_storage(model.clone(), document, "production-model", Some(2));
     let source_execution = runtime::prepare_checked_source(

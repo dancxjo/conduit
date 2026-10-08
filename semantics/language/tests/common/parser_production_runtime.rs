@@ -34,6 +34,8 @@ pub fn prepare_source_with_storage(
     entry: &str,
     maximum_inferences: Option<u16>,
 ) -> Execution {
+    let parsed = parse_syntax_document(&document);
+    assert!(parsed.diagnostics.is_empty(), "{:?}", parsed.diagnostics);
     let mut startup = StartupCatalog::new();
     let mut catalogs = ProfileCatalog::new();
     profile.install(&mut startup, &mut catalogs, true).unwrap();
@@ -50,8 +52,6 @@ pub fn prepare_source_with_storage(
         )
         .unwrap();
     eprintln!("checking full Source for {entry}");
-    let parsed = parse_syntax_document(&document);
-    assert!(parsed.diagnostics.is_empty(), "{:?}", parsed.diagnostics);
     let checked = check_syntax_document(&parsed, &startup).unwrap();
     prepare_checked_source(profile, document, checked, entry, maximum_inferences)
 }
