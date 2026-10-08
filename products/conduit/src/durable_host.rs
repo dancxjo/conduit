@@ -183,6 +183,39 @@ pub(crate) struct SelectedTodoCheckpoint {
     pub(crate) content: conduit_core::ResourceContentRequirement,
 }
 
+/// The installed Host's explicit successor selection, held until the Owner
+/// can journal it together with the next resident Plot and Body proposal.
+pub(crate) struct NextSelectedTodoCheckpoint {
+    root: std::path::PathBuf,
+    read_content: conduit_core::ResourceContentRequirement,
+    selection: selected_todo::Selection,
+}
+
+impl NextSelectedTodoCheckpoint {
+    #[cfg(test)]
+    pub(crate) fn write_content(&self) -> conduit_core::ResourceContentRequirement {
+        self.selection.content()
+    }
+}
+
+pub(crate) fn next_selected_todo_checkpoint(
+    state_dir: &Path,
+) -> Result<NextSelectedTodoCheckpoint, String> {
+    let installation = read_installation(&state_dir.join("installation.json"))?;
+    let prior = installation
+        .selected_todo_checkpoint
+        .ok_or("installed Todo has no selected checkpoint residence")?;
+    let mut read_content = prior.content();
+    read_content.access = conduit_core::ResourceAccessMode::ReadPublished;
+    read_content.publication_slots = 0;
+    let root = prior.root().to_path_buf();
+    Ok(NextSelectedTodoCheckpoint {
+        root,
+        read_content,
+        selection: prior.next_generation()?,
+    })
+}
+
 #[allow(dead_code)] // Consumed by the installed Owner ingress slice stacked on this selection.
 pub(crate) fn selected_todo_checkpoint(
     state_dir: &Path,

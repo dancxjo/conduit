@@ -61,6 +61,8 @@ pub(crate) use clock_interval::{is_clock_control_intent, ClockAction, CLOCK_RUN_
 mod terminal_route;
 #[path = "todo_face.rs"]
 mod todo_face;
+#[path = "todo_next.rs"]
+mod todo_next;
 #[path = "todo_read.rs"]
 mod todo_read;
 #[path = "todo_waiting.rs"]
