@@ -12,6 +12,7 @@ pub enum IpaInventoryRefusal {
     ForeignPhoneReference,
     UnknownPhoneme,
     AmbiguousPhoneme,
+    UnsupportedPhonemeBinding,
     Notation(IpaNotationRefusal),
 }
 
@@ -57,6 +58,9 @@ impl<'a> PreparedIpaInventory<'a> {
         provenance: SpeechEvidenceProvenance,
     ) -> Result<AdmittedPhonemeNotation<'a>, IpaInventoryRefusal> {
         use IpaInventoryRefusal::*;
+        if spelling.len() > 64 {
+            return Err(Notation(IpaNotationRefusal::Capacity));
+        }
         let notation = admit_ipa_transcription(
             &self.notation,
             format!("/{spelling}/"),
@@ -202,6 +206,19 @@ impl<'a> PreparedIpaInventory<'a> {
             .map_err(Notation)?;
             if !matches_units(&parsed, binding.units().as_slice()) {
                 return Err(BindingUnits);
+            }
+            // Stress and boundaries belong to a transcription, not a phoneme
+            // identity. Admit this once for both single and full constructors.
+            if binding.units().as_slice().iter().any(|id| {
+                profile.units().as_slice().iter().any(|unit| {
+                    unit.identity() == id
+                        && !matches!(
+                            unit.kind(),
+                            SpeechIpaUnitKind::Segment | SpeechIpaUnitKind::Length
+                        )
+                })
+            }) {
+                return Err(UnsupportedPhonemeBinding);
             }
             phonemes.push((binding.clone(), parsed));
         }

@@ -24,3 +24,40 @@ type SpeechIpaInventoryNotationBasis = {
  where .variety == .profile.variety
  where .revision == .profile.revision
 }
+
+# References resolve only in the transcription's explicit whole inventory basis.
+# Length belongs to a declared phoneme spelling; stress and boundaries remain
+# separate notation events, without inventing syllable or utterance structure.
+type SpeechPhonemicSegment = {
+ phoneme: PhonemeId
+}
+type SpeechPhonemicEvent =
+ phoneme SpeechPhonemicSegment
+ | primary_stress
+ | secondary_stress
+ | syllable_boundary
+type SpeechPhonemicOccurrence = {
+ value: SpeechPhonemicEvent
+ source_spelling: SpeechIpaSpelling
+ start: U64
+ end: U64
+ scalar_start: U64
+ scalar_end: U64
+ unit_start: U64
+ unit_end: U64
+ where .end > .start
+ where .scalar_end > .scalar_start
+ where .unit_end > .unit_start
+}
+type SpeechPhonemicTranscription = {
+ basis: SpeechIpaInventoryNotationBasis
+ bindings: sequence SpeechIpaPhonemeDefinitionBinding <= 64
+ original: Text <= 4094B not in [""]
+ notation: SpeechIpaTranscription
+ occurrences: sequence SpeechPhonemicOccurrence in 1..=256
+ where .notation.display is phonemic
+ where .notation.inventory_id == .basis.inventory_id
+ where .notation.variety == .basis.variety
+ where .notation.profile_id == .basis.profile.identity
+ where .notation.profile_revision == .basis.revision
+}

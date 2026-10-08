@@ -40,6 +40,8 @@ pub const STEPS: &[Step] = &[
             "--test",
             "ipa_phonetic",
             "--test",
+            "ipa_phonemic",
+            "--test",
             "ipa_inventory",
             "--test",
             "ipa_membership",
