@@ -65,6 +65,8 @@ mod todo_face;
 mod todo_next;
 #[path = "todo_read.rs"]
 mod todo_read;
+#[path = "todo_reencounter.rs"]
+mod todo_reencounter;
 #[path = "todo_waiting.rs"]
 #[allow(dead_code)] // Waiting Play enters the installed service after Host selection lands.
 mod todo_waiting;
