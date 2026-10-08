@@ -337,3 +337,6 @@ pub mod contextual_gestures;
 
 #[cfg(feature = "semantic-bindings")]
 pub mod shared_acoustic;
+
+#[cfg(feature = "semantic-bindings")]
+pub mod ipa_gestures;

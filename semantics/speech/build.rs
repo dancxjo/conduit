@@ -52,6 +52,7 @@ fn main() {
     println!("cargo:rerun-if-changed=phone_composition.conduit");
     println!("cargo:rerun-if-changed=common_acoustic_targets.conduit");
     println!("cargo:rerun-if-changed=gesture_lowering.conduit");
+    println!("cargo:rerun-if-changed=gesture_shared.conduit");
     let semantic_source = [
         include_str!("types.conduit"),
         include_str!("rule_status.conduit"),
@@ -85,6 +86,7 @@ fn main() {
         include_str!("phone_composition.conduit"),
         include_str!("common_acoustic_targets.conduit"),
         include_str!("gesture_lowering.conduit"),
+        include_str!("gesture_shared.conduit"),
         include_str!("shared_acoustic.conduit"),
     ]
     .join("\n");

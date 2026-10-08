@@ -1,0 +1,16 @@
+# Equality of full original specifications, not a renderer-selected phone ID.
+type SpeechGestureOriginalPhoneMatch = {
+    original: PhoneSpecification
+    requested: PhoneSpecification
+    where .original == .requested
+}
+type SpeechGestureOriginalStressMatch = {
+    original: StressSpecification
+    requested: StressSpecification
+    where .original == .requested
+}
+type SpeechGestureOriginalSyllablePositionMatch = {
+    original: SpeechSyllablePositionSpecification
+    requested: SpeechSyllablePositionSpecification
+    where .original == .requested
+}

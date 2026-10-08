@@ -4,7 +4,7 @@ use crate::{
     common_acoustic_curves::*, common_acoustic_evidence::*, common_acoustic_quantities::*,
     common_audio_targets::*, ipa_shared::*, reference_admission::*, semantic::*, text_admission::*,
 };
-use alloc::vec::Vec;
+use alloc::{boxed::Box, vec::Vec};
 use conduit_audio::{AudioQuantityTrajectory, AudioTrajectoryAnchor};
 use conduit_plot::rust_binding::{NativeBindingRefusal, NativeRustBinding};
 pub struct SpeechAcousticComponents<'a> {
@@ -45,7 +45,7 @@ pub enum AcousticResolvedSource<'a> {
     Text(ResolvedText<'a>),
     OriginalEvent {
         event: &'a SpeechUtteranceIntentEvent,
-        witness: SpeechAcousticEventSourceMatch,
+        witness: Box<SpeechAcousticEventSourceMatch>,
     },
 }
 pub struct AcousticScopeReceipt<'a> {
@@ -65,7 +65,7 @@ impl<'a> AcousticScopeReceipt<'a> {
     }
 }
 pub enum AcousticFieldPreparation {
-    Audio(PreparedSpeechAudioTarget),
+    Audio(Box<PreparedSpeechAudioTarget>),
     StaticDuration(
         SpeechCommonQuantityReceipt<SpeechExactDuration, conduit_audio::AudioTimeFraction>,
     ),
@@ -74,6 +74,13 @@ pub enum AcousticFieldPreparation {
     Decibels(PreparedSpeechTypedStepCurve<SpeechDecibelLevelCurve>),
     Probability(PreparedSpeechTypedStepCurve<SpeechProbabilityCurve>),
     Tilt(PreparedSpeechTypedStepCurve<SpeechSpectralTiltCurve>),
+}
+struct AudioCandidateField {
+    component: &'static str,
+    ordinal: usize,
+    field: &'static str,
+    role: SpeechTargetAudioRole,
+    formant_index: Option<u32>,
 }
 pub struct AcousticCandidatePreparation {
     pub component: &'static str,
@@ -248,11 +255,11 @@ where
                             if source == reference {
                                 found = Some(AcousticResolvedSource::OriginalEvent {
                                     event,
-                                    witness: SpeechAcousticEventSourceMatch::new(
+                                    witness: Box::new(SpeechAcousticEventSourceMatch::new(
                                         event.clone(),
                                         n as u64,
                                         reference.clone(),
-                                    )?,
+                                    )?),
                                 });
                                 break;
                             }
@@ -271,15 +278,18 @@ where
     }
     fn audio(
         &mut self,
-        component: &'static str,
-        ordinal: usize,
-        field: &'static str,
+        descriptor: AudioCandidateField,
         scope: &'a SpeechAcousticScope,
         provenance: &SpeechEvidenceProvenance,
-        role: SpeechTargetAudioRole,
-        formant_index: Option<u32>,
         spec: &'a SpeechAudioTrajectorySpecification,
     ) -> Result<(), SharedAcousticRefusal> {
+        let AudioCandidateField {
+            component,
+            ordinal,
+            field,
+            role,
+            formant_index,
+        } = descriptor;
         candidates!(
             spec,
             SpeechAudioTrajectorySpecification,
@@ -298,9 +308,9 @@ where
                     field,
                     candidate,
                     formant_index,
-                    preparation: AcousticFieldPreparation::Audio(PreparedSpeechAudioTarget::new(
-                        &request.encode()?,
-                    )?),
+                    preparation: AcousticFieldPreparation::Audio(Box::new(
+                        PreparedSpeechAudioTarget::new(&request.encode()?)?,
+                    )),
                 });
                 Ok(())
             }
@@ -364,13 +374,15 @@ where
             result.scope(target.scope())?;
             result.anchor_match(target.anchor())?;
             result.audio(
-                "timing_pitch",
-                n,
-                "pitch",
+                AudioCandidateField {
+                    component: "timing_pitch",
+                    ordinal: n,
+                    field: "pitch",
+                    role: SpeechTargetAudioRole::Pitch,
+                    formant_index: None,
+                },
                 target.scope(),
                 target.provenance(),
-                SpeechTargetAudioRole::Pitch,
-                None,
                 target.pitch(),
             )?;
             candidates!(
@@ -449,13 +461,15 @@ where
             result.scope(target.scope())?;
             result.anchor_match(target.anchor())?;
             result.audio(
-                "intensity",
-                n,
-                "amplitude_power",
+                AudioCandidateField {
+                    component: "intensity",
+                    ordinal: n,
+                    field: "amplitude_power",
+                    role: SpeechTargetAudioRole::Intensity,
+                    formant_index: None,
+                },
                 target.scope(),
                 target.provenance(),
-                SpeechTargetAudioRole::Intensity,
-                None,
                 target.amplitude_power(),
             )?;
             curve!(
@@ -475,23 +489,27 @@ where
             result.anchor_match(target.anchor())?;
             for formant in target.formants().as_slice() {
                 result.audio(
-                    "formants",
-                    n,
-                    "center",
+                    AudioCandidateField {
+                        component: "formants",
+                        ordinal: n,
+                        field: "center",
+                        role: SpeechTargetAudioRole::FormantCenter,
+                        formant_index: Some(*formant.index()),
+                    },
                     target.scope(),
                     formant.provenance(),
-                    SpeechTargetAudioRole::FormantCenter,
-                    Some(*formant.index()),
                     formant.center(),
                 )?;
                 result.audio(
-                    "formants",
-                    n,
-                    "bandwidth",
+                    AudioCandidateField {
+                        component: "formants",
+                        ordinal: n,
+                        field: "bandwidth",
+                        role: SpeechTargetAudioRole::FormantBandwidth,
+                        formant_index: Some(*formant.index()),
+                    },
                     target.scope(),
                     formant.provenance(),
-                    SpeechTargetAudioRole::FormantBandwidth,
-                    Some(*formant.index()),
                     formant.bandwidth(),
                 )?;
             }
