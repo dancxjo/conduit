@@ -55,7 +55,7 @@ pub(super) fn serve_optional_face_snapshot(
         });
     let mut grant = if return_requested
         && matches!(&response, OwnerFaceSnapshotResponse::Snapshot { presentation, .. }
-            if presentation.actions.iter().any(|action| action.intent == crate::durable_host::owner::clock_interval_action()))
+            if crate::durable_host_control::has_remote_mask_action(presentation))
     {
         Some(return_route::Grant::issue(receipt)?)
     } else {

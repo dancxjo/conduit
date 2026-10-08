@@ -38,6 +38,19 @@ const PROTOCOL: u16 = 1;
 pub(crate) const CONTROL_OUTCOME_UNKNOWN: &str = "control-outcome-unknown";
 const MAXIMUM_CONTROL_FRAME_BYTES: usize = 512 * 1024;
 
+/// A remote Mask may return only an available action whose intent the installed
+/// owner actually dispatches. The Face remains the sole source of action truth.
+pub(crate) fn has_remote_mask_action(face: &Presentation) -> bool {
+    face.actions.iter().any(|action| {
+        action.availability.is_available()
+            && (action.intent == crate::durable_host::owner::clock_interval_action()
+                || matches!(
+                    action.intent.as_str(),
+                    "todo/add@1" | "todo/complete@1" | "todo/reopen@1" | "todo/remove@1"
+                ))
+    })
+}
+
 #[path = "durable_host_control/body.rs"]
 mod body;
 #[path = "durable_host_control/body_birth.rs"]
