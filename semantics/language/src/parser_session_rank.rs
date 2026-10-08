@@ -124,4 +124,23 @@ impl<P: FixedParserDriverProfile> PreparedParserDriverRank<P> {
             .get(index)
             .map(|class| (*class, self.scores[*class]))
     }
+    /// The closed driver supplies actual retained and replayed model/Source
+    /// outputs. This equality check supplies no independent parent authority.
+    pub(crate) fn matches_selected(
+        &mut self,
+        scores: Value<'_>,
+        mask: Value<'_>,
+        scored: Value<'_>,
+        ordinal: usize,
+    ) -> Result<bool, DriverRankRefusal> {
+        self.rank(scores, mask)?;
+        let Some((class, score)) = self.selected(ordinal) else {
+            return Ok(false);
+        };
+        Ok(u64_value(field(scored, &["class"])?)? == class as u64
+            && i64_value(field(scored, &["score"])?)? == score
+            && field(scored, &["basis"])? == field(mask, &["basis"])?
+            && field(scored, &["state"])? == field(mask, &["state"])?
+            && field(scored, &["default_relation"])? == field(mask, &["state", "relation0"])?)
+    }
 }

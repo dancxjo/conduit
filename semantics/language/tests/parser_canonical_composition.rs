@@ -401,7 +401,9 @@ fn original_integer_rank_observes_all_scores_and_source_mask_without_allocation(
         .unwrap();
     let scores = conduit_core::validate_canonical_structured_value(&scores).unwrap();
     let mask = conduit_core::validate_canonical_structured_value(&mask).unwrap();
-    let mut rank = parser_session_rank::PreparedParserDriverRank::<parser_session_numeric_profile::PinnedFourSlotNumericProfile>::new();
+    let mut rank = parser_session_rank::PreparedParserDriverRank::<
+        parser_session_numeric_profile::PinnedFourSlotNumericProfile,
+    >::new();
     REQUESTS.store(0, Ordering::Relaxed);
     TRACK.store(true, Ordering::Relaxed);
     let classes = rank.rank(scores, mask).unwrap();
@@ -411,6 +413,34 @@ fn original_integer_rank_observes_all_scores_and_source_mask_without_allocation(
     assert_eq!(REQUESTS.load(Ordering::Relaxed), 0);
     assert_eq!(rank.selected(0), Some((2, 7)));
     assert_eq!(rank.selected(4), None);
+    let scored = |class, score| {
+        LanguageParserScoredClass::new(
+            state.basis().clone(),
+            class,
+            state.relation0().clone(),
+            score,
+            state.clone(),
+        )
+        .unwrap()
+        .encode()
+        .unwrap()
+    };
+    let accepted = scored(2, 7);
+    let wrong_score = scored(2, 8);
+    let wrong_rank = scored(3, 7);
+    let accepted = conduit_core::validate_canonical_structured_value(&accepted).unwrap();
+    let wrong_score = conduit_core::validate_canonical_structured_value(&wrong_score).unwrap();
+    let wrong_rank = conduit_core::validate_canonical_structured_value(&wrong_rank).unwrap();
+    REQUESTS.store(0, Ordering::Relaxed);
+    TRACK.store(true, Ordering::Relaxed);
+    let accepted_result = rank.matches_selected(scores, mask, accepted, 0).unwrap();
+    let wrong_score_result = rank.matches_selected(scores, mask, wrong_score, 0).unwrap();
+    let wrong_rank_result = rank.matches_selected(scores, mask, wrong_rank, 0).unwrap();
+    let absent_result = rank.matches_selected(scores, mask, accepted, 4).unwrap();
+    TRACK.store(false, Ordering::Relaxed);
+    assert!(accepted_result);
+    assert!(!wrong_score_result && !wrong_rank_result && !absent_result);
+    assert_eq!(REQUESTS.load(Ordering::Relaxed), 0);
     assert!(matches!(
         rank.rank(mask, scores),
         Err(parser_session_rank::DriverRankRefusal::Type)
