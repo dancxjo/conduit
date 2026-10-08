@@ -24,8 +24,11 @@ mod member_selection;
 mod nominal;
 mod sequence_selection;
 use member_selection::PreparedMemberSelection;
+mod preparation;
 mod primitive;
 mod storage;
+use preparation::PreparationBudget;
+pub use preparation::{PreparedExpressionStorageReceipt, PreparedExpressionStorageRefusal};
 mod storage_bound;
 mod structured;
 mod structured_contract;
@@ -116,48 +119,18 @@ impl PortableExpressionProgram {
 }
 
 impl PreparedPortableExpressionEvaluator {
-    pub fn new(program: &PortableExpressionProgram) -> Result<Self, Refusal> {
-        let input = match program.input_type.shape() {
-            StructuredInfoTypeShape::Leaf(_) => PreparedInput::Primitive {
-                kind: leaf_kind(&program.input_type)?,
-                nominal_type: None,
-            },
-            StructuredInfoTypeShape::Nominal { representation, .. }
-                if matches!(representation.shape(), StructuredInfoTypeShape::Leaf(_)) =>
-            {
-                PreparedInput::Primitive {
-                    kind: leaf_kind(&program.input_type)?,
-                    nominal_type: Some(
-                        program
-                            .input_type
-                            .canonical_bytes()
-                            .map_err(|_| Refusal::InvalidProgram)?
-                            .into(),
-                    ),
-                }
-            }
-            _ => PreparedInput::Structured(
-                program
-                    .input_type
-                    .canonical_bytes()
-                    .map_err(|_| Refusal::InvalidProgram)?
-                    .into(),
-            ),
-        };
-        Self::prepare(
-            ProgramView {
-                input_type: &program.input_type,
-                output_type: &program.output_type,
-                root: &program.root,
-            },
-            input,
-        )
-    }
-
-    fn prepare(program: ProgramView<'_>, input: PreparedInput) -> Result<Self, Refusal> {
+    fn prepare(
+        program: ProgramView<'_>,
+        input: PreparedInput,
+        budget: &mut PreparationBudget,
+    ) -> Result<Self, Refusal> {
+        if &program.root.value_type != program.output_type {
+            return Err(Refusal::InvalidProgram);
+        }
+        budget.owned_type(program.output_type)?; // possible allocated output-kind refusal
         let root = match program.output_type.shape() {
             StructuredInfoTypeShape::Leaf(_) | StructuredInfoTypeShape::Nominal { .. } => {
-                let root = prepare_node(program.root, program.input_type, &input)?;
+                let root = prepare_node(program.root, program.input_type, &input, budget)?;
                 if root.kind != leaf_kind(program.output_type)? {
                     return Err(Refusal::InvalidProgram);
                 }
@@ -168,6 +141,7 @@ impl PreparedPortableExpressionEvaluator {
                         StructuredInfoTypeShape::Nominal { .. }
                     )
                     .then(|| {
+                        budget.prefix(program.output_type)?;
                         program
                             .output_type
                             .canonical_bytes()
@@ -176,12 +150,16 @@ impl PreparedPortableExpressionEvaluator {
                     .transpose()?,
                 }
             }
-            _ => PreparedRoot::Structured(PreparedStructuredExpression::new(program, &input)?),
+            _ => PreparedRoot::Structured(PreparedStructuredExpression::new(
+                program, &input, budget,
+            )?),
         };
+        let capacity = storage_bound::output(program.output_type)?;
+        budget.reserve(capacity)?;
         Ok(Self {
             root,
             input,
-            output: Vec::with_capacity(storage_bound::output(program.output_type)?),
+            output: Vec::with_capacity(capacity),
         })
     }
 
@@ -243,17 +221,27 @@ fn prepare_node(
     node: &PortableExpressionNode,
     input_type: &conduit_core::StructuredInfoType,
     prepared_input: &PreparedInput,
+    budget: &mut PreparationBudget,
 ) -> Result<PreparedNode, Refusal> {
+    budget.owned_type(&node.value_type)?;
+    budget.reserve(64)?; // possible static operation/kind refusal
     let kind = leaf_kind(&node.value_type)?;
     let operation = match &node.operation {
         PortableExpressionOperation::Input => PreparedOperation::Input,
-        PortableExpressionOperation::Literal(literal) => PreparedOperation::Literal(
-            crate::expression_evaluate::literal_primitive_bytes(&node.value_type, literal)?,
-        ),
-        PortableExpressionOperation::Unary { operator, operand } => PreparedOperation::Unary {
-            operator: *operator,
-            operand: Box::new(prepare_node(operand, input_type, prepared_input)?),
-        },
+        PortableExpressionOperation::Literal(literal) => {
+            budget.literal(&node.value_type, literal)?;
+            PreparedOperation::Literal(crate::expression_evaluate::literal_primitive_bytes(
+                &node.value_type,
+                literal,
+            )?)
+        }
+        PortableExpressionOperation::Unary { operator, operand } => {
+            budget.array::<PreparedNode>(1)?;
+            PreparedOperation::Unary {
+                operator: *operator,
+                operand: Box::new(prepare_node(operand, input_type, prepared_input, budget)?),
+            }
+        }
         PortableExpressionOperation::Binary {
             operator,
             left,
@@ -271,6 +259,7 @@ fn prepare_node(
                 right,
                 input_type,
                 prepared_input,
+                budget,
             )?)
         }
         PortableExpressionOperation::Binary {
@@ -278,21 +267,32 @@ fn prepare_node(
             proven,
             left,
             right,
-        } => PreparedOperation::Binary {
-            operator: *operator,
-            proven: *proven,
-            left: Box::new(prepare_node(left, input_type, prepared_input)?),
-            right: Box::new(prepare_node(right, input_type, prepared_input)?),
-        },
+        } => {
+            budget.array::<PreparedNode>(2)?;
+            PreparedOperation::Binary {
+                operator: *operator,
+                proven: *proven,
+                left: Box::new(prepare_node(left, input_type, prepared_input, budget)?),
+                right: Box::new(prepare_node(right, input_type, prepared_input, budget)?),
+            }
+        }
         PortableExpressionOperation::Conditional {
             condition,
             when_true,
             when_false,
-        } => PreparedOperation::Conditional {
-            condition: Box::new(prepare_node(condition, input_type, prepared_input)?),
-            when_true: Box::new(prepare_node(when_true, input_type, prepared_input)?),
-            when_false: Box::new(prepare_node(when_false, input_type, prepared_input)?),
-        },
+        } => {
+            budget.array::<PreparedNode>(3)?;
+            PreparedOperation::Conditional {
+                condition: Box::new(prepare_node(condition, input_type, prepared_input, budget)?),
+                when_true: Box::new(prepare_node(when_true, input_type, prepared_input, budget)?),
+                when_false: Box::new(prepare_node(
+                    when_false,
+                    input_type,
+                    prepared_input,
+                    budget,
+                )?),
+            }
+        }
         PortableExpressionOperation::SemanticCall {
             kind: call,
             arguments,
@@ -308,7 +308,9 @@ fn prepare_node(
             {
                 return Err(Refusal::InvalidProgram);
             }
-            let operand = prepare_node(argument, input_type, prepared_input)?;
+            budget.reserve(64)?; // transient exact primitive Kind/Type check
+            budget.array::<PreparedNode>(1)?;
+            let operand = prepare_node(argument, input_type, prepared_input, budget)?;
             if operand.kind != PrimitiveInfoKind::Text {
                 return Err(Refusal::InvalidProgram);
             }
@@ -321,7 +323,9 @@ fn prepare_node(
             let [argument] = arguments.as_slice() else {
                 return Err(Refusal::InvalidProgram);
             };
-            let operand = prepare_node(argument, input_type, prepared_input)?;
+            budget.reserve(64)?; // transient exact primitive Kind/Type check
+            budget.array::<PreparedNode>(1)?;
+            let operand = prepare_node(argument, input_type, prepared_input, budget)?;
             if call != kind_name(kind)
                 || !crate::expression_semantic_call::is_strict_widening(
                     kind_name(operand.kind),
@@ -353,6 +357,7 @@ fn prepare_node(
                 arguments,
                 input_type,
                 prepared_input,
+                budget,
             )?)
         }
         PortableExpressionOperation::SemanticCall {
@@ -372,6 +377,7 @@ fn prepare_node(
                 arguments,
                 input_type,
                 prepared_input,
+                budget,
             )?)
         }
         PortableExpressionOperation::SemanticCall { kind: call, .. } if call == "sequence/at" => {
@@ -380,11 +386,12 @@ fn prepare_node(
                     node,
                     input_type,
                     prepared_input,
+                    budget,
                 )?,
             )
         }
         PortableExpressionOperation::Projection { .. } => PreparedOperation::Projection(
-            member_selection::prepare(node, input_type, prepared_input)?,
+            member_selection::prepare(node, input_type, prepared_input, budget)?,
         ),
         _ => {
             return Err(Refusal::UnsupportedType(

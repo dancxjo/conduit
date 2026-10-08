@@ -1,4 +1,5 @@
 //! Runtime finite collection indexing over admitted canonical values.
+use super::PreparationBudget;
 use super::{
     member_selection, storage_bound, EvaluationInput, PreparedInput,
     PreparedPortableExpressionEvaluator, ProgramView, Refusal,
@@ -19,6 +20,7 @@ impl PreparedSequenceSelection {
         node: &PortableExpressionNode,
         input: &StructuredInfoType,
         prepared_input: &PreparedInput,
+        budget: &mut PreparationBudget,
     ) -> Result<Self, Refusal> {
         let PortableExpressionOperation::SemanticCall { kind, arguments } = &node.operation else {
             return Err(Refusal::InvalidProgram);
@@ -31,6 +33,7 @@ impl PreparedSequenceSelection {
             | StructuredInfoTypeShape::Sequence { element, .. } => element,
             _ => return Err(Refusal::InvalidProgram),
         };
+        budget.reserve(64)?;
         if kind != "sequence/at"
             || element != &node.value_type
             || index.value_type
@@ -39,7 +42,17 @@ impl PreparedSequenceSelection {
         {
             return Err(Refusal::InvalidProgram);
         }
-        let prepare = |child: &PortableExpressionNode| {
+        budget.reserve(64)?; // temporary U64 index Type contract
+        budget.array::<PreparedPortableExpressionEvaluator>(2)?;
+        budget.prefix(element)?;
+        let primitive = member_selection::is_primitive(element);
+        let capacity = if primitive {
+            0
+        } else {
+            storage_bound::canonical(element)?
+        };
+        budget.reserve(capacity)?;
+        let mut prepare = |child: &PortableExpressionNode| {
             PreparedPortableExpressionEvaluator::prepare(
                 ProgramView {
                     input_type: input,
@@ -47,20 +60,16 @@ impl PreparedSequenceSelection {
                     root: child,
                 },
                 prepared_input.clone(),
+                budget,
             )
         };
-        let primitive = member_selection::is_primitive(element);
         Ok(Self {
             source: Box::new(prepare(source)?),
             index: Box::new(prepare(index)?),
             output_type: element
                 .canonical_bytes()
                 .map_err(|_| Refusal::InvalidProgram)?,
-            output: Vec::with_capacity(if primitive {
-                0
-            } else {
-                storage_bound::canonical(element)?
-            }),
+            output: Vec::with_capacity(capacity),
             primitive,
         })
     }

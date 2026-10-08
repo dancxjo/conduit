@@ -1,5 +1,6 @@
 //! Allocation-stable construction of anonymous structured expression results.
 use super::EvaluationInput;
+use super::PreparationBudget;
 
 use super::{PreparedInput, PreparedPortableExpressionEvaluator, ProgramView, Refusal};
 use crate::{PortableExpressionNode, PortableExpressionOperation, PortableExpressionProgram};
@@ -44,7 +45,19 @@ impl PreparedStructuredExpression {
     pub(super) fn new(
         program: ProgramView<'_>,
         prepared_input: &PreparedInput,
+        budget: &mut PreparationBudget,
     ) -> Result<Self, Refusal> {
+        if matches!(
+            program.root.operation,
+            PortableExpressionOperation::Literal(_)
+        ) {
+            budget.refuse_structured_literal()?;
+        }
+        budget.reserve(64)?; // temporary Bool Type and static unsupported-shape refusal
+        budget.prefix(program.output_type)?;
+        if let PortableExpressionOperation::Tuple(nodes) = &program.root.operation {
+            budget.reserve(nodes.len().checked_mul(32).ok_or(Refusal::InvalidProgram)?)?;
+        }
         super::structured_contract::validate(program)?;
         let shape = match &program.root.operation {
             PortableExpressionOperation::Input if program.input_type == program.output_type => {
@@ -61,50 +74,70 @@ impl PreparedStructuredExpression {
                 };
                 PreparedShape::Constant(constant.evaluate(&[])?)
             }
-            PortableExpressionOperation::Projection { .. } => PreparedShape::Selected(
-                super::member_selection::prepare(program.root, program.input_type, prepared_input)?,
-            ),
+            PortableExpressionOperation::Projection { .. } => {
+                PreparedShape::Selected(super::member_selection::prepare(
+                    program.root,
+                    program.input_type,
+                    prepared_input,
+                    budget,
+                )?)
+            }
             PortableExpressionOperation::SemanticCall { kind, .. } if kind == "sequence/at" => {
                 PreparedShape::SequenceSelected(
                     super::sequence_selection::PreparedSequenceSelection::new(
                         program.root,
                         program.input_type,
                         prepared_input,
+                        budget,
                     )?,
                 )
             }
             PortableExpressionOperation::Tuple(values) => {
+                budget.vector::<PreparedField>(values.len())?;
+                budget.reserve(
+                    values
+                        .len()
+                        .checked_mul(32)
+                        .ok_or(Refusal::InvalidProgram)?,
+                )?;
                 let fields = values
                     .iter()
                     .enumerate()
                     .map(|(index, value)| {
                         Ok(PreparedField {
                             name: alloc::format!("item-{index:05}"),
-                            value: child(program, value, prepared_input)?,
+                            value: child(program, value, prepared_input, budget)?,
                         })
                     })
                     .collect::<Result<Vec<_>, Refusal>>()?;
                 PreparedShape::Record(fields)
             }
             PortableExpressionOperation::Record(values) => {
+                budget.vector::<PreparedField>(values.len())?;
+                for (name, _) in values {
+                    budget.reserve(name.len())?;
+                }
                 let mut fields = values
                     .iter()
                     .map(|(name, value)| {
                         Ok(PreparedField {
                             name: name.clone(),
-                            value: child(program, value, prepared_input)?,
+                            value: child(program, value, prepared_input, budget)?,
                         })
                     })
                     .collect::<Result<Vec<_>, Refusal>>()?;
                 fields.sort_by(|left, right| left.name.cmp(&right.name));
                 PreparedShape::Record(fields)
             }
-            PortableExpressionOperation::Collection(values) => PreparedShape::Collection(
-                values
-                    .iter()
-                    .map(|value| child(program, value, prepared_input))
-                    .collect::<Result<Vec<_>, _>>()?,
-            ),
+            PortableExpressionOperation::Collection(values) => {
+                budget.vector::<PreparedChild>(values.len())?;
+                PreparedShape::Collection(
+                    values
+                        .iter()
+                        .map(|value| child(program, value, prepared_input, budget))
+                        .collect::<Result<Vec<_>, _>>()?,
+                )
+            }
             PortableExpressionOperation::Variant { tag, payload } => {
                 let StructuredInfoTypeShape::Variant { cases, .. } = program.output_type.shape()
                 else {
@@ -117,9 +150,11 @@ impl PreparedStructuredExpression {
                 if case.payload_type() != &payload.value_type {
                     return Err(Refusal::InvalidProgram);
                 }
+                budget.reserve(tag.len())?;
+                budget.array::<PreparedChild>(1)?;
                 PreparedShape::Variant {
                     tag: tag.clone(),
-                    payload: Box::new(child(program, payload, prepared_input)?),
+                    payload: Box::new(child(program, payload, prepared_input, budget)?),
                 }
             }
             PortableExpressionOperation::Conditional {
@@ -135,10 +170,11 @@ impl PreparedStructuredExpression {
                 {
                     return Err(Refusal::InvalidProgram);
                 }
+                budget.array::<PreparedChild>(3)?;
                 PreparedShape::Conditional {
-                    condition: Box::new(child(program, condition, prepared_input)?),
-                    when_true: Box::new(child(program, when_true, prepared_input)?),
-                    when_false: Box::new(child(program, when_false, prepared_input)?),
+                    condition: Box::new(child(program, condition, prepared_input, budget)?),
+                    when_true: Box::new(child(program, when_true, prepared_input, budget)?),
+                    when_false: Box::new(child(program, when_false, prepared_input, budget)?),
                 }
             }
             _ => {
@@ -249,7 +285,10 @@ fn child(
     program: ProgramView<'_>,
     node: &PortableExpressionNode,
     prepared_input: &PreparedInput,
+    budget: &mut PreparationBudget,
 ) -> Result<PreparedChild, Refusal> {
+    budget.prefix(&node.value_type)?;
+    budget.owned_type(&node.value_type)?;
     let child = ProgramView {
         input_type: program.input_type,
         output_type: &node.value_type,
@@ -261,7 +300,11 @@ fn child(
             .canonical_bytes()
             .map_err(|_| Refusal::InvalidProgram)?,
         value_type: node.value_type.clone(),
-        evaluator: PreparedPortableExpressionEvaluator::prepare(child, prepared_input.clone())?,
+        evaluator: PreparedPortableExpressionEvaluator::prepare(
+            child,
+            prepared_input.clone(),
+            budget,
+        )?,
     })
 }
 
