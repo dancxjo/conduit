@@ -1,5 +1,5 @@
 //! The selected owner's one finite Face-to-artifact speech Play.
-use super::owner_spoken_playback::play_accepted_wording;
+use super::owner_spoken_playback::{play_accepted_wording, play_direct_opening_wording};
 use super::{DurableHostRuntime, HostSource};
 use crate::durable_host::owner::{DirectSpokenStart, LlmSpokenStart};
 use crate::durable_host::selected_speech::AttachedEquipment;
@@ -133,30 +133,26 @@ fn run_direct(
     {
         return Err("direct spoken Show differs from its completed Play or route".into());
     }
-    // The artifact Show acknowledges only the brief opening. The complete
-    // Face reading is a separate, bounded sequence of speaker Plays sourced
-    // from that exact Show. A failed or absent speaker never turns the opening
-    // into a false claim that every Face clause was heard.
+    // The artifact Show acknowledges the brief opening. Send those exact
+    // words to the selected speaker, preserving the same Face and Show basis.
+    // Full Face detail remains available through an explicit reading action.
     let speaker_playback = equipment.map(|equipment| {
-        match super::speech::play_selected(
+        match play_direct_opening_wording(
             host,
             &start.face,
             &shown.show,
+            &opening_wording,
             equipment,
             control,
-            4,
-            super::speech::DIRECT_MAXIMUM_BATCHES,
         ) {
             Ok(reading) => reading,
-            Err(failure) => {
-                let outcome = failure.outcome();
-                let completed_batches = failure.completed_batches().to_vec();
+            Err(detail) => {
                 json!({"schema":"conduit.body/selected-speech-terminal@1",
-                    "outcome":outcome,
+                    "outcome":"failed",
                     "source_show_id":shown.show.show_id.as_str(),
-                    "completed_batch_count":completed_batches.len(),
-                    "batches":completed_batches,
-                    "detail":failure.detail()})
+                    "completed_batch_count":0,
+                    "batches":[],
+                    "detail":detail})
             }
         }
     });
