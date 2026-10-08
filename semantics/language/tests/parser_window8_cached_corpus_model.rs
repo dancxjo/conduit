@@ -46,32 +46,40 @@ fn actual_cached_window8_reviewed_clause_decode() {
         manifest["model_content_identity"],
         model::hex(conduit_ai::model_content_digest(&weights))
     );
-    let lexical_profile = model::lexical(&profile_bytes);
-    let scorer = resource::categorical(weights, model::signature(), 1);
-    let (definition, contracts) = model::declaration(&scorer, &lexical_profile);
-    let selected = PreparedParserModelSelection::prepare_declared(
-        scorer.clone(),
-        definition,
-        &lexical_profile,
-        &contracts,
-    )
-    .unwrap();
-    eprintln!("window8 cached corpus: numeric Source preparation start");
-    let mut execution = planned::prepare_source_with_inference_budget(
-        scorer.clone(),
-        model::source(&scorer),
-        "window8-learned-model",
-        4096,
+    let teaching_override = std::env::var_os("WINDOW8_TEACHING_ROWS");
+    let teaching_bytes = teaching_override.as_ref().map_or_else(
+        || include_bytes!("../training/ewt_joint_v3_window8/reviewed_teaching.json").to_vec(),
+        |path| std::fs::read(path).expect("exact candidate teaching input"),
     );
-    eprintln!("window8 cached corpus: numeric Source preparation complete");
-    let bank = owned_bank::Window8ProgramBank::prepare().unwrap();
-    eprintln!("window8 cached corpus: fact Source preparation start");
-    let fact_schema = facts::FactSchema::prepare();
-    eprintln!("window8 cached corpus: fact Source preparation complete");
-    let teaching: Value = serde_json::from_str(include_str!(
-        "../training/ewt_joint_v3_window8/reviewed_teaching.json"
-    ))
-    .unwrap();
+    if let Some(identity) = manifest["teaching_content_identity"].as_str() {
+        assert_eq!(
+            identity,
+            model::hex(semantic_digest(
+                "language/parser-teaching@1",
+                &teaching_bytes
+            )),
+            "teaching input differs from the trained model manifest"
+        );
+    } else {
+        assert!(
+            teaching_override.is_none(),
+            "candidate teaching requires a pinned content identity"
+        );
+        assert_eq!(
+            model::hex(semantic_digest(
+                "language/parser-teaching@1",
+                &teaching_bytes
+            )),
+            "f62146aa20b5e2360360c3d9597b99e14e56e8e0894429f0f148435c5eb31bd0",
+            "embedded teaching bytes differ from the original legacy input"
+        );
+        assert_eq!(
+            manifest["reviewed_teaching_sha256"],
+            "562a8b8eeb72dd5f2549849d707975a954992f3c4f86df8a9f596383f56eaa5f",
+            "legacy model must retain the original embedded teaching input"
+        );
+    }
+    let teaching: Value = serde_json::from_slice(&teaching_bytes).unwrap();
     let external = std::env::var_os("WINDOW8_EVALUATION_ROWS");
     let evaluation = external.is_some();
     let rows: Value = external.map_or_else(
@@ -117,6 +125,28 @@ fn actual_cached_window8_reviewed_clause_decode() {
     }
     // No whole-training disjointness claim: that requires the model's complete
     // supervision/membership manifest, beyond this teaching-overlap check.
+    let lexical_profile = model::lexical(&profile_bytes);
+    let scorer = resource::categorical(weights, model::signature(), 1);
+    let (definition, contracts) = model::declaration(&scorer, &lexical_profile);
+    let selected = PreparedParserModelSelection::prepare_declared(
+        scorer.clone(),
+        definition,
+        &lexical_profile,
+        &contracts,
+    )
+    .unwrap();
+    eprintln!("window8 cached corpus: numeric Source preparation start");
+    let mut execution = planned::prepare_source_with_inference_budget(
+        scorer.clone(),
+        model::source(&scorer),
+        "window8-learned-model",
+        4096,
+    );
+    eprintln!("window8 cached corpus: numeric Source preparation complete");
+    let bank = owned_bank::Window8ProgramBank::prepare().unwrap();
+    eprintln!("window8 cached corpus: fact Source preparation start");
+    let fact_schema = facts::FactSchema::prepare();
+    eprintln!("window8 cached corpus: fact Source preparation complete");
     let mut tokens = 0usize;
     let mut correct_heads = 0usize;
     let mut correct_base_labels = 0usize;

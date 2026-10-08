@@ -45,6 +45,9 @@ def main(args):
         assert digest(args.corpus / f"en_ewt-ud-{split}.conllu") == manifest["corpus_sha256"][split]
     teaching_path = args.teaching or training / "ewt_joint_v3_window8/reviewed_teaching.json"
     assert digest(teaching_path) == manifest["reviewed_teaching_sha256"]
+    teaching_identity = semantic("language/parser-teaching@1", teaching_path.read_bytes())
+    if "teaching_content_identity" in manifest:
+        assert teaching_identity == manifest["teaching_content_identity"]
     # All TRAIN sequences participate, including trees excluded by profile/oracle.
     train = form_sequences(args.corpus / "en_ewt-ud-train.conllu")
     train.update(tuple(row["forms"]) for row in json.loads(teaching_path.read_text()))
@@ -86,6 +89,7 @@ def main(args):
         "lexical_profile_sha256": digest(args.model / "lexical_profile.json"),
         "reference_extractor_sha256": digest(training / "window8_reference.py"),
         "teaching_sha256": digest(teaching_path),
+        "teaching_content_identity": teaching_identity,
         "preparer_sha256": digest(Path(__file__)),
         "corpus_sha256": manifest["corpus_sha256"],
         "exact_form_sequence_disjoint_from_all_pinned_train_and_teaching": True,

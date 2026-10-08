@@ -30,9 +30,12 @@ A larger/general linguistic claim needs stronger coverage and its own frozen
 model, profile, supervision and evaluation membership evidence.
 The separate vocative candidate uses twelve TRAIN teaching rows and a different
 64-entry profile. Its verified reference preparation yields 3 DEV and 5 TEST
-instances; these counts are not Native decoding results. The Native runner below
-still selects the original embedded teaching input, so it must be extended with
-exact candidate teaching custody before evaluating that candidate.
+instances; these counts are not Native decoding results. The Native runner defaults to the original embedded teaching input. Set
+`WINDOW8_TEACHING_ROWS=/path/to/exact-teaching.json` for a candidate; its manifest
+must pin `teaching_content_identity` using `language/parser-teaching@1`. The
+runner verifies that identity before Source/model preparation. Legacy manifests
+without this field permit only the original embedded teaching input and its
+original SHA-256. Actual candidate decoding remains a separate gate.
 
 Actual decoding uses the existing ordinary model and checked Source bank:
 
