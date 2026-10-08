@@ -70,3 +70,13 @@ impl PreparedByteObservation {
         }
     }
 }
+
+impl PreparedByteObservation {
+    pub(super) fn owned_heap_bytes(&self) -> usize {
+        super::storage::boxed(self.source.as_ref(), self.source.owned_heap_bytes()).saturating_add(
+            self.index.as_ref().map_or(0, |index| {
+                super::storage::boxed(index.as_ref(), index.owned_heap_bytes())
+            }),
+        )
+    }
+}

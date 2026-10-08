@@ -114,3 +114,14 @@ impl PreparedInspection {
         }
     }
 }
+
+impl PreparedInspection {
+    pub(super) fn owned_heap_bytes(&self) -> usize {
+        super::storage::boxed(self.source.as_ref(), self.source.owned_heap_bytes()).saturating_add(
+            match &self.operation {
+                Operation::VariantIs(tag) => tag.capacity(),
+                Operation::VariantTag | Operation::Length => 0,
+            },
+        )
+    }
+}

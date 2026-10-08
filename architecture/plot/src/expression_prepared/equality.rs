@@ -237,3 +237,35 @@ fn leaf_bytes(value: ValidatedCanonicalStructuredValue<'_>) -> Result<&[u8], Ref
     }
     Ok(bytes)
 }
+
+impl PreparedEquality {
+    pub(super) fn owned_heap_bytes(&self) -> usize {
+        super::storage::boxed(self.left.as_ref(), self.left.owned_heap_bytes())
+            .saturating_add(super::storage::boxed(
+                self.right.as_ref(),
+                self.right.owned_heap_bytes(),
+            ))
+            .saturating_add(self.expected.capacity())
+            .saturating_add(self.shape.owned_heap_bytes())
+    }
+}
+impl Shape {
+    fn owned_heap_bytes(&self) -> usize {
+        match self {
+            Self::Primitive(_) => 0,
+            Self::Collection(element) => {
+                super::storage::boxed(element.as_ref(), element.owned_heap_bytes())
+            }
+            Self::Record(fields) | Self::Variant(fields) => fields.iter().fold(
+                fields
+                    .capacity()
+                    .saturating_mul(core::mem::size_of::<(String, Shape)>()),
+                |total, (name, shape)| {
+                    total
+                        .saturating_add(name.capacity())
+                        .saturating_add(shape.owned_heap_bytes())
+                },
+            ),
+        }
+    }
+}

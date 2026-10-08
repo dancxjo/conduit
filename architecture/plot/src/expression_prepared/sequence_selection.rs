@@ -86,3 +86,15 @@ impl PreparedSequenceSelection {
         )
     }
 }
+
+impl PreparedSequenceSelection {
+    pub(super) fn owned_heap_bytes(&self) -> usize {
+        super::storage::boxed(self.source.as_ref(), self.source.owned_heap_bytes())
+            .saturating_add(super::storage::boxed(
+                self.index.as_ref(),
+                self.index.owned_heap_bytes(),
+            ))
+            .saturating_add(self.output_type.capacity())
+            .saturating_add(self.output.capacity())
+    }
+}

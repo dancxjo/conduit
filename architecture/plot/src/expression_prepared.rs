@@ -25,6 +25,7 @@ mod nominal;
 mod sequence_selection;
 use member_selection::PreparedMemberSelection;
 mod primitive;
+mod storage;
 mod storage_bound;
 mod structured;
 mod structured_contract;

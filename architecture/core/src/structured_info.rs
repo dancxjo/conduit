@@ -17,6 +17,7 @@ mod prepared_composition;
 mod profile;
 mod selection;
 mod sequence;
+mod storage;
 mod transport;
 mod tuple;
 mod typed_pair;

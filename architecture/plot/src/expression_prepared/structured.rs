@@ -294,3 +294,56 @@ fn append(output: &mut Vec<u8>, value: &[u8]) -> Result<(), Refusal> {
     output.extend_from_slice(value);
     Ok(())
 }
+
+impl PreparedStructuredExpression {
+    pub(super) fn owned_heap_bytes(&self) -> usize {
+        self.type_prefix
+            .capacity()
+            .saturating_add(match &self.shape {
+                PreparedShape::Input => 0,
+                PreparedShape::Constant(value) => value.capacity(),
+                PreparedShape::Selected(value) => value.owned_heap_bytes(),
+                PreparedShape::SequenceSelected(value) => value.owned_heap_bytes(),
+                PreparedShape::Record(fields) => fields.iter().fold(
+                    fields
+                        .capacity()
+                        .saturating_mul(core::mem::size_of::<PreparedField>()),
+                    |total, field| {
+                        total
+                            .saturating_add(field.name.capacity())
+                            .saturating_add(field.value.owned_heap_bytes())
+                    },
+                ),
+                PreparedShape::Collection(values) => values.iter().fold(
+                    values
+                        .capacity()
+                        .saturating_mul(core::mem::size_of::<PreparedChild>()),
+                    |total, value| total.saturating_add(value.owned_heap_bytes()),
+                ),
+                PreparedShape::Variant { tag, payload } => tag.capacity().saturating_add(
+                    super::storage::boxed(payload.as_ref(), payload.owned_heap_bytes()),
+                ),
+                PreparedShape::Conditional {
+                    condition,
+                    when_true,
+                    when_false,
+                } => super::storage::boxed(condition.as_ref(), condition.owned_heap_bytes())
+                    .saturating_add(super::storage::boxed(
+                        when_true.as_ref(),
+                        when_true.owned_heap_bytes(),
+                    ))
+                    .saturating_add(super::storage::boxed(
+                        when_false.as_ref(),
+                        when_false.owned_heap_bytes(),
+                    )),
+            })
+    }
+}
+impl PreparedChild {
+    fn owned_heap_bytes(&self) -> usize {
+        self.value_type
+            .owned_heap_bytes()
+            .saturating_add(self.type_prefix.capacity())
+            .saturating_add(self.evaluator.owned_heap_bytes())
+    }
+}
