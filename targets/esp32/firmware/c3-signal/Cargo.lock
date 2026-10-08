@@ -534,6 +534,7 @@ dependencies = [
  "conduit-signal",
  "conduit-text",
  "conduit-time",
+ "conduit-todo-plot",
  "conduit-web",
 ]
 
@@ -554,6 +555,14 @@ dependencies = [
  "conduit-core",
  "conduit-plot",
  "serde",
+]
+
+[[package]]
+name = "conduit-todo-plot"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-web",
 ]
 
 [[package]]
