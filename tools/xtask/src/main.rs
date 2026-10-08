@@ -61,6 +61,24 @@ fn main() {
                     Err("a structured proof operation cannot be combined with a proof target, --list, --verify, or --run-obligation".into())
                 } else {
                     match command {
+                        ProveCommand::ModelAuthoring {
+                            output,
+                            cuda,
+                            documented_command,
+                        } => {
+                            let mut arguments = Vec::new();
+                            if let Some(output) = output {
+                                arguments
+                                    .extend(["--output".to_owned(), output.display().to_string()]);
+                            }
+                            if documented_command {
+                                arguments.push("--documented-command".to_owned());
+                            }
+                            if cuda {
+                                arguments.push("--cuda".to_owned());
+                            }
+                            commands::model_authoring::run(&arguments)
+                        }
                         ProveCommand::AudioPlayback(args) => commands::audio::prove(
                             &opts,
                             &args.card_id,

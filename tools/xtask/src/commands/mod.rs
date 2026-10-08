@@ -52,3 +52,5 @@ pub mod unifont_subset;
 pub mod workspace;
 
 pub mod native_speech;
+
+pub mod model_authoring;

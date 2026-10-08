@@ -1,9 +1,9 @@
 # Creating models: teach Conduit to speak
 
-**Proposed development journey for #5205–#5207.** Portable training semantics
-already exist. The Burn back and ConduitVoice are being implemented against
-this chapter. Proposed commands/examples are promises to test, not claims of
-working software. Verified examples will carry their actual proof.
+**Development journey for #5205–#5207.** The hosted Burn library foundation is
+implemented and tested. ConduitVoice, corpus preparation, and ordinary training/
+inference plots remain proposed. Proposed examples are promises to test;
+the adjacent regression proof does not establish the voice journey.
 
 This chapter is for a Rust contributor who understands ordinary plots, plans,
 and plays. Build, train, evaluate, checkpoint, offer, and use one learned model:
@@ -75,6 +75,55 @@ Its training forward participates in the existing
 the same model with a smaller configuration. A tiny adjacent regression model
 demonstrates generic reuse without replacing the voice walkthrough.
 
+The following Rust helpers compile against the public hosted library seam:
+
+```rust,no_run
+use conduit_burn_model::{BurnAdapter, BurnModelDefinition, DeviceRequest, Error,
+    OptimizerRecipe, PreparedBurnModel, TrainingContext};
+
+fn prepare<D: BurnModelDefinition>(definition: D) -> Result<PreparedBurnModel<D>, Error> {
+    PreparedBurnModel::initialize(definition, DeviceRequest::Cpu,
+        OptimizerRecipe { learning_rate: 0.001, weight_decay: 0.01,
+            gradient_clip: 1.0, seed: 42 })
+}
+fn start<D: BurnModelDefinition>(prepared: PreparedBurnModel<D>, context: TrainingContext)
+    -> Result<BurnAdapter<D>, Error>
+{
+    // Host preparation publishes prepared.weights(), then constructs the existing
+    // artifact/session identities from prepared.content_identity().
+    BurnAdapter::from_prepared(prepared, context)
+}
+```
+
+`PreparedBurnModel` retains the initialized module so creating its content-bound
+artifact does not initialize a random model a second time. Admission checks that
+its SafeTensors bytes match the base artifact's digest and extent. Host preparation
+still owns durable publication and truthful dataset/build/resource evidence.
+
+An exported checkpoint has a separate inference entrance. Its context contains
+artifact and host runtime evidence, without any dataset, training session, or
+optimizer recipe. The loader verifies the descriptor and SafeTensors members:
+
+```rust,no_run
+use conduit_burn_model::{BurnModelDefinition, DeviceRequest, DirectoryCheckpointStore,
+    Error, InferenceBurnAdapter, InferenceContext};
+fn reload<D: BurnModelDefinition>(definition: D, context: InferenceContext,
+    store: &DirectoryCheckpointStore, checkpoint: &[u8; 32])
+    -> Result<InferenceBurnAdapter<D>, Error>
+{
+    InferenceBurnAdapter::load(definition, DeviceRequest::Cpu, context, store, checkpoint)
+}
+```
+
+The capstone call is **proposed**, pending ConduitVoice and its exact FARGAN gate:
+
+```rust,ignore
+let definition = ConduitVoiceDefinition::new(ConduitVoiceConfig::tiny());
+let prepared = prepare(definition)?;
+// Publish the base artifact, prepare checked speech data and construct context.
+let mut model = start(prepared, context)?;
+```
+
 ## Prepare truthful data
 
 Use [LJ Speech 1.1](https://keithito.com/LJ-Speech-Dataset/), a single-speaker
@@ -110,12 +159,18 @@ finite work. A seed is not a promise of cross-device bitwise reproducibility.
 
 ## Train as ordinary Conduit work
 
-The proposed repository proof entrance is:
+The hosted library foundation has a runnable repository proof entrance. It
+executes the adjacent regression contract tests, not the proposed voice path:
 
+<!-- model-authoring-command -->
 ```sh
-# Proposed: not yet runnable.
 cargo xtask prove model-authoring --output work/model-authoring
 ```
+
+Verify the documented command itself with
+`cargo xtask prove model-authoring --documented-command --output work/model-authoring-docs`.
+The producer extracts the marked command, substitutes only the host-local evidence
+directory, executes it through `cargo xtask`, and retains document identity and logs.
 
 Public workflows use `conduit run` with checked training/evaluation/inference
 plots and prepared host/body resource configuration. Runnable CPU fixture,
@@ -183,22 +238,33 @@ another back and export evidence through the same explicit artifact boundary.
 
 ## Promises and executable proof
 
-These are proposed proof names, promoted only when implementation/evidence exist.
+These proof cases distinguish hosted-library evidence from the proposed capstone.
+The [evidence guide](../proof/model-authoring/README.md) records proof scope and
+the separately pinned FARGAN dependency inspection.
 
-| Promise | Proof |
-|---|---|
-| Honest bounded authoring | `authoring_contract_refuses_invalid_profiles` |
-| Real CPU autodiff learns | `burn_cpu_loss_decreases` |
-| Cancellation retains parameters/optimizer | `cancelled_step_retains_parameters_and_optimizer` |
-| Evaluation is read-only | `evaluation_preserves_training_state` |
-| Safe reload preserves inference | `checkpoint_reload_preserves_inference` |
-| Durable objects precede cursor | `checkpoint_failure_retains_durable_cursor` |
-| Fresh runtime resumes exact work | `fresh_runtime_resumes_recorded_batch_cursor` |
-| Natural targets match reference | `natural_speech_reference_feature_differential` |
-| Recorded features reconstruct | `recorded_features_authored_fargan_reconstruction` |
-| Ordinary planner selects voice | `planned_conduitvoice_feature_contract` |
-| Interchange refuses incompatible meaning | `model_interchange_preserves_contract_and_provenance` |
-| Docs commands stay executable | `model_authoring_documented_commands` |
+| Promise | Proof | Status |
+|---|---|---|
+| Honest bounded authoring | `authoring_contract_refuses_invalid_profiles` | hosted library tested |
+| Real CPU autodiff learns | `burn_cpu_loss_decreases` | hosted library tested |
+| Cancellation retains parameters/optimizer | `cancelled_step_retains_parameters_and_optimizer` | hosted library tested |
+| Evaluation is read-only | `evaluation_preserves_training_state` | hosted library tested |
+| Inference reload needs no training context | `inference_export_reloads_without_dataset_session_or_optimizer` | hosted library tested |
+| Nonfinite updates never commit | `finite_loss_with_nonfinite_gradient_never_commits_candidate` | hosted library tested |
+| Frozen groups survive resume | `frozen_parameter_group_remains_frozen_after_resume` | hosted library tested |
+| Optimizer state belongs to these parameters | `foreign_optimizer_parameter_ids_refuse_even_with_valid_content_digests` | hosted library tested |
+| Safe reload preserves inference | `checkpoint_reload_preserves_inference` | hosted library tested |
+| Durable objects precede cursor | `checkpoint_failure_retains_durable_cursor` | hosted library tested |
+| Fresh runtime resumes next step | `fresh_runtime_resumes_recorded_step_cursor` | hosted library tested; corpus cursor proposed |
+| Natural targets match reference | `natural_speech_reference_feature_differential` | proposed |
+| Recorded features reconstruct | `recorded_features_authored_fargan_reconstruction` | proposed |
+| Ordinary planner selects voice | `planned_conduitvoice_feature_contract` | proposed |
+| Interchange refuses incompatible meaning | `model_interchange_preserves_contract_and_provenance` | proposed |
+| Docs commands stay executable | `model_authoring_documented_commands` | hosted command extracted and executed |
+
+The [hosted contract](../targets/std/model-authoring.md) records current v1 limits,
+including the explicit resume-device refusal and missing corpus cursor/held-out
+split/best-checkpoint integration. Its inference off-ramp now reaches the existing
+std-host model-compute interface; ordinary plot selection remains proposed.
 
 Cheap CPU proof belongs in CI. Corpus training, CUDA, complete FARGAN synthesis,
 and attended listening retain separate proof classes. FARGAN readiness and

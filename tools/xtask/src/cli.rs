@@ -282,6 +282,15 @@ pub struct ProveArgs {
 
 #[derive(Subcommand, Debug)]
 pub enum ProveCommand {
+    /// Prove the hosted Burn authoring and checkpoint contracts.
+    ModelAuthoring {
+        #[arg(long, conflicts_with = "cuda")]
+        documented_command: bool,
+        #[arg(long)]
+        output: Option<std::path::PathBuf>,
+        #[arg(long)]
+        cuda: bool,
+    },
     /// Run the bounded audible specimen through one exact selected output.
     AudioPlayback(AudioPlaybackArgs),
     /// Prove bounded Pete forebrain-motherbrain coordination.
