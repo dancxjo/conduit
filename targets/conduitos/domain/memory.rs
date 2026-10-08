@@ -1,5 +1,7 @@
 //! Freestanding compiler support, limited to the domain's own mapped bytes.
 use core::ffi::c_void;
+#[path = "memory_words.rs"]
+mod words;
 
 #[unsafe(no_mangle)]
 unsafe extern "C" fn bcmp(left: *const c_void, right: *const c_void, length: usize) -> i32 {
@@ -21,13 +23,8 @@ unsafe extern "C" fn memcpy(
     source: *const c_void,
     length: usize,
 ) -> *mut c_void {
-    for index in 0..length {
-        unsafe {
-            destination
-                .cast::<u8>()
-                .add(index)
-                .write_volatile(source.cast::<u8>().add(index).read_volatile());
-        }
+    unsafe {
+        words::copy_forward(destination.cast(), source.cast(), length);
     }
     destination
 }
@@ -55,13 +52,8 @@ unsafe extern "C" fn memmove(
 
 #[unsafe(no_mangle)]
 unsafe extern "C" fn memset(destination: *mut c_void, value: i32, length: usize) -> *mut c_void {
-    for index in 0..length {
-        unsafe {
-            destination
-                .cast::<u8>()
-                .add(index)
-                .write_volatile(value as u8);
-        }
+    unsafe {
+        words::fill(destination.cast(), value as u8, length);
     }
     destination
 }
