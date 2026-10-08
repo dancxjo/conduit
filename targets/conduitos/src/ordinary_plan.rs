@@ -479,6 +479,11 @@ fn bind_native_capability(
         memory_bytes +=
             crate::arch::TextDomain::RESERVED_BYTES + crate::text_protection::ROOT_METADATA_CEILING;
     }
+    #[cfg(conduitos_protected_execution)]
+    if fixed.kind == conduit_time::TIME_EVERY_KIND {
+        memory_bytes +=
+            crate::arch::TextDomain::RESERVED_BYTES + crate::protected_timer::ROOT_METADATA_CEILING;
+    }
     portable
         .resource_requirements
         .push(conduit_core::resource_requirement(

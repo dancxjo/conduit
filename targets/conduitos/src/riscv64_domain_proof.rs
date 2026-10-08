@@ -17,6 +17,7 @@ pub fn run(plan: &conduit_core::Plan, offer: &crate::offer::HostOffer<'_>) {
     gates::run(plan, offer);
     morse::run(plan, offer);
     timer_runtime::run(offer);
+    timer_runtime::run_product(offer);
     boundary_entries();
     timer::run();
 }

@@ -29,6 +29,8 @@ mod domain_scope_identity;
 pub mod domain_serial_scope;
 pub mod domain_timer_gate;
 pub mod domain_timer_scope;
+#[cfg(conduitos_protected_execution)]
+mod protected_timer;
 pub mod dual_region_composition;
 pub mod dual_region_kernel;
 pub mod dual_region_plan;
@@ -314,6 +316,10 @@ pub mod tour_shell;
 mod tour_timer_kernel;
 mod tour_timer_offer;
 pub mod tour_timer_plan;
+#[cfg(not(conduitos_protected_execution))]
+mod tour_timer_play;
+#[cfg(conduitos_protected_execution)]
+#[path = "protected_timer_play.rs"]
 mod tour_timer_play;
 mod tour_two_host;
 mod tour_two_host_kernel;

@@ -52,6 +52,16 @@ impl TimerGate {
         fixed: &HostOffer<'_>,
         secret: u64,
     ) -> Result<Self, TimerGateRefusal> {
+        let table = KernelCapabilityTable::new(secret).map_err(TimerGateRefusal::Capability)?;
+        Self::admit_with_table(plan, binding, fixed, table)
+    }
+
+    pub(crate) fn admit_with_table(
+        plan: &Plan,
+        binding: RegionBinding,
+        fixed: &HostOffer<'_>,
+        mut table: KernelCapabilityTable,
+    ) -> Result<Self, TimerGateRefusal> {
         let timer = TimerScope::admit(plan, &binding, fixed).map_err(TimerGateRefusal::Binding)?;
         let count =
             SerialScope::admit_count(plan, &binding, fixed).map_err(TimerGateRefusal::Binding)?;
@@ -67,7 +77,6 @@ impl TimerGate {
             .map_err(|_| TimerGateRefusal::Request)?;
         let graph = crate::tour_timer_kernel::TourTimerKernel::prepare_graph(fragment, &lowered)
             .map_err(|_| TimerGateRefusal::Request)?;
-        let mut table = KernelCapabilityTable::new(secret).map_err(TimerGateRefusal::Capability)?;
         let timer_handle = table
             .issue(binding.domain, timer.scope)
             .map_err(TimerGateRefusal::Capability)?;
@@ -90,6 +99,16 @@ impl TimerGate {
             pending_count: None,
             revoked: false,
         })
+    }
+
+    #[cfg(conduitos_protected_execution)]
+    pub(crate) fn capabilities(&mut self) -> &mut KernelCapabilityTable {
+        &mut self.table
+    }
+
+    #[cfg(conduitos_protected_execution)]
+    pub(crate) fn binding(&self) -> &RegionBinding {
+        &self.binding
     }
 
     pub fn handles(&self) -> (KernelCapabilityHandle, KernelCapabilityHandle) {
