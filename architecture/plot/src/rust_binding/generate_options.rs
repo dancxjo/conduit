@@ -7,12 +7,12 @@ use conduit_core::StructuredInfoTypeShape;
 
 /// Maximum shared descriptor union emitted for separately owned runtime families.
 /// Each requested root must still fit the runtime family Type ceiling.
-pub const MAXIMUM_GENERATED_NATIVE_FAMILY_TYPES: usize = 128;
+pub const MAXIMUM_GENERATED_NATIVE_FAMILY_TYPES: usize = 192;
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct RustBindingOptions {
     /// Authored roots whose exact owned Type closure gains an explicitly owned
-    /// prepared conversion family. Shared emitted metadata may cover up to 128
+    /// prepared conversion family. Shared emitted metadata may cover up to 192
     /// Types, but every root closure and each runtime owner remain limited to 64.
     /// Empty retains the existing generated API.
     pub prepared_family_roots: BTreeSet<String>,
