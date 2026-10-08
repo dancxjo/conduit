@@ -207,3 +207,10 @@ pub use generated::{
     LanguageParserRetainedCommitReceipt, LanguageParserRetainedFactReceipt,
     LanguageParserRetainedSnapshotReceipt,
 };
+
+/// Source-correlated initialization and independent commitment witnesses.
+pub use generated::{
+    LanguageParserIndependentCommitRebaseRequest, LanguageParserIndependentCommitRebaseSets,
+    LanguageParserIndependentCommitRequest, LanguageParserIndependentCommitSet,
+    LanguageParserIndependentCommitSetProposal, LanguageParserProtectedInitializationReceipt,
+};

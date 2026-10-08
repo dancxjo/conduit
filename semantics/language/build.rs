@@ -40,6 +40,9 @@ fn main() {
     println!("cargo:rerun-if-changed=parser_session_custody.conduit");
     println!("cargo:rerun-if-changed=parser_session_custody_origins.conduit");
     println!("cargo:rerun-if-changed=parser_session_custody_frontier.conduit");
+    println!("cargo:rerun-if-changed=parser_session_custody_initialize.conduit");
+    println!("cargo:rerun-if-changed=parser_session_independent_commit.conduit");
+    println!("cargo:rerun-if-changed=parser_session_independent_commit_rebase.conduit");
     println!("cargo:rerun-if-changed=parser_scorer_v2.conduit");
     println!("cargo:rerun-if-changed=discourse.conduit");
     println!("cargo:rerun-if-changed=prosody.conduit");
@@ -83,6 +86,9 @@ fn main() {
         include_str!("parser_session_custody.conduit"),
         include_str!("parser_session_custody_origins.conduit"),
         include_str!("parser_session_custody_frontier.conduit"),
+        include_str!("parser_session_custody_initialize.conduit"),
+        include_str!("parser_session_independent_commit.conduit"),
+        include_str!("parser_session_independent_commit_rebase.conduit"),
         include_str!("discourse.conduit"),
         include_str!("prosody.conduit"),
         include_str!("pronunciation_selection.conduit"),
@@ -91,6 +97,18 @@ fn main() {
     let checked = check_syntax_document(&parse_syntax_document(&source), &StartupCatalog::new())
         .expect("language semantic Types must check");
     for (plot, file) in [
+        (
+            "language-parser-independent-commit",
+            "parser_independent_commit.hex",
+        ),
+        (
+            "language-parser-independent-commit-rebase-sets",
+            "parser_independent_commit_rebase_sets.hex",
+        ),
+        (
+            "language-parser-independent-commit-rebase",
+            "parser_independent_commit_rebase.hex",
+        ),
         (
             "language-parser-retained-commit-anchor",
             "parser_retained_commit_anchor.hex",
