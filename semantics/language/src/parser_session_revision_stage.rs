@@ -24,6 +24,7 @@ pub(crate) enum RevisionStageRefusal<E, S, N> {
     Closed,
     Storage(RevisionStorageRefusal),
     Registry(RegistryRefusal),
+    Queries(crate::parser_session_queries::ParserQueryRefusal),
     ParentReplay(FixedRefusal<core::convert::Infallible>),
     Source(FixedRefusal<E>),
     Model(ParserMixedRefusal<S, N>),
@@ -67,6 +68,32 @@ impl<'a, E: ParserSessionExecutor, S: ParserCanonicalSourceExecutor, N: ParserNu
         query: &[u8],
     ) -> Result<usize, RevisionStageRefusal<E::Error, S::Error, N::Error>> {
         self.source_with_parents(entry, query, &[])
+    }
+    /// Compose every whole query field from actual retained Source output.
+    /// Neither a caller-supplied frame nor an individually valid Native snapshot
+    /// enters this path. Fixed driver routes and the prepared exact schema
+    /// determine the record; subsequent whole readmission/replay remains required.
+    pub(crate) fn source_from_parents(
+        &mut self,
+        entry: ParserSessionEntry,
+        links: &[crate::parser_session_fixed_ingress::ParserSourceParentLink],
+        queries: &mut crate::parser_session_queries::PreparedParserSessionQueries,
+    ) -> Result<usize, RevisionStageRefusal<E::Error, S::Error, N::Error>> {
+        use RevisionStageRefusal as R;
+        if self.poisoned {
+            return Err(R::Closed);
+        }
+        let result = compose_source_parent_query(&self.book, entry, links, queries);
+        match result {
+            Ok(query) => self.source_with_parents(entry, query, links),
+            Err(error) => {
+                self.poison();
+                Err(match error {
+                    SourceParentCompositionRefusal::Parent => R::Closed,
+                    SourceParentCompositionRefusal::Query(error) => R::Queries(error),
+                })
+            }
+        }
     }
     /// Closed drivers select these fixed paths; this is not a public query API.
     /// Replay every prior retained Source frame before consuming the new query.
@@ -314,4 +341,48 @@ fn original_tape_matches(book: &ParserRevisionCustody, query: &[u8]) -> bool {
         return false;
     };
     tape == original
+}
+
+// The fixed stack array is finite representation scratch; composition itself
+// reuses the prepared query bank and makes no heap allocation.
+enum SourceParentCompositionRefusal {
+    Parent,
+    Query(crate::parser_session_queries::ParserQueryRefusal),
+}
+fn compose_source_parent_query<'a>(
+    book: &ParserRevisionCustody,
+    entry: ParserSessionEntry,
+    links: &[crate::parser_session_fixed_ingress::ParserSourceParentLink],
+    queries: &'a mut crate::parser_session_queries::PreparedParserSessionQueries,
+) -> Result<&'a [u8], SourceParentCompositionRefusal> {
+    if links.is_empty()
+        || links.len() > crate::parser_session_fixed_ingress::MAXIMUM_SOURCE_PARENT_LINKS
+    {
+        return Err(SourceParentCompositionRefusal::Parent);
+    }
+    let before = book.source_histories.len();
+    let first = book
+        .source_parent(&links[0], before)
+        .ok_or(SourceParentCompositionRefusal::Parent)?;
+    let first = links[0]
+        .output(&first.output)
+        .ok_or(SourceParentCompositionRefusal::Parent)?;
+    let mut fields = [first; crate::parser_session_fixed_ingress::MAXIMUM_SOURCE_PARENT_LINKS];
+    for (slot, link) in fields.iter_mut().zip(links) {
+        if !matches!(
+            link.input_path,
+            [crate::parser_canonical_schema::SchemaStep::Field(_)]
+        ) {
+            return Err(SourceParentCompositionRefusal::Parent);
+        }
+        let parent = book
+            .source_parent(link, before)
+            .ok_or(SourceParentCompositionRefusal::Parent)?;
+        *slot = link
+            .output(&parent.output)
+            .ok_or(SourceParentCompositionRefusal::Parent)?;
+    }
+    queries
+        .record(entry, &fields[..links.len()])
+        .map_err(SourceParentCompositionRefusal::Query)
 }

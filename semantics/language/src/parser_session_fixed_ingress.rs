@@ -75,30 +75,36 @@ pub(crate) struct ParserSourceParentLink {
     pub(crate) input_path: &'static [crate::parser_canonical_schema::SchemaStep<'static>],
 }
 impl ParserSourceParentLink {
-    pub(crate) fn matches(&self, parent: &[u8], input: &[u8]) -> bool {
-        fn select<'a>(
-            bytes: &'a [u8],
-            path: &[crate::parser_canonical_schema::SchemaStep<'_>],
-        ) -> Option<conduit_core::ValidatedCanonicalStructuredValue<'a>> {
-            if path.len() > 8 {
-                return None;
-            }
-            let mut value = conduit_core::validate_canonical_structured_value(bytes).ok()?;
-            for step in path {
-                value = match step {
-                    crate::parser_canonical_schema::SchemaStep::Field(name) => {
-                        value.record_field(name).ok()??
-                    }
-                    crate::parser_canonical_schema::SchemaStep::Case(name) => {
-                        value.variant_payload(name).ok()??
-                    }
-                };
-            }
-            Some(value)
+    fn select<'a>(
+        bytes: &'a [u8],
+        path: &[crate::parser_canonical_schema::SchemaStep<'_>],
+    ) -> Option<conduit_core::ValidatedCanonicalStructuredValue<'a>> {
+        if path.len() > 8 {
+            return None;
         }
+        let mut value = conduit_core::validate_canonical_structured_value(bytes).ok()?;
+        for step in path {
+            value = match step {
+                crate::parser_canonical_schema::SchemaStep::Field(name) => {
+                    value.record_field(name).ok()??
+                }
+                crate::parser_canonical_schema::SchemaStep::Case(name) => {
+                    value.variant_payload(name).ok()??
+                }
+            };
+        }
+        Some(value)
+    }
+    pub(crate) fn output<'a>(
+        &self,
+        parent: &'a [u8],
+    ) -> Option<conduit_core::ValidatedCanonicalStructuredValue<'a>> {
+        Self::select(parent, self.output_path)
+    }
+    pub(crate) fn matches(&self, parent: &[u8], input: &[u8]) -> bool {
         match (
-            select(parent, self.output_path),
-            select(input, self.input_path),
+            Self::select(parent, self.output_path),
+            Self::select(input, self.input_path),
         ) {
             (Some(parent), Some(input)) => parent == input,
             _ => false,
