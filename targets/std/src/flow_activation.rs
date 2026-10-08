@@ -14,6 +14,7 @@ mod pure_todo_scan;
 mod todo_combine;
 mod todo_scan_offer;
 pub use pure_todo_scan::install_pure_todo_scan;
+pub(crate) use todo_combine::maximum_scan_child_steps;
 pub use todo_combine::{offer as todo_combine_offer, TodoCombineFactory};
 #[cfg(test)]
 pub(crate) use todo_scan_offer::tests::authored_todo_plan;
