@@ -1,7 +1,9 @@
 //! Declared IPA syntax with exact profile custody and original source spelling.
 //! Preparation is an ordinary allocating path, not a bounded Flow execution.
 use crate::{
-    ipa_partition::{partition, PartitionRefusal, UnitSpelling},
+    ipa_diagnostic::{IpaNotationDiagnostic, IpaSourceSpan},
+    ipa_order::NotationOrder,
+    ipa_partition::{partition_located, PartitionRefusal, UnitSpelling},
     ipa_unicode::{supported_unit, UnitKind},
     semantic::*,
 };
@@ -98,78 +100,99 @@ impl<'a> PreparedIpaNotationProfile<'a> {
         display: SpeechIpaDisplayKind,
         provenance: SpeechEvidenceProvenance,
     ) -> Result<SpeechIpaProfileMatch, IpaNotationRefusal> {
+        self.parse_located(original, display, provenance)
+            .map_err(|error| error.refusal)
+    }
+
+    /// Parse with locations in the exact original UTF-8 source. Byte and scalar
+    /// coordinates include the authored display delimiters and never count phones.
+    pub fn parse_located(
+        &self,
+        original: alloc::string::String,
+        display: SpeechIpaDisplayKind,
+        provenance: SpeechEvidenceProvenance,
+    ) -> Result<SpeechIpaProfileMatch, IpaNotationDiagnostic> {
         use IpaNotationRefusal::*;
+        if original.len() > 4096 {
+            let mut start = 4096;
+            while !original.is_char_boundary(start) {
+                start -= 1;
+            }
+            let end = start
+                + original[start..]
+                    .chars()
+                    .next()
+                    .expect("excess scalar")
+                    .len_utf8();
+            return Err(IpaNotationDiagnostic {
+                refusal: Capacity,
+                span: IpaSourceSpan::from_bytes(&original, start, end)
+                    .expect("first excess UTF-8 scalar"),
+            });
+        }
+        let whole = IpaSourceSpan::from_bytes(&original, 0, original.len()).expect("whole UTF-8");
+        let at = |start, end, refusal| IpaNotationDiagnostic {
+            refusal,
+            span: IpaSourceSpan::from_bytes(&original, start, end).expect("parser UTF-8 boundary"),
+        };
+        let native = |error| IpaNotationDiagnostic {
+            refusal: Native(error),
+            span: whole,
+        };
         let (open, close) = match display {
             SpeechIpaDisplayKind::Phonemic => ('/', '/'),
             SpeechIpaDisplayKind::Phonetic => ('[', ']'),
         };
-        if original.len() < 3 || !original.starts_with(open) || !original.ends_with(close) {
-            return Err(DisplayDelimiters);
+        if !original.starts_with(open) {
+            return Err(at(
+                0,
+                original.chars().next().map_or(0, char::len_utf8),
+                DisplayDelimiters,
+            ));
         }
-        if original.len() > 4096 {
-            return Err(Capacity);
+        if original.len() < 2 || !original.ends_with(close) {
+            let start = original
+                .char_indices()
+                .last()
+                .map_or(0, |(offset, _)| offset);
+            return Err(at(start, original.len(), DisplayDelimiters));
         }
         let content = &original[1..original.len() - 1];
-        let spans = partition(content, &self.spellings).map_err(|refusal| match refusal {
-            PartitionRefusal::Ambiguous => AmbiguousTranscription,
-            PartitionRefusal::Bound => Capacity,
-            PartitionRefusal::InvalidProfile => InvalidProfile,
-            _ => UnsupportedTranscription,
+        let spans = partition_located(content, &self.spellings).map_err(|error| {
+            let refusal = match error.refusal {
+                PartitionRefusal::Ambiguous => AmbiguousTranscription,
+                PartitionRefusal::Bound => Capacity,
+                PartitionRefusal::InvalidProfile => InvalidProfile,
+                _ => UnsupportedTranscription,
+            };
+            at(error.start + 1, error.end + 1, refusal)
         })?;
-        let mut previous_kind = None;
-        let mut pending_stress = false;
+        let mut order = NotationOrder::default();
         let mut occurrences = Vec::new();
+        let mut scalar_start = 1_u64;
+        let mut last_span = (1, 1);
         for span in spans {
+            last_span = (span.start + 1, span.end + 1);
             let unit = &self.profile.units()[span.unit];
-            match kind(unit.kind()) {
-                UnitKind::Segment => {
-                    pending_stress = false;
-                }
-                UnitKind::PrimaryStress | UnitKind::SecondaryStress => {
-                    if pending_stress {
-                        return Err(SuprasegmentalOrder);
-                    }
-                    pending_stress = true;
-                }
-                UnitKind::Length => {
-                    if previous_kind != Some(UnitKind::Segment) {
-                        return Err(SuprasegmentalOrder);
-                    }
-                }
-                UnitKind::SyllableBoundary => {
-                    if pending_stress
-                        || !matches!(previous_kind, Some(UnitKind::Segment | UnitKind::Length))
-                    {
-                        return Err(SuprasegmentalOrder);
-                    }
-                }
-            }
-            previous_kind = Some(kind(unit.kind()));
+            order
+                .admit(kind(unit.kind()))
+                .map_err(|()| at(span.start + 1, span.end + 1, SuprasegmentalOrder))?;
+            let scalar_end = scalar_start + content[span.start..span.end].chars().count() as u64;
             occurrences.push(
                 SpeechIpaUnitOccurrence::new(
                     (span.end + 1) as u64,
-                    SpeechIpaSpelling::new(content[span.start..span.end].into()).map_err(Native)?,
+                    scalar_end,
+                    scalar_start,
+                    SpeechIpaSpelling::new(content[span.start..span.end].into()).map_err(native)?,
                     (span.start + 1) as u64,
                     unit.identity().clone(),
                 )
-                .map_err(Native)?,
+                .map_err(native)?,
             );
+            scalar_start = scalar_end;
         }
-        if pending_stress
-            || !matches!(
-                occurrences
-                    .last()
-                    .and_then(|last| self
-                        .profile
-                        .units()
-                        .as_slice()
-                        .iter()
-                        .find(|unit| unit.identity() == last.unit()))
-                    .map(|unit| kind(unit.kind())),
-                Some(UnitKind::Segment | UnitKind::Length)
-            )
-        {
-            return Err(SuprasegmentalOrder);
+        if !order.is_complete() {
+            return Err(at(last_span.0, last_span.1, SuprasegmentalOrder));
         }
         let transcription = SpeechIpaTranscription::new(
             display,
@@ -178,10 +201,13 @@ impl<'a> PreparedIpaNotationProfile<'a> {
             self.profile.identity().clone(),
             self.profile.revision().clone(),
             provenance,
-            BoundedSequence::try_from_iter(occurrences).map_err(|_| Capacity)?,
+            BoundedSequence::try_from_iter(occurrences).map_err(|_| IpaNotationDiagnostic {
+                refusal: Capacity,
+                span: whole,
+            })?,
             self.profile.variety().clone(),
         )
-        .map_err(Native)?;
-        SpeechIpaProfileMatch::new(self.profile.clone(), transcription).map_err(Native)
+        .map_err(native)?;
+        SpeechIpaProfileMatch::new(self.profile.clone(), transcription).map_err(native)
     }
 }
