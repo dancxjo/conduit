@@ -60,6 +60,32 @@ fn content(mode: Mode, version: u8) -> ResourceContentRequirement {
     }
 }
 fn planned(mode: Mode, root: &Path, version: u8) -> (StdHost, Plan) {
+    let (host_id, boot_id) = match mode {
+        Mode::Write => ("host-a", "boot-a"),
+        Mode::Read => ("host-b", "boot-b"),
+    };
+    let config = StdHostConfig {
+        host_id: host_id.into(),
+        boot_id: boot_id.into(),
+        offer_generation: OfferGeneration(1),
+    };
+    let host = match mode {
+        Mode::Write => StdHost::new_for_todo_checkpoint_once(config, root, content(mode, version)),
+        Mode::Read => StdHost::new_for_todo_checkpoint_read(config, root, content(mode, version)),
+    }
+    .unwrap();
+    planned_on_host(mode, host, version)
+}
+fn planned_on_host(mode: Mode, host: StdHost, version: u8) -> (StdHost, Plan) {
+    let plan = plan_on_host(mode, &host, version, None).unwrap();
+    (host, plan)
+}
+fn plan_on_host(
+    mode: Mode,
+    host: &StdHost,
+    version: u8,
+    grant_capability: Option<CapabilityId>,
+) -> Result<Plan, String> {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     for kind in [
@@ -75,32 +101,18 @@ fn planned(mode: Mode, root: &Path, version: u8) -> (StdHost, Plan) {
             .unwrap();
         profile.insert_kind(kind).unwrap();
     }
-    let (source, entry, host_id, boot_id) = match mode {
+    let (source, entry) = match mode {
         Mode::Write => (
             include_str!("../../../plots/todo/checkpoint-once.conduit"),
             "todo/checkpoint-once",
-            "host-a",
-            "boot-a",
         ),
         Mode::Read => (
             include_str!("../../../plots/todo/checkpoint-restore.conduit"),
             "todo/checkpoint-restore",
-            "host-b",
-            "boot-b",
         ),
     };
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
     let authored = expand_canonical_plot_for_authoring(&checked, entry, &profile).unwrap();
-    let config = StdHostConfig {
-        host_id: host_id.into(),
-        boot_id: boot_id.into(),
-        offer_generation: OfferGeneration(1),
-    };
-    let host = match mode {
-        Mode::Write => StdHost::new_for_todo_checkpoint_once(config, root, content(mode, version)),
-        Mode::Read => StdHost::new_for_todo_checkpoint_read(config, root, content(mode, version)),
-    }
-    .unwrap();
     let advertisement = host.advertisement().clone();
     let implementation = match mode {
         Mode::Write => conduit_std_offers::TODO_CHECKPOINT_IMPLEMENTATION,
@@ -113,13 +125,18 @@ fn planned(mode: Mode, root: &Path, version: u8) -> (StdHost, Plan) {
         .unwrap();
     let requirement = &offer.authority_requirements[0];
     let grant = AuthorityGrant {
-        grant_id: format!("grant/{host_id}/{boot_id}/checkpoint").into(),
+        grant_id: format!(
+            "grant/{}/{}/checkpoint",
+            advertisement.host_id.as_str(),
+            advertisement.boot_id.as_str()
+        )
+        .into(),
         contract_id: requirement.contract_id.clone(),
         host_call_contract_id: requirement.host_call_contract_id.clone(),
         subject_kind: requirement.subject_kind.clone(),
         host_id: advertisement.host_id.clone(),
         boot_id: advertisement.boot_id.clone(),
-        capability_id: offer.capability_id.clone(),
+        capability_id: grant_capability.unwrap_or_else(|| offer.capability_id.clone()),
     };
     let hosts = [advertisement];
     let placements =
@@ -167,7 +184,7 @@ fn planned(mode: Mode, root: &Path, version: u8) -> (StdHost, Plan) {
         },
         &limits,
     )
-    .unwrap();
+    .map_err(|error| format!("{error:?}"))?;
     if let Mode::Read = mode {
         let [placement] = plan.fragments[0].placements.as_slice() else {
             panic!("restore must select exactly one read Gear");
@@ -186,7 +203,7 @@ fn planned(mode: Mode, root: &Path, version: u8) -> (StdHost, Plan) {
             ResourceVersionIdentity::from_digest([version; 32])
         );
     }
-    (host, plan)
+    Ok(plan)
 }
 fn body_plan(plan: Plan) -> (conduit_body::Wake, BodyPlan) {
     let resident = ResidentPlot::new(
@@ -310,6 +327,172 @@ fn on_body_stack(test: fn()) {
         .unwrap()
         .join()
         .unwrap();
+}
+#[test]
+fn idle_offer_transition_preserves_host_play_sequence_and_refuses_stale_plans() {
+    on_body_stack(|| {
+        let root = root();
+        let (mut host, first_plan) = planned(Mode::Write, &root, 2);
+        let before_refusal = host.advertisement().clone();
+        let mut other_identity = content(Mode::Read, 2);
+        other_identity.identity = ResourceSemanticIdentity::from_digest([9; 32]);
+        assert!(host
+            .transition_todo_checkpoint_offer(&root, other_identity)
+            .is_err());
+        assert_eq!(host.advertisement(), &before_refusal);
+        let old_write_capability = first_plan.fragments[0]
+            .placements
+            .iter()
+            .find(|placement| {
+                placement.implementation_id.as_str()
+                    == conduit_std_offers::TODO_CHECKPOINT_IMPLEMENTATION
+            })
+            .unwrap()
+            .capability_id
+            .clone();
+        let first_state = TodoState::new("Groceries".into())
+            .unwrap()
+            .encode_info()
+            .unwrap();
+        let write = |host: &mut StdHost, plan: Plan, state: Vec<u8>, text: &str| {
+            let (wake, body_plan) = body_plan(plan);
+            let control = RunControl::default();
+            let inputs = [
+                ExternalForeInput {
+                    front_port_id: port_id("current"),
+                    track: ConnectionTrack::Payload,
+                    bytes: state,
+                },
+                ExternalForeInput {
+                    front_port_id: port_id("command"),
+                    track: ConnectionTrack::Payload,
+                    bytes: TodoCommand::Add { text: text.into() }
+                        .encode_info()
+                        .unwrap(),
+                },
+            ];
+            let mut fore = CapturedFore::default();
+            let report = host
+                .run_body_plan_with_todo_checkpoint_to_with_start(
+                    BodyRunRequest {
+                        wake: &wake,
+                        plan: &body_plan,
+                        control: &control,
+                        keyboard: None,
+                    },
+                    &inputs,
+                    &mut fore,
+                    &root,
+                    identity(),
+                    &mut Vec::new(),
+                    &mut ThreadTimer,
+                    |_, _| Ok(()),
+                )
+                .unwrap();
+            assert_eq!(report.terminal, TerminalDisposition::Completed);
+            assert_eq!(fore.0.len(), 1);
+            (report, fore.0.remove(0).bytes)
+        };
+        let stale_write = first_plan.clone();
+        let (first, committed) = write(&mut host, first_plan, first_state, "Buy milk");
+        let old_generation = host.advertisement().offer_generation;
+        host.transition_todo_checkpoint_offer(&root, content(Mode::Read, 2))
+            .unwrap();
+        assert!(host.advertisement().offer_generation > old_generation);
+        let (wake, stale_body) = body_plan(stale_write);
+        let mut fore = CapturedFore::default();
+        let stale_inputs = [
+            ExternalForeInput {
+                front_port_id: port_id("current"),
+                track: ConnectionTrack::Payload,
+                bytes: committed.clone(),
+            },
+            ExternalForeInput {
+                front_port_id: port_id("command"),
+                track: ConnectionTrack::Payload,
+                bytes: TodoCommand::Add {
+                    text: "stale".into(),
+                }
+                .encode_info()
+                .unwrap(),
+            },
+        ];
+        assert!(host
+            .run_body_plan_with_todo_checkpoint_to_with_start(
+                BodyRunRequest {
+                    wake: &wake,
+                    plan: &stale_body,
+                    control: &RunControl::default(),
+                    keyboard: None
+                },
+                &stale_inputs,
+                &mut fore,
+                &root,
+                identity(),
+                &mut Vec::new(),
+                &mut ThreadTimer,
+                |_, _| Ok(()),
+            )
+            .is_err());
+        assert!(fore.0.is_empty());
+        let (mut host, read_plan) = planned_on_host(Mode::Read, host, 2);
+        let stale_read = read_plan.clone();
+        let (wake, read_body_plan) = body_plan(read_plan);
+        let mut restored = CapturedFore::default();
+        let read = host
+            .run_body_plan_with_todo_checkpoint_read_to_with_start(
+                BodyRunRequest {
+                    wake: &wake,
+                    plan: &read_body_plan,
+                    control: &RunControl::default(),
+                    keyboard: None,
+                },
+                &mut restored,
+                &root,
+                identity(),
+                &mut Vec::new(),
+                &mut ThreadTimer,
+                |_, _| Ok(()),
+            )
+            .unwrap();
+        assert_eq!(read.terminal, TerminalDisposition::Completed);
+        assert_eq!(restored.0.len(), 1);
+        assert_eq!(restored.0[0].bytes, committed);
+        host.transition_todo_checkpoint_offer(&root, content(Mode::Write, 3))
+            .unwrap();
+        assert!(plan_on_host(Mode::Write, &host, 3, Some(old_write_capability)).is_err());
+        let (wake, stale_body) = body_plan(stale_read);
+        let mut fore = CapturedFore::default();
+        assert!(host
+            .run_body_plan_with_todo_checkpoint_read_to_with_start(
+                BodyRunRequest {
+                    wake: &wake,
+                    plan: &stale_body,
+                    control: &RunControl::default(),
+                    keyboard: None
+                },
+                &mut fore,
+                &root,
+                identity(),
+                &mut Vec::new(),
+                &mut ThreadTimer,
+                |_, _| Ok(()),
+            )
+            .is_err());
+        assert!(fore.0.is_empty());
+        let (mut host, second_plan) = planned_on_host(Mode::Write, host, 3);
+        let (second, _) = write(
+            &mut host,
+            second_plan,
+            restored.0.remove(0).bytes,
+            "Buy bread",
+        );
+        assert_ne!(first.play.active_play_id, read.play.active_play_id);
+        assert_ne!(first.play.active_play_id, second.play.active_play_id);
+        assert_ne!(read.play.active_play_id, second.play.active_play_id);
+        assert_ne!(first.terminal_sign.sign_id, second.terminal_sign.sign_id);
+        std::fs::remove_dir_all(root).unwrap();
+    });
 }
 #[test]
 fn second_host_restores_exact_published_state_through_fore() {
