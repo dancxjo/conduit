@@ -218,6 +218,70 @@ impl PreparedParserCanonicalComposer {
             },
         })
     }
+    pub(crate) fn descriptor_steps_reservation(
+        family: &PreparedNativeFamily,
+        descriptor: &'static NativeFamilyTypeDescriptor,
+        path: &[crate::parser_canonical_schema::SchemaStep<'_>],
+        maximum_output_bytes: usize,
+    ) -> Result<ParserCompositionReceipt, ParserCompositionRefusal> {
+        use ParserCompositionRefusal as R;
+        if !family.contains_descriptor(descriptor) {
+            return Err(R::Descriptor);
+        }
+        if maximum_output_bytes == 0
+            || maximum_output_bytes > conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES
+        {
+            return Err(R::Pressure);
+        }
+        let selected = crate::parser_canonical_schema::select_steps(descriptor.type_bytes, path)
+            .map_err(|_| R::Type)?;
+        let decode =
+            StructuredInfoType::canonical_decode_storage_bound(selected).map_err(|_| R::Type)?;
+        let retained = encoded_composer_requests(selected, maximum_output_bytes)?;
+        Ok(ParserCompositionReceipt {
+            preparation_requested_bytes_bound: add(decode, retained)?,
+            retained_requested_bytes_bound: retained,
+        })
+    }
+    /// Prepares one exact nested shape, including an enum's declared payload.
+    /// Roots remain complete family members; selected child bytes confer no
+    /// independent Native authority. Full containing query admission follows.
+    pub(crate) fn prepare_descriptor_steps(
+        family: &PreparedNativeFamily,
+        descriptor: &'static NativeFamilyTypeDescriptor,
+        path: &[crate::parser_canonical_schema::SchemaStep<'_>],
+        limits: ParserCompositionLimits,
+    ) -> Result<Self, ParserCompositionRefusal> {
+        use ParserCompositionRefusal as R;
+        let reservation = Self::descriptor_steps_reservation(
+            family,
+            descriptor,
+            path,
+            limits.maximum_output_bytes,
+        )?;
+        let selected = crate::parser_canonical_schema::select_steps(descriptor.type_bytes, path)
+            .map_err(|_| R::Type)?;
+        let retained = reservation.retained_requested_bytes_bound;
+        let preparation = reservation.preparation_requested_bytes_bound;
+        if retained > limits.maximum_retained_requested_bytes
+            || preparation > limits.maximum_preparation_requested_bytes
+        {
+            return Err(R::Pressure);
+        }
+        let value_type = StructuredInfoType::from_canonical_bytes(selected).map_err(|_| R::Type)?;
+        if composer_requests(&value_type, limits.maximum_output_bytes)? != retained {
+            return Err(R::Type);
+        }
+        let composer = PreparedStructuredComposer::new(&value_type, limits.maximum_output_bytes)
+            .map_err(|_| R::Composition)?;
+        Ok(Self {
+            composer,
+            receipt: ParserCompositionReceipt {
+                preparation_requested_bytes_bound: preparation,
+                retained_requested_bytes_bound: retained,
+            },
+        })
+    }
     pub(crate) fn receipt(&self) -> ParserCompositionReceipt {
         self.receipt
     }

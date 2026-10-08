@@ -193,6 +193,8 @@ impl Node {
 }
 pub(crate) struct PreparedParserCanonicalRefinement<S, T> {
     plan: Node,
+    source_type: &'static [u8],
+    target_type: &'static [u8],
     output: Vec<u8>,
     maximum_bytes: usize,
     receipt: ParserRefinementReceipt,
@@ -203,6 +205,18 @@ impl<S: PreparedNativeRustBinding, T: PreparedNativeRustBinding>
 {
     pub(crate) fn prepare(
         family: &PreparedNativeFamily,
+        limits: ParserRefinementLimits,
+    ) -> Result<Self, ParserRefinementRefusal> {
+        Self::prepare_fields(family, &[], &[], limits)
+    }
+    /// Selects exact nested schemas only after complete root descriptor readiness.
+    /// This performs representation refinement, never parser authorization. The
+    /// driver must retain the original full parent Source execution and freshly
+    /// admit the resulting complete Native query before any target consumes it.
+    pub(crate) fn prepare_fields(
+        family: &PreparedNativeFamily,
+        source_path: &[&str],
+        target_path: &[&str],
         limits: ParserRefinementLimits,
     ) -> Result<Self, ParserRefinementRefusal> {
         use ParserRefinementRefusal as R;
@@ -216,19 +230,23 @@ impl<S: PreparedNativeRustBinding, T: PreparedNativeRustBinding>
         {
             return Err(R::Descriptor);
         }
+        let source_type = crate::parser_canonical_schema::select_field(
+            S::PREPARED_DESCRIPTOR.type_bytes,
+            source_path,
+        )
+        .map_err(|_| R::Type)?;
+        let target_type = crate::parser_canonical_schema::select_field(
+            T::PREPARED_DESCRIPTOR.type_bytes,
+            target_path,
+        )
+        .map_err(|_| R::Type)?;
         let source_decode =
-            StructuredInfoType::canonical_decode_storage_bound(S::PREPARED_DESCRIPTOR.type_bytes)
-                .map_err(|_| R::Type)?;
+            StructuredInfoType::canonical_decode_storage_bound(source_type).map_err(|_| R::Type)?;
         let target_decode =
-            StructuredInfoType::canonical_decode_storage_bound(T::PREPARED_DESCRIPTOR.type_bytes)
-                .map_err(|_| R::Type)?;
+            StructuredInfoType::canonical_decode_storage_bound(target_type).map_err(|_| R::Type)?;
         let decode = add(source_decode, target_decode)?;
         let retained = add(
-            encoded_request_bound(
-                S::PREPARED_DESCRIPTOR.type_bytes,
-                T::PREPARED_DESCRIPTOR.type_bytes,
-                limits.maximum_node_bytes,
-            )?,
+            encoded_request_bound(source_type, target_type, limits.maximum_node_bytes)?,
             limits.maximum_node_bytes,
         )?;
         let preparation = add(decode, retained)?;
@@ -238,10 +256,8 @@ impl<S: PreparedNativeRustBinding, T: PreparedNativeRustBinding>
             return Err(R::Pressure);
         }
         // Full recursive composition work is reserved before either Type decode.
-        let source = StructuredInfoType::from_canonical_bytes(S::PREPARED_DESCRIPTOR.type_bytes)
-            .map_err(|_| R::Type)?;
-        let target = StructuredInfoType::from_canonical_bytes(T::PREPARED_DESCRIPTOR.type_bytes)
-            .map_err(|_| R::Type)?;
+        let source = StructuredInfoType::from_canonical_bytes(source_type).map_err(|_| R::Type)?;
+        let target = StructuredInfoType::from_canonical_bytes(target_type).map_err(|_| R::Type)?;
         if add(
             request_bound(&source, &target, limits.maximum_node_bytes)?,
             limits.maximum_node_bytes,
@@ -256,6 +272,8 @@ impl<S: PreparedNativeRustBinding, T: PreparedNativeRustBinding>
             .map_err(|_| R::Pressure)?;
         Ok(Self {
             plan,
+            source_type,
+            target_type,
             output,
             maximum_bytes: limits.maximum_node_bytes,
             receipt: ParserRefinementReceipt {
@@ -273,11 +291,11 @@ impl<S: PreparedNativeRustBinding, T: PreparedNativeRustBinding>
         source: ValidatedCanonicalStructuredValue<'a>,
     ) -> Result<&'a [u8], ParserRefinementRefusal> {
         use ParserRefinementRefusal as R;
-        if source.type_bytes() != S::PREPARED_DESCRIPTOR.type_bytes {
+        if source.type_bytes() != self.source_type {
             return Err(R::Type);
         }
         let value = self.plan.compose(source)?;
-        if value.type_bytes() != T::PREPARED_DESCRIPTOR.type_bytes {
+        if value.type_bytes() != self.target_type {
             return Err(R::Type);
         }
         let length = add(value.type_bytes().len(), value.value_node().len())?;

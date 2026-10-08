@@ -153,3 +153,33 @@ pub(crate) fn select_field<'a>(
     }
     Ok(encoded)
 }
+
+/// A closed representation route chosen by the Session driver. Every step
+/// preserves the exact named parent schema; no caller-supplied Type is admitted.
+#[derive(Clone, Copy)]
+pub(crate) enum SchemaStep<'a> {
+    Field(&'a str),
+    Case(&'a str),
+}
+pub(crate) fn select_steps<'a>(
+    mut encoded: &'a [u8],
+    path: &[SchemaStep<'_>],
+) -> Result<&'a [u8], SchemaRefusal> {
+    for step in path {
+        match (*step, shape(encoded)?) {
+            (SchemaStep::Field(name), Shape::Record(fields))
+            | (SchemaStep::Case(name), Shape::Variant(fields)) => {
+                let mut selected = None;
+                for field in fields {
+                    let (field_name, value_type) = field?;
+                    if field_name == name {
+                        selected = Some(value_type);
+                    }
+                }
+                encoded = selected.ok_or(SchemaRefusal)?;
+            }
+            _ => return Err(SchemaRefusal),
+        }
+    }
+    Ok(encoded)
+}
