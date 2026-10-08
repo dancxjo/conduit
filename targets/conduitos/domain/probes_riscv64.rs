@@ -4,12 +4,16 @@ use crate::{frame::TextFrame, gate};
 pub unsafe fn run(frame: &TextFrame) -> ! {
     unsafe {
         match frame.probe {
-            1 => core::arch::asm!("ld t0, 0({0})", in(reg) frame.target, out("t0") _, options(nostack)),
+            1 => {
+                core::arch::asm!("ld t0, 0({0})", in(reg) frame.target, out("t0") _, options(nostack))
+            }
             2 => core::arch::asm!("sd zero, 0({0})", in(reg) frame.target, options(nostack)),
             3 => core::arch::asm!("jalr {0}", in(reg) frame.target, clobber_abi("C")),
             4 => core::arch::asm!("csrr t0, satp", out("t0") _, options(nostack)),
             5 => core::arch::asm!("csrci sstatus, 2", options(nostack)),
-            6 => loop { core::arch::asm!("nop", options(nomem, nostack)); },
+            6 => loop {
+                core::arch::asm!("nop", options(nomem, nostack));
+            },
             7 | 17 => floating(frame.probe == 17),
             8 => core::arch::asm!("sret", options(noreturn)),
             9 => core::arch::asm!("mret", options(noreturn)),
