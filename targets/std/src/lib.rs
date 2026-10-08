@@ -111,7 +111,6 @@ pub mod hosted_model_compute;
 pub mod hosted_network;
 pub mod hosted_reminder;
 pub mod hosted_resource;
-pub mod todo_durable_resource;
 pub mod hosted_speech_recognition;
 pub mod hosted_speech_synthesis;
 mod hosted_spoken_output_host;
@@ -134,6 +133,7 @@ pub mod spoken_mask_runtime;
 mod spoken_mask_runtime_tests;
 pub mod terminal_face_mask;
 pub mod terminal_mask_execution;
+pub mod todo_durable_resource;
 mod vision_ocr;
 mod vision_tracker;
 
