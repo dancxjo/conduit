@@ -266,3 +266,13 @@ pub mod committed_token_role;
 pub mod independent_pronunciation;
 #[cfg(feature = "semantic-bindings")]
 pub mod independent_token_role;
+
+#[cfg(feature = "semantic-bindings")]
+pub mod ipa_notation;
+#[cfg(feature = "semantic-bindings")]
+mod ipa_partition;
+#[cfg(feature = "semantic-bindings")]
+mod ipa_unicode;
+
+#[cfg(feature = "semantic-bindings")]
+pub mod ipa_admission;

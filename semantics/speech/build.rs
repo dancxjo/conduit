@@ -19,6 +19,8 @@ fn main() {
     println!("cargo:rerun-if-changed=timing.conduit");
     println!("cargo:rerun-if-changed=intent.conduit");
     println!("cargo:rerun-if-changed=inventory.conduit");
+    println!("cargo:rerun-if-changed=ipa.conduit");
+    println!("cargo:rerun-if-changed=ipa_syntax.conduit");
     println!("cargo:rerun-if-changed=profile_phones.conduit");
     println!("cargo:rerun-if-changed=voice_profile.conduit");
     println!("cargo:rerun-if-changed=timing_projection.conduit");
@@ -45,6 +47,8 @@ fn main() {
         include_str!("timing.conduit"),
         include_str!("intent.conduit"),
         include_str!("inventory.conduit"),
+        include_str!("ipa.conduit"),
+        include_str!("ipa_syntax.conduit"),
         include_str!("profile_phones.conduit"),
         include_str!("voice_profile.conduit"),
         include_str!("context_match.conduit"),
@@ -148,6 +152,10 @@ fn main() {
     .expect("retain speech projection");
     for (name, file) in [
         (
+            "speech/ipa-supported-unit",
+            "ipa_supported_unit_program.hex",
+        ),
+        (
             "speech/translation-discourse-anchor",
             "translation_anchor_program.hex",
         ),
@@ -224,7 +232,7 @@ fn main() {
         .iter()
         .map(|(name, _)| format!("conduit_language::{name}"))
         .collect::<Vec<_>>();
-    // LanguageVariety is metadata, not consumed by a speech value yet.
+    // IPA profiles retain exact LanguageVariety values.
     let bindings = identities
         .iter()
         .zip(&paths)
@@ -233,7 +241,6 @@ fn main() {
             !matches!(
                 *name,
                 "LanguageVocativeDiscourseFact"
-                    | "LanguageVariety"
                     | "LanguageTextReferenceMatch"
                     | "LanguageExternalIdentity"
                     | "LanguageProsodyBoundary"
