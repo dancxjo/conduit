@@ -127,3 +127,77 @@ fn complete_actual_preparation_preserves_originals_within_admitted_bounds() {
         prepared.factory().storage().unwrap()
     );
 }
+
+#[test]
+fn complete_borrowed_input_copy_is_reserved_before_allocation() {
+    let original = inputs();
+    let borrow = || BorrowedInputs {
+        plan: &original.plan,
+        source: &original.source,
+        declarations: core::array::from_fn(|i| original.declarations[i].as_ref()),
+        resources: core::array::from_fn(|i| original.resources[i].as_ref()),
+    };
+    let limits = InputCopyLimits {
+        requested_bytes: INPUT_COPY_REQUESTED_BYTES,
+        peak_bytes: INPUT_COPY_PEAK_BYTES,
+        retained_owner_bytes: EXISTING_INPUT_OWNER_BYTES,
+    };
+    for which in 0..3 {
+        let mut under = limits;
+        match which {
+            0 => under.requested_bytes -= 1,
+            1 => under.peak_bytes -= 1,
+            _ => under.retained_owner_bytes -= 1,
+        };
+        let (result, observed) =
+            allocation_probe::observe(|| Inputs::copy_from_borrowed(borrow(), under));
+        assert!(matches!(result, Err(Refusal::Capacity)));
+        assert_eq!((observed.allocations, observed.reallocations), (0, 0));
+    }
+    let (result, observed) =
+        allocation_probe::observe(|| Inputs::copy_from_borrowed(borrow(), limits));
+    let (copy, receipt) = result.unwrap();
+    assert!(observed.requested_bytes <= receipt.requested_bytes_bound());
+    assert!(observed.peak_bytes <= receipt.peak_bytes_bound());
+    assert!(observed.live_bytes <= receipt.retained_owner_bytes_bound());
+    assert_eq!(
+        receipt.original_payload_bytes(),
+        original.owned_payload_bytes()
+    );
+    assert_eq!(copy.plan.as_ref(), original.plan.as_ref());
+    assert_eq!(copy.source.as_ref(), original.source.as_ref());
+    for i in 0..11 {
+        assert_eq!(
+            copy.declarations[i].as_ref(),
+            original.declarations[i].as_ref()
+        );
+    }
+    for i in 0..3 {
+        assert_eq!(copy.resources[i].as_ref(), original.resources[i].as_ref());
+    }
+    for which in 0..4 {
+        let mut foreign = borrow();
+        match which {
+            0 => foreign.plan = b"foreign",
+            1 => foreign.source = "foreign",
+            2 => foreign.declarations[10] = "foreign",
+            _ => foreign.resources[2] = b"foreign",
+        };
+        let (result, o) = allocation_probe::observe(|| Inputs::copy_from_borrowed(foreign, limits));
+        assert!(matches!(
+            result,
+            Err(Refusal::ForeignPlan
+                | Refusal::ForeignSource
+                | Refusal::ForeignDeclaration(10)
+                | Refusal::ForeignResource(2))
+        ));
+        assert_eq!((o.allocations, o.reallocations), (0, 0));
+    }
+    println!(
+        "full input copy requested={} peak={} live={} payload={}",
+        observed.requested_bytes,
+        observed.peak_bytes,
+        observed.live_bytes,
+        receipt.original_payload_bytes()
+    );
+}

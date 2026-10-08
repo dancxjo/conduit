@@ -38,3 +38,26 @@ Evidence is in `outputs/fargan-immutable-native-preparation` of the goal project
 This admission covers native-profile preparation only. Other factories, complete
 runtime storage/resources, whole public trained execution, and #5218 overlap and
 attended-contrast acceptance remain separate requirements.
+
+## Full input ownership preparation
+
+`Inputs::copy_from_borrowed` now takes complete immutable borrowed Plan, literal
+Source, eleven declarations, and three original resource blobs. It checks all
+three declared 64MiB request/peak/retained reservations, then every original
+length and SHA-256 before copying any Arc owner. The opaque receipt distinguishes
+original payload and the three reviewed profile bounds. This is an immutable
+copying profile, not filesystem loading or a generic allocator quota.
+
+The actual pinned copying path requests, peaks at, and retains 43,872,832B for
+43,872,503B of original payload, including actual shared allocation headers.
+All three one-under ceilings and foreign Plan/Source/declaration/resource cases
+refuse with zero allocations. All complete copied bytes compare exactly to the
+original borrowed material. Four actual target-module façade tests pass in
+6.33s; both module and tracked tests pass Clippy with warnings denied against the
+immutable coherent SDK. No full Conduitos package/Language generation was run.
+
+Borrowed backing acquisition/storage and filesystem buffering remain upstream
+charges; the previous test helper's file-loading construction measurement is
+not promoted into that admission. Downstream parser/checker/native factory
+preparation still consumes a distinct reservation. Whole public FARGAN working
+inventory and trained execution are not established by these tests.

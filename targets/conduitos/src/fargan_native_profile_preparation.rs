@@ -181,6 +181,89 @@ pub struct Inputs {
     pub declarations: [Arc<str>; 11],
     pub resources: [Arc<[u8]>; 3],
 }
+/// Full borrowed original material. No parser/checker is invoked during ownership preparation.
+pub struct BorrowedInputs<'a> {
+    pub plan: &'a [u8],
+    pub source: &'a str,
+    pub declarations: [&'a str; 11],
+    pub resources: [&'a [u8]; 3],
+}
+/// Reviewed immutable copying profile, separate from filesystem/input acquisition
+/// and from subsequent parser/checker preparation. Includes shared allocation headers.
+pub const INPUT_COPY_REQUESTED_BYTES: usize = 64 * 1024 * 1024;
+pub const INPUT_COPY_PEAK_BYTES: usize = 64 * 1024 * 1024;
+#[derive(Clone, Copy, Debug)]
+pub struct InputCopyLimits {
+    pub requested_bytes: usize,
+    pub peak_bytes: usize,
+    pub retained_owner_bytes: usize,
+}
+#[derive(Clone, Copy, Debug)]
+pub struct InputCopyReceipt {
+    requested_bytes_bound: usize,
+    peak_bytes_bound: usize,
+    retained_owner_bytes_bound: usize,
+    original_payload_bytes: usize,
+}
+impl InputCopyReceipt {
+    pub fn requested_bytes_bound(&self) -> usize {
+        self.requested_bytes_bound
+    }
+    pub fn peak_bytes_bound(&self) -> usize {
+        self.peak_bytes_bound
+    }
+    pub fn retained_owner_bytes_bound(&self) -> usize {
+        self.retained_owner_bytes_bound
+    }
+    pub fn original_payload_bytes(&self) -> usize {
+        self.original_payload_bytes
+    }
+}
+impl Inputs {
+    /// Refuses unreserved/foreign complete inputs before any allocation. This is
+    /// an immutable toolchain/profile reservation, not a generic allocator quota.
+    /// The caller's original borrowed backing and its acquisition remain separate.
+    pub fn copy_from_borrowed(
+        input: BorrowedInputs<'_>,
+        limits: InputCopyLimits,
+    ) -> Result<(Self, InputCopyReceipt), Refusal> {
+        if limits.requested_bytes < INPUT_COPY_REQUESTED_BYTES
+            || limits.peak_bytes < INPUT_COPY_PEAK_BYTES
+            || limits.retained_owner_bytes < EXISTING_INPUT_OWNER_BYTES
+        {
+            return Err(Refusal::Capacity);
+        }
+        if !PLAN.accepts(input.plan) {
+            return Err(Refusal::ForeignPlan);
+        }
+        if !SOURCE.accepts(input.source.as_bytes()) {
+            return Err(Refusal::ForeignSource);
+        }
+        for (index, (pin, material)) in DECLARATIONS.iter().zip(input.declarations).enumerate() {
+            if !pin.accepts(material.as_bytes()) {
+                return Err(Refusal::ForeignDeclaration(index));
+            }
+        }
+        for (index, (pin, material)) in RESOURCES.iter().zip(input.resources).enumerate() {
+            if !pin.accepts(material) {
+                return Err(Refusal::ForeignResource(index));
+            }
+        }
+        let owned = Self {
+            plan: Arc::from(input.plan),
+            source: Arc::from(input.source),
+            declarations: input.declarations.map(Arc::from),
+            resources: input.resources.map(Arc::from),
+        };
+        let receipt = InputCopyReceipt {
+            requested_bytes_bound: INPUT_COPY_REQUESTED_BYTES,
+            peak_bytes_bound: INPUT_COPY_PEAK_BYTES,
+            retained_owner_bytes_bound: EXISTING_INPUT_OWNER_BYTES,
+            original_payload_bytes: owned.owned_payload_bytes(),
+        };
+        Ok((owned, receipt))
+    }
+}
 impl Inputs {
     pub fn owned_payload_bytes(&self) -> usize {
         self.declarations
