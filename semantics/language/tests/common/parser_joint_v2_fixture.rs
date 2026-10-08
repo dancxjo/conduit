@@ -255,8 +255,15 @@ pub fn initial(
         material.identity().clone(),
     )
     .unwrap();
+    initial_from_basis(f, *lexical.token_count(), basis)
+}
+pub fn initial_from_basis(
+    f: &mut fixture::Fixture,
+    token_count: u64,
+    basis: LanguageParserBasis,
+) -> LanguageParserState {
     let raw = fixture::replace(
-        &f.initial(*lexical.token_count()),
+        &f.initial(token_count),
         "basis",
         basis.into_structured().unwrap(),
     );

@@ -274,3 +274,75 @@ fn private_protection_dependency_closure_checks_and_expands() {
         prepared.expand(entry).unwrap();
     }
 }
+
+#[test]
+fn private_inactive_protection_payload_preserves_exact_native_schema() {
+    let mut f = fixture::Fixture::new();
+    let basis = LanguageParserBasis::new(
+        LanguageAnalysisRevisionId::new("initialization/analysis".into()).unwrap(),
+        LanguageTextRevisionId::new("initialization/revision".into()).unwrap(),
+        LanguageTextId::new("initialization/text".into()).unwrap(),
+    )
+    .unwrap();
+    let state = joint::initial_from_basis(&mut f, 3, basis.clone());
+    let edge = retained::inactive_protected_edge(&state);
+    assert_eq!(edge.origin_basis(), &basis);
+    assert_eq!(edge.current_basis(), &basis);
+    assert_eq!(*edge.dependent(), 4);
+    assert_eq!(*edge.head(), 4);
+    assert_eq!(edge.relation(), state.relation0());
+}
+
+#[test]
+fn independent_mask_keeps_the_exact_source_request_and_refuses_foreign_retained_basis() {
+    let mut f = fixture::Fixture::new();
+    let basis = LanguageParserBasis::new(
+        LanguageAnalysisRevisionId::new("mask/analysis".into()).unwrap(),
+        LanguageTextRevisionId::new("mask/revision".into()).unwrap(),
+        LanguageTextId::new("mask/text".into()).unwrap(),
+    )
+    .unwrap();
+    let state = joint::initial_from_basis(&mut f, 3, basis.clone());
+    let numeric = LanguageParserNumericState::from_structured(joint::retype(
+        &LanguageParserNumericState::semantic_type().unwrap(),
+        &state.clone().into_structured().unwrap(),
+    ))
+    .unwrap();
+    let mask = LanguageParserLegalMask::new([false; 76], basis.clone(), numeric).unwrap();
+    let edge = retained::inactive_protected_edge(&state);
+    let current = LanguageParserProtectedSetProposal::new(
+        [false; 4],
+        basis.clone(),
+        edge.clone(),
+        edge.clone(),
+        edge.clone(),
+        edge,
+    )
+    .unwrap();
+    let query =
+        retained::independent_mask_query(mask.clone(), current, state.relation0().clone()).unwrap();
+    assert_eq!(query.request().basis(), mask.basis());
+    assert_eq!(query.request().state(), mask.state());
+    assert_eq!(query.mask(), &mask);
+    let encoded = query.clone().encode().unwrap();
+    assert_eq!(
+        LanguageParserIndependentMaskQuery::decode(&encoded).unwrap(),
+        query
+    );
+    let foreign = LanguageParserBasis::new(
+        LanguageAnalysisRevisionId::new("mask/foreign".into()).unwrap(),
+        basis.source_revision().clone(),
+        basis.text().clone(),
+    )
+    .unwrap();
+    let current = LanguageParserProtectedSetProposal::new(
+        [false; 4],
+        foreign,
+        query.retained().edge0().clone(),
+        query.retained().edge1().clone(),
+        query.retained().edge2().clone(),
+        query.retained().edge3().clone(),
+    )
+    .unwrap();
+    assert!(retained::independent_mask_query(mask, current, state.relation0().clone()).is_err());
+}

@@ -25,6 +25,63 @@ fn bind<T: NativeRustBinding>(
 ) -> Result<T, NativeBindingRefusal> {
     T::from_structured(fixture::record(&T::semantic_type()?, fields))
 }
+pub fn inactive_edge(state: &LanguageParserState) -> LanguageParserProtectedEdgeProposal {
+    let ty = LanguageParserProtectedEdgeProposal::semantic_type().unwrap();
+    let occurrence = LinguisticTokenIdentity::new(
+        4,
+        state.basis().text().clone(),
+        state.basis().source_revision().clone(),
+    )
+    .unwrap()
+    .into_structured()
+    .unwrap();
+    let edge: LanguageParserProtectedEdgeProposal = bind(vec![
+        (
+            "origin_basis",
+            state.basis().clone().into_structured().unwrap(),
+        ),
+        (
+            "current_basis",
+            state.basis().clone().into_structured().unwrap(),
+        ),
+        (
+            "dependent",
+            fixture::number(fixture::field_type(&ty, "dependent"), 4),
+        ),
+        ("head", fixture::number(fixture::field_type(&ty, "head"), 4)),
+        (
+            "dependent_choice",
+            fixture::number(fixture::field_type(&ty, "dependent_choice"), 0),
+        ),
+        (
+            "head_choice",
+            fixture::number(fixture::field_type(&ty, "head_choice"), 0),
+        ),
+        (
+            "relation",
+            state.relation0().clone().into_structured().unwrap(),
+        ),
+        ("dependent_occurrence", occurrence.clone()),
+        ("head_occurrence", occurrence),
+    ])
+    .unwrap();
+    edge
+}
+pub fn independent_mask_query(
+    mask: LanguageParserLegalMask,
+    retained: LanguageParserProtectedSetProposal,
+    default_relation: LanguageParserRelation,
+) -> Result<LanguageParserIndependentMaskQuery, NativeBindingRefusal> {
+    // The ordinary mask retains the exact original request basis and state.
+    // Native laws correlate all four complete fields before Source execution.
+    let request = LanguageParserMaskQuery::new(mask.basis().clone(), mask.state().clone())?;
+    bind(vec![
+        ("request", request.into_structured()?),
+        ("mask", mask.into_structured()?),
+        ("retained", retained.into_structured()?),
+        ("default_relation", default_relation.into_structured()?),
+    ])
+}
 // This object has no public raw-set/fact constructor. Session owns actual
 // model execution, then supplies its own Source-admitted stable facts.
 pub struct Protection {
@@ -89,45 +146,7 @@ impl Protection {
         }
         // Opaque inactive payload, explicitly not a token/fact. Source sets every
         // active flag false because dependent4 is outside physical slots0..3.
-        let ty = LanguageParserProtectedEdgeProposal::semantic_type().unwrap();
-        let occurrence = LinguisticTokenIdentity::new(
-            4,
-            state.basis().text().clone(),
-            state.basis().source_revision().clone(),
-        )
-        .unwrap()
-        .into_structured()
-        .unwrap();
-        let edge: LanguageParserProtectedEdgeProposal = bind(vec![
-            (
-                "origin_basis",
-                state.basis().clone().into_structured().unwrap(),
-            ),
-            (
-                "current_basis",
-                state.basis().clone().into_structured().unwrap(),
-            ),
-            (
-                "dependent",
-                fixture::number(fixture::field_type(&ty, "dependent"), 4),
-            ),
-            ("head", fixture::number(fixture::field_type(&ty, "head"), 4)),
-            (
-                "dependent_choice",
-                fixture::number(fixture::field_type(&ty, "dependent_choice"), 0),
-            ),
-            (
-                "head_choice",
-                fixture::number(fixture::field_type(&ty, "head_choice"), 0),
-            ),
-            (
-                "relation",
-                state.relation0().clone().into_structured().unwrap(),
-            ),
-            ("dependent_occurrence", occurrence.clone()),
-            ("head_occurrence", occurrence),
-        ])
-        .unwrap();
+        let edge = inactive_edge(state);
         let set = LanguageParserProtectedSetProposal::from_structured(
             self.flows.call(1, &edge.into_structured().unwrap()),
         )
@@ -274,17 +293,11 @@ impl Protection {
         mask: LanguageParserLegalMask,
         default_relation: &LanguageParserRelation,
     ) -> Result<LanguageParserLegalMask, NativeBindingRefusal> {
-        let query: LanguageParserIndependentMaskQuery = bind(vec![
-            ("mask", mask.into_structured()?),
-            (
-                "retained",
-                self.current.as_ref().unwrap().clone().into_structured()?,
-            ),
-            (
-                "default_relation",
-                default_relation.clone().into_structured()?,
-            ),
-        ])?;
+        let query = independent_mask_query(
+            mask,
+            self.current.as_ref().unwrap().clone(),
+            default_relation.clone(),
+        )?;
         LanguageParserLegalMask::from_structured(self.flows.call(5, &query.into_structured()?))
     }
     pub fn admit_hypothesis(
