@@ -26,6 +26,7 @@ pub fn generate() {
         "../../architecture/plot",
         "domain/gate.rs",
         "domain/memory.rs",
+        "domain/memory_words.rs",
         "domain/frame.rs",
         "domain/layout.rs",
         "domain/probes.rs",
