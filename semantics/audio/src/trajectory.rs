@@ -4,7 +4,7 @@ use crate::generated::*;
 use crate::source_programs::*;
 use alloc::vec::Vec;
 use conduit_plot::rust_binding::{NativeBindingRefusal, NativeRustBinding};
-use conduit_plot::{PortableExpressionEvaluationRefusal, PortableExpressionProgram};
+use conduit_plot::PortableExpressionEvaluationRefusal;
 
 #[derive(Debug)]
 pub enum AudioTrajectoryRefusal {
@@ -19,69 +19,15 @@ pub enum AudioTrajectoryRefusal {
     InvalidOutput,
 }
 
-/// Reproducible execution of one exact checked Source expression.
-#[derive(Clone)]
-pub struct AudioTrajectorySourceExecution {
-    program: &'static str,
-    input: Vec<u8>,
-    output: Vec<u8>,
-}
-impl AudioTrajectorySourceExecution {
-    pub fn source_program_hex(&self) -> &'static str {
-        self.program
-    }
-    pub fn input_canonical(&self) -> &[u8] {
-        &self.input
-    }
-    pub fn output_canonical(&self) -> &[u8] {
-        &self.output
-    }
-}
-struct Program {
-    hex: &'static str,
-    program: PortableExpressionProgram,
-}
-impl Program {
-    fn new(hex: &'static str) -> Result<Self, AudioTrajectoryRefusal> {
-        Ok(Self {
-            hex,
-            program: PortableExpressionProgram::from_canonical_hex(hex)
-                .map_err(|_| AudioTrajectoryRefusal::InvalidProgram)?,
-        })
-    }
-    fn run<T: NativeRustBinding>(
-        &self,
-        input: T,
-        evidence: &mut Vec<AudioTrajectorySourceExecution>,
-    ) -> Result<Vec<u8>, AudioTrajectoryRefusal> {
-        let input = input.encode().map_err(AudioTrajectoryRefusal::Admission)?;
-        let output = self
-            .program
-            .evaluate(&input)
-            .map_err(AudioTrajectoryRefusal::Evaluation)?;
-        evidence.push(AudioTrajectorySourceExecution {
-            program: self.hex,
-            input,
-            output: output.clone(),
-        });
-        Ok(output)
-    }
-    fn native<T: NativeRustBinding, U: NativeRustBinding>(
-        &self,
-        input: T,
-        evidence: &mut Vec<AudioTrajectorySourceExecution>,
-    ) -> Result<U, AudioTrajectoryRefusal> {
-        U::decode(&self.run(input, evidence)?).map_err(AudioTrajectoryRefusal::Admission)
-    }
-    fn boolean<T: NativeRustBinding>(
-        &self,
-        input: T,
-        evidence: &mut Vec<AudioTrajectorySourceExecution>,
-    ) -> Result<bool, AudioTrajectoryRefusal> {
-        match self.run(input, evidence)?.as_slice() {
-            [0] => Ok(false),
-            [1] => Ok(true),
-            _ => Err(AudioTrajectoryRefusal::InvalidOutput),
+pub type AudioTrajectorySourceExecution = crate::AudioSourceExecution;
+use crate::source_execution::{AudioSourceExecutionRefusal, Program};
+impl From<AudioSourceExecutionRefusal> for AudioTrajectoryRefusal {
+    fn from(value: AudioSourceExecutionRefusal) -> Self {
+        match value {
+            AudioSourceExecutionRefusal::Admission(v) => Self::Admission(v),
+            AudioSourceExecutionRefusal::InvalidProgram => Self::InvalidProgram,
+            AudioSourceExecutionRefusal::Evaluation(v) => Self::Evaluation(v),
+            AudioSourceExecutionRefusal::InvalidOutput => Self::InvalidOutput,
         }
     }
 }

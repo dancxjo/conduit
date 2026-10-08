@@ -68,3 +68,17 @@ pub use generated::{
     AudioTrajectorySegment,
 };
 pub use trajectory::*;
+
+mod source_execution;
+pub use source_execution::{AudioSourceExecution, AudioSourceExecutionRefusal};
+mod rate_projection;
+pub use generated::{
+    AudioCumulativeFrameBasis, AudioCumulativeFrameCursor, AudioCumulativeFrameRequest,
+    AudioCumulativeFrameResult, AudioFrameGridFidelity, AudioFrameQuantization,
+    AudioIntegerFrameTarget, AudioSampleProjectionChain, AudioSampleProjectionQuantity,
+    AudioSampleProjectionRequest, AudioSampleProjectionResult, AudioSampleRateBasis,
+    AudioTimeFraction,
+};
+pub use rate_projection::*;
+mod rate_projection_report;
+pub use rate_projection_report::*;
