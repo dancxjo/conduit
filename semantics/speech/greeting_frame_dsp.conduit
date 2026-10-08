@@ -1,0 +1,6 @@
+# The declared step-target policy resets only filter history. Periodic phase,
+# prior voicing and deterministic noise custody remain unchanged.
+plot speech/greeting-filter-reset-v2 (
+    >> value: SpeechFrameState
+    result: SpeechFrameState >>
+) = ({voicing: .voicing, phase: .phase, noise: .noise, first1: 0, first2: 0, second1: 0, second2: 0, third1: 0, third2: 0})

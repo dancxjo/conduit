@@ -33,15 +33,16 @@ impl From<SpeechCommonAcousticRefusal> for SpeechGestureRefusal {
     }
 }
 pub struct PreparedDeclaredPhoneGestures {
-    event: SpeechUtteranceIntentEvent,
-    membership: SpeechOccurrenceMembership,
-    phone: SpeechPhone,
-    choice: SpeechAllophoneChoiceState,
-    timing: SpeechGestureTiming,
-    original_frames: Vec<Vec<u8>>,
-    executions: Vec<SpeechCommonAcousticExecution>,
-    gestures: Vec<SpeechAcousticGesture>,
-    admitted_frames: Vec<Vec<u8>>,
+    pub(crate) event: SpeechUtteranceIntentEvent,
+    pub(crate) membership: SpeechOccurrenceMembership,
+    pub(crate) phone: SpeechPhone,
+    pub(crate) choice: SpeechAllophoneChoiceState,
+    pub(crate) timing: SpeechGestureTiming,
+    pub(crate) original_frames: Vec<Vec<u8>>,
+    pub(crate) executions: Vec<SpeechCommonAcousticExecution>,
+    pub(crate) gestures: Vec<SpeechAcousticGesture>,
+    pub(crate) admitted_frames: Vec<Vec<u8>>,
+    pub(crate) profile: &'static str,
 }
 impl PreparedDeclaredPhoneGestures {
     pub fn original_event(&self) -> &SpeechUtteranceIntentEvent {
@@ -73,7 +74,7 @@ impl PreparedDeclaredPhoneGestures {
         &self.admitted_frames
     }
     pub fn profile_identity(&self) -> &'static str {
-        "speech/authored-acoustic-gesture-demo/1"
+        self.profile
     }
     pub fn conflict_policy(&self) -> SpeechGestureConflictPolicy {
         SpeechGestureConflictPolicy::IndependentChannelsRefuseSameChannelOverlap
@@ -213,6 +214,7 @@ pub fn prepare_declared_phone_gestures(
         }
     }
     Ok(PreparedDeclaredPhoneGestures {
+        profile: "speech/authored-acoustic-gesture-demo/1",
         event,
         membership,
         phone,

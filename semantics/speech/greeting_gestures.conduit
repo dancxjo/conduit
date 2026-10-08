@@ -1,0 +1,93 @@
+# Separate versioned authored approximation; v1 symbols/Types/programs remain.
+type SpeechGreetingPhoneClass =
+    schwa
+    | epsilon
+    | ae
+    | ih
+    | ow
+    | h
+    | lateral_l
+    | rhotic_r
+    | v
+    | s
+type SpeechGreetingSymbolResult =
+    supported SpeechGreetingPhoneClass
+    | unsupported
+plot speech/greeting-symbol-v2 (
+    >> value: SpeechGestureSymbol
+    result: SpeechGreetingSymbolResult >>
+) = (.ipa == "ə" ? SpeechGreetingSymbolResult.supported(SpeechGreetingPhoneClass.schwa) : .ipa == "ɛ" ? SpeechGreetingSymbolResult.supported(SpeechGreetingPhoneClass.epsilon) : .ipa == "æ" ? SpeechGreetingSymbolResult.supported(SpeechGreetingPhoneClass.ae) : .ipa == "ɪ" ? SpeechGreetingSymbolResult.supported(SpeechGreetingPhoneClass.ih) : .ipa == "oʊ" ? SpeechGreetingSymbolResult.supported(SpeechGreetingPhoneClass.ow) : .ipa == "h" ? SpeechGreetingSymbolResult.supported(SpeechGreetingPhoneClass.h) : .ipa == "l" ? SpeechGreetingSymbolResult.supported(SpeechGreetingPhoneClass.lateral_l) : .ipa == "ɹ" ? SpeechGreetingSymbolResult.supported(SpeechGreetingPhoneClass.rhotic_r) : .ipa == "v" ? SpeechGreetingSymbolResult.supported(SpeechGreetingPhoneClass.v) : .ipa == "s" ? SpeechGreetingSymbolResult.supported(SpeechGreetingPhoneClass.s) : SpeechGreetingSymbolResult.unsupported)
+type SpeechGreetingLossPolicy =
+    refuse_unsupported_mechanisms
+    | accept_lateral_rhotic_and_step_diphthong_approximation_v2
+type SpeechGreetingApproximationEffect =
+    ordinary_three_pole_profile
+    | lateral_antiresonance_omitted
+    | rhotic_tract_mechanisms_omitted
+    | diphthong_step_filter_reset
+# Admission precedes all gesture computations; absence of permission refuses.
+type SpeechGreetingPolicyRequest = {
+    phone: SpeechGreetingPhoneClass
+    policy: SpeechGreetingLossPolicy
+}
+type SpeechGreetingPolicyAdmission = {
+    request: SpeechGreetingPolicyRequest
+    where .request.phone is lateral_l || .request.phone is rhotic_r || .request.phone is ow ? .request.policy is accept_lateral_rhotic_and_step_diphthong_approximation_v2 : true
+}
+plot speech/greeting-effect-v2 (
+    >> value: SpeechGreetingPolicyAdmission
+    result: SpeechGreetingApproximationEffect >>
+) = (.request.phone is lateral_l ? SpeechGreetingApproximationEffect.lateral_antiresonance_omitted : .request.phone is rhotic_r ? SpeechGreetingApproximationEffect.rhotic_tract_mechanisms_omitted : .request.phone is ow ? SpeechGreetingApproximationEffect.diphthong_step_filter_reset : SpeechGreetingApproximationEffect.ordinary_three_pole_profile)
+type SpeechGreetingRoleRequest = {
+    phone: SpeechGreetingPhoneClass
+    channel: SpeechGestureChannel
+}
+plot speech/greeting-role-v2 (
+    >> value: SpeechGreetingRoleRequest
+    result: Boolean >>
+) = (.channel is formant_center || .channel is formant_bandwidth ? true : .channel is aspiration ? .phone is h : .channel is frication ? (.phone is v || .phone is s) : .channel is laryngeal_voicing ? (.phone is h || .phone is s ? false : true) : false)
+type SpeechGreetingWindowRequest = {
+    phone: SpeechGreetingPhoneClass
+    channel: SpeechGestureChannel
+    second: Boolean
+    timing: SpeechGestureU32Timing
+}
+# Exactly authored half-time, without reduction. 2*n, 2*d and n_start+n_end
+# are <2^33 from the original separately admitted U32 timing profile.
+plot speech/greeting-window-v2 (
+    >> value: SpeechGreetingWindowRequest
+    result: SpeechGestureRawWindow >>
+) = ({gain_numerator: 1, gain_denominator: 1, denominator: .phone is ow ? .timing.timing.nominal_start.denominator * 2 : .timing.timing.nominal_start.denominator, start: .phone is ow ? ((.channel is formant_center || .channel is formant_bandwidth) && .second ? .timing.timing.nominal_start.numerator_seconds + .timing.timing.nominal_end.numerator_seconds : .timing.timing.nominal_start.numerator_seconds * 2) : .timing.timing.nominal_start.numerator_seconds, end: .phone is ow ? ((.channel is formant_center || .channel is formant_bandwidth) && !.second ? .timing.timing.nominal_start.numerator_seconds + .timing.timing.nominal_end.numerator_seconds : .timing.timing.nominal_end.numerator_seconds * 2) : .timing.timing.nominal_end.numerator_seconds})
+type SpeechGreetingFormantRequest = {
+    phone: SpeechGreetingPhoneClass
+    second: Boolean
+}
+plot speech/greeting-formants-v2 (
+    >> value: SpeechGreetingFormantRequest
+    result: SpeechGestureRawFormants >>
+) = ({denominator: 1, first_center: .phone is schwa ? 500 : .phone is epsilon ? 530 : .phone is ae ? 660 : .phone is ih ? 390 : .phone is lateral_l ? 400 : .phone is rhotic_r ? 350 : .phone is v ? 250 : .phone is s ? 1200 : .phone is h ? 500 : .second ? 300 : 500, second_center: .phone is schwa ? 1500 : .phone is epsilon ? 1840 : .phone is ae ? 1720 : .phone is ih ? 1990 : .phone is lateral_l ? 1200 : .phone is rhotic_r ? 1300 : .phone is v ? 2800 : .phone is s ? 3200 : .phone is h ? 1500 : .second ? 870 : 900, third_center: .phone is schwa ? 2500 : .phone is epsilon ? 2480 : .phone is ae ? 2410 : .phone is ih ? 2550 : .phone is lateral_l ? 2600 : .phone is rhotic_r ? 1600 : .phone is v ? 3600 : .phone is s ? 3800 : .phone is h ? 2500 : .second ? 2240 : 2400, first_bandwidth: .phone is h || .phone is v || .phone is s ? 400 : 80, second_bandwidth: .phone is h || .phone is v || .phone is s ? 800 : 100, third_bandwidth: .phone is h || .phone is v || .phone is s ? 1000 : 140})
+# Source selects the exact sample-grid temporal target. This changes coefficient
+# segments only; full original times and floor remainders live in Audio receipts.
+type SpeechGreetingTargetQuery = {
+    first: I32 in 0..=48000
+    boundary: I32 in 0..=48000
+    end: I32 in 1..=48000
+    frame: I32 in 0..=47999
+    split: Boolean
+    where .first <= .frame && .frame < .end
+    where .split ? (.first < .boundary && .boundary < .end) : .boundary == .end
+}
+plot speech/greeting-target-second-v2 (
+    >> value: SpeechGreetingTargetQuery
+    result: Boolean >>
+) = (.split && .frame >= .boundary)
+
+plot speech/greeting-legacy-effect-v2 (
+    >> value: SpeechGreetingLossPolicy
+    result: SpeechGreetingApproximationEffect >>
+) = (SpeechGreetingApproximationEffect.ordinary_three_pole_profile)
+
+plot speech/greeting-role-split-v2 (
+    >> value: SpeechGreetingRoleRequest
+    result: Boolean >>
+) = (.phone is ow && (.channel is formant_center || .channel is formant_bandwidth))

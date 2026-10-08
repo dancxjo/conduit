@@ -57,6 +57,8 @@ pub struct PreparedSpeechGestureRenderer<'a> {
     trajectories: Vec<SpeechGestureAudioTrajectory>,
     quantity_proofs: Vec<AudioTrajectoryEvaluation>,
     coefficients: Vec<PreparedSpeechResonatorQ14>,
+    target_tracks: Vec<PreparedAudioQuantityTrajectory>,
+    selected_targets: Vec<AudioTrajectoryEvaluation>,
     cycle: AudioSampleProjectionReceipt,
     original_cycle: AudioCycleDuration,
     original_cycle_frame: Vec<u8>,
@@ -89,6 +91,12 @@ impl<'a> PreparedSpeechGestureRenderer<'a> {
     }
     pub fn quantity_evaluations(&self) -> &[AudioTrajectoryEvaluation] {
         &self.quantity_proofs
+    }
+    pub fn target_tracks(&self) -> &[PreparedAudioQuantityTrajectory] {
+        &self.target_tracks
+    }
+    pub fn selected_target_evaluations(&self) -> &[AudioTrajectoryEvaluation] {
+        &self.selected_targets
     }
     pub fn coefficients(&self) -> &[PreparedSpeechResonatorQ14] {
         &self.coefficients
@@ -175,6 +183,8 @@ impl<'a> PreparedSpeechGestureRenderer<'a> {
             executions,
             input_canonical,
             output_canonical,
+            input_phase_q8: input.frame.cycle.phase_q8,
+            output_phase_q8: result.phase_q8,
         };
         cursor.state = result.state;
         cursor.phase_q8 = result.phase_q8;
@@ -183,6 +193,11 @@ impl<'a> PreparedSpeechGestureRenderer<'a> {
     }
 }
 /// Opaque cursor cannot be forged or transferred by editing its state.
+impl SpeechGestureRenderCursor<'_, '_> {
+    pub(crate) fn frame_number(&self) -> i32 {
+        self.frame
+    }
+}
 pub struct SpeechGestureRenderCursor<'p, 's> {
     owner: &'p PreparedSpeechGestureRenderer<'s>,
     frame: i32,
@@ -196,8 +211,16 @@ pub struct SpeechGestureRenderedFrame {
     executions: Vec<SpeechCommonAcousticExecution>,
     input_canonical: Vec<u8>,
     output_canonical: Vec<u8>,
+    input_phase_q8: i32,
+    output_phase_q8: i32,
 }
 impl SpeechGestureRenderedFrame {
+    pub fn input_phase_q8(&self) -> i32 {
+        self.input_phase_q8
+    }
+    pub fn output_phase_q8(&self) -> i32 {
+        self.output_phase_q8
+    }
     pub fn dsp_input_canonical(&self) -> &[u8] {
         &self.input_canonical
     }
@@ -239,6 +262,22 @@ pub fn prepare_speech_gesture_renderer<'a>(
     basis_frame: &[u8],
     cycle_frame: &[u8],
 ) -> Result<PreparedSpeechGestureRenderer<'a>, SpeechGestureRenderRefusal> {
+    if original.profile_identity() != "speech/authored-acoustic-gesture-demo/1" {
+        return Err(SpeechGestureRenderRefusal::UnsupportedProfile);
+    }
+    prepare_speech_gesture_renderer_at_time(
+        original,
+        basis_frame,
+        cycle_frame,
+        original.original_timing().nominal_start(),
+    )
+}
+pub(crate) fn prepare_speech_gesture_renderer_at_time<'a>(
+    original: &'a PreparedDeclaredPhoneGestures,
+    basis_frame: &[u8],
+    cycle_frame: &[u8],
+    target_time: &AudioTimeFraction,
+) -> Result<PreparedSpeechGestureRenderer<'a>, SpeechGestureRenderRefusal> {
     let basis = AudioSampleRateBasis::decode(basis_frame)?;
     if basis.anchor() != original.original_timing().anchor() {
         return Err(SpeechGestureRenderRefusal::ForeignBasis);
@@ -263,8 +302,9 @@ pub fn prepare_speech_gesture_renderer<'a>(
         empty.clone(),
         empty,
     );
-    let mut centers: [Option<AudioFrequencyHz>; 3] = [None, None, None];
-    let mut widths: [Option<AudioFrequencyHz>; 3] = [None, None, None];
+    let mut center_segments: [Vec<AudioTrajectorySegment>; 3] =
+        core::array::from_fn(|_| Vec::new());
+    let mut width_segments: [Vec<AudioTrajectorySegment>; 3] = core::array::from_fn(|_| Vec::new());
     let mut trajectories = Vec::new();
     let mut quantity_proofs = Vec::new();
     for gesture in original.gestures() {
@@ -285,25 +325,17 @@ pub fn prepare_speech_gesture_renderer<'a>(
         let proof = evaluator.evaluate(&query.encode()?)?;
         match gesture.channel() {
             SpeechGestureChannel::FormantCenter | SpeechGestureChannel::FormantBandwidth => {
-                let AudioTrajectoryQuantity::Frequency(f) = proof.result() else {
-                    return Err(SpeechGestureRenderRefusal::UnsupportedProfile);
-                };
                 let index = usize::try_from(*gesture.formant_index())
                     .map_err(|_| SpeechGestureRenderRefusal::UnsupportedProfile)?
                     .checked_sub(1)
                     .ok_or(SpeechGestureRenderRefusal::UnsupportedProfile)?;
                 let slot = if matches!(gesture.channel(), SpeechGestureChannel::FormantCenter) {
-                    centers.get_mut(index)
+                    center_segments.get_mut(index)
                 } else {
-                    widths.get_mut(index)
+                    width_segments.get_mut(index)
                 }
                 .ok_or(SpeechGestureRenderRefusal::UnsupportedProfile)?;
-                if slot
-                    .replace(AudioFrequencyHz::new(*f.denominator(), *f.numerator_hz())?)
-                    .is_some()
-                {
-                    return Err(SpeechGestureRenderRefusal::UnsupportedProfile);
-                }
+                slot.extend_from_slice(trajectory.trajectory().segments().as_slice());
             }
             SpeechGestureChannel::Closure => closure = window,
             SpeechGestureChannel::Release => release = window,
@@ -319,14 +351,44 @@ pub fn prepare_speech_gesture_renderer<'a>(
     )?;
     let windows_frame = windows.clone().encode()?;
     let windows = SpeechGestureFrameWindows::decode(&windows_frame)?;
+    let mut target_tracks = Vec::new();
+    let mut selected_targets = Vec::new();
+    let mut frequencies = Vec::new();
+    for segments in center_segments.into_iter().chain(width_segments) {
+        let sequence = conduit_plot::rust_binding::BoundedSequence::try_from_iter(segments)
+            .map_err(|_| SpeechGestureRenderRefusal::ResourceBound)?;
+        let trajectory = AudioQuantityTrajectory::new(
+            basis.anchor().clone(),
+            AudioTrajectoryEndpoints::RightContinuousFinalIncluded,
+            AudioTrajectoryOutside::Refuse,
+            AudioTrajectoryProvenance::new(
+                AudioTrajectoryProvenanceKind::Derived,
+                "speech/gesture-renderer-target-selection".into(),
+                Some("2".into()),
+            )?,
+            sequence,
+        )?;
+        let prepared = PreparedAudioQuantityTrajectory::new(&trajectory.encode()?)?;
+        let query = AudioTrajectoryQuery::new(
+            basis.anchor().clone(),
+            AudioExactTimeOffset::new(
+                *target_time.denominator(),
+                *target_time.numerator_seconds(),
+            )?,
+        )?;
+        let proof = prepared.evaluate(&query.encode()?)?;
+        let AudioTrajectoryQuantity::Frequency(f) = proof.result() else {
+            return Err(SpeechGestureRenderRefusal::UnsupportedProfile);
+        };
+        frequencies.push(AudioFrequencyHz::new(*f.denominator(), *f.numerator_hz())?);
+        target_tracks.push(prepared);
+        selected_targets.push(proof);
+    }
     let mut coefficients = Vec::new();
-    for (center, width) in centers.into_iter().zip(widths) {
+    for index in 0..3 {
         let request = SpeechResonatorProjectionRequest::new(
             SpeechResonatorCoefficientProfile::Q20Series8Q14Nearest,
-            AudioResonator::new(
-                width.ok_or(SpeechGestureRenderRefusal::UnsupportedProfile)?,
-                center.ok_or(SpeechGestureRenderRefusal::UnsupportedProfile)?,
-            )?,
+            AudioResonator::new(frequencies[index + 3], frequencies[index])?,
             *basis.sample_rate_hz(),
         )?;
         coefficients.push(prepare_speech_resonator_q14(&request.encode()?)?);
@@ -433,6 +495,8 @@ pub fn prepare_speech_gesture_renderer<'a>(
         trajectories,
         quantity_proofs,
         coefficients,
+        target_tracks,
+        selected_targets,
         cycle,
         original_cycle: cycle_original,
         original_cycle_frame: cycle_frame.into(),
@@ -446,6 +510,35 @@ pub fn prepare_speech_gesture_renderer<'a>(
         period,
         initial_state,
         initial_phase_q8,
+    })
+}
+
+pub(crate) fn transfer_greeting_cursor<'p, 's>(
+    source: &SpeechGestureRenderCursor<'_, 's>,
+    target: &'p PreparedSpeechGestureRenderer<'s>,
+    executions: &mut Vec<SpeechCommonAcousticExecution>,
+) -> Result<SpeechGestureRenderCursor<'p, 's>, SpeechGestureRenderRefusal> {
+    let state = native_dsp::SpeechFrameState::decode(&execute(
+        speech_gesture_dsp_programs::GREETING_FILTER_RESET,
+        state_value(source.state)?,
+        executions,
+    )?)?;
+    let state = dsp::SpeechFrameState {
+        voicing: *state.voicing(),
+        phase: *state.phase(),
+        noise: *state.noise(),
+        first1: *state.first1(),
+        first2: *state.first2(),
+        second1: *state.second1(),
+        second2: *state.second2(),
+        third1: *state.third1(),
+        third2: *state.third2(),
+    };
+    Ok(SpeechGestureRenderCursor {
+        owner: target,
+        frame: source.frame,
+        phase_q8: source.phase_q8,
+        state,
     })
 }
 
