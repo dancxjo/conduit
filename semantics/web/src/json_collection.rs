@@ -63,12 +63,100 @@ pub fn json_collection_step(request: &JsonValue) -> Result<JsonValue, JsonCollec
             exact_fields(command, &["op"])?;
             next.clear();
         }
+        "append-unique" => {
+            exact_fields(command, &["key", "op", "value"])?;
+            let key = key_name(command)?;
+            let value = field(command, "value")?;
+            let key_value = object(value)
+                .and_then(|fields| fields.iter().find(|(name, _)| name == key))
+                .map(|(_, value)| value)
+                .ok_or(JsonCollectionRefusal::MissingField)?;
+            if keyed_position(&next, key, key_value)?.is_some() {
+                return Err(JsonCollectionRefusal::InvalidCommand);
+            }
+            if next.len() == crate::JSON_MAXIMUM_ARRAY_ITEMS {
+                return Err(JsonCollectionRefusal::CollectionFull);
+            }
+            next.push(value.clone());
+        }
+        "set-field-by-key" => {
+            exact_fields(command, &["field", "key", "match", "op", "value"])?;
+            let key = key_name(command)?;
+            let target = field(command, "match")?;
+            let position =
+                keyed_position(&next, key, target)?.ok_or(JsonCollectionRefusal::MissingIndex)?;
+            let JsonValue::String(name) = field(command, "field")? else {
+                return Err(JsonCollectionRefusal::InvalidCommand);
+            };
+            if name.is_empty() || name == key {
+                return Err(JsonCollectionRefusal::InvalidCommand);
+            }
+            let value = field(command, "value")?.clone();
+            let JsonValue::Object(fields) = &mut next[position] else {
+                return Err(JsonCollectionRefusal::InvalidCollection);
+            };
+            let (_, current) = fields
+                .iter_mut()
+                .find(|(field, _)| field == name)
+                .ok_or(JsonCollectionRefusal::MissingField)?;
+            *current = value;
+        }
+        "remove-by-key" => {
+            exact_fields(command, &["key", "match", "op"])?;
+            let position = keyed_position(&next, key_name(command)?, field(command, "match")?)?
+                .ok_or(JsonCollectionRefusal::MissingIndex)?;
+            next.remove(position);
+        }
         _ => return Err(JsonCollectionRefusal::UnknownOperation),
     }
     let next = JsonValue::Array(next);
     next.validate()
         .map_err(JsonCollectionRefusal::InvalidValue)?;
     Ok(next)
+}
+
+fn key_name(command: &[(String, JsonValue)]) -> Result<&str, JsonCollectionRefusal> {
+    let JsonValue::String(name) = field(command, "key")? else {
+        return Err(JsonCollectionRefusal::InvalidCommand);
+    };
+    if name.is_empty() {
+        return Err(JsonCollectionRefusal::InvalidCommand);
+    }
+    Ok(name)
+}
+
+/// Reject duplicate keys in the prior state so one command never arbitrarily
+/// chooses among several records claiming the same identity.
+fn keyed_position(
+    items: &[JsonValue],
+    key: &str,
+    target: &JsonValue,
+) -> Result<Option<usize>, JsonCollectionRefusal> {
+    let mut position = None;
+    for (index, item) in items.iter().enumerate() {
+        let fields = object(item).ok_or(JsonCollectionRefusal::InvalidCollection)?;
+        let value = fields
+            .iter()
+            .find(|(name, _)| name == key)
+            .map(|(_, value)| value)
+            .ok_or(JsonCollectionRefusal::MissingField)?;
+        for previous in &items[..index] {
+            let previous_fields =
+                object(previous).ok_or(JsonCollectionRefusal::InvalidCollection)?;
+            let previous_value = previous_fields
+                .iter()
+                .find(|(name, _)| name == key)
+                .map(|(_, value)| value)
+                .ok_or(JsonCollectionRefusal::MissingField)?;
+            if previous_value == value {
+                return Err(JsonCollectionRefusal::InvalidCollection);
+            }
+        }
+        if value == target {
+            position = Some(index);
+        }
+    }
+    Ok(position)
 }
 
 fn object(value: &JsonValue) -> Option<&[(String, JsonValue)]> {

@@ -25,8 +25,8 @@ The production SDK and WASM runtime prove
 admission and display the owner's biography. The browser builds native controls
 from the current Face's declared action names, bounded text inputs, and finite
 choices; WASM checks the selected bytes before emitting a typed interaction.
-The installed owner currently accepts the reviewed clock interval action while
-that authorized window and browser presence remain current. Lull a running clock
+The installed owner currently accepts the reviewed ticker pace action while
+that authorized window and browser presence remain current. Lull a running ticker
 first; the owner checks the current credential, Part, Face, Show, and typed
 argument, changes its checked workset, then supplies a fresh Face. The next
 start requires a replacement Plan. A closed window does not remain an action
@@ -44,7 +44,7 @@ Linux speaker; the browser does not synthesize it. This direct readout is a
 prerequisite for a spoken Mask, not yet an owner-spoken Mask Show or proof that a
 person heard the playback.
 
-Open the Handbook, choose **A clock you can stop** or **Turn keystrokes into text**, and edit the Plot source. Live highlighting comes from the packaged Rust/WASM syntax projection. **Try in my Handbook** checks and installs the exact source in your local Body; an invalid edit reports its refusal. **Lull** ends execution, and **Wake** admits another run.
+Open the Handbook, choose **A ticker you can stop** or **Turn keystrokes into text**, and edit the Plot source. The ticker emits a repeating pulse; it does not tell the time of day. Live highlighting comes from the packaged Rust/WASM syntax projection. **Try in my Handbook** checks and installs the exact source in your local Body; an invalid edit reports its refusal. **Lull** ends execution, and **Wake** admits another run.
 
 **Open in Patchbay** opens the resident Patchbay application. Select the example from its list to inspect the actual checked Plot and execution projection. DOM/SVG is the browser Mask realization of this Show, not a second semantic graph store.
 

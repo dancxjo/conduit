@@ -264,7 +264,7 @@ fn full_face_retained_and_semantic_order_is_not_action_index_order() {
 }
 
 #[test]
-fn primary_view_explains_face_relationships_and_composition_without_new_meaning() {
+fn primary_view_keeps_relationships_and_composition_in_inspection() {
     let original = face(10)
         .with_composition(vec![PresentationCompositionRelation {
             identity: "name-after-document".into(),
@@ -276,17 +276,17 @@ fn primary_view_explains_face_relationships_and_composition_without_new_meaning(
     let scene = NativeFaceScene::prepare(original.clone(), 640, 480).unwrap();
     let spoken = plan_face_utterances(&original).unwrap();
     assert!(
-        scene
+        !scene
             .primary
             .iter()
-            .any(|row| row.text == "Contains · Friendly name")
+            .any(|row| row.text.contains("Contains ·"))
     );
     for clause in spoken
         .clauses
         .iter()
         .filter(|clause| matches!(clause.provenance, FaceUtteranceProvenance::Composition(_)))
     {
-        assert!(scene.primary.iter().any(|row| row.text == clause.text));
+        assert!(scene.details.iter().any(|row| row.text == clause.text));
     }
     assert!(
         spoken
@@ -297,12 +297,7 @@ fn primary_view_explains_face_relationships_and_composition_without_new_meaning(
             })
             .all(|clause| scene.details.iter().any(|row| row.text == clause.text))
     );
-    assert!(
-        scene
-            .primary
-            .iter()
-            .any(|row| row.text == "Change name · Friendly name")
-    );
+    assert!(scene.primary.iter().any(|row| row.text == "Change name"));
     assert!(
         scene
             .details
@@ -312,7 +307,7 @@ fn primary_view_explains_face_relationships_and_composition_without_new_meaning(
 }
 
 #[test]
-fn primary_facts_are_compact_but_details_keep_exact_reader_wording() {
+fn primary_view_leaves_properties_in_details() {
     let mut original = face(32);
     original.properties.extend([
         PresentationProperty {
@@ -339,16 +334,16 @@ fn primary_facts_are_compact_but_details_keep_exact_reader_wording() {
     .unwrap();
     let scene = NativeFaceScene::prepare(original.clone(), 640, 480).unwrap();
     assert!(
-        scene
+        !scene
             .primary
             .iter()
-            .any(|row| row.text == "lifecycle state · \"lulled\"")
+            .any(|row| row.text.contains("workload revision"))
     );
     assert!(
-        scene
+        !scene
             .primary
             .iter()
-            .any(|row| row.text == "workload revision · 2")
+            .any(|row| row.text.contains("lifecycle state"))
     );
     for clause in plan_face_utterances(&original)
         .unwrap()
@@ -364,6 +359,106 @@ fn primary_facts_are_compact_but_details_keep_exact_reader_wording() {
             && command.paint == GraphicsPaintRole::Accent
             && command.bounds.width == 3
     }));
+}
+
+#[test]
+fn ordinary_graphics_lead_with_primary_content_and_keep_context_inspectable() {
+    let mut original = face(34);
+    original.subjects[0].role = PresentationRole::Body;
+    original.text.push(PresentationText {
+        subject: "z-first".into(),
+        text: "Groceries is lulled with one resident plot.".into(),
+    });
+    original.subjects.push(PresentationSubject {
+        identity: "todo-list".into(),
+        role: PresentationRole::Collection,
+        name: "Groceries".into(),
+    });
+    original.disclosures.push(PresentationDisclosure {
+        subject: "todo-list".into(),
+        level: PresentationDisclosureLevel::Context,
+    });
+    original.subjects.push(PresentationSubject {
+        identity: "todo-summary".into(),
+        role: PresentationRole::Status,
+        name: "Remaining".into(),
+    });
+    original.text.push(PresentationText {
+        subject: "todo-summary".into(),
+        text: "Three things remain.".into(),
+    });
+    original.disclosures.push(PresentationDisclosure {
+        subject: "todo-summary".into(),
+        level: PresentationDisclosureLevel::Primary,
+    });
+    original.subjects.push(PresentationSubject {
+        identity: "context".into(),
+        role: PresentationRole::Region,
+        name: "Current overview context".into(),
+    });
+    original.text.push(PresentationText {
+        subject: "context".into(),
+        text: "Workload revision 18.".into(),
+    });
+    original.disclosures.push(PresentationDisclosure {
+        subject: "context".into(),
+        level: PresentationDisclosureLevel::Context,
+    });
+    let current = Presentation::new_with_semantics(
+        original.revision + 1,
+        original.basis,
+        original.subjects,
+        original.relationships,
+        original.properties,
+        original.text,
+        original.actions,
+        original.disclosures,
+    )
+    .unwrap();
+    let scene = NativeFaceScene::prepare(current, 640, 480).unwrap();
+    assert!(scene.primary.iter().any(|row| row.text == "Groceries"));
+    assert!(
+        scene
+            .primary
+            .iter()
+            .any(|row| row.text == "Three things remain.")
+    );
+    assert!(
+        !scene
+            .primary
+            .iter()
+            .any(|row| row.text.contains("resident plot"))
+    );
+    assert!(
+        !scene
+            .primary
+            .iter()
+            .any(|row| row.text == "Current overview context")
+    );
+    assert!(
+        !scene
+            .primary
+            .iter()
+            .any(|row| row.text == "Workload revision 18.")
+    );
+    assert!(
+        scene
+            .details
+            .iter()
+            .any(|row| row.text.contains("Current overview context"))
+    );
+    assert!(
+        scene
+            .details
+            .iter()
+            .any(|row| row.text == "Workload revision 18.")
+    );
+    assert!(
+        scene
+            .details
+            .iter()
+            .any(|row| row.text.contains("resident plot"))
+    );
 }
 
 #[test]
@@ -393,9 +488,10 @@ fn primary_action_names_bounded_text_choices_from_current_face_contract() {
     )
     .unwrap();
     let scene = NativeFaceScene::prepare(current.clone(), 640, 480).unwrap();
-    assert!(scene.primary.iter().any(|row| row.text.contains(
-        "Interval in milliseconds · enter one of: 1000, 2000, 250, 500 · Enter applies"
-    )));
+    assert!(scene.primary.iter().any(|row| {
+        row.text
+            .contains("Interval in milliseconds · Choose 1000, 2000, 250, 500")
+    }));
     let show = fixture::show(&current);
     let interaction = scene
         .interaction(
@@ -442,7 +538,7 @@ fn primary_action_names_bounded_text_choices_from_current_face_contract() {
         crowded_scene
             .primary
             .iter()
-            .any(|row| row.text.contains("enter a replacement value"))
+            .any(|row| row.text.contains("Enter a value"))
     );
 }
 
@@ -475,9 +571,18 @@ fn focused_action_has_visible_focus_and_unavailable_action_has_no_hit() {
     assert!(frame.scene.commands().iter().any(|command| {
         command.paint == GraphicsPaintRole::Focus && command.kind == GraphicsCommandKind::Rect
     }));
-    assert!(scene.primary.iter().any(|row| {
-        row.paint == GraphicsPaintRole::Warning && row.text.contains("Waiting for a name")
-    }));
+    assert!(
+        !scene
+            .primary
+            .iter()
+            .any(|row| row.text.contains("Waiting for a name"))
+    );
+    assert!(
+        scene
+            .details
+            .iter()
+            .any(|row| row.text.contains("Waiting for a name"))
+    );
     assert!(frame.hits.iter().all(|hit| hit.action.identity != "finish"));
 }
 

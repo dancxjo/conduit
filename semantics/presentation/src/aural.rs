@@ -209,7 +209,41 @@ pub fn plan_face_utterances(
         }
     }
 
+    promote_context_clauses(face, &mut builder.clauses);
     Ok(builder.finish())
+}
+
+/// Preserve every exact clause and provenance while placing the encounter's
+/// stated Context before general structure and inspection detail.
+fn promote_context_clauses(face: &Presentation, clauses: &mut Vec<FaceUtteranceClause>) {
+    let is_context = |subject: &str| {
+        face.disclosures.iter().any(|disclosure| {
+            disclosure.subject == subject
+                && disclosure.level == PresentationDisclosureLevel::Context
+        })
+    };
+    let mut context_subjects = Vec::new();
+    let mut context_wording = Vec::new();
+    let mut remaining = Vec::new();
+    for clause in core::mem::take(clauses) {
+        match &clause.provenance {
+            FaceUtteranceProvenance::Subject(source) if is_context(source.identity()) => {
+                context_subjects.push(clause);
+            }
+            FaceUtteranceProvenance::Text(source)
+                if face
+                    .text
+                    .get(*source.index() as usize)
+                    .is_some_and(|wording| is_context(&wording.subject)) =>
+            {
+                context_wording.push(clause);
+            }
+            _ => remaining.push(clause),
+        }
+    }
+    clauses.extend(context_subjects);
+    clauses.extend(context_wording);
+    clauses.extend(remaining);
 }
 
 fn ordered_subjects(face: &Presentation) -> Vec<String> {
