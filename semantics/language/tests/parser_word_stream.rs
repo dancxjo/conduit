@@ -30,6 +30,21 @@ fn actual_word_stream_protects_vocative_before_final_punctuation() {
     let mut lexical_history = Vec::new();
     let mut inputs = Vec::new();
     let mut rows = Vec::new();
+    let asr_history = std::env::var("CONDUIT_PARSER_WORD_STREAM_ASR_SOURCES")
+        .ok()
+        .map(|path| {
+            assert!(std::fs::metadata(&path).unwrap().len() <= 1024 * 1024);
+            let history: serde_json::Value =
+                serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
+            assert_eq!(history["schema"], "language/asr-word-stream-revisions@1");
+            assert_eq!(
+                history["language_revision_bytes"].as_array().unwrap().len(),
+                4
+            );
+            assert_eq!(history["asr_envelope_bytes"].as_array().unwrap().len(), 4);
+            assert_eq!(history["provider_accuracy"], false);
+            history
+        });
     for (sequence, text, finality, stable, count) in [
         (0, "Hello ", LanguageTextFinality::Partial, 5, 1),
         (1, "Hello, ", LanguageTextFinality::Partial, 6, 2),
@@ -43,7 +58,7 @@ fn actual_word_stream_protects_vocative_before_final_punctuation() {
             )
             .unwrap()
         });
-        let source = LanguageTextRevision::new(
+        let authored_source = LanguageTextRevision::new(
             finality,
             LanguageText::new(
                 LanguageTextId::new("stream/v2/independent-hello-travis".into()).unwrap(),
@@ -58,6 +73,21 @@ fn actual_word_stream_protects_vocative_before_final_punctuation() {
             Some(stable),
         )
         .unwrap();
+        let source = if let Some(history) = &asr_history {
+            let bytes: Vec<u8> = serde_json::from_value(
+                history["language_revision_bytes"][sequence as usize].clone(),
+            )
+            .unwrap();
+            let revision = LanguageTextRevision::decode(&bytes).unwrap();
+            assert_eq!(revision.material(), authored_source.material());
+            assert_eq!(revision.prior(), authored_source.prior());
+            assert_eq!(revision.sequence(), authored_source.sequence());
+            assert_eq!(revision.finality(), authored_source.finality());
+            assert_eq!(revision.stable_prefix(), authored_source.stable_prefix());
+            revision
+        } else {
+            authored_source
+        };
         let next = prepare_lexical_tape(&source, &profile, previous.as_ref()).unwrap();
         assert_eq!(next.tape().tokens().len(), count);
         if let Some(old) = &previous {
@@ -254,6 +284,7 @@ fn actual_word_stream_protects_vocative_before_final_punctuation() {
         "final_independent_protection":custody,
         "native_origin_admission_bytes":session.protected_origins().iter().map(|origin| origin.clone().into_structured().unwrap().canonical_bytes().unwrap()).collect::<Vec<_>>(),
         "source_revision_history_bytes":history,
+        "acquisition_history":asr_history,
         "lexical_tape_history_bytes":lexical_history,
         "native_stable_fact_bytes":facts.iter().map(|f| f.clone().into_structured().unwrap().canonical_bytes().unwrap()).collect::<Vec<_>>(),
         "model_content_identity":serde_json::from_str::<serde_json::Value>(joint::MANIFEST).unwrap()["model_content_identity"],
