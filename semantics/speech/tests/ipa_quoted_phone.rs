@@ -45,7 +45,7 @@ fn quoted_phone_constructor_checks_unicode_and_preserves_tooling_and_native_iden
         assert!(strings
             .iter()
             .any(|span| span.kind == SyntaxHighlightKind::String
-                && &source[span.start..span.end] == quoted));
+                && source[span.start..span.end] == quoted));
     }
     for spelling in ["ch", "ax", "p_aspirated", "tʃ", "̃", "n̩ʰ", "tt", "ˈ"] {
         assert!(compile(&source(spelling), &catalog).is_err(), "{spelling}");
