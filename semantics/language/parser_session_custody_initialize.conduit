@@ -1,0 +1,14 @@
+# Checked empty protection initialization. The sentinel input is an opaque
+# inactive payload, never an admitted token, lexical choice, or dependency fact.
+# The owner retains the exact Source initializer execution input and output.
+type LanguageParserProtectedInitializationReceipt = {
+ input: LanguageParserProtectedEdgeProposal
+ output: LanguageParserProtectedSetProposal
+ where .input.dependent == 4
+ where .output.basis == .input.current_basis
+ where .output.active == [false,false,false,false]
+ where .output.edge0 == .input
+ where .output.edge1 == .input
+ where .output.edge2 == .input
+ where .output.edge3 == .input
+}

@@ -1,0 +1,92 @@
+# Independent dependency commitment does not advance the contiguous frontier.
+# The owner retains complete original facts/origins/rebases and exact Source
+# execution. This set alone is not a playback ACK or a substitute for custody.
+# Raw Source output; the private owner preserves every field and invokes the
+# admitted Native commit-set constructor. This proposal alone grants no fact.
+type LanguageParserIndependentCommitSetProposal = {
+ basis: LanguageParserBasis
+ active: collection Boolean = 4
+ edge0: LanguageParserProtectedEdgeProposal
+ edge1: LanguageParserProtectedEdgeProposal
+ edge2: LanguageParserProtectedEdgeProposal
+ edge3: LanguageParserProtectedEdgeProposal
+}
+type LanguageParserIndependentCommitSet = {
+ basis: LanguageParserBasis
+ active: collection Boolean = 4
+ edge0: LanguageParserProtectedEdgeProposal
+ edge1: LanguageParserProtectedEdgeProposal
+ edge2: LanguageParserProtectedEdgeProposal
+ edge3: LanguageParserProtectedEdgeProposal
+ where .active.0 ? .edge0.dependent == 0 : true
+ where .active.0 ? .edge0.current_basis == .basis : true
+ where .active.1 ? .edge1.dependent == 1 : true
+ where .active.1 ? .edge1.current_basis == .basis : true
+ where .active.2 ? .edge2.dependent == 2 : true
+ where .active.2 ? .edge2.current_basis == .basis : true
+ where .active.3 ? .edge3.dependent == 3 : true
+ where .active.3 ? .edge3.current_basis == .basis : true
+}
+# The fresh stable admission authorizes exactly one requested dependency.
+# Protection alone cannot satisfy this input: the whole Native stable query is
+# required, including agreement, lexical choices, stable spans and root Finality.
+type LanguageParserIndependentCommitRequest = {
+ admission: LanguageParserStableDependencyAdmission
+ previous: LanguageParserIndependentCommitSet
+ protection: LanguageParserProtectedSetProposal
+ where .previous.basis == .admission.fact.query.beam.basis
+ where .protection.basis == .admission.fact.query.beam.basis
+ where .previous.active.0 ? (.protection.active.0 && .previous.edge0 == .protection.edge0) : true
+ where .previous.active.1 ? (.protection.active.1 && .previous.edge1 == .protection.edge1) : true
+ where .previous.active.2 ? (.protection.active.2 && .previous.edge2 == .protection.edge2) : true
+ where .previous.active.3 ? (.protection.active.3 && .previous.edge3 == .protection.edge3) : true
+ where .admission.fact.query.dependent == 0 ? (.protection.active.0) : true
+ where .admission.fact.query.dependent == 0 ? (.protection.edge0.dependent == 0) : true
+ where .admission.fact.query.dependent == 0 ? (.protection.edge0.head == .admission.head) : true
+ where .admission.fact.query.dependent == 0 ? (.protection.edge0.current_basis == .admission.fact.query.beam.basis) : true
+ where .admission.fact.query.dependent == 0 ? (.protection.edge0.dependent_choice == sequence/at(.admission.fact.query.beam.candidate0.choices,0)) : true
+ where .admission.fact.query.dependent == 0 ? (.protection.edge0.head_choice == (.admission.head < 4 ? sequence/at(.admission.fact.query.beam.candidate0.choices,.admission.head) : 0)) : true
+ where .admission.fact.query.dependent == 0 ? (variant/tag(.protection.edge0.relation.base) == variant/tag(.admission.arc.relation.base)) : true
+ where .admission.fact.query.dependent == 0 ? (.protection.edge0.relation.subtype == .admission.subtype) : true
+ where .admission.fact.query.dependent == 0 ? (.protection.edge0.dependent_occurrence == .admission.arc.dependent.token) : true
+ where .admission.fact.query.dependent == 0 ? (.admission.head < 4 ? .protection.edge0.head_occurrence == sequence/at(.admission.fact.query.beam.lexical.tape.tokens,.admission.head).identity : .protection.edge0.head_occurrence == .admission.arc.dependent.token) : true
+ where .admission.fact.query.dependent == 0 ? (.previous.active.0 ? .previous.edge0 == .protection.edge0 : true) : true
+ where .admission.fact.query.dependent == 1 ? (.protection.active.1) : true
+ where .admission.fact.query.dependent == 1 ? (.protection.edge1.dependent == 1) : true
+ where .admission.fact.query.dependent == 1 ? (.protection.edge1.head == .admission.head) : true
+ where .admission.fact.query.dependent == 1 ? (.protection.edge1.current_basis == .admission.fact.query.beam.basis) : true
+ where .admission.fact.query.dependent == 1 ? (.protection.edge1.dependent_choice == sequence/at(.admission.fact.query.beam.candidate0.choices,1)) : true
+ where .admission.fact.query.dependent == 1 ? (.protection.edge1.head_choice == (.admission.head < 4 ? sequence/at(.admission.fact.query.beam.candidate0.choices,.admission.head) : 0)) : true
+ where .admission.fact.query.dependent == 1 ? (variant/tag(.protection.edge1.relation.base) == variant/tag(.admission.arc.relation.base)) : true
+ where .admission.fact.query.dependent == 1 ? (.protection.edge1.relation.subtype == .admission.subtype) : true
+ where .admission.fact.query.dependent == 1 ? (.protection.edge1.dependent_occurrence == .admission.arc.dependent.token) : true
+ where .admission.fact.query.dependent == 1 ? (.admission.head < 4 ? .protection.edge1.head_occurrence == sequence/at(.admission.fact.query.beam.lexical.tape.tokens,.admission.head).identity : .protection.edge1.head_occurrence == .admission.arc.dependent.token) : true
+ where .admission.fact.query.dependent == 1 ? (.previous.active.1 ? .previous.edge1 == .protection.edge1 : true) : true
+ where .admission.fact.query.dependent == 2 ? (.protection.active.2) : true
+ where .admission.fact.query.dependent == 2 ? (.protection.edge2.dependent == 2) : true
+ where .admission.fact.query.dependent == 2 ? (.protection.edge2.head == .admission.head) : true
+ where .admission.fact.query.dependent == 2 ? (.protection.edge2.current_basis == .admission.fact.query.beam.basis) : true
+ where .admission.fact.query.dependent == 2 ? (.protection.edge2.dependent_choice == sequence/at(.admission.fact.query.beam.candidate0.choices,2)) : true
+ where .admission.fact.query.dependent == 2 ? (.protection.edge2.head_choice == (.admission.head < 4 ? sequence/at(.admission.fact.query.beam.candidate0.choices,.admission.head) : 0)) : true
+ where .admission.fact.query.dependent == 2 ? (variant/tag(.protection.edge2.relation.base) == variant/tag(.admission.arc.relation.base)) : true
+ where .admission.fact.query.dependent == 2 ? (.protection.edge2.relation.subtype == .admission.subtype) : true
+ where .admission.fact.query.dependent == 2 ? (.protection.edge2.dependent_occurrence == .admission.arc.dependent.token) : true
+ where .admission.fact.query.dependent == 2 ? (.admission.head < 4 ? .protection.edge2.head_occurrence == sequence/at(.admission.fact.query.beam.lexical.tape.tokens,.admission.head).identity : .protection.edge2.head_occurrence == .admission.arc.dependent.token) : true
+ where .admission.fact.query.dependent == 2 ? (.previous.active.2 ? .previous.edge2 == .protection.edge2 : true) : true
+ where .admission.fact.query.dependent == 3 ? (.protection.active.3) : true
+ where .admission.fact.query.dependent == 3 ? (.protection.edge3.dependent == 3) : true
+ where .admission.fact.query.dependent == 3 ? (.protection.edge3.head == .admission.head) : true
+ where .admission.fact.query.dependent == 3 ? (.protection.edge3.current_basis == .admission.fact.query.beam.basis) : true
+ where .admission.fact.query.dependent == 3 ? (.protection.edge3.dependent_choice == sequence/at(.admission.fact.query.beam.candidate0.choices,3)) : true
+ where .admission.fact.query.dependent == 3 ? (.protection.edge3.head_choice == (.admission.head < 4 ? sequence/at(.admission.fact.query.beam.candidate0.choices,.admission.head) : 0)) : true
+ where .admission.fact.query.dependent == 3 ? (variant/tag(.protection.edge3.relation.base) == variant/tag(.admission.arc.relation.base)) : true
+ where .admission.fact.query.dependent == 3 ? (.protection.edge3.relation.subtype == .admission.subtype) : true
+ where .admission.fact.query.dependent == 3 ? (.protection.edge3.dependent_occurrence == .admission.arc.dependent.token) : true
+ where .admission.fact.query.dependent == 3 ? (.admission.head < 4 ? .protection.edge3.head_occurrence == sequence/at(.admission.fact.query.beam.lexical.tape.tokens,.admission.head).identity : .protection.edge3.head_occurrence == .admission.arc.dependent.token) : true
+ where .admission.fact.query.dependent == 3 ? (.previous.active.3 ? .previous.edge3 == .protection.edge3 : true) : true
+}
+# Explicit requested commit action. Other facts and all prior committed payloads
+# are preserved; no scorer pruning or parser.state.committed mutation occurs.
+plot language-parser-independent-commit (
+ request: LanguageParserIndependentCommitRequest...| >> committed: LanguageParserIndependentCommitSetProposal...|
+) = { basis: .previous.basis, active: [(.previous.active.0 || .admission.fact.query.dependent == 0),(.previous.active.1 || .admission.fact.query.dependent == 1),(.previous.active.2 || .admission.fact.query.dependent == 2),(.previous.active.3 || .admission.fact.query.dependent == 3)], edge0: (.admission.fact.query.dependent == 0 && !.previous.active.0 ? .protection.edge0 : .previous.edge0), edge1: (.admission.fact.query.dependent == 1 && !.previous.active.1 ? .protection.edge1 : .previous.edge1), edge2: (.admission.fact.query.dependent == 2 && !.previous.active.2 ? .protection.edge2 : .previous.edge2), edge3: (.admission.fact.query.dependent == 3 && !.previous.active.3 ? .protection.edge3 : .previous.edge3) }

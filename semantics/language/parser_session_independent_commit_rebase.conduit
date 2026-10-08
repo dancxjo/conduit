@@ -1,0 +1,26 @@
+# Projection executes on the complete admitted protection rebase receipt.
+# Private custody retains the original whole receipt and exact projection bytes.
+# These sets are not an independently caller-authored lineage proof.
+type LanguageParserIndependentCommitRebaseSets = {
+ previous: LanguageParserProtectedSetProposal
+ next: LanguageParserProtectedSetProposal
+}
+plot language-parser-independent-commit-rebase-sets (
+ receipt: LanguageParserProtectedRebaseReceipt...| >> sets: LanguageParserIndependentCommitRebaseSets...|
+) = { previous: .context.previous, next: .output }
+
+# The concrete owner admits this only with the exact preceding Source projection.
+type LanguageParserIndependentCommitRebaseRequest = {
+ committed: LanguageParserIndependentCommitSet
+ sets: LanguageParserIndependentCommitRebaseSets
+ where .committed.basis == .sets.previous.basis
+ where .committed.active.0 ? (.sets.previous.active.0 && .committed.edge0 == .sets.previous.edge0 && .sets.next.active.0) : true
+ where .committed.active.1 ? (.sets.previous.active.1 && .committed.edge1 == .sets.previous.edge1 && .sets.next.active.1) : true
+ where .committed.active.2 ? (.sets.previous.active.2 && .committed.edge2 == .sets.previous.edge2 && .sets.next.active.2) : true
+ where .committed.active.3 ? (.sets.previous.active.3 && .committed.edge3 == .sets.previous.edge3 && .sets.next.active.3) : true
+}
+# All flags are preserved exactly; changed protected edges are admitted only by
+# the whole original Source rebase laws, including immutable origin/head/choice.
+plot language-parser-independent-commit-rebase (
+ request: LanguageParserIndependentCommitRebaseRequest...| >> committed: LanguageParserIndependentCommitSetProposal...|
+) = { basis: .sets.next.basis, active: .committed.active, edge0: (.committed.active.0 ? .sets.next.edge0 : .committed.edge0), edge1: (.committed.active.1 ? .sets.next.edge1 : .committed.edge1), edge2: (.committed.active.2 ? .sets.next.edge2 : .committed.edge2), edge3: (.committed.active.3 ? .sets.next.edge3 : .committed.edge3) }
