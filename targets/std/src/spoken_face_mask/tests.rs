@@ -181,6 +181,39 @@ fn direct_opening_leads_with_context_then_result_and_leaves_detail_to_read_all()
 }
 
 #[test]
+fn direct_opening_offers_content_action_without_generic_context_navigation() {
+    let (base, _) = face_with_action();
+    let make_face = |actions| {
+        Presentation::new_with_semantics(
+            base.revision,
+            base.basis.clone(),
+            base.subjects.clone(),
+            base.relationships.clone(),
+            base.properties.clone(),
+            base.text.clone(),
+            actions,
+            vec![PresentationDisclosure {
+                subject: "arrival".into(),
+                level: PresentationDisclosureLevel::Context,
+            }],
+        )
+        .unwrap()
+    };
+    let generic = base.actions[1].clone();
+    let content = base.actions[0].clone();
+    let opening = primary_face_clauses(&make_face(vec![generic.clone(), content])).unwrap();
+    assert!(opening
+        .iter()
+        .any(|clause| clause == "You can Set Body name."));
+    assert!(!opening
+        .iter()
+        .any(|clause| clause == "You can Create Body."));
+
+    let opening = primary_face_clauses(&make_face(vec![generic])).unwrap();
+    assert!(!opening.iter().any(|clause| clause.starts_with("You can ")));
+}
+
+#[test]
 fn direct_opening_bounds_long_collections_without_losing_full_reading() {
     let (base, _) = face_with_action();
     let mut subjects = base.subjects;
