@@ -18,8 +18,9 @@ pub use combine_back::TodoCombineBack;
 
 use alloc::{string::String, vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, Kind, KindIdentity, KindSemanticLaw, KindTerminalBehavior,
-    PortDescriptor, PortDirection, PortTemporal,
+    kind_id, port_id, CapabilityLimits, CheckedValueContract, FrontValueContract,
+    FrontValueLocation, Kind, KindIdentity, KindSemanticLaw, KindTerminalBehavior, PortDescriptor,
+    PortDirection, PortTemporal,
 };
 use fixed::{FixedTodoCommand, FixedTodoState};
 
@@ -45,14 +46,37 @@ pub fn todo_combine_kind() -> Kind {
         ],
         outputs: vec![port("combined", TODO_STATE_INFO_ID, PortDirection::Output)],
         configuration: Vec::new(),
-        semantic_laws: vec![KindSemanticLaw::Terminal(
-            KindTerminalBehavior::CompletesWhenInputsClose,
-        )],
+        semantic_laws: vec![
+            KindSemanticLaw::ValueContracts(vec![
+                value_contract("accumulator", TODO_STATE_INFO_ID, STATE_MAX_BYTES, true),
+                value_contract("item", TODO_COMMAND_INFO_ID, COMMAND_MAX_BYTES, true),
+                value_contract("combined", TODO_STATE_INFO_ID, STATE_MAX_BYTES, false),
+            ]),
+            KindSemanticLaw::Terminal(KindTerminalBehavior::CompletesWhenInputsClose),
+        ],
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: 3,
             max_queue_bytes: (2 * STATE_MAX_BYTES + COMMAND_MAX_BYTES) as u32,
         },
+    }
+}
+
+fn value_contract(
+    name: &str,
+    value_kind: &str,
+    maximum_bytes: usize,
+    input: bool,
+) -> FrontValueContract {
+    let port = port_id(name);
+    FrontValueContract {
+        location: if input {
+            FrontValueLocation::Input(port)
+        } else {
+            FrontValueLocation::Output(port)
+        },
+        contract: CheckedValueContract::new(kind_id(value_kind), maximum_bytes as u32, vec![])
+            .expect("Todo's finite Info Form contract"),
     }
 }
 
