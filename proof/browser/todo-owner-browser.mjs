@@ -190,6 +190,19 @@ try {
     assert.equal(ownerAfter.presentation.basis.body_id, bodyId);
     assert.ok(ownerAfter.presentation.properties.some(property => property.subject === item.identity
       && property.name === 'complete' && property.value.Flag === true), 'terminal must commit the item completion');
+    const staleView = after;
+    const staleButton = page.getByRole('button', { name: `complete ${itemText}`, exact: true });
+    assert.ok(await staleButton.isEnabled(), 'the previously displayed action must still be offered for this stale-Show test');
+    await staleButton.click();
+    await page.waitForFunction(() => document.querySelector('[data-owner-action-result]')?.dataset.refused === 'true',
+      null, { timeout: 12_000 });
+    const refusal = await page.locator('[data-owner-action-result]').textContent();
+    const ownerAfterStale = face();
+    const todoProperties = value => value.presentation.properties.filter(property => property.subject.startsWith('todo/'));
+    assert.deepEqual(todoProperties(ownerAfterStale), todoProperties(ownerAfter), 'stale action must not mutate Todo');
+    await page.locator('[data-owner-face]').screenshot({ path: path.join(output, 'browser-stale.png') });
+    const stale = { initiating_face_id: staleView.face_id, initiating_face_revision: staleView.face_revision,
+      initiating_show_id: staleView.show_id, action_id: action.identity, refusal, owner_after: ownerAfterStale };
     await page.getByRole('button', { name: 'Inspect current wardrobe' }).click();
     await page.waitForFunction(prior => {
       try { return JSON.parse(document.querySelector('[data-owner-wardrobe-evidence]').textContent)
@@ -213,7 +226,7 @@ try {
     assert.equal(await page.locator('.owner-face-collection-count').textContent(), '2 things left · 1 completed');
     assert.equal(await page.locator('.owner-face-completed').getAttribute('open'), null,
       'completed items must remain subordinate in the checklist');
-    crossMask = { action_id: action.identity, target: item.identity, owner_before: ownerBefore,
+    crossMask = { stale, action_id: action.identity, target: item.identity, owner_before: ownerBefore,
       owner_after: ownerAfter, browser_after: after, terminal_input: 'terminal-complete.input',
       terminal_stdout: 'terminal-complete.stdout', terminal_stderr: 'terminal-complete.stderr' };
   }
@@ -229,7 +242,8 @@ try {
     item_text: itemText, adds, cross_mask: crossMask, before: { face_id: before.face_id, face_revision: before.face_revision,
       show_id: before.show_id }, after: { face_id: after.face_id,
       face_revision: after.face_revision, show_id: after.show_id },
-    screenshots: ['browser-before.png', 'browser-after.png'],
+    screenshots: scenario === 'cross-mask' ? ['browser-before.png', 'browser-stale.png', 'browser-after.png']
+      : ['browser-before.png', 'browser-after.png'],
   }, null, 2)}\n`);
 } finally {
   await browser?.close();
