@@ -6,6 +6,9 @@
 
 extern crate alloc;
 
+mod interaction;
+pub use interaction::todo_command_from_interaction;
+
 use alloc::{format, string::ToString, vec, vec::Vec};
 use conduit_presentation::{
     FaceActionArgument, PresentationAction, PresentationActionAvailability,
@@ -21,6 +24,10 @@ pub enum TodoFaceError {
     InvalidState,
     InvalidActionContract,
     InvalidFragment(PresentationFragmentError),
+    InvalidInteraction(conduit_presentation::FaceInteractionRefusal),
+    StaleState,
+    UnsupportedAction,
+    CommandRefused(conduit_todo_plot::TodoRefusal),
 }
 
 /// Project one validated Todo generation as Plot-owned Face truth. An owner
