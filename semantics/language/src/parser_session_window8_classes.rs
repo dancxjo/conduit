@@ -9,7 +9,7 @@ use crate::{
     parser_session_window8_ports::{PORTS, port_index},
     parser_session_window8_queries::PreparedWindow8Queries,
     parser_session_window8_stage::Window8RevisionStage,
-    parser_session_window8_values::{field, unsigned, view, View},
+    parser_session_window8_values::{View, field, unsigned, view},
 };
 #[derive(Clone, Copy)]
 pub(crate) struct Window8ClassDerivation {
@@ -21,14 +21,28 @@ pub(crate) struct Window8ClassDerivation {
 #[derive(Debug)]
 pub(crate) struct ClassDerivationRefusal;
 impl Window8ClassDerivation {
-    pub(crate) fn code(&self) -> u8 { self.code }
-    pub(crate) fn value<'a>(&self, book: &'a Window8Book) -> Result<View<'a>, ClassDerivationRefusal> {
-        let names = ["language-window8-class-index", "language-window8-class-relations", "language-window8-class-relation"];
+    pub(crate) fn code(&self) -> u8 {
+        self.code
+    }
+    pub(crate) fn value<'a>(
+        &self,
+        book: &'a Window8Book,
+    ) -> Result<View<'a>, ClassDerivationRefusal> {
+        let names = [
+            "language-window8-class-index",
+            "language-window8-class-relations",
+            "language-window8-class-relation",
+        ];
         let indices = [self.index, self.relations, self.value];
         for (name, index) in names.into_iter().zip(indices) {
             let history = book.source.get(index).ok_or(ClassDerivationRefusal)?;
             let port = &PORTS[port_index(name).ok_or(ClassDerivationRefusal)?];
-            if !history.matches_fixed(port.original_programs, port.original_custody, port.input, port.output) {
+            if !history.matches_fixed(
+                port.original_programs,
+                port.original_custody,
+                port.input,
+                port.output,
+            ) {
                 return Err(ClassDerivationRefusal);
             }
         }
@@ -37,9 +51,12 @@ impl Window8ClassDerivation {
                 return Err(ClassDerivationRefusal);
             }
         }
-        let query = view(book.source[self.index].input_bytes()).map_err(|_| ClassDerivationRefusal)?;
+        let query =
+            view(book.source[self.index].input_bytes()).map_err(|_| ClassDerivationRefusal)?;
         if unsigned(field(query, "code").map_err(|_| ClassDerivationRefusal)?)
-            .map_err(|_| ClassDerivationRefusal)? != u64::from(self.code) {
+            .map_err(|_| ClassDerivationRefusal)?
+            != u64::from(self.code)
+        {
             return Err(ClassDerivationRefusal);
         }
         view(book.source[self.value].output_bytes()).map_err(|_| ClassDerivationRefusal)
@@ -50,28 +67,70 @@ pub(crate) fn derive_all<S: ParserCanonicalSourceExecutor, N: ParserNumericExecu
     queries: &mut PreparedWindow8Queries,
     atoms: &mut PreparedWindow8Atoms,
 ) -> Result<[Window8ClassDerivation; 76], ClassDerivationRefusal> {
-    let mut classes = [Window8ClassDerivation { code: 0, index: 0, relations: 0, value: 0 }; 76];
+    let mut classes = [Window8ClassDerivation {
+        code: 0,
+        index: 0,
+        relations: 0,
+        value: 0,
+    }; 76];
     for (code, destination) in classes.iter_mut().enumerate() {
-        atoms.unsigned(code as u64).map_err(|_| ClassDerivationRefusal)?;
-        let query = queries.record_fields("language-window8-class-index", &[
-            ("code", view(atoms.encoded(A::Unsigned).map_err(|_| ClassDerivationRefusal)?)
-                .map_err(|_| ClassDerivationRefusal)?),
-            ("default_relation", view(atoms.encoded(A::DefaultRelation).map_err(|_| ClassDerivationRefusal)?)
-                .map_err(|_| ClassDerivationRefusal)?),
-        ]).map_err(|_| ClassDerivationRefusal)?;
-        let index = stage.source_named("language-window8-class-index", query, 0, 0)
+        atoms
+            .unsigned(code as u64)
             .map_err(|_| ClassDerivationRefusal)?;
-        let query = queries.copy_record("language-window8-class-relations",
-            view(stage.book().source[index].output_bytes()).map_err(|_| ClassDerivationRefusal)?)
+        let query = queries
+            .record_fields(
+                "language-window8-class-index",
+                &[
+                    (
+                        "code",
+                        view(
+                            atoms
+                                .encoded(A::Unsigned)
+                                .map_err(|_| ClassDerivationRefusal)?,
+                        )
+                        .map_err(|_| ClassDerivationRefusal)?,
+                    ),
+                    (
+                        "default_relation",
+                        view(
+                            atoms
+                                .encoded(A::DefaultRelation)
+                                .map_err(|_| ClassDerivationRefusal)?,
+                        )
+                        .map_err(|_| ClassDerivationRefusal)?,
+                    ),
+                ],
+            )
             .map_err(|_| ClassDerivationRefusal)?;
-        let relations = stage.source_named("language-window8-class-relations", query, 0, 0)
+        let index = stage
+            .source_named("language-window8-class-index", query, 0, 0)
             .map_err(|_| ClassDerivationRefusal)?;
-        let query = queries.copy_record("language-window8-class-relation",
-            view(stage.book().source[relations].output_bytes()).map_err(|_| ClassDerivationRefusal)?)
+        let query = queries
+            .copy_record(
+                "language-window8-class-relations",
+                view(stage.book().source[index].output_bytes())
+                    .map_err(|_| ClassDerivationRefusal)?,
+            )
             .map_err(|_| ClassDerivationRefusal)?;
-        let value = stage.source_named("language-window8-class-relation", query, 0, 0)
+        let relations = stage
+            .source_named("language-window8-class-relations", query, 0, 0)
             .map_err(|_| ClassDerivationRefusal)?;
-        *destination = Window8ClassDerivation { code: code as u8, index, relations, value };
+        let query = queries
+            .copy_record(
+                "language-window8-class-relation",
+                view(stage.book().source[relations].output_bytes())
+                    .map_err(|_| ClassDerivationRefusal)?,
+            )
+            .map_err(|_| ClassDerivationRefusal)?;
+        let value = stage
+            .source_named("language-window8-class-relation", query, 0, 0)
+            .map_err(|_| ClassDerivationRefusal)?;
+        *destination = Window8ClassDerivation {
+            code: code as u8,
+            index,
+            relations,
+            value,
+        };
     }
     Ok(classes)
 }

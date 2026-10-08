@@ -1,12 +1,36 @@
-#[path = "build_window8_session.rs"]
-mod window8_session;
+#[path = "build_checked_output_cache.rs"]
+mod checked_output_cache;
+#[path = "build_checked_output_cache_approved.rs"]
+mod checked_output_cache_approved;
 #[path = "build_session_chain.rs"]
 mod session_chain;
-use conduit_plot::rust_binding::{generate_rust_bindings, RustBindingOptions};
-use conduit_plot::{check_syntax_document, parse_syntax_document, StartupCatalog};
+#[path = "build_window8_session.rs"]
+mod window8_session;
+use conduit_plot::rust_binding::{RustBindingOptions, generate_rust_bindings};
+use conduit_plot::{StartupCatalog, check_syntax_document, parse_syntax_document};
 use std::{env, fs, path::PathBuf};
 
 fn main() {
+    println!("cargo:rerun-if-env-changed=CONDUIT_LANGUAGE_CHECKED_OUTPUT_CACHE");
+    println!("cargo:rerun-if-changed=build_checked_output_cache.rs");
+    println!("cargo:rerun-if-changed=build_checked_output_cache_approved.rs");
+    if let Some(cache) = env::var_os("CONDUIT_LANGUAGE_CHECKED_OUTPUT_CACHE") {
+        let approved = checked_output_cache_approved::APPROVED_MANIFEST_SHA256
+            .expect("checked output cache has not been reviewed and approved");
+        let package = PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").expect("package directory"));
+        let repo = package
+            .parent()
+            .and_then(|p| p.parent())
+            .expect("workspace root");
+        let output = PathBuf::from(env::var_os("OUT_DIR").expect("output directory"));
+        let receipt = checked_output_cache::restore(repo, &PathBuf::from(cache), &output, approved)
+            .unwrap_or_else(|error| panic!("configured checked output cache refused: {}", error.0));
+        println!(
+            "cargo:warning=reused checked Source outputs (not rechecked): {} files, {} bytes, manifest {}",
+            receipt.output_files, receipt.output_bytes, receipt.manifest_sha256
+        );
+        return;
+    }
     println!("cargo:rerun-if-changed=build_window8_session.rs");
     for (file, _) in window8_session::SOURCE_ADDITIONS {
         println!("cargo:rerun-if-changed={file}");
@@ -116,15 +140,27 @@ fn main() {
         include_str!("pronunciation_selection.conduit"),
     ]
     .into_iter()
-    .chain(window8_session::SOURCE_ADDITIONS.iter().map(|(_, source)| *source))
+    .chain(
+        window8_session::SOURCE_ADDITIONS
+            .iter()
+            .map(|(_, source)| *source),
+    )
     .collect::<Vec<_>>()
     .join("\n");
     let mut startup = StartupCatalog::new();
     for (name, element, length) in [
         ("LanguageParserCategoricalIndices", "value/u64", 25),
         ("LanguageParserCategoricalScores", "value/i64", 76),
-        ("LanguageParserWindow8ProposerV2CategoricalIndices", "value/u64", 27),
-        ("LanguageParserWindow8ProposerV2CategoricalScores", "value/i64", 76),
+        (
+            "LanguageParserWindow8ProposerV2CategoricalIndices",
+            "value/u64",
+            27,
+        ),
+        (
+            "LanguageParserWindow8ProposerV2CategoricalScores",
+            "value/i64",
+            76,
+        ),
     ] {
         let ty = conduit_core::StructuredInfoType::collection(
             conduit_core::StructuredInfoType::leaf(conduit_core::kind_id(element)).unwrap(),
@@ -137,10 +173,15 @@ fn main() {
         .expect("language semantic Types must check");
     for (plot, file) in window8_session::PORTS {
         let expanded = conduit_plot::expand_canonical_plot_for_authoring(
-            &checked, plot, &conduit_plot::ProfileCatalog::new(),
-        ).expect("fixed whole Window8 Source chain expands");
-        session_chain::retain(&expanded,
-            &PathBuf::from(env::var_os("OUT_DIR").unwrap()).join(file));
+            &checked,
+            plot,
+            &conduit_plot::ProfileCatalog::new(),
+        )
+        .expect("fixed whole Window8 Source chain expands");
+        session_chain::retain(
+            &expanded,
+            &PathBuf::from(env::var_os("OUT_DIR").unwrap()).join(file),
+        );
     }
     for (plot, file) in [
         ("language-parser-availability", "parser_availability.hex"),
@@ -322,10 +363,22 @@ fn main() {
             "language-lexical-token-proposal",
             "lexical_token_proposal.hex",
         ),
-        ("language-proposal-window8-origins", "proposal_window8_origins.hex"),
-        ("language-proposal-window8-feature-context", "proposal_window8_feature_context.hex"),
-        ("language-proposal-window8-feature-values", "proposal_window8_feature_values.hex"),
-        ("language-proposal-window8-v2-feature-values", "proposal_window8_v2_feature_values.hex"),
+        (
+            "language-proposal-window8-origins",
+            "proposal_window8_origins.hex",
+        ),
+        (
+            "language-proposal-window8-feature-context",
+            "proposal_window8_feature_context.hex",
+        ),
+        (
+            "language-proposal-window8-feature-values",
+            "proposal_window8_feature_values.hex",
+        ),
+        (
+            "language-proposal-window8-v2-feature-values",
+            "proposal_window8_v2_feature_values.hex",
+        ),
         ("language-window8-complete", "window8_complete.hex"),
         ("language-window8-rank-insert", "window8_rank_insert.hex"),
         (

@@ -14,6 +14,7 @@ conduit-core = { path = "../../architecture/core" }
 conduit-plot = { path = "../../architecture/plot" }
 
 [build-dependencies]
+sha2 = { version = "0.10", default-features = false }
 conduit-core = { path = "../../architecture/core" }
 conduit-plot = { path = "../../architecture/plot" }
 
