@@ -708,12 +708,18 @@ impl StdHost {
             flow_activation::todo_scan_offer(initial, maximum_items)?,
             flow_activation::todo_combine_offer(),
         ] {
-            if advertisement
+            if let Some(existing) = advertisement
                 .capabilities
                 .iter()
-                .any(|existing| existing.capability_id == offer.capability_id)
+                .find(|existing| existing.capability_id == offer.capability_id)
             {
-                return Err("std Todo scan capability identity is already offered".into());
+                if existing != &offer {
+                    return Err(
+                        "std Todo scan capability identity conflicts with the selected offer"
+                            .into(),
+                    );
+                }
+                continue;
             }
             advertisement.capabilities.push(offer);
         }

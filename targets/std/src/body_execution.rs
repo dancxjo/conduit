@@ -47,6 +47,12 @@ pub struct BodyForeExchange<'a> {
     pub output: &'a mut dyn BodyForeOutputAdapter,
 }
 
+/// One finite live producer and its acknowledged output for a waiting Play.
+pub struct WaitingTodoFore<'a> {
+    pub queue: &'a BodyLiveForeQueue,
+    pub output: &'a mut dyn BodyForeOutputAdapter,
+}
+
 /// Wake an external producer on every preparation, admission, and start
 /// refusal, including paths before the kernel has begun to run.
 struct LiveForeTerminalGuard<'a>(Option<&'a BodyLiveForeQueue>);

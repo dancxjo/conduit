@@ -191,7 +191,7 @@ impl SpokenFaceSession {
                 if self.reading.take().is_some() {
                     interrupted = Some(self.finish_turn(SpokenTurnOutcome::Cancelled));
                 }
-                self.begin_message("Enter one command per line. Type help to repeat this guide. Type read current items for the primary items, or read all for the complete view; next, previous, or repeat to move. Type next action to find a control. Type focus followed by an offered action ID when you know it. Type edit followed by the announced argument name and new value, then type activate to apply it. Type stop to interrupt speech, or quit to leave.".into());
+                self.begin_message("Enter one command per line. Type help to repeat this guide. Type read current items for the primary items. Type read all for the complete view; next, previous, or repeat to move. Type next action to find a control. Type focus followed by an offered action ID when you know it. Type edit followed by the announced argument name and new value, then type activate to apply it. Type stop to interrupt speech, or quit to leave.".into());
             }
             ReaderCommand::ReadAll
             | ReaderCommand::ReadCurrentItems
