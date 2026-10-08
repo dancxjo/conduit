@@ -110,3 +110,44 @@ fn recipe_refuses_capacity_and_escaping_file_names() {
     value["extra_authority"] = true.into();
     assert!(recipe::Recipe::decode(&serde_json::to_vec(&value).unwrap()).is_err());
 }
+
+#[test]
+fn native_definition_capacity_is_refused_before_reference_decode() {
+    let definition =
+        " ".repeat(conduit_ai::native_profile::MAXIMUM_NATIVE_PROFILE_SOURCE_BYTES + 1);
+    let error = PreparedTopology::prepare(
+        Materials {
+            source: &[],
+            reference_image: &[],
+            native_definition: &definition,
+            recipe: &[],
+        },
+        "host".into(),
+        "boot".into(),
+    )
+    .err()
+    .unwrap();
+    assert_eq!(error, "numeric native definition selected capacity");
+}
+#[test]
+#[cfg(feature = "numeric-topology-catalog-cache")]
+fn immutable_catalog_clones_cannot_mutate_checked_cache() {
+    use conduit_ai::fixed_numeric_catalog::*;
+    let started = std::time::Instant::now();
+    let mut types = fixed_numeric_types().unwrap();
+    let name = types[0].name.clone();
+    let expected = fixed_numeric_type(&name).unwrap();
+    let cold = started.elapsed();
+    types[0].name = "foreign/cache".into();
+    let mut contracts = fixed_numeric_contracts().unwrap();
+    let first = contracts[0].kind_id.clone();
+    contracts[0].kind_id = kind_id("foreign/cache");
+    let started = std::time::Instant::now();
+    assert_eq!(fixed_numeric_type(&name).unwrap(), expected);
+    assert!(fixed_numeric_type("foreign/cache").is_err());
+    let warm = started.elapsed();
+    assert_eq!(fixed_numeric_contracts().unwrap()[0].kind_id, first);
+    std::eprintln!(
+        "immutable checked metadata selected-Type cold={cold:?} warm={warm:?}; host diagnostic only"
+    );
+}

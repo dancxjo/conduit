@@ -114,7 +114,8 @@ mod hosted {
         let elapsed = started.elapsed();
         let after = REQUESTS.load(Ordering::Relaxed);
         println!(
-            "synthetic_host_meter result={result:?} planning={planned:?} preparation={preparation:?} execution={elapsed:?} material_live={material_live} peak_heap={peak} retained_heap={retained} allocation_requests_during_run={} static_store={} preparation_stack={} resource_bytes={resource_bytes} inline_descriptors={descriptor_bytes}",
+            "synthetic_host_meter profile={} result={result:?} planning={planned:?} preparation={preparation:?} execution={elapsed:?} material_live={material_live} peak_heap={peak} retained_heap={retained} allocation_requests_during_run={} static_store={} preparation_stack={} resource_bytes={resource_bytes} inline_descriptors={descriptor_bytes}",
+            proof::PREPARATION_PROFILE,
             after - before,
             std::mem::size_of::<proof::storage::StaticStorage>(),
             proof::PREPARATION_STACK_BYTES

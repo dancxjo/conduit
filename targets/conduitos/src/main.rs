@@ -12,12 +12,24 @@ use core::panic::PanicInfo;
 
 #[cfg(target_os = "none")]
 use conduitos::{allocation::BOOT_ARENA, arch, boot, sign_format};
-#[cfg(all(target_os = "none", not(feature = "virtio-net-proof")))]
+#[cfg(all(
+    target_os = "none",
+    not(feature = "virtio-net-proof"),
+    not(feature = "numeric-topology-proof")
+))]
 use conduitos::{spore_join, spore_provision};
-#[cfg(all(target_os = "none", not(feature = "virtio-net-proof")))]
+#[cfg(all(
+    target_os = "none",
+    not(feature = "virtio-net-proof"),
+    not(feature = "numeric-topology-proof")
+))]
 use core::fmt::Write;
 
-#[cfg(all(target_os = "none", not(feature = "virtio-net-proof")))]
+#[cfg(all(
+    target_os = "none",
+    not(feature = "virtio-net-proof"),
+    not(feature = "numeric-topology-proof")
+))]
 struct InspectedSpore {
     pending: spore_join::PendingNativeJoin,
     routed_request: Option<conduit_body::RoutedAdmissionRequest>,
@@ -26,19 +38,22 @@ struct InspectedSpore {
 #[cfg(all(
     target_os = "none",
     feature = "native-compositor",
-    not(feature = "virtio-net-proof")
+    not(feature = "virtio-net-proof"),
+    not(feature = "numeric-topology-proof")
 ))]
 mod graphical_startup;
 #[cfg(all(
     target_os = "none",
     not(feature = "native-compositor"),
-    not(feature = "virtio-net-proof")
+    not(feature = "virtio-net-proof"),
+    not(feature = "numeric-topology-proof")
 ))]
 mod headless_startup;
 #[cfg(all(
     target_os = "none",
     feature = "native-compositor",
-    not(feature = "virtio-net-proof")
+    not(feature = "virtio-net-proof"),
+    not(feature = "numeric-topology-proof")
 ))]
 mod scripted_startup;
 
@@ -68,19 +83,7 @@ extern "C" fn conduitos_start() -> ! {
                         emit_machine_refusal(error.as_str());
                     }
                     initialize_runtime_arena(&record);
-                    // SAFETY: ordinary native startup is the sole privileged Root.
-                    // Protocol modules are local administrator boot configuration;
-                    // that administrator must separately approve firmware handoff
-                    // and electrical attachment before installing this profile.
-                    // Admission checks actual hardware and permanently reserves it.
-                    if let Err(reason) =
-                        unsafe { conduitos::protocol_boot::run_if_selected(&record) }
-                    {
-                        emit_machine_refusal(reason);
-                    }
-                    #[cfg(feature = "native-compositor")]
-                    graphical_startup::run(record);
-                    #[cfg(not(feature = "native-compositor"))]
+                    #[cfg(feature = "numeric-topology-proof")]
                     {
                         let entropy =
                             arch::boot_entropy(record.timestamp, record.image_physical_start);
@@ -89,8 +92,34 @@ extern "C" fn conduitos_start() -> ! {
                             record.timestamp,
                             record.image_physical_start,
                         );
-                        inspect_spore_provision(&record, None);
-                        headless_startup::run(record);
+                        conduitos::numeric_topology_proof::guest::run(&record, identities);
+                    }
+                    #[cfg(not(feature = "numeric-topology-proof"))]
+                    {
+                        // SAFETY: ordinary native startup is the sole privileged Root.
+                        // Protocol modules are local administrator boot configuration;
+                        // that administrator must separately approve firmware handoff
+                        // and electrical attachment before installing this profile.
+                        // Admission checks actual hardware and permanently reserves it.
+                        if let Err(reason) =
+                            unsafe { conduitos::protocol_boot::run_if_selected(&record) }
+                        {
+                            emit_machine_refusal(reason);
+                        }
+                        #[cfg(feature = "native-compositor")]
+                        graphical_startup::run(record);
+                        #[cfg(not(feature = "native-compositor"))]
+                        {
+                            let entropy =
+                                arch::boot_entropy(record.timestamp, record.image_physical_start);
+                            let identities = conduitos::identity::derive(
+                                entropy,
+                                record.timestamp,
+                                record.image_physical_start,
+                            );
+                            inspect_spore_provision(&record, None);
+                            headless_startup::run(record);
+                        }
                     }
                 }
             }
@@ -135,7 +164,11 @@ fn initialize_runtime_arena(record: &boot::BootRecord) {
     }
 }
 
-#[cfg(all(target_os = "none", not(feature = "virtio-net-proof")))]
+#[cfg(all(
+    target_os = "none",
+    not(feature = "virtio-net-proof"),
+    not(feature = "numeric-topology-proof")
+))]
 fn inspect_spore_provision(
     _record: &boot::BootRecord,
     advertisement: Option<&conduit_core::HostAdvertisement>,

@@ -5,6 +5,9 @@ mod catalog;
 mod driver;
 pub mod execution;
 mod factories;
+#[cfg(all(target_os = "none", target_arch = "x86_64"))]
+pub mod guest;
+pub mod profile;
 mod recipe;
 pub mod resources;
 pub mod storage;
@@ -16,6 +19,11 @@ use conduit_core::*;
 use conduit_plot::*;
 
 pub const PROFILE: &str = "conduitos/synthetic-numeric-topology-preparation@1";
+#[cfg(feature = "numeric-topology-catalog-cache")]
+pub const PREPARATION_PROFILE: &str =
+    "conduitos/synthetic-numeric-topology-immutable-catalog-preparation@1";
+#[cfg(not(feature = "numeric-topology-catalog-cache"))]
+pub const PREPARATION_PROFILE: &str = PROFILE;
 pub const MAXIMUM_NODES: usize = 1024;
 pub const MAXIMUM_CORDS: usize = 2048;
 /// Reference resource/ref contracts are broad; actual immutable ingress is separately limited to 16 KiB.
@@ -37,6 +45,12 @@ pub struct PreparedTopology<'a> {
 }
 impl<'a> PreparedTopology<'a> {
     pub fn prepare(materials: Materials<'a>, host: HostId, boot: BootId) -> Result<Self, String> {
+        if materials.native_definition.is_empty()
+            || materials.native_definition.len()
+                > conduit_ai::native_profile::MAXIMUM_NATIVE_PROFILE_SOURCE_BYTES
+        {
+            return Err("numeric native definition selected capacity".into());
+        }
         if host.as_str().is_empty() || boot.as_str().is_empty() {
             return Err("numeric proof current Boot identity".into());
         }
