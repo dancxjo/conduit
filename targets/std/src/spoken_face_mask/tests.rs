@@ -5,9 +5,10 @@ mod common;
 
 use conduit_core::{kind_id, CheckedValueContract, ValueConstraint};
 use conduit_presentation::{
-    FaceActionArgument, ManifestationLifecycle, PresentationAction, PresentationDisclosureLevel,
-    PresentationProperty, PresentationPropertyValue, PresentationRelationship,
-    PresentationRelationshipKind, PresentationRole, PresentationSubject, PresentationText,
+    FaceActionArgument, ManifestationLifecycle, PresentationAction, PresentationDisclosure,
+    PresentationDisclosureLevel, PresentationProperty, PresentationPropertyValue,
+    PresentationRelationship, PresentationRelationshipKind, PresentationRole, PresentationSubject,
+    PresentationText,
 };
 
 fn face_with_action() -> (Presentation, MaskShow) {
@@ -97,6 +98,211 @@ fn mechanical_projection_matches_interactive_wording_before_any_show() {
     assert!(projected
         .iter()
         .any(|clause| clause.contains("Create Body")));
+}
+
+#[test]
+fn direct_opening_leads_with_context_then_result_and_leaves_detail_to_read_all() {
+    let (base, _) = face_with_action();
+    let mut actions = base.actions.clone();
+    actions[0].availability = PresentationActionAvailability::Unavailable {
+        reason_code: "not-now".into(),
+        explanation: "This action cannot be used now.".into(),
+    };
+    let face = Presentation::new_with_semantics(
+        2,
+        base.basis,
+        vec![
+            PresentationSubject {
+                identity: "body".into(),
+                role: PresentationRole::Body,
+                name: "Current Body".into(),
+            },
+            PresentationSubject {
+                identity: "result".into(),
+                role: PresentationRole::Status,
+                name: "Result".into(),
+            },
+            PresentationSubject {
+                identity: "context".into(),
+                role: PresentationRole::Region,
+                name: "Groceries".into(),
+            },
+            PresentationSubject {
+                identity: "draft".into(),
+                role: PresentationRole::TextEntry,
+                name: "Draft".into(),
+            },
+            PresentationSubject {
+                identity: "arrival".into(),
+                role: PresentationRole::Region,
+                name: "Arrival".into(),
+            },
+        ],
+        vec![],
+        vec![],
+        vec![
+            PresentationText {
+                subject: "body".into(),
+                text: "Lulled with one resident Plot.".into(),
+            },
+            PresentationText {
+                subject: "result".into(),
+                text: "Two things remain.".into(),
+            },
+            PresentationText {
+                subject: "context".into(),
+                text: "Groceries list.".into(),
+            },
+        ],
+        actions,
+        vec![
+            PresentationDisclosure {
+                subject: "body".into(),
+                level: PresentationDisclosureLevel::Primary,
+            },
+            PresentationDisclosure {
+                subject: "result".into(),
+                level: PresentationDisclosureLevel::Primary,
+            },
+            PresentationDisclosure {
+                subject: "context".into(),
+                level: PresentationDisclosureLevel::Context,
+            },
+        ],
+    )
+    .unwrap();
+    let opening = primary_face_clauses(&face).unwrap().join(" ");
+    assert!(opening.starts_with("Groceries list. Two things remain."));
+    assert!(!opening.contains("resident Plot"));
+    assert!(!opening.contains("Unavailable"));
+    assert!(!opening.contains("birth/"));
+    let complete = mechanical_face_clauses(&face).unwrap().join(" ");
+    assert!(complete.contains("Unavailable"));
+}
+
+#[test]
+fn direct_opening_bounds_long_collections_without_losing_full_reading() {
+    let (base, _) = face_with_action();
+    let mut subjects = base.subjects;
+    let mut disclosures = base.disclosures;
+    subjects.push(PresentationSubject {
+        identity: "todo/list".into(),
+        role: PresentationRole::Collection,
+        name: "Groceries".into(),
+    });
+    disclosures.push(PresentationDisclosure {
+        subject: "todo/list".into(),
+        level: PresentationDisclosureLevel::Context,
+    });
+    subjects.push(PresentationSubject {
+        identity: "todo/status".into(),
+        role: PresentationRole::Status,
+        name: "3 remaining".into(),
+    });
+    disclosures.push(PresentationDisclosure {
+        subject: "todo/status".into(),
+        level: PresentationDisclosureLevel::Primary,
+    });
+    for index in 0..20 {
+        let identity = format!("item/{index}");
+        subjects.push(PresentationSubject {
+            identity: identity.clone(),
+            role: PresentationRole::Item,
+            name: if index < 3 {
+                format!("Open item {index}")
+            } else {
+                format!("Completed item {index}")
+            },
+        });
+        disclosures.push(PresentationDisclosure {
+            subject: identity,
+            level: if index < 3 {
+                PresentationDisclosureLevel::Primary
+            } else {
+                PresentationDisclosureLevel::SelectedDetail
+            },
+        });
+    }
+    let face = Presentation::new_with_semantics(
+        2,
+        base.basis,
+        subjects,
+        base.relationships,
+        base.properties,
+        vec![
+            PresentationText {
+                subject: "todo/list".into(),
+                text: "Groceries".into(),
+            },
+            PresentationText {
+                subject: "todo/status".into(),
+                text: "3 remaining".into(),
+            },
+        ],
+        base.actions,
+        disclosures,
+    )
+    .unwrap();
+    let opening = primary_face_clauses(&face).unwrap().join(" ");
+    assert!(opening.starts_with("Groceries 3 remaining"));
+    for index in 0..3 {
+        assert!(opening.contains(&format!("Open item {index}.")));
+    }
+    assert!(!opening.contains("Completed item"));
+    let direct = crate::direct_spoken_mask_runtime::prepare_wording_items(&face).unwrap();
+    let direct = std::str::from_utf8(direct.front().unwrap()).unwrap();
+    assert!(direct.contains("Open item 2."));
+    assert!(!direct.contains("Completed item"));
+    assert!(mechanical_face_clauses(&face)
+        .unwrap()
+        .join(" ")
+        .contains("Completed item 17."));
+}
+
+#[test]
+fn long_primary_list_reads_count_and_offers_detail_instead_of_items() {
+    let (base, _) = face_with_action();
+    let mut subjects = base.subjects;
+    let mut disclosures = base.disclosures;
+    subjects.push(PresentationSubject {
+        identity: "todo/status".into(),
+        role: PresentationRole::Status,
+        name: "4 remaining".into(),
+    });
+    disclosures.push(PresentationDisclosure {
+        subject: "todo/status".into(),
+        level: PresentationDisclosureLevel::Primary,
+    });
+    for index in 0..4 {
+        let identity = format!("item/{index}");
+        subjects.push(PresentationSubject {
+            identity: identity.clone(),
+            role: PresentationRole::Item,
+            name: format!("Open item {index}"),
+        });
+        disclosures.push(PresentationDisclosure {
+            subject: identity,
+            level: PresentationDisclosureLevel::Primary,
+        });
+    }
+    let face = Presentation::new_with_semantics(
+        2,
+        base.basis,
+        subjects,
+        base.relationships,
+        base.properties,
+        vec![PresentationText {
+            subject: "todo/status".into(),
+            text: "4 remaining".into(),
+        }],
+        base.actions,
+        disclosures,
+    )
+    .unwrap();
+    let opening = primary_face_clauses(&face).unwrap().join(" ");
+    assert!(opening.starts_with("4 remaining"));
+    assert!(opening.contains("More details are available on request."));
+    assert!(!opening.contains("Open item"));
 }
 
 #[test]

@@ -1,4 +1,5 @@
 use super::*;
+use conduit_presentation::{PresentationDisclosureLevel, PresentationRole};
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -31,7 +32,10 @@ pub(super) fn finish_wording(
     };
     let mut correlations = Vec::new();
     let mut affordances = Vec::new();
-    let mut valid = speech.is_some();
+    let mut valid = speech.is_some()
+        && proposal.as_ref().is_some_and(|proposal| {
+            useful_spoken_order(&prepared.request.semantic_data.presentation, proposal)
+        });
     if let Ok(wire) = wire {
         if valid {
             for clause in &wire.proposal.clauses {
@@ -164,4 +168,48 @@ pub(super) fn finish_wording(
         return Err("model wording candidate exceeded its admitted output bound".into());
     }
     Ok(encoded)
+}
+
+/// Exact grounding is necessary but a default utterance must also orient the
+/// listener. Refuse a true Body-only sentence or a result placed before its
+/// explicitly authored Context; the raw proposal remains inspectable.
+fn useful_spoken_order(
+    face: &conduit_presentation::Presentation,
+    proposal: &GeneratedWordingProposal,
+) -> bool {
+    let disclosure = |subject: &str| {
+        face.disclosures
+            .iter()
+            .find(|item| item.subject == subject)
+            .map(|item| item.level)
+    };
+    let role = |subject: &str| {
+        face.subjects
+            .iter()
+            .find(|item| item.identity == subject)
+            .map(|item| &item.role)
+    };
+    let context =
+        face.text.iter().enumerate().find(|(_, item)| {
+            disclosure(&item.subject) == Some(PresentationDisclosureLevel::Context)
+        });
+    if let Some((index, _)) = context {
+        if !matches!(proposal.clauses.first(), Some(GeneratedWordingClause::Text { index: selected, .. }) if *selected as usize == index)
+        {
+            return false;
+        }
+    }
+    let has_application_result = face.text.iter().any(|item| {
+        matches!(
+            disclosure(&item.subject),
+            None | Some(PresentationDisclosureLevel::Primary)
+        ) && !matches!(role(&item.subject), Some(PresentationRole::Body))
+    });
+    !has_application_result
+        || proposal.clauses.iter().any(|clause| {
+            matches!(clause, GeneratedWordingClause::Text { index, .. }
+                if face.text.get(*index as usize).is_some_and(|item|
+                    matches!(disclosure(&item.subject), None | Some(PresentationDisclosureLevel::Primary))
+                        && !matches!(role(&item.subject), Some(PresentationRole::Body))))
+        })
 }

@@ -1469,6 +1469,7 @@ dependencies = [
  "conduit-synth",
  "conduit-text",
  "conduit-time",
+ "conduit-todo-plot",
  "conduit-tongues",
  "conduit-web",
  "conduit-wire",
@@ -1564,6 +1565,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-todo-plot"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
+ "conduit-web",
+]
+
+[[package]]
 name = "conduit-tongues"
 version = "0.1.0"
 dependencies = [
@@ -1650,6 +1660,7 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "conduit-host-browser-make",
+ "conduit-host-make",
  "serde",
  "serde_json",
  "sha2 0.10.9",

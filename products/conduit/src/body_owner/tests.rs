@@ -534,6 +534,15 @@ fn terminal_show_returns_one_typed_clock_change_to_the_same_owner() {
         .iter()
         .find(|action| action.intent == super::clock_interval_action())
         .unwrap();
+    assert_eq!(action.name, "Change ticker pace");
+    assert!(face.disclosures.iter().any(|disclosure| {
+        disclosure.subject == action.target
+            && disclosure.level == conduit_presentation::PresentationDisclosureLevel::Primary
+    }));
+    assert!(face
+        .text
+        .iter()
+        .any(|text| text.text == "The ticker emits a pulse every 1000 milliseconds."));
     assert_eq!(
         action.availability,
         PresentationActionAvailability::Available
@@ -544,6 +553,7 @@ fn terminal_show_returns_one_typed_clock_change_to_the_same_owner() {
         .iter()
         .find(|action| action.intent == super::clock_interval::CLOCK_START_ACTION)
         .unwrap();
+    assert_eq!(start.name, "Start the ticker");
     let wake = face
         .actions
         .iter()
@@ -554,6 +564,7 @@ fn terminal_show_returns_one_typed_clock_change_to_the_same_owner() {
         .iter()
         .find(|action| action.intent == super::clock_interval::CLOCK_LULL_ACTION)
         .unwrap();
+    assert_eq!(stop.name, "Stop the ticker");
     assert_eq!(
         start.availability,
         PresentationActionAvailability::Available

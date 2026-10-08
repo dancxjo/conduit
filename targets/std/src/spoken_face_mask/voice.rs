@@ -1,6 +1,115 @@
 use super::*;
 use conduit_core::ValueConstraint;
 use conduit_presentation::readable_finite_text_choices;
+use conduit_presentation::PresentationDisclosureLevel;
+
+/// Select a bounded first utterance from Face wording and explicitly primary
+/// subjects. This is a Mask reading policy, not a replacement for Face truth.
+pub(super) fn primary_voice_clauses(
+    face: &Presentation,
+    _plan: &FaceUtterancePlan,
+) -> Result<Vec<String>, SpokenFaceRefusal> {
+    let level = |identity: &str| {
+        face.disclosures
+            .iter()
+            .find(|disclosure| disclosure.subject == identity)
+            .map(|disclosure| disclosure.level)
+    };
+    let primary = |identity: &str| {
+        matches!(
+            level(identity),
+            None | Some(PresentationDisclosureLevel::Primary)
+        )
+    };
+    let subject_role = |identity: &str| {
+        face.subjects
+            .iter()
+            .find(|subject| subject.identity == identity)
+            .map(|subject| &subject.role)
+    };
+    let has_application_wording = face.text.iter().any(|wording| {
+        (primary(&wording.subject)
+            || level(&wording.subject) == Some(PresentationDisclosureLevel::Context))
+            && !matches!(subject_role(&wording.subject), Some(PresentationRole::Body))
+    });
+    let mut result = Vec::new();
+    if let Some(subject) = face.subjects.iter().find(|subject| {
+        primary(&subject.identity)
+            && matches!(
+                subject.role,
+                PresentationRole::Collection | PresentationRole::Document
+            )
+    }) {
+        result.push(format!("{}.", subject.name));
+    }
+    let mut omitted = false;
+    // Face Context is the encounter's orientation, so it precedes the result
+    // even if it was serialized after primary wording in the Face.
+    for expected in [
+        Some(PresentationDisclosureLevel::Context),
+        None,
+        Some(PresentationDisclosureLevel::Primary),
+    ] {
+        for wording in face.text.iter().filter(|wording| {
+            level(&wording.subject) == expected
+                && !(has_application_wording
+                    && matches!(subject_role(&wording.subject), Some(PresentationRole::Body)))
+        }) {
+            if result.len() >= 4 {
+                omitted = true;
+                break;
+            }
+            result.push(wording.text.clone());
+        }
+    }
+    let primary_items = face
+        .subjects
+        .iter()
+        .filter(|subject| primary(&subject.identity) && subject.role == PresentationRole::Item)
+        .collect::<Vec<_>>();
+    if primary_items.len() <= 3 {
+        for subject in primary_items {
+            result.push(format!("{}.", subject.name));
+        }
+    } else {
+        omitted = true;
+    }
+    if result.is_empty() {
+        if let Some(subject) = face.subjects.iter().find(|subject| {
+            primary(&subject.identity)
+                && matches!(
+                    subject.role,
+                    PresentationRole::Body | PresentationRole::Region
+                )
+        }) {
+            result.push(format!("{}.", subject.name));
+        }
+    }
+    if result.is_empty() {
+        return Err(SpokenFaceRefusal::VoiceBound);
+    }
+    if omitted {
+        result.push("More details are available on request.".into());
+    } else if result.len() < 7 {
+        let mut offered = face.actions.iter().filter(|action| {
+            action.availability.is_available()
+                && action.disclosure == PresentationDisclosureLevel::CurrentAction
+                && matches!(
+                    level(&action.target),
+                    None | Some(PresentationDisclosureLevel::Primary)
+                        | Some(PresentationDisclosureLevel::Context)
+                )
+        });
+        if let Some(action) = offered
+            .clone()
+            .find(|action| level(&action.target) == Some(PresentationDisclosureLevel::Context))
+            .or_else(|| offered.next())
+        {
+            result.push(format!("You can {}.", action.name));
+        }
+    }
+    Ok(result)
+}
 
 /// Keep the common Face's reading order and exact provenance; only the spoken
 /// phrasing changes. Unknown semantic roles remain readable as their human

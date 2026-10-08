@@ -37,6 +37,13 @@ pub fn mechanical_face_clauses(face: &Presentation) -> Result<Vec<String>, Spoke
     voice_clauses(face, cursor.plan())
 }
 
+/// The short first encounter for an artifact-output spoken Mask. The complete
+/// provenanced reading remains available through the interactive reader.
+pub fn primary_face_clauses(face: &Presentation) -> Result<Vec<String>, SpokenFaceRefusal> {
+    let cursor = FaceReadingCursor::new(face).map_err(reading_refusal)?;
+    voice::primary_voice_clauses(face, cursor.plan())
+}
+
 /// One bounded speech turn at a time. Only one segment may be in flight, so
 /// producer pressure cannot turn an unacknowledged clip into a completed Show.
 pub struct SpokenFaceSession {

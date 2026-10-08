@@ -1,4 +1,7 @@
-# Task records are application data: { "complete": Boolean, "text": Text }.
+# Task records are application data: { "complete": Boolean, "id": Text,
+# "text": Text }. The stable id is supplied by the invoking application.
+# Keyed collection commands address it by id; completion is set explicitly
+# to true or false, so repeated complete/reopen requests are idempotent.
 # State evolution uses the ordinary bounded collection contract. The request
 # carries the prior collection and one explicit command; no Host owns edits.
 plot todo/state-step (

@@ -115,6 +115,7 @@ path = "src/bin/native-webrtc-line-probe.rs"
 required-features = ["native-webrtc"]
 
 [dev-dependencies]
+conduit-todo-plot = { path = "../../plots/todo/model", features = ["kernel-step"] }
 conduit-observatory = { path = "../../architecture/observatory" }
 conduit-kernel = { path = "../../architecture/kernel", features = ["alloc", "step-test-support"] }
 conduit-workspace-make = { path = "../../make/workspace" }

@@ -6,9 +6,10 @@ use conduit_core::{
 };
 use conduit_plot::TextPatternExpression;
 use conduit_presentation::{
-    plan_face_utterances, FaceActionArgument, FaceUtteranceClauseKind, FaceUtteranceProvenance,
-    Presentation, PresentationAction, PresentationActionAvailability, PresentationBasis,
-    PresentationCompositionKind, PresentationCompositionRelation, PresentationDisclosureLevel,
+    plan_face_utterances, FaceActionArgument, FaceReadingCommand, FaceReadingCursor,
+    FaceUtteranceClauseKind, FaceUtteranceProvenance, Presentation, PresentationAction,
+    PresentationActionAvailability, PresentationBasis, PresentationCompositionKind,
+    PresentationCompositionRelation, PresentationDisclosure, PresentationDisclosureLevel,
     PresentationProperty, PresentationPropertyValue, PresentationRelationship,
     PresentationRelationshipKind, PresentationRole, PresentationSubject, PresentationText,
     UTF8_TEXT_VALUE_KIND,
@@ -88,6 +89,64 @@ fn source_destination_face() -> Presentation {
         },
     ])
     .unwrap()
+}
+
+#[test]
+fn read_all_leads_with_context_even_when_context_is_serialized_last() {
+    let face = Presentation::new_with_semantics(
+        1,
+        basis(),
+        vec![
+            PresentationSubject {
+                identity: "body".into(),
+                role: PresentationRole::Body,
+                name: "Current Body".into(),
+            },
+            PresentationSubject {
+                identity: "list".into(),
+                role: PresentationRole::Collection,
+                name: "Groceries".into(),
+            },
+        ],
+        vec![],
+        vec![],
+        vec![
+            PresentationText {
+                subject: "body".into(),
+                text: "One resident Plot.".into(),
+            },
+            PresentationText {
+                subject: "list".into(),
+                text: "Two things remain.".into(),
+            },
+        ],
+        vec![],
+        vec![PresentationDisclosure {
+            subject: "list".into(),
+            level: PresentationDisclosureLevel::Context,
+        }],
+    )
+    .unwrap();
+    let plan = plan_face_utterances(&face).unwrap();
+    assert_eq!(
+        plan.clauses[0].provenance,
+        FaceUtteranceProvenance::subject("list".into()).unwrap()
+    );
+    assert_eq!(
+        plan.clauses[1].provenance,
+        FaceUtteranceProvenance::text(1).unwrap()
+    );
+    let mut reader = FaceReadingCursor::new(&face).unwrap();
+    reader.command(&face, FaceReadingCommand::ReadAll).unwrap();
+    assert_eq!(
+        reader.next_read_clause(&face).unwrap().unwrap().text,
+        plan.clauses[0].text
+    );
+    assert_eq!(
+        reader.next_read_clause(&face).unwrap().unwrap().text,
+        "Two things remain."
+    );
+    assert_eq!(reader.clause_count(), plan.clauses.len());
 }
 
 #[test]
