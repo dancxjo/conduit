@@ -107,13 +107,16 @@ fn tour_timer_scope_refuses_independent_timer_clock_offer_and_artifact_replaceme
             );
         }
     }
-    for change in 0..4 {
+    for change in 0..7 {
         let (plan, binding, mut fixed) = fixture();
         match change {
             0 => fixed.generation += 1,
             1 => fixed.boot_id[0] ^= 1,
             2 => fixed.capabilities[12].artifact_build = "replacement-build",
             3 => fixed.capabilities[12].contract_revision = "replacement-contract",
+            4 => fixed.capabilities[12].maximum_input_bytes = 7,
+            5 => fixed.capabilities[12].maximum_output_bytes = 7,
+            6 => fixed.capabilities[12].output.as_mut().unwrap().value_kind = "wrong-kind",
             _ => unreachable!(),
         }
         assert!(
