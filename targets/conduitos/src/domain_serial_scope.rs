@@ -251,7 +251,7 @@ impl SerialScope {
             || call.maximum_in_flight != 1
             || call.maximum_input_bytes == 0
             || call.maximum_input_bytes > capability.maximum_input_bytes
-            || call.maximum_output_bytes != capability.maximum_output_bytes
+            || call.maximum_output_bytes > presentation.maximum_completion_bytes()
         {
             return Err(DomainRefusal::WrongBinding);
         }
@@ -386,6 +386,12 @@ impl Presentation {
         match self {
             Self::Text => conduit_semantic_catalog::TEXT_PRESENTATION_KIND,
             Self::Indicator => conduit_semantic_catalog::INDICATOR_PRESENTATION_KIND,
+        }
+    }
+    fn maximum_completion_bytes(self) -> u32 {
+        match self {
+            Self::Text => conduit_core::MAX_PRESENTATION_COMPLETION_BYTES,
+            Self::Indicator => 0,
         }
     }
     fn implementation(self) -> &'static str {
