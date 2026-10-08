@@ -132,7 +132,9 @@ export function retainedTodoBrowserDevelopmentEvidence(root = TODO_BROWSER_DEVEL
     longList.owner_source_commit, longListBrowser.owner_source_identity, spoken.source_identity,
     detail.release_source_identity]) {
     try { execFileSync('git', ['merge-base', '--is-ancestor', source, publicationCommit]); }
-    catch { throw new Error('Todo browser capture source is absent from publication ancestry'); }
+    catch (cause) {
+      throw new Error(`Todo browser capture ancestry check failed: ${source} -> ${publicationCommit}; status=${cause.status ?? cause.code ?? "unknown"}, signal=${cause.signal ?? "none"}; ${cause.message}`, { cause });
+    }
   }
   for (const name of FILES.filter(file => file.endsWith('.png'))) {
     const image = bytes(name);
