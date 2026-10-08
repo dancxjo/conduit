@@ -903,6 +903,10 @@ the complete supplied inventory, Language/Variety basis, revision and bindings.
 Human and JSON checking diagnostics retain original quoted-source spans.
 Native generation and public authoring import the same checked Language owner
 contracts; older shape-only schema IDs are not silently coerced.
+The baseline supported suite passes 454 tests and a Thumb no_std contract
+compile. Reconciliation with the competing constructor contract is required by
+#5329 before #5260 can close; these candidate APIs are not stable acceptance.
+Reusable checked basis references follow that decision under #5330.
 
 Run focused conformance with `cargo xtask check speech-ipa`. Typed delimiter
 glyphs such as `p[tʰ]` and `p/t/` are proposed syntax under #5317, not an

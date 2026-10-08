@@ -298,8 +298,11 @@ installed-host, pressure and product-diagnostic contracts. All three quoted Sour
 normal Cargo. The host test executes all four constructors through Source, checking,
 planning, installed preparation and the kernel, with exact Native outputs, one
 emission, stable Value capacity, no Host Calls and no playback. Both focused
-installed-Back tests pass (exact offer/configuration refusal and pressure). Final
-supported-suite, product, lint and Thumb results are still pending. Existing lossless CST and highlighter checks cover quoted Unicode.
+installed-Back tests pass (exact offer/configuration refusal and pressure). The baseline supported suite passes 454 tests and the Thumb no_std
+contract compile. Strict all-target Clippy passes for the affected packages;
+a final 16-test rerun covers the diagnostic layout and test-only lint fixes.
+These are development results for this candidate, not proof of the reconciled
+integration required by #5329 or stable acceptance. Existing lossless CST and highlighter checks cover quoted Unicode.
 No `.conduit` formatter is available in the current product; CST round-trip is
 source custody, not a formatter-idempotence claim. Rust formatting is checked
 separately. Optional notation formatter conformance remains with #5317.
