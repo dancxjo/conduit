@@ -12,7 +12,7 @@ use core::{
 };
 
 pub(super) const USER_FRAME: u64 = USER_TEXT_START + MAXIMUM_IMAGE_BYTES;
-pub(super) const USER_STACK_TOP: u64 = USER_TEXT_START + 0x28_000;
+pub(super) const USER_STACK_TOP: u64 = USER_TEXT_START + 0x48_000;
 const NX: u64 = 1 << 63;
 const PAGE: usize = 4096;
 
@@ -27,7 +27,7 @@ struct Slot {
     pdpt: Table,
     pd: Table,
     pt: Table,
-    code: Bytes<65536>,
+    code: Bytes<131072>,
     frame: Bytes<4096>,
     stack: Bytes<STACK_BYTES>,
     retained: Bytes<RETAINED_BYTES>,
@@ -40,7 +40,7 @@ impl Slot {
             pdpt: Table([0; 512]),
             pd: Table([0; 512]),
             pt: Table([0; 512]),
-            code: Bytes([0; 65536]),
+            code: Bytes([0; 131072]),
             frame: Bytes([0; 4096]),
             stack: Bytes([0; STACK_BYTES]),
             retained: Bytes([0; RETAINED_BYTES]),
@@ -160,7 +160,7 @@ unsafe fn install(
         .map_err(|_| DomainRefusal::InvalidMemory)?;
         let end = offset
             .checked_add(segment.bytes.len())
-            .filter(|end| *end <= 65536)
+            .filter(|end| *end <= 131072)
             .ok_or(DomainRefusal::InvalidMemory)?;
         slot_memory.code.0[offset..end].copy_from_slice(segment.bytes);
         for page in 0..segment.mapped_bytes() as usize / PAGE {
@@ -169,7 +169,7 @@ unsafe fn install(
             slot_memory.pt.0[index] = address | 5 | if segment.executable { 0 } else { NX };
         }
     }
-    slot_memory.pt.0[16] = physical(&slot_memory.frame)? | 7 | NX;
+    slot_memory.pt.0[32] = physical(&slot_memory.frame)? | 7 | NX;
     for page in 0..STACK_BYTES / PAGE {
         slot_memory.pt.0[STACK_PAGE + page] =
             physical(&slot_memory.stack)? + (page * PAGE) as u64 | 7 | NX;

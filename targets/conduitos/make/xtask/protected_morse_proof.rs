@@ -63,9 +63,9 @@ pub(super) fn validate(transcript: &str) -> Result<Value, ConduitosError> {
         return Err(refusal());
     };
     let reserved = match sign["architecture"].as_str() {
-        Some("x86_64" | "riscv64") => 151552,
-        Some("aarch64" | "loongarch64") => 159744,
-        Some("ia32") => 163840,
+        Some("x86_64" | "riscv64") => 217088,
+        Some("aarch64" | "loongarch64") => 225280,
+        Some("ia32") => 229376,
         _ => return Err(refusal()),
     };
     if cost["architecture"] != sign["architecture"]
@@ -96,8 +96,8 @@ mod tests {
             "checked_plot_id":"44".repeat(32),"expanded_plot_id":"55".repeat(32)});
         let cost = serde_json::json!({"plan_id":sign["plan_id"],"play_id":sign["play_id"],
             "architecture":"x86_64","fixture":false,"entries":5,"base_gate_transitions":2,"gate_transitions":5,
-            "scheduler_returns":5,"state":"Revoked(PlayCompleted)","reserved_bytes":151552,
-            "teardown_zeroed_bytes":151552,"dma_isolation":false,"driver_isolation":false});
+            "scheduler_returns":5,"state":"Revoked(PlayCompleted)","reserved_bytes":217088,
+            "teardown_zeroed_bytes":217088,"dma_isolation":false,"driver_isolation":false});
         (sign, cost)
     }
     fn transcript(sign: &Value, cost: &Value) -> String {

@@ -16,7 +16,7 @@ const PPN: u64 = (1 << 44) - 1;
 const U: u64 = 1 << 4;
 const RESERVED: u64 = !((1_u64 << 54) - 1);
 pub(super) const USER_FRAME: u64 = USER_TEXT_START + MAXIMUM_IMAGE_BYTES;
-pub(super) const USER_STACK_TOP: u64 = USER_TEXT_START + 0x28000;
+pub(super) const USER_STACK_TOP: u64 = USER_TEXT_START + 0x48000;
 static HHDM: AtomicU64 = AtomicU64::new(0);
 static OWNED: AtomicU8 = AtomicU8::new(0);
 
@@ -31,7 +31,7 @@ struct Slot {
     root: Table,
     user_l1: Table,
     user_l0: Table,
-    code: Bytes<65536>,
+    code: Bytes<131072>,
     frame: Bytes<4096>,
     stack: Bytes<STACK_BYTES>,
     retained: Bytes<RETAINED_BYTES>,
@@ -45,7 +45,7 @@ impl Slot {
             root: Table([0; 512]),
             user_l1: Table([0; 512]),
             user_l0: Table([0; 512]),
-            code: Bytes([0; 65536]),
+            code: Bytes([0; 131072]),
             frame: Bytes([0; 4096]),
             stack: Bytes([0; STACK_BYTES]),
             retained: Bytes([0; RETAINED_BYTES]),
@@ -128,7 +128,7 @@ impl AddressSpace {
                 );
             }
         }
-        memory.user_l0.0[16] = leaf(physical(&memory.frame)?, 2 | 4);
+        memory.user_l0.0[32] = leaf(physical(&memory.frame)?, 2 | 4);
         for page in 0..STACK_BYTES / PAGE {
             memory.user_l0.0[STACK_PAGE + page] =
                 leaf(physical(&memory.stack)? + (page * PAGE) as u64, 2 | 4);

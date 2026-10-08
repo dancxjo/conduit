@@ -11,7 +11,7 @@ use core::{
 
 use super::ordinary_domain::TextFrame;
 pub(super) const USER_FRAME: u32 = (IA32_USER_TEXT_START + MAXIMUM_IMAGE_BYTES) as u32;
-pub(super) const USER_STACK_TOP: u32 = IA32_USER_TEXT_START as u32 + 0x28000 - 20;
+pub(super) const USER_STACK_TOP: u32 = IA32_USER_TEXT_START as u32 + 0x48000 - 20;
 const PAGE: usize = 4096;
 const NX: u64 = 1 << 63;
 
@@ -26,7 +26,7 @@ struct Slot {
     pdpt: Table,
     directories: [Table; 4],
     user: Table,
-    code: Bytes<65536>,
+    code: Bytes<131072>,
     frame: Bytes<4096>,
     stack: Bytes<STACK_BYTES>,
     retained: Bytes<RETAINED_BYTES>,
@@ -40,7 +40,7 @@ impl Slot {
             pdpt: Table([0; 512]),
             directories: [const { Table([0; 512]) }; 4],
             user: Table([0; 512]),
-            code: Bytes([0; 65536]),
+            code: Bytes([0; 131072]),
             frame: Bytes([0; 4096]),
             stack: Bytes([0; STACK_BYTES]),
             retained: Bytes([0; RETAINED_BYTES]),
@@ -122,7 +122,7 @@ impl AddressSpace {
                     | if segment.executable { 0 } else { NX };
             }
         }
-        memory.user.0[16] = address(&memory.frame) | 7 | NX;
+        memory.user.0[32] = address(&memory.frame) | 7 | NX;
         // The independently compiled image uses the i386 C calling convention.
         memory.stack.0[STACK_BYTES - 16..STACK_BYTES - 12]
             .copy_from_slice(&USER_FRAME.to_le_bytes());
