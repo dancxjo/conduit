@@ -11,7 +11,9 @@ const FILES = ['browser-after.png', 'browser-before.png', 'browser-card-after.pn
   'long-list-spoken-proof.json', 'long-list-spoken-same-play.wav',
   'long-list-spoken-status.json', 'long-list-terminal-summary.json',
   'read-only-card-receipt.json', 'receipt.json',
-  'todo-20-card.png', 'todo-20-full.png', 'todo-native-fork-label.json',
+  'todo-20-card.png', 'todo-20-full.png', 'todo-native-acknowledged.png',
+  'todo-native-acknowledged-provenance.json', 'todo-native-acknowledged-receipt.json',
+  'todo-native-fork-label.json',
   'todo-native-read-only-receipt.json', 'todo-native-read-only.png'];
 const sha = bytes => `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
 const commit = value => /^[a-f0-9]{40}$/.test(value ?? '');
@@ -42,6 +44,8 @@ export function retainedTodoBrowserDevelopmentEvidence(root = TODO_BROWSER_DEVEL
   const detailTurn = JSON.parse(bytes('long-list-requested-detail-turn.json'));
   const native = JSON.parse(bytes('todo-native-read-only-receipt.json'));
   const nativeFork = JSON.parse(bytes('todo-native-fork-label.json'));
+  const nativeAcknowledged = JSON.parse(bytes('todo-native-acknowledged-receipt.json'));
+  const nativeAcknowledgedProvenance = JSON.parse(bytes('todo-native-acknowledged-provenance.json'));
   if (!commit(publicationCommit) || !commit(action.owner_source_commit)
       || !commit(action.browser_runtime_source_commit)
       || action.schema !== 'conduit.proof/todo-owner-browser@1'
@@ -162,9 +166,41 @@ export function retainedTodoBrowserDevelopmentEvidence(root = TODO_BROWSER_DEVEL
       || nativeImage?.width !== 1280 || nativeImage?.height !== 800) {
     throw new Error('Todo native QMP evidence is not a matching read-only forked Face');
   }
+  const acknowledgedPng = bytes('todo-native-acknowledged.png');
+  const acknowledgedImage = nativeAcknowledged.screenshots?.find(image => image.checkpoint === 'owner-before');
+  if (nativeAcknowledged.schema !== 'conduit.conduitos/native-todo-face-proof@1'
+      || nativeAcknowledged.proof_class !== 'live-local-qmp-installed-owner-read-only'
+      || nativeAcknowledgedProvenance.schema !== 'conduit.proof/todo-native-fork4-provenance@1'
+      || nativeAcknowledgedProvenance.proof_class !== 'forked-state-copy-live-local-qmp-read-only'
+      || nativeAcknowledged.source_commit !== nativeAcknowledgedProvenance.product_source_commit
+      || nativeAcknowledged.guest_part?.body_id !== action.body_id
+      || nativeAcknowledged.owner_todo_face?.body_id !== action.body_id
+      || nativeAcknowledged.owner_todo_face?.face_id !== nativeAcknowledged.face_shown?.face_id
+      || nativeAcknowledged.owner_todo_face?.face_revision !== nativeAcknowledged.face_shown?.face_revision
+      || nativeAcknowledged.owner_todo_face?.item_count !== 20
+      || nativeAcknowledged.owner_todo_face?.status !== '3 things left · 17 completed'
+      || nativeAcknowledged.face_shown?.continuing_owner_route !== true
+      || nativeAcknowledged.face_shown?.interactions_admitted !== true
+      || nativeAcknowledged.show_ack?.status !== 'acknowledged'
+      || nativeAcknowledged.show_ack?.show_id !== nativeAcknowledged.face_shown?.show_id
+      || nativeAcknowledgedProvenance.acknowledged_show_id !== nativeAcknowledged.show_ack?.show_id
+      || nativeAcknowledgedProvenance.owner_face_id !== nativeAcknowledged.owner_todo_face?.face_id
+      || nativeAcknowledgedProvenance.guest_boot_id !== nativeAcknowledged.guest_part?.boot_id
+      || nativeAcknowledgedProvenance.selected_checkpoint_root_isolated !== false
+      || nativeAcknowledgedProvenance.checkpoint_snapshot_selected !== false
+      || nativeAcknowledgedProvenance.original_checkpoint_hash_mismatches_after_proof !== 0
+      || nativeAcknowledged.mutations !== 0 || nativeAcknowledgedProvenance.native_actions !== 0
+      || nativeAcknowledged.qemu_alive_at_capture !== true
+      || acknowledgedImage?.png_sha256 !== sha(acknowledgedPng).slice(7)
+      || nativeAcknowledgedProvenance.qmp_screenshot_sha256 !== sha(acknowledgedPng)
+      || acknowledgedImage?.png_bytes !== acknowledgedPng.length
+      || acknowledgedImage?.width !== 1280 || acknowledgedImage?.height !== 800) {
+    throw new Error('Todo acknowledged native Show evidence is not an exact-source read-only fork');
+  }
   for (const source of [action.owner_source_commit, action.browser_runtime_source_commit,
     longList.owner_source_commit, longListBrowser.owner_source_identity, spoken.source_identity,
-    detail.release_source_identity, native.source_commit, nativeFork.harness_source_commit]) {
+    detail.release_source_identity, native.source_commit, nativeFork.harness_source_commit,
+    nativeAcknowledged.source_commit]) {
     try { execFileSync('git', ['merge-base', '--is-ancestor', source, publicationCommit]); }
     catch (cause) {
       throw new Error(`Todo browser capture ancestry check failed: ${source} -> ${publicationCommit}; status=${cause.status ?? cause.code ?? "unknown"}, signal=${cause.signal ?? "none"}; ${cause.message}`, { cause });
@@ -200,6 +236,7 @@ export function retainedTodoBrowserDevelopmentEvidence(root = TODO_BROWSER_DEVEL
       || !page.includes(spoken.source_identity.slice(0, 9))
       || !page.includes(detail.release_source_identity.slice(0, 9))
       || !page.includes(native.source_commit.slice(0, 9))
+      || !page.includes(nativeAcknowledged.source_commit.slice(0, 9))
       || !page.includes(nativeFork.harness_source_commit.slice(0, 9))
       || !page.includes('This WAV captures the audio delivered by the completed selected-speaker Play')) {
     throw new Error('Todo browser development page overclaims its capture');
@@ -216,5 +253,6 @@ export function retainedTodoBrowserDevelopmentEvidence(root = TODO_BROWSER_DEVEL
     longListActionsCommit: longList.owner_source_commit,
     longListBrowserCommit: longListBrowser.owner_source_identity,
     spokenCommit: spoken.source_identity, detailCommit: detail.release_source_identity,
-    nativeCommit: native.source_commit, nativeHarnessCommit: nativeFork.harness_source_commit };
+    nativeCommit: native.source_commit, nativeHarnessCommit: nativeFork.harness_source_commit,
+    nativeAcknowledgedCommit: nativeAcknowledged.source_commit };
 }
