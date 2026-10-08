@@ -1364,12 +1364,48 @@ fn shared_generated_descriptor_union_has_separate_runtime_and_generation_ceiling
     use core::fmt::Write;
 
     assert_eq!(MAXIMUM_NATIVE_FAMILY_TYPES, 64);
-    assert_eq!(MAXIMUM_GENERATED_NATIVE_FAMILY_TYPES, 192);
+    assert_eq!(MAXIMUM_GENERATED_NATIVE_FAMILY_TYPES, 256);
+    // Runtime root-count admission remains independent of the emitted union.
+    let bytes = conduit_core::StructuredInfoType::nominal(
+        conduit_core::KindId::new("test/finite-root"),
+        conduit_core::StructuredInfoType::leaf(conduit_core::KindId::new("value/u8")).unwrap(),
+    )
+    .unwrap()
+    .canonical_bytes()
+    .unwrap();
+    let descriptor: &'static NativeFamilyTypeDescriptor =
+        alloc::boxed::Box::leak(alloc::boxed::Box::new(NativeFamilyTypeDescriptor {
+            type_bytes: alloc::boxed::Box::leak(bytes.into_boxed_slice()),
+            laws: &[],
+            contracts: &[],
+            children: &[],
+            conversion_profile: NativeFamilyConversionProfile::Nominal,
+            maximum_inline_bytes: 1,
+        }));
+    let limits = PreparedNativeFamilyLimits {
+        maximum_types: 64,
+        maximum_laws_per_type: 0,
+        maximum_input_bytes: 262144,
+        maximum_retained_bytes: 1024 * 1024,
+        maximum_preparation_peak_bytes: 2 * 1024 * 1024,
+        maximum_conversion_requested_bytes: 1024 * 1024,
+    };
+    assert!(PreparedNativeFamily::prepare(&[descriptor; 16], limits).is_ok());
+    assert!(matches!(
+        PreparedNativeFamily::prepare(&[descriptor; 17], limits),
+        Err(PreparedNativeFamilyRefusal::Capacity)
+    ));
+
     let mut source = String::new();
-    for index in 0..189 {
+    for index in 0..252 {
         writeln!(source, "type Item{index} = U8\n").unwrap();
     }
-    for (name, start) in [("FirstRoot", 0), ("SecondRoot", 63), ("ThirdRoot", 126)] {
+    for (name, start) in [
+        ("FirstRoot", 0),
+        ("SecondRoot", 63),
+        ("ThirdRoot", 126),
+        ("FourthRoot", 189),
+    ] {
         writeln!(source, "type {name} = {{").unwrap();
         for index in 0..63 {
             writeln!(source, "field{index}: Item{}", start + index).unwrap();
@@ -1389,23 +1425,35 @@ fn shared_generated_descriptor_union_has_separate_runtime_and_generation_ceiling
     let generated = generate_rust_bindings(
         &checked.native_types,
         &RustBindingOptions {
-            prepared_family_roots: ["FirstRoot".into(), "SecondRoot".into(), "ThirdRoot".into()]
-                .into(),
+            prepared_family_roots: [
+                "FirstRoot".into(),
+                "SecondRoot".into(),
+                "ThirdRoot".into(),
+                "FourthRoot".into(),
+            ]
+            .into(),
             ..RustBindingOptions::default()
         },
     )
     .unwrap();
-    // Three disjoint complete 64-Type roots share one generated module without
-    // authorizing a runtime owner to retain their combined 192-Type union.
+    // Four disjoint complete 64-Type roots share one generated module without
+    // authorizing a runtime owner to retain their combined 256-Type union.
     assert_eq!(
         generated
             .source
             .matches("_PREPARED_NATIVE_DESCRIPTOR: ")
             .count(),
-        192
+        256
     );
     for roots in [
-        ["FirstRoot", "SecondRoot", "ThirdRoot", "ExtraRoot"].as_slice(),
+        [
+            "FirstRoot",
+            "SecondRoot",
+            "ThirdRoot",
+            "FourthRoot",
+            "ExtraRoot",
+        ]
+        .as_slice(),
         ["OversizedRoot"].as_slice(),
     ] {
         assert_eq!(
