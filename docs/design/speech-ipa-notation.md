@@ -155,10 +155,23 @@ unsupported combinations, sequences and suprasegmentals at this single-phone
 entrance. It verifies exact Native decoding, lossless CST source custody,
 quoted-string highlighting and prepared/allocating evaluator parity.
 
-Current focused proof passes 16 IPA tests and 18 generic construction/projection
-tests. All 313 Plot library tests pass. Product catalog integration, lint and
-no_std checks are running. This is development evidence, not stable acceptance.
-Located parser diagnostics and full quoted-transcription Source constructors
-remain unfinished. The existing `SpeechPhoneticTranscription` profile wrapper
-still carries an inventory basis; universal full phonetic transcription is an
-explicit remaining correction. #5260 remains open and its PR remains a draft.
+Current focused proof passes 21 IPA tests and all 72 Speech library tests,
+including universal phonetic events, nested phone checking and located Unicode
+refusals. At the preceding quoted-phone checkpoint, 18 generic construction/
+projection tests, all 313 Plot library tests, product catalog integration,
+targeted lint and a thumbv6m no_std check also pass. The latter checks must run
+again on the final implementation. This is development evidence, not stable
+acceptance. Full quoted-transcription Source constructors and complete phonemic
+inventory resolution remain unfinished. #5260 remains open and its PR a draft.
+
+
+The new `phonetic_from_ipa` preparation entrance accepts an exact quoted IPA
+body without display brackets. It produces `SpeechPhoneticTranscription`, with
+checked phone values and distinct stress/length/boundary events, a pinned finite
+grammar revision, original spelling, provenance, and byte/scalar source spans.
+It requires no language or inventory. The existing profile-scoped entrance
+retains its complete supplied basis and explicit alias policy. `parse_located`
+underlines unsupported scalars, invalid mark order and ambiguous suffixes;
+capacity refusal underlines the first excess scalar without scanning an
+unbounded body. These are preparation APIs; public qualified Source constructor
+integration is still required before #5260 can close.
