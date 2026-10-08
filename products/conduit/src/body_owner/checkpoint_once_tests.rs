@@ -95,6 +95,175 @@ fn fixture() -> (
     (owner, source, plot, grant, state_root, checkpoint_root)
 }
 
+fn failed_large_todo_read_fixture() -> (std::path::PathBuf, std::path::PathBuf, String) {
+    let (mut owner, source, plot, grant, state_root, checkpoint_root) = fixture();
+    let body_id = owner.session.evidence().body_id.as_str().to_owned();
+    let mut worker = owner
+        .start_waiting_todo(
+            &state_root,
+            &source,
+            &plot,
+            &grant,
+            super::super::todo_waiting::NewTodoCheckpoint {
+                root: checkpoint_root.clone(),
+                identity: CheckpointIdentity {
+                    body: body_id.clone(),
+                    plot: plot.expanded.checked_plot_id.as_str().into(),
+                    workload: "todo-list".into(),
+                    missing_v2: MissingV2Disposition::StartNewList,
+                },
+                current: TodoState::new("L".repeat(64)).unwrap(),
+            },
+            5_000,
+        )
+        .unwrap();
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+    while owner.todo_live.is_none() {
+        assert!(worker.progress(&mut owner, &state_root).unwrap().is_none());
+        assert!(std::time::Instant::now() < deadline);
+        std::thread::sleep(std::time::Duration::from_millis(5));
+    }
+    let face = owner.local_face_snapshot().unwrap();
+    let show = mask_test_common::available_mask_show(&face);
+    let action = FaceInteraction::new(
+        &face,
+        &show,
+        "todo.add",
+        "todo/list",
+        vec![FaceInteractionArgument {
+            name: "text".into(),
+            value_kind: UTF8_TEXT_VALUE_KIND.into(),
+            value: vec![b'I'; 23],
+        }],
+        1,
+    )
+    .unwrap();
+    worker.submit_interaction(&owner, &show, &action).unwrap();
+    let committed = loop {
+        if let Some(committed) = worker.progress(&mut owner, &state_root).unwrap() {
+            break committed;
+        }
+        assert!(std::time::Instant::now() < deadline);
+        std::thread::sleep(std::time::Duration::from_millis(5));
+    };
+    assert_eq!(committed.encode_info().unwrap().len(), 104);
+    let selected = super::super::super::super::selected_todo_checkpoint(&state_root)
+        .unwrap()
+        .unwrap();
+    let candidate = std::fs::read_dir(&checkpoint_root)
+        .unwrap()
+        .map(|entry| entry.unwrap().path())
+        .find(|path| path.extension().is_some_and(|ext| ext == "checkpoint"))
+        .unwrap();
+    let original = std::fs::read(&candidate).unwrap();
+    std::fs::write(&candidate, b"corrupt").unwrap();
+    assert!(owner
+        .read_committed_todo(
+            &state_root,
+            &checkpoint_root,
+            &selected.content,
+            &committed,
+            5_000,
+        )
+        .is_err());
+    let failed = owner.last_execution.as_ref().unwrap();
+    assert_eq!(failed["verified"], false);
+    assert!(failed["read_failure"].is_string());
+    assert_eq!(failed["write"]["terminal"], "Completed");
+    std::fs::write(candidate, original).unwrap();
+    (state_root, checkpoint_root, body_id)
+}
+
+fn resumed_todo_host(state_root: &Path) -> StdHost {
+    let selected = super::super::super::super::selected_todo_checkpoint(state_root)
+        .unwrap()
+        .unwrap();
+    StdHost::new_for_todo_checkpoint_once(
+        StdHostConfig {
+            host_id: HostId::from("host/todo-owner-test"),
+            boot_id: BootId::from("boot/todo-owner-failed-read-retry"),
+            offer_generation: OfferGeneration(1),
+        },
+        &selected.root,
+        selected.content,
+    )
+    .unwrap()
+}
+
+#[test]
+fn fresh_boot_retries_failed_large_todo_read_only_from_exact_published_write() {
+    let (state_root, _checkpoint_root, body_id) = failed_large_todo_read_fixture();
+    let old = super::super::super::state::execution(&state_root)
+        .unwrap()
+        .unwrap();
+    let owner =
+        super::super::super::resume_service(resumed_todo_host(&state_root), &state_root).unwrap();
+    assert_eq!(owner.session.evidence().body_id.as_str(), body_id);
+    assert!(owner.has_verified_todo());
+    let new = owner.todo_verified_read_receipt().unwrap();
+    assert_eq!(new["write"], old["write"]);
+    assert_ne!(
+        new["read_play"]["active_play_id"],
+        old["read_play"]["active_play_id"]
+    );
+    assert!(owner
+        .local_face_snapshot()
+        .unwrap()
+        .subjects
+        .iter()
+        .any(|subject| subject.name == "I".repeat(23)));
+    std::fs::remove_dir_all(state_root).unwrap();
+}
+
+#[test]
+fn failed_todo_read_retry_refuses_stale_selector_and_corrupt_write_receipt() {
+    let (state_root, checkpoint_root, _) = failed_large_todo_read_fixture();
+    let selector = std::fs::read_dir(&checkpoint_root)
+        .unwrap()
+        .map(|entry| entry.unwrap().path())
+        .find(|path| path.extension().is_some_and(|ext| ext == "current"))
+        .unwrap();
+    let mut bytes = std::fs::read(&selector).unwrap();
+    bytes[..32].fill(9);
+    std::fs::write(selector, bytes).unwrap();
+    assert!(
+        super::super::super::resume_service(resumed_todo_host(&state_root), &state_root).is_err()
+    );
+    let retained = super::super::super::state::execution(&state_root)
+        .unwrap()
+        .unwrap();
+    assert_eq!(retained["verified"], false);
+    std::fs::remove_dir_all(state_root).unwrap();
+
+    let (state_root, _, _) = failed_large_todo_read_fixture();
+    let mut retained = super::super::super::state::execution(&state_root)
+        .unwrap()
+        .unwrap();
+    retained["write"]["committed_fore_sha256"] = serde_json::json!("sha256:wrong");
+    let biography = super::super::super::state::load(&state_root)
+        .unwrap()
+        .unwrap();
+    let admissions =
+        super::super::super::state::admissions(&state_root, &biography.body_id).unwrap();
+    super::super::super::state::retain(
+        &state_root,
+        &biography,
+        Some(&retained),
+        admissions.as_ref(),
+    )
+    .unwrap();
+    assert!(
+        super::super::super::resume_service(resumed_todo_host(&state_root), &state_root).is_err()
+    );
+    assert_eq!(
+        super::super::super::state::execution(&state_root)
+            .unwrap()
+            .unwrap()["verified"],
+        false
+    );
+    std::fs::remove_dir_all(state_root).unwrap();
+}
+
 #[test]
 fn todo_face_refuses_a_pre_play_contribution() {
     let (owner, _, _, _, state_root, _) = fixture();

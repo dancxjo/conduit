@@ -39,6 +39,10 @@ pub(crate) fn resume_service(
         let selected = super::selected_todo_checkpoint(root)?
             .ok_or("Todo re-encounter has no selected checkpoint")?;
         owner.reencounter_committed_todo(root, &selected.root, &selected.content, 5_000)?;
+    } else if owner.has_retained_failed_todo_read() {
+        let selected = super::selected_todo_checkpoint(root)?
+            .ok_or("Todo failed read has no selected checkpoint")?;
+        owner.retry_retained_failed_todo_read(root, &selected.root, &selected.content, 5_000)?;
     } else {
         owner.persist(root)?;
     }
