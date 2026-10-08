@@ -3,7 +3,7 @@ use super::{
     contract, prepare_configuration, IpaConstructor, IpaConstructorDiagnostic,
     IpaConstructorLocation, IpaConstructorRefusal,
 };
-use alloc::vec::Vec;
+use alloc::{boxed::Box, vec::Vec};
 use conduit_core::{ConfigurationEntry, SourceDocumentId};
 use conduit_plot::{
     Argument, BackStatement, CanonicalStartupValue, CheckedSyntaxDocument, CordStage,
@@ -14,7 +14,7 @@ use conduit_plot::{
 pub struct IpaSourceDiagnostic {
     pub source_document_id: SourceDocumentId,
     pub span: Span,
-    pub cause: IpaConstructorDiagnostic,
+    pub cause: Box<IpaConstructorDiagnostic>,
 }
 impl core::fmt::Display for IpaSourceDiagnostic {
     fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
@@ -49,13 +49,13 @@ pub fn validate_source(
             let diagnostic = |cause, span| IpaSourceDiagnostic {
                 source_document_id: checked.source_document_id.clone(),
                 span,
-                cause,
+                cause: Box::new(cause),
             };
             if !same_source {
                 return Err(diagnostic(
                     IpaConstructorDiagnostic {
                         refusal: IpaConstructorRefusal::SourceCorrelation,
-                        location: IpaConstructorLocation::Request,
+                        location: Box::new(IpaConstructorLocation::Request),
                     },
                     gear.source_span,
                 ));
@@ -89,7 +89,7 @@ pub fn validate_source(
                             diagnostic(
                                 IpaConstructorDiagnostic {
                                     refusal: IpaConstructorRefusal::Startup(error),
-                                    location: location.clone(),
+                                    location: Box::new(location.clone()),
                                 },
                                 invocation
                                     .and_then(|invocation| {

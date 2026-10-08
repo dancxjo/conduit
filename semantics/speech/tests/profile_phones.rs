@@ -82,7 +82,7 @@ fn affricate_projection_requires_explicit_single_phone_tie_bar() {
             )
             .unwrap()
         };
-        let checked = SpeechFormantPhoneBinding::new(definition(ipa), terminal.clone()).unwrap();
+        let checked = SpeechFormantPhoneBinding::new(definition(ipa), terminal).unwrap();
         assert_eq!(checked.definition().ipa(), ipa);
         assert!(SpeechFormantPhoneBinding::new(definition(cluster), terminal).is_err());
     }
