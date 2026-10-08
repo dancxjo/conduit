@@ -78,6 +78,11 @@ pub(crate) struct PureSourceHistory {
     output_descriptor: &'static NativeFamilyTypeDescriptor,
 }
 impl PureSourceHistory {
+    pub(crate) fn input_bytes(&self) -> &[u8] { &self.input }
+    pub(crate) fn output_bytes(&self) -> &[u8] { &self.output }
+    pub(crate) fn output_descriptor(&self) -> &'static NativeFamilyTypeDescriptor {
+        self.output_descriptor
+    }
     pub(crate) fn original_programs(&self) -> &'static str {
         self.original_program
     }

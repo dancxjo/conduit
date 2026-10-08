@@ -126,4 +126,54 @@ impl PreparedWindow8Queries {
             .ok_or(Window8QueryRefusal::Entry)?;
         self.record(index, fields)
     }
+    /// Match fields by the exact retained schema rather than relying on a host
+    /// spelling order. This only assembles a representation; Source and Native
+    /// admission still occur at the selected ingress.
+    pub(crate) fn record_fields(
+        &mut self,
+        name: &str,
+        supplied: &[(&str, ValidatedCanonicalStructuredValue<'_>)],
+    ) -> Result<&[u8], Window8QueryRefusal> {
+        use Window8QueryRefusal as R;
+        let index = crate::parser_session_window8_ports::port_index(name).ok_or(R::Entry)?;
+        let crate::parser_canonical_schema::Shape::Record(fields) =
+            crate::parser_canonical_schema::shape(PORTS[index].input.type_bytes)
+                .map_err(|_| R::Descriptor)?
+        else { return Err(R::Descriptor); };
+        if supplied.is_empty() || supplied.len() > 64 || fields.len() != supplied.len() {
+            return Err(R::Descriptor);
+        }
+        let mut ordered = [supplied[0].1; 64];
+        for (destination, field) in ordered.iter_mut().zip(fields) {
+            let (expected, _) = field.map_err(|_| R::Descriptor)?;
+            let mut matches = supplied.iter().filter(|(name, _)| *name == expected);
+            *destination = matches.next().ok_or(R::Descriptor)?.1;
+            if matches.next().is_some() { return Err(R::Descriptor); }
+        }
+        self.record(index, &ordered[..supplied.len()])
+    }
+    pub(crate) fn copy_record(
+        &mut self,
+        name: &str,
+        original: ValidatedCanonicalStructuredValue<'_>,
+    ) -> Result<&[u8], Window8QueryRefusal> {
+        use Window8QueryRefusal as R;
+        let index = crate::parser_session_window8_ports::port_index(name).ok_or(R::Entry)?;
+        if original.type_bytes() != PORTS[index].input.type_bytes {
+            return Err(R::Descriptor);
+        }
+        let crate::parser_canonical_schema::Shape::Record(fields) =
+            crate::parser_canonical_schema::shape(original.type_bytes())
+                .map_err(|_| R::Descriptor)?
+        else { return Err(R::Descriptor); };
+        let count = fields.len();
+        if count == 0 || count > 64 { return Err(R::Descriptor); }
+        let mut ordered = [original; 64];
+        for (destination, field) in ordered.iter_mut().zip(fields) {
+            let (name, _) = field.map_err(|_| R::Descriptor)?;
+            *destination = original.record_field(name).map_err(|_| R::Descriptor)?
+                .ok_or(R::Descriptor)?;
+        }
+        self.record(index, &ordered[..count])
+    }
 }

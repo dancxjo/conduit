@@ -34,6 +34,8 @@ pub(crate) enum Window8Atom {
     Basis,
     Lexical,
     Projection,
+    Origins,
+    RawFeatureQuery,
     Ancestry,
     StateProof,
     CheckedHypothesis,
@@ -42,7 +44,7 @@ pub(crate) enum Window8Atom {
     Beam,
     RawState,
 }
-const ATOMS: [Window8Atom; 18] = [
+const ATOMS: [Window8Atom; 20] = [
     Window8Atom::DependencyUnit,
     Window8Atom::RelationBase,
     Window8Atom::Subtype,
@@ -54,6 +56,8 @@ const ATOMS: [Window8Atom; 18] = [
     Window8Atom::Basis,
     Window8Atom::Lexical,
     Window8Atom::Projection,
+    Window8Atom::Origins,
+    Window8Atom::RawFeatureQuery,
     Window8Atom::Ancestry,
     Window8Atom::StateProof,
     Window8Atom::CheckedHypothesis,
@@ -129,6 +133,14 @@ fn spec(atom: Window8Atom) -> Spec {
             &[F("projection")],
             false,
             None,
+        ),
+        Origins => (
+            LanguageParserProposalWindow8FeatureQuery::PREPARED_DESCRIPTOR,
+            &[F("origins")], false, None,
+        ),
+        RawFeatureQuery => (
+            LanguageParserProposalWindow8FeatureQuery::PREPARED_DESCRIPTOR,
+            &[F("raw")], false, None,
         ),
         Ancestry => (
             LanguageParserWindow8Ancestry::PREPARED_DESCRIPTOR,
@@ -212,7 +224,7 @@ impl PreparedWindow8Atoms {
             .ok_or(R::Pressure)?;
         let mut preparation = slots;
         let mut retained = slots;
-        let mut static_bytes = size_of::<[Window8Atom; 18]>();
+        let mut static_bytes = size_of::<[Window8Atom; 20]>();
         // Readiness, exact nested schema and all simultaneous reservations are
         // checked before the first owned bank allocation.
         for atom in ATOMS {
@@ -405,6 +417,33 @@ impl PreparedWindow8Atoms {
         entry.valid = result.is_ok();
         result
     }
+    /// Place named fields in the exact retained descriptor's order. This adds
+    /// no admission authority and allocates no runtime storage.
+    pub(crate) fn record_fields(
+        &mut self,
+        atom: Window8Atom,
+        supplied: &[(&str, Window8AtomField<'_>)],
+    ) -> Result<&[u8], Window8AtomRefusal> {
+        use Window8AtomRefusal as R;
+        // Invalid attempts must not leave an older successful observation live.
+        self.entries.get_mut(atom as usize).ok_or(R::Unavailable)?.valid = false;
+        let selected = spec(atom);
+        let schema = select_steps(selected.descriptor.type_bytes, selected.steps)
+            .map_err(|_| R::Type)?;
+        let Shape::Record(fields) = shape(schema).map_err(|_| R::Type)? else {
+            return Err(R::Type);
+        };
+        if supplied.is_empty() || supplied.len() > MAXIMUM_RECORD_FIELDS
+            || fields.len() != supplied.len() { return Err(R::Type); }
+        let mut ordered = [supplied[0].1; MAXIMUM_RECORD_FIELDS];
+        for (destination, field) in ordered.iter_mut().zip(fields) {
+            let (expected, _) = field.map_err(|_| R::Type)?;
+            let mut matches = supplied.iter().filter(|(name, _)| *name == expected);
+            *destination = matches.next().ok_or(R::Type)?.1;
+            if matches.next().is_some() { return Err(R::Type); }
+        }
+        self.record(atom, &ordered[..supplied.len()])
+    }
     pub(crate) fn variant(
         &mut self,
         atom: Window8Atom,
@@ -544,6 +583,27 @@ mod tests {
             ],
         )
         .unwrap();
+        bank.record_fields(
+            Window8Atom::DefaultRelation,
+            &[
+                ("subtype", Window8AtomField::Prepared(Window8Atom::Subtype)),
+                ("base", Window8AtomField::Prepared(Window8Atom::RelationBase)),
+            ],
+        ).unwrap();
+        for invalid in [
+            [("base", Window8AtomField::Prepared(Window8Atom::RelationBase)),
+             ("base", Window8AtomField::Prepared(Window8Atom::RelationBase))],
+            [("base", Window8AtomField::Prepared(Window8Atom::RelationBase)),
+             ("missing", Window8AtomField::Prepared(Window8Atom::Subtype))],
+        ] {
+            assert!(bank.record_fields(Window8Atom::DefaultRelation, &invalid).is_err());
+            assert!(matches!(bank.encoded(Window8Atom::DefaultRelation),
+                Err(Window8AtomRefusal::Unavailable)));
+        }
+        bank.record_fields(Window8Atom::DefaultRelation, &[
+            ("subtype", Window8AtomField::Prepared(Window8Atom::Subtype)),
+            ("base", Window8AtomField::Prepared(Window8Atom::RelationBase)),
+        ]).unwrap();
         bank.unsigned(u64::MAX).unwrap();
         bank.signed(i64::MIN).unwrap();
         bank.boolean(true).unwrap();

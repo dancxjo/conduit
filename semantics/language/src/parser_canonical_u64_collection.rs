@@ -21,7 +21,8 @@ pub(crate) struct PreparedParserU64Collection {
 }
 impl PreparedParserU64Collection {
     /// The complete preparation request ceiling is checked before output
-    /// allocation. No owned Type decoding is needed. Fixed parser beam widths are at most eight.
+    /// allocation. No owned Type decoding is needed. Exact fixed parser arrays
+    /// include eight token choices and the nine-slot stack/root sentinel.
     pub(crate) fn prepare<T: PreparedNativeRustBinding>(
         family: &PreparedNativeFamily,
         field_path: &[&str],
@@ -37,7 +38,7 @@ impl PreparedParserU64Collection {
         let Shape::Collection { element, length } = shape(selected).map_err(|_| R::Type)? else {
             return Err(R::Type);
         };
-        if !(1..=8).contains(&length)
+        if !(1..=9).contains(&length)
             || !matches!(
                 shape(element).map_err(|_| R::Type)?,
                 Shape::Leaf("value/u64")

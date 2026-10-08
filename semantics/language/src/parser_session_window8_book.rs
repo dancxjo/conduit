@@ -38,6 +38,7 @@ pub(crate) enum BookEvent {
     },
     Model {
         index: usize,
+        parent_source: usize,
         epoch: u64,
         model_call: u64,
     },
@@ -300,10 +301,20 @@ impl Window8Book {
     pub(crate) fn push_model(
         &mut self,
         history: ParserMixedHistory<ProposalWindow8V2NumericProfile>,
+        parent_source: usize,
         epoch: u64,
         model_call: u64,
     ) -> Result<usize, BookRefusal> {
         let n = &history.numeric;
+        let parent = self.source.get(parent_source).ok_or(BookRefusal::Revision)?;
+        let fixed = &crate::parser_session_window8_ports::PORTS[
+            crate::parser_session_window8_ports::port_index("language-proposal-window8-feature-context")
+                .ok_or(BookRefusal::Revision)?
+        ];
+        if !parent.matches_fixed(fixed.original_programs, fixed.original_custody,
+            fixed.input, fixed.output)
+            || parent.output_bytes() != n.features.input_bytes()
+        { return Err(BookRefusal::Revision); }
         if !core::ptr::eq(n.original_model.as_ref(), self.selection.categorical()) {
             return Err(BookRefusal::Revision);
         }
@@ -325,6 +336,7 @@ impl Window8Book {
         self.model.push(history);
         self.events.push(BookEvent::Model {
             index,
+            parent_source,
             epoch,
             model_call,
         });

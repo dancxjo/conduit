@@ -75,6 +75,11 @@ pub struct PreparedRevisionProducer {
     receipt: RevisionReceipt,
 }
 impl PreparedRevisionProducer {
+    /// Full original proposer definition retained by the actual Source port.
+    pub fn canonical_proposer_definition(&self) -> &[u8] {
+        self.producer.port.canonical_definition()
+    }
+
     pub fn prepare(
         producer: PreparedTokenProducer,
         limits: RevisionLimits,
