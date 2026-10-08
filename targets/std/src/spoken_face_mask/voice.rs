@@ -33,13 +33,16 @@ pub(super) fn primary_voice_clauses(
             && !matches!(subject_role(&wording.subject), Some(PresentationRole::Body))
     });
     let mut result = Vec::new();
-    if let Some(subject) = face.subjects.iter().find(|subject| {
-        primary(&subject.identity)
-            && matches!(
-                subject.role,
-                PresentationRole::Collection | PresentationRole::Document
-            )
-    }) {
+    let title = face.subjects.iter().find(|subject| {
+        matches!(
+            level(&subject.identity),
+            Some(PresentationDisclosureLevel::Context | PresentationDisclosureLevel::Primary)
+        ) && matches!(
+            subject.role,
+            PresentationRole::Collection | PresentationRole::Document
+        )
+    });
+    if let Some(subject) = title {
         result.push(format!("{}.", subject.name));
     }
     let mut omitted = false;
@@ -52,6 +55,9 @@ pub(super) fn primary_voice_clauses(
     ] {
         for wording in face.text.iter().filter(|wording| {
             level(&wording.subject) == expected
+                && !title.is_some_and(|subject| {
+                    wording.subject == subject.identity && wording.text == subject.name
+                })
                 && !(has_application_wording
                     && matches!(subject_role(&wording.subject), Some(PresentationRole::Body)))
         }) {

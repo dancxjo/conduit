@@ -192,12 +192,12 @@ fn direct_opening_bounds_long_collections_without_losing_full_reading() {
     });
     disclosures.push(PresentationDisclosure {
         subject: "todo/list".into(),
-        level: PresentationDisclosureLevel::Context,
+        level: PresentationDisclosureLevel::Primary,
     });
     subjects.push(PresentationSubject {
         identity: "todo/status".into(),
         role: PresentationRole::Status,
-        name: "3 remaining".into(),
+        name: "Progress".into(),
     });
     disclosures.push(PresentationDisclosure {
         subject: "todo/status".into(),
@@ -229,26 +229,32 @@ fn direct_opening_bounds_long_collections_without_losing_full_reading() {
         subjects,
         base.relationships,
         base.properties,
-        vec![
-            PresentationText {
-                subject: "todo/list".into(),
-                text: "Groceries".into(),
-            },
-            PresentationText {
-                subject: "todo/status".into(),
-                text: "3 remaining".into(),
-            },
-        ],
-        base.actions,
+        vec![PresentationText {
+            subject: "todo/status".into(),
+            text: "3 things left · 17 completed".into(),
+        }],
+        vec![PresentationAction {
+            identity: "todo.add".into(),
+            intent: "todo/add@1".into(),
+            target: "todo/list".into(),
+            name: "add an item".into(),
+            arguments: vec![
+                FaceActionArgument::text("text".into(), "Item text".into(), 1, 256).unwrap(),
+            ],
+            disclosure: PresentationDisclosureLevel::CurrentAction,
+            availability: PresentationActionAvailability::Available,
+        }],
         disclosures,
     )
     .unwrap();
     let opening = primary_face_clauses(&face).unwrap().join(" ");
-    assert!(opening.starts_with("Groceries 3 remaining"));
+    assert!(opening.starts_with("Groceries. 3 things left · 17 completed"));
+    assert!(!opening.contains("Progress"));
     for index in 0..3 {
         assert!(opening.contains(&format!("Open item {index}.")));
     }
     assert!(!opening.contains("Completed item"));
+    assert!(opening.contains("You can add an item."));
     let direct = crate::direct_spoken_mask_runtime::prepare_wording_items(&face).unwrap();
     let direct = std::str::from_utf8(direct.front().unwrap()).unwrap();
     assert!(direct.contains("Open item 2."));
