@@ -18,3 +18,11 @@ type FarganConditionHistoryTrace = {
 type FarganCommittedResultTrace = {
     result: FarganPcm16EpochResult
 }
+# Internal trace correlation, built from the same numerical pair and retained
+# feature event as the conditioning proposal. It is never a feedback state.
+type FarganTraceProposal = {
+    features: NumericF32Vector20
+    condition: NumericF32Vector320
+    next_history: NumericHistory2x64
+    epoch: U64
+}

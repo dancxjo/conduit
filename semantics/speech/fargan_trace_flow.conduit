@@ -1,0 +1,36 @@
+# Optional Source projection outputs; observed rows do not replace final PCM ACK.
+plot speech/flow-fargan-feature-condition-trace (
+    selected: FarganModelFrameAnchor
+    >> value: FarganTraceProposal...|
+    result: FarganFeatureConditionTrace...| >>
+) = {features: .features, condition: .condition, epoch: (.epoch + 0), model: selected}
+plot speech/flow-fargan-conditioning-history-trace (
+    selected: FarganModelFrameAnchor
+    >> value: FarganTraceProposal...|
+    result: FarganConditionHistoryTrace...| >>
+) = {next_history: .next_history, epoch: (.epoch + 0), model: selected}
+plot speech/flow-fargan-committed-result-trace (
+    >> value: FarganPcm16EpochResult...|
+    result: FarganCommittedResultTrace...| >>
+) = {result: .}
+
+# Diagnostic transport proof entry. Production placement uses the traced cycle
+# above; its original Source guards own proposal/final-result correlation.
+plot speech/flow-fargan-trace-projections (
+    selected: FarganModelFrameAnchor
+    >> provisional: FarganTraceProposal...|
+    >> accepted: FarganPcm16EpochResult...|
+    feature_trace: FarganFeatureConditionTrace...| >>
+    history_trace: FarganConditionHistoryTrace...| >>
+    pcm_trace: FarganCommittedResultTrace...| >>
+) {
+    features: speech/flow-fargan-feature-condition-trace (selected = selected)
+    history: speech/flow-fargan-conditioning-history-trace (selected = selected)
+    pcm: speech/flow-fargan-committed-result-trace
+    provisional >> features.value
+    provisional >> history.value
+    accepted >> pcm.value
+    features.result >> feature_trace
+    history.result >> history_trace
+    pcm.result >> pcm_trace
+}

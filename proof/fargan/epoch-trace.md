@@ -36,3 +36,28 @@ acceptance. A genuine longer Source timing profile must be shared by both
 realizations after full committed carrier admission; padding is not evidence.
 
 Run `cargo +stable test -p conduit-plot --test fargan_trace_envelopes`.
+
+The optional authored `*_traced.conduit` variants preserve the original three
+feedback domains and expose separate feature/conditioning, history and committed
+PCM observations. The trace proposal is admitted from the same numerical pair
+and original feature context as the conditioning proposal. Its model anchor is
+supplied by the already selected Source startup value in each projection.
+The original default Source plots are unchanged. A library-only Source probe
+checked and expanded the traced conditioning graph (47 nodes, 53 cords) and
+compound graph (800 nodes, 1180 cords); it executed no trained network.
+
+`development_trace_sink.rs` stages a validated row, consumes it transactionally,
+and records it only in `step_committed`. The isolated Source projection test
+checks reference/prepared evaluation parity and paused observation, cancellation
+before commit, duplicate refusal and zero allocation in step/commit. These are
+component transaction-frame tests. The added ordinary Plan/Play three-output
+transport and complete traced utterance expansion tests still require their
+integration test run; they are not claimed here as passing. Native all-row capture
+and whole-network C PCM differential remain pending the genuine committed basis.
+
+`fixed_storage_inventory.rs` measures a mechanical static envelope matching the
+existing harness capacities on this x86_64 host: 19,909,952 bytes, including a
+16,785,420-byte fixed value store and 1,441,840-byte fixed sign log. This excludes
+numerical Back storage, admitted model bytes/views, Source preparation metadata
+and all diagnostics. It instantiates no scheduler and executes no Source graph.
+No FARGAN boot entry currently exists; no_std compilation is not boot execution.
