@@ -199,7 +199,7 @@ pub mod fixed_numeric_catalog;
 pub mod fixed_numeric_codec;
 pub mod fixed_numeric_preparation;
 
-/// Shared immutable resource custody for fixed numerical reference operators.
-pub mod fixed_tensor_resource;
 /// Fixed unbiased reference projection over an exact tensor resource.
 pub mod fixed_tensor_linear;
+/// Shared immutable resource custody for fixed numerical reference operators.
+pub mod fixed_tensor_resource;
