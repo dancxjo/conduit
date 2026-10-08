@@ -84,6 +84,7 @@ pub use package_resolution::*;
 pub use structured_startup::*;
 pub use syntax::*;
 pub use syntax_highlight::*;
+pub use syntax_identity::syntax_source_document_identity;
 pub use value_pattern::*;
 pub use value_pattern_source::*;
 pub use variadic_front::*;

@@ -3,7 +3,7 @@ use crate::{
     hash_string, CanonicalStartupValue, CheckedCanonicalCord, CheckedCanonicalGear,
     CheckedCordStage, CheckedStartupParameter, PlotCompletionPolicy,
 };
-use conduit_core::CheckedPlotId;
+use conduit_core::{CheckedPlotId, SourceDocumentId};
 
 pub(crate) struct CheckedIdentityFront<'a> {
     pub parameters: &'a [CheckedStartupParameter],
@@ -394,5 +394,39 @@ pub(crate) fn canonical_value(value: &CanonicalStartupValue) -> String {
         CanonicalStartupValue::Structured(value) => {
             format!("structured:{}", value.canonical_identity())
         }
+    }
+}
+
+/// Compute the checked syntax document's existing lossless Source identity.
+/// This does not parse, type-check, admit Native laws, or grant resource authority.
+pub fn syntax_source_document_identity(source: &str) -> SourceDocumentId {
+    SourceDocumentId::from(crate::hash_string(&alloc::format!(
+        "canonical-source:{source}"
+    )))
+}
+
+#[cfg(test)]
+mod source_document_identity_tests {
+    use super::*;
+    #[test]
+    fn lossless_source_identity_matches_checked_document_and_existing_profile() {
+        let source = "type Sample = U8\n";
+        let checked = crate::check_syntax_document(
+            &crate::parse_syntax_document(source),
+            &crate::StartupCatalog::new(),
+        )
+        .unwrap();
+        assert_eq!(
+            syntax_source_document_identity(source),
+            checked.source_document_id
+        );
+        assert_eq!(
+            checked.source_document_id.as_str(),
+            "a830c522c34478f33b99845ca77339ae32c0559ac6894789678a9ad9c27654c6"
+        );
+        assert_ne!(
+            syntax_source_document_identity(source),
+            syntax_source_document_identity("type Sample = U8\n\n")
+        );
     }
 }
