@@ -49,6 +49,7 @@ pub struct PreparedLexicalDictionary {
     shards: Box<[Shard]>,
     entries: Vec<Entry>,
     identity: [u8; 32],
+    language: Box<str>,
     family: PreparedNativeFamily,
     receipt: LexicalDictionaryStorageReceipt,
     maximum_frame_bytes: usize,
@@ -123,7 +124,7 @@ impl PreparedLexicalDictionary {
         // actual preallocated index capacity. Sharing is conservatively ignored.
         let dictionary_bound = add(
             add(
-                add(size_of::<Self>(), frame_storage)?,
+                add(add(size_of::<Self>(), language.len())?, frame_storage)?,
                 mul(input.len(), size_of::<Shard>())?,
             )?,
             add(
@@ -217,10 +218,14 @@ impl PreparedLexicalDictionary {
             shards: shards.into_boxed_slice(),
             entries,
             identity,
+            language: language.into(),
             family,
             receipt,
             maximum_frame_bytes: limits.maximum_frame_bytes,
         })
+    }
+    pub fn language(&self) -> &str {
+        &self.language
     }
     pub const fn identity(&self) -> [u8; 32] {
         self.identity
