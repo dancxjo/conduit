@@ -1,4 +1,5 @@
-//! Actual cached-bank partial prefix replay; independent lexical consensus is checked separately.
+//! Actual cached-bank final clause replay; optional external references affect
+//! evaluation only. Independent lexical consensus is checked separately.
 #![cfg(feature = "parser-model-selection")]
 extern crate alloc;
 #[path = "common/window8_fact_replay.rs"]
@@ -67,10 +68,59 @@ fn actual_cached_window8_reviewed_clause_decode() {
     eprintln!("window8 cached corpus: fact Source preparation start");
     let fact_schema = facts::FactSchema::prepare();
     eprintln!("window8 cached corpus: fact Source preparation complete");
-    let rows: Value = serde_json::from_str(include_str!(
+    let teaching: Value = serde_json::from_str(include_str!(
         "../training/ewt_joint_v3_window8/reviewed_teaching.json"
     ))
     .unwrap();
+    let external = std::env::var_os("WINDOW8_EVALUATION_ROWS");
+    let evaluation = external.is_some();
+    let rows: Value = external.map_or_else(
+        || teaching.clone(),
+        |path| serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap(),
+    );
+    // Separate evidence prevents an evaluation from overwriting TRAIN receipts.
+    let output_directory = if evaluation {
+        PathBuf::from(
+            std::env::var_os("WINDOW8_EVALUATION_OUTPUT")
+                .expect("separate evaluation output directory"),
+        )
+    } else {
+        directory.clone()
+    };
+    std::fs::create_dir_all(&output_directory).unwrap();
+    if evaluation {
+        assert_ne!(
+            output_directory.canonicalize().unwrap(),
+            directory.canonicalize().unwrap(),
+            "evaluation must not overwrite model-directory TRAIN evidence"
+        );
+    }
+    assert!(!rows.as_array().unwrap().is_empty());
+    let mut identities = std::collections::BTreeSet::new();
+    for row in rows.as_array().unwrap() {
+        assert!(identities.insert(row["id"].as_str().unwrap()));
+        let count = row["forms"].as_array().unwrap().len();
+        assert!((1..=8).contains(&count));
+        for field in ["pos", "heads", "relations"] {
+            assert_eq!(row[field].as_array().unwrap().len(), count);
+        }
+        if evaluation {
+            assert!(
+                !teaching
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .any(|train| train["text"] == row["text"]),
+                "external evaluation text overlaps reviewed teaching data"
+            );
+        }
+    }
+    // No whole-training disjointness claim: that requires the model's complete
+    // supervision/membership manifest, beyond this teaching-overlap check.
+    let mut tokens = 0usize;
+    let mut correct_heads = 0usize;
+    let mut correct_base_labels = 0usize;
+    let mut correct_pos = 0usize;
     let default = LanguageParserRelation::new(
         LanguageUniversalDependencyRelation::Dep,
         LanguageParserSubtype::new("".into()).unwrap(),
@@ -317,21 +367,38 @@ fn actual_cached_window8_reviewed_clause_decode() {
                         == row["relations"][i].as_str().unwrap().split(':').next()
             });
         correct += usize::from(matches);
+        tokens += count;
+        for ordinal in 0..count {
+            let head_matches = predicted[ordinal]["head"] == row["heads"][ordinal];
+            correct_heads += usize::from(head_matches);
+            correct_base_labels += usize::from(
+                head_matches
+                    && predicted[ordinal]["base"].as_str()
+                        == row["relations"][ordinal]
+                            .as_str()
+                            .unwrap()
+                            .split(':')
+                            .next(),
+            );
+            correct_pos += usize::from(row["pos"][ordinal].as_u64() == Some(pos[ordinal]));
+        }
         eprintln!(
             "actual cached corpus window8 {id}: complete={complete}, exact_base_graph={matches}"
         );
-        receipts.push(json!({"id":id,"text":row["text"],"text_identity":source.material().identity().get(),"source_revision":source.material().revision().get(),"analysis_revision":basis.analysis_revision().get(),"source_material_bytes":bytes_hex(&source.clone().encode().unwrap()),"lexical_tape_bytes":bytes_hex(&tape.tape().clone().encode().unwrap()),"basis":bytes_hex(&basis.clone().encode().unwrap()),"state_proof_bytes":bytes_hex(&state.proof().clone().encode().unwrap()),"choices":preferred.choices(),"pos":pos,"predicted":predicted,"complete":complete,"lexical_fact_bytes":fact_bytes,"lexical_fact_refusal":fact_refusal,"epochs":epochs,"root_sentinel":8,"reviewed_train_teaching_demonstration":true,"model_content":model::hex(selected.compatibility().model_content),"feature_contract":model::hex(contracts.feature_contract),"choice_contract":model::hex(contracts.joint_choice_contract)}));
+        receipts.push(json!({"id":id,"text":row["text"],"text_identity":source.material().identity().get(),"source_revision":source.material().revision().get(),"analysis_revision":basis.analysis_revision().get(),"source_material_bytes":bytes_hex(&source.clone().encode().unwrap()),"lexical_tape_bytes":bytes_hex(&tape.tape().clone().encode().unwrap()),"basis":bytes_hex(&basis.clone().encode().unwrap()),"state_proof_bytes":bytes_hex(&state.proof().clone().encode().unwrap()),"choices":preferred.choices(),"pos":pos,"predicted":predicted,"complete":complete,"lexical_fact_bytes":fact_bytes,"lexical_fact_refusal":fact_refusal,"epochs":epochs,"root_sentinel":8,"reviewed_train_teaching_demonstration":!evaluation,"external_evaluation_references":evaluation,"model_content":model::hex(selected.compatibility().model_content),"feature_contract":model::hex(contracts.feature_contract),"choice_contract":model::hex(contracts.joint_choice_contract)}));
         std::fs::write(
-            directory.join("native_cached_clause_rows.json"),
+            output_directory.join("native_cached_clause_rows.json"),
             serde_json::to_vec_pretty(&receipts).unwrap(),
         )
         .unwrap();
     }
-    let result = json!({"receipts":receipts,"exact_reference_teaching_graphs":correct,"examples":rows.as_array().unwrap().len(),"actual_model_invocations":invocations,"admitted_inference_bound":4096,"elapsed_nanos":started.elapsed().as_nanos().to_string(),"heldout_accuracy_claim":false,"stable_or_played_fact_claim":false});
+    let result = json!({"receipts":receipts,"exact_base_graphs":correct,"exact_reference_teaching_graphs":if evaluation {None} else {Some(correct)},"examples":rows.as_array().unwrap().len(),"actual_model_invocations":invocations,"admitted_inference_bound":4096,"elapsed_nanos":started.elapsed().as_nanos().to_string(),"heldout_accuracy_claim":false,"stable_or_played_fact_claim":false,"external_evaluation_references":evaluation,"training_membership_disjointness_verified":false,"metric_token_scope":"all supplied tokens including punctuation; universal base labels only, subtypes excluded","tokens":tokens,"correct_heads":correct_heads,"correct_base_labels":correct_base_labels,"correct_pos":correct_pos,"uas":correct_heads as f64 / tokens as f64,"base_las":correct_base_labels as f64 / tokens as f64,"pos_accuracy":correct_pos as f64 / tokens as f64});
     std::fs::write(
-        directory.join("native_cached_clause_decode.json"),
+        output_directory.join("native_cached_clause_decode.json"),
         serde_json::to_vec_pretty(&result).unwrap(),
     )
     .unwrap();
-    assert_eq!(correct, rows.as_array().unwrap().len());
+    if !evaluation {
+        assert_eq!(correct, rows.as_array().unwrap().len());
+    }
 }
