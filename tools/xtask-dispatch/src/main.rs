@@ -10,6 +10,11 @@ use std::path::PathBuf;
 #[path = "../../xtask/src/commands/host_release.rs"]
 mod host_release;
 
+// Share the exact catalog sealer and validator with the full xtask. The
+// catalog command needs neither its other product nor hardware dependencies.
+#[path = "../../xtask/src/commands/host_release_catalog.rs"]
+mod host_release_catalog;
+
 const HOST_RELEASE_BOOTSTRAP_ENV: &str = "CONDUIT_XTASK_HOST_RELEASE_BOOTSTRAP";
 const HOST_RELEASE_REQUESTED_TARGET_ENV: &str = "CONDUIT_XTASK_HOST_RELEASE_REQUESTED_TARGET";
 
@@ -148,6 +153,13 @@ fn main() {
         #[cfg(not(feature = "host-release"))]
         launch_host_release(options);
     }
+    if let Some(options) = host_release_catalog_options(&arguments) {
+        if let Err(error) = run_host_release_catalog(options) {
+            eprintln!("xtask error: {error}");
+            std::process::exit(1);
+        }
+        return;
+    }
     if arguments.first().map(String::as_str) != Some("ci") {
         let status = std::process::Command::new("cargo")
             .args(["run", "--package", "xtask", "--"])
@@ -166,6 +178,96 @@ fn main() {
     if let Err(error) = result {
         eprintln!("xtask error: {error}");
         std::process::exit(1);
+    }
+}
+
+fn host_release_catalog_options(arguments: &[String]) -> Option<&[String]> {
+    match arguments {
+        [host, catalog, options @ ..] if host == "host" && catalog == "release-catalog" => {
+            Some(options)
+        }
+        [make, host, catalog, options @ ..]
+            if make == "make" && host == "host" && catalog == "release-catalog" =>
+        {
+            Some(options)
+        }
+        _ => None,
+    }
+}
+
+fn run_host_release_catalog(options: &[String]) -> Result<(), Box<dyn std::error::Error>> {
+    let mut root = None;
+    let mut generation = None;
+    let mut dry_run = false;
+    let mut json = false;
+    let mut quiet = false;
+    let mut values = options.iter();
+    while let Some(argument) = values.next() {
+        match argument.as_str() {
+            "--locked" => {}
+            "--dry-run" => dry_run = true,
+            "--json" => json = true,
+            "--quiet" => quiet = true,
+            "--root" => {
+                root = Some(std::path::PathBuf::from(
+                    values.next().ok_or("missing --root path")?,
+                ))
+            }
+            "--generation" => {
+                generation = Some(
+                    values
+                        .next()
+                        .ok_or("missing --generation value")?
+                        .parse::<u64>()?,
+                );
+            }
+            other => {
+                return Err(format!("unsupported host release-catalog argument: {other}").into())
+            }
+        }
+    }
+    host_release_catalog::run(
+        &root.ok_or("host release-catalog requires --root")?,
+        generation.ok_or("host release-catalog requires --generation")?,
+        dry_run,
+        json,
+        quiet,
+    )
+}
+
+#[cfg(test)]
+mod release_catalog_dispatch_tests {
+    use super::*;
+    use std::fs;
+
+    #[test]
+    fn dispatcher_seals_identical_bytes_to_full_xtask_implementation() {
+        let base = std::env::temp_dir().join(format!(
+            "conduit-release-catalog-dispatch-{}",
+            std::process::id()
+        ));
+        let direct = base.join("direct");
+        let dispatched = base.join("dispatched");
+        fs::create_dir_all(&direct).unwrap();
+        fs::create_dir_all(&dispatched).unwrap();
+        let manifest = br#"{"schema":"conduit.release/host-bundle@1","target_id":"std/x86_64/computer","make_package_id":"conduit-host-hosted@1","output":"native-bundle","builder_adapter":"conduit-host-hosted/build-native@1","deployment_adapter":"hosted/install@1"}"#;
+        fs::write(direct.join("host.json"), manifest).unwrap();
+        fs::write(dispatched.join("host.json"), manifest).unwrap();
+
+        host_release_catalog::run(&direct, 7, false, false, true).unwrap();
+        run_host_release_catalog(&[
+            "--root".into(),
+            dispatched.to_string_lossy().into_owned(),
+            "--generation".into(),
+            "7".into(),
+            "--quiet".into(),
+        ])
+        .unwrap();
+        assert_eq!(
+            fs::read(direct.join("release-catalog.json")).unwrap(),
+            fs::read(dispatched.join("release-catalog.json")).unwrap()
+        );
+        fs::remove_dir_all(base).unwrap();
     }
 }
 
@@ -361,7 +463,7 @@ mod dependency_boundary_tests {
             .collect::<BTreeSet<_>>();
         assert_eq!(
             non_optional,
-            BTreeSet::from(["serde", "serde_json", "sha2", "toml"])
+            BTreeSet::from(["conduit-host-make", "serde", "serde_json", "sha2", "toml"])
         );
         assert!(dependencies["conduit-host-browser-make"]["optional"]
             .as_bool()

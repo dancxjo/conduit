@@ -1660,6 +1660,7 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "conduit-host-browser-make",
+ "conduit-host-make",
  "serde",
  "serde_json",
  "sha2 0.10.9",
