@@ -2,6 +2,7 @@
 
 //! The Todo Plot's bounded semantic Face contribution. Masks decide how to
 //! render it; this crate never stores Todo state or executes a user action.
+//! Projection allocates while preparing a Face and is not a kernel Step Back.
 
 extern crate alloc;
 
