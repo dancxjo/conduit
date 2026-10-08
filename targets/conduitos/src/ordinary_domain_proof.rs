@@ -2,6 +2,7 @@
 use crate::{arch, boot, identity, offer, ordinary_plan, text_composition};
 
 mod gates;
+mod morse;
 mod retained_text;
 mod timer;
 
@@ -42,6 +43,7 @@ pub fn run(record: &boot::BootRecord) -> ! {
     let plan = prepared.plan.clone();
     drop(prepared);
     gates::run(&plan, &offer);
+    morse::run(&plan, &offer);
     keymap_entries();
     retained_text::run(&plan, &offer);
     hostile_entries();

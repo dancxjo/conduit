@@ -262,9 +262,16 @@ fn build_region(
             conduit_semantic_catalog::TEXT_PRESENTATION_KIND,
         ])
     });
+    let tour_morse = exact_kinds(&[
+        conduit_text::TEXT_LITERAL_KIND,
+        conduit_text::TEXT_UPPER_KIND,
+        conduit_text::TEXT_MORSE_KIND,
+        conduit_semantic_catalog::TEXT_PRESENTATION_KIND,
+        conduit_semantic_catalog::INDICATOR_PRESENTATION_KIND,
+    ]);
     let protected = cfg!(conduitos_protected_execution)
         && matches!(region_id, "region/0" | "region/text")
-        && (ordinary_text || keyboard_text);
+        && (ordinary_text || keyboard_text || tour_morse);
     let cord_item_capacity = region_connections(fragment, &admitted_placements)
         .try_fold(0u32, |total, connection| {
             total.checked_add(u32::from(connection.item_capacity))

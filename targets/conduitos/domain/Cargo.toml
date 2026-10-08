@@ -13,6 +13,8 @@ path = "main.rs"
 [dependencies]
 conduit-human = { path = "../../../semantics/human" }
 
+conduit-text = { path = "../../../semantics/text", default-features = false }
+
 [features]
 proof = []
 

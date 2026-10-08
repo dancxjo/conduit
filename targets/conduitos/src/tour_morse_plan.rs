@@ -22,7 +22,10 @@ const CORD_BYTES: u32 = conduit_text::MAX_TEXT_BYTES;
 
 pub struct PreparedTourMorsePlay {
     pub kernel: TourMorseKernel,
+    #[cfg(not(conduitos_protected_execution))]
     pub scratch: crate::tour_morse_play::MorseScratch,
+    #[cfg(conduitos_protected_execution)]
+    pub(crate) protected: crate::text_protection::ProtectedMorse,
     pub plan: Plan,
     pub source_document_id: conduit_core::SourceDocumentId,
     pub checked_plot_id: conduit_core::CheckedPlotId,
@@ -74,12 +77,19 @@ pub fn prepare(
     }
     let kernel = TourMorseKernel::prepare(fragment, &lowered, LITERAL)
         .map_err(|_| PreparationError::KernelRejected)?;
+    #[cfg(not(conduitos_protected_execution))]
     let scratch = crate::tour_morse_play::MorseScratch::prepared()
         .map_err(|_| PreparationError::KernelRejected)?;
     let active_play = bind_active_play(&plan.plan_id, &fragment.host_id, &fragment.boot_id, 0);
+    #[cfg(conduitos_protected_execution)]
+    let protected = crate::text_protection::ProtectedMorse::prepare(&plan, &active_play, offer)
+        .map_err(|_| PreparationError::KernelRejected)?;
     Ok(PreparedTourMorsePlay {
         kernel,
+        #[cfg(not(conduitos_protected_execution))]
         scratch,
+        #[cfg(conduitos_protected_execution)]
+        protected,
         source_document_id: plan.source_document_id.clone(),
         checked_plot_id: plan.checked_plot_id.clone(),
         expanded_plot_id: plan.expanded_plot_id.clone(),

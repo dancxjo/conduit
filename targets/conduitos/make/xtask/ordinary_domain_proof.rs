@@ -156,12 +156,13 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
             "the diagnostic editor must retain state across a bounded capacity refusal",
         ));
     }
+    super::protected_morse_proof::validate(&transcript)?;
     let costs = transcript
         .lines()
         .filter_map(|line| line.strip_prefix("CONDUIT_DOMAIN_COST "))
         .filter(|line| {
             serde_json::from_str::<serde_json::Value>(line)
-                .map(|value| value["fixture"] != true)
+                .map(|value| value["fixture"] != true && value["entries"] == 3)
                 .unwrap_or(true)
         })
         .collect::<Vec<_>>();
