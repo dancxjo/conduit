@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -116,9 +116,12 @@ function fixture({ guestAudio = false } = {}) {
   return { root, manifest, story };
 }
 
-test('complete fixture renders task sequence in shared shell with real media links', () => {
+test('complete fixture renders task sequence in shared shell with real media links', t => {
   const { root } = fixture();
-  const destination = path.join(mkdtempSync(path.join(tmpdir(), 'todo-render-')), 'todo');
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const outputRoot = mkdtempSync(path.join(tmpdir(), 'todo-render-'));
+  t.after(() => rmSync(outputRoot, { recursive: true, force: true }));
+  const destination = path.join(outputRoot, 'todo');
   renderTodoJourney(root, destination, commit, '.site-header{}', '<header class="site-header">Common navigation</header>', { checkAncestry: false });
   const html = readFileSync(path.join(destination, 'index.html'), 'utf8');
   assert.match(html, /Common navigation/);
@@ -128,8 +131,9 @@ test('complete fixture renders task sequence in shared shell with real media lin
   assert.equal((html.match(/<article id=/g) || []).length, 8);
 });
 
-test('rejects partial and mixed evidence before publication', () => {
+test('rejects partial and mixed evidence before publication', t => {
   const { root, manifest, story } = fixture();
+  t.after(() => rmSync(root, { recursive: true, force: true }));
   story[0].media = [];
   const journey = Buffer.from(JSON.stringify({ ...base, schema: 'conduit.journey/todo@1',
     producer_terminal_receipt_id: 'producer-terminal', chapters: story }));
@@ -139,13 +143,15 @@ test('rejects partial and mixed evidence before publication', () => {
   writeFileSync(path.join(root, 'manifest.json'), JSON.stringify(manifest));
   assert.throws(() => validateTodoJourney(root, commit, { checkAncestry: false }), /birth has no captured medium/);
   const complete = fixture();
+  t.after(() => rmSync(complete.root, { recursive: true, force: true }));
   complete.manifest.outputs.find(output => output.id === 'join-media-0').scenario_id = 'another-run';
   writeFileSync(path.join(complete.root, 'manifest.json'), JSON.stringify(complete.manifest));
   assert.throws(() => validateTodoJourney(complete.root, commit, { checkAncestry: false }), /mixed run/);
 });
 
-test('rejects substituted speech PCM even when the WAV file digest is updated', () => {
+test('rejects substituted speech PCM even when the WAV file digest is updated', t => {
   const { root, manifest } = fixture();
+  t.after(() => rmSync(root, { recursive: true, force: true }));
   const output = manifest.outputs.find(item => item.id === 'hear-media-0');
   const file = path.join(root, output.path);
   const bytes = readFileSync(file);
@@ -170,8 +176,9 @@ test('rejects substituted speech PCM even when the WAV file digest is updated', 
   assert.throws(() => validateTodoJourney(root, commit, { checkAncestry: false }), /audio differs from claimed delivered Play PCM/);
 });
 
-test('guest WAV may package the exact raw QEMU PCM but refuses another run output', () => {
+test('guest WAV may package the exact raw QEMU PCM but refuses another run output', t => {
   const { root, manifest } = fixture({ guestAudio: true });
+  t.after(() => rmSync(root, { recursive: true, force: true }));
   validateTodoJourney(root, commit, { checkAncestry: false });
   const output = manifest.outputs.find(item => item.id === 'hear-qemu-output');
   const bytes = Buffer.from(readFileSync(path.join(root, output.path)));
@@ -189,8 +196,9 @@ test('guest WAV may package the exact raw QEMU PCM but refuses another run outpu
   assert.throws(() => validateTodoJourney(root, commit, { checkAncestry: false }), /published WAV differs from same-run QEMU PCM/);
 });
 
-test('rejects stale Face and source commit drift', () => {
+test('rejects stale Face and source commit drift', t => {
   const { root, manifest } = fixture();
+  t.after(() => rmSync(root, { recursive: true, force: true }));
   const output = manifest.outputs.find(item => item.id === 'complete-receipt');
   const receipt = JSON.parse(readFileSync(path.join(root, output.path)));
   receipt.face_revision = 999;
