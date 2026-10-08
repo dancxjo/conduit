@@ -90,6 +90,7 @@ pub use revision_lineage::*;
 
 pub mod lexical;
 pub mod lexical_proposer_resource;
+pub mod lexical_proposer_port;
 pub use generated::{
     LanguageLexicalProposalOrigin, LanguageLexicalProposalQuery, LanguageLexicalProposedTape,
     LanguageLexicalProposerDefinition, LanguageLexicalReviewedOrigin, LanguageLexicalTokenProposal,
