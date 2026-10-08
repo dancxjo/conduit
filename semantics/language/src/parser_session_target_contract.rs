@@ -12,6 +12,7 @@ pub struct ParserSessionTargetStorageContract {
     execution_temporary_bytes: usize,
     maximum_input_bytes: usize,
     maximum_output_bytes: usize,
+    shared_storage_excluded: bool,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ParserSessionTargetContractRefusal {
@@ -45,7 +46,29 @@ impl ParserSessionTargetStorageContract {
             execution_temporary_bytes,
             maximum_input_bytes,
             maximum_output_bytes,
+            shared_storage_excluded: false,
         })
+    }
+    /// Declares only this target's private retained storage. The complete shared
+    /// immutable owner must be returned by shared_storage_owner and is charged
+    /// separately by exact Rc identity. This remains an opaque target obligation.
+    pub fn excluding_shared_storage(
+        retained_bytes: usize,
+        execution_temporary_bytes: usize,
+        maximum_input_bytes: usize,
+        maximum_output_bytes: usize,
+    ) -> Result<Self, ParserSessionTargetContractRefusal> {
+        let mut contract = Self::new(
+            retained_bytes,
+            execution_temporary_bytes,
+            maximum_input_bytes,
+            maximum_output_bytes,
+        )?;
+        contract.shared_storage_excluded = true;
+        Ok(contract)
+    }
+    pub(crate) fn shared_storage_excluded(self) -> bool {
+        self.shared_storage_excluded
     }
     pub fn retained_bytes(self) -> usize {
         self.retained_bytes
@@ -72,6 +95,12 @@ pub trait ParserSessionPreparedTarget: ParserSessionExecutor {
     fn expanded_source(&self) -> &ExpandedAuthoringPlot;
     fn original_plan_owner(&self) -> Rc<Plan>;
     fn storage_contract(&self) -> ParserSessionTargetStorageContract;
+    fn shared_storage_owner(
+        &self,
+    ) -> Option<&Rc<crate::parser_session_shared_target_storage::ParserSessionSharedTargetStorage>>
+    {
+        None
+    }
 }
 #[cfg(test)]
 mod tests {
@@ -121,5 +150,24 @@ impl<E: ParserSessionExecutor> Drop for ParserTargetPreparationGuard<E> {
         if let Some(target) = &mut self.target {
             target.cancel();
         }
+    }
+}
+
+/// Allocation-free individual target reservation. Legacy full-storage contracts
+/// may supply an owner but never subtract it from their already complete charge.
+pub(crate) fn target_declared_bytes<T: ParserSessionPreparedTarget>(target: &T) -> Option<usize> {
+    let contract = target.storage_contract();
+    if contract.shared_storage_excluded() {
+        contract
+            .combined_bytes()
+            .checked_add(target.shared_storage_owner()?.declared_retained_bytes())
+    } else {
+        Some(contract.combined_bytes())
+    }
+}
+pub(crate) fn validate_shared_source_owner<T: ParserSessionPreparedTarget>(target: &T) -> bool {
+    match target.shared_storage_owner() {
+        Some(owner) => owner.validate_source_owner(target.checked_source()).is_ok(),
+        None => !target.storage_contract().shared_storage_excluded(),
     }
 }

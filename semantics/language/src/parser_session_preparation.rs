@@ -1,17 +1,16 @@
 //! Closed whole-Session preparation. No port or model can consume ingress until
 //! all original plans, complete Native families and Source owners are ready.
 use crate::{
-    LanguageParserV2ChoiceQuery, LanguageParserV2ModelScores,
     parser_production_families::{
         PreparedProductionParserFamilies, ProductionFamilyLimits, ProductionFamilyRefusal,
     },
     parser_session_canonical_ingress::ParserCanonicalSourceExecutor,
     parser_session_fixed_ingress::{FixedRefusal, PreparedParserFixedIngress},
-    parser_session_fixed_preparation::{FixedPreparationLimits, prepare_fixed_target},
+    parser_session_fixed_preparation::{prepare_fixed_target, FixedPreparationLimits},
     parser_session_historical_base::{HistoricalBaseRefusal, ParserSessionHistoricalBase},
     parser_session_mixed_preparation::{
-        MixedPreparationLimits, MixedPreparationRefusal, OwnedNumericTarget, OwnedSourceTarget,
-        prepare_mixed_targets,
+        prepare_mixed_targets, MixedPreparationLimits, MixedPreparationRefusal, OwnedNumericTarget,
+        OwnedSourceTarget,
     },
     parser_session_numeric_custody::ParserNumericExecutor,
     parser_session_profile::{
@@ -21,7 +20,8 @@ use crate::{
         ParserQueryPreparationLimits, ParserQueryRefusal, PreparedParserSessionQueries,
     },
     parser_session_target_contract::ParserSessionPreparedTarget,
-    parser_session_target_registry::{ParserSessionTargetRegistry, REQUIRED, RegistryRefusal},
+    parser_session_target_registry::{ParserSessionTargetRegistry, RegistryRefusal, REQUIRED},
+    LanguageParserV2ChoiceQuery, LanguageParserV2ModelScores,
 };
 use alloc::{rc::Rc, vec::Vec};
 use conduit_core::Plan;
@@ -76,8 +76,11 @@ struct PendingSessionTargets<
     source: Option<S>,
     numeric: Option<N>,
 }
-impl<E: ParserSessionPreparedTarget, S: ParserSessionPreparedTarget, N: ParserSessionPreparedTarget>
-    Drop for PendingSessionTargets<E, S, N>
+impl<
+        E: ParserSessionPreparedTarget,
+        S: ParserSessionPreparedTarget,
+        N: ParserSessionPreparedTarget,
+    > Drop for PendingSessionTargets<E, S, N>
 {
     fn drop(&mut self) {
         for target in &mut self.targets {
@@ -156,6 +159,53 @@ where
     }
     existing = add(existing, source.storage_contract().combined_bytes()).ok_or(R::Pressure)?;
     existing = add(existing, numeric.storage_contract().combined_bytes()).ok_or(R::Pressure)?;
+    // Private target charges exclude shared owners only under the explicit
+    // contract. The exact immutable Rc is charged once across all selected ports.
+    for missing in targets
+        .iter()
+        .map(|t| {
+            t.storage_contract().shared_storage_excluded() && t.shared_storage_owner().is_none()
+        })
+        .chain(core::iter::once(
+            source.storage_contract().shared_storage_excluded()
+                && source.shared_storage_owner().is_none(),
+        ))
+        .chain(core::iter::once(
+            numeric.storage_contract().shared_storage_excluded()
+                && numeric.shared_storage_owner().is_none(),
+        ))
+    {
+        if missing {
+            return Err(R::Pressure);
+        }
+    }
+    let shared = crate::parser_session_shared_target_storage::shared_declared_bytes(
+        targets
+            .iter()
+            .map(|t| {
+                if t.storage_contract().shared_storage_excluded() {
+                    t.shared_storage_owner()
+                } else {
+                    None
+                }
+            })
+            .chain(core::iter::once(
+                if source.storage_contract().shared_storage_excluded() {
+                    source.shared_storage_owner()
+                } else {
+                    None
+                },
+            ))
+            .chain(core::iter::once(
+                if numeric.storage_contract().shared_storage_excluded() {
+                    numeric.shared_storage_owner()
+                } else {
+                    None
+                },
+            )),
+    )
+    .map_err(|_| R::Pressure)?;
+    existing = add(existing, shared).ok_or(R::Pressure)?;
     let historical_owner = size_of::<ParserSessionHistoricalBase>()
         .checked_add(2 * size_of::<usize>())
         .and_then(|n| n.checked_add(4 * core::mem::align_of::<ParserSessionHistoricalBase>()))

@@ -45,6 +45,9 @@ mod parser_session_revision_stage;
 #[path = "../src/parser_session_fixed_bindings.rs"]
 mod parser_session_fixed_bindings;
 
+#[path = "../src/parser_session_shared_target_storage.rs"]
+mod parser_session_shared_target_storage;
+
 #[path = "../src/parser_session_target_contract.rs"]
 mod parser_session_target_contract;
 
@@ -234,12 +237,10 @@ fn complete_fixed_query_bank_preserves_native_input_and_refuses_aggregate_pressu
         .decode::<LanguageAnalysisRevisionId>(nominal.leaf(b"session/analysis/1").unwrap())
         .unwrap();
     // Canonical framing does not waive the original nominal value contract.
-    assert!(
-        family
-            .borrow_mut()
-            .decode::<LanguageAnalysisRevisionId>(nominal.leaf(&[b'x'; 65]).unwrap())
-            .is_err()
-    );
+    assert!(family
+        .borrow_mut()
+        .decode::<LanguageAnalysisRevisionId>(nominal.leaf(&[b'x'; 65]).unwrap())
+        .is_err());
     assert!(matches!(
         parser_canonical_nominal::PreparedParserNominal::prepare::<LanguageParserSessionSeedRequest>(
             &family.borrow(),
@@ -416,7 +417,7 @@ impl parser_session_target_contract::ParserSessionPreparedTarget for &mut Kernel
 #[test]
 fn actual_kernel_fixed_seed_preparation_execution_replay_and_late_output_refusal() {
     use parser_session_execution::{
-        ParserSessionEntry as Entry, verification::PreparedSourceVerification,
+        verification::PreparedSourceVerification, ParserSessionEntry as Entry,
     };
     use parser_session_fixed_ingress::{FixedRefusal, ParserFixedFrames};
     use parser_session_fixed_preparation::*;
@@ -614,7 +615,7 @@ fn actual_kernel_complete_mixed_factory_preserves_original_plans_and_cancels_bot
     use numeric_custody::{ParserNumericFrames, ParserNumericReadmissionBudget};
     use parser_session_canonical_ingress::PreparedParserExecutionFrames;
     use parser_session_execution::{
-        ParserSessionEntry as Entry, verification::PreparedSourceVerification,
+        verification::PreparedSourceVerification, ParserSessionEntry as Entry,
     };
     use parser_session_mixed_preparation::*;
     const GIB: usize = 1024 * 1024 * 1024;
@@ -861,6 +862,9 @@ fn whole_session_preparation_refuses_aggregate_budget_before_metadata_or_ingress
             panic!("Plan owner must not be reached")
         }
         fn storage_contract(&self) -> ParserSessionTargetStorageContract {
+            if self.0 == "missing-shared" {
+                return ParserSessionTargetStorageContract::excluding_shared_storage(1, 0, 1, 1).unwrap();
+            }
             ParserSessionTargetStorageContract::new(1, 0, 1, 1).unwrap()
         }
     }
@@ -928,6 +932,19 @@ fn whole_session_preparation_refuses_aggregate_budget_before_metadata_or_ingress
         refused,
         Err(ParserSessionPreparationRefusal::Pressure)
     ));
+    assert_eq!(cancellations.get(), 30);
+    cancellations.set(0);
+    let mut missing_owner_limits = limits;
+    missing_owner_limits.maximum_combined_bytes = usize::MAX;
+    let refused = prepare_session_owners(
+        parser_session_target_registry::REQUIRED.iter()
+            .map(|entry| Target(entry.name(), cancellations.clone())).collect(),
+        Target("missing-shared", cancellations.clone()),
+        NumericTargetBridge(Target("model", cancellations.clone())),
+        parser_session_profile::ParserSessionProfile::PinnedFourSlotV2(selection.clone()),
+        missing_owner_limits,
+    );
+    assert!(matches!(refused, Err(ParserSessionPreparationRefusal::Pressure)));
     assert_eq!(cancellations.get(), 30);
     cancellations.set(0);
     let targets = (0..28)

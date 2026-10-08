@@ -1,15 +1,14 @@
 //! Complete original Source/model preparation before ingress.
 //! The enclosing Session additionally reserves all histories and revision policy.
 use crate::{
-    LanguageParserV2ChoiceQuery, LanguageParserV2ModelFeatures, LanguageParserV2ModelScores,
     parser_model_selection::PreparedParserModelSelection,
     parser_session_canonical_ingress::{
         ParserCanonicalIngressLimits, ParserCanonicalSourceExecutor,
         PreparedCanonicalParserSessionPort,
     },
     parser_session_execution::{
-        ParserSessionEntry as Entry, ParserSessionVerificationLimits,
-        verification::PreparedSourceVerification,
+        verification::PreparedSourceVerification, ParserSessionEntry as Entry,
+        ParserSessionVerificationLimits,
     },
     parser_session_fixed_ingress::ParserSessionExecutor,
     parser_session_mixed_custody::PreparedParserMixedCustody,
@@ -28,6 +27,7 @@ use crate::{
         ParserSessionPreparedTarget, ParserSessionTargetStorageContract,
     },
     parser_source_native_parity::verify_source_native_parity,
+    LanguageParserV2ChoiceQuery, LanguageParserV2ModelFeatures, LanguageParserV2ModelScores,
 };
 use alloc::{rc::Rc, sync::Arc};
 use conduit_ai::integer_categorical_step::{
@@ -194,6 +194,10 @@ where
     let numeric = numeric_preparation.get();
     let source_contract = source.storage_contract();
     let numeric_contract = numeric.storage_contract();
+    let source_declared =
+        crate::parser_session_target_contract::target_declared_bytes(source).ok_or(R::Pressure)?;
+    let numeric_declared =
+        crate::parser_session_target_contract::target_declared_bytes(numeric).ok_or(R::Pressure)?;
     let source_plan = source.original_plan_owner();
     let numeric_plan = numeric.original_plan_owner();
     let source = OwnedSourceTarget {
@@ -213,8 +217,8 @@ where
         .ok_or(R::Pressure)?;
     let mut combined = limits.other_existing_session_reserved_bytes;
     for bytes in [
-        source_contract.combined_bytes(),
-        numeric_contract.combined_bytes(),
+        source_declared,
+        numeric_declared,
         limits
             .verification
             .preparation_peak_bytes
@@ -231,7 +235,9 @@ where
     if combined > limits.maximum_combined_bytes || limits.maximum_invocations == 0 {
         return Err(R::Pressure);
     }
-    if selection.declaration().is_some()
+    if !crate::parser_session_target_contract::validate_shared_source_owner(&source.target)
+        || !crate::parser_session_target_contract::validate_shared_source_owner(&numeric.target)
+        || selection.declaration().is_some()
         || source.target.original_plan() != source_plan.as_ref()
         || ParserSessionExecutor::original_plan(&numeric.target) != numeric_plan.as_ref()
         || ParserNumericExecutor::plan(&numeric.target) != numeric_plan.as_ref()

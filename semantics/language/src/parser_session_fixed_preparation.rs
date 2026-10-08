@@ -2,8 +2,8 @@
 use crate::{
     parser_production_families::port_descriptors,
     parser_session_execution::{
-        ParserSessionEntry, ParserSessionVerificationLimits, ParserSessionVerificationReceipt,
-        verification::PreparedSourceVerification,
+        verification::PreparedSourceVerification, ParserSessionEntry,
+        ParserSessionVerificationLimits, ParserSessionVerificationReceipt,
     },
     parser_session_fixed_bindings::prepare_fixed_binding,
     parser_session_fixed_ingress::{FixedRefusal, PreparedParserFixedIngress},
@@ -12,7 +12,7 @@ use crate::{
         validate_fixed_source_plan_seal, validate_fixed_source_plan_structure,
     },
     parser_session_source_plan_storage::{
-        SourcePlanPreparationReservation, source_plan_preparation_reservation,
+        source_plan_preparation_reservation, SourcePlanPreparationReservation,
     },
     parser_session_target_contract::ParserSessionPreparedTarget,
     parser_source_native_parity::verify_source_native_parity,
@@ -55,7 +55,10 @@ pub(crate) fn prepare_fixed_target<E: ParserSessionPreparedTarget>(
     // allocation. Opaque existing target storage remains the target's contract.
     let combined = limits
         .other_existing_session_reserved_bytes
-        .checked_add(contract.combined_bytes())
+        .checked_add(
+            crate::parser_session_target_contract::target_declared_bytes(executor)
+                .ok_or(R::Pressure)?,
+        )
         .and_then(|n| {
             n.checked_add(
                 family
@@ -88,6 +91,9 @@ pub(crate) fn prepare_fixed_target<E: ParserSessionPreparedTarget>(
         {
             return Err(R::Descriptor);
         }
+    }
+    if !crate::parser_session_target_contract::validate_shared_source_owner(executor) {
+        return Err(R::Plan);
     }
     let original_plan = executor.original_plan_owner();
     if original_plan.as_ref() != executor.original_plan() {
