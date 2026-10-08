@@ -2,7 +2,9 @@ import { acquireBrowserAudioCue, AUDIO_CUE_RESOURCE, AUDIO_CUE_POOL } from "./br
 import { acquireBrowserPcmAudio, PCM_CAPTURE_RESOURCE, PCM_CAPTURE_POOL, PCM_PLAY_RESOURCE, PCM_PLAY_POOL } from "./browser-pcm-audio.mjs";
 import { createBodyInputRouting } from "./browser-body-input.mjs";
 import { openBrowserHumanInput } from "./browser-human-input.mjs";
-import { createPitchTonePerformer, drainBrowserEffects } from "./browser-plot-effects.mjs";
+import { BrowserHostEffectRefusal, createPitchTonePerformer, drainBrowserEffects } from "./browser-plot-effects.mjs";
+import { BrowserStorageRefusal } from "./browser-application-storage.mjs";
+import { executeResourceStorageEffect } from "./browser-resource-storage.mjs";
 import { createBrowserMonotonicTimer } from "./browser-monotonic-timer.mjs";
 import { manifestApplicationView } from "./application-presentation.mjs";
 import { bindBrowserRuntimeBridge } from "./browser-runtime-bridge.mjs";
@@ -12,6 +14,9 @@ const INPUT = "conduit.resource/browser-window-input@1";
 const TIMER = "conduit.resource/timer-slot@1";
 const TEMPLATE = "conduit.resource/named-pattern-storage-slot@1";
 const CLOCK = "conduit.resource/monotonic-millisecond-timer-slot@1";
+const SNAPSHOT = "resource/snapshot@1";
+const SNAPSHOT_PUBLISH = "conduit.host/resource-snapshot-publish@1";
+const SNAPSHOT_READ = "conduit.host/resource-snapshot-read@1";
 const pools = new Map([
   [AUDIO_CUE_RESOURCE, AUDIO_CUE_POOL],
   [PCM_CAPTURE_RESOURCE, PCM_CAPTURE_POOL], [PCM_PLAY_RESOURCE, PCM_PLAY_POOL],
@@ -52,7 +57,7 @@ function refuseUnavailableExecutionLine(proposal, fragment) {
  */
 const owners = new WeakSet();
 export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: suppliedProposal, inputTarget, outputRoot, foregroundPlot,
-  presentationRootFor, onApplicationEvent, onTutorialPresenterRequest, externallyManagedPlanIds = [] }) {
+  presentationRootFor, onApplicationEvent, onTutorialPresenterRequest, storage, externallyManagedPlanIds = [] }) {
   const proposal = structuredClone(suppliedProposal);
   const external = new Set(externallyManagedPlanIds);
   if (owners.has(api)) throw new Error("browser Body resources already acquired");
@@ -98,15 +103,45 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
   if (matchedExternal.size !== external.size) throw new Error("external Body Plot is absent from the proposal");
   if (!placements.length) throw new Error("browser Body requires at least one locally managed Plot");
   const demand = new Map();
+  const snapshotPlacements = new Map();
   for (const placement of placements) {
     if (!Array.isArray(placement.resources) || placement.resources.length > 64) throw new Error("browser resource binding bound exceeded");
     for (const resource of placement.resources) {
+      if (resource.class_id === SNAPSHOT) {
+        const content = resource.content;
+        const contract = placement.host_calls?.[0]?.contract_id;
+        if (resource.units !== 1 || typeof resource.pool_id !== "string" || !resource.pool_id
+          || !content || content.owner_host !== hostId
+          || content.owner_boot !== bootId || content.base_id !== "browser/indexeddb"
+          || content.residence_profile !== "browser/indexeddb@1"
+          || content.contract?.retention !== "ExternalDurable"
+          || content.contract?.sharing !== "SingleWriterPublished"
+          || content.contract?.access !== (contract === SNAPSHOT_PUBLISH ? "WriteCandidatePublish" : "ReadPublished")
+          || placement.host_calls?.length !== 1 || ![SNAPSHOT_PUBLISH, SNAPSHOT_READ].includes(contract)
+          || placement.authority?.length !== 1
+          || placement.authority[0].host_call_contract_id !== contract
+          || placement.authority[0].host_id !== hostId || placement.authority[0].boot_id !== bootId
+          || placement.authority[0].subject_kind !== placement.kind_id
+          || placement.authority[0].capability_id !== placement.capability_id
+          || placement.authority[0].contract_id !== "authority/resource-snapshot@1"
+          || storage?.implementationId !== "browser/indexeddb@1"
+          || storage.state !== "Initialized"
+          || typeof storage.publishBytes !== "function" || typeof storage.readBytes !== "function") {
+          throw new Error("snapshot binding lacks its selected durable storage or exact authority");
+        }
+        if (snapshotPlacements.has(placement.placement_id)) throw new Error("duplicate snapshot resource binding");
+        snapshotPlacements.set(placement.placement_id, { poolId: resource.pool_id, contract });
+        continue;
+      }
       if (pools.get(resource.class_id) !== resource.pool_id ||
           !Number.isSafeInteger(resource.units) || resource.units < 1) {
         throw new Error("unsupported browser Body resource binding");
       }
       demand.set(resource.class_id, (demand.get(resource.class_id) ?? 0) + resource.units);
     }
+  }
+  if (snapshotPlacements.size > (storage?.bounds?.maximumRecords ?? 0)) {
+    throw new Error("snapshot resource demand exceeds selected storage bounds");
   }
   for (const [kind, units] of demand) {
     const capacity = [PRESENTATION, INPUT, AUDIO_CUE_RESOURCE].includes(kind) ? 16
@@ -231,19 +266,45 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
   const observations = () => {
     assertCurrent();
     if (startAccepted) throw new Error("browser Body resources are reserved by its play");
-    return [...demand.keys()].map(class_id => ({
+    const ordinary = [...demand.keys()].map(class_id => ({
       host_id: hostId, boot_id: bootId, offer_generation: 1,
       pool_id: pools.get(class_id), class_id, health: "Ready",
       // Counts come from acquired adapter state, not advertised capacities.
       unreserved_units: class_id === AUDIO_CUE_RESOURCE ? audio.capacity : class_id === PCM_CAPTURE_RESOURCE ? pcmAudio.capacity.capture : class_id === PCM_PLAY_RESOURCE ? pcmAudio.capacity.playback : class_id === PRESENTATION ? slots.size : class_id === INPUT ? demand.get(INPUT) : class_id === TEMPLATE ? templateSlots.size : class_id === TIMER ? timerSlots.length : Number(clock),
       utilized_units: 0, sign_id: `browser-resource/${bootId}/${window.crypto.randomUUID()}`,
     }));
+    const snapshotPools = new Map();
+    for (const { poolId } of snapshotPlacements.values()) {
+      snapshotPools.set(poolId, (snapshotPools.get(poolId) ?? 0) + 1);
+    }
+    return ordinary.concat([...snapshotPools].map(([pool_id, unreserved_units]) => ({
+      host_id: hostId, boot_id: bootId, offer_generation: 1,
+      pool_id, class_id: SNAPSHOT, health: "Ready", unreserved_units,
+      utilized_units: 0, sign_id: `browser-resource/${bootId}/${window.crypto.randomUUID()}`,
+    })));
   };
   const delay = (duration, signal, timerOwner) => monotonicTimer.wait(duration, signal, timerOwner);
   const perform = async (effect, signal) => {
     assertCurrent();
     if (effect.host_id !== hostId || effect.boot_id !== bootId ||
         effect.active_play_id !== started.play.active_play_id) throw new Error("browser effect identity mismatch");
+    if (effect.effect_kind === "resource-publish" || effect.effect_kind === "resource-read") {
+      const selected = snapshotPlacements.get(effect.placement_id);
+      const expected = effect.effect_kind === "resource-publish" ? SNAPSHOT_PUBLISH : SNAPSHOT_READ;
+      if (!selected || selected.contract !== expected) throw new Error("snapshot effect differs from its planned placement");
+      try {
+        const result = await executeResourceStorageEffect(storage, effect, {
+          host_id: hostId, boot_id: bootId, active_play_id: started.play.active_play_id,
+          placement_id: effect.placement_id, request_sequence: effect.request_sequence,
+        });
+        if (signal.aborted) throw new BrowserHostEffectRefusal("failed", 214, "snapshot effect was retired");
+        return result.record ?? new Uint8Array();
+      } catch (error) {
+        if (!(error instanceof BrowserStorageRefusal) ||
+            ["StaleResourceEffect", "InvalidResourceEffect", "ResourceRecordBound"].includes(error.code)) throw error;
+        throw new BrowserHostEffectRefusal("failed", 211, `snapshot storage refused: ${error.code}`);
+      }
+    }
     if (effect.effect_kind === "audio-cue") {
       if (!audio) throw new Error("audio cue slot not acquired");
       return audio.perform(effect, signal);
