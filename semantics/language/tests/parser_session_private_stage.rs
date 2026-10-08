@@ -1153,23 +1153,35 @@ fn actual_kernel_adapter_reports_expression_owner_storage_separately() {
 #[test]
 fn source_parent_links_compare_complete_type_and_value() {
     use parser_session_fixed_ingress::ParserSourceParentLink;
+    use parser_canonical_schema::SchemaStep::{Field, Case};
     let query = query();
     let input = query.clone().encode().unwrap();
     let parent = query.state().clone().encode().unwrap();
     let link = ParserSourceParentLink {
+        prior_revisions: 0,
         execution: 0,
         output_path: &[],
-        input_path: &["state"],
+        input_path: &[Field("state")],
     };
     assert!(link.matches(&parent, &input));
+    let variant = ParserSourceParentLink {
+        prior_revisions: 0,
+        execution: 0,
+        output_path: &[Field("state"), Field("relation0"), Field("base"), Case("dep")],
+        input_path: &[Field("state"), Field("relation0"), Field("base"), Case("dep")],
+    };
+    assert!(variant.matches(&input, &input));
+    assert!(!ParserSourceParentLink { input_path: &[Field("state"), Field("relation0"), Field("base"), Case("root")], ..variant }.matches(&input, &input));
+
     assert!(!link.matches(&input, &input)); // complete different Type
     assert!(!ParserSourceParentLink {
+        prior_revisions: 0,
         execution: 0,
-        output_path: &["state", "unread"],
-        input_path: &["state", "token_count"],
+        output_path: &[Field("state"), Field("unread")],
+        input_path: &[Field("state"), Field("token_count")],
     }.matches(&input, &input)); // equal scalar representation, different value
 
     assert!(!link.matches(&parent[..parent.len() - 1], &input));
-    assert!(!ParserSourceParentLink { input_path: &["missing"], ..link }.matches(&parent, &input));
-    assert!(!ParserSourceParentLink { input_path: &["state", "x", "x", "x", "x", "x", "x", "x", "x"], ..link }.matches(&parent, &input));
+    assert!(!ParserSourceParentLink { input_path: &[Field("missing")], ..link }.matches(&parent, &input));
+    assert!(!ParserSourceParentLink { input_path: &[Field("state"), Field("x"), Field("x"), Field("x"), Field("x"), Field("x"), Field("x"), Field("x"), Field("x")], ..link }.matches(&parent, &input));
 }

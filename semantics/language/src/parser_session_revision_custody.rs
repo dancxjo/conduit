@@ -426,6 +426,23 @@ impl ParserRevisionCustody {
     /// Checks the complete ordered locator tape against retained material. Full
     /// Source/Native replay is additional and separately reserved; this check
     /// never treats a locator, count or equal ID as an authorization witness.
+    pub(crate) fn source_parent(
+        &self,
+        link: &crate::parser_session_fixed_ingress::ParserSourceParentLink,
+        before: usize,
+    ) -> Option<&ParserFixedHistory> {
+        let mut book = self;
+        for _ in 0..link.prior_revisions {
+            book = book.previous.as_deref()?;
+            if !book.published {
+                return None;
+            }
+        }
+        if link.prior_revisions == 0 && link.execution >= before {
+            return None;
+        }
+        book.source_histories.get(link.execution)
+    }
     pub(crate) fn validate_event_order(&self) -> Result<(), RevisionStorageRefusal> {
         let mut source = 0usize;
         let mut model = 0usize;
@@ -439,11 +456,9 @@ impl ParserRevisionCustody {
                     }
                     let history = &self.source_histories[index];
                     for link in history.parent_links.iter().flatten() {
-                        if link.execution >= index
-                            || !link.matches(
-                                &self.source_histories[link.execution].output,
-                                &history.input,
-                            )
+                        if self
+                            .source_parent(link, index)
+                            .is_none_or(|parent| !link.matches(&parent.output, &history.input))
                         {
                             return Err(RevisionStorageRefusal::OriginalTape);
                         }

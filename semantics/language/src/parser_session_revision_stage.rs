@@ -85,24 +85,31 @@ impl<'a, E: ParserSessionExecutor, S: ParserCanonicalSourceExecutor, N: ParserNu
             if entry == ParserSessionEntry::Seed && !seed_matches_original_tape(book, query) {
                 return Err(R::Closed);
             }
-            if links.len() > 4 {
+            if links.len() > crate::parser_session_fixed_ingress::MAXIMUM_SOURCE_PARENT_LINKS {
                 return Err(R::Closed);
             }
             if !links.is_empty() {
                 book.validate_event_order().map_err(R::Storage)?;
                 for link in links {
-                    let parent = book.source_histories.get(link.execution).ok_or(R::Closed)?;
+                    let parent = book
+                        .source_parent(link, book.source_histories.len())
+                        .ok_or(R::Closed)?;
                     if !link.matches(&parent.output, query) {
                         return Err(R::Closed);
                     }
                 }
-                for parent in &book.source_histories {
-                    self.guard
-                        .targets()
-                        .port(parent.entry)
-                        .map_err(R::Registry)?
-                        .replay_history(parent)
-                        .map_err(R::ParentReplay)?;
+                let mut ancestors = Some(&*book);
+                while let Some(ancestor) = ancestors {
+                    ancestor.validate_event_order().map_err(R::Storage)?;
+                    for parent in &ancestor.source_histories {
+                        self.guard
+                            .targets()
+                            .port(parent.entry)
+                            .map_err(R::Registry)?
+                            .replay_history(parent)
+                            .map_err(R::ParentReplay)?;
+                    }
+                    ancestors = ancestor.previous.as_deref();
                 }
             }
             let frames = book.source_frame().map_err(R::Storage)?;

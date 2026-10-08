@@ -63,26 +63,36 @@ impl ParserFixedFrames {
         self.input.capacity().checked_add(self.output.capacity())
     }
 }
+pub(crate) const MAXIMUM_SOURCE_PARENT_LINKS: usize = 16;
+
 /// Fixed driver-selected record paths. Indices locate full retained execution
 /// frames; equality below is over complete canonical Types and values.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy)]
 pub(crate) struct ParserSourceParentLink {
+    pub(crate) prior_revisions: usize,
     pub(crate) execution: usize,
-    pub(crate) output_path: &'static [&'static str],
-    pub(crate) input_path: &'static [&'static str],
+    pub(crate) output_path: &'static [crate::parser_canonical_schema::SchemaStep<'static>],
+    pub(crate) input_path: &'static [crate::parser_canonical_schema::SchemaStep<'static>],
 }
 impl ParserSourceParentLink {
     pub(crate) fn matches(&self, parent: &[u8], input: &[u8]) -> bool {
         fn select<'a>(
             bytes: &'a [u8],
-            path: &[&str],
+            path: &[crate::parser_canonical_schema::SchemaStep<'_>],
         ) -> Option<conduit_core::ValidatedCanonicalStructuredValue<'a>> {
             if path.len() > 8 {
                 return None;
             }
             let mut value = conduit_core::validate_canonical_structured_value(bytes).ok()?;
-            for name in path {
-                value = value.record_field(name).ok()??;
+            for step in path {
+                value = match step {
+                    crate::parser_canonical_schema::SchemaStep::Field(name) => {
+                        value.record_field(name).ok()??
+                    }
+                    crate::parser_canonical_schema::SchemaStep::Case(name) => {
+                        value.variant_payload(name).ok()??
+                    }
+                };
             }
             Some(value)
         }
@@ -98,7 +108,7 @@ impl ParserSourceParentLink {
 pub(crate) struct ParserFixedHistory {
     pub(crate) entry: ParserSessionEntry,
     pub(crate) ordinal: u64,
-    pub(crate) parent_links: [Option<ParserSourceParentLink>; 4],
+    pub(crate) parent_links: [Option<ParserSourceParentLink>; MAXIMUM_SOURCE_PARENT_LINKS],
     pub(crate) input: Vec<u8>,
     pub(crate) output: Vec<u8>,
     pub(crate) original_plan: Rc<Plan>,
@@ -308,7 +318,7 @@ impl<E: ParserSessionExecutor> PreparedParserFixedIngress<E> {
         let history = ParserFixedHistory {
             entry: self.entry,
             ordinal: self.next_ordinal,
-            parent_links: [None; 4],
+            parent_links: [None; MAXIMUM_SOURCE_PARENT_LINKS],
             input: frames.input,
             output: frames.output,
             original_plan: self.original_plan.clone(),
