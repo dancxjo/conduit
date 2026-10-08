@@ -16,6 +16,7 @@ conduit-core = { path = "../../../architecture/core" }
 conduit-data = { path = "../../../semantics/data" }
 conduit-language = { path = "../../../semantics/language" }
 conduit-plot = { path = "../../../architecture/plot" }
+conduit-todo-plot = { path = "../../../plots/todo/model" }
 conduit-human = { path = "../../../semantics/human" }
 conduit-midi = { path = "../../../mechanisms/protocols/midi" }
 conduit-net = { path = "../../../semantics/net", features = ["plot-catalog"] }

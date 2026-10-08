@@ -1,9 +1,25 @@
 mod acpi;
 mod cpu;
 mod deadline;
+#[cfg(target_os = "none")]
+mod domain_budget;
+#[cfg(target_os = "none")]
+mod domain_memory;
+#[cfg(target_os = "none")]
+mod domain_transition;
 mod entropy;
 mod ftdi_line;
 mod gdt;
+#[cfg(target_os = "none")]
+#[path = "../ordinary_domain.rs"]
+mod ordinary_domain;
+
+#[cfg(target_os = "none")]
+fn domain_ticks() -> u64 {
+    cpu::read_tsc()
+}
+#[cfg(target_os = "none")]
+pub use ordinary_domain::TextDomain;
 mod hid;
 mod hid_pointer;
 mod hid_transfer_ring;

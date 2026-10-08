@@ -25,6 +25,13 @@ use std::{
     path::{Path, PathBuf},
 };
 
+/// The one local-control round-trip budget, including an action's durable
+/// acknowledgement. Timeout leaves the result unknown to its caller.
+pub(super) const CONTROL_DEADLINE: std::time::Duration = std::time::Duration::from_secs(2);
+/// One Todo action may wait for a bounded write and a second admitted read
+/// before its committed-state Face is safe to return to the caller.
+pub(super) const TODO_ACTION_DEADLINE: std::time::Duration = std::time::Duration::from_secs(8);
+
 #[path = "body/clock_action.rs"]
 mod clock_action;
 #[cfg(unix)]
@@ -46,7 +53,7 @@ pub(super) enum HostSource {
     Body {
         owner: Box<crate::durable_host::owner::Owner>,
         root: PathBuf,
-        running: Option<crate::durable_host::owner::RunWorker>,
+        running: Option<super::body_run::OwnedRunWorker>,
     },
 }
 
@@ -317,7 +324,7 @@ impl DurableHostRuntime {
             next_observation_sequence,
             #[cfg(unix)]
             terminal_route,
-            selected_speech_equipment,
+            mut selected_speech_equipment,
             speech_worker,
             speech_terminal,
             owner_spoken_worker,
@@ -326,7 +333,20 @@ impl DurableHostRuntime {
         let HostSource::Bare(host) = host else {
             return Err("durable Host already owns a Body session".into());
         };
+        let previous_generation = host.advertisement().offer_generation;
         let owner = crate::durable_host::owner::resume_service(*host, root)?;
+        let current = owner.host.advertisement();
+        if current.offer_generation != previous_generation {
+            crate::durable_host::refresh_offer_generation(
+                root,
+                &current.host_id,
+                &current.boot_id,
+                current.offer_generation,
+            )?;
+        }
+        if let Some(equipment) = &mut selected_speech_equipment {
+            equipment.advance_offer_generation(owner.host.current())?;
+        }
         Ok(Self {
             target_id,
             image_content_digest,

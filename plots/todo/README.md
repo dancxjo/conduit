@@ -1,9 +1,33 @@
 # Todo state slice
 
+`live.conduit` authors a bounded `scan` over the exact Todo state and command
+Info Kinds. Its `todo/transition` Plot wires the combine Kind's exact ports;
+the Host selects the Back for that leaf Kind. During source preparation, the
+Todo semantic owner admits its
+validated empty-list Form with `admit_empty_todo_initial`; expansion rejects a
+missing or wrong-Kind literal. This proves an authored initial accumulator,
+separate from installing the combine Back or connecting a live Body/Mask route.
+The scan admits at most 64 commands in one Play; this lifetime action bound is
+distinct from the state's 20-item capacity.
+
 `main.conduit` composes `todo/state-step` and `todo/snapshot` through their
 fronts. Task records are application data with `complete` and `text` members.
 The reusable `json/collection-step` operation knows only JSON collection edits;
 it contains no task, browser, persistence, or renderer logic.
+
+For stable item identities, use the generic keyed commands through
+`todo/state-step` with records shaped like
+`{"complete":false,"id":"task-7","text":"Buy milk"}`. `append-unique`
+accepts `{"key":"id","op":"append-unique","value":<record>}`;
+`set-field-by-key` accepts
+`{"field":"complete","key":"id","match":"task-7","op":"set-field-by-key","value":true}`
+for complete or `value:false` for reopen; `remove-by-key` accepts
+`{"key":"id","match":"task-7","op":"remove-by-key"}`. The caller must
+allocate a stable, unique ID. Keyed commands refuse missing or duplicate keys;
+setting an existing value twice is idempotent. They preserve array order and
+the generic JSON bounds. Todo record shape, text constraints, and command
+authority still require application-level validation before a live Face offers
+these actions.
 
 Run the current deterministic proof with:
 

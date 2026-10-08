@@ -31,11 +31,13 @@ impl Owner {
             ttl_seconds,
             candidates,
         )?;
-        state::retain(
+        state::retain_session(
             root,
-            self.session.evidence(),
+            &mut self.session,
             self.last_execution.as_ref(),
             Some(&manager),
+            None,
+            None,
         )?;
         self.admissions = Some(manager);
         Ok(invitation)
@@ -108,11 +110,13 @@ impl Owner {
             .map_err(|error| error.to_string())?;
         // Persist both consumed invitation and biography before a receipt can
         // escape. The owner must never acknowledge a non-durable Part.
-        state::retain(
+        state::retain_session(
             root,
-            session.evidence(),
+            &mut session,
             self.last_execution.as_ref(),
             Some(&manager),
+            None,
+            None,
         )?;
         self.session = session;
         self.admissions = Some(manager);

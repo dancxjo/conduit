@@ -3,7 +3,12 @@ use super::super::{
     bounded_read, digest, read_installation, restrict_directory, write_bytes_atomic,
     write_json_atomic, BodyBinding, Installation,
 };
-use conduit_body::BodyBiographyEvidence;
+use conduit_body::{BodyBiographyArchiveSegment, BodyBiographyEvidence, BodyLifecycleSession};
+#[path = "state_archive.rs"]
+mod archive;
+#[cfg(test)]
+use archive::archive_path;
+use archive::{retain_archive_segments, validate_archive_segments, verify_retained_archive};
 use serde::{Deserialize, Serialize};
 use std::{fs, path::Path};
 pub(super) const MAXIMUM_STATE: u64 = 2 * 1024 * 1024;
@@ -21,12 +26,14 @@ struct Transaction {
     /// Older owner transactions did not carry source and remain replayable.
     #[serde(default)]
     source: Option<Vec<u8>>,
+    #[serde(default)]
+    archives: Vec<BodyBiographyArchiveSegment>,
 }
 
 pub(super) fn recover(root: &Path) -> Result<(), String> {
     let file = root.join("body/owner-transaction.json");
     if !file.exists() {
-        return Ok(());
+        return verify_retained_archive(root);
     }
     let transaction: Transaction = serde_json::from_slice(&bounded_read(&file, MAXIMUM_STATE)?)
         .map_err(|e| format!("owner transaction invalid: {e}"))?;
@@ -58,6 +65,7 @@ pub(super) fn recover(root: &Path) -> Result<(), String> {
     }
     commit(root, &transaction)?;
     read_installation(&root.join("installation.json"))?;
+    verify_retained_archive(root)?;
     fs::remove_file(file).map_err(|e| e.to_string())
 }
 fn commit(root: &Path, transaction: &Transaction) -> Result<(), String> {
@@ -81,6 +89,7 @@ fn commit(root: &Path, transaction: &Transaction) -> Result<(), String> {
         validate_source(&transaction.biography, source)?;
         write_bytes_atomic(&root.join("body/source.conduit"), source)?;
     }
+    retain_archive_segments(root, &transaction.biography, &transaction.archives)?;
     write_bytes_atomic(&root.join("body/biography.json"), &bytes)?;
     write_json_atomic(
         &root.join("body/owner-execution.json"),
@@ -102,6 +111,8 @@ fn commit(root: &Path, transaction: &Transaction) -> Result<(), String> {
     }
     write_json_atomic(&root.join("installation.json"), &transaction.installation)
 }
+
+#[cfg(test)]
 pub(super) fn retain(
     root: &Path,
     biography: &BodyBiographyEvidence,
@@ -118,6 +129,92 @@ pub(super) fn retain_with_source(
     admissions: Option<&conduit_body::AdmissionManager>,
     source: Option<&[u8]>,
 ) -> Result<(), String> {
+    retain_with_source_and_todo_selection(root, biography, last_execution, admissions, source, None)
+}
+
+#[cfg(test)]
+pub(super) fn retain_with_archives(
+    root: &Path,
+    biography: &BodyBiographyEvidence,
+    archives: &[BodyBiographyArchiveSegment],
+    last_execution: Option<&serde_json::Value>,
+    admissions: Option<&conduit_body::AdmissionManager>,
+) -> Result<(), String> {
+    retain_inner(
+        root,
+        biography,
+        last_execution,
+        admissions,
+        None,
+        None,
+        archives,
+    )
+}
+
+/// Publish one lifecycle session and its archive obligation in the same
+/// recoverable owner transaction. The in-memory obligation is acknowledged
+/// only after the retained archive chain and active biography are durable.
+pub(super) fn retain_session(
+    root: &Path,
+    session: &mut BodyLifecycleSession,
+    last_execution: Option<&serde_json::Value>,
+    admissions: Option<&conduit_body::AdmissionManager>,
+    source: Option<&[u8]>,
+    todo_selection: Option<&super::super::selected_todo::Selection>,
+) -> Result<(), String> {
+    let head = session
+        .pending_archives()
+        .last()
+        .map(|segment| segment.digest);
+    retain_inner(
+        root,
+        session.evidence(),
+        last_execution,
+        admissions,
+        source,
+        todo_selection,
+        session.pending_archives(),
+    )?;
+    if let Some(head) = head {
+        session
+            .acknowledge_archives(head)
+            .map_err(|error| format!("acknowledge committed biography archive: {error:?}"))?;
+    }
+    Ok(())
+}
+
+/// One owner transaction changes the resident Plot and installed Host's exact
+/// Todo selection together. A partial replay cannot pair the next Source with
+/// the previous generation or vice versa.
+pub(super) fn retain_with_source_and_todo_selection(
+    root: &Path,
+    biography: &BodyBiographyEvidence,
+    last_execution: Option<&serde_json::Value>,
+    admissions: Option<&conduit_body::AdmissionManager>,
+    source: Option<&[u8]>,
+    todo_selection: Option<&super::super::selected_todo::Selection>,
+) -> Result<(), String> {
+    retain_inner(
+        root,
+        biography,
+        last_execution,
+        admissions,
+        source,
+        todo_selection,
+        &[],
+    )
+}
+
+fn retain_inner(
+    root: &Path,
+    biography: &BodyBiographyEvidence,
+    last_execution: Option<&serde_json::Value>,
+    admissions: Option<&conduit_body::AdmissionManager>,
+    source: Option<&[u8]>,
+    todo_selection: Option<&super::super::selected_todo::Selection>,
+    archives: &[BodyBiographyArchiveSegment],
+) -> Result<(), String> {
+    validate_archive_segments(root, biography, archives)?;
     if let Some(source) = source {
         validate_source(biography, source)?;
     }
@@ -136,6 +233,20 @@ pub(super) fn retain_with_source(
         return Err("owner biography storage bound exhausted".into());
     }
     let mut installation = read_installation(&root.join("installation.json"))?;
+    if let Some(selection) = todo_selection {
+        selection.validate()?;
+        let prior = installation
+            .selected_todo_checkpoint
+            .as_ref()
+            .ok_or("owner transaction has no installed Todo selection")?;
+        if prior.root() != selection.root()
+            || prior.content().identity != selection.content().identity
+            || prior.content().version == selection.content().version
+        {
+            return Err("owner transaction changed the wrong Todo residence".into());
+        }
+        installation.selected_todo_checkpoint = Some(selection.clone());
+    }
     if installation.joined_body_state.is_some()
         || installation
             .body_state
@@ -159,6 +270,7 @@ pub(super) fn retain_with_source(
         last_execution: last_execution.cloned(),
         admissions: admissions.cloned(),
         source: source.map(Vec::from),
+        archives: archives.to_vec(),
     };
     if serde_json::to_vec(&transaction)
         .map_err(|e| e.to_string())?
@@ -271,193 +383,9 @@ pub(super) fn admissions(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    #[test]
-    fn checked_source_and_biography_replay_as_one_owner_transaction() {
-        use conduit_body::{Body, BodyBiographyEvidence, BodyMembership, ResidentPlot};
-        use conduit_core::bind_sign;
+#[path = "state_archive_tests.rs"]
+mod archive_tests;
 
-        const SOURCE: &str =
-            "plot retained-clock {\n clock: time/every(2s)\n clock >> presentation/tick\n}\n";
-        let root = std::env::temp_dir().join(super::super::super::fresh_identity(
-            "owner-source-journal",
-            "checked-clock",
-        ));
-        fs::create_dir_all(&root).unwrap();
-        let installation = Installation {
-            schema: super::super::super::INSTALL_SCHEMA.into(),
-            host_id: "host/source-journal".into(),
-            release_source_identity: "source/test".into(),
-            release_bundle_sha256: digest(b"bundle/test"),
-            product_executable: "fixture-unused".into(),
-            body_state: None,
-            joined_body_state: None,
-            selected_speech: None,
-            selected_model: None,
-        };
-        write_json_atomic(&root.join("installation.json"), &installation).unwrap();
-        let checked = crate::plot_source::parse(SOURCE)
-            .unwrap()
-            .expand_entry_for_authoring()
-            .unwrap();
-        let body = Body::born(
-            checked.expanded.source_document_id.clone(),
-            checked.expanded.checked_plot_id.clone(),
-            1,
-            bind_sign(
-                &"host/source-journal".into(),
-                &"boot/source-journal".into(),
-                None,
-                1,
-            )
-            .sign_id,
-        )
-        .unwrap();
-        let evidence = BodyBiographyEvidence::born(
-            body.clone(),
-            BodyMembership::new(body.body_id.clone()).unwrap(),
-            "Clock".into(),
-        )
-        .unwrap();
-        let wrong_source = include_bytes!("../../../../plots/clock/main.conduit");
-        retain_with_source(&root, &evidence, None, None, Some(SOURCE.as_bytes())).unwrap();
-        let committed = read_installation(&root.join("installation.json")).unwrap();
-        let transaction = Transaction {
-            schema: "conduit.body/owner-transaction@1".into(),
-            biography: evidence.clone(),
-            installation: committed,
-            last_execution: None,
-            admissions: None,
-            source: Some(SOURCE.as_bytes().to_vec()),
-        };
-        write_json_atomic(&root.join("body/owner-transaction.json"), &transaction).unwrap();
-        fs::write(root.join("body/source.conduit"), wrong_source).unwrap();
-        fs::write(root.join("body/biography.json"), b"interrupted").unwrap();
-        recover(&root).unwrap();
-        assert_eq!(
-            fs::read(root.join("body/source.conduit")).unwrap(),
-            SOURCE.as_bytes()
-        );
-        assert_eq!(load(&root).unwrap().unwrap(), evidence);
-        assert!(!root.join("body/owner-transaction.json").exists());
-
-        let wrong = crate::plot_source::parse(std::str::from_utf8(wrong_source).unwrap())
-            .unwrap()
-            .expand_entry_for_authoring()
-            .unwrap();
-        assert_ne!(
-            ResidentPlot::new(
-                wrong.expanded.source_document_id,
-                wrong.expanded.checked_plot_id
-            ),
-            body.workset.plots()[0]
-        );
-        assert!(
-            retain_with_source(&root, &evidence, None, None, Some(wrong_source))
-                .unwrap_err()
-                .contains("source differs")
-        );
-        assert_eq!(load(&root).unwrap().unwrap(), evidence);
-        assert_eq!(
-            fs::read(root.join("body/source.conduit")).unwrap(),
-            SOURCE.as_bytes()
-        );
-        fs::remove_dir_all(root).unwrap();
-    }
-
-    #[test]
-    fn interrupted_publication_recovers_and_corruption_never_becomes_birth() {
-        use conduit_body::{Body, BodyMembership};
-        let root = std::env::temp_dir().join(super::super::super::fresh_identity(
-            "owner-state-test",
-            "transaction",
-        ));
-        fs::create_dir_all(&root).unwrap();
-        let installation = Installation {
-            schema: super::super::super::INSTALL_SCHEMA.into(),
-            host_id: "host/state-test".into(),
-            release_source_identity: "source/test".into(),
-            release_bundle_sha256: digest(b"bundle/test"),
-            product_executable: "fixture-unused".into(),
-            body_state: None,
-            joined_body_state: None,
-            selected_speech: None,
-            selected_model: None,
-        };
-        write_json_atomic(&root.join("installation.json"), &installation).unwrap();
-        let body = Body::born(
-            "source/test".into(),
-            "checked/test".into(),
-            1,
-            "sign/born".into(),
-        )
-        .unwrap();
-        let evidence = BodyBiographyEvidence::born(
-            body.clone(),
-            BodyMembership::new(body.body_id.clone()).unwrap(),
-            "Retained".into(),
-        )
-        .unwrap();
-        let manager = conduit_body::AdmissionManager::new(body.body_id.clone()).unwrap();
-        retain(&root, &evidence, None, Some(&manager)).unwrap();
-        assert!(root.join("body/admission.json").exists());
-        assert!(!root.join("body/owner-admissions.json").exists());
-        assert_eq!(
-            admissions(&root, &body.body_id).unwrap(),
-            Some(manager.clone())
-        );
-        write_json_atomic(&root.join("body/owner-admissions.json"), &manager).unwrap();
-        assert_eq!(
-            admissions(&root, &body.body_id).unwrap(),
-            Some(manager.clone())
-        );
-        assert!(
-            super::super::super::invitation::issue_body_invitation_document(&root, 60, None)
-                .err()
-                .unwrap()
-                .contains("legacy owner admission authority")
-        );
-        let mut conflicting = manager.clone();
-        conflicting
-            .issue_spawn_invitation(
-                conduit_body::SpawnInvitationSecret::from_csprng_bytes([13; 32]).unwrap(),
-                [17; 32],
-                1_000,
-                2_000,
-            )
-            .unwrap();
-        write_json_atomic(&root.join("body/owner-admissions.json"), &conflicting).unwrap();
-        assert!(admissions(&root, &body.body_id).is_err());
-        write_json_atomic(&root.join("body/owner-admissions.json"), &manager).unwrap();
-        retain(&root, &evidence, None, Some(&manager)).unwrap();
-        assert!(!root.join("body/owner-admissions.json").exists());
-        let retained_installation = read_installation(&root.join("installation.json")).unwrap();
-        write_json_atomic(
-            &root.join("body/owner-transaction.json"),
-            &Transaction {
-                schema: "conduit.body/owner-transaction@1".into(),
-                biography: evidence.clone(),
-                installation: retained_installation,
-                last_execution: None,
-                admissions: Some(manager.clone()),
-                source: None,
-            },
-        )
-        .unwrap();
-        fs::write(root.join("body/biography.json"), b"interrupted write").unwrap();
-        let invited =
-            super::super::super::invitation::issue_body_invitation_document(&root, 60, None)
-                .unwrap();
-        assert_eq!(invited.claim.body_id, body.body_id);
-        assert_eq!(load(&root).unwrap().unwrap().body_id, body.body_id);
-        assert!(!root.join("body/owner-transaction.json").exists());
-        assert_ne!(admissions(&root, &body.body_id).unwrap(), Some(manager));
-        fs::write(root.join("body/biography.json"), b"corrupt").unwrap();
-        assert!(load(&root).is_err());
-        let raw: Installation =
-            serde_json::from_slice(&fs::read(root.join("installation.json")).unwrap()).unwrap();
-        assert!(raw.body_state.is_some());
-        fs::remove_dir_all(root).unwrap();
-    }
-}
+#[cfg(test)]
+#[path = "state_tests.rs"]
+mod tests;

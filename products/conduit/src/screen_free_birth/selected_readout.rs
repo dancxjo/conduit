@@ -103,7 +103,9 @@ pub(super) fn emit_readout(
             }
             return Err("installed Birth Face changed before the next speech Play".into());
         }
-        let Some(batch) = reader.next_batch_with_limits(1, 64).map_err(debug_error)? else {
+        // Keep a concise Face turn in one selected speaker Play and its
+        // committed-PCM WAV where it fits. Stop still cancels that Play.
+        let Some(batch) = reader.next_batch_with_limits(4, 64).map_err(debug_error)? else {
             return Ok(false);
         };
         let control = RunControl::default();

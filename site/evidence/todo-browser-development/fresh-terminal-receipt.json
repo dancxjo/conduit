@@ -1,0 +1,139 @@
+{
+  "capture_entrance": "cargo xtask prove todo-journey",
+  "capture_tool_commit": "611df0bd3d936b4e7a92d009199eecc8cd5e7066",
+  "error": null,
+  "finished_at_unix_ms": 1791481800886,
+  "installation_record_sha256": "ef44cb01ee6b8b3f8210ef80e7b635db0c99dca3bf9b70918c21d6217c30a59d",
+  "installed_executable_sha256": "cb7fa3c97ecfd638ce7ee133bc8d8730ed8ad28d19ca03c9b4e9ee5f643c2b56",
+  "installed_product_source_commit": "611df0bd3d936b4e7a92d009199eecc8cd5e7066",
+  "installed_release_bundle_sha256": "sha256:0782064343a33fbef17ea40da9f96636c33154752cf6796bcf9b2a9147ce7cdb",
+  "missing_for_publication": [
+    "live browser action and Chromium screenshot",
+    "native screenshot",
+    "QMP guest screenshot",
+    "two delivered-Play direct-speech WAV captures",
+    "fresh-Boot recovery and complete eight-chapter event receipts"
+  ],
+  "observation": {
+    "after_face_revision": 7150306028042729953,
+    "before_face_revision": 7150306028042729953,
+    "body_id": "3723b30a4b0647f3f005842f812504528be33dae84c0f750919a35491f1d87a2",
+    "boot_id": "boot/installed/37056f7e16a417460064ffe88556d6641537763f4b9da550b0fc75480188bb41",
+    "host_id": "host/installed/6b3dffaf4e8d9bd12a706830a9b4b3fbd228641f55307e68a6f8d79fed1f1282",
+    "terminal_input": {
+      "bytes": 5,
+      "path": "terminal.input",
+      "sha256": "0a7b6a054f4637f0b3077c3427e3a0491812cda612eadf6a94ccfa11398564b6"
+    }
+  },
+  "publication_ready": false,
+  "schema": "conduit.todo-journey/partial-live-capture@1",
+  "started_at_unix_ms": 1791481800834,
+  "steps": [
+    {
+      "arguments_after_state_dir": [
+        "--json"
+      ],
+      "command": [
+        "host",
+        "service",
+        "status"
+      ],
+      "exit_code": 0,
+      "state_dir": "/home/dancxjo/Documents/Codex/2026-10-08/todo-fresh-611df0/owner-state",
+      "stderr": {
+        "bytes": 0,
+        "path": "before-status.stderr",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stdout": {
+        "bytes": 453,
+        "path": "before-status.stdout",
+        "sha256": "bbe6db1e5f9f87428d98995dc8b1f3f151ee302f0e0c0c5cb90dcee16ee7eb37"
+      }
+    },
+    {
+      "arguments_after_state_dir": [
+        "--json"
+      ],
+      "command": [
+        "body",
+        "face"
+      ],
+      "exit_code": 0,
+      "state_dir": "/home/dancxjo/Documents/Codex/2026-10-08/todo-fresh-611df0/owner-state",
+      "stderr": {
+        "bytes": 0,
+        "path": "before-face.stderr",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stdout": {
+        "bytes": 185712,
+        "path": "before-face.stdout",
+        "sha256": "82fe4e6e49fb18ec0fb0c38c746f731b7fcd5a201bcbf612f008c9e6680095e1"
+      }
+    },
+    {
+      "arguments_after_state_dir": [],
+      "command": [
+        "body",
+        "terminal"
+      ],
+      "exit_code": 0,
+      "state_dir": "/home/dancxjo/Documents/Codex/2026-10-08/todo-fresh-611df0/owner-state",
+      "stderr": {
+        "bytes": 0,
+        "path": "terminal.stderr",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stdout": {
+        "bytes": 1024,
+        "path": "terminal.stdout",
+        "sha256": "5a6e647647f35e5ec83e8a7108df7294210b1158787d715e3e3d49e6a804e399"
+      }
+    },
+    {
+      "arguments_after_state_dir": [
+        "--json"
+      ],
+      "command": [
+        "host",
+        "service",
+        "status"
+      ],
+      "exit_code": 0,
+      "state_dir": "/home/dancxjo/Documents/Codex/2026-10-08/todo-fresh-611df0/owner-state",
+      "stderr": {
+        "bytes": 0,
+        "path": "after-status.stderr",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stdout": {
+        "bytes": 453,
+        "path": "after-status.stdout",
+        "sha256": "bbe6db1e5f9f87428d98995dc8b1f3f151ee302f0e0c0c5cb90dcee16ee7eb37"
+      }
+    },
+    {
+      "arguments_after_state_dir": [
+        "--json"
+      ],
+      "command": [
+        "body",
+        "face"
+      ],
+      "exit_code": 0,
+      "state_dir": "/home/dancxjo/Documents/Codex/2026-10-08/todo-fresh-611df0/owner-state",
+      "stderr": {
+        "bytes": 0,
+        "path": "after-face.stderr",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stdout": {
+        "bytes": 185712,
+        "path": "after-face.stdout",
+        "sha256": "82fe4e6e49fb18ec0fb0c38c746f731b7fcd5a201bcbf612f008c9e6680095e1"
+      }
+    }
+  ]
+}

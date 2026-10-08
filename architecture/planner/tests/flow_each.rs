@@ -5,7 +5,9 @@ use conduit_core::{
     PortDescriptor, PortDirection, PortTemporal, PROTOCOL_VERSION,
 };
 use conduit_planner::{
-    default_expanded_placements, plan_expanded_canonical_with_activations, PlanningOptions,
+    default_expanded_placements, plan_expanded_authoring_with_activations,
+    plan_expanded_canonical_with_activations, ConnectionQueueLimits, ForeBoundaryKey,
+    PlanningOptions,
 };
 use conduit_plot::{
     check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
@@ -22,6 +24,7 @@ plot text/normalize (
  value >> normalize.value
  normalize.mapped >> mapped
 }
+
 
 plot flow/each (
  item: type
@@ -41,7 +44,119 @@ plot flow/each (
 plot main {
  each: flow/each(item = Text, result = Text, transform = text/normalize)
 }
+
+plot test/root (
+ >> values: Text...|
+ mapped: Text...| >>
+) {
+ each: activate(maximum-items = 4) text/normalize()
+ values >> each.value
+ each.mapped >> mapped
+}
 ";
+
+#[test]
+fn authored_activation_seals_external_fore_and_child_plan_together() {
+    let (startup, profile) = catalogs();
+    let document = check_syntax_document(&parse_syntax_document(SOURCE), &startup).unwrap();
+    let authoring = expand_canonical_plot_for_authoring(&document, "test/root", &profile).unwrap();
+    let hosts = [host()];
+    let placements = default_expanded_placements(&authoring.expanded, &hosts).unwrap();
+    let empty_bases = BTreeMap::new();
+    let empty_lines = BTreeMap::new();
+    let options = PlanningOptions {
+        connection_bases: &empty_bases,
+        line_candidates: &empty_lines,
+        connection_item_capacity: 1,
+        connection_byte_capacity: 512,
+        authority_grants: &[],
+        protected_resource_grants: &[],
+        line_offers: &[],
+    };
+    let bounds = BTreeMap::from([
+        (
+            ForeBoundaryKey {
+                direction: PortDirection::Input,
+                front_port_id: port_id("values"),
+                track: conduit_core::ConnectionTrack::Payload,
+            },
+            ConnectionQueueLimits {
+                item_capacity: 1,
+                byte_capacity: 256,
+            },
+        ),
+        (
+            ForeBoundaryKey {
+                direction: PortDirection::Output,
+                front_port_id: port_id("mapped"),
+                track: conduit_core::ConnectionTrack::Payload,
+            },
+            ConnectionQueueLimits {
+                item_capacity: 1,
+                byte_capacity: 256,
+            },
+        ),
+    ]);
+    let bases = [BaseImplementationId::from("conduit.base/local@1")];
+    let plan = plan_expanded_authoring_with_activations(
+        &document,
+        &authoring,
+        &profile,
+        &CanonicalBackCatalog::new(),
+        &hosts,
+        &placements,
+        &bases,
+        options,
+        &bounds,
+    )
+    .unwrap();
+    assert!(verify_plan(&plan));
+    assert_eq!(plan.activations.len(), 1);
+    assert_eq!(plan.fragments[0].fore_ports.len(), 2);
+    assert!(plan.fragments[0].fore_ports.iter().any(|port| {
+        port.front_port_id == port_id("values") && port.direction == PortDirection::Input
+    }));
+    assert!(plan.fragments[0].fore_ports.iter().any(|port| {
+        port.front_port_id == port_id("mapped") && port.direction == PortDirection::Output
+    }));
+
+    let mut missing = bounds.clone();
+    missing.remove(&ForeBoundaryKey {
+        direction: PortDirection::Output,
+        front_port_id: port_id("mapped"),
+        track: conduit_core::ConnectionTrack::Payload,
+    });
+    assert!(plan_expanded_authoring_with_activations(
+        &document,
+        &authoring,
+        &profile,
+        &CanonicalBackCatalog::new(),
+        &hosts,
+        &placements,
+        &bases,
+        options,
+        &missing,
+    )
+    .is_err());
+
+    let wrong_document = check_syntax_document(
+        &parse_syntax_document(SOURCE.replace("plot main", "plot another").as_str()),
+        &startup,
+    )
+    .unwrap();
+    assert!(plan_expanded_authoring_with_activations(
+        &wrong_document,
+        &authoring,
+        &profile,
+        &CanonicalBackCatalog::new(),
+        &hosts,
+        &placements,
+        &bases,
+        options,
+        &bounds,
+    )
+    .is_err());
+}
 
 fn value_port(name: &str, direction: PortDirection, temporal: PortTemporal) -> PortDescriptor {
     PortDescriptor {

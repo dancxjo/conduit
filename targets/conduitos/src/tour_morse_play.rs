@@ -1,5 +1,6 @@
 //! Allocation-independent ownership loop for the shared native fan-out Tour Play.
 
+#[cfg(not(conduitos_protected_execution))]
 use alloc::vec::Vec;
 use conduit_kernel::scheduler::SchedulerStatus;
 
@@ -11,12 +12,14 @@ use crate::{
 
 const MAXIMUM_KERNEL_STEPS: u32 = 192;
 
+#[cfg(not(conduitos_protected_execution))]
 pub struct MorseScratch {
     first: Vec<u8>,
     second: Vec<u8>,
     expected: Vec<u8>,
 }
 
+#[cfg(not(conduitos_protected_execution))]
 impl MorseScratch {
     pub fn prepared() -> Result<Self, MachineRunError> {
         let mut scratch = Self {
@@ -67,8 +70,36 @@ where
     I: InterruptBase,
     D: IdleBase,
 {
+    let result = run_play(prepared, clock, serial, interrupts, idle);
+    #[cfg(conduitos_protected_execution)]
+    prepared.protected.revoke(if result.is_ok() {
+        crate::protection_domain::KernelRevocationCause::PlayCompleted
+    } else {
+        crate::protection_domain::KernelRevocationCause::PlayFailed
+    });
+    result
+}
+
+fn run_play<C, S, I, D>(
+    prepared: &mut PreparedTourMorsePlay,
+    clock: &mut C,
+    serial: &mut S,
+    interrupts: &mut I,
+    idle: &mut D,
+) -> Result<MachineRunReceipt, MachineRunError>
+where
+    C: MonotonicClockBase,
+    S: SerialBase,
+    I: InterruptBase,
+    D: IdleBase,
+{
     let PreparedTourMorsePlay {
-        kernel, scratch, ..
+        kernel,
+        #[cfg(not(conduitos_protected_execution))]
+        scratch,
+        #[cfg(conduitos_protected_execution)]
+        protected,
+        ..
     } = prepared;
     let started = clock.now();
     let disabled_state = interrupts.disable();
@@ -80,10 +111,13 @@ where
     for _ in 0..MAXIMUM_KERNEL_STEPS {
         while let Some(request) = kernel.next_host_request() {
             if kernel.is_upper_request(&request) {
-                let output = {
-                    let input = kernel
-                        .host_value(request.input.value)
-                        .map_err(|_| MachineRunError::KernelFailure)?;
+                let input = kernel
+                    .host_value(request.input.value)
+                    .map_err(|_| MachineRunError::KernelFailure)?;
+                #[cfg(conduitos_protected_execution)]
+                let output = protected.uppercase(input)?;
+                #[cfg(not(conduitos_protected_execution))]
+                let owned_output =
                     crate::text_upper::uppercase(input).map_err(|error| match error {
                         crate::text_upper::UppercaseError::MalformedUtf8 => {
                             MachineRunError::TextMalformedUtf8
@@ -91,17 +125,25 @@ where
                         crate::text_upper::UppercaseError::OutputOverflow => {
                             MachineRunError::TextOutputOverflow
                         }
-                    })?
-                };
+                    })?;
+                #[cfg(not(conduitos_protected_execution))]
+                let output = owned_output.as_bytes();
                 kernel
-                    .complete_upper(request, output.as_bytes())
+                    .complete_upper(request, output)
                     .map_err(|_| MachineRunError::KernelFailure)?;
             } else if kernel.is_morse_request(&request) {
                 let pattern = {
                     let input = kernel
                         .host_value(request.input.value)
                         .map_err(|_| MachineRunError::KernelFailure)?;
-                    scratch.encode(input, 80)?
+                    #[cfg(conduitos_protected_execution)]
+                    {
+                        protected.morse(input)?
+                    }
+                    #[cfg(not(conduitos_protected_execution))]
+                    {
+                        scratch.encode(input, 80)?
+                    }
                 };
                 kernel
                     .complete_morse(request, pattern)
@@ -113,9 +155,13 @@ where
                 let value = kernel
                     .host_value(request.input.value)
                     .map_err(|_| MachineRunError::KernelFailure)?;
+                #[cfg(not(conduitos_protected_execution))]
                 if (text && value != b"SOS") || (!text && !scratch.is_expected(value)) {
                     return Err(MachineRunError::SerialBaseFailure);
                 }
+                #[cfg(conduitos_protected_execution)]
+                protected.present(value, text, serial)?;
+                #[cfg(not(conduitos_protected_execution))]
                 serial
                     .present(value)
                     .map_err(|_| MachineRunError::SerialBaseFailure)?;
@@ -151,7 +197,11 @@ where
                     physical_parallelism: false,
                 });
             }
-            SchedulerStatus::Cancelled => return Err(MachineRunError::KernelFailure),
+            SchedulerStatus::Cancelled => {
+                #[cfg(conduitos_protected_execution)]
+                protected.revoke(crate::protection_domain::KernelRevocationCause::PlayCancelled);
+                return Err(MachineRunError::KernelFailure);
+            }
         }
     }
     Err(MachineRunError::StepLimitExceeded)

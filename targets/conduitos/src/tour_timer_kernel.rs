@@ -1,218 +1,30 @@
-//! Fixed native kernel for the standing `count-over-time` Tour Plot.
-
+//! Root preparation for the separately reusable standing timer kernel.
+#[cfg(not(conduitos_protected_execution))]
 use crate::machine::KernelInterest;
-use alloc::vec::Vec;
 use conduit_core::{ConfigurationValue, PlanFragment};
 use conduit_kernel::{
-    BoundedValueRef, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
-    HostCallDisposition, HostCallOutcome, KernelEvent, NodeId, PortId, RequestId, SignSink,
-    ValueRef, ValueStorage,
-    scheduler::{
-        FixedScheduler, HostCallRequest, SchedulerError, SchedulerStatus, StepBack, StepInputBytes,
-        StepIo, StepOutcome,
-    },
+    NodeId,
+    scheduler::{NodeSpec, SchedulerError},
 };
 use conduit_plan_lowering::lowering::{FIXED_KERNEL_STORAGE_PORTS_PER_NODE, LoweredPlanFragment};
-
-const NODES: usize = 3;
-const CORDS: usize = 2;
-const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
-const HOST_BINDINGS: usize = NODES * NODES;
-const VALUES: usize = 6;
-const VALUE_BYTES: usize = 48;
-const SIGNS: usize = 96;
-
-type Scheduler = FixedScheduler<
-    TimerBack,
-    FixedValueStore<VALUES, 8>,
-    FixedSignLog<SIGNS>,
-    NODES,
-    CORDS,
-    PORTS,
-    CORDS,
-    { NODES * PORTS },
-    CORDS,
-    HOST_BINDINGS,
-    2,
->;
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum TimerBack {
-    Every {
-        waits: [BoundedValueRef; 2],
-        tick: ValueRef,
-        emitting: bool,
-        next_wait: usize,
-    },
-    Count {
-        zero: ValueRef,
-        one: ValueRef,
-        initial_emitted: bool,
-        bumped: bool,
-    },
-    Presentation {
-        pending: Option<RequestId>,
-        next_request: u32,
-    },
-}
-
-impl StepBack<PORTS> for TimerBack {
-    fn step(
-        &mut self,
-        io: &mut StepIo<PORTS>,
-        _input_bytes: &StepInputBytes<'_, PORTS>,
-    ) -> StepOutcome {
-        match self {
-            Self::Every {
-                waits,
-                tick,
-                emitting,
-                next_wait,
-            } => step_every(waits, *tick, emitting, next_wait, io),
-            Self::Count {
-                zero,
-                one,
-                initial_emitted,
-                bumped,
-            } => {
-                if !*initial_emitted {
-                    if !io.output_ready(PortId(0)) {
-                        return StepOutcome::Await;
-                    }
-                    if io.send(PortId(0), *zero).is_err() {
-                        return invalid(21);
-                    }
-                    *initial_emitted = true;
-                    return StepOutcome::Progress;
-                }
-                if let Some(value) = io.input(PortId(0)) {
-                    if *bumped || value.byte_len != conduit_time::TICK_ENCODED_LEN {
-                        return invalid(21);
-                    }
-                    if !io.output_ready(PortId(0)) {
-                        return StepOutcome::Await;
-                    }
-                    if io.consume(PortId(0)).is_err() || io.send(PortId(0), *one).is_err() {
-                        return invalid(21);
-                    }
-                    *bumped = true;
-                    return StepOutcome::Progress;
-                }
-                StepOutcome::Await
-            }
-            Self::Presentation {
-                pending,
-                next_request,
-            } => step_presentation(pending, next_request, io),
-        }
-    }
-
-    fn cancel(&mut self) {
-        if let Self::Presentation { pending, .. } = self {
-            *pending = None;
-        }
-    }
-}
-
-fn step_every(
-    waits: &[BoundedValueRef; 2],
-    tick: ValueRef,
-    pending: &mut bool,
-    next_wait: &mut usize,
-    io: &mut StepIo<PORTS>,
-) -> StepOutcome {
-    if *pending {
-        let Some((request, outcome)) = io.host_completion() else {
-            return StepOutcome::Await;
-        };
-        if usize::try_from(request.0).ok() != Some(*next_wait)
-            || outcome.disposition != HostCallDisposition::Completed
-            || outcome.output.is_some()
-            || outcome.failure.is_some()
-        {
-            return invalid(21);
-        }
-        if !io.output_ready(PortId(0)) {
-            return StepOutcome::Await;
-        }
-        if io.consume_host_completion().is_err() || io.send(PortId(0), tick).is_err() {
-            return invalid(21);
-        }
-        *pending = false;
-        return StepOutcome::Progress;
-    }
-    let Some(wait) = waits.get(*next_wait).copied() else {
-        return invalid(10);
-    };
-    let request = RequestId(u32::try_from(*next_wait + 1).unwrap_or(u32::MAX));
-    if io
-        .request_host_call(request, conduit_kernel::HostCallId(0), wait)
-        .is_err()
-    {
-        return invalid(10);
-    }
-    *next_wait += 1;
-    *pending = true;
-    StepOutcome::Progress
-}
-
-fn step_presentation(
-    pending: &mut Option<RequestId>,
-    next_request: &mut u32,
-    io: &mut StepIo<PORTS>,
-) -> StepOutcome {
-    if let Some(request) = *pending {
-        let Some((completed, outcome)) = io.host_completion() else {
-            return StepOutcome::Await;
-        };
-        if completed != request
-            || outcome.disposition != HostCallDisposition::Completed
-            || outcome.output.is_some()
-            || outcome.failure.is_some()
-            || io.consume_host_completion().is_err()
-        {
-            return invalid(21);
-        }
-        *pending = None;
-        return StepOutcome::Progress;
-    }
-    let Some(value) = io.input(PortId(0)) else {
-        return StepOutcome::Await;
-    };
-    let Ok(input) = BoundedValueRef::new(value, conduit_semantic_catalog::COUNT_ENCODED_LEN) else {
-        return invalid(20);
-    };
-    let request = RequestId(*next_request);
-    if io.consume(PortId(0)).is_err()
-        || io
-            .request_host_call(request, conduit_kernel::HostCallId(0), input)
-            .is_err()
-    {
-        return invalid(21);
-    }
-    *next_request = next_request.saturating_add(1);
-    *pending = Some(request);
-    StepOutcome::Progress
-}
-
-const fn invalid(detail: u16) -> StepOutcome {
-    StepOutcome::Fail(conduit_kernel::Failure {
-        code: conduit_kernel::FailureCode::InvalidLifecycle,
-        detail,
-    })
-}
-
-pub struct TourTimerKernel {
-    scheduler: Scheduler,
-    timer: NodeId,
-    presentation: NodeId,
-}
+#[cfg(not(conduitos_protected_execution))]
+#[path = "tour_timer_runtime.rs"]
+pub(crate) mod runtime;
+#[cfg(conduitos_protected_execution)]
+#[path = "tour_timer_graph.rs"]
+pub(crate) mod runtime;
+#[cfg(not(conduitos_protected_execution))]
+pub use runtime::TourTimerKernel;
+#[cfg(conduitos_protected_execution)]
+pub struct TourTimerKernel;
+use runtime::{CORDS, NODES, PORTS, PreparedTimerGraph, PreparedTimerRoute};
+const _: () = assert!(PORTS <= FIXED_KERNEL_STORAGE_PORTS_PER_NODE);
 
 impl TourTimerKernel {
-    pub fn prepare(
+    pub(crate) fn prepare_graph(
         fragment: &PlanFragment,
         lowered: &LoweredPlanFragment,
-    ) -> Result<Self, SchedulerError> {
+    ) -> Result<PreparedTimerGraph, SchedulerError> {
         if fragment.placements.len() != NODES
             || fragment.connections.len() != CORDS
             || lowered.nodes.len() != NODES
@@ -236,139 +48,46 @@ impl TourTimerKernel {
         if period != 120 || start != 0 {
             return Err(SchedulerError::InvalidPlan);
         }
-        let mut values = FixedValueStore::<VALUES, 8>::new(VALUE_BYTES as u32)?;
-        let wait = values.store(&period.to_le_bytes())?;
-        let next_wait = values.store(&period.to_le_bytes())?;
-        let tick = values.store(&conduit_time::encode_tick(0))?;
-        let zero = values.store(&start.to_le_bytes())?;
-        let one = values.store(&1_u64.to_le_bytes())?;
-        let mut drivers = Vec::with_capacity(NODES);
-        for index in 0..NODES {
-            let operation = if index == timer {
-                TimerBack::Every {
-                    waits: [
-                        BoundedValueRef::new(wait, 8)?,
-                        BoundedValueRef::new(next_wait, 8)?,
-                    ],
-                    tick,
-                    emitting: false,
-                    next_wait: 0,
-                }
-            } else if index == count {
-                TimerBack::Count {
-                    zero,
-                    one,
-                    initial_emitted: false,
-                    bumped: false,
-                }
-            } else {
-                TimerBack::Presentation {
-                    pending: None,
-                    next_request: 1,
-                }
+        let mut routes = [None; CORDS];
+        if lowered.routes.len() > routes.len() || lowered.host_calls.len() > NODES {
+            return Err(SchedulerError::InvalidPlan);
+        }
+        for (slot, route) in routes.iter_mut().zip(&lowered.routes) {
+            let [target] = route.targets.as_slice() else {
+                return Err(SchedulerError::InvalidPlan);
             };
-            drivers.push(operation);
+            *slot = Some(PreparedTimerRoute {
+                node: route.source_node,
+                port: route.source_port,
+                range: route.range,
+                target: *target,
+            });
         }
-        let drivers: [TimerBack; NODES] = drivers
-            .try_into()
-            .map_err(|_| SchedulerError::InvalidPlan)?;
-        let nodes = lowered
-            .node_specs
-            .as_slice()
-            .try_into()
-            .map_err(|_| SchedulerError::InvalidPlan)?;
-        let cords = [lowered.cords[0].spec, lowered.cords[1].spec];
-        let mut routes = FixedRoutes::<{ NODES * PORTS }, CORDS>::new(PORTS as u16);
-        for route in &lowered.routes {
-            routes.install(
-                route.source_node,
-                route.source_port,
-                route.range,
-                &route.targets,
-            )?;
+        let mut bindings = [None; NODES];
+        for (slot, operation) in bindings.iter_mut().zip(&lowered.host_calls) {
+            *slot = Some((operation.node, operation.binding));
         }
-        routes.seal()?;
-        let mut bindings = FixedHostCallBindings::<HOST_BINDINGS>::new(NODES as u16);
-        for operation in &lowered.host_calls {
-            bindings.install(operation.node, operation.binding)?;
-        }
-        bindings.seal()?;
-        let minimum_sign_bytes = (SIGNS * core::mem::size_of::<KernelEvent>()) as u32;
-        let signs = FixedSignLog::<SIGNS>::new(lowered.sign_bytes.max(minimum_sign_bytes))?;
-        Ok(Self {
-            scheduler: FixedScheduler::new_with_host_calls(
-                nodes, cords, routes, bindings, drivers, values, signs,
-            )?,
+        Ok(PreparedTimerGraph {
+            nodes: [
+                runtime_node(&lowered.node_specs[0])?,
+                runtime_node(&lowered.node_specs[1])?,
+                runtime_node(&lowered.node_specs[2])?,
+            ],
+            cords: [lowered.cords[0].spec, lowered.cords[1].spec],
+            routes,
+            bindings,
             timer: NodeId(timer as u16),
+            count: NodeId(count as u16),
             presentation: NodeId(presentation as u16),
+            period,
+            start,
+            sign_bytes: lowered.sign_bytes,
         })
     }
 
-    pub fn step(&mut self) -> Result<SchedulerStatus, SchedulerError> {
-        self.scheduler.step()
-    }
-
-    pub fn next_host_request(&mut self) -> Option<HostCallRequest> {
-        self.scheduler.next_host_request()
-    }
-
-    pub fn host_value(&self, value: ValueRef) -> Result<&[u8], SchedulerError> {
-        self.scheduler.host_value(value)
-    }
-
-    pub fn is_timer(&self, request: &HostCallRequest) -> bool {
-        request.node == self.timer
-    }
-
-    pub fn is_presentation(&self, request: &HostCallRequest) -> bool {
-        request.node == self.presentation
-    }
-
+    #[cfg(not(conduitos_protected_execution))]
     pub fn complete_timer(&mut self, interest: KernelInterest) -> Result<(), SchedulerError> {
-        self.scheduler.complete_host_call(
-            interest.node,
-            interest.request,
-            HostCallOutcome {
-                disposition: HostCallDisposition::Completed,
-                output: None,
-                failure: None,
-            },
-        )
-    }
-
-    pub fn complete_presentation(
-        &mut self,
-        request: HostCallRequest,
-    ) -> Result<(), SchedulerError> {
-        self.complete(request)
-    }
-
-    fn complete(&mut self, request: HostCallRequest) -> Result<(), SchedulerError> {
-        self.scheduler.complete_host_call(
-            request.node,
-            request.request,
-            HostCallOutcome {
-                disposition: HostCallDisposition::Completed,
-                output: None,
-                failure: None,
-            },
-        )
-    }
-
-    pub fn cancel(&mut self) -> Result<(), SchedulerError> {
-        self.scheduler.cancel()
-    }
-
-    pub fn pending_host_calls(&self) -> usize {
-        self.scheduler.pending_host_call_count()
-    }
-
-    pub fn decisions(&self) -> u32 {
-        self.scheduler.decisions()
-    }
-
-    pub fn sign_count(&self) -> u16 {
-        self.scheduler.signs().len()
+        self.complete_request(interest.node, interest.request)
     }
 }
 
@@ -418,4 +137,41 @@ fn configured_milliseconds(
             _ => None,
         })
         .ok_or(SchedulerError::InvalidPlan)
+}
+
+fn runtime_node(
+    spec: &NodeSpec<FIXED_KERNEL_STORAGE_PORTS_PER_NODE>,
+) -> Result<NodeSpec<PORTS>, SchedulerError> {
+    if spec.input_cords[PORTS..].iter().any(Option::is_some) {
+        return Err(SchedulerError::InvalidPlan);
+    }
+    Ok(NodeSpec {
+        input_cords: core::array::from_fn(|index| spec.input_cords[index]),
+        maximum_step_fuel: spec.maximum_step_fuel,
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn tour_timer_single_port_projection_refuses_hidden_inputs() {
+        let mut spec = NodeSpec {
+            input_cords: [None; FIXED_KERNEL_STORAGE_PORTS_PER_NODE],
+            maximum_step_fuel: 7,
+        };
+        spec.input_cords[0] = Some(conduit_kernel::CordId(0));
+        let projected = runtime_node(&spec).unwrap();
+        assert_eq!(projected.input_cords, [Some(conduit_kernel::CordId(0))]);
+        assert_eq!(projected.maximum_step_fuel, 7);
+        for port in PORTS..FIXED_KERNEL_STORAGE_PORTS_PER_NODE {
+            spec.input_cords[port] = Some(conduit_kernel::CordId(1));
+            assert!(matches!(
+                runtime_node(&spec),
+                Err(SchedulerError::InvalidPlan)
+            ));
+            spec.input_cords[port] = None;
+        }
+    }
 }

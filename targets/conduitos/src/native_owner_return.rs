@@ -26,6 +26,8 @@ const ACTION_SCHEMA: &str = "conduit.body/native-owner-return-action@1";
 const RESPONSE_SCHEMA: &str = "conduit.body/native-owner-return-response@1";
 const SHOW_ACK_SCHEMA: &str = "conduit.body/native-owner-show-ack@1";
 const SHOW_ACK_RESPONSE_SCHEMA: &str = "conduit.body/native-owner-show-ack-response@1";
+#[path = "native_owner_return/refresh.rs"]
+mod refresh;
 // Two bounded actor calls (action and refreshed Face) may follow the accepted
 // submission. Their outcome window is separate from the grant's input cutoff.
 const MAX_ACTION_MILLIS: u32 = 10_000;
@@ -42,6 +44,7 @@ pub struct NativeOwnerReturnRoute {
     certificate_der: Vec<u8>,
     lifetime: CandidateDeadline,
     next_sequence: u8,
+    refreshes: u8,
     active: bool,
     acknowledged_show: Option<MaskShow>,
     action_storage: Vec<u8>,
@@ -110,6 +113,7 @@ impl NativeOwnerReturnRoute {
             certificate_der,
             lifetime,
             next_sequence: 1,
+            refreshes: 0,
             active: true,
             acknowledged_show: None,
             action_storage: vec![0; MAX_RETURN_ACTION_BYTES],

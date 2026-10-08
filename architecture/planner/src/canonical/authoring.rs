@@ -1,5 +1,45 @@
-//! Seal exact external Fore contracts after ordinary expanded planning.
+//! Seal exact external Fore contracts after expanded planning.
 use super::*;
+
+/// Seal a root's exact Fore together with its recursively planned activations.
+/// The checked document is required because an expanded parent does not carry
+/// the selected child Plot source needed to prepare its Plan.
+#[allow(clippy::too_many_arguments)]
+pub fn plan_expanded_authoring_with_activations(
+    document: &CheckedSyntaxDocument,
+    plot: &ExpandedAuthoringPlot,
+    catalog: &ProfileCatalog,
+    backs: &CanonicalBackCatalog,
+    hosts: &[HostAdvertisement],
+    placements: &PlacementChoices,
+    bases: &[BaseImplementationId],
+    options: PlanningOptions<'_>,
+    boundary_limits: &BTreeMap<ForeBoundaryKey, ConnectionQueueLimits>,
+) -> Result<Plan, PlannerError> {
+    let checked = expand_canonical_plot_for_authoring_with_backs(
+        document,
+        &plot.expanded.name,
+        catalog,
+        backs,
+    )
+    .map_err(|error| PlannerError::InvalidPlotIdentity(error.to_string()))?;
+    if &checked != plot {
+        return Err(PlannerError::InvalidPlotIdentity(
+            "authoring Plot differs from its exact checked source and Back catalog".into(),
+        ));
+    }
+    let plan = plan_expanded_canonical_with_activations(
+        document,
+        &plot.expanded,
+        catalog,
+        backs,
+        hosts,
+        placements,
+        bases,
+        options,
+    )?;
+    seal_fore(plot, plan, boundary_limits)
+}
 
 pub fn plan_expanded_authoring_with_options(
     plot: &ExpandedAuthoringPlot,
@@ -256,16 +296,15 @@ fn seal_fore(
             ))
         });
     }
-    Ok(
-        conduit_core::seal_plan_with_realization_backs_and_completion(
-            PlotIdentity {
-                source_document_id: plan.source_document_id,
-                checked_plot_id: plan.checked_plot_id,
-                expanded_plot_id: plan.expanded_plot_id,
-            },
-            plan.completion_policy,
-            plan.realization_backs,
-            plan.fragments,
-        ),
-    )
+    Ok(conduit_core::seal_plan_with_activation_entries(
+        PlotIdentity {
+            source_document_id: plan.source_document_id,
+            checked_plot_id: plan.checked_plot_id,
+            expanded_plot_id: plan.expanded_plot_id,
+        },
+        plan.completion_policy,
+        plan.realization_backs,
+        plan.activations,
+        plan.fragments,
+    ))
 }

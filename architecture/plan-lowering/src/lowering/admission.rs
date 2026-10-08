@@ -9,6 +9,15 @@ pub(super) fn validate_fragment(
     if !verify_plan_fragment(fragment) {
         return Err(LoweringError::InvalidFragment);
     }
+    validate_verified_fragment(fragment, profile)
+}
+
+/// The caller verified the complete Plan, including activation commitments.
+/// Fragment-only verification cannot reconstruct an activation-bearing PlanId.
+pub(super) fn validate_verified_fragment(
+    fragment: &PlanFragment,
+    profile: KernelStorageProfile,
+) -> Result<(), LoweringError> {
     // Fresh initialization profiles must never silently reset retained State.
     if let Some(state) = fragment
         .states

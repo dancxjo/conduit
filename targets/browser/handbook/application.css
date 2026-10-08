@@ -62,6 +62,18 @@
 .owner-face-subject[data-face-role="Body"], .owner-face-subject[data-face-role="Plot"] { border-top: 3px solid var(--conduit-emphasis); }
 .owner-face-subject h4, .owner-face-subject h5 { margin-block: .3rem .7rem; font-size: 1.08rem; }
 .owner-face-subject p { margin-block: .5rem; line-height: 1.5; }
+.owner-face-collection { grid-column: 1/-1; padding: clamp(1rem,2vw,1.5rem); border: 1px solid var(--conduit-structure-secondary); border-top: 3px solid var(--conduit-emphasis); border-radius: .5rem; background: var(--conduit-surface); }
+.owner-face-collection h4 { margin: 0 0 .5rem; font-size: 1.35rem; }
+.owner-face-collection-count { color: var(--conduit-text-secondary); }
+.owner-face-items { display: grid; gap: .6rem; list-style: none; margin: 1rem 0; padding: 0; }
+.owner-face-items li { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem 1rem; padding: .7rem 1rem; border: 1px solid var(--conduit-structure-secondary); border-radius: .5rem; background: var(--conduit-background); }
+.owner-face-item-name { flex: 1 1 12rem; font-weight: 650; line-height: 1.45; }
+.owner-face-empty { padding: .75rem 1rem; border-radius: .5rem; background: var(--conduit-background); }
+.owner-face-completed .owner-face-item-name { font-weight: 400; text-decoration: line-through; text-decoration-color: var(--conduit-text-secondary); }
+.owner-face-items [data-owner-action] { flex: 0 0 auto; padding: 0; border: 0; background: transparent; }
+.owner-face-items [data-owner-action] button { font-size: .92rem; }
+.owner-face-completed { margin-top: 1rem; color: var(--conduit-text-secondary); }
+.owner-face-completed summary { cursor: pointer; }
 .owner-face-role { font: 700 .72rem var(--conduit-font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--conduit-emphasis); }
 .owner-face-document > details, .owner-face-document > section:not(.owner-face-subject) { grid-column: 1/-1; padding: .8rem 1rem; border: 1px solid var(--conduit-structure-secondary); border-radius: .5rem; }
 .owner-face li { margin-block: .3rem; overflow-wrap: anywhere; }

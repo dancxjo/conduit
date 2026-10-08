@@ -178,12 +178,17 @@ package_test_shard!(
         "conduit-body-lifecycle-conformance",
         "conduit-tour-model",
         "conduit-tutorial-plot",
+        "conduit-todo-plot",
+        "conduit-todo-face",
         "conduit-plot-library",
         "conduit",
         "conduit-xtask-dispatch",
         "xtask",
     ],
-    ["--features", "conduit-tongues/speech"]
+    [
+        "--features",
+        "conduit-tongues/speech,conduit-todo-plot/kernel-step"
+    ]
 );
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

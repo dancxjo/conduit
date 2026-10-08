@@ -117,7 +117,7 @@ extern "C" fn conduitos_ia32_product_rust_entry(
         &EMBEDDED_MAKE,
         CpuFeatures {
             sse2: true,
-            rdrand: false,
+            rdrand: core::arch::x86::__cpuid(1).ecx & (1 << 30) != 0,
             invariant_tsc: false,
         },
         1024 * 1024,
@@ -227,6 +227,9 @@ extern "C" fn conduitos_ia32_product_rust_entry(
     )
     .unwrap_or_else(|error| refuse(error.as_str()));
 
+    #[cfg(feature = "ordinary-domain-proof")]
+    conduitos::ia32_domain_proof::run(&prepared.plan, &offer);
+
     arch::present(b"CONDUIT_IA32_PRODUCT {\"schema\":\"conduit.conduitos/ia32-product@1\",\"status\":\"ready\",\"profile_id\":\"");
     arch::present(EMBEDDED_MAKE.profile_id.as_bytes());
     arch::present(b"\",\"build_id\":\"");
@@ -245,6 +248,12 @@ extern "C" fn conduitos_ia32_product_rust_entry(
     arch::present(receipt.presenter_implementation_id.as_str().as_bytes());
     arch::present(b"\",\"presenter_plan_id\":\"");
     arch::present(receipt.plan_id.as_str().as_bytes());
+    arch::present(b"\",\"ordinary_source_document_id\":\"");
+    arch::present(prepared.source_document_id.as_str().as_bytes());
+    arch::present(b"\",\"ordinary_checked_plot_id\":\"");
+    arch::present(prepared.checked_plot_id.as_str().as_bytes());
+    arch::present(b"\",\"ordinary_expanded_plot_id\":\"");
+    arch::present(prepared.expanded_plot_id.as_str().as_bytes());
     arch::present(b"\",\"ordinary_plan_id\":\"");
     arch::present(prepared.plan.plan_id.as_str().as_bytes());
     arch::present(b"\",\"ordinary_play_id\":\"");

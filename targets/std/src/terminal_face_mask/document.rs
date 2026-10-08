@@ -1,8 +1,10 @@
-//! One shared semantic reading order, wrapped without dropping hidden content.
+//! Face disclosure shapes the compact terminal view; Inspect retains the exact
+//! linear projection and its complete provenance.
 use super::*;
 use conduit_presentation::{
     plan_face_utterances, readable_finite_text_choices, render_linear_presentation,
-    FaceUtteranceProvenance,
+    FaceUtterancePlan, FaceUtteranceProvenance, PresentationDisclosureLevel,
+    PresentationPropertyValue, PresentationRole,
 };
 
 pub(super) struct Row {
@@ -16,53 +18,59 @@ pub(super) fn prepare(
     width: usize,
 ) -> Result<(Vec<Row>, Vec<Row>), TerminalError> {
     let plan = plan_face_utterances(face).map_err(|_| TerminalError::DocumentPressure)?;
-    let mut rows = Vec::new();
-    for (index, clause) in plan.clauses.iter().enumerate() {
-        let names = match &clause.provenance {
-            FaceUtteranceProvenance::Action(p) => Some((p.identity(), None)),
-            FaceUtteranceProvenance::ActionArgument(p) => {
-                Some((p.action_identity(), Some(p.argument_name())))
-            }
-            _ => None,
-        };
-        let control = names
-            .map(|(name, argument)| {
-                let action = face
-                    .actions
-                    .iter()
-                    .position(|a| &a.identity == name)
-                    .ok_or(TerminalError::InvalidFace)?;
-                let argument = argument
-                    .map(|name| {
-                        face.actions[action]
-                            .arguments
-                            .iter()
-                            .position(|a| &a.name == name)
-                            .ok_or(TerminalError::InvalidFace)
-                    })
-                    .transpose()?;
-                Ok::<_, TerminalError>(TerminalControl { action, argument })
-            })
-            .transpose()?;
-        let readable_choice = control.and_then(|control| {
-            let argument = face.actions[control.action]
-                .arguments
-                .get(control.argument?)?;
-            let choices = readable_finite_text_choices(&argument.contract)?;
-            Some(format!(
-                "For {}, choose {}: {}.",
-                face.actions[control.action].name,
-                argument.value_name,
-                choices.join(", ")
-            ))
-        });
-        append(
-            &mut rows,
-            readable_choice.as_deref().unwrap_or(&clause.text),
-            width,
-            Some(index),
-            control,
-        )?;
+    let mut rows = if face.disclosures.is_empty() {
+        Vec::new()
+    } else {
+        primary_rows(face, &plan, width)?
+    };
+    if face.disclosures.is_empty() {
+        for (index, clause) in plan.clauses.iter().enumerate() {
+            let names = match &clause.provenance {
+                FaceUtteranceProvenance::Action(p) => Some((p.identity(), None)),
+                FaceUtteranceProvenance::ActionArgument(p) => {
+                    Some((p.action_identity(), Some(p.argument_name())))
+                }
+                _ => None,
+            };
+            let control = names
+                .map(|(name, argument)| {
+                    let action = face
+                        .actions
+                        .iter()
+                        .position(|a| &a.identity == name)
+                        .ok_or(TerminalError::InvalidFace)?;
+                    let argument = argument
+                        .map(|name| {
+                            face.actions[action]
+                                .arguments
+                                .iter()
+                                .position(|a| &a.name == name)
+                                .ok_or(TerminalError::InvalidFace)
+                        })
+                        .transpose()?;
+                    Ok::<_, TerminalError>(TerminalControl { action, argument })
+                })
+                .transpose()?;
+            let readable_choice = control.and_then(|control| {
+                let argument = face.actions[control.action]
+                    .arguments
+                    .get(control.argument?)?;
+                let choices = readable_finite_text_choices(&argument.contract)?;
+                Some(format!(
+                    "For {}, choose {}: {}.",
+                    face.actions[control.action].name,
+                    argument.value_name,
+                    choices.join(", ")
+                ))
+            });
+            append(
+                &mut rows,
+                readable_choice.as_deref().unwrap_or(&clause.text),
+                width,
+                Some(index),
+                control,
+            )?;
+        }
     }
     let linear = render_linear_presentation(face).map_err(|_| TerminalError::DocumentPressure)?;
     let mut inspect = Vec::new();
@@ -74,6 +82,217 @@ pub(super) fn prepare(
         return Err(TerminalError::DocumentPressure);
     }
     Ok((rows, inspect))
+}
+
+fn primary_rows(
+    face: &Presentation,
+    plan: &FaceUtterancePlan,
+    width: usize,
+) -> Result<Vec<Row>, TerminalError> {
+    let level = |subject: &str| {
+        face.disclosures
+            .iter()
+            .find(|item| item.subject == subject)
+            .map(|item| item.level)
+    };
+    let has_context = face.disclosures.iter().any(|item| {
+        matches!(
+            item.level,
+            PresentationDisclosureLevel::Context | PresentationDisclosureLevel::Primary
+        ) && face.subjects.iter().any(|subject| {
+            subject.identity == item.subject
+                && matches!(
+                    subject.role,
+                    PresentationRole::Collection | PresentationRole::Document
+                )
+        })
+    });
+    let mut rows = Vec::new();
+    for subject in face.subjects.iter().filter(|subject| {
+        matches!(
+            level(&subject.identity),
+            Some(PresentationDisclosureLevel::Context | PresentationDisclosureLevel::Primary)
+        ) && matches!(
+            subject.role,
+            PresentationRole::Collection | PresentationRole::Document
+        )
+    }) {
+        append(
+            &mut rows,
+            &subject.name,
+            width,
+            subject_clause(plan, &subject.identity),
+            None,
+        )?;
+    }
+    for subject in face.subjects.iter().filter(|subject| {
+        level(&subject.identity) == Some(PresentationDisclosureLevel::Primary)
+            && subject.role == PresentationRole::Status
+            && !face
+                .text
+                .iter()
+                .any(|wording| wording.subject == subject.identity)
+    }) {
+        append(
+            &mut rows,
+            &subject.name,
+            width,
+            subject_clause(plan, &subject.identity),
+            None,
+        )?;
+    }
+    for (index, wording) in face.text.iter().enumerate() {
+        if !matches!(
+            level(&wording.subject),
+            Some(PresentationDisclosureLevel::Context | PresentationDisclosureLevel::Primary)
+        ) {
+            continue;
+        }
+        let subject = face
+            .subjects
+            .iter()
+            .find(|subject| subject.identity == wording.subject)
+            .ok_or(TerminalError::InvalidFace)?;
+        if (has_context && subject.role == PresentationRole::Body)
+            || (wording.text == subject.name
+                && matches!(
+                    subject.role,
+                    PresentationRole::Collection
+                        | PresentationRole::Document
+                        | PresentationRole::Status
+                        | PresentationRole::Item
+                ))
+        {
+            continue;
+        }
+        let clause = plan.clauses.iter().position(|clause| {
+            matches!(&clause.provenance,
+            FaceUtteranceProvenance::Text(source) if *source.index() as usize == index)
+        });
+        append(&mut rows, &wording.text, width, clause, None)?;
+    }
+    let mut items = face
+        .subjects
+        .iter()
+        .enumerate()
+        .filter(|(_, subject)| {
+            level(&subject.identity) == Some(PresentationDisclosureLevel::Primary)
+                && subject.role == PresentationRole::Item
+        })
+        .collect::<Vec<_>>();
+    items.sort_by_key(|(index, subject)| {
+        (
+            face.properties
+                .iter()
+                .find_map(|property| {
+                    (property.subject == subject.identity && property.name == "order")
+                        .then_some(&property.value)
+                        .and_then(|value| match value {
+                            PresentationPropertyValue::Count(order) => Some(*order),
+                            _ => None,
+                        })
+                })
+                .unwrap_or(*index as u64),
+            *index,
+        )
+    });
+    for (number, (_, subject)) in items.iter().enumerate() {
+        let complete = face.properties.iter().any(|property| {
+            property.subject == subject.identity
+                && property.name == "complete"
+                && property.value == PresentationPropertyValue::Flag(true)
+        });
+        append(
+            &mut rows,
+            &format!(
+                "{}. [{}] {}",
+                number + 1,
+                if complete { "x" } else { " " },
+                subject.name
+            ),
+            width,
+            subject_clause(plan, &subject.identity),
+            None,
+        )?;
+    }
+    if rows.is_empty() {
+        if let Some(subject) = face.subjects.iter().find(|subject| {
+            matches!(
+                level(&subject.identity),
+                None | Some(PresentationDisclosureLevel::Primary)
+            ) && (!has_context || subject.role != PresentationRole::Body)
+        }) {
+            append(
+                &mut rows,
+                &subject.name,
+                width,
+                subject_clause(plan, &subject.identity),
+                None,
+            )?;
+        }
+    }
+    for (index, action) in face.actions.iter().enumerate() {
+        let target_level = level(&action.target);
+        if !action.availability.is_available()
+            || action.disclosure != PresentationDisclosureLevel::CurrentAction
+            || !(matches!(
+                target_level,
+                Some(PresentationDisclosureLevel::Context | PresentationDisclosureLevel::Primary)
+            ) || (!has_context && target_level.is_none()))
+        {
+            continue;
+        }
+        let target = face
+            .subjects
+            .iter()
+            .find(|subject| subject.identity == action.target)
+            .ok_or(TerminalError::InvalidFace)?;
+        let label = if target.role == PresentationRole::Item {
+            format!("{} · {}", action.name, target.name)
+        } else {
+            action.name.clone()
+        };
+        let clause = plan.clauses.iter().position(|clause| {
+            matches!(&clause.provenance,
+            FaceUtteranceProvenance::Action(source) if source.identity() == &action.identity)
+        });
+        append(
+            &mut rows,
+            &label,
+            width,
+            clause,
+            Some(TerminalControl {
+                action: index,
+                argument: None,
+            }),
+        )?;
+        for (argument_index, argument) in action.arguments.iter().enumerate() {
+            let hint = readable_finite_text_choices(&argument.contract).map_or_else(
+                || argument.value_name.clone(),
+                |choices| format!("{}: {}", argument.value_name, choices.join(", ")),
+            );
+            let argument_clause = plan.clauses.iter().position(|clause| matches!(&clause.provenance,
+                FaceUtteranceProvenance::ActionArgument(source) if source.action_identity() == &action.identity && source.argument_name() == &argument.name));
+            append(
+                &mut rows,
+                &hint,
+                width,
+                argument_clause,
+                Some(TerminalControl {
+                    action: index,
+                    argument: Some(argument_index),
+                }),
+            )?;
+        }
+    }
+    Ok(rows)
+}
+
+fn subject_clause(plan: &FaceUtterancePlan, identity: &str) -> Option<usize> {
+    plan.clauses.iter().position(|clause| {
+        matches!(&clause.provenance,
+        FaceUtteranceProvenance::Subject(source) if source.identity() == identity)
+    })
 }
 
 /// Escape terminal controls, including bidi/format controls. Semantic bytes
@@ -137,7 +356,20 @@ pub(super) fn frame(mask: &TerminalFaceMask) -> String {
     let title = mask
         .face
         .subjects
-        .first()
+        .iter()
+        .find(|subject| {
+            mask.face.disclosures.iter().any(|item| {
+                item.subject == subject.identity
+                    && matches!(
+                        item.level,
+                        PresentationDisclosureLevel::Context | PresentationDisclosureLevel::Primary
+                    )
+            }) && matches!(
+                subject.role,
+                PresentationRole::Collection | PresentationRole::Document
+            )
+        })
+        .or_else(|| mask.face.subjects.first())
         .map_or("Conduit", |s| s.name.as_str());
     let mut frame = format!(
         "\x1b[2J\x1b[H\x1b[1m{}\x1b[0m\r\n{}\r\n",

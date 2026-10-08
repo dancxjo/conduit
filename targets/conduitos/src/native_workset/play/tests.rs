@@ -17,7 +17,8 @@ fn kernel() -> (PreparedNativeWorkset, NativeWorksetPlay) {
     let (body, exact_wake) = born.wake(2, "sign/woke".into()).unwrap();
     evidence.append_wake(body, exact_wake, 2).unwrap();
     let mut play = NativeWorksetPlay::prepare_with_biography(&prepared, &evidence).unwrap();
-    play.start().unwrap();
+    let active = conduit_body::BodyPlayIdentity::bind(&prepared.plan, 3);
+    play.start_for(&prepared.plan, &active).unwrap();
     (prepared, play)
 }
 fn key(usage: u8, transition: KeyTransition) -> KeyEvent {
@@ -208,4 +209,40 @@ fn unread_presentation_pressure_refuses_input_without_overwriting_it() {
     assert_eq!(play.held[5], None);
     assert_eq!(play.take_presentation(canvas).unwrap().text(), "A");
     assert_eq!(type_key(&mut play, canvas, 5), "B");
+}
+
+#[test]
+fn body_activation_rejects_wrong_plan_forged_play_replay_and_cancelled_restart() {
+    let (ids, offer) = native_workset::tests::fixture();
+    let wake = native_workset::tests::wake(&[NativePlot::KeyboardCanvas]);
+    let prepared = native_workset::prepare(&wake, &ids, &offer, "build").unwrap();
+    let mut kernel = NativeWorksetPlay::prepare(&prepared).unwrap();
+    let active = conduit_body::BodyPlayIdentity::bind(&prepared.plan, 7);
+    let mut forged = active.clone();
+    forged.play_sequence += 1;
+    assert_eq!(
+        kernel.start_for(&prepared.plan, &forged),
+        Err(PlayRefusal::Preparation)
+    );
+    assert!(kernel.pending_requests().iter().all(Option::is_none));
+    assert!(kernel.active_body_play.is_none());
+    let mut changed = prepared.plan.clone();
+    changed.workload_revision += 1;
+    assert_eq!(
+        kernel.start_for(&changed, &active),
+        Err(PlayRefusal::Preparation)
+    );
+    assert!(kernel.active_body_play.is_none());
+    kernel.start_for(&prepared.plan, &active).unwrap();
+    assert_eq!(kernel.active_body_play.as_ref(), Some(&active));
+    assert_eq!(
+        kernel.start_for(&prepared.plan, &active),
+        Err(PlayRefusal::Preparation)
+    );
+    kernel.cancel().unwrap();
+    assert!(kernel.active_body_play.is_none());
+    assert_eq!(
+        kernel.start_for(&prepared.plan, &active),
+        Err(PlayRefusal::Preparation)
+    );
 }

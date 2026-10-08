@@ -7,6 +7,8 @@ use crate::PlotEditorError;
 pub(crate) fn standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), PlotEditorError> {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
+    conduit_todo_plot::install_todo_catalogs(&mut startup, &mut profile, "Groceries")
+        .map_err(PlotEditorError::Catalog)?;
     conduit_presentation::install_mask_plot_value_aliases(&mut startup)
         .map_err(PlotEditorError::Catalog)?;
     conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile)

@@ -64,6 +64,7 @@ pub(super) fn boot_legacy_bios(
         "base_commit": git_head(&paths.root)?,
         "image_sha256": sha256_file(image)?,
         "firmware_environment": "x86-bios",
+        "emulator_cpu": "max",
         "carrier": "limine-hybrid-iso-legacy-bios-entry",
         "product": product,
         "observatory": observatory,
@@ -145,6 +146,7 @@ pub(super) fn boot_twice(
     let proof = serde_json::json!({
         "schema": "conduit.conduitos/ia32-product-proof@2",
         "proof_class": "freestanding-ia32-emulator-dual-firmware-carrier",
+        "emulator_cpu": "max",
         "base_commit": git_head(&paths.root)?,
         "image_sha256": image_sha256,
         "first": first,
@@ -207,7 +209,10 @@ fn boot_once(
 ) -> Result<(serde_json::Value, serde_json::Value), ConduitosError> {
     let paths = Paths::new(ConduitosArch::Ia32)?;
     let transcript_path = paths.target.join(format!("ia32-product-{run}.log"));
-    let monitor_path = paths.target.join(format!("m-{}.sock", std::process::id()));
+    // Unix socket paths have a small fixed limit for both QEMU and the client.
+    // Keep this ephemeral endpoint independent of the checkout's path length.
+    let monitor_path =
+        std::env::temp_dir().join(format!("conduit-ia32-{}.sock", std::process::id()));
     let vga_path = paths.target.join(format!("ia32-product-{run}-vga.bin"));
     fs::write(&transcript_path, [])
         .map_err(|error| refusal("ia32-product-boot-failed", error.to_string()))?;
@@ -223,7 +228,7 @@ fn boot_once(
             "-machine",
             firmware_mode.machine(),
             "-cpu",
-            "qemu32",
+            "max",
             "-m",
             "512M",
             "-smp",
@@ -280,30 +285,47 @@ fn boot_once(
             matches!(firmware_mode, FirmwareMode::Uefi32)
                 || super::ia32_vga_receipt::completed_boot(&transcript).is_some(),
         ) {
-            let value: serde_json::Value = serde_json::from_str(json)
-                .map_err(|error| refusal("malformed-ia32-product-sign", error.to_string()))?;
-            validate_sign(
-                &value,
-                expected_profile_id,
-                expected_build_id,
-                expected_image_binding,
-            )?;
-            let observatory: serde_json::Value = serde_json::from_str(observatory_json)
-                .map_err(|error| refusal("malformed-ia32-observatory", error.to_string()))?;
-            validate_observatory(&observatory, &value, firmware_mode.expected_firmware())?;
-            if matches!(firmware_mode, FirmwareMode::LegacyBios) {
-                if let Err(error) = super::ia32_vga_receipt::validate_completion(
-                    &transcript,
+            let captured = (|| {
+                let mut value: serde_json::Value = serde_json::from_str(json)
+                    .map_err(|error| refusal("malformed-ia32-product-sign", error.to_string()))?;
+                validate_sign(
                     &value,
-                )
-                .and_then(|()| {
-                    super::ia32_vga_receipt::capture_and_validate(&monitor_path, &vga_path, &value)
-                }) {
+                    expected_profile_id,
+                    expected_build_id,
+                    expected_image_binding,
+                )?;
+                let observatory: serde_json::Value = serde_json::from_str(observatory_json)
+                    .map_err(|error| refusal("malformed-ia32-observatory", error.to_string()))?;
+                validate_observatory(&observatory, &value, firmware_mode.expected_firmware())?;
+                let ordinary_plan: conduit_core::Plan =
+                    serde_json::from_value(observatory["plans"][0].clone()).map_err(|error| {
+                        refusal("ordinary-product-plan-invalid", error.to_string())
+                    })?;
+                value["ordinary_source_conformance"] =
+                    super::ordinary_source_conformance::capture(&ordinary_plan)?;
+                value["ordinary_domain_cost"] =
+                    super::protected_product_receipt::capture(&transcript, &value, "ia32")?;
+                if matches!(firmware_mode, FirmwareMode::LegacyBios) {
+                    super::ia32_vga_receipt::validate_completion(&transcript, &value).and_then(
+                        |()| {
+                            super::ia32_vga_receipt::capture_and_validate(
+                                &monitor_path,
+                                &vga_path,
+                                &value,
+                            )
+                        },
+                    )?;
+                }
+                Ok::<_, ConduitosError>((value, observatory))
+            })();
+            let (value, observatory) = match captured {
+                Ok(captured) => captured,
+                Err(error) => {
                     let _ = child.kill();
                     let _ = child.wait();
                     return Err(error);
                 }
-            }
+            };
             thread::sleep(Duration::from_millis(250));
             if child
                 .try_wait()

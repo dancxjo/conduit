@@ -1,15 +1,15 @@
 //! Bounded ordinary Observatory export prepared before Play and emitted only
 //! after the expected terminal kernel result has been verified.
 
-use alloc::{format, string::String, vec, vec::Vec};
+use alloc::{string::String, vec, vec::Vec};
 use core::fmt::Write;
 
 use conduit_core::{
-    ArtifactId, ConnectionTerminalDisposition, HostBaseId, HostBaseKindId, Observation,
-    ObservationKind, SignId, TerminalDisposition, bind_sign,
+    ArtifactId, ConnectionTerminalDisposition, Observation, ObservationKind, SignId,
+    TerminalDisposition, bind_sign,
 };
 use conduit_observatory::{
-    BaseReport, BootProofClass, CapabilityAvailability, CapabilityStatusReport, CapabilitySupport,
+    BootProofClass, CapabilityAvailability, CapabilityStatusReport, CapabilitySupport,
     FramebufferBasis, HostReport, MemoryMapSummary, ObservatorySnapshot, OfferFreshness,
     OperationalState, PlanLifecycle, PlayConnectionReport, PlayPlacementReport, PlayReport,
     PressureReport, RetentionReport, SNAPSHOT_SCHEMA, SealedBootProvenanceReport,
@@ -19,6 +19,11 @@ use conduit_observatory::{
 use crate::{
     boot::BootRecord, dual_region_plan::PreparedDualRegionPlay, identity::BootIdentities,
     offer::HostOffer,
+};
+
+mod provider_reports;
+pub(crate) use provider_reports::{
+    append_advertised_bases, append_framebuffer_base, fixed_base_reports,
 };
 
 pub const EXPORT_PREFIX: &str = "CONDUIT_OBSERVATORY_SNAPSHOT ";
@@ -89,25 +94,7 @@ pub fn prepare_export(
             availability: CapabilityAvailability::Available,
         })
         .collect();
-    let mut bases = offer
-        .bases
-        .iter()
-        .map(|base| BaseReport {
-            host_id: host_id.clone(),
-            boot_id: boot_id.clone(),
-            base_id: HostBaseId::from(hex_identity(&base.id)),
-            provider_instance_id: conduit_core::BaseInstanceId::from(hex_identity(
-                &base.provider_instance_id,
-            )),
-            provider_generation: base.provider_generation,
-            kind_id: HostBaseKindId::from(format!("conduitos.base/{}@1", base.kind.as_str())),
-            implementation_id: None,
-            enforcement_class: None,
-            lifecycle: None,
-            state: OperationalState::Available,
-            capacity_units: u64::from(base.capacity),
-        })
-        .collect::<Vec<_>>();
+    let mut bases = fixed_base_reports(offer, &prepared.advertisement)?;
     append_advertised_bases(&mut bases, &prepared.advertisement);
     append_framebuffer_base(&mut bases, &host_id, &boot_id, framebuffer)?;
     let fragment = prepared
@@ -185,7 +172,7 @@ pub fn prepare_export(
             firmware_environment: record.firmware.as_str().into(),
             adapter_name: "Limine".into(),
             adapter_version: "12.5.2".into(),
-            adapter_revision: "3".into(),
+            adapter_revision: alloc::format!("{}", crate::boot::LIMINE_BASE_REVISION),
             image_id: ArtifactId::from(image_id),
             build_id: ArtifactId::from(build_id),
             image_build_trace: None,
@@ -253,66 +240,6 @@ pub fn prepare_image_bound_export(
         return Err(ExportError::ExportTooLarge);
     }
     Ok(PreparedObservatoryExport { encoded })
-}
-
-pub(crate) fn append_framebuffer_base(
-    bases: &mut Vec<BaseReport>,
-    host_id: &conduit_core::HostId,
-    boot_id: &conduit_core::BootId,
-    framebuffer: Option<&FramebufferBasis>,
-) -> Result<(), ExportError> {
-    let Some(framebuffer) = framebuffer else {
-        return Ok(());
-    };
-    let capacity_units = u64::from(framebuffer.pitch_bytes)
-        .checked_mul(u64::from(framebuffer.height))
-        .ok_or(ExportError::InvalidSnapshot)?;
-    bases.push(BaseReport {
-        host_id: host_id.clone(),
-        boot_id: boot_id.clone(),
-        base_id: framebuffer.base_id.clone(),
-        provider_instance_id: conduit_core::BaseInstanceId::from(format!(
-            "{}/provider/1",
-            framebuffer.base_id.as_str()
-        )),
-        provider_generation: 1,
-        kind_id: HostBaseKindId::from("conduitos.base/framebuffer@1"),
-        implementation_id: None,
-        enforcement_class: None,
-        lifecycle: None,
-        state: OperationalState::Available,
-        capacity_units,
-    });
-    Ok(())
-}
-
-pub(crate) fn append_advertised_bases(
-    bases: &mut Vec<BaseReport>,
-    advertisement: &conduit_core::HostAdvertisement,
-) {
-    for advertised in &advertisement.bases {
-        let resource_capacity = advertisement
-            .resources
-            .iter()
-            .filter(|resource| advertised.resource_pool_ids.contains(&resource.pool_id))
-            .map(|resource| u64::from(resource.capacity_units))
-            .sum::<u64>();
-        bases.push(BaseReport {
-            host_id: advertisement.host_id.clone(),
-            boot_id: advertisement.boot_id.clone(),
-            base_id: advertised.base_id.clone(),
-            provider_instance_id: advertised.provider_instance_id.clone(),
-            provider_generation: advertised.provider_generation,
-            kind_id: advertised.mechanism_family.clone(),
-            implementation_id: Some(advertised.implementation_id.clone()),
-            enforcement_class: Some(advertised.enforcement_class),
-            lifecycle: Some(advertised.lifecycle),
-            state: OperationalState::Available,
-            capacity_units: resource_capacity
-                .max(advertised.capability_ids.len() as u64)
-                .max(1),
-        });
-    }
 }
 
 fn historical_signs(

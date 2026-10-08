@@ -27,7 +27,7 @@ use conduit_presentation::{
     show_resource_source_offer,
 };
 
-pub const MASK_BYTES: usize = 32 * 1024;
+pub const MASK_BYTES: usize = 48 * 1024;
 
 #[derive(Clone)]
 pub struct MaskStage {

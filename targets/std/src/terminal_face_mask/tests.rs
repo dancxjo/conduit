@@ -121,6 +121,159 @@ fn full_document_preserves_words_relationships_and_inspection() {
 }
 
 #[test]
+fn todo_default_is_a_checklist_with_exact_actions_and_full_inspection() {
+    let base = face(1);
+    let mut subjects = base.subjects;
+    let mut properties = base.properties;
+    let mut disclosures = Vec::new();
+    subjects.push(PresentationSubject {
+        identity: "todo/list".into(),
+        role: PresentationRole::Collection,
+        name: "Groceries".into(),
+    });
+    disclosures.push(PresentationDisclosure {
+        subject: "todo/list".into(),
+        level: PresentationDisclosureLevel::Primary,
+    });
+    subjects.push(PresentationSubject {
+        identity: "todo/status".into(),
+        role: PresentationRole::Status,
+        name: "Progress".into(),
+    });
+    disclosures.push(PresentationDisclosure {
+        subject: "todo/status".into(),
+        level: PresentationDisclosureLevel::Primary,
+    });
+    for index in 0..20 {
+        let identity = format!("todo/item/{index}");
+        subjects.push(PresentationSubject {
+            identity: identity.clone(),
+            role: PresentationRole::Item,
+            name: if index < 3 {
+                format!("Open item {index}")
+            } else {
+                format!("Completed item {index}")
+            },
+        });
+        properties.push(PresentationProperty {
+            subject: identity.clone(),
+            name: "complete".into(),
+            value: PresentationPropertyValue::Flag(index >= 3),
+        });
+        properties.push(PresentationProperty {
+            subject: identity.clone(),
+            name: "order".into(),
+            value: PresentationPropertyValue::Count(index as u64),
+        });
+        disclosures.push(PresentationDisclosure {
+            subject: identity,
+            level: if index < 3 {
+                PresentationDisclosureLevel::Primary
+            } else {
+                PresentationDisclosureLevel::SelectedDetail
+            },
+        });
+    }
+    let actions = vec![
+        PresentationAction {
+            identity: "todo/add".into(),
+            intent: "todo/add".into(),
+            target: "todo/list".into(),
+            name: "Add item".into(),
+            arguments: vec![
+                FaceActionArgument::text("text".into(), "New item".into(), 1, 256).unwrap(),
+            ],
+            disclosure: PresentationDisclosureLevel::CurrentAction,
+            availability: PresentationActionAvailability::Available,
+        },
+        PresentationAction {
+            identity: "todo/complete/0".into(),
+            intent: "todo/complete".into(),
+            target: "todo/item/0".into(),
+            name: "Complete item".into(),
+            arguments: vec![],
+            disclosure: PresentationDisclosureLevel::CurrentAction,
+            availability: PresentationActionAvailability::Available,
+        },
+        PresentationAction {
+            identity: "todo/reopen/3".into(),
+            intent: "todo/reopen".into(),
+            target: "todo/item/3".into(),
+            name: "Reopen item".into(),
+            arguments: vec![],
+            disclosure: PresentationDisclosureLevel::CurrentAction,
+            availability: PresentationActionAvailability::Available,
+        },
+        PresentationAction {
+            identity: "todo/unavailable/0".into(),
+            intent: "todo/remove".into(),
+            target: "todo/item/0".into(),
+            name: "Unavailable removal".into(),
+            arguments: vec![],
+            disclosure: PresentationDisclosureLevel::CurrentAction,
+            availability: PresentationActionAvailability::Unavailable {
+                reason_code: "not-now".into(),
+                explanation: "Not available now".into(),
+            },
+        },
+    ];
+    let todo = Presentation::new_with_semantics(
+        2,
+        base.basis,
+        subjects,
+        base.relationships,
+        properties,
+        vec![
+            PresentationText {
+                subject: "todo/list".into(),
+                text: "Groceries".into(),
+            },
+            PresentationText {
+                subject: "todo/status".into(),
+                text: "3 things left · 17 completed".into(),
+            },
+        ],
+        actions,
+        disclosures,
+    )
+    .unwrap();
+    let mask = TerminalFaceMask::prepare(todo, 80, 14).unwrap();
+    let default = mask
+        .document
+        .iter()
+        .map(|row| row.text.as_str())
+        .collect::<String>();
+    assert!(default.starts_with("Groceries3 things left · 17 completed1. [ ] Open item 0"));
+    assert!(!default.contains("Progress"));
+    assert!(document::frame(&mask).starts_with("\x1b[2J\x1b[H\x1b[1mGroceries"));
+    assert!(default.contains("3. [ ] Open item 2"));
+    assert!(default.contains("Add item"));
+    assert!(default.contains("Complete item · Open item 0"));
+    assert!(!default.contains("Completed item"));
+    assert!(!default.contains("opaque/sha256:producer"));
+    assert!(!default.contains("Reopen item"));
+    assert!(!default.contains("Unavailable removal"));
+    assert!(mask.document.iter().any(|row| row.control
+        == Some(TerminalControl {
+            action: 0,
+            argument: Some(0)
+        })));
+    assert!(mask.document.iter().any(|row| row.control
+        == Some(TerminalControl {
+            action: 1,
+            argument: None
+        })));
+    let inspection = mask
+        .inspect_document
+        .iter()
+        .map(|row| row.text.as_str())
+        .collect::<String>();
+    assert!(inspection.contains("Completed item 17"));
+    assert!(inspection.contains("opaque/sha256:producer"));
+    assert!(inspection.contains("Unavailable removal"));
+}
+
+#[test]
 fn terminal_face_names_small_exact_text_choices_without_changing_the_contract() {
     let base = face(1);
     let mut actions = base.actions.clone();

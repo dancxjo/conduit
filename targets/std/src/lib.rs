@@ -49,9 +49,11 @@ pub use deadline_reactor::{
     DeadlineClock, DeadlineClockError, DeadlineHostAdapter, DeadlineHostError, DeadlineKey,
     DeadlineReactor, DeadlineReactorError, DeadlineWake, ThreadMonotonicClock,
 };
+mod body_live_fore;
 pub mod external_signal;
 pub mod external_websocket;
 pub mod flow_activation;
+pub use body_live_fore::{BodyLiveForeAdmission, BodyLiveForeQueue, BodyLiveForeStatus};
 mod host_execution;
 pub mod hosted_audio;
 mod hosted_body_conversation_context;
@@ -134,6 +136,10 @@ pub mod spoken_mask_runtime;
 mod spoken_mask_runtime_tests;
 pub mod terminal_face_mask;
 pub mod terminal_mask_execution;
+pub mod todo_checkpoint_call;
+pub mod todo_checkpoint_read_call;
+mod todo_checkpoint_transition;
+pub mod todo_durable_resource;
 mod vision_ocr;
 mod vision_tracker;
 
@@ -513,6 +519,14 @@ pub fn run_kernel_multivalue_path_to<W: Write, T: TimerAdapter>(
     Ok(report)
 }
 
+struct TodoCheckpointResidenceRoot {
+    path: std::path::PathBuf,
+    #[cfg(unix)]
+    device: u64,
+    #[cfg(unix)]
+    inode: u64,
+}
+
 pub struct StdHost {
     advertisement: HostAdvertisement,
     #[cfg(unix)]
@@ -533,6 +547,7 @@ pub struct StdHost {
     body_conversation_context: Option<BodyConversationContextSource>,
     vision: Option<hosted_vision::FiniteHostedVisionBase>,
     kernel_resources: kernel_preparation::KernelResourceLedger,
+    todo_checkpoint_root: Option<TodoCheckpointResidenceRoot>,
     next_kernel_play_sequence: u64,
     next_kernel_sign_sequence: u64,
 }
@@ -579,6 +594,34 @@ fn normalize_capability_offers(
         ));
     }
     capabilities.dedup_by(|left, right| left.capability_id == right.capability_id);
+    Ok(())
+}
+
+fn add_local_model_offers(
+    advertisement: &mut HostAdvertisement,
+    offer: &conduit_ai::LocalModelOffer,
+) -> Result<(), String> {
+    offer
+        .validate()
+        .map_err(|error| format!("local-model offer is not initialized: {error:?}"))?;
+    advertisement
+        .resources
+        .extend(hosted_local_model::resource_offers(&offer.limits));
+    advertisement.capabilities.extend(
+        offer
+            .capability_offers()
+            .map_err(|error| format!("local-model capabilities: {error:?}"))?,
+    );
+    advertisement.capabilities.extend([
+        conduit_std_offers::house_prompt_std_offer(),
+        conduit_std_offers::body_chat_prompt_std_offer(),
+        conduit_std_offers::model_result_to_text_std_offer(),
+        conduit_std_offers::model_result_flow_to_text_std_offer(),
+        conduit_std_offers::generated_chunk_to_text_std_offer(),
+        conduit_std_offers::address_detect_offer(),
+        conduit_std_offers::recognition_to_text_std_offer(),
+        conduit_std_offers::committed_turn_to_text_std_offer(),
+    ]);
     Ok(())
 }
 
@@ -677,6 +720,151 @@ impl StdHost {
         Self::new_with_composition(config, StdHostComposition::reference())
     }
 
+    /// Construct one std Host whose Todo scan Back is bound to the caller's
+    /// canonical initial Form before planning or resource-ledger admission.
+    /// The broad reference inventory remains unchanged.
+    pub fn new_for_todo_scan(
+        config: StdHostConfig,
+        initial: &conduit_todo_plot::TodoState,
+        maximum_items: u16,
+    ) -> Result<Self, String> {
+        let mut advertisement = composition::build_advertisement(
+            config,
+            StdHostComposition::reference(),
+            None,
+            None,
+            None,
+            false,
+        );
+        for offer in [
+            flow_activation::todo_scan_offer(initial, maximum_items)?,
+            flow_activation::todo_combine_offer(),
+        ] {
+            if let Some(existing) = advertisement
+                .capabilities
+                .iter()
+                .find(|existing| existing.capability_id == offer.capability_id)
+            {
+                if existing != &offer {
+                    return Err(
+                        "std Todo scan capability identity conflicts with the selected offer"
+                            .into(),
+                    );
+                }
+                continue;
+            }
+            advertisement.capabilities.push(offer);
+        }
+        advertisement
+            .capabilities
+            .sort_by(|left, right| left.capability_id.cmp(&right.capability_id));
+        Self::from_advertisement(advertisement)
+    }
+
+    /// Advertise one exact Todo checkpoint publication and its selected
+    /// ExternalDurable residence before resource-ledger admission. The root
+    /// remains explicitly selected and must match the later Play call.
+    pub fn new_for_todo_checkpoint_once(
+        config: StdHostConfig,
+        root: &std::path::Path,
+        content: conduit_core::ResourceContentRequirement,
+    ) -> Result<Self, String> {
+        let offer =
+            conduit_std_offers::todo_checkpoint_offer(content.clone()).map_err(str::to_string)?;
+        Self::new_for_selected_todo_checkpoint(config, root, content, offer)
+    }
+
+    /// Compose two explicitly selected, finite offers before this Host is
+    /// advertised or its resource ledger is admitted.
+    pub fn new_for_todo_checkpoint_with_local_model(
+        config: StdHostConfig,
+        root: &std::path::Path,
+        content: conduit_core::ResourceContentRequirement,
+        adapter: Box<dyn hosted_local_model::HostedLocalModelAdapter>,
+    ) -> Result<Self, String> {
+        let mut host = Self::new_for_todo_checkpoint_once(config, root, content)?;
+        let mut advertisement = host.advertisement.clone();
+        add_local_model_offers(&mut advertisement, adapter.offer())?;
+        advertisement.resources.sort();
+        normalize_capability_offers(&mut advertisement.capabilities)?;
+        let ledger = kernel_preparation::KernelResourceLedger::new(&advertisement)?;
+        host.advertisement = advertisement;
+        host.kernel_resources = ledger;
+        host.local_model = Some(adapter);
+        Ok(host)
+    }
+
+    /// Advertise one exact ReadPublished generation and its separate read
+    /// authority before ledger admission on the selected std Host.
+    pub fn new_for_todo_checkpoint_read(
+        config: StdHostConfig,
+        root: &std::path::Path,
+        content: conduit_core::ResourceContentRequirement,
+    ) -> Result<Self, String> {
+        let offer = conduit_std_offers::todo_checkpoint_read_offer(content.clone())
+            .map_err(str::to_string)?;
+        Self::new_for_selected_todo_checkpoint(config, root, content, offer)
+    }
+
+    fn new_for_selected_todo_checkpoint(
+        config: StdHostConfig,
+        root: &std::path::Path,
+        content: conduit_core::ResourceContentRequirement,
+        offer: conduit_core::CapabilityOffer,
+    ) -> Result<Self, String> {
+        let metadata = std::fs::symlink_metadata(root)
+            .map_err(|error| format!("Todo checkpoint root: {error}"))?;
+        if metadata.file_type().is_symlink() || !metadata.is_dir() {
+            return Err("Todo checkpoint root must be an existing directory".into());
+        }
+        let root = root
+            .canonicalize()
+            .map_err(|error| format!("Todo checkpoint root: {error}"))?;
+        let mut advertisement = composition::build_advertisement(
+            config,
+            StdHostComposition::reference(),
+            None,
+            None,
+            None,
+            false,
+        );
+        advertisement.resources.push(conduit_core::ResourceOffer {
+            pool_id: "std/todo-checkpoint".into(),
+            class_id: "resource/todo-checkpoint@1".into(),
+            capacity_units: 1,
+            compute: None,
+            content: Some(conduit_core::ResourceContentOffer {
+                contract: content,
+                owner_host: advertisement.host_id.clone(),
+                owner_boot: advertisement.boot_id.clone(),
+                base_id: "std/explicit-shared-checkpoint".into(),
+                residence_profile: conduit_core::kind_id("std/explicit-shared-checkpoint@1"),
+            }),
+        });
+        advertisement.capabilities.push(offer);
+        advertisement.resources.sort();
+        advertisement
+            .capabilities
+            .sort_by(|a, b| a.capability_id.cmp(&b.capability_id));
+        let mut host = Self::from_advertisement(advertisement)?;
+        #[cfg(unix)]
+        let selected = {
+            use std::os::unix::fs::MetadataExt;
+            let metadata = root
+                .metadata()
+                .map_err(|error| format!("Todo checkpoint root: {error}"))?;
+            TodoCheckpointResidenceRoot {
+                path: root,
+                device: metadata.dev(),
+                inode: metadata.ino(),
+            }
+        };
+        #[cfg(not(unix))]
+        let selected = TodoCheckpointResidenceRoot { path: root };
+        host.todo_checkpoint_root = Some(selected);
+        Ok(host)
+    }
+
     pub fn new_with_composition(config: StdHostConfig, composition: StdHostComposition) -> Self {
         let advertisement =
             composition::build_advertisement(config, composition, None, None, None, false);
@@ -700,6 +888,7 @@ impl StdHost {
             body_conversation_context: None,
             vision: None,
             kernel_resources,
+            todo_checkpoint_root: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -770,6 +959,7 @@ impl StdHost {
             body_conversation_context: None,
             vision: Some(vision),
             kernel_resources,
+            todo_checkpoint_root: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -791,44 +981,9 @@ impl StdHost {
         adapter: Box<dyn hosted_local_model::HostedLocalModelAdapter>,
         additional_capabilities: Vec<conduit_core::CapabilityOffer>,
     ) -> Result<Self, String> {
-        let offer = adapter.offer();
-        offer
-            .validate()
-            .map_err(|error| format!("local-model offer is not initialized: {error:?}"))?;
         let mut advertisement =
             composition::build_advertisement(config, composition, None, None, None, false);
-        advertisement
-            .resources
-            .extend(hosted_local_model::resource_offers(&offer.limits));
-        advertisement.capabilities.extend(
-            offer
-                .capability_offers()
-                .map_err(|error| format!("local-model capabilities: {error:?}"))?,
-        );
-        advertisement
-            .capabilities
-            .push(conduit_std_offers::house_prompt_std_offer());
-        advertisement
-            .capabilities
-            .push(conduit_std_offers::body_chat_prompt_std_offer());
-        advertisement
-            .capabilities
-            .push(conduit_std_offers::model_result_to_text_std_offer());
-        advertisement
-            .capabilities
-            .push(conduit_std_offers::model_result_flow_to_text_std_offer());
-        advertisement
-            .capabilities
-            .push(conduit_std_offers::generated_chunk_to_text_std_offer());
-        advertisement
-            .capabilities
-            .push(conduit_std_offers::address_detect_offer());
-        advertisement
-            .capabilities
-            .push(conduit_std_offers::recognition_to_text_std_offer());
-        advertisement
-            .capabilities
-            .push(conduit_std_offers::committed_turn_to_text_std_offer());
+        add_local_model_offers(&mut advertisement, adapter.offer())?;
         advertisement.capabilities.extend(additional_capabilities);
         advertisement.resources.sort();
         normalize_capability_offers(&mut advertisement.capabilities)?;
@@ -851,6 +1006,7 @@ impl StdHost {
             body_conversation_context: None,
             vision: None,
             kernel_resources,
+            todo_checkpoint_root: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -896,6 +1052,7 @@ impl StdHost {
             body_conversation_context: None,
             vision: None,
             kernel_resources,
+            todo_checkpoint_root: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -941,6 +1098,7 @@ impl StdHost {
             body_conversation_context: None,
             vision: None,
             kernel_resources,
+            todo_checkpoint_root: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -986,6 +1144,7 @@ impl StdHost {
             body_conversation_context: None,
             vision: None,
             kernel_resources,
+            todo_checkpoint_root: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -1016,6 +1175,7 @@ impl StdHost {
             body_conversation_context: None,
             vision: None,
             kernel_resources,
+            todo_checkpoint_root: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -1070,6 +1230,7 @@ impl StdHost {
             body_conversation_context: None,
             vision: None,
             kernel_resources,
+            todo_checkpoint_root: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -1119,6 +1280,7 @@ impl StdHost {
             body_conversation_context: None,
             vision: None,
             kernel_resources,
+            todo_checkpoint_root: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -1157,6 +1319,7 @@ impl StdHost {
             body_conversation_context: None,
             vision: None,
             kernel_resources,
+            todo_checkpoint_root: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -1208,6 +1371,7 @@ impl StdHost {
             body_conversation_context: None,
             vision: None,
             kernel_resources,
+            todo_checkpoint_root: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]

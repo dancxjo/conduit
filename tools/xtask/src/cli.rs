@@ -45,6 +45,9 @@ pub struct GlobalOpts {
 }
 
 #[derive(Subcommand, Debug)]
+// This one-shot CLI keeps Clap's owned subcommand shapes visible to its
+// parser tests; the largest Make arguments do not live in a hot path.
+#[allow(clippy::large_enum_variant)]
 pub enum Command {
     /// Execute repository validation check suites.
     Check(CheckArgs),
@@ -299,9 +302,39 @@ pub enum ProveCommand {
     Pete(PeteArgs),
     /// Exercise one reviewed Plot or journey through its exact repository proof path.
     Journey(DemoArgs),
+    /// Capture a live, partial Todo owner/terminal encounter without publishing a journey.
+    TodoJourney(TodoJourneyArgs),
     /// Produce, verify, or publish bounded proof evidence.
     #[command(flatten)]
     Evidence(EvidenceCommand),
+}
+
+#[derive(Args, Debug)]
+pub struct TodoJourneyArgs {
+    /// Installed owner state whose current Face will be observed.
+    #[arg(long)]
+    pub state_dir: std::path::PathBuf,
+    /// Executable from the reviewed Host release that owns this installation.
+    #[arg(long)]
+    pub conduit_bin: std::path::PathBuf,
+    /// New directory in which to retain the exact command outputs.
+    #[arg(long)]
+    pub output: std::path::PathBuf,
+    /// UTF-8 terminal commands (defaults to one read followed by quit).
+    #[arg(long)]
+    pub terminal_script: Option<std::path::PathBuf>,
+    /// Birth a new Todo Body in this installed, unowned Host before capturing its first browser Add.
+    #[arg(long)]
+    pub fresh_body_source: Option<std::path::PathBuf>,
+    /// Exact-source static Handbook package for the fresh browser Add.
+    #[arg(long)]
+    pub handbook_package: Option<std::path::PathBuf>,
+    /// Pinned Playwright module used by the browser Add producer.
+    #[arg(long)]
+    pub pinned_playwright: Option<std::path::PathBuf>,
+    /// First item text for the fresh browser Add (defaults to Buy milk).
+    #[arg(long)]
+    pub first_item_text: Option<String>,
 }
 
 #[derive(ValueEnum, Debug, Clone, Copy, PartialEq, Eq)]

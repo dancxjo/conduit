@@ -11,10 +11,24 @@ use std::{
 use socket2::{Domain, SockAddr, Socket, Type};
 
 use super::super::{Request, Response, CONTROL_OUTCOME_UNKNOWN, MAXIMUM_CONTROL_FRAME_BYTES};
-
-const CONTROL_DEADLINE: Duration = Duration::from_secs(2);
+use super::{CONTROL_DEADLINE, TODO_ACTION_DEADLINE};
 
 pub(crate) fn call(state_dir: &Path, mut request: Request) -> Result<Response, String> {
+    let deadline = match &request {
+        Request::BodyInteraction { interaction, .. }
+        | Request::BodyBrowserInteraction { interaction, .. }
+        | Request::BodyNativeGuestInteraction { interaction, .. }
+            if interaction.action_id.starts_with("todo.") =>
+        {
+            TODO_ACTION_DEADLINE
+        }
+        Request::BodyAttachedTerminalInteraction { interaction, .. }
+            if interaction.action_id.starts_with("todo.") =>
+        {
+            TODO_ACTION_DEADLINE
+        }
+        _ => CONTROL_DEADLINE,
+    };
     let mut bytes = serde_json::to_vec(&request)
         .map_err(|error| format!("encode local control request: {error}"))?;
     clear_token(&mut request);
@@ -22,13 +36,13 @@ pub(crate) fn call(state_dir: &Path, mut request: Request) -> Result<Response, S
         bytes.fill(0);
         return Err("local control request violates its finite bound".into());
     }
-    let result = round_trip(&state_dir.join("control.sock"), &bytes);
+    let result = round_trip(&state_dir.join("control.sock"), &bytes, deadline);
     bytes.fill(0);
     result
 }
 
-fn round_trip(path: &Path, bytes: &[u8]) -> Result<Response, String> {
-    let deadline = Instant::now() + CONTROL_DEADLINE;
+fn round_trip(path: &Path, bytes: &[u8], maximum: Duration) -> Result<Response, String> {
+    let deadline = Instant::now() + maximum;
     let socket = Socket::new(Domain::UNIX, Type::STREAM, None)
         .map_err(|error| format!("open local control socket: {error}"))?;
     let address =
@@ -153,7 +167,9 @@ mod tests {
             assert_eq!(request, b"{}");
             release.recv_timeout(Duration::from_secs(3)).unwrap();
         });
-        assert!(matches!(round_trip(&path, b"{}"), Err(code) if code == CONTROL_OUTCOME_UNKNOWN));
+        assert!(
+            matches!(round_trip(&path, b"{}", CONTROL_DEADLINE), Err(code) if code == CONTROL_OUTCOME_UNKNOWN)
+        );
         finished.send(()).unwrap();
         server.join().unwrap();
         fs::remove_dir_all(directory).unwrap();

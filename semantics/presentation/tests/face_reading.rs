@@ -131,6 +131,81 @@ fn read_all_reaches_the_last_item_of_a_long_view() {
 }
 
 #[test]
+fn reads_only_primary_items_from_one_exact_face_and_keeps_provenance() {
+    let subjects = (0..20)
+        .map(|number| PresentationSubject {
+            identity: format!("item/{number}"),
+            role: PresentationRole::Item,
+            name: format!("Task {number}"),
+        })
+        .collect::<Vec<_>>();
+    let disclosures = (0..20)
+        .map(|number| conduit_presentation::PresentationDisclosure {
+            subject: format!("item/{number}"),
+            level: if number < 3 {
+                PresentationDisclosureLevel::Primary
+            } else {
+                PresentationDisclosureLevel::SelectedDetail
+            },
+        })
+        .collect();
+    let face = Presentation::new_with_semantics(
+        1,
+        basis(),
+        subjects,
+        vec![],
+        vec![],
+        vec![],
+        vec![],
+        disclosures,
+    )
+    .unwrap();
+    let mut cursor = FaceReadingCursor::new(&face).unwrap();
+    cursor
+        .command(
+            &face,
+            FaceReadingCommand::ReadRoleAtDisclosure(
+                PresentationRole::Item,
+                PresentationDisclosureLevel::Primary,
+            ),
+        )
+        .unwrap();
+    let mut names = vec![];
+    let first = cursor.next_read_clause(&face).unwrap().unwrap();
+    let conduit_presentation::FaceUtteranceProvenance::Subject(source) = &first.provenance else {
+        panic!("selection must retain subject provenance");
+    };
+    names.push(source.identity().clone());
+    let mut stale = face.clone();
+    stale.revision += 1;
+    assert_eq!(
+        cursor.next_read_clause(&stale),
+        Err(FaceReadingRefusal::StaleFace)
+    );
+    while let Some(clause) = cursor.next_read_clause(&face).unwrap() {
+        let conduit_presentation::FaceUtteranceProvenance::Subject(source) = &clause.provenance
+        else {
+            panic!("selection must retain subject provenance");
+        };
+        names.push(source.identity().clone());
+    }
+    assert_eq!(names, ["item/0", "item/1", "item/2"]);
+    assert!(!cursor.has_pending());
+    let no_match = cursor
+        .command(
+            &face,
+            FaceReadingCommand::ReadRoleAtDisclosure(
+                PresentationRole::Status,
+                PresentationDisclosureLevel::Primary,
+            ),
+        )
+        .unwrap();
+    assert!(no_match.at_boundary);
+    assert!(!no_match.reading);
+    assert_eq!(cursor.focused_clause().text, "Item: Task 2.");
+}
+
+#[test]
 fn moves_by_semantic_subject_and_action_with_repeat_and_stop() {
     let face = face(2, "Tick.");
     let mut cursor = FaceReadingCursor::new(&face).unwrap();

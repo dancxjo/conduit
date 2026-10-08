@@ -57,11 +57,13 @@ members = [
 	# Product and application compositions.
 	"products/conduit",
 	"plots/birth",
+	"plots/todo/model",
 	"semantics/home",
 	"semantics/plot-library",
 	"semantics/tutorial",
 	"semantics/body-invitation",
 	"plots/tour",
+	"plots/todo/face",
 	"targets/std/patchbay-workbench",
 	"targets/browser/patchbay-workbench",
 	"plots/patchbay/workbench/model",

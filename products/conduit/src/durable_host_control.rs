@@ -38,6 +38,29 @@ const PROTOCOL: u16 = 1;
 pub(crate) const CONTROL_OUTCOME_UNKNOWN: &str = "control-outcome-unknown";
 const MAXIMUM_CONTROL_FRAME_BYTES: usize = 512 * 1024;
 
+fn supports_remote_mask_action_intent(intent: &str) -> bool {
+    intent == crate::durable_host::owner::clock_interval_action()
+        || matches!(
+            intent,
+            "todo/add@1" | "todo/complete@1" | "todo/reopen@1" | "todo/remove@1"
+        )
+}
+
+/// Native return needs a route before its Todo actions can become available.
+/// This permits route setup only; it does not make an unavailable action executable.
+pub(crate) fn has_native_return_route_intent(face: &Presentation) -> bool {
+    face.actions
+        .iter()
+        .any(|action| supports_remote_mask_action_intent(&action.intent))
+}
+
+/// Browser interaction admission still requires an available, dispatched action.
+pub(crate) fn has_remote_mask_action(face: &Presentation) -> bool {
+    face.actions.iter().any(|action| {
+        action.availability.is_available() && supports_remote_mask_action_intent(&action.intent)
+    })
+}
+
 #[path = "durable_host_control/body.rs"]
 mod body;
 #[path = "durable_host_control/body_birth.rs"]
@@ -1138,6 +1161,8 @@ enum Request {
         protocol: u16,
         token: Vec<u8>,
         maximum_millis: u64,
+        #[serde(default)]
+        todo_new_list: Option<String>,
     },
     BodyLull {
         protocol: u16,
@@ -2292,9 +2317,10 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         Request::BodyStart {
             protocol,
             maximum_millis,
+            todo_new_list,
             ..
         } if protocol == PROTOCOL => runtime
-            .start_owned_body(maximum_millis)
+            .start_owned_body(maximum_millis, todo_new_list)
             .map(|()| Response::BodyRunRequested {
                 protocol: PROTOCOL,
                 maximum_millis,
@@ -2524,6 +2550,46 @@ fn now_millis() -> Result<u64, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn unavailable_todo_intent_can_open_native_return_but_cannot_dispatch() {
+        use conduit_presentation::{PresentationActionAvailability, PresentationActionRefusal};
+
+        let mut face: Presentation = serde_json::from_value(serde_json::json!({
+            "identity": "presentation/todo-return-fixture",
+            "revision": 1,
+            "basis": {
+                "body_id": null, "wake_id": null, "source_document_id": null,
+                "checked_plot_id": null, "expanded_plot_id": null, "plan_id": null,
+                "active_play_id": null, "sign_ids": []
+            },
+            "subjects": [], "relationships": [], "composition": [],
+            "properties": [], "text": [], "disclosures": [],
+            "actions": [{
+                "identity": "todo.add", "intent": "todo/add@1", "target": "todo/list",
+                "name": "Add item", "arguments": [], "disclosure": "Primary",
+                "availability": {"Unavailable": {
+                    "reason_code": "todo-return-route-unavailable",
+                    "explanation": "This Todo Play has no admitted action return route."
+                }}
+            }]
+        }))
+        .unwrap();
+        assert!(has_native_return_route_intent(&face));
+        assert!(!has_remote_mask_action(&face));
+        assert!(matches!(
+            face.resolve_action(1, "todo.add"),
+            Err(PresentationActionRefusal::Unavailable { reason_code })
+                if reason_code == "todo-return-route-unavailable"
+        ));
+
+        face.actions[0].availability = PresentationActionAvailability::Available;
+        assert!(has_remote_mask_action(&face));
+
+        face.actions[0].intent = "unsupported/action@1".into();
+        assert!(!has_native_return_route_intent(&face));
+        assert!(!has_remote_mask_action(&face));
+    }
 
     #[test]
     fn expired_action_grant_is_rejected_before_owner_dispatch() {

@@ -312,18 +312,39 @@ impl<T: Copy, const SLOTS: usize> Default for FixedFactRing<T, SLOTS> {
 
 pub trait MonotonicClockBase {
     fn now(&mut self) -> u64;
+    /// Current Root provider epoch; absence refuses a protected clock binding.
+    fn provider_generation(&self) -> Option<u64> {
+        None
+    }
 }
 
 pub trait TimerBase {
+    /// Arm a finite physical duration. A provider lacking calibrated duration
+    /// support refuses; the caller must not substitute its diagnostic arm.
+    fn arm_after_milliseconds(
+        &mut self,
+        _interest: KernelInterest,
+        _milliseconds: u64,
+    ) -> Result<TimerToken, BaseError> {
+        Err(BaseError::Unavailable)
+    }
     fn arm(&mut self, interest: KernelInterest) -> Result<TimerToken, BaseError>;
     fn cancel(&mut self, token: TimerToken) -> Result<KernelInterest, BaseError>;
     fn take_wake(&mut self) -> Result<Option<KernelInterest>, BaseError>;
     fn wake_count(&self) -> u32;
+    /// Current Root provider epoch; absence refuses a protected timer binding.
+    fn provider_generation(&self) -> Option<u64> {
+        None
+    }
 }
 
 pub trait SerialBase {
     fn present(&mut self, bytes: &[u8]) -> Result<(), BaseError>;
     fn presentation_count(&self) -> u32;
+    /// Current Root provider epoch. Unbound providers cannot serve protected calls.
+    fn provider_generation(&self) -> Option<u64> {
+        None
+    }
 }
 
 pub trait InterruptBase {

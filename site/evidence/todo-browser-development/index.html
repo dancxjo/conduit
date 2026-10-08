@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Grow a Todo Body across Masks · Conduit development journey</title>
+  <link rel="stylesheet" href="/conduit/site.css">
+  <style>
+    .todo-journey { max-width: 72rem; margin: auto; padding: 2rem 1.25rem 5rem; }
+    .todo-journey h1 { font-size: clamp(2.5rem, 6vw, 4.8rem); line-height: 1.08; }
+    .todo-journey .lede { font-size: 1.2rem; max-width: 65ch; }
+    .todo-journey .boundary { border-left: .3rem solid var(--conduit-emphasis); padding: 1rem; background: var(--conduit-surface); }
+    .todo-journey figure { margin: 1.5rem 0 2.5rem; }
+    .todo-journey img { display: block; width: min(100%, 69.75rem); height: auto; border: 1px solid var(--conduit-structure-secondary); border-radius: .5rem; }
+    .todo-journey figcaption { margin-top: .6rem; }
+    .todo-journey ol { padding-left: 1.5rem; }
+    .todo-journey li { padding: .55rem 0; }
+    .todo-journey code { overflow-wrap: anywhere; }
+  </style>
+</head>
+<body data-application-theme="conduit.presentation/phosphor@1">
+  <a class="conduit-skip-link" href="#main-content">Skip to the journey</a>
+  <header class="site-header">
+    <a class="site-brand" href="/conduit/" aria-label="Conduit home">Conduit</a>
+    <nav aria-label="Main navigation">
+      <a data-section="home" href="/conduit/">Home</a>
+      <a data-section="journeys" aria-current="page" href="/conduit/journeys/">Journeys</a>
+      <a data-section="handbook" href="/conduit/handbook/">Handbook</a>
+      <a data-section="downloads" href="/conduit/#get-conduit">Downloads</a>
+      <a data-section="workspace" href="/conduit/workspace/">Open Conduit</a>
+    </nav>
+    <a class="site-source" href="https://github.com/dancxjo/conduit">Source</a>
+  </header>
+  <main id="main-content" class="todo-journey">
+    <p><a href="/conduit/journeys/">All journeys</a></p>
+    <p class="eyebrow">Local development evidence · three distinct Bodies · live Chromium</p>
+    <h1>Grow a Groceries list across Masks</h1>
+    <p class="lede">Follow a fresh Body from Birth to browser Add, terminal readback, and screen-free listening. Earlier experiments below use two other Bodies and show what the native action can do.</p>
+    <p class="boundary">These are three labeled development runs, not one continuous eight-chapter journey. The first run keeps one exact-source Body through browser, terminal, and speech. Its native action, complete producer manifest, and stable Pages acceptance remain open. The older runs preserve their own receipts and limits.</p>
+    <h2>One Body from Birth to listening</h2>
+    <p>Source <code>78510e962</code> installed a new Linux Host and birthed a Groceries Todo Body with an empty selected checkpoint. Chromium joined that Owner and showed an empty list with an available Add control.</p>
+    <figure>
+      <img src="continuous-browser-before.png" width="1166" height="1719" loading="lazy" alt="Fresh Groceries Body in live Chromium before any item is added">
+      <figcaption>Before: the newly born list is empty.</figcaption>
+    </figure>
+    <p>The browser entered “Buy milk” and activated Add. The Owner accepted it, committed the selected checkpoint, and returned a changed Show on the same Body.</p>
+    <figure>
+      <img src="continuous-browser-after.png" width="1166" height="1005" loading="lazy" alt="Same Groceries Body in live Chromium after Add, showing Buy milk and one thing left">
+      <figcaption>After: Buy milk is now on the list. The selected checkpoint grew from zero to two files.</figcaption>
+    </figure>
+    <p>Without another Birth, the <a href="continuous-terminal.txt">terminal Mask read the list</a> and showed Buy milk. That read left the selected checkpoint inventory unchanged. The <a href="continuous-birth-add-terminal-receipt.json">producer receipt</a> and <a href="continuous-browser-receipt.json">browser action receipt</a> bind the Body, exact source, before and after Shows, screenshots, terminal read, and checkpoint inventory.</p>
+    <p>After a fresh Owner Boot of that same retained Body, the screen-free Mask gave a concise opening: “Groceries. 1 thing left · 0 completed Buy milk.” The listener requested <code>read current items</code> and heard “Buy milk, item.” A <a href="continuous-speech-owner-face.json">same-Boot Owner Face read</a>, <a href="continuous-speech-owner-status.json">service status</a>, and <a href="continuous-host-release.json">Host release manifest</a> bind the spoken Face to this Body and source. The <a href="continuous-screen-free.txt">raw session</a> and completed Play receipts bind each WAV to the PCM delivered to the selected Linux speaker.</p>
+    <audio controls preload="none" src="continuous-summary.wav">Download the <a href="continuous-summary.wav">same-Play opening WAV</a>.</audio>
+    <p><a href="continuous-summary-playback.json">Opening Play</a> · <a href="continuous-summary-turn.json">opening turn</a></p>
+    <audio controls preload="none" src="continuous-detail.wav">Download the <a href="continuous-detail.wav">same-Play requested-detail WAV</a>.</audio>
+    <p><a href="continuous-detail-playback.json">Requested-detail Play</a> · <a href="continuous-detail-turn.json">requested-detail turn</a></p>
+    <p class="boundary">This is one Body through three Masks and a fresh Boot. The WAVs are audio delivered by the Linux Owner, not QEMU guest output or proof of attended hearing. This run did not make a native Todo action or complete the eight-chapter publication manifest.</p>
+    <h2>An earlier fresh Groceries run</h2>
+    <p>An installed Linux Host from source <code>611df0bd3</code> birthed a new Todo Body from the checked checkpoint Plot. It selected an empty checkpoint directory. Chromium joined the real Owner and showed a list with nothing left to do and an available Add control.</p>
+    <figure>
+      <img src="fresh-browser-before.png" width="1166" height="1719" loading="lazy" alt="Live browser Face of newly born Groceries with zero items and an available add item field">
+      <figcaption>Before: this newly born Body has no items. The browser offers an actual Add action.</figcaption>
+    </figure>
+    <p>The browser entered “Buy milk” and activated Add. The Owner accepted it, committed the selected checkpoint, and returned a different Show with one thing left.</p>
+    <figure>
+      <img src="fresh-browser-after.png" width="1166" height="1005" loading="lazy" alt="Live browser Face after Add showing Buy milk and one thing left in Groceries">
+      <figcaption>After: Buy milk appears on that same Body, with one thing left. The selected checkpoint directory grew from zero to two files.</figcaption>
+    </figure>
+    <p>The <a href="fresh-birth-add-receipt.json">partial Birth/Add capture</a> and <a href="fresh-browser-receipt.json">browser action receipt</a> bind the Body, source, before/after Shows, screenshots, and checkpoint inventory. The same Body then opened in the <a href="fresh-terminal.txt">native terminal Mask</a>; its <a href="fresh-terminal-receipt.json">capture receipt</a> records the Owner Face before and after that encounter.</p>
+    <h3>Hear the list without looking</h3>
+    <p>On a fresh Boot of that Body, the screen-free listener requested <code>read current items</code> and heard “Buy milk, item.” The <a href="fresh-screen-free-before.txt">raw session transcript</a>, <a href="fresh-requested-detail-playback.json">completed speaker Play</a>, and <a href="fresh-requested-detail-turn.json">turn receipt</a> identify the exact Face and Show. This playable WAV contains the PCM delivered by that Play.</p>
+    <audio controls preload="none" src="fresh-requested-detail.wav">Download the <a href="fresh-requested-detail.wav">requested-item WAV</a>.</audio>
+    <p>That screen-free session still opened with “Current overview context, region.” Source <code>531b8ecae</code> corrected the opening to reuse the concise Face-derived summary. After another fresh Boot of the same Body, it began “Groceries. 1 thing left · 0 completed Buy milk.” The <a href="fresh-screen-free-after.txt">raw corrected session</a>, <a href="fresh-screen-free-summary-playback.json">completed speaker Play</a>, and <a href="fresh-screen-free-summary-turn.json">turn receipt</a> bind the WAV below to what the selected speaker received. No Todo action happened in either listening step.</p>
+    <audio controls preload="none" src="fresh-screen-free-summary.wav">Download the <a href="fresh-screen-free-summary.wav">corrected screen-free opening WAV</a>.</audio>
+    <p class="boundary">This fresh run has not reached a ConduitOS native action or stable Pages acceptance. Its screen-free WAVs are Linux speaker output, not QEMU guest audio or proof that a person heard them.</p>
+    <h2>An earlier long-list run on another Body</h2>
+    <p class="boundary">The first capture below proves one browser Add action. Its installed owner came from source <code>99399c157</code> and its browser runtime from <code>f7778c323</code>, so that capture is cross-source development evidence. The later sections follow that earlier Body through terminal changes, an exact-source browser rejoin, and a selected-speaker Play. This is still a partial development journey, not stable release acceptance.</p>
+    <ol>
+      <li>An installed Linux Host offered Todo during Crèche Birth. The owner selected it and gave the new Body a Groceries list.</li>
+      <li>Chromium joined that Body through an authorized owner window, inspected its wardrobe, and selected the browser Mask.</li>
+      <li>The owner started a Todo Play. The browser received an available Add action. The proof driver entered “Pick up prescription” and activated it.
+        <figure>
+          <img src="browser-before.png" width="1166" height="1719" loading="lazy" alt="Live browser Face before Add, showing the Groceries list and its available add item control">
+          <figcaption>Before the action: Groceries has no items, and Add is available in this Show.</figcaption>
+        </figure>
+      </li>
+      <li>The owner accepted the action. The browser received a different Show with the new item, and a separate owner Face read confirmed that the same Body contains it.
+        <figure>
+          <img src="browser-after.png" width="1166" height="1005" loading="lazy" alt="Live browser Face after Add, showing Pick up prescription in Groceries and the owner's acceptance message">
+          <figcaption>After the action: the item appears in a fresh Face. The owner also reports that it accepted Add.</figcaption>
+        </figure>
+      </li>
+    </ol>
+    <figure>
+      <img src="browser-card-after.png" width="1116" height="195" alt="Live browser Todo card for Groceries showing one thing left and the item Pick up prescription">
+      <figcaption>The card after Add, captured by a read-only browser rejoin of the same Body. No second Todo action was taken for this image.</figcaption>
+    </figure>
+    <p>The before and after screenshots come from the action-performing browser session. A <a href="browser-full-after.png">full-page capture</a> shows the read-only rejoin around the cleaner card. The <a href="receipt.json">action receipt</a> records the Body, browser Host, Face revisions, and distinct Show identities. The <a href="read-only-card-receipt.json">card observation receipt</a> binds the cleaner images to that original run.</p>
+    <h2>Return after the list grows</h2>
+    <p>On that same Body, the terminal proof driver used admitted actions to add the remaining items and complete seventeen of the twenty. Each action committed and was read back from the selected checkpoint. The last three items remain open. A fresh installed Host Boot then recovered that Body; an exact-source browser Mask joined and displayed the changed Face without another Birth.</p>
+    <figure>
+      <img src="todo-20-card.png" width="1133" height="413" loading="lazy" alt="Live browser Todo card showing Groceries with three open items and seventeen completed items">
+      <figcaption>The browser shows the same Groceries list after terminal mutations: three open, seventeen completed. Completed items are visually subordinate.</figcaption>
+    </figure>
+    <p>The <a href="todo-20-full.png">full-page screenshot</a> shows this card in the browser workspace. The <a href="long-list-terminal-summary.json">terminal summary</a> records all twenty items and their completion flags; the <a href="long-list-browser-receipt.json">browser receipt</a> records its matching Body, Face, counts, and screenshot hashes. Terminal actions used source <code>88f187fdb</code>; the rejoined owner and browser both used source <code>459e672cb</code>. This proves durable cross-Mask state across a fresh Boot. It does not claim a browser action in the long-list capture or a native graphical view of that list.</p>
+    <h2>Hear what remains</h2>
+    <p>The direct spoken Mask then encountered this same persisted Body on a fresh installed Host Boot. It opened with the list name and counts, followed by only the three unfinished items: “Groceries. 3 things left · 17 completed Long-list item 18. Long-list item 19. Long-list item 20.” It did not recite the seventeen completed items or internal proof identities.</p>
+    <audio controls preload="none" src="long-list-spoken-same-play.wav">Download the <a href="long-list-spoken-same-play.wav">selected-speaker WAV</a>.</audio>
+    <p>This WAV captures the audio delivered by the completed selected-speaker Play; it is not a later synthesis of the same words. The <a href="long-list-spoken-proof.json">same-Play proof</a> binds Body, Face, Show, Mask Plan and Play, speaker Plan and Play, words, committed frames, and the WAV hash. The <a href="long-list-spoken-status.json">spoken status receipt</a> records the completed speaker batch. This run used source <code>801c83b46</code>.</p>
+    <h2>Ask for the unfinished items</h2>
+    <p>On a later Boot of the same Body, the screen-free listener waited for the opening to finish and entered <code>read current items</code>. The next Play read only “Long-list item 18, item. Long-list item 19, item. Long-list item 20, item.” This is a separate Face and Show after a release upgrade, but the same retained Body and list state. No Todo mutation was issued in this step.</p>
+    <audio controls preload="none" src="long-list-requested-detail-same-play.wav">Download the <a href="long-list-requested-detail-same-play.wav">requested-items WAV</a>.</audio>
+    <p>The <a href="long-list-requested-detail-proof.json">detail proof</a>, <a href="long-list-requested-detail-playback.json">completed selected-speaker Play receipt</a>, and <a href="long-list-requested-detail-turn.json">completed turn receipt</a> bind those three spoken segments to this actual WAV. The detail run used source <code>c49b89b58</code>. Model-assisted speech, an actionable native Show, a single complete journey bundle, and stable publication remain separate proof steps.</p>
+    <h2>See the list on ConduitOS</h2>
+    <p>A read-only ConduitOS guest joined a labeled fork of that retained Body state. Its native Face shows Groceries, the three unfinished items, and the same progress count. The native viewport shows those three items; the matching Owner Face receipt contains all twenty semantic items.</p>
+    <figure>
+      <img src="todo-native-read-only.png" width="1280" height="800" loading="lazy" alt="Live QMP capture of the ConduitOS native Todo Face showing Groceries, items 18 through 20, and three things left with seventeen completed">
+      <figcaption>Actual QMP screenshot from a live ConduitOS guest. It is a read-only Face on a forked state copy, with no admitted native action return route or Owner Show acknowledgement.</figcaption>
+    </figure>
+    <p>The <a href="todo-native-read-only-receipt.json">QMP receipt</a> binds the guest Body, Boot, Face and Show to an independent installed Owner Face read and the PNG hash. The <a href="todo-native-fork-label.json">fork label</a> records source <code>2924980b1</code>, separate harness source <code>2086faa0c</code>, zero native mutations, and unchanged original checkpoint hashes. This proves native presentation of the copied Body state; it does not prove a native action or continuous use of the original Owner process.</p>
+    <h3>Return route and acknowledged Show</h3>
+    <p>A second run rebuilt both the installed Owner and ConduitOS guest from the integrated source <code>b962715e2</code>. The guest joined the same Body identity through a forked Owner state, obtained a native return route, and displayed a fresh Show. The Owner acknowledged that exact Show. This is a further read-only encounter of the twenty-item Face.</p>
+    <figure>
+      <img src="todo-native-acknowledged.png" width="1280" height="800" loading="lazy" alt="Live ConduitOS current view of Groceries with three open items, seventeen completed, and a Show acknowledged by the installed Owner">
+      <figcaption>The matching-source ConduitOS Show after Owner acknowledgement. The current viewport presents the three unfinished items and progress; the Owner Face contains all twenty items.</figcaption>
+    </figure>
+    <p>The <a href="todo-native-acknowledged-receipt.json">QMP receipt</a> binds the guest Boot, Owner Face, Show acknowledgement, and screenshot hash. The <a href="todo-native-acknowledged-provenance.json">fork provenance</a> records zero actions and unchanged original checkpoint hashes. The forked Owner still selected the original checkpoint root, so no native Todo action was attempted. This does not establish a continuous original Owner session or native mutation.</p>
+    <h3>Complete an item on the native screen</h3>
+    <p>For a safe action run, the installed Owner selected a byte-identical checkpoint copy with its own directory identity. The guest joined while the Body was lulled; after the Todo Play started, it refreshed the Face and acknowledged the new Show. The ConduitOS keyboard then selected <em>Complete</em> for item 18. The Owner accepted that exact typed action and the guest acknowledged a changed Show.</p>
+    <figure>
+      <img src="todo-native-action-before.png" width="1280" height="800" loading="lazy" alt="Live ConduitOS Todo Show before completing item 18, with three things left and a Complete control beside item 18">
+      <figcaption>Before: item 18 is unfinished. The native Show has a Complete control and reports three things left.</figcaption>
+    </figure>
+    <figure>
+      <img src="todo-native-action-after.png" width="1280" height="800" loading="lazy" alt="Live ConduitOS Todo Show after completing item 18, with items 19 and 20 remaining and eighteen completed">
+      <figcaption>After: the fresh native Face shows two things left and eighteen completed. The one-action Todo Play has finished, so the controls return to the lulled Body view.</figcaption>
+    </figure>
+    <p>The <a href="todo-native-action-receipt.json">QMP action receipt</a> binds source <code>56481bf14</code>, Body, guest Boot, both Owner Face revisions, both acknowledged Shows, accepted action, and both screenshot digests. The isolated selected checkpoint changed from 38 to 39 files; the original 38-file checkpoint inventory remained byte-identical. This is one real native action on a forked copy of the retained Body, not a mutation of the original browser and speech run.</p>
+    <h3>Return to the changed list in the browser</h3>
+    <p>Pinned Chromium joined that same changed forked Body after the native action. The Body was lulled, so the browser Mask showed the committed list without another Birth or Todo mutation. It displayed items 19 and 20 as the two remaining tasks and kept eighteen completed items behind disclosure. The browser Face identity and revision matched an independent installed Owner Face read, and the Owner acknowledged its Show.</p>
+    <figure>
+      <img src="todo-browser-after-native.png" width="1116" height="683" loading="lazy" alt="Pinned Chromium Todo card after the ConduitOS action, showing Groceries with items 19 and 20 open and eighteen completed">
+      <figcaption>The browser observes the native change on the same forked Body: two things left, eighteen completed.</figcaption>
+    </figure>
+    <p>The <a href="todo-browser-after-native-receipt.json">browser rejoin receipt</a> records source <code>56481bf14</code> for the installed Owner, pinned browser source <code>459e672cb</code>, matching Body and Owner Face, acknowledged Show, zero browser Todo actions, and no page errors. This proves a native action observed through a different Mask on the isolated fork; it does not rewrite the earlier original-state captures.</p>
+    <h3>Hear the changed list</h3>
+    <p>The direct spoken Mask then joined this changed forked Body on the installed Linux Owner. Its opening says “Groceries. 2 things left · 18 completed Long-list item 19. Long-list item 20.” It leaves the eighteen completed items and internal identities out of the ordinary reading.</p>
+    <audio controls preload="none" src="todo-spoken-after-native-same-play.wav">Download the <a href="todo-spoken-after-native-same-play.wav">changed-list WAV</a>.</audio>
+    <p>The <a href="todo-spoken-after-native-receipt.json">speech receipt</a> and <a href="todo-spoken-after-native-terminal.json">terminal Play receipt</a> bind that Face and Show to one completed selected-speaker Play, the committed PCM frames, and the exact WAV digest. This WAV is audio the Linux Owner Play delivered to its selected speaker; it is not ConduitOS guest audio, a separate synthesis, or proof that a person heard it. No Todo action was sent during this listening step.</p>
+  </main>
+</body>
+</html>

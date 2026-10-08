@@ -1610,6 +1610,8 @@ dependencies = [
  "conduit-std-offers",
  "conduit-text",
  "conduit-time",
+ "conduit-todo-face",
+ "conduit-todo-plot",
  "conduit-web",
  "conduit-wire",
  "conduit-workspace-make",
@@ -2192,6 +2194,7 @@ dependencies = [
  "conduit-std-offers",
  "conduit-text",
  "conduit-time",
+ "conduit-todo-plot",
  "conduit-wire",
  "conduit-workspace-make",
  "patchbay-application",
@@ -2511,6 +2514,7 @@ dependencies = [
  "conduit-synth",
  "conduit-text",
  "conduit-time",
+ "conduit-todo-plot",
  "conduit-tongues",
  "conduit-web",
  "conduit-wire",
@@ -2560,6 +2564,7 @@ dependencies = [
  "conduit-signal",
  "conduit-text",
  "conduit-time",
+ "conduit-todo-plot",
  "conduit-tongues",
  "conduit-web",
 ]
@@ -2604,6 +2609,29 @@ dependencies = [
  "conduit-plot",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "conduit-todo-face"
+version = "0.1.0"
+dependencies = [
+ "conduit-body",
+ "conduit-core",
+ "conduit-planner",
+ "conduit-plot",
+ "conduit-presentation",
+ "conduit-todo-plot",
+]
+
+[[package]]
+name = "conduit-todo-plot"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
+ "conduit-planner",
+ "conduit-plot",
+ "conduit-web",
 ]
 
 [[package]]
@@ -2693,6 +2721,7 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "conduit-host-browser-make",
+ "conduit-host-make",
  "serde",
  "serde_json",
  "sha2 0.10.9",

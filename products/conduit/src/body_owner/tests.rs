@@ -1,9 +1,12 @@
+use super::super::scoped_todo_initial;
 use super::*;
+use conduit_core::PlannedActivationEntry;
 use conduit_core::{BootId, HostId, OfferGeneration};
 use conduit_presentation::PresentationRole;
-use conduit_std_host::StdHostConfig;
+use conduit_std_host::{StdHostComposition, StdHostConfig};
 const SOURCE: &str = "plot hello {\n show: presentation/text\n \"Hello.\" >> show\n}.";
 const CLOCK_SOURCE: &str = include_str!("../../../../plots/clock/main.conduit");
+const TODO_SOURCE: &str = include_str!("../../../../plots/todo/live.conduit");
 fn source() -> conduit_plot::ExpandedAuthoringPlot {
     crate::plot_source::parse(SOURCE)
         .unwrap()
@@ -25,6 +28,74 @@ fn resident(plot: &conduit_plot::ExpandedAuthoringPlot) -> ResidentPlot {
 }
 
 #[test]
+fn checked_todo_initial_selects_the_installed_host_before_owner_planning() {
+    let source = crate::plot_source::parse(TODO_SOURCE).unwrap();
+    let plot = source.expand_entry_for_authoring().unwrap();
+    assert_eq!(plot.expanded.name, "todo/main");
+    let (initial, maximum) = scoped_todo_initial(&plot).unwrap().unwrap();
+    assert_eq!(initial.title, "Groceries");
+    assert_eq!(maximum, 64);
+    let scoped = StdHost::new_for_todo_scan(
+        StdHostConfig {
+            host_id: HostId::from("host/owner-test"),
+            boot_id: BootId::from("boot/todo-scoped"),
+            offer_generation: OfferGeneration(1),
+        },
+        &initial,
+        maximum,
+    )
+    .unwrap();
+    let advertised = scoped.advertisement().clone();
+    let mut owner = Owner::open(scoped, resident(&plot), None, "Groceries").unwrap();
+    let unrelated = crate::plot_source::parse(SOURCE).unwrap();
+    assert!(owner
+        .plan_partition_with_source(&unrelated, &plot, &resident(&plot), &advertised)
+        .is_err());
+    owner.plan_with_source(&source, &plot).unwrap();
+    let planned = &owner.session.realization().unwrap().plan.plots[0].plan;
+    assert!(conduit_core::verify_plan(planned));
+    assert_eq!(planned.activations.len(), 1);
+    let PlannedActivationEntry::Scan(scan) = &planned.activations[0] else {
+        panic!("Todo must retain its planned scan child")
+    };
+    assert_eq!(scan.selected_plan_id, scan.selected_plan.plan_id);
+    assert!(scan.selected_plan.fragments.iter().any(|fragment| {
+        fragment.placements.iter().any(|placement| {
+            placement.kind_id == conduit_core::kind_id(conduit_todo_plot::TODO_COMBINE_KIND)
+        })
+    }));
+    assert_eq!(owner.host.advertisement(), &advertised);
+    assert_eq!(
+        owner.execute(1).unwrap_err(),
+        "installed Body Play has no activation ingress or egress"
+    );
+}
+
+#[test]
+fn scoped_todo_host_refuses_invalid_checked_form_and_keeps_ordinary_source() {
+    assert!(scoped_todo_initial(&source()).unwrap().is_none());
+    let mut checked = crate::plot_source::parse(TODO_SOURCE)
+        .unwrap()
+        .expand_entry_for_authoring()
+        .unwrap();
+    checked.expanded.activations[0].initial_accumulator_bytes = Some(vec![0xff]);
+    assert!(scoped_todo_initial(&checked).is_err());
+}
+
+#[test]
+fn installed_owner_refuses_live_todo_before_shedding_its_scan_activation() {
+    let plot = crate::plot_source::parse(TODO_SOURCE)
+        .unwrap()
+        .expand_entry_for_authoring()
+        .unwrap();
+    let owner = Owner::open(host("boot/todo-plan"), resident(&plot), None, "Groceries").unwrap();
+    assert_eq!(
+        owner.plan_partition(&plot, &resident(&plot)).unwrap_err(),
+        "installed Body execution has no activation-aware Plan or Play"
+    );
+}
+
+#[test]
 fn spoken_next_play_capacity_report_is_safe_while_worker_owns_host() {
     let plot = source();
     let mut owner =
@@ -33,6 +104,44 @@ fn spoken_next_play_capacity_report_is_safe_while_worker_owns_host() {
     assert!(owner.host.is_playing());
     assert!(!super::presentation_wardrobe_report::spoken_artifact_can_start_new_play(&owner.host));
     owner.host.restore_after_play(taken).unwrap();
+}
+
+#[test]
+fn owner_refuses_worker_host_with_drifted_offer_generation() {
+    let checked = source();
+    let mut owner = Owner::open(host("boot/generation"), resident(&checked), None, "Test").unwrap();
+    let original = owner.host.take_for_play().unwrap();
+    let drifted = StdHost::new_with_config(StdHostConfig {
+        host_id: owner.host.advertisement().host_id.clone(),
+        boot_id: owner.host.advertisement().boot_id.clone(),
+        offer_generation: OfferGeneration(2),
+    });
+    assert!(owner.host.restore_after_play(drifted).is_err());
+    assert!(owner.host.is_playing());
+    owner.host.restore_after_play(original).unwrap();
+    assert_eq!(
+        owner.host.advertisement().offer_generation,
+        OfferGeneration(1)
+    );
+}
+
+#[test]
+fn owner_refuses_worker_host_with_changed_offers_at_same_generation() {
+    let checked = source();
+    let mut owner = Owner::open(host("boot/offers"), resident(&checked), None, "Test").unwrap();
+    let original = owner.host.take_for_play().unwrap();
+    let changed = StdHost::new_with_composition(
+        StdHostConfig {
+            host_id: owner.host.advertisement().host_id.clone(),
+            boot_id: owner.host.advertisement().boot_id.clone(),
+            offer_generation: owner.host.advertisement().offer_generation,
+        },
+        StdHostComposition::minimal(),
+    );
+    assert_ne!(changed.advertisement(), owner.host.advertisement());
+    assert!(owner.host.restore_after_play(changed).is_err());
+    assert!(owner.host.is_playing());
+    owner.host.restore_after_play(original).unwrap();
 }
 
 #[test]
@@ -143,6 +252,7 @@ fn owner_face_uses_checked_names_at_birth_and_after_fresh_boot() {
         joined_body_state: None,
         selected_speech: None,
         selected_model: None,
+        selected_todo_checkpoint: None,
     };
     super::super::super::write_json_atomic(&root.join("installation.json"), &installation).unwrap();
     let checked = source();
@@ -288,6 +398,7 @@ fn service_clock_runs_with_durable_live_play_and_explicit_lull() {
         joined_body_state: None,
         selected_speech: None,
         selected_model: None,
+        selected_todo_checkpoint: None,
     };
     super::super::super::write_json_atomic(&root.join("installation.json"), &installation).unwrap();
     let plot = crate::plot_source::parse(CLOCK_SOURCE)
@@ -415,6 +526,7 @@ fn lulled_clock_interval_replaces_checked_workset_and_next_plan_without_rebirth(
         joined_body_state: None,
         selected_speech: None,
         selected_model: None,
+        selected_todo_checkpoint: None,
     };
     super::super::super::write_json_atomic(&root.join("installation.json"), &installation).unwrap();
     let initial = crate::plot_source::parse(CLOCK_SOURCE)
@@ -517,6 +629,7 @@ fn terminal_show_returns_one_typed_clock_change_to_the_same_owner() {
         joined_body_state: None,
         selected_speech: None,
         selected_model: None,
+        selected_todo_checkpoint: None,
     };
     super::super::super::write_json_atomic(&root.join("installation.json"), &installation).unwrap();
     let checked = crate::plot_source::parse(CLOCK_SOURCE)
@@ -534,6 +647,15 @@ fn terminal_show_returns_one_typed_clock_change_to_the_same_owner() {
         .iter()
         .find(|action| action.intent == super::clock_interval_action())
         .unwrap();
+    assert_eq!(action.name, "Change ticker pace");
+    assert!(face.disclosures.iter().any(|disclosure| {
+        disclosure.subject == action.target
+            && disclosure.level == conduit_presentation::PresentationDisclosureLevel::Primary
+    }));
+    assert!(face
+        .text
+        .iter()
+        .any(|text| text.text == "The ticker emits a pulse every 1000 milliseconds."));
     assert_eq!(
         action.availability,
         PresentationActionAvailability::Available
@@ -544,6 +666,7 @@ fn terminal_show_returns_one_typed_clock_change_to_the_same_owner() {
         .iter()
         .find(|action| action.intent == super::clock_interval::CLOCK_START_ACTION)
         .unwrap();
+    assert_eq!(start.name, "Start the ticker");
     let wake = face
         .actions
         .iter()
@@ -554,6 +677,7 @@ fn terminal_show_returns_one_typed_clock_change_to_the_same_owner() {
         .iter()
         .find(|action| action.intent == super::clock_interval::CLOCK_LULL_ACTION)
         .unwrap();
+    assert_eq!(stop.name, "Stop the ticker");
     assert_eq!(
         start.availability,
         PresentationActionAvailability::Available
@@ -719,6 +843,7 @@ fn actual_execution_receipt_survives_fresh_boot_as_history_only() {
         joined_body_state: None,
         selected_speech: None,
         selected_model: None,
+        selected_todo_checkpoint: None,
     };
     super::super::super::write_json_atomic(&root.join("installation.json"), &installation).unwrap();
     let plot = source();
@@ -773,6 +898,7 @@ fn retained_invitation_admits_one_native_host_once_in_running_owner() {
         joined_body_state: None,
         selected_speech: None,
         selected_model: None,
+        selected_todo_checkpoint: None,
     };
     super::super::super::write_json_atomic(&root.join("installation.json"), &installation).unwrap();
     let plot = source();

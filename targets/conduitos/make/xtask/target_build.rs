@@ -202,7 +202,10 @@ fn boot_aarch64_product(
             "-M",
             "virt",
             "-cpu",
-            "cortex-a72",
+            // The normal protected product requires the architectural RNDR
+            // provider for opaque capability handles. The A1 CPU fixture
+            // retains its older CPU independently of this product profile.
+            "neoverse-n2",
             "-m",
             "256M",
             "-smp",
@@ -229,19 +232,65 @@ fn boot_aarch64_product(
     let deadline = Instant::now() + Duration::from_secs(45);
     loop {
         let transcript = fs::read_to_string(&serial_path).unwrap_or_default();
-        if let Some(json) = complete_aarch64_product_sign(&transcript) {
-            let value: serde_json::Value = serde_json::from_str(json).map_err(|error| {
-                ConduitosError::refusal("malformed-aarch64-product-sign", error.to_string())
-            })?;
-            if let Err(error) = validate_aarch64_product_sign(
-                &value,
-                expected_profile_id,
-                expected_build_id,
-                expected_image_binding,
-            ) {
-                let _ = child.kill();
-                return Err(error);
-            }
+        if let (Some(json), Some(_)) = (
+            complete_aarch64_product_sign(&transcript),
+            super::emitted_line::complete_json_line(
+                &transcript,
+                conduitos::observatory::EXPORT_PREFIX,
+            ),
+        ) {
+            let captured = (|| {
+                let mut value: serde_json::Value = serde_json::from_str(json).map_err(|error| {
+                    ConduitosError::refusal("malformed-aarch64-product-sign", error.to_string())
+                })?;
+                validate_aarch64_product_sign(
+                    &value,
+                    expected_profile_id,
+                    expected_build_id,
+                    expected_image_binding,
+                )?;
+                let snapshot = super::product_observatory::capture(&transcript, &value)?
+                    .ok_or_else(|| {
+                        ConduitosError::refusal(
+                            "ordinary-product-observatory-absent",
+                            "complete product export required",
+                        )
+                    })?;
+                value["ordinary_domain_cost"] =
+                    super::protected_product_receipt::capture(&transcript, &value, "aarch64")?;
+                let ordinary_plan: conduit_core::Plan =
+                    serde_json::from_value(snapshot["plans"][0].clone()).map_err(|error| {
+                        ConduitosError::refusal("ordinary-product-plan-invalid", error.to_string())
+                    })?;
+                value["ordinary_source_conformance"] =
+                    super::ordinary_source_conformance::capture(&ordinary_plan)?;
+                let snapshot_path = paths.target.join("aarch64-product-observatory.json");
+                fs::write(
+                    &snapshot_path,
+                    serde_json::to_vec_pretty(&snapshot).map_err(|error| {
+                        ConduitosError::refusal(
+                            "ordinary-product-observatory-invalid",
+                            error.to_string(),
+                        )
+                    })?,
+                )
+                .map_err(|error| {
+                    ConduitosError::refusal(
+                        "ordinary-product-observatory-unavailable",
+                        error.to_string(),
+                    )
+                })?;
+                value["ordinary_observatory"] = snapshot;
+                Ok::<_, ConduitosError>(value)
+            })();
+            let value = match captured {
+                Ok(value) => value,
+                Err(error) => {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    return Err(error);
+                }
+            };
             thread::sleep(Duration::from_millis(250));
             if child
                 .try_wait()

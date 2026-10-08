@@ -436,3 +436,387 @@ fn installation_rejects_stale_identity_and_consumed_receipts() {
     install_planned_activation(&plan, &mut prepared, "each", &mut host).unwrap();
     assert!(install_planned_activation(&plan, &mut prepared, "each", &mut host).is_err());
 }
+
+pub(crate) fn todo_scan_plan() -> Plan {
+    let mut child_fragment = common::fragment();
+    child_fragment.states.clear();
+    child_fragment.expected_sign = vec![
+        conduit_core::ExpectedSign::PlanFragmentReceived,
+        conduit_core::ExpectedSign::PlanTerminal,
+    ];
+    child_fragment.sign_storage_budget =
+        conduit_core::mandatory_sign_storage_requirement(&child_fragment.expected_sign).unwrap();
+    let placement = &mut child_fragment.placements[0];
+    let offer = todo_combine_offer();
+    placement.kind_id = kind_id(conduit_todo_plot::TODO_COMBINE_KIND);
+    placement.kind_contract_revision =
+        conduit_core::KindIdentity::from(conduit_todo_plot::TODO_COMBINE_REVISION);
+    placement.capability_id = offer.capability_id;
+    placement.execution_profile_id = offer.implementation.execution_profile_id;
+    placement.implementation_id = offer.implementation.implementation_id;
+    placement.artifact_id = offer.implementation.artifact_id;
+    placement.limits = offer.limits;
+    placement.semantic_contract = offer.semantic_contract;
+    let state_kind = kind_id(conduit_todo_plot::TODO_STATE_INFO_ID);
+    let command_kind = kind_id(conduit_todo_plot::TODO_COMMAND_INFO_ID);
+    placement.inputs[0].port_id = port_id("accumulator");
+    placement.inputs[0].value_kind = state_kind.clone();
+    let mut item = placement.inputs[0].clone();
+    item.port_id = port_id("item");
+    item.value_kind = command_kind.clone();
+    placement.inputs.push(item);
+    placement.outputs[0].port_id = port_id("combined");
+    placement.outputs[0].value_kind = state_kind.clone();
+    child_fragment.fore_ports = vec![
+        front(
+            "accumulator",
+            PortDirection::Input,
+            "accumulator",
+            state_kind.clone(),
+        ),
+        front("item", PortDirection::Input, "item", command_kind.clone()),
+        front(
+            "combined",
+            PortDirection::Output,
+            "combined",
+            state_kind.clone(),
+        ),
+    ];
+    for port in &mut child_fragment.fore_ports {
+        port.byte_capacity = conduit_todo_plot::STATE_MAX_BYTES as u32;
+        port.value_contract = Some(
+            conduit_core::CheckedValueContract::new(
+                port.value_kind.clone(),
+                if port.value_kind == command_kind {
+                    conduit_todo_plot::COMMAND_MAX_BYTES as u32
+                } else {
+                    conduit_todo_plot::STATE_MAX_BYTES as u32
+                },
+                vec![],
+            )
+            .unwrap(),
+        );
+    }
+    let child = common::seal(child_fragment);
+    let sign_budget = child.fragments[0].sign_storage_budget;
+    let initial = conduit_todo_plot::TodoState::new("List".into())
+        .unwrap()
+        .encode_info()
+        .unwrap();
+    let mut outer = common::fragment();
+    outer.states.clear();
+    outer.expected_sign = vec![
+        conduit_core::ExpectedSign::PlanFragmentReceived,
+        conduit_core::ExpectedSign::PlanTerminal,
+    ];
+    outer.sign_storage_budget =
+        conduit_core::mandatory_sign_storage_requirement(&outer.expected_sign).unwrap();
+    // Keep the fixture owner a valid scan Kind. Its public Flow ports differ
+    // from the selected combine child's accumulator/item invocation fronts.
+    let scan = conduit_semantic_catalog::flow_scan_semantic_contract(
+        &conduit_core::CheckedValueContract::new(
+            kind_id(conduit_todo_plot::TODO_COMMAND_INFO_ID),
+            conduit_todo_plot::COMMAND_MAX_BYTES as u32,
+            vec![],
+        )
+        .unwrap(),
+        &conduit_core::CheckedValueContract::new(
+            kind_id(conduit_todo_plot::TODO_STATE_INFO_ID),
+            conduit_todo_plot::STATE_MAX_BYTES as u32,
+            vec![],
+        )
+        .unwrap(),
+        &initial,
+        None,
+        4,
+    )
+    .unwrap();
+    let owner = &mut outer.placements[0];
+    owner.kind_id = scan.kind_id;
+    owner.kind_contract_revision = scan.kind_contract_revision;
+    owner.inputs = scan.inputs;
+    owner.outputs = scan.outputs;
+    owner.limits = scan.limits;
+    owner.semantic_contract = conduit_core::KindSemanticContract {
+        configuration: scan.configuration,
+        laws: scan.semantic_laws,
+    };
+    conduit_core::seal_plan_with_activation_entries(
+        conduit_core::PlotIdentity {
+            source_document_id: outer.source_document_id.clone(),
+            checked_plot_id: outer.checked_plot_id.clone(),
+            expanded_plot_id: outer.expanded_plot_id.clone(),
+        },
+        conduit_core::PlanCompletionPolicy::Live,
+        vec![],
+        vec![PlannedActivationEntry::Scan(
+            conduit_core::PlannedScanActivation {
+                activation_id: "scan".into(),
+                owner_placement_id: conduit_core::PlacementId::from("placement"),
+                selected_plan_id: child.plan_id.clone(),
+                selected_plan: Box::new(child),
+                accumulator_input: activation_front("accumulator", state_kind.clone()),
+                item_input: activation_front("item", command_kind),
+                output: activation_front("combined", state_kind),
+                initial_accumulator: initial,
+                retained_accumulator_bytes: conduit_todo_plot::STATE_MAX_BYTES as u32,
+                retained_item_bytes: conduit_todo_plot::COMMAND_MAX_BYTES as u32,
+                limits: PlannedActivationLimits {
+                    maximum_active: 1,
+                    maximum_queue_items: 1,
+                    maximum_queue_bytes: (2
+                        * (conduit_todo_plot::STATE_MAX_BYTES
+                            + conduit_todo_plot::COMMAND_MAX_BYTES))
+                        as u32,
+                    maximum_items: 4,
+                },
+                terminal_policy:
+                    conduit_core::PlannedScanTerminalPolicy::DrainThenCloseWithoutExtraEmission,
+                abnormal_policy:
+                    conduit_core::PlannedScanAbnormalPolicy::DiscardAccumulatorAndPropagateExact,
+                cancellation_policy:
+                    conduit_core::PlannedScanCancellationPolicy::DiscardAccumulatorWithoutEmission,
+                effect_multiplicity: PlannedActivationEffectMultiplicity::OncePerAcceptedInput,
+                per_activation_sign_budget: sign_budget,
+            },
+        )],
+        vec![outer],
+    )
+}
+
+#[test]
+fn todo_commands_advance_one_receipt_backed_scan() {
+    let plan = todo_scan_plan();
+    let mut host = StdActivationHost::new(identity(), standard_child_registry().unwrap());
+    let mut prepared = prepare_plan_on_hosts(&plan, &mut [&mut host]).unwrap();
+    let mut scan = install_planned_activation(&plan, &mut prepared, "scan", &mut host)
+        .unwrap()
+        .into_scan()
+        .unwrap();
+    for (command, revision) in [
+        (
+            conduit_todo_plot::TodoCommand::Add {
+                text: "Milk".into(),
+            },
+            1,
+        ),
+        (
+            conduit_todo_plot::TodoCommand::SetComplete {
+                id: "task-1".into(),
+                complete: true,
+            },
+            2,
+        ),
+        (
+            conduit_todo_plot::TodoCommand::SetComplete {
+                id: "task-1".into(),
+                complete: false,
+            },
+            3,
+        ),
+    ] {
+        let value = ValuePayload {
+            value_kind: kind_id(conduit_todo_plot::TODO_COMMAND_INFO_ID),
+            encoded: command.encode_info().unwrap(),
+        };
+        assert_eq!(scan.admit(&value).unwrap(), BoundedScanAdmission::Accepted);
+        for _ in 0..128 {
+            if matches!(scan.step().unwrap(), BoundedScanState::OutputReady) {
+                break;
+            }
+        }
+        let mut output = ValuePayload {
+            value_kind: kind_id(conduit_todo_plot::TODO_STATE_INFO_ID),
+            encoded: Vec::with_capacity(conduit_todo_plot::STATE_MAX_BYTES),
+        };
+        assert!(scan.output_into(&mut output).unwrap());
+        let state = conduit_todo_plot::TodoState::decode_info(&output.encoded).unwrap();
+        assert_eq!(state.revision, revision);
+        assert_eq!(state.items[0].text, "Milk");
+        assert_eq!(state.items[0].complete, revision == 2);
+        scan.complete_output().unwrap();
+    }
+    scan.close_input().unwrap();
+    assert_eq!(scan.step().unwrap(), &BoundedScanState::Complete);
+    assert!(scan
+        .admit(&ValuePayload {
+            value_kind: kind_id(conduit_todo_plot::TODO_COMMAND_INFO_ID),
+            encoded: conduit_todo_plot::TodoCommand::Add {
+                text: "Late".into(),
+            }
+            .encode_info()
+            .unwrap(),
+        })
+        .is_err());
+}
+
+#[test]
+fn production_todo_child_factory_refuses_substituted_plan_facts() {
+    let plan = todo_scan_plan();
+    let PlannedActivationEntry::Scan(entry) = &plan.activations[0] else {
+        panic!("expected exact scan");
+    };
+    let placement = &entry.selected_plan.fragments[0].placements[0];
+    let factory = TodoCombineFactory;
+    assert_eq!(
+        factory.budget(placement).unwrap().maximum_value_bytes,
+        conduit_todo_plot::STATE_MAX_BYTES as u32
+    );
+
+    let mut altered = placement.clone();
+    altered.artifact_id = conduit_core::ArtifactId::from("substitute");
+    assert!(factory.budget(&altered).is_err());
+    altered = placement.clone();
+    altered.inputs[1].value_kind = kind_id(conduit_todo_plot::TODO_STATE_INFO_ID);
+    assert!(factory.budget(&altered).is_err());
+    altered = placement.clone();
+    altered.limits.max_queue_items += 1;
+    assert!(factory.budget(&altered).is_err());
+}
+
+#[test]
+fn production_todo_scan_preserves_queue_pressure_and_cancellation() {
+    let plan = todo_scan_plan();
+    let mut host = StdActivationHost::new(identity(), standard_child_registry().unwrap());
+    let mut prepared = prepare_plan_on_hosts(&plan, &mut [&mut host]).unwrap();
+    let mut scan = install_planned_activation(&plan, &mut prepared, "scan", &mut host)
+        .unwrap()
+        .into_scan()
+        .unwrap();
+    let command = ValuePayload {
+        value_kind: kind_id(conduit_todo_plot::TODO_COMMAND_INFO_ID),
+        encoded: conduit_todo_plot::TodoCommand::Add {
+            text: "Milk".into(),
+        }
+        .encode_info()
+        .unwrap(),
+    };
+    assert_eq!(
+        scan.admit(&command).unwrap(),
+        BoundedScanAdmission::Accepted
+    );
+    assert_eq!(
+        scan.admit(&command).unwrap(),
+        BoundedScanAdmission::Accepted
+    );
+    assert_eq!(scan.admit(&command).unwrap(), BoundedScanAdmission::Full);
+    scan.cancel().unwrap();
+    assert_eq!(scan.step().unwrap(), &BoundedScanState::Cancelled);
+    assert!(scan.admit(&command).is_err());
+}
+
+#[test]
+fn pure_todo_scan_handoff_preserves_receipts_pressure_and_child_signs() {
+    let plan = todo_scan_plan();
+    assert!(conduit_core::verify_plan(&plan));
+    let mut host = StdActivationHost::new(identity(), standard_child_registry().unwrap());
+    let mut prepared = prepare_plan_on_hosts(&plan, &mut [&mut host]).unwrap();
+    let mut scan = install_pure_todo_scan(&plan, &mut prepared, "scan", &mut host).unwrap();
+    assert!(install_pure_todo_scan(&plan, &mut prepared, "scan", &mut host).is_err());
+    let command = ValuePayload {
+        value_kind: kind_id(conduit_todo_plot::TODO_COMMAND_INFO_ID),
+        encoded: conduit_todo_plot::TodoCommand::Add {
+            text: "Milk".into(),
+        }
+        .encode_info()
+        .unwrap(),
+    };
+    assert_eq!(
+        scan.admit(&command).unwrap(),
+        BoundedScanAdmission::Accepted
+    );
+    assert_eq!(
+        scan.admit(&command).unwrap(),
+        BoundedScanAdmission::Accepted
+    );
+    assert_eq!(scan.admit(&command).unwrap(), BoundedScanAdmission::Full);
+    for _ in 0..128 {
+        if matches!(scan.step().unwrap(), BoundedScanState::OutputReady) {
+            break;
+        }
+    }
+    assert_eq!(scan.step().unwrap(), &BoundedScanState::OutputReady);
+    scan.cancel().unwrap();
+    assert_eq!(scan.step().unwrap(), &BoundedScanState::Cancelled);
+    let signs = scan.signs();
+    assert!(signs
+        .get(&identity().host_id)
+        .is_some_and(|events| !events.is_empty()));
+}
+
+#[test]
+fn pure_todo_scan_handoff_refuses_non_exact_or_effectful_children() {
+    let plan = todo_scan_plan();
+    let mut host = StdActivationHost::new(identity(), standard_child_registry().unwrap());
+    let mut prepared = prepare_plan_on_hosts(&plan, &mut [&mut host]).unwrap();
+    assert!(install_pure_todo_scan(&plan, &mut prepared, "unknown", &mut host).is_err());
+
+    let effectful = reseal_todo_scan_child(&plan, |child| {
+        child.placements[0]
+            .host_calls
+            .push(conduit_core::wait_host_call_requirement());
+    });
+    assert!(conduit_core::verify_plan(&effectful));
+    assert!(super::pure_todo_scan::exact_pure_child(&effectful, "scan")
+        .unwrap_err()
+        .contains("effects"));
+
+    let PlannedActivationEntry::Scan(original_scan) = &plan.activations[0] else {
+        unreachable!()
+    };
+    let original_child = original_scan.selected_plan.as_ref();
+    let nested_child = conduit_core::seal_plan_with_activation_entries(
+        conduit_core::PlotIdentity {
+            source_document_id: original_child.source_document_id.clone(),
+            checked_plot_id: original_child.checked_plot_id.clone(),
+            expanded_plot_id: original_child.expanded_plot_id.clone(),
+        },
+        conduit_core::PlanCompletionPolicy::Live,
+        vec![],
+        unary_plan("nested").activations,
+        original_child.fragments.clone(),
+    );
+    let nested = reseal_todo_scan_with_child_plan(&plan, nested_child);
+    assert!(conduit_core::verify_plan(&nested));
+    assert!(super::pure_todo_scan::exact_pure_child(&nested, "scan")
+        .unwrap_err()
+        .contains("non-nested"));
+
+    let foreign = reseal_todo_scan_child(&plan, |child| {
+        child.host_id = conduit_core::HostId::from("foreign");
+        child.placements[0].host_id = child.host_id.clone();
+    });
+    assert!(!conduit_core::verify_plan(&foreign));
+    assert!(install_pure_todo_scan(&foreign, &mut prepared, "scan", &mut host).is_err());
+}
+
+fn reseal_todo_scan_child(
+    original: &Plan,
+    change: impl FnOnce(&mut conduit_core::PlanFragment),
+) -> Plan {
+    let PlannedActivationEntry::Scan(scan) = &original.activations[0] else {
+        panic!("expected scan");
+    };
+    let mut child = scan.selected_plan.fragments[0].clone();
+    change(&mut child);
+    reseal_todo_scan_with_child_plan(original, common::seal(child))
+}
+
+fn reseal_todo_scan_with_child_plan(original: &Plan, child: Plan) -> Plan {
+    let PlannedActivationEntry::Scan(mut scan) = original.activations[0].clone() else {
+        panic!("expected scan");
+    };
+    scan.selected_plan = Box::new(child);
+    scan.selected_plan_id = scan.selected_plan.plan_id.clone();
+    conduit_core::seal_plan_with_activation_entries(
+        conduit_core::PlotIdentity {
+            source_document_id: original.source_document_id.clone(),
+            checked_plot_id: original.checked_plot_id.clone(),
+            expanded_plot_id: original.expanded_plot_id.clone(),
+        },
+        conduit_core::PlanCompletionPolicy::Live,
+        vec![],
+        vec![PlannedActivationEntry::Scan(scan)],
+        original.fragments.clone(),
+    )
+}

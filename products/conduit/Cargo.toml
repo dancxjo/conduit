@@ -14,6 +14,8 @@ conduit-body-make = { path = "../../make/body" }
 conduit-birth-plot = { path = "../../plots/birth" }
 conduit-chat = { path = "../../semantics/chat", features = ["plot-catalog"] }
 conduit-plot = { path = "../../architecture/plot" }
+conduit-todo-plot = { path = "../../plots/todo/model", features = ["authoring"] }
+conduit-todo-face = { path = "../../plots/todo/face" }
 conduit-host-make = { path = "../../make/host" }
 conduit-kernel = { path = "../../architecture/kernel" }
 conduit-language = { path = "../../semantics/language" }

@@ -6,6 +6,7 @@ use conduit_core::{ActivePlayId, CheckedPlotId, PlanId, SourceDocumentId};
 use serde::{Deserialize, Serialize};
 
 use crate::{
+    CommittedStateBasisRefusal, CommittedStateContributionBasis, CommittedStateSelection,
     FaceContributionRole, Presentation, PresentationBasis, PresentationContextBasis,
     PresentationDisclosure, PresentationDisclosureLevel, PresentationError, PresentationFragment,
     PresentationFragmentError, PresentationInteractionContext, PresentationProperty,
@@ -69,6 +70,15 @@ pub struct FaceContribution {
     pub presentation: Box<PresentationFragment>,
 }
 
+/// The Owner supplies this only after authenticating both terminal Plays and
+/// the selected read Host Call. Face checks its shape and current residence;
+/// it cannot authenticate a Host from identity strings alone.
+#[derive(Clone, Copy)]
+pub struct CommittedFaceAdmission<'a> {
+    pub basis: &'a CommittedStateContributionBasis,
+    pub current_selection: &'a CommittedStateSelection,
+}
+
 impl FaceContribution {
     pub fn from_presentation(role: FaceContributionRole, fragment: PresentationFragment) -> Self {
         Self {
@@ -126,6 +136,8 @@ pub enum FaceRefusal {
     DuplicatePlay,
     PlotNotResident,
     PlayNotCurrent,
+    CommittedStateBasis(CommittedStateBasisRefusal),
+    CommittedContributionMismatch,
     InvalidPresentationFragment(PresentationFragmentError),
     IncompatibleInteractionContext,
     FaceOwnedIdentity(String),
@@ -176,8 +188,55 @@ impl Face {
         revision: u64,
         context: FaceContext,
         focus: FaceFocus,
+        contributions: Vec<FaceContribution>,
+        names: FaceNames<'_>,
+    ) -> Result<Self, FaceRefusal> {
+        Self::project_with_admission(
+            body,
+            wake,
+            revision,
+            context,
+            focus,
+            contributions,
+            names,
+            None,
+        )
+    }
+
+    /// Project one Owner-verified, checkpoint-backed contribution while the
+    /// Body is lulled. The exact read Play supplies the fragment basis; the
+    /// separate committed basis binds its preceding write and selection.
+    pub fn project_committed(
+        body: &Body,
+        revision: u64,
+        context: FaceContext,
+        focus: FaceFocus,
+        contribution: FaceContribution,
+        names: FaceNames<'_>,
+        admission: CommittedFaceAdmission<'_>,
+    ) -> Result<Self, FaceRefusal> {
+        Self::project_with_admission(
+            body,
+            None,
+            revision,
+            context,
+            focus,
+            vec![contribution],
+            names,
+            Some(admission),
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)] // Existing projection fields plus one exact admission.
+    fn project_with_admission(
+        body: &Body,
+        wake: Option<&Wake>,
+        revision: u64,
+        context: FaceContext,
+        focus: FaceFocus,
         mut contributions: Vec<FaceContribution>,
         names: FaceNames<'_>,
+        committed: Option<CommittedFaceAdmission<'_>>,
     ) -> Result<Self, FaceRefusal> {
         body.validate().map_err(|_| FaceRefusal::InvalidBody)?;
         validate_wake(body, wake)?;
@@ -186,7 +245,7 @@ impl Face {
             (left.role.token(), left.active_play_id.as_str())
                 .cmp(&(right.role.token(), right.active_play_id.as_str()))
         });
-        validate_contributions(body, wake, &context, &focus, &contributions)?;
+        validate_contributions(body, wake, &context, &focus, &contributions, committed)?;
 
         let body_subject = format!("body/{}", body.body_id.as_str());
         let context_subject = format!("{body_subject}/context");
@@ -346,6 +405,12 @@ impl Face {
         let mut sign_ids = body.sign_ids.clone();
         if let Some(wake) = wake {
             sign_ids.extend(wake.sign_ids.iter().cloned());
+        }
+        if let Some(admission) = committed {
+            sign_ids.extend([
+                admission.basis.write.terminal_sign_id.clone(),
+                admission.basis.read.terminal_sign_id.clone(),
+            ]);
         }
         sign_ids.sort();
         sign_ids.dedup();

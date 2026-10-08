@@ -101,3 +101,51 @@ pub(super) fn change(options: InstalledModelOptions) -> Result<Change, String> {
     selection.validate()?;
     Ok(Change::Replace(Box::new(selection)))
 }
+
+#[cfg(test)]
+pub(super) fn fixture_retained_selection() -> Selection {
+    use conduit_ai::{
+        LlmDeterminismProfile, LlmWorkBounds, LocalModelCachePolicy, LocalModelComputeNeed,
+        LocalModelIdentity, LocalModelLifecycleState, LocalModelLimits,
+    };
+    use conduit_core::ComputeServiceGuarantee;
+
+    let model_name = "fixture-model".to_string();
+    Selection {
+        endpoint: "http://127.0.0.1:1".into(),
+        model_name: model_name.clone(),
+        admitted_memory_mib: 1,
+        reviewed_offer: LocalModelOffer {
+            identity: LocalModelIdentity {
+                runtime_name: "fixture-runtime".into(),
+                runtime_version: "1".into(),
+                runtime_build_identity: "fixture-runtime/build-1".into(),
+                model_name,
+                model_content_identity: "sha256-fixture".into(),
+                architecture: "fixture".into(),
+                parameter_profile: "tiny".into(),
+                quantization: "exact".into(),
+            },
+            limits: LocalModelLimits {
+                work: LlmWorkBounds::new(4_096, 1, 4_096, 4_096, 0).unwrap(),
+                model_bytes: 1,
+                admitted_memory_mib: 1,
+                compute: LocalModelComputeNeed {
+                    minimum_lanes: 1,
+                    preferred_lanes: 2,
+                    maximum_lanes: 4,
+                    minimum_service_guarantee: ComputeServiceGuarantee::Shared,
+                },
+                maximum_in_flight: 1,
+                maximum_queue_items: 4,
+                maximum_queue_bytes: 16_384,
+                cancellation_supported: true,
+                cache_policy: LocalModelCachePolicy::OneLoadedModelUntilShutdown,
+            },
+            supported_profiles: vec![LocalModelKindProfile::PresentSemanticFront],
+            initialized: true,
+            lifecycle: LocalModelLifecycleState::Ready,
+            determinism: LlmDeterminismProfile::ProviderNondeterministic,
+        },
+    }
+}

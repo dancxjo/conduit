@@ -115,3 +115,121 @@ fn replacement_cannot_reuse_undeclared_legacy_selection() {
     assert_eq!(fs::read(&path).unwrap(), before);
     fs::remove_dir_all(state.parent().unwrap()).unwrap();
 }
+
+#[test]
+fn todo_selection_survives_reinstall_and_refuses_rebound_root_before_boot() {
+    let (manifest, state) = super::tests::fixture();
+    let root = state.join("todo-checkpoint");
+    fs::create_dir_all(&root).unwrap();
+    let selected = selected_todo::Selection::select(&root, None).unwrap();
+    let version = selected.version_hex();
+    let first = install_configured_with_todo(
+        &manifest,
+        &state,
+        selected_speech::Change::Preserve,
+        selected_model::Change::Preserve,
+        selected_todo::Change::Replace(selected),
+    )
+    .unwrap();
+    assert!(inspect_installation(&state.join("installation.json"))
+        .unwrap()
+        .contains(&version));
+    let retained = install(&manifest, &state).unwrap();
+    assert_eq!(first.host_id, retained.host_id);
+    let selected = selected_todo_checkpoint(&state).unwrap().unwrap();
+    assert_eq!(selected.root, root.canonicalize().unwrap());
+    assert_eq!(
+        selected.content.version.digest(),
+        decode_todo_version(&version)
+    );
+    let (_status, truth) = prepare_runtime(&state).unwrap();
+    assert!(truth
+        .into_owner_host()
+        .advertisement()
+        .resources
+        .iter()
+        .any(|resource| resource.pool_id.as_str() == "std/todo-checkpoint"));
+    fs::remove_file(state.join("runtime.json")).unwrap();
+    let moved = root.with_extension("moved");
+    fs::rename(&root, &moved).unwrap();
+    fs::create_dir(&root).unwrap();
+    #[cfg(unix)]
+    assert!(start_runtime(&state)
+        .unwrap_err()
+        .contains("root identity changed"));
+    assert!(!state.join("runtime.json").exists());
+    install_configured_with_todo(
+        &manifest,
+        &state,
+        selected_speech::Change::Preserve,
+        selected_model::Change::Preserve,
+        selected_todo::Change::Remove,
+    )
+    .unwrap();
+    assert!(selected_todo_checkpoint(&state).unwrap().is_none());
+    fs::remove_dir_all(state.parent().unwrap()).unwrap();
+}
+
+#[test]
+fn todo_checkpoint_and_speech_selection_survive_one_installation() {
+    let (manifest, state) = super::tests::fixture();
+    let root = state.join("todo-checkpoint");
+    fs::create_dir_all(&root).unwrap();
+    install_configured_with_todo(
+        &manifest,
+        &state,
+        selected_speech::Change::Replace(selected_speech::fixture_retained_selection()),
+        selected_model::Change::Preserve,
+        selected_todo::Change::Replace(selected_todo::Selection::select(&root, None).unwrap()),
+    )
+    .unwrap();
+    let installation = read_installation(&state.join("installation.json")).unwrap();
+    assert!(installation.selected_speech.is_some());
+    assert!(installation.selected_todo_checkpoint.is_some());
+    let retained = install(&manifest, &state).unwrap();
+    assert_eq!(retained.host_id, installation.host_id);
+    // The fixture's speech selection is identity-only; physical provider and
+    // speaker reobservation remains a separate fresh-Boot proof.
+    fs::remove_dir_all(state.parent().unwrap()).unwrap();
+}
+
+#[test]
+fn explicit_model_and_todo_checkpoint_selections_survive_reinstall() {
+    let (manifest, state) = super::tests::fixture();
+    let root = state.join("todo-checkpoint");
+    fs::create_dir_all(&root).unwrap();
+    let first = install_configured_with_todo(
+        &manifest,
+        &state,
+        selected_speech::Change::Preserve,
+        selected_model::Change::Replace(Box::new(selected_model::fixture_retained_selection())),
+        selected_todo::Change::Replace(selected_todo::Selection::select(&root, None).unwrap()),
+    )
+    .unwrap();
+    assert!(first.selected_model.is_some());
+    assert!(first.selected_todo_checkpoint.is_some());
+    let retained = install(&manifest, &state).unwrap();
+    assert_eq!(retained.host_id, first.host_id);
+    assert_eq!(retained.selected_model, first.selected_model);
+    assert_eq!(
+        retained.selected_todo_checkpoint,
+        first.selected_todo_checkpoint
+    );
+    let decoded = read_installation(&state.join("installation.json")).unwrap();
+    assert_eq!(decoded.selected_model, first.selected_model);
+    assert_eq!(
+        decoded.selected_todo_checkpoint,
+        first.selected_todo_checkpoint
+    );
+    // The fixture is an exact retained selection, not a live provider. This
+    // test never starts a Boot or contacts its unreachable endpoint.
+    fs::remove_dir_all(state.parent().unwrap()).unwrap();
+}
+
+fn decode_todo_version(hex: &str) -> [u8; 32] {
+    let mut bytes = [0; 32];
+    for (index, byte) in bytes.iter_mut().enumerate() {
+        *byte = u8::from_str_radix(&hex[index * 2..index * 2 + 2], 16).unwrap();
+    }
+    bytes
+}

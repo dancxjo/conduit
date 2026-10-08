@@ -163,6 +163,7 @@ pub struct JourneyProjection {
     pub wake_id: Option<conduit_body::WakeId>,
     pub wake_sign_id: Option<SignId>,
     pub plan_id: Option<conduit_core::PlanId>,
+    pub partition_plan_id: Option<conduit_core::PlanId>,
     pub plan_sign_id: Option<SignId>,
     pub active_play_id: Option<conduit_core::ActivePlayId>,
     pub play_sign_id: Option<SignId>,

@@ -46,6 +46,7 @@ pub mod proofs;
 pub mod prove;
 pub mod r1_recovery;
 pub mod setup;
+pub mod todo_journey;
 pub mod toggle;
 pub mod tongues;
 pub mod unifont_subset;

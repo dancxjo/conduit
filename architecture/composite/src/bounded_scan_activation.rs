@@ -9,11 +9,13 @@ use crate::{
 };
 #[cfg_attr(not(feature = "fixture-registry-preparation"), allow(unused_imports))]
 use conduit_core::{
-    verify_plan, PlannedActivationEffectMultiplicity, PlannedActivationFront,
+    verify_plan, ActivePlayId, PlannedActivationEffectMultiplicity, PlannedActivationFront,
     PlannedScanAbnormalPolicy, PlannedScanActivation, PlannedScanCancellationPolicy,
     PlannedScanTerminalPolicy, PortDirection, PortTemporal, ValuePayload,
 };
 use conduit_kernel::HostCallOutcome;
+mod parent_play;
+pub use parent_play::ScanChildSignReceipt;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BoundedScanState {
@@ -55,6 +57,7 @@ pub struct BoundedScanActivationHost {
     output_ready: bool,
     closing: bool,
     state: BoundedScanState,
+    parent_play: Option<ActivePlayId>,
 }
 
 impl BoundedScanActivationHost {
@@ -157,6 +160,7 @@ impl BoundedScanActivationHost {
             output_ready: false,
             closing: false,
             state: BoundedScanState::Idle,
+            parent_play: None,
         })
     }
 
@@ -376,6 +380,15 @@ impl BoundedScanActivationHost {
     pub fn allocation_capacities(&self) -> (usize, usize) {
         (self.ready.capacity(), self.receipts.capacity())
     }
+    /// Read-only scheduling phase for an installed parent Back's admitted
+    /// child-Step budget. Output pressure must not consume a child Step.
+    pub fn has_active_child(&self) -> bool {
+        self.active.is_some()
+    }
+
+    pub fn has_pending_output(&self) -> bool {
+        self.output_ready
+    }
     /// Resolve a failure index against the exact prepared child identities.
     pub fn child_identity(&self, child: usize) -> Option<&conduit_core::HostId> {
         self.active
@@ -392,6 +405,10 @@ impl BoundedScanActivationHost {
             .last()
             .map_or(&[], KernelCompositeHost::cancellation_failures)
     }
+
+    /// Receipt-correlated child Signs for presentation after the bounded Play.
+    /// The selected Plan and prepared child identities remain the source of
+    /// provenance; this snapshot never grants a new Host route.
     pub fn storage_capacities(&self) -> (usize, usize, usize, usize) {
         (
             self.accumulator.encoded.capacity(),

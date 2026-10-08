@@ -1,6 +1,7 @@
 //! Local body-wide execution through the installed std kernel.
 use crate::{
-    hosted_keyboard::HostedKeyboardAdapter, installed_std::body_kernel::BodyKernel, RunControl,
+    hosted_keyboard::HostedKeyboardAdapter, installed_std::body_kernel::BodyKernel,
+    BodyLiveForeQueue, BodyLiveForeStatus, ExternalForeDelivery, ExternalForeInput, RunControl,
     StdHost, TimerAdapter,
 };
 use conduit_body::{BodyPlan, BodyPlanTimeAdmission, BodyPlayIdentity, Wake};
@@ -11,6 +12,9 @@ use conduit_core::{
 use conduit_kernel::{scheduler::HostCallRequest, KernelEvent};
 use conduit_plan_lowering::lowering::KernelIdentityMap;
 use std::io::Write;
+use std::path::Path;
+
+mod todo_checkpoint;
 
 #[derive(Debug, Clone)]
 pub struct ObservedKernelEvent {
@@ -23,6 +27,42 @@ pub struct BodyRunRequest<'a> {
     pub plan: &'a BodyPlan,
     pub control: &'a RunControl,
     pub keyboard: Option<&'a mut dyn HostedKeyboardAdapter>,
+}
+
+/// Acknowledges one bounded Body Fore delivery by borrowing its prepared
+/// storage. Returning an error leaves the kernel output unacknowledged.
+pub trait BodyForeOutputAdapter {
+    fn deliver(&mut self, output: &ExternalForeDelivery) -> Result<(), String>;
+}
+
+/// The selected residence and immutable checkpoint namespace for one Play.
+pub struct TodoCheckpointSelection<'a> {
+    pub root: &'a Path,
+    pub identity: crate::todo_durable_resource::CheckpointIdentity,
+}
+
+/// The typed input and acknowledged output Fores of one checkpoint Play.
+pub struct BodyForeExchange<'a> {
+    pub inputs: &'a [ExternalForeInput],
+    pub output: &'a mut dyn BodyForeOutputAdapter,
+}
+
+/// One finite live producer and its acknowledged output for a waiting Play.
+pub struct WaitingTodoFore<'a> {
+    pub queue: &'a BodyLiveForeQueue,
+    pub output: &'a mut dyn BodyForeOutputAdapter,
+}
+
+/// Wake an external producer on every preparation, admission, and start
+/// refusal, including paths before the kernel has begun to run.
+struct LiveForeTerminalGuard<'a>(Option<&'a BodyLiveForeQueue>);
+
+impl Drop for LiveForeTerminalGuard<'_> {
+    fn drop(&mut self) {
+        if let Some(queue) = self.0 {
+            queue.mark_play_terminal();
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -38,6 +78,16 @@ pub struct BodyRunReport {
     pub partitions: Vec<KernelIdentityMap>,
     pub requests: Vec<HostCallRequest>,
     pub kernel_events: Vec<KernelEvent>,
+    /// Receipt-correlated child Signs; a refusal remains distinct from an
+    /// empty child stream and never borrows the parent's Sign identity.
+    pub scan_child_signs:
+        Result<Vec<conduit_composite::ScanChildSignReceipt>, conduit_composite::BoundedScanError>,
+    pub scan_cancellation_failed: bool,
+    pub scan_output_completion_failed: bool,
+    pub fore_deliveries: Vec<ExternalForeDelivery>,
+    /// Host-staged versus kernel-admitted live values at terminal. Neither
+    /// count claims that the Todo state transition committed.
+    pub live_fore_status: Option<BodyLiveForeStatus>,
     pub clock_observations: Vec<ObservedKernelEvent>,
     pub clock_quality: Option<BodyTimeQuality>,
     pub clock_execution_bounds: Option<(MonotonicDuration, MonotonicDuration)>,
@@ -94,6 +144,79 @@ impl StdHost {
         self.run_body_plan_to_with_start(request, output, timer, |_, _| Ok(()))
     }
 
+    /// Execute a sealed local Body with caller-supplied, typed Fore values and
+    /// an acknowledging output adapter. The exact scoped, finite preloaded
+    /// Todo scan is admitted; later Mask actions and other activation routes
+    /// remain unavailable.
+    pub fn run_body_plan_with_fore_to<W: Write, T: TimerAdapter>(
+        &mut self,
+        request: BodyRunRequest<'_>,
+        inputs: &[ExternalForeInput],
+        sequential: bool,
+        fore_output: &mut dyn BodyForeOutputAdapter,
+        output: &mut W,
+        timer: &mut T,
+    ) -> Result<BodyRunReport, String> {
+        self.run_body_plan_to_with_start_and_clock(
+            request,
+            output,
+            timer,
+            None,
+            None,
+            Some((inputs, sequential, fore_output)),
+            None,
+            None,
+            |_, _| Ok(()),
+        )
+    }
+
+    /// Run one retained Body Play while an admitted typed queue receives
+    /// later values. Face/Mask action routing is a separate semantic boundary;
+    /// the queue must be closed explicitly to complete.
+    pub fn run_body_plan_with_live_fore_to<W: Write, T: TimerAdapter>(
+        &mut self,
+        request: BodyRunRequest<'_>,
+        queue: &BodyLiveForeQueue,
+        fore_output: &mut dyn BodyForeOutputAdapter,
+        output: &mut W,
+        timer: &mut T,
+    ) -> Result<BodyRunReport, String> {
+        self.run_body_plan_with_live_fore_to_with_start(
+            request,
+            queue,
+            fore_output,
+            output,
+            timer,
+            |_, _| Ok(()),
+        )
+    }
+
+    /// Publish the admitted live Play before waiting for later typed actions.
+    pub fn run_body_plan_with_live_fore_to_with_start<W: Write, T: TimerAdapter, F>(
+        &mut self,
+        request: BodyRunRequest<'_>,
+        queue: &BodyLiveForeQueue,
+        fore_output: &mut dyn BodyForeOutputAdapter,
+        output: &mut W,
+        timer: &mut T,
+        started: F,
+    ) -> Result<BodyRunReport, String>
+    where
+        F: FnMut(&BodyPlayIdentity, &Wake) -> Result<(), String>,
+    {
+        self.run_body_plan_to_with_start_and_clock(
+            request,
+            output,
+            timer,
+            None,
+            None,
+            None,
+            Some((queue, fore_output)),
+            None,
+            started,
+        )
+    }
+
     /// Publish the exact admitted Play before the kernel advances. A caller may
     /// durably retain the start and refuse execution if that publication fails.
     /// The callback is never invoked for preparation or reservation refusal.
@@ -107,7 +230,9 @@ impl StdHost {
     where
         F: FnMut(&BodyPlayIdentity, &Wake) -> Result<(), String>,
     {
-        self.run_body_plan_to_with_start_and_clock(request, output, timer, None, None, started)
+        self.run_body_plan_to_with_start_and_clock(
+            request, output, timer, None, None, None, None, None, started,
+        )
     }
 
     pub fn run_body_plan_to_with_body_time<W: Write, T: TimerAdapter>(
@@ -122,6 +247,9 @@ impl StdHost {
             output,
             timer,
             Some(correlation),
+            None,
+            None,
+            None,
             None,
             |_, _| Ok(()),
         )
@@ -142,6 +270,9 @@ impl StdHost {
             timer,
             Some(correlation),
             Some((transport_uncertainty, scheduler_uncertainty)),
+            None,
+            None,
+            None,
             |_, _| Ok(()),
         )
     }
@@ -187,22 +318,34 @@ impl StdHost {
             timer,
             Some(correlation),
             None,
+            None,
+            None,
+            None,
             started,
         )
     }
 
-    fn run_body_plan_to_with_start_and_clock<W: Write, T: TimerAdapter, F>(
+    #[allow(clippy::too_many_arguments)]
+    fn run_body_plan_to_with_start_and_clock<'a, W: Write, T: TimerAdapter, F>(
         &mut self,
         request: BodyRunRequest<'_>,
         output: &mut W,
         timer: &mut T,
         correlation: Option<&BodyClockCorrelation>,
         execution_bounds: Option<(MonotonicDuration, MonotonicDuration)>,
+        fore: Option<(
+            &[ExternalForeInput],
+            bool,
+            &'a mut dyn BodyForeOutputAdapter,
+        )>,
+        live: Option<(&BodyLiveForeQueue, &'a mut dyn BodyForeOutputAdapter)>,
+        checkpoint: Option<(&Path, crate::todo_durable_resource::CheckpointIdentity)>,
         mut started: F,
     ) -> Result<BodyRunReport, String>
     where
         F: FnMut(&BodyPlayIdentity, &Wake) -> Result<(), String>,
     {
+        let _live_guard = LiveForeTerminalGuard(live.as_ref().map(|(queue, _)| *queue));
         request
             .plan
             .validate_for(request.wake)
@@ -227,25 +370,47 @@ impl StdHost {
         } else {
             None
         };
-        let fragments = request
-            .plan
-            .plots
-            .iter()
-            .map(|partition| {
-                if partition.plan.fragments.len() != 1 {
-                    return Err(
-                        "local body execution requires one local fragment per Plot".to_string()
-                    );
-                }
-                Ok(&partition.plan.fragments[0])
-            })
-            .collect::<Result<Vec<_>, _>>()?;
-        let kernel = BodyKernel::prepare(&fragments, request.keyboard.is_some())?;
-        let reservations = self.kernel_resources.prepare_and_reserve_partitions(
+        let (fore_inputs, sequential_fore, has_fore_output) = fore
+            .as_ref()
+            .map_or((&[][..], false, false), |(inputs, sequential, _)| {
+                (*inputs, *sequential, true)
+            });
+        // Bind the prospective identity without consuming the sequence. The
+        // exact child pool must be prepared and correlated before Play start;
+        // a preparation refusal leaves the Host sequence untouched.
+        let prospective_play = BodyPlayIdentity::bind(request.plan, self.next_kernel_play_sequence);
+        let live_queue = live.as_ref().map(|(queue, _)| *queue);
+        let mut kernel = if let Some((queue, _)) = &live {
+            if request.keyboard.is_some() {
+                return Err("live Body Fore cannot also claim keyboard ingress".into());
+            }
+            BodyKernel::prepare_live(
+                &request.plan.plots,
+                &prospective_play.active_play_id,
+                queue,
+                request.control,
+            )?
+        } else {
+            BodyKernel::prepare(
+                &request.plan.plots,
+                request.keyboard.is_some(),
+                &prospective_play.active_play_id,
+                fore_inputs,
+                sequential_fore,
+                has_fore_output,
+            )?
+        };
+        if let Some((root, checkpoint)) = checkpoint {
+            kernel.attach_todo_checkpoint(&request.plan.plots, root, checkpoint)?;
+        }
+        kernel.require_supported_execution()?;
+        let reservations = self.kernel_resources.prepare_and_reserve_plans(
             &self.advertisement,
-            &fragments
+            &request
+                .plan
+                .plots
                 .iter()
-                .map(|part| (*part, false))
+                .map(|part| (&part.plan, false))
                 .collect::<Vec<_>>(),
         )?;
         let result = (|| {
@@ -253,7 +418,10 @@ impl StdHost {
             self.next_kernel_play_sequence = sequence
                 .checked_add(1)
                 .ok_or_else(|| "Body Play sequence exhausted".to_string())?;
-            let play = BodyPlayIdentity::bind(request.plan, sequence);
+            let play = prospective_play;
+            if play.play_sequence != sequence {
+                return Err("Body prospective Play identity changed before start".into());
+            }
             // Body lifecycle signs are scoped by this unique admitted Play.
             // The shared lifecycle session and browser producer use 0/1/2;
             // reusing the Host-wide cursor would make a second genuine start
@@ -271,12 +439,26 @@ impl StdHost {
                 .body_plan_ready(request.plan, sign(0).sign_id)
                 .and_then(|wake| wake.body_play_started(request.plan, &play, sign(1).sign_id))
                 .map_err(|error| format!("Body start lifecycle: {error:?}"))?;
-            started(&play, &wake_at_start)?;
+            if let Err(error) = started(&play, &wake_at_start) {
+                if let Some(queue) = live_queue {
+                    queue.mark_play_terminal();
+                }
+                return Err(error);
+            }
+            if let Some(queue) = live_queue {
+                queue.mark_play_started();
+            }
             let terminal_sign = sign(2);
+            let fore_output = if let Some((_, adapter)) = live {
+                Some(adapter)
+            } else {
+                fore.map(|(_, _, adapter)| adapter)
+            };
             let result = kernel.run(
                 output,
                 timer,
                 request.keyboard,
+                fore_output,
                 request.control,
                 &self.advertisement.host_id,
                 &self.advertisement.boot_id,
@@ -284,6 +466,9 @@ impl StdHost {
                 execution_bounds,
                 admitted_clock_quality,
             );
+            if let Some(queue) = live_queue {
+                queue.mark_play_terminal();
+            }
             Ok(BodyRunReport {
                 play,
                 wake_at_start,
@@ -294,6 +479,11 @@ impl StdHost {
                 partitions: result.partitions,
                 requests: result.requests,
                 kernel_events: result.events,
+                scan_child_signs: result.scan_child_signs,
+                scan_cancellation_failed: result.scan_cancellation_failed,
+                scan_output_completion_failed: result.scan_output_completion_failed,
+                fore_deliveries: result.fore_deliveries,
+                live_fore_status: live_queue.map(BodyLiveForeQueue::status),
                 clock_observations: result.clock_observations,
                 clock_quality: result.clock_quality,
                 clock_execution_bounds: result.clock_execution_bounds,

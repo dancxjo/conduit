@@ -284,7 +284,12 @@ impl ProductJourney {
             .map_err(|_| JourneyError::InvalidTransition)?;
         // Record Play only after actual kernel start. Any refusal retires
         // partial execution before lulling the still-unstarted proposal.
-        if let Err(error) = self.kernel.as_mut().ok_or(JourneyError::Kernel)?.start() {
+        if let Err(error) = self
+            .kernel
+            .as_mut()
+            .ok_or(JourneyError::Kernel)?
+            .start_for(&plan, &play)
+        {
             self.retire_realization()?;
             return Err(JourneyError::Play(error));
         }

@@ -1,0 +1,71 @@
+{
+  "authority_grant_id": "grant/conduit/installed-screen-free-selected-speaker",
+  "boot_id": "boot/installed/f3292b13a27c37b22f55ed26b91103d48f980b70f2f8f3ccf2cd0927e92b0242",
+  "checked_plot_id": "8be0db87ed93e1e45c05c809382727adfb019874336068fdb54cd1711d0d473d",
+  "face_id": "183fef4e21031bed66ca1172416e38edaa4b9966a1a4f3bf4554a24fa84338aa",
+  "face_revision": 596,
+  "face_revision_decimal": "596",
+  "host_id": "host/installed/df02b1cb1afdad1f94980315da6114c5810de1f057e61bf7041172f71a3c834b",
+  "offer_generation": 2,
+  "outcome": "Completed",
+  "plan_id": "7c14d4fe0f6e55d9a2989dd8c6f0728c5e02496e2cf3fef4694c4e00766cf49f",
+  "play_id": "6c7480dcc4e40c0c4f03e91297334dd8b3a047b762df7458cd8ae1bb2b093585",
+  "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+  "same_play_capture": {
+    "pcm_blocks": 5597,
+    "pcm_bytes": 1218328,
+    "pcm_sha256": "f02c69ceeae446dffdf4c7cc52aecbb46f7212707e21a77c9b60edcd43f017b4",
+    "wav_artifact_locator": "/home/dancxjo/conduit-todo-browser-proof/attempt-5/host-state/screen-free-spoken-artifacts/play-5afd4975947b6c18ef2f717b3480062290e60f26f34bf51b89965308a940722e.wav",
+    "wav_bytes": 1218372,
+    "wav_sha256": "8acebee4bca50b7feb6e5185bb86a311453c296cee8e268251efe81b53d4fc10"
+  },
+  "schema": "conduit.body/spoken-face-playback@1",
+  "selected_resource_pool_id": "std/audio/alsa/skl_hda_dsp_generic/card-sofhdadsp/device-0",
+  "source_document_id": "338d018990f4ace633fdc895832e735569117460fcfdd24318df3fd54c8837d5",
+  "source_segments_sha256": "f3b876ac905e07376d11db325638c71aa6ad98c67189701e861e3883d92bb019",
+  "source_show_id": "show/259c40d58a62ffdee595409d4562e2f0eb4b24ac81e224b7e335a8b0157bd64d",
+  "speaker_blocks_committed": 5597,
+  "speaker_frames_committed": 304582,
+  "speaker_lifecycle": "StoppedClosed",
+  "speaker_underruns": 0,
+  "spoken_segments": [
+    {
+      "clause_index": 14,
+      "clause_provenance_debug": "Some(Subject(FaceUtteranceProvenanceSubject { identity: \"todo/item/task-18\" }))",
+      "face_id": "183fef4e21031bed66ca1172416e38edaa4b9966a1a4f3bf4554a24fa84338aa",
+      "face_revision_decimal": "596",
+      "reason": "tongues-boundary",
+      "reason_code": 0,
+      "sequence": 0,
+      "show_id": "show/259c40d58a62ffdee595409d4562e2f0eb4b24ac81e224b7e335a8b0157bd64d",
+      "text": "Long-list item 18, item.",
+      "text_sha256": "ae7aedb76b3946d55a846e4a08d584a625c5444984fe21870074ce74c150c8ef"
+    },
+    {
+      "clause_index": 15,
+      "clause_provenance_debug": "Some(Subject(FaceUtteranceProvenanceSubject { identity: \"todo/item/task-19\" }))",
+      "face_id": "183fef4e21031bed66ca1172416e38edaa4b9966a1a4f3bf4554a24fa84338aa",
+      "face_revision_decimal": "596",
+      "reason": "tongues-boundary",
+      "reason_code": 0,
+      "sequence": 1,
+      "show_id": "show/259c40d58a62ffdee595409d4562e2f0eb4b24ac81e224b7e335a8b0157bd64d",
+      "text": "Long-list item 19, item.",
+      "text_sha256": "769ee8e2e38876032b100c492434e5a6b17e3b683e80f655663d6d694fe9eee1"
+    },
+    {
+      "clause_index": 17,
+      "clause_provenance_debug": "Some(Subject(FaceUtteranceProvenanceSubject { identity: \"todo/item/task-20\" }))",
+      "face_id": "183fef4e21031bed66ca1172416e38edaa4b9966a1a4f3bf4554a24fa84338aa",
+      "face_revision_decimal": "596",
+      "reason": "final-flush",
+      "reason_code": 1,
+      "sequence": 2,
+      "show_id": "show/259c40d58a62ffdee595409d4562e2f0eb4b24ac81e224b7e335a8b0157bd64d",
+      "text": "Long-list item 20, item.",
+      "text_sha256": "c8dc8d2eaada1a4e2224232a361a20bf5eecbafa979dc7c7d152ef8bdd055a2e"
+    }
+  ],
+  "stream_identity": "face/183fef4e21031bed66ca1172416e38edaa4b9966a1a4f3bf4554a24fa84338aa/596/turn/2/batch/0",
+  "voice": "en-us"
+}

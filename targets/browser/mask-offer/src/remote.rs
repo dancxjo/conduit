@@ -16,7 +16,7 @@ const WEBSOCKET: &conduit_host_browser_make::BrowserLineRealizationDescriptor =
 
 /// Seal the browser Mask's Face input and Show output on exact carrier Lines.
 /// The one-item Fore budgets are no larger than the admitted directional
-/// payloads; the whole Face response is also bounded at 32 KiB by its route.
+/// payloads; the whole Face response is also bounded at 60 KiB by its route.
 pub fn planned_owner_face_show_mask(
     browser: &HostAdvertisement,
     owner: &HostAdvertisement,

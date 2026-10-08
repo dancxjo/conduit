@@ -33,6 +33,11 @@ mod selection_recovery_tests;
 #[path = "durable_host/installation_read.rs"]
 mod installation_read;
 use installation_read::{read_installation, read_installation_for_equipment_change};
+#[path = "durable_host/installation_configured.rs"]
+mod installation_configured;
+#[cfg(test)]
+use installation_configured::install_configured;
+use installation_configured::install_configured_with_todo;
 
 #[path = "durable_host/runtime_marker.rs"]
 mod runtime_marker;
@@ -41,6 +46,8 @@ pub(crate) use runtime_marker::refresh_offer_generation;
 mod selected_model;
 #[path = "durable_host/selected_speech.rs"]
 pub(crate) mod selected_speech;
+#[path = "durable_host/selected_todo.rs"]
+mod selected_todo;
 
 #[path = "durable_host_invitation.rs"]
 mod invitation;
@@ -81,6 +88,8 @@ struct Installation {
     selected_speech: Option<selected_speech::Selection>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     selected_model: Option<selected_model::Selection>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    selected_todo_checkpoint: Option<selected_todo::Selection>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -109,12 +118,14 @@ pub(crate) fn dispatch(command: HostServiceCommand) -> Result<(), String> {
             no_start,
             speech,
             model,
+            todo_checkpoint,
         } => (if no_start {
             install_with_equipment(
                 &manifest,
                 &state_dir,
                 selected_speech::change(speech)?,
                 selected_model::change(model)?,
+                selected_todo::change(todo_checkpoint)?,
             )
         } else {
             install_and_activate_with_equipment(
@@ -122,6 +133,7 @@ pub(crate) fn dispatch(command: HostServiceCommand) -> Result<(), String> {
                 &state_dir,
                 selected_speech::change(speech)?,
                 selected_model::change(model)?,
+                selected_todo::change(todo_checkpoint)?,
             )
         })
         .map(|installation| {
@@ -152,12 +164,69 @@ pub(crate) fn has_current_body(state_dir: &Path) -> Result<bool, String> {
 pub(crate) fn inspect_installation(path: &Path) -> Result<String, String> {
     let installation = read_installation(path)?;
     Ok(format!(
-        "Host {}\nrelease {}\nproduct {}\nbody {}\n",
+        "Host {}\nrelease {}\nproduct {}\nbody {}\nTodo checkpoint version {}\n",
         installation.host_id,
         installation.release_bundle_sha256,
         installation.product_executable,
         current_body_id(&installation).unwrap_or("none"),
+        installation
+            .selected_todo_checkpoint
+            .as_ref()
+            .map_or_else(|| "none".into(), selected_todo::Selection::version_hex),
     ))
+}
+
+#[derive(Clone)]
+#[allow(dead_code)] // Consumed by the installed Owner ingress slice stacked on this selection.
+pub(crate) struct SelectedTodoCheckpoint {
+    pub(crate) root: std::path::PathBuf,
+    pub(crate) content: conduit_core::ResourceContentRequirement,
+}
+
+/// The installed Host's explicit successor selection, held until the Owner
+/// can journal it together with the next resident Plot and Body proposal.
+pub(crate) struct NextSelectedTodoCheckpoint {
+    root: std::path::PathBuf,
+    read_content: conduit_core::ResourceContentRequirement,
+    selection: selected_todo::Selection,
+}
+
+impl NextSelectedTodoCheckpoint {
+    #[cfg(test)]
+    pub(crate) fn write_content(&self) -> conduit_core::ResourceContentRequirement {
+        self.selection.content()
+    }
+}
+
+pub(crate) fn next_selected_todo_checkpoint(
+    state_dir: &Path,
+) -> Result<NextSelectedTodoCheckpoint, String> {
+    let installation = read_installation(&state_dir.join("installation.json"))?;
+    let prior = installation
+        .selected_todo_checkpoint
+        .ok_or("installed Todo has no selected checkpoint residence")?;
+    let mut read_content = prior.content();
+    read_content.access = conduit_core::ResourceAccessMode::ReadPublished;
+    read_content.publication_slots = 0;
+    let root = prior.root().to_path_buf();
+    Ok(NextSelectedTodoCheckpoint {
+        root,
+        read_content,
+        selection: prior.next_generation()?,
+    })
+}
+
+#[allow(dead_code)] // Consumed by the installed Owner ingress slice stacked on this selection.
+pub(crate) fn selected_todo_checkpoint(
+    state_dir: &Path,
+) -> Result<Option<SelectedTodoCheckpoint>, String> {
+    let installation = read_installation(&state_dir.join("installation.json"))?;
+    Ok(installation
+        .selected_todo_checkpoint
+        .map(|selection| SelectedTodoCheckpoint {
+            root: selection.root().to_owned(),
+            content: selection.content(),
+        }))
 }
 
 pub(crate) fn install_and_activate(
@@ -174,8 +243,15 @@ fn install_and_activate_with_equipment(
     state_dir: &Path,
     speech_change: selected_speech::Change,
     model_change: selected_model::Change,
+    todo_change: selected_todo::Change,
 ) -> Result<InstalledHostIdentity, String> {
-    let installation = install_with_equipment(manifest, state_dir, speech_change, model_change)?;
+    let installation = install_with_equipment(
+        manifest,
+        state_dir,
+        speech_change,
+        model_change,
+        todo_change,
+    )?;
     activate_service(state_dir)?;
     Ok(installation)
 }
@@ -197,6 +273,7 @@ fn install_with_selection(
         state_dir,
         change,
         selected_model::Change::Preserve,
+        selected_todo::Change::Preserve,
     )
 }
 
@@ -205,8 +282,15 @@ fn install_with_equipment(
     state_dir: &Path,
     speech_change: selected_speech::Change,
     model_change: selected_model::Change,
+    todo_change: selected_todo::Change,
 ) -> Result<InstalledHostIdentity, String> {
-    let installation = install_configured(manifest, state_dir, speech_change, model_change)?;
+    let installation = install_configured_with_todo(
+        manifest,
+        state_dir,
+        speech_change,
+        model_change,
+        todo_change,
+    )?;
     Ok(InstalledHostIdentity {
         host_id: installation.host_id,
         release_bundle_sha256: installation.release_bundle_sha256,
@@ -260,87 +344,6 @@ fn install(manifest_path: &Path, state_dir: &Path) -> Result<Installation, Strin
         selected_speech::Change::Preserve,
         selected_model::Change::Preserve,
     )
-}
-
-fn install_configured(
-    manifest_path: &Path,
-    state_dir: &Path,
-    speech_change: selected_speech::Change,
-    model_change: selected_model::Change,
-) -> Result<Installation, String> {
-    let manifest_bytes = bounded_read(manifest_path, 256 * 1024)?;
-    let manifest: ReleaseManifest = serde_json::from_slice(&manifest_bytes)
-        .map_err(|error| format!("release manifest: {error}"))?;
-    validate_manifest(&manifest)?;
-    let bundle_dir = manifest_path
-        .parent()
-        .ok_or_else(|| "release manifest has no bundle directory".to_string())?;
-    for file in &manifest.files {
-        verify_release_file(bundle_dir, file)?;
-    }
-
-    fs::create_dir_all(state_dir).map_err(|error| format!("create state directory: {error}"))?;
-    restrict_directory(state_dir)?;
-    crate::durable_host_control::ensure_secret(state_dir)?;
-    let install_path = state_dir.join("installation.json");
-    let existing = if install_path.exists() {
-        Some(read_installation_for_equipment_change(
-            &install_path,
-            &speech_change,
-        )?)
-    } else {
-        None
-    };
-    let executable = manifest
-        .files
-        .iter()
-        .find(|file| file.path.starts_with("conduit-") && !file.path.contains("tour"))
-        .ok_or_else(|| "release has no installed Conduit product executable".to_string())?;
-    let release_dir = install_immutable_release(bundle_dir, state_dir, &manifest)?;
-    let product_executable = release_dir.join(
-        Path::new(&executable.path)
-            .file_name()
-            .ok_or_else(|| "product executable name is invalid".to_string())?,
-    );
-    make_executable(&product_executable)?;
-    let host_id = existing
-        .as_ref()
-        .map(|value| value.host_id.clone())
-        .unwrap_or_else(|| fresh_identity("host/installed", &manifest.bundle_sha256));
-    let retained_selection = match speech_change {
-        selected_speech::Change::Preserve => existing
-            .as_ref()
-            .and_then(|value| value.selected_speech.clone()),
-        selected_speech::Change::Replace(selection) => {
-            selection.validate()?;
-            Some(selection)
-        }
-        selected_speech::Change::Remove => None,
-    };
-    let retained_model = match model_change {
-        selected_model::Change::Preserve => existing
-            .as_ref()
-            .and_then(|value| value.selected_model.clone()),
-        selected_model::Change::Replace(selection) => {
-            selection.validate()?;
-            Some(*selection)
-        }
-        selected_model::Change::Remove => None,
-    };
-    let installation = Installation {
-        schema: INSTALL_SCHEMA.into(),
-        host_id,
-        release_source_identity: manifest.source_identity,
-        release_bundle_sha256: manifest.bundle_sha256,
-        product_executable: product_executable.display().to_string(),
-        body_state: existing.as_ref().and_then(|value| value.body_state.clone()),
-        joined_body_state: existing.and_then(|value| value.joined_body_state),
-        selected_speech: retained_selection,
-        selected_model: retained_model,
-    };
-    write_json_atomic(&install_path, &installation)?;
-    write_service_definition(state_dir, &installation)?;
-    Ok(installation)
 }
 
 fn install_immutable_release(
@@ -454,14 +457,53 @@ fn prepare_runtime(
     ),
     String,
 > {
+    prepare_runtime_with_todo(state_dir, None)
+}
+
+/// Select the request-scoped Todo Back before the Host advertisement and
+/// resource ledger are constructed. Retained equipment is composed only from
+/// explicit selections before the Host is exposed.
+fn prepare_runtime_with_todo(
+    state_dir: &Path,
+    todo: Option<(&conduit_todo_plot::TodoState, u16)>,
+) -> Result<
+    (
+        RuntimeStatus,
+        crate::durable_host_control::DurableHostRuntime,
+    ),
+    String,
+> {
     let installation = read_installation(&state_dir.join("installation.json"))?;
+    if todo.is_some()
+        && (installation.selected_model.is_some()
+            || installation.selected_speech.is_some()
+            || installation.selected_todo_checkpoint.is_some())
+    {
+        return Err(
+            "installed Todo scan cannot preserve selected equipment in its scoped Host".into(),
+        );
+    }
     let boot_id = fresh_identity("boot/installed", &installation.host_id);
     let config = StdHostConfig {
         host_id: HostId::from(installation.host_id.as_str()),
         boot_id: BootId::from(boot_id.as_str()),
         offer_generation: OfferGeneration(1),
     };
-    let mut host = if let Some(selection) = &installation.selected_model {
+    let mut host = if let Some((initial, maximum_items)) = todo {
+        StdHost::new_for_todo_scan(config, initial, maximum_items)?
+    } else if let Some(selection) = &installation.selected_todo_checkpoint {
+        selection.validate()?;
+        if let Some(model) = &installation.selected_model {
+            StdHost::new_for_todo_checkpoint_with_local_model(
+                config,
+                selection.root(),
+                selection.content(),
+                Box::new(model.initialize()?),
+            )?
+        } else {
+            StdHost::new_for_todo_checkpoint_once(config, selection.root(), selection.content())?
+        }
+    } else if let Some(selection) = &installation.selected_model {
         StdHost::new_with_local_model(
             config,
             StdHostComposition::reference(),
@@ -683,7 +725,7 @@ fn observe_current_runtime(
     if !runtime.exists() {
         return Ok(None);
     }
-    let status = {
+    let mut status = {
         let bytes = bounded_read(&runtime, 64 * 1024)?;
         let status: RuntimeStatus = serde_json::from_slice(&bytes)
             .map_err(|error| format!("durable host runtime status: {error}"))?;
@@ -699,10 +741,14 @@ fn observe_current_runtime(
     let advertisement = &truth.advertisement;
     if advertisement.host_id.as_str() != status.host_id
         || advertisement.boot_id.as_str() != status.boot_id
-        || advertisement.offer_generation.0 != status.offer_generation
+        || advertisement.offer_generation.0 < status.offer_generation
     {
         return Err("durable host control truth disagrees with its runtime marker".into());
     }
+    // The marker proves the started Host Boot. A selected Back may advance its
+    // offers during the same Boot; the authenticated live Host owns the current
+    // generation, just as the live Body owns the current post-Birth identity.
+    status.offer_generation = advertisement.offer_generation.0;
     Ok(Some(status))
 }
 
@@ -1108,6 +1154,7 @@ mod tests {
             no_start: true,
             speech: Default::default(),
             model: Default::default(),
+            todo_checkpoint: Default::default(),
         })
         .unwrap();
         let installed = read_installation(&state.join("installation.json")).unwrap();
