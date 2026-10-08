@@ -1,7 +1,8 @@
 //! Local body-wide execution through the installed std kernel.
 use crate::{
-    hosted_keyboard::HostedKeyboardAdapter, installed_std::body_kernel::BodyKernel, RunControl,
-    StdHost, TimerAdapter,
+    hosted_keyboard::HostedKeyboardAdapter, installed_std::body_kernel::BodyKernel,
+    ExternalForeDelivery, ExternalForeInput, ExternalForeOutputAdapter, RunControl, StdHost,
+    TimerAdapter,
 };
 use conduit_body::{BodyPlan, BodyPlanTimeAdmission, BodyPlayIdentity, Wake};
 use conduit_core::{
@@ -38,6 +39,7 @@ pub struct BodyRunReport {
     pub partitions: Vec<KernelIdentityMap>,
     pub requests: Vec<HostCallRequest>,
     pub kernel_events: Vec<KernelEvent>,
+    pub fore_deliveries: Vec<ExternalForeDelivery>,
     pub clock_observations: Vec<ObservedKernelEvent>,
     pub clock_quality: Option<BodyTimeQuality>,
     pub clock_execution_bounds: Option<(MonotonicDuration, MonotonicDuration)>,
@@ -94,6 +96,29 @@ impl StdHost {
         self.run_body_plan_to_with_start(request, output, timer, |_, _| Ok(()))
     }
 
+    /// Execute a sealed local Body with caller-supplied, typed Fore values and
+    /// an acknowledging output adapter. This entrance still refuses activation
+    /// coordinators until their scheduler Back is installed.
+    pub fn run_body_plan_with_fore_to<W: Write, T: TimerAdapter>(
+        &mut self,
+        request: BodyRunRequest<'_>,
+        inputs: &[ExternalForeInput],
+        sequential: bool,
+        fore_output: &mut dyn ExternalForeOutputAdapter,
+        output: &mut W,
+        timer: &mut T,
+    ) -> Result<BodyRunReport, String> {
+        self.run_body_plan_to_with_start_and_clock(
+            request,
+            output,
+            timer,
+            None,
+            None,
+            Some((inputs, sequential, fore_output)),
+            |_, _| Ok(()),
+        )
+    }
+
     /// Publish the exact admitted Play before the kernel advances. A caller may
     /// durably retain the start and refuse execution if that publication fails.
     /// The callback is never invoked for preparation or reservation refusal.
@@ -107,7 +132,9 @@ impl StdHost {
     where
         F: FnMut(&BodyPlayIdentity, &Wake) -> Result<(), String>,
     {
-        self.run_body_plan_to_with_start_and_clock(request, output, timer, None, None, started)
+        self.run_body_plan_to_with_start_and_clock(
+            request, output, timer, None, None, None, started,
+        )
     }
 
     pub fn run_body_plan_to_with_body_time<W: Write, T: TimerAdapter>(
@@ -122,6 +149,7 @@ impl StdHost {
             output,
             timer,
             Some(correlation),
+            None,
             None,
             |_, _| Ok(()),
         )
@@ -142,6 +170,7 @@ impl StdHost {
             timer,
             Some(correlation),
             Some((transport_uncertainty, scheduler_uncertainty)),
+            None,
             |_, _| Ok(()),
         )
     }
@@ -187,10 +216,12 @@ impl StdHost {
             timer,
             Some(correlation),
             None,
+            None,
             started,
         )
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn run_body_plan_to_with_start_and_clock<W: Write, T: TimerAdapter, F>(
         &mut self,
         request: BodyRunRequest<'_>,
@@ -198,6 +229,11 @@ impl StdHost {
         timer: &mut T,
         correlation: Option<&BodyClockCorrelation>,
         execution_bounds: Option<(MonotonicDuration, MonotonicDuration)>,
+        fore: Option<(
+            &[ExternalForeInput],
+            bool,
+            &mut dyn ExternalForeOutputAdapter,
+        )>,
         mut started: F,
     ) -> Result<BodyRunReport, String>
     where
@@ -240,7 +276,18 @@ impl StdHost {
                 Ok(&partition.plan.fragments[0])
             })
             .collect::<Result<Vec<_>, _>>()?;
-        let kernel = BodyKernel::prepare(&request.plan.plots, request.keyboard.is_some())?;
+        let (fore_inputs, sequential_fore, has_fore_output) = fore
+            .as_ref()
+            .map_or((&[][..], false, false), |(inputs, sequential, _)| {
+                (*inputs, *sequential, true)
+            });
+        let kernel = BodyKernel::prepare(
+            &request.plan.plots,
+            request.keyboard.is_some(),
+            fore_inputs,
+            sequential_fore,
+            has_fore_output,
+        )?;
         kernel.require_supported_execution()?;
         let reservations = self.kernel_resources.prepare_and_reserve_partitions(
             &self.advertisement,
@@ -278,6 +325,7 @@ impl StdHost {
                 output,
                 timer,
                 request.keyboard,
+                fore.map(|(_, _, adapter)| adapter),
                 request.control,
                 &self.advertisement.host_id,
                 &self.advertisement.boot_id,
@@ -295,6 +343,7 @@ impl StdHost {
                 partitions: result.partitions,
                 requests: result.requests,
                 kernel_events: result.events,
+                fore_deliveries: result.fore_deliveries,
                 clock_observations: result.clock_observations,
                 clock_quality: result.clock_quality,
                 clock_execution_bounds: result.clock_execution_bounds,

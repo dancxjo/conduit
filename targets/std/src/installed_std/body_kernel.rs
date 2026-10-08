@@ -1,9 +1,12 @@
 //! Local multi-partition composition of the existing kernel and Host effects.
 use super::{
-    kernel_preparation::KernelTables, preparation, simple_presentation_host, InstalledBack,
-    InstalledScheduler, MAX_CORDS, MAX_NODES, MAX_QUEUE_SLOTS, PENDING_REQUESTS,
+    fore_sign_storage, kernel_preparation::KernelTables, preparation, simple_presentation_host,
+    InstalledBack, InstalledScheduler, MAX_CORDS, MAX_NODES, MAX_QUEUE_SLOTS, PENDING_REQUESTS,
 };
-use crate::{hosted_keyboard::HostedKeyboardAdapter, RunControl, TimerAdapter};
+use crate::{
+    hosted_keyboard::HostedKeyboardAdapter, ExternalForeDelivery, ExternalForeInput,
+    ExternalForeOutputAdapter, RunControl, TimerAdapter,
+};
 use conduit_body::BodyPlotPlan;
 use conduit_core::{
     BodyClockCorrelation, BodyTimeQuality, BodyTimeRefusal, BodyTimeRequirement,
@@ -11,8 +14,7 @@ use conduit_core::{
 };
 use conduit_kernel::{
     scheduler::{HostCallRequest, SchedulerStatus},
-    BoundedValueRef, HostCallDisposition, HostCallOutcome, HostedSignLog, HostedValueStore,
-    KernelEvent,
+    BoundedValueRef, HostCallDisposition, HostCallOutcome, HostedValueStore, KernelEvent,
 };
 use conduit_plan_lowering::{
     activation_fragment::{lower_fragment_activations, LoweredFragmentActivations},
@@ -22,11 +24,14 @@ use conduit_plan_lowering::{
 use std::io::Write;
 
 mod clock_observation;
+mod fore_route;
 use crate::body_execution::ObservedKernelEvent;
 use clock_observation::KernelClockObservations;
+use fore_route::BodyForeRoute;
 
-pub(crate) struct BodyKernel {
+pub(crate) struct BodyKernel<'a> {
     scheduler: InstalledScheduler,
+    fore: BodyForeRoute<'a>,
     activations: Vec<LoweredFragmentActivations>,
     partitions: Vec<KernelIdentityMap>,
     operations: Vec<LoweredHostCall>,
@@ -46,6 +51,7 @@ pub(crate) struct BodyKernelResult {
     pub partitions: Vec<KernelIdentityMap>,
     pub requests: Vec<HostCallRequest>,
     pub events: Vec<KernelEvent>,
+    pub fore_deliveries: Vec<ExternalForeDelivery>,
     pub clock_observations: Vec<ObservedKernelEvent>,
     pub clock_quality: Option<BodyTimeQuality>,
     pub clock_execution_bounds: Option<(
@@ -106,8 +112,14 @@ fn presentation(operation: &LoweredHostCall) -> bool {
     })
 }
 
-impl BodyKernel {
-    pub(crate) fn prepare(partitions: &[BodyPlotPlan], has_keyboard: bool) -> Result<Self, String> {
+impl<'a> BodyKernel<'a> {
+    pub(crate) fn prepare(
+        partitions: &[BodyPlotPlan],
+        has_keyboard: bool,
+        fore_inputs: &'a [ExternalForeInput],
+        sequential_fore: bool,
+        has_fore_output: bool,
+    ) -> Result<Self, String> {
         let fragments = partitions
             .iter()
             .map(|partition| {
@@ -136,6 +148,12 @@ impl BodyKernel {
             },
         )
         .map_err(|error| format!("Body fragment lowering: {error:?}"))?;
+        let fore = BodyForeRoute::prepare(
+            &lowered.partitions,
+            fore_inputs,
+            sequential_fore,
+            has_fore_output,
+        )?;
         for operation in lowered.partitions.iter().flat_map(|part| &part.host_calls) {
             if keyboard(&operation.contract_id) || button(&operation.contract_id) {
                 if !has_keyboard {
@@ -176,6 +194,19 @@ impl BodyKernel {
                 .checked_add(budget.host_requests)
                 .ok_or("Body request overflow")?;
         }
+        for port in fore.input_ports() {
+            items = items
+                .checked_add(port.item_capacity)
+                .ok_or("Body Fore value item overflow")?;
+            bytes = bytes
+                .checked_add(port.byte_capacity)
+                .filter(|bytes| *bytes <= 16 * 1024 * 1024)
+                .ok_or("Body Fore value byte capacity exceeded")?;
+            maximum = maximum.max(port.byte_capacity);
+        }
+        sign_items = sign_items
+            .checked_add(fore.sign_items()?)
+            .ok_or("Body Fore Sign overflow")?;
         let mut values = HostedValueStore::new(items.max(1), maximum, bytes.max(1))
             .map_err(|error| format!("Body value store: {error:?}"))?;
         let mut drivers = core::array::from_fn(|_| InstalledBack::inactive());
@@ -189,11 +220,7 @@ impl BodyKernel {
             }
         }
         let tables = KernelTables::prepare(&lowered.partitions.iter().collect::<Vec<_>>())?;
-        let signs = HostedSignLog::new(
-            sign_items,
-            u32::from(sign_items) * core::mem::size_of::<KernelEvent>() as u32,
-        )
-        .map_err(|error| format!("Body Sign store: {error:?}"))?;
+        let signs = fore_sign_storage::prepare(sign_items, fore.has_ports())?;
         let typed_record_hosts = fragments
             .iter()
             .flat_map(|fragment| super::typed_record_back::prepare_hosts(fragment))
@@ -215,8 +242,10 @@ impl BodyKernel {
                     .map(super::text_state_back::TextStateHost::from_placement)
             })
             .collect::<Result<Vec<_>, String>>()?;
+        let scheduler = tables.install(drivers, values, signs)?;
         Ok(Self {
-            scheduler: tables.install(drivers, values, signs)?,
+            scheduler,
+            fore,
             activations,
             operations: lowered
                 .partitions
@@ -257,6 +286,7 @@ impl BodyKernel {
         output: &mut W,
         clock: &mut T,
         input: Option<&mut dyn HostedKeyboardAdapter>,
+        mut fore_output: Option<&mut dyn ExternalForeOutputAdapter>,
         control: &RunControl,
         host_id: &conduit_core::HostId,
         boot_id: &conduit_core::BootId,
@@ -278,6 +308,7 @@ impl BodyKernel {
         let result = (|| -> Result<TerminalDisposition, String> {
             let mut cancelling = false;
             loop {
+                self.fore.drain(&mut self.scheduler, &mut fore_output)?;
                 self.clock_observations.capture_new(
                     self.scheduler.signs().events(),
                     clock,
@@ -293,6 +324,7 @@ impl BodyKernel {
                     cancelling = true;
                 }
                 if !cancelling {
+                    self.fore.start_and_feed(&mut self.scheduler)?;
                     if let Some((requirement, correlation)) = body_time {
                         let sample = match clock.monotonic_observation(host_id, boot_id) {
                             Some(sample) => sample,
@@ -667,7 +699,10 @@ impl BodyKernel {
                     boot_id,
                 );
                 match status {
-                    SchedulerStatus::Drained => return Ok(TerminalDisposition::Completed),
+                    SchedulerStatus::Drained => {
+                        self.fore.require_normal_terminal(&self.scheduler)?;
+                        return Ok(TerminalDisposition::Completed);
+                    }
                     SchedulerStatus::Cancelled => {
                         return Ok(TerminalDisposition::Cancelled {
                             reason: CancellationReason::OperatorRequested,
@@ -730,6 +765,7 @@ impl BodyKernel {
             partitions: self.partitions,
             requests: self.requests,
             events: self.scheduler.signs().events().collect(),
+            fore_deliveries: self.fore.into_deliveries(),
             clock_observations: self.clock_observations.into_observations(),
             clock_quality,
             clock_execution_bounds: execution_bounds,
@@ -803,5 +839,36 @@ mod activation_binding_tests {
             &[&substituted],
         )
         .is_err());
+    }
+}
+
+#[cfg(test)]
+mod body_fore_preparation_tests {
+    use super::*;
+
+    #[test]
+    fn unplanned_body_fore_input_refuses_before_play() {
+        let supplied = [ExternalForeInput {
+            front_port_id: conduit_core::PortId::from("unplanned"),
+            track: conduit_core::ConnectionTrack::Payload,
+            bytes: vec![1],
+        }];
+        let refusal = BodyKernel::prepare(&[], false, &supplied, false, false)
+            .err()
+            .expect("unplanned Fore value must refuse during preparation");
+        assert!(refusal.contains("does not match the sealed Plan"));
+    }
+
+    #[test]
+    fn unplanned_body_fore_sequence_refuses_before_play() {
+        let supplied = [ExternalForeInput {
+            front_port_id: conduit_core::PortId::from("unplanned"),
+            track: conduit_core::ConnectionTrack::Payload,
+            bytes: vec![1],
+        }];
+        let refusal = BodyKernel::prepare(&[], false, &supplied, true, false)
+            .err()
+            .expect("unplanned Fore Flow must refuse during preparation");
+        assert!(refusal.contains("requires one to 32 admitted input values"));
     }
 }
