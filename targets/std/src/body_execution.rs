@@ -44,6 +44,12 @@ pub struct BodyRunReport {
     pub partitions: Vec<KernelIdentityMap>,
     pub requests: Vec<HostCallRequest>,
     pub kernel_events: Vec<KernelEvent>,
+    /// Receipt-correlated child Signs; a refusal remains distinct from an
+    /// empty child stream and never borrows the parent's Sign identity.
+    pub scan_child_signs:
+        Result<Vec<conduit_composite::ScanChildSignReceipt>, conduit_composite::BoundedScanError>,
+    pub scan_cancellation_failed: bool,
+    pub scan_output_completion_failed: bool,
     pub fore_deliveries: Vec<ExternalForeDelivery>,
     pub clock_observations: Vec<ObservedKernelEvent>,
     pub clock_quality: Option<BodyTimeQuality>,
@@ -352,6 +358,9 @@ impl StdHost {
                 partitions: result.partitions,
                 requests: result.requests,
                 kernel_events: result.events,
+                scan_child_signs: result.scan_child_signs,
+                scan_cancellation_failed: result.scan_cancellation_failed,
+                scan_output_completion_failed: result.scan_output_completion_failed,
                 fore_deliveries: result.fore_deliveries,
                 clock_observations: result.clock_observations,
                 clock_quality: result.clock_quality,
