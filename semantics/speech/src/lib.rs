@@ -390,3 +390,20 @@ pub use contextual_greeting_gestures::*;
 mod linguistic_greeting_renderer;
 #[cfg(feature = "semantic-bindings")]
 pub use linguistic_greeting_renderer::*;
+
+#[cfg(feature="semantic-bindings")]
+pub mod bounded_pitch_programs;
+#[cfg(feature="semantic-bindings")]
+pub mod committed_word_pitch;
+#[cfg(feature="semantic-bindings")]
+pub use committed_word_pitch::*;
+#[cfg(feature="semantic-bindings")]
+mod exact_material_linguistic_greeting_renderer;
+#[cfg(feature="semantic-bindings")]
+pub use exact_material_linguistic_greeting_renderer::*;
+#[cfg(feature="semantic-bindings")]
+pub mod word_pitch_programs {
+ pub const GRID:&str=crate::greeting_programs::WORD_GRID;
+ pub const END:&str=crate::greeting_programs::WORD_END;
+ pub const FRACTION:&str=crate::greeting_programs::PITCH_FRACTION;
+}

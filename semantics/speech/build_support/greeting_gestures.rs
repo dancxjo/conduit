@@ -6,6 +6,8 @@ pub fn write_programs(source: &CheckedSyntaxDocument) {
     for (name, constant) in [
         ("speech/greeting-symbol-v2", "SYMBOL"),
         ("speech/gesture-pitch-grid-v1", "PITCH_GRID"),
+        ("speech/word-pitch-point-input-v1", "WORD_GRID"),
+        ("speech/word-pitch-partition-end-v1", "WORD_END"),
         ("speech/pitch-cycle-fraction", "PITCH_FRACTION"),
         ("speech/gesture-pitch-cycle-q8-v1", "PITCH_Q8"),
         ("speech/greeting-reviewed-features-v1", "FEATURES"),
@@ -29,6 +31,13 @@ pub fn write_programs(source: &CheckedSyntaxDocument) {
             panic!("fixed greeting program")
         };
         programs += &format!("pub(crate) const {constant}:&str={hex:?};\n");
+        if ["PITCH_GRID", "PITCH_FRACTION", "PITCH_Q8"].contains(&constant) {
+            let bytes = conduit_plot::PortableExpressionProgram::from_canonical_hex(hex)
+                .unwrap()
+                .canonical_bytes()
+                .unwrap();
+            programs += &format!("pub(crate) const {constant}_BYTES:&[u8]=&{bytes:?};\n");
+        }
     }
     fs::write(
         PathBuf::from(env::var_os("OUT_DIR").unwrap()).join("greeting_programs.rs"),

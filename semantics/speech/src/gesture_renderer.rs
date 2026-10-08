@@ -5,7 +5,7 @@ use crate::{
         execute, SpeechCommonAcousticExecution, SpeechCommonAcousticRefusal,
     },
     generated as dsp,
-    resonator_programs::{DSP_PROFILE, FRAME_GATES},
+    resonator_programs::{DSP_PROFILE, DSP_Q8_PROFILE, FRAME_GATES},
     semantic::*,
     *,
 };
@@ -22,6 +22,7 @@ use conduit_plot::rust_binding::{NativeBindingRefusal, NativeRustBinding};
 #[derive(Debug)]
 pub enum SpeechGestureRenderRefusal {
     Admission(NativeBindingRefusal),
+    Control(crate::control::ControlRefusal),
     Audio(AudioRateProjectionRefusal),
     Trajectory(AudioTrajectoryRefusal),
     Gesture(SpeechGestureRefusal),
@@ -42,6 +43,7 @@ macro_rules! from {
     };
 }
 from!(NativeBindingRefusal, Admission);
+from!(crate::control::ControlRefusal, Control);
 from!(AudioRateProjectionRefusal, Audio);
 from!(AudioTrajectoryRefusal, Trajectory);
 from!(SpeechGestureRefusal, Gesture);
@@ -61,6 +63,7 @@ pub struct PreparedSpeechGestureRenderer<'a> {
     selected_targets: Vec<AudioTrajectoryEvaluation>,
     cycle: AudioSampleProjectionReceipt,
     original_cycle: AudioCycleDuration,
+    q8_initialization: Option<SpeechGestureDspQ8ProfileRequest>,
     original_cycle_frame: Vec<u8>,
     profile_executions: Vec<SpeechCommonAcousticExecution>,
     profile_frame: Vec<u8>,
@@ -100,6 +103,9 @@ impl<'a> PreparedSpeechGestureRenderer<'a> {
     }
     pub fn coefficients(&self) -> &[PreparedSpeechResonatorQ14] {
         &self.coefficients
+    }
+    pub fn q8_initialization(&self) -> Option<&SpeechGestureDspQ8ProfileRequest> {
+        self.q8_initialization.as_ref()
     }
     pub fn original_cycle(&self) -> &AudioCycleDuration {
         &self.original_cycle
@@ -285,6 +291,35 @@ pub(crate) fn prepare_speech_gesture_renderer_at_time<'a>(
     cycle_frame: &[u8],
     target_time: &AudioTimeFraction,
 ) -> Result<PreparedSpeechGestureRenderer<'a>, SpeechGestureRenderRefusal> {
+    prepare_speech_gesture_renderer_with_cycle_profile(
+        original,
+        basis_frame,
+        cycle_frame,
+        target_time,
+        false,
+    )
+}
+pub(crate) fn prepare_speech_gesture_renderer_q8_at_time<'a>(
+    original: &'a PreparedDeclaredPhoneGestures,
+    basis_frame: &[u8],
+    cycle_frame: &[u8],
+    target_time: &AudioTimeFraction,
+) -> Result<PreparedSpeechGestureRenderer<'a>, SpeechGestureRenderRefusal> {
+    prepare_speech_gesture_renderer_with_cycle_profile(
+        original,
+        basis_frame,
+        cycle_frame,
+        target_time,
+        true,
+    )
+}
+fn prepare_speech_gesture_renderer_with_cycle_profile<'a>(
+    original: &'a PreparedDeclaredPhoneGestures,
+    basis_frame: &[u8],
+    cycle_frame: &[u8],
+    target_time: &AudioTimeFraction,
+    fractional_q8: bool,
+) -> Result<PreparedSpeechGestureRenderer<'a>, SpeechGestureRenderRefusal> {
     let basis = AudioSampleRateBasis::decode(basis_frame)?;
     if basis.anchor() != original.original_timing().anchor() {
         return Err(SpeechGestureRenderRefusal::ForeignBasis);
@@ -409,20 +444,47 @@ pub(crate) fn prepare_speech_gesture_renderer_at_time<'a>(
         )?,
     )?;
     let cycle = rate.project(&cycle_request.encode()?)?;
-    // Exact integer period only: the general Q8/fractional-cycle profile is not
-    // silently approximated. All authored cycle fractions remain in the receipt.
-    let whole = *cycle.result().raw().whole_frames();
-    let cycle_frames =
-        i32::try_from(whole).map_err(|_| SpeechGestureRenderRefusal::ResourceBound)?;
     let mut profile_executions = Vec::new();
-    let raw = SpeechGestureDspRawProfile::decode(&execute(
-        DSP_PROFILE,
-        SpeechGestureDspProfileRequest::new(
-            cycle_frames,
-            *cycle.result().raw().remainder_numerator(),
-        )?,
-        &mut profile_executions,
-    )?)?;
+    let (raw, q8_initialization) = if fractional_q8 {
+        let request = SpeechCycleAtRateRequest::new(
+            SpeechFundamentalCycle::new(
+                *cycle_original.denominator(),
+                *cycle_original.numerator_seconds(),
+            )?,
+            *basis.sample_rate_hz(),
+        )?;
+        let projected = crate::control::cycle_q8(&request)?;
+        let admission = SpeechGestureDspQ8ProfileRequest::new(cycle.original().clone(), projected)?;
+        let raw = SpeechGestureDspQ8RawProfile::decode(&execute(
+            DSP_Q8_PROFILE,
+            admission.clone(),
+            &mut profile_executions,
+        )?)?;
+        let exact = SpeechGestureDspRawProfile::new(
+            *raw.bypass_gain(),
+            *raw.gain1(),
+            *raw.gain2(),
+            *raw.gain3(),
+            i32::try_from(*raw.period_q8())
+                .map_err(|_| SpeechGestureRenderRefusal::ResourceBound)?,
+            *raw.phase_q8(),
+        )?;
+        (exact, Some(admission))
+    } else {
+        // Preserve the established exact-integer entrance and its refusals.
+        let whole = *cycle.result().raw().whole_frames();
+        let cycle_frames =
+            i32::try_from(whole).map_err(|_| SpeechGestureRenderRefusal::ResourceBound)?;
+        let raw = SpeechGestureDspRawProfile::decode(&execute(
+            DSP_PROFILE,
+            SpeechGestureDspProfileRequest::new(
+                cycle_frames,
+                *cycle.result().raw().remainder_numerator(),
+            )?,
+            &mut profile_executions,
+        )?)?;
+        (raw, None)
+    };
     let profile = SpeechGestureDspProfile::new(
         *raw.bypass_gain(),
         *raw.gain1(),
@@ -506,6 +568,7 @@ pub(crate) fn prepare_speech_gesture_renderer_at_time<'a>(
         selected_targets,
         cycle,
         original_cycle: cycle_original,
+        q8_initialization,
         original_cycle_frame: cycle_frame.into(),
         profile_executions,
         profile_frame,

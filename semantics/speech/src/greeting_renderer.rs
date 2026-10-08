@@ -130,19 +130,35 @@ pub fn prepare_greeting_renderer<'a>(
     basis_frame: &[u8],
     cycle_frame: &[u8],
 ) -> Result<PreparedGreetingRenderer<'a>, SpeechGestureRenderRefusal> {
-    let first = prepare_speech_gesture_renderer_at_time(
+    prepare_greeting_renderer_with_cycle_profile(original, basis_frame, cycle_frame, false)
+}
+/// Explicit fractional-Q8 initialization. Retains exact cycle and remainder.
+pub fn prepare_greeting_renderer_q8<'a>(
+    original: &'a PreparedGreetingPhoneGestures,
+    basis_frame: &[u8],
+    cycle_frame: &[u8],
+) -> Result<PreparedGreetingRenderer<'a>, SpeechGestureRenderRefusal> {
+    prepare_greeting_renderer_with_cycle_profile(original, basis_frame, cycle_frame, true)
+}
+fn prepare_greeting_renderer_with_cycle_profile<'a>(
+    original: &'a PreparedGreetingPhoneGestures,
+    basis_frame: &[u8],
+    cycle_frame: &[u8],
+    fractional_q8: bool,
+) -> Result<PreparedGreetingRenderer<'a>, SpeechGestureRenderRefusal> {
+    let prepare = if fractional_q8 {
+        crate::gesture_renderer::prepare_speech_gesture_renderer_q8_at_time
+    } else {
+        prepare_speech_gesture_renderer_at_time
+    };
+    let first = prepare(
         original.lowered(),
         basis_frame,
         cycle_frame,
         original.lowered().original_timing().nominal_start(),
     )?;
     let (second, boundary) = if let Some(time) = original.second_start() {
-        let second = prepare_speech_gesture_renderer_at_time(
-            original.lowered(),
-            basis_frame,
-            cycle_frame,
-            time,
-        )?;
+        let second = prepare(original.lowered(), basis_frame, cycle_frame, time)?;
         let request = AudioSampleProjectionRequest::new(
             first.basis().clone(),
             AudioSampleProjectionQuantity::duration(

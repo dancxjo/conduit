@@ -24,14 +24,26 @@ fn native<T: NativeRustBinding>(v: &serde_json::Value) -> T {
 #[test]
 #[ignore = "requires original retained four-revision Language commitments"]
 fn actual_committed_common_greeting_preserves_ipa_syllable_and_context_custody() {
-    run_greeting(false);
+    run_greeting(0);
 }
 #[test]
 #[ignore = "requires original retained four-revision Language commitments"]
 fn actual_committed_common_greeting_projects_committed_linguistic_pitch() {
-    run_greeting(true);
+    run_greeting(1);
 }
-fn run_greeting(linguistic: bool) {
+#[test]
+#[ignore = "requires original retained four-revision Language commitments"]
+fn actual_committed_common_greeting_projects_continuous_word_pitch() {
+    run_greeting(2);
+}
+mod owner {
+    pub use conduit_speech::committed_word_pitch::{
+        prepare_committed_word_pitch as prepare, CommittedWordPitchRefusal as Refusal,
+    };
+    pub use conduit_speech::semantic as checked;
+}
+use conduit_speech::word_pitch_programs::{END, FRACTION, GRID};
+fn run_greeting(mode: u8) {
     let material: serde_json::Value =
         serde_json::from_slice(&bounded_read("CONDUIT_WORD_STREAM_COMMITTED_ROLES")).unwrap();
     let events = String::from_utf8(bounded_read("CONDUIT_WORD_STREAM_EVENTS")).unwrap();
@@ -500,7 +512,11 @@ fn run_greeting(linguistic: bool) {
             .unwrap()
         })
         .collect::<Vec<_>>();
-    if linguistic {
+    if mode == 2 {
+        include!("common/committed_greeting_word_pitch_body.rs");
+        return;
+    }
+    if mode == 1 {
         include!("common/committed_greeting_linguistic_body.rs");
         return;
     }

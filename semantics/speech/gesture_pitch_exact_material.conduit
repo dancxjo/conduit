@@ -1,0 +1,14 @@
+# Exact original fraction material, separate from rational-equivalence admission.
+# Direct field equality avoids redundant cross multiplication overflow.
+type SpeechGesturePitchExactMaterialQ8Request = {
+    original: SpeechGesturePitchFrameRequest
+    fraction: SpeechPitchCycleFraction
+    projected: SpeechCycleQ8AtRate
+    where .fraction.denominator == .original.pitch.admission.trajectory.start.denominator * .original.pitch.admission.trajectory.end.denominator * .original.pitch.admission.trajectory.duration.numerator_seconds * .original.pitch.sample_rate_hz
+    where .fraction.numerator == .original.pitch.admission.trajectory.start.numerator_seconds * .original.pitch.admission.trajectory.end.denominator * (.original.pitch.admission.trajectory.duration.numerator_seconds * .original.pitch.sample_rate_hz - .original.pitch.frame * .original.pitch.admission.trajectory.duration.denominator) + .original.pitch.admission.trajectory.end.numerator_seconds * .original.pitch.admission.trajectory.start.denominator * .original.pitch.frame * .original.pitch.admission.trajectory.duration.denominator
+    where .projected.request.cycle.numerator_seconds == .fraction.numerator
+    where .projected.request.cycle.denominator == .fraction.denominator
+    where .original.pitch.sample_rate_hz == .projected.request.sample_rate_hz
+    where .projected.whole_q8 >= 2048
+    where .projected.whole_q8 <= 131072
+}

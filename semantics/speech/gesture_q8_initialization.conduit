@@ -1,0 +1,23 @@
+# Explicit Q8 floor initialization, distinct from the exact integer profile.
+# Full original Audio request and exact Speech Q8 fraction/remainder are retained.
+type SpeechGestureDspQ8ProfileRequest = {
+    original: AudioSampleProjectionRequest
+    projected: SpeechCycleQ8AtRate
+    where .original.quantity is cycle ? .original.quantity.cycle.numerator_seconds == .projected.request.cycle.numerator_seconds : false
+    where .original.quantity is cycle ? .original.quantity.cycle.denominator == .projected.request.cycle.denominator : false
+    where .original.basis.sample_rate_hz == .projected.request.sample_rate_hz
+    where .projected.whole_q8 >= 2048
+    where .projected.whole_q8 <= 131072
+}
+type SpeechGestureDspQ8RawProfile = {
+    phase_q8: I32
+    period_q8: U64
+    gain1: I32
+    gain2: I32
+    gain3: I32
+    bypass_gain: I32
+}
+plot speech/gesture-dsp-q8-profile-v1 (
+    >> value: SpeechGestureDspQ8ProfileRequest
+    result: SpeechGestureDspQ8RawProfile >>
+) = ({phase_q8: 0, period_q8: .projected.whole_q8, gain1: 444, gain2: 631, gain3: 876, bypass_gain: 0})

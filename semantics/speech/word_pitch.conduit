@@ -1,0 +1,129 @@
+# Reviewed bounded arithmetic profile. Original fractions remain exact.
+# At most 2*1024*8192*48000*48000 <2^56 numerator and
+# 8192*8192*48000*48000 <2^58 denominator; no U64 overflow.
+type SpeechWordPitchPointRequest = {
+    trajectory: SpeechLinearPitchTrajectory
+    offset: SpeechExactDuration
+    where .trajectory.start.numerator_seconds <= 1024
+    where .trajectory.end.numerator_seconds <= 1024
+    where .trajectory.start.denominator <= 8192
+    where .trajectory.end.denominator <= 8192
+    where .trajectory.duration.numerator_seconds <= 48000
+    where .trajectory.duration.denominator <= 48000
+    where .offset.denominator == .trajectory.duration.denominator
+    where .offset.numerator_seconds <= .trajectory.duration.numerator_seconds
+}
+# The shared denominator is an exact rational coordinate basis, not a claim
+# that a renderer actually samples at this cadence. Existing fraction plot
+# executes the interpolation; no reduction or host pitch arithmetic.
+plot speech/word-pitch-point-input-v1 (
+    >> value: SpeechWordPitchPointRequest
+    result: SpeechPitchProjectionInput >>
+) = ({start_numerator: .trajectory.start.numerator_seconds, start_denominator: .trajectory.start.denominator, end_numerator: .trajectory.end.numerator_seconds, end_denominator: .trajectory.end.denominator, duration_numerator: .trajectory.duration.numerator_seconds, duration_denominator: .trajectory.duration.denominator, sample_rate_hz: .trajectory.duration.denominator, frame: .offset.numerator_seconds})
+
+# Retains the complete original segment while partitioning an offered word
+# trajectory. This does not itself select word membership or commit an intent.
+type SpeechWordPitchSegmentPartitionRequest = {
+    original: SpeechPlannedSegmentIntent
+    point: SpeechWordPitchPointRequest
+    where .original.prosody.duration is known ? (.original.prosody.duration.known.numerator_seconds > 0 && .original.prosody.duration.known.denominator == .point.offset.denominator && .original.prosody.duration.known.numerator_seconds <= .point.trajectory.duration.numerator_seconds - .point.offset.numerator_seconds) : false
+}
+type SpeechWordPitchRawOffset = {
+    denominator: U64
+    numerator_seconds: U64
+}
+plot speech/word-pitch-partition-end-v1 (
+    >> value: SpeechWordPitchSegmentPartitionRequest
+    result: SpeechWordPitchRawOffset >>
+) = ({denominator: .point.offset.denominator, numerator_seconds: .point.offset.numerator_seconds + .original.prosody.duration.known.numerator_seconds})
+
+# Full immutable before/after custody. This offered realization is a NEW
+# acoustic carrier; it never mutates the original or grants commitment/play.
+# All semantic selection stays in checked Source laws; Rust may copy fields.
+type SpeechWordPitchSegmentRealization = {
+    partition: SpeechWordPitchSegmentPartitionRequest
+    realized: SpeechPlannedSegmentIntent
+    where .realized.occurrence == .partition.original.occurrence
+    where .realized.sources == .partition.original.sources
+    where .realized.phoneme == .partition.original.phoneme
+    where .realized.phone == .partition.original.phone
+    where .realized.stress == .partition.original.stress
+    where .realized.word_position == .partition.original.word_position
+    where .realized.provenance == .partition.original.provenance
+    where .realized.prosody.duration == .partition.original.prosody.duration
+    where .realized.prosody.relative_intensity == .partition.original.prosody.relative_intensity
+    where .realized.prosody.fundamental_cycle is known ? .realized.prosody.fundamental_cycle.known.numerator_seconds == .partition.point.trajectory.start.numerator_seconds * .partition.point.trajectory.end.denominator * (.partition.point.trajectory.duration.numerator_seconds * .partition.point.trajectory.duration.denominator - .partition.point.offset.numerator_seconds * .partition.point.trajectory.duration.denominator) + .partition.point.trajectory.end.numerator_seconds * .partition.point.trajectory.start.denominator * .partition.point.offset.numerator_seconds * .partition.point.trajectory.duration.denominator : false
+    where .realized.prosody.fundamental_cycle is known ? .realized.prosody.fundamental_cycle.known.denominator == .partition.point.trajectory.start.denominator * .partition.point.trajectory.end.denominator * .partition.point.trajectory.duration.numerator_seconds * .partition.point.trajectory.duration.denominator : false
+}
+
+# Explicit exact representation projection, never silent normalization. The
+# original fraction and offered divisor survive. Products <=2^53; no rounding.
+type SpeechWordPitchCycleReduction = {
+    original: SpeechFundamentalCycle
+    divisor: U64 in 1..=1099511627776
+    reduced: SpeechFundamentalCycle
+    where .reduced.numerator_seconds <= 1024
+    where .reduced.denominator <= 8192
+    where .original.numerator_seconds == .reduced.numerator_seconds * .divisor
+    where .original.denominator == .reduced.denominator * .divisor
+}
+type SpeechWordPitchReducedSegmentRealization = {
+    original: SpeechWordPitchSegmentRealization
+    cycle: SpeechWordPitchCycleReduction
+    realized: SpeechPlannedSegmentIntent
+    where .original.realized.prosody.fundamental_cycle is known ? .cycle.original == .original.realized.prosody.fundamental_cycle.known : false
+    where .realized.occurrence == .original.realized.occurrence
+    where .realized.sources == .original.realized.sources
+    where .realized.phoneme == .original.realized.phoneme
+    where .realized.phone == .original.realized.phone
+    where .realized.stress == .original.realized.stress
+    where .realized.word_position == .original.realized.word_position
+    where .realized.provenance == .original.realized.provenance
+    where .realized.prosody.duration == .original.realized.prosody.duration
+    where .realized.prosody.relative_intensity == .original.realized.prosody.relative_intensity
+    where .realized.prosody.fundamental_cycle is known ? .realized.prosody.fundamental_cycle.known == .cycle.reduced : false
+}
+
+# Finite preflight for the EXISTING checked U64 sampler. Exact linear cycle
+# interpolation is convex, so endpoint products bound every intermediate frame.
+# Divide the constant limit first: admission cannot itself overflow. Complete
+# original/reduced quantities remain attached; no clamp or rounding is offered.
+type SpeechWordPitchBackendAdmission = {
+    realization: SpeechWordPitchReducedSegmentRealization
+    end_point: SpeechWordPitchPointRequest
+    end_cycle: SpeechWordPitchCycleReduction
+    sample_rate_hz: U64 in 1..=192000
+    where .end_point.trajectory == .realization.original.partition.point.trajectory
+    where .realization.realized.prosody.duration is known ? .end_point.offset.numerator_seconds == .realization.original.partition.point.offset.numerator_seconds + .realization.realized.prosody.duration.known.numerator_seconds : false
+    where .end_cycle.original.numerator_seconds == .end_point.trajectory.start.numerator_seconds * .end_point.trajectory.end.denominator * (.end_point.trajectory.duration.numerator_seconds * .end_point.trajectory.duration.denominator - .end_point.offset.numerator_seconds * .end_point.trajectory.duration.denominator) + .end_point.trajectory.end.numerator_seconds * .end_point.trajectory.start.denominator * .end_point.offset.numerator_seconds * .end_point.trajectory.duration.denominator
+    where .end_cycle.original.denominator == .end_point.trajectory.start.denominator * .end_point.trajectory.end.denominator * .end_point.trajectory.duration.numerator_seconds * .end_point.trajectory.duration.denominator
+    where .realization.realized.prosody.duration is known ? .realization.cycle.reduced.numerator_seconds <= 18446744073709551615 / .end_cycle.reduced.denominator / .realization.realized.prosody.duration.known.numerator_seconds / .sample_rate_hz / .sample_rate_hz / 256 : false
+    where .realization.realized.prosody.duration is known ? .end_cycle.reduced.numerator_seconds <= 18446744073709551615 / .realization.cycle.reduced.denominator / .realization.realized.prosody.duration.known.numerator_seconds / .sample_rate_hz / .sample_rate_hz / 256 : false
+    where .realization.realized.prosody.duration is known ? .realization.cycle.reduced.denominator <= 18446744073709551615 / .end_cycle.reduced.denominator / .realization.realized.prosody.duration.known.numerator_seconds / .sample_rate_hz : false
+    where .realization.cycle.reduced.numerator_seconds * .sample_rate_hz * 256 / .realization.cycle.reduced.denominator >= 2048
+    where .realization.cycle.reduced.numerator_seconds * .sample_rate_hz * 256 / .realization.cycle.reduced.denominator <= 131072
+    where .end_cycle.reduced.numerator_seconds * .sample_rate_hz * 256 / .end_cycle.reduced.denominator >= 2048
+    where .end_cycle.reduced.numerator_seconds * .sample_rate_hz * 256 / .end_cycle.reduced.denominator <= 131072
+}
+
+# The complete original Language acceptance survives. This only answers its
+# requested contour; it grants neither prosody commitment nor playback.
+type SpeechWordPitchRequestedContourAdmission = {
+    accepted: LanguageRichProsodyAccepted
+    point: SpeechWordPitchPointRequest
+    where .accepted.choice.pitch is rising ? .point.trajectory.end.numerator_seconds * .point.trajectory.start.denominator < .point.trajectory.start.numerator_seconds * .point.trajectory.end.denominator : (.accepted.choice.pitch is falling ? .point.trajectory.end.numerator_seconds * .point.trajectory.start.denominator > .point.trajectory.start.numerator_seconds * .point.trajectory.end.denominator : .point.trajectory.end.numerator_seconds * .point.trajectory.start.denominator == .point.trajectory.start.numerator_seconds * .point.trajectory.end.denominator)
+}
+type SpeechWordPitchRichBasisAdmission = {
+    backend: SpeechWordPitchBackendAdmission
+    requested: SpeechWordPitchRequestedContourAdmission
+    source_index: U64 in 0..=7
+    where .requested.point == .backend.realization.original.partition.point
+    where .source_index < sequence/length(.backend.realization.original.partition.original.sources)
+    where .backend.realization.original.partition.original.occurrence.language == .requested.accepted.request.source.material.language
+    where sequence/at(.backend.realization.original.partition.original.sources,.source_index) is text ? sequence/at(.backend.realization.original.partition.original.sources,.source_index).text.kind is word : false
+    where sequence/at(.backend.realization.original.partition.original.sources,.source_index) is text ? sequence/at(.backend.realization.original.partition.original.sources,.source_index).text.text_id == .requested.accepted.request.source.material.identity : false
+    where sequence/at(.backend.realization.original.partition.original.sources,.source_index) is text ? sequence/at(.backend.realization.original.partition.original.sources,.source_index).text.revision_id == .requested.accepted.request.source.material.revision : false
+    where sequence/at(.backend.realization.original.partition.original.sources,.source_index) is text ? sequence/at(.backend.realization.original.partition.original.sources,.source_index).text.language == .requested.accepted.request.source.material.language : false
+    where sequence/at(.backend.realization.original.partition.original.sources,.source_index) is text ? value/u64(sequence/at(.backend.realization.original.partition.original.sources,.source_index).text.range.start) == .requested.accepted.request.token.span.start : false
+    where sequence/at(.backend.realization.original.partition.original.sources,.source_index) is text ? value/u64(sequence/at(.backend.realization.original.partition.original.sources,.source_index).text.range.end) == .requested.accepted.request.token.span.end : false
+}

@@ -191,3 +191,24 @@ pub fn speech_tilt_single_octave_delta(
         admitted,
     })
 }
+
+pub(crate) fn execute_shared<T: NativeRustBinding>(
+    owner: &crate::bounded_pitch_programs::PitchPrograms,
+    index: usize,
+    input: T,
+    evidence: &mut Vec<SpeechCommonAcousticExecution>,
+) -> Result<Vec<u8>, SpeechCommonAcousticRefusal> {
+    let input = input.encode()?;
+    let (program, output) = owner.execute(index, &input).map_err(|e| match e {
+        crate::bounded_pitch_programs::Refusal::Evaluation(e) => {
+            SpeechCommonAcousticRefusal::Evaluation(e)
+        }
+        _ => SpeechCommonAcousticRefusal::InvalidProgram,
+    })?;
+    evidence.push(SpeechCommonAcousticExecution {
+        program,
+        input,
+        output: output.clone(),
+    });
+    Ok(output)
+}

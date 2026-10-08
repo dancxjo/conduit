@@ -7,6 +7,7 @@ pub fn write_programs(source: &CheckedSyntaxDocument) {
         ("speech/resonator-angles-q20", "ANGLES"),
         ("speech/gesture-frame-gates", "FRAME_GATES"),
         ("speech/gesture-dsp-profile", "DSP_PROFILE"),
+        ("speech/gesture-dsp-q8-profile-v1", "DSP_Q8_PROFILE"),
         ("speech/resonator-polynomial-seed", "SEED"),
         ("speech/resonator-polynomial-step", "STEP"),
         ("speech/resonator-combine-q20", "COMBINE"),
