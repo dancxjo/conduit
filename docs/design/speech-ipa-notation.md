@@ -288,10 +288,12 @@ Back emits one prepared typed Value and retains it while output is pressured;
 it introduces no Host Calls, timer, playback, grants or parser allocation in Step.
 
 The supported `cargo xtask check speech-ipa` suite now includes these Source,
-installed-host, pressure and product-diagnostic contracts. The two focused installed-Back tests pass (exact offer/configuration refusal and
-pressure with one emission). The three Source conformance cases pass in a narrow
-diagnostic linked to the rebuilt libraries; normal Cargo and final supported
-results are still pending. Existing lossless CST and highlighter checks cover quoted Unicode.
+installed-host, pressure and product-diagnostic contracts. All three quoted Source conformance tests and the installed-host test pass through
+normal Cargo. The host test executes all four constructors through Source, checking,
+planning, installed preparation and the kernel, with exact Native outputs, one
+emission, stable Value capacity, no Host Calls and no playback. Both focused
+installed-Back tests pass (exact offer/configuration refusal and pressure). Final
+supported-suite, product, lint and Thumb results are still pending. Existing lossless CST and highlighter checks cover quoted Unicode.
 No `.conduit` formatter is available in the current product; CST round-trip is
 source custody, not a formatter-idempotence claim. Rust formatting is checked
 separately. Optional notation formatter conformance remains with #5317.

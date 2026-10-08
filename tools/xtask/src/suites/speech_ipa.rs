@@ -1,5 +1,5 @@
 //! Canonical IPA and first-class Speech authoring conformance.
-use crate::process::Step;
+use crate::{process::Step, proof::ProofClass};
 
 pub const STEPS: &[Step] = &[
     Step::new(
@@ -22,6 +22,12 @@ pub const STEPS: &[Step] = &[
         ],
     ),
     Step::new(
+        "speech-ipa.plot-library",
+        "Regress ordinary parsing and checking after quoted-source custody changes",
+        "cargo",
+        &["test", "-p", "conduit-plot", "--lib", "--locked"],
+    ),
+    Step::new(
         "speech-ipa.authoring-and-admission",
         "Check authored phone/phoneme values, Unicode notation and inventory custody",
         "cargo",
@@ -30,7 +36,7 @@ pub const STEPS: &[Step] = &[
             "-p",
             "conduit-speech",
             "--features",
-            "semantic-bindings",
+            "kernel,semantic-bindings",
             "--test",
             "ipa_authoring",
             "--test",
@@ -55,6 +61,20 @@ pub const STEPS: &[Step] = &[
             "ipa_source_execution",
             "--test",
             "profile_phones",
+            "--locked",
+        ],
+    ),
+    Step::new(
+        "speech-ipa.speech-library",
+        "Regress Speech contracts after aligning Native and authoring owner imports",
+        "cargo",
+        &[
+            "test",
+            "-p",
+            "conduit-speech",
+            "--features",
+            "kernel,semantic-bindings",
+            "--lib",
             "--locked",
         ],
     ),
@@ -109,5 +129,25 @@ pub const STEPS: &[Step] = &[
             "structured_diagnostics",
             "--locked",
         ],
+    ),
+    Step::typed(
+        "speech-ipa.no-std",
+        "Compile the typed IPA preparation APIs without std on Thumb",
+        "cargo",
+        &[
+            "check",
+            "-p",
+            "conduit-speech",
+            "--no-default-features",
+            "--features",
+            "semantic-bindings",
+            "--target",
+            "thumbv6m-none-eabi",
+            "--locked",
+        ],
+        None,
+        Some("thumbv6m-none-eabi"),
+        Some(ProofClass::ContractCompile),
+        &[],
     ),
 ];
