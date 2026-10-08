@@ -46,6 +46,8 @@ pub enum CheckSuite {
     QuantityMapping,
     /// Prove bounded Todo state transitions and recursive Plot execution.
     TodoState,
+    /// Check canonical IPA notation and first-class phone/phoneme authoring.
+    SpeechIpa,
     InputSemantics,
     /// Prove owner-issued presentation routes without waking the workload.
     OwnerPresentation,

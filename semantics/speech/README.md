@@ -877,3 +877,23 @@ The want entry follows the [Cambridge American pronunciation](https://dictionary
 The native-speech xtask proof writes `text-regular-plurals.wav` and
 `text-regular-past.wav` through the same fixed-storage renderer; linked MCU
 footprint and physical playback remain distinct proof classes.
+
+
+## Canonical IPA and authored linguistic entities
+
+`SpeechPhone` and `SpeechPhoneme` are separate domain Types available to the
+product CLI's Conduit authoring catalog. Their occurrences, features, inventory
+and explicit allophone rules remain typed values. See
+[`examples/ipa/phones-and-phonemes.conduit`](examples/ipa/phones-and-phonemes.conduit)
+and [the notation contract](../../docs/design/speech-ipa-notation.md).
+
+The Unicode notation profile preserves declared multicodepoint units, exact
+source spelling and explicit alias provenance. Inventory admission binds those
+units to the complete supplied inventory and language variety, refusing foreign
+references and unsupported or ambiguous notation. A plain record is a definition;
+notation/inventory admission remains an explicit additional check.
+
+Run focused conformance with `cargo xtask check speech-ipa`. Typed delimiter
+glyphs such as `[tʰ]` and `/t/` are proposed syntax, not an implemented entrance.
+The compact `EnglishPhone`/`EnglishPhoneme` tags used by the native renderer are
+its terminal profile codes; they do not define canonical linguistic IPA.

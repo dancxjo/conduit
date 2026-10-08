@@ -1,0 +1,13 @@
+# Executable finite notation syntax; no phoneme/phone identity is inferred.
+# Conservative version1 support is not a claim that other IPA is invalid.
+type SpeechIpaUnitSyntaxAdmission = {
+    definition: SpeechIpaUnitDefinition
+    where .definition.kind is segment ? (((((.definition.spelling == "p" || .definition.spelling == "b") || (.definition.spelling == "t" || (.definition.spelling == "d" || .definition.spelling == "k"))) || ((.definition.spelling == "ɡ" || (.definition.spelling == "m" || .definition.spelling == "n")) || (.definition.spelling == "ŋ" || (.definition.spelling == "f" || .definition.spelling == "v")))) || (((.definition.spelling == "θ" || (.definition.spelling == "ð" || .definition.spelling == "s")) || (.definition.spelling == "z" || (.definition.spelling == "ʃ" || .definition.spelling == "ʒ"))) || ((.definition.spelling == "h" || (.definition.spelling == "ɹ" || .definition.spelling == "r")) || (.definition.spelling == "ɾ" || (.definition.spelling == "l" || .definition.spelling == "j"))))) || ((((.definition.spelling == "w" || (.definition.spelling == "i" || .definition.spelling == "ɪ")) || (.definition.spelling == "e" || (.definition.spelling == "ɛ" || .definition.spelling == "æ"))) || ((.definition.spelling == "a" || (.definition.spelling == "ɑ" || .definition.spelling == "ɒ")) || (.definition.spelling == "ɔ" || (.definition.spelling == "o" || .definition.spelling == "ʊ")))) || (((.definition.spelling == "u" || (.definition.spelling == "ə" || .definition.spelling == "ʌ")) || (.definition.spelling == "ɜ" || (.definition.spelling == "t͡ʃ" || .definition.spelling == "d͡ʒ"))) || ((.definition.spelling == "pʰ" || (.definition.spelling == "tʰ" || .definition.spelling == "kʰ")) || (.definition.spelling == "n̩" || (.definition.spelling == "ã" || .definition.spelling == "ã")))))) : true
+    where .definition.kind is primary_stress ? .definition.spelling == "ˈ" : true
+    where .definition.kind is secondary_stress ? .definition.spelling == "ˌ" : true
+    where .definition.kind is length ? .definition.spelling == "ː" : true
+    where .definition.kind is syllable_boundary ? .definition.spelling == "." : true
+}
+plot speech/ipa-supported-unit (
+    input: SpeechIpaUnitSyntaxAdmission...| >> output: SpeechIpaUnitDefinition...|
+) = .definition
