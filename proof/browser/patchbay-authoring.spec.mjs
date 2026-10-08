@@ -115,6 +115,7 @@ test("catalog queries and two durable layouts decorate the same live Plot", asyn
         .toEqual(["A second independent annotation", "This frame is not executable scope"]);
       expect((await current(page)).authoring.checked_plot_id).toBe(basis);
       expect(await readFile(server.source, "utf8")).toBe(source);
+      await workspace.locator("summary").click();
 
       await clickNavigation(page, page.getByRole("button", { name: "Entrance", exact: true }));
       await selectRole(page, "Plot", "Empty Plot");
@@ -131,6 +132,7 @@ test("catalog queries and two durable layouts decorate the same live Plot", asyn
       const plan = live.presentation.basis.plan_id;
       const play = live.presentation.basis.active_play_id;
       await clickNavigation(page, page.getByRole("button", { name: "Plot", exact: true }));
+      await workspace.locator("summary").click();
       for (const layout of ["Teaching", "Wide"]) {
         await page.getByRole("combobox", { name: "Saved layouts", exact: true }).selectOption(layout);
         await page.getByRole("button", { name: "Use layout", exact: true }).click();
