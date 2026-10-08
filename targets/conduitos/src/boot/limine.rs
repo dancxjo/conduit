@@ -80,8 +80,15 @@ static AARCH64_STACK_SIZE: StackSizeRequest = StackSizeRequest::new().with_size(
 static RISCV64_STACK_SIZE: StackSizeRequest = StackSizeRequest::new().with_size(128 * 1024);
 #[used]
 #[unsafe(link_section = ".requests")]
-#[cfg(target_arch = "x86_64")]
+#[cfg(all(target_arch = "x86_64", not(feature = "numeric-topology-proof")))]
 static X86_64_STACK_SIZE: StackSizeRequest = StackSizeRequest::new().with_size(1024 * 1024);
+
+// Explicit synthetic proof preparation has its own measured reserved stack.
+#[used]
+#[unsafe(link_section = ".requests")]
+#[cfg(all(target_arch = "x86_64", feature = "numeric-topology-proof"))]
+static X86_64_NUMERIC_PROOF_STACK: StackSizeRequest =
+    StackSizeRequest::new().with_size(64 * 1024 * 1024);
 
 // Native product preparation exceeds Limine's default 64 KiB stack before
 // play. Reserve the same finite preparation stack as the other large products.
