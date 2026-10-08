@@ -1,5 +1,6 @@
 //! Finite PLV3 mappings in the reviewed Limine 4 KiB paging regime.
 use super::ordinary_domain::TextFrame;
+use crate::domain_layout::{RETAINED_BYTES, RETAINED_PAGE, STACK_BYTES, STACK_PAGE};
 use crate::{
     boot,
     domain_image::{DomainImage, MAXIMUM_IMAGE_BYTES, USER_TEXT_START},
@@ -16,7 +17,7 @@ const USER: u64 = 3 << 2;
 const PWCL: usize = 12 | (9 << 5) | (21 << 10) | (9 << 15) | (30 << 20) | (9 << 25);
 const PWCH: usize = 39 | (9 << 6);
 pub(super) const USER_FRAME: u64 = USER_TEXT_START + MAXIMUM_IMAGE_BYTES;
-pub(super) const USER_STACK_TOP: u64 = USER_TEXT_START + 0x24000;
+pub(super) const USER_STACK_TOP: u64 = USER_TEXT_START + 0x48000;
 static HHDM: AtomicU64 = AtomicU64::new(0);
 static OWNED: AtomicU8 = AtomicU8::new(0);
 
@@ -33,9 +34,10 @@ struct Slot {
     low_l1: Table,
     user_l0: Table,
     high_l3: Table,
-    code: Bytes<65536>,
+    code: Bytes<131072>,
     frame: Bytes<4096>,
-    stack: Bytes<16384>,
+    stack: Bytes<STACK_BYTES>,
+    retained: Bytes<RETAINED_BYTES>,
     trap: Bytes<16384>,
     root_floating: Floating,
     user_floating: Floating,
@@ -48,9 +50,10 @@ impl Slot {
             low_l1: Table([0; 512]),
             user_l0: Table([0; 512]),
             high_l3: Table([0; 512]),
-            code: Bytes([0; 65536]),
+            code: Bytes([0; 131072]),
             frame: Bytes([0; 4096]),
-            stack: Bytes([0; 16384]),
+            stack: Bytes([0; STACK_BYTES]),
+            retained: Bytes([0; RETAINED_BYTES]),
             trap: Bytes([0; 16384]),
             root_floating: Floating([0; 272]),
             user_floating: Floating([0; 272]),
@@ -128,10 +131,16 @@ impl AddressSpace {
                 );
             }
         }
-        memory.user_l0.0[16] = leaf(physical(&memory.frame)?, NX | 2 | (1 << 8));
-        for page in 0..4 {
-            memory.user_l0.0[32 + page] = leaf(
+        memory.user_l0.0[32] = leaf(physical(&memory.frame)?, NX | 2 | (1 << 8));
+        for page in 0..STACK_BYTES / PAGE {
+            memory.user_l0.0[STACK_PAGE + page] = leaf(
                 physical(&memory.stack)? + (page * PAGE) as u64,
+                NX | 2 | (1 << 8),
+            );
+        }
+        for page in 0..RETAINED_BYTES / PAGE {
+            memory.user_l0.0[RETAINED_PAGE + page] = leaf(
+                physical(&memory.retained)? + (page * PAGE) as u64,
                 NX | 2 | (1 << 8),
             );
         }

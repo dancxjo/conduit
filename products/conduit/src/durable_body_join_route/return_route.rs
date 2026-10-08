@@ -4,6 +4,10 @@
 use super::{current_time_millis, send};
 #[path = "return_route/action.rs"]
 mod action;
+#[path = "return_route/face_request.rs"]
+mod face_request;
+#[path = "return_route/refresh.rs"]
+mod refresh;
 #[path = "return_route/show_ack.rs"]
 mod show_ack;
 use conduit_body::PortableAdmissionReceipt;
@@ -12,6 +16,9 @@ use conduit_presentation::{
     MAX_OWNER_FACE_RESPONSE_BYTES,
 };
 use conduit_std_host::secure_websocket::{SecureWebSocketError, SecureWebSocketListener};
+pub(super) use face_request::decode_face_request;
+#[cfg(test)]
+use face_request::FACE_REQUEST_SCHEMA;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{
@@ -19,7 +26,6 @@ use std::{
     time::{Duration, Instant},
 };
 
-const FACE_REQUEST_SCHEMA: &str = "conduit.body/native-owner-face-request@1";
 const GRANT_SCHEMA: &str = "conduit.body/native-owner-return-grant@1";
 const ACTION_SCHEMA: &str = "conduit.body/native-owner-return-action@1";
 const RESPONSE_SCHEMA: &str = "conduit.body/native-owner-return-response@1";
@@ -31,28 +37,7 @@ const CHUNK_HEADER_BYTES: usize = 40;
 // therefore require nine chunks. Keep a finite margin for smaller frames.
 const MAX_RETURN_CHUNKS: usize = 16;
 
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct FaceRequest {
-    schema: String,
-    request: OwnerFaceSnapshotRequest,
-}
-
-pub(super) fn decode_face_request(
-    bytes: &[u8],
-) -> Result<(OwnerFaceSnapshotRequest, bool), String> {
-    if let Ok(wrapper) = serde_json::from_slice::<FaceRequest>(bytes) {
-        if wrapper.schema != FACE_REQUEST_SCHEMA {
-            return Err("unsupported native owner Face request".into());
-        }
-        return Ok((wrapper.request, true));
-    }
-    serde_json::from_slice(bytes)
-        .map(|request| (request, false))
-        .map_err(|error| format!("decode owner Face request: {error}"))
-}
-
-#[derive(Serialize)]
+#[derive(Clone, Serialize)]
 pub(super) struct Grant {
     schema: &'static str,
     token: [u8; 32],
@@ -147,18 +132,34 @@ pub(super) fn serve(
     state_dir: &Path,
     grant: &Grant,
 ) -> Result<(), String> {
-    let remaining = grant
-        .expires_at_millis
-        .saturating_sub(current_time_millis()?);
-    let grant_deadline = Instant::now() + Duration::from_millis(remaining);
-    let deadline = grant_deadline;
+    let mut grant = grant.clone();
+    let mut refreshes = 0_u8;
     // Prepare the complete finite reassembly envelope before any return
     // action is accepted. Reuse it for every admitted action on this route.
     let mut frame = vec![0; MAX_OWNER_FACE_RESPONSE_BYTES];
     let mut assembled = ChunkAssembly::default();
-    for sequence in 1..=grant.maximum_actions {
-        if !show_ack::acknowledge_show(listener, state_dir, grant, sequence, grant_deadline)? {
-            break;
+    let mut sequence = 1_u8;
+    while sequence <= grant.maximum_actions {
+        let remaining = grant
+            .expires_at_millis
+            .saturating_sub(current_time_millis()?);
+        let deadline = Instant::now() + Duration::from_millis(remaining);
+        match show_ack::acknowledge_show(
+            listener,
+            state_dir,
+            &grant,
+            sequence,
+            deadline,
+            refreshes < 2,
+        )? {
+            show_ack::ShowGate::Accepted => {}
+            show_ack::ShowGate::Refreshed(next) => {
+                grant = next;
+                refreshes += 1;
+                sequence = 1;
+                continue;
+            }
+            _ => break,
         }
         let Some(left) = deadline.checked_duration_since(Instant::now()) else {
             break;
@@ -197,7 +198,7 @@ pub(super) fn serve(
                 action::apply(
                     listener,
                     state_dir,
-                    grant,
+                    &grant,
                     action,
                     sequence < grant.maximum_actions,
                 )
@@ -214,10 +215,11 @@ pub(super) fn serve(
             "CONDUIT_OWNER_RETURN_DIAGNOSTIC {{\"phase\":\"responding\",\"code\":\"{}\"}}",
             response.code
         );
-        super::response_document::send(&mut line, &fit_response(response)?)?;
+        super::response_document::send(&mut line, &action::fit_response(response)?)?;
         if outcome_unknown {
             break;
         }
+        sequence += 1;
     }
     Ok(())
 }
@@ -301,18 +303,6 @@ impl ChunkAssembly {
     }
 }
 
-fn fit_response(mut response: Response) -> Result<Response, String> {
-    let bytes = serde_json::to_vec(&response)
-        .map_err(|error| format!("encode native return response: {error}"))?;
-    if bytes.len() > super::response_document::MAX_OWNER_DOCUMENT_BYTES {
-        response.face = None;
-        if response.accepted {
-            response.code = "accepted-face-pressure";
-        }
-    }
-    Ok(response)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -361,10 +351,6 @@ mod tests {
         }
     }
 
-    fn chunks(payload: &[u8]) -> Vec<Vec<u8>> {
-        chunks_at(payload, MAX_OWNER_FACE_RESPONSE_BYTES)
-    }
-
     fn chunks_at(payload: &[u8], frame_bytes: usize) -> Vec<Vec<u8>> {
         let digest = Sha256::digest(payload);
         payload
@@ -399,8 +385,9 @@ mod tests {
 
     #[test]
     fn chunk_assembly_accepts_large_exact_payload_and_refuses_offset_digest_and_pressure() {
-        let payload = vec![0x5a; 2 * (MAX_OWNER_FACE_RESPONSE_BYTES - CHUNK_HEADER_BYTES) + 1];
-        let frames = chunks(&payload);
+        // Return actions retain their own bound when the owner Face profile grows.
+        let payload = vec![0x5a; MAX_RETURN_ACTION_BYTES];
+        let frames = chunks_at(&payload, 32 * 1024);
         assert_eq!(frames.len(), 3);
         let mut assembly = ChunkAssembly::default();
         assert!(!assembly.push(&frames[0]).unwrap());
@@ -490,7 +477,7 @@ mod tests {
                 code: "x".repeat(super::super::response_document::MAX_OWNER_DOCUMENT_BYTES),
             }),
         };
-        let fitted = fit_response(response).unwrap();
+        let fitted = action::fit_response(response).unwrap();
         assert!(fitted.accepted);
         assert_eq!(fitted.code, "accepted-face-pressure");
         assert!(fitted.face.is_none());

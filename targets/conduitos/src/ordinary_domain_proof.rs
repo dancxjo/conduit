@@ -5,6 +5,7 @@ mod gates;
 mod morse;
 mod retained_text;
 mod timer;
+mod timer_runtime;
 
 pub fn run(record: &boot::BootRecord) -> ! {
     arch::initialize_machine(record, boot::executable_physical_address);
@@ -44,6 +45,8 @@ pub fn run(record: &boot::BootRecord) -> ! {
     drop(prepared);
     gates::run(&plan, &offer);
     morse::run(&plan, &offer);
+    timer_runtime::run(&offer);
+    timer_runtime::run_product(&offer);
     keymap_entries();
     retained_text::run(&plan, &offer);
     hostile_entries();

@@ -461,8 +461,8 @@ fn prepare_runtime(
 }
 
 /// Select the request-scoped Todo Back before the Host advertisement and
-/// resource ledger are constructed. A selected equipment profile needs a
-/// combined constructor; refusing it preserves the installed Host's truth.
+/// resource ledger are constructed. Retained equipment is composed only from
+/// explicit selections before the Host is exposed.
 fn prepare_runtime_with_todo(
     state_dir: &Path,
     todo: Option<(&conduit_todo_plot::TodoState, u16)>,
@@ -493,7 +493,16 @@ fn prepare_runtime_with_todo(
         StdHost::new_for_todo_scan(config, initial, maximum_items)?
     } else if let Some(selection) = &installation.selected_todo_checkpoint {
         selection.validate()?;
-        StdHost::new_for_todo_checkpoint_once(config, selection.root(), selection.content())?
+        if let Some(model) = &installation.selected_model {
+            StdHost::new_for_todo_checkpoint_with_local_model(
+                config,
+                selection.root(),
+                selection.content(),
+                Box::new(model.initialize()?),
+            )?
+        } else {
+            StdHost::new_for_todo_checkpoint_once(config, selection.root(), selection.content())?
+        }
     } else if let Some(selection) = &installation.selected_model {
         StdHost::new_with_local_model(
             config,

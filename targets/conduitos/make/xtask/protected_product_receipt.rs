@@ -16,11 +16,11 @@ pub(super) fn capture(
 
 fn validate(cost: &Value, product: &Value, architecture: &str) -> Result<(), ConduitosError> {
     let (reserved, tick_unit) = match architecture {
-        "x86_64" => (118784, "tsc"),
-        "ia32" => (131072, "tsc"),
-        "aarch64" => (126976, "cntvct"),
-        "riscv64" => (118784, "time"),
-        "loongarch64" => (126976, "rdtime"),
+        "x86_64" => (217088, "tsc"),
+        "ia32" => (229376, "tsc"),
+        "aarch64" => (225280, "cntvct"),
+        "riscv64" => (217088, "time"),
+        "loongarch64" => (225280, "rdtime"),
         _ => return Err(refusal("unreviewed product domain architecture")),
     };
     if cost["schema"] != "conduit.conduitos/domain-cost@1"
@@ -56,7 +56,7 @@ fn validate(cost: &Value, product: &Value, architecture: &str) -> Result<(), Con
             .is_none_or(|bytes| bytes == 0 || bytes > 1048576)
         || cost["setup_copied_bytes"]
             .as_u64()
-            .is_none_or(|bytes| bytes == 0 || bytes > 65536)
+            .is_none_or(|bytes| bytes == 0 || bytes > 131072)
         || cost["setup_ticks"].as_u64().is_none_or(|ticks| ticks == 0)
         || cost["teardown_ticks"]
             .as_u64()
@@ -88,13 +88,26 @@ mod tests {
             "entries":3, "gate_transitions":3, "base_gate_transitions":1,
             "address_space_switches":6, "tlb_flushes":6, "scheduler_returns":3,
             "privilege_transitions":6, "copied_bytes":64, "shared_peak_bytes":32,
-            "shared_page_bytes":4096, "reserved_bytes":131072,
-            "teardown_zeroed_bytes":131072, "root_metadata_bytes":21878,
+            "shared_page_bytes":4096, "reserved_bytes":229376,
+            "teardown_zeroed_bytes":229376, "root_metadata_bytes":21878,
             "setup_copied_bytes":13194, "setup_ticks":1, "teardown_ticks":1,
             "tick_unit":"tsc", "preemptions":0, "dma_isolation":false,
             "driver_isolation":false
         });
         (cost, product)
+    }
+
+    #[test]
+    fn setup_copy_is_bounded_by_the_admitted_128_kib_code_window() {
+        let (mut cost, product) = records();
+        for bytes in [65_536, 66_420, 131_072] {
+            cost["setup_copied_bytes"] = json!(bytes);
+            assert!(validate(&cost, &product, "ia32").is_ok());
+        }
+        for bytes in [0, 131_073, u64::MAX] {
+            cost["setup_copied_bytes"] = json!(bytes);
+            assert!(validate(&cost, &product, "ia32").is_err());
+        }
     }
 
     #[test]
@@ -130,8 +143,8 @@ mod tests {
     fn aarch64_cost_requires_its_own_storage_clock_and_current_owner() {
         let (mut cost, mut product) = records();
         cost["architecture"] = json!("aarch64");
-        cost["reserved_bytes"] = json!(126976);
-        cost["teardown_zeroed_bytes"] = json!(126976);
+        cost["reserved_bytes"] = json!(225280);
+        cost["teardown_zeroed_bytes"] = json!(225280);
         cost["tick_unit"] = json!("cntvct");
         assert!(validate(&cost, &product, "aarch64").is_ok());
         assert!(validate(&cost, &product, "ia32").is_err());
@@ -148,12 +161,12 @@ mod tests {
     fn riscv64_cost_requires_its_own_storage_clock_and_current_owner() {
         let (mut cost, product) = records();
         cost["architecture"] = json!("riscv64");
-        cost["reserved_bytes"] = json!(118784);
-        cost["teardown_zeroed_bytes"] = json!(118784);
+        cost["reserved_bytes"] = json!(217088);
+        cost["teardown_zeroed_bytes"] = json!(217088);
         cost["tick_unit"] = json!("time");
         assert!(validate(&cost, &product, "riscv64").is_ok());
         for (field, replacement) in [
-            ("reserved_bytes", json!(126976)),
+            ("reserved_bytes", json!(225280)),
             ("tick_unit", json!("cntvct")),
             ("plan_id", json!("stale")),
             ("play_id", json!("stale")),
@@ -168,12 +181,12 @@ mod tests {
     fn loongarch64_cost_requires_its_own_storage_clock_and_current_owner() {
         let (mut cost, product) = records();
         cost["architecture"] = json!("loongarch64");
-        cost["reserved_bytes"] = json!(126976);
-        cost["teardown_zeroed_bytes"] = json!(126976);
+        cost["reserved_bytes"] = json!(225280);
+        cost["teardown_zeroed_bytes"] = json!(225280);
         cost["tick_unit"] = json!("rdtime");
         assert!(validate(&cost, &product, "loongarch64").is_ok());
         for (field, replacement) in [
-            ("reserved_bytes", json!(118784)),
+            ("reserved_bytes", json!(217088)),
             ("tick_unit", json!("time")),
             ("plan_id", json!("stale")),
             ("play_id", json!("stale")),

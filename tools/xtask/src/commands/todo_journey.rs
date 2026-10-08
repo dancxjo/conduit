@@ -21,6 +21,8 @@ use std::{
 const MAX_OUTPUT: usize = 512 * 1024;
 const MAX_SCRIPT: usize = 4096;
 
+mod fresh;
+
 fn sha(bytes: &[u8]) -> String {
     format!("{:x}", Sha256::digest(bytes))
 }
@@ -116,6 +118,15 @@ fn has_todo_list(face: &Value) -> bool {
 
 pub fn run(args: TodoJourneyArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
     let repository = workspace_root()?;
+    if args.fresh_body_source.is_some() {
+        return fresh::run(&args, opts, &repository);
+    }
+    if args.handbook_package.is_some()
+        || args.pinned_playwright.is_some()
+        || args.first_item_text.is_some()
+    {
+        return Err("fresh Todo browser arguments require --fresh-body-source".into());
+    }
     let state = fs::canonicalize(&args.state_dir)?;
     let bin = fs::canonicalize(&args.conduit_bin)?;
     regular(&bin)?;

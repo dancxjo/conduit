@@ -63,7 +63,7 @@ pub(super) fn presentation(build_id: &str) -> CapabilityOffer<'_> {
         contract_revision: conduit_semantic_catalog::COUNT_PRESENTATION_CONTRACT_REVISION,
         implementation: COUNT_PRESENTATION_IMPLEMENTATION,
         artifact_build: build_id,
-        host_call: Some("conduit.host/present-count@1"),
+        host_call: Some(conduit_core::PRESENT_HOST_CALL_CONTRACT),
         required_base: BaseKind::Serial,
         secondary_base: None,
         input: Some(PortOffer {

@@ -58,14 +58,6 @@ fn read(
             selection.validate()?;
         }
     }
-    if !explicit_todo_reselection
-        && value.selected_todo_checkpoint.is_some()
-        && value.selected_model.is_some()
-    {
-        return Err(
-            "installed Todo checkpoint cannot compose with selected model equipment".into(),
-        );
-    }
     if let Some(binding) = &value.body_state {
         if binding.body_id.is_empty()
             || !valid_digest(&binding.biography_sha256)
