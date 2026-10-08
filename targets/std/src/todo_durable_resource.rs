@@ -13,8 +13,8 @@ use std::fs::{self, File, OpenOptions};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 
-const MAGIC: &[u8; 8] = b"CDTODO01";
-const SCHEMA: u8 = 1;
+const MAGIC: &[u8; 8] = b"CDTODO02";
+const SCHEMA: u8 = 2;
 const MAX_ID: usize = 128;
 pub const CHECKPOINT_MAX_BYTES: usize = conduit_std_offers::TODO_CHECKPOINT_MAX_BYTES as usize;
 const _: [(); CHECKPOINT_MAX_BYTES] =
@@ -32,6 +32,7 @@ pub enum Refusal {
     Missing,
     Corrupt,
     StaleRevision,
+    MigrationRequired,
     UnknownOutcome,
     Storage,
 }
@@ -39,8 +40,22 @@ pub enum Refusal {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CheckpointIdentity {
     pub body: String,
+    /// Caller-supplied checked operation Plot. Plan and Host Call evidence
+    /// retain their own exact execution identities; this field is deliberately
+    /// absent from the durable list namespace and record.
     pub plot: String,
+    /// Stable selected list key within the retained Body.
     pub workload: String,
+    /// What to do when this selected list has no v2 selector. A new list must
+    /// be chosen explicitly; a known v1 write Plot can be inspected exactly.
+    pub missing_v2: MissingV2Disposition,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum MissingV2Disposition {
+    Refuse,
+    StartNewList,
+    InspectLegacyWritePlot(String),
 }
 
 impl CheckpointIdentity {
@@ -48,6 +63,12 @@ impl CheckpointIdentity {
         [&self.body, &self.plot, &self.workload]
             .iter()
             .all(|s| !s.is_empty() && s.len() <= MAX_ID && !s.chars().any(char::is_control))
+            && match &self.missing_v2 {
+                MissingV2Disposition::InspectLegacyWritePlot(plot) => {
+                    !plot.is_empty() && plot.len() <= MAX_ID && !plot.chars().any(char::is_control)
+                }
+                _ => true,
+            }
     }
 }
 
@@ -57,6 +78,7 @@ pub struct SelectedTodoResidence {
     access: ResourceAccessMode,
     identity: CheckpointIdentity,
     namespace: String,
+    legacy_namespace: Option<String>,
     semantic: [u8; 32],
     generation: [u8; 32],
 }
@@ -127,20 +149,38 @@ impl SelectedTodoResidence {
         }
         let mut key = Vec::new();
         key.extend_from_slice(&contract.identity.digest());
-        for part in [&identity.body, &identity.plot, &identity.workload] {
+        for part in [&identity.body, &identity.workload] {
             key.extend_from_slice(&(part.len() as u16).to_le_bytes());
             key.extend_from_slice(part.as_bytes());
         }
         let namespace = hex(&semantic_digest(
-            "conduit.todo/checkpoint-namespace@1",
+            "conduit.todo/checkpoint-namespace@2",
             &key,
         ));
+        // The old format included the write Plot. Inspect only a caller-named
+        // old write Plot; a fresh v2 list requires a separate explicit choice.
+        let legacy_namespace = match &identity.missing_v2 {
+            MissingV2Disposition::InspectLegacyWritePlot(plot) => {
+                let mut legacy_key = Vec::new();
+                legacy_key.extend_from_slice(&contract.identity.digest());
+                for part in [&identity.body, plot, &identity.workload] {
+                    legacy_key.extend_from_slice(&(part.len() as u16).to_le_bytes());
+                    legacy_key.extend_from_slice(part.as_bytes());
+                }
+                Some(hex(&semantic_digest(
+                    "conduit.todo/checkpoint-namespace@1",
+                    &legacy_key,
+                )))
+            }
+            _ => None,
+        };
         Ok(Self {
             root,
             authority: authority.clone(),
             access: contract.access,
             identity,
             namespace,
+            legacy_namespace,
             semantic: contract.identity.digest(),
             generation: contract.version.digest(),
         })
@@ -159,11 +199,7 @@ impl SelectedTodoResidence {
         record.push(SCHEMA);
         record.extend_from_slice(&self.semantic);
         record.extend_from_slice(&self.generation);
-        for part in [
-            &self.identity.body,
-            &self.identity.plot,
-            &self.identity.workload,
-        ] {
+        for part in [&self.identity.body, &self.identity.workload] {
             record.push(part.len() as u8);
             record.extend_from_slice(part.as_bytes());
         }
@@ -175,6 +211,14 @@ impl SelectedTodoResidence {
         ));
         record.extend_from_slice(&payload);
         let current = self.read_selector()?;
+        if current.is_none() {
+            if self.legacy_selector_exists()? {
+                return Err(Refusal::MigrationRequired);
+            }
+            if self.identity.missing_v2 != MissingV2Disposition::StartNewList {
+                return Err(Refusal::Missing);
+            }
+        }
         if current.is_some_and(|(_, revision)| revision.checked_add(1) != Some(state.revision))
             || (current.is_none() && state.revision > 1)
         {
@@ -200,7 +244,11 @@ impl SelectedTodoResidence {
 
     pub fn recover(&self, grant: &AuthorityBinding) -> Result<TodoState, Refusal> {
         self.authorize(grant, ResourceAccessMode::ReadPublished)?;
-        let (generation, revision) = self.read_selector()?.ok_or(Refusal::Missing)?;
+        let (generation, revision) = match self.read_selector()? {
+            Some(selected) => selected,
+            None if self.legacy_selector_exists()? => return Err(Refusal::MigrationRequired),
+            None => return Err(Refusal::Missing),
+        };
         if generation != self.generation {
             return Err(Refusal::StaleRevision);
         }
@@ -227,11 +275,7 @@ impl SelectedTodoResidence {
             return Err(Refusal::Corrupt);
         }
         let mut offset = 73;
-        for part in [
-            &self.identity.body,
-            &self.identity.plot,
-            &self.identity.workload,
-        ] {
+        for part in [&self.identity.body, &self.identity.workload] {
             let len = *bytes.get(offset).ok_or(Refusal::Corrupt)? as usize;
             offset += 1;
             if bytes.get(offset..offset + len) != Some(part.as_bytes()) {
@@ -287,6 +331,16 @@ impl SelectedTodoResidence {
         let generation: [u8; 32] = bytes[..32].try_into().expect("32 bytes");
         let revision = u32::from_le_bytes(bytes[32..].try_into().expect("four bytes"));
         Ok(Some((generation, revision)))
+    }
+    fn legacy_selector_exists(&self) -> Result<bool, Refusal> {
+        let Some(namespace) = &self.legacy_namespace else {
+            return Ok(false);
+        };
+        match fs::symlink_metadata(self.root.join(format!("{namespace}.current"))) {
+            Ok(_) => Ok(true),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(false),
+            Err(_) => Err(Refusal::Storage),
+        }
     }
     fn write_candidate(&self, path: &Path, bytes: &[u8]) -> Result<(), Refusal> {
         match OpenOptions::new().write(true).create_new(true).open(path) {

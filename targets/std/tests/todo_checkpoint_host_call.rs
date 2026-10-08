@@ -11,8 +11,8 @@ use conduit_plan_lowering::lowering::KernelIdentityMap;
 use conduit_std_host::todo_checkpoint_call::TodoCheckpointBack;
 use conduit_std_host::todo_checkpoint_call::TodoCheckpointHost;
 use conduit_std_host::todo_durable_resource::{
-    CheckpointIdentity, SelectedTodoResidence, AUTHORITY_CONTRACT, CHECKPOINT_MAX_BYTES,
-    PUBLISH_OPERATION, READ_OPERATION,
+    CheckpointIdentity, MissingV2Disposition, SelectedTodoResidence, AUTHORITY_CONTRACT,
+    CHECKPOINT_MAX_BYTES, PUBLISH_OPERATION, READ_OPERATION,
 };
 use conduit_todo_plot::{TodoCommand, TodoState, STATE_MAX_BYTES};
 use std::sync::{Arc, Mutex};
@@ -297,6 +297,7 @@ fn selected_host_call_commits_before_completion_and_second_host_recovers() {
         body: "body-1".into(),
         plot: "checked-plot-1".into(),
         workload: "revision-1".into(),
+        missing_v2: MissingV2Disposition::StartNewList,
     };
     let write = placement("host-a", "boot-a", true);
     let read = placement("host-b", "boot-b", false);

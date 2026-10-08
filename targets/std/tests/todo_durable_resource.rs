@@ -1,7 +1,7 @@
 use conduit_core::*;
 use conduit_std_host::todo_durable_resource::{
-    CheckpointIdentity, Refusal, SelectedTodoResidence, AUTHORITY_CONTRACT, CHECKPOINT_MAX_BYTES,
-    PUBLISH_OPERATION, READ_OPERATION,
+    CheckpointIdentity, MissingV2Disposition, Refusal, SelectedTodoResidence, AUTHORITY_CONTRACT,
+    CHECKPOINT_MAX_BYTES, PUBLISH_OPERATION, READ_OPERATION,
 };
 use conduit_todo_plot::{TodoCommand, TodoState};
 use std::path::PathBuf;
@@ -109,6 +109,7 @@ fn identity() -> CheckpointIdentity {
         body: "body-1".into(),
         plot: "checked-todo-1".into(),
         workload: "revision-1".into(),
+        missing_v2: MissingV2Disposition::StartNewList,
     }
 }
 
