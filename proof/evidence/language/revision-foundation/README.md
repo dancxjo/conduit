@@ -3,7 +3,7 @@
 All three gates passed on source commit `482954f7de4c625cb886980c8497130c3eb47bb5` with a clean source tree.
 The subsequent evidence commit changes documentation and receipts only.
 
-- Focused tests:18 passed,0 failed,0 ignored.
+- Focused tests: 18 passed, 0 failed, 0 ignored.
 - Language library check:passed, including original Source checking and Native
   binding generation.
 - Scoped Clippy with warnings denied:passed.

@@ -46,8 +46,8 @@ cargo +stable clippy --locked -p conduit-language --lib \
 The Source checker and generated Native bindings run as part of Cargo's Language
 build. No extra model files, F32/affine owners, Burn runtime, optional parser
 features, or #5196 shared-infrastructure changes are included. These commands
-passed on source commit `482954f7de4c625cb886980c8497130c3eb47bb5`:18 focused tests,
-0 failures and0 ignored; the library check and strict Clippy also passed.
+passed on source commit `482954f7de4c625cb886980c8497130c3eb47bb5`: 18 focused tests,
+0 failures and 0 ignored; the library check and strict Clippy also passed.
 Exact commands, byte-exact producer logs and source hashes are retained in
 `proof/evidence/language/revision-foundation/receipt.json`. This is local scoped
 evidence, not final-head CI or public Session acceptance. Keep #4907 open.
