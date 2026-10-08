@@ -314,6 +314,23 @@ impl PreparedParserPureSource {
             .max(output_receipt.conversion_requested_bytes_bound);
         drop(input);
         drop(output);
+        Self::reservation_before_families(original_program, family_bytes, active, limits)
+    }
+    /// Allocation-free whole-profile preflight using declared family ceilings.
+    /// This reserves storage only; it grants no descriptor, program or Native
+    /// readiness. The ordinary constructor still checks actual prepared-family
+    /// receipts, exact Types, every decoded Source program and evaluator quota.
+    /// Per-port evaluator ceilings may be calibrated from immutable original
+    /// receipts; this method does not claim to analyze an AST without decoding it.
+    pub(crate) fn reservation_before_families(
+        original_program: &'static str,
+        family_retained_bytes_bound: usize,
+        active_native_bytes_bound: usize,
+        limits: PureSourceLimits,
+    ) -> Result<PureSourceReservation, PureSourceRefusal> {
+        use PureSourceRefusal as R;
+        let family_bytes = family_retained_bytes_bound;
+        let active = active_native_bytes_bound;
         let count = original_program.lines().count();
         if limits.maximum_invocations == 0
             || limits.maximum_input_bytes == 0

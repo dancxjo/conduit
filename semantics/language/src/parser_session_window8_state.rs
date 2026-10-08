@@ -222,3 +222,25 @@ pub(crate) fn derive<S: ParserCanonicalSourceExecutor, N: ParserNumericExecutor>
         context,
     })
 }
+
+impl StateParent {
+    pub(crate) fn hypothesis(self, book: &Window8Book) -> Result<View<'_>, StateDerivationRefusal> {
+        self.state(book)?;
+        match self {
+            Self::Hypothesis(index) => {
+                view(book.source[index].output_bytes()).map_err(|_| StateDerivationRefusal)
+            }
+            Self::BeamCandidate {
+                execution,
+                candidate,
+            } => field(
+                view(book.source[execution].output_bytes()).map_err(|_| StateDerivationRefusal)?,
+                CANDIDATES
+                    .get(usize::from(candidate))
+                    .ok_or(StateDerivationRefusal)?,
+            )
+            .map_err(|_| StateDerivationRefusal),
+            Self::State(_) => Err(StateDerivationRefusal),
+        }
+    }
+}

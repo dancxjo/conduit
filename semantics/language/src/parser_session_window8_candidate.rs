@@ -70,6 +70,10 @@ impl Window8QualifiedLexicalAdmission {
             return Err(R::Origin);
         }
         let source = validate_canonical_structured_value(&origin.output).map_err(|_| R::Origin)?;
+        let expected_bytes = LanguageParserWindow8QualifiedLexicalAnalysis::PREPARED_DESCRIPTOR
+            .type_bytes.len().checked_add(source.value_node().len()).ok_or(R::Pressure)?;
+        if expected_bytes > buffer.capacity() { return Err(R::Pressure); }
+        readmit_proposal(origin, family)?;
         let candidate = refinement.compose(source).map_err(|_| R::Refinement)?;
         if candidate.len() > buffer.capacity() {
             return Err(R::Pressure);
@@ -82,7 +86,8 @@ impl Window8QualifiedLexicalAdmission {
                 drop(value);
                 QualifiedLexicalOutcome::Accepted
             }
-            Err(NativeBindingRefusal::ViolatedInvariant { index }) => {
+            Err(NativeBindingRefusal::ViolatedInvariant { index })
+                if index < LanguageParserWindow8QualifiedLexicalAnalysis::PREPARED_DESCRIPTOR.laws.len() => {
                 QualifiedLexicalOutcome::RejectedInvariant { index }
             }
             Err(error) => return Err(R::Native(error)),
@@ -113,6 +118,7 @@ impl Window8QualifiedLexicalAdmission {
         if !original_qualified_port(origin) {
             return Err(R::Origin);
         }
+        readmit_proposal(origin, family)?;
         let source = validate_canonical_structured_value(&origin.output).map_err(|_| R::Origin)?;
         if refinement.compose(source).map_err(|_| R::Refinement)?
             != self.original_candidate.as_slice()
@@ -126,7 +132,8 @@ impl Window8QualifiedLexicalAdmission {
                 drop(value);
                 QualifiedLexicalOutcome::Accepted
             }
-            Err(NativeBindingRefusal::ViolatedInvariant { index }) => {
+            Err(NativeBindingRefusal::ViolatedInvariant { index })
+                if index < LanguageParserWindow8QualifiedLexicalAnalysis::PREPARED_DESCRIPTOR.laws.len() => {
                 QualifiedLexicalOutcome::RejectedInvariant { index }
             }
             Err(error) => return Err(R::Native(error)),
@@ -150,4 +157,22 @@ fn original_qualified_port(origin: &PureSourceHistory) -> bool {
                 port.output,
             )
         })
+}
+
+/// Prove unchanged nested laws before classifying an outer Analysis refusal.
+fn readmit_proposal(origin: &PureSourceHistory, family: &mut PreparedNativeFamily)
+    -> Result<(), QualifiedLexicalRefusal>
+{
+    use QualifiedLexicalRefusal as R;
+    let source = crate::parser_canonical_schema::select_field(
+        LanguageParserWindow8QualifiedLexicalProposal::PREPARED_DESCRIPTOR.type_bytes, &["query"])
+        .map_err(|_| R::Refinement)?;
+    let target = crate::parser_canonical_schema::select_field(
+        LanguageParserWindow8QualifiedLexicalAnalysis::PREPARED_DESCRIPTOR.type_bytes, &["query"])
+        .map_err(|_| R::Refinement)?;
+    if source != target || !family.contains_descriptor(LanguageParserWindow8QualifiedLexicalProposal::PREPARED_DESCRIPTOR) {
+        return Err(R::Origin);
+    }
+    drop(family.decode::<LanguageParserWindow8QualifiedLexicalProposal>(&origin.output).map_err(R::Native)?);
+    Ok(())
 }

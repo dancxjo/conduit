@@ -95,10 +95,6 @@ pub(crate) fn empty_accumulator<S: ParserCanonicalSourceExecutor, N: ParserNumer
         .record_fields(
             A::Beam,
             &[
-                (
-                    "basis",
-                    F::Observed(field(beam, "basis").map_err(|_| RankRefusal)?),
-                ),
                 ("candidate0", F::Observed(inactive)),
                 ("candidate1", F::Observed(inactive)),
                 ("candidate2", F::Observed(inactive)),
