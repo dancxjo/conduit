@@ -169,6 +169,12 @@ macro_rules! identity_type {
             pub fn as_str(&self) -> &str {
                 &self.0
             }
+
+            /// Actual retained String allocation, including spare capacity.
+            /// This allocation-free inventory grants no semantic authority.
+            pub fn owned_heap_bytes(&self) -> usize {
+                self.0.capacity()
+            }
         }
 
         impl From<&str> for $name {
