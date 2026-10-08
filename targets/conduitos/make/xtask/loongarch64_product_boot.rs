@@ -81,6 +81,10 @@ fn boot_once(
         &serde_json::from_value(snapshot.clone()).map_err(invalid)?,
     )
     .map_err(|e| refusal("invalid-loongarch64-product-observatory", e.to_string()))?;
+    let ordinary_plan: conduit_core::Plan =
+        serde_json::from_value(snapshot["plans"][0].clone()).map_err(invalid)?;
+    product["ordinary_source_conformance"] =
+        super::ordinary_source_conformance::capture(&ordinary_plan)?;
     if snapshot["hosts"][0]["advertisement"]["host_id"] != product["host_id"]
         || snapshot["hosts"][0]["advertisement"]["boot_id"] != product["boot_id"]
         || snapshot["plans"][0]["plan_id"] != product["ordinary_plan_id"]

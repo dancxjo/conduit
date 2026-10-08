@@ -16,6 +16,7 @@ pub(super) fn capture(
 
 fn validate(cost: &Value, product: &Value, architecture: &str) -> Result<(), ConduitosError> {
     let (reserved, tick_unit) = match architecture {
+        "x86_64" => (118784, "tsc"),
         "ia32" => (131072, "tsc"),
         "aarch64" => (126976, "cntvct"),
         "riscv64" => (118784, "time"),

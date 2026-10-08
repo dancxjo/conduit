@@ -1,17 +1,8 @@
 --- a/target/loongarch/tcg/tcg_cpu.c
 +++ b/target/loongarch/tcg/tcg_cpu.c
-@@ -12,6 +12,7 @@
- #include "accel/accel-cpu-target.h"
- #include "accel/tcg/cpu-ldst.h"
- #include "accel/tcg/cpu-ops.h"
+@@ -14,0 +15 @@
 +#include "accel/tcg/probe.h"
- #include "exec/translation-block.h"
- #include "exec/target_page.h"
- #include "tcg_loongarch.h"
-@@ -140,7 +141,19 @@
-     }
- 
-     if (update_badinstr) {
+@@ -143 +144,13 @@
 -        env->CSR_BADI = cpu_ldl_code(env, env->pc);
 +        void *host;
 +        CPUTLBEntryFull *full;
@@ -26,6 +17,3 @@
 +        if (flags == 0 && host) {
 +            env->CSR_BADI = ldl_le_p(host);
 +        }
-     }
- 
-     /* Save PLV and IE */

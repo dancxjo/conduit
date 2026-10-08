@@ -86,6 +86,28 @@ supervisor-only. Floating-point access traps instead of exposing Root register
 state. A hard timer returns a hostile loop as a work-exhaustion fault. A fault
 terminates the region; it does not resume the hostile instruction.
 
+The ordinary five-placement text-and-timer Observatory proof also requires
+`region/text` to retain its protected profile, isolation and budget preemption,
+while `region/timer` retains its cooperative realization. Its completed domain
+cost must match the actual sealed Plan/Play and fit the admitted memory
+reservation; the original 4 KiB pure-placement check cannot substitute for the
+backend and Root metadata reservation. `cargo xtask make conduitos prove
+--arch x86-64` uses a private short QMP endpoint so the supported command also
+works from long checkout paths.
+
+Every ordinary product proof now checks its sealed five-placement text-and-timer
+Plan against the current exact checked Source, using one shared conformance
+projection. Placement references normalize to authored Gear identities; the
+projection retains configuration, typed ports and semantic contracts, Cord
+contracts and capacities, region membership, startup dependencies, cancellation,
+completion, terminal and sign requirements. Machine identities, selected Backs,
+provider bindings and physical memory differ independently. Startup must remain
+a complete dependency-respecting permutation; equivalent independent ties may
+change. Additional State, Fore, activation, fusion, pool, resource-Cord or Line
+semantics refuse this bounded specimen check. Each receipt records the semantic
+shape digest and its actual Plan identity; a shape check alone establishes no
+processor confinement or accepted release.
+
 The supplemental `cargo xtask make conduitos ordinary-domain-proof` lane runs
 checked ordinary text Source through the production kernel and then checks 18
 hostile entries: Root memory, capability memory, sibling memory, Root entry,
@@ -250,7 +272,13 @@ The supported entrance boots the normal image twice, then independently
 instruments and boots the boundary-check image twice. Both product receipts
 require the exact completed domain's Plan/Play, capability gate and zeroed
 storage; an ordinary ready Sign alone cannot satisfy them. These local emulator
-results do not establish physical hardware or release acceptance. The remaining full cost-accounting
+results do not establish physical hardware or release acceptance.
+The normal AArch64 product prepares a bounded Observatory export before sealing
+its allocator, then emits the sealed Plan and completed Play after execution.
+Both boots must retain one complete export whose Source, checked/expanded Plot,
+Plan, Play, Host/Boot, offer generation and image/build provenance match the
+product receipt. Missing, truncated, duplicate or stale exports cannot satisfy
+product proof. The remaining full cost-accounting
 gaps above also apply to this backend.
 
 RISC-V64's development backend uses Sv39 with immutable U-mode code and

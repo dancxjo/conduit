@@ -31,6 +31,9 @@ only for the LoongArch lane and runs the same preparation entrance.
 Preparation verifies the pinned source archive, applies both repository patches
 with zero fuzz, disables dependency downloads and builds only
 `loongarch64-softmmu` with the `conduit-diagnostic-misc-drdtl` version suffix.
+The patch files use zero-context hunks against the pinned archive so blank
+context markers do not conflict with repository whitespace checks. Their applied
+C source matches the original reviewed corrections exactly.
 QEMU supplies its pinned Python build wheels in the verified source archive.
 The receipt retains source/patch digests, configure arguments, observed build
 tool/library versions and executable digest. A warm tool must match its actual

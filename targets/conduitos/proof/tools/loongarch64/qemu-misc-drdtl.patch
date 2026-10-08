@@ -1,41 +1,19 @@
 --- a/target/loongarch/csr.c
 +++ b/target/loongarch/csr.c
-@@ -28,7 +28,7 @@
-     CSR_OFF_FLAGS(CRMD, CSRFL_EXITTB),
-     CSR_OFF(PRMD),
-     CSR_OFF_FLAGS(EUEN, CSRFL_EXITTB),
+@@ -31 +31 @@
 -    CSR_OFF_FLAGS(MISC, CSRFL_READONLY),
 +    CSR_OFF_FLAGS(MISC, CSRFL_EXITTB),
-     CSR_OFF(ECFG),
-     CSR_OFF_FLAGS(ESTAT, CSRFL_EXITTB),
-     CSR_OFF(ERA),
 --- a/target/loongarch/tcg/helper.h
 +++ b/target/loongarch/tcg/helper.h
-@@ -101,6 +101,7 @@
- DEF_HELPER_1(csrrd_cpuid, i64, env)
- DEF_HELPER_1(csrrd_tval, i64, env)
- DEF_HELPER_1(csrrd_msgir, i64, env)
+@@ -103,0 +104 @@
 +DEF_HELPER_2(csrwr_misc_drdtl, i64, env, tl)
- DEF_HELPER_2(csrwr_stlbps, i64, env, tl)
- DEF_HELPER_2(csrwr_estat, i64, env, tl)
- DEF_HELPER_2(csrwr_asid, i64, env, tl)
 --- a/target/loongarch/tcg/insn_trans/trans_privileged.c.inc
 +++ b/target/loongarch/tcg/insn_trans/trans_privileged.c.inc
-@@ -74,6 +74,7 @@
- 
- void loongarch_csr_translate_init(void)
- {
+@@ -76,0 +77 @@
 +    SET_CSR_FUNC(MISC, NULL, gen_helper_csrwr_misc_drdtl);
-     SET_CSR_FUNC(STLBPS, NULL, gen_helper_csrwr_stlbps);
-     SET_CSR_FUNC(ESTAT, NULL, gen_helper_csrwr_estat);
-     SET_CSR_FUNC(ASID,  NULL, gen_helper_csrwr_asid);
 --- a/target/loongarch/tcg/csr_helper.c
 +++ b/target/loongarch/tcg/csr_helper.c
-@@ -17,6 +17,17 @@
- #include "hw/irq.h"
- #include "cpu-csr.h"
- #include "cpu-mmu.h"
-+
+@@ -20,0 +21,11 @@
 +/* Diagnostic profile implements only the architected PLV1..3 counter-disable
 + * bits. Other currently unimplemented MISC fields retain their existing value.
 + */
@@ -46,6 +24,4 @@
 +    env->CSR_MISC = (old & ~mask) | (val & mask);
 +    return old;
 +}
- 
- target_ulong helper_csrwr_stlbps(CPULoongArchState *env, target_ulong val)
- {
++

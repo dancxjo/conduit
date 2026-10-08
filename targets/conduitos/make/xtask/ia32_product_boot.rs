@@ -296,6 +296,11 @@ fn boot_once(
             let observatory: serde_json::Value = serde_json::from_str(observatory_json)
                 .map_err(|error| refusal("malformed-ia32-observatory", error.to_string()))?;
             validate_observatory(&observatory, &value, firmware_mode.expected_firmware())?;
+            let ordinary_plan: conduit_core::Plan =
+                serde_json::from_value(observatory["plans"][0].clone())
+                    .map_err(|error| refusal("ordinary-product-plan-invalid", error.to_string()))?;
+            value["ordinary_source_conformance"] =
+                super::ordinary_source_conformance::capture(&ordinary_plan)?;
             match super::protected_product_receipt::capture(&transcript, &value, "ia32") {
                 Ok(cost) => value["ordinary_domain_cost"] = cost,
                 Err(error) => {

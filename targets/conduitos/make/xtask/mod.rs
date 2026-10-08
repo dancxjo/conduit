@@ -65,12 +65,14 @@ mod orange_pi_5_image;
 #[path = "../../../orange-pi/make/xtask/orange_pi_5_media.rs"]
 mod orange_pi_5_media;
 mod ordinary_domain_proof;
+mod ordinary_source_conformance;
 mod owner_action_proof;
 mod owner_boot;
 mod owner_model_route;
 mod pc_speaker_proof;
 mod prepared_proof_image;
 mod product_journey_gate;
+mod product_observatory;
 mod product_patchbay;
 mod product_readiness_matrix;
 mod profile;

@@ -120,9 +120,15 @@ pub fn execute(
         first_presentation: first.presentation,
         first_kernel: first.kernel,
         first_observatory: first.observatory.clone(),
+        first_source_conformance: super::ordinary_source_conformance::capture(
+            &first.observatory.plans[0],
+        )?,
         second_boot: second.boot,
         second_presentation: second.presentation,
         second_kernel: second.kernel,
+        second_source_conformance: super::ordinary_source_conformance::capture(
+            &second.observatory.plans[0],
+        )?,
         second_observatory: second.observatory,
         fresh_host_id,
         fresh_boot_id,
