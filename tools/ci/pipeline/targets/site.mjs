@@ -87,8 +87,8 @@ export function assembleSite(directory, sourceCommit, workspace = 'target/worksp
     const anchor = '<!-- conduit-three-body-flagship@2 -->';
     if (!html.includes(anchor)) throw new Error('Journeys catalogue has no Todo development card seam');
     const card = '<article class="journey-card"><p class="eyebrow">Live development steps</p>'
-      + '<h2>Grow a Todo Body across Masks</h2><p>Watch a browser Add an item, then see the same'
-      + ' Body after terminal actions leave three items open and seventeen complete.</p>'
+      + '<h2>Grow a Groceries list across Masks</h2><p>Follow a fresh Body from Birth through a browser'
+      + ' Add, terminal readback, and delivered screen-free audio. A separate longer run shows a native action.</p>'
       + '<a href="development/todo-browser/">See the captured steps</a></article>';
     writeFileSync(landing, html.replace(anchor, `${card}${anchor}`));
   }

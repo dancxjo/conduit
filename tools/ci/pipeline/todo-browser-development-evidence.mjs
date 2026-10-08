@@ -5,7 +5,13 @@ import path from 'node:path';
 
 export const TODO_BROWSER_DEVELOPMENT_ROOT = 'site/evidence/todo-browser-development';
 const FILES = ['browser-after.png', 'browser-before.png', 'browser-card-after.png',
-  'browser-full-after.png', 'index.html', 'long-list-browser-receipt.json',
+  'browser-full-after.png', 'fresh-birth-add-receipt.json', 'fresh-browser-after.png',
+  'fresh-browser-before.png', 'fresh-browser-receipt.json',
+  'fresh-requested-detail-playback.json', 'fresh-requested-detail-turn.json',
+  'fresh-requested-detail.wav', 'fresh-screen-free-after.txt', 'fresh-screen-free-before.txt',
+  'fresh-screen-free-summary-playback.json', 'fresh-screen-free-summary-turn.json',
+  'fresh-screen-free-summary.wav', 'fresh-terminal-receipt.json', 'fresh-terminal.txt',
+  'index.html', 'long-list-browser-receipt.json',
   'long-list-requested-detail-playback.json', 'long-list-requested-detail-proof.json',
   'long-list-requested-detail-same-play.wav', 'long-list-requested-detail-turn.json',
   'long-list-spoken-proof.json', 'long-list-spoken-same-play.wav',
@@ -69,6 +75,84 @@ export function retainedTodoBrowserDevelopmentEvidence(root = TODO_BROWSER_DEVEL
   const browserAfterNative = JSON.parse(bytes('todo-browser-after-native-receipt.json'));
   const spokenAfterNative = JSON.parse(bytes('todo-spoken-after-native-receipt.json'));
   const spokenAfterNativeTerminal = JSON.parse(bytes('todo-spoken-after-native-terminal.json'));
+  const fresh = JSON.parse(bytes('fresh-birth-add-receipt.json'));
+  const freshBrowserBytes = bytes('fresh-browser-receipt.json');
+  const freshBrowser = JSON.parse(freshBrowserBytes);
+  const freshTerminal = JSON.parse(bytes('fresh-terminal-receipt.json'));
+  const freshBody = fresh.observation?.body_id;
+  const freshSource = fresh.capture_tool_commit;
+  if (fresh.schema !== 'conduit.todo-journey/partial-live-capture@1'
+      || fresh.capture_entrance !== 'cargo xtask prove todo-journey'
+      || fresh.chapter_scope?.join(',') !== 'birth,add'
+      || fresh.publication_ready !== false || fresh.error !== null
+      || !commit(freshSource) || fresh.installed_product_source_commit !== freshSource
+      || !freshBody || freshBody === action.body_id
+      || freshBrowser.schema !== 'conduit.proof/todo-owner-browser@1'
+      || freshBrowser.source_relation !== 'exact-source'
+      || freshBrowser.owner_source_commit !== freshSource
+      || freshBrowser.browser_runtime_source_commit !== freshSource
+      || freshBrowser.handbook_ui_source_commit !== freshSource
+      || freshBrowser.handbook_ui_source_clean !== true
+      || freshBrowser.body_id !== freshBody || freshBrowser.item_text !== 'Buy milk'
+      || freshBrowser.screenshots?.join(',') !== 'browser-before.png,browser-after.png'
+      || freshBrowser.before?.show_id !== fresh.observation.add?.before?.show_id
+      || freshBrowser.after?.show_id !== fresh.observation.add?.after?.show_id
+      || freshBrowser.before?.show_id === freshBrowser.after?.show_id
+      || fresh.observation.add?.receipt?.sha256 !== sha(freshBrowserBytes).slice(7)
+      || fresh.observation.checkpoint_before?.files !== 0
+      || fresh.observation.checkpoint_after?.files !== 2) {
+    throw new Error('Fresh Todo Birth/Add evidence does not describe one exact-source Body');
+  }
+  for (const [name, original] of [['fresh-browser-before.png', 'browser/browser-before.png'],
+    ['fresh-browser-after.png', 'browser/browser-after.png']]) {
+    const image = bytes(name);
+    const receipt = fresh.observation.add.screenshots?.find(item => item.path === original);
+    if (receipt?.bytes !== image.length || receipt.sha256 !== sha(image).slice(7)) {
+      throw new Error(`Fresh Todo browser image differs from receipt: ${name}`);
+    }
+  }
+  const terminal = bytes('fresh-terminal.txt');
+  const terminalStep = freshTerminal.steps?.find(step => step.command?.join(' ') === 'body terminal');
+  if (freshTerminal.schema !== 'conduit.todo-journey/partial-live-capture@1'
+      || freshTerminal.publication_ready !== false || freshTerminal.error !== null
+      || freshTerminal.capture_tool_commit !== freshSource
+      || freshTerminal.installed_product_source_commit !== freshSource
+      || freshTerminal.observation?.body_id !== freshBody
+      || terminalStep?.exit_code !== 0 || terminalStep.stdout?.bytes !== terminal.length
+      || terminalStep.stdout?.sha256 !== sha(terminal).slice(7)
+      || !terminal.toString('utf8').includes('Buy milk')) {
+    throw new Error('Fresh Todo terminal read is not bound to the Birth/Add Body');
+  }
+  const freshSpeech = [
+    ['fresh-requested-detail', 'fresh-screen-free-before.txt', 'Buy milk, item.'],
+    ['fresh-screen-free-summary', 'fresh-screen-free-after.txt',
+      'Groceries. 1 thing left · 0 completed Buy milk.'],
+  ];
+  for (const [prefix, transcriptName, wording] of freshSpeech) {
+    const play = JSON.parse(bytes(`${prefix}-playback.json`));
+    const turn = JSON.parse(bytes(`${prefix}-turn.json`));
+    const wave = bytes(`${prefix}.wav`);
+    const transcript = bytes(transcriptName).toString('utf8');
+    if (play.schema !== 'conduit.body/spoken-face-playback@1'
+        || turn.schema !== 'conduit.body/spoken-face-turn@1'
+        || play.outcome !== 'Completed' || turn.outcome !== 'Completed'
+        || play.face_id !== turn.face_id || play.source_show_id !== turn.source_show_id
+        || play.spoken_segments?.map(segment => segment.text).join('') !== wording
+        || play.spoken_segments?.some(segment => segment.face_id !== play.face_id
+          || segment.show_id !== play.source_show_id)
+        || !(play.speaker_frames_committed > 0)
+        || play.same_play_capture?.wav_bytes !== wave.length
+        || play.same_play_capture?.wav_sha256 !== sha(wave).slice(7)
+        || play.same_play_capture?.pcm_bytes !== wave.length - 44
+        || play.same_play_capture?.pcm_sha256 !== sha(wave.subarray(44)).slice(7)
+        || wave.toString('ascii', 0, 4) !== 'RIFF'
+        || wave.toString('ascii', 8, 12) !== 'WAVE'
+        || wave.readUInt32LE(24) !== 48000 || wave.readUInt16LE(22) !== 2
+        || wave.readUInt16LE(34) !== 16 || wave.readUInt32LE(40) !== wave.length - 44
+        || !transcript.includes(freshBody) || !transcript.includes(play.play_id)) {
+      throw new Error(`Fresh Todo speaker audio is not its completed Play: ${prefix}`);
+    }
+  }
   if (!commit(publicationCommit) || !commit(action.owner_source_commit)
       || !commit(action.browser_runtime_source_commit)
       || action.schema !== 'conduit.proof/todo-owner-browser@1'
@@ -324,7 +408,8 @@ export function retainedTodoBrowserDevelopmentEvidence(root = TODO_BROWSER_DEVEL
     longList.owner_source_commit, longListBrowser.owner_source_identity, spoken.source_identity,
     detail.release_source_identity, native.source_commit, nativeFork.harness_source_commit,
     nativeAcknowledged.source_commit, nativeAction.source_commit,
-    browserAfterNative.browser_source_commit]) {
+    browserAfterNative.browser_source_commit, freshSource,
+    '531b8ecae2a5dad4fba2eeff871b65b0343fe2b3']) {
     try { execFileSync('git', ['merge-base', '--is-ancestor', source, publicationCommit]); }
     catch (cause) {
       throw new Error(`Todo browser capture ancestry check failed: ${source} -> ${publicationCommit}; status=${cause.status ?? cause.code ?? "unknown"}, signal=${cause.signal ?? "none"}; ${cause.message}; context=${ancestryContext(source, publicationCommit)}`, { cause });
@@ -367,6 +452,10 @@ export function retainedTodoBrowserDevelopmentEvidence(root = TODO_BROWSER_DEVEL
       || !page.includes(nativeFork.harness_source_commit.slice(0, 9))
       || !page.includes('This WAV captures the audio delivered by the completed selected-speaker Play')) {
     throw new Error('Todo browser development page overclaims its capture');
+  }
+  if (!page.includes('two distinct Bodies') || !page.includes(freshSource.slice(0, 9))
+      || !page.includes('531b8ecae') || !page.includes('not QEMU guest audio')) {
+    throw new Error('Fresh Todo development page omits its source or proof boundary');
   }
   for (const [, reference] of page.matchAll(/\b(?:href|src)="([^"]+)"/g)) {
     if (!reference.startsWith('/conduit/') && !reference.startsWith('https://')

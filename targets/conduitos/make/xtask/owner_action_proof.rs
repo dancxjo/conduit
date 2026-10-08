@@ -142,12 +142,10 @@ fn execute_mode(
         &mut child,
         &route,
         &qemu_args,
-        ProofMode {
-            coordinate: args.coordinate,
-            expected_todo,
-            expected_todo_action,
-            isolated: isolated.as_ref(),
-        },
+        args.coordinate,
+        expected_todo,
+        expected_todo_action,
+        isolated.as_ref(),
     );
     let _ = child.kill();
     let _ = child.wait();
@@ -174,13 +172,10 @@ fn execute_mode(
     Ok(())
 }
 
-struct ProofMode<'a> {
-    coordinate: bool,
-    expected_todo: Option<&'a LiveOwnerTodoFaceProofArgs>,
-    expected_todo_action: Option<&'a LiveOwnerTodoActionProofArgs>,
-    isolated: Option<&'a todo_action::Isolation>,
-}
-
+#[expect(
+    clippy::too_many_arguments,
+    reason = "one local proof invocation carries exact QMP and owner evidence"
+)]
 fn prove(
     directory: &std::path::Path,
     serial_path: &std::path::Path,
@@ -188,14 +183,11 @@ fn prove(
     child: &mut Child,
     route: &owner_boot::PreparedOwnerBoot,
     qemu_args: &[String],
-    mode: ProofMode<'_>,
+    coordinate: bool,
+    expected_todo: Option<&LiveOwnerTodoFaceProofArgs>,
+    expected_todo_action: Option<&LiveOwnerTodoActionProofArgs>,
+    isolated: Option<&todo_action::Isolation>,
 ) -> Result<Value, ConduitosError> {
-    let ProofMode {
-        coordinate,
-        expected_todo,
-        expected_todo_action,
-        isolated,
-    } = mode;
     let (mut qmp, mut reader) =
         qmp::connect_traced(qmp_path, child, Some(&directory.join("qmp.jsonl")))?;
     let (standby_part, standby_face, return_route_available) = wait_for_standby(
