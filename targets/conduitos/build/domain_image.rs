@@ -43,6 +43,7 @@ pub fn generate() {
     let target_os = env::var("CARGO_CFG_TARGET_OS").expect("Cargo sets target OS");
     println!("cargo:rustc-check-cfg=cfg(conduitos_protected_execution)");
     println!("cargo:rustc-check-cfg=cfg(conduitos_domain_image)");
+    println!("cargo:rustc-check-cfg=cfg(conduitos_domain_backend)");
     let protected = match architecture.as_str() {
         "x86_64" => target_os == "none",
         "x86" => target_os == "linux" && env::var_os("CARGO_FEATURE_IA32_PRODUCT").is_some(),
@@ -68,6 +69,7 @@ pub fn generate() {
     {
         return;
     }
+    println!("cargo:rustc-cfg=conduitos_domain_backend");
     let manifest = PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").expect("Cargo sets manifest"));
     let output = PathBuf::from(env::var_os("OUT_DIR").expect("Cargo sets output"));
     let target = env::var("TARGET").expect("Cargo sets target");

@@ -12,7 +12,7 @@ use conduit_kernel::{
 };
 
 impl PreparedTimerGraph {
-    #[cfg(any(test, conduitos_protected_execution))]
+    #[cfg(any(test, conduitos_domain_backend))]
     pub(crate) fn encode(&self, output: &mut [u8]) -> Result<usize, SchedulerError> {
         let mut writer = Writer {
             output,
@@ -175,12 +175,12 @@ fn invalid<T>() -> Result<T, SchedulerError> {
     Err(SchedulerError::InvalidPlan)
 }
 
-#[cfg(any(test, conduitos_protected_execution))]
+#[cfg(any(test, conduitos_domain_backend))]
 struct Writer<'a> {
     output: &'a mut [u8],
     position: usize,
 }
-#[cfg(any(test, conduitos_protected_execution))]
+#[cfg(any(test, conduitos_domain_backend))]
 impl Writer<'_> {
     fn bytes(&mut self, bytes: &[u8]) -> Result<(), SchedulerError> {
         let end = self
