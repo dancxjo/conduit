@@ -5,7 +5,7 @@ pub const USER_TEXT_START: u64 = 0x0040_0000;
 // IA-32 Root boots at low physical/virtual addresses. Its linked image spans
 // the 4 MiB range, so the domain uses a disjoint virtual range instead.
 pub const IA32_USER_TEXT_START: u64 = 0x4000_0000;
-pub const MAXIMUM_IMAGE_BYTES: u64 = 64 * 1024;
+pub const MAXIMUM_IMAGE_BYTES: u64 = 128 * 1024;
 const PAGE_BYTES: u64 = 4096;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

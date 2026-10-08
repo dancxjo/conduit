@@ -1,0 +1,68 @@
+{
+  "accepted_wording": null,
+  "active_play_id": "4bc715963afafeff92c1c6288b3c29504cbea94fd4c7426dec860d2c92f5a8f2",
+  "artifact": {
+    "active_play_id": "4bc715963afafeff92c1c6288b3c29504cbea94fd4c7426dec860d2c92f5a8f2",
+    "artifact_identity": "artifact/wav/7effe97d86fc2f116ad4dc1d285441943a7213aacb70a4ce01b0914daf97a410",
+    "artifact_locator": "/home/dancxjo/conduit-todo-browser-proof/attempt-5/host-state/spoken-artifacts/play-c5d0d066c0bbdd01b0df4590ffe1c003afb29b702e29900489d0aa9c5895590a.wav",
+    "blocks": 6767,
+    "completion_sign_id": "938ffaea3515046d2600db7ac7b8632a70af0093a9af2be177df5a862e818978",
+    "content_sha256": "7effe97d86fc2f116ad4dc1d285441943a7213aacb70a4ce01b0914daf97a410",
+    "frames": 368151,
+    "pcm_bytes": 1472604,
+    "placement_id": "db7135c9a788aece09ab504fdfecacd6bdefb535868c0e29862903b0ec4553cb",
+    "plan_id": "5b5d65b9889a70cb855a649e7f35a7f486184aa5a780a2f5bcc6b79e44ca74a8"
+  },
+  "direct_opening_wording": "Groceries. 3 things left · 17 completed Long-list item 18. Long-list item 19. Long-list item 20.",
+  "direct_reading_complete": true,
+  "generated_manifestation_identity": null,
+  "generation_evidence": null,
+  "mask_artifact_scope": "opening",
+  "mode": "direct",
+  "operation_id": "owner-spoken-mask/b26f9bc0c3326cb277f1ce0a80a565eac47ab429001822367d0b78be6d49918c",
+  "outcome": "available",
+  "route_plan_id": "plan/local-owner-mask/40b4cae1b51853be2f683011a95b7fad0032090094b897dba71323e0dc5f30b4",
+  "schema": "conduit.body/owner-spoken-terminal@1",
+  "show_id": "show/c57032a701d212ddcd8fbc7ebe6b7af5f168e9801706057d849dd7c2d9322e82",
+  "source_face_id": "b6555069980eb4eebcd67f5550de59779a1e2a7ee4db3dff91459ab5068e7d04",
+  "speaker_completed_batches": 1,
+  "speaker_playback": {
+    "batches": [
+      {
+        "outcome": "completed",
+        "pcm_blocks": 6766,
+        "pcm_bytes": 1472828,
+        "pcm_sha256": "7037b185e51633a95f845b6005e6ed275326f2daf6f9f6f84e0f4388cd323d74",
+        "plan_id": "1085c4071c64ce759919991f9117dae9f0039e6884d09f2f7db04ce5d5029ecc",
+        "play_id": "fcdaddee59ddf2279109fd301778469da137f6299d125240f333d034d3759516",
+        "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+        "source_segments_sha256": "e3cb91d95cd995c446ea83375a6b58d933abe63908e56542e66bef05d31aa663",
+        "speaker_blocks_committed": 6766,
+        "speaker_frames_committed": 368207,
+        "spoken_segments": [
+          "Groceries. 3 things left · 17 completed Long-list item 18. ",
+          "Long-list item 19. Long-list item 20."
+        ],
+        "stream_identity": "show/c57032a701d212ddcd8fbc7ebe6b7af5f168e9801706057d849dd7c2d9322e82/accepted-wording",
+        "wav_artifact_id": "play-54e4fe14189c13dfe608cc67eb4f491a41f15ed2abc9e3e8536273c14df8dc4f.wav",
+        "wav_bytes": 1472872,
+        "wav_sha256": "92bd04c42459f4beec8f1c7eae377996ccb06ec9716ad7f9379dfe2a65981506"
+      }
+    ],
+    "boot_id": "boot/installed/fcc798cb9ea3bdefcb447dc066830eed9a99e0633bc917d7f389e869b38f1932",
+    "completed_batch_count": 1,
+    "completed_segments": 2,
+    "face_id": "b6555069980eb4eebcd67f5550de59779a1e2a7ee4db3dff91459ab5068e7d04",
+    "face_revision": 589,
+    "face_revision_decimal": "589",
+    "host_id": "host/installed/df02b1cb1afdad1f94980315da6114c5810de1f057e61bf7041172f71a3c834b",
+    "outcome": "completed",
+    "produced_pcm_bytes": 1472828,
+    "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+    "schema": "conduit.body/selected-speech-terminal@1",
+    "source_show_id": "show/c57032a701d212ddcd8fbc7ebe6b7af5f168e9801706057d849dd7c2d9322e82"
+  },
+  "speaker_playback_outcome": "completed",
+  "speaker_played": true,
+  "stop_requested": false
+}

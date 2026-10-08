@@ -81,6 +81,28 @@ pub(super) fn initialize_hpet(
 }
 
 impl CandidateDeadline {
+    /// Physical duration admission rounds the TSC ratio upward. The diagnostic
+    /// deadline's floored milliseconds must not permit an early timer wake.
+    pub fn admit_duration(timeout_millis: u32) -> Option<Self> {
+        let counter = Self::admit(timeout_millis)?;
+        if let Self::Tsc { start_ticks, .. } = counter {
+            let frequency = __cpuid(0x15);
+            let numerator = u64::from(frequency.ecx).checked_mul(u64::from(frequency.ebx))?;
+            let ticks_per_millisecond =
+                crate::timer_duration::duration_ticks(1, numerator, u64::from(frequency.eax))
+                    .ok()?;
+            let end_ticks = start_ticks
+                .checked_add(ticks_per_millisecond.checked_mul(u64::from(timeout_millis))?)?;
+            Some(Self::Tsc {
+                start_ticks,
+                end_ticks,
+                ticks_per_millisecond,
+            })
+        } else {
+            Some(counter)
+        }
+    }
+
     pub fn admit(timeout_millis: u32) -> Option<Self> {
         if timeout_millis == 0 {
             return None;

@@ -95,9 +95,10 @@ backend and Root metadata reservation. `cargo xtask make conduitos prove
 --arch x86-64` uses a private short QMP endpoint so the supported command also
 works from long checkout paths.
 
-Every ordinary product proof now checks its sealed five-placement text-and-timer
+The normal text-and-timer proof collectors check their sealed five-placement
 Plan against the current exact checked Source, using one shared conformance
-projection. Placement references normalize to authored Gear identities; the
+projection. The x86_64 collector runs through `cargo xtask make conduitos prove`;
+its graphical product journey proves separate Body-bound domains. Placement references normalize to authored Gear identities; the
 projection retains configuration, typed ports and semantic contracts, Cord
 contracts and capacities, region membership, startup dependencies, cancellation,
 completion, terminal and sign requirements. Machine identities, selected Backs,
@@ -225,6 +226,80 @@ cross-use refusal without an effect, replay refusal, either branch order,
 changed-input refusal and independent Unicode transformation outcomes.
 This is freestanding emulator evidence through a serial diagnostic provider;
 it does not establish a physical indicator or a graphical Morse interaction.
+
+### Private standing timer execution
+
+The native count-over-time product now prepares a protected three-placement
+region for Every, Count and Count Presentation. Root retains the verified
+Plan/Play binding, numeric preparation data, capability table and provider
+tokens. The separately compiled domain image owns the production fixed
+scheduler, Count state, Cord movement and decimal rendering. Root enters at
+actual effect/completion boundaries; an idle domain stays suspended while its
+physical timer is pending. Other semantic families retain their separately
+declared execution profiles.
+
+Timer and Count Presentation receive separate opaque handles. Admission pins
+Host/Boot, Plan/Play, implementation artifact and contract, Base/resource
+identity and generation, operation, parameter/work limits and independent
+in-flight/operation bounds. Every's selected provider identity seals both its
+physical Timer and Clock; replacing either changes the current scope. A timer
+lease remains in flight until the exact current provider wake matches the
+entire pending interest. Count's semantic input is eight bytes; its physical
+presentation window allows at most twenty decimal digits. Root validates that
+window without computing or substituting the semantic count.
+
+The reviewed finite product arms 120 milliseconds. Conversion rounds upward
+using the platform frequency. IA-32 retains one logical timer across bounded
+PIT counts; intermediate interrupts do not publish a semantic wake. AArch64
+uses CNTFRQ, LoongArch64 uses the CPUCFG counter-frequency ratio, and the pinned
+RISC-V QEMU virt profile uses its 10 MHz timebase. x86_64 waits against its
+admitted calibrated TSC/HPET counter. An unavailable duration basis refuses
+instead of substituting the diagnostic timer arm.
+
+The shared image now admits a 128 KiB immutable code/constant window, a 32 KiB
+non-executable stack and 16 KiB of private non-executable retained state.
+The numeric graph wire fits within 256 bytes; mutable shared request storage
+is a separate 4 KiB page. Guard gaps separate these windows. Architecture
+translation/exception storage and Root metadata remain separately accounted
+and admitted. The earlier text/Morse measurements in this document record the
+former image profile; new receipts report the enlarged reservation and exact
+zeroization rather than reusing those historical costs.
+
+Stop cancels the physical arm before revoking capabilities and zeroing domain
+storage. A retired owner refuses a second run before touching any provider.
+The native proof exercises the ordinary Tour product entrance with actual
+providers, separately from the explicitly synthetic private-runtime fixture.
+Its timer receipt retains effect gates, copies, shared-window occupancy,
+interrupts, setup/teardown, address-space switches and memory. Local proofs
+passed on all five supported protected architectures, including the actual
+120 ms product and terminal replay refusal. Each used eleven domain entries,
+four Base gates, 313 runtime bytes copied, a 163-byte shared-window peak,
+22 address-space switches/TLB flushes and eleven scheduler returns. The product
+completed without budget preemption; independent hostile-loop fixtures still
+prove bounded preemption. Teardown zeroed the entire reservation in every case.
+
+| Target | Privilege transitions | User IRQ entries | Setup bytes copied | Reserved / zeroed bytes | Root metadata bytes |
+|---|---:|---:|---:|---:|---:|
+| x86_64 | 38 | 8 | 71,639 | 217,088 | 5,280 |
+| IA-32 | 38 | 8 | 64,865 | 229,376 | 5,008 |
+| AArch64 | 32 | 5 | 64,460 | 225,280 | 5,296 |
+| RISC-V64 | 22 | 0 | 54,456 | 217,088 | 5,280 |
+| LoongArch64 | 22 | 0 | 67,796 | 225,280 | 5,288 |
+
+| Target | Setup ticks | Teardown ticks | Counter unit |
+|---|---:|---:|---|
+| x86_64 | 6,918,183 | 26,234,556 | TSC |
+| IA-32 | 9,068,216 | 20,430,106 | TSC |
+| AArch64 | 189,101 | 710,699 | CNTVCT |
+| RISC-V64 | 43,730 | 195,497 | time |
+| LoongArch64 | 291,825 | 1,678,133 | RDTIME |
+
+These are retained emulator measurements from one candidate, with
+architecture-specific counters; they are not cross-platform latency rankings.
+The private image uses speed optimization and thin LTO, and initializes its
+kernel directly in retained state. This removed IA-32 initialization overhead
+that exhausted the existing watchdog; its three-interrupt budget was unchanged.
+Release acceptance is recorded separately from these local emulator receipts.
 
 Broader ordinary implementation coverage remains unfinished.
 This is development emulator evidence, not accepted-release evidence.
@@ -445,16 +520,17 @@ physical execution or accepted-release parity.
 
 The ordinary text serial presentation now passes through its domain capability
 gate, and the supplemental Sign reports `effect_capability_gates:true`.
-The current native workset, timer/Morse and other paths have not been migrated.
+The reviewed protected text, Keyboard, Memory Lantern, Morse and standing
+timer paths do not implicitly protect other native workset implementations.
 DMA and driver isolation remain false.
 Issue #5113 stays open until its complete cross-architecture product and proof
 criteria are earned; the local emulator run is not accepted-release evidence.
 
 ## Deliberate limits
 
-This profile proves CPU page, privilege, I/O-port, handle, and one serial base
-boundary on emulated x86_64. It does not prove an IOMMU, DMA containment,
-mutually isolated kernel drivers/providers, physical hardware execution, SMP,
-or any non-x86_64 target. The sign reports `dma_isolation:false` and
-`driver_isolation:false`. Follow-on architecture profiles must earn their own
-mechanism-level evidence; none inherit this proof by analogy.
+Each reviewed emulator profile proves its own CPU page, privilege, handle and
+admitted Base boundaries. Architecture-specific evidence above does not prove
+an IOMMU, DMA containment, mutually isolated kernel drivers/providers, physical
+hardware execution, SMP or an unsupported backend. Receipts report
+`dma_isolation:false` and `driver_isolation:false`. Each architecture earns its
+own mechanism-level evidence; none inherits another target's proof by analogy.

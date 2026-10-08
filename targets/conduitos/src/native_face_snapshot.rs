@@ -18,7 +18,7 @@ pub use execution::PreparedFaceSnapshot;
 
 /// Explicit native forwarding profile: one value on each of two Fore cords.
 /// Larger semantic Faces need a separately admitted storage profile.
-pub const MAX_SNAPSHOT_BYTES: usize = 32 * 1024;
+pub const MAX_SNAPSHOT_BYTES: usize = 48 * 1024;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum FaceSnapshotRefusal {

@@ -324,7 +324,7 @@ impl DurableHostRuntime {
             next_observation_sequence,
             #[cfg(unix)]
             terminal_route,
-            selected_speech_equipment,
+            mut selected_speech_equipment,
             speech_worker,
             speech_terminal,
             owner_spoken_worker,
@@ -343,6 +343,9 @@ impl DurableHostRuntime {
                 &current.boot_id,
                 current.offer_generation,
             )?;
+        }
+        if let Some(equipment) = &mut selected_speech_equipment {
+            equipment.advance_offer_generation(owner.host.current())?;
         }
         Ok(Self {
             target_id,

@@ -78,6 +78,7 @@ mod product_readiness_matrix;
 mod profile;
 mod protected_morse_proof;
 mod protected_product_receipt;
+mod protected_timer_proof;
 mod protocol_image;
 mod protocol_input;
 mod protocol_run;
@@ -230,6 +231,27 @@ struct LiveOwnerActionProofArgs {
     /// Pause at both Face checkpoints for a live browser participant.
     #[arg(long)]
     coordinate: bool,
+}
+
+#[derive(Args, Debug, Clone)]
+struct LiveOwnerTodoFaceProofArgs {
+    #[command(flatten)]
+    route: LiveOwnerActionProofArgs,
+    /// Body expected in the exact installed Owner admission receipt.
+    #[arg(long)]
+    expected_body_id: String,
+    /// Installed product executable that owns this Body.
+    #[arg(long)]
+    owner_conduit_bin: PathBuf,
+    /// Installed state directory for an independent current Face read.
+    #[arg(long)]
+    owner_state_dir: PathBuf,
+    /// Expected number of Todo item subjects in the current Face.
+    #[arg(long)]
+    expected_item_count: usize,
+    /// Expected human-facing progress text in the current Todo Face.
+    #[arg(long)]
+    expected_status: String,
 }
 
 #[derive(ValueEnum, Debug, Clone, Copy, PartialEq, Eq)]
@@ -439,6 +461,9 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
             opts,
         ),
         ConduitosCommand::LiveOwnerActionProof(args) => owner_action_proof::execute(&args, opts),
+        ConduitosCommand::LiveOwnerTodoFaceProof(args) => {
+            owner_action_proof::execute_todo_face(&args, opts)
+        }
         ConduitosCommand::LiveThreeHostProof(args) => three_host_proof::execute(&args, opts),
         ConduitosCommand::ScreenFreeThreeHostProof(args) => {
             screen_free_three_host_proof::execute(&args, opts)

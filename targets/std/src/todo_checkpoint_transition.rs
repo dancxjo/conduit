@@ -6,7 +6,7 @@ use std::path::Path;
 impl StdHost {
     /// Replace one selected Todo checkpoint generation while retaining this
     /// Host Boot's Play and Sign cursors. Only the exact scoped reference Todo
-    /// profile is eligible; selected spoken output remains bound to this Boot.
+    /// profile is eligible; selected spoken output and model remain bound to this Boot.
     /// Other initialized equipment is refused unchanged.
     /// The caller must plan again against the returned advertisement.
     pub fn transition_todo_checkpoint_offer(
@@ -32,7 +32,6 @@ impl StdHost {
         if self.image_identity.is_some()
             || self.midi_input.is_some()
             || self.midi_output.is_some()
-            || self.local_model.is_some()
             || self.speech_recognition.is_some()
             || self.microphone.is_some()
             || !self.base_registry.entries().is_empty()

@@ -86,10 +86,10 @@ export function assembleSite(directory, sourceCommit, workspace = 'target/worksp
     const html = readFileSync(landing, 'utf8');
     const anchor = '<!-- conduit-three-body-flagship@2 -->';
     if (!html.includes(anchor)) throw new Error('Journeys catalogue has no Todo development card seam');
-    const card = '<article class="journey-card"><p class="eyebrow">Live development step</p>'
-      + '<h2>Add to a Todo Body</h2><p>See a real browser Add action and the changed checklist'
-      + ' on the same installed Body. The captured browser runtime predates the owner and UI.</p>'
-      + '<a href="development/todo-browser/">See the captured step</a></article>';
+    const card = '<article class="journey-card"><p class="eyebrow">Live development steps</p>'
+      + '<h2>Grow a Todo Body across Masks</h2><p>Watch a browser Add an item, then see the same'
+      + ' Body after terminal actions leave three items open and seventeen complete.</p>'
+      + '<a href="development/todo-browser/">See the captured steps</a></article>';
     writeFileSync(landing, html.replace(anchor, `${card}${anchor}`));
   }
   if (directSpokenDevelopment) {
@@ -159,6 +159,8 @@ export function assembleSite(directory, sourceCommit, workspace = 'target/worksp
     todoBrowserDevelopment: {
       captureSourceCommit: todoBrowserDevelopment.sourceCommit,
       browserRuntimeSourceCommit: todoBrowserDevelopment.browserRuntimeCommit,
+      longListActionsSourceCommit: todoBrowserDevelopment.longListActionsCommit,
+      longListBrowserSourceCommit: todoBrowserDevelopment.longListBrowserCommit,
       publicationSourceCommit: sourceCommit, bodyId: todoBrowserDevelopment.bodyId,
       path: 'journeys/development/todo-browser/', proof: 'retained-cross-source-browser-add',
     },

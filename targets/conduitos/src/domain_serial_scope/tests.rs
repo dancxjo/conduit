@@ -247,3 +247,78 @@ fn presentation_completion_envelope_is_independent_of_semantic_output() {
     let binding = RegionBinding::admit(&plan, &active, &binding.region, binding.domain).unwrap();
     assert!(SerialScope::admit(&plan, &binding, &fixed).is_err());
 }
+
+#[test]
+fn tour_timer_count_scope_distinguishes_semantic_value_and_physical_digits() {
+    let (_, _, fixed) = fixture();
+    let ids = BootIdentities {
+        host: fixed.host_id,
+        boot: fixed.boot_id,
+    };
+    let prepared = crate::tour_timer_plan::prepare(&ids, &fixed, "build").unwrap();
+    let fragment = &prepared.plan.fragments[0];
+    let binding = RegionBinding::admit(
+        &prepared.plan,
+        &prepared.active_play,
+        &fragment.execution_regions[0].region_id,
+        ProtectionDomainId(3),
+    )
+    .unwrap();
+    let count = SerialScope::admit_count(&prepared.plan, &binding, &fixed).unwrap();
+    let placement = fragment
+        .placements
+        .iter()
+        .find(|p| p.kind_id.as_str() == conduit_semantic_catalog::COUNT_PRESENTATION_KIND)
+        .unwrap();
+    assert_eq!(placement.host_calls[0].maximum_input_bytes, 8);
+    assert_eq!(
+        placement.host_calls[0].maximum_output_bytes,
+        conduit_core::MAX_PRESENTATION_COMPLETION_BYTES
+    );
+    assert_eq!(count.scope.maximum_parameter_bytes, 20);
+    assert_eq!(count.scope.maximum_operations, 2);
+    assert_eq!(count.scope.maximum_in_flight, 1);
+    assert_eq!(count.scope.operation, COUNT_PRESENT_OPERATION);
+    assert_eq!(count.current(&binding, Some(1)), Ok(count.scope));
+    for generation in [None, Some(0), Some(2)] {
+        assert_eq!(
+            count.current(&binding, generation),
+            Err(DomainRefusal::WrongBinding)
+        );
+    }
+    use crate::protection_domain::{
+        KernelCapabilityRefusal, KernelCapabilityTable, KernelOperationClaim,
+    };
+    let mut table = KernelCapabilityTable::new(31).unwrap();
+    let handle = table.issue(binding.domain, count.scope).unwrap();
+    let claim = KernelOperationClaim {
+        boot: count.scope.boot,
+        plan: count.scope.plan,
+        play: count.scope.play,
+        base_generation: count.scope.base_generation,
+        resource_generation: count.scope.resource_generation,
+        operation: COUNT_PRESENT_OPERATION,
+        parameter_bytes: 20,
+        work_units: 1,
+    };
+    let mut excessive = claim;
+    excessive.parameter_bytes = 21;
+    assert_eq!(
+        table.authorize_current(binding.domain, handle, &count.scope, excessive),
+        Err(KernelCapabilityRefusal::ParameterEnvelope)
+    );
+    for _ in 0..2 {
+        let lease = table
+            .authorize_current(binding.domain, handle, &count.scope, claim)
+            .unwrap();
+        assert_eq!(
+            table.authorize_current(binding.domain, handle, &count.scope, claim),
+            Err(KernelCapabilityRefusal::InFlightFull)
+        );
+        table.complete(lease).unwrap();
+    }
+    assert_eq!(
+        table.authorize_current(binding.domain, handle, &count.scope, claim),
+        Err(KernelCapabilityRefusal::Exhausted)
+    );
+}

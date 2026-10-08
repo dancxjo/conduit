@@ -5,7 +5,16 @@ import path from 'node:path';
 
 export const TODO_BROWSER_DEVELOPMENT_ROOT = 'site/evidence/todo-browser-development';
 const FILES = ['browser-after.png', 'browser-before.png', 'browser-card-after.png',
-  'browser-full-after.png', 'index.html', 'read-only-card-receipt.json', 'receipt.json'];
+  'browser-full-after.png', 'index.html', 'long-list-browser-receipt.json',
+  'long-list-requested-detail-playback.json', 'long-list-requested-detail-proof.json',
+  'long-list-requested-detail-same-play.wav', 'long-list-requested-detail-turn.json',
+  'long-list-spoken-proof.json', 'long-list-spoken-same-play.wav',
+  'long-list-spoken-status.json', 'long-list-terminal-summary.json',
+  'read-only-card-receipt.json', 'receipt.json',
+  'todo-20-card.png', 'todo-20-full.png', 'todo-native-acknowledged.png',
+  'todo-native-acknowledged-provenance.json', 'todo-native-acknowledged-receipt.json',
+  'todo-native-fork-label.json',
+  'todo-native-read-only-receipt.json', 'todo-native-read-only.png'];
 const sha = bytes => `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
 const commit = value => /^[a-f0-9]{40}$/.test(value ?? '');
 
@@ -41,6 +50,17 @@ export function retainedTodoBrowserDevelopmentEvidence(root = TODO_BROWSER_DEVEL
   const actionBytes = bytes('receipt.json');
   const action = JSON.parse(actionBytes);
   const card = JSON.parse(bytes('read-only-card-receipt.json'));
+  const longList = JSON.parse(bytes('long-list-terminal-summary.json'));
+  const longListBrowser = JSON.parse(bytes('long-list-browser-receipt.json'));
+  const spoken = JSON.parse(bytes('long-list-spoken-proof.json'));
+  const spokenStatus = JSON.parse(bytes('long-list-spoken-status.json'));
+  const detail = JSON.parse(bytes('long-list-requested-detail-proof.json'));
+  const detailPlay = JSON.parse(bytes('long-list-requested-detail-playback.json'));
+  const detailTurn = JSON.parse(bytes('long-list-requested-detail-turn.json'));
+  const native = JSON.parse(bytes('todo-native-read-only-receipt.json'));
+  const nativeFork = JSON.parse(bytes('todo-native-fork-label.json'));
+  const nativeAcknowledged = JSON.parse(bytes('todo-native-acknowledged-receipt.json'));
+  const nativeAcknowledgedProvenance = JSON.parse(bytes('todo-native-acknowledged-provenance.json'));
   if (!commit(publicationCommit) || !commit(action.owner_source_commit)
       || !commit(action.browser_runtime_source_commit)
       || action.schema !== 'conduit.proof/todo-owner-browser@1'
@@ -61,7 +81,141 @@ export function retainedTodoBrowserDevelopmentEvidence(root = TODO_BROWSER_DEVEL
       || card.original_receipt_sha256 !== sha(actionBytes)) {
     throw new Error('Todo browser development receipts do not describe one truthful Add');
   }
-  for (const source of [action.owner_source_commit, action.browser_runtime_source_commit]) {
+  if (longList.schema !== 'conduit.proof/todo-long-list-terminal@1'
+      || longListBrowser.schema !== 'conduit.proof/todo-owner-browser-long-list@1'
+      || longList.body_id !== action.body_id || longListBrowser.body_id !== action.body_id
+      || !commit(longList.owner_source_commit)
+      || longListBrowser.terminal_actions_source_identity !== longList.owner_source_commit
+      || !commit(longListBrowser.owner_source_identity)
+      || longListBrowser.owner_source_identity !== longListBrowser.browser_source_identity
+      || longListBrowser.source_relation !== 'exact-source'
+      || longListBrowser.open !== 3 || longListBrowser.completed !== 17
+      || longListBrowser.item_count !== 20 || longList.open !== 3
+      || longList.completed !== 17 || longList.status !== '3 things left · 17 completed'
+      || longList.action_count !== 19
+      || !Array.isArray(longList.items) || longList.items.length !== 20
+      || longList.items.filter(item => item.complete === true).length !== 17
+      || longList.items.filter(item => item.complete === false).length !== 3
+      || !longListBrowser.browser_face_id
+      || Number(longListBrowser.browser_face_revision) <= Number(longList.face_revision)
+      || !Array.isArray(longListBrowser.errors) || longListBrowser.errors.length !== 0) {
+    throw new Error('Todo long-list evidence lacks one matching Body and exact browser rejoin');
+  }
+  const speechBatch = spokenStatus.speaker_playback?.batches?.[0];
+  const wav = bytes('long-list-spoken-same-play.wav');
+  if (spoken.body_id !== action.body_id || !commit(spoken.source_identity)
+      || spoken.source_identity !== '801c83b46cb46296f0a198df2b0b7538bada09c3'
+      || spoken.face_id !== spokenStatus.source_face_id
+      || spoken.show_id !== spokenStatus.show_id
+      || spoken.mask_plan_id !== spokenStatus.route_plan_id
+      || spoken.mask_play_id !== spokenStatus.active_play_id
+      || spoken.speaker_plan_id !== speechBatch?.plan_id
+      || spoken.speaker_play_id !== speechBatch?.play_id
+      || spoken.spoken_words !== spokenStatus.direct_opening_wording
+      || spoken.spoken_words !== speechBatch.spoken_segments.join('')
+      || spoken.speaker_outcome !== 'completed'
+      || spokenStatus.direct_reading_complete !== true
+      || spokenStatus.speaker_playback?.completed_batch_count !== 1
+      || spokenStatus.speaker_playback?.source_show_id !== spoken.show_id
+      || spoken.speaker_frames_committed !== speechBatch.speaker_frames_committed
+      || spoken.speaker_wav_sha256 !== sha(wav).slice(7)
+      || speechBatch.wav_sha256 !== spoken.speaker_wav_sha256
+      || wav.toString('ascii', 0, 4) !== 'RIFF'
+      || wav.toString('ascii', 8, 12) !== 'WAVE'
+      || wav.readUInt32LE(24) !== 48000 || wav.readUInt16LE(22) !== 2
+      || wav.readUInt16LE(34) !== 16 || wav.length !== speechBatch.wav_bytes) {
+    throw new Error('Todo spoken evidence is not one completed selected-speaker Play');
+  }
+  const detailWav = bytes('long-list-requested-detail-same-play.wav');
+  if (detail.body_id !== action.body_id || !commit(detail.release_source_identity)
+      || detail.release_source_identity !== 'c49b89b58170762299cbceb36c4e52ea7d71eb9b'
+      || detail.boot_id === spoken.boot_id || detail.face_id === spoken.face_id
+      || detail.face_id !== detailPlay.face_id || detail.face_id !== detailTurn.face_id
+      || detail.face_revision !== detailTurn.face_revision
+      || detail.show_id !== detailPlay.source_show_id
+      || detail.show_id !== detailTurn.source_show_id
+      || detail.speech_plan_id !== detailPlay.plan_id
+      || detail.speech_play_id !== detailPlay.play_id
+      || detailPlay.outcome !== 'Completed' || detailTurn.outcome !== 'Completed'
+      || detailTurn.completed_segments !== 3
+      || detail.words.join(',') !== detailPlay.spoken_segments.map(segment => segment.text).join(',')
+      || detailPlay.spoken_segments.at(-1)?.reason !== 'final-flush'
+      || detail.speaker_frames_committed !== detailPlay.speaker_frames_committed
+      || detail.same_play_wav_sha256 !== sha(detailWav).slice(7)
+      || detail.same_play_wav_sha256 !== detailPlay.same_play_capture?.wav_sha256
+      || detailWav.toString('ascii', 0, 4) !== 'RIFF'
+      || detailWav.toString('ascii', 8, 12) !== 'WAVE'
+      || detailWav.readUInt32LE(24) !== 48000 || detailWav.readUInt16LE(22) !== 2
+      || detailWav.readUInt16LE(34) !== 16
+      || detailWav.length !== detailPlay.same_play_capture?.wav_bytes) {
+    throw new Error('Todo requested detail is not one completed same-Body speaker Play');
+  }
+  const nativePng = bytes('todo-native-read-only.png');
+  const nativeImage = native.screenshots?.[0];
+  if (native.schema !== 'conduit.conduitos/native-todo-face-proof@1'
+      || native.proof_class !== 'live-local-qmp-installed-owner-read-only'
+      || nativeFork.schema !== 'conduit.proof/todo-native-fork-label@1'
+      || nativeFork.proof_class !== 'forked-state-copy-local-qmp'
+      || native.guest_part?.body_id !== action.body_id
+      || nativeFork.body_id !== action.body_id
+      || !commit(native.source_commit) || !commit(nativeFork.harness_source_commit)
+      || native.source_commit !== nativeFork.product_source_commit
+      || native.owner_todo_face?.body_id !== action.body_id
+      || native.owner_todo_face?.face_id !== native.face_shown?.face_id
+      || native.owner_todo_face?.face_revision !== native.face_shown?.face_revision
+      || native.owner_todo_face?.item_count !== 20
+      || native.owner_todo_face?.status !== '3 things left · 17 completed'
+      || native.face_shown?.status !== 'shown'
+      || native.face_shown?.local_show_available !== true
+      || native.face_shown?.owner_show_acknowledged !== false
+      || native.face_shown?.interactions_admitted !== false
+      || native.native_return_route_available !== false
+      || native.interactions_admitted !== false || native.mutations !== 0
+      || nativeFork.native_actions !== 0
+      || nativeFork.owner_return_route_available !== false
+      || nativeFork.original_checkpoint_hash_mismatches !== 0
+      || native.qemu_alive_at_capture !== true
+      || nativeImage?.png !== 'owner-standby.png'
+      || nativeImage?.png_sha256 !== sha(nativePng).slice(7)
+      || nativeImage?.png_bytes !== nativePng.length
+      || nativeImage?.width !== 1280 || nativeImage?.height !== 800) {
+    throw new Error('Todo native QMP evidence is not a matching read-only forked Face');
+  }
+  const acknowledgedPng = bytes('todo-native-acknowledged.png');
+  const acknowledgedImage = nativeAcknowledged.screenshots?.find(image => image.checkpoint === 'owner-before');
+  if (nativeAcknowledged.schema !== 'conduit.conduitos/native-todo-face-proof@1'
+      || nativeAcknowledged.proof_class !== 'live-local-qmp-installed-owner-read-only'
+      || nativeAcknowledgedProvenance.schema !== 'conduit.proof/todo-native-fork4-provenance@1'
+      || nativeAcknowledgedProvenance.proof_class !== 'forked-state-copy-live-local-qmp-read-only'
+      || nativeAcknowledged.source_commit !== nativeAcknowledgedProvenance.product_source_commit
+      || nativeAcknowledged.guest_part?.body_id !== action.body_id
+      || nativeAcknowledged.owner_todo_face?.body_id !== action.body_id
+      || nativeAcknowledged.owner_todo_face?.face_id !== nativeAcknowledged.face_shown?.face_id
+      || nativeAcknowledged.owner_todo_face?.face_revision !== nativeAcknowledged.face_shown?.face_revision
+      || nativeAcknowledged.owner_todo_face?.item_count !== 20
+      || nativeAcknowledged.owner_todo_face?.status !== '3 things left · 17 completed'
+      || nativeAcknowledged.face_shown?.continuing_owner_route !== true
+      || nativeAcknowledged.face_shown?.interactions_admitted !== true
+      || nativeAcknowledged.show_ack?.status !== 'acknowledged'
+      || nativeAcknowledged.show_ack?.show_id !== nativeAcknowledged.face_shown?.show_id
+      || nativeAcknowledgedProvenance.acknowledged_show_id !== nativeAcknowledged.show_ack?.show_id
+      || nativeAcknowledgedProvenance.owner_face_id !== nativeAcknowledged.owner_todo_face?.face_id
+      || nativeAcknowledgedProvenance.guest_boot_id !== nativeAcknowledged.guest_part?.boot_id
+      || nativeAcknowledgedProvenance.selected_checkpoint_root_isolated !== false
+      || nativeAcknowledgedProvenance.checkpoint_snapshot_selected !== false
+      || nativeAcknowledgedProvenance.original_checkpoint_hash_mismatches_after_proof !== 0
+      || nativeAcknowledged.mutations !== 0 || nativeAcknowledgedProvenance.native_actions !== 0
+      || nativeAcknowledged.qemu_alive_at_capture !== true
+      || acknowledgedImage?.png_sha256 !== sha(acknowledgedPng).slice(7)
+      || nativeAcknowledgedProvenance.qmp_screenshot_sha256 !== sha(acknowledgedPng)
+      || acknowledgedImage?.png_bytes !== acknowledgedPng.length
+      || acknowledgedImage?.width !== 1280 || acknowledgedImage?.height !== 800) {
+    throw new Error('Todo acknowledged native Show evidence is not an exact-source read-only fork');
+  }
+  for (const source of [action.owner_source_commit, action.browser_runtime_source_commit,
+    longList.owner_source_commit, longListBrowser.owner_source_identity, spoken.source_identity,
+    detail.release_source_identity, native.source_commit, nativeFork.harness_source_commit,
+    nativeAcknowledged.source_commit]) {
     try { execFileSync('git', ['merge-base', '--is-ancestor', source, publicationCommit]); }
     catch (cause) {
       throw new Error(`Todo browser capture ancestry check failed: ${source} -> ${publicationCommit}; status=${cause.status ?? cause.code ?? "unknown"}, signal=${cause.signal ?? "none"}; ${cause.message}; context=${ancestryContext(source, publicationCommit)}`, { cause });
@@ -76,17 +230,30 @@ export function retainedTodoBrowserDevelopmentEvidence(root = TODO_BROWSER_DEVEL
     if (card.screenshots?.[name] && card.screenshots[name] !== sha(image)) {
       throw new Error(`Todo browser card capture differs from its receipt: ${name}`);
     }
+    if (longListBrowser.screenshots?.[name] && longListBrowser.screenshots[name] !== sha(image)) {
+      throw new Error(`Todo browser long-list capture differs from its receipt: ${name}`);
+    }
   }
   if (action.screenshots?.join(',') !== 'browser-before.png,browser-after.png'
       || !card.screenshots?.['browser-card-after.png']
-      || !card.screenshots?.['browser-full-after.png']) {
+      || !card.screenshots?.['browser-full-after.png']
+      || !longListBrowser.screenshots?.['todo-20-card.png']
+      || !longListBrowser.screenshots?.['todo-20-full.png']) {
     throw new Error('Todo browser receipts omit captured images');
   }
   const page = bytes('index.html').toString('utf8');
   if (!page.includes('cross-source development evidence')
-      || !page.includes('This run proves one browser Add action')
+      || !page.includes('proves one browser Add action')
       || !page.includes(action.owner_source_commit.slice(0, 9))
-      || !page.includes(action.browser_runtime_source_commit.slice(0, 9))) {
+      || !page.includes(action.browser_runtime_source_commit.slice(0, 9))
+      || !page.includes(longList.owner_source_commit.slice(0, 9))
+      || !page.includes(longListBrowser.owner_source_identity.slice(0, 9))
+      || !page.includes(spoken.source_identity.slice(0, 9))
+      || !page.includes(detail.release_source_identity.slice(0, 9))
+      || !page.includes(native.source_commit.slice(0, 9))
+      || !page.includes(nativeAcknowledged.source_commit.slice(0, 9))
+      || !page.includes(nativeFork.harness_source_commit.slice(0, 9))
+      || !page.includes('This WAV captures the audio delivered by the completed selected-speaker Play')) {
     throw new Error('Todo browser development page overclaims its capture');
   }
   for (const [, reference] of page.matchAll(/\b(?:href|src)="([^"]+)"/g)) {
@@ -97,5 +264,10 @@ export function retainedTodoBrowserDevelopmentEvidence(root = TODO_BROWSER_DEVEL
     }
   }
   return { root, sourceCommit: action.owner_source_commit,
-    browserRuntimeCommit: action.browser_runtime_source_commit, bodyId: action.body_id };
+    browserRuntimeCommit: action.browser_runtime_source_commit, bodyId: action.body_id,
+    longListActionsCommit: longList.owner_source_commit,
+    longListBrowserCommit: longListBrowser.owner_source_identity,
+    spokenCommit: spoken.source_identity, detailCommit: detail.release_source_identity,
+    nativeCommit: native.source_commit, nativeHarnessCommit: nativeFork.harness_source_commit,
+    nativeAcknowledgedCommit: nativeAcknowledged.source_commit };
 }

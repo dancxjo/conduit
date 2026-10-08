@@ -9,8 +9,8 @@ use std::collections::BTreeMap;
 
 use conduit_core::{AuthorityGrant, BaseImplementationId, ConnectionTrack, Plan, PortDirection};
 use conduit_planner::{
-    default_expanded_placements, plan_expanded_authoring_with_options, ConnectionQueueLimits,
-    ForeBoundaryKey, PlanningOptions,
+    default_expanded_placements, plan_expanded_authoring_with_connection_limits,
+    ConnectionQueueLimits, ForeBoundaryKey, PlanningOptions,
 };
 use conduit_plot::{
     check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
@@ -54,6 +54,37 @@ impl crate::StdHost {
         let hosts = [self.advertisement().clone()];
         let placements = default_expanded_placements(&authoring.expanded, &hosts)
             .map_err(|error| format!("place direct spoken Mask: {error:?}"))?;
+        let face_bytes = u32::try_from(
+            serde_json::to_vec(face)
+                .map_err(|error| format!("encode direct spoken Face: {error}"))?
+                .len(),
+        )
+        .map_err(|_| "direct spoken Face exceeds one Cord".to_string())?;
+        let face_connection_limits: BTreeMap<_, _> = authoring
+            .expanded
+            .connections
+            .iter()
+            .filter(|connection| {
+                connection.value_kind.as_str() == conduit_presentation::PRESENTATION_VALUE_KIND
+            })
+            .map(|connection| {
+                (
+                    (
+                        connection.source_gear_id.clone(),
+                        connection.source_port_id.clone(),
+                        connection.sink_gear_id.clone(),
+                        connection.sink_port_id.clone(),
+                    ),
+                    ConnectionQueueLimits {
+                        item_capacity: 1,
+                        byte_capacity: face_bytes,
+                    },
+                )
+            })
+            .collect();
+        if face_connection_limits.len() != 2 {
+            return Err("direct spoken Mask needs its two exact Face Cords".into());
+        }
         let boundary_limits = authoring
             .front
             .inputs()
@@ -84,7 +115,7 @@ impl crate::StdHost {
             self.spoken_mask_artifact_authority_grant("grant/owner-direct-speech/artifact")?,
             self.streaming_speech_authority_grant()?,
         ];
-        let plan = plan_expanded_authoring_with_options(
+        let plan = plan_expanded_authoring_with_connection_limits(
             &authoring,
             &hosts,
             &placements,
@@ -98,6 +129,7 @@ impl crate::StdHost {
                 protected_resource_grants: &[],
                 line_offers: &[],
             },
+            &face_connection_limits,
             &boundary_limits,
         )
         .map_err(|error| format!("plan direct spoken Mask: {error:?}"))?;

@@ -22,7 +22,16 @@ pub mod cryptographic_entropy;
 pub mod current_sample;
 pub mod display;
 pub mod domain_image;
+#[cfg(any(target_os = "none", all(target_arch = "x86", target_os = "linux")))]
+#[path = "../domain/layout.rs"]
+pub(crate) mod domain_layout;
+#[cfg(test)]
+#[path = "../domain/memory_words.rs"]
+mod domain_memory_words;
+mod domain_scope_identity;
 pub mod domain_serial_scope;
+pub mod domain_timer_gate;
+pub mod domain_timer_scope;
 pub mod dual_region_composition;
 pub mod dual_region_kernel;
 pub mod dual_region_plan;
@@ -145,6 +154,8 @@ pub mod protected_line_support;
 pub mod protected_region;
 #[cfg(feature = "native-owner-network")]
 pub mod protected_relay_support;
+#[cfg(conduitos_protected_execution)]
+mod protected_timer;
 pub mod protected_wire_session;
 pub mod protection_domain;
 mod protocol_call_refusal;
@@ -288,6 +299,7 @@ pub mod text_planned_kernel;
 mod text_protection;
 mod text_transform;
 pub mod text_upper;
+pub mod timer_duration;
 #[cfg(any(test, target_arch = "x86_64"))]
 pub mod timer_nucleus;
 mod timing_plan;
@@ -307,6 +319,10 @@ pub mod tour_shell;
 mod tour_timer_kernel;
 mod tour_timer_offer;
 pub mod tour_timer_plan;
+#[cfg(not(conduitos_protected_execution))]
+mod tour_timer_play;
+#[cfg(conduitos_protected_execution)]
+#[path = "protected_timer_play.rs"]
 mod tour_timer_play;
 mod tour_two_host;
 mod tour_two_host_kernel;

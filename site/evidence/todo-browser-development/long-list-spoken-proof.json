@@ -1,0 +1,17 @@
+{
+  "source_identity": "801c83b46cb46296f0a198df2b0b7538bada09c3",
+  "body_id": "335e956d4370f3373b62cdef8a6990b4a1ed414cd693f3d8ee92403b5fcff287",
+  "host_id": "host/installed/df02b1cb1afdad1f94980315da6114c5810de1f057e61bf7041172f71a3c834b",
+  "boot_id": "boot/installed/fcc798cb9ea3bdefcb447dc066830eed9a99e0633bc917d7f389e869b38f1932",
+  "face_id": "b6555069980eb4eebcd67f5550de59779a1e2a7ee4db3dff91459ab5068e7d04",
+  "show_id": "show/c57032a701d212ddcd8fbc7ebe6b7af5f168e9801706057d849dd7c2d9322e82",
+  "mask_plan_id": "plan/local-owner-mask/40b4cae1b51853be2f683011a95b7fad0032090094b897dba71323e0dc5f30b4",
+  "mask_play_id": "4bc715963afafeff92c1c6288b3c29504cbea94fd4c7426dec860d2c92f5a8f2",
+  "speaker_plan_id": "1085c4071c64ce759919991f9117dae9f0039e6884d09f2f7db04ce5d5029ecc",
+  "speaker_play_id": "fcdaddee59ddf2279109fd301778469da137f6299d125240f333d034d3759516",
+  "spoken_words": "Groceries. 3 things left \u00b7 17 completed Long-list item 18. Long-list item 19. Long-list item 20.",
+  "speaker_wav": "/home/dancxjo/Documents/Codex/2026-10-08/todo-same-body-speech-801c83b46/direct-selected-speaker-same-play.wav",
+  "speaker_wav_sha256": "92bd04c42459f4beec8f1c7eae377996ccb06ec9716ad7f9379dfe2a65981506",
+  "speaker_frames_committed": 368207,
+  "speaker_outcome": "completed"
+}

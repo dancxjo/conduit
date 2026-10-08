@@ -743,6 +743,62 @@ fn fixture_batch_receipt(batch: &SpokenBatch) -> SpokenBatchAudioReceipt {
 }
 
 #[test]
+fn requested_items_close_before_later_non_item_face_clauses() {
+    let (base, _) = face_with_action();
+    let mut subjects = base.subjects;
+    let mut disclosures = base.disclosures;
+    for number in 18..=20 {
+        let identity = format!("todo/item/{number}");
+        subjects.push(PresentationSubject {
+            identity: identity.clone(),
+            role: PresentationRole::Item,
+            name: format!("Long-list item {number}"),
+        });
+        disclosures.push(PresentationDisclosure {
+            subject: identity,
+            level: PresentationDisclosureLevel::Primary,
+        });
+    }
+    let face = Presentation::new_with_semantics(
+        base.revision + 1,
+        base.basis,
+        subjects,
+        base.relationships,
+        base.properties,
+        base.text,
+        base.actions,
+        disclosures,
+    )
+    .unwrap();
+    let show = common::available_mask_show(&face);
+    let mut reader = SpokenFaceSession::new(face.clone(), show.clone()).unwrap();
+    reader
+        .command(&face, &show, ReaderCommand::ReadCurrentItems, 1)
+        .unwrap();
+
+    let batch = reader.next_batch_with_limits(4, 64).unwrap().unwrap();
+    assert_eq!(batch.segments.len(), 3);
+    for (number, segment) in (18..=20).zip(&batch.segments) {
+        assert!(segment
+            .segment
+            .text
+            .contains(&format!("Long-list item {number}")));
+    }
+    assert_eq!(
+        batch.segments.last().unwrap().segment.reason,
+        SpeechCommitReason::FinalFlush
+    );
+    let turn = reader
+        .acknowledge_batch(SpokenBatchDelivery::Completed(fixture_batch_receipt(
+            &batch,
+        )))
+        .unwrap()
+        .unwrap();
+    assert_eq!(turn.outcome, SpokenTurnOutcome::Completed);
+    assert!(reader.next_batch_with_limits(4, 64).unwrap().is_none());
+}
+
+#[test]
 fn smaller_closing_flows_preserve_all_face_text_and_cancel_between_batches() {
     let (face, show) = face_with_action();
     let mut reference = SpokenFaceSession::new(face.clone(), show.clone()).unwrap();
