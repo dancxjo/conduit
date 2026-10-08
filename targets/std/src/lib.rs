@@ -111,6 +111,7 @@ pub mod hosted_model_compute;
 pub mod hosted_network;
 pub mod hosted_reminder;
 pub mod hosted_resource;
+pub mod todo_durable_resource;
 pub mod hosted_speech_recognition;
 pub mod hosted_speech_synthesis;
 mod hosted_spoken_output_host;
