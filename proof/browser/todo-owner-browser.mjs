@@ -159,7 +159,7 @@ try {
     await page.waitForFunction(() => {
       const view = globalThis.__conduitOwnerParticipation.face();
       return view?.show_state === 'available' && view.interactions_admitted
-        && view.actions.some(action => action.identity === 'todo.add' && action.availability === 'Available')
+        && view.actions.some(action => action.identity === 'todo.add' && action.availability === 'available')
         && document.querySelector('[data-owner-show-acknowledged]')?.dataset.ownerShowAcknowledged === view.show_id;
     }, null, { timeout: 12_000 });
     return page.evaluate(() => globalThis.__conduitOwnerParticipation.face());
