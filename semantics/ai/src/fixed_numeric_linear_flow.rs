@@ -231,3 +231,14 @@ pub fn install_linear_flow_catalogs(
     }
     Ok(())
 }
+
+impl<const INPUT: usize, const OUTPUT: usize> FixedLinearFlowBack<INPUT, OUTPUT> {
+    /// Retained requested local payload capacity. Shared tensor/model Arc owners,
+    /// Box root, Arc headers, allocator bookkeeping and stack are separate charges.
+    pub fn local_accounted_heap_bytes(&self) -> usize {
+        0usize
+            .saturating_add(self.input.local_accounted_heap_bytes())
+            .saturating_add(self.output.local_accounted_heap_bytes())
+            .saturating_add(self.weights.local_accounted_heap_bytes())
+    }
+}

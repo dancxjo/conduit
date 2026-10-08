@@ -435,3 +435,38 @@ impl<const ROWS: usize, const WIDTH: usize, const PORTS: usize> StepBack<PORTS>
         self.state.cancel();
     }
 }
+
+impl<const WIDTH: usize> FixedTanhBack<WIDTH> {
+    /// Retained requested local payload capacity. Shared tensor/model Arc owners,
+    /// Box root, Arc headers, allocator bookkeeping and stack are separate charges.
+    pub fn local_accounted_heap_bytes(&self) -> usize {
+        0usize
+            .saturating_add(self.input.local_accounted_heap_bytes())
+            .saturating_add(self.output.local_accounted_heap_bytes())
+    }
+}
+
+impl<const LEFT: usize, const RIGHT: usize, const OUTPUT: usize>
+    FixedConcatenateBack<LEFT, RIGHT, OUTPUT>
+{
+    /// Retained requested local payload capacity. Shared tensor/model Arc owners,
+    /// Box root, Arc headers, allocator bookkeeping and stack are separate charges.
+    pub fn local_accounted_heap_bytes(&self) -> usize {
+        0usize
+            .saturating_add(self.left.local_accounted_heap_bytes())
+            .saturating_add(self.right.local_accounted_heap_bytes())
+            .saturating_add(self.output.local_accounted_heap_bytes())
+    }
+}
+
+impl<'a, const ROWS: usize, const WIDTH: usize> FixedEmbeddingBack<'a, ROWS, WIDTH> {
+    /// Retained requested local payload capacity. Shared tensor/model Arc owners,
+    /// Box root, Arc headers, allocator bookkeeping and stack are separate charges.
+    pub fn local_accounted_heap_bytes(&self) -> usize {
+        0usize
+            .saturating_add(self.binding.local_accounted_heap_bytes())
+            .saturating_add(self.output.local_accounted_heap_bytes())
+            .saturating_add(self.access.handle.owned_heap_bytes())
+            .saturating_add(self.access.authority_grant.owned_heap_bytes())
+    }
+}

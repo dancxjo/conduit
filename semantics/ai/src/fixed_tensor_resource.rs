@@ -116,3 +116,54 @@ impl<'a> FixedTensorView<'a> {
         }
     }
 }
+
+/// Requested payload capacities owned by a full tensor descriptor. Inline root,
+/// shared Arc allocation headers and allocator bookkeeping are separate charges.
+/// Spare sequence slots are included; child strings are counted for live entries.
+pub fn tensor_descriptor_owned_heap_bytes(tensor: &TensorValue) -> usize {
+    use conduit_data::{TensorAxis, TensorAxisRole, TensorBacking};
+    let mut bytes = tensor
+        .axes
+        .allocated_capacity()
+        .saturating_mul(core::mem::size_of::<TensorAxis>())
+        .saturating_add(
+            tensor
+                .dimensions
+                .allocated_capacity()
+                .saturating_mul(core::mem::size_of::<u64>()),
+        );
+    for axis in &tensor.axes {
+        bytes = bytes.saturating_add(axis.identity.as_ref().map_or(0, |s| s.capacity()));
+        if let TensorAxisRole::Other(role) = &axis.role {
+            bytes = bytes.saturating_add(role.identity().capacity());
+        }
+    }
+    match &tensor.backing {
+        TensorBacking::Inline(content) => bytes.saturating_add(content.as_slice().len()),
+        TensorBacking::Resource(reference) => bytes
+            .saturating_add(reference.content_profile.owned_heap_bytes())
+            .saturating_add(reference.access_class.owned_heap_bytes())
+            .saturating_add(
+                reference
+                    .lifetime
+                    .expires_at
+                    .as_ref()
+                    .map_or(0, |time| time.clock_basis.capacity()),
+            ),
+    }
+}
+#[cfg(target_has_atomic = "ptr")]
+impl AdmittedFixedTensorResource {
+    pub fn descriptor_owned_heap_bytes(&self) -> usize {
+        tensor_descriptor_owned_heap_bytes(&self.tensor)
+    }
+    pub fn access_owned_heap_bytes(&self) -> usize {
+        self.access
+            .handle
+            .owned_heap_bytes()
+            .saturating_add(self.access.authority_grant.owned_heap_bytes())
+    }
+    pub fn shares_descriptor_with(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.tensor, &other.tensor)
+    }
+}

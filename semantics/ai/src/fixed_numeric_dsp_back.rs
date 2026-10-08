@@ -178,3 +178,18 @@ impl<const IN: usize, const OUT: usize, const PORTS: usize> StepBack<PORTS>
         self.staged = false;
     }
 }
+
+impl<const IN: usize, const OUT: usize> FixedDspBack<IN, OUT> {
+    /// Retained requested local payload capacity. Shared tensor/model Arc owners,
+    /// Box root, Arc headers, allocator bookkeeping and stack are separate charges.
+    pub fn local_accounted_heap_bytes(&self) -> usize {
+        0usize
+            .saturating_add(self.input.local_accounted_heap_bytes())
+            .saturating_add(self.output.local_accounted_heap_bytes())
+            .saturating_add(
+                self.right
+                    .as_ref()
+                    .map_or(0, |v| v.local_accounted_heap_bytes()),
+            )
+    }
+}

@@ -158,3 +158,11 @@ fn digest(
     }
     .map_err(|_| FixedBindingRefusal::Encoding)
 }
+
+impl FixedTensorPortBinding {
+    /// Retained requested local payload capacity. Shared tensor/model Arc owners,
+    /// Box root, Arc headers, allocator bookkeeping and stack are separate charges.
+    pub fn local_accounted_heap_bytes(&self) -> usize {
+        self.encoded.capacity()
+    }
+}

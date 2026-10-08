@@ -213,3 +213,21 @@ impl<const INPUT: usize, const OUTPUT: usize, const PORTS: usize> StepBack<PORTS
         self.cancelled = true;
     }
 }
+
+impl<const INPUT: usize, const OUTPUT: usize> FixedCompactBack<INPUT, OUTPUT> {
+    /// Retained requested local payload capacity. Shared tensor/model Arc owners,
+    /// Box root, Arc headers, allocator bookkeeping and stack are separate charges.
+    pub fn local_accounted_heap_bytes(&self) -> usize {
+        self.input
+            .local_accounted_heap_bytes()
+            .saturating_add(self.output.local_accounted_heap_bytes())
+            .saturating_add(
+                self.resources
+                    .capacity()
+                    .saturating_mul(core::mem::size_of::<(PortId, FixedTensorPortBinding)>()),
+            )
+            .saturating_add(self.resources.iter().fold(0usize, |total, (_, v)| {
+                total.saturating_add(v.local_accounted_heap_bytes())
+            }))
+    }
+}

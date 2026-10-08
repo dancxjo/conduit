@@ -201,3 +201,13 @@ fn scalar(ty: &StructuredInfoType, value: f32) -> Result<StructuredInfoValue, Fi
     }
     .map_err(|_| FixedCodecRefusal::Encoding)
 }
+
+impl<const WIDTH: usize> FixedF32VectorCodec<WIDTH> {
+    /// Retained requested local payload capacity. Shared tensor/model Arc owners,
+    /// Box root, Arc headers, allocator bookkeeping and stack are separate charges.
+    pub fn local_accounted_heap_bytes(&self) -> usize {
+        self.template
+            .capacity()
+            .saturating_add(self.output.capacity())
+    }
+}

@@ -230,3 +230,13 @@ pub fn install_embedding_flow_catalogs(
     }
     Ok(())
 }
+
+impl<const ROWS: usize, const WIDTH: usize> FixedEmbeddingFlowBack<ROWS, WIDTH> {
+    /// Retained requested local payload capacity. Shared tensor/model Arc owners,
+    /// Box root, Arc headers, allocator bookkeeping and stack are separate charges.
+    pub fn local_accounted_heap_bytes(&self) -> usize {
+        0usize
+            .saturating_add(self.output.local_accounted_heap_bytes())
+            .saturating_add(self.weights.local_accounted_heap_bytes())
+    }
+}

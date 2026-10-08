@@ -111,3 +111,13 @@ fn tree(ty: &StructuredInfoType, value: i16) -> Result<StructuredInfoValue, Fixe
     }
     .map_err(|_| FixedCodecRefusal::Encoding)
 }
+
+impl<const N: usize> FixedI16VectorCodec<N> {
+    /// Retained requested local payload capacity. Shared tensor/model Arc owners,
+    /// Box root, Arc headers, allocator bookkeeping and stack are separate charges.
+    pub fn local_accounted_heap_bytes(&self) -> usize {
+        self.template
+            .capacity()
+            .saturating_add(self.output.capacity())
+    }
+}

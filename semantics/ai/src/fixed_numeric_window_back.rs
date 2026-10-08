@@ -197,3 +197,14 @@ fn fail(detail: u16) -> StepOutcome {
         detail,
     })
 }
+
+impl FixedWindowBack {
+    /// Retained requested local payload capacity. Shared tensor/model Arc owners,
+    /// Box root, Arc headers, allocator bookkeeping and stack are separate charges.
+    pub fn local_accounted_heap_bytes(&self) -> usize {
+        0usize
+            .saturating_add(self.value.local_accounted_heap_bytes())
+            .saturating_add(self.history.local_accounted_heap_bytes())
+            .saturating_add(self.result.local_accounted_heap_bytes())
+    }
+}

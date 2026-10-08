@@ -361,3 +361,29 @@ impl<const PORTS: usize> StepBack<PORTS> for U16ProfileBack {
         self.staged = false;
     }
 }
+
+impl U16ProfileBack {
+    /// Retained requested local payload capacity. Shared tensor/model Arc owners,
+    /// Box root, Arc headers, allocator bookkeeping and stack are separate charges.
+    pub fn local_accounted_heap_bytes(&self) -> usize {
+        self.output
+            .capacity()
+            .saturating_add(self.validator.owned_heap_bytes())
+            .saturating_add(
+                self.contracts
+                    .capacity()
+                    .saturating_mul(core::mem::size_of::<CheckedValueContract>()),
+            )
+            .saturating_add(self.contracts.iter().fold(0usize, |total, v| {
+                total.saturating_add(v.owned_heap_bytes())
+            }))
+            .saturating_add(
+                self.invariants
+                    .capacity()
+                    .saturating_mul(core::mem::size_of::<PreparedPortableExpressionEvaluator>()),
+            )
+            .saturating_add(self.invariants.iter().fold(0usize, |total, v| {
+                total.saturating_add(v.owned_heap_bytes())
+            }))
+    }
+}

@@ -212,3 +212,13 @@ impl<const PORTS: usize> StepBack<PORTS> for FixedFloatIntegerBack {
         self.staged = false;
     }
 }
+
+impl FixedFloatIntegerBack {
+    /// Retained requested local payload capacity. Shared tensor/model Arc owners,
+    /// Box root, Arc headers, allocator bookkeeping and stack are separate charges.
+    pub fn local_accounted_heap_bytes(&self) -> usize {
+        0usize
+            .saturating_add(self.input.local_accounted_heap_bytes())
+            .saturating_add(self.output.local_accounted_heap_bytes())
+    }
+}

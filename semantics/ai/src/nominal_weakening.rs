@@ -357,3 +357,16 @@ impl<const PORTS: usize> StepBack<PORTS> for NominalWeakeningBack {
         self.staged = false;
     }
 }
+
+impl NominalWeakeningBack {
+    /// Retained requested local payload capacity. Shared tensor/model Arc owners,
+    /// Box root, Arc headers, allocator bookkeeping and stack are separate charges.
+    pub fn local_accounted_heap_bytes(&self) -> usize {
+        self.input
+            .owned_heap_bytes()
+            .saturating_add(self.output_validator.owned_heap_bytes())
+            .saturating_add(self.input_prefix.capacity())
+            .saturating_add(self.output_prefix.capacity())
+            .saturating_add(self.output.capacity())
+    }
+}

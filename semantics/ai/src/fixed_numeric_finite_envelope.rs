@@ -88,3 +88,15 @@ fn tree(ty: &StructuredInfoType, value: f32) -> Result<StructuredInfoValue, Refu
     }
     .map_err(|_| Refusal::Encoding)
 }
+
+impl FiniteEnvelope {
+    /// Retained requested local payload capacity. Shared tensor/model Arc owners,
+    /// Box root, Arc headers, allocator bookkeeping and stack are separate charges.
+    pub fn local_accounted_heap_bytes(&self) -> usize {
+        self.template.capacity().saturating_add(
+            self.offsets
+                .capacity()
+                .saturating_mul(core::mem::size_of::<usize>()),
+        )
+    }
+}
