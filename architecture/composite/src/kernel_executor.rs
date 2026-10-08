@@ -2,6 +2,7 @@ use crate::prelude::*;
 mod host_dispatch;
 #[cfg(test)]
 use host_dispatch::{dispatch_matches, outstanding_host_call_index};
+mod parent_play;
 mod preparation;
 mod sign_storage;
 use crate::child::{
@@ -109,6 +110,7 @@ pub struct KernelCompositeHost {
     fronts: BTreeMap<PortId, FaceRoute>,
     links: Vec<InternalLink>,
     active_plays: BTreeMap<HostId, ActivePlayId>,
+    parent_play_binding: Option<(ActivePlayId, u16)>,
     started: bool,
     cancelled: bool,
     host_call_obligations:

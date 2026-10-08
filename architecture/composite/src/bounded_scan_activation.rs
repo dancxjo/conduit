@@ -9,11 +9,13 @@ use crate::{
 };
 #[cfg_attr(not(feature = "fixture-registry-preparation"), allow(unused_imports))]
 use conduit_core::{
-    verify_plan, PlannedActivationEffectMultiplicity, PlannedActivationFront,
+    verify_plan, ActivePlayId, PlannedActivationEffectMultiplicity, PlannedActivationFront,
     PlannedScanAbnormalPolicy, PlannedScanActivation, PlannedScanCancellationPolicy,
     PlannedScanTerminalPolicy, PortDirection, PortTemporal, ValuePayload,
 };
 use conduit_kernel::HostCallOutcome;
+mod parent_play;
+pub use parent_play::ScanChildSignReceipt;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BoundedScanState {
@@ -55,6 +57,7 @@ pub struct BoundedScanActivationHost {
     output_ready: bool,
     closing: bool,
     state: BoundedScanState,
+    parent_play: Option<ActivePlayId>,
 }
 
 impl BoundedScanActivationHost {
@@ -157,6 +160,7 @@ impl BoundedScanActivationHost {
             output_ready: false,
             closing: false,
             state: BoundedScanState::Idle,
+            parent_play: None,
         })
     }
 
@@ -396,17 +400,6 @@ impl BoundedScanActivationHost {
     /// Receipt-correlated child Signs for presentation after the bounded Play.
     /// The selected Plan and prepared child identities remain the source of
     /// provenance; this snapshot never grants a new Host route.
-    pub fn signs(
-        &self,
-    ) -> alloc::collections::BTreeMap<conduit_core::HostId, Vec<conduit_kernel::KernelEvent>> {
-        let mut signs = alloc::collections::BTreeMap::new();
-        for receipt in self.receipts.iter().chain(self.active.iter()) {
-            for (host, events) in receipt.signs() {
-                signs.entry(host).or_insert_with(Vec::new).extend(events);
-            }
-        }
-        signs
-    }
     pub fn storage_capacities(&self) -> (usize, usize, usize, usize) {
         (
             self.accumulator.encoded.capacity(),
