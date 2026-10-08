@@ -176,6 +176,12 @@ pub(crate) struct Owner {
     /// Projection cache for the exact currently Playing Todo encounter. The
     /// next Play must restore through its admitted read Host Call.
     todo_live: Option<(conduit_core::ActivePlayId, conduit_todo_plot::TodoState)>,
+    /// Bounded display cache from an exact selected read Host Call and both
+    /// terminal Signs. It is never a reducer or a source of authority.
+    todo_verified: Option<(
+        conduit_presentation::CommittedStateContributionBasis,
+        conduit_todo_plot::TodoState,
+    )>,
 }
 impl Owner {
     pub(crate) fn selected_speech_host_is_idle(&self) -> bool {
@@ -269,6 +275,7 @@ impl Owner {
             llm_spoken_route: None,
             presentation_wardrobe: None,
             todo_live: None,
+            todo_verified: None,
         })
     }
     /// Reattach a retained owner to the one fresh installed Host Boot.
@@ -293,6 +300,7 @@ impl Owner {
             llm_spoken_route: None,
             presentation_wardrobe: None,
             todo_live: None,
+            todo_verified: None,
         })
     }
     pub(crate) fn persist(&mut self, root: &Path) -> Result<(), String> {
@@ -375,7 +383,10 @@ impl Owner {
                 self.project_face(Some((state, true)))
             }
             Some(_) => Err("Todo Face projection cache differs from current Play".into()),
-            None => self.project_face(None),
+            None => match self.todo_verified.as_ref() {
+                Some((basis, state)) => self.project_verified_todo_face(basis, state),
+                None => self.project_face(None),
+            },
         }
     }
     pub(super) fn plan(

@@ -3,13 +3,108 @@
 
 use super::{clock_interval, Owner};
 use conduit_presentation::{
-    Face, FaceContext, FaceContribution, FaceContributionRole, FaceFocus, FaceInteraction,
-    FaceNames, FaceResidentPlotName, MaskShow, Presentation, PresentationContributionBasis,
+    CommittedFaceAdmission, CommittedStateContributionBasis, CommittedStateSelection, Face,
+    FaceContext, FaceContribution, FaceContributionRole, FaceFocus, FaceInteraction, FaceNames,
+    FaceResidentPlotName, MaskShow, Presentation, PresentationContributionBasis,
 };
 use conduit_todo_face::{todo_command_from_contributed_interaction, todo_fragment};
 use conduit_todo_plot::{TodoCommand, TodoState};
+use sha2::{Digest, Sha256};
 
 impl Owner {
+    pub(super) fn project_verified_todo_face(
+        &self,
+        basis: &CommittedStateContributionBasis,
+        state: &TodoState,
+    ) -> Result<Presentation, String> {
+        let receipt = self
+            .todo_verified_read_receipt()
+            .ok_or("Todo has no verified selected read")?;
+        let encoded = state.encode_info().map_err(super::debug)?;
+        let mut digest = [0; 32];
+        digest.copy_from_slice(&Sha256::digest(&encoded));
+        let expected_sha = format!("sha256:{:x}", Sha256::digest(&encoded));
+        if basis.state_digest != digest
+            || receipt["restored_fore_sha256"] != expected_sha
+            || receipt["body_id"] != basis.body_id.as_str()
+            || receipt["read_plan_id"] != basis.read.plan_id.as_str()
+            || receipt["read_play"]["active_play_id"] != basis.read.play_id.as_str()
+            || receipt["read_terminal_sign"]["sign_id"] != basis.read.terminal_sign_id.as_str()
+            || receipt["write"]["plan_id"] != basis.write.plan_id.as_str()
+            || receipt["write"]["play"]["active_play_id"] != basis.write.play_id.as_str()
+            || receipt["write"]["terminal_sign"]["sign_id"] != basis.write.terminal_sign_id.as_str()
+        {
+            return Err("Todo verified Face differs from retained read/write evidence".into());
+        }
+        let advertised = self.host.advertisement();
+        let mut selected = advertised.resources.iter().filter_map(|resource| {
+            (resource.class_id.as_str() == "resource/todo-checkpoint@1")
+                .then_some(resource.content.as_ref())
+                .flatten()
+        });
+        let content = selected
+            .next()
+            .ok_or("Todo verified Face has no selected resource")?;
+        if selected.next().is_some()
+            || content.contract.access != conduit_core::ResourceAccessMode::ReadPublished
+            || receipt["selected_content"] != serde_json::json!(content.contract)
+        {
+            return Err("Todo verified Face has stale selected resource".into());
+        }
+        let current_selection = CommittedStateSelection {
+            resource: content.contract.identity,
+            selected_version: content.contract.version,
+            published_version: content.contract.version,
+        };
+        let resident = self
+            .resident
+            .as_ref()
+            .ok_or("Todo has no resident read Plot")?;
+        let name = self
+            .resident_name
+            .as_deref()
+            .ok_or("Todo has no read Plot name")?;
+        if name != "todo/checkpoint-restore" || resident.checked_plot_id != basis.checked_plot_id {
+            return Err("Todo verified Face has a different resident Plot".into());
+        }
+        let fragment = todo_fragment(
+            state,
+            PresentationContributionBasis {
+                checked_plot_id: basis.checked_plot_id.clone(),
+                plan_id: basis.read.plan_id.clone(),
+                active_play_id: basis.read.play_id.clone(),
+                required_interaction_context: None,
+            },
+            false,
+        )
+        .map_err(|error| format!("Todo committed contribution refused: {error:?}"))?;
+        let names = [FaceResidentPlotName {
+            source_document_id: &resident.source_document_id,
+            checked_plot_id: &resident.checked_plot_id,
+            name,
+        }];
+        let face = Face::project_committed(
+            &self.session.evidence().body,
+            self.session.evidence().last_sequence(),
+            FaceContext::Overview,
+            FaceFocus::Body,
+            FaceContribution::from_presentation(FaceContributionRole::Foreground, fragment),
+            FaceNames {
+                body_name: Some(&self.session.evidence().friendly_name),
+                resident_plots: &names,
+            },
+            CommittedFaceAdmission {
+                basis,
+                current_selection: &current_selection,
+            },
+        )
+        .map_err(|error| format!("owner-committed-face-refused:{error:?}"))?;
+        face.presentation
+            .validate()
+            .map_err(|error| format!("owner-committed-face-invalid:{error:?}"))?;
+        Ok(face.presentation)
+    }
+
     /// Resolve only an action offered by this exact current Owner Face and
     /// acknowledged Show. The caller retains the state from the admitted Fore
     /// and submits the returned command to that same waiting Play.

@@ -228,6 +228,33 @@ fn waiting_owner_admits_exact_show_action_then_retains_commit_and_sign() {
         owner.last_execution.as_ref().unwrap()["schema"],
         "conduit.todo/verified-read-receipt@1"
     );
+    let lulled_face = owner.local_face_snapshot().unwrap();
+    assert_eq!(
+        lulled_face.basis.body_id.as_ref(),
+        Some(&owner.session.evidence().body_id)
+    );
+    assert!(lulled_face
+        .subjects
+        .iter()
+        .any(|subject| subject.name == "Buy milk"));
+    conduit_std_host::terminal_face_mask::TerminalFaceMask::prepare_read_only(
+        lulled_face.clone(),
+        80,
+        24,
+    )
+    .unwrap();
+    let spoken = conduit_std_host::spoken_face_mask::primary_face_clauses(&lulled_face)
+        .unwrap()
+        .join(" ");
+    assert!(spoken.contains("Groceries") && spoken.contains("Buy milk"));
+    assert!(!spoken.contains("sha256:") && !spoken.contains("Unavailable"));
+    let mut next_write = selected_write;
+    next_write.version = ResourceVersionIdentity::from_digest([9; 32]);
+    owner
+        .host
+        .transition_todo_checkpoint_offer(&checkpoint_root, next_write)
+        .unwrap();
+    assert!(owner.local_face_snapshot().is_err());
     std::fs::remove_dir_all(state_root).unwrap();
 }
 

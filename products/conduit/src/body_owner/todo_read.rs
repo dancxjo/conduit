@@ -5,17 +5,21 @@
 use super::{debug, state, BoundedOutput, DeadlineTimer, Owner};
 use conduit_body::{BodyPlotPlan, BodyState, ResidentPlot};
 use conduit_core::{
-    port_id, AuthorityGrant, BaseImplementationId, ConnectionTrack, PortDirection,
-    ResourceAccessMode, ResourceContentRequirement, TerminalDisposition,
+    port_id, ActivePlayId, AuthorityGrant, BaseImplementationId, ConnectionTrack, PlanId,
+    PortDirection, ResourceAccessMode, ResourceContentRequirement, SignId, TerminalDisposition,
 };
 use conduit_kernel::KernelEventKind;
 use conduit_planner::{ConnectionQueueLimits, ForeBoundaryKey, PlanningOptions};
+use conduit_presentation::{
+    CommittedStateContributionBasis, CommittedStateOperation, CommittedStateSelection,
+};
 use conduit_std_host::body_execution::{
     BodyForeOutputAdapter, BodyRunRequest, TodoCheckpointSelection,
 };
 use conduit_std_host::todo_durable_resource::{CheckpointIdentity, MissingV2Disposition};
 use conduit_std_host::{ExternalForeDelivery, RunControl, RunControlRequestId};
 use conduit_todo_plot::{TodoState, STATE_MAX_BYTES};
+use sha2::{Digest, Sha256};
 use std::{
     collections::BTreeMap,
     path::Path,
@@ -60,6 +64,7 @@ impl Owner {
         committed: &TodoState,
         maximum_millis: u64,
     ) -> Result<TodoState, String> {
+        self.todo_verified = None;
         if !(1..=60_000).contains(&maximum_millis)
             || self.host.is_playing()
             || self.session.realization().is_some()
@@ -351,11 +356,48 @@ impl Owner {
             {
                 return Err("Todo read differs from the committed generation".into());
             }
-            Ok(restored)
+            let write_plan = write_receipt["plan_id"]
+                .as_str()
+                .ok_or("Todo write receipt has no Plan ID")?;
+            let write_play = write_receipt["play"]["active_play_id"]
+                .as_str()
+                .ok_or("Todo write receipt has no Play ID")?;
+            let write_sign = write_receipt["terminal_sign"]["sign_id"]
+                .as_str()
+                .ok_or("Todo write receipt has no terminal Sign ID")?;
+            let mut state_digest = [0; 32];
+            state_digest.copy_from_slice(&Sha256::digest(restored_bytes));
+            let basis = CommittedStateContributionBasis {
+                body_id: proposed.wake.body_id.clone(),
+                checked_plot_id: read_resident.checked_plot_id.clone(),
+                selection: CommittedStateSelection {
+                    resource: read_content.identity,
+                    selected_version: read_content.version,
+                    published_version: read_content.version,
+                },
+                write: CommittedStateOperation {
+                    plan_id: PlanId::from(write_plan),
+                    play_id: ActivePlayId::from(write_play),
+                    terminal_sign_id: SignId::from(write_sign),
+                },
+                read: CommittedStateOperation {
+                    plan_id: proposed.plan.plan_id.clone(),
+                    play_id: report.play.active_play_id.clone(),
+                    terminal_sign_id: report.terminal_sign.sign_id.clone(),
+                },
+                state_digest,
+            };
+            Ok((restored, basis))
         })();
         let mut next = self.session.clone();
         next.lull(&authority.host_id, &authority.boot_id, Some(&report.play))
             .map_err(debug)?;
+        let verified = verified.and_then(|(restored, basis)| {
+            basis
+                .validate_shape_against(&next.evidence().body, &basis.selection)
+                .map_err(debug)?;
+            Ok((restored, basis))
+        });
         let receipt = serde_json::json!({
             "schema":"conduit.todo/verified-read-receipt@1",
             "verified":verified.is_ok(),
@@ -382,6 +424,9 @@ impl Owner {
         )?;
         self.session = next;
         self.last_execution = Some(receipt);
-        verified
+        verified.map(|(restored, basis)| {
+            self.todo_verified = Some((basis, restored.clone()));
+            restored
+        })
     }
 }
