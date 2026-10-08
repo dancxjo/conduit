@@ -419,6 +419,7 @@ pub(crate) fn advertisement(
         .capabilities
         .extend([every, count, count_presentation]);
     crate::ordinary_base::append_serial(&mut advertisement, fixed)?;
+    crate::ordinary_base::append_timer(&mut advertisement, fixed)?;
     if let Some(keyboard) = fixed.keyboard {
         crate::keyboard_offer::append_to_advertisement(&mut advertisement, keyboard, build_id)
             .map_err(|_| PreparationError::OfferMismatch)?;

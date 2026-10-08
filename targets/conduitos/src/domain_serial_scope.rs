@@ -1,4 +1,5 @@
 //! Root-owned exact admission for the ordinary text region's serial effect.
+use crate::domain_scope_identity::{identity, parse_identity};
 use crate::{
     machine::BaseKind,
     offer::{
@@ -9,7 +10,6 @@ use crate::{
     protection_domain::KernelCapabilityScope,
 };
 use conduit_core::Plan;
-use sha2::{Digest, Sha256};
 
 pub const SERIAL_PRESENT_OPERATION: u32 = 7;
 pub const COUNT_PRESENT_OPERATION: u32 = 11;
@@ -450,34 +450,6 @@ fn body_owner(
             region.as_str().as_bytes(),
         ],
     )
-}
-
-fn identity(domain: &[u8], fields: &[&[u8]]) -> [u8; 32] {
-    let mut digest = Sha256::new();
-    digest.update(b"conduit.conduitos/domain-effect-scope@1");
-    digest.update((domain.len() as u32).to_le_bytes());
-    digest.update(domain);
-    for field in fields {
-        digest.update((field.len() as u32).to_le_bytes());
-        digest.update(field);
-    }
-    digest.finalize().into()
-}
-
-fn parse_identity(identity: &str) -> Result<[u8; 32], DomainRefusal> {
-    if identity.len() != 64 {
-        return Err(DomainRefusal::WrongBinding);
-    }
-    let mut bytes = [0; 32];
-    for (index, pair) in identity.as_bytes().as_chunks::<2>().0.iter().enumerate() {
-        let digit = |byte| match byte {
-            b'0'..=b'9' => Ok(byte - b'0'),
-            b'a'..=b'f' => Ok(byte - b'a' + 10),
-            _ => Err(DomainRefusal::WrongBinding),
-        };
-        bytes[index] = digit(pair[0])? * 16 + digit(pair[1])?;
-    }
-    Ok(bytes)
 }
 
 #[cfg(test)]
