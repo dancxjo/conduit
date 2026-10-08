@@ -716,7 +716,7 @@ fn observe_current_runtime(
     if !runtime.exists() {
         return Ok(None);
     }
-    let status = {
+    let mut status = {
         let bytes = bounded_read(&runtime, 64 * 1024)?;
         let status: RuntimeStatus = serde_json::from_slice(&bytes)
             .map_err(|error| format!("durable host runtime status: {error}"))?;
@@ -732,10 +732,14 @@ fn observe_current_runtime(
     let advertisement = &truth.advertisement;
     if advertisement.host_id.as_str() != status.host_id
         || advertisement.boot_id.as_str() != status.boot_id
-        || advertisement.offer_generation.0 != status.offer_generation
+        || advertisement.offer_generation.0 < status.offer_generation
     {
         return Err("durable host control truth disagrees with its runtime marker".into());
     }
+    // The marker proves the started Host Boot. A selected Back may advance its
+    // offers during the same Boot; the authenticated live Host owns the current
+    // generation, just as the live Body owns the current post-Birth identity.
+    status.offer_generation = advertisement.offer_generation.0;
     Ok(Some(status))
 }
 

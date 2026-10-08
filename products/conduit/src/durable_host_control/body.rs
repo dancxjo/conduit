@@ -333,7 +333,17 @@ impl DurableHostRuntime {
         let HostSource::Bare(host) = host else {
             return Err("durable Host already owns a Body session".into());
         };
+        let previous_generation = host.advertisement().offer_generation;
         let owner = crate::durable_host::owner::resume_service(*host, root)?;
+        let current = owner.host.advertisement();
+        if current.offer_generation != previous_generation {
+            crate::durable_host::refresh_offer_generation(
+                root,
+                &current.host_id,
+                &current.boot_id,
+                current.offer_generation,
+            )?;
+        }
         Ok(Self {
             target_id,
             image_content_digest,

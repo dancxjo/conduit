@@ -62,6 +62,7 @@ impl DurableHostRuntime {
         let Some(OwnedRunWorker::Todo(worker)) = running else {
             return Err("installed Todo has no current waiting Play".into());
         };
+        let previous_generation = owner.host.advertisement().offer_generation;
         let admitted = worker.submit_interaction(owner, show, interaction)?;
         if admitted == BodyLiveForeAdmission::Full {
             return Err("Todo command Fore is full".into());
@@ -82,6 +83,15 @@ impl DurableHostRuntime {
                     &committed,
                     5_000,
                 )?;
+                let current = owner.host.advertisement();
+                if current.offer_generation != previous_generation {
+                    crate::durable_host::refresh_offer_generation(
+                        root,
+                        &current.host_id,
+                        &current.boot_id,
+                        current.offer_generation,
+                    )?;
+                }
                 if let Some(equipment) = &mut self.selected_speech_equipment {
                     equipment.advance_offer_generation(owner.host.current())?;
                 }
@@ -159,6 +169,7 @@ impl DurableHostRuntime {
         if running.is_some() {
             return Err("Body Play is already running".into());
         }
+        let previous_generation = owner.host.advertisement().offer_generation;
         *running = Some(match (todo_new_list, selected, next_todo) {
             (Some(list_key), Some(selected), None) => {
                 OwnedRunWorker::Todo(Box::new(owner.start_selected_new_todo_list(
@@ -177,6 +188,15 @@ impl DurableHostRuntime {
             }
             _ => return Err("selected Todo list and Host residence differ".into()),
         });
+        let current = owner.host.advertisement();
+        if current.offer_generation != previous_generation {
+            crate::durable_host::refresh_offer_generation(
+                root,
+                &current.host_id,
+                &current.boot_id,
+                current.offer_generation,
+            )?;
+        }
         Ok(())
     }
 

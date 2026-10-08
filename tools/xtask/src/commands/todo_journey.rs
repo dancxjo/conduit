@@ -48,11 +48,12 @@ fn invoke(
     bin: &Path,
     root: &Path,
     state: &Path,
+    steps: &mut Vec<Value>,
     label: &str,
     command: &[&str],
     after_state: &[&str],
     input: Option<&[u8]>,
-) -> Result<Value, String> {
+) -> Result<(), String> {
     let mut child = Command::new(bin)
         .args(command)
         .arg("--state-dir")
@@ -78,10 +79,11 @@ fn invoke(
     let stderr = retain(root, &format!("{label}.stderr"), &output.stderr)?;
     let receipt = json!({"command":command,"state_dir":state,
         "arguments_after_state_dir":after_state,"exit_code":output.status.code(),"stdout":stdout,"stderr":stderr});
+    steps.push(receipt);
     if !output.status.success() {
         return Err(format!("{label} failed; raw output retained"));
     }
-    Ok(receipt)
+    Ok(())
 }
 
 fn parse_capture(root: &Path, label: &str) -> Result<Value, String> {
@@ -183,24 +185,26 @@ pub fn run(args: TodoJourneyArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::
     let capture_commit = String::from_utf8(capture_commit.stdout)?.trim().to_owned();
     let mut steps = Vec::new();
     let result = (|| -> Result<Value, String> {
-        steps.push(invoke(
+        invoke(
             &bin,
             &output,
             &state,
+            &mut steps,
             "before-status",
             &["host", "service", "status"],
             &["--json"],
             None,
-        )?);
-        steps.push(invoke(
+        )?;
+        invoke(
             &bin,
             &output,
             &state,
+            &mut steps,
             "before-face",
             &["body", "face"],
             &["--json"],
             None,
-        )?);
+        )?;
         let before_status = parse_capture(&output, "before-status")?;
         let before_face = parse_capture(&output, "before-face")?;
         let body_id = before_face["presentation"]["basis"]["body_id"]
@@ -213,33 +217,36 @@ pub fn run(args: TodoJourneyArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::
             return Err("installed owner Face has no Todo list contribution".into());
         }
         let script_receipt = retain(&output, "terminal.input", &script)?;
-        steps.push(invoke(
+        invoke(
             &bin,
             &output,
             &state,
+            &mut steps,
             "terminal",
             &["body", "terminal"],
             &[],
             Some(&script),
-        )?);
-        steps.push(invoke(
+        )?;
+        invoke(
             &bin,
             &output,
             &state,
+            &mut steps,
             "after-status",
             &["host", "service", "status"],
             &["--json"],
             None,
-        )?);
-        steps.push(invoke(
+        )?;
+        invoke(
             &bin,
             &output,
             &state,
+            &mut steps,
             "after-face",
             &["body", "face"],
             &["--json"],
             None,
-        )?);
+        )?;
         let after_face = parse_capture(&output, "after-face")?;
         if after_face["presentation"]["basis"]["body_id"].as_str() != Some(body_id) {
             return Err("terminal encounter changed Body identity".into());
