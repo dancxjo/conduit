@@ -7,6 +7,9 @@ use conduit_std_host::{StdHost, StdHostConfig};
 #[path = "../../../../semantics/presentation/tests/common/mod.rs"]
 mod mask_test_common;
 
+#[path = "todo_continuity_tests.rs"]
+mod todo_continuity;
+
 const SOURCE: &str = include_str!("../../../../plots/todo/checkpoint-once.conduit");
 
 fn selected_host(root: &Path) -> StdHost {
