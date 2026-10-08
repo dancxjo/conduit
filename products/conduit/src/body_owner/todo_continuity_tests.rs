@@ -320,3 +320,77 @@ fn same_body_three_items_recover_on_another_admitted_host_without_a_cache() {
     drop(recovered);
     std::fs::remove_dir_all(first_root).unwrap();
 }
+
+#[test]
+fn interrupted_next_action_can_read_an_explicitly_reselected_published_version() {
+    let (mut owner, source, plot, grant, root, _checkpoint) = fixture();
+    let expected = next_action(
+        &mut owner,
+        &root,
+        Some("Milk"),
+        1,
+        Some((&source, &plot, &grant)),
+    );
+    let body = owner.session.evidence().body_id.clone();
+    let read = owner.todo_verified_read_receipt().unwrap().clone();
+    let published = installed::read_installation(&root.join("installation.json"))
+        .unwrap()
+        .selected_todo_checkpoint
+        .unwrap();
+    let next = installed::next_selected_todo_checkpoint(&root).unwrap();
+    let mut worker = owner.start_next_todo_action(&root, &next, 5_000).unwrap();
+    let deadline = Instant::now() + Duration::from_secs(5);
+    while owner.todo_live.is_none() {
+        assert!(worker.progress(&mut owner, &root).unwrap().is_none());
+        assert!(Instant::now() < deadline);
+        std::thread::sleep(Duration::from_millis(5));
+    }
+    // Stop the worker without collecting its result: retained state still
+    // describes the interrupted waiting write, not a successful publication.
+    worker.request_lull().unwrap();
+    drop(worker);
+    drop(owner);
+    let unavailable = installed::owner::resume_service(
+        resumed_todo_host_on_boot(&root, "boot/todo-interrupted/candidate"),
+        &root,
+    )
+    .unwrap();
+    assert!(
+        unavailable.todo_verified.is_none(),
+        "uncommitted candidate must not select an older list"
+    );
+    drop(unavailable);
+    let mut installation = installed::read_installation(&root.join("installation.json")).unwrap();
+    assert_ne!(
+        installation
+            .selected_todo_checkpoint
+            .as_ref()
+            .unwrap()
+            .version_hex(),
+        published.version_hex()
+    );
+    installation.selected_todo_checkpoint = Some(published);
+    installed::write_json_atomic(&root.join("installation.json"), &installation).unwrap();
+    let owner = installed::owner::resume_service(
+        resumed_todo_host_on_boot(&root, "boot/todo-interrupted/published"),
+        &root,
+    )
+    .unwrap();
+    assert_eq!(owner.session.evidence().body_id, body);
+    assert_eq!(
+        &owner
+            .todo_verified
+            .as_ref()
+            .expect("fresh admitted read after explicit reselection")
+            .1,
+        &expected
+    );
+    let recovered = owner.todo_verified_read_receipt().unwrap();
+    assert_eq!(recovered["write"], read["write"]);
+    assert_ne!(
+        recovered["read_play"]["active_play_id"],
+        read["read_play"]["active_play_id"]
+    );
+    drop(owner);
+    std::fs::remove_dir_all(root).unwrap();
+}
