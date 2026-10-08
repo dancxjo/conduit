@@ -7,7 +7,7 @@ use conduit_kernel::{HostedValueStore, scheduler::StepBack};
 use conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE as PORTS;
 pub struct FixedGuardOperationFactory {
     identity: ImplementationId,
-    selected: BTreeMap<PlacementId, FixedGuardProfile>,
+    selected: BTreeMap<PlacementId, (FixedGuardProfile, CapabilityOffer)>,
 }
 impl FixedGuardOperationFactory {
     pub fn for_plan(plan: &Plan, profiles: Vec<FixedGuardProfile>) -> Result<Self, String> {
@@ -32,8 +32,9 @@ impl FixedGuardOperationFactory {
             let profile = by_kind
                 .get(&gear.kind_id)
                 .ok_or("unadmitted guard profile")?;
-            verify_fixed_placement(gear, &profile.offer()?).map_err(|e| format!("{e:?}"))?;
-            selected.insert(gear.placement_id.clone(), profile.clone());
+            let offer = profile.offer()?;
+            verify_fixed_placement(gear, &offer).map_err(|e| format!("{e:?}"))?;
+            selected.insert(gear.placement_id.clone(), (profile.clone(), offer));
         }
         Ok(Self {
             identity: ImplementationId::from(GUARD_IMPLEMENTATION),
@@ -45,8 +46,8 @@ impl FixedGuardOperationFactory {
             .selected
             .get(&gear.placement_id)
             .ok_or("unselected guard placement")?;
-        verify_fixed_placement(gear, &profile.offer()?).map_err(|e| format!("{e:?}"))?;
-        Ok(profile)
+        verify_fixed_placement(gear, &profile.1).map_err(|e| format!("{e:?}"))?;
+        Ok(&profile.0)
     }
 }
 impl KernelOperationFactory for FixedGuardOperationFactory {
@@ -82,6 +83,78 @@ impl FixedGuardOperationFactory {
         let local = back.local_accounted_heap_bytes();
         Ok(super::prepared_numeric_back::PreparedNumericBack::new(
             back, local,
+        ))
+    }
+}
+
+impl FixedGuardOperationFactory {
+    fn profile_for_storage(
+        &self,
+        gear: &PlannedGear,
+    ) -> Result<&FixedGuardProfile, GuardBackPreparationRefusal> {
+        let (profile, offer) = self
+            .selected
+            .get(&gear.placement_id)
+            .ok_or(GuardBackPreparationRefusal::Validation)?;
+        verify_fixed_placement(gear, offer).map_err(|_| GuardBackPreparationRefusal::Validation)?;
+        Ok(profile)
+    }
+    pub fn preparation_storage_reservation(
+        &self,
+        gear: &PlannedGear,
+    ) -> Result<GuardBackStorageReceipt, GuardBackPreparationRefusal> {
+        let mut receipt = FixedGuardBack::storage_reservation(self.profile_for_storage(gear)?)?;
+        let root = core::mem::size_of::<FixedGuardBack>();
+        receipt.preparation_requested_bytes_bound = receipt
+            .preparation_requested_bytes_bound
+            .checked_add(root)
+            .ok_or(GuardBackPreparationRefusal::Capacity)?;
+        receipt.retained_heap_bytes_bound = receipt
+            .retained_heap_bytes_bound
+            .checked_add(root)
+            .ok_or(GuardBackPreparationRefusal::Capacity)?;
+        Ok(receipt)
+    }
+    /// Selected offer verification allocates nothing. Both complete preparation
+    /// ceilings include the concrete Box root before its construction.
+    pub fn prepare_with_storage_limits(
+        &self,
+        gear: &PlannedGear,
+        maximum_preparation_requested_bytes: usize,
+        maximum_retained_heap_bytes: usize,
+    ) -> Result<
+        (
+            super::prepared_numeric_back::PreparedNumericBack,
+            GuardBackStorageReceipt,
+        ),
+        GuardBackPreparationRefusal,
+    > {
+        let profile = self.profile_for_storage(gear)?;
+        let root = core::mem::size_of::<FixedGuardBack>();
+        let requested = maximum_preparation_requested_bytes
+            .checked_sub(root)
+            .ok_or(GuardBackPreparationRefusal::Capacity)?;
+        let retained = maximum_retained_heap_bytes
+            .checked_sub(root)
+            .ok_or(GuardBackPreparationRefusal::Capacity)?;
+        let (back, mut receipt) =
+            FixedGuardBack::prepare_selected_with_storage_limits(profile, requested, retained)?;
+        receipt.preparation_requested_bytes_bound = receipt
+            .preparation_requested_bytes_bound
+            .checked_add(root)
+            .ok_or(GuardBackPreparationRefusal::Capacity)?;
+        receipt.retained_heap_bytes_bound = receipt
+            .retained_heap_bytes_bound
+            .checked_add(root)
+            .ok_or(GuardBackPreparationRefusal::Capacity)?;
+        receipt.retained_accounted_heap_bytes = receipt
+            .retained_accounted_heap_bytes
+            .checked_add(root)
+            .ok_or(GuardBackPreparationRefusal::Capacity)?;
+        let local = back.local_accounted_heap_bytes();
+        Ok((
+            super::prepared_numeric_back::PreparedNumericBack::new(back, local),
+            receipt,
         ))
     }
 }
