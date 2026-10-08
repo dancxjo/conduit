@@ -220,6 +220,7 @@ export class BrowserBody {
     try {
       adapter = this.#acquireBodyHost({
         api: this.#api, hostId: this.#host, bootId: this.#boot, proposal,
+        storage: this.#storage,
         inputTarget: root, outputRoot: root, presentationRootFor,
         foregroundPlot: () => {
           const current = this.#bridge.workspaceRequest({ action: "Current" });

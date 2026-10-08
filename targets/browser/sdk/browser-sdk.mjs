@@ -342,6 +342,7 @@ export class BrowserBodyParticipation {
       hostId: this.hostId,
       bootId: this.bootId,
       proposal,
+      storage: this.#state.host.storage,
       inputTarget,
       outputRoot,
       foregroundPlot,
