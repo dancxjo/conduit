@@ -62,7 +62,7 @@ impl PreparedStructuredExpression {
                 PreparedShape::Constant(constant.evaluate(&[])?)
             }
             PortableExpressionOperation::Projection { .. } => PreparedShape::Selected(
-                super::member_selection::prepare(program.root, program.input_type)?,
+                super::member_selection::prepare(program.root, program.input_type, prepared_input)?,
             ),
             PortableExpressionOperation::SemanticCall { kind, .. } if kind == "sequence/at" => {
                 PreparedShape::SequenceSelected(

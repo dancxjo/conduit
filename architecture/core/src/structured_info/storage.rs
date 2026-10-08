@@ -48,3 +48,55 @@ impl StructuredInfoType {
         }
     }
 }
+
+impl StructuredInfoType {
+    /// Exact canonical Type prefix length without allocating an encoded buffer.
+    pub fn canonical_byte_length(&self) -> Result<usize, super::StructuredInfoRefusal> {
+        let length = type_length(self)?;
+        if length > super::MAXIMUM_STRUCTURED_CANONICAL_BYTES {
+            return Err(super::StructuredInfoRefusal::CanonicalEncodingTooLarge);
+        }
+        Ok(length)
+    }
+}
+fn add(a: usize, b: usize) -> Result<usize, super::StructuredInfoRefusal> {
+    a.checked_add(b)
+        .ok_or(super::StructuredInfoRefusal::CanonicalEncodingTooLarge)
+}
+fn text_length(text: &str) -> Result<usize, super::StructuredInfoRefusal> {
+    add(4, text.len())
+}
+fn type_length(ty: &StructuredInfoType) -> Result<usize, super::StructuredInfoRefusal> {
+    match &ty.0 {
+        StructuredInfoTypeNode::Leaf(kind) => add(1, text_length(kind.as_str())?),
+        StructuredInfoTypeNode::Nominal {
+            schema,
+            representation,
+        } => add(
+            add(1, text_length(schema.as_str())?)?,
+            type_length(representation)?,
+        ),
+        StructuredInfoTypeNode::Collection { element, .. } => add(3, type_length(element)?),
+        StructuredInfoTypeNode::Sequence { element, .. } => add(5, type_length(element)?),
+        StructuredInfoTypeNode::Record { schema, fields } => {
+            fields
+                .iter()
+                .try_fold(add(5, text_length(schema.as_str())?)?, |total, field| {
+                    add(
+                        add(total, text_length(&field.name)?)?,
+                        type_length(&field.value_type)?,
+                    )
+                })
+        }
+        StructuredInfoTypeNode::Variant { schema, cases } => {
+            cases
+                .iter()
+                .try_fold(add(5, text_length(schema.as_str())?)?, |total, case| {
+                    add(
+                        add(total, text_length(&case.tag)?)?,
+                        type_length(&case.payload_type)?,
+                    )
+                })
+        }
+    }
+}
