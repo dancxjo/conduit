@@ -475,3 +475,5 @@ mod committed_direct16k;
 
 #[path = "fargan_epoch_flow/service_profile.rs"]
 mod service_profile;
+#[path = "fargan_epoch_flow/rich_period.rs"]
+mod rich_period;

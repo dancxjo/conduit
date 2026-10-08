@@ -1,0 +1,85 @@
+# Private numerical capability; canonical Speech cycles retain their full U64 domain.
+# Explicit cadence is a query on a declared sample grid, not clock/playback authority.
+type FarganRichPeriodPolicy =
+    nearest_whole_sample_ties_up
+    | unsupported_policy
+type FarganRichPeriodCadence =
+    epoch_onset_160_frames_at_16000_hz
+    | unsupported_cadence
+type FarganRichPeriodEligible = {
+    original: SpeechCycleQ8AtRate
+    policy: FarganRichPeriodPolicy
+    cadence: FarganRichPeriodCadence
+    epoch_index: U64
+    original_query_frame: U64
+    where .policy is nearest_whole_sample_ties_up
+    where .cadence is epoch_onset_160_frames_at_16000_hz
+    where .original.request.cycle.numerator_seconds <= 4294967295
+    where .original.request.cycle.denominator <= 4294967295
+    where .original.request.sample_rate_hz == 16000
+    where .original.whole_q8 <= 65280
+    where .original.remainder_numerator < .original.request.cycle.denominator
+    where .original.whole_q8 * .original.request.cycle.denominator + .original.remainder_numerator == .original.request.cycle.numerator_seconds * .original.request.sample_rate_hz * 256
+    where .original.request.cycle.numerator_seconds * .original.request.sample_rate_hz >= 32 * .original.request.cycle.denominator
+    where .original.request.cycle.numerator_seconds * .original.request.sample_rate_hz <= 255 * .original.request.cycle.denominator
+    where .epoch_index <= 65535
+    where .original_query_frame == .epoch_index * 160
+}
+type FarganRichWidePeriodEligible = {
+    original: SpeechCycleQ8AtRate
+    policy: FarganRichPeriodPolicy
+    cadence: FarganRichPeriodCadence
+    epoch_index: U64
+    original_query_frame: U64
+    where .policy is nearest_whole_sample_ties_up
+    where .cadence is epoch_onset_160_frames_at_16000_hz
+    where .original.request.cycle.numerator_seconds <= 4503599627370
+    where .original.request.cycle.denominator <= 282574471495681
+    where .original.request.sample_rate_hz == 16000
+    where .original.whole_q8 <= 65280
+    where .original.remainder_numerator < .original.request.cycle.denominator
+    where .original.whole_q8 * .original.request.cycle.denominator + .original.remainder_numerator == .original.request.cycle.numerator_seconds * .original.request.sample_rate_hz * 256
+    where .original.request.cycle.numerator_seconds * .original.request.sample_rate_hz >= 32 * .original.request.cycle.denominator
+    where .original.request.cycle.numerator_seconds * .original.request.sample_rate_hz <= 255 * .original.request.cycle.denominator
+    where .epoch_index <= 65535
+    where .original_query_frame == .epoch_index * 160
+}
+# Flat private arithmetic only; full original/eligible frames remain retained.
+type FarganRichPeriodArithmetic = {
+    numerator_seconds: U64
+    denominator: U64
+    sample_rate_hz: U64
+    where .numerator_seconds >= 1 && .numerator_seconds <= 4294967295
+    where .denominator >= 1 && .denominator <= 4294967295
+    where .sample_rate_hz == 16000
+    where .numerator_seconds * .sample_rate_hz >= 32 * .denominator
+    where .numerator_seconds * .sample_rate_hz <= 255 * .denominator
+}
+# Flat private arithmetic only; full original/eligible frames remain retained.
+type FarganRichWidePeriodArithmetic = {
+    numerator_seconds: U64
+    denominator: U64
+    sample_rate_hz: U64
+    where .numerator_seconds >= 1 && .numerator_seconds <= 4503599627370
+    where .denominator >= 1 && .denominator <= 282574471495681
+    where .sample_rate_hz == 16000
+    where .numerator_seconds * .sample_rate_hz >= 32 * .denominator
+    where .numerator_seconds * .sample_rate_hz <= 255 * .denominator
+}
+# Raw unrestricted numerical result, followed by unchanged FarganPeriod admission.
+type FarganRichPeriodRaw = {
+    period: U64
+    exact: Boolean
+    model_above_exact: Boolean
+    error_numerator: U64
+    error_denominator: U64
+}
+plot ai/fargan-rich-nearest-period (
+    >> value: FarganRichPeriodArithmetic
+    result: FarganRichPeriodRaw >>
+) = ({ period: (.numerator_seconds * .sample_rate_hz * 2 + .denominator) / (.denominator * 2), exact: ((.numerator_seconds * .sample_rate_hz * 2 + .denominator) / (.denominator * 2)) * .denominator == .numerator_seconds * .sample_rate_hz, model_above_exact: ((.numerator_seconds * .sample_rate_hz * 2 + .denominator) / (.denominator * 2)) * .denominator > .numerator_seconds * .sample_rate_hz, error_numerator: (((.numerator_seconds * .sample_rate_hz * 2 + .denominator) / (.denominator * 2)) * .denominator >= .numerator_seconds * .sample_rate_hz) ? (((.numerator_seconds * .sample_rate_hz * 2 + .denominator) / (.denominator * 2)) * .denominator - .numerator_seconds * .sample_rate_hz) : (.numerator_seconds * .sample_rate_hz - ((.numerator_seconds * .sample_rate_hz * 2 + .denominator) / (.denominator * 2)) * .denominator), error_denominator: .denominator })
+
+plot ai/fargan-rich-wide-nearest-period (
+    >> value: FarganRichWidePeriodArithmetic
+    result: FarganRichPeriodRaw >>
+) = ({ period: (.numerator_seconds * .sample_rate_hz * 2 + .denominator) / (.denominator * 2), exact: ((.numerator_seconds * .sample_rate_hz * 2 + .denominator) / (.denominator * 2)) * .denominator == .numerator_seconds * .sample_rate_hz, model_above_exact: ((.numerator_seconds * .sample_rate_hz * 2 + .denominator) / (.denominator * 2)) * .denominator > .numerator_seconds * .sample_rate_hz, error_numerator: (((.numerator_seconds * .sample_rate_hz * 2 + .denominator) / (.denominator * 2)) * .denominator >= .numerator_seconds * .sample_rate_hz) ? (((.numerator_seconds * .sample_rate_hz * 2 + .denominator) / (.denominator * 2)) * .denominator - .numerator_seconds * .sample_rate_hz) : (.numerator_seconds * .sample_rate_hz - ((.numerator_seconds * .sample_rate_hz * 2 + .denominator) / (.denominator * 2)) * .denominator), error_denominator: .denominator })
