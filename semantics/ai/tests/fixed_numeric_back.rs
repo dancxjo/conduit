@@ -327,7 +327,7 @@ fn scheduler<'a>(
                 sent: false,
             },
             "numeric/dense3x2" => Driver::Affine(Box::new(
-                FixedAffineBack::prepare_owned_planned::<PORTS>(
+                FixedAffineBack::prepare_planned_owned::<PORTS>(
                     gear,
                     lowered.node_specs[fragment
                         .placements
