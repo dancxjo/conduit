@@ -98,6 +98,14 @@ fn fixture() -> (
 }
 
 #[test]
+fn todo_face_refuses_a_pre_play_contribution() {
+    let (owner, _, _, _, state_root, _) = fixture();
+    let initial = TodoState::new("Groceries".into()).unwrap();
+    assert!(owner.project_face(Some((&initial, true))).is_err());
+    std::fs::remove_dir_all(state_root).unwrap();
+}
+
+#[test]
 fn first_caller_supplied_action_commits_under_retained_body_before_ack() {
     let (mut owner, source, plot, grant, state_root, checkpoint_root) = fixture();
     let body_id = owner.session.evidence().body_id.clone();

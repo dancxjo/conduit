@@ -17,20 +17,6 @@ pub fn todo_command_from_interaction(
     show: &MaskShow,
     interaction: &FaceInteraction,
 ) -> Result<TodoCommand, TodoFaceError> {
-    state.validate().map_err(|_| TodoFaceError::InvalidState)?;
-    if !face.properties.iter().any(|property| {
-        property.subject == "todo/list"
-            && property.name == "todo-revision"
-            && property.value == PresentationPropertyValue::Count(u64::from(state.revision))
-    }) {
-        return Err(TodoFaceError::StaleState);
-    }
-    interaction
-        .validate_against(face, show)
-        .map_err(TodoFaceError::InvalidInteraction)?;
-    // Face validation proves the interaction matches this Show, but the Face
-    // itself must still offer the Plot's exact action contract. A Host or Mask
-    // cannot redefine a Todo action's intent, argument Form, or availability.
     let basis = PresentationContributionBasis {
         checked_plot_id: face
             .basis
@@ -49,6 +35,57 @@ pub fn todo_command_from_interaction(
             .ok_or(TodoFaceError::InvalidActionContract)?,
         required_interaction_context: None,
     };
+    todo_command_from_contributed_interaction(state, face, show, interaction, basis)
+}
+
+/// Resolve a Plot-owned action in an Owner-composed Face. The Owner must pass
+/// the exact currently Playing resident contribution basis, never a Mask-
+/// supplied provenance. The Face must itself carry that same contribution.
+pub fn todo_command_from_contributed_interaction(
+    state: &TodoState,
+    face: &Presentation,
+    show: &MaskShow,
+    interaction: &FaceInteraction,
+    basis: PresentationContributionBasis,
+) -> Result<TodoCommand, TodoFaceError> {
+    state.validate().map_err(|_| TodoFaceError::InvalidState)?;
+    if !face.properties.iter().any(|property| {
+        property.subject == "todo/list"
+            && property.name == "todo-revision"
+            && property.value == PresentationPropertyValue::Count(u64::from(state.revision))
+    }) {
+        return Err(TodoFaceError::StaleState);
+    }
+    interaction
+        .validate_against(face, show)
+        .map_err(TodoFaceError::InvalidInteraction)?;
+    // Face validation proves the interaction matches this Show, but the Face
+    // itself must still offer the Plot's exact action contract. A Host or Mask
+    // cannot redefine a Todo action's intent, argument Form, or availability.
+    let standalone = face.basis.checked_plot_id.as_ref() == Some(&basis.checked_plot_id)
+        && face.basis.plan_id.as_ref() == Some(&basis.plan_id)
+        && face.basis.active_play_id.as_ref() == Some(&basis.active_play_id);
+    let contributed = face.properties.iter().any(|property| {
+        property.subject.starts_with("contribution/foreground/")
+            && property.name == "checked-plot-id"
+            && property.value
+                == PresentationPropertyValue::Identity(basis.checked_plot_id.as_str().into())
+            && face.properties.iter().any(|other| {
+                other.subject == property.subject
+                    && other.name == "plan-id"
+                    && other.value
+                        == PresentationPropertyValue::Identity(basis.plan_id.as_str().into())
+            })
+            && face.properties.iter().any(|other| {
+                other.subject == property.subject
+                    && other.name == "active-play-id"
+                    && other.value
+                        == PresentationPropertyValue::Identity(basis.active_play_id.as_str().into())
+            })
+    });
+    if !standalone && !contributed {
+        return Err(TodoFaceError::InvalidActionContract);
+    }
     let expected = todo_fragment(state, basis, true)?;
     let canonical = expected
         .actions

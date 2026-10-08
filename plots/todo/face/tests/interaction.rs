@@ -5,9 +5,13 @@ use conduit_core::{
 use conduit_presentation::{
     FaceActionArgument, FaceInteraction, FaceInteractionArgument, FaceInteractionRefusal, MaskShow,
     Presentation, PresentationAction, PresentationActionAvailability, PresentationBasis,
-    PresentationContributionBasis, PresentationRole, PresentationSubject, UTF8_TEXT_VALUE_KIND,
+    PresentationContributionBasis, PresentationProperty, PresentationPropertyValue,
+    PresentationRole, PresentationSubject, UTF8_TEXT_VALUE_KIND,
 };
-use conduit_todo_face::{todo_command_from_interaction, todo_fragment, TodoFaceError};
+use conduit_todo_face::{
+    todo_command_from_contributed_interaction, todo_command_from_interaction, todo_fragment,
+    TodoFaceError,
+};
 use conduit_todo_plot::{TodoCommand, TodoItem, TodoState};
 
 #[path = "../../../../semantics/presentation/tests/common/mod.rs"]
@@ -149,6 +153,78 @@ fn every_todo_action_routes_to_one_typed_command_without_changing_state() {
         );
     }
     assert_eq!(state, original);
+}
+
+#[test]
+fn composed_owner_face_requires_exact_contribution_basis() {
+    let state = state();
+    let (face, _) = todo_face(&state, true);
+    let basis = PresentationContributionBasis {
+        checked_plot_id: face.basis.checked_plot_id.clone().unwrap(),
+        plan_id: face.basis.plan_id.clone().unwrap(),
+        active_play_id: face.basis.active_play_id.clone().unwrap(),
+        required_interaction_context: None,
+    };
+    let mut properties = face.properties.clone();
+    for (name, value) in [
+        ("checked-plot-id", basis.checked_plot_id.as_str()),
+        ("plan-id", basis.plan_id.as_str()),
+        ("active-play-id", basis.active_play_id.as_str()),
+    ] {
+        properties.push(PresentationProperty {
+            subject: "contribution/foreground/0".into(),
+            name: name.into(),
+            value: PresentationPropertyValue::Identity(value.into()),
+        });
+    }
+    let composed = Presentation::new_with_semantics(
+        face.revision,
+        PresentationBasis {
+            source_document_id: None,
+            checked_plot_id: None,
+            expanded_plot_id: None,
+            plan_id: None,
+            active_play_id: None,
+            ..face.basis
+        },
+        {
+            let mut subjects = face.subjects;
+            subjects.push(PresentationSubject {
+                identity: "contribution/foreground/0".into(),
+                role: PresentationRole::Plot,
+                name: "Todo contribution".into(),
+            });
+            subjects
+        },
+        face.relationships,
+        properties,
+        face.text,
+        face.actions,
+        face.disclosures,
+    )
+    .unwrap();
+    let show = common::available_mask_show(&composed);
+    let add = interaction(
+        &composed,
+        &show,
+        "todo.add",
+        "todo/list",
+        vec![FaceInteractionArgument {
+            name: "text".into(),
+            value_kind: UTF8_TEXT_VALUE_KIND.into(),
+            value: b"Tea".to_vec(),
+        }],
+    );
+    assert_eq!(
+        todo_command_from_contributed_interaction(&state, &composed, &show, &add, basis.clone(),),
+        Ok(TodoCommand::Add { text: "Tea".into() })
+    );
+    let mut stale = basis;
+    stale.active_play_id = ActivePlayId::from("play/other");
+    assert_eq!(
+        todo_command_from_contributed_interaction(&state, &composed, &show, &add, stale),
+        Err(TodoFaceError::InvalidActionContract)
+    );
 }
 
 #[test]
