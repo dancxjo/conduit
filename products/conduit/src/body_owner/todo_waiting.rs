@@ -1,6 +1,7 @@
-//! One first-action Todo encounter on the installed Owner's existing Body.
+//! One selected Todo command encounter on the installed Owner's existing Body.
 //! The waiting Play is retained before any Mask command may enter its Fore.
-//! This module does not restore a later generation or roll over the Host.
+//! A later encounter must supply its independently verified read and fresh
+//! selected write generation before this waiting Play is admitted.
 
 use super::{debug, state, BoundedOutput, DeadlineTimer, Owner};
 use conduit_body::{BodyPlayIdentity, Wake};
@@ -139,13 +140,14 @@ impl Owner {
     }
 
     pub(crate) fn todo_commit_receipt(&self) -> Option<&serde_json::Value> {
-        self.last_execution
-            .as_ref()
-            .filter(|receipt| receipt["schema"] == "conduit.todo/first-checkpoint-receipt@1")
+        self.last_execution.as_ref().filter(|receipt| {
+            receipt["schema"] == "conduit.todo/first-checkpoint-receipt@1"
+                || receipt["schema"] == "conduit.todo/next-checkpoint-receipt@1"
+        })
     }
 
-    /// Begin a single explicitly new list. The current Form is selected before
-    /// planning; the caller separately selected Host residence and authority.
+    /// Begin one new-list or verified continuation command. The current Form
+    /// is selected before planning; the Host residence and grant are explicit.
     pub(crate) fn start_waiting_todo(
         &mut self,
         state_root: &Path,
@@ -160,17 +162,26 @@ impl Owner {
             identity,
             current,
         } = checkpoint;
+        let first = current.revision == 0 && current.items.is_empty();
+        let continuing = self
+            .todo_verified
+            .as_ref()
+            .is_some_and(|(_, verified)| verified == &current)
+            && self.todo_verified_read_receipt().is_some();
         if !(1..=300_000).contains(&maximum_millis)
-            || current.revision != 0
-            || !current.items.is_empty()
-            || self.last_execution.is_some()
+            || !(first && self.last_execution.is_none() || continuing)
             || self.todo_live.is_some()
-            || identity.missing_v2 != MissingV2Disposition::StartNewList
+            || identity.missing_v2
+                != if first {
+                    MissingV2Disposition::StartNewList
+                } else {
+                    MissingV2Disposition::Refuse
+                }
             || identity.body != self.session.evidence().body_id.as_str()
             || identity.plot != plot.expanded.checked_plot_id.as_str()
         {
             return Err(
-                "Todo waiting encounter requires one explicit first-new-list action".into(),
+                "Todo waiting encounter requires an exact new or verified generation".into(),
             );
         }
         current.validate().map_err(debug)?;
@@ -391,8 +402,16 @@ impl TodoWaitingWorker {
         let mut next = owner.session.clone();
         next.lull(&authority.host_id, &authority.boot_id, Some(&report.play))
             .map_err(debug)?;
+        let previous_read = owner
+            .last_execution
+            .as_ref()
+            .filter(|receipt| receipt["schema"] == "conduit.todo/verified-read-receipt@1");
         let receipt = serde_json::json!({
-            "schema":"conduit.todo/first-checkpoint-receipt@1",
+            "schema":if self.initial.revision == 0 {
+                "conduit.todo/first-checkpoint-receipt@1"
+            } else {
+                "conduit.todo/next-checkpoint-receipt@1"
+            },
             "body_id":proposed.wake.body_id, "plan_id":proposed.plan.plan_id,
             "play":report.play, "terminal":report.terminal,
             "failure":report.failure, "cleanup_failure":report.cleanup_failure,
@@ -406,6 +425,14 @@ impl TodoWaitingWorker {
                 "list_key":self.checkpoint_identity.workload,
             },
             "selected_content":self.selected_content,
+            "previous_read":previous_read.map(|receipt| serde_json::json!({
+                "body_id":receipt["body_id"],
+                "read_plan_id":receipt["read_plan_id"],
+                "read_play_id":receipt["read_play"]["active_play_id"],
+                "read_terminal_sign_id":receipt["read_terminal_sign"]["sign_id"],
+                "selected_content":receipt["selected_content"],
+                "restored_fore_sha256":receipt["restored_fore_sha256"],
+            })),
             "host_call_request":report.requests.first().map(|request| serde_json::json!({
                 "node":request.node.0,
                 "request":request.request.0,

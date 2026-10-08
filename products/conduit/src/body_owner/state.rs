@@ -118,6 +118,20 @@ pub(super) fn retain_with_source(
     admissions: Option<&conduit_body::AdmissionManager>,
     source: Option<&[u8]>,
 ) -> Result<(), String> {
+    retain_with_source_and_todo_selection(root, biography, last_execution, admissions, source, None)
+}
+
+/// One owner transaction changes the resident Plot and installed Host's exact
+/// Todo selection together. A partial replay cannot pair the next Source with
+/// the previous generation or vice versa.
+pub(super) fn retain_with_source_and_todo_selection(
+    root: &Path,
+    biography: &BodyBiographyEvidence,
+    last_execution: Option<&serde_json::Value>,
+    admissions: Option<&conduit_body::AdmissionManager>,
+    source: Option<&[u8]>,
+    todo_selection: Option<&super::super::selected_todo::Selection>,
+) -> Result<(), String> {
     if let Some(source) = source {
         validate_source(biography, source)?;
     }
@@ -136,6 +150,20 @@ pub(super) fn retain_with_source(
         return Err("owner biography storage bound exhausted".into());
     }
     let mut installation = read_installation(&root.join("installation.json"))?;
+    if let Some(selection) = todo_selection {
+        selection.validate()?;
+        let prior = installation
+            .selected_todo_checkpoint
+            .as_ref()
+            .ok_or("owner transaction has no installed Todo selection")?;
+        if prior.root() != selection.root()
+            || prior.content().identity != selection.content().identity
+            || prior.content().version == selection.content().version
+        {
+            return Err("owner transaction changed the wrong Todo residence".into());
+        }
+        installation.selected_todo_checkpoint = Some(selection.clone());
+    }
     if installation.joined_body_state.is_some()
         || installation
             .body_state
