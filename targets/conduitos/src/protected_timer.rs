@@ -164,6 +164,15 @@ impl ProtectedTimer {
         interrupts: &mut I,
         idle: &mut D,
     ) -> Result<MachineRunReceipt, MachineRunError> {
+        if !matches!(
+            self.region.state(),
+            crate::protected_region::DomainState::Ready
+                | crate::protected_region::DomainState::Suspended
+        ) {
+            return Err(MachineRunError::ProtectionDomain(
+                crate::protected_region::DomainRefusal::InvalidLifecycle,
+            ));
+        }
         let started = clock.now();
         let state = interrupts.disable();
         let result = if interrupts.is_enabled() {
@@ -199,9 +208,10 @@ impl ProtectedTimer {
         let mut wakes = 0;
         let mut waiting = false;
         for _ in 0..512 {
-            if let Some(wake) = timer
-                .take_wake()
-                .map_err(|_| MachineRunError::TimerBaseFailure)?
+            if self.pending.is_some()
+                && let Some(wake) = timer
+                    .take_wake()
+                    .map_err(|_| MachineRunError::TimerBaseFailure)?
             {
                 let (_, request) = self.pending.ok_or(MachineRunError::TimerBaseFailure)?;
                 self.gate
