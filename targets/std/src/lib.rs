@@ -593,6 +593,34 @@ fn normalize_capability_offers(
     Ok(())
 }
 
+fn add_local_model_offers(
+    advertisement: &mut HostAdvertisement,
+    offer: &conduit_ai::LocalModelOffer,
+) -> Result<(), String> {
+    offer
+        .validate()
+        .map_err(|error| format!("local-model offer is not initialized: {error:?}"))?;
+    advertisement
+        .resources
+        .extend(hosted_local_model::resource_offers(&offer.limits));
+    advertisement.capabilities.extend(
+        offer
+            .capability_offers()
+            .map_err(|error| format!("local-model capabilities: {error:?}"))?,
+    );
+    advertisement.capabilities.extend([
+        conduit_std_offers::house_prompt_std_offer(),
+        conduit_std_offers::body_chat_prompt_std_offer(),
+        conduit_std_offers::model_result_to_text_std_offer(),
+        conduit_std_offers::model_result_flow_to_text_std_offer(),
+        conduit_std_offers::generated_chunk_to_text_std_offer(),
+        conduit_std_offers::address_detect_offer(),
+        conduit_std_offers::recognition_to_text_std_offer(),
+        conduit_std_offers::committed_turn_to_text_std_offer(),
+    ]);
+    Ok(())
+}
+
 impl StdHost {
     #[cfg(test)]
     fn install_test_capability(&mut self, offer: conduit_core::CapabilityOffer) {
@@ -740,6 +768,26 @@ impl StdHost {
         let offer =
             conduit_std_offers::todo_checkpoint_offer(content.clone()).map_err(str::to_string)?;
         Self::new_for_selected_todo_checkpoint(config, root, content, offer)
+    }
+
+    /// Compose two explicitly selected, finite offers before this Host is
+    /// advertised or its resource ledger is admitted.
+    pub fn new_for_todo_checkpoint_with_local_model(
+        config: StdHostConfig,
+        root: &std::path::Path,
+        content: conduit_core::ResourceContentRequirement,
+        adapter: Box<dyn hosted_local_model::HostedLocalModelAdapter>,
+    ) -> Result<Self, String> {
+        let mut host = Self::new_for_todo_checkpoint_once(config, root, content)?;
+        let mut advertisement = host.advertisement.clone();
+        add_local_model_offers(&mut advertisement, adapter.offer())?;
+        advertisement.resources.sort();
+        normalize_capability_offers(&mut advertisement.capabilities)?;
+        let ledger = kernel_preparation::KernelResourceLedger::new(&advertisement)?;
+        host.advertisement = advertisement;
+        host.kernel_resources = ledger;
+        host.local_model = Some(adapter);
+        Ok(host)
     }
 
     /// Advertise one exact ReadPublished generation and its separate read
@@ -927,44 +975,9 @@ impl StdHost {
         adapter: Box<dyn hosted_local_model::HostedLocalModelAdapter>,
         additional_capabilities: Vec<conduit_core::CapabilityOffer>,
     ) -> Result<Self, String> {
-        let offer = adapter.offer();
-        offer
-            .validate()
-            .map_err(|error| format!("local-model offer is not initialized: {error:?}"))?;
         let mut advertisement =
             composition::build_advertisement(config, composition, None, None, None, false);
-        advertisement
-            .resources
-            .extend(hosted_local_model::resource_offers(&offer.limits));
-        advertisement.capabilities.extend(
-            offer
-                .capability_offers()
-                .map_err(|error| format!("local-model capabilities: {error:?}"))?,
-        );
-        advertisement
-            .capabilities
-            .push(conduit_std_offers::house_prompt_std_offer());
-        advertisement
-            .capabilities
-            .push(conduit_std_offers::body_chat_prompt_std_offer());
-        advertisement
-            .capabilities
-            .push(conduit_std_offers::model_result_to_text_std_offer());
-        advertisement
-            .capabilities
-            .push(conduit_std_offers::model_result_flow_to_text_std_offer());
-        advertisement
-            .capabilities
-            .push(conduit_std_offers::generated_chunk_to_text_std_offer());
-        advertisement
-            .capabilities
-            .push(conduit_std_offers::address_detect_offer());
-        advertisement
-            .capabilities
-            .push(conduit_std_offers::recognition_to_text_std_offer());
-        advertisement
-            .capabilities
-            .push(conduit_std_offers::committed_turn_to_text_std_offer());
+        add_local_model_offers(&mut advertisement, adapter.offer())?;
         advertisement.capabilities.extend(additional_capabilities);
         advertisement.resources.sort();
         normalize_capability_offers(&mut advertisement.capabilities)?;

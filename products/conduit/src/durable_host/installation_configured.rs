@@ -94,11 +94,6 @@ pub(super) fn install_configured_with_todo(
         }
         selected_todo::Change::Remove => None,
     };
-    if retained_todo.is_some() && retained_model.is_some() {
-        return Err(
-            "installed Todo checkpoint cannot compose with selected model equipment".into(),
-        );
-    }
     let installation = Installation {
         schema: INSTALL_SCHEMA.into(),
         host_id,
