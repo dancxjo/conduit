@@ -7,6 +7,7 @@ mod frame;
 mod gate;
 mod keymap;
 mod memory;
+mod morse;
 #[cfg(feature = "proof")]
 mod probe_gate;
 #[cfg(all(feature = "proof", target_arch = "x86_64"))]
@@ -45,6 +46,15 @@ pub unsafe extern "C" fn domain_entry(frame: *mut TextFrame) -> ! {
         5 => unsafe { keymap::chain(frame) },
         6 => unsafe { keymap::initialize_editor(frame) },
         7 => unsafe { keymap::edit_chain(frame) },
+        8 => morse::chain(frame),
+        9 => {
+            if frame.morse_length as usize > frame::MORSE_CAPACITY
+                || frame.capacity != frame::MORSE_CAPACITY as u32
+            {
+                gate::finish(3);
+            }
+            gate::finish(0x200);
+        }
         1 => {
             if length > TEXT_CAPACITY || frame.capacity != TEXT_CAPACITY as u32 {
                 gate::finish(3);

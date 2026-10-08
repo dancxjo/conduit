@@ -59,12 +59,13 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
             ConduitosError::refusal("domain-proof-log-unavailable", error.to_string())
         })?;
     validate(&transcript)?;
+    let morse = super::protected_morse_proof::validate(&transcript)?;
     let receipt = serde_json::json!({
         "schema": "conduit.conduitos/aarch64-ordinary-domain-proof@1",
         "base_commit": git_head(&paths.root)?, "architecture": "aarch64",
         "privilege": "el0", "cpu": "neoverse-n2",
         "proof_class": "freestanding-emulator", "image_sha256": sha256_file(&paths.iso)?,
-        "ordinary_product_play": normal, "negative_entries": NEGATIVES,
+        "ordinary_product_play": normal, "protected_tour_morse": morse, "negative_entries": NEGATIVES,
         "capability_and_lifecycle_negatives": true,
         "floating_state_restored_before_rust_and_irq_handler": true,
         "source_timer_wake_retained_during_budget_preemption": true,

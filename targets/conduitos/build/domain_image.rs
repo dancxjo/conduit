@@ -11,6 +11,8 @@ pub fn generate() {
         "domain/Cargo.lock",
         "domain/allocation.rs",
         "domain/keymap.rs",
+        "domain/morse.rs",
+        "../../semantics/text",
         "../../semantics/catalog/src/text_state/retained.rs",
         "../../semantics/human",
         "../../architecture/core",

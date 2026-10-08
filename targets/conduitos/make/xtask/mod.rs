@@ -76,6 +76,7 @@ mod product_observatory;
 mod product_patchbay;
 mod product_readiness_matrix;
 mod profile;
+mod protected_morse_proof;
 mod protected_product_receipt;
 mod protocol_image;
 mod protocol_input;

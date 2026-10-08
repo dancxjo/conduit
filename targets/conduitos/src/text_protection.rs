@@ -10,7 +10,10 @@ use conduit_core::{ActivePlayIdentity, Plan};
 use core::sync::atomic::{AtomicU32, Ordering};
 
 mod chain;
+mod effect;
+mod morse;
 pub(crate) use chain::{KeyboardChainError, PureKeyboardOutput};
+pub(crate) use morse::ProtectedMorse;
 mod body;
 pub(crate) use body::BodyTextAdmission;
 
@@ -18,7 +21,10 @@ static NEXT_DOMAIN: AtomicU32 = AtomicU32::new(1);
 pub(crate) const ROOT_METADATA_CEILING: u32 = {
     let text = core::mem::size_of::<crate::text_planned_kernel::TextPlannedKernel>();
     let dual = core::mem::size_of::<crate::dual_region_kernel::DualRegionKernel>();
-    if text > dual { text } else { dual }
+    let morse = core::mem::size_of::<crate::tour_morse_kernel::TourMorseKernel>()
+        + core::mem::size_of::<ProtectedMorse>();
+    let current = if text > dual { text } else { dual };
+    if current > morse { current } else { morse }
 } as u32
     + 2 * (4 * 64 + 64);
 
@@ -313,125 +319,6 @@ impl<I: TextOwner> ProtectedText<I> {
     #[cfg(feature = "ordinary-domain-proof")]
     pub(crate) fn state_for_probe(&self) -> crate::protected_region::DomainState {
         self.region.state()
-    }
-
-    pub fn present(
-        &mut self,
-        input: &[u8],
-        serial: &mut impl crate::machine::SerialBase,
-    ) -> Result<(), MachineRunError> {
-        use crate::protected_region::DomainFault;
-        let current = self
-            .current
-            .scope(&self.serial, serial.provider_generation())
-            .map_err(|refusal| {
-                self.revoke(KernelRevocationCause::BaseReplaced);
-                MachineRunError::ProtectionDomain(refusal)
-            })?;
-        self.region
-            .backend_mut()
-            .map_err(MachineRunError::ProtectionDomain)?
-            .presentation(input, self.serial_handle.raw_for_domain())
-            .map_err(MachineRunError::ProtectionDomain)?;
-        match self
-            .region
-            .resume(&self.current, 1, &mut self.capabilities)
-            .map_err(MachineRunError::ProtectionDomain)?
-        {
-            DomainReturn::Gate => {}
-            DomainReturn::Fault(fault) => return Err(MachineRunError::ProtectionFault(fault)),
-            _ => {
-                self.region
-                    .fault(DomainFault::InvalidGate, &mut self.capabilities);
-                return Err(MachineRunError::ProtectionFault(DomainFault::InvalidGate));
-            }
-        }
-        let mut copied = [0; MAXIMUM_BYTES];
-        let (raw, operation, work_units, length) = self
-            .region
-            .backend_mut()
-            .map_err(MachineRunError::ProtectionDomain)?
-            .effect_request(&mut copied)
-            .map_err(|error| {
-                self.region
-                    .fault(DomainFault::InvalidGate, &mut self.capabilities);
-                MachineRunError::ProtectionDomain(error)
-            })?;
-        if work_units == 0 || core::str::from_utf8(&copied[..length]).is_err() {
-            self.region
-                .fault(DomainFault::InvalidGate, &mut self.capabilities);
-            return Err(MachineRunError::ProtectionFault(DomainFault::InvalidGate));
-        }
-        let claim = crate::protection_domain::KernelOperationClaim {
-            boot: current.boot,
-            plan: current.plan,
-            play: current.play,
-            base_generation: current.base_generation,
-            resource_generation: current.resource_generation,
-            operation,
-            parameter_bytes: length as u32,
-            work_units,
-        };
-        let lease = self
-            .capabilities
-            .authorize_current(
-                self.current.domain(),
-                crate::protection_domain::KernelCapabilityHandle::from_untrusted(raw),
-                &current,
-                claim,
-            )
-            .map_err(|error| {
-                self.region
-                    .fault(DomainFault::InvalidGate, &mut self.capabilities);
-                MachineRunError::ProtectionCapability(error)
-            })?;
-        if serial.present(&copied[..length]).is_err() {
-            self.revoke(KernelRevocationCause::ProviderLost);
-            return Err(MachineRunError::SerialBaseFailure);
-        }
-        if self
-            .current
-            .scope(&self.serial, serial.provider_generation())
-            .is_err()
-        {
-            self.revoke(KernelRevocationCause::BaseReplaced);
-            return Err(MachineRunError::ProtectionDomain(
-                crate::protected_region::DomainRefusal::WrongBinding,
-            ));
-        }
-        self.capabilities
-            .complete(lease)
-            .map_err(MachineRunError::ProtectionCapability)?;
-        self.region
-            .backend_mut()
-            .map_err(MachineRunError::ProtectionDomain)?
-            .effect_completed();
-        match self
-            .region
-            .resume(&self.current, 1, &mut self.capabilities)
-            .map_err(MachineRunError::ProtectionDomain)?
-        {
-            DomainReturn::Yielded => {
-                if self
-                    .region
-                    .backend_mut()
-                    .map_err(MachineRunError::ProtectionDomain)?
-                    .status()
-                    != 0
-                {
-                    self.region
-                        .fault(DomainFault::InvalidGate, &mut self.capabilities);
-                    return Err(MachineRunError::ProtectionFault(DomainFault::InvalidGate));
-                }
-                Ok(())
-            }
-            DomainReturn::Fault(fault) => Err(MachineRunError::ProtectionFault(fault)),
-            _ => {
-                self.region
-                    .fault(DomainFault::InvalidGate, &mut self.capabilities);
-                Err(MachineRunError::ProtectionFault(DomainFault::InvalidGate))
-            }
-        }
     }
 }
 

@@ -148,3 +148,102 @@ fn native_scope_uses_aggregate_body_identity_and_refuses_replacement() {
     other.partition_plan = "00".repeat(32).into();
     assert!(SerialScope::admit_body(plan, &other, &fixed).is_err());
 }
+
+#[test]
+fn current_offer_artifact_must_match_the_sealed_selection() {
+    let (plan, binding, mut fixed) = fixture();
+    let capability = fixed
+        .capabilities
+        .iter_mut()
+        .find(|capability| capability.implementation == TEXT_PRESENTATION_IMPLEMENTATION)
+        .unwrap();
+    capability.artifact_build = "replacement-build";
+    fixed.validate().unwrap();
+    assert!(SerialScope::admit(&plan, &binding, &fixed).is_err());
+}
+
+#[test]
+fn indicator_and_text_receive_distinct_exact_effect_scopes() {
+    let (_, _, fixed) = fixture();
+    let ids = BootIdentities {
+        host: fixed.host_id,
+        boot: fixed.boot_id,
+    };
+    let prepared = crate::tour_morse_plan::prepare(&ids, &fixed, "build").unwrap();
+    let fragment = &prepared.plan.fragments[0];
+    let region = &fragment.execution_regions[0].region_id;
+    let admit = |presentation| {
+        SerialScope::admit_selected(
+            &prepared.plan,
+            &fragment.host_id,
+            &fragment.boot_id,
+            region,
+            (
+                parse_identity(prepared.plan_id.as_str()).unwrap(),
+                parse_identity(prepared.active_play.active_play_id.as_str()).unwrap(),
+            ),
+            &fixed,
+            presentation,
+        )
+        .unwrap()
+    };
+    let indicator = admit(Presentation::Indicator);
+    let text = admit(Presentation::Text);
+    assert_eq!(indicator.scope.maximum_operations, 1);
+    assert_eq!(
+        indicator.scope.maximum_parameter_bytes,
+        conduit_text::MAXIMUM_MORSE_PATTERN_BYTES as u32
+    );
+    assert_ne!(indicator.scope.implementation, text.scope.implementation);
+    assert_ne!(indicator.scope.subject, text.scope.subject);
+    assert_ne!(indicator.scope.authority, text.scope.authority);
+    assert_eq!(indicator.provider, text.provider);
+}
+
+#[test]
+fn current_offer_contract_must_match_the_sealed_selection() {
+    let (plan, binding, mut fixed) = fixture();
+    let capability = fixed
+        .capabilities
+        .iter_mut()
+        .find(|capability| capability.implementation == TEXT_PRESENTATION_IMPLEMENTATION)
+        .unwrap();
+    capability.contract_revision = "conduit.presentation/text@replacement";
+    fixed.validate().unwrap();
+    assert!(SerialScope::admit(&plan, &binding, &fixed).is_err());
+}
+
+#[test]
+fn presentation_completion_envelope_is_independent_of_semantic_output() {
+    let (mut plan, binding, fixed) = fixture();
+    let placement = plan.fragments[0]
+        .placements
+        .iter_mut()
+        .find(|placement| {
+            placement.kind_id.as_str() == conduit_semantic_catalog::TEXT_PRESENTATION_KIND
+        })
+        .unwrap();
+    assert_eq!(
+        placement.host_calls[0].maximum_output_bytes,
+        conduit_core::MAX_PRESENTATION_COMPLETION_BYTES
+    );
+    placement.host_calls[0].maximum_output_bytes += 1;
+    // Re-seal the changed test Plan so refusal cannot be attributed to its seal.
+    let plan = conduit_core::seal_plan_with_completion(
+        conduit_core::PlotIdentity {
+            source_document_id: plan.source_document_id,
+            checked_plot_id: plan.checked_plot_id,
+            expanded_plot_id: plan.expanded_plot_id,
+        },
+        plan.completion_policy,
+        plan.fragments,
+    );
+    let active = conduit_core::bind_active_play(
+        &plan.plan_id,
+        &binding.active.host_id,
+        &binding.active.boot_id,
+        binding.active.play_sequence,
+    );
+    let binding = RegionBinding::admit(&plan, &active, &binding.region, binding.domain).unwrap();
+    assert!(SerialScope::admit(&plan, &binding, &fixed).is_err());
+}

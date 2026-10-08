@@ -1,7 +1,10 @@
 //! Root-owned exact admission for the ordinary text region's serial effect.
 use crate::{
     machine::BaseKind,
-    offer::{BaseProviderBinding, HostOffer, TEXT_PRESENTATION_IMPLEMENTATION},
+    offer::{
+        BaseProviderBinding, HostOffer, INDICATOR_PRESENTATION_IMPLEMENTATION,
+        TEXT_PRESENTATION_IMPLEMENTATION,
+    },
     protected_region::{BodyRegionBinding, DomainRefusal, RegionBinding},
     protection_domain::KernelCapabilityScope,
 };
@@ -40,9 +43,12 @@ impl SerialScope {
             host,
             boot,
             region,
-            identity(b"body-plan", &[plan.plan_id.as_str().as_bytes()]),
-            [0; 32],
+            (
+                identity(b"body-plan", &[plan.plan_id.as_str().as_bytes()]),
+                [0; 32],
+            ),
             fixed,
+            Presentation::Text,
         )?;
         prepared.body_owner = Some(body_owner(plot, region));
         Ok(prepared)
@@ -90,14 +96,38 @@ impl SerialScope {
             &binding.active.host_id,
             &binding.active.boot_id,
             &binding.region,
-            parse_identity(binding.active.plan_id.as_str())?,
-            parse_identity(binding.active.active_play_id.as_str())?,
+            (
+                parse_identity(binding.active.plan_id.as_str())?,
+                parse_identity(binding.active.active_play_id.as_str())?,
+            ),
             fixed,
+            Presentation::Text,
         )?;
         // This ordinary literal composition emits one value. The presentation
         // kind's larger configured ceiling does not grant additional effects.
         selected.scope.maximum_operations = 1;
         Ok(selected)
+    }
+
+    /// Admit the independently selected indicator effect of an ordinary Morse Play.
+    pub fn admit_indicator(
+        plan: &Plan,
+        binding: &RegionBinding,
+        fixed: &HostOffer<'_>,
+    ) -> Result<Self, DomainRefusal> {
+        RegionBinding::admit(plan, &binding.active, &binding.region, binding.domain)?;
+        Self::admit_selected(
+            plan,
+            &binding.active.host_id,
+            &binding.active.boot_id,
+            &binding.region,
+            (
+                parse_identity(binding.active.plan_id.as_str())?,
+                parse_identity(binding.active.active_play_id.as_str())?,
+            ),
+            fixed,
+            Presentation::Indicator,
+        )
     }
 
     pub fn admit_body(
@@ -127,12 +157,15 @@ impl SerialScope {
             &binding.host,
             &binding.boot,
             &binding.region,
-            identity(b"body-plan", &[plan.plan_id.as_str().as_bytes()]),
-            identity(
-                b"body-play",
-                &[binding.active.active_play_id.as_str().as_bytes()],
+            (
+                identity(b"body-plan", &[plan.plan_id.as_str().as_bytes()]),
+                identity(
+                    b"body-play",
+                    &[binding.active.active_play_id.as_str().as_bytes()],
+                ),
             ),
             fixed,
+            Presentation::Text,
         )?;
         admitted.body_owner = Some(body_owner(&binding.plot, &binding.region));
         Ok(admitted)
@@ -143,9 +176,9 @@ impl SerialScope {
         host: &conduit_core::HostId,
         boot: &conduit_core::BootId,
         region_id: &conduit_core::ExecutionRegionId,
-        plan_id: [u8; 32],
-        play_id: [u8; 32],
+        (plan_id, play_id): ([u8; 32], [u8; 32]),
         fixed: &HostOffer<'_>,
+        presentation: Presentation,
     ) -> Result<Self, DomainRefusal> {
         fixed.validate().map_err(|_| DomainRefusal::WrongBinding)?;
         if host.as_str() != crate::identity::hex(&fixed.host_id)
@@ -167,12 +200,12 @@ impl SerialScope {
             .find(|region| &region.region_id == region_id)
             .ok_or(DomainRefusal::WrongBinding)?;
         let mut placements = fragment.placements.iter().filter(|placement| {
-            placement.kind_id.as_str() == conduit_semantic_catalog::TEXT_PRESENTATION_KIND
+            placement.kind_id.as_str() == presentation.kind()
                 && region.admitted_placements.contains(&placement.placement_id)
         });
         let placement = placements.next().ok_or(DomainRefusal::WrongBinding)?;
         if placements.next().is_some()
-            || placement.implementation_id.as_str() != TEXT_PRESENTATION_IMPLEMENTATION
+            || placement.implementation_id.as_str() != presentation.implementation()
             || !placement.authority.is_empty()
         {
             // This reviewed local presentation contract has no external-subject grant.
@@ -188,6 +221,12 @@ impl SerialScope {
                     && capability.required_base == BaseKind::Serial
             })
             .ok_or(DomainRefusal::WrongBinding)?;
+        if placement.kind_contract_revision.as_str() != capability.contract_revision
+            || placement.artifact_id.as_str()
+                != alloc::format!("conduitos-build/{}", capability.artifact_build)
+        {
+            return Err(DomainRefusal::WrongBinding);
+        }
         let provider = fixed
             .capability_provider(capability)
             .map_err(|_| DomainRefusal::WrongBinding)?;
@@ -212,6 +251,7 @@ impl SerialScope {
             || call.maximum_in_flight != 1
             || call.maximum_input_bytes == 0
             || call.maximum_input_bytes > capability.maximum_input_bytes
+            || call.maximum_output_bytes > presentation.maximum_completion_bytes()
         {
             return Err(DomainRefusal::WrongBinding);
         }
@@ -235,18 +275,22 @@ impl SerialScope {
             })
             .ok_or(DomainRefusal::WrongBinding)?;
         let _ = pool;
-        let maximum_operations = placement
-            .configuration
-            .iter()
-            .find_map(|entry| match (entry.key.as_str(), &entry.value) {
-                ("maximum-values", conduit_core::ConfigurationValue::U64(value)) => {
-                    u32::try_from(*value)
-                        .ok()
-                        .filter(|value| (1..=8).contains(value))
-                }
-                _ => None,
-            })
-            .ok_or(DomainRefusal::WrongBinding)?;
+        let maximum_operations = match presentation {
+            Presentation::Indicator if placement.configuration.is_empty() => 1,
+            Presentation::Indicator => return Err(DomainRefusal::WrongBinding),
+            Presentation::Text => placement
+                .configuration
+                .iter()
+                .find_map(|entry| match (entry.key.as_str(), &entry.value) {
+                    ("maximum-values", conduit_core::ConfigurationValue::U64(value)) => {
+                        u32::try_from(*value)
+                            .ok()
+                            .filter(|value| (1..=8).contains(value))
+                    }
+                    _ => None,
+                })
+                .ok_or(DomainRefusal::WrongBinding)?,
+        };
         Ok(Self {
             scope: KernelCapabilityScope {
                 host: fixed.host_id,
@@ -328,6 +372,33 @@ impl SerialScope {
             return Err(DomainRefusal::WrongBinding);
         }
         Ok(self.scope)
+    }
+}
+
+#[derive(Clone, Copy)]
+enum Presentation {
+    Text,
+    Indicator,
+}
+
+impl Presentation {
+    fn kind(self) -> &'static str {
+        match self {
+            Self::Text => conduit_semantic_catalog::TEXT_PRESENTATION_KIND,
+            Self::Indicator => conduit_semantic_catalog::INDICATOR_PRESENTATION_KIND,
+        }
+    }
+    fn maximum_completion_bytes(self) -> u32 {
+        match self {
+            Self::Text => conduit_core::MAX_PRESENTATION_COMPLETION_BYTES,
+            Self::Indicator => 0,
+        }
+    }
+    fn implementation(self) -> &'static str {
+        match self {
+            Self::Text => TEXT_PRESENTATION_IMPLEMENTATION,
+            Self::Indicator => INDICATOR_PRESENTATION_IMPLEMENTATION,
+        }
     }
 }
 

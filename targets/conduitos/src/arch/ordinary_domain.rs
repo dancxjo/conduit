@@ -9,6 +9,8 @@ use crate::{
 };
 #[path = "../../domain/frame.rs"]
 mod frame;
+#[path = "ordinary_domain/morse.rs"]
+mod morse;
 pub(super) use frame::{TEXT_CAPACITY, TextFrame};
 
 #[cfg(target_arch = "x86_64")]

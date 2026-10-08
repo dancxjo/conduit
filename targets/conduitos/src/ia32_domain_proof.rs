@@ -6,11 +6,14 @@ use crate::{
 
 #[path = "ordinary_domain_proof/gates.rs"]
 mod gates;
+#[path = "ordinary_domain_proof/morse.rs"]
+mod morse;
 #[path = "ordinary_domain_proof/timer.rs"]
 mod timer;
 
 pub fn run(plan: &conduit_core::Plan, offer: &crate::offer::HostOffer<'_>) {
     gates::run(plan, offer);
+    morse::run(plan, offer);
     hostile_entries();
     timer::run();
 }

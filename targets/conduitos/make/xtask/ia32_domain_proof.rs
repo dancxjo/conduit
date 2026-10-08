@@ -42,6 +42,7 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         .map_err(|error| {
             ConduitosError::refusal("domain-proof-log-unavailable", error.to_string())
         })?;
+    let morse = super::protected_morse_proof::validate(&transcript)?;
     let negatives = "CONDUIT_IA32_DOMAIN_NEGATIVES root-memory capability-memory sibling-memory root-entry mmio ports cli loop direction-flag syscall sysenter divide breakpoint single-step rdtsc code-write data-execute";
     if !transcript.lines().any(|line| line == negatives)
         || !transcript
@@ -68,7 +69,7 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         "architecture": "ia32", "privilege": "ring3",
         "proof_class": "freestanding-ia32-legacy-bios-emulator",
         "image_sha256": sha256_file(&paths.iso)?,
-        "ordinary_product_play": normal, "instrumented_product_play": product,
+        "ordinary_product_play": normal, "protected_tour_morse": morse, "instrumented_product_play": product,
         "negative_entries": negatives,
         "floating_state_restored_before_rust": true,
         "capability_and_lifecycle_negatives": true,
