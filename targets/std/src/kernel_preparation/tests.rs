@@ -7,6 +7,60 @@ use conduit_core::{
 use conduit_plot::parse;
 
 #[test]
+fn body_reservation_verifies_complete_activation_plan_before_exact_offer() {
+    let plan = crate::flow_activation::authored_todo_plan();
+    let fragment = &plan.fragments[0];
+    let host = conduit_core::HostAdvertisement {
+        protocol_version: conduit_core::PROTOCOL_VERSION,
+        host_id: fragment.host_id.clone(),
+        boot_id: fragment.placements[0].boot_id.clone(),
+        offer_generation: fragment.placements[0].offer_generation,
+        profile: conduit_core::HostProfileId::from("std-todo-offer-proof/profile"),
+        bases: vec![],
+        resources: vec![],
+        planner_capabilities: vec![],
+        capabilities: vec![crate::flow_activation::todo_scan_offer(
+            &conduit_todo_plot::TodoState::new("Groceries".into()).unwrap(),
+            64,
+        )
+        .unwrap()],
+    };
+    let mut ledger = KernelResourceLedger::new(&host).unwrap();
+    let reservation = ledger
+        .prepare_and_reserve_plans(&host, &[(&plan, false)])
+        .expect("the whole sealed activation Plan can be reserved")
+        .pop()
+        .unwrap();
+    assert_eq!(reservation.plan_id, plan.plan_id);
+    ledger.release(reservation).unwrap();
+
+    let mut unadvertised = host.clone();
+    unadvertised.capabilities.clear();
+    let mut absent_ledger = KernelResourceLedger::new(&unadvertised).unwrap();
+    let error = absent_ledger
+        .prepare_and_reserve_plans(&unadvertised, &[(&plan, false)])
+        .unwrap_err();
+    assert!(error.contains("unavailable capability"), "{error}");
+    assert!(absent_ledger.is_idle());
+
+    let mut stale = plan.clone();
+    stale.activations.clear();
+    let error = ledger
+        .prepare_and_reserve_plans(&host, &[(&stale, false)])
+        .unwrap_err();
+    assert!(error.contains("lowering"), "{error}");
+    assert!(ledger.is_idle());
+
+    let mut extra = plan.clone();
+    extra.fragments.push(extra.fragments[0].clone());
+    let error = ledger
+        .prepare_and_reserve_plans(&host, &[(&extra, false)])
+        .unwrap_err();
+    assert!(error.contains("exactly one fragment"), "{error}");
+    assert!(ledger.is_idle());
+}
+
+#[test]
 fn exact_reservation_rejects_overlap_releases_and_does_not_grow() {
     let host = advertisement(
         HostId::from("resource-host"),

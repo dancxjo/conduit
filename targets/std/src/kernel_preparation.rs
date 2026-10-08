@@ -8,10 +8,12 @@ use exact_profile::validate_exact_profile;
 
 use crate::installed_std::state_storage_profile;
 use conduit_core::{
-    resource_binding_satisfies, HostAdvertisement, PlanFragment, PlanId, ResourceBinding,
+    resource_binding_satisfies, HostAdvertisement, Plan, PlanFragment, PlanId, ResourceBinding,
     ResourceClassId, ResourceHealth, ResourceObservation, ResourcePoolId, SignId, PROTOCOL_VERSION,
 };
-use conduit_plan_lowering::lowering::lower_plan_fragment_for_profile;
+use conduit_plan_lowering::lowering::{
+    lower_plan_fragment_for_profile, lower_plan_fragment_for_profile_from_plan,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct PoolUsage {
@@ -214,6 +216,59 @@ impl KernelResourceLedger {
         Ok(reservations)
     }
 
+    /// Reserve Body partitions through their complete sealed Plans. An
+    /// activation-bearing PlanId cannot be verified from a fragment alone.
+    pub(super) fn prepare_and_reserve_plans(
+        &mut self,
+        advertisement: &HostAdvertisement,
+        plans: &[(&Plan, bool)],
+    ) -> Result<Vec<KernelResourceReservation>, String> {
+        if plans.is_empty() || plans.len() > conduit_body::MAX_BODY_PLOTS {
+            return Err("local workload partition count exceeds the admitted profile".into());
+        }
+        let mut staged = self.clone();
+        let mut reservations = Vec::with_capacity(plans.len());
+        for (index, (plan, continuity)) in plans.iter().enumerate() {
+            let fragment = plan
+                .fragments
+                .first()
+                .filter(|_| plan.fragments.len() == 1)
+                .ok_or_else(|| "local Body Plan requires exactly one fragment".to_string())?;
+            if plans[..index].iter().any(|(prior, _)| {
+                prior.fragments.iter().any(|part| {
+                    part.plan_id == fragment.plan_id && part.fragment_id == fragment.fragment_id
+                })
+            }) {
+                return Err("duplicate local workload partition".into());
+            }
+            reservations.push(staged.reserve_plan(advertisement, plan, fragment, *continuity)?);
+        }
+        for (live, admitted) in self.pools.iter_mut().zip(staged.pools) {
+            live.used_units = admitted.used_units;
+        }
+        for (live, admitted) in self.instances.iter_mut().zip(staged.instances) {
+            live.1 = admitted.1;
+        }
+        Ok(reservations)
+    }
+
+    fn reserve_plan(
+        &mut self,
+        advertisement: &HostAdvertisement,
+        plan: &Plan,
+        fragment: &PlanFragment,
+        continuity: bool,
+    ) -> Result<KernelResourceReservation, String> {
+        let mut profile = state_storage_profile();
+        if continuity {
+            profile = profile.with_owned_state_continuity();
+        }
+        let lowered =
+            lower_plan_fragment_for_profile_from_plan(plan, &fragment.fragment_id, profile)
+                .map_err(|error| format!("kernel preparation lowering: {error:?}"))?;
+        self.reserve_verified_partition_with_lowered(advertisement, fragment, lowered)
+    }
+
     fn reserve_partition(
         &mut self,
         advertisement: &HostAdvertisement,
@@ -226,6 +281,15 @@ impl KernelResourceLedger {
         }
         let lowered = lower_plan_fragment_for_profile(fragment, profile)
             .map_err(|error| format!("kernel preparation lowering: {error:?}"))?;
+        self.reserve_verified_partition_with_lowered(advertisement, fragment, lowered)
+    }
+
+    fn reserve_verified_partition_with_lowered(
+        &mut self,
+        advertisement: &HostAdvertisement,
+        fragment: &PlanFragment,
+        lowered: conduit_plan_lowering::lowering::LoweredPlanFragment,
+    ) -> Result<KernelResourceReservation, String> {
         validate_exact_profile(advertisement, fragment)?;
 
         let mut instances = Vec::new();
