@@ -9,12 +9,24 @@ use crate::NativeTypeValueContract;
 use alloc::vec::Vec;
 use conduit_core::{
     validate_canonical_structured_value, StructuredInfoRefusal, StructuredInfoType,
-    ValidatedCanonicalStructuredValue, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    StructuredInfoTypeShape, ValidatedCanonicalStructuredValue, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
     MAXIMUM_STRUCTURED_INFO_NODES,
 };
 use core::mem::size_of;
 
 pub const MAXIMUM_NATIVE_FAMILY_TYPES: usize = 64;
+
+/// Static external metadata comparison work, separate from owned heap quotas.
+pub const MAXIMUM_NATIVE_FAMILY_EXTERNAL_METADATA_BYTES: usize =
+    MAXIMUM_STRUCTURED_CANONICAL_BYTES * MAXIMUM_NATIVE_FAMILY_TYPES;
+
+#[derive(Debug)]
+pub struct NativeFamilyExternalEdge {
+    pub descriptor: &'static NativeFamilyTypeDescriptor,
+    /// Complete generated owning-crate metadata, independent of the Rust path
+    /// that resolves `descriptor`. This shadow has no converter authority.
+    pub expected: &'static NativeFamilyTypeDescriptor,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NativeFamilyConversionProfile {
@@ -29,6 +41,7 @@ pub struct NativeFamilyTypeDescriptor {
     pub laws: &'static [&'static [u8]],
     pub contracts: &'static [NativeFamilyContractDescriptor],
     pub children: &'static [&'static NativeFamilyTypeDescriptor],
+    pub external_edges: &'static [NativeFamilyExternalEdge],
     pub conversion_profile: NativeFamilyConversionProfile,
     /// Generated Rust inline layout, used solely to bound conversion allocations.
     pub maximum_inline_bytes: usize,
@@ -99,8 +112,15 @@ impl PreparedNativeFamily {
         }
         let mut descriptors = [None; MAXIMUM_NATIVE_FAMILY_TYPES];
         let mut count = 0;
+        let mut external_metadata_budget = MAXIMUM_NATIVE_FAMILY_EXTERNAL_METADATA_BYTES;
         for root in roots {
-            collect(root, &mut descriptors, &mut count, limits.maximum_types)?;
+            collect(
+                root,
+                &mut descriptors,
+                &mut count,
+                limits.maximum_types,
+                &mut external_metadata_budget,
+            )?;
         }
         let mut retained = count
             .checked_mul(size_of::<PreparedType>())
@@ -125,6 +145,25 @@ impl PreparedNativeFamily {
             let value_type = StructuredInfoType::from_canonical_bytes(descriptor.type_bytes)
                 .map_err(Refusal::InvalidType)?;
             let type_heap = value_type.owned_heap_bytes();
+            // A descriptor pointer cannot substitute a named child's original
+            // complete Type. Charge the simultaneous parent + child decoder
+            // peak before reconstructing any child for this check.
+            for child in descriptor.children {
+                let child_decode =
+                    StructuredInfoType::canonical_decode_storage_bound(child.type_bytes)
+                        .map_err(Refusal::InvalidType)?;
+                let child_peak = retained
+                    .checked_add(type_heap)
+                    .and_then(|bytes| bytes.checked_add(child_decode))
+                    .ok_or(Refusal::Capacity)?;
+                admit(child_peak, limits.maximum_preparation_peak_bytes)?;
+                peak = peak.max(child_peak);
+                let child_type = StructuredInfoType::from_canonical_bytes(child.type_bytes)
+                    .map_err(Refusal::InvalidType)?;
+                if !contains_child_type(&value_type, &child_type) {
+                    return Err(Refusal::ConflictingDescriptor);
+                }
+            }
             let contract_heap = prepared_family_contracts::storage_bound(descriptor.contracts)
                 .ok_or(Refusal::Capacity)?;
             let framing_heap = if descriptor.laws.is_empty() {
@@ -279,6 +318,23 @@ fn admit(bytes: usize, maximum: usize) -> Result<(), PreparedNativeFamilyRefusal
         Ok(())
     }
 }
+
+fn contains_child_type(parent: &StructuredInfoType, expected: &StructuredInfoType) -> bool {
+    let contains =
+        |child: &StructuredInfoType| child == expected || contains_child_type(child, expected);
+    match parent.shape() {
+        StructuredInfoTypeShape::Nominal { representation, .. } => contains(representation),
+        StructuredInfoTypeShape::Collection { element, .. }
+        | StructuredInfoTypeShape::Sequence { element, .. } => contains(element),
+        StructuredInfoTypeShape::Record { fields, .. } => {
+            fields.iter().any(|field| contains(field.value_type()))
+        }
+        StructuredInfoTypeShape::Variant { cases, .. } => {
+            cases.iter().any(|case| contains(case.payload_type()))
+        }
+        StructuredInfoTypeShape::Leaf(_) => false,
+    }
+}
 fn wrong_type() -> NativeBindingRefusal {
     NativeBindingRefusal::InvalidValue(StructuredInfoRefusal::WrongType)
 }
@@ -288,8 +344,11 @@ fn collect(
     descriptors: &mut [Option<&'static NativeFamilyTypeDescriptor>; MAXIMUM_NATIVE_FAMILY_TYPES],
     count: &mut usize,
     maximum: usize,
+    external_metadata_budget: &mut usize,
 ) -> Result<(), PreparedNativeFamilyRefusal> {
-    if descriptor.children.len() > MAXIMUM_NATIVE_FAMILY_TYPES {
+    if descriptor.children.len() > MAXIMUM_NATIVE_FAMILY_TYPES
+        || descriptor.type_bytes.len() > MAXIMUM_STRUCTURED_CANONICAL_BYTES
+    {
         return Err(PreparedNativeFamilyRefusal::Capacity);
     }
     for prior in descriptors[..*count].iter().flatten() {
@@ -300,13 +359,14 @@ fn collect(
             return Err(PreparedNativeFamilyRefusal::ConflictingDescriptor);
         }
     }
+    super::prepared_family_external::validate_edges(descriptor, external_metadata_budget)?;
     if *count >= maximum {
         return Err(PreparedNativeFamilyRefusal::Capacity);
     }
     descriptors[*count] = Some(descriptor);
     *count += 1;
     for child in descriptor.children {
-        collect(child, descriptors, count, maximum)?;
+        collect(child, descriptors, count, maximum, external_metadata_budget)?;
     }
     Ok(())
 }
