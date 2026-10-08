@@ -16,8 +16,16 @@ use conduit_core::{
 };
 
 impl<D: BurnModelDefinition> BurnAdapter<D> {
+    /// Snapshot staging requires exclusive access to the admitted adapter.
+    ///
+    /// ```compile_fail
+    /// use conduit_burn_model::{BurnAdapter, BurnModelDefinition, Cancellation, DirectoryCheckpointStore};
+    /// fn checkpoint_requires_exclusive_adapter<D: BurnModelDefinition>(model: &BurnAdapter<D>, store: &DirectoryCheckpointStore) {
+    ///     model.checkpoint(store, vec![], &Cancellation::default()).unwrap();
+    /// }
+    /// ```
     pub fn checkpoint(
-        &self,
+        &mut self,
         store: &DirectoryCheckpointStore,
         metrics: Vec<TrainingMetric>,
         cancel: &Cancellation,
@@ -101,8 +109,16 @@ impl<D: BurnModelDefinition> BurnAdapter<D> {
         Ok(receipt)
     }
     /// An explicit off-ramp containing no optimizer or resume state.
+    /// Snapshot staging has the same exclusive admission as other model work.
+    ///
+    /// ```compile_fail
+    /// use conduit_burn_model::{BurnAdapter, BurnModelDefinition, Cancellation, DirectoryCheckpointStore};
+    /// fn export_requires_exclusive_adapter<D: BurnModelDefinition>(model: &BurnAdapter<D>, store: &DirectoryCheckpointStore) {
+    ///     model.export_inference(store, &Cancellation::default()).unwrap();
+    /// }
+    /// ```
     pub fn export_inference(
-        &self,
+        &mut self,
         store: &DirectoryCheckpointStore,
         cancel: &Cancellation,
     ) -> Result<ModelCheckpoint, Error> {

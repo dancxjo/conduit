@@ -58,7 +58,9 @@ Evaluation admits batch identity, work and cadence before numerical work, reserv
 the existing exclusive compute lifecycle slot, and uses a valid detached fork.
 It preserves parameters, optimizer, and cursor.
 
-SafeTensors weights and a versioned descriptor are inference off-ramps. Resume
+Checkpoint and export calls require exclusive adapter access, preventing concurrent
+snapshot staging from exceeding its one admitted invocation. SafeTensors weights
+and a versioned descriptor are inference off-ramps. Resume
 bundles additionally persist a Burn module record retaining ParamIds, AdamW state,
 recipe/seed, generation, consumed work, and the next **step** cursor. The corpus
 iterator/batch cursor, shuffled ordering, scheduler/scaler alternatives, held-out

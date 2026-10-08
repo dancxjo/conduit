@@ -261,7 +261,7 @@ fn cancellation_and_stale_resume_preserve_live_and_durable_progress() {
 fn corrupt_weight_member_refuses_without_replacing_model() {
     let dir = tempfile::tempdir().unwrap();
     let store = DirectoryCheckpointStore::new(dir.path(), 65536, 16).unwrap();
-    let host = adapter();
+    let mut host = adapter();
     let exported = host
         .export_inference(&store, &Cancellation::default())
         .unwrap();
