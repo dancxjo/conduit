@@ -46,10 +46,11 @@ pub(super) fn prepare(
             || !owner.host_calls.is_empty()
             || !owner.resources.is_empty()
             || !owner.authority.is_empty()
-            || planned.limits.maximum_items > 32
+            || planned.limits.maximum_items > 64
         {
             return Err("installed pure Todo scan parent or bound is unsupported".into());
         }
+        crate::flow_activation::validate_planned_todo_scan(owner, planned)?;
         let identity = PreparationHostIdentity {
             host_id: fragment.host_id.clone(),
             boot_id: fragment.boot_id.clone(),
@@ -109,7 +110,7 @@ mod tests {
     use conduit_body::ResidentPlot;
 
     #[test]
-    fn exact_todo_child_pool_is_prepared_before_body_play() {
+    fn fixture_scan_owner_is_not_a_production_offer() {
         let plan = crate::flow_activation::tests::todo_scan_plan();
         let partition = BodyPlotPlan {
             plot: ResidentPlot::new(
@@ -118,11 +119,9 @@ mod tests {
             ),
             plan,
         };
-        let scans = prepare(&[partition], &ActivePlayId::from("body/play/test"))
-            .expect("exact pure Todo child Plan prepares before Body Play");
-        assert_eq!(scans.len(), 1);
-        assert!(scans[0].back.is_some());
-        assert_eq!(scans[0].owner.as_str(), "placement");
-        assert_eq!(scans[0].budget.host_requests, 0);
+        assert!(prepare(&[partition], &ActivePlayId::from("body/play/test"))
+            .err()
+            .expect("fixture-only scan owner must be refused")
+            .contains("exact std production offer"));
     }
 }
