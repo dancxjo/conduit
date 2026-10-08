@@ -1,7 +1,7 @@
 //! Installed local execution for exact checked pure expressions.
 
 use super::back::{BackBudget, BackFactory, InstalledBack};
-use conduit_core::{ConfigurationValue, PlannedGear, MAXIMUM_STRUCTURED_CANONICAL_BYTES};
+use conduit_core::{PlannedGear, MAXIMUM_STRUCTURED_CANONICAL_BYTES};
 
 pub(super) static FACTORY: BackFactory = BackFactory {
     implementation_id: conduit_std_offers::PURE_EXPRESSION_STD_IMPLEMENTATION,
@@ -17,15 +17,8 @@ pub(super) static FILTER_FACTORY: BackFactory = BackFactory {
 pub(super) use conduit_semantic_catalog::PureExpressionBack;
 
 pub(crate) struct PureExpressionHost {
-    evaluator: conduit_plot::PreparedPortableExpressionEvaluator,
-    filter_output: Option<PreparedFilterOutput>,
+    inner: conduit_semantic_catalog::operation_owners::pure_expression_host::PreparedPureExpressionHost,
 }
-
-enum PreparedFilterOutput {
-    Flow(Vec<u8>),
-    Value(conduit_core::PreparedOptionalInfoEncoder),
-}
-
 pub(super) fn prepare_hosts(
     fragment: &conduit_core::PlanFragment,
 ) -> Result<Vec<Option<PureExpressionHost>>, String> {
@@ -50,79 +43,22 @@ impl PureExpressionHost {
     pub(crate) fn from_placement(placement: &PlannedGear) -> Result<Self, String> {
         let program = program_from_placement(placement)?;
         validate_placement(placement, &program)?;
-        let filter_output = if placement.kind_contract_revision.as_str()
-            == conduit_plot::PURE_FILTER_REVISION
-        {
-            Some(match placement.inputs[0].temporal {
-                conduit_core::PortTemporal::Value => PreparedFilterOutput::Value(
-                    conduit_core::PreparedOptionalInfoEncoder::new(program.input_type.clone())
-                        .map_err(|error| format!("prepare optional filter output: {error:?}"))?,
-                ),
-                conduit_core::PortTemporal::Flow { .. } => PreparedFilterOutput::Flow(
-                    Vec::with_capacity(MAXIMUM_STRUCTURED_CANONICAL_BYTES),
-                ),
-                conduit_core::PortTemporal::Current => {
-                    return Err("when filter does not admit current-value temporal input".into())
-                }
-            })
-        } else {
-            None
-        };
-        Ok(Self {
-            evaluator: conduit_plot::PreparedPortableExpressionEvaluator::new(&program)
-                .map_err(|error| format!("prepare pure expression evaluator: {error:?}"))?,
-            filter_output,
-        })
+        Ok(Self { inner: conduit_semantic_catalog::operation_owners::pure_expression_host::PreparedPureExpressionHost::prepare(&program, placement.inputs[0].temporal, placement.kind_contract_revision.as_str() == conduit_plot::PURE_FILTER_REVISION)? })
     }
-
     pub(super) fn execute(
         &mut self,
         input: &[u8],
     ) -> Result<&[u8], conduit_plot::PortableExpressionEvaluationRefusal> {
-        self.evaluator.evaluate(input)
+        self.inner.execute(input)
     }
-
     pub(crate) fn execute_filter(
         &mut self,
         input: &[u8],
     ) -> Result<Option<&[u8]>, conduit_plot::PortableExpressionEvaluationRefusal> {
-        let predicate = self.evaluator.evaluate(input)?;
-        let selected = conduit_core::InfoBool::decode(predicate)
-            .map_err(|_| conduit_plot::PortableExpressionEvaluationRefusal::InvalidProgram)?
-            .get();
-        match self
-            .filter_output
-            .as_mut()
-            .ok_or(conduit_plot::PortableExpressionEvaluationRefusal::InvalidProgram)?
-        {
-            PreparedFilterOutput::Flow(output) => {
-                if !selected {
-                    return Ok(None);
-                }
-                output.clear();
-                output.extend_from_slice(input);
-                Ok(Some(output))
-            }
-            PreparedFilterOutput::Value(output) => output
-                .encode(selected.then_some(input))
-                .map(Some)
-                .map_err(|_| conduit_plot::PortableExpressionEvaluationRefusal::InvalidInput),
-        }
+        self.inner.execute_filter(input)
     }
 }
-
-pub(crate) fn program_from_placement(
-    placement: &PlannedGear,
-) -> Result<conduit_plot::PortableExpressionProgram, String> {
-    let [entry] = placement.configuration.as_slice() else {
-        return Err("pure expression requires one exact planned configuration".into());
-    };
-    let ("program", ConfigurationValue::Text(encoded)) = (entry.key.as_str(), &entry.value) else {
-        return Err("pure expression planned configuration is malformed".into());
-    };
-    conduit_plot::PortableExpressionProgram::from_canonical_hex(encoded)
-        .map_err(|error| format!("pure expression program refusal: {error:?}"))
-}
+pub(crate) use conduit_semantic_catalog::operation_owners::pure_expression_host::program_from_placement;
 
 fn validate_placement(
     placement: &PlannedGear,

@@ -316,3 +316,6 @@ pub use conduit_semantic_catalog::operation_owners as finite_value_owners;
 
 #[cfg(feature = "finite-value-owners")]
 pub mod finite_value;
+
+#[cfg(feature = "finite-value-owners")]
+pub mod pure_filter;
