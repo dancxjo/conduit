@@ -6,7 +6,7 @@ use conduit_language::{
 };
 use conduit_plot::rust_binding::{validate_native_invariants, BoundedSequence, NativeRustBinding};
 use conduit_plot::{
-    check_syntax_document, parse_syntax_document, CheckedNativeType, ProfileCatalog, StartupCatalog,
+    check_syntax_document, parse_syntax_document, CheckedNativeType, StartupCatalog,
 };
 fn record(ty: &CheckedNativeType, fields: Vec<(&str, StructuredInfoValue)>) -> StructuredInfoValue {
     StructuredInfoValue::record(
@@ -31,8 +31,32 @@ fn relation(base: LanguageUniversalDependencyRelation) -> LanguageParserRelation
 #[test]
 fn reviewed_early_dependencies_refuse_provisional_subject_and_unclosed_root() {
     let mut startup = StartupCatalog::new();
-    conduit_language::install_linguistics_catalogs(&mut startup, &mut ProfileCatalog::new())
-        .unwrap();
+    // Register only external dependencies; the checked Source below declares
+    // the fact types and their complete laws itself.
+    for (name, value_type) in [
+        (
+            "LanguageParserWindow8RawHypothesis",
+            LanguageParserWindow8RawHypothesis::semantic_type().unwrap(),
+        ),
+        (
+            "LanguageParserWindow8StateProof",
+            LanguageParserWindow8StateProof::semantic_type().unwrap(),
+        ),
+        (
+            "LanguageParserWindow8Lexical",
+            LanguageParserWindow8Lexical::semantic_type().unwrap(),
+        ),
+        (
+            "LanguageParserBasis",
+            LanguageParserBasis::semantic_type().unwrap(),
+        ),
+        (
+            "LanguageParserRelation",
+            LanguageParserRelation::semantic_type().unwrap(),
+        ),
+    ] {
+        startup.ensure_structured_type(name, value_type).unwrap();
+    }
     let source = [
         include_str!("../parser_window8_facts.conduit"),
         include_str!("../parser_window8_dependency_facts.conduit"),
