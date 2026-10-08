@@ -4,7 +4,7 @@ use crate::process::Step;
 pub const STEPS: &[Step] = &[
     Step::new(
         "speech-ipa.nominal-projection",
-        "Preserve typed identifier encoding through field projection",
+        "Preserve nominal identifier and sequence encoding in both evaluators",
         "cargo",
         &[
             "test",
@@ -12,6 +12,10 @@ pub const STEPS: &[Step] = &[
             "conduit-plot",
             "--test",
             "nominal_field_projection",
+            "--test",
+            "nominal_sequence_literal",
+            "--test",
+            "native_expression_construction",
             "--locked",
         ],
     ),
@@ -27,6 +31,8 @@ pub const STEPS: &[Step] = &[
             "semantic-bindings",
             "--test",
             "ipa_authoring",
+            "--test",
+            "ipa_quoted_phone",
             "--test",
             "ipa_phone",
             "--test",

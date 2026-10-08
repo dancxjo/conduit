@@ -1,0 +1,7 @@
+# A universal single phone, checked from quoted Unicode IPA.
+# This constructor needs no language inventory and does not grant realization.
+with SpeechPhoneNotation as Phone
+plot quoted-phone (
+    >> input: Boolean
+    phone: Phone >>
+) = ({spelling: "tʰ", provenance: {source: SpeechEvidenceSource.manual, method: "quoted IPA fixture", version: none(unit)}})

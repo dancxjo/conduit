@@ -189,6 +189,20 @@ mod tests {
     }
 
     #[test]
+    fn product_authoring_checks_quoted_ipa_with_the_ordinary_speech_catalog() {
+        let source = parse(include_str!(
+            "../../../semantics/speech/examples/ipa/quoted-phone.conduit"
+        ))
+        .unwrap();
+        assert_eq!(
+            source.expand_entry_for_authoring().unwrap().expanded.name,
+            "quoted-phone"
+        );
+        let invalid = parse(&source.source.replace("tʰ", "p_aspirated")).unwrap();
+        assert!(invalid.expand_entry_for_authoring().is_err());
+    }
+
+    #[test]
     fn product_compiler_checks_the_ordinary_mask_plot_boundary() {
         let source = parse(
             "plot browser-mask (\n    >> face: Presentation\n    interaction: FaceInteraction...| >>\n    show: Show >>\n) {\n}\n",
