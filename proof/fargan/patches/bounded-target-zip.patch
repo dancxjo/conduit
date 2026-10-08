@@ -1,0 +1,291 @@
+--- a/targets/conduitos/src/flow_zip.rs
++++ b/targets/conduitos/src/flow_zip.rs
+@@ -259,7 +259,7 @@
+         Ok(())
+     }
+ 
+-    fn selected<'a>(
++    fn selected_borrowed<'a>(
+         &'a self,
+         gear: &'a PlannedGear,
+     ) -> Result<
+@@ -269,7 +269,7 @@
+             &'a CheckedValueContract,
+             u32,
+         ),
+-        String,
++        &'static str,
+     > {
+         let types = self
+             .pairs
+@@ -283,7 +283,7 @@
+                 .semantic_contract
+                 .value_contracts()
+                 .iter()
+-                .find(|entry| entry.location == FrontValueLocation::Input(port_id(name)))
++                .find(|entry| matches!(&entry.location, FrontValueLocation::Input(id) if id.as_str() == name))
+                 .map(|entry| &entry.contract)
+         };
+         let left = contract_at("left").ok_or("native finite zip left contract is absent")?;
+@@ -305,17 +305,104 @@
+             || !gear.authority.is_empty()
+             || !gear.pool_references.is_empty()
+         {
+-            return Err("native finite zip differs from its exact selected realization".into());
++            return Err("native finite zip differs from its exact selected realization");
+         }
+         let pair = expected
+             .semantic_contract
+             .value_contracts()
+             .iter()
+-            .find(|entry| entry.location == FrontValueLocation::Output(port_id("paired")))
++            .find(|entry| matches!(&entry.location, FrontValueLocation::Output(id) if id.as_str() == "paired"))
+             .ok_or("native finite zip paired contract is absent")?
+             .contract
+             .maximum_bytes;
+         Ok((types, left, right, pair))
++    }
++    fn selected<'a>(
++        &'a self,
++        gear: &'a PlannedGear,
++    ) -> Result<
++        (
++            &'a OfferedPair,
++            &'a CheckedValueContract,
++            &'a CheckedValueContract,
++            u32,
++        ),
++        String,
++    > {
++        self.selected_borrowed(gear).map_err(String::from)
++    }
++    pub fn back_storage_reservation(
++        &self,
++        gear: &PlannedGear,
++    ) -> Result<PreparedStructuredCompositionStorageReceipt, FlowZipPreparationRefusal> {
++        let (types, left, right, _) = self
++            .selected_borrowed(gear)
++            .map_err(FlowZipPreparationRefusal::Selection)?;
++        let mut r = FlowZipBack::typed_storage_reservation(left, &types.left, right, &types.right)
++            .map_err(FlowZipPreparationRefusal::Storage)?;
++        let root = core::mem::size_of::<FlowZipBack>();
++        r.preparation_requested_bytes_bound = r
++            .preparation_requested_bytes_bound
++            .checked_add(root)
++            .ok_or(FlowZipPreparationRefusal::Storage(
++                PreparedStructuredCompositionStorageRefusal::Capacity,
++            ))?;
++        r.retained_heap_bytes_bound = r.retained_heap_bytes_bound.checked_add(root).ok_or(
++            FlowZipPreparationRefusal::Storage(
++                PreparedStructuredCompositionStorageRefusal::Capacity,
++            ),
++        )?;
++        Ok(r)
++    }
++    /// Explicit bounded Back construction, including its boxed root. Selection
++    /// checks the complete retained offer before any construction allocation.
++    pub fn prepare_with_storage_limits(
++        &self,
++        gear: &PlannedGear,
++        maximum_preparation_requested_bytes: usize,
++        maximum_retained_bytes: usize,
++    ) -> Result<
++        (
++            Box<dyn StepBack<FIXED_KERNEL_STORAGE_PORTS_PER_NODE> + Send>,
++            PreparedStructuredCompositionStorageReceipt,
++        ),
++        FlowZipPreparationRefusal,
++    > {
++        let (types, left, right, _) = self
++            .selected_borrowed(gear)
++            .map_err(FlowZipPreparationRefusal::Selection)?;
++        let root = core::mem::size_of::<FlowZipBack>();
++        let prep = maximum_preparation_requested_bytes
++            .checked_sub(root)
++            .ok_or(FlowZipPreparationRefusal::Storage(
++                PreparedStructuredCompositionStorageRefusal::Capacity,
++            ))?;
++        let retained =
++            maximum_retained_bytes
++                .checked_sub(root)
++                .ok_or(FlowZipPreparationRefusal::Storage(
++                    PreparedStructuredCompositionStorageRefusal::Capacity,
++                ))?;
++        let prepare = if types.feedback {
++            FlowZipBack::prepare_typed_feedback_with_storage_limits
++        } else {
++            FlowZipBack::prepare_typed_finite_with_storage_limits
++        };
++        let (back, mut receipt) = prepare(left, &types.left, right, &types.right, prep, retained)
++            .map_err(FlowZipPreparationRefusal::Storage)?;
++        receipt.preparation_requested_bytes_bound = receipt
++            .preparation_requested_bytes_bound
++            .checked_add(root)
++            .ok_or(FlowZipPreparationRefusal::Storage(
++                PreparedStructuredCompositionStorageRefusal::Capacity,
++            ))?;
++        receipt.retained_heap_bytes_bound = receipt
++            .retained_heap_bytes_bound
++            .checked_add(root)
++            .ok_or(FlowZipPreparationRefusal::Storage(
++                PreparedStructuredCompositionStorageRefusal::Capacity,
++            ))?;
++        Ok((Box::new(back), receipt))
+     }
+ }
+ impl KernelOperationFactory for FlowZipOperationFactory {
+@@ -354,5 +441,10 @@
+     }
+ }
+ 
++#[derive(Debug)]
++pub enum FlowZipPreparationRefusal {
++    Selection(&'static str),
++    Storage(PreparedStructuredCompositionStorageRefusal),
++}
+ #[cfg(test)]
+ mod tests;
+--- a/targets/conduitos/src/flow_zip/tests.rs
++++ b/targets/conduitos/src/flow_zip/tests.rs
+@@ -169,3 +169,141 @@
+     assert_eq!(factory.implementation.as_str(), FRAME16K_IMPLEMENTATION);
+     assert_eq!(factory.profile.maximum_input, MAXIMUM_PAIR_BYTES);
+ }
++
++fn gear(o: &CapabilityOffer) -> PlannedGear {
++    PlannedGear {
++        placement_id: PlacementId::from("test/pair"),
++        gear_id: GearId::from("test/pair"),
++        kind_id: o.kind_id.clone(),
++        kind_contract_revision: o.kind_contract_revision.clone(),
++        source_span: None,
++        execution_profile_id: o.implementation.execution_profile_id.clone(),
++        configuration: vec![],
++        host_id: HostId::from("test/host"),
++        boot_id: BootId::from("test/boot"),
++        offer_generation: OfferGeneration(1),
++        capability_id: o.capability_id.clone(),
++        implementation_id: o.implementation.implementation_id.clone(),
++        artifact_id: o.implementation.artifact_id.clone(),
++        base: None,
++        realization_characteristics: vec![],
++        realization_properties: vec![],
++        limits: o.limits.clone(),
++        inputs: o.inputs.clone(),
++        outputs: o.outputs.clone(),
++        semantic_contract: o.semantic_contract.clone(),
++        terminal_transductions: vec![],
++        host_calls: vec![],
++        resources: vec![],
++        authority: vec![],
++        pool_references: vec![],
++    }
++}
++#[test]
++fn bounded_selected_factory_admits_box_and_refuses_capacity_foreign_before_allocation() {
++    let ty = StructuredInfoType::leaf(kind_id("value/count")).unwrap();
++    let c = CheckedValueContract::new(kind_id("value/count"), 8, vec![]).unwrap();
++    for feedback in [false, true] {
++        let mut factory = FlowZipOperationFactory::frame16k();
++        let offer = if feedback {
++            factory.install_feedback_specialized(&c, &ty, &c, &ty)
++        } else {
++            factory.install_specialized(&c, &ty, &c, &ty)
++        }
++        .unwrap();
++        let g = gear(&offer);
++        let mut reservation = None;
++        assert_eq!(
++            crate::test_allocations::allocations(
++                || reservation = Some(factory.back_storage_reservation(&g).unwrap())
++            ),
++            0
++        );
++        let r = reservation.unwrap();
++        let (mut back, receipt) = factory
++            .prepare_with_storage_limits(
++                &g,
++                r.preparation_requested_bytes_bound,
++                r.retained_heap_bytes_bound,
++            )
++            .unwrap();
++        assert_eq!(receipt, r);
++        for (prep, retained) in [
++            (
++                r.preparation_requested_bytes_bound - 1,
++                r.retained_heap_bytes_bound,
++            ),
++            (
++                r.preparation_requested_bytes_bound,
++                r.retained_heap_bytes_bound - 1,
++            ),
++        ] {
++            assert_eq!(
++                crate::test_allocations::allocations(|| assert!(matches!(
++                    factory.prepare_with_storage_limits(&g, prep, retained),
++                    Err(FlowZipPreparationRefusal::Storage(
++                        PreparedStructuredCompositionStorageRefusal::Capacity
++                    ))
++                ))),
++                0
++            );
++        }
++        let mut foreign = g.clone();
++        foreign.artifact_id = ArtifactId::from("foreign/artifact");
++        assert_eq!(
++            crate::test_allocations::allocations(|| assert!(matches!(
++                factory.prepare_with_storage_limits(
++                    &foreign,
++                    r.preparation_requested_bytes_bound,
++                    r.retained_heap_bytes_bound
++                ),
++                Err(FlowZipPreparationRefusal::Selection(_))
++            ))),
++            0
++        );
++        use conduit_kernel::{
++            PortId, ValueRef,
++            scheduler::{StepInputBytes, StepIo, StepOutcome},
++        };
++        let left = encode_count(3);
++        let right = encode_count(5);
++        let mut expected =
++            PreparedTypedTuplePairEncoder::new(ty.clone(), 8, ty.clone(), 8).unwrap();
++        let expected = expected.encode(&left, &right).unwrap().to_vec();
++        assert_eq!(
++            crate::test_allocations::allocations(|| {
++                for (side, bytes) in [(0, left.as_slice()), (1, right.as_slice())] {
++                    let mut refs = [None; 16];
++                    let mut inputs = [None; 16];
++                    refs[side] = Some(ValueRef {
++                        slot: side as u16,
++                        generation: 1,
++                        byte_len: bytes.len() as u32,
++                    });
++                    inputs[side] = Some(bytes);
++                    let mut io = StepIo::test_frame(refs, [false; 16], [None; 16], None, 16);
++                    assert_eq!(
++                        back.step(&mut io, &StepInputBytes::test_frame(inputs, None)),
++                        StepOutcome::Progress
++                    );
++                    back.step_committed();
++                }
++                let mut io = StepIo::test_frame([None; 16], [false; 16], [None; 16], None, 16);
++                assert_eq!(
++                    back.step(&mut io, &StepInputBytes::test_frame([None; 16], None)),
++                    StepOutcome::Await
++                );
++                let mut outputs = [None; 16];
++                outputs[0] = Some(4096);
++                let mut io = StepIo::test_frame([None; 16], [false; 16], outputs, None, 16);
++                assert_eq!(
++                    back.step(&mut io, &StepInputBytes::test_frame([None; 16], None)),
++                    StepOutcome::Progress
++                );
++                assert_eq!(back.prepared_output(PortId(0)), Some(expected.as_slice()));
++                back.step_committed();
++            }),
++            0
++        );
++    }
++}

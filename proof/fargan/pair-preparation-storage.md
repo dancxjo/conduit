@@ -51,3 +51,17 @@ normal/finite flush and feedback final-state return are checked with zero runtim
 allocations. Composite library and probe all-target Clippy pass. The initially
 chosen broad Cargo development graph was stopped when it began unnecessary
 Language generation; that interrupted gate is not counted as a pass.
+
+`patches/bounded-target-zip.patch` is a checked additive ConduitOS factory patch
+against the separately published original FARGAN branch e37a05164. It preserves
+the entire retained selected-offer comparison, makes borrowed port selection
+allocation-free, and exposes a Back reservation and explicit bounded construction
+including the boxed Back root. Its tiny coherent current-SDK façade includes the
+exact original FARGAN catalog Source instead of linking an older catalog ABI.
+All eleven catalog/factory/component tests and Clippy pass. One-under and foreign
+artifact selection refuse without allocation; the actual dynamic finite/feedback
+Backs encode the original canonical pair under pressure without allocation.
+This patch awaits integration with its Core/Composite dependency checkpoints;
+it is not a compiled complete target crate, offer/catalog preparation admission,
+or complete public model driver. Evidence: project
+outputs/fargan-target-zip-preparation.
