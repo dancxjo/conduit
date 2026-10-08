@@ -1,5 +1,11 @@
 # Prove one Body on Linux, ConduitOS, and Chromium
 
+This retained `clock-demo` is an **interval ticker and lifecycle specimen**: it
+changes how often ticks occur; it does not tell wall-clock time. The Todo Body
+in [#5201](https://github.com/dancxjo/conduit/issues/5201) is the human-facing
+application journey. The older `One Body Clock` name below identifies the
+original captured run and remains in its immutable evidence.
+
 This development proof for [#4807](https://github.com/dancxjo/conduit/issues/4807)
 keeps one installed Linux Body owner, one ConduitOS x86_64 QMP guest, and one
 pinned Chromium Host live together. The guest changes the checked clock
