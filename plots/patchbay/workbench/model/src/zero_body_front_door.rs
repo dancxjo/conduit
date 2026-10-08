@@ -301,11 +301,25 @@ impl ZeroBodyFrontDoor {
             SignId::from("patchbay/front-door/clock-available"),
             2,
         )?;
+        let mut plots = vec![morse_network, clock];
+        if model.advertisement().capabilities.iter().any(|offer| {
+            offer.implementation.implementation_id.as_str()
+                == conduit_std_offers::TODO_CHECKPOINT_IMPLEMENTATION
+        }) {
+            plots.push(PlotCandidate::from_source(
+                "Todo list",
+                "plots/todo/checkpoint-once.conduit",
+                include_str!("../../../../../plots/todo/checkpoint-once.conduit"),
+                "reviewed Todo Plot; requires this Host's selected checkpoint residence",
+                SignId::from("patchbay/front-door/todo-checkpoint-available"),
+                3,
+            )?);
+        }
         Ok(Self {
             adapter,
             model,
             body_candidates: Vec::new(),
-            plots: vec![morse_network, clock],
+            plots,
             opened: None,
             refusals: Vec::new(),
             revision: 1,
