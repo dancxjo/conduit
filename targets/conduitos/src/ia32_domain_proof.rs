@@ -10,10 +10,13 @@ mod gates;
 mod morse;
 #[path = "ordinary_domain_proof/timer.rs"]
 mod timer;
+#[path = "ordinary_domain_proof/timer_runtime.rs"]
+mod timer_runtime;
 
 pub fn run(plan: &conduit_core::Plan, offer: &crate::offer::HostOffer<'_>) {
     gates::run(plan, offer);
     morse::run(plan, offer);
+    timer_runtime::run(offer);
     hostile_entries();
     timer::run();
 }
