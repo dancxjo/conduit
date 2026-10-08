@@ -75,6 +75,9 @@ export default defineConfig({
     "native-webrtc-line.spec.mjs",
     "protected-line.spec.mjs",
   ],
+  // Playwright diff capture fetches the PR base with depth=1 and truncates
+  // history required by retained evidence ancestry checks.
+  captureGitInfo: { commit: true, diff: false },
   fullyParallel: false,
   workers: 1,
   retries: 0,
