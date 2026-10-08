@@ -42,9 +42,9 @@ is not the nominal numeric payload.
 These measurements matter because a structured value also carries its static
 Type encoding; payload length alone is not its full admission cost.
 
-Trajectories, interpolation, timebases, numeric projection/fidelity,
-reference-bearing dB, catalog realization and all remaining #5216
-acceptance are deferred. This local semantic proof does not establish playback,
+The bounded trajectory prerequisite is documented in [TRAJECTORIES.md](TRAJECTORIES.md).
+Physical clock mapping, numeric projection/fidelity, reference-bearing dB,
+catalog realization and remaining #5216 acceptance are deferred. This local semantic proof does not establish playback,
 platform execution, model conditioning or stable release acceptance.
 
 The portable expression evaluator is a computation seam, not Type-refinement

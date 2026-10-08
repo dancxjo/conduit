@@ -4,16 +4,22 @@ use std::{env, fs, path::PathBuf};
 
 fn main() {
     println!("cargo:rerun-if-changed=types.conduit");
-    let checked = check_syntax_document(
-        &parse_syntax_document(include_str!("types.conduit")),
-        &StartupCatalog::new(),
-    )
-    .expect("audio semantic Types must check");
-    println!("cargo:rerun-if-changed=acoustic_quantities.conduit");
-    let acoustic_source = format!(
+    println!("cargo:rerun-if-changed=trajectory_types.conduit");
+    println!("cargo:rerun-if-changed=trajectory.conduit");
+    let type_source = format!(
         "{}\n{}",
         include_str!("types.conduit"),
-        include_str!("acoustic_quantities.conduit")
+        include_str!("trajectory_types.conduit")
+    );
+    let checked =
+        check_syntax_document(&parse_syntax_document(&type_source), &StartupCatalog::new())
+            .expect("audio semantic Types must check");
+    println!("cargo:rerun-if-changed=acoustic_quantities.conduit");
+    let acoustic_source = format!(
+        "{}\n{}\n{}",
+        type_source,
+        include_str!("acoustic_quantities.conduit"),
+        include_str!("trajectory.conduit")
     );
     let acoustic = check_syntax_document(
         &parse_syntax_document(&acoustic_source),
@@ -25,6 +31,14 @@ fn main() {
         ("audio/frequency-to-cycle", "FREQUENCY_TO_CYCLE"),
         ("audio/cycle-to-frequency", "CYCLE_TO_FREQUENCY"),
         ("audio/amplitude-to-power", "AMPLITUDE_TO_POWER"),
+        ("audio/trajectory-ratio", "TRAJECTORY_RATIO"),
+        ("audio/trajectory-anchor-equal", "TRAJECTORY_ANCHOR"),
+        ("audio/trajectory-segment-valid", "TRAJECTORY_VALID"),
+        ("audio/trajectory-order-valid", "TRAJECTORY_ORDER"),
+        ("audio/trajectory-domain-equal", "TRAJECTORY_DOMAIN"),
+        ("audio/trajectory-covers", "TRAJECTORY_COVERS"),
+        ("audio/trajectory-weight", "TRAJECTORY_WEIGHT"),
+        ("audio/trajectory-blend", "TRAJECTORY_BLEND"),
     ] {
         let expanded = conduit_plot::expand_canonical_plot_for_authoring(
             &acoustic,
@@ -37,7 +51,9 @@ fn main() {
         else {
             panic!("acoustic program")
         };
-        programs.push_str(&format!("const {constant}: &str = {encoded:?};\n"));
+        programs.push_str(&format!(
+            "pub(crate) const {constant}: &str = {encoded:?};\n"
+        ));
     }
     fs::write(
         PathBuf::from(env::var_os("OUT_DIR").unwrap()).join("acoustic_programs.rs"),
