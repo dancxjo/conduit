@@ -251,10 +251,10 @@ export async function startOwnerParticipation(application, root) {
     const names = new Map(view.subjects.map(subject => [subject.identity, subject.name]));
     const documentNode = faceNode('article', '', 'owner-face-document');
     const { collections, placed } = projectFaceCollections(view);
-    const actionControl = action => {
+    const actionControl = (action, itemName) => {
       const control = document.createElement('form');
       control.dataset.ownerAction = action.identity;
-      control.append(faceNode('h5', action.name));
+      if (!itemName) control.append(faceNode('h5', action.name));
       const inputs = [];
       let supported = Array.isArray(action.arguments) && action.arguments.length <= 64;
       for (const argument of action.arguments ?? []) {
@@ -290,7 +290,7 @@ export async function startOwnerParticipation(application, root) {
         control.append(label);
         inputs.push({ name: argument.name, input });
       }
-      const button = faceNode('button', action.name);
+      const button = faceNode('button', itemName ? `${action.name} ${itemName}` : action.name);
       button.type = 'submit';
       button.disabled = !view.interactions_admitted || view.show_state !== 'available'
         || !supported || inputs.length !== action.arguments.length
@@ -346,31 +346,34 @@ export async function startOwnerParticipation(application, root) {
       section.className = 'owner-face-collection';
       section.append(faceNode('h4', collection.name));
       for (const text of collection.text) section.append(faceNode('p', text));
-      section.append(faceNode('p', `${open.length} open · ${completed.length} completed`, 'owner-face-collection-count'));
+      section.append(faceNode('p', `${open.length} ${open.length === 1 ? 'thing' : 'things'} left · ${completed.length} completed`, 'owner-face-collection-count'));
       const openList = document.createElement('ol');
       openList.className = 'owner-face-items';
+      openList.setAttribute('aria-label', `Things left in ${collection.name}`);
       for (const item of open) {
         const row = document.createElement('li');
-        row.append(faceNode('span', `☐ ${item.name}`));
+        row.append(faceNode('span', item.name, 'owner-face-item-name'));
         for (const action of view.actions.filter(action => action.target === item.identity
           && action.availability === 'available' && action.disclosure === 'CurrentAction')) {
-          row.append(actionControl(action));
+          row.append(actionControl(action, item.name));
         }
         openList.append(row);
       }
-      section.append(openList);
+      if (open.length) section.append(openList);
+      else section.append(faceNode('p', 'Nothing left to do.', 'owner-face-empty'));
       if (completed.length) {
         const details = document.createElement('details');
         details.className = 'owner-face-completed';
-        details.append(faceNode('summary', `${completed.length} completed`));
+        details.append(faceNode('summary', `Show ${completed.length} completed ${completed.length === 1 ? 'item' : 'items'}`));
         const completedList = document.createElement('ol');
         completedList.className = 'owner-face-items';
+        completedList.setAttribute('aria-label', `Completed items in ${collection.name}`);
         for (const item of completed) {
           const row = document.createElement('li');
-          row.append(faceNode('span', `☑ ${item.name}`));
+          row.append(faceNode('span', item.name, 'owner-face-item-name'));
           for (const action of view.actions.filter(action => action.target === item.identity
             && action.availability === 'available' && action.disclosure === 'CurrentAction')) {
-            row.append(actionControl(action));
+            row.append(actionControl(action, item.name));
           }
           completedList.append(row);
         }
