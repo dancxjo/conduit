@@ -61,6 +61,11 @@ pub(crate) use clock_interval::{is_clock_control_intent, ClockAction, CLOCK_RUN_
 mod terminal_route;
 #[path = "todo_face.rs"]
 mod todo_face;
+#[path = "todo_waiting.rs"]
+#[allow(dead_code)] // Waiting Play enters the installed service after Host selection lands.
+mod todo_waiting;
+#[allow(unused_imports)] // The installed service return wires this worker next.
+pub(crate) use todo_waiting::TodoWaitingWorker;
 pub(crate) fn clock_interval_action() -> &'static str {
     clock_interval::CLOCK_INTERVAL_ACTION
 }
@@ -152,6 +157,9 @@ pub(crate) struct Owner {
     direct_spoken_route: Option<conduit_presentation::LocalOwnerMaskRouteSeal>,
     llm_spoken_route: Option<conduit_presentation::LocalOwnerMaskRouteSeal>,
     presentation_wardrobe: Option<presentation_wardrobe::OwnerPresentationWardrobe>,
+    /// Projection cache for the exact currently Playing Todo encounter. The
+    /// next Play must restore through its admitted read Host Call.
+    todo_live: Option<(conduit_core::ActivePlayId, conduit_todo_plot::TodoState)>,
 }
 impl Owner {
     pub(crate) fn selected_speech_host_is_idle(&self) -> bool {
@@ -244,6 +252,7 @@ impl Owner {
             direct_spoken_route: None,
             llm_spoken_route: None,
             presentation_wardrobe: None,
+            todo_live: None,
         })
     }
     /// Reattach a retained owner to the one fresh installed Host Boot.
@@ -267,6 +276,7 @@ impl Owner {
             direct_spoken_route: None,
             llm_spoken_route: None,
             presentation_wardrobe: None,
+            todo_live: None,
         })
     }
     pub(crate) fn persist(&mut self, root: &Path) -> Result<(), String> {
@@ -344,7 +354,13 @@ impl Owner {
     /// control service calls this; remote callers still need an exact admitted
     /// credential and current Part above.
     pub(crate) fn local_face_snapshot(&self) -> Result<Presentation, String> {
-        self.project_face(None)
+        match self.todo_live.as_ref() {
+            Some((play, state)) if self.current_play_id() == Some(play) => {
+                self.project_face(Some((state, true)))
+            }
+            Some(_) => Err("Todo Face projection cache differs from current Play".into()),
+            None => self.project_face(None),
+        }
     }
     pub(super) fn plan(
         &mut self,

@@ -1138,6 +1138,8 @@ enum Request {
         protocol: u16,
         token: Vec<u8>,
         maximum_millis: u64,
+        #[serde(default)]
+        todo_new_list: Option<String>,
     },
     BodyLull {
         protocol: u16,
@@ -2292,9 +2294,10 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         Request::BodyStart {
             protocol,
             maximum_millis,
+            todo_new_list,
             ..
         } if protocol == PROTOCOL => runtime
-            .start_owned_body(maximum_millis)
+            .start_owned_body(maximum_millis, todo_new_list)
             .map(|()| Response::BodyRunRequested {
                 protocol: PROTOCOL,
                 maximum_millis,

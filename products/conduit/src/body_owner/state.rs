@@ -295,6 +295,7 @@ mod tests {
             joined_body_state: None,
             selected_speech: None,
             selected_model: None,
+            selected_todo_checkpoint: None,
         };
         write_json_atomic(&root.join("installation.json"), &installation).unwrap();
         let checked = crate::plot_source::parse(SOURCE)
@@ -384,6 +385,7 @@ mod tests {
             joined_body_state: None,
             selected_speech: None,
             selected_model: None,
+            selected_todo_checkpoint: None,
         };
         write_json_atomic(&root.join("installation.json"), &installation).unwrap();
         let body = Body::born(

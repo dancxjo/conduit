@@ -304,7 +304,7 @@ pub fn available_mask_show(face: &Presentation) -> MaskShow {
         &planned,
         face,
         active,
-        "patchbay/plot".into(),
+        face.subjects[0].identity.clone(),
         "display/interaction-test".into(),
         SignId::from("interaction/show-prepared"),
     )

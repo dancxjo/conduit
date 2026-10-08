@@ -11,8 +11,7 @@ use std::{
 use socket2::{Domain, SockAddr, Socket, Type};
 
 use super::super::{Request, Response, CONTROL_OUTCOME_UNKNOWN, MAXIMUM_CONTROL_FRAME_BYTES};
-
-const CONTROL_DEADLINE: Duration = Duration::from_secs(2);
+use super::CONTROL_DEADLINE;
 
 pub(crate) fn call(state_dir: &Path, mut request: Request) -> Result<Response, String> {
     let mut bytes = serde_json::to_vec(&request)
