@@ -77,6 +77,9 @@ export function assembleSite(directory, sourceCommit, workspace = 'target/worksp
   cpSync(todoBrowserDevelopment.root,
     path.join(directory, 'journeys/development/todo-browser'),
     { recursive: true, errorOnExist: true });
+  const todoBrowserPage = path.join(directory, 'journeys/development/todo-browser/index.html');
+  writeFileSync(todoBrowserPage,
+    readFileSync(todoBrowserPage, 'utf8').replace('</head>', `<style>${styles()}</style></head>`));
   xtask('prove', 'refresh-gallery', path.join(directory, 'journeys'));
   {
     const landing = path.join(directory, 'journeys/index.html');
