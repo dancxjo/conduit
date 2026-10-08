@@ -1,3 +1,5 @@
+#[path = "../../../../targets/conduitos/src/pending_host_output.rs"]
+mod pending_output;
 use super::fixtures::*;
 use super::synthetic_resources::synthetic_resources;
 use conduit_ai::fixed_numeric_binding::*;
@@ -205,6 +207,7 @@ enum ExecutionMode {
     LifecycleCancel,
     LifecycleProviderLost,
     LifecyclePressure,
+    LifecyclePressureResume,
     StoragePressure,
     CancelFirstExpression,
 }
@@ -252,6 +255,8 @@ struct StreamResultAndTiming {
     scheduler_step_allocations: usize,
     prepared_expression_allocations: usize,
     service_steps: u32,
+    completed_host_calls: u64,
+    pressure_resumed: bool,
     quantum_boundaries: u32,
     warm_retired: bool,
 }
@@ -310,7 +315,7 @@ fn run_epoch_stream_plan_with_trace<R: RuntimeTensor>(
         trace,
         service,
     } = run;
-    let run_to_drain = matches!(mode, ExecutionMode::LifecycleNormal | ExecutionMode::LifecycleWarm) || trace.is_some()
+    let run_to_drain = matches!(mode, ExecutionMode::LifecycleNormal | ExecutionMode::LifecycleWarm | ExecutionMode::LifecyclePressureResume) || trace.is_some()
         || seeded.is_some()
         || plan
             .fragments
@@ -646,6 +651,8 @@ fn run_epoch_stream_plan_with_trace<R: RuntimeTensor>(
     let mut drained = false;
     let mut warm_retired = false;
     let mut stop_evidence = serde_json::Value::Null;
+    let mut pressure_resumed = false;
+    let mut pending_output = pending_output::PendingHostOutput::<16384>::new();
     let mut scheduler_step_allocations = 0;
     let mut prepared_expression_allocations = 0;
     let mut completed_host_calls = 0u64;
@@ -780,6 +787,30 @@ fn run_epoch_stream_plan_with_trace<R: RuntimeTensor>(
                         stop_reason="actual_output_store_pressure_before_host_completion";
                         stop_evidence=serde_json::json!({"decisions_before_after":decisions,"source_cursors_before_after":cursors,"rows_before_after":rows,"pending_host_calls":scheduler.pending_host_call_count(),"output_bytes":output.len(),"no_host_completion_or_step_commit":true});break;
                     }
+                    if matches!(mode, ExecutionMode::LifecyclePressureResume) && !pressure_resumed {
+                        pending_output.retain(call.node, call.request, output).unwrap();
+                        let decisions = scheduler.decisions();
+                        let cursors = source_cursors(scheduler.drivers());
+                        let rows = received.borrow().len();
+                        let mut own_pressure_leases = Vec::new();
+                        while scheduler.values().used_items() < scheduler.values().item_capacity() {
+                            own_pressure_leases.push(scheduler.store_host_value(&[]).unwrap());
+                        }
+                        assert!(pending_output.try_store(|bytes| scheduler.store_host_value(bytes)).is_err());
+                        assert_eq!(scheduler.decisions(), decisions);
+                        assert_eq!(source_cursors(scheduler.drivers()), cursors);
+                        assert_eq!(received.borrow().len(), rows);
+                        assert_eq!(pending_output.original().unwrap(), (call.node, call.request, output));
+                        for lease in own_pressure_leases { scheduler.discard_host_value(lease).unwrap(); }
+                        pending_output.try_store(|bytes| scheduler.store_host_value(bytes)).unwrap();
+                        assert!(pending_output.try_complete(|node, request, value, length| scheduler.complete_host_call(node, request,
+                            conduit_kernel::HostCallOutcome { disposition: conduit_kernel::HostCallDisposition::Completed,
+                                output: Some(BoundedValueRef::new(value, length).unwrap()), failure: None })).unwrap());
+                        assert!(pending_output.original().is_none());
+                        pressure_resumed = true;
+                        stop_evidence = serde_json::json!({"actual_store_capacity_refusal":true,"same_computed_output_retained":true,"no_owner_reinvocation":true,"decisions_at_pressure":decisions,"source_cursors_at_pressure":cursors,"rows_at_pressure":rows,"only_owned_pressure_leases_released":true});
+                        continue;
+                    }
                     let value = match scheduler.store_host_value(output) {
                         Ok(value) => value,
                         Err(error) => {
@@ -811,7 +842,7 @@ fn run_epoch_stream_plan_with_trace<R: RuntimeTensor>(
     }
     let execution = execute.elapsed();
     let encoded = received.borrow();
-    let metrics = serde_json::json!({"nodes":nodes,"cords":cords,"service_steps":service_steps,"quantum_steps":service.quantum,"maximum_quanta":service.quanta,"observed_boundaries":quantum_boundaries,"boundary_receipts":quantum_receipts,"observe_boundaries":service.observe_boundaries,"stop_reason":stop_reason,"rows":encoded.len(),"expected_rows":expected,"completed_host_calls":completed_host_calls,"pending_host_calls":scheduler.pending_host_call_count(),"used_items":scheduler.values().used_items(),"item_capacity":scheduler.values().item_capacity(),"used_bytes":scheduler.values().used_bytes(),"byte_capacity":scheduler.values().byte_capacity(),"preparation_seconds":preparation.as_secs_f64(),"execution_seconds":execution.as_secs_f64(),"drained":drained,"warm_retired":warm_retired,"stop_evidence":stop_evidence});
+    let metrics = serde_json::json!({"nodes":nodes,"cords":cords,"service_steps":service_steps,"quantum_steps":service.quantum,"maximum_quanta":service.quanta,"observed_boundaries":quantum_boundaries,"boundary_receipts":quantum_receipts,"observe_boundaries":service.observe_boundaries,"stop_reason":stop_reason,"rows":encoded.len(),"expected_rows":expected,"completed_host_calls":completed_host_calls,"pending_host_calls":scheduler.pending_host_call_count(),"used_items":scheduler.values().used_items(),"item_capacity":scheduler.values().item_capacity(),"used_bytes":scheduler.values().used_bytes(),"byte_capacity":scheduler.values().byte_capacity(),"preparation_seconds":preparation.as_secs_f64(),"execution_seconds":execution.as_secs_f64(),"drained":drained,"warm_retired":warm_retired,"stop_evidence":stop_evidence,"pressure_resumed":pressure_resumed});
     eprintln!("epoch terminal service metrics: {metrics}");
     if let Ok(directory) = std::env::var("CONDUIT_FARGAN_NATIVE_OUTPUT") {
         std::fs::write(std::path::Path::new(&directory).join(format!("service-{nodes}-{expected}-{}.json", if service.observe_boundaries { "bounded" } else { "uninterrupted" })), serde_json::to_vec_pretty(&metrics).unwrap()).unwrap();
@@ -870,6 +901,8 @@ fn run_epoch_stream_plan_with_trace<R: RuntimeTensor>(
         scheduler_step_allocations,
         prepared_expression_allocations,
         service_steps,
+        completed_host_calls,
+        pressure_resumed,
         quantum_boundaries,
         warm_retired,
     })

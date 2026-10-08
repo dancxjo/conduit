@@ -277,7 +277,7 @@ impl<'a> Session<'a> {
             },
         );
         match (&result, mode) {
-            (Some(result), ExecutionMode::LifecycleNormal)
+            (Some(result), ExecutionMode::LifecycleNormal | ExecutionMode::LifecyclePressureResume)
                 if result.drained && result.values.len() == expected =>
             {
                 self.lifecycle.finish().map_err(|_| Refusal::Lifecycle)?;
@@ -488,6 +488,13 @@ fn run_actual_model_compute_session() {
     assert!(result.drained);
     assert_eq!(result.values.len(), 2);
     assert_eq!(session.lifecycle.state(), ModelComputeLifecycle::Ready);
+    session.enqueue(&checked, &names, inputs.clone()).unwrap();
+    let resumed = session.execute(&context, &seeded, 2, ExecutionMode::LifecyclePressureResume).unwrap().unwrap();
+    assert!(resumed.drained && resumed.pressure_resumed);
+    assert_eq!(resumed.values, result.values);
+    assert_eq!(resumed.service_steps, result.service_steps);
+    assert_eq!(resumed.completed_host_calls, result.completed_host_calls);
+    assert_eq!(session.lifecycle.state(), ModelComputeLifecycle::Ready);
     let complete = session.material();
     session.enqueue(&checked, &names, inputs.clone()).unwrap();
     assert!(
@@ -549,6 +556,6 @@ fn run_actual_model_compute_session() {
         exceptional.push(branch.material());
     }
     if let Ok(path) = std::env::var("CONDUIT_FARGAN_COMPUTE_SESSION_RECEIPT") {
-        std::fs::write(path,serde_json::to_vec(&serde_json::json!({"basis":session.basis_material(),"exceptional":exceptional,"complete":complete,"cancelled":cancelled,"unloaded":unloaded,"actual_outputs":result.values.iter().map(|v|v.canonical_bytes().unwrap()).collect::<Vec<_>>(),"full_working_admission":false,"target_execution":false})).unwrap()).unwrap();
+        std::fs::write(path,serde_json::to_vec(&serde_json::json!({"basis":session.basis_material(),"exceptional":exceptional,"complete":complete,"cancelled":cancelled,"unloaded":unloaded,"pressure_resume":{"drained":resumed.drained,"pressure_resumed":resumed.pressure_resumed,"same_full_native_outputs":resumed.values==result.values,"service_steps":resumed.service_steps,"baseline_service_steps":result.service_steps,"host_invocations":resumed.completed_host_calls,"baseline_host_invocations":result.completed_host_calls},"actual_outputs":result.values.iter().map(|v|v.canonical_bytes().unwrap()).collect::<Vec<_>>(),"full_working_admission":false,"target_execution":false})).unwrap()).unwrap();
     }
 }
