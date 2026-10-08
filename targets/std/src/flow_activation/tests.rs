@@ -462,7 +462,7 @@ impl KernelOperationFactory for TodoFactory {
     }
 }
 
-fn todo_scan_plan() -> Plan {
+pub(crate) fn todo_scan_plan() -> Plan {
     let mut child_fragment = common::fragment();
     child_fragment.states.clear();
     child_fragment.expected_sign = vec![

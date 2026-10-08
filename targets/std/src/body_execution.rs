@@ -240,7 +240,8 @@ impl StdHost {
                 Ok(&partition.plan.fragments[0])
             })
             .collect::<Result<Vec<_>, _>>()?;
-        let kernel = BodyKernel::prepare(&fragments, request.keyboard.is_some())?;
+        let kernel = BodyKernel::prepare(&request.plan.plots, request.keyboard.is_some())?;
+        kernel.require_supported_execution()?;
         let reservations = self.kernel_resources.prepare_and_reserve_partitions(
             &self.advertisement,
             &fragments

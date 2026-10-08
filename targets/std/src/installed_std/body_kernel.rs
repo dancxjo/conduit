@@ -4,6 +4,7 @@ use super::{
     InstalledScheduler, MAX_CORDS, MAX_NODES, MAX_QUEUE_SLOTS, PENDING_REQUESTS,
 };
 use crate::{hosted_keyboard::HostedKeyboardAdapter, RunControl, TimerAdapter};
+use conduit_body::BodyPlotPlan;
 use conduit_core::{
     BodyClockCorrelation, BodyTimeQuality, BodyTimeRefusal, BodyTimeRequirement,
     CancellationReason, FailureReason, PlanFragment, TerminalDisposition,
@@ -14,6 +15,7 @@ use conduit_kernel::{
     KernelEvent,
 };
 use conduit_plan_lowering::{
+    activation_fragment::{lower_fragment_activations, LoweredFragmentActivations},
     fragment_set::{lower_local_fragment_set, FragmentSetBounds},
     lowering::{KernelIdentityMap, LoweredHostCall, FIXED_KERNEL_STORAGE_PROFILE},
 };
@@ -25,6 +27,7 @@ use clock_observation::KernelClockObservations;
 
 pub(crate) struct BodyKernel {
     scheduler: InstalledScheduler,
+    activations: Vec<LoweredFragmentActivations>,
     partitions: Vec<KernelIdentityMap>,
     operations: Vec<LoweredHostCall>,
     typed_record_hosts: Vec<Option<super::typed_record_back::TypedRecordHost>>,
@@ -104,9 +107,23 @@ fn presentation(operation: &LoweredHostCall) -> bool {
 }
 
 impl BodyKernel {
-    pub(crate) fn prepare(fragments: &[&PlanFragment], has_keyboard: bool) -> Result<Self, String> {
+    pub(crate) fn prepare(partitions: &[BodyPlotPlan], has_keyboard: bool) -> Result<Self, String> {
+        let fragments = partitions
+            .iter()
+            .map(|partition| {
+                partition
+                    .plan
+                    .fragments
+                    .first()
+                    .filter(|_| partition.plan.fragments.len() == 1)
+                    .ok_or("local body execution requires one local fragment per Plot")
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        // Activation coordinators belong to the whole sealed Plan. Bind each
+        // entry to its exact local fragment before lowering ordinary nodes.
+        let activations = bind_body_activations(partitions, &fragments)?;
         let lowered = lower_local_fragment_set(
-            fragments,
+            &fragments,
             FIXED_KERNEL_STORAGE_PROFILE,
             FragmentSetBounds {
                 fragments: conduit_body::MAX_BODY_PLOTS as u16,
@@ -200,6 +217,7 @@ impl BodyKernel {
             .collect::<Result<Vec<_>, String>>()?;
         Ok(Self {
             scheduler: tables.install(drivers, values, signs)?,
+            activations,
             operations: lowered
                 .partitions
                 .iter()
@@ -218,6 +236,19 @@ impl BodyKernel {
             requests: Vec::with_capacity(request_capacity),
             clock_observations: KernelClockObservations::with_capacity(usize::from(sign_items)),
         })
+    }
+
+    /// Keep unsupported coordinators out of Play until their typed parent
+    /// ingress, output, cancellation, and child Host Call routes are installed.
+    pub(crate) fn require_supported_execution(&self) -> Result<(), String> {
+        if self
+            .activations
+            .iter()
+            .any(|bound| !bound.entries.is_empty())
+        {
+            return Err("Body activation coordinator is not installed".into());
+        }
+        Ok(())
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -703,5 +734,74 @@ impl BodyKernel {
             clock_quality,
             clock_execution_bounds: execution_bounds,
         }
+    }
+}
+
+fn bind_body_activations(
+    partitions: &[BodyPlotPlan],
+    fragments: &[&PlanFragment],
+) -> Result<Vec<LoweredFragmentActivations>, String> {
+    if partitions.len() != fragments.len() {
+        return Err("Body activation binding partition count differs".into());
+    }
+    partitions
+        .iter()
+        .zip(fragments)
+        .map(|(partition, fragment)| {
+            if partition.plan.fragments.len() != 1
+                || partition.plan.fragments[0].fragment_id != fragment.fragment_id
+                || partition.plan.fragments[0].plan_id != fragment.plan_id
+            {
+                return Err("Body activation binding fragment differs from exact Plan".into());
+            }
+            lower_fragment_activations(&partition.plan, &fragment.fragment_id)
+                .map_err(|error| format!("Body activation binding: {error:?}"))
+        })
+        .collect()
+}
+
+#[cfg(test)]
+mod activation_binding_tests {
+    use super::*;
+    use conduit_body::ResidentPlot;
+
+    #[test]
+    fn installed_body_preparation_retains_exact_todo_scan_entry() {
+        let plan = crate::flow_activation::tests::todo_scan_plan();
+        let fragment = &plan.fragments[0];
+        let partition = BodyPlotPlan {
+            plot: ResidentPlot::new(
+                plan.source_document_id.clone(),
+                plan.checked_plot_id.clone(),
+            ),
+            plan: plan.clone(),
+        };
+        let bound = bind_body_activations(&[partition], &[fragment]).unwrap();
+        assert_eq!(bound.len(), 1);
+        assert_eq!(bound[0].source_plan_id, plan.plan_id);
+        assert_eq!(bound[0].fragment_id, fragment.fragment_id);
+        assert_eq!(bound[0].entries, plan.activations);
+        assert!(
+            conduit_plan_lowering::activation_fragment::verify_lowered_fragment_activations(
+                &bound[0], &plan,
+            )
+        );
+        assert!(matches!(
+            bound[0].entries[0],
+            conduit_core::PlannedActivationEntry::Scan(_)
+        ));
+        let mut substituted = fragment.clone();
+        substituted.fragment_id = conduit_core::FragmentId::from("substituted");
+        assert!(bind_body_activations(
+            &[BodyPlotPlan {
+                plot: ResidentPlot::new(
+                    plan.source_document_id.clone(),
+                    plan.checked_plot_id.clone(),
+                ),
+                plan,
+            }],
+            &[&substituted],
+        )
+        .is_err());
     }
 }
