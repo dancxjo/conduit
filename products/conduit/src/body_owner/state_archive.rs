@@ -3,12 +3,17 @@ use super::{bounded_read, restrict_directory, write_bytes_atomic, MAXIMUM_STATE}
 use conduit_body::{BodyBiographyArchiveSegment, BodyBiographyEvidence};
 use std::{fs, path::Path};
 
-pub(super) fn archive_path(root: &Path, ordinal: u64) -> std::path::PathBuf {
+pub(super) fn archive_path(root: &Path, ordinal: u64, digest: [u8; 32]) -> std::path::PathBuf {
+    let digest: String = digest.iter().map(|byte| format!("{byte:02x}")).collect();
     root.join("body/archive")
-        .join(format!("{ordinal:020}.json"))
+        .join(format!("{ordinal:020}-{digest}.json"))
 }
 
-fn read_archive(root: &Path, ordinal: u64) -> Result<BodyBiographyArchiveSegment, String> {
+fn read_archive(
+    root: &Path,
+    ordinal: u64,
+    digest: [u8; 32],
+) -> Result<BodyBiographyArchiveSegment, String> {
     let directory = root.join("body/archive");
     if !fs::symlink_metadata(&directory)
         .map_err(|error| format!("inspect biography archive residence: {error}"))?
@@ -17,7 +22,7 @@ fn read_archive(root: &Path, ordinal: u64) -> Result<BodyBiographyArchiveSegment
     {
         return Err("selected biography archive residence is not a directory".into());
     }
-    let path = archive_path(root, ordinal);
+    let path = archive_path(root, ordinal, digest);
     if !fs::symlink_metadata(&path)
         .map_err(|error| format!("inspect biography archive {ordinal}: {error}"))?
         .file_type()
@@ -31,8 +36,8 @@ fn read_archive(root: &Path, ordinal: u64) -> Result<BodyBiographyArchiveSegment
     segment
         .validate()
         .map_err(|error| format!("invalid biography archive {ordinal}: {error:?}"))?;
-    if segment.ordinal != ordinal {
-        return Err("biography archive ordinal differs from its selected slot".into());
+    if segment.ordinal != ordinal || segment.digest != digest {
+        return Err("biography archive identity differs from its selected slot".into());
     }
     Ok(segment)
 }
@@ -58,14 +63,14 @@ pub(super) fn retain_archive_segments(
     fs::create_dir_all(&directory).map_err(|error| error.to_string())?;
     restrict_directory(&directory)?;
     for segment in segments {
-        let path = archive_path(root, segment.ordinal);
+        let path = archive_path(root, segment.ordinal, segment.digest);
         let bytes = serde_json::to_vec_pretty(segment).map_err(|error| error.to_string())?;
         if bytes.len() as u64 > MAXIMUM_STATE / 2 {
             return Err("biography archive segment exceeds its selected storage bound".into());
         }
         match fs::symlink_metadata(&path) {
             Ok(_) => {
-                if read_archive(root, segment.ordinal)? != *segment {
+                if read_archive(root, segment.ordinal, segment.digest)? != *segment {
                     return Err("biography archive slot already holds different evidence".into());
                 }
             }
@@ -86,9 +91,15 @@ pub(super) fn validate_archive_segments(
     if segments.is_empty() {
         if let Some(summary) = &biography.compaction {
             if summary.sealed_segments > 0 {
-                read_archive(root, summary.sealed_segments)?
-                    .validate_as_head_of(biography)
-                    .map_err(|error| format!("biography archive head differs: {error:?}"))?;
+                read_archive(
+                    root,
+                    summary.sealed_segments,
+                    summary
+                        .archive_head_digest
+                        .ok_or("retained biography has no archive head digest")?,
+                )?
+                .validate_as_head_of(biography)
+                .map_err(|error| format!("biography archive head differs: {error:?}"))?;
             }
         }
         return Ok(());
@@ -122,7 +133,13 @@ pub(super) fn validate_archive_segments(
                 return Err("first biography archive has a predecessor".into());
             }
         } else {
-            let prior = read_archive(root, segment.ordinal - 1)?;
+            let prior = read_archive(
+                root,
+                segment.ordinal - 1,
+                segment
+                    .previous_digest
+                    .ok_or("biography archive predecessor digest missing")?,
+            )?;
             if prior.body_id != biography.body_id || segment.previous_digest != Some(prior.digest) {
                 return Err("biography archive predecessor differs".into());
             }
@@ -156,7 +173,11 @@ pub(super) fn verify_retained_archive(root: &Path) -> Result<(), String> {
     }
     let mut expected_digest = summary.archive_head_digest;
     for ordinal in (1..=summary.sealed_segments).rev() {
-        let segment = read_archive(root, ordinal)?;
+        let segment = read_archive(
+            root,
+            ordinal,
+            expected_digest.ok_or("retained biography archive chain ended early")?,
+        )?;
         if segment.body_id != biography.body_id || Some(segment.digest) != expected_digest {
             return Err("retained biography archive chain differs".into());
         }

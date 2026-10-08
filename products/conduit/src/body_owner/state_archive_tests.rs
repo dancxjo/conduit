@@ -105,7 +105,7 @@ fn archive_transaction_replays_before_active_biography_and_refuses_corruption() 
     assert_eq!(segments.len(), 1);
     retain_with_archives(&root, &biography, &segments, None, None).unwrap();
     assert_eq!(load(&root).unwrap(), Some(biography.clone()));
-    let path = archive_path(&root, segments[0].ordinal);
+    let path = archive_path(&root, segments[0].ordinal, segments[0].digest);
     let bytes = fs::read(&path).unwrap();
     let installation = read_installation(&root.join("installation.json")).unwrap();
     write_json_atomic(
@@ -164,7 +164,7 @@ fn archive_rejects_missing_predecessor_and_foreign_head_before_publication() {
         fs::remove_file(&archive).unwrap();
         fs::rename(&moved, &archive).unwrap();
     }
-    fs::remove_file(archive_path(&root, segments[0].ordinal)).unwrap();
+    fs::remove_file(archive_path(&root, segments[0].ordinal, segments[0].digest)).unwrap();
     assert!(load(&root).is_err());
     fs::remove_dir_all(root).unwrap();
 }
@@ -205,8 +205,9 @@ fn installed_owner_continues_past_active_sign_capacity_and_resumes_same_body() {
         owner.persist(&root).unwrap();
     }
     assert_eq!(owner.truth()["biography"]["body_id"], body_id);
-    assert!(archive_path(&root, 1).is_file());
     let retained = load(&root).unwrap().unwrap();
+    let first = retained.compaction.as_ref().unwrap();
+    assert!(archive_path(&root, 1, first.archive_head_digest.unwrap()).is_file());
     let next_host = StdHost::new_with_config(StdHostConfig {
         host_id: HostId::from("host/archive-test"),
         boot_id: BootId::from("boot/archive-test-next"),
@@ -219,10 +220,9 @@ fn installed_owner_continues_past_active_sign_capacity_and_resumes_same_body() {
     resumed.persist(&root).unwrap();
     resumed.lull().unwrap();
     resumed.persist(&root).unwrap();
-    assert_eq!(
-        load(&root).unwrap().unwrap().body_id.as_str(),
-        body_id.as_str().unwrap()
-    );
-    assert!(archive_path(&root, 2).is_file());
+    let final_biography = load(&root).unwrap().unwrap();
+    assert_eq!(final_biography.body_id.as_str(), body_id.as_str().unwrap());
+    let second = final_biography.compaction.as_ref().unwrap();
+    assert!(archive_path(&root, 2, second.archive_head_digest.unwrap()).is_file());
     fs::remove_dir_all(root).unwrap();
 }
