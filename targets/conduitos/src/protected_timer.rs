@@ -26,6 +26,7 @@ pub(crate) struct ProtectedTimer {
 }
 
 impl ProtectedTimer {
+    #[cfg(feature = "ordinary-domain-proof")]
     pub(crate) fn cost(&self) -> crate::protected_region::DomainCost {
         self.region.cost()
     }
@@ -359,10 +360,10 @@ impl Drop for ProtectedTimer {
         use core::fmt::Write;
         let cost = self.region.cost();
         let mut sign = crate::sign_format::FixedText::new();
-        if writeln!(sign, "CONDUIT_DOMAIN_TIMER_COST {{\"schema\":\"conduit.conduitos/domain-cost@1\",\"architecture\":\"{}\",\"plan_id\":\"{}\",\"play_id\":\"{}\",\"domain_id\":{},\"state\":\"{:?}\",\"entries\":{},\"privilege_transitions\":{},\"gate_transitions\":{},\"base_gate_transitions\":{},\"copied_bytes\":{},\"setup_copied_bytes\":{},\"root_metadata_bytes\":{},\"reserved_bytes\":{},\"teardown_zeroed_bytes\":{},\"tlb_flushes\":{},\"address_space_switches\":{},\"scheduler_returns\":{},\"preemptions\":{},\"setup_ticks\":{},\"teardown_ticks\":{},\"tick_unit\":\"{}\",\"dma_isolation\":false,\"driver_isolation\":false}}",
+        if writeln!(sign, "CONDUIT_DOMAIN_TIMER_COST {{\"schema\":\"conduit.conduitos/domain-cost@1\",\"architecture\":\"{}\",\"plan_id\":\"{}\",\"play_id\":\"{}\",\"domain_id\":{},\"state\":\"{:?}\",\"entries\":{},\"privilege_transitions\":{},\"gate_transitions\":{},\"base_gate_transitions\":{},\"copied_bytes\":{},\"shared_peak_bytes\":{},\"shared_page_bytes\":4096,\"ring_slots\":0,\"interrupt_entries\":{},\"source_timer_interrupts\":{},\"setup_copied_bytes\":{},\"root_metadata_bytes\":{},\"reserved_bytes\":{},\"teardown_zeroed_bytes\":{},\"tlb_flushes\":{},\"address_space_switches\":{},\"scheduler_returns\":{},\"preemptions\":{},\"setup_ticks\":{},\"teardown_ticks\":{},\"tick_unit\":\"{}\",\"dma_isolation\":false,\"driver_isolation\":false}}",
             crate::arch::ARCHITECTURE, self.current.active.plan_id.as_str(), self.current.active.active_play_id.as_str(), self.current.domain.0, self.region.state(),
             cost.entries, cost.privilege_transitions, cost.gate_transitions, cost.base_gate_transitions,
-            cost.copied_bytes, cost.setup_copied_bytes, cost.root_metadata_bytes, cost.reserved_bytes, cost.teardown_zeroed_bytes,
+            cost.copied_bytes, cost.shared_peak_bytes, cost.interrupt_entries, cost.source_timer_interrupts, cost.setup_copied_bytes, cost.root_metadata_bytes, cost.reserved_bytes, cost.teardown_zeroed_bytes,
             cost.tlb_flushes, cost.address_space_switches, cost.scheduler_returns, cost.preemptions,
             cost.setup_ticks, cost.teardown_ticks, TextDomain::TICK_UNIT).is_ok() { crate::arch::early_write(sign.as_bytes()); }
     }
