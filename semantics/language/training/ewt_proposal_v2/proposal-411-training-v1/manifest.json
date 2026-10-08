@@ -1,0 +1,51 @@
+{
+  "scope": "Mechanical ABI remap of exact frozen TRAIN+22reviewed teaching; no heldout inputs or new gold labels",
+  "source_samples_sha256": "4085aaab59f4cf6d6f5adb9d615b368bcd9ce2114b5169a907a97e119686e9e4",
+  "samples_sha256": "84d229d9e38a630d17ef1987267d565b53b8eb563c684313f13d0efbba83d0ed",
+  "samples": 36114,
+  "feature_tuples": 89859,
+  "categories": 411,
+  "classes": 76,
+  "lookups": 27,
+  "policy": "Other16 and boundary17 coalesce only in17x17 pair interaction; exact18way unigrams/history/origins preserved",
+  "source_training_manifest": {
+    "scope": "TRAIN+explicit authored supervised feature tuples; no native runtime/heldout/linguistic acceptance proof",
+    "train_sha256": "d68e06122a702464c613076523d56740f047e5bbe89dd90ec32737e04d952143",
+    "dictionary_manifest_sha256": "4390281523cd89ef5e31dbccc9c2f9c049116dee3975fc6957f270ed8f195ebd",
+    "teaching_sha256": "ebecbe9146c5a01a908d08f8a84ce19db7a057abb6c5f6d74083fd526efc434c",
+    "extractor_sha256": "f7fbf68fd261544cba1a57c509f11405f8b41c85141586223dd5e988545f7715",
+    "feature_reference_sha256": "5c66467f722e5d988555b3756629eeebbd31cbb1cc4998b19045872f6c53d9ee",
+    "legacy_reference_sha256": "33f0016d26caa6439196948904c63cfc46c1eb6cdba46abe05f56ead8e7e4bc8",
+    "train_eligible_rows": 3531,
+    "train_covered_rows": 3530,
+    "train_exclusions": [
+      {
+        "id": "email-enronsent40_01-0023",
+        "missing": [
+          {
+            "ordinal": 0,
+            "surface": "A",
+            "gold_pos": 11,
+            "candidates": [
+              5,
+              14,
+              16,
+              7
+            ]
+          }
+        ]
+      }
+    ],
+    "train_corpus_shape_skips": {
+      "over_eight_tokens": 8809,
+      "multiword_or_empty_node": 196,
+      "unreachable_projective_profile": 8
+    },
+    "authored_rows": 22,
+    "authored_repetitions": 32,
+    "samples": 36114,
+    "samples_sha256": "4085aaab59f4cf6d6f5adb9d615b368bcd9ce2114b5169a907a97e119686e9e4",
+    "origin_training": "all selected boundedTRAIN/authored surfaces in dictionary: reviewed-origin0; unknown-origin1 not observed by this training, origin remains explicit at runtime",
+    "selected_history": "gold TRAIN/authored oracle trajectory, consumed POS retained, current alternatives varied; no runtime gold constraints"
+  }
+}

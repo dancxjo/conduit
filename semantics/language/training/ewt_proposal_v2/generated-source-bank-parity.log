@@ -1,0 +1,7 @@
+
+running 1 test
+PASS original actual revision origin Source + constructed contrasting complete411/27 feature Source/Native parity Window8PreparedSourceReceipt { retained_heap_bytes_bound: 224874399, preparation_peak_heap_bytes_bound: 268232390, programs: 29, native: PreparedNativeFamilyStorageReceipt { types: 59, retained_heap_bytes_bound: 153280006, preparation_peak_heap_bytes_bound: 154612133, conversion_requested_bytes_bound: 639893585 } }; no model inference/heldout/publicSession claim
+test exact_proposal_v2_source_bank_matches_retained_origin_and_feature_frames ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 7.91s
+

@@ -179,7 +179,8 @@ pub use generated::{
     LanguageParserProposalWindow8FeatureContext, LanguageParserProposalWindow8FeatureQuery,
     LanguageParserProposalWindow8Features, LanguageParserProposalWindow8OriginQuery,
     LanguageParserProposalWindow8Origins, LanguageParserProposalWindow8RawFeatures,
-    LanguageParserProposalWindow8RawOrigins,
+    LanguageParserProposalWindow8RawOrigins, LanguageParserProposalWindow8V2Features,
+    LanguageParserProposalWindow8V2RawFeatures,
 };
 pub mod parser_window8;
 pub mod parser_window8_program_bank;
