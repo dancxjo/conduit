@@ -11,7 +11,10 @@ use crate::{
 mod frame;
 #[path = "ordinary_domain/morse.rs"]
 mod morse;
+#[path = "ordinary_domain/timer.rs"]
+mod timer;
 pub(super) use frame::{TEXT_CAPACITY, TextFrame};
+pub(crate) use timer::{TimerDomainObservation, TimerDomainRequest};
 
 #[cfg(target_arch = "x86_64")]
 const IMAGE_MACHINE: u16 = 62;
@@ -33,6 +36,7 @@ pub struct TextDomain {
     cost: DomainCost,
     quarantined: bool,
     keymap_initialized: bool,
+    timer_initialized: bool,
     editor_initialized: bool,
     #[cfg(feature = "ordinary-domain-proof")]
     gate_probe: (u32, u64),
@@ -75,6 +79,7 @@ impl TextDomain {
             },
             quarantined: false,
             keymap_initialized: false,
+            timer_initialized: false,
             editor_initialized: false,
             #[cfg(feature = "ordinary-domain-proof")]
             gate_probe: (0, 0),
