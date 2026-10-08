@@ -36,6 +36,8 @@ pub(super) enum ConduitosCommand {
     LiveOwnerBoot(LiveOwnerBootArgs),
     /// Prove one typed native clock action through a live installed owner.
     LiveOwnerActionProof(LiveOwnerActionProofArgs),
+    /// Capture the admitted Todo Face on a live QMP guest without changing it.
+    LiveOwnerTodoFaceProof(LiveOwnerTodoFaceProofArgs),
     /// Prove one Body across an installed owner, QMP guest, and pinned Chromium.
     LiveThreeHostProof(Box<three_host_proof::Args>),
     /// Birth one Body through the installed screen-free client, then prove three live Hosts.

@@ -232,6 +232,15 @@ struct LiveOwnerActionProofArgs {
     coordinate: bool,
 }
 
+#[derive(Args, Debug, Clone)]
+struct LiveOwnerTodoFaceProofArgs {
+    #[command(flatten)]
+    route: LiveOwnerActionProofArgs,
+    /// Body expected in the exact installed Owner admission receipt.
+    #[arg(long)]
+    expected_body_id: String,
+}
+
 #[derive(ValueEnum, Debug, Clone, Copy, PartialEq, Eq)]
 enum ConduitosDemoArch {
     X86_64,
@@ -439,6 +448,9 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
             opts,
         ),
         ConduitosCommand::LiveOwnerActionProof(args) => owner_action_proof::execute(&args, opts),
+        ConduitosCommand::LiveOwnerTodoFaceProof(args) => {
+            owner_action_proof::execute_todo_face(&args, opts)
+        }
         ConduitosCommand::LiveThreeHostProof(args) => three_host_proof::execute(&args, opts),
         ConduitosCommand::ScreenFreeThreeHostProof(args) => {
             screen_free_three_host_proof::execute(&args, opts)

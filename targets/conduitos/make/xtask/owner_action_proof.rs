@@ -15,7 +15,7 @@ use crate::cli::GlobalOpts;
 
 use super::{
     demo, journey_input, owner_boot, profile::Paths, qmp, qmp_display, report::git_head,
-    ConduitosArch, ConduitosError, LiveOwnerActionProofArgs,
+    ConduitosArch, ConduitosError, LiveOwnerActionProofArgs, LiveOwnerTodoFaceProofArgs,
 };
 
 #[path = "owner_action_coordination.rs"]
@@ -33,6 +33,24 @@ const OWNER_ACTION: &str = "CONDUIT_NATIVE_OWNER_ACTION ";
 pub(super) fn execute(
     args: &LiveOwnerActionProofArgs,
     opts: &GlobalOpts,
+) -> Result<(), ConduitosError> {
+    execute_mode(args, opts, None)
+}
+
+pub(super) fn execute_todo_face(
+    args: &LiveOwnerTodoFaceProofArgs,
+    opts: &GlobalOpts,
+) -> Result<(), ConduitosError> {
+    if !args.route.coordinate || args.expected_body_id.is_empty() {
+        return Err(refusal("native-todo-face-requires-coordinated-body"));
+    }
+    execute_mode(&args.route, opts, Some(&args.expected_body_id))
+}
+
+fn execute_mode(
+    args: &LiveOwnerActionProofArgs,
+    opts: &GlobalOpts,
+    expected_todo_body: Option<&str>,
 ) -> Result<(), ConduitosError> {
     if opts.dry_run {
         return Err(refusal("native-owner-proof-requires-live-input"));
@@ -97,11 +115,16 @@ pub(super) fn execute(
         &route,
         &qemu_args,
         args.coordinate,
+        expected_todo_body,
     );
     let _ = child.kill();
     let _ = child.wait();
     let receipt = result?;
-    let path = directory.join("owner-action-proof.json");
+    let path = directory.join(if expected_todo_body.is_some() {
+        "owner-todo-face-proof.json"
+    } else {
+        "owner-action-proof.json"
+    });
     fs::write(
         &path,
         serde_json::to_vec_pretty(&receipt).map_err(|error| {
@@ -125,11 +148,17 @@ fn prove(
     route: &owner_boot::PreparedOwnerBoot,
     qemu_args: &[String],
     coordinate: bool,
+    expected_todo_body: Option<&str>,
 ) -> Result<Value, ConduitosError> {
     let (mut qmp, mut reader) =
         qmp::connect_traced(qmp_path, child, Some(&directory.join("qmp.jsonl")))?;
     let (standby_part, standby_face) =
         wait_for_standby(serial_path, child, Duration::from_secs(120))?;
+    if let Some(body) = expected_todo_body {
+        if standby_part["body_id"] != body {
+            return Err(refusal("native-todo-face-body-mismatch"));
+        }
+    }
     let (standby_image, health) =
         qmp_display::capture(&mut qmp, &mut reader, directory, "owner-standby")?;
     if let Some(error) = health {
@@ -165,6 +194,33 @@ fn prove(
         qmp_display::capture(&mut qmp, &mut reader, directory, "owner-before")?;
     if let Some(error) = health {
         return Err(error);
+    }
+    if expected_todo_body.is_some() {
+        if child
+            .try_wait()
+            .map_err(|error| ConduitosError::refusal("native-todo-face-qemu", error.to_string()))?
+            .is_some()
+        {
+            return Err(refusal("native-todo-face-guest-not-live-at-capture"));
+        }
+        return Ok(json!({
+            "schema":"conduit.conduitos/native-todo-face-proof@1",
+            "proof_class":"live-local-qmp-installed-owner-read-only",
+            "source_commit":route.source_identity,
+            "spore_build_id":route.build_id,
+            "spore_sha256":route.artifact_sha256,
+            "candidate_id":route.candidate_id,
+            "reachability":route.reachability,
+            "qemu_argv":qemu_args,
+            "guest_part":part,
+            "face_standby":standby_face,
+            "face_shown":before,
+            "show_ack":before_ack,
+            "screenshots":[standby_image,before_image],
+            "qemu_alive_at_capture":true,
+            "coordinated":coordinate,
+            "mutations":0,
+        }));
     }
     if coordinate {
         write_checkpoint(
