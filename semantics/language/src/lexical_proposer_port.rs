@@ -66,7 +66,50 @@ pub struct AdmittedLexicalTokenProposal {
     dictionary_identity: [u8; 32],
     requested_bytes_bound: usize,
 }
+/// Full canonical custody after transient generated Native conversion is released.
+/// Construction is available only from an admitted original Source response.
+pub struct CanonicalLexicalTokenProposal {
+    query: Box<[u8]>,
+    output: Box<[u8]>,
+    definition_identity: [u8; 32],
+    source_identity: [u8; 32],
+    dictionary_identity: [u8; 32],
+}
+impl CanonicalLexicalTokenProposal {
+    pub fn canonical_query(&self) -> &[u8] {
+        &self.query
+    }
+    pub fn canonical_output(&self) -> &[u8] {
+        &self.output
+    }
+    pub const fn definition_identity(&self) -> [u8; 32] {
+        self.definition_identity
+    }
+    pub const fn source_identity(&self) -> [u8; 32] {
+        self.source_identity
+    }
+    pub const fn dictionary_identity(&self) -> [u8; 32] {
+        self.dictionary_identity
+    }
+    /// Boxed slice payloads have exactly their encoded lengths. This includes
+    /// the inline receipt so an owner can conservatively charge a receipt slot.
+    pub fn retained_requested_bytes_bound(&self) -> usize {
+        size_of::<Self>() + self.query.len() + self.output.len()
+    }
+}
 impl AdmittedLexicalTokenProposal {
+    /// Move complete original frames without allocation. The transient typed
+    /// conversion is dropped; historical readmission requires a new conversion
+    /// reservation and the same exact ready family/Source owner.
+    pub fn into_canonical_receipt(self) -> CanonicalLexicalTokenProposal {
+        CanonicalLexicalTokenProposal {
+            query: self.query,
+            output: self.output,
+            definition_identity: self.definition_identity,
+            source_identity: self.source_identity,
+            dictionary_identity: self.dictionary_identity,
+        }
+    }
     pub fn proposal(&self) -> &LanguageLexicalTokenProposal {
         &self.proposal
     }

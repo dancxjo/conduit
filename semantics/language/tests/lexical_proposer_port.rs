@@ -175,6 +175,31 @@ fn original_source_query_resource_custody_and_capacity() {
         port.admit_query(&other),
         Err(LexicalProposerPortRefusal::Definition)
     ));
+    let transient = port.admit_query(&canonical).unwrap();
+    let baseline = LIVE.load(Ordering::SeqCst);
+    PEAK.store(baseline, Ordering::SeqCst);
+    TRACK.store(true, Ordering::SeqCst);
+    let historical = transient.into_canonical_receipt();
+    TRACK.store(false, Ordering::SeqCst);
+    assert_eq!(PEAK.load(Ordering::SeqCst), baseline);
+    assert!(LIVE.load(Ordering::SeqCst) < baseline);
+    assert_eq!(historical.canonical_query(), canonical);
+    assert_eq!(historical.canonical_output(), response.canonical_output());
+    assert_eq!(
+        historical.definition_identity(),
+        response.definition_identity()
+    );
+    assert_eq!(historical.source_identity(), response.source_identity());
+    assert_eq!(
+        historical.dictionary_identity(),
+        response.dictionary_identity()
+    );
+    assert_eq!(
+        historical.retained_requested_bytes_bound(),
+        core::mem::size_of_val(&historical)
+            + historical.canonical_query().len()
+            + historical.canonical_output().len()
+    );
     for field in 0..4 {
         let mut l = port_limits();
         match field {
