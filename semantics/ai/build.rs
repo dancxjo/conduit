@@ -1,6 +1,6 @@
 use conduit_plot::rust_binding::{
-    generate_rust_bindings_with_forms_and_external_bindings, ExternalNativeRustBinding,
-    RustBindingOptions,
+    generate_rust_bindings_with_forms_and_external_prepared_bindings, ExternalNativeRustBinding,
+    ExternalPreparedNativeRustBinding, PreparedNativeRustBinding, RustBindingOptions,
 };
 use conduit_plot::{check_syntax_document, parse_syntax_document, StartupCatalog};
 use std::{env, fs, path::PathBuf};
@@ -65,7 +65,7 @@ fn main() {
                 } => schema.as_str().to_owned(),
                 _ => panic!("external native Type has a named identity"),
             });
-    let generated = generate_rust_bindings_with_forms_and_external_bindings(
+    let generated = generate_rust_bindings_with_forms_and_external_prepared_bindings(
         &checked.native_types,
         &checked.type_forms,
         &external_types,
@@ -87,7 +87,20 @@ fn main() {
                 rust_type_path: "conduit_data::TensorAxisRole",
             },
         ],
+        &[
+            ExternalPreparedNativeRustBinding {
+                semantic_identity: &external_identities[2],
+                rust_type_path: "conduit_data::TensorElement",
+                descriptor: conduit_data::TensorElement::PREPARED_DESCRIPTOR,
+            },
+            ExternalPreparedNativeRustBinding {
+                semantic_identity: &external_identities[3],
+                rust_type_path: "conduit_data::TensorAxisRole",
+                descriptor: conduit_data::TensorAxisRole::PREPARED_DESCRIPTOR,
+            },
+        ],
         &RustBindingOptions {
+            prepared_family_roots: ["ModelSignature".into()].into(),
             boxed_variant_payloads: ["TrainingLifecyclePhase.active_step".into()].into(),
             derive_serde_for_variants: true,
             copy_nominal_types: [
