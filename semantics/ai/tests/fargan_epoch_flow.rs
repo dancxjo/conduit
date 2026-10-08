@@ -11,6 +11,8 @@ mod declarations;
 mod epoch_profiles;
 #[path = "fargan_epoch_flow/feature_cycle.rs"]
 mod feature_cycle;
+#[path = "fargan_epoch_flow/guest_fixture.rs"]
+mod guest_fixture;
 #[path = "fargan_epoch_flow/interface.rs"]
 mod interface;
 #[path = "fargan_epoch_flow/native_session.rs"]
@@ -21,6 +23,8 @@ mod native_startup;
 mod plan_artifact;
 #[path = "fargan_epoch_flow/repeat_capacity.rs"]
 mod repeat_capacity;
+#[path = "fargan_epoch_flow/synthetic_resources.rs"]
+mod synthetic_resources;
 #[path = "fargan_epoch_flow/trace_cycle.rs"]
 mod trace_cycle;
 #[path = "fargan_epoch_flow/trace_observer.rs"]
