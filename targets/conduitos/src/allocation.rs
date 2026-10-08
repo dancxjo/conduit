@@ -22,6 +22,7 @@ pub const MAXIMUM_ARENA_BYTES: usize = 256 * 1024 * 1024;
 pub struct BootArena {
     locked: AtomicBool,
     state: UnsafeCell<ArenaState>,
+    requests: UnsafeCell<AllocationRequests>,
 }
 
 // The lock exclusively owns every access to state. Allocated ranges are
@@ -33,6 +34,10 @@ impl BootArena {
         Self {
             locked: AtomicBool::new(false),
             state: UnsafeCell::new(ArenaState::new()),
+            requests: UnsafeCell::new(AllocationRequests {
+                total: 0,
+                after_seal: 0,
+            }),
         }
     }
 
@@ -64,6 +69,21 @@ impl BootArena {
         self.with_state(|state| state.capacity())
     }
 
+    /// Counts calls to alloc/realloc, including refused requests. Saturation
+    /// must be treated as an invalid no-allocation receipt by the caller.
+    pub fn allocation_requests(&self) -> AllocationRequests {
+        self.with_state(|_| unsafe { *self.requests.get() })
+    }
+
+    fn record_request(&self, sealed: bool) {
+        // SAFETY: only called while with_state exclusively owns the lock.
+        let requests = unsafe { &mut *self.requests.get() };
+        requests.total = requests.total.saturating_add(1);
+        if sealed {
+            requests.after_seal = requests.after_seal.saturating_add(1);
+        }
+    }
+
     fn with_state<R>(&self, work: impl FnOnce(&mut ArenaState) -> R) -> R {
         while self
             .locked
@@ -91,6 +111,13 @@ impl Default for BootArena {
     }
 }
 
+/// Diagnostic request counts; deallocation does not count as allocation.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct AllocationRequests {
+    pub total: usize,
+    pub after_seal: usize,
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ArenaError {
     InvalidRange,
@@ -98,14 +125,20 @@ pub enum ArenaError {
 
 unsafe impl GlobalAlloc for BootArena {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
-        self.with_state(|state| state.allocate(layout))
+        self.with_state(|state| {
+            self.record_request(state.sealed);
+            state.allocate(layout)
+        })
     }
     unsafe fn dealloc(&self, pointer: *mut u8, layout: Layout) {
         self.with_state(|state| state.release(pointer, layout));
     }
     unsafe fn realloc(&self, pointer: *mut u8, layout: Layout, new_size: usize) -> *mut u8 {
         // SAFETY: GlobalAlloc supplies the exact live allocation and Layout.
-        self.with_state(|state| unsafe { state.resize(pointer, layout, new_size) })
+        self.with_state(|state| {
+            self.record_request(state.sealed);
+            unsafe { state.resize(pointer, layout, new_size) }
+        })
     }
 }
 
