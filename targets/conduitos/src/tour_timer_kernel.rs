@@ -1,17 +1,12 @@
 //! Root preparation for the separately reusable standing timer kernel.
 use crate::machine::KernelInterest;
-use alloc::vec::Vec;
 use conduit_core::{ConfigurationValue, PlanFragment};
-use conduit_kernel::{
-    BoundedValueRef, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
-    KernelEvent, NodeId, ValueStorage,
-    scheduler::{FixedScheduler, SchedulerError},
-};
+use conduit_kernel::{NodeId, scheduler::SchedulerError};
 use conduit_plan_lowering::lowering::{FIXED_KERNEL_STORAGE_PORTS_PER_NODE, LoweredPlanFragment};
 #[path = "tour_timer_runtime.rs"]
-mod runtime;
+pub(crate) mod runtime;
 pub use runtime::TourTimerKernel;
-use runtime::{CORDS, HOST_BINDINGS, NODES, PORTS, SIGNS, TimerBack, VALUE_BYTES, VALUES};
+use runtime::{CORDS, NODES, PORTS, PreparedTimerGraph, PreparedTimerRoute};
 const _: () = assert!(PORTS == FIXED_KERNEL_STORAGE_PORTS_PER_NODE);
 
 impl TourTimerKernel {
@@ -19,6 +14,13 @@ impl TourTimerKernel {
         fragment: &PlanFragment,
         lowered: &LoweredPlanFragment,
     ) -> Result<Self, SchedulerError> {
+        Self::from_prepared_graph(Self::prepare_graph(fragment, lowered)?)
+    }
+
+    pub(crate) fn prepare_graph(
+        fragment: &PlanFragment,
+        lowered: &LoweredPlanFragment,
+    ) -> Result<PreparedTimerGraph, SchedulerError> {
         if fragment.placements.len() != NODES
             || fragment.connections.len() != CORDS
             || lowered.nodes.len() != NODES
@@ -42,72 +44,41 @@ impl TourTimerKernel {
         if period != 120 || start != 0 {
             return Err(SchedulerError::InvalidPlan);
         }
-        let mut values = FixedValueStore::<VALUES, 8>::new(VALUE_BYTES as u32)?;
-        let wait = values.store(&period.to_le_bytes())?;
-        let next_wait = values.store(&period.to_le_bytes())?;
-        let tick = values.store(&conduit_time::encode_tick(0))?;
-        let zero = values.store(&start.to_le_bytes())?;
-        let one = values.store(&1_u64.to_le_bytes())?;
-        let mut drivers = Vec::with_capacity(NODES);
-        for index in 0..NODES {
-            let operation = if index == timer {
-                TimerBack::Every {
-                    waits: [
-                        BoundedValueRef::new(wait, 8)?,
-                        BoundedValueRef::new(next_wait, 8)?,
-                    ],
-                    tick,
-                    emitting: false,
-                    next_wait: 0,
-                }
-            } else if index == count {
-                TimerBack::Count {
-                    zero,
-                    one,
-                    initial_emitted: false,
-                    bumped: false,
-                }
-            } else {
-                TimerBack::Presentation {
-                    pending: None,
-                    next_request: 1,
-                }
+        let mut routes = [None; CORDS];
+        if lowered.routes.len() > routes.len() || lowered.host_calls.len() > NODES {
+            return Err(SchedulerError::InvalidPlan);
+        }
+        for (slot, route) in routes.iter_mut().zip(&lowered.routes) {
+            let [target] = route.targets.as_slice() else {
+                return Err(SchedulerError::InvalidPlan);
             };
-            drivers.push(operation);
+            *slot = Some(PreparedTimerRoute {
+                node: route.source_node,
+                port: route.source_port,
+                range: route.range,
+                target: *target,
+            });
         }
-        let drivers: [TimerBack; NODES] = drivers
-            .try_into()
-            .map_err(|_| SchedulerError::InvalidPlan)?;
-        let nodes = lowered
-            .node_specs
-            .as_slice()
-            .try_into()
-            .map_err(|_| SchedulerError::InvalidPlan)?;
-        let cords = [lowered.cords[0].spec, lowered.cords[1].spec];
-        let mut routes = FixedRoutes::<{ NODES * PORTS }, CORDS>::new(PORTS as u16);
-        for route in &lowered.routes {
-            routes.install(
-                route.source_node,
-                route.source_port,
-                route.range,
-                &route.targets,
-            )?;
+        let mut bindings = [None; NODES];
+        for (slot, operation) in bindings.iter_mut().zip(&lowered.host_calls) {
+            *slot = Some((operation.node, operation.binding));
         }
-        routes.seal()?;
-        let mut bindings = FixedHostCallBindings::<HOST_BINDINGS>::new(NODES as u16);
-        for operation in &lowered.host_calls {
-            bindings.install(operation.node, operation.binding)?;
-        }
-        bindings.seal()?;
-        let minimum_sign_bytes = (SIGNS * core::mem::size_of::<KernelEvent>()) as u32;
-        let signs = FixedSignLog::<SIGNS>::new(lowered.sign_bytes.max(minimum_sign_bytes))?;
-        Ok(Self::from_scheduler(
-            FixedScheduler::new_with_host_calls(
-                nodes, cords, routes, bindings, drivers, values, signs,
-            )?,
-            NodeId(timer as u16),
-            NodeId(presentation as u16),
-        ))
+        Ok(PreparedTimerGraph {
+            nodes: lowered
+                .node_specs
+                .as_slice()
+                .try_into()
+                .map_err(|_| SchedulerError::InvalidPlan)?,
+            cords: [lowered.cords[0].spec, lowered.cords[1].spec],
+            routes,
+            bindings,
+            timer: NodeId(timer as u16),
+            count: NodeId(count as u16),
+            presentation: NodeId(presentation as u16),
+            period,
+            start,
+            sign_bytes: lowered.sign_bytes,
+        })
     }
 
     pub fn complete_timer(&mut self, interest: KernelInterest) -> Result<(), SchedulerError> {

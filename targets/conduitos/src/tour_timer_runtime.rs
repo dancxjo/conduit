@@ -1,12 +1,19 @@
 //! Fixed, allocation-free standing timer execution; no Root or provider access.
 use conduit_kernel::{
-    BoundedValueRef, FixedSignLog, FixedValueStore, HostCallDisposition, HostCallOutcome,
-    KernelEvent, NodeId, PortId, RequestId, SignSink, ValueRef,
+    BoundedValueRef, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
+    HostCallDisposition, HostCallOutcome, KernelEvent, NodeId, PortId, RequestId, SignSink,
+    ValueRef, ValueStorage,
     scheduler::{
         FixedScheduler, HostCallRequest, SchedulerError, SchedulerStatus, StepBack, StepInputBytes,
         StepIo, StepOutcome,
     },
 };
+
+#[path = "tour_timer_runtime/preparation.rs"]
+mod preparation;
+#[path = "tour_timer_runtime/wire.rs"]
+mod wire;
+pub(crate) use preparation::{PreparedTimerGraph, PreparedTimerRoute};
 
 pub(crate) const NODES: usize = 3;
 pub(crate) const CORDS: usize = 2;
@@ -203,16 +210,76 @@ pub struct TourTimerKernel {
 }
 
 impl TourTimerKernel {
-    pub(crate) fn from_scheduler(
-        scheduler: Scheduler,
-        timer: NodeId,
-        presentation: NodeId,
-    ) -> Self {
-        Self {
-            scheduler,
-            timer,
-            presentation,
+    pub(crate) fn from_prepared_graph(graph: PreparedTimerGraph) -> Result<Self, SchedulerError> {
+        let indices = [graph.timer.0, graph.count.0, graph.presentation.0];
+        if indices.iter().any(|index| usize::from(*index) >= NODES)
+            || graph.timer == graph.count
+            || graph.timer == graph.presentation
+            || graph.count == graph.presentation
+        {
+            return Err(SchedulerError::InvalidPlan);
         }
+        let mut values = FixedValueStore::<VALUES, 8>::new(VALUE_BYTES as u32)?;
+        let wait = values.store(&graph.period.to_le_bytes())?;
+        let next_wait = values.store(&graph.period.to_le_bytes())?;
+        let tick = values.store(&conduit_time::encode_tick(0))?;
+        let zero = values.store(&graph.start.to_le_bytes())?;
+        let next = graph
+            .start
+            .checked_add(1)
+            .ok_or(SchedulerError::InvalidPlan)?;
+        let one = values.store(&next.to_le_bytes())?;
+        let waits = [
+            BoundedValueRef::new(wait, 8)?,
+            BoundedValueRef::new(next_wait, 8)?,
+        ];
+        let drivers = core::array::from_fn(|index| {
+            if index == usize::from(graph.timer.0) {
+                TimerBack::Every {
+                    waits,
+                    tick,
+                    emitting: false,
+                    next_wait: 0,
+                }
+            } else if index == usize::from(graph.count.0) {
+                TimerBack::Count {
+                    zero,
+                    one,
+                    initial_emitted: false,
+                    bumped: false,
+                }
+            } else {
+                TimerBack::Presentation {
+                    pending: None,
+                    next_request: 1,
+                }
+            }
+        });
+        let mut routes = FixedRoutes::<{ NODES * PORTS }, CORDS>::new(PORTS as u16);
+        for route in graph.routes.into_iter().flatten() {
+            routes.install(route.node, route.port, route.range, &[route.target])?;
+        }
+        routes.seal()?;
+        let mut bindings = FixedHostCallBindings::<HOST_BINDINGS>::new(NODES as u16);
+        for (node, binding) in graph.bindings.into_iter().flatten() {
+            bindings.install(node, binding)?;
+        }
+        bindings.seal()?;
+        let minimum_sign_bytes = (SIGNS * core::mem::size_of::<KernelEvent>()) as u32;
+        let signs = FixedSignLog::<SIGNS>::new(graph.sign_bytes.max(minimum_sign_bytes))?;
+        Ok(Self {
+            scheduler: FixedScheduler::new_with_host_calls(
+                graph.nodes,
+                graph.cords,
+                routes,
+                bindings,
+                drivers,
+                values,
+                signs,
+            )?,
+            timer: graph.timer,
+            presentation: graph.presentation,
+        })
     }
 
     pub(crate) fn complete_request(
@@ -286,3 +353,7 @@ impl TourTimerKernel {
         self.scheduler.signs().len()
     }
 }
+
+#[cfg(test)]
+#[path = "tour_timer_runtime/tests.rs"]
+mod tests;
