@@ -1,0 +1,123 @@
+# Unselected qualified dependency projection; generated readiness and closed
+# Session parent-link enforcement are separate acceptance obligations. A Native-valid Anchor is never
+# standalone authority. Closed Session retains full original qualified analyses,
+# ProposedTape/origins, actual per-token producer history, model and all Source
+# I/O; every anchor input must equal an actual prior projection output and replay
+# its complete parent chain. No identifiers substitute for those original facts.
+type LanguageParserWindow8QualifiedLexicalAnchor = {
+ basis: LanguageParserBasis
+ dependent: U64
+ token: LanguageLexicalToken
+ origin: LanguageLexicalProposalOrigin
+ definition: LanguageLexicalProposerDefinition
+ choice: U64
+}
+# sequence/at returns existing complete Native members; no refined record is
+# constructed around those accesses. Session links each exact result to its full
+# qualified-analysis parent before composing the final Source assembly context.
+plot language-window8-qualified-lexical-token (
+ input: LanguageParserWindow8QualifiedLexicalAnalysis...| >> output: LanguageLexicalToken...|
+) = sequence/at(.query.proposed.tape.tokens,.query.fact.dependent)
+plot language-window8-qualified-lexical-origin (
+ input: LanguageParserWindow8QualifiedLexicalAnalysis...| >> output: LanguageLexicalProposalOrigin...|
+) = sequence/at(.query.proposed.origins,.query.fact.dependent)
+type LanguageParserWindow8QualifiedLexicalAnchorScalars = {
+ basis: LanguageParserBasis
+ dependent: U64
+ definition: LanguageLexicalProposerDefinition
+ choice: U64
+}
+plot language-window8-qualified-lexical-anchor-scalars (
+ input: LanguageParserWindow8QualifiedLexicalAnalysis...| >> output: LanguageParserWindow8QualifiedLexicalAnchorScalars...|
+) = { basis: .query.fact.snapshot.basis, dependent: .query.fact.dependent, definition: .query.proposed.definition, choice: sequence/at(.query.fact.snapshot.candidate0.hypothesis.choices,.query.fact.dependent) }
+type LanguageParserWindow8QualifiedLexicalAnchorContext = {
+ scalars: LanguageParserWindow8QualifiedLexicalAnchorScalars
+ token: LanguageLexicalToken
+ origin: LanguageLexicalProposalOrigin
+}
+plot language-window8-qualified-lexical-anchor (
+ input: LanguageParserWindow8QualifiedLexicalAnchorContext...| >> output: LanguageParserWindow8QualifiedLexicalAnchor...|
+) = { basis: .scalars.basis, dependent: .scalars.dependent, token: .token, origin: .origin, definition: .scalars.definition, choice: .scalars.choice }
+type LanguageParserWindow8QualifiedDependencyQuery = {
+ context: LanguageParserWindow8DependencyFactContext
+ dependent: LanguageParserWindow8QualifiedLexicalAnchor
+ head: LanguageParserWindow8QualifiedLexicalAnchor?
+ where .dependent.basis == .context.query.snapshot.basis
+ where .dependent.dependent == .context.query.dependent
+ where .dependent.token == sequence/at(.context.query.snapshot.lexical.tape.tokens,.context.query.dependent)
+ where .dependent.choice == sequence/at(.context.query.snapshot.candidate0.hypothesis.choices,.context.query.dependent)
+ where .context.head == 8 ? variant/is(.head,"none") : variant/is(.head,"some")
+ where .context.head == 8 || .head.some.basis == .context.query.snapshot.basis
+ where .context.head == 8 || .head.some.dependent == .context.head
+ where .context.head == 8 || .head.some.token == sequence/at(.context.query.snapshot.lexical.tape.tokens,.context.head)
+ where .context.head == 8 || .head.some.choice == sequence/at(.context.query.snapshot.candidate0.hypothesis.choices,.context.head)
+ where .context.head == 8 || .head.some.definition == .dependent.definition
+}
+type LanguageParserWindow8QualifiedDependencyProposal = {
+ query: LanguageParserWindow8QualifiedDependencyQuery
+}
+type LanguageParserWindow8QualifiedDependencyAnalysis = {
+ query: LanguageParserWindow8QualifiedDependencyQuery
+# All original syntax/root/consensus/choice/relation eligibility laws remain.
+# Scalar stability comes from full qualified endpoint admissions and their exact
+# immutable origin policies, retained behind the actual Source anchor projections.
+    where .query.context.head == 8 ? variant/is(.query.context.query.snapshot.lexical.tape.source.finality,"final") : (variant/is(.query.context.query.snapshot.lexical.tape.source.finality,"final") || variant/tag(.query.context.relation.base) == "det" || variant/tag(.query.context.relation.base) == "case" || variant/tag(.query.context.relation.base) == "vocative")
+    where !.query.context.query.snapshot.candidate0.hypothesis.active || (.query.context.query.dependent < .query.context.query.snapshot.candidate0.hypothesis.state.unread && .query.context.query.dependent < .query.context.query.snapshot.candidate0.hypothesis.selected)
+    where !.query.context.query.snapshot.candidate0.hypothesis.active || (.query.context.head == 8 || (.query.context.head < .query.context.query.snapshot.candidate0.hypothesis.state.unread && .query.context.head < .query.context.query.snapshot.candidate0.hypothesis.selected))
+    where !.query.context.query.snapshot.candidate0.hypothesis.active || sequence/at(.query.context.query.snapshot.candidate0.hypothesis.state.heads,.query.context.query.dependent) == .query.context.head
+    where !.query.context.query.snapshot.candidate0.hypothesis.active || sequence/at(.query.context.query.snapshot.candidate0.hypothesis.choices,.query.context.query.dependent) == sequence/at(.query.context.query.snapshot.candidate0.hypothesis.choices,.query.context.query.dependent)
+    where !.query.context.query.snapshot.candidate0.hypothesis.active || (.query.context.head == 8 ? true : sequence/at(.query.context.query.snapshot.candidate0.hypothesis.choices,.query.context.head) == sequence/at(.query.context.query.snapshot.candidate0.hypothesis.choices,.query.context.head))
+    where !.query.context.query.snapshot.candidate0.hypothesis.active || (.query.context.query.dependent != 0 || (variant/tag(.query.context.relation.base) == variant/tag(.query.context.query.snapshot.candidate0.hypothesis.state.relation0.base) && .query.context.relation.subtype == .query.context.query.snapshot.candidate0.hypothesis.state.relation0.subtype))
+    where !.query.context.query.snapshot.candidate0.hypothesis.active || (.query.context.query.dependent != 1 || (variant/tag(.query.context.relation.base) == variant/tag(.query.context.query.snapshot.candidate0.hypothesis.state.relation1.base) && .query.context.relation.subtype == .query.context.query.snapshot.candidate0.hypothesis.state.relation1.subtype))
+    where !.query.context.query.snapshot.candidate0.hypothesis.active || (.query.context.query.dependent != 2 || (variant/tag(.query.context.relation.base) == variant/tag(.query.context.query.snapshot.candidate0.hypothesis.state.relation2.base) && .query.context.relation.subtype == .query.context.query.snapshot.candidate0.hypothesis.state.relation2.subtype))
+    where !.query.context.query.snapshot.candidate0.hypothesis.active || (.query.context.query.dependent != 3 || (variant/tag(.query.context.relation.base) == variant/tag(.query.context.query.snapshot.candidate0.hypothesis.state.relation3.base) && .query.context.relation.subtype == .query.context.query.snapshot.candidate0.hypothesis.state.relation3.subtype))
+    where !.query.context.query.snapshot.candidate0.hypothesis.active || (.query.context.query.dependent != 4 || (variant/tag(.query.context.relation.base) == variant/tag(.query.context.query.snapshot.candidate0.hypothesis.state.relation4.base) && .query.context.relation.subtype == .query.context.query.snapshot.candidate0.hypothesis.state.relation4.subtype))
+    where !.query.context.query.snapshot.candidate0.hypothesis.active || (.query.context.query.dependent != 5 || (variant/tag(.query.context.relation.base) == variant/tag(.query.context.query.snapshot.candidate0.hypothesis.state.relation5.base) && .query.context.relation.subtype == .query.context.query.snapshot.candidate0.hypothesis.state.relation5.subtype))
+    where !.query.context.query.snapshot.candidate0.hypothesis.active || (.query.context.query.dependent != 6 || (variant/tag(.query.context.relation.base) == variant/tag(.query.context.query.snapshot.candidate0.hypothesis.state.relation6.base) && .query.context.relation.subtype == .query.context.query.snapshot.candidate0.hypothesis.state.relation6.subtype))
+    where !.query.context.query.snapshot.candidate0.hypothesis.active || (.query.context.query.dependent != 7 || (variant/tag(.query.context.relation.base) == variant/tag(.query.context.query.snapshot.candidate0.hypothesis.state.relation7.base) && .query.context.relation.subtype == .query.context.query.snapshot.candidate0.hypothesis.state.relation7.subtype))
+    where !.query.context.query.snapshot.candidate1.hypothesis.active || (.query.context.query.dependent < .query.context.query.snapshot.candidate1.hypothesis.state.unread && .query.context.query.dependent < .query.context.query.snapshot.candidate1.hypothesis.selected)
+    where !.query.context.query.snapshot.candidate1.hypothesis.active || (.query.context.head == 8 || (.query.context.head < .query.context.query.snapshot.candidate1.hypothesis.state.unread && .query.context.head < .query.context.query.snapshot.candidate1.hypothesis.selected))
+    where !.query.context.query.snapshot.candidate1.hypothesis.active || sequence/at(.query.context.query.snapshot.candidate1.hypothesis.state.heads,.query.context.query.dependent) == .query.context.head
+    where !.query.context.query.snapshot.candidate1.hypothesis.active || sequence/at(.query.context.query.snapshot.candidate1.hypothesis.choices,.query.context.query.dependent) == sequence/at(.query.context.query.snapshot.candidate0.hypothesis.choices,.query.context.query.dependent)
+    where !.query.context.query.snapshot.candidate1.hypothesis.active || (.query.context.head == 8 ? true : sequence/at(.query.context.query.snapshot.candidate1.hypothesis.choices,.query.context.head) == sequence/at(.query.context.query.snapshot.candidate0.hypothesis.choices,.query.context.head))
+    where !.query.context.query.snapshot.candidate1.hypothesis.active || (.query.context.query.dependent != 0 || (variant/tag(.query.context.relation.base) == variant/tag(.query.context.query.snapshot.candidate1.hypothesis.state.relation0.base) && .query.context.relation.subtype == .query.context.query.snapshot.candidate1.hypothesis.state.relation0.subtype))
+    where !.query.context.query.snapshot.candidate1.hypothesis.active || (.query.context.query.dependent != 1 || (variant/tag(.query.context.relation.base) == variant/tag(.query.context.query.snapshot.candidate1.hypothesis.state.relation1.base) && .query.context.relation.subtype == .query.context.query.snapshot.candidate1.hypothesis.state.relation1.subtype))
+    where !.query.context.query.snapshot.candidate1.hypothesis.active || (.query.context.query.dependent != 2 || (variant/tag(.query.context.relation.base) == variant/tag(.query.context.query.snapshot.candidate1.hypothesis.state.relation2.base) && .query.context.relation.subtype == .query.context.query.snapshot.candidate1.hypothesis.state.relation2.subtype))
+    where !.query.context.query.snapshot.candidate1.hypothesis.active || (.query.context.query.dependent != 3 || (variant/tag(.query.context.relation.base) == variant/tag(.query.context.query.snapshot.candidate1.hypothesis.state.relation3.base) && .query.context.relation.subtype == .query.context.query.snapshot.candidate1.hypothesis.state.relation3.subtype))
+    where !.query.context.query.snapshot.candidate1.hypothesis.active || (.query.context.query.dependent != 4 || (variant/tag(.query.context.relation.base) == variant/tag(.query.context.query.snapshot.candidate1.hypothesis.state.relation4.base) && .query.context.relation.subtype == .query.context.query.snapshot.candidate1.hypothesis.state.relation4.subtype))
+    where !.query.context.query.snapshot.candidate1.hypothesis.active || (.query.context.query.dependent != 5 || (variant/tag(.query.context.relation.base) == variant/tag(.query.context.query.snapshot.candidate1.hypothesis.state.relation5.base) && .query.context.relation.subtype == .query.context.query.snapshot.candidate1.hypothesis.state.relation5.subtype))
+    where !.query.context.query.snapshot.candidate1.hypothesis.active || (.query.context.query.dependent != 6 || (variant/tag(.query.context.relation.base) == variant/tag(.query.context.query.snapshot.candidate1.hypothesis.state.relation6.base) && .query.context.relation.subtype == .query.context.query.snapshot.candidate1.hypothesis.state.relation6.subtype))
+    where !.query.context.query.snapshot.candidate1.hypothesis.active || (.query.context.query.dependent != 7 || (variant/tag(.query.context.relation.base) == variant/tag(.query.context.query.snapshot.candidate1.hypothesis.state.relation7.base) && .query.context.relation.subtype == .query.context.query.snapshot.candidate1.hypothesis.state.relation7.subtype))
+    where !.query.context.query.snapshot.candidate2.hypothesis.active || (.query.context.query.dependent < .query.context.query.snapshot.candidate2.hypothesis.state.unread && .query.context.query.dependent < .query.context.query.snapshot.candidate2.hypothesis.selected)
+    where !.query.context.query.snapshot.candidate2.hypothesis.active || (.query.context.head == 8 || (.query.context.head < .query.context.query.snapshot.candidate2.hypothesis.state.unread && .query.context.head < .query.context.query.snapshot.candidate2.hypothesis.selected))
+    where !.query.context.query.snapshot.candidate2.hypothesis.active || sequence/at(.query.context.query.snapshot.candidate2.hypothesis.state.heads,.query.context.query.dependent) == .query.context.head
+    where !.query.context.query.snapshot.candidate2.hypothesis.active || sequence/at(.query.context.query.snapshot.candidate2.hypothesis.choices,.query.context.query.dependent) == sequence/at(.query.context.query.snapshot.candidate0.hypothesis.choices,.query.context.query.dependent)
+    where !.query.context.query.snapshot.candidate2.hypothesis.active || (.query.context.head == 8 ? true : sequence/at(.query.context.query.snapshot.candidate2.hypothesis.choices,.query.context.head) == sequence/at(.query.context.query.snapshot.candidate0.hypothesis.choices,.query.context.head))
+    where !.query.context.query.snapshot.candidate2.hypothesis.active || (.query.context.query.dependent != 0 || (variant/tag(.query.context.relation.base) == variant/tag(.query.context.query.snapshot.candidate2.hypothesis.state.relation0.base) && .query.context.relation.subtype == .query.context.query.snapshot.candidate2.hypothesis.state.relation0.subtype))
+    where !.query.context.query.snapshot.candidate2.hypothesis.active || (.query.context.query.dependent != 1 || (variant/tag(.query.context.relation.base) == variant/tag(.query.context.query.snapshot.candidate2.hypothesis.state.relation1.base) && .query.context.relation.subtype == .query.context.query.snapshot.candidate2.hypothesis.state.relation1.subtype))
+    where !.query.context.query.snapshot.candidate2.hypothesis.active || (.query.context.query.dependent != 2 || (variant/tag(.query.context.relation.base) == variant/tag(.query.context.query.snapshot.candidate2.hypothesis.state.relation2.base) && .query.context.relation.subtype == .query.context.query.snapshot.candidate2.hypothesis.state.relation2.subtype))
+    where !.query.context.query.snapshot.candidate2.hypothesis.active || (.query.context.query.dependent != 3 || (variant/tag(.query.context.relation.base) == variant/tag(.query.context.query.snapshot.candidate2.hypothesis.state.relation3.base) && .query.context.relation.subtype == .query.context.query.snapshot.candidate2.hypothesis.state.relation3.subtype))
+    where !.query.context.query.snapshot.candidate2.hypothesis.active || (.query.context.query.dependent != 4 || (variant/tag(.query.context.relation.base) == variant/tag(.query.context.query.snapshot.candidate2.hypothesis.state.relation4.base) && .query.context.relation.subtype == .query.context.query.snapshot.candidate2.hypothesis.state.relation4.subtype))
+    where !.query.context.query.snapshot.candidate2.hypothesis.active || (.query.context.query.dependent != 5 || (variant/tag(.query.context.relation.base) == variant/tag(.query.context.query.snapshot.candidate2.hypothesis.state.relation5.base) && .query.context.relation.subtype == .query.context.query.snapshot.candidate2.hypothesis.state.relation5.subtype))
+    where !.query.context.query.snapshot.candidate2.hypothesis.active || (.query.context.query.dependent != 6 || (variant/tag(.query.context.relation.base) == variant/tag(.query.context.query.snapshot.candidate2.hypothesis.state.relation6.base) && .query.context.relation.subtype == .query.context.query.snapshot.candidate2.hypothesis.state.relation6.subtype))
+    where !.query.context.query.snapshot.candidate2.hypothesis.active || (.query.context.query.dependent != 7 || (variant/tag(.query.context.relation.base) == variant/tag(.query.context.query.snapshot.candidate2.hypothesis.state.relation7.base) && .query.context.relation.subtype == .query.context.query.snapshot.candidate2.hypothesis.state.relation7.subtype))
+    where !.query.context.query.snapshot.candidate3.hypothesis.active || (.query.context.query.dependent < .query.context.query.snapshot.candidate3.hypothesis.state.unread && .query.context.query.dependent < .query.context.query.snapshot.candidate3.hypothesis.selected)
+    where !.query.context.query.snapshot.candidate3.hypothesis.active || (.query.context.head == 8 || (.query.context.head < .query.context.query.snapshot.candidate3.hypothesis.state.unread && .query.context.head < .query.context.query.snapshot.candidate3.hypothesis.selected))
+    where !.query.context.query.snapshot.candidate3.hypothesis.active || sequence/at(.query.context.query.snapshot.candidate3.hypothesis.state.heads,.query.context.query.dependent) == .query.context.head
+    where !.query.context.query.snapshot.candidate3.hypothesis.active || sequence/at(.query.context.query.snapshot.candidate3.hypothesis.choices,.query.context.query.dependent) == sequence/at(.query.context.query.snapshot.candidate0.hypothesis.choices,.query.context.query.dependent)
+    where !.query.context.query.snapshot.candidate3.hypothesis.active || (.query.context.head == 8 ? true : sequence/at(.query.context.query.snapshot.candidate3.hypothesis.choices,.query.context.head) == sequence/at(.query.context.query.snapshot.candidate0.hypothesis.choices,.query.context.head))
+    where !.query.context.query.snapshot.candidate3.hypothesis.active || (.query.context.query.dependent != 0 || (variant/tag(.query.context.relation.base) == variant/tag(.query.context.query.snapshot.candidate3.hypothesis.state.relation0.base) && .query.context.relation.subtype == .query.context.query.snapshot.candidate3.hypothesis.state.relation0.subtype))
+    where !.query.context.query.snapshot.candidate3.hypothesis.active || (.query.context.query.dependent != 1 || (variant/tag(.query.context.relation.base) == variant/tag(.query.context.query.snapshot.candidate3.hypothesis.state.relation1.base) && .query.context.relation.subtype == .query.context.query.snapshot.candidate3.hypothesis.state.relation1.subtype))
+    where !.query.context.query.snapshot.candidate3.hypothesis.active || (.query.context.query.dependent != 2 || (variant/tag(.query.context.relation.base) == variant/tag(.query.context.query.snapshot.candidate3.hypothesis.state.relation2.base) && .query.context.relation.subtype == .query.context.query.snapshot.candidate3.hypothesis.state.relation2.subtype))
+    where !.query.context.query.snapshot.candidate3.hypothesis.active || (.query.context.query.dependent != 3 || (variant/tag(.query.context.relation.base) == variant/tag(.query.context.query.snapshot.candidate3.hypothesis.state.relation3.base) && .query.context.relation.subtype == .query.context.query.snapshot.candidate3.hypothesis.state.relation3.subtype))
+    where !.query.context.query.snapshot.candidate3.hypothesis.active || (.query.context.query.dependent != 4 || (variant/tag(.query.context.relation.base) == variant/tag(.query.context.query.snapshot.candidate3.hypothesis.state.relation4.base) && .query.context.relation.subtype == .query.context.query.snapshot.candidate3.hypothesis.state.relation4.subtype))
+    where !.query.context.query.snapshot.candidate3.hypothesis.active || (.query.context.query.dependent != 5 || (variant/tag(.query.context.relation.base) == variant/tag(.query.context.query.snapshot.candidate3.hypothesis.state.relation5.base) && .query.context.relation.subtype == .query.context.query.snapshot.candidate3.hypothesis.state.relation5.subtype))
+    where !.query.context.query.snapshot.candidate3.hypothesis.active || (.query.context.query.dependent != 6 || (variant/tag(.query.context.relation.base) == variant/tag(.query.context.query.snapshot.candidate3.hypothesis.state.relation6.base) && .query.context.relation.subtype == .query.context.query.snapshot.candidate3.hypothesis.state.relation6.subtype))
+    where !.query.context.query.snapshot.candidate3.hypothesis.active || (.query.context.query.dependent != 7 || (variant/tag(.query.context.relation.base) == variant/tag(.query.context.query.snapshot.candidate3.hypothesis.state.relation7.base) && .query.context.relation.subtype == .query.context.query.snapshot.candidate3.hypothesis.state.relation7.subtype))
+}
+# Exact original Source proposal precedes fresh guarded Analysis admission.
+# Semantic refusal retains this complete Source execution/output; resource,
+# custody, target and other late refusals cancel the entire unpublished revision.
+plot language-window8-qualified-dependency-analysis (
+ input: LanguageParserWindow8QualifiedDependencyQuery...| >> output: LanguageParserWindow8QualifiedDependencyProposal...|
+) = { query: . }
