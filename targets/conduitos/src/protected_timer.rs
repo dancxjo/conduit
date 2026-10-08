@@ -197,6 +197,7 @@ impl ProtectedTimer {
     ) -> Result<MachineRunReceipt, MachineRunError> {
         let mut presentations = 0;
         let mut wakes = 0;
+        let mut waiting = false;
         for _ in 0..512 {
             if let Some(wake) = timer
                 .take_wake()
@@ -211,8 +212,14 @@ impl ProtectedTimer {
                     )
                     .map_err(gate_error)?;
                 self.pending = None;
+                waiting = false;
                 self.completion(1, request)?;
                 wakes += 1;
+            }
+            if waiting {
+                idle.wait_for_interrupt()
+                    .map_err(|_| MachineRunError::InterruptBaseFailure)?;
+                continue;
             }
             self.region
                 .backend_mut()
@@ -330,9 +337,11 @@ impl ProtectedTimer {
                         _ => return Err(MachineRunError::UnexpectedHostCall),
                     }
                 }
-                DomainReturn::Yielded if observation.status == 1 && self.pending.is_some() => idle
-                    .wait_for_interrupt()
-                    .map_err(|_| MachineRunError::InterruptBaseFailure)?,
+                DomainReturn::Yielded if observation.status == 1 && self.pending.is_some() => {
+                    waiting = true;
+                    idle.wait_for_interrupt()
+                        .map_err(|_| MachineRunError::InterruptBaseFailure)?;
+                }
                 _ => return Err(MachineRunError::KernelFailure),
             }
         }
