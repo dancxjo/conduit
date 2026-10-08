@@ -81,6 +81,7 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
             format!("{status}; {transcript}"),
         ));
     }
+    let timer = super::protected_timer_proof::validate(&transcript, "x86_64")?;
     let signs = transcript
         .lines()
         .filter_map(|line| line.strip_prefix(PREFIX))
@@ -91,9 +92,10 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
             format!("expected one Sign, found {}; {transcript}", signs.len()),
         ));
     }
-    let sign: serde_json::Value = serde_json::from_str(signs[0]).map_err(|error| {
+    let mut sign: serde_json::Value = serde_json::from_str(signs[0]).map_err(|error| {
         ConduitosError::refusal("ordinary-domain-proof-sign-invalid", error.to_string())
     })?;
+    sign["protected_standing_timer"] = timer;
     if sign["status"] != "completed"
         || sign["proof_class"] != "freestanding-emulator"
         || sign["architecture"] != "x86_64"
