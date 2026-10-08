@@ -23,7 +23,7 @@ struct ShowAcknowledgementResponse {
 
 pub(super) enum ShowGate {
     Accepted,
-    Refreshed(Grant),
+    Refreshed(Box<Grant>),
     Stopped,
 }
 
