@@ -1,13 +1,16 @@
 //! Root preparation for the separately reusable standing timer kernel.
 use crate::machine::KernelInterest;
 use conduit_core::{ConfigurationValue, PlanFragment};
-use conduit_kernel::{NodeId, scheduler::SchedulerError};
+use conduit_kernel::{
+    NodeId,
+    scheduler::{NodeSpec, SchedulerError},
+};
 use conduit_plan_lowering::lowering::{FIXED_KERNEL_STORAGE_PORTS_PER_NODE, LoweredPlanFragment};
 #[path = "tour_timer_runtime.rs"]
 pub(crate) mod runtime;
 pub use runtime::TourTimerKernel;
 use runtime::{CORDS, NODES, PORTS, PreparedTimerGraph, PreparedTimerRoute};
-const _: () = assert!(PORTS == FIXED_KERNEL_STORAGE_PORTS_PER_NODE);
+const _: () = assert!(PORTS <= FIXED_KERNEL_STORAGE_PORTS_PER_NODE);
 
 impl TourTimerKernel {
     pub fn prepare(
@@ -64,11 +67,11 @@ impl TourTimerKernel {
             *slot = Some((operation.node, operation.binding));
         }
         Ok(PreparedTimerGraph {
-            nodes: lowered
-                .node_specs
-                .as_slice()
-                .try_into()
-                .map_err(|_| SchedulerError::InvalidPlan)?,
+            nodes: [
+                runtime_node(&lowered.node_specs[0])?,
+                runtime_node(&lowered.node_specs[1])?,
+                runtime_node(&lowered.node_specs[2])?,
+            ],
             cords: [lowered.cords[0].spec, lowered.cords[1].spec],
             routes,
             bindings,
@@ -132,4 +135,16 @@ fn configured_milliseconds(
             _ => None,
         })
         .ok_or(SchedulerError::InvalidPlan)
+}
+
+fn runtime_node(
+    spec: &NodeSpec<FIXED_KERNEL_STORAGE_PORTS_PER_NODE>,
+) -> Result<NodeSpec<PORTS>, SchedulerError> {
+    if spec.input_cords[PORTS..].iter().any(Option::is_some) {
+        return Err(SchedulerError::InvalidPlan);
+    }
+    Ok(NodeSpec {
+        input_cords: core::array::from_fn(|index| spec.input_cords[index]),
+        maximum_step_fuel: spec.maximum_step_fuel,
+    })
 }

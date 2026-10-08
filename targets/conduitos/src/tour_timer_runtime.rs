@@ -17,7 +17,8 @@ pub(crate) use preparation::{PreparedTimerGraph, PreparedTimerRoute};
 
 pub(crate) const NODES: usize = 3;
 pub(crate) const CORDS: usize = 2;
-pub(crate) const PORTS: usize = 16;
+// Every selected timer/count/presentation Back has exactly one port ordinal.
+pub(crate) const PORTS: usize = 1;
 pub(crate) const HOST_BINDINGS: usize = NODES * NODES;
 pub(crate) const VALUES: usize = 6;
 pub(crate) const VALUE_BYTES: usize = 48;
