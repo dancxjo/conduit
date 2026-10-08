@@ -12,7 +12,7 @@ outputs and actual Core numerical fidelity. No baseline period is substituted.
 
 All 200 original inputs passed the existing separately bounded wide Source
 profile. Independent u128 nearest-period calculations match all executed Source
-results. The final gate passed in 3.51s with 61 frozen source/SDK/artifact inputs
+results. The final gate passed in 3.51s with 65 frozen source/SDK/artifact inputs
 unchanged; scoped standalone Clippy also passed. Evidence is project
 `outputs/fargan-full200-numeric-preflight/`.
 
