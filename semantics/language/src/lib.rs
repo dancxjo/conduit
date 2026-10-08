@@ -91,3 +91,10 @@ pub mod lexical;
 pub mod discourse;
 
 pub mod prosody;
+
+/// Four-token prefix availability; this does not stabilize or commit parser facts.
+pub use generated::{
+    LanguageParserAvailability, LanguageParserAvailableLexical, LanguageParserRawAvailability,
+};
+mod parser_availability;
+pub use parser_availability::parser_availability_types;

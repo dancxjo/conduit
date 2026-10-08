@@ -110,3 +110,34 @@ fn lineage_schema_is_admitted_through_installed_catalog() {
     conduit_plot::check_syntax_document(&conduit_plot::parse_syntax_document(source), &startup)
         .unwrap();
 }
+
+#[test]
+fn metadata_lineage_does_not_authorize_rewriting_a_stable_scalar_prefix() {
+    let mut old = revision(0, "r0", "hé ", None);
+    old = LanguageTextRevision::new(
+        *old.finality(),
+        old.material().clone(),
+        old.prior().clone(),
+        old.provenance().clone(),
+        *old.sequence(),
+        Some(3),
+    )
+    .unwrap();
+    let mut next = revision(1, "r1", "hè ", Some(("r0", 0)));
+    next = LanguageTextRevision::new(
+        *next.finality(),
+        next.material().clone(),
+        next.prior().clone(),
+        next.provenance().clone(),
+        *next.sequence(),
+        Some(3),
+    )
+    .unwrap();
+    // Metadata is a valid next revision. Its changed stable content is a
+    // separate rejection owned by the scalar frontier validator.
+    assert!(prepare_text_revision_lineage(&old, &next).is_ok());
+    assert_eq!(
+        validate_text_revision(Some(&old), &next, 0, 4096),
+        Err(TextRevisionRefusal::StablePrefixChanged)
+    );
+}

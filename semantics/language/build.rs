@@ -11,11 +11,11 @@ fn main() {
     println!("cargo:rerun-if-changed=revision_lineage.conduit");
     println!("cargo:rerun-if-changed=lexical.conduit");
     println!("cargo:rerun-if-changed=parser.conduit");
+    println!("cargo:rerun-if-changed=parser_available.conduit");
     println!("cargo:rerun-if-changed=parser_beam.conduit");
     println!("cargo:rerun-if-changed=discourse.conduit");
     println!("cargo:rerun-if-changed=prosody.conduit");
-    let source = format!(
-        "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
+    let source = [
         include_str!("types.conduit"),
         include_str!("identity.conduit"),
         include_str!("coverage.conduit"),
@@ -25,12 +25,18 @@ fn main() {
         include_str!("lexical.conduit"),
         include_str!("parser.conduit"),
         include_str!("parser_beam.conduit"),
+        include_str!("parser_available.conduit"),
         include_str!("discourse.conduit"),
-        include_str!("prosody.conduit")
-    );
+        include_str!("prosody.conduit"),
+    ]
+    .join("\n");
     let checked = check_syntax_document(&parse_syntax_document(&source), &StartupCatalog::new())
         .expect("language semantic Types must check");
     for (plot, file) in [
+        (
+            "language-parser-availability",
+            "parser_availability_program.hex",
+        ),
         ("language/vocative-discourse", "discourse_program.hex"),
         ("language/vocative-prosody", "rich_prosody_program.hex"),
         ("language/fallback-prosody", "fallback_prosody_program.hex"),

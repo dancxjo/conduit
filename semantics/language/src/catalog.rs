@@ -42,6 +42,7 @@ pub fn install_linguistics_catalogs(
         .chain(crate::realization_types())
         .chain(crate::text_revision_types())
         .chain(crate::revision_lineage_types())
+        .chain(crate::parser_availability_types())
         .chain(crate::lexical::lexical_types())
         .chain(crate::parser_types())
         .chain(crate::discourse::discourse_types())
