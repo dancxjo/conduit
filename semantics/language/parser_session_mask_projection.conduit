@@ -1,0 +1,6 @@
+# Work-only full original model query -> mask query projection. This is a
+# Source-owned bridge between guarded State and raw NumericState; host code
+# must not recast the Type or substitute an independently valid state snapshot.
+plot language-parser-session-mask-query (
+ query: LanguageParserV2ChoiceQuery...| >> mask: LanguageParserMaskQuery...|
+) = { basis: .state.basis, state: { basis: .state.basis, token_count: .state.token_count, unread: .state.unread, depth: .state.depth, stack: .state.stack, heads: .state.heads, relation0: .state.relation0, relation1: .state.relation1, relation2: .state.relation2, relation3: .state.relation3, committed: .state.committed } }
