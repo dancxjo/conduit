@@ -29,6 +29,11 @@ use std::{
     time::{Duration, Instant},
 };
 
+// The installed request entrance remains gated on admitted restore and Face
+// action routing; this exact first-action path is exercised by focused proof.
+#[allow(dead_code)]
+#[path = "checkpoint_once.rs"]
+mod checkpoint_once;
 #[path = "continuing.rs"]
 mod continuing;
 pub(crate) use continuing::RunWorker;
