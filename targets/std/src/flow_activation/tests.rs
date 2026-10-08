@@ -437,31 +437,6 @@ fn installation_rejects_stale_identity_and_consumed_receipts() {
     assert!(install_planned_activation(&plan, &mut prepared, "each", &mut host).is_err());
 }
 
-struct TodoFactory;
-impl KernelOperationFactory for TodoFactory {
-    fn implementation_id(&self) -> &conduit_core::ImplementationId {
-        static ID: std::sync::OnceLock<conduit_core::ImplementationId> = std::sync::OnceLock::new();
-        ID.get_or_init(|| conduit_core::ImplementationId::from("todo/combine@1"))
-    }
-    fn budget(&self, _: &conduit_core::PlannedGear) -> Result<KernelOperationBudget, String> {
-        Ok(KernelOperationBudget {
-            value_items: 3,
-            value_bytes: (2 * conduit_todo_plot::STATE_MAX_BYTES
-                + conduit_todo_plot::COMMAND_MAX_BYTES) as u32,
-            maximum_value_bytes: conduit_todo_plot::STATE_MAX_BYTES as u32,
-            host_requests: 0,
-            sign_items: 3,
-        })
-    }
-    fn prepare(
-        &self,
-        _: &conduit_core::PlannedGear,
-        _: &mut HostedValueStore,
-    ) -> Result<Box<dyn StepBack<{ FIXED_KERNEL_STORAGE_PORTS_PER_NODE }> + Send>, String> {
-        Ok(Box::new(conduit_todo_plot::TodoCombineBack::new()))
-    }
-}
-
 pub(crate) fn todo_scan_plan() -> Plan {
     let mut child_fragment = common::fragment();
     child_fragment.states.clear();
@@ -472,14 +447,16 @@ pub(crate) fn todo_scan_plan() -> Plan {
     child_fragment.sign_storage_budget =
         conduit_core::mandatory_sign_storage_requirement(&child_fragment.expected_sign).unwrap();
     let placement = &mut child_fragment.placements[0];
+    let offer = todo_combine_offer();
     placement.kind_id = kind_id(conduit_todo_plot::TODO_COMBINE_KIND);
     placement.kind_contract_revision =
         conduit_core::KindIdentity::from(conduit_todo_plot::TODO_COMBINE_REVISION);
-    placement.implementation_id = conduit_core::ImplementationId::from("todo/combine@1");
-    placement.artifact_id = conduit_core::ArtifactId::from("todo/combine@1");
-    placement.limits.max_queue_items = 3;
-    placement.limits.max_queue_bytes =
-        (2 * conduit_todo_plot::STATE_MAX_BYTES + conduit_todo_plot::COMMAND_MAX_BYTES) as u32;
+    placement.capability_id = offer.capability_id;
+    placement.execution_profile_id = offer.implementation.execution_profile_id;
+    placement.implementation_id = offer.implementation.implementation_id;
+    placement.artifact_id = offer.implementation.artifact_id;
+    placement.limits = offer.limits;
+    placement.semantic_contract = offer.semantic_contract;
     let state_kind = kind_id(conduit_todo_plot::TODO_STATE_INFO_ID);
     let command_kind = kind_id(conduit_todo_plot::TODO_COMMAND_INFO_ID);
     placement.inputs[0].port_id = port_id("accumulator");
@@ -561,9 +538,7 @@ pub(crate) fn todo_scan_plan() -> Plan {
 #[test]
 fn todo_commands_advance_one_receipt_backed_scan() {
     let plan = todo_scan_plan();
-    let mut registry = KernelOperationRegistry::new();
-    registry.install(TodoFactory).unwrap();
-    let mut host = StdActivationHost::new(identity(), registry);
+    let mut host = StdActivationHost::new(identity(), standard_child_registry().unwrap());
     let mut prepared = prepare_plan_on_hosts(&plan, &mut [&mut host]).unwrap();
     let mut scan = install_planned_activation(&plan, &mut prepared, "scan", &mut host)
         .unwrap()
@@ -612,4 +587,71 @@ fn todo_commands_advance_one_receipt_backed_scan() {
         assert_eq!(state.items[0].complete, revision == 2);
         scan.complete_output().unwrap();
     }
+    scan.close_input().unwrap();
+    assert_eq!(scan.step().unwrap(), &BoundedScanState::Complete);
+    assert!(scan
+        .admit(&ValuePayload {
+            value_kind: kind_id(conduit_todo_plot::TODO_COMMAND_INFO_ID),
+            encoded: conduit_todo_plot::TodoCommand::Add {
+                text: "Late".into(),
+            }
+            .encode_info()
+            .unwrap(),
+        })
+        .is_err());
+}
+
+#[test]
+fn production_todo_child_factory_refuses_substituted_plan_facts() {
+    let plan = todo_scan_plan();
+    let PlannedActivationEntry::Scan(entry) = &plan.activations[0] else {
+        panic!("expected exact scan");
+    };
+    let placement = &entry.selected_plan.fragments[0].placements[0];
+    let factory = TodoCombineFactory;
+    assert_eq!(
+        factory.budget(placement).unwrap().maximum_value_bytes,
+        conduit_todo_plot::STATE_MAX_BYTES as u32
+    );
+
+    let mut altered = placement.clone();
+    altered.artifact_id = conduit_core::ArtifactId::from("substitute");
+    assert!(factory.budget(&altered).is_err());
+    altered = placement.clone();
+    altered.inputs[1].value_kind = kind_id(conduit_todo_plot::TODO_STATE_INFO_ID);
+    assert!(factory.budget(&altered).is_err());
+    altered = placement.clone();
+    altered.limits.max_queue_items += 1;
+    assert!(factory.budget(&altered).is_err());
+}
+
+#[test]
+fn production_todo_scan_preserves_queue_pressure_and_cancellation() {
+    let plan = todo_scan_plan();
+    let mut host = StdActivationHost::new(identity(), standard_child_registry().unwrap());
+    let mut prepared = prepare_plan_on_hosts(&plan, &mut [&mut host]).unwrap();
+    let mut scan = install_planned_activation(&plan, &mut prepared, "scan", &mut host)
+        .unwrap()
+        .into_scan()
+        .unwrap();
+    let command = ValuePayload {
+        value_kind: kind_id(conduit_todo_plot::TODO_COMMAND_INFO_ID),
+        encoded: conduit_todo_plot::TodoCommand::Add {
+            text: "Milk".into(),
+        }
+        .encode_info()
+        .unwrap(),
+    };
+    assert_eq!(
+        scan.admit(&command).unwrap(),
+        BoundedScanAdmission::Accepted
+    );
+    assert_eq!(
+        scan.admit(&command).unwrap(),
+        BoundedScanAdmission::Accepted
+    );
+    assert_eq!(scan.admit(&command).unwrap(), BoundedScanAdmission::Full);
+    scan.cancel().unwrap();
+    assert_eq!(scan.step().unwrap(), &BoundedScanState::Cancelled);
+    assert!(scan.admit(&command).is_err());
 }

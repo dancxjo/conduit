@@ -53,6 +53,7 @@ conduit-std-offers = { path = "offers", features = ["speech"] }
 conduit-time = { path = "../../semantics/time", features = ["kernel-step"] }
 conduit-text = { path = "../../semantics/text", default-features = false }
 conduit-tongues = { path = "../../semantics/tongues" }
+conduit-todo-plot = { path = "../../plots/todo/model", features = ["kernel-step"] }
 conduit-wire = { path = "../../architecture/wire" }
 conduit-web = { path = "../../semantics/web", default-features = false }
 tungstenite = "0.30.0"
@@ -115,7 +116,6 @@ path = "src/bin/native-webrtc-line-probe.rs"
 required-features = ["native-webrtc"]
 
 [dev-dependencies]
-conduit-todo-plot = { path = "../../plots/todo/model", features = ["kernel-step"] }
 conduit-observatory = { path = "../../architecture/observatory" }
 conduit-kernel = { path = "../../architecture/kernel", features = ["alloc", "step-test-support"] }
 conduit-workspace-make = { path = "../../make/workspace" }
