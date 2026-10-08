@@ -95,7 +95,8 @@ pub(crate) fn run(source: &Path, directory: &Path, name: &str) -> Result<(), Str
     image::verify(&root)?;
     let source_bytes = super::bounded_read(source, MAXIMUM_SOURCE)?;
     let source_text = std::str::from_utf8(&source_bytes).map_err(|e| e.to_string())?;
-    let checked = crate::plot_source::parse(source_text)?.expand_entry_for_authoring()?;
+    let canonical_source = crate::plot_source::parse(source_text)?;
+    let checked = canonical_source.expand_entry_for_authoring()?;
     let resident = ResidentPlot::new(
         checked.expanded.source_document_id.clone(),
         checked.expanded.checked_plot_id.clone(),
@@ -177,7 +178,7 @@ pub(crate) fn run(source: &Path, directory: &Path, name: &str) -> Result<(), Str
                             let receipt = owner.admit_invited(&root, request, &expected_host_id)?;
                             emit(&serde_json::to_value(receipt).map_err(|e| e.to_string())?)?;
                         }
-                        Request::Plan => owner.plan(&checked)?,
+                        Request::Plan => owner.plan_with_source(&canonical_source, &checked)?,
                         Request::Run { maximum_millis } => {
                             owner.persist(&root)?;
                             owner.execute(maximum_millis)?;

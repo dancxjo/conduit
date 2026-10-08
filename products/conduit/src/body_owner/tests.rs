@@ -1,4 +1,8 @@
 use super::*;
+use conduit_core::{
+    ArtifactId, CapabilityId, CapabilityLimits, ExecutionProfileId, ImplementationId,
+    PlannedActivationEntry,
+};
 use conduit_core::{BootId, HostId, OfferGeneration};
 use conduit_presentation::PresentationRole;
 use conduit_std_host::StdHostConfig;
@@ -36,6 +40,76 @@ fn installed_owner_refuses_live_todo_before_shedding_its_scan_activation() {
         owner.plan_partition(&plot, &resident(&plot)).unwrap_err(),
         "installed Body execution has no activation-aware Plan or Play"
     );
+}
+
+#[test]
+fn owner_seals_todo_child_only_from_exact_source_and_truthful_coordinator_offer() {
+    let source = crate::plot_source::parse(TODO_SOURCE).unwrap();
+    let plot = source.expand_entry_for_authoring().unwrap();
+    let mut owner =
+        Owner::open(host("boot/todo-exact"), resident(&plot), None, "Groceries").unwrap();
+    let mut advertised = owner.host.advertisement().clone();
+    assert!(owner
+        .plan_partition_with_source(&source, &plot, &resident(&plot), &advertised)
+        .is_err());
+
+    // This is a planner contract offer, not a claim about the installed Host.
+    // The production advertisement remains unchanged until a real coordinator
+    // implementation is registered by the Host.
+    let scan = &plot.expanded.gears[0];
+    advertised
+        .capabilities
+        .push(conduit_core::capability_offer_from_parts! {
+            semantic_contract: scan.semantic_contract.clone(),
+            startup_parameters: scan.startup_parameters.clone(),
+            shorthand: scan.shorthand.clone(),
+            capability_id: CapabilityId::from("flow/scan/owner-planner-proof"),
+            kind_id: scan.kind_id.clone(),
+            kind_contract_revision: scan.kind_contract_revision.clone(),
+            implementation: conduit_core::ImplementationOffer {
+                execution_profile_id: ExecutionProfileId::from("flow/scan/owner-planner-proof@1"),
+                implementation_id: ImplementationId::from("flow/scan/owner-planner-proof@1"),
+                artifact_id: ArtifactId::from("flow/scan/owner-planner-proof@1"),
+            },
+            inputs: scan.inputs.clone(),
+            outputs: scan.outputs.clone(),
+            host_calls: vec![],
+            resource_requirements: vec![],
+            authority_requirements: vec![],
+            limits: CapabilityLimits {
+                max_active_instances: 1,
+                max_queue_items: 3,
+                max_queue_bytes: (2 * conduit_todo_plot::STATE_MAX_BYTES
+                    + 2 * conduit_todo_plot::COMMAND_MAX_BYTES) as u32,
+            },
+        });
+    let unrelated_source = crate::plot_source::parse(SOURCE).unwrap();
+    assert!(owner
+        .plan_partition_with_source(&unrelated_source, &plot, &resident(&plot), &advertised)
+        .is_err());
+    let partition = owner
+        .plan_partition_with_source(&source, &plot, &resident(&plot), &advertised)
+        .unwrap();
+    assert!(conduit_core::verify_plan(&partition.plan));
+    assert_eq!(partition.plan.fragments[0].fore_ports.len(), 2);
+    let PlannedActivationEntry::Scan(scan) = &partition.plan.activations[0] else {
+        panic!("Todo must retain its planned scan child")
+    };
+    assert_eq!(scan.selected_plan_id, scan.selected_plan.plan_id);
+    assert!(scan.selected_plan.fragments.iter().any(|fragment| {
+        fragment.placements.iter().any(|placement| {
+            placement.kind_id == conduit_core::kind_id(conduit_todo_plot::TODO_COMBINE_KIND)
+        })
+    }));
+    owner
+        .session
+        .propose(vec![partition], &advertised.host_id, &advertised.boot_id)
+        .unwrap();
+    assert_eq!(
+        owner.execute(1).unwrap_err(),
+        "installed Body Play has no activation ingress or egress"
+    );
+    assert!(!owner.host.is_playing());
 }
 
 #[test]

@@ -9,7 +9,7 @@ use conduit_body::{
     BodyMembership, BodyPlotPlan, BodyWorkset, MembershipProofId, PartId, ResidentPlot,
 };
 use conduit_core::HostAdvertisement;
-use conduit_core::{bind_sign, BaseImplementationId};
+use conduit_core::{bind_sign, port_id, BaseImplementationId, ConnectionTrack, PortDirection};
 use conduit_presentation::{
     Face, FaceContext, FaceFocus, FaceNames, FaceResidentPlotName, OwnerFaceSnapshotRequest,
     Presentation,
@@ -384,6 +384,21 @@ impl Owner {
         Ok(())
     }
 
+    pub(super) fn plan_with_source(
+        &mut self,
+        source: &crate::plot_source::CanonicalSource,
+        plot: &conduit_plot::ExpandedAuthoringPlot,
+    ) -> Result<(), String> {
+        let resident = self.resident.as_ref().ok_or("Body has no resident Plot")?;
+        let partition =
+            self.plan_partition_with_source(source, plot, resident, self.host.advertisement())?;
+        let advertised = self.host.advertisement();
+        self.session
+            .propose(vec![partition], &advertised.host_id, &advertised.boot_id)
+            .map_err(debug)?;
+        Ok(())
+    }
+
     fn plan_partition(
         &self,
         plot: &conduit_plot::ExpandedAuthoringPlot,
@@ -419,6 +434,85 @@ impl Owner {
             plan,
         })
     }
+
+    /// Plan the exact retained source when its Host actually advertises an
+    /// activation coordinator. This seam is deliberately separate from Play:
+    /// the installed owner cannot yet route commands into an active scan.
+    fn plan_partition_with_source(
+        &self,
+        source: &crate::plot_source::CanonicalSource,
+        plot: &conduit_plot::ExpandedAuthoringPlot,
+        resident: &ResidentPlot,
+        advertisement: &HostAdvertisement,
+    ) -> Result<BodyPlotPlan, String> {
+        if plot.expanded.activations.is_empty() {
+            return self.plan_partition(plot, resident);
+        }
+        if plot.expanded.name != "todo/main" || plot.expanded.activations.len() != 1 {
+            return Err("installed Body supports no other activation source".into());
+        }
+        let expected = ResidentPlot::new(
+            plot.expanded.source_document_id.clone(),
+            plot.expanded.checked_plot_id.clone(),
+        );
+        if &expected != resident || self.resident.as_ref() != Some(resident) {
+            return Err("checked source differs from the Body's resident Plot".into());
+        }
+        let document = source.check()?;
+        let hosts = [advertisement.clone()];
+        let placements =
+            conduit_planner::default_expanded_placements(&plot.expanded, &hosts).map_err(debug)?;
+        let queue_bytes = (2 * conduit_todo_plot::STATE_MAX_BYTES
+            + 2 * conduit_todo_plot::COMMAND_MAX_BYTES) as u32;
+        let boundaries = BTreeMap::from([
+            (
+                conduit_planner::ForeBoundaryKey {
+                    direction: PortDirection::Input,
+                    front_port_id: port_id("commands"),
+                    track: ConnectionTrack::Payload,
+                },
+                conduit_planner::ConnectionQueueLimits {
+                    item_capacity: 1,
+                    byte_capacity: conduit_todo_plot::COMMAND_MAX_BYTES as u32,
+                },
+            ),
+            (
+                conduit_planner::ForeBoundaryKey {
+                    direction: PortDirection::Output,
+                    front_port_id: port_id("states"),
+                    track: ConnectionTrack::Payload,
+                },
+                conduit_planner::ConnectionQueueLimits {
+                    item_capacity: 1,
+                    byte_capacity: conduit_todo_plot::STATE_MAX_BYTES as u32,
+                },
+            ),
+        ]);
+        let plan = conduit_planner::plan_expanded_authoring_with_activations(
+            &document,
+            plot,
+            source.authoring_catalog(),
+            &conduit_plot::CanonicalBackCatalog::new(),
+            &hosts,
+            &placements,
+            &[BaseImplementationId::from("conduit.base/local@1")],
+            conduit_planner::PlanningOptions {
+                connection_bases: &BTreeMap::new(),
+                line_candidates: &BTreeMap::new(),
+                connection_item_capacity: 1,
+                connection_byte_capacity: queue_bytes,
+                authority_grants: &[],
+                protected_resource_grants: &[],
+                line_offers: &[],
+            },
+            &boundaries,
+        )
+        .map_err(debug)?;
+        Ok(BodyPlotPlan {
+            plot: resident.clone(),
+            plan,
+        })
+    }
     pub(super) fn execute(&mut self, maximum_millis: u64) -> Result<(), String> {
         if !(1..=60_000).contains(&maximum_millis) {
             return Err("run duration must be 1..60000 milliseconds".into());
@@ -428,6 +522,14 @@ impl Owner {
             .realization()
             .ok_or("plan required before run")?
             .clone();
+        if proposed
+            .plan
+            .plots
+            .iter()
+            .any(|plot| !plot.plan.activations.is_empty())
+        {
+            return Err("installed Body Play has no activation ingress or egress".into());
+        }
         let control = RunControl::default();
         let mut timer = DeadlineTimer {
             until: Instant::now() + Duration::from_millis(maximum_millis),
