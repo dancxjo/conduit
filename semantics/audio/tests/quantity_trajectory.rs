@@ -215,3 +215,5 @@ fn arithmetic_profile_extremes_remain_exact_and_within_u64() {
     assert_eq!(n * rd, rn * d);
     assert!(n < u64::MAX as u128 && d > 0 && d < u64::MAX as u128);
 }
+#[path = "trajectory/step_u32.rs"]
+mod step_u32;
