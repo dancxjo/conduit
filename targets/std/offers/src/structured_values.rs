@@ -43,6 +43,16 @@ pub fn structured_presentation_std_offer(
     )
 }
 
+/// Emit a canonical Scalar through the existing bounded literal executor.
+pub fn scalar_literal_std_offer() -> CapabilityOffer {
+    offer(
+        conduit_semantic_catalog::scalar_literal_contract()
+            .into_semantic_contract(conduit_semantic_catalog::VALUE_PRIMITIVE_CONTRACT_REVISION),
+        true,
+        Some(CapabilityId::from("std-scalar-literal")),
+    )
+}
+
 /// Realize the canonical Quantity leaf Fore through the structured presentation Host Call.
 pub fn quantity_presentation_std_offer() -> CapabilityOffer {
     offer(
@@ -128,6 +138,12 @@ mod tests {
         )
         .unwrap();
         for (offer, contract) in [
+            (
+                scalar_literal_std_offer(),
+                conduit_semantic_catalog::scalar_literal_contract().into_semantic_contract(
+                    conduit_semantic_catalog::VALUE_PRIMITIVE_CONTRACT_REVISION,
+                ),
+            ),
             (
                 quantity_presentation_std_offer(),
                 conduit_semantic_catalog::quantity_presentation_semantic_contract(),

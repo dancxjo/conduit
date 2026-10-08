@@ -317,6 +317,7 @@ pub(super) fn build_advertisement(
     }
     if composition.math {
         capabilities.extend([
+            conduit_std_offers::scalar_literal_std_offer(),
             conduit_std_offers::math_clamp_offer(),
             conduit_std_offers::math_scale_offer(),
             conduit_std_offers::math_deadband_offer(),

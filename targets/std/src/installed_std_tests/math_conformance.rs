@@ -180,6 +180,13 @@ fn quantity_range_and_quantization_refusals_reach_the_production_kernel() {
 
 fn run_presented_quantity(source: &str, entry: &str) -> (conduit_core::Plan, crate::StdRunReport) {
     let mut catalog = installed_std::test_catalog();
+    catalog
+        .insert_kind(
+            conduit_semantic_catalog::scalar_literal_contract().into_semantic_contract(
+                conduit_semantic_catalog::VALUE_PRIMITIVE_CONTRACT_REVISION,
+            ),
+        )
+        .unwrap();
     let value_type = conduit_semantic_catalog::wrapped_quantity_type();
     let contract =
         conduit_semantic_catalog::structured_presentation_contract("Quantity", &value_type);
@@ -291,7 +298,7 @@ fn run_presented_quantity(source: &str, entry: &str) -> (conduit_core::Plan, cra
 #[test]
 fn canonical_quantity_presentation_completes_through_the_installed_back() {
     let source = r#"plot quantity_presentation {
- source: conduit-test/scalar-literal
+ source: scalar/literal(value = -1)
  map: math/map-quantity(source-minimum = -2, source-maximum = 0, target-maximum = 100, unit = "%")
  wrap: structured-info/wrap-quantity
  show: presentation/quantity

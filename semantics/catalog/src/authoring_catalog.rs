@@ -41,6 +41,11 @@ pub(crate) fn palette_semantics() -> Vec<(StandardKindContract, Kind)> {
                 (description, kind)
             }),
     );
+    let scalar = scalar_literal_contract();
+    entries.push((
+        scalar.clone(),
+        scalar.into_semantic_contract(VALUE_PRIMITIVE_CONTRACT_REVISION),
+    ));
     entries.extend([
         (orbium_seed_contract(), orbium_seed_semantic_contract()),
         (lenia_step_contract(), lenia_step_semantic_contract()),

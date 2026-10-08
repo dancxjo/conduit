@@ -20,17 +20,19 @@ test("catalog queries and two durable layouts decorate the same live Plot", asyn
       upper: text/upper
       label: text/join("Result: ")
       display: presentation/text(maximum-values = 4)
+      scalar: scalar/literal(value = 500000)
       map: math/map-quantity
       quantity: presentation/quantity
       wrapped: structured-info/wrap-quantity
       literal >> prefix >> upper >> label >> display
+      scalar.value >> map.in
       map >> wrapped >> quantity
     }\n`;
     const server = await startAuthoringEntrance(source);
     try {
       await page.goto(server.url);
       await page.getByRole("button", { name: "Open Plot Empty Plot" }).click();
-      await expect(page.locator(".flow-frontplate.role-gear")).toHaveCount(8);
+      await expect(page.locator(".flow-frontplate.role-gear")).toHaveCount(9);
       const initial = await current(page);
       const basis = initial.authoring.checked_plot_id;
       const semanticGears = initial.presentation.subjects.filter(subject => subject.role === "Gear")
@@ -145,7 +147,7 @@ test("catalog queries and two durable layouts decorate the same live Plot", asyn
           .sort((left, right) => left.subject.localeCompare(right.subject));
         await expect.poll(() => page.evaluate(async () => {
           const { flowSceneSnapshot } = await import("/assets/flow.js");
-          return flowSceneSnapshot().nodes.filter(node => node.data.role === "Gear")
+          return (flowSceneSnapshot()?.nodes ?? []).filter(node => node.data.role === "Gear")
             .map(node => ({ subject: node.data.workspaceSubject, ...node.position }))
             .sort((left, right) => left.subject.localeCompare(right.subject));
         })).toEqual(positions);
@@ -159,7 +161,7 @@ test("catalog queries and two durable layouts decorate the same live Plot", asyn
           expect(gears.map(subject => projected.presentation.properties.find(property =>
             property.subject === subject.identity && property.name === "semantic-id").value.Identity).sort())
             .toEqual(semanticGears);
-          await expect(page.locator(".flow-frontplate.role-gear")).toHaveCount(8);
+          await expect(page.locator(".flow-frontplate.role-gear")).toHaveCount(9);
           await expect(page.locator(".flow-frontplate.role-gear").first())
             .toHaveAttribute("data-lens", aspect.toLowerCase());
           for (const gear of gears) {

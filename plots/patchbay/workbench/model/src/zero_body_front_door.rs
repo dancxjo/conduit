@@ -262,7 +262,7 @@ impl ZeroBodyFrontDoor {
             HostId::from(format!("patchbay-native/{nonce:x}")),
             BootId::from(format!("patchbay-boot/{nonce:x}")),
             conduit_core::OfferGeneration(1),
-            crate::PatchbayHostProfile::Text,
+            crate::PatchbayHostProfile::Authoring,
         )?;
         Self::from_model(adapter, PatchbayModel::from_advertisement(advertisement))
     }
@@ -276,7 +276,7 @@ impl ZeroBodyFrontDoor {
             host_id,
             boot_id,
             conduit_core::OfferGeneration(1),
-            crate::PatchbayHostProfile::Text,
+            crate::PatchbayHostProfile::Authoring,
         )?;
         Self::from_model(adapter, PatchbayModel::from_advertisement(advertisement))
     }
