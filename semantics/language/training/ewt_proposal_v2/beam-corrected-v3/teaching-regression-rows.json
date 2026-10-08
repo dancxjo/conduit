@@ -1,0 +1,200 @@
+[
+  {
+    "id": "vocative-initial",
+    "text": "Travis, record songs.",
+    "forms": [
+      "Travis",
+      ",",
+      "record",
+      "songs",
+      "."
+    ],
+    "pos": [
+      11,
+      12,
+      15,
+      7,
+      12
+    ],
+    "heads": [
+      2,
+      2,
+      8,
+      2,
+      2
+    ],
+    "relations": [
+      "vocative",
+      "punct",
+      "root",
+      "obj",
+      "punct"
+    ],
+    "provenance": "separately authored TRAIN-only vocative supervision; not held-out or human-reviewed accuracy evidence",
+    "oracle": [
+      0,
+      0,
+      34,
+      37,
+      73,
+      67,
+      1,
+      71,
+      1,
+      1
+    ]
+  },
+  {
+    "id": "vocative-medial",
+    "text": "I record, Travis, songs.",
+    "forms": [
+      "I",
+      "record",
+      ",",
+      "Travis",
+      ",",
+      "songs",
+      "."
+    ],
+    "pos": [
+      10,
+      15,
+      12,
+      11,
+      12,
+      7,
+      12
+    ],
+    "heads": [
+      1,
+      8,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "relations": [
+      "nsubj",
+      "root",
+      "punct",
+      "vocative",
+      "punct",
+      "obj",
+      "punct"
+    ],
+    "provenance": "separately authored TRAIN-only vocative supervision; not held-out or human-reviewed accuracy evidence",
+    "oracle": [
+      0,
+      28,
+      73,
+      71,
+      1,
+      74,
+      1,
+      71,
+      1,
+      67,
+      1,
+      71,
+      1,
+      1
+    ]
+  },
+  {
+    "id": "authored-old-man-nominal",
+    "text": "The old man.",
+    "forms": [
+      "The",
+      "old",
+      "man",
+      "."
+    ],
+    "pos": [
+      5,
+      0,
+      7,
+      12
+    ],
+    "heads": [
+      2,
+      2,
+      8,
+      2
+    ],
+    "relations": [
+      "det",
+      "amod",
+      "root",
+      "punct"
+    ],
+    "provenance": "Separately analyst-authored nominal contrast supervision; manNOUN/oldADJ; no human-review or runtime acceptance claim",
+    "oracle": [
+      0,
+      0,
+      5,
+      17,
+      73,
+      71,
+      1,
+      1
+    ]
+  },
+  {
+    "id": "garden-path",
+    "text": "The horse raced past the barn fell",
+    "forms": [
+      "The",
+      "horse",
+      "raced",
+      "past",
+      "the",
+      "barn",
+      "fell"
+    ],
+    "pos": [
+      5,
+      7,
+      15,
+      1,
+      5,
+      7,
+      15
+    ],
+    "heads": [
+      1,
+      6,
+      1,
+      5,
+      5,
+      2,
+      8
+    ],
+    "relations": [
+      "det",
+      "nsubj",
+      "acl",
+      "case",
+      "det",
+      "obl",
+      "root"
+    ],
+    "provenance": "separately authored TRAIN-only teaching graph; no held-out accuracy claim",
+    "oracle": [
+      0,
+      17,
+      0,
+      39,
+      0,
+      0,
+      17,
+      8,
+      68,
+      1,
+      1,
+      28,
+      73,
+      1
+    ]
+  }
+]

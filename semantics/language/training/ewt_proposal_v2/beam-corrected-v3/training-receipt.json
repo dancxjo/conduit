@@ -1,0 +1,36 @@
+{
+  "scope": "TRAIN+22 reviewed teaching numerical warm-start beam correction only; no runtime selection, heldout metrics or Source equivalence claim",
+  "warm_start_sha256": "400b304df9050715151878af0058620f7f04f471cd289e81c850a1b8e4211f15",
+  "artifact_sha256": "f70f560d54a81dd34d005254985dbfd394363def5f5a4ffe3e97e7c90306d2c5",
+  "train_sha256": "d68e06122a702464c613076523d56740f047e5bbe89dd90ec32737e04d952143",
+  "dictionary_manifest_sha256": "4390281523cd89ef5e31dbccc9c2f9c049116dee3975fc6957f270ed8f195ebd",
+  "teaching_sha256": "ebecbe9146c5a01a908d08f8a84ce19db7a057abb6c5f6d74083fd526efc434c",
+  "trainer_sha256": "32974d1b843b167234fecbd2bd1e5a6f89efbe03d7bcf964e84a6cc894ec2e4d",
+  "reference_sha256": "5fa22170428188c37a57f7706ae7bcd33f48a5b11f24c4326dd2da4374d46c1c",
+  "legal_reference_sha256": "33f0016d26caa6439196948904c63cfc46c1eb6cdba46abe05f56ead8e7e4bc8",
+  "train_rows": 3530,
+  "teaching_rows": 22,
+  "teaching_repetitions": 32,
+  "excluded_train_rows": [
+    "email-enronsent40_01-0023"
+  ],
+  "shape_skips": {
+    "over_eight_tokens": 8809,
+    "multiword_or_empty_node": 196,
+    "unreachable_projective_profile": 8
+  },
+  "epochs": 1,
+  "seed": 4907,
+  "steps": 4234,
+  "epoch_updates": [
+    {
+      "correct": 2097,
+      "final": 419,
+      "early": 1718
+    }
+  ],
+  "elapsed_seconds": 44.88943815801758,
+  "maximum_weight": 23179,
+  "RLIMIT_AS_bytes": 536870912,
+  "child_maxrss_KiB": 94096
+}

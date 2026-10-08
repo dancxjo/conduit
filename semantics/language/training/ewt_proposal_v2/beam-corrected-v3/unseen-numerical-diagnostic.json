@@ -1,0 +1,295 @@
+{
+  "scope": "External numerical width-four diagnostic only; Source-shaped selected-frontier/score/identity policy; no checked Source equivalence. Not original Source/Native parity, admitted parser output, heldout accuracy or stability proof",
+  "artifact_sha256": "f70f560d54a81dd34d005254985dbfd394363def5f5a4ffe3e97e7c90306d2c5",
+  "rows": [
+    {
+      "id": "unseen-proposal-v1-initial",
+      "text": "Morgan, we record music.",
+      "full_train_form_sequence_overlap": null,
+      "authored_teaching_form_sequence_overlap": null,
+      "epochs": 12,
+      "numeric_calls": 68,
+      "complete": true,
+      "elapsed_seconds": 0.022519409016240388,
+      "heads": [
+        8,
+        3,
+        3,
+        0,
+        3,
+        0
+      ],
+      "relations": [
+        "root",
+        "punct",
+        "nsubj",
+        "ccomp",
+        "obj",
+        "punct"
+      ],
+      "pos": [
+        15,
+        12,
+        10,
+        15,
+        7,
+        12
+      ],
+      "correct_heads": 3,
+      "correct_base_las": 3,
+      "correct_pos": 5,
+      "tokens": 6
+    },
+    {
+      "id": "unseen-proposal-v1-medial",
+      "text": "We record, Morgan, music.",
+      "full_train_form_sequence_overlap": null,
+      "authored_teaching_form_sequence_overlap": null,
+      "epochs": 14,
+      "numeric_calls": 82,
+      "complete": true,
+      "elapsed_seconds": 0.02769365202402696,
+      "heads": [
+        1,
+        8,
+        3,
+        1,
+        1,
+        1,
+        1
+      ],
+      "relations": [
+        "nsubj",
+        "root",
+        "punct",
+        "vocative",
+        "punct",
+        "obj",
+        "punct"
+      ],
+      "pos": [
+        10,
+        15,
+        12,
+        11,
+        12,
+        7,
+        12
+      ],
+      "correct_heads": 6,
+      "correct_base_las": 6,
+      "correct_pos": 7,
+      "tokens": 7
+    },
+    {
+      "id": "unseen-proposal-v1-final",
+      "text": "We record music, Morgan.",
+      "full_train_form_sequence_overlap": null,
+      "authored_teaching_form_sequence_overlap": null,
+      "epochs": 12,
+      "numeric_calls": 63,
+      "complete": true,
+      "elapsed_seconds": 0.020846212981268764,
+      "heads": [
+        1,
+        8,
+        1,
+        4,
+        1,
+        1
+      ],
+      "relations": [
+        "nsubj",
+        "root",
+        "obj",
+        "punct",
+        "vocative",
+        "punct"
+      ],
+      "pos": [
+        10,
+        15,
+        7,
+        12,
+        11,
+        12
+      ],
+      "correct_heads": 5,
+      "correct_base_las": 5,
+      "correct_pos": 6,
+      "tokens": 6
+    },
+    {
+      "id": "unseen-proposal-v1-object",
+      "text": "We record Morgan.",
+      "full_train_form_sequence_overlap": null,
+      "authored_teaching_form_sequence_overlap": null,
+      "epochs": 8,
+      "numeric_calls": 50,
+      "complete": true,
+      "elapsed_seconds": 0.01788439997471869,
+      "heads": [
+        1,
+        8,
+        1,
+        1
+      ],
+      "relations": [
+        "nsubj",
+        "root",
+        "obj",
+        "punct"
+      ],
+      "pos": [
+        10,
+        15,
+        11,
+        12
+      ],
+      "correct_heads": 4,
+      "correct_base_las": 4,
+      "correct_pos": 4,
+      "tokens": 4
+    },
+    {
+      "id": "unseen-proposal-v1-imperative",
+      "text": "Record Morgan.",
+      "full_train_form_sequence_overlap": null,
+      "authored_teaching_form_sequence_overlap": null,
+      "epochs": 6,
+      "numeric_calls": 24,
+      "complete": true,
+      "elapsed_seconds": 0.006011051998939365,
+      "heads": [
+        1,
+        8,
+        1
+      ],
+      "relations": [
+        "compound",
+        "root",
+        "punct"
+      ],
+      "pos": [
+        7,
+        7,
+        12
+      ],
+      "correct_heads": 0,
+      "correct_base_las": 0,
+      "correct_pos": 1,
+      "tokens": 3
+    },
+    {
+      "id": "unseen-proposal-v1-nominal",
+      "text": "The old boats.",
+      "full_train_form_sequence_overlap": null,
+      "authored_teaching_form_sequence_overlap": null,
+      "epochs": 8,
+      "numeric_calls": 33,
+      "complete": true,
+      "elapsed_seconds": 0.009838270023465157,
+      "heads": [
+        2,
+        2,
+        8,
+        2
+      ],
+      "relations": [
+        "det",
+        "amod",
+        "root",
+        "punct"
+      ],
+      "pos": [
+        5,
+        0,
+        7,
+        12
+      ],
+      "correct_heads": 4,
+      "correct_base_las": 4,
+      "correct_pos": 4,
+      "tokens": 4
+    },
+    {
+      "id": "unseen-proposal-v1-garden-path",
+      "text": "Old men man boats.",
+      "full_train_form_sequence_overlap": null,
+      "authored_teaching_form_sequence_overlap": null,
+      "epochs": 10,
+      "numeric_calls": 44,
+      "complete": true,
+      "elapsed_seconds": 0.01329425600124523,
+      "heads": [
+        1,
+        2,
+        8,
+        2,
+        2
+      ],
+      "relations": [
+        "amod",
+        "nsubj",
+        "root",
+        "obj",
+        "punct"
+      ],
+      "pos": [
+        0,
+        7,
+        15,
+        7,
+        12
+      ],
+      "correct_heads": 5,
+      "correct_base_las": 5,
+      "correct_pos": 5,
+      "tokens": 5
+    },
+    {
+      "id": "unseen-proposal-v1-clauses",
+      "text": "We record music and they refuse boats.",
+      "full_train_form_sequence_overlap": null,
+      "authored_teaching_form_sequence_overlap": null,
+      "epochs": 16,
+      "numeric_calls": 80,
+      "complete": true,
+      "elapsed_seconds": 0.02602065698010847,
+      "heads": [
+        1,
+        8,
+        1,
+        5,
+        5,
+        1,
+        5,
+        1
+      ],
+      "relations": [
+        "nsubj",
+        "root",
+        "obj",
+        "cc",
+        "nsubj",
+        "ccomp",
+        "obj",
+        "punct"
+      ],
+      "pos": [
+        10,
+        15,
+        7,
+        4,
+        10,
+        15,
+        7,
+        12
+      ],
+      "correct_heads": 8,
+      "correct_base_las": 7,
+      "correct_pos": 8,
+      "tokens": 8
+    }
+  ]
+}
