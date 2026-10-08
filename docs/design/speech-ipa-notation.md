@@ -54,7 +54,7 @@ A related extension could bind paired notation to a typed domain decoder:
 
 ```conduit
 # Proposal only: this declaration grammar is not implemented.
-with speech/ipa/notation as p
+with speech/ipa/notation as ph
 with pattern/portable/notation as r
 ```
 
@@ -84,10 +84,10 @@ leaf values; only plain primitive leaves use raw primitive bytes.
 
 Run the focused conformance with `cargo xtask check speech-ipa`.
 
-The preferred optional shorthand is `p[foˈnetika]` and `p/fonz/`, owned by #5317.
+The preferred optional shorthand is `ph[foˈnetika]` and `ph/fonz/`, owned by #5317.
 Bare collections and regexes retain their established syntax. Prefix/delimiter
 bindings have one exact result Type; expected-Type inference cannot choose a
-parser. Conflicts with a value named `p`, indexing or division must refuse with
+parser. Conflicts with a value named `ph`, indexing or division must refuse with
 an explicit qualified fallback. #5260 can finish through explicit constructors.
 Phones are universal phonetic entities; phonemes require an explicit inventory.
 An inventory may be assembled and domain-checked during preparation. Execution
@@ -211,7 +211,7 @@ parser's two display slashes within its 4096-byte limit.
 Five phonemic conformance tests pass, covering explicit long/short contrasts,
 complete-parse ambiguity, alias evidence, source spans, foreign revision and
 inventory substitution, unsupported bindings and capacity. These preparation
-APIs and the qualified Source Kinds do not implement `p/.../` or `r/.../`.
+APIs and the qualified Source Kinds do not implement `ph/.../` or `r/.../`.
 
 
 ### Public notation and terminal projection audit
@@ -313,3 +313,13 @@ as public authoring. The prior shape-only build basis produced different exact
 Speech inventory schema identities, correctly refused by configuration admission.
 The corrected schema IDs include the same owner laws on both paths. Older
 shape-only identities refuse rather than being coerced into the checked basis.
+
+
+The public constructor selection and incompatible draft schema migration are
+now pinned in [the #5329 reconciliation decision](speech-ipa-constructor-reconciliation.md).
+The canonical IPA commit stack has been replayed onto #5208 foundation
+`0acf94d2f105c45b95e0e0b60def7c6bbfaa832e`; existing foundation nominal
+evaluator fixes were retained rather than duplicated. Fresh combined-head proof
+is required. The competing HostCall route stays preserved on #5327, outside
+the installed constructor surface. `ph` is the preferred local notation alias;
+its spelling is neither a global keyword nor a semantic identity.

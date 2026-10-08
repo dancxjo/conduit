@@ -24,6 +24,9 @@ fn decoded_unicode_and_escapes_map_to_exact_authored_ranges() {
         assert_eq!(&source[span.start..span.end], raw);
         assert_eq!(span.line, 2);
         assert_eq!(span.end_line, 2);
+        let prefix = source[..span.start].rsplit('\n').next().unwrap();
+        assert_eq!(span.column, prefix.chars().count() + 1);
+        assert_eq!(span.end_column, span.column + raw.chars().count());
     }
     assert!(
         map.source_span(0..2).is_none(),
