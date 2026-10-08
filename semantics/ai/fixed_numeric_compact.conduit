@@ -1,0 +1,144 @@
+# Generic signed I8 resource tensors with explicit input4/output8 tiled packing.
+# Exact scales and optional biases are separately retained immutable resources.
+type NumericCompactTensorElement =
+    i8
+type NumericI8TiledMatrixRef4x40 = {
+    resource: ResourceRef
+    content_digest: NumericTensorDigest
+    element: NumericCompactTensorElement
+    columns: U16 in 4..=4
+    rows: U16 in 40..=40
+}
+type NumericI8TiledMatrixRef192x128 = {
+    resource: ResourceRef
+    content_digest: NumericTensorDigest
+    element: NumericCompactTensorElement
+    columns: U16 in 192..=192
+    rows: U16 in 128..=128
+}
+type NumericI8TiledMatrixRef128x320 = {
+    resource: ResourceRef
+    content_digest: NumericTensorDigest
+    element: NumericCompactTensorElement
+    columns: U16 in 128..=128
+    rows: U16 in 320..=320
+}
+type NumericI8TiledMatrixRef328x192 = {
+    resource: ResourceRef
+    content_digest: NumericTensorDigest
+    element: NumericCompactTensorElement
+    columns: U16 in 328..=328
+    rows: U16 in 192..=192
+}
+type NumericI8TiledMatrixRef192x192 = {
+    resource: ResourceRef
+    content_digest: NumericTensorDigest
+    element: NumericCompactTensorElement
+    columns: U16 in 192..=192
+    rows: U16 in 192..=192
+}
+type NumericI8TiledMatrixRef272x480 = {
+    resource: ResourceRef
+    content_digest: NumericTensorDigest
+    element: NumericCompactTensorElement
+    columns: U16 in 272..=272
+    rows: U16 in 480..=480
+}
+type NumericI8TiledMatrixRef160x480 = {
+    resource: ResourceRef
+    content_digest: NumericTensorDigest
+    element: NumericCompactTensorElement
+    columns: U16 in 160..=160
+    rows: U16 in 480..=480
+}
+type NumericI8TiledMatrixRef240x384 = {
+    resource: ResourceRef
+    content_digest: NumericTensorDigest
+    element: NumericCompactTensorElement
+    columns: U16 in 240..=240
+    rows: U16 in 384..=384
+}
+type NumericI8TiledMatrixRef128x384 = {
+    resource: ResourceRef
+    content_digest: NumericTensorDigest
+    element: NumericCompactTensorElement
+    columns: U16 in 128..=128
+    rows: U16 in 384..=384
+}
+type NumericI8TiledMatrixRef208x384 = {
+    resource: ResourceRef
+    content_digest: NumericTensorDigest
+    element: NumericCompactTensorElement
+    columns: U16 in 208..=208
+    rows: U16 in 384..=384
+}
+type NumericI8TiledMatrixRef160x160 = {
+    resource: ResourceRef
+    content_digest: NumericTensorDigest
+    element: NumericCompactTensorElement
+    columns: U16 in 160..=160
+    rows: U16 in 160..=160
+}
+type NumericI8TiledMatrixRef128x128 = {
+    resource: ResourceRef
+    content_digest: NumericTensorDigest
+    element: NumericCompactTensorElement
+    columns: U16 in 128..=128
+    rows: U16 in 128..=128
+}
+type NumericI8TiledMatrixRef688x128 = {
+    resource: ResourceRef
+    content_digest: NumericTensorDigest
+    element: NumericCompactTensorElement
+    columns: U16 in 688..=688
+    rows: U16 in 128..=128
+}
+type NumericI8TiledMatrixRef128x40 = {
+    resource: ResourceRef
+    content_digest: NumericTensorDigest
+    element: NumericCompactTensorElement
+    columns: U16 in 128..=128
+    rows: U16 in 40..=40
+}
+type NumericF32ScaleRef40 = {
+    resource: ResourceRef
+    content_digest: NumericTensorDigest
+    element: NumericTensorElement
+    length: U16 in 40..=40
+}
+type NumericF32ScaleRef128 = {
+    resource: ResourceRef
+    content_digest: NumericTensorDigest
+    element: NumericTensorElement
+    length: U16 in 128..=128
+}
+type NumericF32ScaleRef160 = {
+    resource: ResourceRef
+    content_digest: NumericTensorDigest
+    element: NumericTensorElement
+    length: U16 in 160..=160
+}
+type NumericF32ScaleRef192 = {
+    resource: ResourceRef
+    content_digest: NumericTensorDigest
+    element: NumericTensorElement
+    length: U16 in 192..=192
+}
+type NumericF32ScaleRef320 = {
+    resource: ResourceRef
+    content_digest: NumericTensorDigest
+    element: NumericTensorElement
+    length: U16 in 320..=320
+}
+type NumericF32ScaleRef384 = {
+    resource: ResourceRef
+    content_digest: NumericTensorDigest
+    element: NumericTensorElement
+    length: U16 in 384..=384
+}
+type NumericF32ScaleRef480 = {
+    resource: ResourceRef
+    content_digest: NumericTensorDigest
+    element: NumericTensorElement
+    length: U16 in 480..=480
+}

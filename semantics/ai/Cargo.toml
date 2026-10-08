@@ -15,9 +15,13 @@ conduit-web = { path = "../web", optional = true, default-features = false, feat
 serde = { version = "1", default-features = false, features = ["derive"] }
 serde_json = { version = "1", default-features = false, features = ["alloc"] }
 libm = "0.2"
+spin = { version = "=0.9.9", optional = true, default-features = false, features = ["once"] }
 sha2 = { version = "0.10", default-features = false }
 
 [features]
+fixed-numeric-owners = ["kernel-operation-owners"]
+hosted-catalog-cache = ["fixed-numeric-owners"]
+immutable-catalog-cache = ["fixed-numeric-owners", "dep:spin"]
 default = []
 kernel-step = ["dep:conduit-kernel"]
 kernel-operation-owners = ["kernel-step", "dep:conduit-composite", "dep:conduit-plan-lowering"]

@@ -1,6 +1,13 @@
 #![no_std]
 
 extern crate alloc;
+#[cfg(any(
+    feature = "hosted-catalog-cache",
+    all(test, feature = "fixed-numeric-owners")
+))]
+extern crate std;
+#[cfg(all(feature = "hosted-catalog-cache", not(target_has_atomic = "ptr")))]
+compile_error!("hosted checked-catalog cache requires pointer atomics and a std target");
 
 // Native bounded-sequence payloads intentionally retain their admitted inline
 // capacity rather than hiding a play-time allocation behind enum indirection.
@@ -196,3 +203,106 @@ pub mod integer_masked_rank;
 
 #[cfg(all(feature = "kernel-step", target_has_atomic = "ptr"))]
 pub mod integer_categorical_step;
+
+// Existing authored fixed numerical profiles; explicit opt-in keeps the generic
+// categorical owner independent of this supported numerical capability.
+#[cfg(feature = "fixed-numeric-owners")]
+pub mod closing_structured_pair;
+#[cfg(feature = "fixed-numeric-owners")]
+pub mod fixed_compact;
+#[cfg(feature = "fixed-numeric-owners")]
+pub mod fixed_neural;
+#[cfg(feature = "fixed-numeric-owners")]
+pub mod fixed_numeric_back;
+#[cfg(feature = "fixed-numeric-owners")]
+pub mod fixed_numeric_binding;
+#[cfg(feature = "fixed-numeric-owners")]
+pub mod fixed_numeric_catalog;
+#[cfg(feature = "fixed-numeric-owners")]
+pub mod fixed_numeric_codec;
+#[cfg(feature = "fixed-numeric-owners")]
+pub mod fixed_numeric_compact_back;
+#[cfg(feature = "fixed-numeric-owners")]
+pub mod fixed_numeric_compact_catalog;
+#[cfg(feature = "fixed-numeric-owners")]
+pub mod fixed_numeric_dsp;
+#[cfg(feature = "fixed-numeric-owners")]
+pub mod fixed_numeric_dsp_back;
+#[cfg(feature = "fixed-numeric-owners")]
+pub mod fixed_numeric_dsp_catalog;
+#[cfg(feature = "fixed-numeric-owners")]
+pub mod fixed_numeric_embedding_flow;
+#[cfg(feature = "fixed-numeric-owners")]
+pub mod fixed_numeric_finite_envelope;
+#[cfg(feature = "fixed-numeric-owners")]
+pub mod fixed_numeric_float_integer;
+#[cfg(feature = "fixed-numeric-owners")]
+pub mod fixed_numeric_flow;
+#[cfg(feature = "fixed-numeric-owners")]
+pub mod fixed_numeric_guard;
+#[cfg(feature = "fixed-numeric-owners")]
+pub mod fixed_numeric_i16_codec;
+#[cfg(feature = "fixed-numeric-owners")]
+pub mod fixed_numeric_index_back;
+#[cfg(feature = "fixed-numeric-owners")]
+pub mod fixed_numeric_index_codec;
+#[cfg(feature = "fixed-numeric-owners")]
+pub mod fixed_numeric_integer_conversion;
+#[cfg(feature = "fixed-numeric-owners")]
+pub mod fixed_numeric_integer_narrowing;
+#[cfg(feature = "fixed-numeric-owners")]
+pub mod fixed_numeric_linear_back;
+#[cfg(feature = "fixed-numeric-owners")]
+pub mod fixed_numeric_linear_flow;
+#[cfg(feature = "fixed-numeric-owners")]
+pub mod fixed_numeric_operations_back;
+#[cfg(feature = "fixed-numeric-owners")]
+pub mod fixed_numeric_pair_back;
+#[cfg(feature = "fixed-numeric-owners")]
+pub mod fixed_numeric_pair_catalog;
+#[cfg(feature = "fixed-numeric-owners")]
+pub mod fixed_numeric_pair_flow;
+#[cfg(feature = "fixed-numeric-owners")]
+pub mod fixed_numeric_preparation;
+#[cfg(feature = "fixed-numeric-owners")]
+pub mod fixed_numeric_scan_back;
+#[cfg(feature = "fixed-numeric-owners")]
+pub mod fixed_numeric_signal_back;
+#[cfg(feature = "fixed-numeric-owners")]
+pub mod fixed_numeric_signal_catalog;
+#[cfg(feature = "fixed-numeric-owners")]
+pub mod fixed_numeric_temporal;
+#[cfg(feature = "fixed-numeric-owners")]
+pub mod fixed_numeric_u16_profile;
+#[cfg(feature = "fixed-numeric-owners")]
+pub mod fixed_numeric_value_capacity;
+#[cfg(feature = "fixed-numeric-owners")]
+pub mod fixed_numeric_window_back;
+#[cfg(feature = "fixed-numeric-owners")]
+pub mod fixed_tensor;
+#[cfg(feature = "fixed-numeric-owners")]
+pub mod fixed_tensor_linear;
+#[cfg(feature = "fixed-numeric-owners")]
+pub mod fixed_tensor_resource;
+#[cfg(feature = "fixed-numeric-owners")]
+pub mod native_profile;
+#[cfg(feature = "fixed-numeric-owners")]
+pub mod native_traversal;
+#[cfg(feature = "fixed-numeric-owners")]
+pub mod nominal_weakening;
+#[cfg(feature = "fixed-numeric-owners")]
+pub mod operation_owners;
+#[cfg(feature = "fixed-numeric-owners")]
+pub mod transport_envelope;
+
+#[cfg(target_has_atomic = "ptr")]
+mod model_compute_owned;
+#[cfg(target_has_atomic = "ptr")]
+pub use model_compute_owned::*;
+
+#[cfg(all(test, feature = "fixed-numeric-owners"))]
+#[path = "numeric_allocation_probe.rs"]
+mod allocation_probe;
+#[cfg(all(test, feature = "fixed-numeric-owners"))]
+#[global_allocator]
+static NUMERIC_ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
