@@ -74,6 +74,9 @@ impl PreparedObservationFrames {
             candidates,
         })
     }
+    pub(crate) fn available_candidates(&self) -> usize {
+        self.candidates.len()
+    }
     pub(crate) fn retained_capacity_bytes(&self) -> usize {
         self.snapshot.capacity()
             + self.candidates.capacity() * core::mem::size_of::<Vec<u8>>()

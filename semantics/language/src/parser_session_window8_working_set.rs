@@ -21,6 +21,13 @@ use conduit_plot::rust_binding::{
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct WorkingSetRefusal;
 #[derive(Clone, Copy)]
+pub(crate) enum Window8HistoryOwnership {
+    IndependentPortCeilings,
+    /// Every revision must be reserved through prepare_book below. The one
+    /// complete linked-book ceiling includes all Source/model/admission frames.
+    SharedRevisionBooks(crate::parser_session_window8_book::BookLimits),
+}
+#[derive(Clone, Copy)]
 pub(crate) struct Window8WorkingSetLimits {
     pub(crate) families: Window8FamilyLimits,
     pub(crate) numeric_family: PreparedNativeFamilyLimits,
@@ -31,6 +38,7 @@ pub(crate) struct Window8WorkingSetLimits {
     pub(crate) maximum_ancestry_preparation_bytes: usize,
     pub(crate) maximum_ancestry_retained_bytes: usize,
     pub(crate) maximum_choices_bytes: usize,
+    pub(crate) maximum_tokens_collection_bytes: usize,
     pub(crate) maximum_snapshot_bytes: usize,
     pub(crate) observation_candidates: usize,
     pub(crate) maximum_observation_pool_bytes: usize,
@@ -39,6 +47,7 @@ pub(crate) struct Window8WorkingSetLimits {
     pub(crate) maximum_source_preparation_bytes: usize,
     pub(crate) maximum_source_retained_bytes: usize,
     pub(crate) maximum_source_history_bytes: usize,
+    pub(crate) history: Window8HistoryOwnership,
     pub(crate) existing_owner_bytes: usize,
     pub(crate) maximum_complete_bytes: usize,
 }
@@ -48,6 +57,7 @@ pub(crate) struct WorkingSetReceipt {
     pub(crate) new_preparation_bytes_bound: usize,
     pub(crate) new_retained_bytes_bound: usize,
     pub(crate) source_history_bytes_bound: usize,
+    pub(crate) sum_of_port_history_limits: usize,
 }
 pub(crate) struct PreparedWindow8WorkingSet {
     pub(crate) families: Window8Families,
@@ -57,6 +67,7 @@ pub(crate) struct PreparedWindow8WorkingSet {
     pub(crate) atoms: PreparedWindow8Atoms,
     pub(crate) ancestry: PreparedWindow8Ancestry,
     pub(crate) choices: PreparedParserU64Collection,
+    pub(crate) tokens: crate::parser_session_window8_collection::PreparedWindow8CanonicalCollection,
     pub(crate) snapshots: PreparedSnapshotFrames,
     pub(crate) observations: crate::parser_session_window8_observe::PreparedObservationFrames,
     pub(crate) fact: crate::parser_canonical_composition::PreparedParserCanonicalComposer,
@@ -67,11 +78,30 @@ pub(crate) struct PreparedWindow8WorkingSet {
     pub(crate) observation_family:
         alloc::rc::Rc<core::cell::RefCell<conduit_plot::rust_binding::PreparedNativeFamily>>,
     pub(crate) receipt: WorkingSetReceipt,
+    history: Window8HistoryOwnership,
 }
 fn add(a: usize, b: usize) -> Result<usize, WorkingSetRefusal> {
     a.checked_add(b).ok_or(WorkingSetRefusal)
 }
 impl PreparedWindow8WorkingSet {
+    /// Normal shared-history entrance. Callers cannot substitute per-revision
+    /// limits after aggregate preparation; every linked book uses this profile.
+    pub(crate) fn prepare_book(
+        &self,
+        previous: Option<alloc::rc::Rc<crate::parser_session_window8_book::Window8Book>>,
+        model: alloc::sync::Arc<crate::parser_session_window8_model::VerifiedWindow8Model>,
+        proposer: alloc::rc::Rc<
+            core::cell::RefCell<
+                crate::lexical_proposer_port::token_producer::revision::PreparedRevisionProducer,
+            >,
+        >,
+    ) -> Result<crate::parser_session_window8_book::Window8Book, WorkingSetRefusal> {
+        let Window8HistoryOwnership::SharedRevisionBooks(limits) = self.history else {
+            return Err(WorkingSetRefusal);
+        };
+        crate::parser_session_window8_book::Window8Book::reserve(limits, previous, model, proposer)
+            .map_err(|_| WorkingSetRefusal)
+    }
     pub(crate) fn reservation(
         limits: &Window8WorkingSetLimits,
     ) -> Result<WorkingSetReceipt, WorkingSetRefusal> {
@@ -118,9 +148,26 @@ impl PreparedWindow8WorkingSet {
             limits.source,
             limits.maximum_source_preparation_bytes,
             limits.maximum_source_retained_bytes,
-            limits.maximum_source_history_bytes,
+            match limits.history {
+                Window8HistoryOwnership::IndependentPortCeilings => {
+                    limits.maximum_source_history_bytes
+                }
+                Window8HistoryOwnership::SharedRevisionBooks(_) => usize::MAX,
+            },
         )
         .map_err(|_| WorkingSetRefusal)?;
+        let charged_history = match limits.history {
+            Window8HistoryOwnership::IndependentPortCeilings => source.history_bytes,
+            Window8HistoryOwnership::SharedRevisionBooks(book) => {
+                if book.maximum_history_books == 0
+                    || book.maximum_all_history_retained_bytes == 0
+                    || book.maximum_all_history_retained_bytes > limits.maximum_source_history_bytes
+                {
+                    return Err(WorkingSetRefusal);
+                }
+                book.maximum_all_history_retained_bytes
+            }
+        };
         let mut preparation = add(family_preparation, numeric.preparation_bytes)?;
         let mut retained = add(family_retained, numeric.retained_bytes)?;
         for (p, r) in [
@@ -138,6 +185,10 @@ impl PreparedWindow8WorkingSet {
                 limits.maximum_ancestry_retained_bytes,
             ),
             (limits.maximum_choices_bytes, limits.maximum_choices_bytes),
+            (
+                limits.maximum_tokens_collection_bytes,
+                limits.maximum_tokens_collection_bytes,
+            ),
             (limits.maximum_snapshot_bytes, limits.maximum_snapshot_bytes),
             (
                 limits.maximum_observation_pool_bytes,
@@ -165,7 +216,7 @@ impl PreparedWindow8WorkingSet {
             add(
                 add(
                     add(preparation.max(retained), static_bytes)?,
-                    source.history_bytes,
+                    charged_history,
                 )?,
                 active.max(numeric.conversion_bytes),
             )?,
@@ -190,7 +241,8 @@ impl PreparedWindow8WorkingSet {
                 complete_declared_bytes_bound: complete,
                 new_preparation_bytes_bound: preparation,
                 new_retained_bytes_bound: retained,
-                source_history_bytes_bound: source.history_bytes,
+                source_history_bytes_bound: charged_history,
+                sum_of_port_history_limits: source.history_bytes,
             },
             numeric,
             source,
@@ -261,6 +313,15 @@ impl PreparedWindow8WorkingSet {
             limits.maximum_choices_bytes,
         )
         .map_err(|_| WorkingSetRefusal)?;
+        let index = family_for(
+            &families.owners,
+            crate::generated::LanguageParserWindow8RawProjection::PREPARED_DESCRIPTOR,
+        )
+        .map_err(|_| WorkingSetRefusal)?;
+        let tokens=crate::parser_session_window8_collection::PreparedWindow8CanonicalCollection::prepare::<crate::generated::LanguageParserWindow8RawProjection>(
+            &*families.owners[index].try_borrow().map_err(|_|WorkingSetRefusal)?,&["tokens"],
+            limits.maximum_tokens_collection_bytes,limits.maximum_tokens_collection_bytes,limits.maximum_tokens_collection_bytes)
+            .map_err(|_|WorkingSetRefusal)?;
         let snapshots = PreparedSnapshotFrames::prepare(
             limits.queries.maximum_frame_bytes,
             limits.maximum_snapshot_bytes,
@@ -301,12 +362,14 @@ impl PreparedWindow8WorkingSet {
             atoms,
             ancestry,
             choices,
+            tokens,
             snapshots,
             observations,
             fact,
             refinement,
             observation_family,
             receipt,
+            history: limits.history,
         })
     }
 }
