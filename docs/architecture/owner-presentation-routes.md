@@ -64,6 +64,25 @@ values and stale Shows refuse through the existing interaction boundary.
 `apply <value>` remains a shortcut when exactly one single-value action is
 available. Listing choices does not refresh a stale Show; enter `show` explicitly.
 
+The repository capture entrance can exercise a fresh Todo browser checklist and
+this terminal on one installed Body:
+
+```sh
+cargo xtask prove todo-journey --state-dir /absolute/host-state \
+  --conduit-bin /absolute/installed-conduit \
+  --fresh-body-source plots/todo/checkpoint-once.conduit \
+  --handbook-package /absolute/handbook-package \
+  --pinned-playwright /absolute/pinned-playwright/index.mjs \
+  --cross-mask-actions --output /absolute/new-capture
+```
+
+This optional trace adds three items in the browser, completes the first through
+the selected terminal Show, and encounters the committed result in the browser.
+It retains the terminal input/output and owner Faces beside the screenshots.
+The capture remains partial: direct spoken playback, rejoin, failure traces and
+publication acceptance require their own evidence. The default capture still
+performs one browser Add followed by a terminal read.
+
 Disconnect, missing acknowledgement, stale Face, or changed Host/Boot/offer
 retires the attachment and Show. Cancellation retires the bounded Mask execution.
 Starting workload execution requires detaching this provider because the current

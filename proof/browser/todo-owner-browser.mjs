@@ -11,7 +11,8 @@ import { pathToFileURL } from 'node:url';
 import { startStaticProduct } from './static-product-server.mjs';
 
 const [ownerCwdArg, binaryArg, stateArg, handbookArg, outputArg, playwrightArg,
-  itemText = 'Pick up prescription'] = process.argv.slice(2);
+  itemText = 'Pick up prescription', scenario = 'first-add'] = process.argv.slice(2);
+assert.ok(['first-add', 'cross-mask'].includes(scenario), 'unknown Todo capture scenario');
 if (!ownerCwdArg || !binaryArg || !stateArg || !handbookArg || !outputArg || !playwrightArg) {
   throw new Error('usage: todo-owner-browser.mjs OWNER-CWD INSTALLED-OWNER OWNER-STATE HANDBOOK-PACKAGE NEW-EVIDENCE-DIR PINNED-PLAYWRIGHT [NEW-ITEM-TEXT]');
 }
@@ -149,18 +150,73 @@ try {
   assert.equal(await page.locator('[data-owner-face-document] [data-face-role="Status"]').count(), 0,
     'matching progress wording must not appear twice');
   await page.locator('[data-owner-face]').screenshot({ path: path.join(output, 'browser-before.png') });
-  const add = page.locator('[data-owner-action="todo.add"]');
-  await add.getByRole('textbox', { name: 'Item text' }).fill(itemText);
-  await add.getByRole('button', { name: 'add an item' }).click();
-  await page.waitForFunction(({ prior, name }) => {
-    const current = globalThis.__conduitOwnerParticipation.face();
-    return current?.face_revision !== prior && current?.subjects.some(subject => subject.name === name)
-      && document.querySelector('[data-owner-show-acknowledged]')?.dataset.ownerShowAcknowledged === current.show_id;
-  }, { prior: before.face_revision, name: itemText }, { timeout: 12_000 });
-  const after = await page.evaluate(() => globalThis.__conduitOwnerParticipation.face());
-  assert.equal(after.body_id, bodyId);
-  assert.notEqual(after.show_id, before.show_id);
-  assert.equal(await page.locator('.owner-face-items li').filter({ hasText: itemText }).count(), 1);
+  const texts = scenario === 'cross-mask' ? [itemText, 'Prepare lunch', 'Water plants'] : [itemText];
+  assert.equal(new Set(texts).size, texts.length, 'scenario item names must be distinct');
+  const adds = [];
+  let after;
+  for (const text of texts) {
+    const prior = await page.evaluate(() => globalThis.__conduitOwnerParticipation.face());
+    const add = page.locator('[data-owner-action="todo.add"]');
+    await add.getByRole('textbox', { name: 'Item text' }).fill(text);
+    await add.getByRole('button', { name: 'add an item' }).click();
+    await page.waitForFunction(({ revision, name }) => {
+      const current = globalThis.__conduitOwnerParticipation.face();
+      return current?.face_revision !== revision && current?.subjects.some(subject => subject.name === name)
+        && document.querySelector('[data-owner-show-acknowledged]')?.dataset.ownerShowAcknowledged === current.show_id;
+    }, { revision: prior.face_revision, name: text }, { timeout: 12_000 });
+    after = await page.evaluate(() => globalThis.__conduitOwnerParticipation.face());
+    assert.equal(after.body_id, bodyId);
+    assert.notEqual(after.show_id, prior.show_id);
+    adds.push({ action_id: 'todo.add', text, before: prior, after, owner: face() });
+  }
+  let crossMask = null;
+  if (scenario === 'cross-mask') {
+    const ownerBefore = face();
+    assert.equal(ownerBefore.presentation.subjects.filter(subject => subject.role === 'Item').length, 3);
+    const item = ownerBefore.presentation.subjects.find(subject => subject.role === 'Item' && subject.name === itemText);
+    assert.ok(item, 'browser-added item must exist in the canonical Face');
+    const action = ownerBefore.presentation.actions.find(action => action.intent === 'todo/complete@1'
+      && action.target === item.identity && action.availability === 'Available');
+    assert.ok(action, 'canonical Face must offer the exact item completion');
+    const input = `wardrobe wear\nwardrobe prefer\nshow\nactions\naction ${action.identity}\nquit\n`;
+    await writeFile(path.join(output, 'terminal-complete.input'), input);
+    const terminal = spawnSync(binary, ['body', 'terminal', '--owner-show', '--state-dir', state],
+      { cwd: ownerCwd, encoding: 'utf8', input, timeout: 30_000, maxBuffer: 512 * 1024 });
+    await writeFile(path.join(output, 'terminal-complete.stdout'), terminal.stdout ?? '');
+    await writeFile(path.join(output, 'terminal-complete.stderr'), terminal.stderr ?? '');
+    assert.equal(terminal.status, 0, terminal.stderr);
+    assert.ok(!terminal.stdout.includes('Action refused:'), 'terminal completion must be accepted');
+    const ownerAfter = face();
+    assert.equal(ownerAfter.presentation.basis.body_id, bodyId);
+    assert.ok(ownerAfter.presentation.properties.some(property => property.subject === item.identity
+      && property.name === 'complete' && property.value.Flag === true), 'terminal must commit the item completion');
+    await page.getByRole('button', { name: 'Inspect current wardrobe' }).click();
+    await page.waitForFunction(prior => {
+      try { return JSON.parse(document.querySelector('[data-owner-wardrobe-evidence]').textContent)
+        .wardrobe_revision_decimal !== prior; } catch { return false; }
+    }, currentWardrobe.wardrobe_revision_decimal, { timeout: 12_000 });
+    currentWardrobe = await wardrobe();
+    if (await page.getByRole('button', { name: `Wear ${description.mask_name}`, exact: true }).isEnabled()) {
+      await changeWardrobe('Wear');
+    }
+    if (await page.getByRole('button', { name: `Prefer only ${description.mask_name}`, exact: true }).isEnabled()) {
+      await changeWardrobe('Prefer only');
+    }
+    await page.getByRole('button', { name: 'Refresh this Face' }).click();
+    await page.waitForFunction(target => {
+      const view = globalThis.__conduitOwnerParticipation.face();
+      return view?.show_state === 'available' && view.interactions_admitted
+        && view.actions.some(action => action.intent === 'todo/reopen@1' && action.target === target);
+    }, item.identity, { timeout: 12_000 });
+    after = await page.evaluate(() => globalThis.__conduitOwnerParticipation.face());
+    assert.equal(after.body_id, bodyId);
+    assert.equal(await page.locator('.owner-face-collection-count').textContent(), '2 things left · 1 completed');
+    assert.equal(await page.locator('.owner-face-completed').getAttribute('open'), null,
+      'completed items must remain subordinate in the checklist');
+    crossMask = { action_id: action.identity, target: item.identity, owner_before: ownerBefore,
+      owner_after: ownerAfter, browser_after: after, terminal_input: 'terminal-complete.input',
+      terminal_stdout: 'terminal-complete.stdout', terminal_stderr: 'terminal-complete.stderr' };
+  }
   await page.locator('[data-owner-face]').screenshot({ path: path.join(output, 'browser-after.png') });
   const afterOwner = face();
   assert.equal(afterOwner.presentation.basis.body_id, bodyId);
@@ -170,7 +226,7 @@ try {
     schema: 'conduit.proof/todo-owner-browser@1',
     ...sourceRecord,
     body_id: bodyId, browser_host_id: identity.hostId, browser_boot_id: identity.bootId,
-    item_text: itemText, before: { face_id: before.face_id, face_revision: before.face_revision,
+    item_text: itemText, adds, cross_mask: crossMask, before: { face_id: before.face_id, face_revision: before.face_revision,
       show_id: before.show_id }, after: { face_id: after.face_id,
       face_revision: after.face_revision, show_id: after.show_id },
     screenshots: ['browser-before.png', 'browser-after.png'],
