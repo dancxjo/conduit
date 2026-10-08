@@ -10,10 +10,7 @@ use conduit_body::{
 };
 use conduit_core::HostAdvertisement;
 use conduit_core::{bind_sign, port_id, BaseImplementationId, ConnectionTrack, PortDirection};
-use conduit_presentation::{
-    Face, FaceContext, FaceFocus, FaceNames, FaceResidentPlotName, OwnerFaceSnapshotRequest,
-    Presentation,
-};
+use conduit_presentation::{OwnerFaceSnapshotRequest, Presentation};
 use conduit_std_host::body_execution::BodyRunRequest;
 use conduit_std_host::{RunControl, RunControlRequestId, StdHost, ThreadTimer, TimerAdapter};
 #[cfg(unix)]
@@ -62,6 +59,8 @@ pub(crate) use clock_interval::{is_clock_control_intent, ClockAction, CLOCK_RUN_
 #[cfg(unix)]
 #[path = "terminal_route.rs"]
 mod terminal_route;
+#[path = "todo_face.rs"]
+mod todo_face;
 pub(crate) fn clock_interval_action() -> &'static str {
     clock_interval::CLOCK_INTERVAL_ACTION
 }
@@ -345,35 +344,7 @@ impl Owner {
     /// control service calls this; remote callers still need an exact admitted
     /// credential and current Part above.
     pub(crate) fn local_face_snapshot(&self) -> Result<Presentation, String> {
-        let plot_name = self
-            .resident
-            .as_ref()
-            .zip(self.resident_name.as_deref())
-            .map(|(resident, name)| FaceResidentPlotName {
-                source_document_id: &resident.source_document_id,
-                checked_plot_id: &resident.checked_plot_id,
-                name,
-            });
-        let plot_names: Vec<_> = plot_name.into_iter().collect();
-        let face = Face::project_with_names(
-            &self.session.evidence().body,
-            self.session
-                .realization()
-                .map(|realization| &realization.wake),
-            self.session.evidence().last_sequence(),
-            FaceContext::Overview,
-            FaceFocus::Body,
-            vec![],
-            FaceNames {
-                body_name: Some(&self.session.evidence().friendly_name),
-                resident_plots: &plot_names,
-            },
-        )
-        .map_err(|error| format!("owner-face-projection-refused:{error:?}"))?;
-        face.presentation
-            .validate()
-            .map_err(|error| format!("owner-face-invalid:{error:?}"))?;
-        clock_interval::with_clock_action(self, face.presentation)
+        self.project_face(None)
     }
     pub(super) fn plan(
         &mut self,
