@@ -239,6 +239,18 @@ struct LiveOwnerTodoFaceProofArgs {
     /// Body expected in the exact installed Owner admission receipt.
     #[arg(long)]
     expected_body_id: String,
+    /// Installed product executable that owns this Body.
+    #[arg(long)]
+    owner_conduit_bin: PathBuf,
+    /// Installed state directory for an independent current Face read.
+    #[arg(long)]
+    owner_state_dir: PathBuf,
+    /// Expected number of Todo item subjects in the current Face.
+    #[arg(long)]
+    expected_item_count: usize,
+    /// Expected human-facing progress text in the current Todo Face.
+    #[arg(long)]
+    expected_status: String,
 }
 
 #[derive(ValueEnum, Debug, Clone, Copy, PartialEq, Eq)]

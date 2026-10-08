@@ -24,6 +24,8 @@ use coordination::{wait_for_resume, write_checkpoint};
 #[path = "owner_action_validation.rs"]
 mod validation;
 use validation::{refreshed_show_after_action, validate_success};
+#[path = "owner_todo_face_validation.rs"]
+mod todo_validation;
 
 const MAX_SERIAL_BYTES: u64 = 2 * 1024 * 1024;
 const OWNER_FACE: &str = "CONDUIT_NATIVE_OWNER_FACE ";
@@ -41,16 +43,17 @@ pub(super) fn execute_todo_face(
     args: &LiveOwnerTodoFaceProofArgs,
     opts: &GlobalOpts,
 ) -> Result<(), ConduitosError> {
-    if !args.route.coordinate || args.expected_body_id.is_empty() {
+    if !args.route.coordinate || args.expected_body_id.is_empty() || args.expected_status.is_empty()
+    {
         return Err(refusal("native-todo-face-requires-coordinated-body"));
     }
-    execute_mode(&args.route, opts, Some(&args.expected_body_id))
+    execute_mode(&args.route, opts, Some(args))
 }
 
 fn execute_mode(
     args: &LiveOwnerActionProofArgs,
     opts: &GlobalOpts,
-    expected_todo_body: Option<&str>,
+    expected_todo: Option<&LiveOwnerTodoFaceProofArgs>,
 ) -> Result<(), ConduitosError> {
     if opts.dry_run {
         return Err(refusal("native-owner-proof-requires-live-input"));
@@ -115,12 +118,12 @@ fn execute_mode(
         &route,
         &qemu_args,
         args.coordinate,
-        expected_todo_body,
+        expected_todo,
     );
     let _ = child.kill();
     let _ = child.wait();
     let receipt = result?;
-    let path = directory.join(if expected_todo_body.is_some() {
+    let path = directory.join(if expected_todo.is_some() {
         "owner-todo-face-proof.json"
     } else {
         "owner-action-proof.json"
@@ -148,17 +151,20 @@ fn prove(
     route: &owner_boot::PreparedOwnerBoot,
     qemu_args: &[String],
     coordinate: bool,
-    expected_todo_body: Option<&str>,
+    expected_todo: Option<&LiveOwnerTodoFaceProofArgs>,
 ) -> Result<Value, ConduitosError> {
     let (mut qmp, mut reader) =
         qmp::connect_traced(qmp_path, child, Some(&directory.join("qmp.jsonl")))?;
     let (standby_part, standby_face) =
         wait_for_standby(serial_path, child, Duration::from_secs(120))?;
-    if let Some(body) = expected_todo_body {
-        if standby_part["body_id"] != body {
+    if let Some(args) = expected_todo {
+        if standby_part["body_id"] != args.expected_body_id {
             return Err(refusal("native-todo-face-body-mismatch"));
         }
     }
+    let todo_face = expected_todo
+        .map(|args| todo_validation::read_and_validate(args, &standby_face))
+        .transpose()?;
     let (standby_image, health) =
         qmp_display::capture(&mut qmp, &mut reader, directory, "owner-standby")?;
     if let Some(error) = health {
@@ -195,7 +201,7 @@ fn prove(
     if let Some(error) = health {
         return Err(error);
     }
-    if expected_todo_body.is_some() {
+    if expected_todo.is_some() {
         if child
             .try_wait()
             .map_err(|error| ConduitosError::refusal("native-todo-face-qemu", error.to_string()))?
@@ -214,6 +220,7 @@ fn prove(
             "qemu_argv":qemu_args,
             "guest_part":part,
             "face_standby":standby_face,
+            "owner_todo_face":todo_face,
             "face_shown":before,
             "show_ack":before_ack,
             "screenshots":[standby_image,before_image],
