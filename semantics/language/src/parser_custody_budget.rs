@@ -13,6 +13,19 @@ pub(crate) struct Usage {
     pub commits: u32,
     pub bytes: u64,
 }
+impl Usage {
+    fn fits(self, cap: Self) -> bool {
+        self.origins <= cap.origins
+            && self.facts <= cap.facts
+            && self.rebases <= cap.rebases
+            && self.snapshots <= cap.snapshots
+            && self.commits <= cap.commits
+            && self.bytes <= cap.bytes
+    }
+    fn retains_counts(self, prior: Self) -> bool {
+        Self { bytes: 0, ..prior }.fits(Self { bytes: 0, ..self })
+    }
+}
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct Limits {
     pub retained: Usage,
@@ -41,6 +54,12 @@ pub(crate) struct Reservation<'a> {
     budget: &'a mut Budget,
     next: Usage,
 }
+/// Reserved before Source execution; actual full custody charges are checked
+/// after it. A consumed refusal must poison the owning ingress separately.
+pub(crate) struct EnvelopeReservation<'a> {
+    reservation: Reservation<'a>,
+    candidate_bytes: u64,
+}
 impl Budget {
     pub fn new(limits: Limits, initial: Usage) -> Result<Self, Refusal> {
         if limits.retained.origins > 4
@@ -64,17 +83,22 @@ impl Budget {
         Cancellation(self.cancelled.clone())
     }
     fn check(&self, next: Usage) -> Result<(), Refusal> {
-        let cap = self.limits.retained;
-        if next.origins > cap.origins
-            || next.facts > cap.facts
-            || next.rebases > cap.rebases
-            || next.snapshots > cap.snapshots
-            || next.commits > cap.commits
-            || next.bytes > cap.bytes
-        {
+        if !next.fits(self.limits.retained) {
             return Err(Refusal::Pressure);
         }
         Ok(())
+    }
+    /// Reserve declared complete custody and candidate ceilings before invoking
+    /// Source. This bounds retained evidence admission, not executor allocation.
+    pub fn reserve_envelope(
+        &mut self,
+        maximum_next: Usage,
+        maximum_candidate_bytes: u64,
+    ) -> Result<EnvelopeReservation<'_>, Refusal> {
+        Ok(EnvelopeReservation {
+            reservation: self.reserve(maximum_next, maximum_candidate_bytes)?,
+            candidate_bytes: maximum_candidate_bytes,
+        })
     }
     /// One mutable borrow permits one candidate and prevents cross-owner publish.
     /// `next` is calculated by the concrete owner, including every retained full
@@ -88,12 +112,7 @@ impl Budget {
             return Err(Refusal::Cancelled);
         }
         self.check(next)?;
-        if next.origins < self.used.origins
-            || next.facts < self.used.facts
-            || next.rebases < self.used.rebases
-            || next.snapshots < self.used.snapshots
-            || next.commits < self.used.commits
-        {
+        if !next.retains_counts(self.used) {
             return Err(Refusal::Pressure);
         }
         let peak = self
@@ -116,5 +135,33 @@ impl Reservation<'_> {
         }
         self.budget.used = self.next;
         Ok(())
+    }
+}
+
+impl EnvelopeReservation<'_> {
+    /// The caller checks this immediately before consuming its Source ingress.
+    pub fn check_before_consumption(&self) -> Result<(), Refusal> {
+        if self.reservation.budget.cancelled.get() {
+            Err(Refusal::Cancelled)
+        } else {
+            Ok(())
+        }
+    }
+    /// Only the concrete owner derives actual charges from complete admitted
+    /// receipts. All fallible work must finish before subsequent custody moves.
+    pub fn publish_exact(
+        mut self,
+        actual: Usage,
+        actual_candidate_bytes: u64,
+    ) -> Result<(), Refusal> {
+        self.check_before_consumption()?;
+        if !actual.fits(self.reservation.next)
+            || !actual.retains_counts(self.reservation.budget.used)
+            || actual_candidate_bytes > self.candidate_bytes
+        {
+            return Err(Refusal::Pressure);
+        }
+        self.reservation.next = actual;
+        self.reservation.publish()
     }
 }

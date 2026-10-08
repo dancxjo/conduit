@@ -106,3 +106,63 @@ fn exact_capacity_boundary_and_checked_peak_overflow() {
         Err(Refusal::Limits)
     ));
 }
+
+#[test]
+fn preconsumption_envelope_accounts_actual_custody_without_charging_unused_space() {
+    let mut b = Budget::new(limits(), Usage::default()).unwrap();
+    let cap = Usage {
+        facts: 2,
+        bytes: 80,
+        ..Usage::default()
+    };
+    let actual = Usage {
+        facts: 1,
+        bytes: 40,
+        ..Usage::default()
+    };
+    let stage = b.reserve_envelope(cap, 100).unwrap();
+    stage.check_before_consumption().unwrap();
+    stage.publish_exact(actual, 60).unwrap();
+    assert_eq!(b.used(), actual);
+    // Post-consumption overflow must leave the previously published owner intact.
+    for (next, bytes) in [
+        (Usage { facts: 3, ..actual }, 60),
+        (
+            Usage {
+                bytes: 81,
+                ..actual
+            },
+            60,
+        ),
+        (actual, 101),
+        (Usage { facts: 0, ..actual }, 60),
+    ] {
+        let stage = b.reserve_envelope(cap, 100).unwrap();
+        assert_eq!(stage.publish_exact(next, bytes), Err(Refusal::Pressure));
+        assert_eq!(b.used(), actual);
+    }
+}
+#[test]
+fn cancellation_between_reservation_consumption_and_publication_never_advances_usage() {
+    for before_consumption in [true, false] {
+        let mut b = Budget::new(limits(), Usage::default()).unwrap();
+        let cancel = b.cancellation();
+        let next = Usage {
+            commits: 1,
+            bytes: 40,
+            ..Usage::default()
+        };
+        let stage = b.reserve_envelope(next, 40).unwrap();
+        if !before_consumption {
+            stage.check_before_consumption().unwrap();
+        }
+        cancel.cancel();
+        assert_eq!(stage.check_before_consumption(), Err(Refusal::Cancelled));
+        assert_eq!(stage.publish_exact(next, 40), Err(Refusal::Cancelled));
+        assert_eq!(b.used(), Usage::default());
+        assert!(matches!(
+            b.reserve_envelope(next, 40),
+            Err(Refusal::Cancelled)
+        ));
+    }
+}
