@@ -149,3 +149,62 @@ fn exact_unknown_proposal_preserves_origin_and_refuses_laundered_lemma_or_policy
     )
     .is_err());
 }
+
+#[test]
+fn exact_checked_proposal_source_matches_prepared_execution_and_native_output() {
+    let hex = include_str!(concat!(env!("OUT_DIR"), "/lexical_token_proposal.hex"));
+    let raw: Vec<u8> = (0..hex.len())
+        .step_by(2)
+        .map(|i| u8::from_str_radix(&hex[i..i + 2], 16).unwrap())
+        .collect();
+    let decode =
+        conduit_plot::PortableExpressionProgram::canonical_decode_storage_bound(&raw).unwrap();
+    let program = conduit_plot::PortableExpressionProgram::from_canonical_bytes_with_storage_limit(
+        &raw, decode,
+    )
+    .unwrap();
+    assert_eq!(
+        program.input_type.canonical_bytes().unwrap(),
+        LanguageLexicalProposalQuery::PREPARED_DESCRIPTOR.type_bytes
+    );
+    assert_eq!(
+        program.output_type.canonical_bytes().unwrap(),
+        LanguageLexicalTokenProposal::PREPARED_DESCRIPTOR.type_bytes
+    );
+    let (mut prepared, receipt) =
+        conduit_plot::PreparedPortableExpressionEvaluator::new_with_storage_limits(
+            &program,
+            100_000_000,
+            200_000_000,
+            100_000_000,
+        )
+        .unwrap();
+    let query = LanguageLexicalProposalQuery::new(
+        definition(),
+        origin("unknown-policy"),
+        None,
+        token("<unknown>"),
+    )
+    .unwrap();
+    let input = query.clone().encode().unwrap();
+    let mut family = family();
+    assert_eq!(
+        family
+            .decode::<LanguageLexicalProposalQuery>(&input)
+            .unwrap(),
+        query
+    );
+    let reference = program.evaluate(&input).unwrap();
+    let output = prepared.evaluate(&input).unwrap();
+    assert_eq!(reference, output);
+    let proposal: LanguageLexicalTokenProposal = family.decode(output).unwrap();
+    assert_eq!(proposal.query(), &query);
+    eprintln!("proposal_source_decode_bound={decode} prepared={receipt:?}");
+    let foreign = definition().encode().unwrap();
+    assert!(program.evaluate(&foreign).is_err());
+    assert!(prepared.evaluate(&foreign).is_err());
+    let mut malformed = input;
+    malformed.push(0);
+    assert!(program.evaluate(&malformed).is_err());
+    assert!(prepared.evaluate(&malformed).is_err());
+}
