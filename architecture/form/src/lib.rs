@@ -40,6 +40,9 @@ mod package_bundle_tests;
 mod package_check;
 #[cfg(test)]
 mod package_check_tests;
+mod package_graph;
+#[cfg(test)]
+mod package_graph_tests;
 mod package_resolution;
 #[cfg(test)]
 mod package_resolution_tests;
@@ -71,6 +74,7 @@ pub use expression_prepared::*;
 pub use expression_program::*;
 pub use package_bundle::*;
 pub use package_check::*;
+pub use package_graph::*;
 pub use package_resolution::*;
 pub use structured_startup::*;
 pub use syntax::*;
