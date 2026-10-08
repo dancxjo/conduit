@@ -463,7 +463,7 @@ mod dependency_boundary_tests {
             .collect::<BTreeSet<_>>();
         assert_eq!(
             non_optional,
-            BTreeSet::from(["serde", "serde_json", "sha2", "toml"])
+            BTreeSet::from(["conduit-host-make", "serde", "serde_json", "sha2", "toml"])
         );
         assert!(dependencies["conduit-host-browser-make"]["optional"]
             .as_bool()
