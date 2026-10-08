@@ -1,5 +1,7 @@
 //! Supplemental private-runtime fixture; completions are synthetic, without effects.
 use super::refuse;
+#[path = "timer_replay.rs"]
+mod replay;
 use crate::{
     arch,
     offer::HostOffer,
@@ -181,6 +183,7 @@ pub(super) fn run_product(offer: &HostOffer<'_>) {
     {
         refuse("timer-product-domain-cost");
     }
+    replay::verify(&mut prepared);
     drop(prepared);
     arch::early_write(b"CONDUIT_DOMAIN_TIMER_PRODUCT private-production-kernel physical-duration-120ms exact-capabilities counts-presented-2 timer-wakes-1 cancelled zeroed\n");
 }

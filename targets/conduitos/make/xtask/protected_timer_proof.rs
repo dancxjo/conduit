@@ -5,7 +5,11 @@ use serde_json::Value;
 const MARKER: &str = "CONDUIT_DOMAIN_TIMER_PRODUCT private-production-kernel physical-duration-120ms exact-capabilities counts-presented-2 timer-wakes-1 cancelled zeroed";
 
 pub(super) fn validate(transcript: &str, architecture: &str) -> Result<Value, ConduitosError> {
-    if !transcript.lines().any(|line| line == MARKER) {
+    if !transcript.lines().any(|line| line == MARKER)
+        || !transcript
+            .lines()
+            .any(|line| line == "CONDUIT_DOMAIN_TIMER_REPLAY refused-before-provider-access")
+    {
         return Err(refusal("actual protected timer product marker absent"));
     }
     let json = super::emitted_line::complete_json_line(transcript, "CONDUIT_DOMAIN_TIMER_COST ")
@@ -64,7 +68,9 @@ mod tests {
     }
 
     fn transcript(cost: &Value) -> String {
-        format!("CONDUIT_DOMAIN_TIMER_COST {cost}\n{MARKER}\n")
+        format!(
+            "CONDUIT_DOMAIN_TIMER_COST {cost}\n{MARKER}\nCONDUIT_DOMAIN_TIMER_REPLAY refused-before-provider-access\n"
+        )
     }
 
     #[test]
