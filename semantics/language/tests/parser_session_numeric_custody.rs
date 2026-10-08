@@ -8,12 +8,15 @@ pub use language::revision;
 pub use language::*;
 #[path = "../src/parser_production_families.rs"]
 mod families;
+#[path = "../src/parser_session_mixed_custody.rs"]
+mod mixed_custody;
 #[path = "common/parser_model_resource.rs"]
 mod model_resource;
 #[path = "../src/parser_source_native_parity.rs"]
 mod native_parity;
 #[path = "../src/parser_session_numeric_custody.rs"]
-mod numeric_custody;
+mod parser_session_numeric_custody;
+use parser_session_numeric_custody as numeric_custody;
 #[path = "../src/parser_session_numeric_plan.rs"]
 mod numeric_plan;
 #[path = "../src/parser_session_numeric_plan_storage.rs"]
@@ -341,7 +344,8 @@ fn actual_source_feature_plan_numeric_plan_and_complete_retained_replay() {
         Entry::V2ModelFeatures,
     )
     .unwrap();
-    let mut source_port = PreparedCanonicalParserSessionPort::<
+    let original_source_plan = source_target.original_plan.clone();
+    let source_port = PreparedCanonicalParserSessionPort::<
         LanguageParserV2ChoiceQuery,
         LanguageParserV2ModelFeatures,
         _,
@@ -367,17 +371,6 @@ fn actual_source_feature_plan_numeric_plan_and_complete_retained_replay() {
         original_query.len(),
         conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES
     );
-    let feature_execution = source_port
-        .execute(
-            &original_query,
-            PreparedParserExecutionFrames::prepare(
-                conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES,
-                4096,
-            )
-            .unwrap(),
-        )
-        .unwrap();
-    let original_features = feature_execution.output_bytes().to_vec();
     let canonical = PreparedCategoricalCanonicalAdmission::prepare(
         profile.clone(),
         CategoricalCanonicalAdmissionLimits {
@@ -394,7 +387,7 @@ fn actual_source_feature_plan_numeric_plan_and_complete_retained_replay() {
         "fixed feature-index Source receipt: {:?}; fixed score observation Source receipt: {:?}",
         projector_receipt, wrapper_receipt
     );
-    let mut port = PreparedParserNumericCustody::from_prepared(
+    let port = PreparedParserNumericCustody::from_prepared(
         target,
         family.clone(),
         projector,
@@ -407,9 +400,19 @@ fn actual_source_feature_plan_numeric_plan_and_complete_retained_replay() {
     .unwrap();
     let mut output = Vec::with_capacity(4096);
     output.resize(4096, 0);
-    let history = port
+    let mut owner = mixed_custody::PreparedParserMixedCustody::from_prepared(
+        source_port,
+        port,
+        original_source_plan.clone(),
+    );
+    let mixed_history = owner
         .execute(
-            feature_execution,
+            &original_query,
+            PreparedParserExecutionFrames::prepare(
+                conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+                4096,
+            )
+            .unwrap(),
             ParserNumericFrames {
                 indices: Vec::with_capacity(4096),
                 scores: Vec::with_capacity(4096),
@@ -417,8 +420,12 @@ fn actual_source_feature_plan_numeric_plan_and_complete_retained_replay() {
             },
         )
         .unwrap();
+    assert!(Rc::ptr_eq(
+        &original_source_plan,
+        &mixed_history.original_source_plan
+    ));
+    let history = &mixed_history.numeric;
     assert_eq!(history.features.input_bytes(), original_query);
-    assert_eq!(history.features.output_bytes(), original_features);
     assert!(Arc::ptr_eq(&profile, &history.original_model));
     assert!(Rc::ptr_eq(&original_plan, &history.original_plan));
     let (mut feature_replay, _, _, _) =
@@ -444,13 +451,14 @@ fn actual_source_feature_plan_numeric_plan_and_complete_retained_replay() {
             .conversion_requested_bytes_bound
             * 2,
     };
-    let typed = history
+    let typed = mixed_history
         .replay_and_readmit(
             &mut feature_replay,
             &mut projection_replay,
             &mut wrapper_replay,
             &mut numeric_replay,
             &mut family.borrow_mut(),
+            &original_source_plan,
             &original_plan,
             &mut budget,
         )
@@ -474,4 +482,237 @@ fn complete_original_query_fits_explicit_ingress_reservation() {
     let encoded = query().encode().unwrap();
     eprintln!("complete original choice-query bytes={}", encoded.len());
     assert!(encoded.len() <= conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES);
+}
+
+// Explicit refusal fixtures test paired cancellation. The positive test above
+// separately executes both ordinary Kernel targets with their original Plans.
+#[derive(Clone, Copy)]
+enum RefusalCase {
+    NumericError,
+    NumericPanic,
+    FeaturePanic,
+}
+struct FeatureRefusalFixture {
+    output: Vec<u8>,
+    case: RefusalCase,
+    calls: Rc<std::cell::Cell<u32>>,
+    cancels: Rc<std::cell::Cell<u32>>,
+}
+impl parser_session_canonical_ingress::ParserCanonicalSourceExecutor for FeatureRefusalFixture {
+    type Error = ();
+    fn cancel(&mut self) {
+        self.cancels.set(self.cancels.get() + 1);
+    }
+    fn entry(&self) -> &str {
+        parser_session_execution::ParserSessionEntry::V2ModelFeatures.name()
+    }
+    fn input_type_bytes(&self) -> &[u8] {
+        LanguageParserV2ChoiceQuery::PREPARED_DESCRIPTOR.type_bytes
+    }
+    fn output_type_bytes(&self) -> &[u8] {
+        LanguageParserV2ModelFeatures::PREPARED_DESCRIPTOR.type_bytes
+    }
+    fn transact(&mut self, _ordinal: u64, _input: &[u8], output: &mut [u8]) -> Result<usize, ()> {
+        self.calls.set(self.calls.get() + 1);
+        if matches!(self.case, RefusalCase::FeaturePanic) {
+            panic!("fixture feature unwind");
+        }
+        output[..self.output.len()].copy_from_slice(&self.output);
+        Ok(self.output.len())
+    }
+}
+struct NumericRefusalFixture {
+    plan: Rc<conduit_core::Plan>,
+    case: RefusalCase,
+    calls: Rc<std::cell::Cell<u32>>,
+    cancels: Rc<std::cell::Cell<u32>>,
+}
+impl numeric_custody::ParserNumericExecutor for NumericRefusalFixture {
+    type Error = ();
+    fn plan(&self) -> &conduit_core::Plan {
+        &self.plan
+    }
+    fn cancel(&mut self) {
+        self.cancels.set(self.cancels.get() + 1);
+    }
+    fn transact(&mut self, _ordinal: u64, _input: &[u8], _output: &mut [u8]) -> Result<usize, ()> {
+        self.calls.set(self.calls.get() + 1);
+        if matches!(self.case, RefusalCase::NumericPanic) {
+            panic!("fixture numeric unwind");
+        }
+        Err(())
+    }
+}
+fn cancellation_fixture_plan() -> Rc<conduit_core::Plan> {
+    use conduit_core::*;
+    Rc::new(Plan {
+        plan_id: "fixture/plan".into(),
+        source_document_id: "fixture/source".into(),
+        checked_plot_id: "fixture/checked".into(),
+        expanded_plot_id: "fixture/expanded".into(),
+        completion_policy: PlanCompletionPolicy::Live,
+        realization_backs: vec![],
+        activations: vec![],
+        activation_preparations: vec![],
+        fragments: vec![PlanFragment {
+            plan_id: "fixture/plan".into(),
+            fragment_id: "fixture/fragment".into(),
+            source_document_id: "fixture/source".into(),
+            checked_plot_id: "fixture/checked".into(),
+            expanded_plot_id: "fixture/expanded".into(),
+            completion_policy: PlanCompletionPolicy::Live,
+            realization_backs: vec![],
+            host_id: "fixture/host".into(),
+            boot_id: "fixture/boot".into(),
+            offer_generation: OfferGeneration(1),
+            placements: vec![],
+            execution_regions: vec![],
+            execution_fusions: vec![],
+            states: vec![],
+            connections: vec![],
+            fore_ports: vec![],
+            shared_pools: vec![],
+            startup_dependencies: vec![],
+            startup_order: vec![],
+            cancellation_policy: CancellationPolicy::CancelAllAndRejectLateCompletion,
+            terminal_policy: TerminalPolicy::RequireAllPlacementsAndConnections,
+            expected_terminals: vec![],
+            expected_sign: vec![],
+            sign_storage_budget: SignStorageBudget {
+                item_capacity: 0,
+                byte_capacity: 0,
+            },
+            plan_fragments: vec![],
+        }],
+    })
+}
+#[test]
+fn paired_ingresses_cancel_both_targets_on_late_refusal_and_each_unwind() {
+    use numeric_custody::*;
+    use parser_session_canonical_ingress::*;
+    use parser_session_execution::{
+        verification::PreparedSourceVerification, ParserSessionEntry as Entry,
+    };
+    let profile = profile();
+    let lexical = parser_model_selection::pinned_v2_lexical_profile().unwrap();
+    let selection =
+        parser_model_selection::PreparedParserModelSelection::prepare(profile.clone(), &lexical)
+            .unwrap();
+    let family = Rc::new(std::cell::RefCell::new(
+        PreparedNativeFamily::prepare(
+            &[
+                LanguageParserV2ChoiceQuery::PREPARED_DESCRIPTOR,
+                LanguageParserV2ModelFeatures::PREPARED_DESCRIPTOR,
+                LanguageParserV2ModelScores::PREPARED_DESCRIPTOR,
+            ],
+            family_limits().family,
+        )
+        .unwrap(),
+    ));
+    let original_query = query().encode().unwrap();
+    let (mut oracle, _, _, _) =
+        PreparedSourceVerification::prepare(Entry::V2ModelFeatures, verification_limits()).unwrap();
+    let expected = oracle.evaluate(&original_query).unwrap().to_vec();
+    drop(oracle);
+    for case in [
+        RefusalCase::NumericError,
+        RefusalCase::NumericPanic,
+        RefusalCase::FeaturePanic,
+    ] {
+        let source_calls = Rc::new(std::cell::Cell::new(0));
+        let source_cancels = Rc::new(std::cell::Cell::new(0));
+        let numeric_calls = Rc::new(std::cell::Cell::new(0));
+        let numeric_cancels = Rc::new(std::cell::Cell::new(0));
+        let plan = cancellation_fixture_plan();
+        let source = PreparedCanonicalParserSessionPort::<
+            LanguageParserV2ChoiceQuery,
+            LanguageParserV2ModelFeatures,
+            _,
+        >::prepare(
+            Entry::V2ModelFeatures,
+            FeatureRefusalFixture {
+                output: expected.clone(),
+                case,
+                calls: source_calls.clone(),
+                cancels: source_cancels.clone(),
+            },
+            family.clone(),
+            ParserCanonicalIngressLimits {
+                maximum_invocations: 2,
+                maximum_input_bytes: 262144,
+                maximum_output_bytes: 4096,
+            },
+            verification_limits(),
+        )
+        .unwrap();
+        let (projector, _, _, _) =
+            PreparedSourceVerification::prepare(Entry::V2FeatureIndices, verification_limits())
+                .unwrap();
+        let (wrapper, _, _, _) =
+            PreparedSourceVerification::prepare(Entry::V2ScoreObservation, verification_limits())
+                .unwrap();
+        let canonical = PreparedCategoricalCanonicalAdmission::prepare(
+            profile.clone(),
+            CategoricalCanonicalAdmissionLimits {
+                maximum_preparation_peak_bytes: 4194304,
+                maximum_retained_bytes: 4194304,
+            },
+        )
+        .unwrap();
+        let numeric = PreparedParserNumericCustody::from_prepared(
+            NumericRefusalFixture {
+                plan: plan.clone(),
+                case,
+                calls: numeric_calls.clone(),
+                cancels: numeric_cancels.clone(),
+            },
+            family.clone(),
+            projector,
+            wrapper,
+            canonical,
+            plan.clone(),
+            2,
+            &selection,
+        )
+        .unwrap();
+        let mut owner =
+            mixed_custody::PreparedParserMixedCustody::from_prepared(source, numeric, plan);
+        let frames = || {
+            let mut output = Vec::with_capacity(4096);
+            output.resize(4096, 0);
+            (
+                PreparedParserExecutionFrames::prepare(262144, 4096).unwrap(),
+                ParserNumericFrames {
+                    indices: Vec::with_capacity(4096),
+                    scores: Vec::with_capacity(4096),
+                    output,
+                },
+            )
+        };
+        let (source_frames, numeric_frames) = frames();
+        let (next_source, next_numeric) = frames();
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            owner.execute(&original_query, source_frames, numeric_frames)
+        }));
+        match case {
+            RefusalCase::NumericError => assert!(result.unwrap().is_err()),
+            _ => assert!(result.is_err()),
+        }
+        assert_eq!(source_calls.get(), 1);
+        assert_eq!(
+            numeric_calls.get(),
+            if matches!(case, RefusalCase::FeaturePanic) {
+                0
+            } else {
+                1
+            }
+        );
+        assert!(source_cancels.get() > 0);
+        assert!(numeric_cancels.get() > 0);
+        assert!(matches!(
+            owner.execute(&original_query, next_source, next_numeric),
+            Err(mixed_custody::ParserMixedRefusal::Cancelled)
+        ));
+        assert_eq!(source_calls.get(), 1);
+    }
 }

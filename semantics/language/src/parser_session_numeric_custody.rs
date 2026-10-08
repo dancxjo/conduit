@@ -125,6 +125,10 @@ impl<E: ParserNumericExecutor> PreparedParserNumericCustody<E> {
         })
     }
 
+    pub(crate) fn cancel(&mut self) {
+        self.cancelled = true;
+        self.executor.cancel();
+    }
     /// Consumption is limited to an opaque complete Source feature execution.
     /// Arbitrary individually valid Native feature snapshots cannot enter here.
     pub(crate) fn execute(
