@@ -40,3 +40,6 @@ mod parser_canonical_refinement;
 
 #[path = "../src/parser_session_revision_stage.rs"]
 mod parser_session_revision_stage;
+
+#[path = "../src/parser_session_fixed_bindings.rs"]
+mod parser_session_fixed_bindings;

@@ -109,6 +109,9 @@ impl<E: ParserSessionExecutor> PreparedParserFixedIngress<E> {
         original_plan: Rc<Plan>,
         family: Rc<RefCell<PreparedNativeFamily>>,
         verifier: PreparedSourceVerification,
+        source_input_type: &conduit_core::StructuredInfoType,
+        source_output_type: &conduit_core::StructuredInfoType,
+        maximum_port_encoding_requested_bytes: usize,
         maximum_invocations: u32,
     ) -> Result<Self, FixedRefusal<E::Error>> {
         if maximum_invocations == 0 {
@@ -123,6 +126,31 @@ impl<E: ParserSessionExecutor> PreparedParserFixedIngress<E> {
             || executor.entry() != entry.name()
             || executor.input_type_bytes() != I::PREPARED_DESCRIPTOR.type_bytes
             || executor.output_type_bytes() != O::PREPARED_DESCRIPTOR.type_bytes
+        {
+            return Err(FixedRefusal::Entry);
+        }
+        // Both complete Type encoding requests are admitted before allocating
+        // the first buffer. Core reserves the exact allocation-free length.
+        let input_length = source_input_type
+            .canonical_byte_length()
+            .map_err(|_| FixedRefusal::Entry)?;
+        let output_length = source_output_type
+            .canonical_byte_length()
+            .map_err(|_| FixedRefusal::Entry)?;
+        if input_length
+            .checked_add(output_length)
+            .is_none_or(|sum| sum > maximum_port_encoding_requested_bytes)
+        {
+            return Err(FixedRefusal::Pressure);
+        }
+        if source_input_type
+            .canonical_bytes()
+            .map_err(|_| FixedRefusal::Entry)?
+            != I::PREPARED_DESCRIPTOR.type_bytes
+            || source_output_type
+                .canonical_bytes()
+                .map_err(|_| FixedRefusal::Entry)?
+                != O::PREPARED_DESCRIPTOR.type_bytes
         {
             return Err(FixedRefusal::Entry);
         }
