@@ -8,12 +8,12 @@ use std::{
     time::Duration,
 };
 
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 
 use super::{
-    ConduitosError, LiveOwnerTodoActionProofArgs, journey_input, qmp, qmp_display, refusal,
-    todo_validation, wait_for_action, wait_for_resume, write_checkpoint,
+    journey_input, qmp, qmp_display, refusal, todo_validation, wait_for_action, wait_for_resume,
+    write_checkpoint, ConduitosError, LiveOwnerTodoActionProofArgs,
 };
 
 pub(super) struct Isolation {
@@ -288,14 +288,23 @@ pub(super) fn continue_after_arrival(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::{os::unix::fs::symlink, time::{SystemTime, UNIX_EPOCH}};
+    use std::{
+        os::unix::fs::symlink,
+        time::{SystemTime, UNIX_EPOCH},
+    };
 
     struct PrivateFixture(PathBuf);
 
     impl PrivateFixture {
         fn new() -> Self {
-            let nonce = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
-            let root = std::env::temp_dir().join(format!("conduit-native-todo-isolation-{}-{nonce}", std::process::id()));
+            let nonce = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos();
+            let root = std::env::temp_dir().join(format!(
+                "conduit-native-todo-isolation-{}-{nonce}",
+                std::process::id()
+            ));
             fs::create_dir(&root).unwrap();
             Self(root)
         }

@@ -16,20 +16,44 @@ mod todo_action_command_tests {
     #[test]
     fn native_todo_action_requires_explicit_isolated_checkpoint_contract() {
         let args = [
-            "xtask", "make", "conduitos", "live-owner-todo-action-proof",
-            "--spore", "spore.iso", "--candidate-id", "candidate/body-owner-route",
-            "--owner-forward", "172.17.0.1:37475", "--output-dir", "native-proof",
-            "--coordinate", "--expected-body-id", "body/exact",
-            "--owner-conduit-bin", "conduit-linux-x86_64",
-            "--owner-state-dir", "host-state", "--expected-item-count", "20",
-            "--expected-status", "3 things left", "--isolated-checkpoint-root", "fork-checkpoints",
-            "--selected-checkpoint-version-hex", "d79376c4ca22f130f80d9c9ecfb1b75c7801f7a15f8027b6452f214d6f635382",
-            "--protected-checkpoint-root", "original-checkpoints",
-            "--expected-action-id", "todo.complete.task-18", "--tab-count", "40",
-            "--expected-after-status", "2 things left",
+            "xtask",
+            "make",
+            "conduitos",
+            "live-owner-todo-action-proof",
+            "--spore",
+            "spore.iso",
+            "--candidate-id",
+            "candidate/body-owner-route",
+            "--owner-forward",
+            "172.17.0.1:37475",
+            "--output-dir",
+            "native-proof",
+            "--coordinate",
+            "--expected-body-id",
+            "body/exact",
+            "--owner-conduit-bin",
+            "conduit-linux-x86_64",
+            "--owner-state-dir",
+            "host-state",
+            "--expected-item-count",
+            "20",
+            "--expected-status",
+            "3 things left",
+            "--isolated-checkpoint-root",
+            "fork-checkpoints",
+            "--selected-checkpoint-version-hex",
+            "d79376c4ca22f130f80d9c9ecfb1b75c7801f7a15f8027b6452f214d6f635382",
+            "--protected-checkpoint-root",
+            "original-checkpoints",
+            "--expected-action-id",
+            "todo.complete.task-18",
+            "--tab-count",
+            "40",
+            "--expected-after-status",
+            "2 things left",
         ];
         assert!(Cli::try_parse_from(args).is_ok());
-        assert!(Cli::try_parse_from(&args[..args.len()-2]).is_err());
+        assert!(Cli::try_parse_from(&args[..args.len() - 2]).is_err());
     }
 }
 

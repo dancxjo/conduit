@@ -9,14 +9,14 @@ use std::{
     time::{Duration, Instant},
 };
 
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 
 use crate::cli::GlobalOpts;
 
 use super::{
+    demo, journey_input, owner_boot, profile::Paths, qmp, qmp_display, report::git_head,
     ConduitosArch, ConduitosError, LiveOwnerActionProofArgs, LiveOwnerTodoActionProofArgs,
-    LiveOwnerTodoFaceProofArgs, demo, journey_input, owner_boot, profile::Paths, qmp, qmp_display,
-    report::git_head,
+    LiveOwnerTodoFaceProofArgs,
 };
 
 #[path = "owner_action_coordination.rs"]
@@ -601,13 +601,11 @@ mod tests {
         assert_eq!(parsed[0]["status"], "accepted");
         assert!(records(&line.repeat(9), OWNER_ACTION).is_err());
         assert!(records(&format!("{OWNER_ACTION}not-json\n"), OWNER_ACTION).is_err());
-        assert!(
-            records(
-                &format!("{line}{OWNER_ACTION}{{\"status\":\"pend"),
-                OWNER_ACTION
-            )
-            .is_ok_and(|records| records.len() == 1)
-        );
+        assert!(records(
+            &format!("{line}{OWNER_ACTION}{{\"status\":\"pend"),
+            OWNER_ACTION
+        )
+        .is_ok_and(|records| records.len() == 1));
     }
 
     #[test]

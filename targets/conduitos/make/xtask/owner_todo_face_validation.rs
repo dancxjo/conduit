@@ -2,10 +2,10 @@
 
 use std::{fs, process::Command};
 
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 
-use super::{ConduitosError, LiveOwnerTodoFaceProofArgs, refusal};
+use super::{refusal, ConduitosError, LiveOwnerTodoFaceProofArgs};
 
 pub(super) fn read_and_validate(
     args: &LiveOwnerTodoFaceProofArgs,
