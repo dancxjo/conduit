@@ -7,7 +7,7 @@ use conduit_kernel::{HostedValueStore, scheduler::StepBack};
 use conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE as PORTS;
 pub struct ClosingStructuredPairOperationFactory {
     identity: ImplementationId,
-    selected: BTreeMap<PlacementId, ClosingStructuredPairProfile>,
+    selected: BTreeMap<PlacementId, (ClosingStructuredPairProfile, CapabilityOffer)>,
 }
 impl ClosingStructuredPairOperationFactory {
     pub fn for_plan(
@@ -36,13 +36,14 @@ impl ClosingStructuredPairOperationFactory {
             let profile = by_kind
                 .get(&gear.kind_id)
                 .ok_or("unadmitted atomic pair profile")?;
-            verify_fixed_placement(gear, &profile.offer()?).map_err(|e| format!("{e:?}"))?;
+            let offer = profile.offer()?;
+            verify_fixed_placement(gear, &offer).map_err(|e| format!("{e:?}"))?;
             let count = counts.entry(gear.kind_id.clone()).or_default();
             *count = count.checked_add(1).ok_or("pair instance count overflow")?;
             if *count > profile.contract()?.limits.max_active_instances {
                 return Err("pair selected capacity exceeded".into());
             }
-            selected.insert(gear.placement_id.clone(), profile.clone());
+            selected.insert(gear.placement_id.clone(), (profile.clone(), offer));
         }
         Ok(Self {
             identity: ImplementationId::from(PAIR_IMPLEMENTATION),
@@ -54,8 +55,8 @@ impl ClosingStructuredPairOperationFactory {
             .selected
             .get(&gear.placement_id)
             .ok_or("unselected atomic pair placement")?;
-        verify_fixed_placement(gear, &profile.offer()?).map_err(|e| format!("{e:?}"))?;
-        Ok(profile)
+        verify_fixed_placement(gear, &profile.1).map_err(|e| format!("{e:?}"))?;
+        Ok(&profile.0)
     }
 }
 impl KernelOperationFactory for ClosingStructuredPairOperationFactory {
@@ -92,6 +93,74 @@ impl ClosingStructuredPairOperationFactory {
         let local = back.local_accounted_heap_bytes();
         Ok(super::prepared_numeric_back::PreparedNumericBack::new(
             back, local,
+        ))
+    }
+}
+
+impl ClosingStructuredPairOperationFactory {
+    fn profile_for_storage(
+        &self,
+        gear: &PlannedGear,
+    ) -> Result<&ClosingStructuredPairProfile, PairBackPreparationRefusal> {
+        let (profile, offer) = self
+            .selected
+            .get(&gear.placement_id)
+            .ok_or(PairBackPreparationRefusal::Selection)?;
+        verify_fixed_placement(gear, offer).map_err(|_| PairBackPreparationRefusal::Selection)?;
+        Ok(profile)
+    }
+    pub fn preparation_storage_reservation(
+        &self,
+        gear: &PlannedGear,
+    ) -> Result<PreparedStructuredCompositionStorageReceipt, PairBackPreparationRefusal> {
+        let mut r =
+            ClosingStructuredPairBack::storage_reservation(self.profile_for_storage(gear)?)?;
+        let root = core::mem::size_of::<ClosingStructuredPairBack>();
+        r.preparation_requested_bytes_bound = r
+            .preparation_requested_bytes_bound
+            .checked_add(root)
+            .ok_or(PairBackPreparationRefusal::Capacity)?;
+        r.retained_heap_bytes_bound = r
+            .retained_heap_bytes_bound
+            .checked_add(root)
+            .ok_or(PairBackPreparationRefusal::Capacity)?;
+        Ok(r)
+    }
+    pub fn prepare_with_storage_limits(
+        &self,
+        gear: &PlannedGear,
+        maximum_preparation_requested_bytes: usize,
+        maximum_retained_heap_bytes: usize,
+    ) -> Result<
+        (
+            super::prepared_numeric_back::PreparedNumericBack,
+            PreparedStructuredCompositionStorageReceipt,
+        ),
+        PairBackPreparationRefusal,
+    > {
+        let profile = self.profile_for_storage(gear)?;
+        let root = core::mem::size_of::<ClosingStructuredPairBack>();
+        let requested = maximum_preparation_requested_bytes
+            .checked_sub(root)
+            .ok_or(PairBackPreparationRefusal::Capacity)?;
+        let retained = maximum_retained_heap_bytes
+            .checked_sub(root)
+            .ok_or(PairBackPreparationRefusal::Capacity)?;
+        let (back, mut r) = ClosingStructuredPairBack::prepare_selected_with_storage_limits(
+            profile, requested, retained,
+        )?;
+        r.preparation_requested_bytes_bound = r
+            .preparation_requested_bytes_bound
+            .checked_add(root)
+            .ok_or(PairBackPreparationRefusal::Capacity)?;
+        r.retained_heap_bytes_bound = r
+            .retained_heap_bytes_bound
+            .checked_add(root)
+            .ok_or(PairBackPreparationRefusal::Capacity)?;
+        let local = back.local_accounted_heap_bytes();
+        Ok((
+            super::prepared_numeric_back::PreparedNumericBack::new(back, local),
+            r,
         ))
     }
 }
