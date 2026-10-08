@@ -5,8 +5,10 @@
 //! dialect.
 
 use alloc::vec::Vec;
+mod storage;
 use core::cmp::Ordering;
 use serde::{Deserialize, Serialize};
+pub use storage::*;
 
 use crate::{validate_primitive_info, KindId, PrimitiveInfoRefusal};
 
