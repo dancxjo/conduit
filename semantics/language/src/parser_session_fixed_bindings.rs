@@ -20,418 +20,129 @@ pub(crate) fn prepare_fixed_binding<E: ParserSessionExecutor>(
     input: &StructuredInfoType,
     output: &StructuredInfoType,
     maximum_port_encoding_requested_bytes: usize,
+    target_contract: crate::parser_session_target_contract::ParserSessionTargetStorageContract,
     maximum_invocations: u32,
 ) -> Result<PreparedParserFixedIngress<E>, FixedRefusal<E::Error>> {
+    macro_rules! prepare {
+        ($input:ty, $output:ty) => {
+            PreparedParserFixedIngress::from_prepared::<$input, $output>(
+                executor,
+                entry,
+                original_plan,
+                family,
+                verifier,
+                input,
+                output,
+                maximum_port_encoding_requested_bytes,
+                target_contract,
+                maximum_invocations,
+            )
+        };
+    }
     match entry {
-        ParserSessionEntry::Availability => PreparedParserFixedIngress::from_prepared::<
+        ParserSessionEntry::Availability => prepare!(
             LanguageParserAvailableLexical,
-            LanguageParserRawAvailability,
-        >(
-            executor,
-            entry,
-            original_plan,
-            family,
-            verifier,
-            input,
-            output,
-            maximum_port_encoding_requested_bytes,
-            maximum_invocations,
+            LanguageParserRawAvailability
         ),
-        ParserSessionEntry::Completion => PreparedParserFixedIngress::from_prepared::<
-            LanguageParserState,
-            LanguageParserCompletionObservation,
-        >(
-            executor,
-            entry,
-            original_plan,
-            family,
-            verifier,
-            input,
-            output,
-            maximum_port_encoding_requested_bytes,
-            maximum_invocations,
-        ),
-        ParserSessionEntry::IndependentBranch => PreparedParserFixedIngress::from_prepared::<
+        ParserSessionEntry::Completion => {
+            prepare!(LanguageParserState, LanguageParserCompletionObservation)
+        }
+        ParserSessionEntry::IndependentBranch => prepare!(
             LanguageParserIndependentBranchContext,
-            LanguageParserJointBranchResult,
-        >(
-            executor,
-            entry,
-            original_plan,
-            family,
-            verifier,
-            input,
-            output,
-            maximum_port_encoding_requested_bytes,
-            maximum_invocations,
+            LanguageParserJointBranchResult
         ),
-        ParserSessionEntry::IndependentCommit => PreparedParserFixedIngress::from_prepared::<
+        ParserSessionEntry::IndependentCommit => prepare!(
             LanguageParserIndependentCommitRequest,
-            LanguageParserIndependentCommitSetProposal,
-        >(
-            executor,
-            entry,
-            original_plan,
-            family,
-            verifier,
-            input,
-            output,
-            maximum_port_encoding_requested_bytes,
-            maximum_invocations,
+            LanguageParserIndependentCommitSetProposal
         ),
-        ParserSessionEntry::IndependentCommitRebase => PreparedParserFixedIngress::from_prepared::<
+        ParserSessionEntry::IndependentCommitRebase => prepare!(
             LanguageParserIndependentCommitRebaseRequest,
-            LanguageParserIndependentCommitSetProposal,
-        >(
-            executor,
-            entry,
-            original_plan,
-            family,
-            verifier,
-            input,
-            output,
-            maximum_port_encoding_requested_bytes,
-            maximum_invocations,
+            LanguageParserIndependentCommitSetProposal
         ),
-        ParserSessionEntry::IndependentCommitRebaseSets => {
-            PreparedParserFixedIngress::from_prepared::<
-                LanguageParserProtectedRebaseReceipt,
-                LanguageParserIndependentCommitRebaseSets,
-            >(
-                executor,
-                entry,
-                original_plan,
-                family,
-                verifier,
-                input,
-                output,
-                maximum_port_encoding_requested_bytes,
-                maximum_invocations,
-            )
+        ParserSessionEntry::IndependentCommitRebaseSets => prepare!(
+            LanguageParserProtectedRebaseReceipt,
+            LanguageParserIndependentCommitRebaseSets
+        ),
+        ParserSessionEntry::IndependentMask => {
+            prepare!(LanguageParserIndependentMaskQuery, LanguageParserLegalMask)
         }
-        ParserSessionEntry::IndependentMask => PreparedParserFixedIngress::from_prepared::<
-            LanguageParserIndependentMaskQuery,
-            LanguageParserLegalMask,
-        >(
-            executor,
-            entry,
-            original_plan,
-            family,
-            verifier,
-            input,
-            output,
-            maximum_port_encoding_requested_bytes,
-            maximum_invocations,
-        ),
-        ParserSessionEntry::JointBranch => PreparedParserFixedIngress::from_prepared::<
+        ParserSessionEntry::JointBranch => prepare!(
             LanguageParserJointBranchQuery,
-            LanguageParserJointBranchResult,
-        >(
-            executor,
-            entry,
-            original_plan,
-            family,
-            verifier,
-            input,
-            output,
-            maximum_port_encoding_requested_bytes,
-            maximum_invocations,
+            LanguageParserJointBranchResult
         ),
-        ParserSessionEntry::Commit => PreparedParserFixedIngress::from_prepared::<
+        ParserSessionEntry::Commit => prepare!(
             LanguageParserJointCommitQuery,
-            LanguageParserJointCommitProposal,
-        >(
-            executor,
-            entry,
-            original_plan,
-            family,
-            verifier,
-            input,
-            output,
-            maximum_port_encoding_requested_bytes,
-            maximum_invocations,
+            LanguageParserJointCommitProposal
         ),
-        ParserSessionEntry::JointConsensus => PreparedParserFixedIngress::from_prepared::<
+        ParserSessionEntry::JointConsensus => prepare!(
             LanguageParserJointConsensusQuery,
-            LanguageParserJointConsensusObservation,
-        >(
-            executor,
-            entry,
-            original_plan,
-            family,
-            verifier,
-            input,
-            output,
-            maximum_port_encoding_requested_bytes,
-            maximum_invocations,
+            LanguageParserJointConsensusObservation
         ),
-        ParserSessionEntry::Expansion => PreparedParserFixedIngress::from_prepared::<
+        ParserSessionEntry::Expansion => prepare!(
             LanguageParserJointExpansion,
-            LanguageParserJointRuntimeRawHypothesis,
-        >(
-            executor,
-            entry,
-            original_plan,
-            family,
-            verifier,
-            input,
-            output,
-            maximum_port_encoding_requested_bytes,
-            maximum_invocations,
+            LanguageParserJointRuntimeRawHypothesis
         ),
-        ParserSessionEntry::Rebase => PreparedParserFixedIngress::from_prepared::<
+        ParserSessionEntry::Rebase => prepare!(
             LanguageParserJointRebaseContext,
-            LanguageParserJointRebaseProposal,
-        >(
-            executor,
-            entry,
-            original_plan,
-            family,
-            verifier,
-            input,
-            output,
-            maximum_port_encoding_requested_bytes,
-            maximum_invocations,
+            LanguageParserJointRebaseProposal
         ),
-        ParserSessionEntry::Merge => PreparedParserFixedIngress::from_prepared::<
+        ParserSessionEntry::Merge => prepare!(
             LanguageParserJointRuntimeMerge,
-            LanguageParserJointRuntimeRawBeam,
-        >(
-            executor,
-            entry,
-            original_plan,
-            family,
-            verifier,
-            input,
-            output,
-            maximum_port_encoding_requested_bytes,
-            maximum_invocations,
+            LanguageParserJointRuntimeRawBeam
         ),
-        ParserSessionEntry::JointScoreBand1000 => PreparedParserFixedIngress::from_prepared::<
+        ParserSessionEntry::JointScoreBand1000 => prepare!(
             LanguageParserJointScoreBandQuery,
-            LanguageParserJointScoreBandProposal,
-        >(
-            executor,
-            entry,
-            original_plan,
-            family,
-            verifier,
-            input,
-            output,
-            maximum_port_encoding_requested_bytes,
-            maximum_invocations,
+            LanguageParserJointScoreBandProposal
         ),
-        ParserSessionEntry::StableFact => PreparedParserFixedIngress::from_prepared::<
+        ParserSessionEntry::StableFact => prepare!(
             LanguageParserJointConsensusQuery,
-            LanguageParserJointStableFactProposal,
-        >(
-            executor,
-            entry,
-            original_plan,
-            family,
-            verifier,
-            input,
-            output,
-            maximum_port_encoding_requested_bytes,
-            maximum_invocations,
+            LanguageParserJointStableFactProposal
         ),
-        ParserSessionEntry::LegalMask => PreparedParserFixedIngress::from_prepared::<
-            LanguageParserMaskQuery,
-            LanguageParserLegalMask,
-        >(
-            executor,
-            entry,
-            original_plan,
-            family,
-            verifier,
-            input,
-            output,
-            maximum_port_encoding_requested_bytes,
-            maximum_invocations,
-        ),
-        ParserSessionEntry::ProtectedOriginEdge => PreparedParserFixedIngress::from_prepared::<
+        ParserSessionEntry::LegalMask => prepare!(LanguageParserMaskQuery, LanguageParserLegalMask),
+        ParserSessionEntry::ProtectedOriginEdge => prepare!(
             LanguageParserIndependentProtectedAdmission,
-            LanguageParserProtectedEdgeProposal,
-        >(
-            executor,
-            entry,
-            original_plan,
-            family,
-            verifier,
-            input,
-            output,
-            maximum_port_encoding_requested_bytes,
-            maximum_invocations,
+            LanguageParserProtectedEdgeProposal
         ),
-        ParserSessionEntry::Initialize => PreparedParserFixedIngress::from_prepared::<
+        ParserSessionEntry::Initialize => prepare!(
             LanguageParserProtectedEdgeProposal,
-            LanguageParserProtectedSetProposal,
-        >(
-            executor,
-            entry,
-            original_plan,
-            family,
-            verifier,
-            input,
-            output,
-            maximum_port_encoding_requested_bytes,
-            maximum_invocations,
+            LanguageParserProtectedSetProposal
         ),
-        ParserSessionEntry::ProtectedInsert => PreparedParserFixedIngress::from_prepared::<
+        ParserSessionEntry::ProtectedInsert => prepare!(
             LanguageParserProtectedInsertContext,
-            LanguageParserProtectedSetProposal,
-        >(
-            executor,
-            entry,
-            original_plan,
-            family,
-            verifier,
-            input,
-            output,
-            maximum_port_encoding_requested_bytes,
-            maximum_invocations,
+            LanguageParserProtectedSetProposal
         ),
-        ParserSessionEntry::ProtectedRebase => PreparedParserFixedIngress::from_prepared::<
+        ParserSessionEntry::ProtectedRebase => prepare!(
             LanguageParserProtectedSetRebaseContext,
-            LanguageParserProtectedSetProposal,
-        >(
-            executor,
-            entry,
-            original_plan,
-            family,
-            verifier,
-            input,
-            output,
-            maximum_port_encoding_requested_bytes,
-            maximum_invocations,
+            LanguageParserProtectedSetProposal
         ),
-        ParserSessionEntry::ProtectionForestProjection => {
-            PreparedParserFixedIngress::from_prepared::<
-                LanguageParserProtectionForestQuery,
-                LanguageParserProtectionForestProposal,
-            >(
-                executor,
-                entry,
-                original_plan,
-                family,
-                verifier,
-                input,
-                output,
-                maximum_port_encoding_requested_bytes,
-                maximum_invocations,
-            )
-        }
-        ParserSessionEntry::RetainedCommitAnchor => PreparedParserFixedIngress::from_prepared::<
+        ParserSessionEntry::ProtectionForestProjection => prepare!(
+            LanguageParserProtectionForestQuery,
+            LanguageParserProtectionForestProposal
+        ),
+        ParserSessionEntry::RetainedCommitAnchor => prepare!(
             LanguageParserJointCommitQuery,
-            LanguageParserRetainedCommitAnchorProposal,
-        >(
-            executor,
-            entry,
-            original_plan,
-            family,
-            verifier,
-            input,
-            output,
-            maximum_port_encoding_requested_bytes,
-            maximum_invocations,
+            LanguageParserRetainedCommitAnchorProposal
         ),
-        ParserSessionEntry::RevisionReset => PreparedParserFixedIngress::from_prepared::<
-            LanguageParserRevisionContext,
-            LanguageParserRevisionResult,
-        >(
-            executor,
-            entry,
-            original_plan,
-            family,
-            verifier,
-            input,
-            output,
-            maximum_port_encoding_requested_bytes,
-            maximum_invocations,
-        ),
-        ParserSessionEntry::ScoreProposal => PreparedParserFixedIngress::from_prepared::<
-            LanguageParserScoredClass,
-            LanguageParserScoredProposal,
-        >(
-            executor,
-            entry,
-            original_plan,
-            family,
-            verifier,
-            input,
-            output,
-            maximum_port_encoding_requested_bytes,
-            maximum_invocations,
-        ),
-        ParserSessionEntry::Seed => PreparedParserFixedIngress::from_prepared::<
-            LanguageParserSessionSeedRequest,
-            LanguageParserSessionSeedProposal,
-        >(
-            executor,
-            entry,
-            original_plan,
-            family,
-            verifier,
-            input,
-            output,
-            maximum_port_encoding_requested_bytes,
-            maximum_invocations,
-        ),
-        ParserSessionEntry::Transition => {
-            PreparedParserFixedIngress::from_prepared::<LanguageParserRequest, LanguageParserResult>(
-                executor,
-                entry,
-                original_plan,
-                family,
-                verifier,
-                input,
-                output,
-                maximum_port_encoding_requested_bytes,
-                maximum_invocations,
-            )
+        ParserSessionEntry::RevisionReset => {
+            prepare!(LanguageParserRevisionContext, LanguageParserRevisionResult)
         }
-        ParserSessionEntry::V2ModelFeatures => PreparedParserFixedIngress::from_prepared::<
-            LanguageParserV2ChoiceQuery,
-            LanguageParserV2ModelFeatures,
-        >(
-            executor,
-            entry,
-            original_plan,
-            family,
-            verifier,
-            input,
-            output,
-            maximum_port_encoding_requested_bytes,
-            maximum_invocations,
+        ParserSessionEntry::ScoreProposal => {
+            prepare!(LanguageParserScoredClass, LanguageParserScoredProposal)
+        }
+        ParserSessionEntry::Seed => prepare!(
+            LanguageParserSessionSeedRequest,
+            LanguageParserSessionSeedProposal
         ),
-        ParserSessionEntry::V2Pos => PreparedParserFixedIngress::from_prepared::<
-            LanguageParserV2ChoiceQuery,
-            LanguageParserV2PosContext,
-        >(
-            executor,
-            entry,
-            original_plan,
-            family,
-            verifier,
-            input,
-            output,
-            maximum_port_encoding_requested_bytes,
-            maximum_invocations,
-        ),
-        ParserSessionEntry::WaitState => PreparedParserFixedIngress::from_prepared::<
-            LanguageParserAvailableState,
-            LanguageParserRawWaitState,
-        >(
-            executor,
-            entry,
-            original_plan,
-            family,
-            verifier,
-            input,
-            output,
-            maximum_port_encoding_requested_bytes,
-            maximum_invocations,
-        ),
+        ParserSessionEntry::Transition => prepare!(LanguageParserRequest, LanguageParserResult),
+        ParserSessionEntry::V2ModelFeatures => {
+            prepare!(LanguageParserV2ChoiceQuery, LanguageParserV2ModelFeatures)
+        }
+        ParserSessionEntry::V2Pos => {
+            prepare!(LanguageParserV2ChoiceQuery, LanguageParserV2PosContext)
+        }
+        ParserSessionEntry::WaitState => {
+            prepare!(LanguageParserAvailableState, LanguageParserRawWaitState)
+        }
         ParserSessionEntry::DecodeComplete
         | ParserSessionEntry::V2FeatureIndices
         | ParserSessionEntry::V2ScoreObservation => Err(FixedRefusal::Entry),

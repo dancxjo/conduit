@@ -97,6 +97,7 @@ pub(crate) struct PreparedParserFixedIngress<E: ParserSessionExecutor> {
     input_readmit: Readmit,
     output_readmit: Readmit,
     maximum_invocations: u32,
+    target_contract: crate::parser_session_target_contract::ParserSessionTargetStorageContract,
     next_ordinal: u64,
     cancelled: bool,
 }
@@ -112,6 +113,7 @@ impl<E: ParserSessionExecutor> PreparedParserFixedIngress<E> {
         source_input_type: &conduit_core::StructuredInfoType,
         source_output_type: &conduit_core::StructuredInfoType,
         maximum_port_encoding_requested_bytes: usize,
+        target_contract: crate::parser_session_target_contract::ParserSessionTargetStorageContract,
         maximum_invocations: u32,
     ) -> Result<Self, FixedRefusal<E::Error>> {
         if maximum_invocations == 0 {
@@ -137,6 +139,11 @@ impl<E: ParserSessionExecutor> PreparedParserFixedIngress<E> {
         let output_length = source_output_type
             .canonical_byte_length()
             .map_err(|_| FixedRefusal::Entry)?;
+        if input_length > target_contract.maximum_input_bytes()
+            || output_length > target_contract.maximum_output_bytes()
+        {
+            return Err(FixedRefusal::Pressure);
+        }
         if input_length
             .checked_add(output_length)
             .is_none_or(|sum| sum > maximum_port_encoding_requested_bytes)
@@ -168,6 +175,7 @@ impl<E: ParserSessionExecutor> PreparedParserFixedIngress<E> {
             input_readmit: readmit::<I>,
             output_readmit: readmit::<O>,
             maximum_invocations,
+            target_contract,
             next_ordinal: 0,
             cancelled: false,
         })
@@ -189,6 +197,7 @@ impl<E: ParserSessionExecutor> PreparedParserFixedIngress<E> {
         }
         if self.next_ordinal >= u64::from(self.maximum_invocations)
             || input.len() > frames.input.capacity()
+            || input.len() > self.target_contract.maximum_input_bytes()
             || frames.output.is_empty()
         {
             return Err(FixedRefusal::Pressure);
@@ -202,7 +211,11 @@ impl<E: ParserSessionExecutor> PreparedParserFixedIngress<E> {
             .verifier
             .evaluate(&frames.input)
             .map_err(|_| FixedRefusal::Source)?;
-        if expected.len() > frames.output.len() {
+        let output_limit = frames
+            .output
+            .len()
+            .min(self.target_contract.maximum_output_bytes());
+        if expected.len() > output_limit {
             return Err(FixedRefusal::Pressure);
         }
         (self.output_readmit)(&mut self.family.borrow_mut(), expected)
@@ -225,9 +238,13 @@ impl<E: ParserSessionExecutor> PreparedParserFixedIngress<E> {
         };
         let length = consumed
             .target
-            .transact(self.next_ordinal, &frames.input, &mut frames.output)
+            .transact(
+                self.next_ordinal,
+                &frames.input,
+                &mut frames.output[..output_limit],
+            )
             .map_err(FixedRefusal::Target)?;
-        if length > frames.output.len() {
+        if length > output_limit {
             return Err(FixedRefusal::Pressure);
         }
         frames.output.truncate(length);

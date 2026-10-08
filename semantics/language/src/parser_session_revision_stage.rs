@@ -129,11 +129,10 @@ impl<'a, E: ParserSessionExecutor, S: ParserCanonicalSourceExecutor, N: ParserNu
 // This additional custody check ties its whole lexical input to the opaque
 // original producer owned by this revision, before target consumption.
 fn seed_matches_original_tape(book: &ParserRevisionCustody, query: &[u8]) -> bool {
-    if book.previous.is_some()
-        || book
-            .source_histories
-            .iter()
-            .any(|history| history.entry == ParserSessionEntry::Seed)
+    if book
+        .source_histories
+        .iter()
+        .any(|history| history.entry == ParserSessionEntry::Seed)
     {
         return false;
     }

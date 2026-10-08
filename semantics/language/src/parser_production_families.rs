@@ -53,6 +53,14 @@ pub(crate) struct PreparedProductionParserFamilies {
     families: [Rc<RefCell<PreparedNativeFamily>>; 6],
     receipt: ProductionFamilyReceipt,
 }
+pub(crate) fn port_descriptors(
+    entry: ParserSessionEntry,
+) -> Option<(
+    &'static conduit_plot::rust_binding::NativeFamilyTypeDescriptor,
+    &'static conduit_plot::rust_binding::NativeFamilyTypeDescriptor,
+)> {
+    definitions::port_descriptors(entry)
+}
 impl PreparedProductionParserFamilies {
     pub(crate) fn prepare(limits: ProductionFamilyLimits) -> Result<Self, ProductionFamilyRefusal> {
         use ProductionFamilyRefusal as R;
