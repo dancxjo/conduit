@@ -16,3 +16,4 @@ authoring = ["dep:conduit-plot"]
 
 [dev-dependencies]
 conduit-kernel = { path = "../../../architecture/kernel", default-features = false, features = ["alloc", "step-test-support"] }
+conduit-planner = { path = "../../../architecture/planner" }
