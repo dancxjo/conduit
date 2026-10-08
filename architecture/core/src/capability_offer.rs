@@ -4,7 +4,7 @@ use crate::{
     ImplementationId, ImplementationOffer, KindConfigurationField, KindId, KindIdentity,
     KindSemanticLaw, PortDescriptor, PortId, ResourceRequirement,
 };
-use alloc::{collections::BTreeSet, vec::Vec};
+use alloc::vec::Vec;
 
 /// Portable semantic truth from which a host may offer one realization.
 ///
@@ -100,18 +100,26 @@ impl Kind {
         }) {
             return Err(KindValidationError::EmptyAbnormalTerminalKind);
         }
-        let mut port_symbols = BTreeSet::new();
         if self
             .inputs
             .iter()
             .chain(&self.outputs)
-            .any(|port| !port_symbols.insert(port.port_id.as_str()))
+            .enumerate()
+            .any(|(index, port)| {
+                self.inputs
+                    .iter()
+                    .chain(&self.outputs)
+                    .take(index)
+                    .any(|prior| prior.port_id == port.port_id)
+            })
         {
             return Err(KindValidationError::DuplicatePortSymbol);
         }
-        let mut keys = BTreeSet::new();
-        for field in &self.configuration {
-            if !keys.insert(field.key.as_str()) {
+        for (index, field) in self.configuration.iter().enumerate() {
+            if self.configuration[..index]
+                .iter()
+                .any(|prior| prior.key == field.key)
+            {
                 return Err(KindValidationError::DuplicateConfigurationKey);
             }
             let Some(front) = self
@@ -139,7 +147,6 @@ impl Kind {
                 return Err(KindValidationError::ConfigurationFrontMismatch);
             }
         }
-        let mut terminal_inputs = BTreeSet::new();
         let mut previous_terminal_input = None;
         let mut cancellation_behavior = None;
         let mut cancellation_request = None;
@@ -151,10 +158,13 @@ impl Kind {
         let mut flow_fold = None;
         let mut flow_each = None;
         let mut flow_scan = None;
-        for law in &self.semantic_laws {
+        for (law_index, law) in self.semantic_laws.iter().enumerate() {
             match law {
                 KindSemanticLaw::TerminalTransduction(profile) => {
-                    if !terminal_inputs.insert(profile.input_port_id.as_str()) {
+                    if self.semantic_laws[..law_index].iter().any(|prior| {
+                        matches!(prior, KindSemanticLaw::TerminalTransduction(prior)
+                            if prior.input_port_id == profile.input_port_id)
+                    }) {
                         return Err(KindValidationError::DuplicateTerminalTransduction);
                     }
                     if previous_terminal_input
@@ -398,9 +408,11 @@ fn validate_value_contracts(
     kind: &Kind,
     contracts: &[crate::FrontValueContract],
 ) -> Result<(), KindValidationError> {
-    let mut locations = BTreeSet::new();
-    for value_contract in contracts {
-        if !locations.insert(value_contract.location.clone()) {
+    for (index, value_contract) in contracts.iter().enumerate() {
+        if contracts[..index]
+            .iter()
+            .any(|prior| prior.location == value_contract.location)
+        {
             return Err(KindValidationError::InvalidValueBound);
         }
         let expected_kind = match &value_contract.location {
@@ -444,12 +456,14 @@ fn validate_resource_ports(
     kind: &Kind,
     contracts: &[crate::ResourcePortContract],
 ) -> Result<(), KindValidationError> {
-    let mut ids = BTreeSet::new();
-    for contract in contracts {
+    for (index, contract) in contracts.iter().enumerate() {
         if contract.class_id.as_str().is_empty() {
             return Err(KindValidationError::EmptyResourcePortClass);
         }
-        if !ids.insert(contract.port_id.as_str()) {
+        if contracts[..index]
+            .iter()
+            .any(|prior| prior.port_id == contract.port_id)
+        {
             return Err(KindValidationError::DuplicateResourcePort);
         }
         if !kind
@@ -681,7 +695,10 @@ impl BackOfferBuilder {
     }
 
     pub fn build(self) -> CapabilityOffer {
-        let semantic_contract = self.contract.semantic_contract();
+        let semantic_contract = crate::KindSemanticContract {
+            configuration: self.contract.configuration,
+            laws: self.contract.semantic_laws,
+        };
         CapabilityOffer {
             startup_parameters: self.contract.startup_parameters,
             shorthand: self.contract.shorthand,

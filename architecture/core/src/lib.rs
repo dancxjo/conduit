@@ -1913,3 +1913,10 @@ pub mod projection;
 
 mod realization_properties;
 pub use realization_properties::*;
+
+mod plan_storage;
+pub use plan_storage::{
+    capability_offer_clone_storage_reservation, capability_offer_owned_heap_bytes,
+    kind_clone_storage_reservation, kind_owned_heap_bytes, plan_owned_heap_bytes,
+    OwnerCloneStorageReservation, PlanStorageRefusal,
+};
