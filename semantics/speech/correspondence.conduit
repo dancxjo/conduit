@@ -1,0 +1,48 @@
+# Authored correspondence does not infer allophones or authorize playback.
+# Full original token sequences remain separate typed preparation ports.
+type SpeechRealizationCorrespondenceKind =
+    realized
+    | omitted
+    | inserted
+    | unresolved
+type SpeechPhonemePhoneCorrespondence = {
+    phonemes: sequence LanguageSpeechTokenRef <= 32
+    phones: sequence LanguageSpeechTokenRef <= 32
+    kind: SpeechRealizationCorrespondenceKind
+    provenance: SpeechEvidenceProvenance
+    where sequence/length(.phonemes) + sequence/length(.phones) > 0
+    where .kind is realized ? sequence/length(.phonemes) > 0 && sequence/length(.phones) > 0 : true
+    where .kind is omitted ? sequence/length(.phonemes) > 0 && sequence/length(.phones) == 0 : true
+    where .kind is inserted ? sequence/length(.phonemes) == 0 && sequence/length(.phones) > 0 : true
+}
+type SpeechPhonemePhoneCorrespondenceBasis = {
+    intent: SpeechUtteranceIntent
+    phonemes: SpeechPhonemeSequence
+    phones: SpeechPhoneSequence
+    where .phonemes.basis.utterance_id == .intent.utterance_id
+    where .phonemes.basis.revision_id == .intent.revision_id
+    where .phonemes.basis.inventory_id == .intent.inventory_id
+    where .phonemes.basis.language == .intent.language
+    where .phones.basis.utterance_id == .intent.utterance_id
+    where .phones.basis.revision_id == .intent.revision_id
+    where .phones.basis.inventory_id == .intent.inventory_id
+    where .phones.basis.language == .intent.language
+}
+# A realized group must agree with every original phoneme's supplied realized_as
+# material. The first supported group shares at most four realized phones.
+# Many phonemes may share that phone group; multiple groups may share occurrences.
+type SpeechCorrespondenceRealizationMatch = {
+    phoneme: SpeechPhonemeToken
+    phones: sequence SpeechPhoneToken <= 4
+    where .phoneme.realized_as == .phones
+}
+type SpeechCorrespondenceOccurrenceOrder = {
+    earlier: LanguageSpeechTokenRef
+    later: LanguageSpeechTokenRef
+    where .earlier.inventory_id == .later.inventory_id
+    where .earlier.language == .later.language
+    where .earlier.revision_id == .later.revision_id
+    where .earlier.sequence_id == .later.sequence_id
+    where .earlier.utterance_id == .later.utterance_id
+    where .earlier.ordinal < .later.ordinal
+}

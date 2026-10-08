@@ -69,6 +69,10 @@ pub mod global_rule_selection;
 pub mod intent_admission;
 
 #[cfg(feature = "semantic-bindings")]
+pub mod correspondence;
+#[cfg(feature = "semantic-bindings")]
+pub mod intent_context;
+#[cfg(feature = "semantic-bindings")]
 pub mod intent_inventory;
 #[cfg(feature = "semantic-bindings")]
 pub mod intent_phoneme_inventory;
@@ -88,6 +92,8 @@ pub mod language_projection;
 pub mod language_revision;
 #[cfg(feature = "semantic-bindings")]
 pub mod linguistic_prosody;
+#[cfg(feature = "semantic-bindings")]
+pub mod morpheme_intent;
 #[cfg(all(feature = "semantic-bindings", feature = "kernel"))]
 pub mod native_playback_back;
 #[cfg(all(feature = "semantic-bindings", feature = "kernel"))]
@@ -143,8 +149,10 @@ pub mod utterance_timing;
 pub mod semantic {
     pub use conduit_language::LinguisticSyntacticLinkKind as SpeechSyntacticLinkKind;
     pub use conduit_language::{
-        LanguageId, LanguageText, LanguageTextId, LanguageTextRange, LanguageTextReferenceMatch,
-        LanguageTextRevisionId, LanguageTextSegmentKind, LanguageTextSegmentRef, VarietyId,
+        LanguageExternalIdentity, LanguageId, LanguageMorphemeId, LanguageMorphemeReference,
+        LanguageText, LanguageTextId, LanguageTextRange, LanguageTextReferenceMatch,
+        LanguageTextRevisionId, LanguageTextSegmentKind, LanguageTextSegmentRef, LanguageVariety,
+        VarietyId,
     };
     include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
 }

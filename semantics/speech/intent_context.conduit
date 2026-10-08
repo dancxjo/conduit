@@ -1,0 +1,23 @@
+# Typed context accompanying the original existing SpeechUtteranceIntent port.
+# Reference metadata is retained, not resolved to audio, embedding or voice.
+type SpeechSpeakerReferenceSpecification = SpeechSpec<LanguageExternalIdentity>
+type SpeechStyleReferenceSpecification = SpeechSpec<LanguageExternalIdentity>
+type SpeechReferenceProjectionCapability = {
+    profile: Text <= 64B
+    where .profile == "retained_metadata_only"
+}
+type SpeechUtteranceIntentContext = {
+    variety: LanguageVariety
+    intended_text: LanguageTextSegmentRef?
+    speaker: SpeechSpeakerReferenceSpecification
+    style: SpeechStyleReferenceSpecification
+    reference_capability: SpeechReferenceProjectionCapability
+    provenance: SpeechEvidenceProvenance
+    where .intended_text is some ? .intended_text.some.kind is utterance : true
+}
+type SpeechUtteranceIntentContextBasis = {
+    intent: SpeechUtteranceIntent
+    context: SpeechUtteranceIntentContext
+    where .context.variety.language == .intent.language
+    where .context.intended_text is some ? .context.intended_text.some.language == .intent.language : true
+}

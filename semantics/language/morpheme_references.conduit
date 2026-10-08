@@ -1,0 +1,7 @@
+# Language owns morpheme identity and exact scalar text occurrence references.
+# An identity is not a dictionary membership or morphological analysis claim.
+type LanguageMorphemeId = Text <= 64B not in [""]
+type LanguageMorphemeReference = {
+    occurrence: LanguageTextSegmentRef
+    where .occurrence.kind is morpheme
+}

@@ -6,6 +6,14 @@ use conduit_core::StructuredInfoType;
 pub fn identity_types() -> Vec<(&'static str, StructuredInfoType)> {
     alloc::vec![
         (
+            "LanguageMorphemeId",
+            LanguageMorphemeId::semantic_type().expect("checked Language Type")
+        ),
+        (
+            "LanguageMorphemeReference",
+            LanguageMorphemeReference::semantic_type().expect("checked Language Type")
+        ),
+        (
             "LanguageExternalIdentity",
             LanguageExternalIdentity::semantic_type().expect("checked Language Type")
         ),

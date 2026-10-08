@@ -47,9 +47,11 @@ fn main() {
     println!("cargo:rerun-if-changed=discourse.conduit");
     println!("cargo:rerun-if-changed=prosody.conduit");
     println!("cargo:rerun-if-changed=pronunciation_selection.conduit");
+    println!("cargo:rerun-if-changed=morpheme_references.conduit");
     let source = [
         include_str!("types.conduit"),
         include_str!("identity.conduit"),
+        include_str!("morpheme_references.conduit"),
         include_str!("coverage.conduit"),
         include_str!("syntax.conduit"),
         include_str!("text_revision.conduit"),

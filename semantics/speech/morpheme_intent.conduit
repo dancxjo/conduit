@@ -1,0 +1,45 @@
+# Explicit morphology component of the existing utterance intent.
+type SpeechMorphemeSpecification = SpeechSpec<LanguageMorphemeId>
+type SpeechPlannedMorphemeIntent = {
+    morpheme: SpeechMorphemeSpecification
+    surface: Text <= 256B
+    source: LanguageMorphemeReference?
+    features: SpeechFeatureBundle
+    pronunciation: sequence LanguageSpeechTokenRef <= 32
+    confidence: SpeechConfidence
+    provenance: SpeechEvidenceProvenance
+}
+type SpeechMorphemePronunciationBasis = {
+    intent: SpeechUtteranceIntent
+    phonemes: SpeechPhonemeSequence
+    morpheme: SpeechPlannedMorphemeIntent
+    where .phonemes.basis.utterance_id == .intent.utterance_id
+    where .phonemes.basis.revision_id == .intent.revision_id
+    where .phonemes.basis.inventory_id == .intent.inventory_id
+    where .phonemes.basis.language == .intent.language
+}
+type SpeechMorphemePronunciationMember = {
+    morpheme: SpeechPlannedMorphemeIntent
+    index: U64 in 0..=31
+    occurrence: LanguageSpeechTokenRef
+    where .index < sequence/length(.morpheme.pronunciation)
+    where .index < sequence/length(.morpheme.pronunciation) ? .occurrence == sequence/at(.morpheme.pronunciation,.index) : false
+}
+# The actual surface is extracted from original supplied scalar text material by
+# mechanical preparation, after ordinary Language reference resolution.
+type SpeechMorphemeSurfaceMatch = {
+    requested: Text <= 256B
+    actual: Text <= 256B
+    where .requested == .actual
+}
+
+type SpeechMorphemePronunciationOrder = {
+    earlier: LanguageSpeechTokenRef
+    later: LanguageSpeechTokenRef
+    where .earlier.inventory_id == .later.inventory_id
+    where .earlier.language == .later.language
+    where .earlier.revision_id == .later.revision_id
+    where .earlier.sequence_id == .later.sequence_id
+    where .earlier.utterance_id == .later.utterance_id
+    where .earlier.ordinal < .later.ordinal
+}
