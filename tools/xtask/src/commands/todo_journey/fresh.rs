@@ -1,6 +1,6 @@
-//! Fresh Birth and first browser Add. This producer remains deliberately partial.
+//! Fresh Birth/browser actions, optional terminal completion and browser observation.
 //! Its raw product/browser receipts can seed a later continuous journey, but it
-//! cannot issue the eight-chapter terminal or publication manifest.
+//! cannot issue the complete Todo journey or a publication manifest.
 
 use super::{regular, retain, sha};
 use crate::cli::{GlobalOpts, TodoJourneyArgs};
@@ -305,6 +305,11 @@ pub(super) fn run(
             .arg(output.join("browser"))
             .arg(&playwright)
             .arg(item_text)
+            .arg(if args.cross_mask_actions {
+                "cross-mask"
+            } else {
+                "first-add"
+            })
             .current_dir(repository);
         let browser_command = capture(&output, "browser-add", &mut browser, None)?;
         let browser_receipt: Value = serde_json::from_slice(
@@ -373,6 +378,7 @@ pub(super) fn run(
         }
         Ok(json!({
             "body_id":body_id,
+            "cross_mask":browser_receipt["cross_mask"],
             "birth":{"command":birth_command,"face_id":face_before["presentation"]["identity"],
                 "face_revision":face_before["presentation"]["revision"]},
             "add":{"command":browser_command,"receipt":browser_receipt_file,
@@ -391,14 +397,14 @@ pub(super) fn run(
     let record = json!({
         "schema":"conduit.todo-journey/partial-live-capture@1",
         "capture_entrance":"cargo xtask prove todo-journey",
-        "chapter_scope":["birth","add","terminal-read"],"publication_ready":false,
+        "chapter_scope":if args.cross_mask_actions { vec!["birth","three-browser-adds","terminal-complete","browser-observe","terminal-read"] } else { vec!["birth","add","terminal-read"] },"publication_ready":false,
         "capture_tool_commit":commit,"installed_product_source_commit":installation["release_source_identity"],
         "installed_executable_sha256":sha(&fs::read(&bin)?),
         "started_at_unix_ms":started,"finished_at_unix_ms":finished,
         "observation":result.as_ref().ok(),"error":result.as_ref().err(),
-        "missing_for_publication":["remaining five continuous chapters", "Add queue and child Sign correlation",
-            "native and QMP captures", "requested-detail same-Play speech", "new-Boot recovery",
-            "complete producer events and cross-Mask action receipts"]
+        "missing_for_publication":["same-Face direct spoken Show and requested detail",
+            "lull/wake and admitted Host rejoin", "visible stale-Show and failed-checkpoint refusals",
+            "complete action/Plan/Play/Sign correlations", "accepted release and deployed Pages links"]
     });
     fs::write(
         output.join("partial-run.json"),

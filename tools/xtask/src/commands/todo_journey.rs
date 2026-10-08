@@ -124,6 +124,7 @@ pub fn run(args: TodoJourneyArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::
     if args.handbook_package.is_some()
         || args.pinned_playwright.is_some()
         || args.first_item_text.is_some()
+        || args.cross_mask_actions
     {
         return Err("fresh Todo browser arguments require --fresh-body-source".into());
     }
