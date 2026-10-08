@@ -1,9 +1,9 @@
 //! Ordinary AArch64 product execution and independent EL0 boundary checks.
 use super::{
-    ConduitosArch, ConduitosError, build, image, live_media,
+    build, image, live_media,
     profile::Paths,
     report::{git_head, sha256_file},
-    target_build,
+    target_build, ConduitosArch, ConduitosError,
 };
 use crate::cli::GlobalOpts;
 use std::fs;

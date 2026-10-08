@@ -118,11 +118,9 @@ fn a_provider_in_machine_and_advertisement_inventory_is_one_base() {
         .collect::<Vec<_>>();
     let advertised = &snapshot.hosts[0].advertisement.bases;
     assert_eq!(advertised.len(), 1);
-    assert!(
-        machine
-            .iter()
-            .any(|id| id == advertised[0].base_id.as_str())
-    );
+    assert!(machine
+        .iter()
+        .any(|id| id == advertised[0].base_id.as_str()));
     let expected = expected_base_ids(&machine, advertised, "display");
     assert_eq!(expected.len(), machine.len() + 1);
     assert!(expected.contains(advertised[0].base_id.as_str()));

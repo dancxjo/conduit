@@ -1,11 +1,12 @@
 //! Normal BIOS product boots remain separate from instrumented boundary entries.
 use super::super::{
-    ConduitosError, ia32_product_boot,
+    ia32_product_boot,
     profile::Paths,
     report::{git_head, sha256_file},
+    ConduitosError,
 };
 use crate::{cli::GlobalOpts, commands::host::host_target::TargetBuildManifest};
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use std::{fs, path::Path};
 
 pub(super) fn capture(
