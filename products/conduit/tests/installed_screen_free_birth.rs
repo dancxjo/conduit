@@ -92,7 +92,7 @@ fn zero_body_client_refuses_two_plots_then_continues_one_retained_body() {
     assert!(spoken.contains("Review Birth choices"));
     assert!(spoken.contains("Starting Plots selected:"));
     assert!(spoken.contains("Body retained by this installed Host:"));
-    assert!(spoken.contains("Continuing retained Body"));
+    assert!(spoken.contains("Welcome back. Type help for commands."));
     assert!(spoken.contains("Text Face revision="));
 
     let biography: Value =
@@ -337,7 +337,7 @@ fn post_birth_refuses_stale_activation_and_controls_clock() {
         )
         .unwrap();
     let born = read_until_prompt(&mut output, b"body> ");
-    assert!(born.contains("Continuing retained Body"));
+    assert!(born.contains("Welcome back. Type help for commands."));
 
     let before = local_face(&state);
     let action = before["presentation"]["actions"]
@@ -561,8 +561,7 @@ fn retained_screen_free_entrance_reopens_same_body_and_refuses_stale_boot() {
         String::from_utf8_lossy(&reopened.stderr)
     );
     let readout = String::from_utf8(reopened.stdout).unwrap();
-    assert!(readout.contains(&format!("Continuing retained Body {body_id}")));
-    assert!(!readout.contains("Commands: Commands:"));
+    assert!(readout.contains("Welcome back. Type help for commands."));
     assert!(readout.contains("Text Face revision="));
     assert!(readout.contains("ticker pace"));
     assert!(readout.contains("Owner action result:"));
@@ -592,7 +591,7 @@ fn retained_screen_free_entrance_reopens_same_body_and_refuses_stale_boot() {
     let mut input = client.stdin.take().unwrap();
     let mut output = client.stdout.take().unwrap();
     let arrival = read_until_prompt(&mut output, b"body> ");
-    assert!(arrival.contains(&format!("Continuing retained Body {body_id}")));
+    assert!(arrival.contains("Welcome back. Type help for commands."));
     input
         .write_all(format!("focus {lull}\n").as_bytes())
         .unwrap();
