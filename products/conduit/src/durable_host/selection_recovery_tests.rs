@@ -193,6 +193,39 @@ fn todo_checkpoint_and_speech_selection_survive_one_installation() {
     fs::remove_dir_all(state.parent().unwrap()).unwrap();
 }
 
+#[test]
+fn explicit_model_and_todo_checkpoint_selections_survive_reinstall() {
+    let (manifest, state) = super::tests::fixture();
+    let root = state.join("todo-checkpoint");
+    fs::create_dir_all(&root).unwrap();
+    let first = install_configured_with_todo(
+        &manifest,
+        &state,
+        selected_speech::Change::Preserve,
+        selected_model::Change::Replace(Box::new(selected_model::fixture_retained_selection())),
+        selected_todo::Change::Replace(selected_todo::Selection::select(&root, None).unwrap()),
+    )
+    .unwrap();
+    assert!(first.selected_model.is_some());
+    assert!(first.selected_todo_checkpoint.is_some());
+    let retained = install(&manifest, &state).unwrap();
+    assert_eq!(retained.host_id, first.host_id);
+    assert_eq!(retained.selected_model, first.selected_model);
+    assert_eq!(
+        retained.selected_todo_checkpoint,
+        first.selected_todo_checkpoint
+    );
+    let decoded = read_installation(&state.join("installation.json")).unwrap();
+    assert_eq!(decoded.selected_model, first.selected_model);
+    assert_eq!(
+        decoded.selected_todo_checkpoint,
+        first.selected_todo_checkpoint
+    );
+    // The fixture is an exact retained selection, not a live provider. This
+    // test never starts a Boot or contacts its unreachable endpoint.
+    fs::remove_dir_all(state.parent().unwrap()).unwrap();
+}
+
 fn decode_todo_version(hex: &str) -> [u8; 32] {
     let mut bytes = [0; 32];
     for (index, byte) in bytes.iter_mut().enumerate() {

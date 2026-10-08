@@ -234,6 +234,79 @@ fn only_initialized_adapter_capabilities_enter_the_host_advertisement() {
 }
 
 #[test]
+fn selected_model_and_todo_checkpoint_share_one_host_across_checkpoint_generation() {
+    use conduit_core::{
+        kind_id, ResourceAccessMode, ResourceContentRequirement, ResourceRetention,
+        ResourceSemanticIdentity, ResourceSharing, ResourceVersionIdentity,
+    };
+
+    let root = std::env::temp_dir().join(format!(
+        "conduit-todo-model-composition-{}-{:?}",
+        std::process::id(),
+        std::thread::current().id()
+    ));
+    std::fs::create_dir_all(&root).unwrap();
+    let content = |access, version| ResourceContentRequirement {
+        identity: ResourceSemanticIdentity::from_digest([1; 32]),
+        version: ResourceVersionIdentity::from_digest([version; 32]),
+        content_profile: kind_id("conduit.todo/checkpoint-envelope@1"),
+        maximum_bytes: conduit_std_offers::TODO_CHECKPOINT_MAX_BYTES,
+        maximum_items: 1,
+        retention: ResourceRetention::ExternalDurable,
+        sharing: ResourceSharing::SingleWriterPublished,
+        access,
+        generation_slots: 1,
+        reader_leases: 1,
+        publication_slots: if access == ResourceAccessMode::WriteCandidatePublish {
+            1
+        } else {
+            0
+        },
+        sensitive: false,
+    };
+    let mut host = StdHost::new_for_todo_checkpoint_with_local_model(
+        config(),
+        &root,
+        content(ResourceAccessMode::WriteCandidatePublish, 1),
+        Box::new(FakeLocalModel {
+            offer: offer(vec![LocalModelKindProfile::PresentSemanticFront]),
+            terminal: LocalModelAdapterTerminal::Produced,
+            calls: Vec::new(),
+        }),
+    )
+    .unwrap();
+    let selected_model_capability = host
+        .advertisement()
+        .capabilities
+        .iter()
+        .find(|capability| {
+            capability.implementation.implementation_id.as_str()
+                == conduit_ai::LOCAL_MODEL_IMPLEMENTATION
+        })
+        .unwrap()
+        .clone();
+    assert!(host
+        .advertisement()
+        .resources
+        .iter()
+        .any(|resource| { resource.pool_id.as_str() == "std/todo-checkpoint" }));
+    assert!(host
+        .advertisement()
+        .resources
+        .iter()
+        .any(|resource| { resource.class_id.as_str() == conduit_ai::LOCAL_MODEL_MEMORY_RESOURCE }));
+    host.transition_todo_checkpoint_offer(&root, content(ResourceAccessMode::ReadPublished, 2))
+        .unwrap();
+    assert!(host
+        .advertisement()
+        .capabilities
+        .contains(&selected_model_capability));
+    assert_eq!(host.advertisement().offer_generation, OfferGeneration(2));
+    assert!(host.local_model.is_some());
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
 fn local_model_pool_observation_binds_current_provider_and_resource_truth() {
     let host = StdHost::new_with_local_model(
         config(),
