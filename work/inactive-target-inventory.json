@@ -1,0 +1,26 @@
+{
+  "target": "/home/dancxjo/conduit-4907-decode-accounting/target",
+  "active_references": [],
+  "file_counts_by_suffix": {
+    ".json": 230,
+    ".TAG": 1,
+    "no-extension": 580,
+    ".d": 219,
+    ".rmeta": 130,
+    ".rlib": 35,
+    ".so": 3,
+    ".timestamp": 229,
+    ".rs": 3
+  },
+  "logical_bytes_by_suffix": {
+    ".json": 161873,
+    ".TAG": 177,
+    "no-extension": 440477876,
+    ".d": 583720,
+    ".rmeta": 91160644,
+    ".rlib": 166495710,
+    ".so": 11287176,
+    ".timestamp": 10992,
+    ".rs": 321
+  }
+}
