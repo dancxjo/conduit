@@ -65,7 +65,17 @@ impl TimerScope {
                     && capability.secondary_base == Some(BaseKind::Clock)
             })
             .ok_or(DomainRefusal::WrongBinding)?;
-        if capability.contract_revision != placement.kind_contract_revision.as_str()
+        if capability.maximum_in_flight != 1
+            || capability.maximum_input_bytes != 8
+            || capability.maximum_output_bytes != 8
+            || capability.input.is_some()
+            || capability.output.is_none_or(|port| {
+                port.name != "tick"
+                    || port.value_kind != conduit_time::TICK_VALUE_KIND
+                    || port.direction != crate::offer::PortDirection::Output
+                    || port.closes
+            })
+            || capability.contract_revision != placement.kind_contract_revision.as_str()
             || placement.artifact_id.as_str()
                 != alloc::format!("conduitos-build/{}", capability.artifact_build)
         {
@@ -87,6 +97,7 @@ impl TimerScope {
             || selected.implementation_id.as_str()
                 != crate::ordinary_base::TIMER_PROVIDER_IMPLEMENTATION
             || selected.mechanism_family.as_str() != BaseKind::Timer.as_str()
+            || selected.enforcement_class != conduit_core::BaseEnforcementClass::Cooperative
         {
             return Err(DomainRefusal::WrongBinding);
         }
