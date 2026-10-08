@@ -11,6 +11,7 @@ mod back_step;
 mod body_chat_prompt_back;
 mod body_conversation_context_back;
 pub(crate) mod body_kernel;
+mod body_scan_back;
 mod bool_presentation;
 mod calendar_proposal_back;
 mod calendar_proposal_codec;

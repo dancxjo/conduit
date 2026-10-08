@@ -5,6 +5,7 @@ use super::audio_play_back::AudioPlayBack;
 use super::audio_tone_back::AudioToneBack;
 use super::body_chat_prompt_back::BodyChatPromptBack;
 use super::body_conversation_context_back::BodyConversationContextBack;
+use super::body_scan_back::BodyScanBack;
 use super::bool_presentation::BoolPresentationBack;
 use super::calendar_proposal_back::CalendarProposalBack;
 use super::calendar_provider_back::CalendarProviderBack;
@@ -145,6 +146,7 @@ pub(super) enum InstalledBack {
     CombineLatest(CombineLatestBack),
     FlowZip(FlowZipBack),
     FlowCollect(Box<FlowCollectBack>),
+    BodyScan(Box<BodyScanBack>),
     FlowJoinByKey(Box<FlowJoinByKeyBack>),
     FlowGateScalar(FlowGateScalarBack),
     FlowFirst(FlowFirstBack),
