@@ -100,6 +100,13 @@ pub enum ExecutionEventKind {
     Refusal,
 }
 
+/// A retained observation from the original admission, never a new refusal
+/// inferred from event ordinals, missing outputs or subsequent replay.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum InspectionRefusal {
+    NativeInvariant { original_law_index: usize },
+}
+
 /// Ordered original frames, including every retained intermediate. The driver
 /// supplies exact rejected material for refusals, rather than inventing output.
 #[derive(Clone, Copy, Debug)]
@@ -125,6 +132,7 @@ pub struct ExecutionEventView<'a> {
     pub output: Option<InspectionMaterial<'a>>,
     pub intermediates: InspectionFrames<'a>,
     pub rejected_material: Option<InspectionMaterial<'a>>,
+    pub refusal: Option<InspectionRefusal>,
 }
 
 /// Implemented on the original retained history owner; no self-referential
