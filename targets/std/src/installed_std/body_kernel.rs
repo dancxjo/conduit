@@ -5,7 +5,7 @@ use super::{
 };
 use crate::{
     body_execution::BodyForeOutputAdapter, hosted_keyboard::HostedKeyboardAdapter,
-    ExternalForeDelivery, ExternalForeInput, RunControl, TimerAdapter,
+    BodyLiveForeQueue, ExternalForeDelivery, ExternalForeInput, RunControl, TimerAdapter,
 };
 use conduit_body::BodyPlotPlan;
 use conduit_core::{
@@ -43,7 +43,7 @@ pub(crate) struct BodyKernel<'a> {
     input_keymaps: [conduit_human::ConduitIntlKeymap; MAX_NODES],
     requests: Vec<HostCallRequest>,
     clock_observations: KernelClockObservations,
-    supported_preloaded_scan: bool,
+    supported_todo_scan: bool,
 }
 
 pub(crate) struct BodyKernelResult {
@@ -127,6 +127,39 @@ impl<'a> BodyKernel<'a> {
         sequential_fore: bool,
         has_fore_output: bool,
     ) -> Result<Self, String> {
+        Self::prepare_with_live(
+            partitions,
+            has_keyboard,
+            parent_play,
+            fore_inputs,
+            sequential_fore,
+            has_fore_output,
+            None,
+        )
+    }
+
+    pub(crate) fn prepare_live(
+        partitions: &[BodyPlotPlan],
+        parent_play: &conduit_core::ActivePlayId,
+        queue: &BodyLiveForeQueue,
+        control: &RunControl,
+    ) -> Result<Self, String> {
+        if partitions.len() != 1 || !queue.matches_plan(&partitions[0].plan, control) {
+            return Err("live Fore queue differs from the exact Body Plan or stop control".into());
+        }
+        Self::prepare_with_live(partitions, false, parent_play, &[], true, true, Some(queue))
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn prepare_with_live(
+        partitions: &[BodyPlotPlan],
+        has_keyboard: bool,
+        parent_play: &conduit_core::ActivePlayId,
+        fore_inputs: &'a [ExternalForeInput],
+        sequential_fore: bool,
+        has_fore_output: bool,
+        live: Option<&BodyLiveForeQueue>,
+    ) -> Result<Self, String> {
         let fragments = partitions
             .iter()
             .map(|partition| {
@@ -152,13 +185,13 @@ impl<'a> BodyKernel<'a> {
                 return Err("preloaded Todo commands exceed the selected scan bound".into());
             }
         }
-        let supported_preloaded_scan = scans.len() == 1
+        let supported_todo_scan = scans.len() == 1
             && partitions.len() == 1
             && fragments[0].placements.len() == 1
             && !has_keyboard
             && sequential_fore
             && has_fore_output
-            && fore_inputs.len() <= 64
+            && (live.is_some() || fore_inputs.len() <= 64)
             && fragments[0].placements[0].host_calls.is_empty();
         let plans = partitions
             .iter()
@@ -178,12 +211,16 @@ impl<'a> BodyKernel<'a> {
             },
         )
         .map_err(|error| format!("Body fragment lowering: {error:?}"))?;
-        let fore = BodyForeRoute::prepare(
-            &lowered.partitions,
-            fore_inputs,
-            sequential_fore,
-            has_fore_output,
-        )?;
+        let fore = if let Some(queue) = live {
+            BodyForeRoute::prepare_live(&lowered.partitions, queue)?
+        } else {
+            BodyForeRoute::prepare(
+                &lowered.partitions,
+                fore_inputs,
+                sequential_fore,
+                has_fore_output,
+            )?
+        };
         for operation in lowered.partitions.iter().flat_map(|part| &part.host_calls) {
             if keyboard(&operation.contract_id) || button(&operation.contract_id) {
                 if !has_keyboard {
@@ -322,18 +359,19 @@ impl<'a> BodyKernel<'a> {
             input_keymaps: [conduit_human::ConduitIntlKeymap::new(); MAX_NODES],
             requests: Vec::with_capacity(request_capacity),
             clock_observations: KernelClockObservations::with_capacity(usize::from(sign_items)),
-            supported_preloaded_scan,
+            supported_todo_scan,
         })
     }
 
-    /// Only the exact finite preloaded pure Todo coordinator has an installed
-    /// Body route. Later Mask ingress and other activations remain refused.
+    /// Only the exact finite pure Todo coordinator has an installed Body
+    /// route, with preloaded or admitted live typed Fore values. Face action
+    /// routing and other activations remain separate or refused.
     pub(crate) fn require_supported_execution(&self) -> Result<(), String> {
         if self
             .activations
             .iter()
             .any(|bound| !bound.entries.is_empty())
-            && !self.supported_preloaded_scan
+            && !self.supported_todo_scan
         {
             return Err("Body activation coordinator is not installed".into());
         }
@@ -383,6 +421,7 @@ impl<'a> BodyKernel<'a> {
                     deadlines.clear();
                     cancelling = true;
                 }
+                let live_observed = self.fore.activity_generation();
                 if !cancelling {
                     self.fore.start_and_feed(&mut self.scheduler)?;
                     if let Some((requirement, correlation)) = body_time {
@@ -779,6 +818,11 @@ impl<'a> BodyKernel<'a> {
                         {
                             continue;
                         }
+                        if let Some(observed) = live_observed {
+                            if self.fore.wait_for_activity(observed)? {
+                                continue;
+                            }
+                        }
                         if !keys.is_pending() && deadlines.is_empty() {
                             return Err("Body kernel has no admitted progress source".into());
                         }
@@ -883,3 +927,7 @@ fn bind_body_activations(
 #[cfg(test)]
 #[path = "body_kernel/activation_binding_tests.rs"]
 mod activation_binding_tests;
+
+#[cfg(test)]
+#[path = "body_kernel/live_fore_tests.rs"]
+mod live_fore_tests;

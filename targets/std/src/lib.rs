@@ -49,9 +49,11 @@ pub use deadline_reactor::{
     DeadlineClock, DeadlineClockError, DeadlineHostAdapter, DeadlineHostError, DeadlineKey,
     DeadlineReactor, DeadlineReactorError, DeadlineWake, ThreadMonotonicClock,
 };
+mod body_live_fore;
 pub mod external_signal;
 pub mod external_websocket;
 pub mod flow_activation;
+pub use body_live_fore::{BodyLiveForeAdmission, BodyLiveForeQueue, BodyLiveForeStatus};
 mod host_execution;
 pub mod hosted_audio;
 mod hosted_body_conversation_context;

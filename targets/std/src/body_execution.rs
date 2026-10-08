@@ -1,7 +1,8 @@
 //! Local body-wide execution through the installed std kernel.
 use crate::{
     hosted_keyboard::HostedKeyboardAdapter, installed_std::body_kernel::BodyKernel,
-    ExternalForeDelivery, ExternalForeInput, RunControl, StdHost, TimerAdapter,
+    BodyLiveForeQueue, BodyLiveForeStatus, ExternalForeDelivery, ExternalForeInput, RunControl,
+    StdHost, TimerAdapter,
 };
 use conduit_body::{BodyPlan, BodyPlanTimeAdmission, BodyPlayIdentity, Wake};
 use conduit_core::{
@@ -51,6 +52,9 @@ pub struct BodyRunReport {
     pub scan_cancellation_failed: bool,
     pub scan_output_completion_failed: bool,
     pub fore_deliveries: Vec<ExternalForeDelivery>,
+    /// Host-staged versus kernel-admitted live values at terminal. Neither
+    /// count claims that the Todo state transition committed.
+    pub live_fore_status: Option<BodyLiveForeStatus>,
     pub clock_observations: Vec<ObservedKernelEvent>,
     pub clock_quality: Option<BodyTimeQuality>,
     pub clock_execution_bounds: Option<(MonotonicDuration, MonotonicDuration)>,
@@ -127,7 +131,54 @@ impl StdHost {
             None,
             None,
             Some((inputs, sequential, fore_output)),
+            None,
             |_, _| Ok(()),
+        )
+    }
+
+    /// Run one retained Body Play while an admitted typed queue receives
+    /// later values. Face/Mask action routing is a separate semantic boundary;
+    /// the queue must be closed explicitly to complete.
+    pub fn run_body_plan_with_live_fore_to<W: Write, T: TimerAdapter>(
+        &mut self,
+        request: BodyRunRequest<'_>,
+        queue: &BodyLiveForeQueue,
+        fore_output: &mut dyn BodyForeOutputAdapter,
+        output: &mut W,
+        timer: &mut T,
+    ) -> Result<BodyRunReport, String> {
+        self.run_body_plan_with_live_fore_to_with_start(
+            request,
+            queue,
+            fore_output,
+            output,
+            timer,
+            |_, _| Ok(()),
+        )
+    }
+
+    /// Publish the admitted live Play before waiting for later typed actions.
+    pub fn run_body_plan_with_live_fore_to_with_start<W: Write, T: TimerAdapter, F>(
+        &mut self,
+        request: BodyRunRequest<'_>,
+        queue: &BodyLiveForeQueue,
+        fore_output: &mut dyn BodyForeOutputAdapter,
+        output: &mut W,
+        timer: &mut T,
+        started: F,
+    ) -> Result<BodyRunReport, String>
+    where
+        F: FnMut(&BodyPlayIdentity, &Wake) -> Result<(), String>,
+    {
+        self.run_body_plan_to_with_start_and_clock(
+            request,
+            output,
+            timer,
+            None,
+            None,
+            None,
+            Some((queue, fore_output)),
+            started,
         )
     }
 
@@ -145,7 +196,7 @@ impl StdHost {
         F: FnMut(&BodyPlayIdentity, &Wake) -> Result<(), String>,
     {
         self.run_body_plan_to_with_start_and_clock(
-            request, output, timer, None, None, None, started,
+            request, output, timer, None, None, None, None, started,
         )
     }
 
@@ -161,6 +212,7 @@ impl StdHost {
             output,
             timer,
             Some(correlation),
+            None,
             None,
             None,
             |_, _| Ok(()),
@@ -182,6 +234,7 @@ impl StdHost {
             timer,
             Some(correlation),
             Some((transport_uncertainty, scheduler_uncertainty)),
+            None,
             None,
             |_, _| Ok(()),
         )
@@ -229,19 +282,25 @@ impl StdHost {
             Some(correlation),
             None,
             None,
+            None,
             started,
         )
     }
 
     #[allow(clippy::too_many_arguments)]
-    fn run_body_plan_to_with_start_and_clock<W: Write, T: TimerAdapter, F>(
+    fn run_body_plan_to_with_start_and_clock<'a, W: Write, T: TimerAdapter, F>(
         &mut self,
         request: BodyRunRequest<'_>,
         output: &mut W,
         timer: &mut T,
         correlation: Option<&BodyClockCorrelation>,
         execution_bounds: Option<(MonotonicDuration, MonotonicDuration)>,
-        fore: Option<(&[ExternalForeInput], bool, &mut dyn BodyForeOutputAdapter)>,
+        fore: Option<(
+            &[ExternalForeInput],
+            bool,
+            &'a mut dyn BodyForeOutputAdapter,
+        )>,
+        live: Option<(&BodyLiveForeQueue, &'a mut dyn BodyForeOutputAdapter)>,
         mut started: F,
     ) -> Result<BodyRunReport, String>
     where
@@ -280,14 +339,27 @@ impl StdHost {
         // exact child pool must be prepared and correlated before Play start;
         // a preparation refusal leaves the Host sequence untouched.
         let prospective_play = BodyPlayIdentity::bind(request.plan, self.next_kernel_play_sequence);
-        let kernel = BodyKernel::prepare(
-            &request.plan.plots,
-            request.keyboard.is_some(),
-            &prospective_play.active_play_id,
-            fore_inputs,
-            sequential_fore,
-            has_fore_output,
-        )?;
+        let live_queue = live.as_ref().map(|(queue, _)| *queue);
+        let kernel = if let Some((queue, _)) = &live {
+            if request.keyboard.is_some() {
+                return Err("live Body Fore cannot also claim keyboard ingress".into());
+            }
+            BodyKernel::prepare_live(
+                &request.plan.plots,
+                &prospective_play.active_play_id,
+                queue,
+                request.control,
+            )?
+        } else {
+            BodyKernel::prepare(
+                &request.plan.plots,
+                request.keyboard.is_some(),
+                &prospective_play.active_play_id,
+                fore_inputs,
+                sequential_fore,
+                has_fore_output,
+            )?
+        };
         kernel.require_supported_execution()?;
         let reservations = self.kernel_resources.prepare_and_reserve_plans(
             &self.advertisement,
@@ -326,11 +398,16 @@ impl StdHost {
                 .map_err(|error| format!("Body start lifecycle: {error:?}"))?;
             started(&play, &wake_at_start)?;
             let terminal_sign = sign(2);
+            let fore_output = if let Some((_, adapter)) = live {
+                Some(adapter)
+            } else {
+                fore.map(|(_, _, adapter)| adapter)
+            };
             let result = kernel.run(
                 output,
                 timer,
                 request.keyboard,
-                fore.map(|(_, _, adapter)| adapter),
+                fore_output,
                 request.control,
                 &self.advertisement.host_id,
                 &self.advertisement.boot_id,
@@ -338,6 +415,9 @@ impl StdHost {
                 execution_bounds,
                 admitted_clock_quality,
             );
+            if let Some(queue) = live_queue {
+                queue.mark_play_terminal();
+            }
             Ok(BodyRunReport {
                 play,
                 wake_at_start,
@@ -352,6 +432,7 @@ impl StdHost {
                 scan_cancellation_failed: result.scan_cancellation_failed,
                 scan_output_completion_failed: result.scan_output_completion_failed,
                 fore_deliveries: result.fore_deliveries,
+                live_fore_status: live_queue.map(BodyLiveForeQueue::status),
                 clock_observations: result.clock_observations,
                 clock_quality: result.clock_quality,
                 clock_execution_bounds: result.clock_execution_bounds,
