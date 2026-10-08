@@ -38,18 +38,27 @@ test("a rendezvous code admits one already-running raw Host through the web Crè
     await expect(runner.locator('[data-application-key="physical-stage-realize"]')).toContainText("InvitationDelivered");
     await runner.getByRole("button", { name: "Observe Boot and join" }).click();
     await expect(runner.locator('[data-application-key="physical-stage-observe"]')).not.toContainText("waiting");
-    await runner.getByRole("button", { name: "Admit Part and offers" }).click();
-    await expect(runner.locator('[data-application-key="physical-stage-admit"]')).toContainText("revision");
-    await expect(runner.locator('[data-application-slot="physical-status"]')).toContainText("Physical Part admitted");
-
     const evidence = JSON.parse((await runner.locator(".physical-evidence details code").allTextContents()).join(""));
     expect(evidence).toMatchObject({
       target: { id: "std/x86_64/computer" },
       intention: { mode: "attach-running", supported: true },
       obtainment: { line_id: "conduit-line/loopback-websocket@1", membership_claimed: false },
       realization: { terminal: "InvitationDelivered", membership_claimed: false },
-      admission: { disposition: "admitted" },
     });
+    // Successful admission returns the current Workspace to its membership panel.
+    const before = await page.evaluate(() => globalThis.__conduitWorkspace.evidence().evidence.membership);
+    await runner.getByRole("button", { name: "Admit Part and offers" }).click();
+    await expect(page.locator(".member-card")).toHaveCount(2);
+    const after = await page.evaluate(() => globalThis.__conduitWorkspace.evidence());
+    expect(after.evidence.membership.revision).toBeGreaterThan(before.revision);
+    const added = after.evidence.membership.parts.find(part => part.current?.host_id === evidence.observation.host_id);
+    expect(added).toMatchObject({
+      state: "Admitted",
+      current: { host_id: evidence.observation.host_id, boot_id: evidence.observation.boot_id },
+    });
+    const offer = after.current_host_offers.find(item => item.host_id === evidence.observation.host_id);
+    expect(offer).toMatchObject({ host_id: evidence.observation.host_id, boot_id: evidence.observation.boot_id });
+    expect(offer.capabilities.length).toBeGreaterThan(0);
     await expectProcessSuccess(running);
   } finally {
     try {
