@@ -682,6 +682,8 @@ try {
     assert.equal(played.boot_id, ownerPart.current.boot_id);
     assert.equal(played.provider_sha256, installed.selected_speech.provider_sha256);
     assert.ok(played.batches.length >= 1, 'direct Face reading needs a completed speaker Play');
+    assert.equal(played.batches.flatMap(batch => batch.spoken_segments).join(''),
+      terminal.direct_opening_wording, 'speaker Plays must deliver the acknowledged opening');
     assert.equal(terminal.speaker_completed_batches, played.batches.length);
     const artifactRoot = path.join(state, 'spoken-artifacts');
     const directory = path.join(output, 'owner-direct-spoken');
