@@ -200,7 +200,40 @@ pub(super) fn write(
         ("source-condition.f32le", conditions),
         ("source-history.f32le", history),
         ("source-state.f32le", states),
+        ("source-pcm.i16le", pcm_bytes(&pcm)),
     ] {
         std::fs::write(directory.join(name), bytes).unwrap();
     }
+}
+
+fn pcm_bytes(rows: &[Vec<u8>]) -> Vec<u8> {
+    let mut bytes = Vec::with_capacity(rows.len() * 160 * 2);
+    for row in rows {
+        let value = StructuredInfoValue::from_canonical_bytes(row).unwrap();
+        let result = super::super::case_state::field(&value, "result");
+        let pcm = super::super::case_state::field(result, "pcm_i16");
+        let StructuredInfoValueShape::Collection(samples) = pcm.shape() else {
+            panic!("retained exact PCM160 collection")
+        };
+        assert_eq!(samples.len(), 160);
+        for sample in samples {
+            let StructuredInfoValueShape::Leaf(raw) = sample.shape() else {
+                panic!("retained exact I16 leaf")
+            };
+            assert_eq!(raw.len(), 2);
+            bytes.extend_from_slice(raw);
+        }
+    }
+    bytes
+}
+#[test]
+#[ignore = "requires an already drained private Source trace capture"]
+fn export_retained_committed_pcm_without_model_reexecution() {
+    let directory = std::path::PathBuf::from(std::env::var("CONDUIT_FARGAN_NATIVE_TRACE").unwrap());
+    let rows: Vec<Vec<u8>> = serde_json::from_slice(
+        &std::fs::read(directory.join("committed-result-canonical.json")).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(rows.len(), 64);
+    std::fs::write(directory.join("source-pcm.i16le"), pcm_bytes(&rows)).unwrap();
 }
