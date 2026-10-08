@@ -100,9 +100,21 @@ pub(super) fn primary_voice_clauses(
             result.push("Type read all for more detail.".into());
         }
     } else if result.len() < 7 {
+        // Application wording should lead to a content action, not a generic
+        // Body or Plot navigation prompt from the same Face.
         let mut offered = face.actions.iter().filter(|action| {
             action.availability.is_available()
                 && action.disclosure == PresentationDisclosureLevel::CurrentAction
+                && (!has_application_wording
+                    || matches!(
+                        subject_role(&action.target),
+                        Some(
+                            PresentationRole::Collection
+                                | PresentationRole::Item
+                                | PresentationRole::Document
+                                | PresentationRole::TextEntry
+                        )
+                    ))
                 && matches!(
                     level(&action.target),
                     None | Some(PresentationDisclosureLevel::Primary)
