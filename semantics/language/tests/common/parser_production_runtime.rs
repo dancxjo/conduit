@@ -1,9 +1,9 @@
 //! Ordinary retained Source numeric projection and exact resource model Plan/Play.
 use actual_expression_owner::expression_host_call::{
-    ExpressionHostCall, ExpressionOperationFactory,
+    ExpressionHostCall, ExpressionOperationFactory, PreparedExpressionFragment,
 };
 use conduit_ai::integer_categorical_step::{
-    owner::CategoricalOperationFactory, PreparedCategoricalStep, CATEGORICAL_STEP_IMPLEMENTATION,
+    CATEGORICAL_STEP_IMPLEMENTATION, PreparedCategoricalStep, owner::CategoricalOperationFactory,
 };
 use conduit_composite::*;
 use conduit_core::*;
@@ -225,15 +225,16 @@ pub fn prepare_checked_source_with_catalog(
     let fragment = &definition.internal_plan.fragments[0];
     let lowered = conduit_plan_lowering::lowering::lower_plan_fragment(fragment).unwrap();
     let active = bind_active_play(&fragment.plan_id, &fragment.host_id, &fragment.boot_id, 0);
+    let expression_fragment = PreparedExpressionFragment::prepare(fragment, &lowered, &active)
+        .expect("exact original immutable expression fragment");
     let pure = fragment
         .placements
         .iter()
         .filter_map(|gear| {
             let owner = match gear.implementation_id.as_str() {
-                actual_expression_owner::expression_host_call::IMPLEMENTATION => Pure::Expression(
-                    ExpressionHostCall::prepare(fragment, &lowered, &active, &gear.placement_id)
-                        .unwrap(),
-                ),
+                actual_expression_owner::expression_host_call::IMPLEMENTATION => {
+                    Pure::Expression(expression_fragment.owner(&gear.placement_id).unwrap())
+                }
                 CATEGORICAL_STEP_IMPLEMENTATION => return None,
                 other => panic!("foreign owner {other}"),
             };
