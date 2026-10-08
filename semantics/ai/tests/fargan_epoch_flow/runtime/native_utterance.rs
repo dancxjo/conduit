@@ -35,17 +35,97 @@ pub(in super::super) fn run_native_trained_utterance(
     proposal: &StructuredInfoValue,
     warm: &[StructuredInfoValue],
 ) -> Vec<StructuredInfoValue> {
+    let samples = tape
+        .epochs
+        .iter()
+        .map(|epoch| epoch.samples.as_slice())
+        .collect::<Vec<_>>();
+    run_trained_profile(
+        model,
+        &samples,
+        &tape.immutable_material,
+        periods,
+        proposal,
+        warm,
+        false,
+    )
+}
+
+pub(in super::super) fn run_direct16k_trained_utterance(
+    model: &super::super::custody::RetainedSignalModel,
+    tape: &super::super::direct16k::RetainedDirect16kTape,
+    periods: &[StructuredInfoValue],
+    proposal: &StructuredInfoValue,
+    warm: &[StructuredInfoValue],
+) -> Vec<StructuredInfoValue> {
+    let samples = tape
+        .epochs()
+        .iter()
+        .map(|epoch| epoch.as_slice())
+        .collect::<Vec<_>>();
+    run_trained_profile(
+        model,
+        &samples,
+        tape.immutable_material(),
+        periods,
+        proposal,
+        warm,
+        true,
+    )
+}
+
+fn run_trained_profile(
+    model: &super::super::custody::RetainedSignalModel,
+    samples: &[&[i16]],
+    immutable_material: &[u8],
+    periods: &[StructuredInfoValue],
+    proposal: &StructuredInfoValue,
+    warm: &[StructuredInfoValue],
+    direct16k: bool,
+) -> Vec<StructuredInfoValue> {
+    assert_eq!(samples.len(), periods.len());
+    let native_epochs = u32::try_from(samples.len()).unwrap();
+    assert!((2..=65535).contains(&native_epochs));
+    if !direct16k {
+        assert_eq!(native_epochs, 63);
+    }
+    assert!(samples
+        .iter()
+        .all(|s| s.len() == if direct16k { 160 } else { 80 }));
     let seeds = run_native_startup_feedback(warm, proposal);
     let (context, seeded, _) = super::super::prepared_signal_cycle_profiles_with_capacity(true);
     let (context, seeded, _) = super::super::conditioning_cycle::prepare_with(context, seeded);
-    let (context, seeded, ids) =
-        super::super::feature_cycle::prepare_feedback_with(context, seeded);
-    let (context, tail, _, mut offers) = super::super::feature_cycle::prepare_tail(context, &ids);
+    let (context, seeded, ids) = if direct16k {
+        super::super::direct16k::prepare_with(context, seeded)
+    } else {
+        super::super::feature_cycle::prepare_feedback_with(context, seeded)
+    };
+    let (context, tail, _, mut offers) =
+        super::super::feature_cycle::prepare_tail_for_epochs(context, &ids, native_epochs);
     offers.extend(seeded.offers().cloned());
-    let (context, source, entry, trace_directory) =
-        super::native_trace::prepare_source(context, &ids, &tail);
+    let (context, source, entry, trace_directory) = if direct16k {
+        (
+            context,
+            super::super::direct16k::utterance_source(&ids, &tail),
+            "speech/flow-fargan-native-utterance",
+            None,
+        )
+    } else {
+        super::native_trace::prepare_source(context, &ids, &tail)
+    };
     let analysis = analysis_resources();
-    let mut startup_material = tape.immutable_material.clone();
+    let mut startup_material = immutable_material.to_vec();
+    if direct16k {
+        startup_material.extend_from_slice(include_bytes!(
+            "../../../../speech/fargan_direct16k_normalization.conduit"
+        ));
+        startup_material.extend_from_slice(include_bytes!(
+            "../../../../speech/fargan_feature_direct16k_flow.conduit"
+        ));
+        startup_material.extend_from_slice(include_bytes!(
+            "../../../../speech/fargan_feature_direct16k_contracts.conduit"
+        ));
+    }
     startup_material.extend_from_slice(include_bytes!(
         "../../../../speech/fargan_native_control.conduit"
     ));
@@ -58,7 +138,7 @@ pub(in super::super) fn run_native_trained_utterance(
     startup_material.extend_from_slice(include_bytes!(
         "../../../../speech/fargan_warm_startup.conduit"
     ));
-    startup_material.extend_from_slice(&63u64.to_le_bytes());
+    startup_material.extend_from_slice(&u64::from(native_epochs).to_le_bytes());
     for value in [proposal].into_iter().chain(warm) {
         startup_material.extend_from_slice(&value.canonical_bytes().unwrap());
     }
@@ -87,7 +167,7 @@ pub(in super::super) fn run_native_trained_utterance(
     let basis = model.basis_material(
         &source,
         &startup_material,
-        b"Source finite native63 epochs, two explicit continuation epochs; reference float32",
+        if direct16k { b"Source direct16016k finite epochs, two explicit continuation epochs; reference float32; declared analysis-resynthesis loss" } else { b"Source finite native63 epochs, two explicit continuation epochs; reference float32" },
     );
     use sha2::{Digest, Sha256};
     let basis_identity: [u8; 32] = Sha256::digest(&basis).into();
@@ -97,8 +177,15 @@ pub(in super::super) fn run_native_trained_utterance(
             "selected: FarganModelFrameAnchor\n",
             &format!("selected: FarganModelFrameAnchor = {anchor}\n"),
         )
-        .replace("native_epochs: U64\n", "native_epochs: U64 = 63\n");
-    let definition = super::super::native_startup::startup_definition();
+        .replace(
+            "native_epochs: U64\n",
+            &format!("native_epochs: U64 = {native_epochs}\n"),
+        );
+    let mut definition = super::super::native_startup::startup_definition();
+    if direct16k {
+        definition += "\n";
+        definition += include_str!("../../../../speech/fargan_feature_direct16k_contracts.conduit");
+    }
     let checked = conduit_plot::check_syntax_document(
         &conduit_plot::parse_syntax_document(&definition),
         &conduit_plot::StartupCatalog::new(),
@@ -120,12 +207,15 @@ pub(in super::super) fn run_native_trained_utterance(
             .canonical_bytes()
             .unwrap()
     };
-    let event_ty = ty("FarganFeaturePcmEpoch");
+    let event_ty = ty(if direct16k {
+        "FarganFeaturePcmEpoch16k"
+    } else {
+        "FarganFeaturePcmEpoch"
+    });
     let StructuredInfoTypeShape::Record { fields, .. } = event_ty.shape() else {
         panic!("event")
     };
-    let events = tape
-        .epochs
+    let events = samples
         .iter()
         .zip(periods)
         .enumerate()
@@ -163,7 +253,7 @@ pub(in super::super) fn run_native_trained_utterance(
                 }
             }
             let values = BTreeMap::from([
-                ("samples", samples(samples_type, &native.samples)),
+                ("samples", samples(samples_type, native)),
                 ("period", period.clone()),
                 (
                     "epoch",
@@ -188,14 +278,18 @@ pub(in super::super) fn run_native_trained_utterance(
             let encoded = event.canonical_bytes().unwrap();
             super::super::interface::admit_retained_session_native(
                 &checked,
-                "FarganFeaturePcmEpoch",
+                if direct16k {
+                    "FarganFeaturePcmEpoch16k"
+                } else {
+                    "FarganFeaturePcmEpoch"
+                },
                 &encoded,
             )
             .unwrap();
             encoded
         })
         .collect::<Vec<_>>();
-    assert_eq!(events.len(), 62);
+    assert_eq!(events.len(), native_epochs as usize - 1);
     let inputs = BTreeMap::from([
         (
             "signal_seed".into(),
@@ -250,7 +344,7 @@ pub(in super::super) fn run_native_trained_utterance(
         inputs,
         Some(seeded),
         StreamRun {
-            expected: 64,
+            expected: native_epochs as usize + 1,
             mode: ExecutionMode::Normal,
             trace: traces.as_ref(),
         },
@@ -278,10 +372,10 @@ pub(in super::super) fn run_native_trained_utterance(
         .unwrap();
     }
     assert!(result.drained);
-    assert_eq!(result.values.len(), 64);
+    assert_eq!(result.values.len(), native_epochs as usize + 1);
     eprintln!(
-        "actual committed native utterance trained Source: {}nodes/{}cords; prep{:?}/execute{:?}; exact native63 epochs and two Source continuation epochs",
-        result.nodes, result.cords, result.preparation, result.execution
+        "actual committed native utterance trained Source: {}nodes/{}cords; prep{:?}/execute{:?}; exact native{} epochs and two Source continuation epochs",
+        result.nodes, result.cords, result.preparation, result.execution, native_epochs
     );
     result.values
 }

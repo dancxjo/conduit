@@ -11,6 +11,10 @@ mod declarations;
 mod epoch_profiles;
 #[path = "fargan_epoch_flow/feature_cycle.rs"]
 mod feature_cycle;
+#[path = "fargan_epoch_flow/feature_profiles.rs"]
+mod feature_profiles;
+#[path = "fargan_epoch_flow/direct16k.rs"]
+mod direct16k;
 #[path = "fargan_epoch_flow/guest_fixture.rs"]
 mod guest_fixture;
 #[path = "fargan_epoch_flow/interface.rs"]
@@ -465,3 +469,6 @@ mod custody;
 #[allow(dead_code)]
 #[path = "fargan_signal_graph/state.rs"]
 mod case_state;
+
+#[path = "fargan_epoch_flow/committed_direct16k.rs"]
+mod committed_direct16k;

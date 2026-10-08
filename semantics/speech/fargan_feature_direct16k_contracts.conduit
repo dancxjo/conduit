@@ -1,0 +1,17 @@
+# Separate16k entrances; append to original numeric/Fargan Source declarations.
+# Existing proposal/pending/feedback/conditioner/model Types remain unchanged.
+# Actual sample-rate/timebase/original IPA/cycle custody lives in the joined owner;
+# these fixed numeric epoch Types do not claim clock or utterance authority.
+type FarganFeaturePcmEpoch16k = {
+    samples: NumericI16Vector160
+    period: FarganPeriod
+    epoch: U64
+}
+type FarganFeatureInputEpoch16k = {
+    samples: NumericI16Vector160
+    history: NumericF32Vector640
+    previous_raw: NumericFiniteF32
+    previous_normalized: NumericFiniteF32
+    period: FarganPeriod
+    epoch: U64
+}

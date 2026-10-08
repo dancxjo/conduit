@@ -5,7 +5,24 @@ pub(in super::super) fn run_native_first_feature(
     samples: &[i16; 80],
     period: &StructuredInfoValue,
 ) -> StructuredInfoValue {
-    let (context, ids) = super::super::feature_cycle::prepare_first_feature();
+    run_first_feature(samples, period, false)
+}
+pub(in super::super) fn run_native_first_feature16k(
+    samples: &[i16; 160],
+    period: &StructuredInfoValue,
+) -> StructuredInfoValue {
+    run_first_feature(samples, period, true)
+}
+fn run_first_feature<const N: usize>(
+    samples: &[i16; N],
+    period: &StructuredInfoValue,
+    direct16k: bool,
+) -> StructuredInfoValue {
+    let (context, ids) = if direct16k {
+        super::super::direct16k::prepare_first()
+    } else {
+        super::super::feature_cycle::prepare_first_feature()
+    };
     let profile = context
         .native
         .iter()
@@ -65,7 +82,9 @@ pub(in super::super) fn run_native_first_feature(
     .unwrap();
     let definition = super::super::declarations::exact_epoch_declarations()
         + "\n"
-        + include_str!("../../../../speech/fargan_feature_epoch_contracts.conduit");
+        + include_str!("../../../../speech/fargan_feature_epoch_contracts.conduit")
+        + "\n"
+        + include_str!("../../../../speech/fargan_feature_direct16k_contracts.conduit");
     let checked = conduit_plot::check_syntax_document(
         &conduit_plot::parse_syntax_document(&definition),
         &conduit_plot::StartupCatalog::new(),
@@ -74,15 +93,27 @@ pub(in super::super) fn run_native_first_feature(
     let encoded = event.canonical_bytes().unwrap();
     super::super::interface::admit_retained_session_native(
         &checked,
-        "FarganFeaturePcmEpoch",
+        if direct16k {
+            "FarganFeaturePcmEpoch16k"
+        } else {
+            "FarganFeaturePcmEpoch"
+        },
         &encoded,
     )
     .unwrap();
-    let source = super::super::feature_cycle::first_feature_source(&ids);
+    let source = if direct16k {
+        super::super::direct16k::first_source(&ids)
+    } else {
+        super::super::feature_cycle::first_feature_source(&ids)
+    };
     let (plan, context) = super::super::prepare_authored_epoch_entry(
         context,
         source,
-        "speech/flow-fargan-feature-first-analysis",
+        if direct16k {
+            "speech/flow-fargan-feature-first16k-analysis"
+        } else {
+            "speech/flow-fargan-feature-first-analysis"
+        },
         true,
         vec![],
     )

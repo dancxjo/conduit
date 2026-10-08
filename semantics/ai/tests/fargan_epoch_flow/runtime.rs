@@ -31,9 +31,9 @@ mod trace_hooks;
 mod trace_outputs;
 pub(super) use native_control::run_native_period_controls;
 pub(super) use native_startup::{
-    run_native_first_feature, run_native_startup_feedback, run_native_warm_startup,
+    run_native_first_feature, run_native_first_feature16k, run_native_startup_feedback, run_native_warm_startup,
 };
-pub(super) use native_utterance::run_native_trained_utterance;
+pub(super) use native_utterance::{run_native_trained_utterance, run_direct16k_trained_utterance};
 
 const PORTS: usize = conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 const N: usize = 1024;

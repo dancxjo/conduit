@@ -1,0 +1,17 @@
+# Private arithmetic entrance. Full original admitted Audio cycle/grid/target/result
+# and Source projection receipt remain in the preparation owner. Field copies into
+# this profile preserve their exact U64 values; no arithmetic occurs in the adapter.
+# This exact capability refuses fractional sample periods and other rates rather
+# than authorizing the legacy rounding/clipping policy on unsupported cycles.
+type FarganDirect16kCycleQ8Eligible = {
+    sample_rate_hz: U64
+    whole_frames: U64
+    remainder_numerator: U64
+    where .sample_rate_hz == 16000
+    where .whole_frames >= 32 && .whole_frames <= 255
+    where .remainder_numerator == 0
+}
+plot speech/fargan-direct16k-cycle-q8 (
+    >> value: FarganDirect16kCycleQ8Eligible
+    result: U64 >>
+) = (.whole_frames * 256)

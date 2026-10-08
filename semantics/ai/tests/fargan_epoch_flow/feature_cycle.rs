@@ -88,261 +88,18 @@ pub(super) fn prepare_feedback() -> (
 }
 
 pub(super) fn prepare_feedback_with(
-    mut context: EpochProfiles,
-    mut seeded: conduitos::seeded_state::SeededStateOperationFactory,
+    context: EpochProfiles,
+    seeded: conduitos::seeded_state::SeededStateOperationFactory,
 ) -> (
     EpochProfiles,
     conduitos::seeded_state::SeededStateOperationFactory,
     std::collections::BTreeMap<String, String>,
 ) {
-    use std::{collections::BTreeMap, sync::Arc};
-    let definition = declarations::exact_epoch_declarations()
-        + "\n"
-        + include_str!("../../../speech/fargan_epoch_feedback.conduit")
-        + "\n"
-        + include_str!("../../../speech/fargan_feature_epoch_contracts.conduit");
-    let mut ids = BTreeMap::new();
-    let mut native = BTreeMap::new();
-    for (key, name) in [
-        ("INPUT", "FarganFeatureInputEpoch"),
-        ("PROPOSAL", "FarganFeatureProposalEpoch"),
-        ("PENDING", "FarganFeaturePendingState"),
-        ("STATE", "FarganFeatureEpochFeedback"),
-        ("EVENT", "FarganFeaturePcmEpoch"),
-    ] {
-        let profile = Arc::new(PreparedNativeProfile::check_definition(&definition, name).unwrap());
-        profile
-            .install(&mut context.startup, &mut context.profiles, true)
-            .unwrap();
-        ids.insert(
-            format!("__FEATURE_{key}_NATIVE__"),
-            profile.kind_identity(true),
-        );
-        native.insert(key, profile.value_type().clone());
-        context.native.push(profile);
-    }
-    let state = &native["STATE"];
-    let event = &native["EVENT"];
-    let cell = conduit_semantic_catalog::install_seeded_state_flow_specialized_kind(
-        &shape_contract(state),
-        state,
-        &mut context.startup,
-        &mut context.profiles,
+    super::feature_profiles::prepare(
+        context,
+        super::feature_profiles::FeaturePcmGeometry::Legacy8k,
+        seeded,
     )
-    .unwrap();
-    assert_eq!(
-        seeded
-            .install_flow_specialized_frame16k(&shape_contract(state), state)
-            .unwrap()
-            .kind_id,
-        cell
-    );
-    ids.insert("__FEATURE_CELL__".into(), cell.as_str().into());
-    let zip = conduit_semantic_catalog::install_flow_zip_feedback_specialized_kind(
-        &shape_contract(state),
-        state,
-        &shape_contract(event),
-        event,
-        &mut context.startup,
-        &mut context.profiles,
-    )
-    .unwrap();
-    assert_eq!(
-        context
-            .zip
-            .install_feedback_specialized(
-                &shape_contract(state),
-                state,
-                &shape_contract(event),
-                event
-            )
-            .unwrap()
-            .kind_id,
-        zip
-    );
-    ids.insert("__FEATURE_ZIP__".into(), zip.as_str().into());
-    let paired = PreparedTypedTuplePairEncoder::new(
-        state.clone(),
-        maximum_prepared_transport_value_bytes(state).unwrap(),
-        event.clone(),
-        maximum_prepared_transport_value_bytes(event).unwrap(),
-    )
-    .unwrap();
-    let weak = Arc::new(PreparedNominalWeakening::prepare(paired.value_type().clone()).unwrap());
-    weak.install(&mut context.startup, &mut context.profiles, true)
-        .unwrap();
-    ids.insert("__FEATURE_INPUT_WEAK__".into(), weak.kind_identity(true));
-    let guard =
-        conduit_ai::fixed_numeric_guard::FixedGuardProfile::prepare(weak.output_type().clone())
-            .unwrap();
-    guard
-        .install(&mut context.startup, &mut context.profiles)
-        .unwrap();
-    ids.insert(
-        "__FEATURE_INPUT_GUARD__".into(),
-        guard.contract().unwrap().kind_id.as_str().into(),
-    );
-    context.guards.push(guard);
-    context.weakening.push(weak);
-    let pair = conduit_ai::closing_structured_pair::ClosingStructuredPairProfile::prepare(
-        fixed_numeric_type("NumericF32Vector80").unwrap(),
-        StructuredInfoType::leaf(kind_id(F32_INFO_ID)).unwrap(),
-    )
-    .unwrap();
-    pair.install(&mut context.startup, &mut context.profiles)
-        .unwrap();
-    ids.insert("__FEATURE_RESAMPLE_PAIR__".into(), pair.identity().into());
-    context.pairs.push(pair);
-    let pair = conduit_ai::closing_structured_pair::ClosingStructuredPairProfile::prepare(
-        fixed_numeric_type("NumericRawF32Vector160").unwrap(),
-        StructuredInfoType::leaf(kind_id(F32_INFO_ID)).unwrap(),
-    )
-    .unwrap();
-    pair.install(&mut context.startup, &mut context.profiles)
-        .unwrap();
-    ids.insert(
-        "__FEATURE_PREEMPHASIS_PAIR__".into(),
-        pair.identity().into(),
-    );
-    context.pairs.push(pair);
-    let pair = conduit_ai::closing_structured_pair::ClosingStructuredPairProfile::prepare(
-        fixed_numeric_type("NumericF32Vector640").unwrap(),
-        fixed_numeric_type("NumericF32Vector160").unwrap(),
-    )
-    .unwrap();
-    pair.install(&mut context.startup, &mut context.profiles)
-        .unwrap();
-    ids.insert("__FEATURE_HISTORY_PAIR__".into(), pair.identity().into());
-    context.pairs.push(pair);
-    fn register_pair(
-        context: &mut EpochProfiles,
-        ids: &mut BTreeMap<String, String>,
-        key: &str,
-        left: StructuredInfoType,
-        right: StructuredInfoType,
-    ) -> StructuredInfoType {
-        let pair =
-            conduit_ai::closing_structured_pair::ClosingStructuredPairProfile::prepare(left, right)
-                .unwrap();
-        pair.install(&mut context.startup, &mut context.profiles)
-            .unwrap();
-        ids.insert(format!("__FEATURE_{key}_PAIR__"), pair.identity().into());
-        let result = pair.value_type().clone();
-        context.pairs.push(pair);
-        result
-    }
-    let wave_features = register_pair(
-        &mut context,
-        &mut ids,
-        "WAVE_FEATURES",
-        fixed_numeric_type("NumericF32Vector640").unwrap(),
-        fixed_numeric_type("NumericF32Vector20").unwrap(),
-    );
-    let memories = register_pair(
-        &mut context,
-        &mut ids,
-        "MEMORIES",
-        StructuredInfoType::leaf(kind_id(F32_INFO_ID)).unwrap(),
-        StructuredInfoType::leaf(kind_id(F32_INFO_ID)).unwrap(),
-    );
-    let period = conduit_ai::fixed_numeric_u16_profile::PreparedU16Profile::check_definition(
-        "type FarganPeriod = U16 in 32..=255\n",
-    )
-    .unwrap()
-    .value_type()
-    .clone();
-    let epoch_period = register_pair(
-        &mut context,
-        &mut ids,
-        "PERIOD_EPOCH",
-        period,
-        StructuredInfoType::leaf(kind_id("value/u64")).unwrap(),
-    );
-    let carry = register_pair(&mut context, &mut ids, "CARRY", memories, epoch_period);
-    let proposal = register_pair(&mut context, &mut ids, "PROPOSAL", wave_features, carry);
-    let weak = Arc::new(PreparedNominalWeakening::prepare(proposal).unwrap());
-    weak.install(&mut context.startup, &mut context.profiles, true)
-        .unwrap();
-    ids.insert("__FEATURE_PROPOSAL_WEAK__".into(), weak.kind_identity(true));
-    context.weakening.push(weak);
-    let event_definition = declarations::exact_epoch_declarations()
-        + "\n"
-        + include_str!("../../../speech/fargan_conditioning_epoch_contracts.conduit");
-    let model_event = Arc::new(
-        PreparedNativeProfile::check_definition(&event_definition, "FarganFeatureConditionEpoch")
-            .unwrap(),
-    );
-    model_event
-        .install(&mut context.startup, &mut context.profiles, true)
-        .unwrap();
-    ids.insert(
-        "__FEATURE_MODEL_EVENT_NATIVE__".into(),
-        model_event.kind_identity(true),
-    );
-    context.native.push(model_event);
-    let raw_proposal =
-        Arc::new(PreparedNominalWeakening::prepare(native["PROPOSAL"].clone()).unwrap());
-    raw_proposal
-        .install(&mut context.startup, &mut context.profiles, true)
-        .unwrap();
-    ids.insert(
-        "__FEATURE_NATIVE_PROPOSAL_WEAK__".into(),
-        raw_proposal.kind_identity(true),
-    );
-    context.weakening.push(raw_proposal);
-    let ack = register_pair(
-        &mut context,
-        &mut ids,
-        "ACK",
-        native["PENDING"].clone(),
-        StructuredInfoType::leaf(kind_id("value/u64")).unwrap(),
-    );
-    let weak_ack = Arc::new(PreparedNominalWeakening::prepare(ack).unwrap());
-    weak_ack
-        .install(&mut context.startup, &mut context.profiles, true)
-        .unwrap();
-    ids.insert("__FEATURE_ACK_WEAK__".into(), weak_ack.kind_identity(true));
-    let ack_guard =
-        conduit_ai::fixed_numeric_guard::FixedGuardProfile::prepare(weak_ack.output_type().clone())
-            .unwrap();
-    ack_guard
-        .install(&mut context.startup, &mut context.profiles)
-        .unwrap();
-    ids.insert(
-        "__FEATURE_ACK_GUARD__".into(),
-        ack_guard.contract().unwrap().kind_id.as_str().into(),
-    );
-    context.guards.push(ack_guard);
-    context.weakening.push(weak_ack);
-    let pcm = context
-        .native
-        .iter()
-        .find(|profile| profile.kind_identity(true) == context.kinds["__PCM_VALIDATOR__"])
-        .unwrap()
-        .value_type()
-        .clone();
-    let ack_model_guard = conduit_ai::fixed_numeric_guard::FixedGuardProfile::prepare(pcm).unwrap();
-    let existing_ack_guard = context
-        .guards
-        .iter()
-        .any(|profile| profile.contract().unwrap() == ack_model_guard.contract().unwrap());
-    if !existing_ack_guard {
-        ack_model_guard
-            .install(&mut context.startup, &mut context.profiles)
-            .unwrap();
-    }
-    ids.insert(
-        "__FEATURE_ACK_MODEL_GUARD__".into(),
-        ack_model_guard.contract().unwrap().kind_id.as_str().into(),
-    );
-    ids.insert(
-        "__FEATURE_PCM_NATIVE__".into(),
-        context.kinds["__PCM_VALIDATOR__"].clone(),
-    );
-    if !existing_ack_guard {
-        context.guards.push(ack_model_guard);
-    }
-    (context, seeded, ids)
 }
 
 #[test]
@@ -357,7 +114,7 @@ fn feature_feedback_preparation_retains_exact_separate_state_and_pcm_event() {
         .any(|profile| profile.kind_identity(true) == ids["__FEATURE_STATE_NATIVE__"]));
 }
 
-fn feedback_entry_source(ids: &std::collections::BTreeMap<String, String>) -> String {
+pub(super) fn feedback_entry_source(ids: &std::collections::BTreeMap<String, String>) -> String {
     format!("with {weak}/result as FeatureFeedbackPair\nwith {native}/candidate as FeatureInputCandidate\nplot speech/flow-fargan-feature-input-matches (\nvalue: FeatureFeedbackPair...| >> result: Boolean...|\n) = ((.item-00000.next_epoch == .item-00001.epoch) && (.item-00001.epoch < 18446744073709551615))\nplot speech/flow-fargan-feature-input-candidate (\nvalue: FeatureFeedbackPair...| >> result: FeatureInputCandidate...|\n) = {{ samples: .item-00001.samples, history: .item-00000.history, previous_raw: .item-00000.previous_raw, previous_normalized: .item-00000.previous_normalized, period: .item-00001.period, epoch: .item-00001.epoch }}\n",weak=ids["__FEATURE_INPUT_WEAK__"], native=ids["__FEATURE_INPUT_NATIVE__"])
 }
 #[test]
@@ -712,7 +469,7 @@ fn conditioning_candidate_profile_survives_three_cell_registration() {
 }
 
 pub(super) fn prepare_tail(
-    mut context: EpochProfiles,
+    context: EpochProfiles,
     ids: &std::collections::BTreeMap<String, String>,
 ) -> (
     EpochProfiles,
@@ -720,6 +477,15 @@ pub(super) fn prepare_tail(
     StructuredInfoType,
     Vec<CapabilityOffer>,
 ) {
+    prepare_tail_for_epochs(context, ids, 63)
+}
+
+pub(super) fn prepare_tail_for_epochs(
+    mut context: EpochProfiles,
+    ids: &std::collections::BTreeMap<String, String>,
+    native_epochs: u32,
+) -> (EpochProfiles, String, StructuredInfoType, Vec<CapabilityOffer>) {
+    assert!((2..=65535).contains(&native_epochs), "finite explicit epoch profile");
     let profile = context
         .native
         .iter()
@@ -768,7 +534,7 @@ pub(super) fn prepare_tail(
         profile.kind_identity(false),
         profile.kind_identity(true),
         context.kinds["__PCM_VALIDATOR__"],
-        policy.replace("native_epochs: U64\n", "native_epochs: U64 = 63\n").replace("last_native_epoch: U64\n", "last_native_epoch: U64 = 62\n")
+        policy.replace("native_epochs: U64\n", &format!("native_epochs: U64 = {native_epochs}\n"))
     );
     let mut concat = conduitos::flow_concat_finite::FlowConcatFiniteOperationFactory::default();
     let mut offers = vec![

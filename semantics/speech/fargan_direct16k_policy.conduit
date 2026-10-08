@@ -1,0 +1,5 @@
+# Caller-selected acceptance of the named authored formant spectral analysis /
+# trained-model resynthesis projection. No upstream feature, measurement,
+# perceptual identity, realtime or clock mapping authority is asserted.
+type FarganDirect16kAnalysisPolicy =
+    accept_formant_spectral_analysis_resynthesis_v1

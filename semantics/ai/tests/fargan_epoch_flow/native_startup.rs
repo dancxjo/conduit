@@ -3,10 +3,19 @@ use super::*;
 use std::{collections::BTreeMap, sync::Arc};
 
 pub(super) fn align_native_pcm(epochs: &[StructuredInfoValue]) -> (Vec<i16>, String) {
+    align_native_pcm_for_epochs(epochs, 63)
+}
+pub(super) fn align_native_pcm_for_epochs(
+    epochs: &[StructuredInfoValue],
+    native_epochs: u32,
+) -> (Vec<i16>, String) {
+    assert!((2..=65535).contains(&native_epochs));
     let source = declarations::exact_epoch_declarations()
         + "\n"
-        + &include_str!("../../../speech/fargan_native_pcm_alignment.conduit")
-            .replace("native_epochs: U64\n", "native_epochs: U64 = 63\n");
+        + &include_str!("../../../speech/fargan_native_pcm_alignment.conduit").replace(
+            "native_epochs: U64\n",
+            &format!("native_epochs: U64 = {native_epochs}\n"),
+        );
     let checked =
         check_syntax_document(&parse_syntax_document(&source), &StartupCatalog::new()).unwrap();
     let graph = expand_canonical_plot_for_authoring(
@@ -21,7 +30,7 @@ pub(super) fn align_native_pcm(epochs: &[StructuredInfoValue]) -> (Vec<i16>, Str
     let program = PortableExpressionProgram::from_canonical_hex(hex).unwrap();
     let mut prepared = PreparedPortableExpressionEvaluator::new(&program).unwrap();
     let mut pcm = vec![];
-    assert_eq!(epochs.len(), 64);
+    assert_eq!(epochs.len(), native_epochs as usize + 1);
     for (index, epoch) in epochs.iter().enumerate() {
         assert_eq!(epoch.value_type(), &program.input_type);
         let input = epoch.canonical_bytes().unwrap();
@@ -35,7 +44,11 @@ pub(super) fn align_native_pcm(epochs: &[StructuredInfoValue]) -> (Vec<i16>, Str
         };
         assert_eq!(
             samples.len(),
-            if index == 0 || index == 63 { 80 } else { 160 }
+            if index == 0 || index == native_epochs as usize {
+                80
+            } else {
+                160
+            }
         );
         for sample in samples {
             let StructuredInfoValueShape::Leaf(bytes) = sample.shape() else {
@@ -44,7 +57,7 @@ pub(super) fn align_native_pcm(epochs: &[StructuredInfoValue]) -> (Vec<i16>, Str
             pcm.push(i16::from_le_bytes(bytes.try_into().unwrap()));
         }
     }
-    assert_eq!(pcm.len(), 10080);
+    assert_eq!(pcm.len(), native_epochs as usize * 160);
     (pcm, source)
 }
 
@@ -133,8 +146,10 @@ fn startup_domains_retain_separate_exact_native_admissions() {
 fn native_pcm_alignment_is_checked_source_with_exact_variable_block_bounds() {
     let source = declarations::exact_epoch_declarations()
         + "\n"
-        + &include_str!("../../../speech/fargan_native_pcm_alignment.conduit")
-            .replace("native_epochs: U64\n", "native_epochs: U64 = 63\n");
+        + &include_str!("../../../speech/fargan_native_pcm_alignment.conduit").replace(
+            "native_epochs: U64\n",
+            "native_epochs: U64 = 63\n",
+        );
     let checked =
         check_syntax_document(&parse_syntax_document(&source), &StartupCatalog::new()).unwrap();
     let aligned = checked
