@@ -105,6 +105,25 @@ impl RunControl {
         );
     }
 
+    /// Host-local safety bound for a waiting one-command Fore. This does not
+    /// invent a semantic deadline or retry an effect.
+    pub(crate) fn wait_for_activity_or_stop_for(&self, observed: u64, timeout: Duration) -> bool {
+        let state = self.state.0.lock().expect("run control lock poisoned");
+        let (state, result) = self
+            .state
+            .1
+            .wait_timeout_while(state, timeout, |state| {
+                state.activity_generation == observed
+                    && state.requested.is_none()
+                    && !state.accepted
+            })
+            .expect("run control lock poisoned");
+        result.timed_out()
+            && state.activity_generation == observed
+            && state.requested.is_none()
+            && !state.accepted
+    }
+
     /// Observe cancellation during a Host effect without consuming the exact
     /// request that the runner must acknowledge in its lifecycle evidence.
     pub fn stop_requested(&self) -> bool {
