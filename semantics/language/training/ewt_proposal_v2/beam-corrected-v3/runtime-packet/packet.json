@@ -1,0 +1,29 @@
+{
+  "scope": "Additive independently derived artifact packet and actual original Source/Plan/model two-query parity only; candidate remains unaccepted; no closed factory/corpus/stable-fact/public Session claim",
+  "artifact_sha256": "f70f560d54a81dd34d005254985dbfd394363def5f5a4ffe3e97e7c90306d2c5",
+  "full_training_manifest_sha256": "7ce7c6927e8e739113c4bc50f3cc1005f67ce9cc913ddf51a6ddd460d291afda",
+  "selection_identity": "TRAIN+22-reviewed-proposal-beam-corrected-v3",
+  "coherent_sdk_manifest_sha256": "c8d3ef5dac450632422da6f0973514a0fff25e95ba067af072e0fb287b5ce85c",
+  "runtime_session": 77784,
+  "runtime_natural_exit_status": 0,
+  "actual_model_calls": 2,
+  "complete_scores_compared_per_call": 76,
+  "elapsed_seconds": 63.24,
+  "whole_process_VmHWM_KiB": 285192,
+  "signature_proposer_unknown_policy_numeric_Types_all6Sourcecontracts_exactly_predecessor": true,
+  "files": {
+    "artifact-full.debug.txt": "ca8ed489d1baea378b56d446ae58badf3bec6693dee6614faa495c8788d71e12",
+    "artifact-reference.bin": "9f3d518ceb3b9b8607b898cdb9a4b2159edf2f81215f1b99277e75e0da686f21",
+    "candidate.rs": "b23abc419c705b269dd52c6545c01fb15a44e72ac3488aedf29a4c427593c9eb",
+    "expected.json": "a8cb27bd3b72ea8ed6438729d4121ef6271749e2f8dc1e683c1fa0389398936b",
+    "expected_metadata.rs": "8355eb84f91f6dbe482f57637a88d94273b4ce94d97044a9a5301f997a115e6d",
+    "numeric-indices.type.bin": "c71c657455b5c2038385133ccb1ee9f60f8218af1d1111623b6b2e0c19e83a67",
+    "numeric-runtime.log": "b10afd3791a870c2fa351009f253e1ab0f4e10795888711f087f1ad098416724",
+    "numeric-rusage.log": "4c4678481f5ac99e153caa50c8445507066ace302bee1be634d6ad9f99672845",
+    "numeric-scores.type.bin": "20e1cc29b858f4ddde0e9295d58ad0a09042254f76152b26ea095ad8eb96049b",
+    "numeric.rs": "f79f76129f8eebc7ccf319f5660bb48d310f55b0371cc702376eb0dd48d32029",
+    "proposer-definition.native.bin": "e0efb3346305149f4dcbeb17db0d969a7b92c2483a152b1fef6193b9e6440c08",
+    "signature.native.bin": "442156610399aae8c7e970edf22b8b18e4fd8dddbcb7f4d1f50d0d332ba2fe70",
+    "unknown-policy.native.bin": "9db5503e2454ada0bfdb5508ae362a5751e4da1fb18fdd3abbc7ceab06720cde"
+  }
+}
