@@ -1,0 +1,34 @@
+# WORK-only endpoint rebase; complete original qualified fact/ProposedTape and
+# every Source I/O remain independently retained by the opaque Session. Previous
+# must mechanically equal its actual prior Source assembly output. Next and
+# previous_revision come from actual opaque revision producers, not snapshots.
+type LanguageParserWindow8QualifiedLexicalRebase = {
+ previous: LanguageParserWindow8QualifiedLexicalAnchor
+ previous_revision: LanguageTextRevision
+ next: LanguageLexicalProposedTape
+ lineage: LanguageTextRevisionLineage
+ basis: LanguageParserBasis
+ where .lineage.previous == .previous_revision && .lineage.next == .next.tape.source
+ where .previous.basis.text == .previous_revision.material.identity && .previous.basis.source_revision == .previous_revision.material.revision
+ where .basis.text == .next.tape.source.material.identity && .basis.source_revision == .next.tape.source.material.revision
+ where .basis.analysis_revision != .previous.basis.analysis_revision
+ where .previous.definition == .next.definition
+ where .previous.dependent < sequence/length(.next.tape.tokens)
+ where variant/is(sequence/at(.next.tape.tokens,.previous.dependent).completeness,"complete")
+ where variant/is(sequence/at(.next.tape.tokens,.previous.dependent).prior_occurrence,"some") ? sequence/at(.next.tape.tokens,.previous.dependent).prior_occurrence.some == .previous.token.identity : false
+ where sequence/at(.next.tape.tokens,.previous.dependent).surface == .previous.token.surface
+ where sequence/at(.next.tape.tokens,.previous.dependent).candidates == .previous.token.candidates
+ where sequence/at(.next.tape.tokens,.previous.dependent).span.start == .previous.token.span.start && sequence/at(.next.tape.tokens,.previous.dependent).span.end == .previous.token.span.end
+ where variant/tag(sequence/at(.next.tape.tokens,.previous.dependent).span.basis) == variant/tag(.previous.token.span.basis)
+ where sequence/at(.next.origins,.previous.dependent) == .previous.origin
+ where .previous.choice < sequence/length(.previous.token.candidates)
+}
+plot language-window8-qualified-lexical-rebase-token (
+ input: LanguageParserWindow8QualifiedLexicalRebase...| >> output: LanguageLexicalToken...|
+) = sequence/at(.next.tape.tokens,.previous.dependent)
+plot language-window8-qualified-lexical-rebase-origin (
+ input: LanguageParserWindow8QualifiedLexicalRebase...| >> output: LanguageLexicalProposalOrigin...|
+) = .previous.origin
+plot language-window8-qualified-lexical-rebase-scalars (
+ input: LanguageParserWindow8QualifiedLexicalRebase...| >> output: LanguageParserWindow8QualifiedLexicalAnchorScalars...|
+) = { basis: .basis, dependent: .previous.dependent, definition: .previous.definition, choice: .previous.choice }

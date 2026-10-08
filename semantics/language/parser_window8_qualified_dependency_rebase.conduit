@@ -1,0 +1,22 @@
+# WORK-only qualified edge rebase. Previous is the exact prior qualified edge
+# Source output; each endpoint is the exact newly rebased lexical Source anchor.
+# Opaque Session retains full origin Analysis, ProposedTape/origins, full original
+# revision lineage, prior and current producer owners and every Source hop.
+# This compact representation cannot authorize a dependency by itself.
+type LanguageParserWindow8QualifiedDependencyRebase = {
+ previous: LanguageParserWindow8DependencyAnchorProposal
+ dependent: LanguageParserWindow8QualifiedLexicalAnchor
+ head: LanguageParserWindow8QualifiedLexicalAnchor?
+ where .previous.dependent == .dependent.dependent
+ where .previous.dependent_choice == .dependent.choice
+ where .previous.current_basis.text == .dependent.basis.text
+ where .previous.current_basis.analysis_revision != .dependent.basis.analysis_revision
+ where (.previous.head == 8) == variant/is(.head,"none")
+ where .previous.head == 8 || .head.some.dependent == .previous.head
+ where .previous.head == 8 || .head.some.choice == .previous.head_choice
+ where .previous.head == 8 || .head.some.basis == .dependent.basis
+ where .previous.head == 8 || .head.some.definition == .dependent.definition
+}
+plot language-window8-qualified-dependency-rebase (
+ input: LanguageParserWindow8QualifiedDependencyRebase...| >> output: LanguageParserWindow8DependencyAnchorProposal...|
+) = { origin_basis: .previous.origin_basis, current_basis: .dependent.basis, dependent: .previous.dependent, head: .previous.head, dependent_choice: .previous.dependent_choice, head_choice: .previous.head_choice, relation: .previous.relation }

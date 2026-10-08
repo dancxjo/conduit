@@ -1,0 +1,29 @@
+# WORK-only qualified independent commitments. Complete original qualified
+# analysis and each actual Source anchor projection remain independently owned.
+# Query.edge must equal that exact projection before consumption, never merely
+# satisfy this representation. Every previous active fact keeps its origin.
+plot language-window8-qualified-dependency-anchor (
+ input: LanguageParserWindow8QualifiedDependencyAnalysis...| >> output: LanguageParserWindow8DependencyAnchorProposal...|
+) = { origin_basis: .query.context.query.snapshot.basis, current_basis: .query.context.query.snapshot.basis, dependent: .query.context.query.dependent, head: .query.context.head, dependent_choice: .query.dependent.choice, head_choice: (.query.context.head == 8 ? 0 : .query.head.some.choice), relation: .query.context.relation }
+type LanguageParserWindow8QualifiedIndependentCommitRequest = {
+ analysis: LanguageParserWindow8QualifiedDependencyAnalysis
+ previous: LanguageParserWindow8IndependentCommitSet
+ edge: LanguageParserWindow8DependencyAnchorProposal
+ where .previous.basis == .analysis.query.context.query.snapshot.basis
+ where .edge.origin_basis == .analysis.query.context.query.snapshot.basis && .edge.current_basis == .previous.basis
+ where .edge.dependent == .analysis.query.context.query.dependent && .edge.head == .analysis.query.context.head
+ where .edge.dependent_choice == .analysis.query.dependent.choice
+ where .edge.head_choice == (.edge.head == 8 ? 0 : .analysis.query.head.some.choice)
+ where .edge.relation == .analysis.query.context.relation
+ where (.edge.dependent == 0 && .previous.active.0) ? (.previous.edge0.head == .edge.head && .previous.edge0.dependent_choice == .edge.dependent_choice && .previous.edge0.head_choice == .edge.head_choice && .previous.edge0.relation == .edge.relation) : true
+ where (.edge.dependent == 1 && .previous.active.1) ? (.previous.edge1.head == .edge.head && .previous.edge1.dependent_choice == .edge.dependent_choice && .previous.edge1.head_choice == .edge.head_choice && .previous.edge1.relation == .edge.relation) : true
+ where (.edge.dependent == 2 && .previous.active.2) ? (.previous.edge2.head == .edge.head && .previous.edge2.dependent_choice == .edge.dependent_choice && .previous.edge2.head_choice == .edge.head_choice && .previous.edge2.relation == .edge.relation) : true
+ where (.edge.dependent == 3 && .previous.active.3) ? (.previous.edge3.head == .edge.head && .previous.edge3.dependent_choice == .edge.dependent_choice && .previous.edge3.head_choice == .edge.head_choice && .previous.edge3.relation == .edge.relation) : true
+ where (.edge.dependent == 4 && .previous.active.4) ? (.previous.edge4.head == .edge.head && .previous.edge4.dependent_choice == .edge.dependent_choice && .previous.edge4.head_choice == .edge.head_choice && .previous.edge4.relation == .edge.relation) : true
+ where (.edge.dependent == 5 && .previous.active.5) ? (.previous.edge5.head == .edge.head && .previous.edge5.dependent_choice == .edge.dependent_choice && .previous.edge5.head_choice == .edge.head_choice && .previous.edge5.relation == .edge.relation) : true
+ where (.edge.dependent == 6 && .previous.active.6) ? (.previous.edge6.head == .edge.head && .previous.edge6.dependent_choice == .edge.dependent_choice && .previous.edge6.head_choice == .edge.head_choice && .previous.edge6.relation == .edge.relation) : true
+ where (.edge.dependent == 7 && .previous.active.7) ? (.previous.edge7.head == .edge.head && .previous.edge7.dependent_choice == .edge.dependent_choice && .previous.edge7.head_choice == .edge.head_choice && .previous.edge7.relation == .edge.relation) : true
+}
+plot language-window8-qualified-independent-commit (
+ input: LanguageParserWindow8QualifiedIndependentCommitRequest...| >> output: LanguageParserWindow8IndependentCommitSetProposal...|
+) = { basis: .previous.basis, active: [(.previous.active.0 || .edge.dependent == 0),(.previous.active.1 || .edge.dependent == 1),(.previous.active.2 || .edge.dependent == 2),(.previous.active.3 || .edge.dependent == 3),(.previous.active.4 || .edge.dependent == 4),(.previous.active.5 || .edge.dependent == 5),(.previous.active.6 || .edge.dependent == 6),(.previous.active.7 || .edge.dependent == 7)], edge0: (.previous.active.0 || .edge.dependent != 0 ? .previous.edge0 : .edge), edge1: (.previous.active.1 || .edge.dependent != 1 ? .previous.edge1 : .edge), edge2: (.previous.active.2 || .edge.dependent != 2 ? .previous.edge2 : .edge), edge3: (.previous.active.3 || .edge.dependent != 3 ? .previous.edge3 : .edge), edge4: (.previous.active.4 || .edge.dependent != 4 ? .previous.edge4 : .edge), edge5: (.previous.active.5 || .edge.dependent != 5 ? .previous.edge5 : .edge), edge6: (.previous.active.6 || .edge.dependent != 6 ? .previous.edge6 : .edge), edge7: (.previous.active.7 || .edge.dependent != 7 ? .previous.edge7 : .edge) }
