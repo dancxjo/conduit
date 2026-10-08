@@ -4,13 +4,43 @@ import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import { deflateSync } from 'node:zlib';
 import { renderTodoJourney, validateTodoJourney } from '../../tools/ci/pipeline/todo-journey.mjs';
 
 const commit = 'a'.repeat(40);
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const chapters = ['birth', 'add', 'join', 'complete', 'inspect', 'hear', 'read', 'recover'];
 const base = { source_commit: commit, run_id: 'run/todo-1', body_id: 'body/todo-1' };
-const png = Buffer.concat([Buffer.from('89504e470d0a1a0a0000000d49484452', 'hex'), Buffer.from([0, 0, 0, 1, 0, 0, 0, 1, 8, 2, 0, 0, 0])]);
+function crc32(bytes) {
+  let value = 0xffffffff;
+  for (const byte of bytes) {
+    value ^= byte;
+    for (let bit = 0; bit < 8; bit++) value = (value >>> 1) ^ ((value & 1) ? 0xedb88320 : 0);
+  }
+  return (value ^ 0xffffffff) >>> 0;
+}
+function pngChunk(kind, bytes) {
+  const name = Buffer.from(kind);
+  const size = Buffer.alloc(4); size.writeUInt32BE(bytes.length);
+  const crc = Buffer.alloc(4); crc.writeUInt32BE(crc32(Buffer.concat([name, bytes])));
+  return Buffer.concat([size, name, bytes, crc]);
+}
+function fixturePng() {
+  const width = 640; const height = 360;
+  const header = Buffer.alloc(13);
+  header.writeUInt32BE(width); header.writeUInt32BE(height, 4);
+  header[8] = 8; header[9] = 2;
+  const rows = Buffer.alloc(height * (1 + width * 3));
+  for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
+    const at = y * (1 + width * 3) + 1 + x * 3;
+    rows[at] = x < width / 2 ? 38 : 217;
+    rows[at + 1] = y < height / 2 ? 68 : 141;
+    rows[at + 2] = 105;
+  }
+  return Buffer.concat([Buffer.from('89504e470d0a1a0a', 'hex'),
+    pngChunk('IHDR', header), pngChunk('IDAT', deflateSync(rows)), pngChunk('IEND', Buffer.alloc(0))]);
+}
+const png = fixturePng();
 function wav() {
   const pcm = Buffer.from([0, 0, 1, 0]);
   const bytes = Buffer.alloc(44 + pcm.length);
@@ -122,9 +152,11 @@ test('complete fixture renders task sequence in shared shell with real media lin
   const outputRoot = mkdtempSync(path.join(tmpdir(), 'todo-render-'));
   t.after(() => rmSync(outputRoot, { recursive: true, force: true }));
   const destination = path.join(outputRoot, 'todo');
-  renderTodoJourney(root, destination, commit, '.site-header{}', '<header class="site-header">Common navigation</header>', { checkAncestry: false });
+  renderTodoJourney(root, destination, commit,
+    readFileSync('targets/browser/host/assets/conduit.css', 'utf8') + readFileSync('site/chrome.css', 'utf8'),
+    readFileSync('site/navigation.html', 'utf8'), { checkAncestry: false });
   const html = readFileSync(path.join(destination, 'index.html'), 'utf8');
-  assert.match(html, /Common navigation/);
+  assert.match(html, /Main navigation/);
   assert.match(html, /Keep one Todo list with you/);
   assert.match(html, /audio controls/);
   assert.match(html, /Complete terminal capture/);
