@@ -463,6 +463,33 @@
         {
           "role": "browser-runtime-bridge",
           "specifier": "./browser-runtime-bridge.mjs"
+        },
+        {
+          "role": "browser-application-storage",
+          "specifier": "./browser-application-storage.mjs"
+        },
+        {
+          "role": "browser-resource-storage",
+          "specifier": "./browser-resource-storage.mjs"
+        }
+      ]
+    },
+    {
+      "role": "browser-application-storage",
+      "kind": "module",
+      "path": "browser-application-storage.mjs",
+      "maximum_bytes": 16384,
+      "dependencies": []
+    },
+    {
+      "role": "browser-resource-storage",
+      "kind": "module",
+      "path": "browser-resource-storage.mjs",
+      "maximum_bytes": 4096,
+      "dependencies": [
+        {
+          "role": "browser-application-storage",
+          "specifier": "./browser-application-storage.mjs"
         }
       ]
     },
