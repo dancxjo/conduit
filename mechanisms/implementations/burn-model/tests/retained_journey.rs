@@ -38,29 +38,26 @@ fn retained_cpu_train_resume_export_reload_journey() {
     let mut trainer = create();
     let batch = common::batch();
     let cancel = Cancellation::default();
-    let metric = |model: &BurnAdapter<common::RegressionDefinition>| {
+    let metric = |model: &mut BurnAdapter<common::RegressionDefinition>| {
         *model
             .evaluate(&common::request(1).batch, &batch)
             .unwrap()
             .metrics[0]
             .value_millionths()
     };
-    let before = metric(&trainer);
+    let before = metric(&mut trainer);
     for step in 1..=40 {
         trainer
             .train_step(&common::request(step), &batch, &cancel)
             .unwrap();
     }
     let store = DirectoryCheckpointStore::new(root.join("resume"), 65536, 16).unwrap();
+    let checkpoint_metrics = trainer
+        .evaluate(&common::request(1).batch, &batch)
+        .unwrap()
+        .metrics;
     let checkpoint = trainer
-        .checkpoint(
-            &store,
-            trainer
-                .evaluate(&common::request(1).batch, &batch)
-                .unwrap()
-                .metrics,
-            &cancel,
-        )
+        .checkpoint(&store, checkpoint_metrics, &cancel)
         .unwrap();
     let checkpoint_id = checkpoint.checkpoint.content.identity.digest();
     let at_checkpoint = trainer.infer(&batch.inputs).unwrap();
@@ -74,7 +71,7 @@ fn retained_cpu_train_resume_export_reload_journey() {
             .train_step(&common::request(step), &batch, &cancel)
             .unwrap();
     }
-    let after = metric(&resumed);
+    let after = metric(&mut resumed);
     assert!(after < before / 10);
     let predicted = resumed.infer(&batch.inputs).unwrap();
     let inference_store = DirectoryCheckpointStore::new(root.join("inference"), 65536, 16).unwrap();

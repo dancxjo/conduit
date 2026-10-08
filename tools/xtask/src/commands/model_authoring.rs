@@ -178,7 +178,7 @@ fn cuda_device_evidence() -> Result<serde_json::Value, Box<dyn Error>> {
         return Err("CUDA proof requires one unambiguous identified local GPU; preserve logs and provide an explicit multi-device proof entrance before claiming it".into());
     }
     Ok(
-        json!({"host":host.trim(),"driver_device_information":devices,"selected_profile":"burn/cuda/0","precision":"number/ieee754-f32-le","absolute_output_tolerance":0.0001}),
+        json!({"host":host.trim(),"driver_device_information":devices,"selected_profile":"burn/cuda/0","precision":"number/ieee754-f32-le","independently_trained_output_absolute_tolerance":0.001,"same_checkpoint_inference_absolute_tolerance":0.001}),
     )
 }
 

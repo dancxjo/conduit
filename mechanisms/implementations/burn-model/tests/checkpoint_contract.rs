@@ -29,14 +29,12 @@ fn checkpoint_reload_preserves_inference() {
     host.train_step(&common::request(1), &batch, &cancel)
         .unwrap();
     let before = host.infer(&batch.inputs).unwrap();
+    let checkpoint_metrics = host
+        .evaluate(&common::request(1).batch, &common::batch())
+        .unwrap()
+        .metrics;
     let receipt = host
-        .checkpoint(
-            &store,
-            host.evaluate(&common::request(1).batch, &common::batch())
-                .unwrap()
-                .metrics,
-            &cancel,
-        )
+        .checkpoint(&store, checkpoint_metrics, &cancel)
         .unwrap();
     assert_eq!(receipt.completed_steps, 1);
     let mut loaded = adapter();
@@ -57,14 +55,12 @@ fn fresh_runtime_resumes_recorded_step_cursor() {
         host.train_step(&common::request(step), &batch, &cancel)
             .unwrap();
     }
+    let checkpoint_metrics = host
+        .evaluate(&common::request(1).batch, &common::batch())
+        .unwrap()
+        .metrics;
     let checkpoint = host
-        .checkpoint(
-            &store,
-            host.evaluate(&common::request(1).batch, &common::batch())
-                .unwrap()
-                .metrics,
-            &cancel,
-        )
+        .checkpoint(&store, checkpoint_metrics, &cancel)
         .unwrap();
     let mut resumed = adapter();
     resumed
@@ -90,25 +86,21 @@ fn checkpoint_failure_retains_durable_cursor() {
     let batch = common::batch();
     host.train_step(&common::request(1), &batch, &cancel)
         .unwrap();
-    host.checkpoint(
-        &store,
-        host.evaluate(&common::request(1).batch, &common::batch())
-            .unwrap()
-            .metrics,
-        &cancel,
-    )
-    .unwrap();
+    let checkpoint_metrics = host
+        .evaluate(&common::request(1).batch, &common::batch())
+        .unwrap()
+        .metrics;
+    host.checkpoint(&store, checkpoint_metrics, &cancel)
+        .unwrap();
     let previous = store.latest_identity().unwrap();
     host.train_step(&common::request(2), &batch, &cancel)
         .unwrap();
+    let checkpoint_metrics = host
+        .evaluate(&common::request(1).batch, &common::batch())
+        .unwrap()
+        .metrics;
     assert!(host
-        .checkpoint(
-            &store,
-            host.evaluate(&common::request(1).batch, &common::batch())
-                .unwrap()
-                .metrics,
-            &cancel
-        )
+        .checkpoint(&store, checkpoint_metrics, &cancel)
         .is_err());
     assert_eq!(store.latest_identity().unwrap(), previous);
 }
@@ -120,14 +112,12 @@ fn incompatible_recipe_and_corrupt_checkpoint_refuse_without_mutation() {
     let cancel = Cancellation::default();
     host.train_step(&common::request(1), &common::batch(), &cancel)
         .unwrap();
+    let checkpoint_metrics = host
+        .evaluate(&common::request(1).batch, &common::batch())
+        .unwrap()
+        .metrics;
     let receipt = host
-        .checkpoint(
-            &store,
-            host.evaluate(&common::request(1).batch, &common::batch())
-                .unwrap()
-                .metrics,
-            &cancel,
-        )
+        .checkpoint(&store, checkpoint_metrics, &cancel)
         .unwrap();
     let id = receipt.checkpoint.content.identity.digest();
     let mut changed = recipe();
@@ -185,30 +175,26 @@ fn inference_off_ramp_has_no_resume_authority() {
 fn failed_pointer_replacement_never_advertises_partial_bundle() {
     let dir = tempfile::tempdir().unwrap();
     let store = DirectoryCheckpointStore::new(dir.path(), 65536, 16).unwrap();
-    let host = adapter();
+    let mut host = adapter();
     let cancel = Cancellation::default();
     // Force rename failure after immutable blob/descriptor durability.
     std::fs::create_dir(dir.path().join("latest.json")).unwrap();
+    let checkpoint_metrics = host
+        .evaluate(&common::request(1).batch, &common::batch())
+        .unwrap()
+        .metrics;
     assert!(matches!(
-        host.checkpoint(
-            &store,
-            host.evaluate(&common::request(1).batch, &common::batch())
-                .unwrap()
-                .metrics,
-            &cancel
-        ),
+        host.checkpoint(&store, checkpoint_metrics, &cancel),
         Err(Error::CheckpointIo(_))
     ));
     assert!(store.latest_identity().is_err());
     std::fs::remove_dir(dir.path().join("latest.json")).unwrap();
+    let checkpoint_metrics = host
+        .evaluate(&common::request(1).batch, &common::batch())
+        .unwrap()
+        .metrics;
     let recovered = host
-        .checkpoint(
-            &store,
-            host.evaluate(&common::request(1).batch, &common::batch())
-                .unwrap()
-                .metrics,
-            &cancel,
-        )
+        .checkpoint(&store, checkpoint_metrics, &cancel)
         .unwrap();
     assert_eq!(
         store.latest_identity().unwrap(),
@@ -242,14 +228,12 @@ fn cancellation_and_stale_resume_preserve_live_and_durable_progress() {
     let cancel = Cancellation::default();
     host.train_step(&common::request(1), &common::batch(), &cancel)
         .unwrap();
+    let checkpoint_metrics = host
+        .evaluate(&common::request(1).batch, &common::batch())
+        .unwrap()
+        .metrics;
     let checkpoint = host
-        .checkpoint(
-            &store,
-            host.evaluate(&common::request(1).batch, &common::batch())
-                .unwrap()
-                .metrics,
-            &cancel,
-        )
+        .checkpoint(&store, checkpoint_metrics, &cancel)
         .unwrap();
     let previous = store.latest_identity().unwrap();
     host.train_step(&common::request(2), &common::batch(), &cancel)
@@ -261,14 +245,12 @@ fn cancellation_and_stale_resume_preserve_live_and_durable_progress() {
     );
     let cancelled = Cancellation::default();
     cancelled.cancel();
+    let checkpoint_metrics = host
+        .evaluate(&common::request(1).batch, &common::batch())
+        .unwrap()
+        .metrics;
     assert_eq!(
-        host.checkpoint(
-            &store,
-            host.evaluate(&common::request(1).batch, &common::batch())
-                .unwrap()
-                .metrics,
-            &cancelled
-        ),
+        host.checkpoint(&store, checkpoint_metrics, &cancelled),
         Err(Error::Cancelled)
     );
     assert_eq!(store.latest_identity().unwrap(), previous);

@@ -94,6 +94,17 @@ impl AuthoringDescriptor {
             if port.presence != conduit_ai::ModelPortPresence::Required {
                 return Err(Error::InvalidDescriptor);
             }
+            for axis in tensor.constraint().axes.get().iter() {
+                if axis.role == conduit_data::TensorAxisRole::Batch {
+                    let maximum = match &axis.dimension {
+                        conduit_ai::ModelDimensionConstraint::Fixed(value) => *value.value(),
+                        conduit_ai::ModelDimensionConstraint::Bounded(value) => *value.maximum(),
+                    };
+                    if maximum > u64::from(self.limits.maximum_batch_items) {
+                        return Err(Error::ResourceBound);
+                    }
+                }
+            }
         }
         let r = self.resources;
         if r.model_bytes == 0

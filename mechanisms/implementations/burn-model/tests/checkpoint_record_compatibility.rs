@@ -50,14 +50,12 @@ fn tampered_optimizer_refuses(change_shape: bool) {
         .unwrap();
     let dir = tempfile::tempdir().unwrap();
     let store = DirectoryCheckpointStore::new(dir.path(), 65536, 16).unwrap();
+    let checkpoint_metrics = host
+        .evaluate(&common::request(1).batch, &common::batch())
+        .unwrap()
+        .metrics;
     let checkpoint = host
-        .checkpoint(
-            &store,
-            host.evaluate(&common::request(1).batch, &common::batch())
-                .unwrap()
-                .metrics,
-            &cancel,
-        )
+        .checkpoint(&store, checkpoint_metrics, &cancel)
         .unwrap();
     let mut descriptor: serde_json::Value = serde_json::from_slice(
         &std::fs::read(store.descriptor_path(&checkpoint.checkpoint.content.identity.digest()))

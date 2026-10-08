@@ -48,3 +48,10 @@ fn fresh_initialization_refuses_unrelated_base_weights() {
         Err(Error::IncompatibleCheckpoint)
     ));
 }
+
+#[test]
+fn signature_batch_bound_cannot_exceed_realization_admission() {
+    let mut descriptor = common::descriptor();
+    descriptor.limits.maximum_batch_items = 1;
+    assert!(descriptor.validate().is_err());
+}

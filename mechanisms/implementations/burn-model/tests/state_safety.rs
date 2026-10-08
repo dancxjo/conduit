@@ -174,14 +174,12 @@ fn cpu_resume_in_cuda_build_refuses_ambient_optimizer_device() {
         .unwrap();
     let dir = tempfile::tempdir().unwrap();
     let store = conduit_burn_model::DirectoryCheckpointStore::new(dir.path(), 65536, 16).unwrap();
+    let checkpoint_metrics = host
+        .evaluate(&common::request(1).batch, &common::batch())
+        .unwrap()
+        .metrics;
     let checkpoint = host
-        .checkpoint(
-            &store,
-            host.evaluate(&common::request(1).batch, &common::batch())
-                .unwrap()
-                .metrics,
-            &cancel,
-        )
+        .checkpoint(&store, checkpoint_metrics, &cancel)
         .unwrap();
     let before = host.snapshot_identity().unwrap();
     assert_eq!(
@@ -291,4 +289,28 @@ fn cancellation_during_forward_discards_output_and_preserves_state() {
     );
     assert_eq!(before, host.snapshot_identity().unwrap());
     assert_eq!(&state, host.state());
+}
+
+#[test]
+fn invalid_evaluation_batch_refuses_before_objective_execution() {
+    let observed = Cancellation::default();
+    let mut host = adapter(Definition {
+        cancel: Some(observed.clone()),
+        frozen: false,
+        candidate_bytes: None,
+    });
+    let mut invalid = common::request(1).batch;
+    invalid.dataset_identity = [99; 32];
+    assert!(host.evaluate(&invalid, &common::batch()).is_err());
+    assert!(
+        !observed.is_cancelled(),
+        "objective ran before semantic admission"
+    );
+    host.evaluate(&common::request(1).batch, &common::batch())
+        .unwrap();
+    assert!(
+        observed.is_cancelled(),
+        "valid evaluation must reach the objective"
+    );
+    assert_eq!(host.lifecycle().phase, TrainingLifecyclePhase::Ready);
 }

@@ -54,7 +54,9 @@ and final publication share a gate: cancellation wins before publication; a
 publication already holding that gate wins as one complete commit. Failed or
 cancelled candidates retain the previous generation. In-flight failure/cancellation
 is terminal; unload and initialize/resume a fresh adapter before continuing.
-Evaluation uses a valid, detached fork and preserves parameters, optimizer, and cursor.
+Evaluation admits batch identity, work and cadence before numerical work, reserves
+the existing exclusive compute lifecycle slot, and uses a valid detached fork.
+It preserves parameters, optimizer, and cursor.
 
 SafeTensors weights and a versioned descriptor are inference off-ramps. Resume
 bundles additionally persist a Burn module record retaining ParamIds, AdamW state,

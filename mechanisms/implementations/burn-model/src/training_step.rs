@@ -9,7 +9,7 @@ use conduit_ai::*;
 
 impl<D: BurnModelDefinition> BurnAdapter<D> {
     pub fn evaluate(
-        &self,
+        &mut self,
         batch_identity: &TrainingBatch,
         batch: &ModelBatch,
     ) -> Result<EvaluationReceipt, Error> {
@@ -18,38 +18,48 @@ impl<D: BurnModelDefinition> BurnAdapter<D> {
             return Err(Error::IncompatibleCheckpoint);
         }
         self.validate_batch(batch, batch_identity)?;
-        self.offer.admits(&self.requirement(
-            ModelComputeOperation::Evaluate,
-            batch_identity.encoded_bytes,
-            self.offer.limits.maximum_output_bytes,
-        ))?;
-        let model = self
-            .model
-            .as_ref()
-            .ok_or(Error::Unloaded)?
-            .clone()
-            .fork(&self.device)
-            .valid();
-        let objective = self.definition.objective(
-            &model,
-            batch,
-            self.context.session.objectives_slice(),
-            &self.device,
-        )?;
-        let loss: f32 = objective.loss.into_scalar();
-        if !loss.is_finite() {
-            return Err(Error::NumericFailure);
-        }
-        Ok(self.context.session.evaluate(EvaluationRequest {
+        let admission = EvaluationRequest {
             artifact: &self.context.artifact,
             dataset: &self.context.dataset,
             split: &self.context.split,
             state: &self.state,
             batch: batch_identity,
-            metrics: objective.metrics,
+            metrics: Vec::new(),
             consumed_work_units: self.descriptor.resources.maximum_work_per_step,
             realization: &self.context.realization,
-        })?)
+        };
+        self.context.session.admit_evaluation(&admission)?;
+        let requirement = self.requirement(
+            ModelComputeOperation::Evaluate,
+            batch_identity.encoded_bytes,
+            self.offer.limits.maximum_output_bytes,
+        );
+        self.session.begin(&requirement, 0)?;
+        let result = (|| {
+            let model = self
+                .model
+                .as_ref()
+                .ok_or(Error::Unloaded)?
+                .clone()
+                .fork(&self.device)
+                .valid();
+            let objective = self.definition.objective(
+                &model,
+                batch,
+                self.context.session.objectives_slice(),
+                &self.device,
+            )?;
+            let loss: f32 = objective.loss.into_scalar();
+            if !loss.is_finite() {
+                return Err(Error::NumericFailure);
+            }
+            Ok(self.context.session.evaluate(EvaluationRequest {
+                metrics: objective.metrics,
+                ..admission
+            })?)
+        })();
+        self.session.finish()?;
+        result
     }
     pub fn train_step(
         &mut self,

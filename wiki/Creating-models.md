@@ -247,6 +247,8 @@ the separately pinned FARGAN dependency inspection.
 | Honest bounded authoring | `authoring_contract_refuses_invalid_profiles` | hosted library tested |
 | Real CPU autodiff learns | `burn_cpu_loss_decreases` | hosted library tested |
 | Cancellation retains parameters/optimizer | `cancelled_step_retains_parameters_and_optimizer` | hosted library tested |
+| Invalid evaluation identity refuses before work | `invalid_evaluation_batch_refuses_before_objective_execution` | hosted library tested |
+| Signature batch bounds fit realization | `signature_batch_bound_cannot_exceed_realization_admission` | hosted library tested |
 | Evaluation is read-only | `evaluation_preserves_training_state` | hosted library tested |
 | Inference reload needs no training context | `inference_export_reloads_without_dataset_session_or_optimizer` | hosted library tested |
 | Nonfinite updates never commit | `finite_loss_with_nonfinite_gradient_never_commits_candidate` | hosted library tested |

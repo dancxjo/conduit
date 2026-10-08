@@ -79,14 +79,12 @@ fn frozen_parameter_group_remains_frozen_after_resume() {
     }
     let dir = tempfile::tempdir().unwrap();
     let store = DirectoryCheckpointStore::new(dir.path(), 65536, 16).unwrap();
+    let checkpoint_metrics = host
+        .evaluate(&common::request(1).batch, &batch)
+        .unwrap()
+        .metrics;
     let checkpoint = host
-        .checkpoint(
-            &store,
-            host.evaluate(&common::request(1).batch, &batch)
-                .unwrap()
-                .metrics,
-            &cancel,
-        )
+        .checkpoint(&store, checkpoint_metrics, &cancel)
         .unwrap();
     let mut resumed = adapter();
     resumed

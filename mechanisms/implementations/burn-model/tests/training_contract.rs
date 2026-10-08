@@ -42,7 +42,7 @@ fn burn_cpu_loss_decreases() {
 }
 #[test]
 fn evaluation_preserves_training_state() {
-    let host = adapter();
+    let mut host = adapter();
     let before = host.snapshot_identity().unwrap();
     let state = host.state().clone();
     host.evaluate(&common::request(1).batch, &common::batch())
