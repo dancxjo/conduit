@@ -400,9 +400,16 @@ pub(crate) fn canonical_value(value: &CanonicalStartupValue) -> String {
 /// Compute the checked syntax document's existing lossless Source identity.
 /// This does not parse, type-check, admit Native laws, or grant resource authority.
 pub fn syntax_source_document_identity(source: &str) -> SourceDocumentId {
-    SourceDocumentId::from(crate::hash_string(&alloc::format!(
-        "canonical-source:{source}"
-    )))
+    use sha2::{Digest, Sha256};
+    let mut hash = Sha256::new();
+    hash.update(b"canonical-source:");
+    hash.update(source.as_bytes());
+    let mut encoded = String::with_capacity(64);
+    for byte in hash.finalize() {
+        encoded.push(crate::hex(byte >> 4));
+        encoded.push(crate::hex(byte & 0x0f));
+    }
+    SourceDocumentId::from(encoded)
 }
 
 #[cfg(test)]
