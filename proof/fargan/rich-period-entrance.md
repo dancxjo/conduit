@@ -122,3 +122,28 @@ common owner. Production composition must bind those original trajectories and
 query frames to that owner and add the temporal-approximation Core report; it
 must not infer trajectory preservation from the numerical precision report.
 No fresh full varying-period neural run or waveform is claimed by this component.
+
+## Root exact-SDK AST adapter
+
+`components/shared_pitch_ast_adapter.rs` is compiled independently against root's
+exact Core/Plot/Speech SDK family (Core/Plot Source checkpoint
+`fac54c65ca1b0869e469f61d836bc5cdf36e9f9e`). It uses the exported
+`conduit_speech::bounded_pitch_programs::PitchPrograms` owner through `alloc::rc::Rc`;
+it does not import those newer Types into the older FARGAN SDK or manufacture a
+cross-SDK cast. Construction verifies all three original programs, exact storage
+requirements, actual retained storage and both caller limits before cloning the
+owner handle. It never reparses or duplicates the program ASTs.
+
+Opaque raw execution receipts retain that exact owner, index, full original input,
+exact static program and complete output. They deliberately expose `execute_raw`:
+Source Native guards and original common trajectory custody remain caller-owned
+composition prerequisites, never consequences of expression evaluation. The AST
+quota also excludes adapter handles, receipt frames, Native/evaluator scratch and
+session working memory.
+
+The pinned root artifact replay checks all 18 complete original executions,
+shared owner identity, swapped-program owner refusal, separate under-retained and
+under-preparation refusal, invalid index and malformed input refusal. Measured
+AST storage is 707509 bytes actual retained and 4091629 bytes conservative
+retained/preparation bound. This adapter is a small dependency checkpoint, not a
+whole-model resource or rich waveform proof.
