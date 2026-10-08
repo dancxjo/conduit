@@ -12,7 +12,7 @@ use alloc::vec::Vec;
 // Completion is the named Native observation of the original Boolean entry.
 // Feature/index/score wrapper owners belong to the separately admitted mixed
 // owner. They cannot be replaced by a caller-selected Source port here.
-const REQUIRED: &[Entry] = &[
+pub(crate) const REQUIRED: &[Entry] = &[
     Entry::Availability,
     Entry::Completion,
     Entry::IndependentBranch,

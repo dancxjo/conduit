@@ -6,7 +6,9 @@ use conduit_core::{
     PreparedStructuredComposer, StructuredInfoType, StructuredInfoTypeShape,
     ValidatedCanonicalStructuredValue,
 };
-use conduit_plot::rust_binding::{PreparedNativeFamily, PreparedNativeRustBinding};
+use conduit_plot::rust_binding::{
+    NativeFamilyTypeDescriptor, PreparedNativeFamily, PreparedNativeRustBinding,
+};
 
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct ParserCompositionLimits {
@@ -131,6 +133,34 @@ pub(crate) fn encoded_composer_requests(
     Ok(bytes)
 }
 impl PreparedParserCanonicalComposer {
+    /// Allocation-free reservation for the exact ready descriptor field. Whole
+    /// Session construction sums these before preparing its first composer.
+    pub(crate) fn descriptor_reservation(
+        family: &PreparedNativeFamily,
+        descriptor: &'static NativeFamilyTypeDescriptor,
+        field_path: &[&str],
+        maximum_output_bytes: usize,
+    ) -> Result<ParserCompositionReceipt, ParserCompositionRefusal> {
+        use ParserCompositionRefusal as R;
+        if maximum_output_bytes == 0
+            || maximum_output_bytes > conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES
+        {
+            return Err(R::Pressure);
+        }
+        if !family.contains_descriptor(descriptor) {
+            return Err(R::Descriptor);
+        }
+        let selected =
+            crate::parser_canonical_schema::select_field(descriptor.type_bytes, field_path)
+                .map_err(|_| R::Type)?;
+        let decode =
+            StructuredInfoType::canonical_decode_storage_bound(selected).map_err(|_| R::Type)?;
+        let retained = encoded_composer_requests(selected, maximum_output_bytes)?;
+        Ok(ParserCompositionReceipt {
+            preparation_requested_bytes_bound: add(decode, retained)?,
+            retained_requested_bytes_bound: retained,
+        })
+    }
     pub(crate) fn prepare<T: PreparedNativeRustBinding>(
         family: &PreparedNativeFamily,
         limits: ParserCompositionLimits,
@@ -144,24 +174,28 @@ impl PreparedParserCanonicalComposer {
         field_path: &[&str],
         limits: ParserCompositionLimits,
     ) -> Result<Self, ParserCompositionRefusal> {
+        Self::prepare_descriptor_field(family, T::PREPARED_DESCRIPTOR, field_path, limits)
+    }
+    /// The closed Session port inventory supplies this descriptor. Exact family
+    /// membership is checked before encoded schema traversal or allocation.
+    pub(crate) fn prepare_descriptor_field(
+        family: &PreparedNativeFamily,
+        descriptor: &'static NativeFamilyTypeDescriptor,
+        field_path: &[&str],
+        limits: ParserCompositionLimits,
+    ) -> Result<Self, ParserCompositionRefusal> {
         use ParserCompositionRefusal as R;
-        if limits.maximum_output_bytes == 0
-            || limits.maximum_output_bytes > conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES
-        {
-            return Err(R::Pressure);
-        }
-        if !family.contains_descriptor(T::PREPARED_DESCRIPTOR) {
-            return Err(R::Descriptor);
-        }
-        let selected_bytes = crate::parser_canonical_schema::select_field(
-            T::PREPARED_DESCRIPTOR.type_bytes,
+        let reservation = Self::descriptor_reservation(
+            family,
+            descriptor,
             field_path,
-        )
-        .map_err(|_| R::Type)?;
-        let decode = StructuredInfoType::canonical_decode_storage_bound(selected_bytes)
-            .map_err(|_| R::Type)?;
-        let retained = encoded_composer_requests(selected_bytes, limits.maximum_output_bytes)?;
-        let preparation = add(decode, retained)?;
+            limits.maximum_output_bytes,
+        )?;
+        let selected_bytes =
+            crate::parser_canonical_schema::select_field(descriptor.type_bytes, field_path)
+                .map_err(|_| R::Type)?;
+        let retained = reservation.retained_requested_bytes_bound;
+        let preparation = reservation.preparation_requested_bytes_bound;
         // The entire preparation envelope is known and admitted before the first
         // Type allocation. Root pointer readiness still precedes schema selection.
         if retained > limits.maximum_retained_requested_bytes

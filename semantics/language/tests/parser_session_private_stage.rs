@@ -63,6 +63,9 @@ mod parser_session_source_plan;
 #[path = "../src/parser_session_fixed_preparation.rs"]
 mod parser_session_fixed_preparation;
 
+#[path = "../src/parser_session_queries.rs"]
+mod parser_session_queries;
+
 extern crate conduitos as actual_expression_owner;
 use parser_session_numeric_custody as numeric_custody;
 #[path = "common/parser_model_resource.rs"]
@@ -125,6 +128,67 @@ fn source() -> String {
         include_str!("../pronunciation_selection.conduit"),
     ]
     .join("\n")
+}
+
+#[test]
+fn complete_fixed_query_bank_preserves_native_input_and_refuses_aggregate_pressure() {
+    use parser_session_execution::ParserSessionEntry as Entry;
+    use parser_session_queries::*;
+    let families = families::PreparedProductionParserFamilies::prepare(family_limits()).unwrap();
+    let limits = ParserQueryPreparationLimits {
+        maximum_frame_bytes: conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+        maximum_preparation_requested_bytes: 16 * 1024 * 1024 * 1024,
+        maximum_retained_requested_bytes: 16 * 1024 * 1024 * 1024,
+    };
+    let mut bank = PreparedParserSessionQueries::prepare(&families, limits).unwrap();
+    let receipt = bank.receipt();
+    assert!(receipt.preparation_requested_bytes_bound >= receipt.retained_requested_bytes_bound);
+    for refused in [
+        ParserQueryPreparationLimits {
+            maximum_preparation_requested_bytes: receipt.preparation_requested_bytes_bound - 1,
+            ..limits
+        },
+        ParserQueryPreparationLimits {
+            maximum_retained_requested_bytes: receipt.retained_requested_bytes_bound - 1,
+            ..limits
+        },
+    ] {
+        assert!(matches!(
+            PreparedParserSessionQueries::prepare(&families, refused),
+            Err(ParserQueryRefusal::Pressure)
+        ));
+    }
+    // Ordinary encoding is only the independent fixture oracle. Production
+    // composition borrows the complete exact canonical fields and allocates no
+    // input Type or Native metadata during a revision.
+    let query = query();
+    let input = LanguageParserAvailableState::new(query.lexical().clone(), query.state().clone())
+        .unwrap()
+        .encode()
+        .unwrap();
+    let value = conduit_core::validate_canonical_structured_value(&input).unwrap();
+    let (descriptor, _) = families::port_descriptors(Entry::WaitState).unwrap();
+    let parser_canonical_schema::Shape::Record(fields) =
+        parser_canonical_schema::shape(descriptor.type_bytes).unwrap()
+    else {
+        panic!("fixed wait query must be a record")
+    };
+    let mut selected = [value; 32];
+    let mut count = 0;
+    for field in fields {
+        let (name, _) = field.unwrap();
+        selected[count] = value.record_field(name).unwrap().unwrap();
+        count += 1;
+    }
+    assert_eq!(
+        bank.record(Entry::WaitState, &selected[..count]).unwrap(),
+        input
+    );
+    assert!(matches!(
+        bank.record(Entry::DecodeComplete, &selected[..count]),
+        Err(ParserQueryRefusal::Entry)
+    ));
+    eprintln!("complete fixed query bank receipt={receipt:?}");
 }
 fn profile() -> Arc<PreparedCategoricalStep> {
     model_resource::categorical(
