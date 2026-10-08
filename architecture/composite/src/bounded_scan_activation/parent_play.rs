@@ -6,6 +6,7 @@ use conduit_core::{HostId, PlanId};
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ScanChildSignReceipt {
     pub parent_active_play_id: ActivePlayId,
+    pub activation_id: String,
     pub selected_plan_id: PlanId,
     pub invocation: u16,
     pub child_host_id: HostId,
@@ -71,6 +72,7 @@ impl BoundedScanActivationHost {
                     .clone();
                 result.push(ScanChildSignReceipt {
                     parent_active_play_id: parent.clone(),
+                    activation_id: self.planned.activation_id.clone(),
                     selected_plan_id: self.planned.selected_plan_id.clone(),
                     invocation,
                     child_host_id: host,

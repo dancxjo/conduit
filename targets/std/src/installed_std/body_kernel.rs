@@ -52,6 +52,10 @@ pub(crate) struct BodyKernelResult {
     pub partitions: Vec<KernelIdentityMap>,
     pub requests: Vec<HostCallRequest>,
     pub events: Vec<KernelEvent>,
+    pub scan_child_signs:
+        Result<Vec<conduit_composite::ScanChildSignReceipt>, conduit_composite::BoundedScanError>,
+    pub scan_cancellation_failed: bool,
+    pub scan_output_completion_failed: bool,
     pub fore_deliveries: Vec<ExternalForeDelivery>,
     pub clock_observations: Vec<ObservedKernelEvent>,
     pub clock_quality: Option<BodyTimeQuality>,
@@ -789,6 +793,27 @@ impl<'a> BodyKernel<'a> {
             host_id,
             boot_id,
         );
+        // Presentation snapshots run after the sealed Play. Preserve child
+        // identity and any receipt refusal instead of mixing child events
+        // into the parent's unqualified kernel Sign stream.
+        let scan_child_signs = self
+            .scheduler
+            .drivers()
+            .iter()
+            .filter_map(|driver| match driver {
+                InstalledBack::BodyScan(scan) => Some(scan.as_ref()),
+                _ => None,
+            })
+            .try_fold(Vec::new(), |mut receipts, scan| {
+                receipts.extend(scan.child_sign_receipts()?);
+                Ok(receipts)
+            });
+        let scan_cancellation_failed = self.scheduler.drivers().iter().any(
+            |driver| matches!(driver, InstalledBack::BodyScan(scan) if scan.cancellation_failed()),
+        );
+        let scan_output_completion_failed = self.scheduler.drivers().iter().any(|driver| {
+            matches!(driver, InstalledBack::BodyScan(scan) if scan.output_completion_failed())
+        });
         BodyKernelResult {
             terminal,
             failure,
@@ -796,6 +821,9 @@ impl<'a> BodyKernel<'a> {
             partitions: self.partitions,
             requests: self.requests,
             events: self.scheduler.signs().events().collect(),
+            scan_child_signs,
+            scan_cancellation_failed,
+            scan_output_completion_failed,
             fore_deliveries: self.fore.into_deliveries(),
             clock_observations: self.clock_observations.into_observations(),
             clock_quality,

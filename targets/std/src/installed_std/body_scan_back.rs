@@ -4,6 +4,7 @@
 
 use conduit_composite::{
     BoundedScanActivationHost, BoundedScanAdmission, BoundedScanError, BoundedScanState,
+    ScanChildSignReceipt,
 };
 use conduit_core::{ActivePlayId, PlannedScanActivation, ValuePayload};
 use conduit_kernel::{
@@ -19,6 +20,7 @@ pub(super) struct BodyScanBack {
     parent_bound: bool,
     child_steps: u32,
     maximum_child_steps: u32,
+    output_completion_failed: bool,
     cancellation_failed: bool,
 }
 
@@ -70,6 +72,7 @@ impl BodyScanBack {
             parent_bound: false,
             child_steps: 0,
             maximum_child_steps,
+            output_completion_failed: false,
             cancellation_failed: false,
         })
     }
@@ -83,6 +86,22 @@ impl BodyScanBack {
             .map_err(|error| format!("bind exact scan child Plays: {error:?}"))?;
         self.parent_bound = true;
         Ok(())
+    }
+
+    /// Snapshot after the sealed Play; every row retains its exact activation,
+    /// child Plan, invocation, Host, and parent/child Play identities.
+    pub(super) fn child_sign_receipts(
+        &self,
+    ) -> Result<Vec<ScanChildSignReceipt>, BoundedScanError> {
+        self.scan.child_sign_receipts()
+    }
+
+    pub(super) fn cancellation_failed(&self) -> bool {
+        self.cancellation_failed
+    }
+
+    pub(super) fn output_completion_failed(&self) -> bool {
+        self.output_completion_failed
     }
 
     pub(super) fn allocation_capacity(&self) -> usize {
@@ -120,7 +139,11 @@ impl BodyScanBack {
 
 impl<const PORTS: usize> StepBack<PORTS> for BodyScanBack {
     fn step(&mut self, io: &mut StepIo<PORTS>, inputs: &StepInputBytes<'_, PORTS>) -> StepOutcome {
-        if !self.parent_bound || self.staged_output || self.cancellation_failed {
+        if !self.parent_bound
+            || self.staged_output
+            || self.output_completion_failed
+            || self.cancellation_failed
+        {
             return fail(FailureCode::InvalidLifecycle, 3);
         }
         if self.scan.next_host_request().is_some() {
@@ -192,7 +215,7 @@ impl<const PORTS: usize> StepBack<PORTS> for BodyScanBack {
         if self.staged_output {
             self.staged_output = false;
             if self.scan.complete_output().is_err() {
-                self.cancellation_failed = true;
+                self.output_completion_failed = true;
             }
         }
     }
