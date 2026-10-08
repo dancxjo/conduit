@@ -196,3 +196,19 @@ fn original_committed_common_greeting_runs_direct16k_trained_continuation() {
         std::fs::write(output.join("manifest.json"),serde_json::to_vec_pretty(&receipt).unwrap()).unwrap();
     }).unwrap().join().unwrap();
 }
+#[test]
+fn direct16k_q8_profile_refuses_foreign_rate_fractional_cycle_and_bounds() {
+    let source=include_str!("../../../speech/fargan_direct16k_cycle_q8.conduit");
+    let checked=check_syntax_document(&parse_syntax_document(source),&StartupCatalog::new()).unwrap();
+    let ty=&checked.native_types[0].value_type;
+    let StructuredInfoTypeShape::Record{fields,..}=ty.shape() else {panic!("eligibility")};
+    let graph=expand_canonical_plot_for_authoring(&checked,"speech/fargan-direct16k-cycle-q8",&ProfileCatalog::new()).unwrap();
+    let ConfigurationValue::Text(hex)=&graph.expanded.gears[0].configuration[0].value else {panic!("Source")};
+    let program=PortableExpressionProgram::from_canonical_hex(hex).unwrap();
+    for (rate,frames,remainder,accepted) in [(16000u64,32u64,0u64,true),(16000,80,0,true),(16000,255,0,true),(8000,80,0,false),(48000,80,0,false),(16000,31,0,false),(16000,256,0,false),(16000,u64::MAX,0,false),(16000,80,1,false),(16000,0,0,false)] {
+        let input=StructuredInfoValue::record(ty.clone(),fields.iter().map(|f|StructuredFieldValue::new(f.name(),StructuredInfoValue::leaf(f.value_type().clone(),match f.name(){"sample_rate_hz"=>rate,"whole_frames"=>frames,"remainder_numerator"=>remainder,_=>panic!("field")}.to_le_bytes().to_vec()).unwrap()).unwrap()).collect()).unwrap().canonical_bytes().unwrap();
+        let admitted=super::interface::admit_retained_session_native(&checked,"FarganDirect16kCycleQ8Eligible",&input);
+        assert_eq!(admitted.is_ok(),accepted);
+        if accepted {let output=program.evaluate(&input).unwrap();assert_eq!(u128::from(u64::from_le_bytes(output.try_into().unwrap())),u128::from(frames)*256);}
+    }
+}

@@ -242,6 +242,8 @@ struct StreamResultAndTiming {
     drained: bool,
     scheduler_step_allocations: usize,
     prepared_expression_allocations: usize,
+    service_steps: u32,
+    quantum_boundaries: u32,
 }
 fn run_epoch_stream_plan<R: RuntimeTensor>(
     plan: Plan,
@@ -257,31 +259,46 @@ fn run_epoch_stream_plan<R: RuntimeTensor>(
         context,
         resources,
         input_values,
-        seeded,
+        seeded.as_ref(),
         StreamRun {
             expected,
             mode,
             trace: None,
+            service: ServiceBudget::legacy(),
         },
     )
+}
+#[derive(Clone, Copy)]
+struct ServiceBudget {
+    quantum: u32,
+    quanta: u32,
+    observe_boundaries: bool,
+}
+impl ServiceBudget {
+    const fn legacy() -> Self { Self { quantum: 262144, quanta: 1, observe_boundaries: true } }
+    fn direct(profile: &super::service_profile::PreparedServiceProfile) -> Self {
+        Self { quantum: profile.quantum(), quanta: profile.quanta(), observe_boundaries: true }
+    }
 }
 struct StreamRun<'a> {
     expected: usize,
     mode: ExecutionMode,
     trace: Option<&'a trace_hooks::TraceSinks>,
+    service: ServiceBudget,
 }
 fn run_epoch_stream_plan_with_trace<R: RuntimeTensor>(
     plan: Plan,
     context: &super::EpochProfiles,
     resources: &BTreeMap<String, R>,
     input_values: BTreeMap<String, Vec<Vec<u8>>>,
-    seeded: Option<conduitos::seeded_state::SeededStateOperationFactory>,
+    seeded: Option<&conduitos::seeded_state::SeededStateOperationFactory>,
     run: StreamRun<'_>,
 ) -> Option<StreamResultAndTiming> {
     let StreamRun {
         expected,
         mode,
         trace,
+        service,
     } = run;
     let run_to_drain = trace.is_some()
         || seeded.is_some()
@@ -329,6 +346,7 @@ fn run_epoch_stream_plan_with_trace<R: RuntimeTensor>(
     });
     assert!(lowered.node_specs.len() <= N && lowered.cords.len() <= C);
     let active = bind_active_play(&fragment.plan_id, &fragment.host_id, &fragment.boot_id, 0);
+    let expression_fragment = fragment.placements.iter().any(|gear| gear.implementation_id.as_str() == conduitos::expression_host_call::IMPLEMENTATION).then(|| conduitos::expression_host_call::PreparedExpressionFragment::prepare(fragment, &lowered, &active).unwrap());
     let slots = match mode {
         ExecutionMode::StoragePressure => {
             resources.len() + input_values.values().map(Vec::len).sum::<usize>() + 2
@@ -413,9 +431,6 @@ fn run_epoch_stream_plan_with_trace<R: RuntimeTensor>(
             .unwrap(),
     ));
     factories.push(Box::new(conduit_ai::operation_owners::closing_structured_pair::ClosingStructuredPairOperationFactory::for_plan(&plan, context.pairs.clone()).unwrap()));
-    if let Some(seeded) = seeded {
-        factories.push(Box::new(seeded));
-    }
     let mut repeat_profiles = Vec::new();
     let mut singleton_profiles = Vec::new();
     let mut concat = conduitos::flow_concat_finite::FlowConcatFiniteOperationFactory::default();
@@ -526,6 +541,8 @@ fn run_epoch_stream_plan_with_trace<R: RuntimeTensor>(
         if let Some(factory) = factories
             .iter()
             .find(|f| f.implementation_id() == &gear.implementation_id)
+            .map(|f| f.as_ref())
+            .or_else(|| seeded.filter(|f| f.implementation_id() == &gear.implementation_id).map(|f| f as &dyn KernelOperationFactory))
         {
             factory.budget(gear).unwrap();
             drivers.push(Driver::Operation(
@@ -548,13 +565,7 @@ fn run_epoch_stream_plan_with_trace<R: RuntimeTensor>(
             ));
         } else if gear.implementation_id.as_str() == conduitos::expression_host_call::IMPLEMENTATION
         {
-            let owner = conduitos::expression_host_call::ExpressionHostCall::prepare(
-                fragment,
-                &lowered,
-                &active,
-                &gear.placement_id,
-            )
-            .unwrap();
+            let owner = expression_fragment.as_ref().unwrap().owner(&gear.placement_id).unwrap();
             owners.insert(conduit_kernel::NodeId(index as u16), owner);
             drivers.push(Driver::Operation(Box::new(
                 conduit_kernel::scheduler::HostCallBack::new(
@@ -625,7 +636,25 @@ fn run_epoch_stream_plan_with_trace<R: RuntimeTensor>(
     let mut drained = false;
     let mut scheduler_step_allocations = 0;
     let mut prepared_expression_allocations = 0;
-    for _ in 0..262144 {
+    let mut completed_host_calls = 0u64;
+    let mut reported_rows = 0usize;
+    let mut service_steps = 0u32;
+    let mut stop_reason = "service_quantum_exhausted";
+    let mut quantum_boundaries = 0u32;
+    let mut prior_quantum_rows = 0usize;
+    let mut quantum_receipts = vec![];
+    for (quantum, local_step) in (0..service.quanta).flat_map(|q| (0..service.quantum).map(move |step| (q, step))) {
+        let service_step = quantum * service.quantum + local_step;
+        service_steps = service_step + 1;
+        if local_step == 0 && quantum != 0 && service.observe_boundaries {
+            let rows = received.borrow().len();
+            let receipt = serde_json::json!({"completed_quantum":quantum,"services":service_step,"rows":rows,"completed_host_calls":completed_host_calls,"pending_host_calls":scheduler.pending_host_call_count(),"used_items":scheduler.values().used_items(),"used_bytes":scheduler.values().used_bytes(),"same_live_scheduler":true});
+            eprintln!("epoch finite service continuation: {receipt}");
+            quantum_receipts.push(receipt);
+            quantum_boundaries += 1;
+            if rows <= prior_quantum_rows { stop_reason = "quantum_without_output_progress"; break; }
+            prior_quantum_rows = rows;
+        }
         let (step, allocations) = if trace.is_some() {
             super::allocation_probe::measure(|| scheduler.step())
         } else {
@@ -635,6 +664,7 @@ fn run_epoch_stream_plan_with_trace<R: RuntimeTensor>(
         let status = match step {
             Ok(status) => status,
             Err(error) => {
+                stop_reason = "scheduler_refusal";
                 eprintln!("epoch scheduler refused: {error:?}");
                 break;
             }
@@ -646,9 +676,15 @@ fn run_epoch_stream_plan_with_trace<R: RuntimeTensor>(
                 | conduit_kernel::scheduler::SchedulerStatus::Cancelled
         ) && scheduler.pending_host_call_count() == 0
         {
+            stop_reason = "scheduler_settled";
             drained = matches!(status, conduit_kernel::scheduler::SchedulerStatus::Drained);
             eprintln!("epoch scheduler settled: {status:?}");
             break;
+        }
+        if received.borrow().len() != reported_rows || service_step % 16384 == 0 {
+            reported_rows = received.borrow().len();
+            eprintln!("epoch service step={service_step} rows={reported_rows}/{expected} completed_host_calls={completed_host_calls} pending_host_calls={} elapsed={:?}", scheduler.pending_host_call_count(), execute.elapsed());
+            eprintln!("epoch storage used_items={}/{} used_bytes={}/{}", scheduler.values().used_items(), scheduler.values().item_capacity(), scheduler.values().used_bytes(), scheduler.values().byte_capacity());
         }
         if let Some(call) = scheduler.next_host_request() {
             if matches!(mode, ExecutionMode::CancelFirstExpression) {
@@ -696,10 +732,16 @@ fn run_epoch_stream_plan_with_trace<R: RuntimeTensor>(
                 (invocation(), 0)
             };
             prepared_expression_allocations += allocations;
+            completed_host_calls += 1;
             let value = match output {
                 Some(output) => {
-                    let Ok(value) = scheduler.store_host_value(output) else {
-                        break;
+                    let value = match scheduler.store_host_value(output) {
+                        Ok(value) => value,
+                        Err(error) => {
+                            stop_reason = "host_output_storage_refusal";
+                            eprintln!("epoch host output storage refused: {error:?}; service_step={service_step} output_bytes={} used_items={}/{} used_bytes={}/{}", output.len(), scheduler.values().used_items(), scheduler.values().item_capacity(), scheduler.values().used_bytes(), scheduler.values().byte_capacity());
+                            break;
+                        }
                     };
                     Some(BoundedValueRef::new(value, output.len() as u32).unwrap())
                 }
@@ -718,11 +760,18 @@ fn run_epoch_stream_plan_with_trace<R: RuntimeTensor>(
                 .unwrap();
         }
         if received.borrow().len() == expected && !run_to_drain {
+            stop_reason = "expected_rows_received";
             break;
         }
     }
     let execution = execute.elapsed();
     let encoded = received.borrow();
+    let metrics = serde_json::json!({"nodes":nodes,"cords":cords,"service_steps":service_steps,"quantum_steps":service.quantum,"maximum_quanta":service.quanta,"observed_boundaries":quantum_boundaries,"boundary_receipts":quantum_receipts,"observe_boundaries":service.observe_boundaries,"stop_reason":stop_reason,"rows":encoded.len(),"expected_rows":expected,"completed_host_calls":completed_host_calls,"pending_host_calls":scheduler.pending_host_call_count(),"used_items":scheduler.values().used_items(),"item_capacity":scheduler.values().item_capacity(),"used_bytes":scheduler.values().used_bytes(),"byte_capacity":scheduler.values().byte_capacity(),"preparation_seconds":preparation.as_secs_f64(),"execution_seconds":execution.as_secs_f64(),"drained":drained});
+    eprintln!("epoch terminal service metrics: {metrics}");
+    if let Ok(directory) = std::env::var("CONDUIT_FARGAN_NATIVE_OUTPUT") {
+        std::fs::write(std::path::Path::new(&directory).join(format!("service-{nodes}-{expected}-{}.json", if service.observe_boundaries { "bounded" } else { "uninterrupted" })), serde_json::to_vec_pretty(&metrics).unwrap()).unwrap();
+        std::fs::write(std::path::Path::new(&directory).join(format!("service-{nodes}-{expected}-{}-rows.json", if service.observe_boundaries { "bounded" } else { "uninterrupted" })), serde_json::to_vec(&*encoded).unwrap()).unwrap();
+    }
     if encoded.len() != expected && matches!(mode, ExecutionMode::Normal) {
         let events: Vec<_> = scheduler.signs().events().collect();
         eprintln!(
@@ -775,6 +824,8 @@ fn run_epoch_stream_plan_with_trace<R: RuntimeTensor>(
         drained,
         scheduler_step_allocations,
         prepared_expression_allocations,
+        service_steps,
+        quantum_boundaries,
     })
 }
 

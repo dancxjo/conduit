@@ -114,6 +114,7 @@ fn check(primary: bool) {
             expected: usize::from(primary),
             mode: ExecutionMode::Normal,
             trace: Some(&traces),
+            service: ServiceBudget::legacy(),
         },
     )
     .unwrap();
@@ -171,7 +172,8 @@ fn check(primary: bool) {
             StreamRun {
                 expected: usize::from(primary),
                 mode,
-                trace: Some(&refused)
+                trace: Some(&refused),
+                service: ServiceBudget::legacy(),
             }
         )
         .is_none());

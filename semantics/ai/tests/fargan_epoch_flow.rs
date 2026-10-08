@@ -472,3 +472,6 @@ mod case_state;
 
 #[path = "fargan_epoch_flow/committed_direct16k.rs"]
 mod committed_direct16k;
+
+#[path = "fargan_epoch_flow/service_profile.rs"]
+mod service_profile;

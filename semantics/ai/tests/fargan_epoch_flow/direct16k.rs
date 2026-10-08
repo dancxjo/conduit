@@ -140,11 +140,13 @@ fn direct16k_preparation_preserves_legacy_states_and_distinct_pcm_geometry() {
     )
     .unwrap();
     assert!(graph.expanded.gears.len() > 80);
-    assert!(!graph
-        .expanded
-        .gears
-        .iter()
-        .any(|g| g.kind_id.as_str().contains("i16-to-f32-80")));
+    assert!(
+        !graph
+            .expanded
+            .gears
+            .iter()
+            .any(|g| g.kind_id.as_str().contains("i16-to-f32-80"))
+    );
     eprintln!(
         "direct16k analysis:{}nodes/{}cords",
         graph.expanded.gears.len(),
@@ -259,6 +261,7 @@ pub(super) fn utterance_source(ids: &BTreeMap<String, String>, tail: &str) -> St
 pub(super) struct RetainedDirect16kTape {
     epochs: Vec<[i16; 160]>,
     immutable_material: Vec<u8>,
+    service: super::service_profile::PreparedServiceProfile,
 }
 pub(super) fn explicit_analysis_policy() -> Vec<u8> {
     let checked = check_syntax_document(
@@ -279,10 +282,26 @@ impl RetainedDirect16kTape {
     pub(super) fn immutable_material(&self) -> &[u8] {
         &self.immutable_material
     }
+    pub(super) fn service(&self) -> &super::service_profile::PreparedServiceProfile {
+        &self.service
+    }
     pub fn prepare(
         pcm: &[i16],
         original_custody: &[u8],
         selected_policy: Option<&[u8]>,
+    ) -> Result<Self, &'static str> {
+        Self::prepare_with_service(
+            pcm,
+            original_custody,
+            selected_policy,
+            super::service_profile::PreparedServiceProfile::production(),
+        )
+    }
+    pub(super) fn prepare_with_service(
+        pcm: &[i16],
+        original_custody: &[u8],
+        selected_policy: Option<&[u8]>,
+        service: super::service_profile::PreparedServiceProfile,
     ) -> Result<Self, &'static str> {
         let policy = selected_policy.ok_or("explicit analysis-resynthesis loss policy required")?;
         let checked = check_syntax_document(
@@ -310,6 +329,8 @@ impl RetainedDirect16kTape {
         }
         let mut immutable_material =
             b"fargan/direct16016k/v1; analysis-resynthesis accepted; no clock mapping".to_vec();
+        immutable_material.extend_from_slice(&(service.material().len() as u64).to_le_bytes());
+        immutable_material.extend_from_slice(service.material());
         immutable_material.extend_from_slice(&(policy.len() as u64).to_le_bytes());
         immutable_material.extend_from_slice(policy);
         immutable_material.extend_from_slice(include_bytes!(
@@ -324,6 +345,7 @@ impl RetainedDirect16kTape {
         Ok(Self {
             epochs: pcm.as_chunks::<160>().0.to_vec(),
             immutable_material,
+            service,
         })
     }
 }
@@ -333,18 +355,14 @@ fn direct16k_tape_retains_original_and_refuses_padding_or_implicit_loss() {
     assert!(RetainedDirect16kTape::prepare(&pcm, b"original", Some(&[0; 4])).is_err());
     assert!(RetainedDirect16kTape::prepare(&pcm, b"original", None).is_err());
     assert!(RetainedDirect16kTape::prepare(&pcm, b"", Some(&explicit_analysis_policy())).is_err());
-    assert!(RetainedDirect16kTape::prepare(
-        &pcm[..319],
-        b"original",
-        Some(&explicit_analysis_policy())
-    )
-    .is_err());
-    assert!(RetainedDirect16kTape::prepare(
-        &pcm[..160],
-        b"original",
-        Some(&explicit_analysis_policy())
-    )
-    .is_err());
+    assert!(
+        RetainedDirect16kTape::prepare(&pcm[..319], b"original", Some(&explicit_analysis_policy()))
+            .is_err()
+    );
+    assert!(
+        RetainedDirect16kTape::prepare(&pcm[..160], b"original", Some(&explicit_analysis_policy()))
+            .is_err()
+    );
     let tape = RetainedDirect16kTape::prepare(&pcm, b"original", Some(&explicit_analysis_policy()))
         .unwrap();
     assert_eq!(tape.epochs.len(), 2);
@@ -360,7 +378,9 @@ fn direct16k_two_hundred_epochs_expand_with_three_original_feedback_owners() {
     let (context, tail, _, _) = super::feature_cycle::prepare_tail_for_epochs(context, &ids, 200);
     assert_eq!(seeded.offers().count(), 3);
     let receipt = format!("[{}]", vec!["1"; 32].join(","));
-    let anchor=format!("{{artifact_identity:{receipt},model_descriptor_identity:{receipt},session_basis_identity:{receipt},precision:reference_float32(\"\")}}");
+    let anchor = format!(
+        "{{artifact_identity:{receipt},model_descriptor_identity:{receipt},session_basis_identity:{receipt},precision:reference_float32(\"\")}}"
+    );
     let source = utterance_source(&ids, &tail)
         .replace(
             "selected: FarganModelFrameAnchor\n",
@@ -391,10 +411,11 @@ fn direct16k_two_epoch_trained_numeric_preflight() {
     std::thread::Builder::new()
         .stack_size(64 * 1024 * 1024)
         .spawn(|| {
-            let tape = RetainedDirect16kTape::prepare(
+            let tape = RetainedDirect16kTape::prepare_with_service(
                 &[0; 320],
                 b"typed numeric preflight; no common-IPA or acoustic evidence claim",
                 Some(&explicit_analysis_policy()),
+                super::service_profile::PreparedServiceProfile::boundary_test(),
             )
             .unwrap();
             let periods = super::runtime::run_native_period_controls(&[(false, 20480); 2]);
@@ -405,10 +426,12 @@ fn direct16k_two_epoch_trained_numeric_preflight() {
             let mut model = super::custody::RetainedSignalModel::load(&root);
             let (_, conditioning) = model.conditioning_resources();
             for (name, resource) in conditioning {
-                assert!(model
-                    .resources
-                    .insert(format!("conditioning_{name}"), resource)
-                    .is_none());
+                assert!(
+                    model
+                        .resources
+                        .insert(format!("conditioning_{name}"), resource)
+                        .is_none()
+                );
             }
             let warm = super::runtime::run_native_warm_startup(&model, &proposal);
             let epochs = super::runtime::run_direct16k_trained_utterance(

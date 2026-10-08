@@ -1,0 +1,31 @@
+# Private finite hosted service admission, not model ComputeLifecycle or time.
+# All four preliminary stages retain their existing one-quantum profile.
+type FarganDirect16kProductionService = {
+    preliminary_quantum: U64
+    preliminary_stages: U64
+    continuation_quantum: U64
+    continuation_quanta: U64
+    where .preliminary_quantum == 262144
+    where .preliminary_stages == 4
+    where .continuation_quantum == 262144
+    where .continuation_quanta == 3
+}
+# Explicit test-only profile forces actual model execution across boundaries.
+type FarganDirect16kBoundaryTestService = {
+    preliminary_quantum: U64
+    preliminary_stages: U64
+    continuation_quantum: U64
+    continuation_quanta: U64
+    where .preliminary_quantum == 262144
+    where .preliminary_stages == 4
+    where .continuation_quantum == 4096
+    where .continuation_quanta == 3
+}
+plot ai/fargan-direct16k-production-service (
+    >> value: FarganDirect16kProductionService
+    total_services: U64 >>
+) = ((.preliminary_quantum * .preliminary_stages) + (.continuation_quantum * .continuation_quanta))
+plot ai/fargan-direct16k-boundary-test-service (
+    >> value: FarganDirect16kBoundaryTestService
+    total_services: U64 >>
+) = ((.preliminary_quantum * .preliminary_stages) + (.continuation_quantum * .continuation_quanta))

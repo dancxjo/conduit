@@ -47,7 +47,7 @@ pub(in super::super) fn run_native_trained_utterance(
         periods,
         proposal,
         warm,
-        false,
+        None,
     )
 }
 
@@ -70,7 +70,7 @@ pub(in super::super) fn run_direct16k_trained_utterance(
         periods,
         proposal,
         warm,
-        true,
+        Some(tape.service()),
     )
 }
 
@@ -81,8 +81,9 @@ fn run_trained_profile(
     periods: &[StructuredInfoValue],
     proposal: &StructuredInfoValue,
     warm: &[StructuredInfoValue],
-    direct16k: bool,
+    service_profile: Option<&super::super::service_profile::PreparedServiceProfile>,
 ) -> Vec<StructuredInfoValue> {
+    let direct16k = service_profile.is_some();
     assert_eq!(samples.len(), periods.len());
     let native_epochs = u32::try_from(samples.len()).unwrap();
     assert!((2..=65535).contains(&native_epochs));
@@ -337,19 +338,32 @@ fn run_trained_profile(
     let traces = trace_directory
         .as_ref()
         .map(|_| super::native_trace::sinks(&context, &source, model, basis_identity));
+    let compare_boundaries = service_profile.is_some_and(|p| p.compares_boundaries());
+    let comparison_plan = compare_boundaries.then(|| plan.clone());
+    let comparison_inputs = compare_boundaries.then(|| inputs.clone());
+    let service = service_profile.map(ServiceBudget::direct).unwrap_or_else(ServiceBudget::legacy);
     let result = run_epoch_stream_plan_with_trace(
         plan,
         &context,
         &resources,
         inputs,
-        Some(seeded),
+        Some(&seeded),
         StreamRun {
             expected: native_epochs as usize + 1,
             mode: ExecutionMode::Normal,
             trace: traces.as_ref(),
+            service,
         },
     )
     .unwrap();
+    if compare_boundaries {
+        assert!(result.quantum_boundaries >= 2);
+        let uninterrupted = run_epoch_stream_plan_with_trace(comparison_plan.unwrap(), &context, &resources, comparison_inputs.unwrap(), Some(&seeded), StreamRun { expected: native_epochs as usize + 1, mode: ExecutionMode::Normal, trace: None, service: ServiceBudget { observe_boundaries: false, ..service } }).unwrap();
+        assert_eq!(result.values, uninterrupted.values, "every original canonical Native row survives finite service boundaries exactly");
+        assert_eq!(result.service_steps, uninterrupted.service_steps);
+        assert!(uninterrupted.drained);
+        eprintln!("actual trained finite-boundary equivalence PASS: {} complete Native rows, {} services, {} crossed boundaries; exact same sealed Plan/basis/resources/inputs", result.values.len(), result.service_steps, result.quantum_boundaries);
+    }
     if let (Some(directory), Some(traces)) = (&trace_directory, &traces) {
         assert_eq!(result.scheduler_step_allocations, 0);
         assert_eq!(result.prepared_expression_allocations, 0);
