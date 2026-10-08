@@ -594,6 +594,8 @@ fn renders_only_complete_correlated_synthetic_fixture() {
     run(&fixture).unwrap();
     let page = fs::read_to_string(fixture.output.join("index.html")).unwrap();
     assert!(page.contains("Chapter 8 of 8"));
+    assert!(page.contains("Start an interval ticker"));
+    assert!(page.contains("it does not tell time of day"));
     assert!(page.contains("Words in recorded audio (llm-assisted)"));
     assert!(page.contains("Captured from the selected speaker Play"));
     assert!(page.contains("class=\"chapter-run\""));

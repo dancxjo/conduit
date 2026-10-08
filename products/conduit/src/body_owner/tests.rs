@@ -425,6 +425,12 @@ fn service_clock_runs_with_durable_live_play_and_explicit_lull() {
     }
     let play = owner.current_play_id().unwrap().clone();
     let playing_face = owner.local_face_snapshot().unwrap();
+    assert!(
+        conduit_std_host::spoken_face_mask::primary_face_clauses(&playing_face)
+            .unwrap()
+            .join(" ")
+            .contains("The ticker is running.")
+    );
     let stop = playing_face
         .actions
         .iter()
@@ -648,6 +654,31 @@ fn terminal_show_returns_one_typed_clock_change_to_the_same_owner() {
         .find(|action| action.intent == super::clock_interval_action())
         .unwrap();
     assert_eq!(action.name, "Change ticker pace");
+    assert!(face
+        .subjects
+        .iter()
+        .any(|subject| { subject.identity == action.target && subject.name == "Interval ticker" }));
+    let summary = conduit_std_host::spoken_face_mask::primary_face_clauses(&face)
+        .unwrap()
+        .join(" ");
+    assert!(summary.contains("The ticker is stopped."));
+    assert!(summary.contains("pulse every 1000 milliseconds"));
+    for metadata in [
+        "body-id",
+        "checked-plot-id",
+        "workload-revision",
+        "Unavailable",
+    ] {
+        assert!(
+            !summary.contains(metadata),
+            "unexpected primary speech: {summary}"
+        );
+    }
+    let inspection = conduit_std_host::spoken_face_mask::mechanical_face_clauses(&face)
+        .unwrap()
+        .join(" ");
+    assert!(inspection.contains("body-id"));
+    assert!(inspection.contains("checked-plot-id"));
     assert!(face.disclosures.iter().any(|disclosure| {
         disclosure.subject == action.target
             && disclosure.level == conduit_presentation::PresentationDisclosureLevel::Primary

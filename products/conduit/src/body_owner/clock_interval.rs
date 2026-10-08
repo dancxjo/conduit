@@ -1,4 +1,4 @@
-//! Checked Face controls for the installed owner's small clock.
+//! Checked Face controls for the installed owner's interval ticker.
 //! An interval change replaces the Body workset only while lulled; a start
 //! seals a new Plan and Play, and a stop requests a real terminal receipt.
 use super::{debug, state, Owner};
@@ -103,6 +103,12 @@ pub(super) fn with_clock_action(owner: &Owner, face: Presentation) -> Result<Pre
         )
         .map_err(debug)?,
     };
+    let mut subjects = face.subjects.clone();
+    subjects
+        .iter_mut()
+        .find(|subject| subject.identity == target)
+        .ok_or("ticker Plot has no Face subject")?
+        .name = "Interval ticker".into();
     let mut properties = face.properties.clone();
     properties.push(PresentationProperty {
         subject: target.clone(),
@@ -110,6 +116,17 @@ pub(super) fn with_clock_action(owner: &Owner, face: Presentation) -> Result<Pre
         value: PresentationPropertyValue::Count(interval_ms),
     });
     let mut text = face.text.clone();
+    text.push(PresentationText {
+        subject: target.clone(),
+        text: if owner.current_play_id().is_some() && owner.host.is_playing() {
+            "The ticker is running."
+        } else if lulled {
+            "The ticker is stopped."
+        } else {
+            "The ticker is waiting to start."
+        }
+        .into(),
+    });
     text.push(PresentationText {
         subject: target.clone(),
         text: format!("The ticker emits a pulse every {interval_ms} milliseconds."),
@@ -202,7 +219,7 @@ pub(super) fn with_clock_action(owner: &Owner, face: Presentation) -> Result<Pre
     let revised = Presentation::new_with_semantics_and_temporal(
         face.revision,
         face.basis,
-        face.subjects,
+        subjects,
         face.relationships,
         properties,
         text,

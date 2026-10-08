@@ -80,6 +80,11 @@ pub(super) fn write_root_index(
     } else {
         ""
     };
+    let one_body = if root.join("current/ticker/index.html").is_file() {
+        one_body.replace("current/one-body-five-masks/", "current/ticker/")
+    } else {
+        one_body.to_owned()
+    };
     let todo = if root.join("current/todo/index.html").is_file() {
         "<article class=\"journey-card\"><p class=\"eyebrow\">One Todo Body · captured journey</p><h2>Keep a list across Masks</h2><p>Add and complete items through different interfaces, hear what remains, and return to the same Body. Each action and capture has a retained receipt.</p><a href=\"current/todo/\">Follow the Todo journey</a></article>"
     } else {

@@ -1,5 +1,11 @@
 # Prove one Body on Linux, ConduitOS, and Chromium
 
+The [ticker introduction](https://dancxjo.github.io/conduit/journeys/current/ticker/)
+is the human entrance; its inspection link preserves the original recording and
+receipts. Current default speech reports ticker status and pulse interval;
+`read all` explicitly requests the complete provenanced reading. Historical
+screenshots and WAVs keep the names and wording their exact source produced.
+
 This retained `clock-demo` is an **interval ticker and lifecycle specimen**: it
 changes how often ticks occur; it does not tell wall-clock time. The Todo Body
 in [#5201](https://github.com/dancxjo/conduit/issues/5201) is the human-facing
