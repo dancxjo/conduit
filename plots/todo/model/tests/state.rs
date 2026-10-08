@@ -234,6 +234,9 @@ fn public_actions_and_back_agree_across_sequential_revisions() {
         TodoCommand::Add {
             text: "Second".into(),
         },
+        TodoCommand::Add {
+            text: "Third".into(),
+        },
         TodoCommand::SetComplete {
             id: "task-1".into(),
             complete: true,
@@ -283,7 +286,79 @@ fn public_actions_and_back_agree_across_sequential_revisions() {
         assert_eq!(actual, expected);
         state = actual;
     }
-    assert_eq!(state.revision, 5);
-    assert_eq!(state.next_id, 3);
-    assert_eq!(state.items.len(), 1);
+    assert_eq!(state.title, "List");
+    assert_eq!(state.revision, 6);
+    assert_eq!(state.next_id, 4);
+    assert_eq!(state.items.len(), 2);
+    assert_eq!(state.items[0].id, "task-1");
+    assert_eq!(state.items[0].text, "First");
+    assert!(!state.items[0].complete);
+    assert_eq!(state.items[1].id, "task-3");
+    assert_eq!(state.items[1].text, "Third");
+    assert!(!state.items[1].complete);
+}
+
+#[test]
+fn refused_actions_preserve_state_and_removed_id_is_never_reused() {
+    let initial = TodoState::new("List".into()).unwrap();
+    for command in [
+        TodoCommand::Add {
+            text: String::new(),
+        },
+        TodoCommand::SetComplete {
+            id: "task-1".into(),
+            complete: true,
+        },
+        TodoCommand::Remove {
+            id: "task-1".into(),
+        },
+    ] {
+        let before = initial.encode_info().unwrap();
+        assert!(initial.apply(&command).is_err());
+        assert_eq!(initial.encode_info().unwrap(), before);
+    }
+    let state = initial
+        .apply(&TodoCommand::Add {
+            text: "First".into(),
+        })
+        .unwrap();
+    let state = state
+        .apply(&TodoCommand::Remove {
+            id: "task-1".into(),
+        })
+        .unwrap();
+    let state = state
+        .apply(&TodoCommand::Add {
+            text: "Second".into(),
+        })
+        .unwrap();
+    assert_eq!(state.items[0].id, "task-2");
+    assert_eq!(
+        state.apply(&TodoCommand::SetComplete {
+            id: "task-1".into(),
+            complete: true
+        }),
+        Err(TodoRefusal::MissingItem)
+    );
+}
+
+#[test]
+fn identity_and_revision_exhaustion_are_distinct_from_item_capacity() {
+    let mut state = TodoState::new("List".into()).unwrap();
+    state.next_id = u32::MAX;
+    assert_eq!(
+        state.apply(&TodoCommand::Add {
+            text: "First".into()
+        }),
+        Err(TodoRefusal::IdentityExhausted)
+    );
+    state.next_id = 1;
+    state.revision = u32::MAX;
+    assert_eq!(
+        state.apply(&TodoCommand::Add {
+            text: "First".into()
+        }),
+        Err(TodoRefusal::RevisionExhausted)
+    );
+    assert!(state.items.is_empty());
 }
