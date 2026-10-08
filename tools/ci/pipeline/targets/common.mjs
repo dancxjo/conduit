@@ -6,9 +6,17 @@ import { closeSync, copyFileSync, mkdirSync, openSync, readSync, statSync } from
 import path from 'node:path';
 
 export const toolchain = () => process.env.RUSTUP_TOOLCHAIN || 'stable';
+function checkoutIsShallow(cwd) {
+  const result = spawnSync('git', ['rev-parse', '--is-shallow-repository'], {
+    cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  return result.status === 0 ? result.stdout.trim() : null;
+}
+
 export function command(program, args, options = {}) {
   console.log(`> ${program} ${args.join(' ')}`);
   const started = performance.now();
+  const historyBefore = checkoutIsShallow(options.cwd);
   const result = spawnSync(program, args, {
     stdio: 'inherit', timeout: 45 * 60_000,
     env: { ...process.env, RUSTUP_TOOLCHAIN: toolchain() }, ...options,
@@ -16,6 +24,9 @@ export function command(program, args, options = {}) {
   recordOperation({ kind: 'command', program, args, durationMs: performance.now() - started, outcome: result.error || result.status !== 0 ? 'failed' : 'success' });
   if (result.error || result.status !== 0) {
     throw new Error(`${program} ${args.join(' ')} failed: ${result.error?.message || result.status}`);
+  }
+  if (historyBefore === 'false' && checkoutIsShallow(options.cwd) === 'true') {
+    throw new Error(`Pipeline command made the full source checkout shallow: ${program} ${args.join(' ')}`);
   }
   return result;
 }
