@@ -155,7 +155,7 @@ without replacing the Body Plan or Play. The captured display showed `A`.
 Stop revoked the domain and zeroed its allocation. Its exact Body cost record
 reported five entries and gates, one Base gate, 10 runtime copy bytes, ten
 CR3/TLB switches and privilege transitions, a five-byte shared-window peak,
-118,784 backend bytes and 6,356 per-domain Root metadata bytes. This includes
+118,784 backend bytes and 6,324 per-domain Root metadata bytes. This includes
 keymap initialization, press/release handling, uppercase and presentation;
 it is not the total memory cost of the complete Body or its trusted kernel.
 Keymap and uppercase now execute together in one entry. Root forwards the
@@ -176,8 +176,12 @@ text domains and clears pending results. The journey collector exercises
 retention, deletion to an empty value, sibling presentation independence and
 exact per-partition retirement costs. The canonical graphical proof passed locally: the editor recorded 21 entries,
 five Base gates and 58 runtime copy bytes; each domain revoked on Stop and
-zeroed its 118,784-byte allocation. Its per-domain Root metadata was 6,356 bytes.
+zeroed its 118,784-byte allocation. Its per-domain Root metadata was 6,324 bytes.
 The preceding keyboard measurements remain scoped to that separate partition.
+A separate native diagnostic verifies that a one-byte editor preserves state
+across capacity refusal and deletion. The mapped input still crosses its original
+Cord; capacity refusal completes the Edit Host Call. The diagnostic is distinct
+from the ordinary Body journey.
 Broader ordinary implementation coverage remains unfinished.
 This is development emulator evidence, not accepted-release evidence.
 
