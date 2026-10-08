@@ -393,7 +393,8 @@ fn post_birth_refuses_stale_activation_and_controls_clock() {
         "{}",
         String::from_utf8_lossy(&lulled.stderr)
     );
-    let after_lull = local_face(&state);
+    // Lull acknowledges the stop request before the worker publishes its terminal Face.
+    let after_lull = wait_for_available_action(&state, "conduit.intent/start-clock@1");
     assert_ne!(after["presentation"], after_lull["presentation"]);
 
     input.write_all(b"activate\n").unwrap();

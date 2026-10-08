@@ -1,8 +1,15 @@
 //! Ordering lifecycle admission through the production pure-protocol kernel.
 use conduitos::protocol_source::{PreparedProtocolSource, ProtocolSourcePackage};
+use std::sync::OnceLock;
+
+// Source-package generation is deterministic and expensive. Reuse only these
+// immutable bytes; each case still prepares its own exact Plan and fresh Play.
+static PACKAGE: OnceLock<ProtocolSourcePackage> = OnceLock::new();
 
 pub(super) fn package() -> ProtocolSourcePackage {
-    conduitos::protocol_source::usb_hid_keyboard_order_package().unwrap()
+    PACKAGE
+        .get_or_init(|| conduitos::protocol_source::usb_hid_keyboard_order_package().unwrap())
+        .clone()
 }
 
 #[test]
