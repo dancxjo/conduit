@@ -38,8 +38,23 @@ impl Window8ProgramBank {
     /// is no runtime fallback to another evaluator or weakened Native admission.
     /// The default `prepare`/`prepare_native` Reference modes remain unchanged.
     pub fn prepare_native_evaluator(
+        native_limits: PreparedNativeFamilyLimits,
+        limits: Window8SourcePreparationLimits,
+    ) -> Result<Self, Window8PreparedBankRefusal> {
+        Self::prepare_evaluator_bank(
+            native_limits,
+            limits,
+            prepare_native_family,
+            source_entries(),
+        )
+    }
+    fn prepare_evaluator_bank<const N: usize>(
         mut native_limits: PreparedNativeFamilyLimits,
         limits: Window8SourcePreparationLimits,
+        prepare_family: fn(
+            PreparedNativeFamilyLimits,
+        ) -> Result<PreparedNativeFamily, PreparedNativeFamilyRefusal>,
+        entries: [(&'static str, &'static str); N],
     ) -> Result<Self, Window8PreparedBankRefusal> {
         if limits.maximum_input_bytes == 0
             || limits.maximum_input_bytes > conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES
@@ -62,10 +77,9 @@ impl Window8ProgramBank {
                     .checked_sub(owner)
                     .ok_or(Window8PreparedBankRefusal::SourceCapacity)?,
             );
-        let family = prepare_native_family(native_limits)
-            .map_err(Window8PreparedBankRefusal::NativePreparation)?;
+        let family =
+            prepare_family(native_limits).map_err(Window8PreparedBankRefusal::NativePreparation)?;
         let native = family.storage_receipt();
-        let entries = source_entries();
         let slots = entries
             .len()
             .checked_mul(size_of::<PreparedBankProgram>())
@@ -172,7 +186,7 @@ mod prepared_source_frame_tests {
         .unwrap()
         .canonical_bytes()
         .unwrap();
-        for (name, encoded) in source_entries() {
+        for (name, encoded) in proposal_source_entries() {
             let program = PortableExpressionProgram::from_canonical_hex(encoded).unwrap();
             let (mut prepared, _) = PreparedPortableExpressionEvaluator::new_with_storage_limits(
                 &program,

@@ -458,3 +458,5 @@ fn source_entries() -> [(&'static str, &'static str); 26] {
     ]
 }
 include!("parser_window8_program_bank_prepared.rs");
+
+include!("parser_window8_program_bank_proposal.rs");

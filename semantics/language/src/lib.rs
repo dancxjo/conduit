@@ -174,6 +174,13 @@ pub use generated::{
     LanguageParserWindow8RawModelFeatures, LanguageParserWindow8RawProjection,
     LanguageParserWindow8RawRequest, LanguageParserWindow8RawResult, LanguageParserWindow8Selected,
 };
+// Distinct proposer-backed feature ABI; legacy Window8 features remain unchanged.
+pub use generated::{
+    LanguageParserProposalWindow8FeatureContext, LanguageParserProposalWindow8FeatureQuery,
+    LanguageParserProposalWindow8Features, LanguageParserProposalWindow8OriginQuery,
+    LanguageParserProposalWindow8Origins, LanguageParserProposalWindow8RawFeatures,
+    LanguageParserProposalWindow8RawOrigins,
+};
 pub mod parser_window8;
 pub mod parser_window8_program_bank;
 pub use generated::{LanguageParserJointConsensusObservation, LanguageParserJointConsensusQuery};
