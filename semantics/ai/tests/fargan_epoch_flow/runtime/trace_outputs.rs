@@ -3,6 +3,14 @@ use super::*;
 
 #[test]
 fn ordinary_source_trace_outputs_retain_exact_types_and_refuse_pressure_and_cancel() {
+    std::thread::Builder::new()
+        .stack_size(32 * 1024 * 1024)
+        .spawn(check)
+        .unwrap()
+        .join()
+        .unwrap();
+}
+fn check() {
     let source = super::super::declarations::exact_epoch_declarations()
         + "\n"
         + include_str!("../../../../speech/fargan_epoch_trace.conduit")
@@ -28,6 +36,11 @@ fn ordinary_source_trace_outputs_retain_exact_types_and_refuse_pressure_and_canc
     let anchor = super::super::case_state::field(&accepted, "model");
     let receipt = format!("[{}]", vec!["1"; 32].join(","));
     let literal = format!("{{artifact_identity:{receipt},model_descriptor_identity:{receipt},session_basis_identity:{receipt},precision:reference_float32(\"\")}}");
+    let source = source
+        .lines()
+        .filter(|line| !line.starts_with("type Numeric"))
+        .collect::<Vec<_>>()
+        .join("\n");
     let source = source.replace(
         "selected: FarganModelFrameAnchor\n",
         &format!("selected: FarganModelFrameAnchor = {literal}\n"),
@@ -48,17 +61,50 @@ fn ordinary_source_trace_outputs_retain_exact_types_and_refuse_pressure_and_canc
         ("accepted".into(), vec![accepted.canonical_bytes().unwrap()]),
     ]);
     let resources: Resources = BTreeMap::new();
-    let result = run_epoch_stream_plan(
+    let types: Vec<_> = [
+        ("feature_trace", "FarganFeatureConditionTrace"),
+        ("history_trace", "FarganConditionHistoryTrace"),
+        ("pcm_trace", "FarganCommittedResultTrace"),
+    ]
+    .into_iter()
+    .map(|(port, name)| {
+        (
+            port.to_owned(),
+            checked
+                .native_types
+                .iter()
+                .find(|ty| ty.name == name)
+                .unwrap()
+                .value_type
+                .clone(),
+        )
+    })
+    .collect();
+    let traces = trace_hooks::TraceSinks::prepare(&types, anchor, 7, 1).unwrap();
+    let result = run_epoch_stream_plan_with_trace(
         plan.clone(),
         &context,
         &resources,
         inputs.clone(),
         None,
-        3,
-        ExecutionMode::Normal,
+        StreamRun {
+            expected: 0,
+            mode: ExecutionMode::Normal,
+            trace: Some(&traces),
+        },
     )
     .unwrap();
-    assert_eq!(result.values.len(), 3);
+    assert!(result.drained);
+    assert_eq!(result.scheduler_step_allocations, 0);
+    assert_eq!(result.prepared_expression_allocations, 0);
+    assert!(result.values.is_empty());
+    assert!(traces.finished());
+    let values: Vec<_> = types
+        .iter()
+        .flat_map(|(port, _)| traces.rows(port))
+        .map(|bytes| StructuredInfoValue::from_canonical_bytes(&bytes).unwrap())
+        .collect();
+    assert_eq!(values.len(), 3);
     for name in [
         "FarganFeatureConditionTrace",
         "FarganConditionHistoryTrace",
@@ -70,8 +116,7 @@ fn ordinary_source_trace_outputs_retain_exact_types_and_refuse_pressure_and_canc
             .find(|ty| ty.name == name)
             .unwrap()
             .value_type;
-        let value = result
-            .values
+        let value = values
             .iter()
             .find(|value| value.value_type() == ty)
             .unwrap();
@@ -86,24 +131,24 @@ fn ordinary_source_trace_outputs_retain_exact_types_and_refuse_pressure_and_canc
             super::super::case_state::field(&accepted, "epoch")
         );
     }
-    assert!(run_epoch_stream_plan(
-        plan.clone(),
-        &context,
-        &resources,
-        inputs.clone(),
-        None,
-        3,
-        ExecutionMode::StoragePressure
-    )
-    .is_none());
-    assert!(run_epoch_stream_plan(
-        plan,
-        &context,
-        &resources,
-        inputs,
-        None,
-        3,
-        ExecutionMode::CancelFirstExpression
-    )
-    .is_none());
+    for mode in [
+        ExecutionMode::StoragePressure,
+        ExecutionMode::CancelFirstExpression,
+    ] {
+        let refused = trace_hooks::TraceSinks::prepare(&types, anchor, 7, 1).unwrap();
+        assert!(run_epoch_stream_plan_with_trace(
+            plan.clone(),
+            &context,
+            &resources,
+            inputs.clone(),
+            None,
+            StreamRun {
+                expected: 0,
+                mode,
+                trace: Some(&refused)
+            }
+        )
+        .is_none());
+        assert!(!refused.finished());
+    }
 }

@@ -50,10 +50,16 @@ compound graph (800 nodes, 1180 cords); it executed no trained network.
 and records it only in `step_committed`. The isolated Source projection test
 checks reference/prepared evaluation parity and paused observation, cancellation
 before commit, duplicate refusal and zero allocation in step/commit. These are
-component transaction-frame tests. The added ordinary Plan/Play three-output
-transport and complete traced utterance expansion tests still require their
-integration test run; they are not claimed here as passing. Native all-row capture
-and whole-network C PCM differential remain pending the genuine committed basis.
+component transaction-frame tests. The ordinary Plan/Play three-output transport
+also passes with eight placements and six cords: all three exact typed/anchored
+rows drain, and pressure/cancellation refuse whole trace completion. Its scheduler
+uses fixed value storage after checked ingress transfer. Measured scheduler Step
+and prepared expression invocations allocate nothing. This is transport proof,
+not execution of the trained model. Complete traced utterance Source expansion also passes with all three feedback
+cells and each diagnostic envelope below 16 KiB, within 1024 nodes/2048 cords.
+Native trained all-row capture still requires its separate execution gate. The old genuinely
+committed Travis-only carrier can support differential evidence; it must never
+be relabelled as the complete greeting.
 
 `fixed_storage_inventory.rs` measures a mechanical static envelope matching the
 existing harness capacities on this x86_64 host: 19,909,952 bytes, including a
@@ -61,3 +67,16 @@ existing harness capacities on this x86_64 host: 19,909,952 bytes, including a
 numerical Back storage, admitted model bytes/views, Source preparation metadata
 and all diagnostics. It instantiates no scheduler and executes no Source graph.
 No FARGAN boot entry currently exists; no_std compilation is not boot execution.
+
+
+`fixed_storage_ingress.rs` transfers the complete ordered live canonical ingress
+into caller-owned fixed storage at preparation, preserving exact reference
+identity, payloads and custody counts. Missing/reordered/foreign refs and capacity
+failures clear only the new destination; occupied storage is preserved. Two
+kernel-linked tests pass. The hosted driver retains the selected item and byte
+limits when executing with this storage; it does not raise the pressure budget.
+The debug constructor currently needs a 256 MiB preparation stack reservation
+because constructing the 16 MiB array creates stack temporaries. The fixed store
+itself is boxed during hosted preparation. Static target placement, prepared
+numerical driver storage, fixed SignLog integration and boot execution remain
+unproved; this startup workaround is not target SRAM admission.

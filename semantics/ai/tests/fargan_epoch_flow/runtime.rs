@@ -12,12 +12,16 @@ use std::{
     rc::Rc,
     time::{Duration, Instant},
 };
+#[path = "runtime/fixed_storage.rs"]
+mod fixed_storage;
 #[path = "runtime/native_control.rs"]
 mod native_control;
 #[path = "runtime/native_startup.rs"]
 mod native_startup;
 #[path = "runtime/native_utterance.rs"]
 mod native_utterance;
+#[path = "runtime/trace_hooks.rs"]
+mod trace_hooks;
 #[path = "runtime/trace_outputs.rs"]
 mod trace_outputs;
 pub(super) use native_control::run_native_period_controls;
@@ -125,6 +129,7 @@ enum Driver {
         staged: Option<Vec<u8>>,
         expected: usize,
     },
+    Trace(Rc<std::cell::RefCell<trace_hooks::sink::DevelopmentTraceSink>>),
     Inactive,
 }
 impl StepBack<PORTS> for Driver {
@@ -146,6 +151,7 @@ impl StepBack<PORTS> for Driver {
                 StepOutcome::Progress
             }
             Self::Operation(back) => back.step(io, bytes),
+            Self::Trace(back) => back.borrow_mut().step(io, bytes),
             Self::Sink {
                 received,
                 staged,
@@ -178,6 +184,11 @@ impl StepBack<PORTS> for Driver {
     fn step_committed(&mut self) {
         match self {
             Self::Operation(back) => back.step_committed(),
+            Self::Trace(back) => {
+                <trace_hooks::sink::DevelopmentTraceSink as StepBack<PORTS>>::step_committed(
+                    &mut *back.borrow_mut(),
+                )
+            }
             Self::Sink {
                 received, staged, ..
             } => {
@@ -193,8 +204,14 @@ impl StepBack<PORTS> for Driver {
         }
     }
     fn cancel(&mut self) {
-        if let Self::Operation(back) = self {
-            back.cancel();
+        match self {
+            Self::Operation(back) => back.cancel(),
+            Self::Trace(back) => {
+                <trace_hooks::sink::DevelopmentTraceSink as StepBack<PORTS>>::cancel(
+                    &mut *back.borrow_mut(),
+                )
+            }
+            _ => {}
         }
     }
 }
@@ -246,6 +263,8 @@ struct StreamResultAndTiming {
     nodes: usize,
     cords: usize,
     drained: bool,
+    scheduler_step_allocations: usize,
+    prepared_expression_allocations: usize,
 }
 fn run_epoch_stream_plan<R: RuntimeTensor>(
     plan: Plan,
@@ -256,7 +275,39 @@ fn run_epoch_stream_plan<R: RuntimeTensor>(
     expected: usize,
     mode: ExecutionMode,
 ) -> Option<StreamResultAndTiming> {
-    let run_to_drain = seeded.is_some()
+    run_epoch_stream_plan_with_trace(
+        plan,
+        context,
+        resources,
+        input_values,
+        seeded,
+        StreamRun {
+            expected,
+            mode,
+            trace: None,
+        },
+    )
+}
+struct StreamRun<'a> {
+    expected: usize,
+    mode: ExecutionMode,
+    trace: Option<&'a trace_hooks::TraceSinks>,
+}
+fn run_epoch_stream_plan_with_trace<R: RuntimeTensor>(
+    plan: Plan,
+    context: &super::EpochProfiles,
+    resources: &BTreeMap<String, R>,
+    input_values: BTreeMap<String, Vec<Vec<u8>>>,
+    seeded: Option<conduitos::seeded_state::SeededStateOperationFactory>,
+    run: StreamRun<'_>,
+) -> Option<StreamResultAndTiming> {
+    let StreamRun {
+        expected,
+        mode,
+        trace,
+    } = run;
+    let run_to_drain = trace.is_some()
+        || seeded.is_some()
         || plan
             .fragments
             .iter()
@@ -543,16 +594,21 @@ fn run_epoch_stream_plan<R: RuntimeTensor>(
             } else {
                 assert_eq!(gear.inputs.len(), 1, "missing fixture for input {name}");
                 assert!(gear.outputs.is_empty(), "missing fixture for input {name}");
-                drivers.push(Driver::Sink {
-                    received: received.clone(),
-                    staged: None,
-                    expected,
-                });
+                if let Some(sink) = trace.and_then(|trace| trace.get(name)) {
+                    drivers.push(Driver::Trace(sink));
+                } else {
+                    drivers.push(Driver::Sink {
+                        received: received.clone(),
+                        staged: None,
+                        expected,
+                    });
+                }
             }
         }
     }
     drop(factories);
     drop(adopted); // drivers retain immutable admitted resource custody.
+    let store = fixed_storage::prepare(store, &fixtures, trace.is_some());
     let nodes = drivers.len();
     while drivers.len() < N {
         drivers.push(Driver::Inactive);
@@ -591,8 +647,16 @@ fn run_epoch_stream_plan<R: RuntimeTensor>(
     eprintln!("epoch owners prepared: {nodes} nodes/{cords} cords in {preparation:?}");
     let execute = Instant::now();
     let mut drained = false;
+    let mut scheduler_step_allocations = 0;
+    let mut prepared_expression_allocations = 0;
     for _ in 0..262144 {
-        let status = match scheduler.step() {
+        let (step, allocations) = if trace.is_some() {
+            super::allocation_probe::measure(|| scheduler.step())
+        } else {
+            (scheduler.step(), 0)
+        };
+        scheduler_step_allocations += allocations;
+        let status = match step {
             Ok(status) => status,
             Err(error) => {
                 eprintln!("epoch scheduler refused: {error:?}");
@@ -635,17 +699,27 @@ fn run_epoch_stream_plan<R: RuntimeTensor>(
                 break;
             }
             let input = scheduler.values().get(call.input.value).unwrap();
-            let output = if let Some(filter) = filter_owners.get_mut(&call.node) {
-                filter.execute(input).unwrap()
+            let filter = filter_owners.get_mut(&call.node);
+            let owner = if filter.is_none() {
+                owners.get_mut(&call.node)
             } else {
-                Some(
-                    owners
-                        .get_mut(&call.node)
+                None
+            };
+            let invocation = move || match filter {
+                Some(filter) => filter.execute(input).unwrap(),
+                None => Some(
+                    owner
                         .unwrap()
                         .invoke(call.node, call.call, call.request, input)
                         .unwrap(),
-                )
+                ),
             };
+            let (output, allocations) = if trace.is_some() {
+                super::allocation_probe::measure(invocation)
+            } else {
+                (invocation(), 0)
+            };
+            prepared_expression_allocations += allocations;
             let value = match output {
                 Some(output) => {
                     let Ok(value) = scheduler.store_host_value(output) else {
@@ -707,6 +781,9 @@ fn run_epoch_stream_plan<R: RuntimeTensor>(
             }
         }
     }
+    if trace.is_some_and(|trace| !trace.finished()) {
+        return None;
+    }
     if encoded.len() != expected || (run_to_drain && !drained) {
         return None;
     }
@@ -720,6 +797,8 @@ fn run_epoch_stream_plan<R: RuntimeTensor>(
         nodes,
         cords,
         drained,
+        scheduler_step_allocations,
+        prepared_expression_allocations,
     })
 }
 

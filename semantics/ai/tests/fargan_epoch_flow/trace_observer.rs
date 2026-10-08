@@ -3,9 +3,9 @@ use super::*;
 // Shared development helpers are independently exercised by the Plot envelope tests.
 #[allow(dead_code)]
 #[path = "../../../../proof/fargan/development_trace_recorder.rs"]
-mod recorder;
+pub(super) mod recorder;
 #[path = "../../../../proof/fargan/development_trace_sink.rs"]
-mod sink;
+pub(super) mod sink;
 use conduit_kernel::{
     scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     PortId, ValueRef,
