@@ -1,0 +1,205 @@
+{
+  "action": {
+    "action_id": "todo.complete.task-18",
+    "code": "accepted",
+    "face_id": "97c3d96f058a90c252055416ac9220c6790ba2752b064b637963abce7ccb1b3a",
+    "face_refreshed": true,
+    "face_revision": 612,
+    "interaction_id": "32b8590fa2d5cdf1fa2d819f70401907b39bbb9fe7c5680e1659a58e49d58ce5",
+    "prior_show_id": "show/4f3f4bd1bf92b43f4a6a5354d861581d031eb4e384148e7a1f89f949a195835d",
+    "requested_interval_ms": null,
+    "schema": "conduit.conduitos/native-owner-action@1",
+    "status": "accepted"
+  },
+  "candidate_id": "candidate/body-owner-route",
+  "coordinated": true,
+  "face_after": {
+    "continuing_owner_route": true,
+    "face_id": "ee42bc878e05bcef1ea9715532e22292b42184f46ad00f3a42c5cd37a8a64563",
+    "face_revision": 621,
+    "interactions_admitted": true,
+    "local_show_available": true,
+    "owner_show_acknowledged": false,
+    "schema": "conduit.conduitos/native-owner-face@1",
+    "show_id": "show/aa3017afc97f4cba0fd95fcf6f6ff26f614d6f725219fabc89a480455b3d4427",
+    "status": "shown"
+  },
+  "face_before": {
+    "continuing_owner_route": true,
+    "face_id": "97c3d96f058a90c252055416ac9220c6790ba2752b064b637963abce7ccb1b3a",
+    "face_revision": 612,
+    "interactions_admitted": true,
+    "local_show_available": true,
+    "owner_show_acknowledged": false,
+    "schema": "conduit.conduitos/native-owner-face@1",
+    "show_id": "show/4f3f4bd1bf92b43f4a6a5354d861581d031eb4e384148e7a1f89f949a195835d",
+    "status": "shown"
+  },
+  "face_standby": {
+    "continuing_owner_route": false,
+    "face_id": "41041d11a2762542d859212b7059b3e133bcca9d34e362b703870699b3550f67",
+    "face_revision": 607,
+    "interactions_admitted": false,
+    "local_show_available": true,
+    "owner_show_acknowledged": false,
+    "schema": "conduit.conduitos/native-owner-face@1",
+    "show_id": "show/31638de26afb1bcac483be2b3ec9b2856577b9190de819452191a4f8e2970340",
+    "status": "shown"
+  },
+  "guest_part": {
+    "body_id": "335e956d4370f3373b62cdef8a6990b4a1ed414cd693f3d8ee92403b5fcff287",
+    "boot_id": "c81ee74dcbbdffef53fe3f2b79c9c9ea039ae1746e945b8d3c46885a876abe3b",
+    "host_id": "b73550e14e63cc98554a4162b57670a404b1358a2b20b2fa7ef8995e529c4c8e",
+    "membership_installed": true,
+    "part_id": "ae5d9507949e1c68f7d643684046856221c6e496877439e90f9fcf8fbd658240",
+    "plan_created": false,
+    "play_created": false,
+    "schema": "conduit.conduitos/native-guest-part@1",
+    "workset_known_here": false
+  },
+  "guest_standby_part": {
+    "body_id": "335e956d4370f3373b62cdef8a6990b4a1ed414cd693f3d8ee92403b5fcff287",
+    "boot_id": "c81ee74dcbbdffef53fe3f2b79c9c9ea039ae1746e945b8d3c46885a876abe3b",
+    "host_id": "b73550e14e63cc98554a4162b57670a404b1358a2b20b2fa7ef8995e529c4c8e",
+    "membership_installed": true,
+    "part_id": "ae5d9507949e1c68f7d643684046856221c6e496877439e90f9fcf8fbd658240",
+    "plan_created": false,
+    "play_created": false,
+    "schema": "conduit.conduitos/native-guest-part@1",
+    "workset_known_here": false
+  },
+  "native_mutations": 1,
+  "owner_face_after": {
+    "body_id": "335e956d4370f3373b62cdef8a6990b4a1ed414cd693f3d8ee92403b5fcff287",
+    "expected_action_available": true,
+    "face_id": "ee42bc878e05bcef1ea9715532e22292b42184f46ad00f3a42c5cd37a8a64563",
+    "face_revision": 621,
+    "item_count": 20,
+    "snapshot_sha256": "sha256:7a2b9ee0896ce8af22c2eb17098a07815747b745d1e87d0dc991c9db196ee76f",
+    "source": "installed-owner-body-face-json",
+    "status": "2 things left · 18 completed"
+  },
+  "owner_face_before": {
+    "body_id": "335e956d4370f3373b62cdef8a6990b4a1ed414cd693f3d8ee92403b5fcff287",
+    "expected_action_available": true,
+    "face_id": "97c3d96f058a90c252055416ac9220c6790ba2752b064b637963abce7ccb1b3a",
+    "face_revision": 612,
+    "item_count": 20,
+    "snapshot_sha256": "sha256:b7bf9f42ecb0f2b8aa7e86d177858fc7742cf78c002b46143724e514dd72a27d",
+    "source": "installed-owner-body-face-json",
+    "status": "3 things left · 17 completed"
+  },
+  "proof_class": "live-local-qmp-installed-owner-isolated-checkpoint-fork",
+  "protected_checkpoint_after": {
+    "files": 38,
+    "sha256": "sha256:1d1152940bccd82eacf125932b1247c73c0033043f5341ea132635233209964c"
+  },
+  "protected_checkpoint_before": {
+    "files": 38,
+    "sha256": "sha256:1d1152940bccd82eacf125932b1247c73c0033043f5341ea132635233209964c"
+  },
+  "protected_checkpoint_dev_inode": [
+    66306,
+    52965889
+  ],
+  "protected_checkpoint_root": "/home/dancxjo/conduit-todo-browser-proof/attempt-5/checkpoints",
+  "qemu_alive_at_capture": true,
+  "qemu_argv": [
+    "-M",
+    "q35",
+    "-cpu",
+    "max",
+    "-m",
+    "64M",
+    "-smp",
+    "1",
+    "-display",
+    "none",
+    "-vga",
+    "std",
+    "-monitor",
+    "none",
+    "-serial",
+    "file:/home/dancxjo/Documents/Codex/2026-10-08/todo-native-qmp-56481-fork7/native/guest.serial.log",
+    "-no-reboot",
+    "-netdev",
+    "user,id=conduit-owner,restrict=on,guestfwd=tcp:10.0.2.42:4433-cmd:nc 172.17.0.1 37478",
+    "-device",
+    "virtio-net-pci,netdev=conduit-owner,disable-modern=on,rx_queue_size=256,tx_queue_size=256",
+    "-qmp",
+    "unix:/home/dancxjo/Documents/Codex/2026-10-08/todo-native-qmp-56481-fork7/native/qmp.sock,server=on,wait=off",
+    "-device",
+    "qemu-xhci,id=conduitos-xhci,p2=2,p3=0",
+    "-device",
+    "usb-kbd,bus=conduitos-xhci.0,port=1",
+    "-device",
+    "usb-mouse,bus=conduitos-xhci.0,port=2",
+    "-cdrom",
+    "/home/dancxjo/Documents/Codex/2026-10-08/todo-native-qmp-56481-fork7/todo-spore-56481.iso",
+    "-boot",
+    "d"
+  ],
+  "reachability": "wss://10.0.2.42:4433/conduit",
+  "schema": "conduit.conduitos/native-todo-action-proof@1",
+  "screenshots": [
+    {
+      "checkpoint": "owner-standby",
+      "height": 800,
+      "non_background_pixels": 1019844,
+      "pixel_format": "RGBA8",
+      "pixel_sha256": "89e6264e21b33a07724a81a5b4faba1b941c00f4e1d7edb4711aac04c8c6f5ce",
+      "png": "owner-standby.png",
+      "png_bytes": 117952,
+      "png_sha256": "efab932411ed0d0dc4776b88f12b839e49c181f4a2a028fb80846631525c8c25",
+      "width": 1280
+    },
+    {
+      "checkpoint": "owner-before",
+      "height": 800,
+      "non_background_pixels": 1019844,
+      "pixel_format": "RGBA8",
+      "pixel_sha256": "052e809d7bff228110f1a3f9e2a6dfb841d964904c234aee2e412fed9c10fc62",
+      "png": "owner-before.png",
+      "png_bytes": 108027,
+      "png_sha256": "5e3669bacc4e5ec89ac0f270070a43cdb18169a3641c26d60763f9f0ca5973bb",
+      "width": 1280
+    },
+    {
+      "checkpoint": "owner-after",
+      "height": 800,
+      "non_background_pixels": 1019844,
+      "pixel_format": "RGBA8",
+      "pixel_sha256": "8bf85427623bbf4e219e23c0fc34ff655ce1a18e9eeb8f375dbe534a8dc36487",
+      "png": "owner-after.png",
+      "png_bytes": 97033,
+      "png_sha256": "c7ed22d1d6a9e47d54880e7e0a5f496228aac7b59cabf1bab4538b05577ced39",
+      "width": 1280
+    }
+  ],
+  "selected_checkpoint_after": {
+    "files": 39,
+    "sha256": "sha256:1f5725eae5fa70526b1790f2d69bb14076feb408da2538c6deb3894153fbfbd2"
+  },
+  "selected_checkpoint_before": {
+    "files": 38,
+    "sha256": "sha256:1d1152940bccd82eacf125932b1247c73c0033043f5341ea132635233209964c"
+  },
+  "selected_checkpoint_dev_inode": [
+    66306,
+    48144935
+  ],
+  "selected_checkpoint_root": "/home/dancxjo/Documents/Codex/2026-10-08/todo-native-qmp-56481-fork7/checkpoints-fork",
+  "show_ack_after": {
+    "schema": "conduit.conduitos/native-owner-face@1",
+    "show_id": "show/aa3017afc97f4cba0fd95fcf6f6ff26f614d6f725219fabc89a480455b3d4427",
+    "status": "acknowledged"
+  },
+  "show_ack_before": {
+    "schema": "conduit.conduitos/native-owner-face@1",
+    "show_id": "show/4f3f4bd1bf92b43f4a6a5354d861581d031eb4e384148e7a1f89f949a195835d",
+    "status": "acknowledged"
+  },
+  "source_commit": "56481bf14857bdc62f54d30b1c424cfe5c92f896",
+  "spore_build_id": "build:sha256:2553e0fd480642bcf6bef6bb3fb7e9c5aae2f92f50d1eeca77b1372687a3cbdb",
+  "spore_sha256": "sha256:d23442dd918a3840b2fa60491321addb5a9cc14eab2188b810349c6b8f250e1a"
+}

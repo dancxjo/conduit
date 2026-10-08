@@ -1,0 +1,26 @@
+{
+  "schema": "conduit.proof/todo-direct-spoken-after-native@1",
+  "proof_class": "installed-owner-direct-mask-same-delivered-speaker-play-local",
+  "source_commit": "56481bf14857bdc62f54d30b1c424cfe5c92f896",
+  "body_id": "335e956d4370f3373b62cdef8a6990b4a1ed414cd693f3d8ee92403b5fcff287",
+  "face_id": "043ce9b4822057ae0b255dba720b214e24074a5b5b1e0c24b9a97e5f9cc219a9",
+  "face_revision": 631,
+  "show_id": "show/c6d8022f9ce685d827f870c8387bd2c03b79d21b0c043b7d924d94a2e8a334f1",
+  "opening_wording": "Groceries. 2 things left \u00b7 18 completed Long-list item 19. Long-list item 20.",
+  "outcome": "available",
+  "speaker_played": true,
+  "direct_reading_complete": true,
+  "play_id": "950fd2fcc99a29381bd90db558c081b8c681d25208c8290ddc2d505ab035a8db",
+  "wav": {
+    "file": "play-f7a0e51f3a9b5552982db6c572a5de72ce3f0459430fb42be4cdbb1c074f4ff0.wav",
+    "bytes": 1138708,
+    "sha256": "a2b4eed0f176412e5bf8d2fb5df3a0ec5561529f2ab92d2d4ec97eefed0f93e8",
+    "pcm_bytes": 1138664,
+    "pcm_sha256": "431fe49a1ebfe095480754f881964023624cee2ad8d12a543a72ff21f0e8bd11",
+    "speaker_blocks_committed": 5232,
+    "speaker_frames_committed": 284666
+  },
+  "terminal": "terminal.json",
+  "human_hearing_observed": false,
+  "todo_actions": 0
+}
