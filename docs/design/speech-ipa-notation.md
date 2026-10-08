@@ -54,9 +54,15 @@ A related extension could bind paired notation to a typed domain decoder:
 
 ```conduit
 # Proposal only: this declaration grammar is not implemented.
-with speech/phonetic-transcription as notation p "[" "]"
-with speech/phonemic-transcription as notation p "/" "/"
+with speech/ipa/notation as p
+with pattern/portable/notation as r
 ```
+
+Each imported member exports one checked notation family. The local prefix
+names that family once; its declared delimiter branches select exactly one
+parser and output Type each. The IPA family exports phonetic `[]` and phonemic
+`//` branches, while the portable-pattern family exports its slash branch.
+The member names and import grammar above are illustrative, not shipped exports.
 
 The language would own delimiter recognition, lexical scope and expansion.
 Speech would own supported IPA and the output Types. Expansion would retain
