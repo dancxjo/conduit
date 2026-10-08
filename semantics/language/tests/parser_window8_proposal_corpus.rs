@@ -332,7 +332,7 @@ fn actual_proposal_window8_corpus() {
         serde_json::from_value(document["rows"].clone()).unwrap()
     };
     assert!(
-        !rows.is_empty() && rows.len() <= 31,
+        !rows.is_empty() && rows.len() <= 8,
         "finite per-process chunk; aggregate retains full denominator"
     );
     let mut candidate = candidate::prepare();
@@ -348,7 +348,7 @@ fn actual_proposal_window8_corpus() {
         candidate.scorer.clone(),
         candidate::numeric_source(&candidate),
         "window8-proposal-v2-learned-model",
-        16127,
+        4096,
     );
     let bank = Window8ProgramBank::prepare_proposal_v2_native_evaluator(
         PreparedNativeFamilyLimits {

@@ -310,6 +310,7 @@ fn prepare_source_with_aliases(
         .install(SelectorOperationFactory::default())
         .unwrap();
     registry.install(factory).unwrap();
+    eprintln!("numeric Source Plan journal structural input: lowered_sign_items={}, active_nodes={}, active_cords={}, additional_model_calls={maximum_inferences:?}; full Kernel factory admission follows",lowered.sign_items,lowered.nodes.len(),lowered.cords.len());
     let kernel = KernelCompositeHost::prepare_with_sign_storage(
         definition,
         &registry,
