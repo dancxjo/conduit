@@ -17,6 +17,8 @@ mod interface;
 mod native_session;
 #[path = "fargan_epoch_flow/native_startup.rs"]
 mod native_startup;
+#[path = "fargan_epoch_flow/plan_artifact.rs"]
+mod plan_artifact;
 #[path = "fargan_epoch_flow/repeat_capacity.rs"]
 mod repeat_capacity;
 #[path = "fargan_epoch_flow/trace_cycle.rs"]

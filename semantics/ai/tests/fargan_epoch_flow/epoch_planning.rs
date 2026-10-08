@@ -168,11 +168,9 @@ pub(super) fn prepare_authored_epoch_entry(
         });
     }
     wrapper.push_str("}\n");
-    let checked = check_syntax_document(
-        &parse_syntax_document(&format!("{source}{wrapper}")),
-        &context.startup,
-    )
-    .unwrap();
+    let exact_source = format!("{source}{wrapper}");
+    let checked =
+        check_syntax_document(&parse_syntax_document(&exact_source), &context.startup).unwrap();
     let expanded =
         expand_canonical_plot_for_authoring(&checked, "epoch-runtime-proof", &context.profiles)
             .unwrap();
@@ -235,6 +233,11 @@ pub(super) fn prepare_authored_epoch_entry(
         &["conduit.base/local@1".into()],
     )?;
     assert!(verify_plan(&plan));
+    assert_eq!(plan.source_document_id, checked.source_document_id);
+    context.checked_source = Some(super::plan_artifact::CheckedEpochSource {
+        text: exact_source,
+        identity: checked.source_document_id.clone(),
+    });
     conduit_ai::operation_owners::native_profile::NativeProfileOperationFactory::for_plan(
         &plan,
         &context.native,

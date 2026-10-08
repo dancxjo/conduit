@@ -220,12 +220,14 @@ pub(in super::super) fn run_native_trained_utterance(
         std::fs::write(directory.join("session-basis.bin"), &basis).unwrap();
         std::fs::write(directory.join("bound-epoch-source.conduit"), &source).unwrap();
         std::fs::write(directory.join("plan-debug.txt"), format!("{plan:#?}")).unwrap();
+        super::super::plan_artifact::export(&directory, &plan, &context);
     }
     if let Some(directory) = &trace_directory {
         std::fs::create_dir_all(directory).unwrap();
         std::fs::write(directory.join("session-basis.bin"), &basis).unwrap();
         std::fs::write(directory.join("bound-epoch-source.conduit"), &source).unwrap();
         std::fs::write(directory.join("plan-debug.txt"), format!("{plan:#?}")).unwrap();
+        super::super::plan_artifact::export(directory, &plan, &context);
     }
     let mut resources = model
         .resources

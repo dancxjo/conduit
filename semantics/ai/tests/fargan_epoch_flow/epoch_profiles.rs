@@ -47,6 +47,7 @@ pub(super) fn shape_contract(ty: &StructuredInfoType) -> CheckedValueContract {
     .unwrap()
 }
 pub(super) struct EpochProfiles {
+    pub(super) checked_source: Option<super::plan_artifact::CheckedEpochSource>,
     pub(super) startup: StartupCatalog,
     pub(super) profiles: ProfileCatalog,
     pub(super) imports: String,
@@ -158,6 +159,7 @@ pub(super) fn prepared_epoch_profiles_with_capacity(capacity64: bool) -> EpochPr
         weakening.push(std::sync::Arc::new(weak));
     }
     EpochProfiles {
+        checked_source: None,
         startup,
         profiles,
         imports,
