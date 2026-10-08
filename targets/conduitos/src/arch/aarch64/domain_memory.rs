@@ -17,7 +17,7 @@ const PXN: u64 = 1 << 53;
 const UXN: u64 = 1 << 54;
 const ROOT_ONLY_TABLE: u64 = (1 << 61) | (1 << 60);
 pub(super) const USER_FRAME: u64 = USER_TEXT_START + MAXIMUM_IMAGE_BYTES;
-pub(super) const USER_STACK_TOP: u64 = USER_TEXT_START + 0x28000;
+pub(super) const USER_STACK_TOP: u64 = USER_TEXT_START + 0x48000;
 static HHDM: AtomicU64 = AtomicU64::new(0);
 static OWNED: AtomicU8 = AtomicU8::new(0);
 
@@ -34,7 +34,7 @@ struct Slot {
     low_l2: Table,
     user_l3: Table,
     root_l0: Table,
-    code: Bytes<65536>,
+    code: Bytes<131072>,
     frame: Bytes<4096>,
     stack: Bytes<STACK_BYTES>,
     retained: Bytes<RETAINED_BYTES>,
@@ -50,7 +50,7 @@ impl Slot {
             low_l2: Table([0; 512]),
             user_l3: Table([0; 512]),
             root_l0: Table([0; 512]),
-            code: Bytes([0; 65536]),
+            code: Bytes([0; 131072]),
             frame: Bytes([0; 4096]),
             stack: Bytes([0; STACK_BYTES]),
             retained: Bytes([0; RETAINED_BYTES]),
@@ -176,7 +176,7 @@ impl AddressSpace {
                     | if segment.executable { 0 } else { UXN };
             }
         }
-        memory.user_l3.0[16] = physical(&memory.frame)? | common | (1 << 6) | UXN;
+        memory.user_l3.0[32] = physical(&memory.frame)? | common | (1 << 6) | UXN;
         for page in 0..STACK_BYTES / PAGE {
             memory.user_l3.0[STACK_PAGE + page] =
                 physical(&memory.stack)? + (page * PAGE) as u64 | common | (1 << 6) | UXN;

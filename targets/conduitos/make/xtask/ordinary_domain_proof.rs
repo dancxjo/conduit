@@ -193,13 +193,13 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
             != (conduitos::ordinary_plan::TEXT_LITERAL.len()
                 + 3 * conduitos::ordinary_plan::TEXT_RESULT.len()) as u64
         || cost["tlb_flushes"] != 6
-        || cost["teardown_zeroed_bytes"] != 151552
+        || cost["teardown_zeroed_bytes"] != 217088
         || cost["shared_peak_bytes"]
             != (conduitos::ordinary_plan::TEXT_LITERAL.len()
                 + conduitos::ordinary_plan::TEXT_RESULT.len()) as u64
         || cost["ring_slots"] != 0
         || cost["state"] != "Revoked(PlayCompleted)"
-        || cost["reserved_bytes"] != 151552
+        || cost["reserved_bytes"] != 217088
         || cost["dma_isolation"] != false
         || cost["driver_isolation"] != false
     {
