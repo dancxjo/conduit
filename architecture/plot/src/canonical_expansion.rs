@@ -117,6 +117,7 @@ fn expand_instance(
     plot: &CheckedCanonicalPlot,
     plots: &BTreeMap<&str, &CheckedCanonicalPlot>,
     structured_types: &BTreeMap<conduit_core::KindId, conduit_core::StructuredInfoType>,
+    exact_initial_info: &BTreeMap<(conduit_core::KindId, String), Vec<u8>>,
     catalog: &ProfileCatalog,
     backs: &CanonicalBackCatalog,
     environment: &BTreeMap<String, CanonicalStartupValue>,
@@ -144,6 +145,7 @@ fn expand_instance(
         plot,
         plots,
         structured_types,
+        exact_initial_info,
         catalog,
         backs,
         environment,
@@ -161,6 +163,7 @@ fn expand_instance_inner(
     plot: &CheckedCanonicalPlot,
     plots: &BTreeMap<&str, &CheckedCanonicalPlot>,
     structured_types: &BTreeMap<conduit_core::KindId, conduit_core::StructuredInfoType>,
+    exact_initial_info: &BTreeMap<(conduit_core::KindId, String), Vec<u8>>,
     catalog: &ProfileCatalog,
     backs: &CanonicalBackCatalog,
     environment: &BTreeMap<String, CanonicalStartupValue>,
@@ -187,6 +190,7 @@ fn expand_instance_inner(
             plot,
             plots,
             structured_types,
+            exact_initial_info,
             catalog,
             backs,
             environment,
@@ -233,6 +237,7 @@ fn expand_instance_inner(
                         plot,
                         plots,
                         structured_types,
+                        exact_initial_info,
                         catalog,
                         backs,
                         environment,
@@ -331,6 +336,7 @@ fn expand_instance_inner(
                         plot,
                         plots,
                         structured_types,
+                        exact_initial_info,
                         catalog,
                         backs,
                         environment,
@@ -356,6 +362,7 @@ fn expand_instance_inner(
                         plot,
                         plots,
                         structured_types,
+                        exact_initial_info,
                         catalog,
                         backs,
                         environment,
@@ -385,6 +392,7 @@ fn expand_instance_inner(
             plot,
             plots,
             structured_types,
+            exact_initial_info,
             catalog,
             backs,
             environment,
@@ -457,6 +465,7 @@ fn instantiate_gear(
     source_plot: &CheckedCanonicalPlot,
     plots: &BTreeMap<&str, &CheckedCanonicalPlot>,
     structured_types: &BTreeMap<conduit_core::KindId, conduit_core::StructuredInfoType>,
+    exact_initial_info: &BTreeMap<(conduit_core::KindId, String), Vec<u8>>,
     catalog: &ProfileCatalog,
     backs: &CanonicalBackCatalog,
     environment: &BTreeMap<String, CanonicalStartupValue>,
@@ -486,9 +495,21 @@ fn instantiate_gear(
             (Some(accumulator), Some(initial)) => Some(canonical_initial_bytes(
                 accumulator.value_kind.as_str(),
                 initial,
+                exact_initial_info,
             )?),
             _ => None,
         };
+        if initial_accumulator_bytes.as_ref().is_some_and(|bytes| {
+            activation
+                .accumulator_contract
+                .as_ref()
+                .is_none_or(|contract| contract.validate(bytes).is_err())
+        }) {
+            return Err(CanonicalExpansionDiagnostic::new(
+                "CND-FRM-064",
+                "fold/scan initial Form differs from its exact accumulator Value contract".into(),
+            ));
+        }
         let child = plots
             .get(activation.selected_plot.as_str())
             .copied()
@@ -614,6 +635,7 @@ fn instantiate_gear(
             child,
             plots,
             structured_types,
+            exact_initial_info,
             catalog,
             backs,
             &child_environment,
@@ -862,6 +884,7 @@ fn instantiate_gear(
             &back.plot,
             plots,
             structured_types,
+            exact_initial_info,
             catalog,
             backs,
             &child_environment,

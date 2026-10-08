@@ -25,6 +25,13 @@ use std::{
     path::{Path, PathBuf},
 };
 
+/// The one local-control round-trip budget, including an action's durable
+/// acknowledgement. Timeout leaves the result unknown to its caller.
+pub(super) const CONTROL_DEADLINE: std::time::Duration = std::time::Duration::from_secs(2);
+/// One Todo action may wait for a bounded write and a second admitted read
+/// before its committed-state Face is safe to return to the caller.
+pub(super) const TODO_ACTION_DEADLINE: std::time::Duration = std::time::Duration::from_secs(8);
+
 #[path = "body/clock_action.rs"]
 mod clock_action;
 #[cfg(unix)]
@@ -46,7 +53,7 @@ pub(super) enum HostSource {
     Body {
         owner: Box<crate::durable_host::owner::Owner>,
         root: PathBuf,
-        running: Option<crate::durable_host::owner::RunWorker>,
+        running: Option<super::body_run::OwnedRunWorker>,
     },
 }
 

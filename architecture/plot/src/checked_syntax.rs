@@ -26,6 +26,7 @@ pub struct StartupCatalog {
     structured_type_contracts: BTreeMap<String, Vec<NativeTypeValueContract>>,
     structured_type_invariants: BTreeMap<String, Vec<crate::PortableExpressionProgram>>,
     value_kind_aliases: BTreeMap<String, conduit_core::KindId>,
+    pub(crate) exact_initial_info: BTreeMap<(conduit_core::KindId, String), Vec<u8>>,
 }
 
 impl StartupCatalog {
@@ -312,6 +313,7 @@ pub struct CheckedSyntaxDocument {
     /// an input to planning.
     pub source_sugar_expansions: Vec<SourceSugarExpansion>,
     pub(crate) structured_types: BTreeMap<conduit_core::KindId, conduit_core::StructuredInfoType>,
+    pub(crate) exact_initial_info: BTreeMap<(conduit_core::KindId, String), Vec<u8>>,
 }
 
 /// One checked compatibility Form, distinct from semantic Type identity.

@@ -192,12 +192,12 @@ fn direct_opening_bounds_long_collections_without_losing_full_reading() {
     });
     disclosures.push(PresentationDisclosure {
         subject: "todo/list".into(),
-        level: PresentationDisclosureLevel::Context,
+        level: PresentationDisclosureLevel::Primary,
     });
     subjects.push(PresentationSubject {
         identity: "todo/status".into(),
         role: PresentationRole::Status,
-        name: "3 remaining".into(),
+        name: "Progress".into(),
     });
     disclosures.push(PresentationDisclosure {
         subject: "todo/status".into(),
@@ -229,26 +229,32 @@ fn direct_opening_bounds_long_collections_without_losing_full_reading() {
         subjects,
         base.relationships,
         base.properties,
-        vec![
-            PresentationText {
-                subject: "todo/list".into(),
-                text: "Groceries".into(),
-            },
-            PresentationText {
-                subject: "todo/status".into(),
-                text: "3 remaining".into(),
-            },
-        ],
-        base.actions,
+        vec![PresentationText {
+            subject: "todo/status".into(),
+            text: "3 things left · 17 completed".into(),
+        }],
+        vec![PresentationAction {
+            identity: "todo.add".into(),
+            intent: "todo/add@1".into(),
+            target: "todo/list".into(),
+            name: "add an item".into(),
+            arguments: vec![
+                FaceActionArgument::text("text".into(), "Item text".into(), 1, 256).unwrap(),
+            ],
+            disclosure: PresentationDisclosureLevel::CurrentAction,
+            availability: PresentationActionAvailability::Available,
+        }],
         disclosures,
     )
     .unwrap();
     let opening = primary_face_clauses(&face).unwrap().join(" ");
-    assert!(opening.starts_with("Groceries 3 remaining"));
+    assert!(opening.starts_with("Groceries. 3 things left · 17 completed"));
+    assert!(!opening.contains("Progress"));
     for index in 0..3 {
         assert!(opening.contains(&format!("Open item {index}.")));
     }
     assert!(!opening.contains("Completed item"));
+    assert!(opening.contains("You can add an item."));
     let direct = crate::direct_spoken_mask_runtime::prepare_wording_items(&face).unwrap();
     let direct = std::str::from_utf8(direct.front().unwrap()).unwrap();
     assert!(direct.contains("Open item 2."));
@@ -260,7 +266,90 @@ fn direct_opening_bounds_long_collections_without_losing_full_reading() {
 }
 
 #[test]
-fn long_primary_list_reads_count_and_offers_detail_instead_of_items() {
+fn read_current_items_uses_the_same_show_without_completed_detail() {
+    let (base, _) = face_with_action();
+    let mut subjects = base.subjects;
+    let mut disclosures = base.disclosures;
+    for index in 0..20 {
+        subjects.push(PresentationSubject {
+            identity: format!("item/{index}"),
+            role: PresentationRole::Item,
+            name: format!("Task {index}"),
+        });
+        disclosures.push(PresentationDisclosure {
+            subject: format!("item/{index}"),
+            level: if index < 3 {
+                PresentationDisclosureLevel::Primary
+            } else {
+                PresentationDisclosureLevel::SelectedDetail
+            },
+        });
+    }
+    let face = Presentation::new_with_semantics(
+        2,
+        base.basis,
+        subjects,
+        base.relationships,
+        base.properties,
+        base.text,
+        base.actions,
+        disclosures,
+    )
+    .unwrap();
+    let show = common::available_mask_show(&face);
+    let mut reader = SpokenFaceSession::new(face.clone(), show.clone()).unwrap();
+    reader
+        .command(&face, &show, ReaderCommand::ReadCurrentItems, 1)
+        .unwrap();
+    let readout = reader.take_text_readout().unwrap().unwrap();
+    assert_eq!(readout.face_id, face.identity.as_str());
+    assert_eq!(readout.show_id, show.show_id.as_str());
+    assert_eq!(
+        readout.clauses,
+        ["Task 0, item.", "Task 1, item.", "Task 2, item."]
+    );
+    reader
+        .command(&face, &show, ReaderCommand::ReadAll, 2)
+        .unwrap();
+    let complete = reader.take_text_readout().unwrap().unwrap();
+    assert!(complete.clauses.iter().any(|item| item == "Task 19, item."));
+
+    let mut finished = face;
+    finished.revision += 1;
+    for disclosure in &mut finished.disclosures {
+        if disclosure.subject.starts_with("item/") {
+            disclosure.level = PresentationDisclosureLevel::SelectedDetail;
+        }
+    }
+    let finished = Presentation::new_with_semantics(
+        finished.revision,
+        finished.basis,
+        finished.subjects,
+        finished.relationships,
+        finished.properties,
+        finished.text,
+        finished.actions,
+        finished.disclosures,
+    )
+    .unwrap();
+    let finished_show = common::available_mask_show(&finished);
+    let mut reader = SpokenFaceSession::new(finished.clone(), finished_show.clone()).unwrap();
+    reader
+        .command(
+            &finished,
+            &finished_show,
+            ReaderCommand::ReadCurrentItems,
+            3,
+        )
+        .unwrap();
+    assert_eq!(
+        reader.take_text_readout().unwrap().unwrap().clauses,
+        ["No current items."]
+    );
+}
+
+#[test]
+fn long_primary_list_reads_bounded_items_and_offers_exact_detail_command() {
     let (base, _) = face_with_action();
     let mut subjects = base.subjects;
     let mut disclosures = base.disclosures;
@@ -301,8 +390,13 @@ fn long_primary_list_reads_count_and_offers_detail_instead_of_items() {
     .unwrap();
     let opening = primary_face_clauses(&face).unwrap().join(" ");
     assert!(opening.starts_with("4 remaining"));
-    assert!(opening.contains("More details are available on request."));
-    assert!(!opening.contains("Open item"));
+    assert!(opening.contains("Type read current items to hear what remains."));
+    assert!(opening.contains("Open item 0."));
+    assert!(opening.contains("Open item 2."));
+    assert!(!opening.contains("Open item 3."));
+    let direct = crate::direct_spoken_mask_runtime::prepare_wording_items(&face).unwrap();
+    let direct = std::str::from_utf8(direct.front().unwrap()).unwrap();
+    assert!(direct.contains("Type read current items to hear what remains."));
 }
 
 #[test]

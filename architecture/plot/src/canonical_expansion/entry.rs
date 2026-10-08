@@ -83,6 +83,7 @@ pub fn expand_canonical_plot_for_authoring_with_backs(
         plot,
         &plots,
         document.structured_types(),
+        &document.exact_initial_info,
         &catalog,
         backs,
         &environment,

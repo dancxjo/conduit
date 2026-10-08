@@ -96,22 +96,26 @@ fn primary_rows(
             .map(|item| item.level)
     };
     let has_context = face.disclosures.iter().any(|item| {
-        item.level == PresentationDisclosureLevel::Context
-            && face.subjects.iter().any(|subject| {
-                subject.identity == item.subject
-                    && matches!(
-                        subject.role,
-                        PresentationRole::Collection | PresentationRole::Document
-                    )
-            })
+        matches!(
+            item.level,
+            PresentationDisclosureLevel::Context | PresentationDisclosureLevel::Primary
+        ) && face.subjects.iter().any(|subject| {
+            subject.identity == item.subject
+                && matches!(
+                    subject.role,
+                    PresentationRole::Collection | PresentationRole::Document
+                )
+        })
     });
     let mut rows = Vec::new();
     for subject in face.subjects.iter().filter(|subject| {
-        level(&subject.identity) == Some(PresentationDisclosureLevel::Context)
-            && matches!(
-                subject.role,
-                PresentationRole::Collection | PresentationRole::Document
-            )
+        matches!(
+            level(&subject.identity),
+            Some(PresentationDisclosureLevel::Context | PresentationDisclosureLevel::Primary)
+        ) && matches!(
+            subject.role,
+            PresentationRole::Collection | PresentationRole::Document
+        )
     }) {
         append(
             &mut rows,
@@ -124,6 +128,10 @@ fn primary_rows(
     for subject in face.subjects.iter().filter(|subject| {
         level(&subject.identity) == Some(PresentationDisclosureLevel::Primary)
             && subject.role == PresentationRole::Status
+            && !face
+                .text
+                .iter()
+                .any(|wording| wording.subject == subject.identity)
     }) {
         append(
             &mut rows,
@@ -352,7 +360,10 @@ pub(super) fn frame(mask: &TerminalFaceMask) -> String {
         .find(|subject| {
             mask.face.disclosures.iter().any(|item| {
                 item.subject == subject.identity
-                    && item.level == PresentationDisclosureLevel::Context
+                    && matches!(
+                        item.level,
+                        PresentationDisclosureLevel::Context | PresentationDisclosureLevel::Primary
+                    )
             }) && matches!(
                 subject.role,
                 PresentationRole::Collection | PresentationRole::Document

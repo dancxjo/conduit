@@ -36,6 +36,7 @@ pub struct StdHostComposition {
     pub http: bool,
     pub json: bool,
     pub json_collection: bool,
+    pub todo: bool,
     pub alife: bool,
 }
 
@@ -62,6 +63,7 @@ impl StdHostComposition {
             http: true,
             json: true,
             json_collection: false,
+            todo: true,
             alife: true,
         }
     }
@@ -89,6 +91,7 @@ impl StdHostComposition {
             http: false,
             json: false,
             json_collection: false,
+            todo: false,
             alife: false,
         }
     }
@@ -180,6 +183,11 @@ impl StdHostComposition {
 
     pub const fn with_json_collection(mut self) -> Self {
         self.json_collection = true;
+        self
+    }
+
+    pub const fn with_todo(mut self) -> Self {
+        self.todo = true;
         self
     }
 
@@ -374,6 +382,9 @@ pub(super) fn build_advertisement(
             conduit_std_offers::json_collection_step_std_offer(),
             conduit_std_offers::json_boolean_summary_std_offer(),
         ]);
+    }
+    if composition.todo {
+        capabilities.push(conduit_std_offers::todo_combine_offer());
     }
     if composition.json {
         capabilities.extend([

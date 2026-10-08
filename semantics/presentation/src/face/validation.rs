@@ -4,8 +4,8 @@ use alloc::{format, vec};
 use conduit_body::{Body, BodyState, Wake, WakePlanState, MAX_BODY_FRIENDLY_NAME_BYTES};
 
 use super::{
-    interaction_context_identity, FaceContext, FaceContribution, FaceFocus, FaceNames, FaceRefusal,
-    MAX_FACE_CONTRIBUTIONS, MAX_FACE_TRANSIENTS,
+    interaction_context_identity, CommittedFaceAdmission, FaceContext, FaceContribution, FaceFocus,
+    FaceNames, FaceRefusal, MAX_FACE_CONTRIBUTIONS, MAX_FACE_TRANSIENTS,
 };
 use crate::FaceContributionRole;
 use crate::PresentationFragmentError;
@@ -68,7 +68,25 @@ pub(super) fn validate_contributions(
     context: &FaceContext,
     focus: &FaceFocus,
     contributions: &[FaceContribution],
+    committed: Option<CommittedFaceAdmission<'_>>,
 ) -> Result<(), FaceRefusal> {
+    if let Some(admission) = committed {
+        admission
+            .basis
+            .validate_shape_against(body, admission.current_selection)
+            .map_err(FaceRefusal::CommittedStateBasis)?;
+        let [contribution] = contributions else {
+            return Err(FaceRefusal::CommittedContributionMismatch);
+        };
+        if wake.is_some()
+            || contribution.role != FaceContributionRole::Foreground
+            || contribution.checked_plot_id != admission.basis.checked_plot_id
+            || contribution.plan_id != admission.basis.read.plan_id
+            || contribution.active_play_id != admission.basis.read.play_id
+        {
+            return Err(FaceRefusal::CommittedContributionMismatch);
+        }
+    }
     if contributions.len() > MAX_FACE_CONTRIBUTIONS {
         return Err(FaceRefusal::TooManyContributions);
     }
@@ -116,7 +134,7 @@ pub(super) fn validate_contributions(
                     && plan.state == WakePlanState::Playing
                     && plan.active_play_id.as_ref() == Some(&contribution.active_play_id)
             })
-        });
+        }) || committed.is_some();
         if !current {
             return Err(FaceRefusal::PlayNotCurrent);
         }

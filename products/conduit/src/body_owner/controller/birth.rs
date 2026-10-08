@@ -113,6 +113,8 @@ impl Owner {
             direct_spoken_route: None,
             llm_spoken_route: None,
             presentation_wardrobe: None,
+            todo_live: None,
+            todo_verified: None,
         }
     }
 }

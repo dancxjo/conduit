@@ -52,6 +52,7 @@ impl StdHost {
             body_conversation_context: None,
             vision: None,
             kernel_resources,
+            todo_checkpoint_root: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -104,6 +105,7 @@ impl StdHost {
             body_conversation_context: None,
             vision: None,
             kernel_resources,
+            todo_checkpoint_root: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -159,6 +161,7 @@ impl StdHost {
             body_conversation_context: None,
             vision: None,
             kernel_resources,
+            todo_checkpoint_root: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -208,6 +211,7 @@ impl StdHost {
             body_conversation_context: None,
             vision: None,
             kernel_resources,
+            todo_checkpoint_root: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -305,6 +309,7 @@ impl StdHost {
             body_conversation_context: None,
             vision: None,
             kernel_resources,
+            todo_checkpoint_root: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]

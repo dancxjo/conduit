@@ -284,6 +284,8 @@ pub(crate) enum HostServiceCommand {
         speech: InstalledSpeechOptions,
         #[command(flatten)]
         model: InstalledModelOptions,
+        #[command(flatten)]
+        todo_checkpoint: InstalledTodoCheckpointOptions,
     },
     /// Run the durable host in the foreground for a platform service manager.
     Run {
@@ -321,6 +323,20 @@ pub(crate) struct InstalledModelOptions {
     pub(crate) model_endpoint: Option<String>,
     #[arg(long, requires = "selected_model")]
     pub(crate) model_memory_mib: Option<u32>,
+}
+
+/// One explicitly selected durable Todo checkpoint residence for this Host.
+#[derive(Debug, Default, Args)]
+pub(crate) struct InstalledTodoCheckpointOptions {
+    /// Existing directory selected as the Todo checkpoint residence.
+    #[arg(long, conflicts_with = "without_selected_todo_checkpoint")]
+    pub(crate) selected_todo_checkpoint_root: Option<PathBuf>,
+    /// Exact existing generation for an explicit second-Host or rejoin selection.
+    #[arg(long, requires = "selected_todo_checkpoint_root")]
+    pub(crate) selected_todo_checkpoint_version: Option<String>,
+    /// Remove the retained Todo checkpoint selection on reinstall.
+    #[arg(long, conflicts_with = "selected_todo_checkpoint_root")]
+    pub(crate) without_selected_todo_checkpoint: bool,
 }
 
 #[derive(Debug, Subcommand)]
@@ -394,6 +410,9 @@ pub(crate) enum BodyCommand {
         /// Finite execution deadline; the Play can be lulled earlier.
         #[arg(long, default_value_t = 300_000, value_parser = clap::value_parser!(u64).range(1..=900_000))]
         maximum_millis: u64,
+        /// Explicitly admit one new Todo list under this Body before its first action.
+        #[arg(long)]
+        todo_new_list: Option<String>,
     },
     /// Request that the current service-owned Body Play stop and lull.
     Lull {
@@ -919,6 +938,52 @@ mod public_surface_tests {
             "http://127.0.0.1:11434",
             "--model-memory-mib",
             "2048",
+        ]))
+        .is_err());
+    }
+
+    #[test]
+    fn service_install_todo_checkpoint_requires_explicit_root_for_existing_version() {
+        let base = [
+            "conduit",
+            "host",
+            "service",
+            "install",
+            "release.json",
+            "--state-dir",
+            "state",
+        ];
+        assert!(Cli::try_parse_from(
+            base.iter()
+                .copied()
+                .chain(["--selected-todo-checkpoint-version", &"11".repeat(32),])
+        )
+        .is_err());
+        let parsed = Cli::try_parse_from(base.iter().copied().chain([
+            "--selected-todo-checkpoint-root",
+            "/existing/checkpoint",
+            "--selected-todo-checkpoint-version",
+            &"11".repeat(32),
+        ]))
+        .unwrap();
+        assert!(matches!(
+            parsed.command,
+            Some(Command::Host {
+                command: Some(HostCommand::Service {
+                    command: HostServiceCommand::Install {
+                        todo_checkpoint: InstalledTodoCheckpointOptions {
+                            selected_todo_checkpoint_root: Some(_),
+                            ..
+                        },
+                        ..
+                    }
+                })
+            })
+        ));
+        assert!(Cli::try_parse_from(base.iter().copied().chain([
+            "--selected-todo-checkpoint-root",
+            "/existing/checkpoint",
+            "--without-selected-todo-checkpoint",
         ]))
         .is_err());
     }

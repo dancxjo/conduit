@@ -10,6 +10,28 @@ use conduit_core::{
     PreparationHostIdentity, PreparedFragmentReceipt, PreparedPlan,
 };
 
+mod pure_todo_scan;
+mod todo_combine;
+mod todo_scan_offer;
+pub use pure_todo_scan::install_pure_todo_scan;
+pub(crate) use todo_combine::maximum_scan_child_steps;
+pub use todo_combine::{offer as todo_combine_offer, TodoCombineFactory};
+#[cfg(test)]
+pub(crate) use todo_scan_offer::tests::authored_todo_plan;
+#[cfg(test)]
+pub(crate) use todo_scan_offer::tests::authored_todo_plan_on_host;
+pub use todo_scan_offer::todo_scan_offer;
+pub(crate) use todo_scan_offer::validate_planned_todo_scan;
+
+/// Production child operations that the std activation host can actually
+/// prepare. The scan coordinator is selected by the whole Plan, not by this
+/// registry of child Backs.
+pub fn standard_child_registry() -> Result<KernelOperationRegistry, String> {
+    let mut registry = KernelOperationRegistry::new();
+    registry.install(TodoCombineFactory)?;
+    Ok(registry)
+}
+
 /// One current std boot's installed kernel implementations and prepared
 /// fragment reservations. This is preparation machinery, not a scheduler.
 pub struct StdActivationHost {
@@ -137,4 +159,4 @@ impl PlannedActivationChildPoolHost for StdActivationHost {
 }
 
 #[cfg(test)]
-mod tests;
+pub(crate) mod tests;

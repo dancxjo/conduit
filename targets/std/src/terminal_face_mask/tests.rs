@@ -133,12 +133,12 @@ fn todo_default_is_a_checklist_with_exact_actions_and_full_inspection() {
     });
     disclosures.push(PresentationDisclosure {
         subject: "todo/list".into(),
-        level: PresentationDisclosureLevel::Context,
+        level: PresentationDisclosureLevel::Primary,
     });
     subjects.push(PresentationSubject {
         identity: "todo/status".into(),
         role: PresentationRole::Status,
-        name: "3 remaining".into(),
+        name: "Progress".into(),
     });
     disclosures.push(PresentationDisclosure {
         subject: "todo/status".into(),
@@ -230,7 +230,7 @@ fn todo_default_is_a_checklist_with_exact_actions_and_full_inspection() {
             },
             PresentationText {
                 subject: "todo/status".into(),
-                text: "3 remaining".into(),
+                text: "3 things left · 17 completed".into(),
             },
         ],
         actions,
@@ -243,7 +243,9 @@ fn todo_default_is_a_checklist_with_exact_actions_and_full_inspection() {
         .iter()
         .map(|row| row.text.as_str())
         .collect::<String>();
-    assert!(default.starts_with("Groceries3 remaining1. [ ] Open item 0"));
+    assert!(default.starts_with("Groceries3 things left · 17 completed1. [ ] Open item 0"));
+    assert!(!default.contains("Progress"));
+    assert!(document::frame(&mask).starts_with("\x1b[2J\x1b[H\x1b[1mGroceries"));
     assert!(default.contains("3. [ ] Open item 2"));
     assert!(default.contains("Add item"));
     assert!(default.contains("Complete item · Open item 0"));

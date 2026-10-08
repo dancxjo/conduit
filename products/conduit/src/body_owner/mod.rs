@@ -4,12 +4,13 @@ mod image;
 mod native_observation;
 mod state;
 use conduit_body::ResidentPlot;
+use conduit_plot::ActivationSyntax;
 #[cfg(unix)]
 pub(crate) use controller::run_service_window;
 pub(crate) use controller::{
     clock_interval_action, is_clock_control_intent, BrowserAdmittedSnapshot,
     BrowserCarrierLineEvidence, BrowserWindowAuthorization, ClockAction, DirectSpokenStart,
-    LlmSpokenStart, Owner, RunWorker, CLOCK_RUN_MAXIMUM_MILLIS,
+    LlmSpokenStart, Owner, RunWorker, TodoWaitingWorker, CLOCK_RUN_MAXIMUM_MILLIS,
 };
 use serde::Deserialize;
 use std::{
@@ -54,6 +55,40 @@ fn checked_retained_source(
         .expand_entry_for_authoring()
         .map(Some)
 }
+
+/// Only a checked, exact Todo scan can request the scoped production offer.
+/// Its initial Form comes from authored source, never from the display name.
+fn scoped_todo_initial(
+    checked: &conduit_plot::ExpandedAuthoringPlot,
+) -> Result<Option<(conduit_todo_plot::TodoState, u16)>, String> {
+    if checked.expanded.activations.is_empty() {
+        return Ok(None);
+    }
+    if checked.expanded.name != "todo/main" || checked.expanded.activations.len() != 1 {
+        return Err("installed Body supports no other activation source".into());
+    }
+    let activation = &checked.expanded.activations[0];
+    if activation.selected_plot != "todo/transition" {
+        return Err("installed Todo scan requires the exact transition child".into());
+    }
+    let ActivationSyntax::Scan { maximum_items, .. } = &activation.mode else {
+        return Err("installed Todo activation is not scan".into());
+    };
+    let bytes = activation
+        .initial_accumulator_bytes
+        .as_deref()
+        .ok_or("installed Todo scan has no checked initial Form")?;
+    let initial = conduit_todo_plot::TodoState::decode_info(bytes)
+        .map_err(|error| format!("installed Todo initial Form: {error:?}"))?;
+    if initial
+        .encode_info()
+        .map_err(|error| format!("installed Todo initial Form: {error:?}"))?
+        != bytes
+    {
+        return Err("installed Todo initial Form is not canonical".into());
+    }
+    Ok(Some((initial, *maximum_items)))
+}
 #[derive(Deserialize)]
 #[serde(tag = "operation", rename_all = "kebab-case", deny_unknown_fields)]
 enum Request {
@@ -95,13 +130,18 @@ pub(crate) fn run(source: &Path, directory: &Path, name: &str) -> Result<(), Str
     image::verify(&root)?;
     let source_bytes = super::bounded_read(source, MAXIMUM_SOURCE)?;
     let source_text = std::str::from_utf8(&source_bytes).map_err(|e| e.to_string())?;
-    let checked = crate::plot_source::parse(source_text)?.expand_entry_for_authoring()?;
+    let canonical_source = crate::plot_source::parse(source_text)?;
+    let checked = canonical_source.expand_entry_for_authoring()?;
     let resident = ResidentPlot::new(
         checked.expanded.source_document_id.clone(),
         checked.expanded.checked_plot_id.clone(),
     );
     let retained = state::load(&root)?;
-    let (mut status, runtime) = super::prepare_runtime(&root)?;
+    let todo = scoped_todo_initial(&checked)?;
+    let (mut status, runtime) = super::prepare_runtime_with_todo(
+        &root,
+        todo.as_ref().map(|(initial, maximum)| (initial, *maximum)),
+    )?;
     let result = (|| {
         let mut owner =
             controller::Owner::open(runtime.into_owner_host(), resident, retained, name)?;
@@ -177,7 +217,7 @@ pub(crate) fn run(source: &Path, directory: &Path, name: &str) -> Result<(), Str
                             let receipt = owner.admit_invited(&root, request, &expected_host_id)?;
                             emit(&serde_json::to_value(receipt).map_err(|e| e.to_string())?)?;
                         }
-                        Request::Plan => owner.plan(&checked)?,
+                        Request::Plan => owner.plan_with_source(&canonical_source, &checked)?,
                         Request::Run { maximum_millis } => {
                             owner.persist(&root)?;
                             owner.execute(maximum_millis)?;
