@@ -50,6 +50,7 @@ members = [
 	"mechanisms/implementations/linear-framebuffer-make",
 	"mechanisms/implementations/emergency-keyword-spotter",
 	"mechanisms/implementations/synth",
+	"mechanisms/implementations/burn-model",
 	"mechanisms/protocols/bluetooth",
 	"mechanisms/protocols/midi",
 

@@ -5,6 +5,8 @@ edition = "2021"
 
 [features]
 default = []
+burn-model = ["dep:conduit-burn-model"]
+burn-model-cuda = ["burn-model", "conduit-burn-model/cuda"]
 bluetooth-bluez = ["dep:bluer", "dep:dbus", "dep:futures", "dep:tokio", "dep:uuid"]
 local-model-proof = ["conduit-tongues/speech"]
 pete-create = ["dep:conduit-create-oi"]
@@ -16,6 +18,7 @@ physical-effect-proof = []
 native-webrtc = ["dep:async-trait", "dep:bytes", "dep:tokio", "dep:webrtc"]
 
 [dependencies]
+conduit-burn-model = { path = "../../mechanisms/implementations/burn-model", optional = true }
 conduit-ai = { path = "../../semantics/ai", features = ["plot-catalog"] }
 conduit-audio = { path = "../../semantics/audio" }
 conduit-alife = { path = "../../semantics/alife" }
@@ -115,6 +118,7 @@ path = "src/bin/native-webrtc-line-probe.rs"
 required-features = ["native-webrtc"]
 
 [dev-dependencies]
+tempfile = "3"
 conduit-observatory = { path = "../../architecture/observatory" }
 conduit-kernel = { path = "../../architecture/kernel", features = ["alloc", "step-test-support"] }
 conduit-workspace-make = { path = "../../make/workspace" }
