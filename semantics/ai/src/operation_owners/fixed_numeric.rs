@@ -5,11 +5,12 @@ use crate::fixed_tensor_resource::AdmittedFixedTensorResource;
 use alloc::{collections::BTreeMap, sync::Arc};
 use alloc::{format, string::String, vec::Vec};
 use conduit_composite::{KernelOperationBudget, KernelOperationFactory};
+use conduit_core::bounded_owner_table::BoundedOwnerTable;
 use conduit_core::*;
 use conduit_kernel::{HostedValueStore, scheduler::StepBack};
 use conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 type NumericBack = super::prepared_numeric_back::PreparedNumericBack;
-type TensorBindings = BTreeMap<String, Arc<AdmittedFixedTensorResource>>;
+type TensorBindings = BoundedOwnerTable<String, Arc<AdmittedFixedTensorResource>>;
 struct Selection {
     offer: CapabilityOffer,
     back: Option<NumericBack>,
@@ -94,7 +95,14 @@ fn owns_implementation(id: &ImplementationId) -> bool {
     .contains(&id.as_str())
 }
 pub fn fixed_numeric_offer(kind: &str) -> Result<CapabilityOffer, String> {
-    Ok(select(kind, None, &BTreeMap::new())?.offer)
+    Ok(select(
+        kind,
+        None,
+        &TensorBindings::with_storage_limits(0, 0, 0)
+            .map_err(|_| String::from("empty tensor bindings"))?
+            .0,
+    )?
+    .offer)
 }
 /// Explicit larger concurrency profile for stateless index/elementwise flows.
 pub fn fixed_numeric_offer_capacity64(kind: &str) -> Result<CapabilityOffer, String> {
@@ -119,8 +127,13 @@ pub fn fixed_numeric_offer_capacity64(kind: &str) -> Result<CapabilityOffer, Str
 /// KernelOperationRegistry. Immutable resources retain their adoption receipts.
 pub struct FixedNumericOperationFactory {
     implementation: ImplementationId,
+    offers: BoundedOwnerTable<CapabilityId, CapabilityOffer>,
+    bindings: BoundedOwnerTable<PlacementId, TensorBindings>,
+}
+struct Preparation {
+    implementation: ImplementationId,
     offers: BTreeMap<CapabilityId, CapabilityOffer>,
-    bindings: BTreeMap<PlacementId, TensorBindings>,
+    bindings: BTreeMap<PlacementId, BTreeMap<String, Arc<AdmittedFixedTensorResource>>>,
 }
 impl FixedNumericOperationFactory {
     /// Bind tensor inputs by the selected Plan cords and their admitted source
@@ -146,7 +159,7 @@ impl FixedNumericOperationFactory {
             return Err("numeric owners require one sealed fragment".into());
         }
         let fragment = &plan.fragments[0];
-        let mut owners: BTreeMap<ImplementationId, Self> = BTreeMap::new();
+        let mut owners: BTreeMap<ImplementationId, Preparation> = BTreeMap::new();
         let mut counts: BTreeMap<CapabilityId, u16> = BTreeMap::new();
         for gear in &fragment.placements {
             if !gear.kind_id.as_str().starts_with("numeric/") {
@@ -155,10 +168,22 @@ impl FixedNumericOperationFactory {
             if !owns_implementation(&gear.implementation_id) {
                 continue; // A separate exact implementation owner must admit it.
             }
-            let offer = if capacity64 {
-                fixed_numeric_offer_capacity64(gear.kind_id.as_str())?
-            } else {
-                fixed_numeric_offer(gear.kind_id.as_str())?
+            // One immutable Source-derived offer per implementation/Kind in
+            // this global capacity mode. Every occurrence still checks its
+            // complete placement and original instance bound below.
+            let previous = owners
+                .get(&gear.implementation_id)
+                .and_then(|owner| {
+                    owner
+                        .offers
+                        .values()
+                        .find(|offer| offer.kind_id == gear.kind_id)
+                })
+                .cloned();
+            let offer = match previous {
+                Some(offer) => offer,
+                None if capacity64 => fixed_numeric_offer_capacity64(gear.kind_id.as_str())?,
+                None => fixed_numeric_offer(gear.kind_id.as_str())?,
             };
             verify_fixed_placement(gear, &offer).map_err(|error| format!("{error:?}"))?;
             let count = counts.entry(offer.capability_id.clone()).or_default();
@@ -170,13 +195,13 @@ impl FixedNumericOperationFactory {
             }
             let owner = owners
                 .entry(gear.implementation_id.clone())
-                .or_insert_with(|| Self {
+                .or_insert_with(|| Preparation {
                     implementation: gear.implementation_id.clone(),
                     offers: BTreeMap::new(),
                     bindings: BTreeMap::new(),
                 });
             owner.offers.insert(offer.capability_id.clone(), offer);
-            let mut bindings = TensorBindings::new();
+            let mut bindings = BTreeMap::new();
             for port in gear
                 .inputs
                 .iter()
@@ -197,7 +222,16 @@ impl FixedNumericOperationFactory {
             }
             owner.bindings.insert(gear.placement_id.clone(), bindings);
         }
-        Ok(owners.into_values().collect())
+        owners
+            .into_values()
+            .map(|owner| {
+                Ok(Self {
+                    implementation: owner.implementation,
+                    offers: super::retained_table::retain(owner.offers)?,
+                    bindings: super::retained_table::retain_nested(owner.bindings)?,
+                })
+            })
+            .collect()
     }
     fn selected(&self, gear: &PlannedGear) -> Result<&TensorBindings, String> {
         let offer = self
@@ -243,5 +277,29 @@ impl FixedNumericOperationFactory {
         select(gear.kind_id.as_str(), Some((gear, fuel)), bindings)?
             .back
             .ok_or_else(|| "numeric owner did not prepare its selected operation".into())
+    }
+}
+
+impl FixedNumericOperationFactory {
+    /// Local array/key/offer payload capacities. Exact shared tensor/model
+    /// allocation roots and backing buffers are charged once by the aggregate.
+    pub fn local_owned_payload_bytes(&self) -> Option<usize> {
+        super::retained_table::tensor_factory_local_payload(
+            &self.implementation,
+            &self.offers,
+            &self.bindings,
+        )
+    }
+    /// Allocation-free traversal of original shared owners; duplicates remain
+    /// visible for aggregate identity-based deduplication.
+    pub fn visit_shared_tensors(
+        &self,
+        visitor: &mut impl FnMut(&Arc<AdmittedFixedTensorResource>),
+    ) {
+        for (_, bindings) in self.bindings.iter() {
+            for (_, resource) in bindings.iter() {
+                visitor(resource);
+            }
+        }
     }
 }

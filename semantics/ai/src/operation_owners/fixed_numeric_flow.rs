@@ -5,11 +5,12 @@ use crate::{
 };
 use alloc::{collections::BTreeMap, format, string::String, sync::Arc};
 use conduit_composite::{KernelOperationBudget, KernelOperationFactory};
+use conduit_core::bounded_owner_table::BoundedOwnerTable;
 use conduit_core::*;
 use conduit_kernel::{HostedValueStore, scheduler::StepBack};
 use conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE as PORTS;
 type OwnedBack = super::prepared_numeric_back::PreparedNumericBack;
-type Resources = BTreeMap<String, Arc<AdmittedFixedTensorResource>>;
+type Resources = BoundedOwnerTable<String, Arc<AdmittedFixedTensorResource>>;
 macro_rules! choose {
     ($inputs:literal, $outputs:literal, $placement:expr, $resources:expr) => {{
         let offer =
@@ -60,12 +61,24 @@ fn select(
     }
 }
 pub fn fixed_affine_flow_offer(kind: &str) -> Result<CapabilityOffer, String> {
-    Ok(select(kind, None, &Resources::new())?.0)
+    Ok(select(
+        kind,
+        None,
+        &Resources::with_storage_limits(0, 0, 0)
+            .map_err(|_| String::from("empty resource table"))?
+            .0,
+    )?
+    .0)
 }
 pub struct FixedAffineFlowOperationFactory {
     identity: ImplementationId,
+    offers: BoundedOwnerTable<CapabilityId, CapabilityOffer>,
+    resources: BoundedOwnerTable<PlacementId, Resources>,
+}
+struct Preparation {
+    identity: ImplementationId,
     offers: BTreeMap<CapabilityId, CapabilityOffer>,
-    resources: BTreeMap<PlacementId, Resources>,
+    resources: BTreeMap<PlacementId, BTreeMap<String, Arc<AdmittedFixedTensorResource>>>,
 }
 impl FixedAffineFlowOperationFactory {
     pub fn for_plan(
@@ -76,7 +89,7 @@ impl FixedAffineFlowOperationFactory {
             return Err("affine Flow requires one sealed fragment".into());
         }
         let fragment = &plan.fragments[0];
-        let mut result = Self {
+        let mut result = Preparation {
             identity: ImplementationId::from(FLOW_AFFINE_IMPLEMENTATION),
             offers: BTreeMap::new(),
             resources: BTreeMap::new(),
@@ -86,9 +99,16 @@ impl FixedAffineFlowOperationFactory {
             .iter()
             .filter(|gear| gear.kind_id.as_str().starts_with("numeric/flow-dense"))
         {
-            let offer = fixed_affine_flow_offer(gear.kind_id.as_str())?;
+            let offer = match result
+                .offers
+                .values()
+                .find(|offer| offer.kind_id == gear.kind_id)
+            {
+                Some(offer) => offer.clone(),
+                None => fixed_affine_flow_offer(gear.kind_id.as_str())?,
+            };
             verify_fixed_placement(gear, &offer).map_err(|error| format!("{error:?}"))?;
-            let mut bindings = Resources::new();
+            let mut bindings = BTreeMap::new();
             for port in gear
                 .inputs
                 .iter()
@@ -110,7 +130,11 @@ impl FixedAffineFlowOperationFactory {
             result.offers.insert(offer.capability_id.clone(), offer);
             result.resources.insert(gear.placement_id.clone(), bindings);
         }
-        Ok(result)
+        Ok(Self {
+            identity: result.identity,
+            offers: super::retained_table::retain(result.offers)?,
+            resources: super::retained_table::retain_nested(result.resources)?,
+        })
     }
     fn selected(&self, gear: &PlannedGear) -> Result<&Resources, String> {
         let offer = self
@@ -152,5 +176,29 @@ impl FixedAffineFlowOperationFactory {
         select(gear.kind_id.as_str(), Some(gear), self.selected(gear)?)?
             .1
             .ok_or_else(|| "affine Flow did not prepare selected operation".into())
+    }
+}
+
+impl FixedAffineFlowOperationFactory {
+    /// Local array/key/offer payload capacities. Exact shared tensor/model
+    /// allocation roots and backing buffers are charged once by the aggregate.
+    pub fn local_owned_payload_bytes(&self) -> Option<usize> {
+        super::retained_table::tensor_factory_local_payload(
+            &self.identity,
+            &self.offers,
+            &self.resources,
+        )
+    }
+    /// Allocation-free traversal of original shared owners; duplicates remain
+    /// visible for aggregate identity-based deduplication.
+    pub fn visit_shared_tensors(
+        &self,
+        visitor: &mut impl FnMut(&Arc<AdmittedFixedTensorResource>),
+    ) {
+        for (_, bindings) in self.resources.iter() {
+            for (_, resource) in bindings.iter() {
+                visitor(resource);
+            }
+        }
     }
 }
