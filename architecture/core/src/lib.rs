@@ -12,6 +12,7 @@ use sha2::{Digest, Sha256};
 mod activation_contract;
 mod base_capability;
 mod base_registry;
+pub mod bounded_owner_table;
 mod capability_offer;
 mod characteristic;
 pub mod claims;
