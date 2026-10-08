@@ -153,8 +153,20 @@ try {
   const texts = scenario === 'cross-mask' ? [itemText, 'Prepare lunch', 'Water plants'] : [itemText];
   assert.equal(new Set(texts).size, texts.length, 'scenario item names must be distinct');
   const adds = [];
+  const prepareNextAction = async () => {
+    owner(['body', 'start', '--state-dir', state, '--maximum-millis', '60000']);
+    await page.getByRole('button', { name: 'Refresh this Face' }).click();
+    await page.waitForFunction(() => {
+      const view = globalThis.__conduitOwnerParticipation.face();
+      return view?.show_state === 'available' && view.interactions_admitted
+        && view.actions.some(action => action.identity === 'todo.add' && action.availability === 'Available')
+        && document.querySelector('[data-owner-show-acknowledged]')?.dataset.ownerShowAcknowledged === view.show_id;
+    }, null, { timeout: 12_000 });
+    return page.evaluate(() => globalThis.__conduitOwnerParticipation.face());
+  };
   let after;
   for (const text of texts) {
+    if (adds.length) await prepareNextAction();
     const prior = await page.evaluate(() => globalThis.__conduitOwnerParticipation.face());
     const add = page.locator('[data-owner-action="todo.add"]');
     await add.getByRole('textbox', { name: 'Item text' }).fill(text);
@@ -168,9 +180,11 @@ try {
     assert.equal(after.body_id, bodyId);
     assert.notEqual(after.show_id, prior.show_id);
     adds.push({ action_id: 'todo.add', text, before: prior, after, owner: face() });
+    await writeFile(path.join(output, 'adds.json'), `${JSON.stringify(adds, null, 2)}\n`);
   }
   let crossMask = null;
   if (scenario === 'cross-mask') {
+    after = await prepareNextAction();
     const ownerBefore = face();
     assert.equal(ownerBefore.presentation.subjects.filter(subject => subject.role === 'Item').length, 3);
     const item = ownerBefore.presentation.subjects.find(subject => subject.role === 'Item' && subject.name === itemText);
