@@ -4,7 +4,6 @@ use crate::checked_syntax::{
     KindSignature, SourceSugarExpansion, SourceSugarOperandBinding, StartupCatalog,
     StartupParameterSignature, SyntaxCheckDiagnostic, SyntaxCheckError,
 };
-use crate::hash_string;
 use crate::prelude::*;
 use crate::syntax::{
     Argument, BackStatement, CordStage, Invocation, MatchedRoute, MatchedRoutePattern, PlotSyntax,
@@ -13,8 +12,7 @@ use crate::syntax::{
 use crate::syntax_identity::{canonical_cord, canonical_gear, checked_identity};
 use alloc::collections::{BTreeMap, BTreeSet};
 use conduit_core::{
-    CheckedFront, SourceDocumentId, StructuredInfoTypeShape, StructuredSelector,
-    UnmatchedVariantDisposition,
+    CheckedFront, StructuredInfoTypeShape, StructuredSelector, UnmatchedVariantDisposition,
 };
 
 mod lexical_plots;
@@ -198,10 +196,7 @@ pub(crate) fn check_document(
         structured_types.insert(value_kind, retained.value_type.clone());
     }
     Ok(CheckedSyntaxDocument {
-        source_document_id: SourceDocumentId::from(hash_string(&format!(
-            "canonical-source:{}",
-            document.round_trip()
-        ))),
+        source_document_id: crate::syntax_source_document_identity(document.round_trip()),
         native_types,
         retained_native_types: catalog.retained_native_types(),
         type_forms,
