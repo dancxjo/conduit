@@ -1,0 +1,9 @@
+# The finite supplied component profile is admitted before allocating receipts.
+# Empty supplied groups are retained as empty; they do not infer unknown intent.
+type SpeechIntentComponentCounts = {
+    morphemes: U64 in 0..=32
+    morpheme_texts: U64 in 0..=32
+    syllables: U64 in 0..=32
+    correspondences: U64 in 0..=32
+    where .morphemes == .morpheme_texts
+}

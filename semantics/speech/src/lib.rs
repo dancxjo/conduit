@@ -131,6 +131,8 @@ pub mod rule_stress;
 #[cfg(feature = "semantic-bindings")]
 pub mod rule_style;
 #[cfg(feature = "semantic-bindings")]
+pub mod shared_intent;
+#[cfg(feature = "semantic-bindings")]
 pub mod syllable_intent;
 #[cfg(feature = "semantic-bindings")]
 pub mod text_admission;

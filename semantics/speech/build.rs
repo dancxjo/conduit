@@ -22,6 +22,7 @@ fn main() {
     println!("cargo:rerun-if-changed=syllables.conduit");
     println!("cargo:rerun-if-changed=morpheme_intent.conduit");
     println!("cargo:rerun-if-changed=intent_context.conduit");
+    println!("cargo:rerun-if-changed=shared_intent.conduit");
     println!("cargo:rerun-if-changed=correspondence.conduit");
     println!("cargo:rerun-if-changed=inventory.conduit");
     println!("cargo:rerun-if-changed=ipa.conduit");
@@ -56,6 +57,7 @@ fn main() {
         include_str!("syllables.conduit"),
         include_str!("morpheme_intent.conduit"),
         include_str!("intent_context.conduit"),
+        include_str!("shared_intent.conduit"),
         include_str!("correspondence.conduit"),
         include_str!("inventory.conduit"),
         include_str!("ipa.conduit"),
