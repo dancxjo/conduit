@@ -3,8 +3,8 @@ use crate::todo_durable_resource::{CheckpointIdentity, Refusal, SelectedTodoResi
 use conduit_core::{AuthorityBinding, PlannedGear};
 use conduit_kernel::{
     scheduler::{HostCallRequest, StepBack, StepInputBytes, StepIo, StepOutcome},
-    BoundedValueRef, CanonicalValue, Failure, FailureCode, HostCallDisposition, HostCallId, NodeId,
-    PortId, RequestId, ValueRef,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, NodeId, PortId,
+    RequestId, ValueRef,
 };
 use conduit_plan_lowering::lowering::KernelIdentityMap;
 use conduit_todo_plot::{TodoState, STATE_MAX_BYTES};
@@ -55,11 +55,10 @@ impl<const PORTS: usize> StepBack<PORTS> for TodoCheckpointReadBack {
             if !io.output_ready(PortId(0)) {
                 return StepOutcome::Await;
             }
-            let Ok(value) = CanonicalValue::new(bytes) else {
-                return fail(5);
-            };
-            if io.consume_host_completion().is_err() || io.send_canonical(PortId(0), value).is_err()
-            {
+            // The completed Host Call already stored this admitted value. Reuse
+            // its ValueRef: canonical derived outputs are limited to 100 bytes,
+            // while a valid Todo checkpoint can be much larger.
+            if io.consume_host_completion().is_err() || io.send(PortId(0), output.value).is_err() {
                 return fail(6);
             }
             self.done = true;
