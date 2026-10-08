@@ -425,8 +425,8 @@ impl Presentation {
     }
     fn maximum_completion_bytes(self) -> u32 {
         match self {
-            Self::Text => conduit_core::MAX_PRESENTATION_COMPLETION_BYTES,
-            Self::Indicator | Self::Count => 0,
+            Self::Text | Self::Count => conduit_core::MAX_PRESENTATION_COMPLETION_BYTES,
+            Self::Indicator => 0,
         }
     }
     fn implementation(self) -> &'static str {
