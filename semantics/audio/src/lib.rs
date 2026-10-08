@@ -55,3 +55,16 @@ pub use tone_terminal::*;
 
 mod acoustic_quantities;
 pub use acoustic_quantities::*;
+
+mod source_programs {
+    include!(concat!(env!("OUT_DIR"), "/acoustic_programs.rs"));
+}
+mod trajectory;
+pub use generated::{
+    AudioExactTimeOffset, AudioOriginIdentity, AudioQuantityTrajectory, AudioTimelineIdentity,
+    AudioTrajectoryAnchor, AudioTrajectoryDomain, AudioTrajectoryEndpoints,
+    AudioTrajectoryInterpolation, AudioTrajectoryOutside, AudioTrajectoryProvenance,
+    AudioTrajectoryProvenanceKind, AudioTrajectoryQuantity, AudioTrajectoryQuery,
+    AudioTrajectorySegment,
+};
+pub use trajectory::*;

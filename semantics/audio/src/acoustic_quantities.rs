@@ -1,10 +1,10 @@
 //! Prepared checked Source conversion with native admission on both boundaries.
 //! Preparation and native decoding allocate; this is not an admitted Play Back.
+use crate::source_programs::{AMPLITUDE_TO_POWER, CYCLE_TO_FREQUENCY, FREQUENCY_TO_CYCLE};
 use crate::{AudioCycleDuration, AudioFrequencyHz};
 use alloc::vec::Vec;
 use conduit_plot::rust_binding::{NativeBindingRefusal, NativeRustBinding};
 use conduit_plot::{PortableExpressionEvaluationRefusal, PortableExpressionProgram};
-include!(concat!(env!("OUT_DIR"), "/acoustic_programs.rs"));
 
 #[derive(Debug)]
 pub enum AcousticQuantityRefusal {
