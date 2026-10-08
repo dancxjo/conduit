@@ -1,4 +1,5 @@
 //! Borrow nested exact members; only a structured final result needs scratch.
+use super::PreparationBudget;
 use super::{
     storage_bound, EvaluationInput, PreparedInput, PreparedPortableExpressionEvaluator,
     ProgramView, Refusal,
@@ -24,6 +25,7 @@ pub(super) fn prepare(
     node: &PortableExpressionNode,
     input: &StructuredInfoType,
     prepared_input: &PreparedInput,
+    budget: &mut PreparationBudget,
 ) -> Result<PreparedMemberSelection, Refusal> {
     fn collect<'a>(
         node: &'a PortableExpressionNode,
@@ -93,6 +95,20 @@ pub(super) fn prepare(
             }
         }
     }
+    if budget.is_bounded() {
+        let mut node = node;
+        let mut count = 0usize;
+        while let PortableExpressionOperation::Projection { value, member } = &node.operation {
+            count = count.checked_add(1).ok_or(Refusal::InvalidProgram)?;
+            budget.reserve(match member {
+                PortableExpressionProjection::Field(name) => name.len(),
+                PortableExpressionProjection::TupleIndex(_) => 32,
+            })?;
+            node = value;
+        }
+        budget.vector::<Member>(count)?;
+    }
+    budget.prefix(&node.value_type)?;
     let mut steps = Vec::new();
     let mut computed = None;
     collect(node, input, &mut steps, &mut computed)?;
@@ -100,6 +116,15 @@ pub(super) fn prepare(
         return Err(Refusal::InvalidProgram);
     }
     let primitive = is_primitive(&node.value_type);
+    if computed.is_some() {
+        budget.array::<PreparedPortableExpressionEvaluator>(1)?;
+    }
+    let capacity = if primitive {
+        0
+    } else {
+        storage_bound::canonical(&node.value_type)?
+    };
+    budget.reserve(capacity)?;
     let source = computed
         .map(|node| {
             PreparedPortableExpressionEvaluator::prepare(
@@ -109,6 +134,7 @@ pub(super) fn prepare(
                     root: node,
                 },
                 prepared_input.clone(),
+                budget,
             )
         })
         .transpose()?
@@ -120,11 +146,7 @@ pub(super) fn prepare(
             .value_type
             .canonical_bytes()
             .map_err(|_| Refusal::InvalidProgram)?,
-        output: Vec::with_capacity(if primitive {
-            0
-        } else {
-            storage_bound::canonical(&node.value_type)?
-        }),
+        output: Vec::with_capacity(capacity),
         primitive,
     })
 }

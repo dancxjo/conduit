@@ -1,4 +1,5 @@
 //! Prepared recursive semantic equality; canonical framing is not semantic equality.
+use super::PreparationBudget;
 use super::{
     primitive, EvaluationInput, PreparedInput, PreparedPortableExpressionEvaluator, ProgramView,
     Refusal,
@@ -32,13 +33,19 @@ impl PreparedEquality {
         right: &PortableExpressionNode,
         input_type: &StructuredInfoType,
         input: &PreparedInput,
+        budget: &mut PreparationBudget,
     ) -> Result<Self, Refusal> {
         if left.value_type != right.value_type
             || !matches!(operator, BinaryOperator::Equal | BinaryOperator::NotEqual)
         {
             return Err(Refusal::InvalidProgram);
         }
-        let prepare = |node: &PortableExpressionNode| {
+        budget.array::<PreparedPortableExpressionEvaluator>(2)?;
+        budget.prefix(&left.value_type)?;
+        if budget.is_bounded() {
+            budget.reserve(Shape::preparation_bound(&left.value_type)?)?;
+        }
+        let mut prepare = |node: &PortableExpressionNode| {
             PreparedPortableExpressionEvaluator::prepare(
                 ProgramView {
                     input_type,
@@ -46,6 +53,7 @@ impl PreparedEquality {
                     root: node,
                 },
                 input.clone(),
+                budget,
             )
         };
         Ok(Self {
@@ -266,6 +274,51 @@ impl Shape {
                         .saturating_add(shape.owned_heap_bytes())
                 },
             ),
+        }
+    }
+}
+
+impl Shape {
+    fn preparation_bound(ty: &StructuredInfoType) -> Result<usize, Refusal> {
+        fn add(a: usize, b: usize) -> Result<usize, Refusal> {
+            a.checked_add(b).ok_or(Refusal::InvalidProgram)
+        }
+        fn vector(count: usize) -> Result<usize, Refusal> {
+            count
+                .max(4)
+                .checked_mul(3)
+                .and_then(|count| count.checked_mul(core::mem::size_of::<(String, Shape)>()))
+                .ok_or(Refusal::InvalidProgram)
+        }
+        match ty.shape() {
+            StructuredInfoTypeShape::Leaf(kind) => Ok(kind.as_str().len()), // possible allocated refusal
+            StructuredInfoTypeShape::Nominal { representation, .. }
+                if matches!(representation.shape(), StructuredInfoTypeShape::Leaf(_)) =>
+            {
+                Self::preparation_bound(representation)
+            }
+            StructuredInfoTypeShape::Nominal { .. } => Ok(64), // static unsupported-shape refusal
+            StructuredInfoTypeShape::Collection { element, .. }
+            | StructuredInfoTypeShape::Sequence { element, .. } => add(
+                core::mem::size_of::<Self>(),
+                Self::preparation_bound(element)?,
+            ),
+            StructuredInfoTypeShape::Record { fields, .. } => {
+                fields.iter().try_fold(vector(fields.len())?, |sum, field| {
+                    add(
+                        add(sum, field.name().len())?,
+                        Self::preparation_bound(field.value_type())?,
+                    )
+                })
+            }
+            StructuredInfoTypeShape::Variant { cases, .. } => {
+                cases.iter().try_fold(vector(cases.len())?, |sum, case| {
+                    add(
+                        add(sum, case.tag().len())?,
+                        Self::preparation_bound(case.payload_type())?,
+                    )
+                })
+            }
         }
     }
 }

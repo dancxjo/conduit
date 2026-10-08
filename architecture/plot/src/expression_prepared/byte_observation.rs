@@ -1,4 +1,5 @@
 //! Observations of packed bytes retain their actual extent, without collection framing.
+use super::PreparationBudget;
 use super::{
     evaluate_node, prepare_node, primitive::PrimitiveValue, EvaluationInput, PreparedInput,
     PreparedNode, Refusal,
@@ -17,7 +18,10 @@ impl PreparedByteObservation {
         arguments: &[PortableExpressionNode],
         input: &StructuredInfoType,
         prepared_input: &PreparedInput,
+        budget: &mut PreparationBudget,
     ) -> Result<Self, Refusal> {
+        budget.reserve(64)?; // transient exact packed-bytes Kind/Type check
+        budget.array::<PreparedNode>(2)?;
         let expected = if call == "bytes/at" {
             2
         } else if call == "bytes/length" {
@@ -32,7 +36,8 @@ impl PreparedByteObservation {
         {
             return Err(Refusal::InvalidProgram);
         }
-        let prepare = |node: &PortableExpressionNode| prepare_node(node, input, prepared_input);
+        let mut prepare =
+            |node: &PortableExpressionNode| prepare_node(node, input, prepared_input, budget);
         let index = if call == "bytes/at" {
             let node = &arguments[1];
             if node.value_type

@@ -1,4 +1,5 @@
 //! Prepared, allocation-free observations of exact structured expression values.
+use super::PreparationBudget;
 use super::{
     primitive::PrimitiveValue, EvaluationInput, PreparedInput, PreparedPortableExpressionEvaluator,
     ProgramView, Refusal,
@@ -22,7 +23,17 @@ impl PreparedInspection {
         arguments: &[PortableExpressionNode],
         input: &StructuredInfoType,
         prepared_input: &PreparedInput,
+        budget: &mut PreparationBudget,
     ) -> Result<Self, Refusal> {
+        budget.reserve(64)?; // transient exact Text Kind/Type check
+        budget.array::<PreparedPortableExpressionEvaluator>(1)?;
+        if let Some(PortableExpressionNode {
+            operation: PortableExpressionOperation::Literal(text),
+            ..
+        }) = arguments.get(1)
+        {
+            budget.reserve(text.len().checked_mul(3).ok_or(Refusal::InvalidProgram)?)?;
+        }
         let source = arguments.first().ok_or(Refusal::InvalidProgram)?;
         let operation = match call {
             "variant/is" => {
@@ -79,6 +90,7 @@ impl PreparedInspection {
             source: Box::new(PreparedPortableExpressionEvaluator::prepare(
                 program,
                 prepared_input.clone(),
+                budget,
             )?),
             operation,
         })
