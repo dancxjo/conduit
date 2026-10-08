@@ -10,6 +10,7 @@ use crate::{
     parser_session_mixed_custody::ParserMixedHistory,
     parser_session_numeric_custody::ParserNumericFrames,
     parser_session_profile::lexical_tape_storage,
+    parser_session_seed_admission::ParserSeedBeamAdmission,
     LanguageLexicalTape,
 };
 use alloc::{rc::Rc, vec::Vec};
@@ -58,6 +59,7 @@ pub(crate) struct ParserRevisionCustody {
     pub(crate) source_histories: Vec<ParserFixedHistory>,
     pub(crate) mixed_histories: Vec<ParserMixedHistory>,
     pub(crate) stable_admissions: Vec<ParserStableCandidateAdmission>,
+    pub(crate) seed_admission: Option<ParserSeedBeamAdmission>,
     source_frames: Vec<ParserFixedFrames>,
     mixed_frames: Vec<ReservedMixedFrames>,
     pub(crate) storage: RevisionStorageReceipt,
@@ -321,6 +323,7 @@ impl ParserRevisionCustody {
             source_histories,
             mixed_histories,
             stable_admissions,
+            seed_admission: None,
             source_frames,
             mixed_frames,
             storage: RevisionStorageReceipt {

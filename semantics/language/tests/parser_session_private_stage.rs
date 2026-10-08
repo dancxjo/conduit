@@ -69,6 +69,9 @@ mod parser_session_queries;
 #[path = "../src/parser_canonical_nominal.rs"]
 mod parser_canonical_nominal;
 
+#[path = "../src/parser_session_seed_admission.rs"]
+mod parser_session_seed_admission;
+
 extern crate conduitos as actual_expression_owner;
 use parser_session_numeric_custody as numeric_custody;
 #[path = "common/parser_model_resource.rs"]
@@ -437,7 +440,9 @@ fn actual_kernel_fixed_seed_preparation_execution_replay_and_late_output_refusal
         + receipt.static_resources.canonical_bytes_bound
         + receipt.static_resources.descriptor_storage_bytes_bound
         + receipt.static_resources.source_canonical_bytes_bound
-        + profile.storage_receipt().unwrap().retained_heap_bytes_bound;
+        + profile.storage_receipt().unwrap().retained_heap_bytes_bound
+        + GIB // independently reserved complete seed refinement preparation
+        + 2 * conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES;
     let limits = FixedPreparationLimits {
         verification: parser_session_execution::ParserSessionVerificationLimits {
             decoded_program_bytes: GIB,
@@ -475,6 +480,24 @@ fn actual_kernel_fixed_seed_preparation_execution_replay_and_late_output_refusal
         Err(FixedRefusal::Pressure)
     ));
     assert_eq!(calls.get(), 0);
+    let mut seed_refinement = parser_canonical_refinement::PreparedParserCanonicalRefinement::<
+        LanguageParserSessionSeedProposal,
+        LanguageParserJointRuntimeRawBeam,
+    >::prepare(
+        &family.borrow(),
+        parser_canonical_refinement::ParserRefinementLimits {
+            maximum_node_bytes: conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+            maximum_retained_requested_bytes: GIB,
+            maximum_preparation_requested_bytes: GIB,
+        },
+    )
+    .unwrap();
+    let seed_buffer = ParserFixedFrames::prepare(
+        conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+        conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    )
+    .unwrap()
+    .into_candidate_buffer();
     let history = port
         .execute(
             &input,
@@ -487,6 +510,18 @@ fn actual_kernel_fixed_seed_preparation_execution_replay_and_late_output_refusal
         .unwrap();
     assert_eq!(calls.get(), 1);
     assert!(Rc::ptr_eq(&history.original_plan, &original_plan));
+    let seed_admission = parser_session_seed_admission::ParserSeedBeamAdmission::admit(
+        0,
+        &history,
+        &mut seed_refinement,
+        &mut family.borrow_mut(),
+        seed_buffer,
+    )
+    .unwrap();
+    assert_eq!(seed_admission.seed_execution, 0);
+    seed_admission
+        .readmit(&history, &mut seed_refinement, &mut family.borrow_mut())
+        .unwrap();
     let (mut replay, _, _, _) =
         PreparedSourceVerification::prepare(Entry::Seed, limits.verification).unwrap();
     let conversion = family

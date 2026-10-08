@@ -11,9 +11,11 @@ use crate::{
     parser_session_mixed_custody::ParserMixedRefusal,
     parser_session_numeric_custody::ParserNumericExecutor,
     parser_session_revision_custody::{ParserRevisionCustody, RevisionStorageRefusal},
+    parser_session_seed_admission::{ParserSeedBeamAdmission, SeedBeamRefusal},
     parser_session_stage::{ParserSessionStage, ParserSessionTargets},
     parser_session_target_registry::{ParserSessionTargetRegistry, RegistryRefusal},
-    LanguageParserJointStableFact, LanguageParserJointStableFactProposal,
+    LanguageParserJointRuntimeRawBeam, LanguageParserJointStableFact,
+    LanguageParserJointStableFactProposal, LanguageParserSessionSeedProposal,
 };
 use alloc::rc::Rc;
 use conduit_plot::rust_binding::PreparedNativeFamily;
@@ -25,6 +27,7 @@ pub(crate) enum RevisionStageRefusal<E, S, N> {
     Source(FixedRefusal<E>),
     Model(ParserMixedRefusal<S, N>),
     StableCandidate(StableCandidateRefusal),
+    SeedBeam(SeedBeamRefusal),
 }
 pub(crate) struct ParserRevisionStage<
     'a,
@@ -116,6 +119,52 @@ impl<'a, E: ParserSessionExecutor, S: ParserCanonicalSourceExecutor, N: ParserNu
             .source_histories
             .get(execution)
             .map(|history| history.output.as_slice())
+    }
+    /// Only the actual fixed Source initializer can supply the first beam.
+    /// Its template may seed a later revision, but cannot authorize publication
+    /// over previous commitments without the original protected-rebase chain.
+    pub(crate) fn admit_seed_beam(
+        &mut self,
+        execution: usize,
+        refinement: &mut PreparedParserCanonicalRefinement<
+            LanguageParserSessionSeedProposal,
+            LanguageParserJointRuntimeRawBeam,
+        >,
+        family: &mut PreparedNativeFamily,
+    ) -> Result<(), RevisionStageRefusal<E::Error, S::Error, N::Error>> {
+        use RevisionStageRefusal as R;
+        if self.poisoned {
+            return Err(R::Closed);
+        }
+        let result = (|| {
+            let book = Rc::get_mut(&mut self.book).ok_or(R::Closed)?;
+            if book.seed_admission.is_some() {
+                return Err(R::Closed);
+            }
+            let buffer = book
+                .source_frame()
+                .map_err(R::Storage)?
+                .into_candidate_buffer();
+            let origin = book.source_histories.get(execution).ok_or(R::Closed)?;
+            book.seed_admission = Some(
+                ParserSeedBeamAdmission::admit(execution, origin, refinement, family, buffer)
+                    .map_err(R::SeedBeam)?,
+            );
+            Ok(())
+        })();
+        if result.is_err() {
+            self.poison();
+        }
+        result
+    }
+    pub(crate) fn seed_beam(&self) -> Option<&[u8]> {
+        if self.poisoned {
+            return None;
+        }
+        self.book
+            .seed_admission
+            .as_ref()
+            .map(|admission| admission.complete_beam.as_slice())
     }
     /// Admit only the complete proposal returned by this revision's actual
     /// stable-fact Source execution. Semantic refusal is retained as evidence;
