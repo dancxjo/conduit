@@ -54,7 +54,6 @@ conduit-std-offers = { path = "offers", features = ["speech"] }
 conduit-time = { path = "../../semantics/time", features = ["kernel-step"] }
 conduit-text = { path = "../../semantics/text", default-features = false }
 conduit-tongues = { path = "../../semantics/tongues" }
-conduit-todo-plot = { path = "../../plots/todo/model", features = ["kernel-step"] }
 conduit-wire = { path = "../../architecture/wire" }
 conduit-web = { path = "../../semantics/web", default-features = false }
 tungstenite = "0.30.0"
