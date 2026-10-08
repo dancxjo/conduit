@@ -1,0 +1,150 @@
+//! Root multiplexes Source wake and domain budget onto the one SBI timer.
+use crate::protected_region::DomainRefusal;
+use core::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering};
+
+const NONE: u64 = u64::MAX;
+const PERIOD: u64 = 100_000;
+static SOURCE: AtomicU64 = AtomicU64::new(NONE);
+static BUDGET: AtomicU64 = AtomicU64::new(NONE);
+static ACTIVE: AtomicBool = AtomicBool::new(false);
+static READY: AtomicBool = AtomicBool::new(false);
+static SEEN: AtomicU32 = AtomicU32::new(0);
+static REMAINING: AtomicU32 = AtomicU32::new(0);
+static USER_INTERRUPTS: AtomicU32 = AtomicU32::new(0);
+static USER_TRAPS: AtomicU32 = AtomicU32::new(0);
+static SOURCE_INTERRUPTS: AtomicU32 = AtomicU32::new(0);
+
+pub(super) struct Budget;
+impl Budget {
+    /// Caller holds supervisor interrupts masked; Root's vector is installed.
+    pub fn arm() -> Result<Self, DomainRefusal> {
+        if ACTIVE.swap(true, Ordering::AcqRel) {
+            return Err(DomainRefusal::InvalidLifecycle);
+        }
+        let guard = Self;
+        REMAINING.store(0, Ordering::Release);
+        let before = SEEN.load(Ordering::Acquire);
+        BUDGET.store(
+            super::read_counter().saturating_add(PERIOD),
+            Ordering::Release,
+        );
+        if !program() {
+            return Err(DomainRefusal::Unsupported);
+        }
+        if !READY.load(Ordering::Acquire) {
+            super::enable_interrupts();
+            for _ in 0..1_000_000 {
+                if SEEN.load(Ordering::Acquire).wrapping_sub(before) >= 2 {
+                    break;
+                }
+                core::hint::spin_loop();
+            }
+            super::disable_interrupts();
+            if SEEN.load(Ordering::Acquire).wrapping_sub(before) < 2 {
+                return Err(DomainRefusal::Unsupported);
+            }
+            READY.store(true, Ordering::Release);
+        }
+        USER_INTERRUPTS.store(0, Ordering::Release);
+        USER_TRAPS.store(0, Ordering::Release);
+        SOURCE_INTERRUPTS.store(0, Ordering::Release);
+        REMAINING.store(3, Ordering::Release);
+        BUDGET.store(
+            super::read_counter().saturating_add(PERIOD),
+            Ordering::Release,
+        );
+        if !program() {
+            return Err(DomainRefusal::Unsupported);
+        }
+        Ok(guard)
+    }
+}
+impl Drop for Budget {
+    fn drop(&mut self) {
+        BUDGET.store(NONE, Ordering::Release);
+        REMAINING.store(0, Ordering::Release);
+        ACTIVE.store(false, Ordering::Release);
+        if !program() {
+            super::emergency_halt();
+        }
+    }
+}
+
+pub(super) fn source_arm() -> bool {
+    SOURCE.store(
+        super::read_counter().saturating_add(100_000),
+        Ordering::Release,
+    );
+    program()
+}
+pub(super) fn source_cancel() {
+    SOURCE.store(NONE, Ordering::Release);
+    if !program() {
+        super::emergency_halt();
+    }
+}
+
+/// Returns whether the admitted user budget ended. Source completion remains
+/// the existing interrupt fact; it never becomes a budget-owned wake.
+pub(super) fn interrupt(user: bool) -> bool {
+    if user {
+        USER_TRAPS.fetch_add(1, Ordering::Relaxed);
+    }
+    let now = super::read_counter();
+    let source = SOURCE.load(Ordering::Acquire);
+    if source != NONE && source <= now {
+        SOURCE.store(NONE, Ordering::Release);
+        super::record_timer_interrupt();
+        if user {
+            SOURCE_INTERRUPTS.fetch_add(1, Ordering::Relaxed);
+        }
+    }
+    let budget = BUDGET.load(Ordering::Acquire);
+    let mut expired = false;
+    if budget != NONE && budget <= now {
+        SEEN.fetch_add(1, Ordering::Release);
+        if user {
+            USER_INTERRUPTS.fetch_add(1, Ordering::Relaxed);
+            expired = REMAINING.fetch_update(Ordering::AcqRel, Ordering::Acquire, |value| {
+                value.checked_sub(1)
+            }) == Ok(1);
+        }
+        BUDGET.store(
+            if expired {
+                NONE
+            } else {
+                now.saturating_add(PERIOD)
+            },
+            Ordering::Release,
+        );
+    }
+    if !program() {
+        super::emergency_halt();
+    }
+    expired
+}
+pub(super) fn user_interrupts() -> (u32, u32) {
+    (
+        USER_INTERRUPTS.load(Ordering::Relaxed),
+        SOURCE_INTERRUPTS.load(Ordering::Relaxed),
+    )
+}
+pub(super) fn interrupt_entries() -> u32 {
+    USER_TRAPS.load(Ordering::Relaxed)
+}
+fn program() -> bool {
+    let deadline = SOURCE
+        .load(Ordering::Acquire)
+        .min(BUDGET.load(Ordering::Acquire));
+    let error: isize;
+    unsafe {
+        core::arch::asm!("ecall", inlateout("a0") deadline => error, lateout("a1") _,
+            in("a6") 0_usize, in("a7") super::SBI_EXT_TIME, options(nostack));
+        if deadline == NONE {
+            core::arch::asm!("csrc sie, {0}", in(reg) super::SIE_STIE, options(nostack));
+        } else {
+            core::arch::asm!("csrs sie, {0}", in(reg) super::SIE_STIE, options(nostack));
+        }
+    }
+    error == 0
+}

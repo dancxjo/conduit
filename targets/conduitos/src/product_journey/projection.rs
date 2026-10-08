@@ -100,6 +100,16 @@ impl ProductJourney {
             wake_id: self.current_wake().map(|wake| wake.wake_id.clone()),
             wake_sign_id,
             plan_id: self.current_plan().map(|plan| plan.plan_id.clone()),
+            partition_plan_id: self.current_plan().and_then(|plan| {
+                let checked = self.plot.as_ref()?;
+                plan.plots
+                    .iter()
+                    .find(|partition| {
+                        partition.plot.source_document_id == checked.source_document_id
+                            && partition.plot.checked_plot_id == checked.checked_plot_id
+                    })
+                    .map(|partition| partition.plan.plan_id.clone())
+            }),
             plan_sign_id,
             active_play_id: self.current_play().map(|play| play.active_play_id.clone()),
             play_sign_id,

@@ -73,11 +73,18 @@ fn boot_once(
     {
         return Err(refusal("profile-built-make-mismatch", product.to_string()));
     }
+    let mut product = product;
+    product["ordinary_domain"] =
+        super::protected_product_receipt::capture(&text, &product, "loongarch64")?;
     let snapshot = parse_one(&text, OBSERVATORY_PREFIX, "Observatory")?;
     conduit_observatory::validate_snapshot(
         &serde_json::from_value(snapshot.clone()).map_err(invalid)?,
     )
     .map_err(|e| refusal("invalid-loongarch64-product-observatory", e.to_string()))?;
+    let ordinary_plan: conduit_core::Plan =
+        serde_json::from_value(snapshot["plans"][0].clone()).map_err(invalid)?;
+    product["ordinary_source_conformance"] =
+        super::ordinary_source_conformance::capture(&ordinary_plan)?;
     if snapshot["hosts"][0]["advertisement"]["host_id"] != product["host_id"]
         || snapshot["hosts"][0]["advertisement"]["boot_id"] != product["boot_id"]
         || snapshot["plans"][0]["plan_id"] != product["ordinary_plan_id"]

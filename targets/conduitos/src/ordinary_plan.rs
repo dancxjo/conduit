@@ -1,6 +1,8 @@
 //! Current plot check, exact boot-scoped planning, and numeric lowering.
 
 use alloc::{format, vec, vec::Vec};
+use core::sync::atomic::{AtomicU32, Ordering};
+static NEXT_PLAY: AtomicU32 = AtomicU32::new(1);
 
 use conduit_core::{
     ActivePlayIdentity, ArtifactId, BaseImplementationId, BootId, CapabilityId, ExecutionProfileId,
@@ -25,6 +27,28 @@ pub const TEXT_RESULT: &str = "HELLO, CONDUITOS";
 const CORD_BYTES: u32 = conduit_text::MAX_TEXT_BYTES;
 const ORDINARY_PLACEMENT_COUNT: usize = 3;
 pub const COOPERATIVE_REGION_PROFILE: &str = "conduitos/cooperative-bounded-step@1";
+pub const PROTECTED_REGION_PROFILE: &str = "conduitos/protected-region@1";
+
+pub(crate) const fn region_profile(protected: bool) -> &'static str {
+    if protected {
+        PROTECTED_REGION_PROFILE
+    } else {
+        COOPERATIVE_REGION_PROFILE
+    }
+}
+
+pub(crate) fn new_play(
+    plan: &PlanId,
+    host: &HostId,
+    boot: &BootId,
+) -> Result<ActivePlayIdentity, PreparationError> {
+    let sequence = NEXT_PLAY
+        .fetch_update(Ordering::AcqRel, Ordering::Acquire, |value| {
+            value.checked_add(1)
+        })
+        .map_err(|_| PreparationError::PlayIdentityExhausted)?;
+    Ok(bind_active_play(plan, host, boot, u64::from(sequence)))
+}
 
 pub struct PreparedOrdinaryPlay {
     pub kernel: TextPlannedKernel,
@@ -48,6 +72,8 @@ pub enum PreparationError {
     PlanRejected,
     LoweringRejected,
     KernelRejected,
+    Protection(crate::protected_region::DomainRefusal),
+    PlayIdentityExhausted,
 }
 
 impl PreparationError {
@@ -59,6 +85,8 @@ impl PreparationError {
             Self::PlanRejected => "ordinary-plan-rejected",
             Self::LoweringRejected => "ordinary-lowering-rejected",
             Self::KernelRejected => "ordinary-kernel-rejected",
+            Self::Protection(refusal) => refusal.as_str(),
+            Self::PlayIdentityExhausted => "ordinary-play-identity-capacity-exhausted",
         }
     }
 }
@@ -76,6 +104,27 @@ pub fn prepare(
         "conduitos-text-upper",
         TEXT_LITERAL,
     )
+}
+
+/// Require a protected text region. Unsupported builds refuse before planning
+/// or constructing a cooperative kernel; supported builds still validate the
+/// actual machine and domain during preparation.
+pub fn prepare_protected(
+    identities: &BootIdentities,
+    fixed_offer: &HostOffer<'_>,
+    build_id: &str,
+) -> Result<PreparedOrdinaryPlay, PreparationError> {
+    #[cfg(conduitos_protected_execution)]
+    {
+        prepare(identities, fixed_offer, build_id)
+    }
+    #[cfg(not(conduitos_protected_execution))]
+    {
+        let _ = (identities, fixed_offer, build_id);
+        Err(PreparationError::Protection(
+            crate::protected_region::DomainRefusal::Unsupported,
+        ))
+    }
 }
 
 pub fn prepare_source(
@@ -131,9 +180,19 @@ pub fn prepare_source(
     {
         return Err(PreparationError::PlanRejected);
     }
-    let kernel = TextPlannedKernel::prepare_with_literal(fragment, &lowered, expected_literal)
+    #[allow(unused_mut)]
+    let mut kernel = TextPlannedKernel::prepare_with_literal(fragment, &lowered, expected_literal)
         .map_err(|_| PreparationError::KernelRejected)?;
-    let active_play = bind_active_play(&plan.plan_id, &fragment.host_id, &fragment.boot_id, 0);
+    let active_play = new_play(&plan.plan_id, &fragment.host_id, &fragment.boot_id)?;
+    #[cfg(conduitos_protected_execution)]
+    kernel
+        .protect(&plan, &active_play, fixed_offer)
+        .map_err(|error| match error {
+            crate::composition::MachineRunError::ProtectionDomain(refusal) => {
+                PreparationError::Protection(refusal)
+            }
+            _ => PreparationError::KernelRejected,
+        })?;
     Ok(PreparedOrdinaryPlay {
         kernel,
         advertisement,
@@ -359,6 +418,7 @@ pub(crate) fn advertisement(
     advertisement
         .capabilities
         .extend([every, count, count_presentation]);
+    crate::ordinary_base::append_serial(&mut advertisement, fixed)?;
     if let Some(keyboard) = fixed.keyboard {
         crate::keyboard_offer::append_to_advertisement(&mut advertisement, keyboard, build_id)
             .map_err(|_| PreparationError::OfferMismatch)?;
@@ -411,11 +471,18 @@ fn bind_native_capability(
         ExecutionProfileId::from("conduitos/single-lane-cooperative@1");
     portable.implementation.implementation_id = ImplementationId::from(fixed.implementation);
     portable.implementation.artifact_id = ArtifactId::from(format!("conduitos-build/{build_id}"));
+    #[allow(unused_mut)]
+    let mut memory_bytes = 4096;
+    #[cfg(conduitos_protected_execution)]
+    if fixed.kind == conduit_text::TEXT_UPPER_KIND {
+        memory_bytes +=
+            crate::arch::TextDomain::RESERVED_BYTES + crate::text_protection::ROOT_METADATA_CEILING;
+    }
     portable
         .resource_requirements
         .push(conduit_core::resource_requirement(
             "conduit.resource/runtime-memory@1",
-            4_096,
+            memory_bytes,
         ));
     portable.resource_requirements.sort();
 }

@@ -5,6 +5,8 @@
 
 #[cfg(target_arch = "x86_64")]
 mod x86_64;
+#[cfg(all(target_arch = "x86_64", target_os = "none"))]
+pub use x86_64::TextDomain;
 
 #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
 pub use x86_64::CandidateDeadline;
@@ -40,17 +42,24 @@ pub use x86_64::{
 #[cfg(target_arch = "x86")]
 mod ia32;
 #[cfg(any(target_arch = "x86", test))]
+#[allow(dead_code)]
+#[path = "ia32/domain_gdt.rs"]
+mod ia32_domain_gdt;
+#[cfg(any(target_arch = "x86", test))]
 #[path = "ia32/timer_lifecycle.rs"]
 mod ia32_timer_lifecycle;
 #[cfg(any(target_arch = "x86", all(test, target_arch = "x86_64")))]
 #[cfg_attr(all(test, target_arch = "x86_64"), allow(dead_code))]
 #[path = "ia32/vga_text.rs"]
 mod ia32_vga_text;
+#[cfg(all(target_arch = "x86", target_os = "linux"))]
+pub use ia32::TextDomain;
 #[cfg(target_arch = "x86")]
 pub use ia32::{
-    Clock, Idle, InterruptFact, Interrupts, Serial, Timer, disable_interrupts, emergency_halt,
-    emergency_machine_profile, enable_interrupts, initialize_machine, interruptible_idle,
-    pop_interrupt, present, present_legacy_bios_receipt, read_counter, timer_arm,
+    Clock, Idle, InterruptFact, Interrupts, RdrandEntropy, Serial, Timer, disable_interrupts,
+    early_write, emergency_halt, emergency_machine_profile, enable_interrupts, initialize_machine,
+    interruptible_idle, pop_interrupt, present, present_legacy_bios_receipt, read_counter,
+    timer_arm,
 };
 #[cfg(target_arch = "x86")]
 pub const ARCHITECTURE: &str = "ia32";
@@ -86,8 +95,28 @@ pub use riscv64::{
 };
 #[cfg(target_arch = "riscv64")]
 pub const ARCHITECTURE: &str = "riscv64";
+#[cfg(target_arch = "riscv64")]
+pub use riscv64::SeedEntropy;
+#[cfg(all(
+    target_arch = "riscv64",
+    conduitos_protected_execution,
+    feature = "ordinary-domain-proof"
+))]
+pub use riscv64::start_pending_source_timer;
+#[cfg(target_arch = "riscv64")]
+pub use riscv64::{SeedEntropy as DomainEntropy, early_write};
+#[cfg(all(target_arch = "riscv64", feature = "riscv64-product"))]
+pub use riscv64::{TextDomain, initialize_domains};
 #[cfg(target_arch = "loongarch64")]
 mod loongarch64;
+#[cfg(target_arch = "loongarch64")]
+pub use loongarch64::FwCfgEntropy;
+#[cfg(test)]
+#[path = "loongarch64/entropy_directory.rs"]
+mod loongarch64_entropy_directory_test;
+#[cfg(test)]
+#[path = "riscv64/seed_conditioner.rs"]
+mod riscv64_seed_conditioner;
 #[cfg(target_arch = "loongarch64")]
 pub use loongarch64::{
     Clock, Idle, InterruptFact, Interrupts, Serial, Timer, disable_interrupts, emergency_halt,
@@ -112,3 +141,44 @@ pub const ARCHITECTURE: &str = "armv6";
 
 #[cfg(all(target_arch = "x86_64", feature = "usb-endpoint-read-proof"))]
 pub use x86_64::run_usb_endpoint_read_proof;
+
+#[cfg(all(
+    feature = "ordinary-domain-proof",
+    any(
+        all(target_arch = "x86_64", target_os = "none"),
+        all(target_arch = "x86", target_os = "linux", feature = "ia32-product")
+    )
+))]
+mod domain_context_probe;
+
+#[cfg(all(
+    target_arch = "aarch64",
+    conduitos_protected_execution,
+    feature = "ordinary-domain-proof"
+))]
+pub use aarch64::start_pending_source_timer;
+#[cfg(all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5")))]
+pub use aarch64::{RndrEntropy as DomainEntropy, early_write};
+#[cfg(all(
+    target_arch = "aarch64",
+    target_os = "none",
+    not(feature = "aarch64-orange-pi-5")
+))]
+pub use aarch64::{TextDomain, initialize_domains};
+#[cfg(target_arch = "x86")]
+pub use ia32::RdrandEntropy as DomainEntropy;
+#[cfg(target_arch = "x86_64")]
+pub use x86_64::RdrandEntropy as DomainEntropy;
+
+#[cfg(all(target_arch = "loongarch64", feature = "ordinary-domain-proof"))]
+pub use loongarch64::entropy_storage_address;
+#[cfg(all(
+    target_arch = "loongarch64",
+    conduitos_protected_execution,
+    feature = "ordinary-domain-proof"
+))]
+pub use loongarch64::start_pending_source_timer;
+#[cfg(target_arch = "loongarch64")]
+pub use loongarch64::{FwCfgEntropy as DomainEntropy, early_write};
+#[cfg(all(target_arch = "loongarch64", feature = "loongarch64-product"))]
+pub use loongarch64::{TextDomain, initialize_domains};

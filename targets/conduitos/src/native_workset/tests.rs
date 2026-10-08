@@ -6,7 +6,7 @@ use crate::{
 };
 use conduit_body::{Body, BodyWorkset, Wake};
 
-pub(super) fn fixture() -> (BootIdentities, HostOffer<'static>) {
+pub(crate) fn fixture() -> (BootIdentities, HostOffer<'static>) {
     let identities = BootIdentities {
         host: [1; 32],
         boot: [2; 32],
@@ -38,7 +38,7 @@ pub(super) fn fixture() -> (BootIdentities, HostOffer<'static>) {
     (identities, offer)
 }
 
-pub(super) fn wake(plots: &[NativePlot]) -> Wake {
+pub(crate) fn wake(plots: &[NativePlot]) -> Wake {
     let workset =
         BodyWorkset::from_plots(plots.iter().map(|plot| resident(*plot).unwrap())).unwrap();
     Body::born_with_plots(workset, 1, "sign/born".into())

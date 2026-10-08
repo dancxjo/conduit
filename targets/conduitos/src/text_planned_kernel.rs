@@ -13,6 +13,8 @@ use conduit_kernel::{
 };
 use conduit_plan_lowering::lowering::{FIXED_KERNEL_STORAGE_PORTS_PER_NODE, LoweredPlanFragment};
 
+mod protection;
+
 const MAX_NODES: usize = 3;
 const MAX_CORDS: usize = 2;
 const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
@@ -44,6 +46,8 @@ pub struct TextPlannedKernel {
     scheduler: Scheduler,
     upper_node: NodeId,
     presentation_node: NodeId,
+    #[cfg(conduitos_protected_execution)]
+    protected: Option<crate::text_protection::ProtectedText>,
 }
 
 impl TextPlannedKernel {
@@ -134,11 +138,27 @@ impl TextPlannedKernel {
             )?,
             upper_node: NodeId(upper_index as u16),
             presentation_node: NodeId(presentation_index as u16),
+            #[cfg(conduitos_protected_execution)]
+            protected: None,
         })
     }
 
     pub fn step(&mut self) -> Result<SchedulerStatus, SchedulerError> {
-        self.scheduler.step()
+        let result = self.scheduler.step();
+        #[cfg(conduitos_protected_execution)]
+        if result.is_err()
+            && let Some(domain) = &mut self.protected
+        {
+            domain.revoke(crate::protection_domain::KernelRevocationCause::PlayFailed);
+        }
+        let status = result?;
+        #[cfg(conduitos_protected_execution)]
+        if status == SchedulerStatus::Drained
+            && let Some(domain) = &mut self.protected
+        {
+            domain.revoke(crate::protection_domain::KernelRevocationCause::PlayCompleted);
+        }
+        Ok(status)
     }
 
     pub fn next_host_request(&mut self) -> Option<HostCallRequest> {
@@ -188,7 +208,6 @@ impl TextPlannedKernel {
             },
         )
     }
-    #[cfg(test)]
     fn fail_presentation(&mut self, request: HostCallRequest) -> Result<(), SchedulerError> {
         if !self.is_presentation_request(&request) {
             return Err(SchedulerError::InvalidHostCallAccess);
@@ -214,6 +233,10 @@ impl TextPlannedKernel {
     }
 
     pub fn cancel(&mut self) -> Result<(), SchedulerError> {
+        #[cfg(conduitos_protected_execution)]
+        if let Some(domain) = &mut self.protected {
+            domain.revoke(crate::protection_domain::KernelRevocationCause::PlayCancelled);
+        }
         self.scheduler.cancel()
     }
     pub fn decisions(&self) -> u32 {

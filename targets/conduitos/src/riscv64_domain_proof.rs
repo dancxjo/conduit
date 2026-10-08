@@ -1,0 +1,114 @@
+//! Independent U-mode boundary checks following the ordinary product Play.
+use crate::{
+    arch,
+    protected_region::{DomainBackend, DomainFault, DomainReturn},
+};
+
+#[path = "ordinary_domain_proof/gates.rs"]
+mod gates;
+#[path = "ordinary_domain_proof/timer.rs"]
+mod timer;
+
+pub fn run(plan: &conduit_core::Plan, offer: &crate::offer::HostOffer<'_>) {
+    gates::run(plan, offer);
+    boundary_entries();
+    timer::run();
+}
+
+fn boundary_entries() {
+    let private = 0x5a5a_5a5a_u64;
+    let capabilities = crate::protection_domain::KernelCapabilityTable::new(7)
+        .unwrap_or_else(|_| refuse("capability-table"));
+    let mut sibling = arch::TextDomain::install().unwrap_or_else(|_| refuse("sibling"));
+    sibling
+        .input(b"sentinel")
+        .unwrap_or_else(|_| refuse("sibling-input"));
+    let sibling_address = sibling.private_frame_address();
+    let sibling_before = unsafe { (sibling_address as *const u64).read_volatile() };
+    for (command, target, expected) in [
+        (1, &private as *const u64 as u64, DomainFault::Memory),
+        (1, &capabilities as *const _ as u64, DomainFault::Memory),
+        (2, sibling_address, DomainFault::Memory),
+        (
+            3,
+            arch::early_write as *const () as u64,
+            DomainFault::Memory,
+        ),
+        (1, 0x0200_0000, DomainFault::Memory),
+        (1, 0x0c00_0000, DomainFault::Memory),
+        (2, 0x1000_0000, DomainFault::Memory),
+        // Supervisor register access is an illegal instruction in U-mode.
+        (4, 0, DomainFault::InvalidInstruction),
+        (5, 0, DomainFault::InvalidInstruction),
+        (6, 0, DomainFault::WorkExhausted),
+        (17, 0, DomainFault::WorkExhausted),
+        (8, 0, DomainFault::InvalidInstruction),
+        (9, 0, DomainFault::InvalidInstruction),
+        (10, 0, DomainFault::InvalidGate),
+        (11, 0, DomainFault::InvalidInstruction),
+        (12, 0, DomainFault::InvalidInstruction),
+        (13, 0, DomainFault::InvalidGate),
+        (14, 0, DomainFault::InvalidInstruction),
+        (15, 0, DomainFault::InvalidInstruction),
+        (2, crate::domain_image::USER_TEXT_START, DomainFault::Memory),
+        (
+            3,
+            crate::domain_image::USER_TEXT_START + 0x10000,
+            DomainFault::Memory,
+        ),
+    ] {
+        let mut domain = arch::TextDomain::install().unwrap_or_else(|_| refuse("install"));
+        domain.probe(command, target);
+        let returned = domain.enter(1);
+        let mut sign = crate::sign_format::FixedText::new();
+        use core::fmt::Write;
+        let _ = writeln!(
+            sign,
+            "CONDUIT_RISCV64_DOMAIN_PROBE command={command} target={target:#x} result={returned:?}"
+        );
+        arch::early_write(sign.as_bytes());
+        if returned != Ok(DomainReturn::Fault(expected)) {
+            refuse("boundary-entry-did-not-fault");
+        }
+        if domain.cost().scheduler_returns != 1 {
+            refuse("boundary-entry-did-not-return");
+        }
+        if matches!(command, 6 | 17)
+            && (domain.cost().preemptions != 1 || domain.cost().interrupt_entries < 3)
+        {
+            refuse("loop-did-not-preempt");
+        }
+    }
+    let mut wfi = arch::TextDomain::install().unwrap_or_else(|_| refuse("wfi-install"));
+    wfi.probe(16, 0);
+    match wfi.enter(1) {
+        Ok(DomainReturn::Fault(DomainFault::InvalidInstruction)) => {}
+        Ok(DomainReturn::Fault(DomainFault::WorkExhausted))
+            if wfi.cost().preemptions == 1 && wfi.cost().interrupt_entries >= 3 => {}
+        _ => refuse("wfi-did-not-return"),
+    }
+    drop(wfi);
+    let mut floating = arch::TextDomain::install().unwrap_or_else(|_| refuse("floating-install"));
+    floating.probe(7, 0);
+    if floating.enter(1) != Ok(DomainReturn::Yielded) {
+        refuse("floating-state-not-restored");
+    }
+    arch::early_write(
+        b"CONDUIT_RISCV64_DOMAIN_FLOATING restored-f0-f31-fcsr-before-rust-and-irq-handler\n",
+    );
+    if private != 0x5a5a_5a5a
+        || unsafe { (sibling_address as *const u64).read_volatile() } != sibling_before
+    {
+        refuse("private-state-changed");
+    }
+    arch::early_write(b"CONDUIT_RISCV64_DOMAIN_NEGATIVES root-memory capability-memory sibling-memory root-entry clint plic uart translation-register irq-mask loop floating-loop sret mret sbi breakpoint counter alternate-gate timer-control seed wfi code-write data-execute\n");
+}
+
+fn refuse(reason: &str) -> ! {
+    arch::early_write(b"CONDUIT_RISCV64_DOMAIN_REFUSAL ");
+    arch::early_write(reason.as_bytes());
+    arch::early_write(b"\n");
+    loop {
+        core::hint::spin_loop();
+    }
+}

@@ -12,6 +12,40 @@ preserves older proof receipts and limitations.
 **[Follow the ConduitOS journey](https://dancxjo.github.io/conduit/journeys/current/conduitos/x86_64/)**
 for the ordered actions, captured screens, and exact emulator evidence.
 
+Protection-domain work for [#5113](https://github.com/dancxjo/conduit/issues/5113)
+is in progress: local x86_64 emulator proofs exercise checked text Source and
+the ordinary graphical Keyboard canvas in CPL3 with capability-gated serial
+presentation. The keyboard domain binds the actual Body Plan and Play; Stop
+revokes it. Eighteen hostile entries, malformed capability requests and
+retained Compose state are checked. Keymap and Unicode uppercase share one
+protected entry; the graphical specimen uses five entries and one Base gate.
+The normal IA-32 BIOS product's text region also completes in CPL3, with its
+actual Plan/Play, one serial Base gate and completion revocation checked by
+the supported product receipt. Its independent emulator proof also checks
+memory and privilege denials, bounded loop preemption, exact capability and
+lifecycle refusals, floating-state restoration and one retained Source timer
+wake during preemption. The supported AArch64 emulator proof now executes
+the normal text region at EL0 and checks nineteen independent boundary entries,
+capability/lifecycle refusals, Source timer coexistence and restoration of all
+vector registers plus FPCR/FPSR before Root resumes or handles an interrupt.
+The supported RISC-V64 emulator proof runs the same normal text region in
+U-mode, verifies twenty-two independent boundary cases and the shared
+capability/lifecycle checks, restores all floating registers and FCSR before
+Root Rust code executes, and preserves one Source wake during budget preemption.
+The LoongArch64 text region now executes at PLV3 in a locally corrected
+diagnostic emulator, with twenty-three boundary cases, shared capability and
+lifecycle refusals, complete scalar floating/condition-state restoration and
+Source timer coexistence checked. Stock QEMU 10.2.1 lacks the required writable
+counter-disable control and receives `protected-execution-unsupported`.
+ARMv6's native diagnostic verifies the same refusal for an explicit protected
+text request before preparation; its separate A3 execution remains cooperative.
+Normal product collectors on all five protected targets require the same
+checked Source and sealed semantic Plan shape. The IA-32 boundary lane retains
+two independent normal BIOS boots separately from its instrumented checks.
+Broader ordinary implementation coverage remains unfinished.
+DMA/driver isolation remain false; this is not accepted-release evidence.
+See the [exact per-target boundary](docs/architecture/conduitos-protection-domains.md#ordinary-execution-work-in-progress-5113).
+
 ## What exists
 
 | Area | Available behavior and evidence | Boundary |

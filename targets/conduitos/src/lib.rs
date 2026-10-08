@@ -21,6 +21,8 @@ pub mod cooperative_timer_lane;
 pub mod cryptographic_entropy;
 pub mod current_sample;
 pub mod display;
+pub mod domain_image;
+pub mod domain_serial_scope;
 pub mod dual_region_composition;
 pub mod dual_region_kernel;
 pub mod dual_region_plan;
@@ -114,6 +116,13 @@ pub mod opl2_offer;
 pub mod opl2_plan;
 #[cfg(target_arch = "x86_64")]
 pub mod opl2_play;
+mod ordinary_base;
+#[cfg(all(
+    target_os = "none",
+    target_arch = "x86_64",
+    feature = "ordinary-domain-proof"
+))]
+pub mod ordinary_domain_proof;
 pub mod ordinary_plan;
 mod ordinary_plot;
 pub mod outbound_network;
@@ -133,6 +142,7 @@ pub mod pointer_offer;
 #[path = "presentation_nucleus/offers.rs"]
 mod presentation_offers;
 pub mod protected_line_support;
+pub mod protected_region;
 #[cfg(feature = "native-owner-network")]
 pub mod protected_relay_support;
 pub mod protected_wire_session;
@@ -274,6 +284,9 @@ pub mod text_composition;
 mod text_kernel_backs;
 mod text_offer;
 pub mod text_planned_kernel;
+#[cfg(conduitos_protected_execution)]
+mod text_protection;
+mod text_transform;
 pub mod text_upper;
 #[cfg(any(test, target_arch = "x86_64"))]
 pub mod timer_nucleus;
@@ -305,3 +318,30 @@ pub mod tour_workspace;
 mod protocol_kernel_fixture;
 
 pub mod protocol_boot;
+
+#[cfg(all(
+    target_arch = "aarch64",
+    conduitos_protected_execution,
+    feature = "ordinary-domain-proof"
+))]
+pub mod aarch64_domain_proof;
+#[cfg(all(
+    target_arch = "x86",
+    target_os = "linux",
+    feature = "ia32-product",
+    feature = "ordinary-domain-proof"
+))]
+pub mod ia32_domain_proof;
+#[cfg(all(
+    target_arch = "riscv64",
+    conduitos_protected_execution,
+    feature = "ordinary-domain-proof"
+))]
+pub mod riscv64_domain_proof;
+
+#[cfg(all(
+    target_arch = "loongarch64",
+    conduitos_protected_execution,
+    feature = "ordinary-domain-proof"
+))]
+pub mod loongarch64_domain_proof;

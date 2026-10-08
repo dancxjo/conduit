@@ -6,6 +6,13 @@ pub(crate) const TEXT_EDIT_IMPLEMENTATION: &str = "conduitos/kernel-text-edit@1"
 pub(crate) const TEXT_EDIT_HOST_CALL: &str = "conduit.host/conduitos-text-edit@1";
 
 pub(super) fn offer(build_id: &str) -> CapabilityOffer {
+    #[allow(unused_mut)] // Only protected target builds add their backend reservation.
+    let mut memory = 4096;
+    #[cfg(conduitos_protected_execution)]
+    {
+        memory +=
+            crate::arch::TextDomain::RESERVED_BYTES + crate::text_protection::ROOT_METADATA_CEILING;
+    }
     let mut offer = conduit_semantic_catalog::realization_offer(
         conduit_semantic_catalog::text_edit_contract(),
         conduit_semantic_catalog::TEXT_EDIT_REVISION,
@@ -24,7 +31,7 @@ pub(super) fn offer(build_id: &str) -> CapabilityOffer {
         }],
         vec![resource_requirement(
             "conduit.resource/runtime-memory@1",
-            4096,
+            memory,
         )],
         vec![],
     );

@@ -118,9 +118,9 @@ fn boot_with_memory(
     arena_bytes: u64,
     wav: Option<&std::path::Path>,
 ) -> Result<GuestRun, ConduitosError> {
-    let monitor_socket = paths.target.join("hid-monitor.sock");
+    let monitor_endpoint = super::monitor_socket::MonitorSocket::new()?;
+    let monitor_socket = monitor_endpoint.path();
     let serial_path = paths.target.join("boot-serial.log");
-    let _ = fs::remove_file(&monitor_socket);
     let _ = fs::remove_file(&serial_path);
     if let Some(wav) = wav {
         if wav.exists() {
@@ -193,12 +193,17 @@ fn boot_with_memory(
                 format!("cannot launch qemu-system-x86_64: {error}"),
             )
         })?;
-    if qemu_profile == conduitos::make::USB_CONFIGURATION_QEMU_PROFILE {
-        hid_qmp::inject_configuration(&monitor_socket, &serial_path, &mut child)?;
+    let injected = if qemu_profile == conduitos::make::USB_CONFIGURATION_QEMU_PROFILE {
+        hid_qmp::inject_configuration(monitor_socket, &serial_path, &mut child)
     } else if let Some(wav) = wav {
-        hid_qmp::inject_with_capture(&monitor_socket, &serial_path, &mut child, wav)?;
+        hid_qmp::inject_with_capture(monitor_socket, &serial_path, &mut child, wav)
     } else {
-        hid_qmp::inject(&monitor_socket, &serial_path, &mut child)?;
+        hid_qmp::inject(monitor_socket, &serial_path, &mut child)
+    };
+    if let Err(error) = injected {
+        let _ = child.kill();
+        let _ = child.wait();
+        return Err(error);
     }
     let deadline = Instant::now() + Duration::from_secs(20);
     let status = loop {
@@ -228,7 +233,6 @@ fn boot_with_memory(
             format!("cannot collect QEMU output: {error}"),
         )
     })?;
-    let _ = fs::remove_file(&monitor_socket);
     if status.code() != Some(EXPECTED_QEMU_SUCCESS) {
         let serial = fs::read_to_string(&serial_path).unwrap_or_default();
         let desired_tail_start = serial.len().saturating_sub(360);
@@ -391,7 +395,13 @@ fn boot_with_memory(
         &keyboard_text_observatory,
     )?;
     validate_kernel(&boot, &kernel)?;
-    validate_observatory(&boot, &kernel, &presentation, &observatory)?;
+    let domain_cost = super::super::protected_product_receipt::capture(
+        &serial,
+        &serde_json::json!({"ordinary_plan_id": kernel.plan_id,
+            "ordinary_play_id": kernel.active_play_id}),
+        "x86_64",
+    )?;
+    validate_observatory(&boot, &kernel, &presentation, &domain_cost, &observatory)?;
     if !opts.quiet && !opts.json {
         println!("{}", signs[0]);
         println!("{}", kernel_signs[0]);

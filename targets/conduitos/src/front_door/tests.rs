@@ -48,6 +48,7 @@ pub(super) fn born_projection(body_id: conduit_body::BodyId) -> JourneyProjectio
         wake_id: None,
         wake_sign_id: None,
         plan_id: None,
+        partition_plan_id: None,
         plan_sign_id: None,
         active_play_id: None,
         play_sign_id: None,

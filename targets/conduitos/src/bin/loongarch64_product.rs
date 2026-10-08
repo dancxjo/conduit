@@ -7,9 +7,7 @@ compile_error!("conduitos-loongarch64-product is only the LoongArch64 product Ho
 use conduit_core::{BootId, HostId, OfferGeneration};
 use conduitos::{
     allocation::BOOT_ARENA,
-    arch, boot,
-    boot::{BootRecord, Firmware, RuntimeArena},
-    dual_region_composition, dual_region_plan,
+    arch, boot, dual_region_composition, dual_region_plan,
     front_door::FrontDoor,
     identity, keyboard_text_plan,
     linear_presenter::LinearPresenter,
@@ -21,27 +19,23 @@ use conduitos::{
 };
 use core::panic::PanicInfo;
 
-unsafe extern "C" {
-    static __conduitos_image_start: u8;
-    static __conduitos_image_end: u8;
-}
-static mut MEMORY_ARENA: [u8; 1024 * 1024] = [0; 1024 * 1024];
-
 #[unsafe(no_mangle)]
 #[unsafe(link_section = ".text.conduitos_loongarch64_product_start")]
 pub extern "C" fn conduitos_loongarch64_product_start() -> ! {
-    unsafe {
-        BOOT_ARENA.initialize(
-            core::ptr::addr_of_mut!(MEMORY_ARENA) as *mut u8 as usize,
-            1024 * 1024,
-        )
-    }
-    .unwrap_or_else(|_| refuse("runtime-arena-initialization-failed"));
     if !arch::initialize_machine() {
         refuse("unavailable-or-stale-trap-controller");
     }
+    let boot_record = boot::normalize_boot().unwrap_or_else(|error| refuse(error.as_str()));
+    arch::initialize_domains(&boot_record);
+    let arena = boot_record
+        .hhdm_offset
+        .checked_add(boot_record.runtime_arena.physical_start)
+        .and_then(|address| usize::try_from(address).ok())
+        .unwrap_or_else(|| refuse("runtime-arena-address-invalid"));
+    unsafe { BOOT_ARENA.initialize(arena, boot_record.runtime_arena.length as usize) }
+        .unwrap_or_else(|_| refuse("runtime-arena-initialization-failed"));
     EMBEDDED_MAKE
-        .validate(1024 * 1024)
+        .validate(boot_record.runtime_arena.length)
         .unwrap_or_else(|error| refuse(error.as_str()));
     if EMBEDDED_MAKE.target != "conduitos/loongarch64/virt"
         || !EMBEDDED_MAKE.includes(IMPL_LINEAR_PRESENTER)
@@ -57,7 +51,7 @@ pub extern "C" fn conduitos_loongarch64_product_start() -> ! {
             counter.rotate_left(47),
         ],
         counter,
-        0xffff_ffff_8000_0000,
+        boot_record.image_physical_start,
     );
     let offer = ImageBoundHostOffer::new(
         &identities,
@@ -67,7 +61,7 @@ pub extern "C" fn conduitos_loongarch64_product_start() -> ! {
             rdrand: false,
             invariant_tsc: false,
         },
-        1024 * 1024,
+        boot_record.runtime_arena.length,
     )
     .unwrap_or_else(|error| refuse(error.as_str()));
     offer
@@ -125,25 +119,6 @@ pub extern "C" fn conduitos_loongarch64_product_start() -> ! {
         arch::present(&join);
         arch::present(b"\n");
     }
-    let image_start = core::ptr::addr_of!(__conduitos_image_start) as usize;
-    let image_end = core::ptr::addr_of!(__conduitos_image_end) as usize;
-    let boot_record = BootRecord {
-        firmware: Firmware::Uefi64,
-        timestamp: counter,
-        hhdm_offset: 0,
-        rsdp_address: None,
-        image_physical_start: image_start as u64,
-        image_length: image_end.saturating_sub(image_start) as u64,
-        memory_region_count: 1,
-        // The exact spore module above is a real boot artifact, even unbound.
-        artifact_count: 1,
-        framebuffer_count: 0,
-        command_line_bytes: 0,
-        runtime_arena: RuntimeArena {
-            physical_start: core::ptr::addr_of!(MEMORY_ARENA) as u64,
-            length: 1024 * 1024,
-        },
-    };
     let export = observatory::prepare_export(
         &boot_record,
         &identities,
@@ -154,7 +129,11 @@ pub extern "C" fn conduitos_loongarch64_product_start() -> ! {
         None,
     )
     .unwrap_or_else(|error| refuse(error.as_str()));
-    let before = BOOT_ARENA.seal();
+    let before = if cfg!(feature = "ordinary-domain-proof") {
+        BOOT_ARENA.used()
+    } else {
+        BOOT_ARENA.seal()
+    };
     let (mut clock, mut timer, mut serial, mut interrupts, mut idle) = (
         arch::Clock::new(),
         arch::Timer::new(),
@@ -174,6 +153,8 @@ pub extern "C" fn conduitos_loongarch64_product_start() -> ! {
     if BOOT_ARENA.used() != before {
         refuse("allocation-during-play");
     }
+    #[cfg(feature = "ordinary-domain-proof")]
+    conduitos::loongarch64_domain_proof::run(&prepared.plan, &offer);
     arch::present(b"CONDUIT_LOONGARCH64_PRODUCT {\"schema\":\"conduit.conduitos/loongarch64-product@1\",\"status\":\"ready\",\"profile_id\":\"");
     arch::present(EMBEDDED_MAKE.profile_id.as_bytes());
     arch::present(b"\",\"build_id\":\"");
@@ -190,6 +171,12 @@ pub extern "C" fn conduitos_loongarch64_product_start() -> ! {
     arch::present(receipt.manifestation_id.as_str().as_bytes());
     arch::present(b"\",\"presenter_implementation_id\":\"");
     arch::present(receipt.presenter_implementation_id.as_str().as_bytes());
+    arch::present(b"\",\"ordinary_source_document_id\":\"");
+    arch::present(prepared.source_document_id.as_str().as_bytes());
+    arch::present(b"\",\"ordinary_checked_plot_id\":\"");
+    arch::present(prepared.checked_plot_id.as_str().as_bytes());
+    arch::present(b"\",\"ordinary_expanded_plot_id\":\"");
+    arch::present(prepared.expanded_plot_id.as_str().as_bytes());
     arch::present(b"\",\"ordinary_plan_id\":\"");
     arch::present(prepared.plan.plan_id.as_str().as_bytes());
     arch::present(b"\",\"ordinary_play_id\":\"");
