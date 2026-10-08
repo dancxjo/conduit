@@ -192,7 +192,9 @@ fn minimal_and_reference_compositions_truthfully_select_the_native_family() {
     ];
     assert!(!offers(StdHostComposition::minimal())
         .iter()
-        .any(|offer| expected.iter().any(|native| offer.kind_id == native.kind_id)));
+        .any(|offer| expected
+            .iter()
+            .any(|native| offer.kind_id == native.kind_id)));
     let selected = offers(StdHostComposition::minimal().with_native_speech());
     let baseline = offers(StdHostComposition::minimal());
     let added: Vec<_> = selected
