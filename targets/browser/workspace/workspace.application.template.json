@@ -430,7 +430,7 @@
       "role": "browser-body-host",
       "kind": "module",
       "path": "browser-body-host.mjs",
-      "maximum_bytes": 24576,
+      "maximum_bytes": 32768,
       "dependencies": [
         {
           "role": "browser-human-input",
