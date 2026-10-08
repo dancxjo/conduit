@@ -95,6 +95,7 @@ pub mod lexical_proposer_resource;
 mod lexical_scalar_scan;
 /// Exact descriptor-backed representation construction for independent owners.
 pub mod parser_canonical_composition;
+pub mod parser_canonical_history_reuse;
 /// Representation construction only; no admission or publication authority.
 pub mod parser_canonical_schema;
 pub use generated::{
