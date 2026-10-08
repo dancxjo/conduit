@@ -1,11 +1,25 @@
-//! Explicitly owned, allocating Reference evaluator program bank. No globals,
-//! prepared evaluator subset, grammar policy, or raw-state admission shortcut.
-use super::*;
+//! Explicitly owned Source program bank with optional bounded Native output admission.
+//! Source execution retains the allocating Reference evaluator and exact laws.
+use crate::parser_window8::{lexical, Window8Refusal};
+use crate::*;
 use alloc::{collections::BTreeMap, vec::Vec};
-use conduit_plot::{rust_binding::NativeRustBinding, PortableExpressionProgram};
+use conduit_plot::{
+    rust_binding::{
+        NativeRustBinding, PreparedNativeFamily, PreparedNativeFamilyLimits,
+        PreparedNativeFamilyRefusal, PreparedNativeFamilyStorageReceipt, PreparedNativeRustBinding,
+    },
+    PortableExpressionProgram,
+};
+use core::cell::RefCell;
 
+#[derive(Debug)]
+pub enum Window8PreparedBankRefusal {
+    NativePreparation(PreparedNativeFamilyRefusal),
+    SourcePreparation(Window8Refusal),
+}
 pub struct Window8ProgramBank {
     programs: BTreeMap<&'static str, PortableExpressionProgram>,
+    native: Option<RefCell<PreparedNativeFamily>>,
 }
 #[derive(Clone)]
 pub struct Window8BankState {
@@ -57,6 +71,41 @@ impl Window8BankFeatures {
     }
 }
 impl Window8ProgramBank {
+    /// Native output admission is bounded separately from the allocating
+    /// Reference Source evaluator and retained Source programs.
+    pub fn prepare_native(
+        limits: PreparedNativeFamilyLimits,
+    ) -> Result<Self, Window8PreparedBankRefusal> {
+        let family = PreparedNativeFamily::prepare(
+            &[
+                LanguageParserWindow8StableLexicalFact::PREPARED_DESCRIPTOR,
+                LanguageParserWindow8RawState::PREPARED_DESCRIPTOR,
+                LanguageParserWindow8RawWalk::PREPARED_DESCRIPTOR,
+                LanguageParserWindow8RootCount::PREPARED_DESCRIPTOR,
+                LanguageParserWindow8RawClassIndex::PREPARED_DESCRIPTOR,
+                LanguageParserWindow8RawClassRelations::PREPARED_DESCRIPTOR,
+                LanguageParserWindow8RawClass::PREPARED_DESCRIPTOR,
+                LanguageParserWindow8RawBeam::PREPARED_DESCRIPTOR,
+                LanguageParserWindow8RawContext::PREPARED_DESCRIPTOR,
+                LanguageParserWindow8RawResult::PREPARED_DESCRIPTOR,
+                LanguageParserWindow8Completion::PREPARED_DESCRIPTOR,
+                LanguageParserWindow8Selected::PREPARED_DESCRIPTOR,
+                LanguageParserWindow8RawHypothesis::PREPARED_DESCRIPTOR,
+                LanguageParserWindow8RawFeatureContext::PREPARED_DESCRIPTOR,
+                LanguageParserWindow8RawModelFeatures::PREPARED_DESCRIPTOR,
+            ],
+            limits,
+        )
+        .map_err(Window8PreparedBankRefusal::NativePreparation)?;
+        let mut bank = Self::prepare().map_err(Window8PreparedBankRefusal::SourcePreparation)?;
+        bank.native = Some(RefCell::new(family));
+        Ok(bank)
+    }
+    pub fn native_storage_receipt(&self) -> Option<PreparedNativeFamilyStorageReceipt> {
+        self.native
+            .as_ref()
+            .map(|family| family.borrow().storage_receipt())
+    }
     pub fn prepare() -> Result<Self, Window8Refusal> {
         macro_rules! entries {
             ($($name:literal),* $(,)?) => { [$(($name,include_str!(concat!(env!("OUT_DIR"),"/",$name,".hex")))),*] };
@@ -96,9 +145,12 @@ impl Window8ProgramBank {
                     .map_err(|_| Window8Refusal::Program)?,
             );
         }
-        Ok(Self { programs })
+        Ok(Self {
+            programs,
+            native: None,
+        })
     }
-    fn run<I: NativeRustBinding, O: NativeRustBinding>(
+    fn run<I: NativeRustBinding, O: PreparedNativeRustBinding>(
         &self,
         name: &str,
         input: I,
@@ -107,7 +159,14 @@ impl Window8ProgramBank {
         let bytes = program
             .evaluate(&input.encode().map_err(Window8Refusal::Native)?)
             .map_err(|_| Window8Refusal::Program)?;
-        O::decode(&bytes).map_err(Window8Refusal::Native)
+        match &self.native {
+            Some(family) => family
+                .try_borrow_mut()
+                .map_err(|_| Window8Refusal::Program)?
+                .decode::<O>(&bytes)
+                .map_err(Window8Refusal::Native),
+            None => O::decode(&bytes).map_err(Window8Refusal::Native),
+        }
     }
     pub fn admit_state(
         &self,

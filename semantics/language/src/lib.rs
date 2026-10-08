@@ -162,6 +162,7 @@ pub use generated::{
     LanguageParserWindow8RawRequest, LanguageParserWindow8RawResult, LanguageParserWindow8Selected,
 };
 pub mod parser_window8;
+pub mod parser_window8_program_bank;
 pub use generated::{LanguageParserJointConsensusObservation, LanguageParserJointConsensusQuery};
 
 #[cfg(all(feature = "parser-model-selection", target_has_atomic = "ptr"))]

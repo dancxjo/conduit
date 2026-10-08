@@ -200,7 +200,24 @@ fn main() {
     let generated = generate_rust_bindings(
         &checked.native_types,
         &RustBindingOptions {
-            prepared_family_roots: ["LanguageParserWindow8StableLexicalFact".into()].into(),
+            prepared_family_roots: [
+                "LanguageParserWindow8StableLexicalFact".into(),
+                "LanguageParserWindow8RawState".into(),
+                "LanguageParserWindow8RawWalk".into(),
+                "LanguageParserWindow8RootCount".into(),
+                "LanguageParserWindow8RawClassIndex".into(),
+                "LanguageParserWindow8RawClassRelations".into(),
+                "LanguageParserWindow8RawClass".into(),
+                "LanguageParserWindow8RawBeam".into(),
+                "LanguageParserWindow8RawContext".into(),
+                "LanguageParserWindow8RawResult".into(),
+                "LanguageParserWindow8Completion".into(),
+                "LanguageParserWindow8Selected".into(),
+                "LanguageParserWindow8RawHypothesis".into(),
+                "LanguageParserWindow8RawFeatureContext".into(),
+                "LanguageParserWindow8RawModelFeatures".into(),
+            ]
+            .into(),
             ..RustBindingOptions::default()
         },
     )
