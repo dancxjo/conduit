@@ -36,6 +36,7 @@ impl ProductionFamily {
                 LanguageParserSessionSeedProposal::PREPARED_DESCRIPTOR,
                 LanguageParserSessionSeedRequest::PREPARED_DESCRIPTOR,
                 LanguageParserV2ModelFeatures::PREPARED_DESCRIPTOR,
+                LanguageParserV2ModelScores::PREPARED_DESCRIPTOR,
                 LanguageParserV2PosContext::PREPARED_DESCRIPTOR,
             ],
             Self::Lifecycle => &[
@@ -106,6 +107,7 @@ pub(crate) fn port_descriptors(
             LanguageParserState::PREPARED_DESCRIPTOR,
             LanguageParserCompletionObservation::PREPARED_DESCRIPTOR,
         )),
+        E::V2FeatureIndices | E::V2ScoreObservation => None, // Mixed custody checks bare numeric ports.
         E::DecodeComplete => None, // Primitive output needs the separate Source completion adapter.
         E::IndependentBranch => Some((
             LanguageParserIndependentBranchContext::PREPARED_DESCRIPTOR,

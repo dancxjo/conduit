@@ -1,8 +1,8 @@
 //! Separately bounded exact Native family ownership for production ports.
 //! Model, canonical histories, Source evaluators and target buffers are separate.
 //!
-//! The checked 111-Type checkpoint measured 1,536,305,290 retained heap bytes
-//! across these six owners, with a 1,538,758,058 preparation peak bound and a
+//! The checked 112-Type checkpoint measured 1,536,305,378 retained heap bytes
+//! across these six owners, with a 1,542,943,801 preparation peak bound and a
 //! 478,412,897 conversion ceiling for each live value in the largest family.
 //! Immutable artifacts and the complete Source evaluators are additional.
 //! These measurements establish no small-memory or target suitability claim;

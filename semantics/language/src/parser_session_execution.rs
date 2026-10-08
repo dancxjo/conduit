@@ -47,6 +47,8 @@ pub enum ParserSessionEntry {
     Seed,
     Transition,
     V2ModelFeatures,
+    V2FeatureIndices,
+    V2ScoreObservation,
     V2Pos,
     WaitState,
 }
@@ -81,6 +83,8 @@ impl ParserSessionEntry {
             Self::Seed => "language-parser-session-seed",
             Self::Transition => "language-parser-transition",
             Self::V2ModelFeatures => "language-parser-v2-model-features",
+            Self::V2FeatureIndices => "language-parser-v2-feature-indices",
+            Self::V2ScoreObservation => "language-parser-v2-score-observation",
             Self::V2Pos => "language-parser-v2-pos",
             Self::WaitState => "language-parser-wait-state",
         }
@@ -124,6 +128,8 @@ impl ParserSessionEntry {
             Self::Seed => generated!("/parser_session_seed.hex"),
             Self::Transition => generated!("/parser_transition.hex"),
             Self::V2ModelFeatures => generated!("/parser_v2_model_features.hex"),
+            Self::V2FeatureIndices => generated!("/parser_v2_feature_indices.hex"),
+            Self::V2ScoreObservation => generated!("/parser_v2_score_observation.hex"),
             Self::V2Pos => generated!("/parser_v2_pos.hex"),
             Self::WaitState => generated!("/parser_wait_state.hex"),
         }
@@ -169,6 +175,8 @@ impl ParserSessionEntry {
             Self::Seed => generated!("/parser_session_seed.custody"),
             Self::Transition => generated!("/parser_transition.custody"),
             Self::V2ModelFeatures => generated!("/parser_v2_model_features.custody"),
+            Self::V2FeatureIndices => generated!("/parser_v2_feature_indices.custody"),
+            Self::V2ScoreObservation => generated!("/parser_v2_score_observation.custody"),
             Self::V2Pos => generated!("/parser_v2_pos.custody"),
             Self::WaitState => generated!("/parser_wait_state.custody"),
         }

@@ -23,6 +23,8 @@ fn main() {
     println!("cargo:rerun-if-changed=parser_mask.conduit");
     println!("cargo:rerun-if-changed=parser_session_seed.conduit");
     println!("cargo:rerun-if-changed=parser_session_completion.conduit");
+    println!("cargo:rerun-if-changed=parser_numeric_ports.conduit");
+    println!("cargo:rerun-if-changed=parser_session_numeric.conduit");
     println!("cargo:rerun-if-changed=parser_joint.conduit");
     println!("cargo:rerun-if-changed=parser_joint_decode.conduit");
     println!("cargo:rerun-if-changed=parser_available.conduit");
@@ -71,6 +73,8 @@ fn main() {
         include_str!("parser_joint.conduit"),
         include_str!("parser_session_seed.conduit"),
         include_str!("parser_session_completion.conduit"),
+        include_str!("parser_numeric_ports.conduit"),
+        include_str!("parser_session_numeric.conduit"),
         include_str!("parser_joint_decode.conduit"),
         include_str!("parser_available.conduit"),
         include_str!("parser_revision.conduit"),
@@ -101,7 +105,19 @@ fn main() {
         include_str!("pronunciation_selection.conduit"),
     ]
     .join("\n");
-    let checked = check_syntax_document(&parse_syntax_document(&source), &StartupCatalog::new())
+    let mut startup = StartupCatalog::new();
+    for (name, element, length) in [
+        ("LanguageParserCategoricalIndices", "value/u64", 25),
+        ("LanguageParserCategoricalScores", "value/i64", 76),
+    ] {
+        let ty = conduit_core::StructuredInfoType::collection(
+            conduit_core::StructuredInfoType::leaf(conduit_core::kind_id(element)).unwrap(),
+            Some(length),
+        )
+        .unwrap();
+        startup.insert_structured_type(name, ty).unwrap();
+    }
+    let checked = check_syntax_document(&parse_syntax_document(&source), &startup)
         .expect("language semantic Types must check");
     for (plot, file) in [
         ("language-parser-availability", "parser_availability.hex"),
@@ -196,6 +212,14 @@ fn main() {
             "parser_v2_model_features.hex",
         ),
         ("language-parser-v2-pos", "parser_v2_pos.hex"),
+        (
+            "language-parser-v2-feature-indices",
+            "parser_v2_feature_indices.hex",
+        ),
+        (
+            "language-parser-v2-score-observation",
+            "parser_v2_score_observation.hex",
+        ),
         ("language-parser-wait-state", "parser_wait_state.hex"),
     ] {
         let expanded = conduit_plot::expand_canonical_plot_for_authoring(
@@ -414,6 +438,7 @@ fn main() {
                 "LanguageParserScoredProposal",
                 "LanguageParserSessionSeedProposal",
                 "LanguageParserCompletionObservation",
+                "LanguageParserV2ModelScores",
                 "LanguageParserProtectedHypothesisCompatibility",
                 "LanguageParserSessionSeedRequest",
                 "LanguageParserStableDependencyAdmission",

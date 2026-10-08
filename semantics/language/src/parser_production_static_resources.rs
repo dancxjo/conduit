@@ -104,6 +104,8 @@ pub(crate) fn descriptor_resources() -> Option<ParserStaticResourceReceipt> {
         E::Availability,
         E::DecodeComplete,
         E::Completion,
+        E::V2FeatureIndices,
+        E::V2ScoreObservation,
         E::IndependentBranch,
         E::IndependentCommit,
         E::IndependentCommitRebase,

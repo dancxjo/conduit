@@ -40,8 +40,8 @@ pub use generated::{
     LanguageParserBeam, LanguageParserCommitRequest, LanguageParserEdgeVote,
     LanguageParserFeatures, LanguageParserFrontier, LanguageParserFrontierRefusal,
     LanguageParserFrontierResult, LanguageParserHypothesis, LanguageParserPruneRequest,
-    LanguageParserRawFrontier, LanguageParserRawHypothesis, LanguageParserVoteCheck,
-    LanguageParserVotes,
+    LanguageParserRawAvailability, LanguageParserRawFrontier, LanguageParserRawHypothesis,
+    LanguageParserRawWaitState, LanguageParserVoteCheck, LanguageParserVotes,
 };
 
 pub use generated::{LanguageParserAdmittedAgreementQuery, LanguageParserAdmittedBeam};
@@ -224,3 +224,5 @@ pub mod parser_session_canonical_ingress;
 pub mod parser_canonical_history;
 
 pub use generated::LanguageParserCompletionObservation;
+
+pub use generated::LanguageParserV2ModelScores;
