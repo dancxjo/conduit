@@ -1,0 +1,53 @@
+# Requests contain semantic authored data. Prepared admission checks the complete
+# basis; no caller assertion or equal spelling establishes membership.
+type SpeechPhoneticIpaRequest = {
+    original: Text <= 4096B not in [""]
+    profile: SpeechPhoneticIpaProfile
+    provenance: SpeechEvidenceProvenance
+}
+type SpeechPhonemicIpaRequest = {
+    original: Text <= 4096B not in [""]
+    inventory_id: SpeechInventoryId
+    profile: SpeechIpaNotationProfile
+    variety: LanguageVariety
+    revision: SpeechSegmentRevisionId
+    phone_bindings: sequence SpeechIpaPhoneDefinitionBinding <= 64
+    phoneme_bindings: sequence SpeechIpaPhonemeDefinitionBinding <= 64
+    provenance: SpeechEvidenceProvenance
+}
+type SpeechPhonemicIpaTranscription = {
+    notation: SpeechIpaProfileMatch
+    inventory_id: SpeechInventoryId
+    phonemes: sequence PhonemeId in 1..=256
+    bindings: sequence SpeechIpaPhonemeDefinitionBinding <= 64
+    where .inventory_id == .notation.transcription.inventory_id
+    where .inventory_id == .notation.profile.inventory_id
+}
+type SpeechIpaRefusalReason =
+    unsupported
+    | ambiguous
+    | capacity
+    | boundary
+    | profile
+    | inventory
+    | variety
+    | revision
+    | membership
+    | malformed
+
+type SpeechIpaLocatedRefusal = {
+    reason: SpeechIpaRefusalReason
+    byte_start: U64
+    byte_end: U64
+    scalar_start: U64
+    scalar_end: U64
+    where .byte_end >= .byte_start
+    where .scalar_end >= .scalar_start
+}
+type SpeechPhoneticIpaOutcome =
+    admitted SpeechPhoneticIpaTranscription
+    | refused SpeechIpaLocatedRefusal
+
+type SpeechPhonemicIpaOutcome =
+    admitted SpeechPhonemicIpaTranscription
+    | refused SpeechIpaLocatedRefusal

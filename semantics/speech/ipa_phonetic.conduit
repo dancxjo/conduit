@@ -1,0 +1,22 @@
+# Universal phonetic notation does not require a language or inventory.
+# Unit IDs identify notation definitions, never phone identities.
+type SpeechPhoneticIpaProfile = {
+    identity: SpeechIpaNotationProfileId
+    revision: SpeechSegmentRevisionId
+    units: sequence SpeechIpaUnitDefinition in 1..=256
+    aliases: sequence SpeechIpaSpellingAlias <= 256
+    provenance: SpeechEvidenceProvenance
+}
+type SpeechPhoneticIpaTranscription = {
+    profile: SpeechPhoneticIpaProfile
+    original: Text <= 4096B not in [""]
+    units: sequence SpeechIpaUnitOccurrence in 1..=256
+    provenance: SpeechEvidenceProvenance
+}
+# An admitted spelling is not an identified universal phone. Preserve unknown
+# explicitly until independent identity evidence is supplied by its owner.
+type SpeechPhoneticIpaPhone = {
+    transcription: SpeechPhoneticIpaTranscription
+    identity: SpeechSpec<PhoneId>
+    where .identity is unknown
+}

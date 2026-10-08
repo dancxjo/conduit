@@ -257,6 +257,10 @@ pub(super) fn build_advertisement(
     }
     if composition.native_speech {
         capabilities.push(conduit_speech::kernel::offer());
+        capabilities.extend([
+            conduit_speech::ipa_contract::ipa_offer(false),
+            conduit_speech::ipa_contract::ipa_offer(true),
+        ]);
     }
     if composition.input {
         capabilities.extend([

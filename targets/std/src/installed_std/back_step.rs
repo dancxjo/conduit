@@ -302,6 +302,7 @@ installed_step_dispatch!(
     Navigation,
     VectorSearch,
     ModelWork,
+    IpaAdmission,
     HttpClient,
     HttpServer,
     Json,

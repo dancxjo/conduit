@@ -877,3 +877,12 @@ The want entry follows the [Cambridge American pronunciation](https://dictionary
 The native-speech xtask proof writes `text-regular-plurals.wav` and
 `text-regular-past.wav` through the same fixed-storage renderer; linked MCU
 footprint and physical playback remain distinct proof classes.
+
+Public IPA authoring uses checked Unicode notation, distinct from the compact
+renderer alphabet. See [the IPA contract](../../docs/design/speech-ipa-notation.md)
+and the ordinary quoted Source [phonetic example](examples/phonetic_ipa.conduit)
+and [phonemic example](examples/phonemic_ipa.conduit). Phonetic admission requires
+no invented inventory/variety; phonemic admission requires its exact declared
+inventory basis. `EnglishPhone`/`EnglishPhoneme` ASCII variants remain named
+terminal renderer controls correlated by `SpeechFormantVoiceProfile` and compiled
+`SOURCE_ID`, not public IPA spellings or universal linguistic identities.

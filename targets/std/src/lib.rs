@@ -2165,3 +2165,5 @@ mod tests {
 }
 
 pub mod hosted_integer_categorical;
+
+pub use conduit_speech::ipa_contract::install_ipa_catalog;

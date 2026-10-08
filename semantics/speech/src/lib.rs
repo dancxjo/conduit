@@ -230,3 +230,20 @@ mod inflection_parity;
 
 #[cfg(feature = "semantic-bindings")]
 pub mod revision;
+
+#[cfg(feature = "semantic-bindings")]
+pub mod ipa_admission;
+#[cfg(feature = "semantic-bindings")]
+pub mod ipa_authoring;
+#[cfg(feature = "semantic-bindings")]
+pub mod ipa_contract;
+#[cfg(feature = "semantic-bindings")]
+pub mod ipa_inventory;
+#[cfg(feature = "semantic-bindings")]
+pub mod ipa_notation;
+#[cfg(feature = "semantic-bindings")]
+mod ipa_partition;
+#[cfg(feature = "semantic-bindings")]
+pub mod ipa_phonetic;
+#[cfg(feature = "semantic-bindings")]
+mod ipa_unicode;

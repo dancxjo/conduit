@@ -87,6 +87,8 @@ mod flow_collect_back;
 mod flow_join_by_key_back;
 mod flow_zip_back;
 mod fore_sign_storage;
+mod ipa_admission_back;
+mod ipa_admission_host;
 mod model_work_back;
 mod model_work_host;
 mod presentation_composition;
@@ -650,6 +652,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         &lowered.identity,
         &active_play,
     )?;
+    let ipa_admission_hosts = ipa_admission_host::IpaAdmissionHosts::prepare(fragment)?;
     let mut model_work_output =
         Vec::with_capacity(conduit_ai::MODEL_WORK_MAXIMUM_OUTPUT_BYTES as usize);
     let mut local_model_output = Vec::with_capacity(conduit_ai::MAXIMUM_LLM_OUTPUT_BYTES as usize);
@@ -2904,6 +2907,31 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 scheduler
                     .complete_host_call(request.node, request.request, completion.outcome(output))
                     .map_err(|error| format!("complete model operation: {error:?}"))?;
+                continue;
+            } else if contract.as_str() == conduit_speech::ipa_contract::IPA_OPERATION {
+                let placement = fragment
+                    .placements
+                    .get(usize::from(request.node.0))
+                    .ok_or("IPA request has no exact placement")?;
+                let bytes = ipa_admission_hosts.execute(placement, input)?;
+                let value = scheduler
+                    .store_host_value(bytes)
+                    .map_err(|error| format!("store IPA outcome: {error:?}"))?;
+                let output =
+                    BoundedValueRef::new(value, lowered_operation.binding.maximum_output_bytes)
+                        .map_err(|error| format!("bound IPA outcome: {error:?}"))?;
+                record_request(&mut requests, request);
+                scheduler
+                    .complete_host_call(
+                        request.node,
+                        request.request,
+                        conduit_kernel::HostCallOutcome {
+                            disposition: conduit_kernel::HostCallDisposition::Completed,
+                            output: Some(output),
+                            failure: None,
+                        },
+                    )
+                    .map_err(|error| format!("complete IPA constructor: {error:?}"))?;
                 continue;
             } else if contract.as_str() == conduit_ai::MODEL_WORK_OPERATION {
                 let placement = fragment

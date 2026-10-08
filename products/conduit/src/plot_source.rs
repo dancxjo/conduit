@@ -118,6 +118,7 @@ fn standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), String> {
     // This first Todo vertical has one exact authored initial Form and a leaf
     // combine Kind. Retained source uses the same catalog after owner restart.
     conduit_todo_plot::install_todo_catalogs(&mut startup, &mut profiles, "Groceries")?;
+    conduit_std_host::install_ipa_catalog(&mut startup, &mut profiles)?;
     conduit_presentation::install_mask_plot_value_aliases(&mut startup)?;
     conduit_presentation::install_mask_mechanism_catalog(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profiles)?;

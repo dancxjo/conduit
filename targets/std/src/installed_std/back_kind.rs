@@ -28,6 +28,7 @@ use super::image_text_back::ImageTextBack;
 use super::image_text_record_back::ImageTextRecordBack;
 use super::input_semantic_backs::{InputSemanticBack, KeyEventTeeBack};
 use super::instrument_map_back::InstrumentMapBack;
+use super::ipa_admission_back::IpaAdmissionBack;
 use super::json_backs::JsonBack;
 use super::keyboard_input_back::KeyboardInputBack;
 use super::layout_backs::LayoutBack;
@@ -216,6 +217,7 @@ pub(super) enum InstalledBack {
     Navigation(NavigationBack),
     VectorSearch(VectorSearchBack),
     ModelWork(ModelWorkBack),
+    IpaAdmission(IpaAdmissionBack),
     HttpClient(HttpClientBack),
     HttpServer(HttpServerBack),
     Json(JsonBack),

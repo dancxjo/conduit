@@ -18,6 +18,9 @@ fn main() {
     println!("cargo:rerun-if-changed=timing.conduit");
     println!("cargo:rerun-if-changed=intent.conduit");
     println!("cargo:rerun-if-changed=inventory.conduit");
+    println!("cargo:rerun-if-changed=ipa.conduit");
+    println!("cargo:rerun-if-changed=ipa_syntax.conduit");
+    println!("cargo:rerun-if-changed=ipa_inventory.conduit");
     println!("cargo:rerun-if-changed=profile_phones.conduit");
     println!("cargo:rerun-if-changed=voice_profile.conduit");
     println!("cargo:rerun-if-changed=timing_projection.conduit");
@@ -29,7 +32,7 @@ fn main() {
     println!("cargo:rerun-if-changed=pitch_trajectory.conduit");
     println!("cargo:rerun-if-changed=pitch_projection.conduit");
     let semantic_source = format!(
-        "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
+        "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
         include_str!("types.conduit"),
         include_str!("rule_status.conduit"),
         include_str!("selection.conduit"),
@@ -38,12 +41,27 @@ fn main() {
         include_str!("timing.conduit"),
         include_str!("intent.conduit"),
         include_str!("inventory.conduit"),
+        include_str!("ipa.conduit"),
+        include_str!("ipa_syntax.conduit"),
+        include_str!("ipa_inventory.conduit"),
         include_str!("profile_phones.conduit"),
         include_str!("voice_profile.conduit"),
         include_str!("context_match.conduit"),
         include_str!("linguistic_prosody.conduit"),
         include_str!("pitch_trajectory.conduit")
     );
+    let semantic_source = format!(
+        "{}\n{}",
+        semantic_source,
+        include_str!("ipa_phonetic.conduit")
+    );
+    println!("cargo:rerun-if-changed=ipa_phonetic.conduit");
+    let semantic_source = format!(
+        "{}\n{}",
+        semantic_source,
+        include_str!("ipa_authoring.conduit")
+    );
+    println!("cargo:rerun-if-changed=ipa_authoring.conduit");
     let mut language_types = conduit_language::identity_types();
     language_types.extend(
         conduit_language::prosody::prosody_types()
@@ -86,6 +104,23 @@ fn main() {
         program,
     )
     .expect("retain speech projection");
+    let ipa = expand_canonical_plot_for_authoring(
+        &semantic,
+        "speech/ipa-supported-unit",
+        &ProfileCatalog::new(),
+    )
+    .expect("checked IPA syntax projection expands");
+    let [entry] = ipa.expanded.gears[0].configuration.as_slice() else {
+        panic!("one IPA projection")
+    };
+    let conduit_core::ConfigurationValue::Text(program) = &entry.value else {
+        panic!("IPA program")
+    };
+    fs::write(
+        PathBuf::from(env::var_os("OUT_DIR").unwrap()).join("ipa_supported_unit_program.hex"),
+        program,
+    )
+    .expect("retain original executed IPA proof");
     let identities = language_types
         .iter()
         .map(|(_, ty)| match ty.shape() {
@@ -107,8 +142,7 @@ fn main() {
         .filter(|(_, (name, _))| {
             !matches!(
                 *name,
-                "LanguageVariety"
-                    | "LanguageTextReferenceMatch"
+                "LanguageTextReferenceMatch"
                     | "LanguageExternalIdentity"
                     | "LanguageProsodyBoundary"
                     | "LanguageProsodyProminence"

@@ -1,0 +1,68 @@
+# IPA spelling is notation, never phoneme/phone identity or membership.
+# This contract describes a finite supported notation profile. Its preparation
+# must validate supported Unicode grammar and ambiguous segmentation separately.
+# It does not make arbitrary nonempty Text into a validated IPA transcription.
+type SpeechIpaNotationProfileId = Text <= 128B not in [""]
+type SpeechIpaUnitId = Text <= 64B not in [""]
+type SpeechIpaSpelling = Text <= 64B not in [""]
+type SpeechIpaDisplayKind =
+    phonemic
+    | phonetic
+
+type SpeechIpaUnitKind =
+    segment
+    | primary_stress
+    | secondary_stress
+    | length
+    | syllable_boundary
+# Canonical units may contain multiple scalars (tie bars/combining marks).
+# Aliases are explicit profile claims, not global Unicode/phonetic equivalence.
+type SpeechIpaUnitDefinition = {
+    identity: SpeechIpaUnitId
+    spelling: SpeechIpaSpelling
+    kind: SpeechIpaUnitKind
+    provenance: SpeechEvidenceProvenance
+}
+type SpeechIpaSpellingAlias = {
+    source: SpeechIpaSpelling
+    target: SpeechIpaUnitId
+    provenance: SpeechEvidenceProvenance
+}
+type SpeechIpaNotationProfile = {
+    identity: SpeechIpaNotationProfileId
+    revision: SpeechSegmentRevisionId
+    inventory_id: SpeechInventoryId
+    variety: LanguageVariety
+    units: sequence SpeechIpaUnitDefinition in 1..=256
+    aliases: sequence SpeechIpaSpellingAlias <= 256
+    provenance: SpeechEvidenceProvenance
+}
+# Byte spans preserve exact original spelling. They are not phone ordinals or
+# scalar counts; the parser must check the complete ordered source partition.
+type SpeechIpaUnitOccurrence = {
+    unit: SpeechIpaUnitId
+    source_spelling: SpeechIpaSpelling
+    start: U64
+    end: U64
+    where .end > .start
+}
+type SpeechIpaTranscription = {
+    profile_id: SpeechIpaNotationProfileId
+    profile_revision: SpeechSegmentRevisionId
+    inventory_id: SpeechInventoryId
+    variety: LanguageVariety
+    display: SpeechIpaDisplayKind
+    original: Text <= 4096B not in [""]
+    units: sequence SpeechIpaUnitOccurrence in 1..=256
+    provenance: SpeechEvidenceProvenance
+}
+# Exact supplied profile correlation is separate from parser conformance and
+# from phoneme/phone inventory admission. Retain the whole prepared profile.
+type SpeechIpaProfileMatch = {
+    transcription: SpeechIpaTranscription
+    profile: SpeechIpaNotationProfile
+    where .transcription.profile_id == .profile.identity
+    where .transcription.profile_revision == .profile.revision
+    where .transcription.inventory_id == .profile.inventory_id
+    where .transcription.variety == .profile.variety
+}

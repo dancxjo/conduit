@@ -40,6 +40,13 @@ pub(super) fn offers(
             2,
         ));
     }
+    if composition.native_speech {
+        resources.push(resource_offer(
+            "std/ipa-admission",
+            conduit_speech::ipa_contract::IPA_RESOURCE,
+            16,
+        ));
+    }
     if composition.data {
         resources.push(resource_offer(
             "std/text-data-generations",

@@ -1,0 +1,7 @@
+# Phonemic notation requires this exact whole inventory and declared basis.
+plot ipa-authoring (
+ outcome: SpeechPhonemicIpaOutcome...| <= 262144B >>
+) {
+ admit: speech/phonemic-from-ipa( request = { original: "t͡ʃ", inventory_id: "inventory/a", profile: { identity: "notation/a", inventory_id: "inventory/a", revision: "revision/1", variety: { identity: "variety/a", language: "language/a" }, units: [{ identity: "ipa/0", spelling: "t͡ʃ", kind: segment(""), provenance: { source: manual(""), method: "authored IPA", version: none("") } }, { identity: "ipa/1", spelling: "ã", kind: segment(""), provenance: { source: manual(""), method: "authored IPA", version: none("") } }], aliases: [], provenance: { source: manual(""), method: "authored IPA", version: none("") } }, revision: "revision/1", variety: { identity: "variety/a", language: "language/a" }, phone_bindings: [{ phone: "phone/a", units: ["ipa/0"], provenance: { source: manual(""), method: "authored IPA", version: none("") } }], phoneme_bindings: [{ phoneme: "phoneme/a", units: ["ipa/0"], provenance: { source: manual(""), method: "authored IPA", version: none("") } }], provenance: { source: manual(""), method: "authored IPA", version: none("") } }, inventory = { identity: "inventory/a", language: "language/a", phones: [{ identity: "phone/a", ipa: "t͡ʃ", features: [], aliases: [], status: allophonic("") }], phonemes: [{ identity: "phoneme/a", notation: "t͡ʃ", features: [], aliases: [], status: core(""), default_phone: none(""), possible_phones: [], allophones: [] }] })
+ admit.outcome >> outcome
+}.

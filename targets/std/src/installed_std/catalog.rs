@@ -327,6 +327,8 @@ const FACTORIES: &[&BackFactory] = &[
     &NAVIGATION_CONTROL_FACTORY,
     &EXACT_VECTOR_SEARCH_FACTORY,
     &super::model_work_back::FACTORY,
+    &super::ipa_admission_back::PHONETIC_FACTORY,
+    &super::ipa_admission_back::PHONEMIC_FACTORY,
     &HNSW_FACTORY,
     &MATH_CLAMP_FACTORY,
     &MATH_SCALE_FACTORY,
