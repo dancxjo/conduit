@@ -612,3 +612,7 @@ pub mod owner {
         }
     }
 }
+
+#[path = "integer_categorical_storage.rs"]
+mod storage;
+pub use storage::*;

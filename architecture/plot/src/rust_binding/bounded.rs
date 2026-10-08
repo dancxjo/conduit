@@ -52,6 +52,12 @@ impl<T, const MAXIMUM: usize> BoundedSequence<T, MAXIMUM> {
         MAXIMUM
     }
 
+    /// Actual element slots requested from the allocator, including spare
+    /// storage retained after pop/truncate. This is not the semantic maximum.
+    pub fn allocated_capacity(&self) -> usize {
+        self.values.capacity()
+    }
+
     pub fn iter(&self) -> core::slice::Iter<'_, T> {
         self.values.iter()
     }
@@ -273,6 +279,18 @@ impl<'de, const MAXIMUM: usize> serde::Deserialize<'de> for BoundedText<MAXIMUM>
 mod tests {
     use super::*;
     use alloc::{vec, vec::Vec};
+
+    #[test]
+    fn allocated_capacity_preserves_spare_storage_after_truncation() {
+        let mut values = BoundedSequence::<u64, 3>::try_from_iter([1, 2, 3]).unwrap();
+        let allocated = values.values.capacity();
+        assert_eq!(values.allocated_capacity(), allocated);
+        assert!(allocated >= values.len());
+        values.truncate(0);
+        assert_eq!(values.allocated_capacity(), allocated);
+        assert_eq!(values.capacity(), 3);
+        assert_eq!(values.len(), 0);
+    }
 
     #[test]
     fn sequence_and_text_are_fixed_capacity_and_fail_closed() {

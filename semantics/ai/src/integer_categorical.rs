@@ -29,6 +29,11 @@ pub struct IntegerCategoricalModel {
     weights: Vec<i16>,
 }
 impl IntegerCategoricalModel {
+    pub(crate) fn retained_weight_bytes(&self) -> Option<usize> {
+        self.weights
+            .capacity()
+            .checked_mul(core::mem::size_of::<i16>())
+    }
     pub fn prepare(
         artifact: &ModelArtifact,
         signature: &ModelSignature,
