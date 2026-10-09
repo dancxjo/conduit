@@ -9,10 +9,12 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { startStaticProduct } from './static-product-server.mjs';
+import { observedTodoMutation } from './todo-owner-events.mjs';
+import { captureDirectTodoSpeech } from './todo-owner-spoken.mjs';
 
 const [ownerCwdArg, binaryArg, stateArg, handbookArg, outputArg, playwrightArg,
   itemText = 'Pick up prescription', scenario = 'first-add'] = process.argv.slice(2);
-assert.ok(['first-add', 'cross-mask'].includes(scenario), 'unknown Todo capture scenario');
+assert.ok(['first-add', 'cross-mask', 'cross-mask-speech'].includes(scenario), 'unknown Todo capture scenario');
 if (!ownerCwdArg || !binaryArg || !stateArg || !handbookArg || !outputArg || !playwrightArg) {
   throw new Error('usage: todo-owner-browser.mjs OWNER-CWD INSTALLED-OWNER OWNER-STATE HANDBOOK-PACKAGE NEW-EVIDENCE-DIR PINNED-PLAYWRIGHT [NEW-ITEM-TEXT]');
 }
@@ -26,6 +28,8 @@ assert.ok(itemText && Buffer.byteLength(itemText, 'utf8') <= 64, 'Todo text must
 const installed = JSON.parse(await readFile(path.join(state, 'installation.json')));
 assert.equal(path.resolve(ownerCwd, installed.product_executable), binary,
   'use the owner installed for this Body');
+if (scenario === 'cross-mask-speech') assert.equal(installed.selected_speech?.artifact_only, true,
+  'direct speech capture requires explicit selected artifact output');
 const packageManifest = JSON.parse(await readFile(path.join(handbook, 'application.application.json')));
 const browserBundle = JSON.parse(await readFile(path.join(handbook, 'sdk/bundle/browser-bundle-release.json')));
 const uiResource = packageManifest.resources.find(resource => resource.role === 'owner-participation');
@@ -59,7 +63,14 @@ const owner = args => {
   assert.equal(result.status, 0, result.stderr);
   return JSON.parse(result.stdout);
 };
-const face = () => owner(['body', 'face', '--state-dir', state, '--json']);
+const face = () => {
+  const value = owner(['body', 'face', '--state-dir', state, '--json']);
+  // Keep the actual semantic Face and exact revision. Repeated whole Host offer
+  // catalogues are outside this capture and can exceed the publication bound.
+  return { schema: value.schema, presentation: value.presentation,
+    presentation_revision_decimal: value.presentation_revision_decimal,
+    advertisement: { host_id: value.advertisement.host_id, boot_id: value.advertisement.boot_id } };
+};
 const beforeOwner = face();
 const bodyId = beforeOwner.presentation.basis.body_id;
 await mkdir(output, { mode: 0o700 });
@@ -86,11 +97,15 @@ try {
     null, { timeout: 12_000 });
   await page.getByRole('button', { name: 'Inspect current wardrobe' }).click();
   const wardrobe = async () => JSON.parse(await page.locator('[data-owner-wardrobe-evidence]').textContent());
+  const wardrobeIdle = () => page.waitForFunction(() =>
+    document.querySelector('[data-owner-wardrobe-refresh]')?.disabled === false,
+  null, { timeout: 12_000 });
   await page.waitForFunction(hostId => {
     try { return JSON.parse(document.querySelector('[data-owner-wardrobe-evidence]').textContent)
       .route_descriptions.some(route => route.host_id === hostId); }
     catch { return false; }
   }, identity.hostId, { timeout: 12_000 });
+  await wardrobeIdle();
   let currentWardrobe = await wardrobe();
   const description = currentWardrobe.route_descriptions.find(route => route.host_id === identity.hostId);
   assert.ok(description, 'owner must describe this browser Mask route');
@@ -101,6 +116,7 @@ try {
       try { return JSON.parse(document.querySelector('[data-owner-wardrobe-evidence]').textContent)
         .wardrobe_revision_decimal !== prior; } catch { return false; }
     }, previous, { timeout: 12_000 });
+    await wardrobeIdle();
     currentWardrobe = await wardrobe();
   };
   if (await page.getByRole('button', { name: `Wear ${description.mask_name}`, exact: true }).isEnabled()) {
@@ -111,6 +127,14 @@ try {
   }
   assert.equal(currentWardrobe.selected?.route_id, description.route_id,
     'browser Mask must be selected before the Todo Play');
+  // An explicit preference change retires the prior Show. Request this Mask's
+  // new Show before using it as the startup observation basis.
+  await page.getByRole('button', { name: 'Refresh this Face' }).click();
+  await page.waitForFunction(() => {
+    const current = globalThis.__conduitOwnerParticipation.face();
+    return current?.show_state === 'available'
+      && document.querySelector('[data-owner-show-acknowledged]')?.dataset.ownerShowAcknowledged === current.show_id;
+  }, null, { timeout: 12_000 });
   const beforeStart = await page.evaluate(() => globalThis.__conduitOwnerParticipation.face());
   owner(['body', 'start', '--state-dir', state, '--maximum-millis', '60000',
     '--todo-new-list', 'Groceries']);
@@ -150,12 +174,15 @@ try {
   assert.equal(await page.locator('[data-owner-face-document] [data-face-role="Status"]').count(), 0,
     'matching progress wording must not appear twice');
   await page.locator('[data-owner-face]').screenshot({ path: path.join(output, 'browser-before.png') });
-  const texts = scenario === 'cross-mask' ? [itemText, 'Prepare lunch', 'Water plants'] : [itemText];
+  const texts = scenario.startsWith('cross-mask') ? [itemText, 'Prepare lunch', 'Water plants'] : [itemText];
   assert.equal(new Set(texts).size, texts.length, 'scenario item names must be distinct');
   const adds = [];
   let after;
   for (const text of texts) {
     const prior = await page.evaluate(() => globalThis.__conduitOwnerParticipation.face());
+    const priorOwner = face();
+    assert.equal(priorOwner.presentation.identity, prior.face_id);
+    const exactPrior = { ...prior, face_revision_decimal: priorOwner.presentation_revision_decimal };
     const add = page.locator('[data-owner-action="todo.add"]');
     await add.getByRole('textbox', { name: 'Item text' }).fill(text);
     await add.getByRole('button', { name: 'add an item' }).click();
@@ -167,20 +194,59 @@ try {
     after = await page.evaluate(() => globalThis.__conduitOwnerParticipation.face());
     assert.equal(after.body_id, bodyId);
     assert.notEqual(after.show_id, prior.show_id);
-    adds.push({ action_id: 'todo.add', text, before: prior, after, owner: face() });
+    const ownerAfterAdd = face();
+    assert.equal(ownerAfterAdd.presentation.identity, after.face_id);
+    const mutation = await observedTodoMutation(state, output, `add-${adds.length + 1}`,
+      bodyId, exactPrior, ownerAfterAdd, 'todo.add');
+    const screenshot = `browser-add-${adds.length + 1}.png`;
+    await page.locator('[data-owner-face]').screenshot({ path: path.join(output, screenshot) });
+    adds.push({ action_id: 'todo.add', text, before: exactPrior, after, owner: ownerAfterAdd,
+      mutation, screenshot });
     await writeFile(path.join(output, 'adds.json'), `${JSON.stringify(adds, null, 2)}\n`);
   }
   let crossMask = null;
-  if (scenario === 'cross-mask') {
-    // Consume the committed Face's terminal action before admitting the next write Play.
+  const speechBeforeCompletion = scenario === 'cross-mask-speech'
+    ? await captureDirectTodoSpeech({ owner, state, output: path.join(output, 'spoken-before-complete'),
+      bodyId, readRemaining: false }) : null;
+  if (speechBeforeCompletion) {
+    assert.match(speechBeforeCompletion.opening.direct_opening_wording, /3 things left/);
+    assert.equal(speechBeforeCompletion.remaining, null);
+  }
+  if (scenario.startsWith('cross-mask')) {
+    // Join this Body in a terminal without a Todo mutation before completing it.
+    const joinInput = 'wardrobe wear\nwardrobe prefer\nshow\nevidence\nquit\n';
+    const joinBefore = face();
+    const join = spawnSync(binary, ['body', 'terminal', '--owner-show', '--state-dir', state],
+      { cwd: ownerCwd, encoding: 'utf8', input: joinInput, timeout: 30_000, maxBuffer: 512 * 1024 });
+    await writeFile(path.join(output, 'terminal-join.input'), joinInput);
+    await writeFile(path.join(output, 'terminal-join.stdout'), join.stdout ?? '');
+    await writeFile(path.join(output, 'terminal-join.stderr'), join.stderr ?? '');
+    assert.equal(join.status, 0, join.stderr);
+    assert.match(join.stdout, /Owner terminal Show show\/[a-f0-9]+/);
     const ownerBefore = face();
+    const canonicalTodo = value => value.presentation.properties.filter(property => property.subject.startsWith('todo/'));
+    assert.deepEqual(canonicalTodo(ownerBefore), canonicalTodo(joinBefore), 'terminal join must not mutate the list');
+    const terminalEvidence = text => text.split(/\r?\n/).filter(line => line.startsWith('Owner terminal evidence '))
+      .map(line => JSON.parse(line.slice('Owner terminal evidence '.length)));
+    const joinEvidence = terminalEvidence(join.stdout).at(-1);
+    assert.equal(joinEvidence?.schema, 'conduit.body/terminal-show-evidence@1');
+    assert.equal(joinEvidence.body_id, bodyId);
+    assert.equal(joinEvidence.show_state, 'available');
+    assert.equal(joinEvidence.owner_selected_show_current, true);
+    const joined = { observed_at_unix_ms: Date.now(), body_id: bodyId,
+      evidence: joinEvidence,
+      observed_owner_face_id: ownerBefore.presentation.identity,
+      observed_owner_face_revision: ownerBefore.presentation_revision_decimal,
+      acknowledged_show_id: [...join.stdout.matchAll(/Owner terminal Show (show\/[a-f0-9]+)/g)].at(-1)[1],
+      transcript: 'terminal-join.stdout', todo_mutation: false };
+
     assert.equal(ownerBefore.presentation.subjects.filter(subject => subject.role === 'Item').length, 3);
     const item = ownerBefore.presentation.subjects.find(subject => subject.role === 'Item' && subject.name === itemText);
     assert.ok(item, 'browser-added item must exist in the canonical Face');
     const action = ownerBefore.presentation.actions.find(action => action.intent === 'todo/complete@1'
       && action.target === item.identity && action.availability === 'Available');
     assert.ok(action, 'canonical Face must offer the exact item completion');
-    const input = `wardrobe wear\nwardrobe prefer\nshow\nactions\naction ${action.identity}\nquit\n`;
+    const input = `wardrobe wear\nwardrobe prefer\nshow\nevidence\nactions\naction ${action.identity}\nevidence\nquit\n`;
     await writeFile(path.join(output, 'terminal-complete.input'), input);
     const terminal = spawnSync(binary, ['body', 'terminal', '--owner-show', '--state-dir', state],
       { cwd: ownerCwd, encoding: 'utf8', input, timeout: 30_000, maxBuffer: 512 * 1024 });
@@ -192,6 +258,14 @@ try {
     assert.equal(ownerAfter.presentation.basis.body_id, bodyId);
     assert.ok(ownerAfter.presentation.properties.some(property => property.subject === item.identity
       && property.name === 'complete' && property.value.Flag === true), 'terminal must commit the item completion');
+    const writeReceipt = JSON.parse(await readFile(path.join(state, 'body/owner-execution.json'))).last_execution.write;
+    const initiatingEvidence = terminalEvidence(terminal.stdout).find(evidence => evidence.show_id === writeReceipt.initiating_action.show_id);
+    assert.ok(initiatingEvidence, 'terminal must retain its exact initiating Show evidence');
+    assert.equal(initiatingEvidence.owner_selected_show_current, true);
+    const completion = await observedTodoMutation(state, output, 'terminal-complete',
+      bodyId, initiatingEvidence, ownerAfter, action.identity);
+    assert.ok(terminal.stdout.includes(completion.initiating_show_id),
+      'checkpoint completion must name a Show actually acknowledged by this terminal');
     const staleView = after;
     const staleButton = page.getByRole('button', { name: `complete ${itemText}`, exact: true });
     assert.ok(await staleButton.isEnabled(), 'the previously displayed action must still be offered for this stale-Show test');
@@ -210,6 +284,7 @@ try {
       try { return JSON.parse(document.querySelector('[data-owner-wardrobe-evidence]').textContent)
         .wardrobe_revision_decimal !== prior; } catch { return false; }
     }, currentWardrobe.wardrobe_revision_decimal, { timeout: 12_000 });
+    await wardrobeIdle();
     currentWardrobe = await wardrobe();
     if (await page.getByRole('button', { name: `Wear ${description.mask_name}`, exact: true }).isEnabled()) {
       await changeWardrobe('Wear');
@@ -228,23 +303,36 @@ try {
     assert.equal(await page.locator('.owner-face-collection-count').textContent(), '2 things left · 1 completed');
     assert.equal(await page.locator('.owner-face-completed').getAttribute('open'), null,
       'completed items must remain subordinate in the checklist');
-    crossMask = { stale, action_id: action.identity, target: item.identity, owner_before: ownerBefore,
+    const completedEvidence = terminalEvidence(terminal.stdout).at(-1);
+    assert.equal(completedEvidence.body_id, bodyId);
+    assert.equal(completedEvidence.owner_selected_show_current, true);
+    crossMask = { joined, completion, completed_evidence: completedEvidence,
+      inspected_at_unix_ms: Date.now(), stale, action_id: action.identity, target: item.identity, owner_before: ownerBefore,
       owner_after: ownerAfter, browser_after: after, terminal_input: 'terminal-complete.input',
       terminal_stdout: 'terminal-complete.stdout', terminal_stderr: 'terminal-complete.stderr' };
   }
   await page.locator('[data-owner-face]').screenshot({ path: path.join(output, 'browser-after.png') });
   const afterOwner = face();
+  assert.equal(afterOwner.presentation.identity, after.face_id);
+  const inspectCapture = { face_id: after.face_id,
+    face_revision: afterOwner.presentation_revision_decimal, show_id: after.show_id,
+    observed_at_unix_ms: Date.now() };
   assert.equal(afterOwner.presentation.basis.body_id, bodyId);
   assert.ok(afterOwner.presentation.subjects.some(subject => subject.name === itemText));
   assert.deepEqual(errors, []);
+  const directSpeech = scenario === 'cross-mask-speech'
+    ? await captureDirectTodoSpeech({ owner, state, output: path.join(output, 'spoken'), bodyId })
+    : null;
   await writeFile(path.join(output, 'receipt.json'), `${JSON.stringify({
     schema: 'conduit.proof/todo-owner-browser@1',
     ...sourceRecord,
     body_id: bodyId, browser_host_id: identity.hostId, browser_boot_id: identity.bootId,
-    item_text: itemText, adds, cross_mask: crossMask, before: { face_id: before.face_id, face_revision: before.face_revision,
+    item_text: itemText, adds, cross_mask: crossMask, inspect_capture: inspectCapture,
+    speech_before_completion: speechBeforeCompletion,
+    direct_speech: directSpeech, before: { face_id: before.face_id, face_revision: before.face_revision,
       show_id: before.show_id }, after: { face_id: after.face_id,
       face_revision: after.face_revision, show_id: after.show_id },
-    screenshots: scenario === 'cross-mask' ? ['browser-before.png', 'browser-stale.png', 'browser-after.png']
+    screenshots: scenario.startsWith('cross-mask') ? ['browser-before.png', 'browser-stale.png', 'browser-after.png']
       : ['browser-before.png', 'browser-after.png'],
   }, null, 2)}\n`);
 } catch (error) {

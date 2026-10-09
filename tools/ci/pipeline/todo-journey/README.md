@@ -32,6 +32,9 @@ cannot establish that the receipt came from a real command invocation.
 Chapter receipts use `conduit.todo-journey/chapter-receipt@1`. They name the
 same source/run/Body, chapter, unique event, increasing observation time,
 resulting Face ID/revision, Show ID, and a declared producer event receipt.
+Real u64 Face revisions use canonical unsigned decimal strings with exact
+identity across receipts; safe nonnegative integers remain valid for small
+revisions. Unsafe JavaScript numbers, leading zeroes, and u64 overflow refuse.
 `add` and `complete` also name the exact typed Face interaction and action.
 They name distinct Mask kinds. `read` instead names the direct spoken Mask's
 `read-current-items` ReaderCommand and exact Mask Play; it is a disclosure of
@@ -53,7 +56,14 @@ A screenshot must be an actual PNG from its named source; a terminal
 capture is a UTF-8 transcript. WAV captures record the **same delivered
 Play**: the capture and producer receipts agree on Play, Plan, Show, PCM
 format and delivered PCM digest. A selected speaker Play needs positive
-committed frames. The WAV header and samples must match those claims. Guest
+committed frames. The explicit `selected-wav-artifact` route instead requires
+completed `wav-artifact` output with zero committed speaker frames and blocks,
+false physical-playback and human-listening claims, and the same Host, Boot,
+provider SHA-256, per-Play WAV locator, WAV digest, and artifact PCM digest in
+producer and capture receipts. Artifact PCM is not labelled delivered speaker
+PCM. The rendered player labels this route as a retained artifact recording.
+This documentary profile does not prove live execution or permit a partial
+producer to declare a completed journey. The WAV header and samples must match those claims. Guest
 speech additionally needs the QEMU Boot, positive captured QEMU frames, and
 the declared digest-verified QEMU audio output. Its captured PCM must be
 byte-identical to the PCM inside the published WAV; packaging raw QEMU PCM in
@@ -65,8 +75,9 @@ requested-detail steps. A declared transcript must match the spoken-text
 digest in both source and capture receipts, and its words appear alongside
 the player. Automated playback is not attended human listening.
 
-The current selected voice Boot reserves one create-new WAV destination. Two
-direct recordings may require different Boots; each chapter must retain its
+A selected speaker profile may reserve one create-new WAV destination. Two
+physical recordings may require different Boots; the explicit artifact profile
+retains separate create-new WAV destinations for its Plays; each chapter must retain its
 own exact Boot, Face, Show, Mask Play, speaker Play, and delivered PCM evidence.
 That intermediate Boot does not substitute for the later recovery chapter.
 
@@ -88,8 +99,8 @@ cargo xtask prove todo-journey \
   --first-item-text 'Buy milk'
 ```
 
-Its `partial-run.json` records `chapter_scope: ["birth", "add"]` and
-`publication_ready: false`. The producer stops its foreground Owner service
+Its `partial-run.json` records `publication_ready: false` and links the actual
+capture record. The producer stops its foreground Owner service
 after capture; later chapters must reopen that same installed Body. The
 terminal encounter entrance can then read the current Body status and Face,
 run an actual terminal Mask session, and read the status and Face again. For
@@ -122,9 +133,9 @@ action and verified read on that Body and Boot. Focused Owner tests establish
 that sequence, including refusal of a stale Show. They do not yet establish
 recovery after a fresh Boot or a live journey through browser, native,
 terminal, and spoken Masks. The producer should
-retain one Body ID, take each screenshot from the actual browser, native
-display, and QMP guest in the same run, and capture speaker or QEMU output
-from the exact selected speech Play. It must derive event and media receipts
+retain one Body ID, take each screenshot from its declared actual graphical provider in the same
+run, and capture speaker, QEMU output, or an explicitly selected WAV artifact
+from the exact acknowledged speech Play. It must derive event and media receipts
 from actual Owner/Body/Mask observations, not copy or edit old clock evidence.
 The renderer verifies documentary consistency; only the producer and target
 acceptance prove that real actions and audio delivery happened.
@@ -134,3 +145,45 @@ images and WAV are rejection/layout fixtures only and are never staged for
 publication. Run them with `node --test proof/ci/pipeline-todo-journey.spec.mjs` as an
 internal development check; the supported site publication entrance remains
 `cargo xtask` through the site pipeline.
+
+The optional `--cross-mask-actions --direct-speech` capture runs three browser
+Adds, a direct spoken observation of those three remaining items, an
+acknowledged terminal completion, browser observation and stale-Show
+refusal, then the public direct spoken opening and explicit remaining-items
+command. It requires an explicitly selected artifact speech installation; it
+never falls back from missing physical equipment. The browser producer retains
+per-Add screenshots and exact checkpoint-correlated mutation receipts. Speech
+retains each actual selected WAV and verifies its PCM profile, hashes, source
+Face/Show, primary item order, zero speaker delivery, and unchanged Todo state.
+The extended mode then stops the owned service, verifies the same checkpoint
+under a new Owner Boot, and joins from a newly admitted browser Host. It also
+damages only this run's private selected checkpoint, retains the finite visible
+refusal without a committed Fore, restores the exact original bytes, and
+verifies the repaired state again. This intentional fault does not touch a
+pre-existing user checkpoint: fresh mode requires an empty selected root.
+
+Only after those actual operations succeed does the internal finalizer derive
+the eight chapter, media, event and terminal receipts into `publication/` and
+validate their complete manifest. `live-run.json` preserves the actual command
+outcome. A failed capture or correlation cannot print the completed packet
+message. The Birth and terminal join use `body terminal --owner-show` with the
+explicit `evidence` command to retain the acknowledged Face, exact decimal
+revision, Show, Mask Play and frame digest. These are observations of the
+rendered terminal, not reconstructed screenshots. Protected CI, stable
+publication and deployed browser/link checks remain separate acceptance gates.
+Run the same fresh command with `--cross-mask-actions --direct-speech` to use
+this complete local producer. Its installed Owner, Handbook and source checkout
+must share one exact clean commit. Equipment selection and installation are
+prerequisites; no ambient speaker or synthesizer fallback is attempted.
+On Linux the canonical installed state directory must keep the full
+`control.sock` pathname within 107 bytes. Use a new private short directory,
+such as `/tmp/conduit-todo-RUN/state`, with an independent empty checkpoint
+directory. The producer refuses an oversized socket path before Birth. The
+capture and publication directories can live under a longer workspace path.
+
+A chapter with several bounded speech batches may attach an `audio` delivery
+witness to each matching producer `media` entry. Each capture still matches
+its own exact Play, Plan, acknowledged Show, PCM format/digest and selected
+output route. The chapter’s ReaderCommand remains one Mask-local turn; distinct
+batch Plays are not collapsed into a claimed single delivery. A single-Play
+chapter may continue to carry that witness on its producer event.

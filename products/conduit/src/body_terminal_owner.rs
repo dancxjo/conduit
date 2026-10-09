@@ -102,6 +102,30 @@ pub(crate) fn run(
             report_wardrobe(output, &wardrobe)?;
             continue;
         }
+        if command == "evidence" {
+            wardrobe = crate::durable_host_control::attached_wardrobe(
+                state_dir,
+                &attached,
+                0,
+                TerminalWardrobeCommand::Inspect,
+            )?;
+            let mut evidence = evidence_for_show(&attached.face, &attached.show)?;
+            evidence["owner_selected_show_current"] = serde_json::json!(
+                wardrobe["show_id"].as_str() == Some(attached.show.show_id.as_str())
+            );
+            evidence["route_plan_id"] = serde_json::json!(attached.route_plan_id);
+            evidence["host_id"] = serde_json::json!(attached.advertisement.host_id);
+            evidence["boot_id"] = serde_json::json!(attached.advertisement.boot_id);
+            evidence["bytes_written"] = serde_json::json!(attached.effect.bytes_written);
+            evidence["frame_sha256"] = serde_json::json!(attached.effect.frame_sha256);
+            evidence["show_sha256"] = serde_json::json!(attached.effect.show_sha256);
+            writeln!(output, "Owner terminal evidence {evidence}")
+                .map_err(|error| format!("write terminal evidence: {error}"))?;
+            output
+                .flush()
+                .map_err(|error| format!("flush terminal evidence: {error}"))?;
+            continue;
+        }
         if command == "actions" {
             report_actions(output, &attached.face)?;
             continue;
@@ -279,4 +303,22 @@ fn report_show(
     output
         .flush()
         .map_err(|error| format!("flush owner terminal receipt: {error}"))
+}
+
+fn evidence_for_show(face: &Presentation, show: &MaskShow) -> Result<serde_json::Value, String> {
+    show.validate(face)
+        .map_err(|error| format!("terminal evidence Show: {error:?}"))?;
+    if show.show.lifecycle != conduit_presentation::ManifestationLifecycle::Available {
+        return Err("terminal evidence requires the acknowledged available Show".into());
+    }
+    Ok(serde_json::json!({
+        "schema":"conduit.body/terminal-show-evidence@1",
+        "body_id":face.basis.body_id,
+        "face_id":face.identity,
+        "face_revision":face.revision.to_string(),
+        "show_id":show.show_id,
+        "mask_plan_id":show.planned_mask.plan.plan_id,
+        "mask_play_id":show.show.active_play_id,
+        "show_state":"available"
+    }))
 }

@@ -1,6 +1,5 @@
 //! Fresh Birth/browser actions, optional terminal completion and browser observation.
-//! Its raw product/browser receipts can seed a later continuous journey, but it
-//! cannot issue the complete Todo journey or a publication manifest.
+//! The direct-speech mode captures the complete local journey before correlation.
 
 use super::{regular, retain, sha};
 use crate::cli::{GlobalOpts, TodoJourneyArgs};
@@ -11,9 +10,13 @@ use std::{
     os::unix::fs::DirBuilderExt,
     path::{Path, PathBuf},
     process::{Child, Command, Stdio},
-    thread,
-    time::{Duration, SystemTime, UNIX_EPOCH},
+    time::{SystemTime, UNIX_EPOCH},
 };
+
+mod birth_show;
+mod completion;
+mod recovery;
+mod refusal;
 
 const MAX_COMMAND_OUTPUT: usize = 512 * 1024;
 const MAX_MEDIA: usize = 16 * 1024 * 1024;
@@ -156,24 +159,6 @@ fn birth_body_id(stdout: &[u8]) -> Result<String, String> {
     body.ok_or_else(|| "Birth command did not report a Body identity".into())
 }
 
-fn await_service(service: &mut Service, socket: &Path) -> Result<(), String> {
-    for _ in 0..100 {
-        if socket.exists() {
-            return Ok(());
-        }
-        if service
-            .0
-            .try_wait()
-            .map_err(|error| error.to_string())?
-            .is_some()
-        {
-            return Err("installed Owner service exited before control socket".into());
-        }
-        thread::sleep(Duration::from_millis(50));
-    }
-    Err("installed Owner service did not open control socket".into())
-}
-
 pub(super) fn run(
     args: &TodoJourneyArgs,
     opts: &GlobalOpts,
@@ -205,6 +190,13 @@ pub(super) fn run(
         return Err("first Todo item text must be 1..64 trimmed UTF-8 bytes".into());
     }
     let state = fs::canonicalize(&args.state_dir)?;
+    #[cfg(target_os = "linux")]
+    {
+        use std::os::unix::ffi::OsStrExt;
+        if state.join("control.sock").as_os_str().as_bytes().len() > 107 {
+            return Err("installed Owner control socket path exceeds Linux's 107-byte pathname limit; select a short private state directory before Birth".into());
+        }
+    }
     let bin = fs::canonicalize(&args.conduit_bin)?;
     regular(&bin)?;
     let installation: Value = serde_json::from_slice(&fs::read(state.join("installation.json"))?)?;
@@ -219,6 +211,9 @@ pub(super) fn run(
             "fresh capture requires an idle installed, unowned Host with its exact executable"
                 .into(),
         );
+    }
+    if args.direct_speech && installation["selected_speech"]["artifact_only"] != true {
+        return Err("direct speech capture requires an explicitly selected artifact speech installation before Birth".into());
     }
     let selected = selected_checkpoint(&state, &installation)?;
     let head = Command::new("git")
@@ -287,7 +282,8 @@ pub(super) fn run(
             .spawn()
             .map_err(|error| format!("start installed service: {error}"))?;
         let mut service = Service(service);
-        await_service(&mut service, &state.join("control.sock"))?;
+        recovery::await_initial_service(&mut service, &state.join("control.sock"))?;
+        let birth_show = birth_show::run(&output, &bin, &state, &body_id)?;
         let mut before = Command::new("timeout");
         before
             .args(["-k", "5s", "15s"])
@@ -310,7 +306,9 @@ pub(super) fn run(
             .arg(output.join("browser"))
             .arg(&playwright)
             .arg(item_text)
-            .arg(if args.cross_mask_actions {
+            .arg(if args.direct_speech {
+                "cross-mask-speech"
+            } else if args.cross_mask_actions {
                 "cross-mask"
             } else {
                 "first-add"
@@ -388,10 +386,37 @@ pub(super) fn run(
         {
             return Err("terminal read changed the Body or selected checkpoint".into());
         }
+        let recovery = if args.direct_speech {
+            let execution: Value = serde_json::from_slice(
+                &fs::read(state.join("body/owner-execution.json")).map_err(|e| e.to_string())?,
+            )
+            .map_err(|e| e.to_string())?;
+            drop(service);
+            Some(recovery::run(
+                args,
+                repository,
+                &output,
+                &bin,
+                &state,
+                &execution["last_execution"],
+            )?)
+        } else {
+            None
+        };
+        let checkpoint_refusal = if args.direct_speech {
+            Some(refusal::run(
+                args, repository, &output, &bin, &state, &selected,
+            )?)
+        } else {
+            None
+        };
         Ok(json!({
             "body_id":body_id,
             "cross_mask":browser_receipt["cross_mask"],
-            "birth":{"command":birth_command,"face_id":face_before["presentation"]["identity"],
+            "direct_speech":browser_receipt["direct_speech"],
+            "recovery":recovery,
+            "checkpoint_refusal":checkpoint_refusal,
+            "birth":{"command":birth_command,"show":birth_show,"face_id":face_before["presentation"]["identity"],
                 "face_revision":face_before["presentation"]["revision"]},
             "add":{"command":browser_command,"receipt":browser_receipt_file,
                 "before":browser_receipt["before"],"after":browser_receipt["after"],
@@ -405,34 +430,18 @@ pub(super) fn run(
                 "face_revision":face_after_terminal["presentation"]["revision"]},
         }))
     })();
-    let finished = now()?;
-    let record = json!({
-        "schema":"conduit.todo-journey/partial-live-capture@1",
-        "capture_entrance":"cargo xtask prove todo-journey",
-        "chapter_scope":if args.cross_mask_actions { vec!["birth","three-browser-adds","terminal-complete","browser-observe","terminal-read"] } else { vec!["birth","add","terminal-read"] },"publication_ready":false,
-        "capture_tool_commit":commit,"installed_product_source_commit":installation["release_source_identity"],
-        "installed_executable_sha256":sha(&fs::read(&bin)?),
-        "started_at_unix_ms":started,"finished_at_unix_ms":finished,
-        "observation":result.as_ref().ok(),"error":result.as_ref().err(),
-        "missing_for_publication":["same-Face direct spoken Show and requested detail",
-            "lull/wake and admitted Host rejoin", "visible stale-Show and failed-checkpoint refusals",
-            "complete action/Plan/Play/Sign correlations", "accepted release and deployed Pages links"]
-    });
-    fs::write(
-        output.join("partial-run.json"),
-        serde_json::to_vec_pretty(&record)?,
-    )?;
-    result.map_err(|error| {
-        format!(
-            "fresh Todo Birth/Add failed: {error}; retained at {}",
-            output.display()
-        )
-    })?;
-    println!(
-        "Retained partial fresh Todo browser/terminal capture at {}. Publication remains incomplete.",
-        output.display()
-    );
-    Ok(())
+    completion::finish(
+        args,
+        repository,
+        &output,
+        &bin,
+        completion::CaptureOutcome {
+            commit: &commit,
+            installation: &installation,
+            started,
+            result,
+        },
+    )
 }
 
 #[cfg(test)]

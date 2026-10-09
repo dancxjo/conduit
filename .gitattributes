@@ -7,3 +7,6 @@ proof/model-authoring/**/*.log whitespace=-trailing-space,-blank-at-eof
 
 # Preserve raw failed browser CI logs without terminal whitespace rewriting.
 proof/foundations/omnibus/browser-ci/*.log whitespace=-trailing-space,-blank-at-eof
+
+# Todo terminal captures retain their original CRLF bytes and spacing.
+site/evidence/todo-journey/*.txt whitespace=-trailing-space,cr-at-eol
