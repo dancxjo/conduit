@@ -69,7 +69,7 @@ Unknown or unavailable actions, unsupported values and stale Shows refuse.
 `apply <value>` remains a shortcut when exactly one single-value action is
 available. Listing choices does not refresh a stale Show; enter `show` explicitly.
 
-The repository capture entrance attempts a fresh Todo browser checklist and
+The repository capture entrance records a fresh Todo browser checklist and
 terminal interaction on one installed Body:
 
 ```sh
@@ -81,12 +81,14 @@ cargo xtask prove todo-journey --state-dir /absolute/host-state \
   --cross-mask-actions --output /absolute/new-capture
 ```
 
-Earlier live capture committed three browser additions, then refused attachment
-because it had already admitted a waiting write Play. The updated capture leaves
-the committed Body lulled for terminal completion and relies on the owner to
-admit the write after consuming the terminal Show. The actual-provider regression
-proves this lifecycle, completion, fresh read, reattachment and stale-Show refusal;
-the updated installed browser/terminal trace still requires a new sealed capture.
+A matching sealed Linux/Handbook capture at `76ab56cb223c89c79f20085d249571e826cf7895`
+passed three successive browser additions, terminal completion at revision 4,
+visible refusal of the old browser action without mutation, and a refreshed
+browser checklist with two open items and one completed item. The terminal's
+precise inspection displays the completed item while its default checklist
+keeps completed items subordinate. The trace retains one Body and exact-source
+receipts separately from screenshots and terminal output. The actual-provider
+regression also covers fresh read, reattachment and stale-Show refusal.
 The capture remains partial: direct spoken playback, rejoin, failure traces and
 publication acceptance require their own evidence. The default capture still
 performs one browser Add followed by a terminal read.
