@@ -80,6 +80,12 @@ fn compile_named<'a>(
         return Ok(());
     }
     let declaration = declarations[name];
+    if active.len() >= conduit_core::MAXIMUM_STRUCTURED_INFO_DEPTH {
+        return Err(diagnostic(
+            declaration.name.span,
+            "native Type dependency depth exceeds its finite profile".into(),
+        ));
+    }
     if let Some(position) = active.iter().position(|candidate| *candidate == name) {
         let mut cycle = active[position..].to_vec();
         cycle.push(name);

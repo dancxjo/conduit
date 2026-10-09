@@ -217,6 +217,19 @@ impl Parser<'_> {
         line: &str,
         start: usize,
     ) -> Result<TypeExpressionSyntax, (PlotError, Span)> {
+        self.parse_type_expression_at_depth(source, line, start, 0)
+    }
+
+    fn parse_type_expression_at_depth(
+        &self,
+        source: &str,
+        line: &str,
+        start: usize,
+        depth: usize,
+    ) -> Result<TypeExpressionSyntax, (PlotError, Span)> {
+        if depth >= 32 {
+            return Err(self.invalid_statement(line, start));
+        }
         let source = source.trim();
         let offset = start + line.find(source).unwrap_or(0);
         let span = self.span(offset, offset + source.len());
@@ -255,7 +268,12 @@ impl Parser<'_> {
                     return Err(self.invalid_statement(line, start));
                 };
             return Ok(TypeExpressionSyntax::Sequence {
-                element: Box::new(self.parse_type_expression(element, line, start)?),
+                element: Box::new(self.parse_type_expression_at_depth(
+                    element,
+                    line,
+                    start,
+                    depth + 1,
+                )?),
                 minimum_items: Box::new(minimum_items),
                 maximum_items: Box::new(maximum_items),
                 span,
@@ -268,20 +286,35 @@ impl Parser<'_> {
             let length =
                 self.parse_integer_extent(length, offset + source.len() - length.len(), true)?;
             return Ok(TypeExpressionSyntax::Collection {
-                element: Box::new(self.parse_type_expression(element, line, start)?),
+                element: Box::new(self.parse_type_expression_at_depth(
+                    element,
+                    line,
+                    start,
+                    depth + 1,
+                )?),
                 length: Box::new(length),
                 span,
             });
         }
         if let Some(value) = source.strip_prefix('&') {
             return Ok(TypeExpressionSyntax::DataReference {
-                value: Box::new(self.parse_type_expression(value, line, start)?),
+                value: Box::new(self.parse_type_expression_at_depth(
+                    value,
+                    line,
+                    start,
+                    depth + 1,
+                )?),
                 span,
             });
         }
         if let Some(value) = source.strip_suffix('?') {
             return Ok(TypeExpressionSyntax::Optional {
-                value: Box::new(self.parse_type_expression(value, line, start)?),
+                value: Box::new(self.parse_type_expression_at_depth(
+                    value,
+                    line,
+                    start,
+                    depth + 1,
+                )?),
                 span,
             });
         }
@@ -293,7 +326,7 @@ impl Parser<'_> {
             }
             let arguments = argument_sources
                 .into_iter()
-                .map(|argument| self.parse_native_argument(argument, line, start))
+                .map(|argument| self.parse_native_argument(argument, line, start, depth + 1))
                 .collect::<Result<Vec<_>, _>>()?;
             return Ok(TypeExpressionSyntax::Reference {
                 value_type: self.spanned(value_type, offset),
@@ -316,7 +349,7 @@ impl Parser<'_> {
         }
         let arguments = argument_sources
             .into_iter()
-            .map(|argument| self.parse_native_argument(argument, line, start))
+            .map(|argument| self.parse_native_argument(argument, line, start, depth + 1))
             .collect::<Result<Vec<_>, _>>()?;
         Ok(TypeExpressionSyntax::Reference {
             value_type: self.spanned(value_type, offset),
@@ -417,6 +450,7 @@ impl Parser<'_> {
         source: &str,
         line: &str,
         start: usize,
+        depth: usize,
     ) -> Result<crate::NativeTypeArgumentSyntax, (PlotError, Span)> {
         // Names remain unresolved Type syntax until the declared parameter kind
         // selects Type or Info resolution. Capitalization has no semantic role.
@@ -433,7 +467,7 @@ impl Parser<'_> {
             return integer::parse(self, source, offset)
                 .map(|value| crate::NativeTypeArgumentSyntax::Value(Box::new(value)));
         }
-        self.parse_type_expression(source, line, start)
+        self.parse_type_expression_at_depth(source, line, start, depth)
             .map(|value| crate::NativeTypeArgumentSyntax::Type(Box::new(value)))
     }
 }

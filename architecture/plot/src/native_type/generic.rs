@@ -6,6 +6,7 @@ use crate::{
 use alloc::collections::{BTreeMap, BTreeSet};
 
 mod binding;
+mod budget;
 mod canonical;
 mod integer;
 mod law;
@@ -26,6 +27,7 @@ pub(super) fn instantiate(
     declarations: &[TypeSyntax],
     catalog: &crate::StartupCatalog,
 ) -> Result<(Vec<TypeSyntax>, BTreeSet<String>), SyntaxCheckDiagnostic> {
+    budget::validate(declarations)?;
     let mut names = BTreeSet::new();
     let mut generics = BTreeMap::new();
     let mut public = BTreeSet::new();
