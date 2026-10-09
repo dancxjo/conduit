@@ -284,7 +284,7 @@ fn source_round_trip_preserves_escaped_provenance_and_explicit_nasal_spelling() 
             "reviewed \"quote\" \\ 雪"
         );
         assert_eq!(
-            SpeechPhoneticTranscription::decode(&transcription.encode().unwrap()).unwrap(),
+            SpeechPhoneticTranscription::decode(&transcription.clone().encode().unwrap()).unwrap(),
             transcription,
         );
     }
