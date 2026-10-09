@@ -614,7 +614,7 @@ mod tests {
                     .unwrap_or_else(|error| panic!("{name}: {error}"));
             assert!(matches!(
                 parsed.command,
-                Command::Make(MakeArgs {
+                Command::Make(args) if matches!(*args, MakeArgs {
                     target: MakeTarget::Conduitos(_)
                 })
             ));
@@ -628,7 +628,7 @@ mod tests {
                 .unwrap();
         assert!(matches!(
             parsed.command,
-            Command::Make(MakeArgs {
+            Command::Make(args) if matches!(*args, MakeArgs {
                 target: MakeTarget::Conduitos(_)
             })
         ));
@@ -663,7 +663,7 @@ mod tests {
             let parsed = Cli::try_parse_from(arguments).unwrap();
             assert!(matches!(
                 parsed.command,
-                Command::Make(MakeArgs {
+                Command::Make(args) if matches!(*args, MakeArgs {
                     target: MakeTarget::Conduitos(_)
                 })
             ));
