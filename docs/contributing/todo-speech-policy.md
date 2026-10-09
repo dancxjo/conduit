@@ -38,3 +38,10 @@ provider can be selected explicitly using the runtime speech workflow; its
 executable, library and voice data remain separate admitted resources. This
 change records no new audio demonstration. The same-Face spoken capture remains
 part of cross-Mask journey acceptance, separate from this selection contract.
+
+The coordinated direct-readout and paging implementation at
+`54e8d77d45742d97486197aa8afc34772535d485` passed all 26 jobs in
+[Candidate 37881958506](https://github.com/dancxjo/conduit/actions/runs/37881958506).
+That campaign includes the browser cross-Mask journey and the installed product
+proofs. It is evidence for that exact commit; a later revision still requires
+its own successful Candidate before admission.
