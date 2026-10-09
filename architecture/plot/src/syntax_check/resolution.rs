@@ -89,7 +89,22 @@ impl<'a> Resolver<'a> {
                 ..
             } if matches!(operand.as_ref(), crate::ExpressionSyntax::Atomic(atomic) if looks_integer_magnitude(&atomic.text))
         );
-        if !matches!(expression.syntax, crate::ExpressionSyntax::Atomic(_)) && !negative_integer {
+        let negative_quantity = matches!(
+            &expression.syntax,
+            crate::ExpressionSyntax::Unary {
+                operator: crate::UnaryOperator::Negate,
+                operand,
+                ..
+            } if matches!(operand.as_ref(), crate::ExpressionSyntax::Atomic(_))
+                && matches!(conduit_core::Quantity::parse_plot_literal(&expression.text),
+                    Ok(_) | Err(conduit_core::QuantityLiteralRefusal::RepresentationIneligible { .. }
+                        | conduit_core::QuantityLiteralRefusal::NonCanonicalUnit { .. }
+                        | conduit_core::QuantityLiteralRefusal::AmbiguousUnit))
+        );
+        if !matches!(expression.syntax, crate::ExpressionSyntax::Atomic(_))
+            && !negative_integer
+            && !negative_quantity
+        {
             if let Some(runtime) = self
                 .runtime_ports
                 .iter()
@@ -102,6 +117,12 @@ impl<'a> Resolver<'a> {
             ));
         }
         self.resolve_atomic(&expression.text, None)
+            .map_err(|error| match error {
+                SyntaxCheckError::QuantityEligibility(detail, None) => {
+                    SyntaxCheckError::QuantityEligibility(detail, Some(expression.span))
+                }
+                error => error,
+            })
     }
 
     fn resolve_atomic(
@@ -120,14 +141,9 @@ impl<'a> Resolver<'a> {
                 conduit_core::SharedPoolId::from(expression),
             ))
         } else if is_atomic_literal(expression) {
-            match conduit_core::Quantity::parse_plot_literal(expression) {
-                Ok(value) => Ok(CanonicalStartupValue::Quantity(value)),
-                Err(conduit_core::QuantityLiteralRefusal::NonCanonicalUnit { canonical }) => {
-                    Err(SyntaxCheckError::QuantityLiteral(format!(
-                        "non-canonical quantity unit in '{expression}'; use '{canonical}'"
-                    )))
-                }
-                Err(_) => Ok(CanonicalStartupValue::Literal(expression.to_string())),
+            match crate::quantity_literal::startup_quantity(expression)? {
+                Some(value) => Ok(CanonicalStartupValue::Quantity(value)),
+                None => Ok(CanonicalStartupValue::Literal(expression.to_string())),
             }
         } else if let Some(runtime) = self
             .runtime_ports

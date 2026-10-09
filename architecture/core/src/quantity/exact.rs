@@ -173,6 +173,15 @@ impl ExactDecimalQuantity {
         super::wide_conversion::to_legacy(self, target)
     }
 
+    /// Explicit conversion into the bounded exact decimal target profile.
+    /// A non-terminating decimal refuses rather than rounding.
+    pub fn convert_to_decimal(
+        self,
+        target: QuantityUnit,
+    ) -> Result<Self, super::QuantityConversionRefusal> {
+        super::wide_conversion::to_decimal(self, target)
+    }
+
     /// Compare physical values in a common exact rational reference, without
     /// selecting a lossy unit or increasing the legacy arithmetic profile.
     pub fn compare(

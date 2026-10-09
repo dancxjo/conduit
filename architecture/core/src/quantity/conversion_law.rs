@@ -31,6 +31,10 @@ impl<A: Arithmetic> Fraction<A> {
         }
     }
 
+    pub(super) fn parts(self) -> (A::Number, A::Number) {
+        (self.numerator, self.denominator)
+    }
+
     pub(super) fn rational(
         numerator: i128,
         denominator: i128,

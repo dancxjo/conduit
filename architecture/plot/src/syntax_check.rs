@@ -1708,14 +1708,9 @@ fn resolve_bound_value(
         }
         CanonicalStartupValue::Structured(checked)
     } else {
-        match conduit_core::Quantity::parse_plot_literal(default) {
-            Ok(value) => CanonicalStartupValue::Quantity(value),
-            Err(conduit_core::QuantityLiteralRefusal::NonCanonicalUnit { canonical }) => {
-                return Err(SyntaxCheckError::QuantityLiteral(format!(
-                    "non-canonical quantity unit in '{default}'; use '{canonical}'"
-                )));
-            }
-            Err(_) => CanonicalStartupValue::Literal(default.to_string()),
+        match crate::quantity_literal::startup_quantity(default)? {
+            Some(value) => CanonicalStartupValue::Quantity(value),
+            None => CanonicalStartupValue::Literal(default.to_string()),
         }
     };
     visiting.remove(&index);

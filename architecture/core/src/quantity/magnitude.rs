@@ -123,13 +123,13 @@ impl Magnitude {
         (carry == 0).then_some(Self(result))
     }
 
-    /// Binary long-division remainder with a fixed 1920-bit work/storage bound.
-    pub(super) fn remainder(self, denominator: Self) -> Option<Self> {
+    /// Binary long division with a fixed 1920-bit work/storage bound.
+    pub(super) fn divide(self, denominator: Self) -> Option<(Self, Self)> {
         if denominator == Self::ZERO {
             return None;
         }
         if self.cmp(denominator) == Ordering::Less {
-            return Some(self);
+            return Some((Self::ZERO, self));
         }
         let mut bits = [false; LIMBS * 30];
         let mut count = 0;
@@ -141,16 +141,31 @@ impl Magnitude {
             value = quotient;
         }
         let mut remainder = Self::ZERO;
+        let mut quotient = Self::ZERO;
         for bit in bits[..count].iter().rev() {
+            quotient = quotient.checked_mul_small(2)?;
             remainder = remainder.checked_mul_small(2)?;
             if *bit {
                 remainder = remainder.checked_add(Self::from_u128(1))?;
             }
             if remainder.cmp(denominator) != Ordering::Less {
                 remainder = remainder.checked_sub(denominator)?;
+                quotient = quotient.checked_add(Self::from_u128(1))?;
             }
         }
-        Some(remainder)
+        Some((quotient, remainder))
+    }
+
+    pub(super) fn remainder(self, denominator: Self) -> Option<Self> {
+        self.divide(denominator).map(|(_, remainder)| remainder)
+    }
+
+    pub(super) fn to_u128(self) -> Option<u128> {
+        self.0.iter().rev().try_fold(0_u128, |value, limb| {
+            value
+                .checked_mul(u128::from(RADIX))?
+                .checked_add(u128::from(*limb))
+        })
     }
 
     /// Find a bounded integer quotient without constructing an unbounded value.

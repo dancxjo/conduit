@@ -121,3 +121,86 @@ pub(super) fn compare(
         .into_canonical(left.unit())?
         .compare(decimal(right)?.into_canonical(right.unit())?)
 }
+
+/// Reduce the exact target coordinate before admitting the finite decimal
+/// profile. A denominator with any remaining factor other than 2 or 5 cannot
+/// produce a finite decimal; that is an inexact refusal, never rounding.
+pub(super) fn to_decimal(
+    source: ExactDecimalQuantity,
+    target: QuantityUnit,
+) -> Result<ExactDecimalQuantity, QuantityConversionRefusal> {
+    compatible(source.unit(), target)?;
+    let (numerator, denominator) = decimal(source)?
+        .into_canonical(source.unit())?
+        .in_target(target)?
+        .parts();
+    let mut left = numerator.magnitude();
+    let mut right = denominator.magnitude();
+    while right != Magnitude::ZERO {
+        let remainder = left
+            .remainder(right)
+            .ok_or(QuantityConversionRefusal::Overflow)?;
+        left = right;
+        right = remainder;
+    }
+    let mut coefficient = numerator
+        .magnitude()
+        .divide(left)
+        .ok_or(QuantityConversionRefusal::Overflow)?
+        .0;
+    let mut divisor = denominator
+        .magnitude()
+        .divide(left)
+        .ok_or(QuantityConversionRefusal::Overflow)?
+        .0;
+    let mut twos = 0_i16;
+    let mut fives = 0_i16;
+    for (factor, count) in [(2, &mut twos), (5, &mut fives)] {
+        loop {
+            let (quotient, remainder) = divisor
+                .divide_small(factor)
+                .ok_or(QuantityConversionRefusal::Overflow)?;
+            if remainder != 0 {
+                break;
+            }
+            divisor = quotient;
+            *count += 1;
+        }
+    }
+    if divisor != Magnitude::from_u128(1) {
+        return Err(QuantityConversionRefusal::Inexact);
+    }
+    let places = twos.max(fives);
+    for (factor, count) in [(2, places - twos), (5, places - fives)] {
+        for _ in 0..count {
+            coefficient = coefficient
+                .checked_mul_small(factor)
+                .ok_or(QuantityConversionRefusal::Overflow)?;
+        }
+    }
+    let mut exponent = -places;
+    if coefficient == Magnitude::ZERO {
+        exponent = 0;
+    }
+    while coefficient != Magnitude::ZERO && exponent < super::EXACT_DECIMAL_MAX_EXPONENT {
+        let (quotient, remainder) = coefficient
+            .divide_small(10)
+            .ok_or(QuantityConversionRefusal::Overflow)?;
+        if remainder != 0 {
+            break;
+        }
+        coefficient = quotient;
+        exponent += 1;
+    }
+    let magnitude = coefficient
+        .to_u128()
+        .and_then(|value| i128::try_from(value).ok())
+        .ok_or(QuantityConversionRefusal::Overflow)?;
+    let coefficient = if numerator.negative() {
+        -magnitude
+    } else {
+        magnitude
+    };
+    ExactDecimalQuantity::new(coefficient, exponent, target)
+        .map_err(|_| QuantityConversionRefusal::Overflow)
+}

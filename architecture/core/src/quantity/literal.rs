@@ -17,7 +17,14 @@ pub(super) fn parse_plot_literal(literal: &str) -> Result<Quantity, QuantityLite
     if value.is_empty() || value == "-" {
         return Err(QuantityLiteralRefusal::MissingValue);
     }
-    let unit = QuantityUnit::from_plot_suffix(suffix)?;
+    let resolved =
+        crate::ResolvedQuantitySuffix::resolve(suffix).map_err(|refusal| match refusal {
+            crate::QuantitySuffixRefusal::Literal(refusal) => refusal,
+            crate::QuantitySuffixRefusal::Ambiguous => QuantityLiteralRefusal::AmbiguousUnit,
+        })?;
+    let Some(unit) = resolved.legacy_unit() else {
+        return super::literal_eligibility::project_extended_literal(literal);
+    };
     let Some((whole, fraction)) = value.split_once('.') else {
         let value = value
             .parse::<i64>()
@@ -79,7 +86,7 @@ fn parse_exact_decimal(
     Err(QuantityLiteralRefusal::Inexact)
 }
 
-const fn temperature_family(unit: QuantityUnit) -> u8 {
+pub(super) const fn temperature_family(unit: QuantityUnit) -> u8 {
     match unit {
         QuantityUnit::Millikelvin | QuantityUnit::Kelvin => 1,
         QuantityUnit::MilliCelsius | QuantityUnit::Celsius => 2,
@@ -88,7 +95,7 @@ const fn temperature_family(unit: QuantityUnit) -> u8 {
     }
 }
 
-const ALL_QUANTITY_UNITS: [QuantityUnit; 130] = [
+pub(super) const ALL_QUANTITY_UNITS: [QuantityUnit; 130] = [
     QuantityUnit::Picosecond,
     QuantityUnit::Nanosecond,
     QuantityUnit::Shake,

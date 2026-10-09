@@ -3,9 +3,10 @@
 Issue [#5328](https://github.com/dancxjo/conduit/issues/5328) extends the existing
 Quantity contract in stages. The immutable `quantity/decimal-prefix-catalog@1`
 now records all 24 official prefixes and reviewed prefix positions. The whole-suffix resolver uses this
-catalogue to establish exact semantic scale. The authored literal parser has
-not yet migrated, and resolution does not assert that every scale fits legacy
-runtime storage.
+catalogue to establish exact semantic scale. The authored literal parser now uses this resolver and preserves legacy
+spellings and byte encodings. Newly composed spellings either fit an existing
+exact legacy unit or return a representation-eligibility refusal; semantic
+resolution does not assert that every scale fits legacy runtime storage.
 
 The authoritative symbols and exponents come from the
 [BIPM SI prefix table](https://www.bipm.org/en/measurement-units/si-prefixes).
@@ -61,14 +62,16 @@ noncanonical `C`/`F` diagnostics take precedence, and unprefixable historical
 suffixes retain their exact legacy lookup. Recognized extended suffixes expose
 no legacy tag, keeping numeric representation admission separate.
 
-The remaining migration must introduce a separately versioned, bounded exact
-profile, adopt this resolver in the authored parser, preserve original source
-facts, and return a
-representation-eligibility refusal when a selected legacy target cannot realize
-a recognized value. Explicit checked conversion and compatible comparison must
+The bounded codec described below now separates the extended numeric profile
+from legacy storage. The remaining migration must admit that profile to checked
+Plot and target execution, preserve original source facts, and complete authored conversion receipts.
+The legacy authored target now returns a representation-eligibility refusal
+when it cannot realize a recognized value. Explicit checked conversion and compatible comparison must
 retain source/target dimensions, exact ratio/offset, selected profile and result
-or refusal. Parser migration, extended value encoding, public conversion
-entrance, source-span diagnostics and Audio/non-Audio integrations remain open.
+or refusal. Extended runtime admission, public conversion entrance and Audio/non-Audio
+integrations remain open. Startup eligibility diagnostics retain the original
+literal span, and highlighting recognizes extended literals without claiming
+the legacy representation can realize them.
 
 Catalogue conformance covers every official prefix against every reviewed base,
 power composition, mass and stacking exclusions, case/confusables, and retained
@@ -96,8 +99,32 @@ remain independent source facts; normalization of the semantic coordinate does
 not authorize a formatter rewrite.
 
 This codec is not yet a checked Plot primitive, admitted target profile or public
-conversion entrance. Target eligibility, exact rational physical-reference
-comparison, conversion receipts, temperature differences and integrations still
-need their own implementation and evidence. No silent projection to the legacy
+conversion entrance. Target eligibility, conversion receipts, temperature differences and integrations
+still need their own implementation and evidence. No silent projection to the legacy
 9-byte encoding is provided. A decimal output profile cannot represent every
 rational coordinate; exact conversions must report inexactness when appropriate.
+
+
+## Shared exact conversion law under development
+
+Both numeric profiles use one rational unit scale/offset law. Legacy conversion
+and comparison retain checked `i128` intermediates and the original precision
+and range refusals. Explicit extended conversion uses 64 fixed base-10^9 limbs
+(576 decimal digits) for intermediates, with no allocation. The checked input
+profile, reviewed transforms and pairwise common-reference products fit within
+that capacity; arithmetic still checks every carry and refuses capacity overflow.
+Binary long division has at most 1920 bit steps. Exact target decimal projection
+reduces numerator and denominator, permits only denominator factors 2 and 5,
+and checks the resulting 38-digit coefficient and ±128 exponent profile.
+It never generates a repeating decimal or rounds to fit a selected profile.
+
+`ExactDecimalQuantity::convert_to_legacy` explicitly projects to an existing
+integer unit tag. `convert_to_decimal` explicitly selects the bounded decimal
+coordinate in an existing reviewed unit. `compare` uses the same physical
+reference without selecting a lossy target. Component conformance includes
+`0°C` → `273.15K`, `30°C` → `86°F`, inch-to-meter rational conversion, squared
+prefixes, decimal/binary bytes, signed limits and cubic extreme comparisons.
+A non-terminating target coordinate (`1°F` → Celsius, or `1m` → inches) refuses
+as inexact. `Qm` projected to legacy meters refuses overflow; `qm` refuses
+inexactness. These Rust methods establish numeric behavior, not completion of
+the ordinary authored conversion or target-admission requirements.

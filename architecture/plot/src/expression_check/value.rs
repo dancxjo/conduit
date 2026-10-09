@@ -62,12 +62,24 @@ pub(super) fn atomic(
             span,
         );
     }
-    if let Ok(quantity) = conduit_core::Quantity::parse_plot_literal(text) {
-        return expected_or_exact(
-            CheckedExpressionType::semantic(quantity.dimension().info_id()),
-            expected,
-            span,
-        );
+    match conduit_core::Quantity::parse_plot_literal(text) {
+        Ok(quantity) => {
+            return expected_or_exact(
+                CheckedExpressionType::semantic(quantity.dimension().info_id()),
+                expected,
+                span,
+            )
+        }
+        Err(
+            refusal @ (conduit_core::QuantityLiteralRefusal::RepresentationIneligible { .. }
+            | conduit_core::QuantityLiteralRefusal::AmbiguousUnit),
+        ) => {
+            return refuse(
+                span,
+                &format!("quantity literal '{text}' refused: {refusal:?}"),
+            )
+        }
+        Err(_) => {}
     }
     let Some(expected) = expected else {
         return refuse(

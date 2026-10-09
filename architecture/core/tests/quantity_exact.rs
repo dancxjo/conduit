@@ -222,3 +222,92 @@ fn physical_conversion_and_comparison_keep_exact_scale_and_affine_laws() {
         );
     }
 }
+
+#[test]
+fn extended_target_projection_admits_only_exact_bounded_decimals() {
+    use conduit_core::QuantityConversionRefusal as Conversion;
+    for (source, target, expected) in [
+        ("0°C", QuantityUnit::Kelvin, "273.15K"),
+        ("30°C", QuantityUnit::Fahrenheit, "86°F"),
+        ("86°F", QuantityUnit::Celsius, "30°C"),
+        ("1in", QuantityUnit::Meter, "0.0254m"),
+        ("1qm³", QuantityUnit::CubicMeter, "1qm³"),
+        ("1Qm³", QuantityUnit::CubicMeter, "1Qm³"),
+        ("0m", QuantityUnit::Inch, "0in"),
+        ("-273.15°C", QuantityUnit::Kelvin, "0K"),
+    ] {
+        assert_eq!(
+            Exact::parse_plot_literal(source)
+                .unwrap()
+                .convert_to_decimal(target),
+            Exact::parse_plot_literal(expected).map_err(|_| Conversion::Overflow),
+            "{source}"
+        );
+    }
+    assert_eq!(
+        Exact::parse_plot_literal("1°F")
+            .unwrap()
+            .convert_to_decimal(QuantityUnit::Celsius),
+        Err(Conversion::Inexact)
+    );
+    assert_eq!(
+        Exact::parse_plot_literal("1m")
+            .unwrap()
+            .convert_to_decimal(QuantityUnit::Inch),
+        Err(Conversion::Inexact)
+    );
+    let largest = Exact::new(10_i128.pow(38) - 1, 128, QuantityUnit::Meter).unwrap();
+    assert_eq!(largest.convert_to_decimal(QuantityUnit::Meter), Ok(largest));
+    assert_eq!(
+        largest.convert_to_decimal(QuantityUnit::Millimeter),
+        Err(Conversion::Overflow)
+    );
+    let smallest = Exact::new(1, -128, QuantityUnit::Meter).unwrap();
+    assert_eq!(
+        smallest.convert_to_decimal(QuantityUnit::Meter),
+        Ok(smallest)
+    );
+    assert_eq!(
+        smallest.convert_to_decimal(QuantityUnit::Kilometer),
+        Err(Conversion::Overflow)
+    );
+}
+
+#[test]
+fn legacy_literal_target_distinguishes_known_scale_from_numeric_eligibility() {
+    use conduit_core::{
+        QuantityLiteralRefusal as Literal, QuantityRepresentationRefusal as Eligibility,
+    };
+    for source in ["1Qm", "1qm", "1Qm³", "1qm³", "1um2", "1uW"] {
+        assert_eq!(
+            Quantity::parse_plot_literal(source),
+            Err(Literal::RepresentationIneligible {
+                profile: conduit_core::QUANTITY_INFO_ID,
+                reason: Eligibility::NoExactLegacyUnit,
+            }),
+            "{source}"
+        );
+        assert!(Exact::parse_plot_literal(source).is_ok());
+    }
+    for source in ["1dam", "1hm", "1Em", "1dam2", "1000uW", "1dg"] {
+        let legacy = Quantity::parse_plot_literal(source).unwrap();
+        let extended = Exact::parse_plot_literal(source).unwrap();
+        assert_eq!(
+            extended.convert_to_legacy(legacy.unit()),
+            Ok(legacy),
+            "{source}"
+        );
+    }
+    // Coarser exact storage remains eligible even when the first fine unit
+    // in the original search order would overflow.
+    assert_eq!(
+        Quantity::parse_plot_literal("1Em").unwrap().value(),
+        1_000_000_000_000_000_000
+    );
+    for source in ["1mkg", "1kkm", "1μm", "1qpx"] {
+        assert_eq!(
+            Quantity::parse_plot_literal(source),
+            Err(Literal::UnknownUnit)
+        );
+    }
+}

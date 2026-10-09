@@ -547,6 +547,7 @@ pub(crate) enum SyntaxCheckError {
     DuplicateGear(String),
     UnsupportedExpression(String),
     QuantityLiteral(String),
+    QuantityEligibility(String, Option<Span>),
     InvalidIntegerLiteral(String),
     AmbiguousFrontName(String),
     StructuredExpression(String, Option<Span>),
@@ -611,6 +612,7 @@ impl SyntaxCheckError {
                 None,
             ),
             Self::QuantityLiteral(detail) => ("CND-FRM-055", detail, None),
+            Self::QuantityEligibility(detail, owned_span) => ("CND-FRM-055", detail, owned_span),
             Self::InvalidIntegerLiteral(detail) => ("CND-FRM-055", detail, None),
             Self::AmbiguousFrontName(name) => (
                 "CND-FRM-050",

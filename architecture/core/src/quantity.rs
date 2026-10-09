@@ -4,6 +4,7 @@ mod conversion;
 mod conversion_law;
 mod exact;
 mod literal;
+mod literal_eligibility;
 mod magnitude;
 mod wide_conversion;
 
@@ -258,9 +259,28 @@ pub enum QuantityLiteralRefusal {
     InvalidValue,
     MissingUnit,
     UnknownUnit,
-    NonCanonicalUnit { canonical: &'static str },
+    AmbiguousUnit,
+    RepresentationIneligible {
+        profile: &'static str,
+        reason: QuantityRepresentationRefusal,
+    },
+    NonCanonicalUnit {
+        canonical: &'static str,
+    },
     Inexact,
     Overflow,
+}
+
+/// Numeric eligibility is separate from suffix recognition. These refusals
+/// identify the selected finite profile without classifying a known SI unit
+/// as unknown or silently changing persisted quantity identities.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum QuantityRepresentationRefusal {
+    NoExactLegacyUnit,
+    LiteralTooLong,
+    NumberTooLong,
+    SignificantDigitsExceeded,
+    ExponentOutOfRange,
 }
 
 impl QuantityUnit {
