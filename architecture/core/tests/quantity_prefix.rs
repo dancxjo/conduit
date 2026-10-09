@@ -1,5 +1,5 @@
 use conduit_core::{
-    DECIMAL_PREFIXES, DecimalPrefix, PREFIXABLE_UNITS, PrefixableUnit, QuantityUnit,
+    DecimalPrefix, PrefixableUnit, QuantityUnit, DECIMAL_PREFIXES, PREFIXABLE_UNITS,
 };
 
 #[test]
@@ -47,12 +47,11 @@ fn official_catalogue_and_complete_compatibility_matrix_are_exact() {
         }
     }
     for (index, prefix) in DECIMAL_PREFIXES.iter().enumerate() {
-        assert!(
-            DECIMAL_PREFIXES[index + 1..]
-                .iter()
-                .all(|other| prefix.symbol() != other.symbol()
-                    && prefix.exponent() != other.exponent())
-        );
+        assert!(DECIMAL_PREFIXES[index + 1..]
+            .iter()
+            .all(
+                |other| prefix.symbol() != other.symbol() && prefix.exponent() != other.exponent()
+            ));
     }
 }
 

@@ -1,7 +1,10 @@
 //! Typed finite quantities with exact-only conversions.
 
 mod conversion;
+mod exact;
 mod literal;
+
+pub use exact::*;
 
 use conversion::{canonical_fraction, convert_exact_rational, is_radian};
 use core::cmp::Ordering;

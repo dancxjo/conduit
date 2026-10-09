@@ -4,8 +4,8 @@
 //! from eligibility for the legacy one-byte unit representation.
 
 use crate::{
-    DECIMAL_PREFIXES, DecimalPrefix, PREFIXABLE_UNITS, PrefixableUnit, QuantityLiteralRefusal,
-    QuantityUnit,
+    DecimalPrefix, PrefixableUnit, QuantityLiteralRefusal, QuantityUnit, DECIMAL_PREFIXES,
+    PREFIXABLE_UNITS,
 };
 
 /// A source spelling is retained verbatim; aliases do not change that identity.

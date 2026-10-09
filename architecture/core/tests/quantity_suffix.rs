@@ -1,6 +1,6 @@
 use conduit_core::{
-    DECIMAL_PREFIXES, PREFIXABLE_UNITS, QuantityLiteralRefusal, QuantitySuffixAlias,
-    QuantitySuffixRefusal, QuantityUnit, ResolvedQuantitySuffix,
+    QuantityLiteralRefusal, QuantitySuffixAlias, QuantitySuffixRefusal, QuantityUnit,
+    ResolvedQuantitySuffix, DECIMAL_PREFIXES, PREFIXABLE_UNITS,
 };
 
 #[test]

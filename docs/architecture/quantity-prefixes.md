@@ -75,3 +75,29 @@ power composition, mass and stacking exclusions, case/confusables, and retained
 legacy aliases. Existing Quantity tests still cover finite exact conversions,
 legacy tags and structured transport. Those component results do not establish
 browser execution or complete issue acceptance.
+
+## Bounded exact decimal codec under development
+
+`ExactDecimalQuantity` is a separate 20-byte versioned coordinate encoding:
+version byte, existing reviewed unit tag, little-endian signed 16-bit decimal
+exponent and little-endian signed 128-bit coefficient. It admits at most 38
+significant decimal digits and exponents from -128 through +128. Authored input
+is bounded to 128 bytes, with at most 96 numeric bytes. Parsing and normalization
+use bounded iteration without allocation or floating point. Normalized zero has
+coefficient/exponent zero; decoding refuses noncanonical encodings.
+
+Prefix resolution selects the reviewed base and composes its exponent with the
+literal's exact decimal scale. Historical unprefixable units retain their
+existing unit and coordinate transform. `Qm`, `qm` and cubic extreme prefixes
+can therefore have recognized exact coordinates without inventing legacy unit
+tags. Scientific exponent notation is explicitly refused rather than being
+confused with a unit prefix. The caller's authored source and resolved suffix
+remain independent source facts; normalization of the semantic coordinate does
+not authorize a formatter rewrite.
+
+This codec is not yet a checked Plot primitive, admitted target profile or public
+conversion entrance. Target eligibility, exact rational physical-reference
+comparison, conversion receipts, temperature differences and integrations still
+need their own implementation and evidence. No silent projection to the legacy
+9-byte encoding is provided. A decimal output profile cannot represent every
+rational coordinate; exact conversions must report inexactness when appropriate.
