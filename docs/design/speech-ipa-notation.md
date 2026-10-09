@@ -293,16 +293,20 @@ resolution and encoding happen before Play. The existing structured-literal
 Back emits one prepared typed Value and retains it while output is pressured;
 it introduces no Host Calls, timer, playback, grants or parser allocation in Step.
 
-The supported `cargo xtask check speech-ipa` suite now includes these Source,
-installed-host, pressure and product-diagnostic contracts. All three quoted Source conformance tests and the installed-host test pass through
-normal Cargo. The host test executes all four constructors through Source, checking,
-planning, installed preparation and the kernel, with exact Native outputs, one
-emission, stable Value capacity, no Host Calls and no playback. Both focused
-installed-Back tests pass (exact offer/configuration refusal and pressure). The baseline supported suite passes 454 tests and the Thumb no_std
-contract compile. Strict all-target Clippy passes for the affected packages;
-a final 16-test rerun covers the diagnostic layout and test-only lint fixes.
-These are development results for this candidate, not proof of the reconciled
-integration required by #5329 or stable acceptance. Existing lossless CST and highlighter checks cover quoted Unicode.
+The supported `cargo xtask check speech-ipa` suite includes these Source,
+installed-host, pressure, cancellation and product-diagnostic contracts. The
+[reconciliation proof packet](../../proof/speech/ipa-reconciliation/README.md)
+records 1,121 passing tests across 25 test targets and Thumb no_std compilation
+on one frozen head. The host test executes all four constructors through Source,
+checking, planning, installed preparation and the kernel, independently
+re-admitting exact Native outputs against complete planned inventory material.
+It verifies one emission, stable Value capacity, no Host Calls and no playback.
+Three private installed-Back tests cover exact offer/configuration refusal,
+pressure and cancellation. Strict affected-package all-target Clippy, workspace
+Rust formatting and 11 CI foundation regressions pass separately. Nine existing
+environment-dependent std tests are ignored; none are IPA tests. Required CI
+and accepted integration remain pending. Existing lossless CST and highlighter
+checks cover quoted Unicode.
 No `.conduit` formatter is available in the current product; CST round-trip is
 source custody, not a formatter-idempotence claim. Rust formatting is checked
 separately. Optional notation formatter conformance remains with #5317.
@@ -317,9 +321,9 @@ shape-only identities refuse rather than being coerced into the checked basis.
 
 The public constructor selection and incompatible draft schema migration are
 now pinned in [the #5329 reconciliation decision](speech-ipa-constructor-reconciliation.md).
-The canonical IPA commit stack has been replayed onto #5208 foundation
-`0acf94d2f105c45b95e0e0b60def7c6bbfaa832e`; existing foundation nominal
-evaluator fixes were retained rather than duplicated. Fresh combined-head proof
-is required. The competing HostCall route stays preserved on #5327, outside
+The canonical IPA commit stack has been replayed onto `dev` after #5208 landed
+at `33b85c2c45ddf5c903ef554e3c7f96570e721acd`; existing foundation nominal
+evaluator fixes were retained. The replay's complete tree is identical to the
+locally tested head. The competing HostCall route stays preserved on #5327, outside
 the installed constructor surface. `ph` is the preferred local notation alias;
 its spelling is neither a global keyword nor a semantic identity.
