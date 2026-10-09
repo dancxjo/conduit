@@ -28,6 +28,7 @@ pub enum PrimitiveInfoKind {
     Text,
     Bytes,
     Quantity,
+    ExactDecimalQuantity,
     QuantityUnit,
     Distance,
     Frequency,
@@ -61,6 +62,7 @@ pub enum PrimitiveInfoRefusal {
     Scalar(InfoDecodeError),
     TextUtf8,
     Quantity(QuantityDecodeRefusal),
+    ExactDecimalQuantity(crate::ExactDecimalQuantityRefusal),
     QuantityUnit(QuantityDecodeRefusal),
     Terminal(TerminalInfoDecodeRefusal),
     WrongQuantityDimension {
@@ -88,6 +90,7 @@ pub const fn primitive_info_kind(identity: &str) -> Option<PrimitiveInfoKind> {
         b"value/text" => Some(PrimitiveInfoKind::Text),
         b"value/bytes" => Some(PrimitiveInfoKind::Bytes),
         b"value/quantity" => Some(PrimitiveInfoKind::Quantity),
+        b"value/exact-decimal-quantity@1" => Some(PrimitiveInfoKind::ExactDecimalQuantity),
         b"value/quantity-unit" => Some(PrimitiveInfoKind::QuantityUnit),
         b"value/distance" => Some(PrimitiveInfoKind::Distance),
         b"value/frequency" => Some(PrimitiveInfoKind::Frequency),
@@ -148,6 +151,11 @@ pub fn validate_primitive_info(identity: &str, encoded: &[u8]) -> Result<(), Pri
         Some(PrimitiveInfoKind::Quantity) => Quantity::decode(encoded)
             .map(|_| ())
             .map_err(PrimitiveInfoRefusal::Quantity),
+        Some(PrimitiveInfoKind::ExactDecimalQuantity) => {
+            crate::ExactDecimalQuantity::decode(encoded)
+                .map(|_| ())
+                .map_err(PrimitiveInfoRefusal::ExactDecimalQuantity)
+        }
         Some(PrimitiveInfoKind::QuantityUnit) => QuantityUnit::decode(encoded)
             .map(|_| ())
             .map_err(PrimitiveInfoRefusal::QuantityUnit),

@@ -6,7 +6,10 @@ impl Parser<'_> {
         depth: usize,
     ) -> Result<ExpressionSyntax, (String, Span)> {
         let start = self.offset;
-        let path = self.semantic_path_end();
+        let path = self.semantic_path_end().or_else(|| {
+            crate::quantity_literal::compound_token_length(&self.text[start..])
+                .map(|length| start + length)
+        });
         if let Some(end) = path {
             self.offset = end;
         } else {

@@ -46,6 +46,8 @@ mod indicator_host;
 mod input_semantic_backs;
 mod instrument_map_back;
 mod ipa_constructor_back;
+mod quantity_conversion_back;
+pub(super) use quantity_conversion_back::offers as quantity_conversion_offers;
 mod json_backs;
 mod json_summary_back;
 mod kernel_preparation;

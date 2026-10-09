@@ -1,0 +1,8627 @@
+{
+  "reference": "SI affine temperature equations; Python Fraction; no Rust output",
+  "cases": [
+    {
+      "role": "point",
+      "source": "0K",
+      "target": "K",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "0K",
+      "target": "mK",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "0K",
+      "target": "µK",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "0K",
+      "target": "QK",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "0K",
+      "target": "qK",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "0K",
+      "target": "°C",
+      "numerator": "-5463",
+      "denominator": "20",
+      "coefficient": "-27315",
+      "exponent": -2
+    },
+    {
+      "role": "point",
+      "source": "0K",
+      "target": "m°C",
+      "numerator": "-273150",
+      "denominator": "1",
+      "coefficient": "-27315",
+      "exponent": 1
+    },
+    {
+      "role": "point",
+      "source": "0K",
+      "target": "°F",
+      "numerator": "-45967",
+      "denominator": "100",
+      "coefficient": "-45967",
+      "exponent": -2
+    },
+    {
+      "role": "point",
+      "source": "0K",
+      "target": "m°F",
+      "numerator": "-459670",
+      "denominator": "1",
+      "coefficient": "-45967",
+      "exponent": 1
+    },
+    {
+      "role": "point",
+      "source": "1K",
+      "target": "K",
+      "numerator": "1",
+      "denominator": "1",
+      "coefficient": "1",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "1K",
+      "target": "mK",
+      "numerator": "1000",
+      "denominator": "1",
+      "coefficient": "1",
+      "exponent": 3
+    },
+    {
+      "role": "point",
+      "source": "1K",
+      "target": "µK",
+      "numerator": "1000000",
+      "denominator": "1",
+      "coefficient": "1",
+      "exponent": 6
+    },
+    {
+      "role": "point",
+      "source": "1K",
+      "target": "QK",
+      "numerator": "1",
+      "denominator": "1000000000000000000000000000000",
+      "coefficient": "1",
+      "exponent": -30
+    },
+    {
+      "role": "point",
+      "source": "1K",
+      "target": "qK",
+      "numerator": "1000000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "1",
+      "exponent": 30
+    },
+    {
+      "role": "point",
+      "source": "1K",
+      "target": "°C",
+      "numerator": "-5443",
+      "denominator": "20",
+      "coefficient": "-27215",
+      "exponent": -2
+    },
+    {
+      "role": "point",
+      "source": "1K",
+      "target": "m°C",
+      "numerator": "-272150",
+      "denominator": "1",
+      "coefficient": "-27215",
+      "exponent": 1
+    },
+    {
+      "role": "point",
+      "source": "1K",
+      "target": "°F",
+      "numerator": "-45787",
+      "denominator": "100",
+      "coefficient": "-45787",
+      "exponent": -2
+    },
+    {
+      "role": "point",
+      "source": "1K",
+      "target": "m°F",
+      "numerator": "-457870",
+      "denominator": "1",
+      "coefficient": "-45787",
+      "exponent": 1
+    },
+    {
+      "role": "point",
+      "source": "-1K",
+      "target": "K",
+      "numerator": "-1",
+      "denominator": "1",
+      "coefficient": "-1",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "-1K",
+      "target": "mK",
+      "numerator": "-1000",
+      "denominator": "1",
+      "coefficient": "-1",
+      "exponent": 3
+    },
+    {
+      "role": "point",
+      "source": "-1K",
+      "target": "µK",
+      "numerator": "-1000000",
+      "denominator": "1",
+      "coefficient": "-1",
+      "exponent": 6
+    },
+    {
+      "role": "point",
+      "source": "-1K",
+      "target": "QK",
+      "numerator": "-1",
+      "denominator": "1000000000000000000000000000000",
+      "coefficient": "-1",
+      "exponent": -30
+    },
+    {
+      "role": "point",
+      "source": "-1K",
+      "target": "qK",
+      "numerator": "-1000000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "-1",
+      "exponent": 30
+    },
+    {
+      "role": "point",
+      "source": "-1K",
+      "target": "°C",
+      "numerator": "-5483",
+      "denominator": "20",
+      "coefficient": "-27415",
+      "exponent": -2
+    },
+    {
+      "role": "point",
+      "source": "-1K",
+      "target": "m°C",
+      "numerator": "-274150",
+      "denominator": "1",
+      "coefficient": "-27415",
+      "exponent": 1
+    },
+    {
+      "role": "point",
+      "source": "-1K",
+      "target": "°F",
+      "numerator": "-46147",
+      "denominator": "100",
+      "coefficient": "-46147",
+      "exponent": -2
+    },
+    {
+      "role": "point",
+      "source": "-1K",
+      "target": "m°F",
+      "numerator": "-461470",
+      "denominator": "1",
+      "coefficient": "-46147",
+      "exponent": 1
+    },
+    {
+      "role": "point",
+      "source": "9K",
+      "target": "K",
+      "numerator": "9",
+      "denominator": "1",
+      "coefficient": "9",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "9K",
+      "target": "mK",
+      "numerator": "9000",
+      "denominator": "1",
+      "coefficient": "9",
+      "exponent": 3
+    },
+    {
+      "role": "point",
+      "source": "9K",
+      "target": "µK",
+      "numerator": "9000000",
+      "denominator": "1",
+      "coefficient": "9",
+      "exponent": 6
+    },
+    {
+      "role": "point",
+      "source": "9K",
+      "target": "QK",
+      "numerator": "9",
+      "denominator": "1000000000000000000000000000000",
+      "coefficient": "9",
+      "exponent": -30
+    },
+    {
+      "role": "point",
+      "source": "9K",
+      "target": "qK",
+      "numerator": "9000000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "9",
+      "exponent": 30
+    },
+    {
+      "role": "point",
+      "source": "9K",
+      "target": "°C",
+      "numerator": "-5283",
+      "denominator": "20",
+      "coefficient": "-26415",
+      "exponent": -2
+    },
+    {
+      "role": "point",
+      "source": "9K",
+      "target": "m°C",
+      "numerator": "-264150",
+      "denominator": "1",
+      "coefficient": "-26415",
+      "exponent": 1
+    },
+    {
+      "role": "point",
+      "source": "9K",
+      "target": "°F",
+      "numerator": "-44347",
+      "denominator": "100",
+      "coefficient": "-44347",
+      "exponent": -2
+    },
+    {
+      "role": "point",
+      "source": "9K",
+      "target": "m°F",
+      "numerator": "-443470",
+      "denominator": "1",
+      "coefficient": "-44347",
+      "exponent": 1
+    },
+    {
+      "role": "point",
+      "source": "30K",
+      "target": "K",
+      "numerator": "30",
+      "denominator": "1",
+      "coefficient": "3",
+      "exponent": 1
+    },
+    {
+      "role": "point",
+      "source": "30K",
+      "target": "mK",
+      "numerator": "30000",
+      "denominator": "1",
+      "coefficient": "3",
+      "exponent": 4
+    },
+    {
+      "role": "point",
+      "source": "30K",
+      "target": "µK",
+      "numerator": "30000000",
+      "denominator": "1",
+      "coefficient": "3",
+      "exponent": 7
+    },
+    {
+      "role": "point",
+      "source": "30K",
+      "target": "QK",
+      "numerator": "3",
+      "denominator": "100000000000000000000000000000",
+      "coefficient": "3",
+      "exponent": -29
+    },
+    {
+      "role": "point",
+      "source": "30K",
+      "target": "qK",
+      "numerator": "30000000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "3",
+      "exponent": 31
+    },
+    {
+      "role": "point",
+      "source": "30K",
+      "target": "°C",
+      "numerator": "-4863",
+      "denominator": "20",
+      "coefficient": "-24315",
+      "exponent": -2
+    },
+    {
+      "role": "point",
+      "source": "30K",
+      "target": "m°C",
+      "numerator": "-243150",
+      "denominator": "1",
+      "coefficient": "-24315",
+      "exponent": 1
+    },
+    {
+      "role": "point",
+      "source": "30K",
+      "target": "°F",
+      "numerator": "-40567",
+      "denominator": "100",
+      "coefficient": "-40567",
+      "exponent": -2
+    },
+    {
+      "role": "point",
+      "source": "30K",
+      "target": "m°F",
+      "numerator": "-405670",
+      "denominator": "1",
+      "coefficient": "-40567",
+      "exponent": 1
+    },
+    {
+      "role": "point",
+      "source": "273.15K",
+      "target": "K",
+      "numerator": "5463",
+      "denominator": "20",
+      "coefficient": "27315",
+      "exponent": -2
+    },
+    {
+      "role": "point",
+      "source": "273.15K",
+      "target": "mK",
+      "numerator": "273150",
+      "denominator": "1",
+      "coefficient": "27315",
+      "exponent": 1
+    },
+    {
+      "role": "point",
+      "source": "273.15K",
+      "target": "µK",
+      "numerator": "273150000",
+      "denominator": "1",
+      "coefficient": "27315",
+      "exponent": 4
+    },
+    {
+      "role": "point",
+      "source": "273.15K",
+      "target": "QK",
+      "numerator": "5463",
+      "denominator": "20000000000000000000000000000000",
+      "coefficient": "27315",
+      "exponent": -32
+    },
+    {
+      "role": "point",
+      "source": "273.15K",
+      "target": "qK",
+      "numerator": "273150000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "27315",
+      "exponent": 28
+    },
+    {
+      "role": "point",
+      "source": "273.15K",
+      "target": "°C",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "273.15K",
+      "target": "m°C",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "273.15K",
+      "target": "°F",
+      "numerator": "32",
+      "denominator": "1",
+      "coefficient": "32",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "273.15K",
+      "target": "m°F",
+      "numerator": "32000",
+      "denominator": "1",
+      "coefficient": "32",
+      "exponent": 3
+    },
+    {
+      "role": "point",
+      "source": "0mK",
+      "target": "K",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "0mK",
+      "target": "mK",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "0mK",
+      "target": "µK",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "0mK",
+      "target": "QK",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "0mK",
+      "target": "qK",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "0mK",
+      "target": "°C",
+      "numerator": "-5463",
+      "denominator": "20",
+      "coefficient": "-27315",
+      "exponent": -2
+    },
+    {
+      "role": "point",
+      "source": "0mK",
+      "target": "m°C",
+      "numerator": "-273150",
+      "denominator": "1",
+      "coefficient": "-27315",
+      "exponent": 1
+    },
+    {
+      "role": "point",
+      "source": "0mK",
+      "target": "°F",
+      "numerator": "-45967",
+      "denominator": "100",
+      "coefficient": "-45967",
+      "exponent": -2
+    },
+    {
+      "role": "point",
+      "source": "0mK",
+      "target": "m°F",
+      "numerator": "-459670",
+      "denominator": "1",
+      "coefficient": "-45967",
+      "exponent": 1
+    },
+    {
+      "role": "point",
+      "source": "1mK",
+      "target": "K",
+      "numerator": "1",
+      "denominator": "1000",
+      "coefficient": "1",
+      "exponent": -3
+    },
+    {
+      "role": "point",
+      "source": "1mK",
+      "target": "mK",
+      "numerator": "1",
+      "denominator": "1",
+      "coefficient": "1",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "1mK",
+      "target": "µK",
+      "numerator": "1000",
+      "denominator": "1",
+      "coefficient": "1",
+      "exponent": 3
+    },
+    {
+      "role": "point",
+      "source": "1mK",
+      "target": "QK",
+      "numerator": "1",
+      "denominator": "1000000000000000000000000000000000",
+      "coefficient": "1",
+      "exponent": -33
+    },
+    {
+      "role": "point",
+      "source": "1mK",
+      "target": "qK",
+      "numerator": "1000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "1",
+      "exponent": 27
+    },
+    {
+      "role": "point",
+      "source": "1mK",
+      "target": "°C",
+      "numerator": "-273149",
+      "denominator": "1000",
+      "coefficient": "-273149",
+      "exponent": -3
+    },
+    {
+      "role": "point",
+      "source": "1mK",
+      "target": "m°C",
+      "numerator": "-273149",
+      "denominator": "1",
+      "coefficient": "-273149",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "1mK",
+      "target": "°F",
+      "numerator": "-2298341",
+      "denominator": "5000",
+      "coefficient": "-4596682",
+      "exponent": -4
+    },
+    {
+      "role": "point",
+      "source": "1mK",
+      "target": "m°F",
+      "numerator": "-2298341",
+      "denominator": "5",
+      "coefficient": "-4596682",
+      "exponent": -1
+    },
+    {
+      "role": "point",
+      "source": "-1mK",
+      "target": "K",
+      "numerator": "-1",
+      "denominator": "1000",
+      "coefficient": "-1",
+      "exponent": -3
+    },
+    {
+      "role": "point",
+      "source": "-1mK",
+      "target": "mK",
+      "numerator": "-1",
+      "denominator": "1",
+      "coefficient": "-1",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "-1mK",
+      "target": "µK",
+      "numerator": "-1000",
+      "denominator": "1",
+      "coefficient": "-1",
+      "exponent": 3
+    },
+    {
+      "role": "point",
+      "source": "-1mK",
+      "target": "QK",
+      "numerator": "-1",
+      "denominator": "1000000000000000000000000000000000",
+      "coefficient": "-1",
+      "exponent": -33
+    },
+    {
+      "role": "point",
+      "source": "-1mK",
+      "target": "qK",
+      "numerator": "-1000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "-1",
+      "exponent": 27
+    },
+    {
+      "role": "point",
+      "source": "-1mK",
+      "target": "°C",
+      "numerator": "-273151",
+      "denominator": "1000",
+      "coefficient": "-273151",
+      "exponent": -3
+    },
+    {
+      "role": "point",
+      "source": "-1mK",
+      "target": "m°C",
+      "numerator": "-273151",
+      "denominator": "1",
+      "coefficient": "-273151",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "-1mK",
+      "target": "°F",
+      "numerator": "-2298359",
+      "denominator": "5000",
+      "coefficient": "-4596718",
+      "exponent": -4
+    },
+    {
+      "role": "point",
+      "source": "-1mK",
+      "target": "m°F",
+      "numerator": "-2298359",
+      "denominator": "5",
+      "coefficient": "-4596718",
+      "exponent": -1
+    },
+    {
+      "role": "point",
+      "source": "9mK",
+      "target": "K",
+      "numerator": "9",
+      "denominator": "1000",
+      "coefficient": "9",
+      "exponent": -3
+    },
+    {
+      "role": "point",
+      "source": "9mK",
+      "target": "mK",
+      "numerator": "9",
+      "denominator": "1",
+      "coefficient": "9",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "9mK",
+      "target": "µK",
+      "numerator": "9000",
+      "denominator": "1",
+      "coefficient": "9",
+      "exponent": 3
+    },
+    {
+      "role": "point",
+      "source": "9mK",
+      "target": "QK",
+      "numerator": "9",
+      "denominator": "1000000000000000000000000000000000",
+      "coefficient": "9",
+      "exponent": -33
+    },
+    {
+      "role": "point",
+      "source": "9mK",
+      "target": "qK",
+      "numerator": "9000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "9",
+      "exponent": 27
+    },
+    {
+      "role": "point",
+      "source": "9mK",
+      "target": "°C",
+      "numerator": "-273141",
+      "denominator": "1000",
+      "coefficient": "-273141",
+      "exponent": -3
+    },
+    {
+      "role": "point",
+      "source": "9mK",
+      "target": "m°C",
+      "numerator": "-273141",
+      "denominator": "1",
+      "coefficient": "-273141",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "9mK",
+      "target": "°F",
+      "numerator": "-2298269",
+      "denominator": "5000",
+      "coefficient": "-4596538",
+      "exponent": -4
+    },
+    {
+      "role": "point",
+      "source": "9mK",
+      "target": "m°F",
+      "numerator": "-2298269",
+      "denominator": "5",
+      "coefficient": "-4596538",
+      "exponent": -1
+    },
+    {
+      "role": "point",
+      "source": "30mK",
+      "target": "K",
+      "numerator": "3",
+      "denominator": "100",
+      "coefficient": "3",
+      "exponent": -2
+    },
+    {
+      "role": "point",
+      "source": "30mK",
+      "target": "mK",
+      "numerator": "30",
+      "denominator": "1",
+      "coefficient": "3",
+      "exponent": 1
+    },
+    {
+      "role": "point",
+      "source": "30mK",
+      "target": "µK",
+      "numerator": "30000",
+      "denominator": "1",
+      "coefficient": "3",
+      "exponent": 4
+    },
+    {
+      "role": "point",
+      "source": "30mK",
+      "target": "QK",
+      "numerator": "3",
+      "denominator": "100000000000000000000000000000000",
+      "coefficient": "3",
+      "exponent": -32
+    },
+    {
+      "role": "point",
+      "source": "30mK",
+      "target": "qK",
+      "numerator": "30000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "3",
+      "exponent": 28
+    },
+    {
+      "role": "point",
+      "source": "30mK",
+      "target": "°C",
+      "numerator": "-6828",
+      "denominator": "25",
+      "coefficient": "-27312",
+      "exponent": -2
+    },
+    {
+      "role": "point",
+      "source": "30mK",
+      "target": "m°C",
+      "numerator": "-273120",
+      "denominator": "1",
+      "coefficient": "-27312",
+      "exponent": 1
+    },
+    {
+      "role": "point",
+      "source": "30mK",
+      "target": "°F",
+      "numerator": "-57452",
+      "denominator": "125",
+      "coefficient": "-459616",
+      "exponent": -3
+    },
+    {
+      "role": "point",
+      "source": "30mK",
+      "target": "m°F",
+      "numerator": "-459616",
+      "denominator": "1",
+      "coefficient": "-459616",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "273.15mK",
+      "target": "K",
+      "numerator": "5463",
+      "denominator": "20000",
+      "coefficient": "27315",
+      "exponent": -5
+    },
+    {
+      "role": "point",
+      "source": "273.15mK",
+      "target": "mK",
+      "numerator": "5463",
+      "denominator": "20",
+      "coefficient": "27315",
+      "exponent": -2
+    },
+    {
+      "role": "point",
+      "source": "273.15mK",
+      "target": "µK",
+      "numerator": "273150",
+      "denominator": "1",
+      "coefficient": "27315",
+      "exponent": 1
+    },
+    {
+      "role": "point",
+      "source": "273.15mK",
+      "target": "QK",
+      "numerator": "5463",
+      "denominator": "20000000000000000000000000000000000",
+      "coefficient": "27315",
+      "exponent": -35
+    },
+    {
+      "role": "point",
+      "source": "273.15mK",
+      "target": "qK",
+      "numerator": "273150000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "27315",
+      "exponent": 25
+    },
+    {
+      "role": "point",
+      "source": "273.15mK",
+      "target": "°C",
+      "numerator": "-5457537",
+      "denominator": "20000",
+      "coefficient": "-27287685",
+      "exponent": -5
+    },
+    {
+      "role": "point",
+      "source": "273.15mK",
+      "target": "m°C",
+      "numerator": "-5457537",
+      "denominator": "20",
+      "coefficient": "-27287685",
+      "exponent": -2
+    },
+    {
+      "role": "point",
+      "source": "273.15mK",
+      "target": "°F",
+      "numerator": "-45917833",
+      "denominator": "100000",
+      "coefficient": "-45917833",
+      "exponent": -5
+    },
+    {
+      "role": "point",
+      "source": "273.15mK",
+      "target": "m°F",
+      "numerator": "-45917833",
+      "denominator": "100",
+      "coefficient": "-45917833",
+      "exponent": -2
+    },
+    {
+      "role": "point",
+      "source": "0µK",
+      "target": "K",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "0µK",
+      "target": "mK",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "0µK",
+      "target": "µK",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "0µK",
+      "target": "QK",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "0µK",
+      "target": "qK",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "0µK",
+      "target": "°C",
+      "numerator": "-5463",
+      "denominator": "20",
+      "coefficient": "-27315",
+      "exponent": -2
+    },
+    {
+      "role": "point",
+      "source": "0µK",
+      "target": "m°C",
+      "numerator": "-273150",
+      "denominator": "1",
+      "coefficient": "-27315",
+      "exponent": 1
+    },
+    {
+      "role": "point",
+      "source": "0µK",
+      "target": "°F",
+      "numerator": "-45967",
+      "denominator": "100",
+      "coefficient": "-45967",
+      "exponent": -2
+    },
+    {
+      "role": "point",
+      "source": "0µK",
+      "target": "m°F",
+      "numerator": "-459670",
+      "denominator": "1",
+      "coefficient": "-45967",
+      "exponent": 1
+    },
+    {
+      "role": "point",
+      "source": "1µK",
+      "target": "K",
+      "numerator": "1",
+      "denominator": "1000000",
+      "coefficient": "1",
+      "exponent": -6
+    },
+    {
+      "role": "point",
+      "source": "1µK",
+      "target": "mK",
+      "numerator": "1",
+      "denominator": "1000",
+      "coefficient": "1",
+      "exponent": -3
+    },
+    {
+      "role": "point",
+      "source": "1µK",
+      "target": "µK",
+      "numerator": "1",
+      "denominator": "1",
+      "coefficient": "1",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "1µK",
+      "target": "QK",
+      "numerator": "1",
+      "denominator": "1000000000000000000000000000000000000",
+      "coefficient": "1",
+      "exponent": -36
+    },
+    {
+      "role": "point",
+      "source": "1µK",
+      "target": "qK",
+      "numerator": "1000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "1",
+      "exponent": 24
+    },
+    {
+      "role": "point",
+      "source": "1µK",
+      "target": "°C",
+      "numerator": "-273149999",
+      "denominator": "1000000",
+      "coefficient": "-273149999",
+      "exponent": -6
+    },
+    {
+      "role": "point",
+      "source": "1µK",
+      "target": "m°C",
+      "numerator": "-273149999",
+      "denominator": "1000",
+      "coefficient": "-273149999",
+      "exponent": -3
+    },
+    {
+      "role": "point",
+      "source": "1µK",
+      "target": "°F",
+      "numerator": "-2298349991",
+      "denominator": "5000000",
+      "coefficient": "-4596699982",
+      "exponent": -7
+    },
+    {
+      "role": "point",
+      "source": "1µK",
+      "target": "m°F",
+      "numerator": "-2298349991",
+      "denominator": "5000",
+      "coefficient": "-4596699982",
+      "exponent": -4
+    },
+    {
+      "role": "point",
+      "source": "-1µK",
+      "target": "K",
+      "numerator": "-1",
+      "denominator": "1000000",
+      "coefficient": "-1",
+      "exponent": -6
+    },
+    {
+      "role": "point",
+      "source": "-1µK",
+      "target": "mK",
+      "numerator": "-1",
+      "denominator": "1000",
+      "coefficient": "-1",
+      "exponent": -3
+    },
+    {
+      "role": "point",
+      "source": "-1µK",
+      "target": "µK",
+      "numerator": "-1",
+      "denominator": "1",
+      "coefficient": "-1",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "-1µK",
+      "target": "QK",
+      "numerator": "-1",
+      "denominator": "1000000000000000000000000000000000000",
+      "coefficient": "-1",
+      "exponent": -36
+    },
+    {
+      "role": "point",
+      "source": "-1µK",
+      "target": "qK",
+      "numerator": "-1000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "-1",
+      "exponent": 24
+    },
+    {
+      "role": "point",
+      "source": "-1µK",
+      "target": "°C",
+      "numerator": "-273150001",
+      "denominator": "1000000",
+      "coefficient": "-273150001",
+      "exponent": -6
+    },
+    {
+      "role": "point",
+      "source": "-1µK",
+      "target": "m°C",
+      "numerator": "-273150001",
+      "denominator": "1000",
+      "coefficient": "-273150001",
+      "exponent": -3
+    },
+    {
+      "role": "point",
+      "source": "-1µK",
+      "target": "°F",
+      "numerator": "-2298350009",
+      "denominator": "5000000",
+      "coefficient": "-4596700018",
+      "exponent": -7
+    },
+    {
+      "role": "point",
+      "source": "-1µK",
+      "target": "m°F",
+      "numerator": "-2298350009",
+      "denominator": "5000",
+      "coefficient": "-4596700018",
+      "exponent": -4
+    },
+    {
+      "role": "point",
+      "source": "9µK",
+      "target": "K",
+      "numerator": "9",
+      "denominator": "1000000",
+      "coefficient": "9",
+      "exponent": -6
+    },
+    {
+      "role": "point",
+      "source": "9µK",
+      "target": "mK",
+      "numerator": "9",
+      "denominator": "1000",
+      "coefficient": "9",
+      "exponent": -3
+    },
+    {
+      "role": "point",
+      "source": "9µK",
+      "target": "µK",
+      "numerator": "9",
+      "denominator": "1",
+      "coefficient": "9",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "9µK",
+      "target": "QK",
+      "numerator": "9",
+      "denominator": "1000000000000000000000000000000000000",
+      "coefficient": "9",
+      "exponent": -36
+    },
+    {
+      "role": "point",
+      "source": "9µK",
+      "target": "qK",
+      "numerator": "9000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "9",
+      "exponent": 24
+    },
+    {
+      "role": "point",
+      "source": "9µK",
+      "target": "°C",
+      "numerator": "-273149991",
+      "denominator": "1000000",
+      "coefficient": "-273149991",
+      "exponent": -6
+    },
+    {
+      "role": "point",
+      "source": "9µK",
+      "target": "m°C",
+      "numerator": "-273149991",
+      "denominator": "1000",
+      "coefficient": "-273149991",
+      "exponent": -3
+    },
+    {
+      "role": "point",
+      "source": "9µK",
+      "target": "°F",
+      "numerator": "-2298349919",
+      "denominator": "5000000",
+      "coefficient": "-4596699838",
+      "exponent": -7
+    },
+    {
+      "role": "point",
+      "source": "9µK",
+      "target": "m°F",
+      "numerator": "-2298349919",
+      "denominator": "5000",
+      "coefficient": "-4596699838",
+      "exponent": -4
+    },
+    {
+      "role": "point",
+      "source": "30µK",
+      "target": "K",
+      "numerator": "3",
+      "denominator": "100000",
+      "coefficient": "3",
+      "exponent": -5
+    },
+    {
+      "role": "point",
+      "source": "30µK",
+      "target": "mK",
+      "numerator": "3",
+      "denominator": "100",
+      "coefficient": "3",
+      "exponent": -2
+    },
+    {
+      "role": "point",
+      "source": "30µK",
+      "target": "µK",
+      "numerator": "30",
+      "denominator": "1",
+      "coefficient": "3",
+      "exponent": 1
+    },
+    {
+      "role": "point",
+      "source": "30µK",
+      "target": "QK",
+      "numerator": "3",
+      "denominator": "100000000000000000000000000000000000",
+      "coefficient": "3",
+      "exponent": -35
+    },
+    {
+      "role": "point",
+      "source": "30µK",
+      "target": "qK",
+      "numerator": "30000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "3",
+      "exponent": 25
+    },
+    {
+      "role": "point",
+      "source": "30µK",
+      "target": "°C",
+      "numerator": "-27314997",
+      "denominator": "100000",
+      "coefficient": "-27314997",
+      "exponent": -5
+    },
+    {
+      "role": "point",
+      "source": "30µK",
+      "target": "m°C",
+      "numerator": "-27314997",
+      "denominator": "100",
+      "coefficient": "-27314997",
+      "exponent": -2
+    },
+    {
+      "role": "point",
+      "source": "30µK",
+      "target": "°F",
+      "numerator": "-229834973",
+      "denominator": "500000",
+      "coefficient": "-459669946",
+      "exponent": -6
+    },
+    {
+      "role": "point",
+      "source": "30µK",
+      "target": "m°F",
+      "numerator": "-229834973",
+      "denominator": "500",
+      "coefficient": "-459669946",
+      "exponent": -3
+    },
+    {
+      "role": "point",
+      "source": "273.15µK",
+      "target": "K",
+      "numerator": "5463",
+      "denominator": "20000000",
+      "coefficient": "27315",
+      "exponent": -8
+    },
+    {
+      "role": "point",
+      "source": "273.15µK",
+      "target": "mK",
+      "numerator": "5463",
+      "denominator": "20000",
+      "coefficient": "27315",
+      "exponent": -5
+    },
+    {
+      "role": "point",
+      "source": "273.15µK",
+      "target": "µK",
+      "numerator": "5463",
+      "denominator": "20",
+      "coefficient": "27315",
+      "exponent": -2
+    },
+    {
+      "role": "point",
+      "source": "273.15µK",
+      "target": "QK",
+      "numerator": "5463",
+      "denominator": "20000000000000000000000000000000000000",
+      "coefficient": "27315",
+      "exponent": -38
+    },
+    {
+      "role": "point",
+      "source": "273.15µK",
+      "target": "qK",
+      "numerator": "273150000000000000000000000",
+      "denominator": "1",
+      "coefficient": "27315",
+      "exponent": 22
+    },
+    {
+      "role": "point",
+      "source": "273.15µK",
+      "target": "°C",
+      "numerator": "-5462994537",
+      "denominator": "20000000",
+      "coefficient": "-27314972685",
+      "exponent": -8
+    },
+    {
+      "role": "point",
+      "source": "273.15µK",
+      "target": "m°C",
+      "numerator": "-5462994537",
+      "denominator": "20000",
+      "coefficient": "-27314972685",
+      "exponent": -5
+    },
+    {
+      "role": "point",
+      "source": "273.15µK",
+      "target": "°F",
+      "numerator": "-45966950833",
+      "denominator": "100000000",
+      "coefficient": "-45966950833",
+      "exponent": -8
+    },
+    {
+      "role": "point",
+      "source": "273.15µK",
+      "target": "m°F",
+      "numerator": "-45966950833",
+      "denominator": "100000",
+      "coefficient": "-45966950833",
+      "exponent": -5
+    },
+    {
+      "role": "point",
+      "source": "0QK",
+      "target": "K",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "0QK",
+      "target": "mK",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "0QK",
+      "target": "µK",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "0QK",
+      "target": "QK",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "0QK",
+      "target": "qK",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "0QK",
+      "target": "°C",
+      "numerator": "-5463",
+      "denominator": "20",
+      "coefficient": "-27315",
+      "exponent": -2
+    },
+    {
+      "role": "point",
+      "source": "0QK",
+      "target": "m°C",
+      "numerator": "-273150",
+      "denominator": "1",
+      "coefficient": "-27315",
+      "exponent": 1
+    },
+    {
+      "role": "point",
+      "source": "0QK",
+      "target": "°F",
+      "numerator": "-45967",
+      "denominator": "100",
+      "coefficient": "-45967",
+      "exponent": -2
+    },
+    {
+      "role": "point",
+      "source": "0QK",
+      "target": "m°F",
+      "numerator": "-459670",
+      "denominator": "1",
+      "coefficient": "-45967",
+      "exponent": 1
+    },
+    {
+      "role": "point",
+      "source": "1QK",
+      "target": "K",
+      "numerator": "1000000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "1",
+      "exponent": 30
+    },
+    {
+      "role": "point",
+      "source": "1QK",
+      "target": "mK",
+      "numerator": "1000000000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "1",
+      "exponent": 33
+    },
+    {
+      "role": "point",
+      "source": "1QK",
+      "target": "µK",
+      "numerator": "1000000000000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "1",
+      "exponent": 36
+    },
+    {
+      "role": "point",
+      "source": "1QK",
+      "target": "QK",
+      "numerator": "1",
+      "denominator": "1",
+      "coefficient": "1",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "1QK",
+      "target": "qK",
+      "numerator": "1000000000000000000000000000000000000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "1",
+      "exponent": 60
+    },
+    {
+      "role": "point",
+      "source": "1QK",
+      "target": "°C",
+      "numerator": "19999999999999999999999999994537",
+      "denominator": "20",
+      "coefficient": "99999999999999999999999999972685",
+      "exponent": -2
+    },
+    {
+      "role": "point",
+      "source": "1QK",
+      "target": "m°C",
+      "numerator": "999999999999999999999999999726850",
+      "denominator": "1",
+      "coefficient": "99999999999999999999999999972685",
+      "exponent": 1
+    },
+    {
+      "role": "point",
+      "source": "1QK",
+      "target": "°F",
+      "numerator": "179999999999999999999999999954033",
+      "denominator": "100",
+      "coefficient": "179999999999999999999999999954033",
+      "exponent": -2
+    },
+    {
+      "role": "point",
+      "source": "1QK",
+      "target": "m°F",
+      "numerator": "1799999999999999999999999999540330",
+      "denominator": "1",
+      "coefficient": "179999999999999999999999999954033",
+      "exponent": 1
+    },
+    {
+      "role": "point",
+      "source": "-1QK",
+      "target": "K",
+      "numerator": "-1000000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "-1",
+      "exponent": 30
+    },
+    {
+      "role": "point",
+      "source": "-1QK",
+      "target": "mK",
+      "numerator": "-1000000000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "-1",
+      "exponent": 33
+    },
+    {
+      "role": "point",
+      "source": "-1QK",
+      "target": "µK",
+      "numerator": "-1000000000000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "-1",
+      "exponent": 36
+    },
+    {
+      "role": "point",
+      "source": "-1QK",
+      "target": "QK",
+      "numerator": "-1",
+      "denominator": "1",
+      "coefficient": "-1",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "-1QK",
+      "target": "qK",
+      "numerator": "-1000000000000000000000000000000000000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "-1",
+      "exponent": 60
+    },
+    {
+      "role": "point",
+      "source": "-1QK",
+      "target": "°C",
+      "numerator": "-20000000000000000000000000005463",
+      "denominator": "20",
+      "coefficient": "-100000000000000000000000000027315",
+      "exponent": -2
+    },
+    {
+      "role": "point",
+      "source": "-1QK",
+      "target": "m°C",
+      "numerator": "-1000000000000000000000000000273150",
+      "denominator": "1",
+      "coefficient": "-100000000000000000000000000027315",
+      "exponent": 1
+    },
+    {
+      "role": "point",
+      "source": "-1QK",
+      "target": "°F",
+      "numerator": "-180000000000000000000000000045967",
+      "denominator": "100",
+      "coefficient": "-180000000000000000000000000045967",
+      "exponent": -2
+    },
+    {
+      "role": "point",
+      "source": "-1QK",
+      "target": "m°F",
+      "numerator": "-1800000000000000000000000000459670",
+      "denominator": "1",
+      "coefficient": "-180000000000000000000000000045967",
+      "exponent": 1
+    },
+    {
+      "role": "point",
+      "source": "9QK",
+      "target": "K",
+      "numerator": "9000000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "9",
+      "exponent": 30
+    },
+    {
+      "role": "point",
+      "source": "9QK",
+      "target": "mK",
+      "numerator": "9000000000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "9",
+      "exponent": 33
+    },
+    {
+      "role": "point",
+      "source": "9QK",
+      "target": "µK",
+      "numerator": "9000000000000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "9",
+      "exponent": 36
+    },
+    {
+      "role": "point",
+      "source": "9QK",
+      "target": "QK",
+      "numerator": "9",
+      "denominator": "1",
+      "coefficient": "9",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "9QK",
+      "target": "qK",
+      "numerator": "9000000000000000000000000000000000000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "9",
+      "exponent": 60
+    },
+    {
+      "role": "point",
+      "source": "9QK",
+      "target": "°C",
+      "numerator": "179999999999999999999999999994537",
+      "denominator": "20",
+      "coefficient": "899999999999999999999999999972685",
+      "exponent": -2
+    },
+    {
+      "role": "point",
+      "source": "9QK",
+      "target": "m°C",
+      "numerator": "8999999999999999999999999999726850",
+      "denominator": "1",
+      "coefficient": "899999999999999999999999999972685",
+      "exponent": 1
+    },
+    {
+      "role": "point",
+      "source": "9QK",
+      "target": "°F",
+      "numerator": "1619999999999999999999999999954033",
+      "denominator": "100",
+      "coefficient": "1619999999999999999999999999954033",
+      "exponent": -2
+    },
+    {
+      "role": "point",
+      "source": "9QK",
+      "target": "m°F",
+      "numerator": "16199999999999999999999999999540330",
+      "denominator": "1",
+      "coefficient": "1619999999999999999999999999954033",
+      "exponent": 1
+    },
+    {
+      "role": "point",
+      "source": "30QK",
+      "target": "K",
+      "numerator": "30000000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "3",
+      "exponent": 31
+    },
+    {
+      "role": "point",
+      "source": "30QK",
+      "target": "mK",
+      "numerator": "30000000000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "3",
+      "exponent": 34
+    },
+    {
+      "role": "point",
+      "source": "30QK",
+      "target": "µK",
+      "numerator": "30000000000000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "3",
+      "exponent": 37
+    },
+    {
+      "role": "point",
+      "source": "30QK",
+      "target": "QK",
+      "numerator": "30",
+      "denominator": "1",
+      "coefficient": "3",
+      "exponent": 1
+    },
+    {
+      "role": "point",
+      "source": "30QK",
+      "target": "qK",
+      "numerator": "30000000000000000000000000000000000000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "3",
+      "exponent": 61
+    },
+    {
+      "role": "point",
+      "source": "30QK",
+      "target": "°C",
+      "numerator": "599999999999999999999999999994537",
+      "denominator": "20",
+      "coefficient": "2999999999999999999999999999972685",
+      "exponent": -2
+    },
+    {
+      "role": "point",
+      "source": "30QK",
+      "target": "m°C",
+      "numerator": "29999999999999999999999999999726850",
+      "denominator": "1",
+      "coefficient": "2999999999999999999999999999972685",
+      "exponent": 1
+    },
+    {
+      "role": "point",
+      "source": "30QK",
+      "target": "°F",
+      "numerator": "5399999999999999999999999999954033",
+      "denominator": "100",
+      "coefficient": "5399999999999999999999999999954033",
+      "exponent": -2
+    },
+    {
+      "role": "point",
+      "source": "30QK",
+      "target": "m°F",
+      "numerator": "53999999999999999999999999999540330",
+      "denominator": "1",
+      "coefficient": "5399999999999999999999999999954033",
+      "exponent": 1
+    },
+    {
+      "role": "point",
+      "source": "273.15QK",
+      "target": "K",
+      "numerator": "273150000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "27315",
+      "exponent": 28
+    },
+    {
+      "role": "point",
+      "source": "273.15QK",
+      "target": "mK",
+      "numerator": "273150000000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "27315",
+      "exponent": 31
+    },
+    {
+      "role": "point",
+      "source": "273.15QK",
+      "target": "µK",
+      "numerator": "273150000000000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "27315",
+      "exponent": 34
+    },
+    {
+      "role": "point",
+      "source": "273.15QK",
+      "target": "QK",
+      "numerator": "5463",
+      "denominator": "20",
+      "coefficient": "27315",
+      "exponent": -2
+    },
+    {
+      "role": "point",
+      "source": "273.15QK",
+      "target": "qK",
+      "numerator": "273150000000000000000000000000000000000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "27315",
+      "exponent": 58
+    },
+    {
+      "role": "point",
+      "source": "273.15QK",
+      "target": "°C",
+      "numerator": "5462999999999999999999999999994537",
+      "denominator": "20",
+      "coefficient": "27314999999999999999999999999972685",
+      "exponent": -2
+    },
+    {
+      "role": "point",
+      "source": "273.15QK",
+      "target": "m°C",
+      "numerator": "273149999999999999999999999999726850",
+      "denominator": "1",
+      "coefficient": "27314999999999999999999999999972685",
+      "exponent": 1
+    },
+    {
+      "role": "point",
+      "source": "273.15QK",
+      "target": "°F",
+      "numerator": "49166999999999999999999999999954033",
+      "denominator": "100",
+      "coefficient": "49166999999999999999999999999954033",
+      "exponent": -2
+    },
+    {
+      "role": "point",
+      "source": "273.15QK",
+      "target": "m°F",
+      "numerator": "491669999999999999999999999999540330",
+      "denominator": "1",
+      "coefficient": "49166999999999999999999999999954033",
+      "exponent": 1
+    },
+    {
+      "role": "point",
+      "source": "0qK",
+      "target": "K",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "0qK",
+      "target": "mK",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "0qK",
+      "target": "µK",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "0qK",
+      "target": "QK",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "0qK",
+      "target": "qK",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "0qK",
+      "target": "°C",
+      "numerator": "-5463",
+      "denominator": "20",
+      "coefficient": "-27315",
+      "exponent": -2
+    },
+    {
+      "role": "point",
+      "source": "0qK",
+      "target": "m°C",
+      "numerator": "-273150",
+      "denominator": "1",
+      "coefficient": "-27315",
+      "exponent": 1
+    },
+    {
+      "role": "point",
+      "source": "0qK",
+      "target": "°F",
+      "numerator": "-45967",
+      "denominator": "100",
+      "coefficient": "-45967",
+      "exponent": -2
+    },
+    {
+      "role": "point",
+      "source": "0qK",
+      "target": "m°F",
+      "numerator": "-459670",
+      "denominator": "1",
+      "coefficient": "-45967",
+      "exponent": 1
+    },
+    {
+      "role": "point",
+      "source": "1qK",
+      "target": "K",
+      "numerator": "1",
+      "denominator": "1000000000000000000000000000000",
+      "coefficient": "1",
+      "exponent": -30
+    },
+    {
+      "role": "point",
+      "source": "1qK",
+      "target": "mK",
+      "numerator": "1",
+      "denominator": "1000000000000000000000000000",
+      "coefficient": "1",
+      "exponent": -27
+    },
+    {
+      "role": "point",
+      "source": "1qK",
+      "target": "µK",
+      "numerator": "1",
+      "denominator": "1000000000000000000000000",
+      "coefficient": "1",
+      "exponent": -24
+    },
+    {
+      "role": "point",
+      "source": "1qK",
+      "target": "QK",
+      "numerator": "1",
+      "denominator": "1000000000000000000000000000000000000000000000000000000000000",
+      "coefficient": "1",
+      "exponent": -60
+    },
+    {
+      "role": "point",
+      "source": "1qK",
+      "target": "qK",
+      "numerator": "1",
+      "denominator": "1",
+      "coefficient": "1",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "1qK",
+      "target": "°C",
+      "numerator": "-273149999999999999999999999999999",
+      "denominator": "1000000000000000000000000000000",
+      "coefficient": "-273149999999999999999999999999999",
+      "exponent": -30
+    },
+    {
+      "role": "point",
+      "source": "1qK",
+      "target": "m°C",
+      "numerator": "-273149999999999999999999999999999",
+      "denominator": "1000000000000000000000000000",
+      "coefficient": "-273149999999999999999999999999999",
+      "exponent": -27
+    },
+    {
+      "role": "point",
+      "source": "1qK",
+      "target": "°F",
+      "numerator": "-2298349999999999999999999999999991",
+      "denominator": "5000000000000000000000000000000",
+      "coefficient": "-4596699999999999999999999999999982",
+      "exponent": -31
+    },
+    {
+      "role": "point",
+      "source": "1qK",
+      "target": "m°F",
+      "numerator": "-2298349999999999999999999999999991",
+      "denominator": "5000000000000000000000000000",
+      "coefficient": "-4596699999999999999999999999999982",
+      "exponent": -28
+    },
+    {
+      "role": "point",
+      "source": "-1qK",
+      "target": "K",
+      "numerator": "-1",
+      "denominator": "1000000000000000000000000000000",
+      "coefficient": "-1",
+      "exponent": -30
+    },
+    {
+      "role": "point",
+      "source": "-1qK",
+      "target": "mK",
+      "numerator": "-1",
+      "denominator": "1000000000000000000000000000",
+      "coefficient": "-1",
+      "exponent": -27
+    },
+    {
+      "role": "point",
+      "source": "-1qK",
+      "target": "µK",
+      "numerator": "-1",
+      "denominator": "1000000000000000000000000",
+      "coefficient": "-1",
+      "exponent": -24
+    },
+    {
+      "role": "point",
+      "source": "-1qK",
+      "target": "QK",
+      "numerator": "-1",
+      "denominator": "1000000000000000000000000000000000000000000000000000000000000",
+      "coefficient": "-1",
+      "exponent": -60
+    },
+    {
+      "role": "point",
+      "source": "-1qK",
+      "target": "qK",
+      "numerator": "-1",
+      "denominator": "1",
+      "coefficient": "-1",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "-1qK",
+      "target": "°C",
+      "numerator": "-273150000000000000000000000000001",
+      "denominator": "1000000000000000000000000000000",
+      "coefficient": "-273150000000000000000000000000001",
+      "exponent": -30
+    },
+    {
+      "role": "point",
+      "source": "-1qK",
+      "target": "m°C",
+      "numerator": "-273150000000000000000000000000001",
+      "denominator": "1000000000000000000000000000",
+      "coefficient": "-273150000000000000000000000000001",
+      "exponent": -27
+    },
+    {
+      "role": "point",
+      "source": "-1qK",
+      "target": "°F",
+      "numerator": "-2298350000000000000000000000000009",
+      "denominator": "5000000000000000000000000000000",
+      "coefficient": "-4596700000000000000000000000000018",
+      "exponent": -31
+    },
+    {
+      "role": "point",
+      "source": "-1qK",
+      "target": "m°F",
+      "numerator": "-2298350000000000000000000000000009",
+      "denominator": "5000000000000000000000000000",
+      "coefficient": "-4596700000000000000000000000000018",
+      "exponent": -28
+    },
+    {
+      "role": "point",
+      "source": "9qK",
+      "target": "K",
+      "numerator": "9",
+      "denominator": "1000000000000000000000000000000",
+      "coefficient": "9",
+      "exponent": -30
+    },
+    {
+      "role": "point",
+      "source": "9qK",
+      "target": "mK",
+      "numerator": "9",
+      "denominator": "1000000000000000000000000000",
+      "coefficient": "9",
+      "exponent": -27
+    },
+    {
+      "role": "point",
+      "source": "9qK",
+      "target": "µK",
+      "numerator": "9",
+      "denominator": "1000000000000000000000000",
+      "coefficient": "9",
+      "exponent": -24
+    },
+    {
+      "role": "point",
+      "source": "9qK",
+      "target": "QK",
+      "numerator": "9",
+      "denominator": "1000000000000000000000000000000000000000000000000000000000000",
+      "coefficient": "9",
+      "exponent": -60
+    },
+    {
+      "role": "point",
+      "source": "9qK",
+      "target": "qK",
+      "numerator": "9",
+      "denominator": "1",
+      "coefficient": "9",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "9qK",
+      "target": "°C",
+      "numerator": "-273149999999999999999999999999991",
+      "denominator": "1000000000000000000000000000000",
+      "coefficient": "-273149999999999999999999999999991",
+      "exponent": -30
+    },
+    {
+      "role": "point",
+      "source": "9qK",
+      "target": "m°C",
+      "numerator": "-273149999999999999999999999999991",
+      "denominator": "1000000000000000000000000000",
+      "coefficient": "-273149999999999999999999999999991",
+      "exponent": -27
+    },
+    {
+      "role": "point",
+      "source": "9qK",
+      "target": "°F",
+      "numerator": "-2298349999999999999999999999999919",
+      "denominator": "5000000000000000000000000000000",
+      "coefficient": "-4596699999999999999999999999999838",
+      "exponent": -31
+    },
+    {
+      "role": "point",
+      "source": "9qK",
+      "target": "m°F",
+      "numerator": "-2298349999999999999999999999999919",
+      "denominator": "5000000000000000000000000000",
+      "coefficient": "-4596699999999999999999999999999838",
+      "exponent": -28
+    },
+    {
+      "role": "point",
+      "source": "30qK",
+      "target": "K",
+      "numerator": "3",
+      "denominator": "100000000000000000000000000000",
+      "coefficient": "3",
+      "exponent": -29
+    },
+    {
+      "role": "point",
+      "source": "30qK",
+      "target": "mK",
+      "numerator": "3",
+      "denominator": "100000000000000000000000000",
+      "coefficient": "3",
+      "exponent": -26
+    },
+    {
+      "role": "point",
+      "source": "30qK",
+      "target": "µK",
+      "numerator": "3",
+      "denominator": "100000000000000000000000",
+      "coefficient": "3",
+      "exponent": -23
+    },
+    {
+      "role": "point",
+      "source": "30qK",
+      "target": "QK",
+      "numerator": "3",
+      "denominator": "100000000000000000000000000000000000000000000000000000000000",
+      "coefficient": "3",
+      "exponent": -59
+    },
+    {
+      "role": "point",
+      "source": "30qK",
+      "target": "qK",
+      "numerator": "30",
+      "denominator": "1",
+      "coefficient": "3",
+      "exponent": 1
+    },
+    {
+      "role": "point",
+      "source": "30qK",
+      "target": "°C",
+      "numerator": "-27314999999999999999999999999997",
+      "denominator": "100000000000000000000000000000",
+      "coefficient": "-27314999999999999999999999999997",
+      "exponent": -29
+    },
+    {
+      "role": "point",
+      "source": "30qK",
+      "target": "m°C",
+      "numerator": "-27314999999999999999999999999997",
+      "denominator": "100000000000000000000000000",
+      "coefficient": "-27314999999999999999999999999997",
+      "exponent": -26
+    },
+    {
+      "role": "point",
+      "source": "30qK",
+      "target": "°F",
+      "numerator": "-229834999999999999999999999999973",
+      "denominator": "500000000000000000000000000000",
+      "coefficient": "-459669999999999999999999999999946",
+      "exponent": -30
+    },
+    {
+      "role": "point",
+      "source": "30qK",
+      "target": "m°F",
+      "numerator": "-229834999999999999999999999999973",
+      "denominator": "500000000000000000000000000",
+      "coefficient": "-459669999999999999999999999999946",
+      "exponent": -27
+    },
+    {
+      "role": "point",
+      "source": "273.15qK",
+      "target": "K",
+      "numerator": "5463",
+      "denominator": "20000000000000000000000000000000",
+      "coefficient": "27315",
+      "exponent": -32
+    },
+    {
+      "role": "point",
+      "source": "273.15qK",
+      "target": "mK",
+      "numerator": "5463",
+      "denominator": "20000000000000000000000000000",
+      "coefficient": "27315",
+      "exponent": -29
+    },
+    {
+      "role": "point",
+      "source": "273.15qK",
+      "target": "µK",
+      "numerator": "5463",
+      "denominator": "20000000000000000000000000",
+      "coefficient": "27315",
+      "exponent": -26
+    },
+    {
+      "role": "point",
+      "source": "273.15qK",
+      "target": "QK",
+      "numerator": "5463",
+      "denominator": "20000000000000000000000000000000000000000000000000000000000000",
+      "coefficient": "27315",
+      "exponent": -62
+    },
+    {
+      "role": "point",
+      "source": "273.15qK",
+      "target": "qK",
+      "numerator": "5463",
+      "denominator": "20",
+      "coefficient": "27315",
+      "exponent": -2
+    },
+    {
+      "role": "point",
+      "source": "273.15qK",
+      "target": "°C",
+      "numerator": "-5462999999999999999999999999994537",
+      "denominator": "20000000000000000000000000000000",
+      "coefficient": "-27314999999999999999999999999972685",
+      "exponent": -32
+    },
+    {
+      "role": "point",
+      "source": "273.15qK",
+      "target": "m°C",
+      "numerator": "-5462999999999999999999999999994537",
+      "denominator": "20000000000000000000000000000",
+      "coefficient": "-27314999999999999999999999999972685",
+      "exponent": -29
+    },
+    {
+      "role": "point",
+      "source": "273.15qK",
+      "target": "°F",
+      "numerator": "-45966999999999999999999999999950833",
+      "denominator": "100000000000000000000000000000000",
+      "coefficient": "-45966999999999999999999999999950833",
+      "exponent": -32
+    },
+    {
+      "role": "point",
+      "source": "273.15qK",
+      "target": "m°F",
+      "numerator": "-45966999999999999999999999999950833",
+      "denominator": "100000000000000000000000000000",
+      "coefficient": "-45966999999999999999999999999950833",
+      "exponent": -29
+    },
+    {
+      "role": "point",
+      "source": "0°C",
+      "target": "K",
+      "numerator": "5463",
+      "denominator": "20",
+      "coefficient": "27315",
+      "exponent": -2
+    },
+    {
+      "role": "point",
+      "source": "0°C",
+      "target": "mK",
+      "numerator": "273150",
+      "denominator": "1",
+      "coefficient": "27315",
+      "exponent": 1
+    },
+    {
+      "role": "point",
+      "source": "0°C",
+      "target": "µK",
+      "numerator": "273150000",
+      "denominator": "1",
+      "coefficient": "27315",
+      "exponent": 4
+    },
+    {
+      "role": "point",
+      "source": "0°C",
+      "target": "QK",
+      "numerator": "5463",
+      "denominator": "20000000000000000000000000000000",
+      "coefficient": "27315",
+      "exponent": -32
+    },
+    {
+      "role": "point",
+      "source": "0°C",
+      "target": "qK",
+      "numerator": "273150000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "27315",
+      "exponent": 28
+    },
+    {
+      "role": "point",
+      "source": "0°C",
+      "target": "°C",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "0°C",
+      "target": "m°C",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "0°C",
+      "target": "°F",
+      "numerator": "32",
+      "denominator": "1",
+      "coefficient": "32",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "0°C",
+      "target": "m°F",
+      "numerator": "32000",
+      "denominator": "1",
+      "coefficient": "32",
+      "exponent": 3
+    },
+    {
+      "role": "point",
+      "source": "1°C",
+      "target": "K",
+      "numerator": "5483",
+      "denominator": "20",
+      "coefficient": "27415",
+      "exponent": -2
+    },
+    {
+      "role": "point",
+      "source": "1°C",
+      "target": "mK",
+      "numerator": "274150",
+      "denominator": "1",
+      "coefficient": "27415",
+      "exponent": 1
+    },
+    {
+      "role": "point",
+      "source": "1°C",
+      "target": "µK",
+      "numerator": "274150000",
+      "denominator": "1",
+      "coefficient": "27415",
+      "exponent": 4
+    },
+    {
+      "role": "point",
+      "source": "1°C",
+      "target": "QK",
+      "numerator": "5483",
+      "denominator": "20000000000000000000000000000000",
+      "coefficient": "27415",
+      "exponent": -32
+    },
+    {
+      "role": "point",
+      "source": "1°C",
+      "target": "qK",
+      "numerator": "274150000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "27415",
+      "exponent": 28
+    },
+    {
+      "role": "point",
+      "source": "1°C",
+      "target": "°C",
+      "numerator": "1",
+      "denominator": "1",
+      "coefficient": "1",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "1°C",
+      "target": "m°C",
+      "numerator": "1000",
+      "denominator": "1",
+      "coefficient": "1",
+      "exponent": 3
+    },
+    {
+      "role": "point",
+      "source": "1°C",
+      "target": "°F",
+      "numerator": "169",
+      "denominator": "5",
+      "coefficient": "338",
+      "exponent": -1
+    },
+    {
+      "role": "point",
+      "source": "1°C",
+      "target": "m°F",
+      "numerator": "33800",
+      "denominator": "1",
+      "coefficient": "338",
+      "exponent": 2
+    },
+    {
+      "role": "point",
+      "source": "-1°C",
+      "target": "K",
+      "numerator": "5443",
+      "denominator": "20",
+      "coefficient": "27215",
+      "exponent": -2
+    },
+    {
+      "role": "point",
+      "source": "-1°C",
+      "target": "mK",
+      "numerator": "272150",
+      "denominator": "1",
+      "coefficient": "27215",
+      "exponent": 1
+    },
+    {
+      "role": "point",
+      "source": "-1°C",
+      "target": "µK",
+      "numerator": "272150000",
+      "denominator": "1",
+      "coefficient": "27215",
+      "exponent": 4
+    },
+    {
+      "role": "point",
+      "source": "-1°C",
+      "target": "QK",
+      "numerator": "5443",
+      "denominator": "20000000000000000000000000000000",
+      "coefficient": "27215",
+      "exponent": -32
+    },
+    {
+      "role": "point",
+      "source": "-1°C",
+      "target": "qK",
+      "numerator": "272150000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "27215",
+      "exponent": 28
+    },
+    {
+      "role": "point",
+      "source": "-1°C",
+      "target": "°C",
+      "numerator": "-1",
+      "denominator": "1",
+      "coefficient": "-1",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "-1°C",
+      "target": "m°C",
+      "numerator": "-1000",
+      "denominator": "1",
+      "coefficient": "-1",
+      "exponent": 3
+    },
+    {
+      "role": "point",
+      "source": "-1°C",
+      "target": "°F",
+      "numerator": "151",
+      "denominator": "5",
+      "coefficient": "302",
+      "exponent": -1
+    },
+    {
+      "role": "point",
+      "source": "-1°C",
+      "target": "m°F",
+      "numerator": "30200",
+      "denominator": "1",
+      "coefficient": "302",
+      "exponent": 2
+    },
+    {
+      "role": "point",
+      "source": "9°C",
+      "target": "K",
+      "numerator": "5643",
+      "denominator": "20",
+      "coefficient": "28215",
+      "exponent": -2
+    },
+    {
+      "role": "point",
+      "source": "9°C",
+      "target": "mK",
+      "numerator": "282150",
+      "denominator": "1",
+      "coefficient": "28215",
+      "exponent": 1
+    },
+    {
+      "role": "point",
+      "source": "9°C",
+      "target": "µK",
+      "numerator": "282150000",
+      "denominator": "1",
+      "coefficient": "28215",
+      "exponent": 4
+    },
+    {
+      "role": "point",
+      "source": "9°C",
+      "target": "QK",
+      "numerator": "5643",
+      "denominator": "20000000000000000000000000000000",
+      "coefficient": "28215",
+      "exponent": -32
+    },
+    {
+      "role": "point",
+      "source": "9°C",
+      "target": "qK",
+      "numerator": "282150000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "28215",
+      "exponent": 28
+    },
+    {
+      "role": "point",
+      "source": "9°C",
+      "target": "°C",
+      "numerator": "9",
+      "denominator": "1",
+      "coefficient": "9",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "9°C",
+      "target": "m°C",
+      "numerator": "9000",
+      "denominator": "1",
+      "coefficient": "9",
+      "exponent": 3
+    },
+    {
+      "role": "point",
+      "source": "9°C",
+      "target": "°F",
+      "numerator": "241",
+      "denominator": "5",
+      "coefficient": "482",
+      "exponent": -1
+    },
+    {
+      "role": "point",
+      "source": "9°C",
+      "target": "m°F",
+      "numerator": "48200",
+      "denominator": "1",
+      "coefficient": "482",
+      "exponent": 2
+    },
+    {
+      "role": "point",
+      "source": "30°C",
+      "target": "K",
+      "numerator": "6063",
+      "denominator": "20",
+      "coefficient": "30315",
+      "exponent": -2
+    },
+    {
+      "role": "point",
+      "source": "30°C",
+      "target": "mK",
+      "numerator": "303150",
+      "denominator": "1",
+      "coefficient": "30315",
+      "exponent": 1
+    },
+    {
+      "role": "point",
+      "source": "30°C",
+      "target": "µK",
+      "numerator": "303150000",
+      "denominator": "1",
+      "coefficient": "30315",
+      "exponent": 4
+    },
+    {
+      "role": "point",
+      "source": "30°C",
+      "target": "QK",
+      "numerator": "6063",
+      "denominator": "20000000000000000000000000000000",
+      "coefficient": "30315",
+      "exponent": -32
+    },
+    {
+      "role": "point",
+      "source": "30°C",
+      "target": "qK",
+      "numerator": "303150000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "30315",
+      "exponent": 28
+    },
+    {
+      "role": "point",
+      "source": "30°C",
+      "target": "°C",
+      "numerator": "30",
+      "denominator": "1",
+      "coefficient": "3",
+      "exponent": 1
+    },
+    {
+      "role": "point",
+      "source": "30°C",
+      "target": "m°C",
+      "numerator": "30000",
+      "denominator": "1",
+      "coefficient": "3",
+      "exponent": 4
+    },
+    {
+      "role": "point",
+      "source": "30°C",
+      "target": "°F",
+      "numerator": "86",
+      "denominator": "1",
+      "coefficient": "86",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "30°C",
+      "target": "m°F",
+      "numerator": "86000",
+      "denominator": "1",
+      "coefficient": "86",
+      "exponent": 3
+    },
+    {
+      "role": "point",
+      "source": "273.15°C",
+      "target": "K",
+      "numerator": "5463",
+      "denominator": "10",
+      "coefficient": "5463",
+      "exponent": -1
+    },
+    {
+      "role": "point",
+      "source": "273.15°C",
+      "target": "mK",
+      "numerator": "546300",
+      "denominator": "1",
+      "coefficient": "5463",
+      "exponent": 2
+    },
+    {
+      "role": "point",
+      "source": "273.15°C",
+      "target": "µK",
+      "numerator": "546300000",
+      "denominator": "1",
+      "coefficient": "5463",
+      "exponent": 5
+    },
+    {
+      "role": "point",
+      "source": "273.15°C",
+      "target": "QK",
+      "numerator": "5463",
+      "denominator": "10000000000000000000000000000000",
+      "coefficient": "5463",
+      "exponent": -31
+    },
+    {
+      "role": "point",
+      "source": "273.15°C",
+      "target": "qK",
+      "numerator": "546300000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "5463",
+      "exponent": 29
+    },
+    {
+      "role": "point",
+      "source": "273.15°C",
+      "target": "°C",
+      "numerator": "5463",
+      "denominator": "20",
+      "coefficient": "27315",
+      "exponent": -2
+    },
+    {
+      "role": "point",
+      "source": "273.15°C",
+      "target": "m°C",
+      "numerator": "273150",
+      "denominator": "1",
+      "coefficient": "27315",
+      "exponent": 1
+    },
+    {
+      "role": "point",
+      "source": "273.15°C",
+      "target": "°F",
+      "numerator": "52367",
+      "denominator": "100",
+      "coefficient": "52367",
+      "exponent": -2
+    },
+    {
+      "role": "point",
+      "source": "273.15°C",
+      "target": "m°F",
+      "numerator": "523670",
+      "denominator": "1",
+      "coefficient": "52367",
+      "exponent": 1
+    },
+    {
+      "role": "point",
+      "source": "0m°C",
+      "target": "K",
+      "numerator": "5463",
+      "denominator": "20",
+      "coefficient": "27315",
+      "exponent": -2
+    },
+    {
+      "role": "point",
+      "source": "0m°C",
+      "target": "mK",
+      "numerator": "273150",
+      "denominator": "1",
+      "coefficient": "27315",
+      "exponent": 1
+    },
+    {
+      "role": "point",
+      "source": "0m°C",
+      "target": "µK",
+      "numerator": "273150000",
+      "denominator": "1",
+      "coefficient": "27315",
+      "exponent": 4
+    },
+    {
+      "role": "point",
+      "source": "0m°C",
+      "target": "QK",
+      "numerator": "5463",
+      "denominator": "20000000000000000000000000000000",
+      "coefficient": "27315",
+      "exponent": -32
+    },
+    {
+      "role": "point",
+      "source": "0m°C",
+      "target": "qK",
+      "numerator": "273150000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "27315",
+      "exponent": 28
+    },
+    {
+      "role": "point",
+      "source": "0m°C",
+      "target": "°C",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "0m°C",
+      "target": "m°C",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "0m°C",
+      "target": "°F",
+      "numerator": "32",
+      "denominator": "1",
+      "coefficient": "32",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "0m°C",
+      "target": "m°F",
+      "numerator": "32000",
+      "denominator": "1",
+      "coefficient": "32",
+      "exponent": 3
+    },
+    {
+      "role": "point",
+      "source": "1m°C",
+      "target": "K",
+      "numerator": "273151",
+      "denominator": "1000",
+      "coefficient": "273151",
+      "exponent": -3
+    },
+    {
+      "role": "point",
+      "source": "1m°C",
+      "target": "mK",
+      "numerator": "273151",
+      "denominator": "1",
+      "coefficient": "273151",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "1m°C",
+      "target": "µK",
+      "numerator": "273151000",
+      "denominator": "1",
+      "coefficient": "273151",
+      "exponent": 3
+    },
+    {
+      "role": "point",
+      "source": "1m°C",
+      "target": "QK",
+      "numerator": "273151",
+      "denominator": "1000000000000000000000000000000000",
+      "coefficient": "273151",
+      "exponent": -33
+    },
+    {
+      "role": "point",
+      "source": "1m°C",
+      "target": "qK",
+      "numerator": "273151000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "273151",
+      "exponent": 27
+    },
+    {
+      "role": "point",
+      "source": "1m°C",
+      "target": "°C",
+      "numerator": "1",
+      "denominator": "1000",
+      "coefficient": "1",
+      "exponent": -3
+    },
+    {
+      "role": "point",
+      "source": "1m°C",
+      "target": "m°C",
+      "numerator": "1",
+      "denominator": "1",
+      "coefficient": "1",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "1m°C",
+      "target": "°F",
+      "numerator": "160009",
+      "denominator": "5000",
+      "coefficient": "320018",
+      "exponent": -4
+    },
+    {
+      "role": "point",
+      "source": "1m°C",
+      "target": "m°F",
+      "numerator": "160009",
+      "denominator": "5",
+      "coefficient": "320018",
+      "exponent": -1
+    },
+    {
+      "role": "point",
+      "source": "-1m°C",
+      "target": "K",
+      "numerator": "273149",
+      "denominator": "1000",
+      "coefficient": "273149",
+      "exponent": -3
+    },
+    {
+      "role": "point",
+      "source": "-1m°C",
+      "target": "mK",
+      "numerator": "273149",
+      "denominator": "1",
+      "coefficient": "273149",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "-1m°C",
+      "target": "µK",
+      "numerator": "273149000",
+      "denominator": "1",
+      "coefficient": "273149",
+      "exponent": 3
+    },
+    {
+      "role": "point",
+      "source": "-1m°C",
+      "target": "QK",
+      "numerator": "273149",
+      "denominator": "1000000000000000000000000000000000",
+      "coefficient": "273149",
+      "exponent": -33
+    },
+    {
+      "role": "point",
+      "source": "-1m°C",
+      "target": "qK",
+      "numerator": "273149000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "273149",
+      "exponent": 27
+    },
+    {
+      "role": "point",
+      "source": "-1m°C",
+      "target": "°C",
+      "numerator": "-1",
+      "denominator": "1000",
+      "coefficient": "-1",
+      "exponent": -3
+    },
+    {
+      "role": "point",
+      "source": "-1m°C",
+      "target": "m°C",
+      "numerator": "-1",
+      "denominator": "1",
+      "coefficient": "-1",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "-1m°C",
+      "target": "°F",
+      "numerator": "159991",
+      "denominator": "5000",
+      "coefficient": "319982",
+      "exponent": -4
+    },
+    {
+      "role": "point",
+      "source": "-1m°C",
+      "target": "m°F",
+      "numerator": "159991",
+      "denominator": "5",
+      "coefficient": "319982",
+      "exponent": -1
+    },
+    {
+      "role": "point",
+      "source": "9m°C",
+      "target": "K",
+      "numerator": "273159",
+      "denominator": "1000",
+      "coefficient": "273159",
+      "exponent": -3
+    },
+    {
+      "role": "point",
+      "source": "9m°C",
+      "target": "mK",
+      "numerator": "273159",
+      "denominator": "1",
+      "coefficient": "273159",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "9m°C",
+      "target": "µK",
+      "numerator": "273159000",
+      "denominator": "1",
+      "coefficient": "273159",
+      "exponent": 3
+    },
+    {
+      "role": "point",
+      "source": "9m°C",
+      "target": "QK",
+      "numerator": "273159",
+      "denominator": "1000000000000000000000000000000000",
+      "coefficient": "273159",
+      "exponent": -33
+    },
+    {
+      "role": "point",
+      "source": "9m°C",
+      "target": "qK",
+      "numerator": "273159000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "273159",
+      "exponent": 27
+    },
+    {
+      "role": "point",
+      "source": "9m°C",
+      "target": "°C",
+      "numerator": "9",
+      "denominator": "1000",
+      "coefficient": "9",
+      "exponent": -3
+    },
+    {
+      "role": "point",
+      "source": "9m°C",
+      "target": "m°C",
+      "numerator": "9",
+      "denominator": "1",
+      "coefficient": "9",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "9m°C",
+      "target": "°F",
+      "numerator": "160081",
+      "denominator": "5000",
+      "coefficient": "320162",
+      "exponent": -4
+    },
+    {
+      "role": "point",
+      "source": "9m°C",
+      "target": "m°F",
+      "numerator": "160081",
+      "denominator": "5",
+      "coefficient": "320162",
+      "exponent": -1
+    },
+    {
+      "role": "point",
+      "source": "30m°C",
+      "target": "K",
+      "numerator": "13659",
+      "denominator": "50",
+      "coefficient": "27318",
+      "exponent": -2
+    },
+    {
+      "role": "point",
+      "source": "30m°C",
+      "target": "mK",
+      "numerator": "273180",
+      "denominator": "1",
+      "coefficient": "27318",
+      "exponent": 1
+    },
+    {
+      "role": "point",
+      "source": "30m°C",
+      "target": "µK",
+      "numerator": "273180000",
+      "denominator": "1",
+      "coefficient": "27318",
+      "exponent": 4
+    },
+    {
+      "role": "point",
+      "source": "30m°C",
+      "target": "QK",
+      "numerator": "13659",
+      "denominator": "50000000000000000000000000000000",
+      "coefficient": "27318",
+      "exponent": -32
+    },
+    {
+      "role": "point",
+      "source": "30m°C",
+      "target": "qK",
+      "numerator": "273180000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "27318",
+      "exponent": 28
+    },
+    {
+      "role": "point",
+      "source": "30m°C",
+      "target": "°C",
+      "numerator": "3",
+      "denominator": "100",
+      "coefficient": "3",
+      "exponent": -2
+    },
+    {
+      "role": "point",
+      "source": "30m°C",
+      "target": "m°C",
+      "numerator": "30",
+      "denominator": "1",
+      "coefficient": "3",
+      "exponent": 1
+    },
+    {
+      "role": "point",
+      "source": "30m°C",
+      "target": "°F",
+      "numerator": "16027",
+      "denominator": "500",
+      "coefficient": "32054",
+      "exponent": -3
+    },
+    {
+      "role": "point",
+      "source": "30m°C",
+      "target": "m°F",
+      "numerator": "32054",
+      "denominator": "1",
+      "coefficient": "32054",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "273.15m°C",
+      "target": "K",
+      "numerator": "5468463",
+      "denominator": "20000",
+      "coefficient": "27342315",
+      "exponent": -5
+    },
+    {
+      "role": "point",
+      "source": "273.15m°C",
+      "target": "mK",
+      "numerator": "5468463",
+      "denominator": "20",
+      "coefficient": "27342315",
+      "exponent": -2
+    },
+    {
+      "role": "point",
+      "source": "273.15m°C",
+      "target": "µK",
+      "numerator": "273423150",
+      "denominator": "1",
+      "coefficient": "27342315",
+      "exponent": 1
+    },
+    {
+      "role": "point",
+      "source": "273.15m°C",
+      "target": "QK",
+      "numerator": "5468463",
+      "denominator": "20000000000000000000000000000000000",
+      "coefficient": "27342315",
+      "exponent": -35
+    },
+    {
+      "role": "point",
+      "source": "273.15m°C",
+      "target": "qK",
+      "numerator": "273423150000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "27342315",
+      "exponent": 25
+    },
+    {
+      "role": "point",
+      "source": "273.15m°C",
+      "target": "°C",
+      "numerator": "5463",
+      "denominator": "20000",
+      "coefficient": "27315",
+      "exponent": -5
+    },
+    {
+      "role": "point",
+      "source": "273.15m°C",
+      "target": "m°C",
+      "numerator": "5463",
+      "denominator": "20",
+      "coefficient": "27315",
+      "exponent": -2
+    },
+    {
+      "role": "point",
+      "source": "273.15m°C",
+      "target": "°F",
+      "numerator": "3249167",
+      "denominator": "100000",
+      "coefficient": "3249167",
+      "exponent": -5
+    },
+    {
+      "role": "point",
+      "source": "273.15m°C",
+      "target": "m°F",
+      "numerator": "3249167",
+      "denominator": "100",
+      "coefficient": "3249167",
+      "exponent": -2
+    },
+    {
+      "role": "point",
+      "source": "0°F",
+      "target": "K",
+      "numerator": "45967",
+      "denominator": "180",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "0°F",
+      "target": "mK",
+      "numerator": "2298350",
+      "denominator": "9",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "0°F",
+      "target": "µK",
+      "numerator": "2298350000",
+      "denominator": "9",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "0°F",
+      "target": "QK",
+      "numerator": "45967",
+      "denominator": "180000000000000000000000000000000",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "0°F",
+      "target": "qK",
+      "numerator": "2298350000000000000000000000000000",
+      "denominator": "9",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "0°F",
+      "target": "°C",
+      "numerator": "-160",
+      "denominator": "9",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "0°F",
+      "target": "m°C",
+      "numerator": "-160000",
+      "denominator": "9",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "0°F",
+      "target": "°F",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "0°F",
+      "target": "m°F",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "1°F",
+      "target": "K",
+      "numerator": "46067",
+      "denominator": "180",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "1°F",
+      "target": "mK",
+      "numerator": "2303350",
+      "denominator": "9",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "1°F",
+      "target": "µK",
+      "numerator": "2303350000",
+      "denominator": "9",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "1°F",
+      "target": "QK",
+      "numerator": "46067",
+      "denominator": "180000000000000000000000000000000",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "1°F",
+      "target": "qK",
+      "numerator": "2303350000000000000000000000000000",
+      "denominator": "9",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "1°F",
+      "target": "°C",
+      "numerator": "-155",
+      "denominator": "9",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "1°F",
+      "target": "m°C",
+      "numerator": "-155000",
+      "denominator": "9",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "1°F",
+      "target": "°F",
+      "numerator": "1",
+      "denominator": "1",
+      "coefficient": "1",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "1°F",
+      "target": "m°F",
+      "numerator": "1000",
+      "denominator": "1",
+      "coefficient": "1",
+      "exponent": 3
+    },
+    {
+      "role": "point",
+      "source": "-1°F",
+      "target": "K",
+      "numerator": "15289",
+      "denominator": "60",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "-1°F",
+      "target": "mK",
+      "numerator": "764450",
+      "denominator": "3",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "-1°F",
+      "target": "µK",
+      "numerator": "764450000",
+      "denominator": "3",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "-1°F",
+      "target": "QK",
+      "numerator": "15289",
+      "denominator": "60000000000000000000000000000000",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "-1°F",
+      "target": "qK",
+      "numerator": "764450000000000000000000000000000",
+      "denominator": "3",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "-1°F",
+      "target": "°C",
+      "numerator": "-55",
+      "denominator": "3",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "-1°F",
+      "target": "m°C",
+      "numerator": "-55000",
+      "denominator": "3",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "-1°F",
+      "target": "°F",
+      "numerator": "-1",
+      "denominator": "1",
+      "coefficient": "-1",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "-1°F",
+      "target": "m°F",
+      "numerator": "-1000",
+      "denominator": "1",
+      "coefficient": "-1",
+      "exponent": 3
+    },
+    {
+      "role": "point",
+      "source": "9°F",
+      "target": "K",
+      "numerator": "46867",
+      "denominator": "180",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "9°F",
+      "target": "mK",
+      "numerator": "2343350",
+      "denominator": "9",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "9°F",
+      "target": "µK",
+      "numerator": "2343350000",
+      "denominator": "9",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "9°F",
+      "target": "QK",
+      "numerator": "46867",
+      "denominator": "180000000000000000000000000000000",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "9°F",
+      "target": "qK",
+      "numerator": "2343350000000000000000000000000000",
+      "denominator": "9",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "9°F",
+      "target": "°C",
+      "numerator": "-115",
+      "denominator": "9",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "9°F",
+      "target": "m°C",
+      "numerator": "-115000",
+      "denominator": "9",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "9°F",
+      "target": "°F",
+      "numerator": "9",
+      "denominator": "1",
+      "coefficient": "9",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "9°F",
+      "target": "m°F",
+      "numerator": "9000",
+      "denominator": "1",
+      "coefficient": "9",
+      "exponent": 3
+    },
+    {
+      "role": "point",
+      "source": "30°F",
+      "target": "K",
+      "numerator": "48967",
+      "denominator": "180",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "30°F",
+      "target": "mK",
+      "numerator": "2448350",
+      "denominator": "9",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "30°F",
+      "target": "µK",
+      "numerator": "2448350000",
+      "denominator": "9",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "30°F",
+      "target": "QK",
+      "numerator": "48967",
+      "denominator": "180000000000000000000000000000000",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "30°F",
+      "target": "qK",
+      "numerator": "2448350000000000000000000000000000",
+      "denominator": "9",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "30°F",
+      "target": "°C",
+      "numerator": "-10",
+      "denominator": "9",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "30°F",
+      "target": "m°C",
+      "numerator": "-10000",
+      "denominator": "9",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "30°F",
+      "target": "°F",
+      "numerator": "30",
+      "denominator": "1",
+      "coefficient": "3",
+      "exponent": 1
+    },
+    {
+      "role": "point",
+      "source": "30°F",
+      "target": "m°F",
+      "numerator": "30000",
+      "denominator": "1",
+      "coefficient": "3",
+      "exponent": 4
+    },
+    {
+      "role": "point",
+      "source": "273.15°F",
+      "target": "K",
+      "numerator": "36641",
+      "denominator": "90",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "273.15°F",
+      "target": "mK",
+      "numerator": "3664100",
+      "denominator": "9",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "273.15°F",
+      "target": "µK",
+      "numerator": "3664100000",
+      "denominator": "9",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "273.15°F",
+      "target": "QK",
+      "numerator": "36641",
+      "denominator": "90000000000000000000000000000000",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "273.15°F",
+      "target": "qK",
+      "numerator": "3664100000000000000000000000000000",
+      "denominator": "9",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "273.15°F",
+      "target": "°C",
+      "numerator": "4823",
+      "denominator": "36",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "273.15°F",
+      "target": "m°C",
+      "numerator": "1205750",
+      "denominator": "9",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "273.15°F",
+      "target": "°F",
+      "numerator": "5463",
+      "denominator": "20",
+      "coefficient": "27315",
+      "exponent": -2
+    },
+    {
+      "role": "point",
+      "source": "273.15°F",
+      "target": "m°F",
+      "numerator": "273150",
+      "denominator": "1",
+      "coefficient": "27315",
+      "exponent": 1
+    },
+    {
+      "role": "point",
+      "source": "0m°F",
+      "target": "K",
+      "numerator": "45967",
+      "denominator": "180",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "0m°F",
+      "target": "mK",
+      "numerator": "2298350",
+      "denominator": "9",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "0m°F",
+      "target": "µK",
+      "numerator": "2298350000",
+      "denominator": "9",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "0m°F",
+      "target": "QK",
+      "numerator": "45967",
+      "denominator": "180000000000000000000000000000000",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "0m°F",
+      "target": "qK",
+      "numerator": "2298350000000000000000000000000000",
+      "denominator": "9",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "0m°F",
+      "target": "°C",
+      "numerator": "-160",
+      "denominator": "9",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "0m°F",
+      "target": "m°C",
+      "numerator": "-160000",
+      "denominator": "9",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "0m°F",
+      "target": "°F",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "0m°F",
+      "target": "m°F",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "1m°F",
+      "target": "K",
+      "numerator": "459671",
+      "denominator": "1800",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "1m°F",
+      "target": "mK",
+      "numerator": "2298355",
+      "denominator": "9",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "1m°F",
+      "target": "µK",
+      "numerator": "2298355000",
+      "denominator": "9",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "1m°F",
+      "target": "QK",
+      "numerator": "459671",
+      "denominator": "1800000000000000000000000000000000",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "1m°F",
+      "target": "qK",
+      "numerator": "2298355000000000000000000000000000",
+      "denominator": "9",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "1m°F",
+      "target": "°C",
+      "numerator": "-31999",
+      "denominator": "1800",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "1m°F",
+      "target": "m°C",
+      "numerator": "-159995",
+      "denominator": "9",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "1m°F",
+      "target": "°F",
+      "numerator": "1",
+      "denominator": "1000",
+      "coefficient": "1",
+      "exponent": -3
+    },
+    {
+      "role": "point",
+      "source": "1m°F",
+      "target": "m°F",
+      "numerator": "1",
+      "denominator": "1",
+      "coefficient": "1",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "-1m°F",
+      "target": "K",
+      "numerator": "153223",
+      "denominator": "600",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "-1m°F",
+      "target": "mK",
+      "numerator": "766115",
+      "denominator": "3",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "-1m°F",
+      "target": "µK",
+      "numerator": "766115000",
+      "denominator": "3",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "-1m°F",
+      "target": "QK",
+      "numerator": "153223",
+      "denominator": "600000000000000000000000000000000",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "-1m°F",
+      "target": "qK",
+      "numerator": "766115000000000000000000000000000",
+      "denominator": "3",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "-1m°F",
+      "target": "°C",
+      "numerator": "-10667",
+      "denominator": "600",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "-1m°F",
+      "target": "m°C",
+      "numerator": "-53335",
+      "denominator": "3",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "-1m°F",
+      "target": "°F",
+      "numerator": "-1",
+      "denominator": "1000",
+      "coefficient": "-1",
+      "exponent": -3
+    },
+    {
+      "role": "point",
+      "source": "-1m°F",
+      "target": "m°F",
+      "numerator": "-1",
+      "denominator": "1",
+      "coefficient": "-1",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "9m°F",
+      "target": "K",
+      "numerator": "459679",
+      "denominator": "1800",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "9m°F",
+      "target": "mK",
+      "numerator": "2298395",
+      "denominator": "9",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "9m°F",
+      "target": "µK",
+      "numerator": "2298395000",
+      "denominator": "9",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "9m°F",
+      "target": "QK",
+      "numerator": "459679",
+      "denominator": "1800000000000000000000000000000000",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "9m°F",
+      "target": "qK",
+      "numerator": "2298395000000000000000000000000000",
+      "denominator": "9",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "9m°F",
+      "target": "°C",
+      "numerator": "-31991",
+      "denominator": "1800",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "9m°F",
+      "target": "m°C",
+      "numerator": "-159955",
+      "denominator": "9",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "9m°F",
+      "target": "°F",
+      "numerator": "9",
+      "denominator": "1000",
+      "coefficient": "9",
+      "exponent": -3
+    },
+    {
+      "role": "point",
+      "source": "9m°F",
+      "target": "m°F",
+      "numerator": "9",
+      "denominator": "1",
+      "coefficient": "9",
+      "exponent": 0
+    },
+    {
+      "role": "point",
+      "source": "30m°F",
+      "target": "K",
+      "numerator": "4597",
+      "denominator": "18",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "30m°F",
+      "target": "mK",
+      "numerator": "2298500",
+      "denominator": "9",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "30m°F",
+      "target": "µK",
+      "numerator": "2298500000",
+      "denominator": "9",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "30m°F",
+      "target": "QK",
+      "numerator": "4597",
+      "denominator": "18000000000000000000000000000000",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "30m°F",
+      "target": "qK",
+      "numerator": "2298500000000000000000000000000000",
+      "denominator": "9",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "30m°F",
+      "target": "°C",
+      "numerator": "-3197",
+      "denominator": "180",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "30m°F",
+      "target": "m°C",
+      "numerator": "-159850",
+      "denominator": "9",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "30m°F",
+      "target": "°F",
+      "numerator": "3",
+      "denominator": "100",
+      "coefficient": "3",
+      "exponent": -2
+    },
+    {
+      "role": "point",
+      "source": "30m°F",
+      "target": "m°F",
+      "numerator": "30",
+      "denominator": "1",
+      "coefficient": "3",
+      "exponent": 1
+    },
+    {
+      "role": "point",
+      "source": "273.15m°F",
+      "target": "K",
+      "numerator": "9198863",
+      "denominator": "36000",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "273.15m°F",
+      "target": "mK",
+      "numerator": "9198863",
+      "denominator": "36",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "273.15m°F",
+      "target": "µK",
+      "numerator": "2299715750",
+      "denominator": "9",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "273.15m°F",
+      "target": "QK",
+      "numerator": "9198863",
+      "denominator": "36000000000000000000000000000000000",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "273.15m°F",
+      "target": "qK",
+      "numerator": "2299715750000000000000000000000000",
+      "denominator": "9",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "273.15m°F",
+      "target": "°C",
+      "numerator": "-634537",
+      "denominator": "36000",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "273.15m°F",
+      "target": "m°C",
+      "numerator": "-634537",
+      "denominator": "36",
+      "refusal": "inexact"
+    },
+    {
+      "role": "point",
+      "source": "273.15m°F",
+      "target": "°F",
+      "numerator": "5463",
+      "denominator": "20000",
+      "coefficient": "27315",
+      "exponent": -5
+    },
+    {
+      "role": "point",
+      "source": "273.15m°F",
+      "target": "m°F",
+      "numerator": "5463",
+      "denominator": "20",
+      "coefficient": "27315",
+      "exponent": -2
+    },
+    {
+      "role": "difference",
+      "source": "0K",
+      "target": "K",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0K",
+      "target": "mK",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0K",
+      "target": "µK",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0K",
+      "target": "QK",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0K",
+      "target": "qK",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0K",
+      "target": "°C",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0K",
+      "target": "m°C",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0K",
+      "target": "°F",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0K",
+      "target": "m°F",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "1K",
+      "target": "K",
+      "numerator": "1",
+      "denominator": "1",
+      "coefficient": "1",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "1K",
+      "target": "mK",
+      "numerator": "1000",
+      "denominator": "1",
+      "coefficient": "1",
+      "exponent": 3
+    },
+    {
+      "role": "difference",
+      "source": "1K",
+      "target": "µK",
+      "numerator": "1000000",
+      "denominator": "1",
+      "coefficient": "1",
+      "exponent": 6
+    },
+    {
+      "role": "difference",
+      "source": "1K",
+      "target": "QK",
+      "numerator": "1",
+      "denominator": "1000000000000000000000000000000",
+      "coefficient": "1",
+      "exponent": -30
+    },
+    {
+      "role": "difference",
+      "source": "1K",
+      "target": "qK",
+      "numerator": "1000000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "1",
+      "exponent": 30
+    },
+    {
+      "role": "difference",
+      "source": "1K",
+      "target": "°C",
+      "numerator": "1",
+      "denominator": "1",
+      "coefficient": "1",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "1K",
+      "target": "m°C",
+      "numerator": "1000",
+      "denominator": "1",
+      "coefficient": "1",
+      "exponent": 3
+    },
+    {
+      "role": "difference",
+      "source": "1K",
+      "target": "°F",
+      "numerator": "9",
+      "denominator": "5",
+      "coefficient": "18",
+      "exponent": -1
+    },
+    {
+      "role": "difference",
+      "source": "1K",
+      "target": "m°F",
+      "numerator": "1800",
+      "denominator": "1",
+      "coefficient": "18",
+      "exponent": 2
+    },
+    {
+      "role": "difference",
+      "source": "-1K",
+      "target": "K",
+      "numerator": "-1",
+      "denominator": "1",
+      "coefficient": "-1",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "-1K",
+      "target": "mK",
+      "numerator": "-1000",
+      "denominator": "1",
+      "coefficient": "-1",
+      "exponent": 3
+    },
+    {
+      "role": "difference",
+      "source": "-1K",
+      "target": "µK",
+      "numerator": "-1000000",
+      "denominator": "1",
+      "coefficient": "-1",
+      "exponent": 6
+    },
+    {
+      "role": "difference",
+      "source": "-1K",
+      "target": "QK",
+      "numerator": "-1",
+      "denominator": "1000000000000000000000000000000",
+      "coefficient": "-1",
+      "exponent": -30
+    },
+    {
+      "role": "difference",
+      "source": "-1K",
+      "target": "qK",
+      "numerator": "-1000000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "-1",
+      "exponent": 30
+    },
+    {
+      "role": "difference",
+      "source": "-1K",
+      "target": "°C",
+      "numerator": "-1",
+      "denominator": "1",
+      "coefficient": "-1",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "-1K",
+      "target": "m°C",
+      "numerator": "-1000",
+      "denominator": "1",
+      "coefficient": "-1",
+      "exponent": 3
+    },
+    {
+      "role": "difference",
+      "source": "-1K",
+      "target": "°F",
+      "numerator": "-9",
+      "denominator": "5",
+      "coefficient": "-18",
+      "exponent": -1
+    },
+    {
+      "role": "difference",
+      "source": "-1K",
+      "target": "m°F",
+      "numerator": "-1800",
+      "denominator": "1",
+      "coefficient": "-18",
+      "exponent": 2
+    },
+    {
+      "role": "difference",
+      "source": "9K",
+      "target": "K",
+      "numerator": "9",
+      "denominator": "1",
+      "coefficient": "9",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "9K",
+      "target": "mK",
+      "numerator": "9000",
+      "denominator": "1",
+      "coefficient": "9",
+      "exponent": 3
+    },
+    {
+      "role": "difference",
+      "source": "9K",
+      "target": "µK",
+      "numerator": "9000000",
+      "denominator": "1",
+      "coefficient": "9",
+      "exponent": 6
+    },
+    {
+      "role": "difference",
+      "source": "9K",
+      "target": "QK",
+      "numerator": "9",
+      "denominator": "1000000000000000000000000000000",
+      "coefficient": "9",
+      "exponent": -30
+    },
+    {
+      "role": "difference",
+      "source": "9K",
+      "target": "qK",
+      "numerator": "9000000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "9",
+      "exponent": 30
+    },
+    {
+      "role": "difference",
+      "source": "9K",
+      "target": "°C",
+      "numerator": "9",
+      "denominator": "1",
+      "coefficient": "9",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "9K",
+      "target": "m°C",
+      "numerator": "9000",
+      "denominator": "1",
+      "coefficient": "9",
+      "exponent": 3
+    },
+    {
+      "role": "difference",
+      "source": "9K",
+      "target": "°F",
+      "numerator": "81",
+      "denominator": "5",
+      "coefficient": "162",
+      "exponent": -1
+    },
+    {
+      "role": "difference",
+      "source": "9K",
+      "target": "m°F",
+      "numerator": "16200",
+      "denominator": "1",
+      "coefficient": "162",
+      "exponent": 2
+    },
+    {
+      "role": "difference",
+      "source": "30K",
+      "target": "K",
+      "numerator": "30",
+      "denominator": "1",
+      "coefficient": "3",
+      "exponent": 1
+    },
+    {
+      "role": "difference",
+      "source": "30K",
+      "target": "mK",
+      "numerator": "30000",
+      "denominator": "1",
+      "coefficient": "3",
+      "exponent": 4
+    },
+    {
+      "role": "difference",
+      "source": "30K",
+      "target": "µK",
+      "numerator": "30000000",
+      "denominator": "1",
+      "coefficient": "3",
+      "exponent": 7
+    },
+    {
+      "role": "difference",
+      "source": "30K",
+      "target": "QK",
+      "numerator": "3",
+      "denominator": "100000000000000000000000000000",
+      "coefficient": "3",
+      "exponent": -29
+    },
+    {
+      "role": "difference",
+      "source": "30K",
+      "target": "qK",
+      "numerator": "30000000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "3",
+      "exponent": 31
+    },
+    {
+      "role": "difference",
+      "source": "30K",
+      "target": "°C",
+      "numerator": "30",
+      "denominator": "1",
+      "coefficient": "3",
+      "exponent": 1
+    },
+    {
+      "role": "difference",
+      "source": "30K",
+      "target": "m°C",
+      "numerator": "30000",
+      "denominator": "1",
+      "coefficient": "3",
+      "exponent": 4
+    },
+    {
+      "role": "difference",
+      "source": "30K",
+      "target": "°F",
+      "numerator": "54",
+      "denominator": "1",
+      "coefficient": "54",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "30K",
+      "target": "m°F",
+      "numerator": "54000",
+      "denominator": "1",
+      "coefficient": "54",
+      "exponent": 3
+    },
+    {
+      "role": "difference",
+      "source": "273.15K",
+      "target": "K",
+      "numerator": "5463",
+      "denominator": "20",
+      "coefficient": "27315",
+      "exponent": -2
+    },
+    {
+      "role": "difference",
+      "source": "273.15K",
+      "target": "mK",
+      "numerator": "273150",
+      "denominator": "1",
+      "coefficient": "27315",
+      "exponent": 1
+    },
+    {
+      "role": "difference",
+      "source": "273.15K",
+      "target": "µK",
+      "numerator": "273150000",
+      "denominator": "1",
+      "coefficient": "27315",
+      "exponent": 4
+    },
+    {
+      "role": "difference",
+      "source": "273.15K",
+      "target": "QK",
+      "numerator": "5463",
+      "denominator": "20000000000000000000000000000000",
+      "coefficient": "27315",
+      "exponent": -32
+    },
+    {
+      "role": "difference",
+      "source": "273.15K",
+      "target": "qK",
+      "numerator": "273150000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "27315",
+      "exponent": 28
+    },
+    {
+      "role": "difference",
+      "source": "273.15K",
+      "target": "°C",
+      "numerator": "5463",
+      "denominator": "20",
+      "coefficient": "27315",
+      "exponent": -2
+    },
+    {
+      "role": "difference",
+      "source": "273.15K",
+      "target": "m°C",
+      "numerator": "273150",
+      "denominator": "1",
+      "coefficient": "27315",
+      "exponent": 1
+    },
+    {
+      "role": "difference",
+      "source": "273.15K",
+      "target": "°F",
+      "numerator": "49167",
+      "denominator": "100",
+      "coefficient": "49167",
+      "exponent": -2
+    },
+    {
+      "role": "difference",
+      "source": "273.15K",
+      "target": "m°F",
+      "numerator": "491670",
+      "denominator": "1",
+      "coefficient": "49167",
+      "exponent": 1
+    },
+    {
+      "role": "difference",
+      "source": "0mK",
+      "target": "K",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0mK",
+      "target": "mK",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0mK",
+      "target": "µK",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0mK",
+      "target": "QK",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0mK",
+      "target": "qK",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0mK",
+      "target": "°C",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0mK",
+      "target": "m°C",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0mK",
+      "target": "°F",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0mK",
+      "target": "m°F",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "1mK",
+      "target": "K",
+      "numerator": "1",
+      "denominator": "1000",
+      "coefficient": "1",
+      "exponent": -3
+    },
+    {
+      "role": "difference",
+      "source": "1mK",
+      "target": "mK",
+      "numerator": "1",
+      "denominator": "1",
+      "coefficient": "1",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "1mK",
+      "target": "µK",
+      "numerator": "1000",
+      "denominator": "1",
+      "coefficient": "1",
+      "exponent": 3
+    },
+    {
+      "role": "difference",
+      "source": "1mK",
+      "target": "QK",
+      "numerator": "1",
+      "denominator": "1000000000000000000000000000000000",
+      "coefficient": "1",
+      "exponent": -33
+    },
+    {
+      "role": "difference",
+      "source": "1mK",
+      "target": "qK",
+      "numerator": "1000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "1",
+      "exponent": 27
+    },
+    {
+      "role": "difference",
+      "source": "1mK",
+      "target": "°C",
+      "numerator": "1",
+      "denominator": "1000",
+      "coefficient": "1",
+      "exponent": -3
+    },
+    {
+      "role": "difference",
+      "source": "1mK",
+      "target": "m°C",
+      "numerator": "1",
+      "denominator": "1",
+      "coefficient": "1",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "1mK",
+      "target": "°F",
+      "numerator": "9",
+      "denominator": "5000",
+      "coefficient": "18",
+      "exponent": -4
+    },
+    {
+      "role": "difference",
+      "source": "1mK",
+      "target": "m°F",
+      "numerator": "9",
+      "denominator": "5",
+      "coefficient": "18",
+      "exponent": -1
+    },
+    {
+      "role": "difference",
+      "source": "-1mK",
+      "target": "K",
+      "numerator": "-1",
+      "denominator": "1000",
+      "coefficient": "-1",
+      "exponent": -3
+    },
+    {
+      "role": "difference",
+      "source": "-1mK",
+      "target": "mK",
+      "numerator": "-1",
+      "denominator": "1",
+      "coefficient": "-1",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "-1mK",
+      "target": "µK",
+      "numerator": "-1000",
+      "denominator": "1",
+      "coefficient": "-1",
+      "exponent": 3
+    },
+    {
+      "role": "difference",
+      "source": "-1mK",
+      "target": "QK",
+      "numerator": "-1",
+      "denominator": "1000000000000000000000000000000000",
+      "coefficient": "-1",
+      "exponent": -33
+    },
+    {
+      "role": "difference",
+      "source": "-1mK",
+      "target": "qK",
+      "numerator": "-1000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "-1",
+      "exponent": 27
+    },
+    {
+      "role": "difference",
+      "source": "-1mK",
+      "target": "°C",
+      "numerator": "-1",
+      "denominator": "1000",
+      "coefficient": "-1",
+      "exponent": -3
+    },
+    {
+      "role": "difference",
+      "source": "-1mK",
+      "target": "m°C",
+      "numerator": "-1",
+      "denominator": "1",
+      "coefficient": "-1",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "-1mK",
+      "target": "°F",
+      "numerator": "-9",
+      "denominator": "5000",
+      "coefficient": "-18",
+      "exponent": -4
+    },
+    {
+      "role": "difference",
+      "source": "-1mK",
+      "target": "m°F",
+      "numerator": "-9",
+      "denominator": "5",
+      "coefficient": "-18",
+      "exponent": -1
+    },
+    {
+      "role": "difference",
+      "source": "9mK",
+      "target": "K",
+      "numerator": "9",
+      "denominator": "1000",
+      "coefficient": "9",
+      "exponent": -3
+    },
+    {
+      "role": "difference",
+      "source": "9mK",
+      "target": "mK",
+      "numerator": "9",
+      "denominator": "1",
+      "coefficient": "9",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "9mK",
+      "target": "µK",
+      "numerator": "9000",
+      "denominator": "1",
+      "coefficient": "9",
+      "exponent": 3
+    },
+    {
+      "role": "difference",
+      "source": "9mK",
+      "target": "QK",
+      "numerator": "9",
+      "denominator": "1000000000000000000000000000000000",
+      "coefficient": "9",
+      "exponent": -33
+    },
+    {
+      "role": "difference",
+      "source": "9mK",
+      "target": "qK",
+      "numerator": "9000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "9",
+      "exponent": 27
+    },
+    {
+      "role": "difference",
+      "source": "9mK",
+      "target": "°C",
+      "numerator": "9",
+      "denominator": "1000",
+      "coefficient": "9",
+      "exponent": -3
+    },
+    {
+      "role": "difference",
+      "source": "9mK",
+      "target": "m°C",
+      "numerator": "9",
+      "denominator": "1",
+      "coefficient": "9",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "9mK",
+      "target": "°F",
+      "numerator": "81",
+      "denominator": "5000",
+      "coefficient": "162",
+      "exponent": -4
+    },
+    {
+      "role": "difference",
+      "source": "9mK",
+      "target": "m°F",
+      "numerator": "81",
+      "denominator": "5",
+      "coefficient": "162",
+      "exponent": -1
+    },
+    {
+      "role": "difference",
+      "source": "30mK",
+      "target": "K",
+      "numerator": "3",
+      "denominator": "100",
+      "coefficient": "3",
+      "exponent": -2
+    },
+    {
+      "role": "difference",
+      "source": "30mK",
+      "target": "mK",
+      "numerator": "30",
+      "denominator": "1",
+      "coefficient": "3",
+      "exponent": 1
+    },
+    {
+      "role": "difference",
+      "source": "30mK",
+      "target": "µK",
+      "numerator": "30000",
+      "denominator": "1",
+      "coefficient": "3",
+      "exponent": 4
+    },
+    {
+      "role": "difference",
+      "source": "30mK",
+      "target": "QK",
+      "numerator": "3",
+      "denominator": "100000000000000000000000000000000",
+      "coefficient": "3",
+      "exponent": -32
+    },
+    {
+      "role": "difference",
+      "source": "30mK",
+      "target": "qK",
+      "numerator": "30000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "3",
+      "exponent": 28
+    },
+    {
+      "role": "difference",
+      "source": "30mK",
+      "target": "°C",
+      "numerator": "3",
+      "denominator": "100",
+      "coefficient": "3",
+      "exponent": -2
+    },
+    {
+      "role": "difference",
+      "source": "30mK",
+      "target": "m°C",
+      "numerator": "30",
+      "denominator": "1",
+      "coefficient": "3",
+      "exponent": 1
+    },
+    {
+      "role": "difference",
+      "source": "30mK",
+      "target": "°F",
+      "numerator": "27",
+      "denominator": "500",
+      "coefficient": "54",
+      "exponent": -3
+    },
+    {
+      "role": "difference",
+      "source": "30mK",
+      "target": "m°F",
+      "numerator": "54",
+      "denominator": "1",
+      "coefficient": "54",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "273.15mK",
+      "target": "K",
+      "numerator": "5463",
+      "denominator": "20000",
+      "coefficient": "27315",
+      "exponent": -5
+    },
+    {
+      "role": "difference",
+      "source": "273.15mK",
+      "target": "mK",
+      "numerator": "5463",
+      "denominator": "20",
+      "coefficient": "27315",
+      "exponent": -2
+    },
+    {
+      "role": "difference",
+      "source": "273.15mK",
+      "target": "µK",
+      "numerator": "273150",
+      "denominator": "1",
+      "coefficient": "27315",
+      "exponent": 1
+    },
+    {
+      "role": "difference",
+      "source": "273.15mK",
+      "target": "QK",
+      "numerator": "5463",
+      "denominator": "20000000000000000000000000000000000",
+      "coefficient": "27315",
+      "exponent": -35
+    },
+    {
+      "role": "difference",
+      "source": "273.15mK",
+      "target": "qK",
+      "numerator": "273150000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "27315",
+      "exponent": 25
+    },
+    {
+      "role": "difference",
+      "source": "273.15mK",
+      "target": "°C",
+      "numerator": "5463",
+      "denominator": "20000",
+      "coefficient": "27315",
+      "exponent": -5
+    },
+    {
+      "role": "difference",
+      "source": "273.15mK",
+      "target": "m°C",
+      "numerator": "5463",
+      "denominator": "20",
+      "coefficient": "27315",
+      "exponent": -2
+    },
+    {
+      "role": "difference",
+      "source": "273.15mK",
+      "target": "°F",
+      "numerator": "49167",
+      "denominator": "100000",
+      "coefficient": "49167",
+      "exponent": -5
+    },
+    {
+      "role": "difference",
+      "source": "273.15mK",
+      "target": "m°F",
+      "numerator": "49167",
+      "denominator": "100",
+      "coefficient": "49167",
+      "exponent": -2
+    },
+    {
+      "role": "difference",
+      "source": "0µK",
+      "target": "K",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0µK",
+      "target": "mK",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0µK",
+      "target": "µK",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0µK",
+      "target": "QK",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0µK",
+      "target": "qK",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0µK",
+      "target": "°C",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0µK",
+      "target": "m°C",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0µK",
+      "target": "°F",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0µK",
+      "target": "m°F",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "1µK",
+      "target": "K",
+      "numerator": "1",
+      "denominator": "1000000",
+      "coefficient": "1",
+      "exponent": -6
+    },
+    {
+      "role": "difference",
+      "source": "1µK",
+      "target": "mK",
+      "numerator": "1",
+      "denominator": "1000",
+      "coefficient": "1",
+      "exponent": -3
+    },
+    {
+      "role": "difference",
+      "source": "1µK",
+      "target": "µK",
+      "numerator": "1",
+      "denominator": "1",
+      "coefficient": "1",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "1µK",
+      "target": "QK",
+      "numerator": "1",
+      "denominator": "1000000000000000000000000000000000000",
+      "coefficient": "1",
+      "exponent": -36
+    },
+    {
+      "role": "difference",
+      "source": "1µK",
+      "target": "qK",
+      "numerator": "1000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "1",
+      "exponent": 24
+    },
+    {
+      "role": "difference",
+      "source": "1µK",
+      "target": "°C",
+      "numerator": "1",
+      "denominator": "1000000",
+      "coefficient": "1",
+      "exponent": -6
+    },
+    {
+      "role": "difference",
+      "source": "1µK",
+      "target": "m°C",
+      "numerator": "1",
+      "denominator": "1000",
+      "coefficient": "1",
+      "exponent": -3
+    },
+    {
+      "role": "difference",
+      "source": "1µK",
+      "target": "°F",
+      "numerator": "9",
+      "denominator": "5000000",
+      "coefficient": "18",
+      "exponent": -7
+    },
+    {
+      "role": "difference",
+      "source": "1µK",
+      "target": "m°F",
+      "numerator": "9",
+      "denominator": "5000",
+      "coefficient": "18",
+      "exponent": -4
+    },
+    {
+      "role": "difference",
+      "source": "-1µK",
+      "target": "K",
+      "numerator": "-1",
+      "denominator": "1000000",
+      "coefficient": "-1",
+      "exponent": -6
+    },
+    {
+      "role": "difference",
+      "source": "-1µK",
+      "target": "mK",
+      "numerator": "-1",
+      "denominator": "1000",
+      "coefficient": "-1",
+      "exponent": -3
+    },
+    {
+      "role": "difference",
+      "source": "-1µK",
+      "target": "µK",
+      "numerator": "-1",
+      "denominator": "1",
+      "coefficient": "-1",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "-1µK",
+      "target": "QK",
+      "numerator": "-1",
+      "denominator": "1000000000000000000000000000000000000",
+      "coefficient": "-1",
+      "exponent": -36
+    },
+    {
+      "role": "difference",
+      "source": "-1µK",
+      "target": "qK",
+      "numerator": "-1000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "-1",
+      "exponent": 24
+    },
+    {
+      "role": "difference",
+      "source": "-1µK",
+      "target": "°C",
+      "numerator": "-1",
+      "denominator": "1000000",
+      "coefficient": "-1",
+      "exponent": -6
+    },
+    {
+      "role": "difference",
+      "source": "-1µK",
+      "target": "m°C",
+      "numerator": "-1",
+      "denominator": "1000",
+      "coefficient": "-1",
+      "exponent": -3
+    },
+    {
+      "role": "difference",
+      "source": "-1µK",
+      "target": "°F",
+      "numerator": "-9",
+      "denominator": "5000000",
+      "coefficient": "-18",
+      "exponent": -7
+    },
+    {
+      "role": "difference",
+      "source": "-1µK",
+      "target": "m°F",
+      "numerator": "-9",
+      "denominator": "5000",
+      "coefficient": "-18",
+      "exponent": -4
+    },
+    {
+      "role": "difference",
+      "source": "9µK",
+      "target": "K",
+      "numerator": "9",
+      "denominator": "1000000",
+      "coefficient": "9",
+      "exponent": -6
+    },
+    {
+      "role": "difference",
+      "source": "9µK",
+      "target": "mK",
+      "numerator": "9",
+      "denominator": "1000",
+      "coefficient": "9",
+      "exponent": -3
+    },
+    {
+      "role": "difference",
+      "source": "9µK",
+      "target": "µK",
+      "numerator": "9",
+      "denominator": "1",
+      "coefficient": "9",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "9µK",
+      "target": "QK",
+      "numerator": "9",
+      "denominator": "1000000000000000000000000000000000000",
+      "coefficient": "9",
+      "exponent": -36
+    },
+    {
+      "role": "difference",
+      "source": "9µK",
+      "target": "qK",
+      "numerator": "9000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "9",
+      "exponent": 24
+    },
+    {
+      "role": "difference",
+      "source": "9µK",
+      "target": "°C",
+      "numerator": "9",
+      "denominator": "1000000",
+      "coefficient": "9",
+      "exponent": -6
+    },
+    {
+      "role": "difference",
+      "source": "9µK",
+      "target": "m°C",
+      "numerator": "9",
+      "denominator": "1000",
+      "coefficient": "9",
+      "exponent": -3
+    },
+    {
+      "role": "difference",
+      "source": "9µK",
+      "target": "°F",
+      "numerator": "81",
+      "denominator": "5000000",
+      "coefficient": "162",
+      "exponent": -7
+    },
+    {
+      "role": "difference",
+      "source": "9µK",
+      "target": "m°F",
+      "numerator": "81",
+      "denominator": "5000",
+      "coefficient": "162",
+      "exponent": -4
+    },
+    {
+      "role": "difference",
+      "source": "30µK",
+      "target": "K",
+      "numerator": "3",
+      "denominator": "100000",
+      "coefficient": "3",
+      "exponent": -5
+    },
+    {
+      "role": "difference",
+      "source": "30µK",
+      "target": "mK",
+      "numerator": "3",
+      "denominator": "100",
+      "coefficient": "3",
+      "exponent": -2
+    },
+    {
+      "role": "difference",
+      "source": "30µK",
+      "target": "µK",
+      "numerator": "30",
+      "denominator": "1",
+      "coefficient": "3",
+      "exponent": 1
+    },
+    {
+      "role": "difference",
+      "source": "30µK",
+      "target": "QK",
+      "numerator": "3",
+      "denominator": "100000000000000000000000000000000000",
+      "coefficient": "3",
+      "exponent": -35
+    },
+    {
+      "role": "difference",
+      "source": "30µK",
+      "target": "qK",
+      "numerator": "30000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "3",
+      "exponent": 25
+    },
+    {
+      "role": "difference",
+      "source": "30µK",
+      "target": "°C",
+      "numerator": "3",
+      "denominator": "100000",
+      "coefficient": "3",
+      "exponent": -5
+    },
+    {
+      "role": "difference",
+      "source": "30µK",
+      "target": "m°C",
+      "numerator": "3",
+      "denominator": "100",
+      "coefficient": "3",
+      "exponent": -2
+    },
+    {
+      "role": "difference",
+      "source": "30µK",
+      "target": "°F",
+      "numerator": "27",
+      "denominator": "500000",
+      "coefficient": "54",
+      "exponent": -6
+    },
+    {
+      "role": "difference",
+      "source": "30µK",
+      "target": "m°F",
+      "numerator": "27",
+      "denominator": "500",
+      "coefficient": "54",
+      "exponent": -3
+    },
+    {
+      "role": "difference",
+      "source": "273.15µK",
+      "target": "K",
+      "numerator": "5463",
+      "denominator": "20000000",
+      "coefficient": "27315",
+      "exponent": -8
+    },
+    {
+      "role": "difference",
+      "source": "273.15µK",
+      "target": "mK",
+      "numerator": "5463",
+      "denominator": "20000",
+      "coefficient": "27315",
+      "exponent": -5
+    },
+    {
+      "role": "difference",
+      "source": "273.15µK",
+      "target": "µK",
+      "numerator": "5463",
+      "denominator": "20",
+      "coefficient": "27315",
+      "exponent": -2
+    },
+    {
+      "role": "difference",
+      "source": "273.15µK",
+      "target": "QK",
+      "numerator": "5463",
+      "denominator": "20000000000000000000000000000000000000",
+      "coefficient": "27315",
+      "exponent": -38
+    },
+    {
+      "role": "difference",
+      "source": "273.15µK",
+      "target": "qK",
+      "numerator": "273150000000000000000000000",
+      "denominator": "1",
+      "coefficient": "27315",
+      "exponent": 22
+    },
+    {
+      "role": "difference",
+      "source": "273.15µK",
+      "target": "°C",
+      "numerator": "5463",
+      "denominator": "20000000",
+      "coefficient": "27315",
+      "exponent": -8
+    },
+    {
+      "role": "difference",
+      "source": "273.15µK",
+      "target": "m°C",
+      "numerator": "5463",
+      "denominator": "20000",
+      "coefficient": "27315",
+      "exponent": -5
+    },
+    {
+      "role": "difference",
+      "source": "273.15µK",
+      "target": "°F",
+      "numerator": "49167",
+      "denominator": "100000000",
+      "coefficient": "49167",
+      "exponent": -8
+    },
+    {
+      "role": "difference",
+      "source": "273.15µK",
+      "target": "m°F",
+      "numerator": "49167",
+      "denominator": "100000",
+      "coefficient": "49167",
+      "exponent": -5
+    },
+    {
+      "role": "difference",
+      "source": "0QK",
+      "target": "K",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0QK",
+      "target": "mK",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0QK",
+      "target": "µK",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0QK",
+      "target": "QK",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0QK",
+      "target": "qK",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0QK",
+      "target": "°C",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0QK",
+      "target": "m°C",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0QK",
+      "target": "°F",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0QK",
+      "target": "m°F",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "1QK",
+      "target": "K",
+      "numerator": "1000000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "1",
+      "exponent": 30
+    },
+    {
+      "role": "difference",
+      "source": "1QK",
+      "target": "mK",
+      "numerator": "1000000000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "1",
+      "exponent": 33
+    },
+    {
+      "role": "difference",
+      "source": "1QK",
+      "target": "µK",
+      "numerator": "1000000000000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "1",
+      "exponent": 36
+    },
+    {
+      "role": "difference",
+      "source": "1QK",
+      "target": "QK",
+      "numerator": "1",
+      "denominator": "1",
+      "coefficient": "1",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "1QK",
+      "target": "qK",
+      "numerator": "1000000000000000000000000000000000000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "1",
+      "exponent": 60
+    },
+    {
+      "role": "difference",
+      "source": "1QK",
+      "target": "°C",
+      "numerator": "1000000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "1",
+      "exponent": 30
+    },
+    {
+      "role": "difference",
+      "source": "1QK",
+      "target": "m°C",
+      "numerator": "1000000000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "1",
+      "exponent": 33
+    },
+    {
+      "role": "difference",
+      "source": "1QK",
+      "target": "°F",
+      "numerator": "1800000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "18",
+      "exponent": 29
+    },
+    {
+      "role": "difference",
+      "source": "1QK",
+      "target": "m°F",
+      "numerator": "1800000000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "18",
+      "exponent": 32
+    },
+    {
+      "role": "difference",
+      "source": "-1QK",
+      "target": "K",
+      "numerator": "-1000000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "-1",
+      "exponent": 30
+    },
+    {
+      "role": "difference",
+      "source": "-1QK",
+      "target": "mK",
+      "numerator": "-1000000000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "-1",
+      "exponent": 33
+    },
+    {
+      "role": "difference",
+      "source": "-1QK",
+      "target": "µK",
+      "numerator": "-1000000000000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "-1",
+      "exponent": 36
+    },
+    {
+      "role": "difference",
+      "source": "-1QK",
+      "target": "QK",
+      "numerator": "-1",
+      "denominator": "1",
+      "coefficient": "-1",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "-1QK",
+      "target": "qK",
+      "numerator": "-1000000000000000000000000000000000000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "-1",
+      "exponent": 60
+    },
+    {
+      "role": "difference",
+      "source": "-1QK",
+      "target": "°C",
+      "numerator": "-1000000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "-1",
+      "exponent": 30
+    },
+    {
+      "role": "difference",
+      "source": "-1QK",
+      "target": "m°C",
+      "numerator": "-1000000000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "-1",
+      "exponent": 33
+    },
+    {
+      "role": "difference",
+      "source": "-1QK",
+      "target": "°F",
+      "numerator": "-1800000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "-18",
+      "exponent": 29
+    },
+    {
+      "role": "difference",
+      "source": "-1QK",
+      "target": "m°F",
+      "numerator": "-1800000000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "-18",
+      "exponent": 32
+    },
+    {
+      "role": "difference",
+      "source": "9QK",
+      "target": "K",
+      "numerator": "9000000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "9",
+      "exponent": 30
+    },
+    {
+      "role": "difference",
+      "source": "9QK",
+      "target": "mK",
+      "numerator": "9000000000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "9",
+      "exponent": 33
+    },
+    {
+      "role": "difference",
+      "source": "9QK",
+      "target": "µK",
+      "numerator": "9000000000000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "9",
+      "exponent": 36
+    },
+    {
+      "role": "difference",
+      "source": "9QK",
+      "target": "QK",
+      "numerator": "9",
+      "denominator": "1",
+      "coefficient": "9",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "9QK",
+      "target": "qK",
+      "numerator": "9000000000000000000000000000000000000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "9",
+      "exponent": 60
+    },
+    {
+      "role": "difference",
+      "source": "9QK",
+      "target": "°C",
+      "numerator": "9000000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "9",
+      "exponent": 30
+    },
+    {
+      "role": "difference",
+      "source": "9QK",
+      "target": "m°C",
+      "numerator": "9000000000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "9",
+      "exponent": 33
+    },
+    {
+      "role": "difference",
+      "source": "9QK",
+      "target": "°F",
+      "numerator": "16200000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "162",
+      "exponent": 29
+    },
+    {
+      "role": "difference",
+      "source": "9QK",
+      "target": "m°F",
+      "numerator": "16200000000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "162",
+      "exponent": 32
+    },
+    {
+      "role": "difference",
+      "source": "30QK",
+      "target": "K",
+      "numerator": "30000000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "3",
+      "exponent": 31
+    },
+    {
+      "role": "difference",
+      "source": "30QK",
+      "target": "mK",
+      "numerator": "30000000000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "3",
+      "exponent": 34
+    },
+    {
+      "role": "difference",
+      "source": "30QK",
+      "target": "µK",
+      "numerator": "30000000000000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "3",
+      "exponent": 37
+    },
+    {
+      "role": "difference",
+      "source": "30QK",
+      "target": "QK",
+      "numerator": "30",
+      "denominator": "1",
+      "coefficient": "3",
+      "exponent": 1
+    },
+    {
+      "role": "difference",
+      "source": "30QK",
+      "target": "qK",
+      "numerator": "30000000000000000000000000000000000000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "3",
+      "exponent": 61
+    },
+    {
+      "role": "difference",
+      "source": "30QK",
+      "target": "°C",
+      "numerator": "30000000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "3",
+      "exponent": 31
+    },
+    {
+      "role": "difference",
+      "source": "30QK",
+      "target": "m°C",
+      "numerator": "30000000000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "3",
+      "exponent": 34
+    },
+    {
+      "role": "difference",
+      "source": "30QK",
+      "target": "°F",
+      "numerator": "54000000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "54",
+      "exponent": 30
+    },
+    {
+      "role": "difference",
+      "source": "30QK",
+      "target": "m°F",
+      "numerator": "54000000000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "54",
+      "exponent": 33
+    },
+    {
+      "role": "difference",
+      "source": "273.15QK",
+      "target": "K",
+      "numerator": "273150000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "27315",
+      "exponent": 28
+    },
+    {
+      "role": "difference",
+      "source": "273.15QK",
+      "target": "mK",
+      "numerator": "273150000000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "27315",
+      "exponent": 31
+    },
+    {
+      "role": "difference",
+      "source": "273.15QK",
+      "target": "µK",
+      "numerator": "273150000000000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "27315",
+      "exponent": 34
+    },
+    {
+      "role": "difference",
+      "source": "273.15QK",
+      "target": "QK",
+      "numerator": "5463",
+      "denominator": "20",
+      "coefficient": "27315",
+      "exponent": -2
+    },
+    {
+      "role": "difference",
+      "source": "273.15QK",
+      "target": "qK",
+      "numerator": "273150000000000000000000000000000000000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "27315",
+      "exponent": 58
+    },
+    {
+      "role": "difference",
+      "source": "273.15QK",
+      "target": "°C",
+      "numerator": "273150000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "27315",
+      "exponent": 28
+    },
+    {
+      "role": "difference",
+      "source": "273.15QK",
+      "target": "m°C",
+      "numerator": "273150000000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "27315",
+      "exponent": 31
+    },
+    {
+      "role": "difference",
+      "source": "273.15QK",
+      "target": "°F",
+      "numerator": "491670000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "49167",
+      "exponent": 28
+    },
+    {
+      "role": "difference",
+      "source": "273.15QK",
+      "target": "m°F",
+      "numerator": "491670000000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "49167",
+      "exponent": 31
+    },
+    {
+      "role": "difference",
+      "source": "0qK",
+      "target": "K",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0qK",
+      "target": "mK",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0qK",
+      "target": "µK",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0qK",
+      "target": "QK",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0qK",
+      "target": "qK",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0qK",
+      "target": "°C",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0qK",
+      "target": "m°C",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0qK",
+      "target": "°F",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0qK",
+      "target": "m°F",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "1qK",
+      "target": "K",
+      "numerator": "1",
+      "denominator": "1000000000000000000000000000000",
+      "coefficient": "1",
+      "exponent": -30
+    },
+    {
+      "role": "difference",
+      "source": "1qK",
+      "target": "mK",
+      "numerator": "1",
+      "denominator": "1000000000000000000000000000",
+      "coefficient": "1",
+      "exponent": -27
+    },
+    {
+      "role": "difference",
+      "source": "1qK",
+      "target": "µK",
+      "numerator": "1",
+      "denominator": "1000000000000000000000000",
+      "coefficient": "1",
+      "exponent": -24
+    },
+    {
+      "role": "difference",
+      "source": "1qK",
+      "target": "QK",
+      "numerator": "1",
+      "denominator": "1000000000000000000000000000000000000000000000000000000000000",
+      "coefficient": "1",
+      "exponent": -60
+    },
+    {
+      "role": "difference",
+      "source": "1qK",
+      "target": "qK",
+      "numerator": "1",
+      "denominator": "1",
+      "coefficient": "1",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "1qK",
+      "target": "°C",
+      "numerator": "1",
+      "denominator": "1000000000000000000000000000000",
+      "coefficient": "1",
+      "exponent": -30
+    },
+    {
+      "role": "difference",
+      "source": "1qK",
+      "target": "m°C",
+      "numerator": "1",
+      "denominator": "1000000000000000000000000000",
+      "coefficient": "1",
+      "exponent": -27
+    },
+    {
+      "role": "difference",
+      "source": "1qK",
+      "target": "°F",
+      "numerator": "9",
+      "denominator": "5000000000000000000000000000000",
+      "coefficient": "18",
+      "exponent": -31
+    },
+    {
+      "role": "difference",
+      "source": "1qK",
+      "target": "m°F",
+      "numerator": "9",
+      "denominator": "5000000000000000000000000000",
+      "coefficient": "18",
+      "exponent": -28
+    },
+    {
+      "role": "difference",
+      "source": "-1qK",
+      "target": "K",
+      "numerator": "-1",
+      "denominator": "1000000000000000000000000000000",
+      "coefficient": "-1",
+      "exponent": -30
+    },
+    {
+      "role": "difference",
+      "source": "-1qK",
+      "target": "mK",
+      "numerator": "-1",
+      "denominator": "1000000000000000000000000000",
+      "coefficient": "-1",
+      "exponent": -27
+    },
+    {
+      "role": "difference",
+      "source": "-1qK",
+      "target": "µK",
+      "numerator": "-1",
+      "denominator": "1000000000000000000000000",
+      "coefficient": "-1",
+      "exponent": -24
+    },
+    {
+      "role": "difference",
+      "source": "-1qK",
+      "target": "QK",
+      "numerator": "-1",
+      "denominator": "1000000000000000000000000000000000000000000000000000000000000",
+      "coefficient": "-1",
+      "exponent": -60
+    },
+    {
+      "role": "difference",
+      "source": "-1qK",
+      "target": "qK",
+      "numerator": "-1",
+      "denominator": "1",
+      "coefficient": "-1",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "-1qK",
+      "target": "°C",
+      "numerator": "-1",
+      "denominator": "1000000000000000000000000000000",
+      "coefficient": "-1",
+      "exponent": -30
+    },
+    {
+      "role": "difference",
+      "source": "-1qK",
+      "target": "m°C",
+      "numerator": "-1",
+      "denominator": "1000000000000000000000000000",
+      "coefficient": "-1",
+      "exponent": -27
+    },
+    {
+      "role": "difference",
+      "source": "-1qK",
+      "target": "°F",
+      "numerator": "-9",
+      "denominator": "5000000000000000000000000000000",
+      "coefficient": "-18",
+      "exponent": -31
+    },
+    {
+      "role": "difference",
+      "source": "-1qK",
+      "target": "m°F",
+      "numerator": "-9",
+      "denominator": "5000000000000000000000000000",
+      "coefficient": "-18",
+      "exponent": -28
+    },
+    {
+      "role": "difference",
+      "source": "9qK",
+      "target": "K",
+      "numerator": "9",
+      "denominator": "1000000000000000000000000000000",
+      "coefficient": "9",
+      "exponent": -30
+    },
+    {
+      "role": "difference",
+      "source": "9qK",
+      "target": "mK",
+      "numerator": "9",
+      "denominator": "1000000000000000000000000000",
+      "coefficient": "9",
+      "exponent": -27
+    },
+    {
+      "role": "difference",
+      "source": "9qK",
+      "target": "µK",
+      "numerator": "9",
+      "denominator": "1000000000000000000000000",
+      "coefficient": "9",
+      "exponent": -24
+    },
+    {
+      "role": "difference",
+      "source": "9qK",
+      "target": "QK",
+      "numerator": "9",
+      "denominator": "1000000000000000000000000000000000000000000000000000000000000",
+      "coefficient": "9",
+      "exponent": -60
+    },
+    {
+      "role": "difference",
+      "source": "9qK",
+      "target": "qK",
+      "numerator": "9",
+      "denominator": "1",
+      "coefficient": "9",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "9qK",
+      "target": "°C",
+      "numerator": "9",
+      "denominator": "1000000000000000000000000000000",
+      "coefficient": "9",
+      "exponent": -30
+    },
+    {
+      "role": "difference",
+      "source": "9qK",
+      "target": "m°C",
+      "numerator": "9",
+      "denominator": "1000000000000000000000000000",
+      "coefficient": "9",
+      "exponent": -27
+    },
+    {
+      "role": "difference",
+      "source": "9qK",
+      "target": "°F",
+      "numerator": "81",
+      "denominator": "5000000000000000000000000000000",
+      "coefficient": "162",
+      "exponent": -31
+    },
+    {
+      "role": "difference",
+      "source": "9qK",
+      "target": "m°F",
+      "numerator": "81",
+      "denominator": "5000000000000000000000000000",
+      "coefficient": "162",
+      "exponent": -28
+    },
+    {
+      "role": "difference",
+      "source": "30qK",
+      "target": "K",
+      "numerator": "3",
+      "denominator": "100000000000000000000000000000",
+      "coefficient": "3",
+      "exponent": -29
+    },
+    {
+      "role": "difference",
+      "source": "30qK",
+      "target": "mK",
+      "numerator": "3",
+      "denominator": "100000000000000000000000000",
+      "coefficient": "3",
+      "exponent": -26
+    },
+    {
+      "role": "difference",
+      "source": "30qK",
+      "target": "µK",
+      "numerator": "3",
+      "denominator": "100000000000000000000000",
+      "coefficient": "3",
+      "exponent": -23
+    },
+    {
+      "role": "difference",
+      "source": "30qK",
+      "target": "QK",
+      "numerator": "3",
+      "denominator": "100000000000000000000000000000000000000000000000000000000000",
+      "coefficient": "3",
+      "exponent": -59
+    },
+    {
+      "role": "difference",
+      "source": "30qK",
+      "target": "qK",
+      "numerator": "30",
+      "denominator": "1",
+      "coefficient": "3",
+      "exponent": 1
+    },
+    {
+      "role": "difference",
+      "source": "30qK",
+      "target": "°C",
+      "numerator": "3",
+      "denominator": "100000000000000000000000000000",
+      "coefficient": "3",
+      "exponent": -29
+    },
+    {
+      "role": "difference",
+      "source": "30qK",
+      "target": "m°C",
+      "numerator": "3",
+      "denominator": "100000000000000000000000000",
+      "coefficient": "3",
+      "exponent": -26
+    },
+    {
+      "role": "difference",
+      "source": "30qK",
+      "target": "°F",
+      "numerator": "27",
+      "denominator": "500000000000000000000000000000",
+      "coefficient": "54",
+      "exponent": -30
+    },
+    {
+      "role": "difference",
+      "source": "30qK",
+      "target": "m°F",
+      "numerator": "27",
+      "denominator": "500000000000000000000000000",
+      "coefficient": "54",
+      "exponent": -27
+    },
+    {
+      "role": "difference",
+      "source": "273.15qK",
+      "target": "K",
+      "numerator": "5463",
+      "denominator": "20000000000000000000000000000000",
+      "coefficient": "27315",
+      "exponent": -32
+    },
+    {
+      "role": "difference",
+      "source": "273.15qK",
+      "target": "mK",
+      "numerator": "5463",
+      "denominator": "20000000000000000000000000000",
+      "coefficient": "27315",
+      "exponent": -29
+    },
+    {
+      "role": "difference",
+      "source": "273.15qK",
+      "target": "µK",
+      "numerator": "5463",
+      "denominator": "20000000000000000000000000",
+      "coefficient": "27315",
+      "exponent": -26
+    },
+    {
+      "role": "difference",
+      "source": "273.15qK",
+      "target": "QK",
+      "numerator": "5463",
+      "denominator": "20000000000000000000000000000000000000000000000000000000000000",
+      "coefficient": "27315",
+      "exponent": -62
+    },
+    {
+      "role": "difference",
+      "source": "273.15qK",
+      "target": "qK",
+      "numerator": "5463",
+      "denominator": "20",
+      "coefficient": "27315",
+      "exponent": -2
+    },
+    {
+      "role": "difference",
+      "source": "273.15qK",
+      "target": "°C",
+      "numerator": "5463",
+      "denominator": "20000000000000000000000000000000",
+      "coefficient": "27315",
+      "exponent": -32
+    },
+    {
+      "role": "difference",
+      "source": "273.15qK",
+      "target": "m°C",
+      "numerator": "5463",
+      "denominator": "20000000000000000000000000000",
+      "coefficient": "27315",
+      "exponent": -29
+    },
+    {
+      "role": "difference",
+      "source": "273.15qK",
+      "target": "°F",
+      "numerator": "49167",
+      "denominator": "100000000000000000000000000000000",
+      "coefficient": "49167",
+      "exponent": -32
+    },
+    {
+      "role": "difference",
+      "source": "273.15qK",
+      "target": "m°F",
+      "numerator": "49167",
+      "denominator": "100000000000000000000000000000",
+      "coefficient": "49167",
+      "exponent": -29
+    },
+    {
+      "role": "difference",
+      "source": "0°C",
+      "target": "K",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0°C",
+      "target": "mK",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0°C",
+      "target": "µK",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0°C",
+      "target": "QK",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0°C",
+      "target": "qK",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0°C",
+      "target": "°C",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0°C",
+      "target": "m°C",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0°C",
+      "target": "°F",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0°C",
+      "target": "m°F",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "1°C",
+      "target": "K",
+      "numerator": "1",
+      "denominator": "1",
+      "coefficient": "1",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "1°C",
+      "target": "mK",
+      "numerator": "1000",
+      "denominator": "1",
+      "coefficient": "1",
+      "exponent": 3
+    },
+    {
+      "role": "difference",
+      "source": "1°C",
+      "target": "µK",
+      "numerator": "1000000",
+      "denominator": "1",
+      "coefficient": "1",
+      "exponent": 6
+    },
+    {
+      "role": "difference",
+      "source": "1°C",
+      "target": "QK",
+      "numerator": "1",
+      "denominator": "1000000000000000000000000000000",
+      "coefficient": "1",
+      "exponent": -30
+    },
+    {
+      "role": "difference",
+      "source": "1°C",
+      "target": "qK",
+      "numerator": "1000000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "1",
+      "exponent": 30
+    },
+    {
+      "role": "difference",
+      "source": "1°C",
+      "target": "°C",
+      "numerator": "1",
+      "denominator": "1",
+      "coefficient": "1",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "1°C",
+      "target": "m°C",
+      "numerator": "1000",
+      "denominator": "1",
+      "coefficient": "1",
+      "exponent": 3
+    },
+    {
+      "role": "difference",
+      "source": "1°C",
+      "target": "°F",
+      "numerator": "9",
+      "denominator": "5",
+      "coefficient": "18",
+      "exponent": -1
+    },
+    {
+      "role": "difference",
+      "source": "1°C",
+      "target": "m°F",
+      "numerator": "1800",
+      "denominator": "1",
+      "coefficient": "18",
+      "exponent": 2
+    },
+    {
+      "role": "difference",
+      "source": "-1°C",
+      "target": "K",
+      "numerator": "-1",
+      "denominator": "1",
+      "coefficient": "-1",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "-1°C",
+      "target": "mK",
+      "numerator": "-1000",
+      "denominator": "1",
+      "coefficient": "-1",
+      "exponent": 3
+    },
+    {
+      "role": "difference",
+      "source": "-1°C",
+      "target": "µK",
+      "numerator": "-1000000",
+      "denominator": "1",
+      "coefficient": "-1",
+      "exponent": 6
+    },
+    {
+      "role": "difference",
+      "source": "-1°C",
+      "target": "QK",
+      "numerator": "-1",
+      "denominator": "1000000000000000000000000000000",
+      "coefficient": "-1",
+      "exponent": -30
+    },
+    {
+      "role": "difference",
+      "source": "-1°C",
+      "target": "qK",
+      "numerator": "-1000000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "-1",
+      "exponent": 30
+    },
+    {
+      "role": "difference",
+      "source": "-1°C",
+      "target": "°C",
+      "numerator": "-1",
+      "denominator": "1",
+      "coefficient": "-1",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "-1°C",
+      "target": "m°C",
+      "numerator": "-1000",
+      "denominator": "1",
+      "coefficient": "-1",
+      "exponent": 3
+    },
+    {
+      "role": "difference",
+      "source": "-1°C",
+      "target": "°F",
+      "numerator": "-9",
+      "denominator": "5",
+      "coefficient": "-18",
+      "exponent": -1
+    },
+    {
+      "role": "difference",
+      "source": "-1°C",
+      "target": "m°F",
+      "numerator": "-1800",
+      "denominator": "1",
+      "coefficient": "-18",
+      "exponent": 2
+    },
+    {
+      "role": "difference",
+      "source": "9°C",
+      "target": "K",
+      "numerator": "9",
+      "denominator": "1",
+      "coefficient": "9",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "9°C",
+      "target": "mK",
+      "numerator": "9000",
+      "denominator": "1",
+      "coefficient": "9",
+      "exponent": 3
+    },
+    {
+      "role": "difference",
+      "source": "9°C",
+      "target": "µK",
+      "numerator": "9000000",
+      "denominator": "1",
+      "coefficient": "9",
+      "exponent": 6
+    },
+    {
+      "role": "difference",
+      "source": "9°C",
+      "target": "QK",
+      "numerator": "9",
+      "denominator": "1000000000000000000000000000000",
+      "coefficient": "9",
+      "exponent": -30
+    },
+    {
+      "role": "difference",
+      "source": "9°C",
+      "target": "qK",
+      "numerator": "9000000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "9",
+      "exponent": 30
+    },
+    {
+      "role": "difference",
+      "source": "9°C",
+      "target": "°C",
+      "numerator": "9",
+      "denominator": "1",
+      "coefficient": "9",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "9°C",
+      "target": "m°C",
+      "numerator": "9000",
+      "denominator": "1",
+      "coefficient": "9",
+      "exponent": 3
+    },
+    {
+      "role": "difference",
+      "source": "9°C",
+      "target": "°F",
+      "numerator": "81",
+      "denominator": "5",
+      "coefficient": "162",
+      "exponent": -1
+    },
+    {
+      "role": "difference",
+      "source": "9°C",
+      "target": "m°F",
+      "numerator": "16200",
+      "denominator": "1",
+      "coefficient": "162",
+      "exponent": 2
+    },
+    {
+      "role": "difference",
+      "source": "30°C",
+      "target": "K",
+      "numerator": "30",
+      "denominator": "1",
+      "coefficient": "3",
+      "exponent": 1
+    },
+    {
+      "role": "difference",
+      "source": "30°C",
+      "target": "mK",
+      "numerator": "30000",
+      "denominator": "1",
+      "coefficient": "3",
+      "exponent": 4
+    },
+    {
+      "role": "difference",
+      "source": "30°C",
+      "target": "µK",
+      "numerator": "30000000",
+      "denominator": "1",
+      "coefficient": "3",
+      "exponent": 7
+    },
+    {
+      "role": "difference",
+      "source": "30°C",
+      "target": "QK",
+      "numerator": "3",
+      "denominator": "100000000000000000000000000000",
+      "coefficient": "3",
+      "exponent": -29
+    },
+    {
+      "role": "difference",
+      "source": "30°C",
+      "target": "qK",
+      "numerator": "30000000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "3",
+      "exponent": 31
+    },
+    {
+      "role": "difference",
+      "source": "30°C",
+      "target": "°C",
+      "numerator": "30",
+      "denominator": "1",
+      "coefficient": "3",
+      "exponent": 1
+    },
+    {
+      "role": "difference",
+      "source": "30°C",
+      "target": "m°C",
+      "numerator": "30000",
+      "denominator": "1",
+      "coefficient": "3",
+      "exponent": 4
+    },
+    {
+      "role": "difference",
+      "source": "30°C",
+      "target": "°F",
+      "numerator": "54",
+      "denominator": "1",
+      "coefficient": "54",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "30°C",
+      "target": "m°F",
+      "numerator": "54000",
+      "denominator": "1",
+      "coefficient": "54",
+      "exponent": 3
+    },
+    {
+      "role": "difference",
+      "source": "273.15°C",
+      "target": "K",
+      "numerator": "5463",
+      "denominator": "20",
+      "coefficient": "27315",
+      "exponent": -2
+    },
+    {
+      "role": "difference",
+      "source": "273.15°C",
+      "target": "mK",
+      "numerator": "273150",
+      "denominator": "1",
+      "coefficient": "27315",
+      "exponent": 1
+    },
+    {
+      "role": "difference",
+      "source": "273.15°C",
+      "target": "µK",
+      "numerator": "273150000",
+      "denominator": "1",
+      "coefficient": "27315",
+      "exponent": 4
+    },
+    {
+      "role": "difference",
+      "source": "273.15°C",
+      "target": "QK",
+      "numerator": "5463",
+      "denominator": "20000000000000000000000000000000",
+      "coefficient": "27315",
+      "exponent": -32
+    },
+    {
+      "role": "difference",
+      "source": "273.15°C",
+      "target": "qK",
+      "numerator": "273150000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "27315",
+      "exponent": 28
+    },
+    {
+      "role": "difference",
+      "source": "273.15°C",
+      "target": "°C",
+      "numerator": "5463",
+      "denominator": "20",
+      "coefficient": "27315",
+      "exponent": -2
+    },
+    {
+      "role": "difference",
+      "source": "273.15°C",
+      "target": "m°C",
+      "numerator": "273150",
+      "denominator": "1",
+      "coefficient": "27315",
+      "exponent": 1
+    },
+    {
+      "role": "difference",
+      "source": "273.15°C",
+      "target": "°F",
+      "numerator": "49167",
+      "denominator": "100",
+      "coefficient": "49167",
+      "exponent": -2
+    },
+    {
+      "role": "difference",
+      "source": "273.15°C",
+      "target": "m°F",
+      "numerator": "491670",
+      "denominator": "1",
+      "coefficient": "49167",
+      "exponent": 1
+    },
+    {
+      "role": "difference",
+      "source": "0m°C",
+      "target": "K",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0m°C",
+      "target": "mK",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0m°C",
+      "target": "µK",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0m°C",
+      "target": "QK",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0m°C",
+      "target": "qK",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0m°C",
+      "target": "°C",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0m°C",
+      "target": "m°C",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0m°C",
+      "target": "°F",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0m°C",
+      "target": "m°F",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "1m°C",
+      "target": "K",
+      "numerator": "1",
+      "denominator": "1000",
+      "coefficient": "1",
+      "exponent": -3
+    },
+    {
+      "role": "difference",
+      "source": "1m°C",
+      "target": "mK",
+      "numerator": "1",
+      "denominator": "1",
+      "coefficient": "1",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "1m°C",
+      "target": "µK",
+      "numerator": "1000",
+      "denominator": "1",
+      "coefficient": "1",
+      "exponent": 3
+    },
+    {
+      "role": "difference",
+      "source": "1m°C",
+      "target": "QK",
+      "numerator": "1",
+      "denominator": "1000000000000000000000000000000000",
+      "coefficient": "1",
+      "exponent": -33
+    },
+    {
+      "role": "difference",
+      "source": "1m°C",
+      "target": "qK",
+      "numerator": "1000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "1",
+      "exponent": 27
+    },
+    {
+      "role": "difference",
+      "source": "1m°C",
+      "target": "°C",
+      "numerator": "1",
+      "denominator": "1000",
+      "coefficient": "1",
+      "exponent": -3
+    },
+    {
+      "role": "difference",
+      "source": "1m°C",
+      "target": "m°C",
+      "numerator": "1",
+      "denominator": "1",
+      "coefficient": "1",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "1m°C",
+      "target": "°F",
+      "numerator": "9",
+      "denominator": "5000",
+      "coefficient": "18",
+      "exponent": -4
+    },
+    {
+      "role": "difference",
+      "source": "1m°C",
+      "target": "m°F",
+      "numerator": "9",
+      "denominator": "5",
+      "coefficient": "18",
+      "exponent": -1
+    },
+    {
+      "role": "difference",
+      "source": "-1m°C",
+      "target": "K",
+      "numerator": "-1",
+      "denominator": "1000",
+      "coefficient": "-1",
+      "exponent": -3
+    },
+    {
+      "role": "difference",
+      "source": "-1m°C",
+      "target": "mK",
+      "numerator": "-1",
+      "denominator": "1",
+      "coefficient": "-1",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "-1m°C",
+      "target": "µK",
+      "numerator": "-1000",
+      "denominator": "1",
+      "coefficient": "-1",
+      "exponent": 3
+    },
+    {
+      "role": "difference",
+      "source": "-1m°C",
+      "target": "QK",
+      "numerator": "-1",
+      "denominator": "1000000000000000000000000000000000",
+      "coefficient": "-1",
+      "exponent": -33
+    },
+    {
+      "role": "difference",
+      "source": "-1m°C",
+      "target": "qK",
+      "numerator": "-1000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "-1",
+      "exponent": 27
+    },
+    {
+      "role": "difference",
+      "source": "-1m°C",
+      "target": "°C",
+      "numerator": "-1",
+      "denominator": "1000",
+      "coefficient": "-1",
+      "exponent": -3
+    },
+    {
+      "role": "difference",
+      "source": "-1m°C",
+      "target": "m°C",
+      "numerator": "-1",
+      "denominator": "1",
+      "coefficient": "-1",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "-1m°C",
+      "target": "°F",
+      "numerator": "-9",
+      "denominator": "5000",
+      "coefficient": "-18",
+      "exponent": -4
+    },
+    {
+      "role": "difference",
+      "source": "-1m°C",
+      "target": "m°F",
+      "numerator": "-9",
+      "denominator": "5",
+      "coefficient": "-18",
+      "exponent": -1
+    },
+    {
+      "role": "difference",
+      "source": "9m°C",
+      "target": "K",
+      "numerator": "9",
+      "denominator": "1000",
+      "coefficient": "9",
+      "exponent": -3
+    },
+    {
+      "role": "difference",
+      "source": "9m°C",
+      "target": "mK",
+      "numerator": "9",
+      "denominator": "1",
+      "coefficient": "9",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "9m°C",
+      "target": "µK",
+      "numerator": "9000",
+      "denominator": "1",
+      "coefficient": "9",
+      "exponent": 3
+    },
+    {
+      "role": "difference",
+      "source": "9m°C",
+      "target": "QK",
+      "numerator": "9",
+      "denominator": "1000000000000000000000000000000000",
+      "coefficient": "9",
+      "exponent": -33
+    },
+    {
+      "role": "difference",
+      "source": "9m°C",
+      "target": "qK",
+      "numerator": "9000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "9",
+      "exponent": 27
+    },
+    {
+      "role": "difference",
+      "source": "9m°C",
+      "target": "°C",
+      "numerator": "9",
+      "denominator": "1000",
+      "coefficient": "9",
+      "exponent": -3
+    },
+    {
+      "role": "difference",
+      "source": "9m°C",
+      "target": "m°C",
+      "numerator": "9",
+      "denominator": "1",
+      "coefficient": "9",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "9m°C",
+      "target": "°F",
+      "numerator": "81",
+      "denominator": "5000",
+      "coefficient": "162",
+      "exponent": -4
+    },
+    {
+      "role": "difference",
+      "source": "9m°C",
+      "target": "m°F",
+      "numerator": "81",
+      "denominator": "5",
+      "coefficient": "162",
+      "exponent": -1
+    },
+    {
+      "role": "difference",
+      "source": "30m°C",
+      "target": "K",
+      "numerator": "3",
+      "denominator": "100",
+      "coefficient": "3",
+      "exponent": -2
+    },
+    {
+      "role": "difference",
+      "source": "30m°C",
+      "target": "mK",
+      "numerator": "30",
+      "denominator": "1",
+      "coefficient": "3",
+      "exponent": 1
+    },
+    {
+      "role": "difference",
+      "source": "30m°C",
+      "target": "µK",
+      "numerator": "30000",
+      "denominator": "1",
+      "coefficient": "3",
+      "exponent": 4
+    },
+    {
+      "role": "difference",
+      "source": "30m°C",
+      "target": "QK",
+      "numerator": "3",
+      "denominator": "100000000000000000000000000000000",
+      "coefficient": "3",
+      "exponent": -32
+    },
+    {
+      "role": "difference",
+      "source": "30m°C",
+      "target": "qK",
+      "numerator": "30000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "3",
+      "exponent": 28
+    },
+    {
+      "role": "difference",
+      "source": "30m°C",
+      "target": "°C",
+      "numerator": "3",
+      "denominator": "100",
+      "coefficient": "3",
+      "exponent": -2
+    },
+    {
+      "role": "difference",
+      "source": "30m°C",
+      "target": "m°C",
+      "numerator": "30",
+      "denominator": "1",
+      "coefficient": "3",
+      "exponent": 1
+    },
+    {
+      "role": "difference",
+      "source": "30m°C",
+      "target": "°F",
+      "numerator": "27",
+      "denominator": "500",
+      "coefficient": "54",
+      "exponent": -3
+    },
+    {
+      "role": "difference",
+      "source": "30m°C",
+      "target": "m°F",
+      "numerator": "54",
+      "denominator": "1",
+      "coefficient": "54",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "273.15m°C",
+      "target": "K",
+      "numerator": "5463",
+      "denominator": "20000",
+      "coefficient": "27315",
+      "exponent": -5
+    },
+    {
+      "role": "difference",
+      "source": "273.15m°C",
+      "target": "mK",
+      "numerator": "5463",
+      "denominator": "20",
+      "coefficient": "27315",
+      "exponent": -2
+    },
+    {
+      "role": "difference",
+      "source": "273.15m°C",
+      "target": "µK",
+      "numerator": "273150",
+      "denominator": "1",
+      "coefficient": "27315",
+      "exponent": 1
+    },
+    {
+      "role": "difference",
+      "source": "273.15m°C",
+      "target": "QK",
+      "numerator": "5463",
+      "denominator": "20000000000000000000000000000000000",
+      "coefficient": "27315",
+      "exponent": -35
+    },
+    {
+      "role": "difference",
+      "source": "273.15m°C",
+      "target": "qK",
+      "numerator": "273150000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "27315",
+      "exponent": 25
+    },
+    {
+      "role": "difference",
+      "source": "273.15m°C",
+      "target": "°C",
+      "numerator": "5463",
+      "denominator": "20000",
+      "coefficient": "27315",
+      "exponent": -5
+    },
+    {
+      "role": "difference",
+      "source": "273.15m°C",
+      "target": "m°C",
+      "numerator": "5463",
+      "denominator": "20",
+      "coefficient": "27315",
+      "exponent": -2
+    },
+    {
+      "role": "difference",
+      "source": "273.15m°C",
+      "target": "°F",
+      "numerator": "49167",
+      "denominator": "100000",
+      "coefficient": "49167",
+      "exponent": -5
+    },
+    {
+      "role": "difference",
+      "source": "273.15m°C",
+      "target": "m°F",
+      "numerator": "49167",
+      "denominator": "100",
+      "coefficient": "49167",
+      "exponent": -2
+    },
+    {
+      "role": "difference",
+      "source": "0°F",
+      "target": "K",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0°F",
+      "target": "mK",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0°F",
+      "target": "µK",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0°F",
+      "target": "QK",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0°F",
+      "target": "qK",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0°F",
+      "target": "°C",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0°F",
+      "target": "m°C",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0°F",
+      "target": "°F",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0°F",
+      "target": "m°F",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "1°F",
+      "target": "K",
+      "numerator": "5",
+      "denominator": "9",
+      "refusal": "inexact"
+    },
+    {
+      "role": "difference",
+      "source": "1°F",
+      "target": "mK",
+      "numerator": "5000",
+      "denominator": "9",
+      "refusal": "inexact"
+    },
+    {
+      "role": "difference",
+      "source": "1°F",
+      "target": "µK",
+      "numerator": "5000000",
+      "denominator": "9",
+      "refusal": "inexact"
+    },
+    {
+      "role": "difference",
+      "source": "1°F",
+      "target": "QK",
+      "numerator": "1",
+      "denominator": "1800000000000000000000000000000",
+      "refusal": "inexact"
+    },
+    {
+      "role": "difference",
+      "source": "1°F",
+      "target": "qK",
+      "numerator": "5000000000000000000000000000000",
+      "denominator": "9",
+      "refusal": "inexact"
+    },
+    {
+      "role": "difference",
+      "source": "1°F",
+      "target": "°C",
+      "numerator": "5",
+      "denominator": "9",
+      "refusal": "inexact"
+    },
+    {
+      "role": "difference",
+      "source": "1°F",
+      "target": "m°C",
+      "numerator": "5000",
+      "denominator": "9",
+      "refusal": "inexact"
+    },
+    {
+      "role": "difference",
+      "source": "1°F",
+      "target": "°F",
+      "numerator": "1",
+      "denominator": "1",
+      "coefficient": "1",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "1°F",
+      "target": "m°F",
+      "numerator": "1000",
+      "denominator": "1",
+      "coefficient": "1",
+      "exponent": 3
+    },
+    {
+      "role": "difference",
+      "source": "-1°F",
+      "target": "K",
+      "numerator": "-5",
+      "denominator": "9",
+      "refusal": "inexact"
+    },
+    {
+      "role": "difference",
+      "source": "-1°F",
+      "target": "mK",
+      "numerator": "-5000",
+      "denominator": "9",
+      "refusal": "inexact"
+    },
+    {
+      "role": "difference",
+      "source": "-1°F",
+      "target": "µK",
+      "numerator": "-5000000",
+      "denominator": "9",
+      "refusal": "inexact"
+    },
+    {
+      "role": "difference",
+      "source": "-1°F",
+      "target": "QK",
+      "numerator": "-1",
+      "denominator": "1800000000000000000000000000000",
+      "refusal": "inexact"
+    },
+    {
+      "role": "difference",
+      "source": "-1°F",
+      "target": "qK",
+      "numerator": "-5000000000000000000000000000000",
+      "denominator": "9",
+      "refusal": "inexact"
+    },
+    {
+      "role": "difference",
+      "source": "-1°F",
+      "target": "°C",
+      "numerator": "-5",
+      "denominator": "9",
+      "refusal": "inexact"
+    },
+    {
+      "role": "difference",
+      "source": "-1°F",
+      "target": "m°C",
+      "numerator": "-5000",
+      "denominator": "9",
+      "refusal": "inexact"
+    },
+    {
+      "role": "difference",
+      "source": "-1°F",
+      "target": "°F",
+      "numerator": "-1",
+      "denominator": "1",
+      "coefficient": "-1",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "-1°F",
+      "target": "m°F",
+      "numerator": "-1000",
+      "denominator": "1",
+      "coefficient": "-1",
+      "exponent": 3
+    },
+    {
+      "role": "difference",
+      "source": "9°F",
+      "target": "K",
+      "numerator": "5",
+      "denominator": "1",
+      "coefficient": "5",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "9°F",
+      "target": "mK",
+      "numerator": "5000",
+      "denominator": "1",
+      "coefficient": "5",
+      "exponent": 3
+    },
+    {
+      "role": "difference",
+      "source": "9°F",
+      "target": "µK",
+      "numerator": "5000000",
+      "denominator": "1",
+      "coefficient": "5",
+      "exponent": 6
+    },
+    {
+      "role": "difference",
+      "source": "9°F",
+      "target": "QK",
+      "numerator": "1",
+      "denominator": "200000000000000000000000000000",
+      "coefficient": "5",
+      "exponent": -30
+    },
+    {
+      "role": "difference",
+      "source": "9°F",
+      "target": "qK",
+      "numerator": "5000000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "5",
+      "exponent": 30
+    },
+    {
+      "role": "difference",
+      "source": "9°F",
+      "target": "°C",
+      "numerator": "5",
+      "denominator": "1",
+      "coefficient": "5",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "9°F",
+      "target": "m°C",
+      "numerator": "5000",
+      "denominator": "1",
+      "coefficient": "5",
+      "exponent": 3
+    },
+    {
+      "role": "difference",
+      "source": "9°F",
+      "target": "°F",
+      "numerator": "9",
+      "denominator": "1",
+      "coefficient": "9",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "9°F",
+      "target": "m°F",
+      "numerator": "9000",
+      "denominator": "1",
+      "coefficient": "9",
+      "exponent": 3
+    },
+    {
+      "role": "difference",
+      "source": "30°F",
+      "target": "K",
+      "numerator": "50",
+      "denominator": "3",
+      "refusal": "inexact"
+    },
+    {
+      "role": "difference",
+      "source": "30°F",
+      "target": "mK",
+      "numerator": "50000",
+      "denominator": "3",
+      "refusal": "inexact"
+    },
+    {
+      "role": "difference",
+      "source": "30°F",
+      "target": "µK",
+      "numerator": "50000000",
+      "denominator": "3",
+      "refusal": "inexact"
+    },
+    {
+      "role": "difference",
+      "source": "30°F",
+      "target": "QK",
+      "numerator": "1",
+      "denominator": "60000000000000000000000000000",
+      "refusal": "inexact"
+    },
+    {
+      "role": "difference",
+      "source": "30°F",
+      "target": "qK",
+      "numerator": "50000000000000000000000000000000",
+      "denominator": "3",
+      "refusal": "inexact"
+    },
+    {
+      "role": "difference",
+      "source": "30°F",
+      "target": "°C",
+      "numerator": "50",
+      "denominator": "3",
+      "refusal": "inexact"
+    },
+    {
+      "role": "difference",
+      "source": "30°F",
+      "target": "m°C",
+      "numerator": "50000",
+      "denominator": "3",
+      "refusal": "inexact"
+    },
+    {
+      "role": "difference",
+      "source": "30°F",
+      "target": "°F",
+      "numerator": "30",
+      "denominator": "1",
+      "coefficient": "3",
+      "exponent": 1
+    },
+    {
+      "role": "difference",
+      "source": "30°F",
+      "target": "m°F",
+      "numerator": "30000",
+      "denominator": "1",
+      "coefficient": "3",
+      "exponent": 4
+    },
+    {
+      "role": "difference",
+      "source": "273.15°F",
+      "target": "K",
+      "numerator": "607",
+      "denominator": "4",
+      "coefficient": "15175",
+      "exponent": -2
+    },
+    {
+      "role": "difference",
+      "source": "273.15°F",
+      "target": "mK",
+      "numerator": "151750",
+      "denominator": "1",
+      "coefficient": "15175",
+      "exponent": 1
+    },
+    {
+      "role": "difference",
+      "source": "273.15°F",
+      "target": "µK",
+      "numerator": "151750000",
+      "denominator": "1",
+      "coefficient": "15175",
+      "exponent": 4
+    },
+    {
+      "role": "difference",
+      "source": "273.15°F",
+      "target": "QK",
+      "numerator": "607",
+      "denominator": "4000000000000000000000000000000",
+      "coefficient": "15175",
+      "exponent": -32
+    },
+    {
+      "role": "difference",
+      "source": "273.15°F",
+      "target": "qK",
+      "numerator": "151750000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "15175",
+      "exponent": 28
+    },
+    {
+      "role": "difference",
+      "source": "273.15°F",
+      "target": "°C",
+      "numerator": "607",
+      "denominator": "4",
+      "coefficient": "15175",
+      "exponent": -2
+    },
+    {
+      "role": "difference",
+      "source": "273.15°F",
+      "target": "m°C",
+      "numerator": "151750",
+      "denominator": "1",
+      "coefficient": "15175",
+      "exponent": 1
+    },
+    {
+      "role": "difference",
+      "source": "273.15°F",
+      "target": "°F",
+      "numerator": "5463",
+      "denominator": "20",
+      "coefficient": "27315",
+      "exponent": -2
+    },
+    {
+      "role": "difference",
+      "source": "273.15°F",
+      "target": "m°F",
+      "numerator": "273150",
+      "denominator": "1",
+      "coefficient": "27315",
+      "exponent": 1
+    },
+    {
+      "role": "difference",
+      "source": "0m°F",
+      "target": "K",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0m°F",
+      "target": "mK",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0m°F",
+      "target": "µK",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0m°F",
+      "target": "QK",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0m°F",
+      "target": "qK",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0m°F",
+      "target": "°C",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0m°F",
+      "target": "m°C",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0m°F",
+      "target": "°F",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "0m°F",
+      "target": "m°F",
+      "numerator": "0",
+      "denominator": "1",
+      "coefficient": "0",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "1m°F",
+      "target": "K",
+      "numerator": "1",
+      "denominator": "1800",
+      "refusal": "inexact"
+    },
+    {
+      "role": "difference",
+      "source": "1m°F",
+      "target": "mK",
+      "numerator": "5",
+      "denominator": "9",
+      "refusal": "inexact"
+    },
+    {
+      "role": "difference",
+      "source": "1m°F",
+      "target": "µK",
+      "numerator": "5000",
+      "denominator": "9",
+      "refusal": "inexact"
+    },
+    {
+      "role": "difference",
+      "source": "1m°F",
+      "target": "QK",
+      "numerator": "1",
+      "denominator": "1800000000000000000000000000000000",
+      "refusal": "inexact"
+    },
+    {
+      "role": "difference",
+      "source": "1m°F",
+      "target": "qK",
+      "numerator": "5000000000000000000000000000",
+      "denominator": "9",
+      "refusal": "inexact"
+    },
+    {
+      "role": "difference",
+      "source": "1m°F",
+      "target": "°C",
+      "numerator": "1",
+      "denominator": "1800",
+      "refusal": "inexact"
+    },
+    {
+      "role": "difference",
+      "source": "1m°F",
+      "target": "m°C",
+      "numerator": "5",
+      "denominator": "9",
+      "refusal": "inexact"
+    },
+    {
+      "role": "difference",
+      "source": "1m°F",
+      "target": "°F",
+      "numerator": "1",
+      "denominator": "1000",
+      "coefficient": "1",
+      "exponent": -3
+    },
+    {
+      "role": "difference",
+      "source": "1m°F",
+      "target": "m°F",
+      "numerator": "1",
+      "denominator": "1",
+      "coefficient": "1",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "-1m°F",
+      "target": "K",
+      "numerator": "-1",
+      "denominator": "1800",
+      "refusal": "inexact"
+    },
+    {
+      "role": "difference",
+      "source": "-1m°F",
+      "target": "mK",
+      "numerator": "-5",
+      "denominator": "9",
+      "refusal": "inexact"
+    },
+    {
+      "role": "difference",
+      "source": "-1m°F",
+      "target": "µK",
+      "numerator": "-5000",
+      "denominator": "9",
+      "refusal": "inexact"
+    },
+    {
+      "role": "difference",
+      "source": "-1m°F",
+      "target": "QK",
+      "numerator": "-1",
+      "denominator": "1800000000000000000000000000000000",
+      "refusal": "inexact"
+    },
+    {
+      "role": "difference",
+      "source": "-1m°F",
+      "target": "qK",
+      "numerator": "-5000000000000000000000000000",
+      "denominator": "9",
+      "refusal": "inexact"
+    },
+    {
+      "role": "difference",
+      "source": "-1m°F",
+      "target": "°C",
+      "numerator": "-1",
+      "denominator": "1800",
+      "refusal": "inexact"
+    },
+    {
+      "role": "difference",
+      "source": "-1m°F",
+      "target": "m°C",
+      "numerator": "-5",
+      "denominator": "9",
+      "refusal": "inexact"
+    },
+    {
+      "role": "difference",
+      "source": "-1m°F",
+      "target": "°F",
+      "numerator": "-1",
+      "denominator": "1000",
+      "coefficient": "-1",
+      "exponent": -3
+    },
+    {
+      "role": "difference",
+      "source": "-1m°F",
+      "target": "m°F",
+      "numerator": "-1",
+      "denominator": "1",
+      "coefficient": "-1",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "9m°F",
+      "target": "K",
+      "numerator": "1",
+      "denominator": "200",
+      "coefficient": "5",
+      "exponent": -3
+    },
+    {
+      "role": "difference",
+      "source": "9m°F",
+      "target": "mK",
+      "numerator": "5",
+      "denominator": "1",
+      "coefficient": "5",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "9m°F",
+      "target": "µK",
+      "numerator": "5000",
+      "denominator": "1",
+      "coefficient": "5",
+      "exponent": 3
+    },
+    {
+      "role": "difference",
+      "source": "9m°F",
+      "target": "QK",
+      "numerator": "1",
+      "denominator": "200000000000000000000000000000000",
+      "coefficient": "5",
+      "exponent": -33
+    },
+    {
+      "role": "difference",
+      "source": "9m°F",
+      "target": "qK",
+      "numerator": "5000000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "5",
+      "exponent": 27
+    },
+    {
+      "role": "difference",
+      "source": "9m°F",
+      "target": "°C",
+      "numerator": "1",
+      "denominator": "200",
+      "coefficient": "5",
+      "exponent": -3
+    },
+    {
+      "role": "difference",
+      "source": "9m°F",
+      "target": "m°C",
+      "numerator": "5",
+      "denominator": "1",
+      "coefficient": "5",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "9m°F",
+      "target": "°F",
+      "numerator": "9",
+      "denominator": "1000",
+      "coefficient": "9",
+      "exponent": -3
+    },
+    {
+      "role": "difference",
+      "source": "9m°F",
+      "target": "m°F",
+      "numerator": "9",
+      "denominator": "1",
+      "coefficient": "9",
+      "exponent": 0
+    },
+    {
+      "role": "difference",
+      "source": "30m°F",
+      "target": "K",
+      "numerator": "1",
+      "denominator": "60",
+      "refusal": "inexact"
+    },
+    {
+      "role": "difference",
+      "source": "30m°F",
+      "target": "mK",
+      "numerator": "50",
+      "denominator": "3",
+      "refusal": "inexact"
+    },
+    {
+      "role": "difference",
+      "source": "30m°F",
+      "target": "µK",
+      "numerator": "50000",
+      "denominator": "3",
+      "refusal": "inexact"
+    },
+    {
+      "role": "difference",
+      "source": "30m°F",
+      "target": "QK",
+      "numerator": "1",
+      "denominator": "60000000000000000000000000000000",
+      "refusal": "inexact"
+    },
+    {
+      "role": "difference",
+      "source": "30m°F",
+      "target": "qK",
+      "numerator": "50000000000000000000000000000",
+      "denominator": "3",
+      "refusal": "inexact"
+    },
+    {
+      "role": "difference",
+      "source": "30m°F",
+      "target": "°C",
+      "numerator": "1",
+      "denominator": "60",
+      "refusal": "inexact"
+    },
+    {
+      "role": "difference",
+      "source": "30m°F",
+      "target": "m°C",
+      "numerator": "50",
+      "denominator": "3",
+      "refusal": "inexact"
+    },
+    {
+      "role": "difference",
+      "source": "30m°F",
+      "target": "°F",
+      "numerator": "3",
+      "denominator": "100",
+      "coefficient": "3",
+      "exponent": -2
+    },
+    {
+      "role": "difference",
+      "source": "30m°F",
+      "target": "m°F",
+      "numerator": "30",
+      "denominator": "1",
+      "coefficient": "3",
+      "exponent": 1
+    },
+    {
+      "role": "difference",
+      "source": "273.15m°F",
+      "target": "K",
+      "numerator": "607",
+      "denominator": "4000",
+      "coefficient": "15175",
+      "exponent": -5
+    },
+    {
+      "role": "difference",
+      "source": "273.15m°F",
+      "target": "mK",
+      "numerator": "607",
+      "denominator": "4",
+      "coefficient": "15175",
+      "exponent": -2
+    },
+    {
+      "role": "difference",
+      "source": "273.15m°F",
+      "target": "µK",
+      "numerator": "151750",
+      "denominator": "1",
+      "coefficient": "15175",
+      "exponent": 1
+    },
+    {
+      "role": "difference",
+      "source": "273.15m°F",
+      "target": "QK",
+      "numerator": "607",
+      "denominator": "4000000000000000000000000000000000",
+      "coefficient": "15175",
+      "exponent": -35
+    },
+    {
+      "role": "difference",
+      "source": "273.15m°F",
+      "target": "qK",
+      "numerator": "151750000000000000000000000000",
+      "denominator": "1",
+      "coefficient": "15175",
+      "exponent": 25
+    },
+    {
+      "role": "difference",
+      "source": "273.15m°F",
+      "target": "°C",
+      "numerator": "607",
+      "denominator": "4000",
+      "coefficient": "15175",
+      "exponent": -5
+    },
+    {
+      "role": "difference",
+      "source": "273.15m°F",
+      "target": "m°C",
+      "numerator": "607",
+      "denominator": "4",
+      "coefficient": "15175",
+      "exponent": -2
+    },
+    {
+      "role": "difference",
+      "source": "273.15m°F",
+      "target": "°F",
+      "numerator": "5463",
+      "denominator": "20000",
+      "coefficient": "27315",
+      "exponent": -5
+    },
+    {
+      "role": "difference",
+      "source": "273.15m°F",
+      "target": "m°F",
+      "numerator": "5463",
+      "denominator": "20",
+      "coefficient": "27315",
+      "exponent": -2
+    }
+  ]
+}

@@ -57,7 +57,9 @@ depends on semantic, application, target, or proof packages.
 | `ieee_float.rs` | generic value mechanism | Exact IEEE-754 binary32/binary64 bit identity, canonical little-endian encoding, finite classification, and total ordering without target-native equality drift. |
 | `kind_effects.rs` | universal architecture | Reviewed semantic effect facts used to admit pure Kind calls without inferring behavior from names. |
 | `retry_evidence.rs` | universal architecture | Finite provider-owned retained evidence for one exact semantic operation, prior realization, and retry law; proves eligibility without inventing a retry loop or treating Step failure as semantic terminal truth. |
-| `quantity.rs` | generic value mechanism | Exact finite dimensioned quantity and exact-only conversion used across unrelated domains. |
+| `quantity.rs` and children | generic value mechanism | Legacy dimensioned quantity wire identity, exact literal selection and rational conversion; separately versioned bounded decimal coordinates. |
+| `quantity_prefix.rs` | generic value mechanism | Immutable official decimal prefixes and reviewed base-unit composition positions. |
+| `quantity_suffix.rs` | generic value mechanism | Whole-suffix resolution with explicit aliases and preserved source spelling, separate from storage eligibility. |
 | `structured_info.rs` and children | generic value mechanism | Finite canonical structured type/value, selection, inspection, transport, and profile machinery. |
 | `temporal.rs` | generic value mechanism | Exact finite temporal identity, instant, relation, and offset-only civil primitives without clocks or timezone databases. |
 | `temporal_clock.rs` | generic mechanism | Explicit host/boot monotonic-clock identity and wall-clock correlation truth. |

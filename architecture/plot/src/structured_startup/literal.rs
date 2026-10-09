@@ -8,6 +8,12 @@ pub(super) fn canonical_leaf_literal(
     literal: &str,
     span: Span,
 ) -> Result<Vec<u8>, SyntaxCheckDiagnostic> {
+    if kind == conduit_core::EXACT_DECIMAL_QUANTITY_INFO_ID {
+        return conduit_core::ExactDecimalQuantity::parse_plot_literal(literal)
+            .map(|quantity| quantity.encode().to_vec())
+            .map_err(|refusal| structured_diagnostic(span,
+                &format!("literal '{literal}' is incompatible with selected exact profile '{kind}': {refusal:?}")));
+    }
     if kind == conduit_core::QUANTITY_INFO_ID {
         return conduit_core::Quantity::parse_plot_literal(literal)
             .map(|quantity| quantity.encode().to_vec())

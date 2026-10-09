@@ -112,6 +112,11 @@ async function openExternalBody(page, { friendlyName, titles, plots }) {
     await post(page, api("body-membership-evidence"), observed.biography);
     await post(page, api("body-host-offer-evidence"), observed.offer);
     const requirements = await get(page, api("body-planning-requirements"));
+    const executable = await page.evaluate(() => globalThis.__conduitSdkParticipation.executionCapabilities());
+    for (const identity of [
+      "browser/exact-quantity-conversion@1", "browser/exact-temperature-difference-conversion@1",
+      "browser/exact-quantity-comparison@1", "browser/exact-temperature-difference-comparison@1",
+    ]) expect(executable).toContain(identity);
     const selection = await page.evaluate(kindIds => {
       const sdk = globalThis.__conduitSdkParticipation;
       const executable = new Set(sdk.executionCapabilities());

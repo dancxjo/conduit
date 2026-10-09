@@ -47,6 +47,7 @@ mod pulse_observation;
 mod pulse_presentation;
 pub(crate) mod pure_expression;
 mod quantity;
+pub(crate) mod quantity_conversion;
 mod quantity_output;
 pub(crate) mod record_delivery;
 pub(crate) mod record_queue;

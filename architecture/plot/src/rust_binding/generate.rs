@@ -734,6 +734,7 @@ pub(super) fn primitive_rust_type(identity: &str) -> Result<String, RustBindingG
             | PrimitiveInfoKind::PixelCount,
         ) => "conduit_core::Quantity",
         Some(PrimitiveInfoKind::QuantityUnit) => "conduit_core::QuantityUnit",
+        Some(PrimitiveInfoKind::ExactDecimalQuantity) => "conduit_core::ExactDecimalQuantity",
         Some(PrimitiveInfoKind::U8) => "u8",
         Some(PrimitiveInfoKind::U16) => "u16",
         Some(PrimitiveInfoKind::U32) => "u32",
