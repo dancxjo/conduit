@@ -785,6 +785,21 @@ fn prepared_recursive_family_matches_existing_entrances() {
         maximum_conversion_requested_bytes: usize::MAX,
     };
     let mut family = PreparedNativeFamily::prepare(PREPARED_NATIVE_FAMILY_ROOTS, limits).unwrap();
+    use conduit_plot::rust_binding::{PreparedNativeRustBinding, NativeFamilyTypeDescriptor};
+    let only_chord = PreparedNativeFamily::prepare(&[Chord::PREPARED_DESCRIPTOR], limits).unwrap();
+    assert!(only_chord.contains_descriptor(Chord::PREPARED_DESCRIPTOR));
+    assert!(only_chord.contains_descriptor(Note::PREPARED_DESCRIPTOR));
+    assert!(!only_chord.contains_descriptor(Observation::PREPARED_DESCRIPTOR));
+    let original = Chord::PREPARED_DESCRIPTOR;
+    let foreign = Box::leak(Box::new(NativeFamilyTypeDescriptor {
+        type_bytes: original.type_bytes, laws: original.laws, contracts: original.contracts,
+        children: original.children, conversion_profile: original.conversion_profile,
+        external_edges: &[],
+        maximum_inline_bytes: original.maximum_inline_bytes,
+    }));
+    assert_eq!(foreign.type_bytes, original.type_bytes);
+    assert!(!only_chord.contains_descriptor(foreign));
+
     let chord = Chord::new([Note::new(3).unwrap(), Note::new(7).unwrap(), Note::new(9).unwrap()]).unwrap();
     let encoded = chord.clone().encode().unwrap();
     assert_eq!(family.decode::<Chord>(&encoded), Chord::decode(&encoded));
@@ -1782,12 +1797,16 @@ fn external_descendants_count_toward_complete_root_and_generated_union() {
         .filter(|ty| ty.name.starts_with("Local") || ty.name == "ExtraRoot")
         .cloned()
         .collect::<Vec<_>>();
+    let generated_roots = MAXIMUM_GENERATED_NATIVE_FAMILY_TYPES / MAXIMUM_NATIVE_FAMILY_TYPES;
+    assert_eq!(generated_roots, 3);
     let options = RustBindingOptions {
-        prepared_family_roots: (0..4).map(|group| alloc::format!("Local{group}")).collect(),
+        prepared_family_roots: (0..generated_roots)
+            .map(|group| alloc::format!("Local{group}"))
+            .collect(),
         ..Default::default()
     };
-    // Four complete roots each consist of one local, one external and62 imported
-    // children. All256 Types count even though only four descriptors are local.
+    // Three complete roots each consist of one local, one external and 62 imported
+    // children. All 192 Types count even though only three descriptors are local.
     let generated = generate_rust_bindings_with_forms_and_external_prepared_bindings(
         &local,
         &[],
@@ -1802,7 +1821,7 @@ fn external_descendants_count_toward_complete_root_and_generated_union() {
             .source
             .matches("_PREPARED_NATIVE_DESCRIPTOR: ")
             .count(),
-        4
+        generated_roots
     );
     let mut over_union = options.clone();
     over_union.prepared_family_roots.insert("ExtraRoot".into());

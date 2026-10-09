@@ -260,17 +260,19 @@ impl PreparedNativeFamily {
         T::from_borrowed_prepared(value, self)
     }
 
+    /// Exact descriptor readiness; equal Type bytes cannot substitute for it.
+    pub fn contains_descriptor(&self, descriptor: &'static NativeFamilyTypeDescriptor) -> bool {
+        self.types
+            .iter()
+            .any(|ty| core::ptr::eq(ty.descriptor, descriptor))
+    }
+
     pub fn check_type(
         &self,
         descriptor: &'static NativeFamilyTypeDescriptor,
         value: ValidatedCanonicalStructuredValue<'_>,
     ) -> Result<(), NativeBindingRefusal> {
-        if value.type_bytes() != descriptor.type_bytes
-            || !self
-                .types
-                .iter()
-                .any(|ty| core::ptr::eq(ty.descriptor, descriptor))
-        {
+        if value.type_bytes() != descriptor.type_bytes || !self.contains_descriptor(descriptor) {
             return Err(wrong_type());
         }
         Ok(())
