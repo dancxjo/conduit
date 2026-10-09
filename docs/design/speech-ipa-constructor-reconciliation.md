@@ -186,6 +186,15 @@ Host/Boot identity, offer generation, capability counts and an exact JSON digest
 and byte count, with advertisement omission explicit. It does not replace the
 advertisement used to admit Part and offers or enlarge the evidence ceilings.
 The live Chromium rendezvous regression passes with complete Part and offer
-admission. The native release is 58.58 MiB under the unchanged 64 MiB installer
+admission. The native release is 58.63 MiB under the unchanged 64 MiB installer
 limit. Required exact-head Candidate acceptance remains pending for these
 integration corrections.
+
+The queue integration refresh includes the accepted Todo speech and Quantity
+changes from dev (`2f54946d6ee4104da1785f44584d27fe210cb3c9`). On that combined
+Source, installed Birth passes 5 tests (the existing real-speaker test remains
+excluded), quoted Source constructors and the Language owner basis pass 6 tests,
+and the live Chromium rendezvous passes. Strict Clippy for Speech and the
+Conduit product passes with all targets/features and warnings denied. The
+combined native release is 61,474,232 bytes. These local results do not replace
+the required exact-head Candidate campaign.
