@@ -34,13 +34,23 @@ declaration through [the runtime speech entrance](../proof/runtime-speech.md). T
 reinstalls. Each fresh Boot rechecks the selected equipment and provider
 before publishing a runtime marker or admitting a Body. If they are absent or
 changed, startup fails explicitly. Reinstall with a new selection to recover,
-or use `--without-selected-speech` to remove it. Omit both selection flags to
+or use `--without-selected-speech` to remove it. Omit all speech selection flags to
 preserve the installed choice. Use an isolated state directory when trying
 this development entrance; a running service is not reconfigured in place.
-The selected voice Boot also reserves one create-new WAV destination under
-`spoken-artifacts/` for a direct spoken Show. A second retained audio artifact
-requires a fresh Boot until per-Play destinations are admitted; the speaker
-route remains subject to its current availability and playback checks.
+
+For synthesis into retained WAV artifacts, choose `--selected-artifact-speech`
+with the same explicit executable, data, engine and Language coverage arguments.
+This mode requires no speaker card or device and is mutually exclusive with
+`--selected-speech`. Each fresh Boot verifies the exact provider before offering
+voice and artifact Backs. Direct spoken Show admission and acknowledgement still
+use the Owner's ordinary Face and Mask route. The WAV proves synthesis; this mode
+records no device playback or human listening. The current `read remaining`
+playback entrance still requires a selected speaker.
+
+The selected voice Boot admits a finite pool of 64 create-new, per-Play WAV
+artifacts under `spoken-artifacts/`. Each admitted Play uses its own exact
+artifact destination; a physical speaker route separately checks current device
+availability and playback authority.
 
 An already local Ollama model can be offered by that same installed Host Boot:
 add `--selected-model MODEL --model-endpoint http://127.0.0.1:11434

@@ -20,6 +20,8 @@ use std::{
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub(super) struct Selection {
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    artifact_only: bool,
     card_id: String,
     device: u16,
     speaker_base_identity: String,
@@ -91,7 +93,7 @@ impl Selection {
 
     fn validate_identity(&self) -> Result<(), String> {
         self.validate_inputs()?;
-        if self.speaker_base_identity.is_empty()
+        if (!self.artifact_only && self.speaker_base_identity.is_empty())
             || self.speaker_base_identity.len() > 256
             || self.provider_sha256.len() != 64
             || !self
@@ -125,7 +127,11 @@ impl Selection {
     }
 
     fn validate_inputs(&self) -> Result<(), String> {
-        if self.card_id.is_empty()
+        if (!self.artifact_only && self.card_id.is_empty())
+            || (self.artifact_only
+                && (!self.card_id.is_empty()
+                    || self.device != 0
+                    || !self.speaker_base_identity.is_empty()))
             || self.card_id.len() > 128
             || self.voice.is_empty()
             || self.voice.len() > 64
@@ -162,14 +168,14 @@ impl Selection {
         Ok(self)
     }
 
-    /// Select the speaker, voice, and finite create-new WAV artifact pool
+    /// Select the voice, optional speaker, and finite create-new WAV artifact pool
     /// before this Boot is advertised. Each Play gets its own exact name.
     /// Discovery does not open a PCM handle; the Back rechecks the device at Play.
     pub(super) fn attach_to_fresh_host_with_artifact(
         &self,
         host: &mut StdHost,
         artifact_root: &Path,
-    ) -> Result<AttachedEquipment, String> {
+    ) -> Result<Option<AttachedEquipment>, String> {
         let offer = host.advertisement();
         let artifact = WavArtifactSelection::per_play_root(
             artifact_root,
@@ -177,19 +183,18 @@ impl Selection {
             offer.offer_generation,
         )?;
         self.validate()?;
-        let observation = observe_speaker(&self.card_id, self.device)?;
-        if observation.base_identity != self.speaker_base_identity {
-            return Err(
-                "configured speaker observation identity changed; reselect equipment".into(),
-            );
-        }
+        let observation = if self.artifact_only {
+            None
+        } else {
+            let observation = observe_speaker(&self.card_id, self.device)?;
+            if observation.base_identity != self.speaker_base_identity {
+                return Err(
+                    "configured speaker observation identity changed; reselect equipment".into(),
+                );
+            }
+            Some(observation)
+        };
         let offered = host.advertisement().clone();
-        let playback = HostedPlaybackSelection::from_observation(
-            observation,
-            offered.boot_id.clone(),
-            offered.offer_generation,
-        )
-        .with_bounded_speech_queue();
         let discovery = EspeakDiscovery::inspect(
             &self.executable,
             &self.data_root,
@@ -214,9 +219,20 @@ impl Selection {
             )
             .map_err(|error| format!("initialize configured eSpeak provider: {error:?}"))?;
         let realization_properties = adapter.offer().realization_properties;
+        if self.artifact_only {
+            host.attach_espeak_speech_and_wav_artifact(adapter, artifact)?;
+            return Ok(None);
+        }
+        let observation = observation.ok_or("selected speaker observation is missing")?;
+        let playback = HostedPlaybackSelection::from_observation(
+            observation,
+            offered.boot_id.clone(),
+            offered.offer_generation,
+        )
+        .with_bounded_speech_queue();
         host.attach_selected_playback(playback.clone())?;
         host.attach_espeak_speech_and_wav_artifact(adapter, artifact)?;
-        Ok(AttachedEquipment {
+        Ok(Some(AttachedEquipment {
             playback,
             authorization: ExplicitPlaybackAuthorization::new(&format!(
                 "grant/installed-selected-speech/{}",
@@ -226,15 +242,23 @@ impl Selection {
             realization_properties,
             #[cfg(test)]
             before_play: None,
-        })
+        }))
     }
 }
 
 pub(super) fn change(options: InstalledSpeechOptions) -> Result<Change, String> {
+    if (options.selected_speech && options.selected_artifact_speech)
+        || (options.without_selected_speech
+            && (options.selected_speech || options.selected_artifact_speech))
+        || (options.selected_artifact_speech
+            && (options.speaker_card.is_some() || options.speaker_device.is_some()))
+    {
+        return Err("select one explicit speech output mode".into());
+    }
     if options.without_selected_speech {
         return Ok(Change::Remove);
     }
-    if !options.selected_speech {
+    if !options.selected_speech && !options.selected_artifact_speech {
         return Ok(Change::Preserve);
     }
     let coverage = conduit_std_host::hosted_speech_synthesis::read_language_coverage(
@@ -243,13 +267,23 @@ pub(super) fn change(options: InstalledSpeechOptions) -> Result<Change, String> 
             .ok_or("selected speech needs Language coverage")?,
     )
     .map_err(|error| error.to_string())?;
+    let artifact_only = options.selected_artifact_speech;
     let selection = Selection {
-        card_id: options
-            .speaker_card
-            .ok_or("selected speech needs a speaker card")?,
-        device: options
-            .speaker_device
-            .ok_or("selected speech needs a speaker device")?,
+        artifact_only,
+        card_id: if artifact_only {
+            String::new()
+        } else {
+            options
+                .speaker_card
+                .ok_or("selected speech needs a speaker card")?
+        },
+        device: if artifact_only {
+            0
+        } else {
+            options
+                .speaker_device
+                .ok_or("selected speech needs a speaker device")?
+        },
         speaker_base_identity: String::new(),
         executable: options
             .speech_executable
@@ -268,7 +302,11 @@ pub(super) fn change(options: InstalledSpeechOptions) -> Result<Change, String> 
         ),
     };
     selection.validate_inputs()?;
-    let observation = observe_speaker(&selection.card_id, selection.device)?;
+    let speaker_identity = if artifact_only {
+        String::new()
+    } else {
+        observe_speaker(&selection.card_id, selection.device)?.base_identity
+    };
     let discovery = EspeakDiscovery::inspect(
         &selection.executable,
         &selection.data_root,
@@ -280,7 +318,7 @@ pub(super) fn change(options: InstalledSpeechOptions) -> Result<Change, String> 
         .declare_language_coverage(coverage)
         .map_err(|error| format!("review selected eSpeak Language coverage: {error:?}"))?;
     Ok(Change::Replace(selection.reviewed_with(
-        observation.base_identity,
+        speaker_identity,
         discovery.provider_sha256,
     )?))
 }
@@ -303,6 +341,7 @@ fn observe_speaker(card_id: &str, device: u16) -> Result<AlsaPlaybackObservation
 #[cfg(test)]
 pub(super) fn fixture_retained_selection() -> Selection {
     Selection {
+        artifact_only: false,
         card_id: "missing-card".into(),
         device: 0,
         speaker_base_identity: "missing-card-identity".into(),
@@ -338,8 +377,58 @@ mod tests {
     use super::*;
 
     #[test]
+    fn artifact_selection_retains_provider_identity_and_no_device_authority() {
+        for options in [
+            InstalledSpeechOptions {
+                selected_artifact_speech: true,
+                selected_speech: true,
+                ..Default::default()
+            },
+            InstalledSpeechOptions {
+                selected_artifact_speech: true,
+                without_selected_speech: true,
+                ..Default::default()
+            },
+            InstalledSpeechOptions {
+                selected_artifact_speech: true,
+                speaker_device: Some(0),
+                ..Default::default()
+            },
+        ] {
+            assert!(
+                matches!(change(options), Err(code) if code == "select one explicit speech output mode")
+            );
+        }
+        let physical = fixture_retained_selection();
+        let encoded = serde_json::to_value(&physical).unwrap();
+        assert!(encoded.get("artifact_only").is_none());
+        let legacy: Selection = serde_json::from_value(encoded).unwrap();
+        assert!(!legacy.artifact_only);
+        legacy.validate().unwrap();
+        let mut artifact = physical;
+        artifact.artifact_only = true;
+        artifact.card_id.clear();
+        artifact.device = 0;
+        artifact.speaker_base_identity.clear();
+        artifact.validate().unwrap();
+        let roundtrip: Selection =
+            serde_json::from_value(serde_json::to_value(&artifact).unwrap()).unwrap();
+        assert!(roundtrip.artifact_only);
+        roundtrip.validate().unwrap();
+        artifact.card_id = "unadmitted-card".into();
+        assert!(artifact.validate().is_err());
+        artifact.card_id.clear();
+        artifact.provider_sha256 = "b".repeat(64);
+        assert!(artifact
+            .validate()
+            .unwrap_err()
+            .contains("provider identity"));
+    }
+
+    #[test]
     fn reviewed_selection_pins_bare_provider_digest_and_speaker_identity() {
         let unreviewed = Selection {
+            artifact_only: false,
             card_id: "card".into(),
             device: 0,
             speaker_base_identity: String::new(),
