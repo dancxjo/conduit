@@ -148,7 +148,18 @@ fn definition_references<'a>(definition: &'a TypeDefinitionSyntax, out: &mut Vec
 
 fn expression_references<'a>(expression: &'a TypeExpressionSyntax, out: &mut Vec<&'a str>) {
     match expression {
-        TypeExpressionSyntax::Reference { value_type, .. } => out.push(&value_type.text),
+        TypeExpressionSyntax::Reference {
+            value_type,
+            arguments,
+            ..
+        } => {
+            out.push(&value_type.text);
+            for argument in arguments {
+                if let crate::NativeTypeArgumentSyntax::Type(value) = argument {
+                    expression_references(value, out);
+                }
+            }
+        }
         TypeExpressionSyntax::Optional { value, .. }
         | TypeExpressionSyntax::DataReference { value, .. } => expression_references(value, out),
         TypeExpressionSyntax::Sequence { element, .. } => expression_references(element, out),

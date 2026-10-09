@@ -250,3 +250,101 @@ fn laws_are_instantiated_canonically_while_source_spelling_is_retained() {
     assert_eq!(parsed.types[0].invariants[0].text, ".value == N");
     assert_eq!(parsed.round_trip(), expression);
 }
+
+#[test]
+fn local_integral_alias_refinements_are_checked_at_argument_admission() {
+    let source = "type Dimension = U16 in 1..=64\ntype Vector<N: Dimension> = collection U8 = N\ntype Value = Vector<64>\n";
+    checked(source);
+    let failure = check_syntax_document(
+        &parse_syntax_document(&source.replace("Vector<64>", "Vector<65>")),
+        &StartupCatalog::new(),
+    )
+    .unwrap_err();
+    assert!(failure.message.contains("scalar contract"));
+}
+
+#[test]
+fn integral_alias_chains_retain_the_owners_laws() {
+    let source = "type Positive = U16 where . > 0\ntype Dimension = Positive\ntype Vector<N: Dimension> = sequence U8 in 0..=N + 1\ntype Value = Vector<2>\n";
+    checked(source);
+    let failure = check_syntax_document(
+        &parse_syntax_document(&source.replace("Vector<2>", "Vector<0>")),
+        &StartupCatalog::new(),
+    )
+    .unwrap_err();
+    assert!(failure.message.contains("Type law"), "{}", failure.message);
+}
+
+#[test]
+fn changing_integral_alias_contract_changes_family_identity() {
+    let source = "type Dimension = U16 in 1..=64\ntype Vector<N: Dimension> = collection U8 = N\ntype Value = Vector<32>\n";
+    let first = checked(source);
+    let second = checked(&source.replace("1..=64", "1..=128"));
+    let value = |checked: crate::CheckedSyntaxDocument| {
+        checked
+            .native_types
+            .into_iter()
+            .find(|native| native.name == "Value")
+            .unwrap()
+            .value_type
+    };
+    assert_ne!(value(first), value(second));
+}
+
+#[test]
+fn unused_unsupported_parameter_types_and_annotation_cycles_are_refused() {
+    for source in [
+        "type Vector<N: Text> = collection U8 = N\n",
+        "type Dimension = Other\ntype Other = Dimension\ntype Vector<N: Dimension> = collection U8 = N\n",
+        "type Vector<N: Vector<2>> = collection U8 = N\n",
+    ] {
+        assert!(check_syntax_document(&parse_syntax_document(source), &StartupCatalog::new()).is_err(), "{source}");
+    }
+}
+
+#[test]
+fn closed_type_family_alias_can_supply_an_integral_parameter_contract() {
+    let source = "type Identity<T> = T\ntype Dimension = Identity<U16 in 1..=64>\ntype Vector<N: Dimension> = collection U8 = N\ntype Value = Vector<32>\n";
+    checked(source);
+    let failure = check_syntax_document(
+        &parse_syntax_document(&source.replace("Vector<32>", "Vector<65>")),
+        &StartupCatalog::new(),
+    )
+    .unwrap_err();
+    assert!(
+        failure.message.contains("scalar contract"),
+        "{}",
+        failure.message
+    );
+}
+
+#[test]
+fn changing_integral_alias_law_changes_family_identity() {
+    let source = "type Dimension = U16 where . > 0\ntype Vector<N: Dimension> = collection U8 = N\ntype Value = Vector<32>\n";
+    let first = checked(source);
+    let second = checked(&source.replace(". > 0", ". > 1"));
+    let value = |checked: crate::CheckedSyntaxDocument| {
+        checked
+            .native_types
+            .into_iter()
+            .find(|native| native.name == "Value")
+            .unwrap()
+            .value_type
+    };
+    assert_ne!(value(first), value(second));
+}
+
+#[test]
+fn imported_integral_alias_keeps_exact_owner_type_and_laws() {
+    let owner = crate::parse_syntax_document("type Dimension = U16 where . > 0\n");
+    let (_, catalog) =
+        super::super::super::check_native_types(&owner.types, &StartupCatalog::new()).unwrap();
+    let source = "with Dimension as Bound\ntype Vector<N: Bound> = sequence U8 in 0..=N + 1\ntype Value = Vector<2>\n";
+    check_syntax_document(&parse_syntax_document(source), &catalog).unwrap();
+    let failure = check_syntax_document(
+        &parse_syntax_document(&source.replace("Vector<2>", "Vector<0>")),
+        &catalog,
+    )
+    .unwrap_err();
+    assert!(failure.message.contains("Type law"), "{}", failure.message);
+}

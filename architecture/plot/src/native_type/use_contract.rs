@@ -47,6 +47,11 @@ fn document_mentions_type(document: &crate::SyntaxDocument, name: &str) -> bool 
     document.types.iter().any(|declaration| {
         let mut references = Vec::new();
         super::definition_references(&declaration.definition, &mut references);
+        for parameter in &declaration.parameters {
+            if let Some(annotation) = &parameter.value_type {
+                super::expression_references(annotation, &mut references);
+            }
+        }
         references.contains(&name)
     }) || document.plots.iter().any(|plot| {
         plot.front

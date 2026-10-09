@@ -11,6 +11,7 @@ use alloc::collections::BTreeMap;
 pub(super) struct Bindings {
     pub(super) types: BTreeMap<String, TypeExpressionSyntax>,
     pub(super) values: BTreeMap<String, u16>,
+    pub(super) parameter_contracts: Vec<Vec<u8>>,
 }
 
 impl Context<'_> {
@@ -68,13 +69,7 @@ impl Context<'_> {
                     }
                 };
                 let scalar = value.literal_value().expect("normalized integer");
-                let compiled = super::super::compile_expression(annotation, self.catalog)?;
-                if super::super::primitive_representation_kind(&compiled.value_type)
-                    .map(|kind| kind.as_str())
-                    != Some("value/u16")
-                {
-                    return Err(error(parameter.name.span, "the first native Info parameter profile requires U16 or a checked U16 refinement".into()));
-                }
+                let compiled = super::parameter::checked(annotation, self.catalog)?;
                 for contract in &compiled.contracts {
                     if !contract.representation_path.is_empty() {
                         return Err(error(
@@ -83,6 +78,24 @@ impl Context<'_> {
                         ));
                     }
                     contract.contract.validate(&scalar.to_le_bytes()).map_err(|refusal| error(value.span(), alloc::format!("native Info argument violates its declared scalar contract: {refusal:?}")))?;
+                }
+                super::parameter::validate_laws(
+                    &compiled.value_type,
+                    scalar,
+                    self.catalog,
+                    value.span(),
+                )?;
+                let identity = compiled.value_type.canonical_bytes().map_err(|refusal| {
+                    error(
+                        parameter.name.span,
+                        alloc::format!("invalid parameter Type identity: {refusal:?}"),
+                    )
+                })?;
+                bindings.parameter_contracts.push(identity);
+                for contract in &compiled.contracts {
+                    bindings
+                        .parameter_contracts
+                        .push(contract.contract.identity_bytes());
                 }
                 bindings.values.insert(parameter.name.text.clone(), scalar);
                 resolved.push(Argument::Value(Box::new(value)));

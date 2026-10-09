@@ -10,6 +10,7 @@ mod budget;
 mod canonical;
 mod integer;
 mod law;
+mod parameter;
 mod refinement;
 mod substitution;
 use binding::Bindings;
@@ -105,9 +106,10 @@ pub(super) fn instantiate(
             })
         })
         .collect();
+    let parameter_catalog = parameter::prepare(declarations, catalog)?;
     let mut context = Context {
         declarations,
-        catalog,
+        catalog: &parameter_catalog,
         generics,
         aliases,
         generated: BTreeMap::new(),
@@ -189,7 +191,7 @@ impl Context<'_> {
                 .map(|definition| (definition, None, Bindings::default()));
         };
         let (resolved, bindings) = self.bind(template, arguments, &Bindings::default(), *span)?;
-        let key = canonical::family_key(template, &resolved);
+        let key = canonical::family_key(template, &resolved, &bindings.parameter_contracts);
         self.active.push(key.clone());
         let result = self.definition(&template.definition, &bindings);
         self.active.pop();

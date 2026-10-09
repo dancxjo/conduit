@@ -145,7 +145,7 @@ impl Context<'_> {
                     ));
                 };
                 let (resolved, bindings) = self.bind(template, arguments, substitutions, *span)?;
-                let key = family_key(template, &resolved);
+                let key = family_key(template, &resolved, &bindings.parameter_contracts);
                 if self.active.contains(&key)
                     || self.active.len() >= MAXIMUM_GENERIC_INSTANTIATION_DEPTH
                 {

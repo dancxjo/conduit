@@ -117,6 +117,7 @@ fn refinements_identity(refinements: &[ValueRefinement]) -> String {
 pub(super) fn family_key(
     template: &crate::TypeSyntax,
     arguments: &[NativeTypeArgumentSyntax],
+    parameter_contracts: &[Vec<u8>],
 ) -> String {
     let application = application_key(&template.name.text, arguments);
     if template
@@ -146,6 +147,9 @@ pub(super) fn family_key(
     laws.sort();
     for law in laws {
         meaning.push_str(&alloc::format!("law:{law:?}"));
+    }
+    for contract in parameter_contracts {
+        meaning.push_str(&alloc::format!("checked-parameter:{contract:?};"));
     }
     let digest = Sha256::digest(meaning.as_bytes());
     let mut encoded = String::new();
