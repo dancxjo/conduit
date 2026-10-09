@@ -13,6 +13,9 @@ pub(super) fn code(failure: &Failure) -> &'static str {
             detail if detail == read_failure_detail(&Refusal::Missing) => {
                 "todo-committed-checkpoint-missing"
             }
+            detail if detail == read_failure_detail(&Refusal::Inaccessible) => {
+                "todo-committed-inaccessible"
+            }
             detail if detail == read_failure_detail(&Refusal::Corrupt) => "todo-committed-corrupt",
             detail if detail == read_failure_detail(&Refusal::StaleRevision) => {
                 "todo-committed-stale-version"

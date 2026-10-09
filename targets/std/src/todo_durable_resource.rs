@@ -30,6 +30,7 @@ pub enum Refusal {
     WrongAccess,
     InvalidState,
     Missing,
+    Inaccessible,
     Corrupt,
     StaleRevision,
     MigrationRequired,
@@ -259,10 +260,10 @@ impl SelectedTodoResidence {
         ));
         let mut bytes = Vec::new();
         File::open(&path)
-            .map_err(|_| Refusal::Missing)?
+            .map_err(read_io_refusal)?
             .take((CHECKPOINT_MAX_BYTES + 1) as u64)
             .read_to_end(&mut bytes)
-            .map_err(|_| Refusal::Storage)?;
+            .map_err(read_io_refusal)?;
         if bytes.len() > CHECKPOINT_MAX_BYTES
             || !bytes.starts_with(MAGIC)
             || bytes.get(8) != Some(&SCHEMA)
@@ -319,12 +320,12 @@ impl SelectedTodoResidence {
         let file = match File::open(path) {
             Ok(file) => file,
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
-            Err(_) => return Err(Refusal::Storage),
+            Err(error) => return Err(read_io_refusal(error)),
         };
         let mut bytes = Vec::with_capacity(37);
         file.take(37)
             .read_to_end(&mut bytes)
-            .map_err(|_| Refusal::Storage)?;
+            .map_err(read_io_refusal)?;
         if bytes.len() != 36 {
             return Err(Refusal::Corrupt);
         }
@@ -368,6 +369,15 @@ impl SelectedTodoResidence {
         File::open(&self.root)
             .and_then(|file| file.sync_all())
             .map_err(|_| Refusal::Storage)
+    }
+}
+
+// Read availability is a provider fact, not a guess from diagnostic prose.
+fn read_io_refusal(error: std::io::Error) -> Refusal {
+    match error.kind() {
+        std::io::ErrorKind::NotFound => Refusal::Missing,
+        std::io::ErrorKind::PermissionDenied => Refusal::Inaccessible,
+        _ => Refusal::Storage,
     }
 }
 

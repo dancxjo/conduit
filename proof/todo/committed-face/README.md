@@ -9,7 +9,7 @@ Actual missing, stale and corrupt selected-generation read tests retain
 Owner corruption fixture retains the same typed failure alongside its finite
 public refusal. Cleanup failure remains independent of the kernel failure.
 
-The public read refusal derives from the actual typed kernel failure and the canonical checkpoint read provider's finite detail vocabulary. It never parses diagnostic prose. Missing, corrupt, stale, authority, provider, invalid state, outcome-unknown, storage-unavailable, migration and cancellation retain distinct finite codes. Storage-unavailable does not independently distinguish permission denial from transient I/O.
+The public read refusal derives from the actual typed kernel failure and the canonical checkpoint read provider's finite detail vocabulary. It never parses diagnostic prose. Missing, corrupt, stale, authority, provider, invalid state, outcome-unknown, storage-unavailable, migration and cancellation retain distinct finite codes. Permission denial has its own inaccessible detail and public code, distinct from missing or storage-unavailable. Real Unix selector/checkpoint permission tests and a temporary selector read error emit no state, remain unverified in the Owner, and recover the same Body after explicit repair.
 
 The local browser admission snapshot carries both Host advertisements. Its bounded JSON envelope is 2 MiB; remote session frames retain their separate 512 KiB ceiling. A framing regression round-trips real advertisements above the prior local bound and verifies oversized envelopes write no partial response. The Owner loop keeps running after rejected JSON client frames or failed response transport, without replaying a request.
 

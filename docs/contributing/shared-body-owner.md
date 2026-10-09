@@ -176,7 +176,8 @@ both exact Plays, the restored state digest, selected content version and the
 complete read residence (Host, Boot, base and profile). It also requires the
 current canonical read Back and its authority requirements. A semantic content
 contract alone grants no authority. Read failures retain the actual typed kernel
-failure/detail and expose finite `todo-committed-*` refusal codes; diagnostic prose
+failure/detail and expose finite `todo-committed-*` refusal codes, including distinct
+missing, corrupt, inaccessible and storage-unavailable outcomes; diagnostic prose
 is retained separately. Changing an unrelated Mask offer generation preserves a
 valid immutable checkpoint witness.
 

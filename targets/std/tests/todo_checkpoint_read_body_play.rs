@@ -760,3 +760,7 @@ fn missing_stale_and_corrupt_versions_never_emit_state() {
         std::fs::remove_dir_all(root).unwrap();
     });
 }
+
+#[cfg(unix)]
+#[path = "todo_checkpoint_read_body_play/permissions.rs"]
+mod permissions;

@@ -970,3 +970,7 @@ fn stale_current_and_foreign_grant_refuse_before_play() {
 #[path = "checkpoint_once_tests/published_fixture.rs"]
 mod published_fixture;
 pub(crate) use published_fixture::published_fixture;
+
+#[cfg(unix)]
+#[path = "todo_read_permission_tests.rs"]
+mod read_permissions;
