@@ -154,10 +154,7 @@ impl DurableHostRuntime {
         if super::super::terminal_attach::is_attached(self) {
             return Err("terminal attachment must detach before selected speech".into());
         }
-        let equipment = self
-            .selected_speech_equipment
-            .clone()
-            .ok_or("installed Host has no selected speech equipment")?;
+        let equipment = self.selected_speech_equipment.clone();
         let HostSource::Body {
             owner,
             running: None,
@@ -196,8 +193,13 @@ impl DurableHostRuntime {
             )
         };
         let scope = source.scope();
-        if !equipment.matches(owner.host.current()) {
-            return Err("selected speech equipment differs from current Host Boot".into());
+        if equipment.as_ref().map_or_else(
+            || !owner.host.current().spoken_artifact_only_route_is_current(),
+            |equipment| !equipment.matches(owner.host.current()),
+        ) {
+            return Err(
+                "installed Host has no selected speech equipment matching its current Boot".into(),
+            );
         }
         let operation_id =
             crate::durable_host::fresh_identity("selected-speech", source.identity());
@@ -212,7 +214,10 @@ impl DurableHostRuntime {
             .spawn(move || {
                 let mut host = receiver.recv().ok().flatten()?;
                 #[cfg(test)]
-                if let Some(gate) = &equipment.before_play {
+                if let Some(gate) = equipment
+                    .as_ref()
+                    .and_then(|equipment| equipment.before_play.as_ref())
+                {
                     gate.wait();
                     gate.wait();
                 }
@@ -221,7 +226,7 @@ impl DurableHostRuntime {
                         &mut host,
                         &face,
                         &worker_show,
-                        &equipment,
+                        equipment.as_ref(),
                         &worker_control,
                         1,
                         MAXIMUM_BATCHES,

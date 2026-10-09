@@ -49,6 +49,12 @@ impl crate::StdHost {
                 .is_some_and(|artifact| artifact.is_unpublished())
     }
 
+    /// An explicitly attached artifact route cannot stand in for selected
+    /// speaker equipment that was lost or omitted by the caller.
+    pub fn spoken_artifact_only_route_is_current(&self) -> bool {
+        self.playback.is_none() && self.spoken_mask_artifact_route_is_current()
+    }
+
     /// Check the preattached route without changing this Boot's offers.
     pub fn selected_spoken_equipment_matches(
         &self,
