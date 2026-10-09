@@ -62,6 +62,18 @@ pub(super) fn atomic(
             span,
         );
     }
+    if expected
+        .and_then(CheckedExpressionType::value_kind)
+        .is_some_and(|kind| kind.as_str() == conduit_core::EXACT_DECIMAL_QUANTITY_INFO_ID)
+    {
+        conduit_core::ExactDecimalQuantity::parse_plot_literal(text).map_err(|refusal| {
+            diagnostic(
+                span,
+                &format!("selected exact quantity profile refused '{text}': {refusal:?}"),
+            )
+        })?;
+        return Ok(expected.unwrap().clone());
+    }
     match conduit_core::Quantity::parse_plot_literal(text) {
         Ok(quantity) => {
             return expected_or_exact(

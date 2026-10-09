@@ -141,6 +141,11 @@ impl<'a> Resolver<'a> {
                 conduit_core::SharedPoolId::from(expression),
             ))
         } else if is_atomic_literal(expression) {
+            if expected.is_some_and(crate::quantity_literal::is_exact_profile) {
+                // Preserve raw authored spelling until the selected leaf codec
+                // validates semantic suffix and finite representation together.
+                return Ok(CanonicalStartupValue::Literal(expression.to_string()));
+            }
             match crate::quantity_literal::startup_quantity(expression)? {
                 Some(value) => Ok(CanonicalStartupValue::Quantity(value)),
                 None => Ok(CanonicalStartupValue::Literal(expression.to_string())),
@@ -170,6 +175,7 @@ pub(super) fn is_atomic_literal(expression: &str) -> bool {
     let quoted = (expression.starts_with('"') && expression.ends_with('"'))
         || (expression.starts_with('\'') && expression.ends_with('\''));
     quoted
+        || crate::quantity_literal::compound_token_length(expression) == Some(expression.len())
         || !expression.is_empty()
             && !expression.chars().any(|character| {
                 character.is_whitespace()

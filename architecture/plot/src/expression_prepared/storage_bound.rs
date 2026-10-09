@@ -57,6 +57,7 @@ fn leaf(kind: &str) -> usize {
         PrimitiveInfoKind::Bool => 1,
         PrimitiveInfoKind::Count => 8,
         PrimitiveInfoKind::Scalar => 16,
+        PrimitiveInfoKind::ExactDecimalQuantity => conduit_core::EXACT_DECIMAL_QUANTITY_ENCODED_LEN,
         PrimitiveInfoKind::F32 => 4,
         PrimitiveInfoKind::F64 => 8,
         _ => MAXIMUM_STRUCTURED_LEAF_BYTES,

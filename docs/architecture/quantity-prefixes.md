@@ -63,8 +63,9 @@ suffixes retain their exact legacy lookup. Recognized extended suffixes expose
 no legacy tag, keeping numeric representation admission separate.
 
 The bounded codec described below now separates the extended numeric profile
-from legacy storage. The remaining migration must admit that profile to checked
-Plot and target execution, preserve original source facts, and complete authored conversion receipts.
+from legacy storage. Explicit `ExactQuantity` startup parameters and defaults
+now admit that profile through ordinary checked Plot authoring. The remaining
+migration must admit arithmetic execution and complete authored conversion receipts.
 The legacy authored target now returns a representation-eligibility refusal
 when it cannot realize a recognized value. Explicit checked conversion and compatible comparison must
 retain source/target dimensions, exact ratio/offset, selected profile and result
@@ -98,9 +99,20 @@ confused with a unit prefix. The caller's authored source and resolved suffix
 remain independent source facts; normalization of the semantic coordinate does
 not authorize a formatter rewrite.
 
-This codec is not yet a checked Plot primitive, admitted target profile or public
-conversion entrance. Target eligibility, conversion receipts, temperature differences and integrations
-still need their own implementation and evidence. No silent projection to the legacy
+The codec is registered as the checked primitive `value/exact-decimal-quantity@1`.
+The explicit `ExactQuantity` spelling selects it; unused catalogues retain their
+existing identities. Ordinary startup arguments and defaults retain canonical
+20-byte values, and Native Rust carriers validate the same primitive identity.
+All 456 reviewed prefix/base pairs are checked through authored startup values
+against the independent reference fixture. Reviewed compound suffixes such as
+`dam/s` remain whole quantity literals while ordinary division retains its grammar.
+
+Prepared identity transport admits exactly 20 input and output bytes, validates
+the versioned codec, and performs no allocations during evaluation. This evidence
+covers byte transport, not extended arithmetic execution, browser execution or
+physical target execution. Conversion receipts, temperature differences and
+Audio/non-Audio integrations still need their own implementation and evidence.
+No silent projection to the legacy
 9-byte encoding is provided. A decimal output profile cannot represent every
 rational coordinate; exact conversions must report inexactness when appropriate.
 

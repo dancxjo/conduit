@@ -41,6 +41,12 @@ pub(super) fn literal_value(
             .ok_or(PortableExpressionEvaluationRefusal::InvalidLiteral)?
             .encode()
             .to_vec(),
+        Some(PrimitiveInfoKind::ExactDecimalQuantity) => {
+            conduit_core::ExactDecimalQuantity::parse_plot_literal(literal)
+                .map_err(|_| PortableExpressionEvaluationRefusal::InvalidLiteral)?
+                .encode()
+                .to_vec()
+        }
         Some(kind) if quantity_kind(kind) => {
             let quantity = Quantity::parse_plot_literal(literal)
                 .map_err(|_| PortableExpressionEvaluationRefusal::InvalidLiteral)?;
