@@ -317,7 +317,7 @@ export function renderTodoJourney(root, destination, publicationCommit, styles, 
       const receipt = escape(outputs.get(item.receipt_id).path);
       let figure;
       if (output.kind === 'screenshot') figure = `<a href="${href}"><img src="${href}" alt="${escape(item.alt)}" loading="lazy"></a>`;
-      else if (output.kind === 'console-transcript') figure = `<pre>${escape(output.bytesValue.toString('utf8').slice(0, 8000))}</pre><a href="${href}">Complete terminal capture</a>`;
+      else if (output.kind === 'console-transcript') figure = `<details><summary>Inspect the actual terminal capture</summary><pre>${escape(output.bytesValue.toString('utf8').slice(0, 8000))}</pre><a href="${href}">Complete terminal capture</a></details>`;
       else {
         const capture = json(outputs.get(item.receipt_id).bytesValue, 'capture receipt');
         const transcript = outputs.get(capture.transcript_output_id);
