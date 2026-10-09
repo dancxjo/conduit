@@ -24,9 +24,26 @@ signature reencodes exactly. Archived signature c333ce46… and model descriptor
 is3,276,591 bytes. Both exact-one-under ceilings refuse with zero allocation;
 content, authority and signature corruption preserve original refusals.
 
-The original #5314 evidence reports library and tracked test Clippy `-D warnings` passing. These historical results have not yet been reproduced for this extracted branch. Fixture tests explicitly
+The original #5314 evidence reports library and tracked test Clippy `-D warnings` passing. The complete model adoption results have not been reproduced for this extracted branch. Fixture tests explicitly
 require the original external `CONDUIT_FARGAN_MODEL_FIXTURE`; the small original
 Native signature metadata fixture is checked in. The coherent compiler-closed
 artifact/source graph is preserved by content hashes in the goal project's
 outputs/fargan-model-resource-preparation. No whole runtime, trained-session,
 model quality, target or #5212/#5215/#5218 acceptance is claimed here.
+
+## Extracted component validation
+
+The focused extraction is stacked on the exact imported descriptor bridge in
+#5337, itself stacked on #5196. Data's complete TensorElement/TensorAxisRole
+prepared descriptors and AI's complete ModelSignature family are generated from
+their original checked owner contracts. They are not reconstructed from schema
+IDs or substituted with a shape-only decoder.
+
+The extracted AI library builds with locked dependencies. The unchanged tracked
+`model_resource_preparation.rs` test compiles against the fresh Cargo-built
+AI/Core/Plot libraries using `rustc --test` and dependency artifact paths from
+Cargo JSON output. This component run passes the checked-in original signature
+roundtrip, exact signature digest and exact encoding allocation test. The three
+original external-model adoption tests remain explicitly ignored. This is not a
+full workspace or parser cache validation; ordinary Cargo test execution also
+builds unrelated semantic catalog/parser development dependencies.
