@@ -320,8 +320,9 @@ export class BrowserBodyParticipation {
       throw new Error("external Body execution capabilities unavailable");
     }
     const value = this.#state.host.bridge.browserPlotReadOutputJson();
+    // The installed executor includes four exact quantity receipt operations.
     if (value?.schema !== "conduit.browser/body-capabilities@1"
-        || !Array.isArray(value.capability_ids) || value.capability_ids.length > 112
+        || !Array.isArray(value.capability_ids) || value.capability_ids.length > 116
         || value.capability_ids.some(identity => typeof identity !== "string"
           || identity.length < 1 || identity.length > 256)) {
       throw new Error("invalid external Body execution capabilities");
