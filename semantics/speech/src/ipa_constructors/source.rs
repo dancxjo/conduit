@@ -4,11 +4,14 @@ use super::{
     IpaConstructorLocation, IpaConstructorRefusal,
 };
 use alloc::{boxed::Box, vec::Vec};
+
+mod location;
 use conduit_core::{ConfigurationEntry, SourceDocumentId};
 use conduit_plot::{
-    Argument, BackStatement, CanonicalStartupValue, CheckedSyntaxDocument, CordStage,
-    ExpressionSyntax, Invocation, PlotSyntax, QuotedTextSourceMap, Span, SyntaxDocument,
+    BackStatement, CanonicalStartupValue, CheckedSyntaxDocument, CordStage, Invocation, PlotSyntax,
+    Span, SyntaxDocument,
 };
+use location::located;
 
 #[derive(Debug)]
 pub struct IpaSourceDiagnostic {
@@ -63,7 +66,7 @@ pub fn validate_source(
             let invocation = invocations
                 .iter()
                 .copied()
-                .find(|invocation| invocation.span == gear.source_span);
+                .find(|(invocation, _)| invocation.span == gear.source_span);
             let mut configuration = Vec::new();
             let fields = contract(constructor).configuration;
             let mut unresolved = false;
@@ -92,8 +95,8 @@ pub fn validate_source(
                                     location: Box::new(location.clone()),
                                 },
                                 invocation
-                                    .and_then(|invocation| {
-                                        located(syntax.round_trip(), invocation, &location)
+                                    .and_then(|(invocation, plot)| {
+                                        located(syntax.round_trip(), invocation, plot, &location)
                                     })
                                     .unwrap_or(gear.source_span),
                             )
@@ -108,8 +111,8 @@ pub fn validate_source(
             }
             if let Err(cause) = prepare_configuration(constructor, &configuration) {
                 let span = invocation
-                    .and_then(|invocation| {
-                        located(syntax.round_trip(), invocation, &cause.location)
+                    .and_then(|(invocation, plot)| {
+                        located(syntax.round_trip(), invocation, plot, &cause.location)
                     })
                     .unwrap_or(gear.source_span);
                 return Err(diagnostic(cause, span));
@@ -118,69 +121,34 @@ pub fn validate_source(
     }
     Ok(())
 }
-fn collect<'a>(plot: &'a PlotSyntax, invocations: &mut Vec<&'a Invocation>) {
+fn collect<'a>(plot: &'a PlotSyntax, invocations: &mut Vec<(&'a Invocation, &'a PlotSyntax)>) {
     for child in &plot.local_plots {
         collect(child, invocations);
     }
     for statement in &plot.back {
         match statement {
-            BackStatement::NamedGear(gear) => invocations.push(&gear.invocation),
-            BackStatement::Cord(cord) => stages(&cord.stages, invocations),
+            BackStatement::NamedGear(gear) => invocations.push((&gear.invocation, plot)),
+            BackStatement::Cord(cord) => stages(&cord.stages, plot, invocations),
             BackStatement::MatchedRoute(route) => {
                 for arm in &route.arms {
-                    stages(&arm.stages, invocations);
+                    stages(&arm.stages, plot, invocations);
                 }
             }
             _ => {}
         }
     }
 }
-fn stages<'a>(stages: &'a [CordStage], invocations: &mut Vec<&'a Invocation>) {
+fn stages<'a>(
+    stages: &'a [CordStage],
+    plot: &'a PlotSyntax,
+    invocations: &mut Vec<(&'a Invocation, &'a PlotSyntax)>,
+) {
     for stage in stages {
         match stage {
             CordStage::InlineGear(invocation) | CordStage::RelationalGear { invocation, .. } => {
-                invocations.push(invocation)
+                invocations.push((invocation, plot))
             }
             _ => {}
         }
     }
-}
-fn located(
-    source: &str,
-    invocation: &Invocation,
-    location: &IpaConstructorLocation,
-) -> Option<Span> {
-    let path = match location {
-        IpaConstructorLocation::Request => "request",
-        IpaConstructorLocation::Field(path) => path,
-        IpaConstructorLocation::Original(_) => "request.original",
-    };
-    let mut parts = path.split('.');
-    let name = parts.next()?;
-    let mut expression = invocation
-        .arguments
-        .iter()
-        .find_map(|argument| match argument {
-            Argument::Named {
-                name: argument_name,
-                value,
-                ..
-            } if argument_name.text == name => Some(&value.syntax),
-            Argument::Positional(value) if name == "request" => Some(&value.syntax),
-            _ => None,
-        })?;
-    for part in parts {
-        let ExpressionSyntax::Record { fields, .. } = expression else {
-            return Some(expression.span());
-        };
-        expression = &fields.iter().find(|field| field.name.text == part)?.value;
-    }
-    if let (IpaConstructorLocation::Original(span), ExpressionSyntax::Atomic(token)) =
-        (location, expression)
-    {
-        if let Some(map) = QuotedTextSourceMap::new(source, token, 4096) {
-            return map.source_span(span.byte_start..span.byte_end);
-        }
-    }
-    Some(expression.span())
 }

@@ -275,6 +275,61 @@ and [explicit phonemic Source](../../semantics/speech/examples/ipa/quoted-phonem
 Invocations use the currently supported single-line syntax. Delimiters are
 produced display data, rather than the identity of the checked value.
 
+The [reusable declared scope](../../semantics/speech/examples/ipa/reusable-basis.conduit)
+contains two transcriptions and one phoneme. Declare `reviewed-inventory`,
+`reviewed-basis`, `reviewed-phone-bindings` and `reviewed-phoneme-bindings` once
+as immutable Plot locals, then pass those names to each qualified constructor.
+These are respectively the exact existing `SpeechInventory`,
+`SpeechIpaInventoryNotationBasis`, `SpeechIpaPhoneBindings` and
+`SpeechIpaPhonemeBindings` Types; there is no aggregate wrapper Type. The four
+arguments collectively constitute the reviewed scope. The checker resolves
+and caches each local against its first exact expected Type for that checked
+Plot. Another Type cannot reuse that cached local by matching its shape.
+The locals live in that lexical Plot, and their concrete immutable material
+is copied into each expanded constructor configuration before planning.
+
+Alias spelling is a local lookup key, not inventory identity. The complete
+inventory, every binding, Language, Variety, profile, revision and provenance
+remain supplied material. The contract is the four `ipa-quoted@1` constructors;
+Native schema identities come from the checked Speech and Language owner
+contracts, not from a local name or a package version. Changing a coherent
+revision changes encoded results even when every alias and IPA spelling stays
+the same. Decoded results require independent re-admission against that full
+material; decoding by itself is not a membership receipt.
+
+The example declares its original material in one Source and imports no pack.
+Its Source content identity participates in checked/expanded Plot identity;
+there is no remote content lookup, pack selection or implicit first-inventory
+fallback. A reviewed imported scope must arrive through the existing pinned
+Source/pack mechanism, with its content identity, lock and declared revision;
+these locals do not introduce an import resolver or accept unpinned remote
+content. Duplicate, missing, cyclic or differently typed local references
+refuse in the common checker. Partial bindings, foreign identity, stale profile
+revision and conflicting membership refuse in Speech preparation. Existing
+sequence and encoded-value bounds apply to the original inventory in full.
+Diagnostics follow bounded local aliases to the original declaration, including
+exact quoted escape spans, on the common Source and product CLI paths.
+
+Universal `SpeechPhoneticTranscription` describes notation independently of
+this inventory; `SpeechPhonemicTranscription` binds its phonemes to this explicit
+scope. A phoneme notation does not select a contextual phone, allophone or
+playback realization. Future #5317 `ph[…]` keeps universal semantics, whereas
+`ph/…/` must supply these same four checked arguments. Neither alias spelling
+nor expected result Type selects an inventory. No glyph grammar is added here.
+
+`cargo xtask check speech-ipa` checks the example and executes its three typed
+outputs through installed std Backs and the existing kernel, then decodes and
+independently re-admits them. Its authoring proof also prints the Source, checked
+and expanded Plot identities, exact constructor Kind IDs and each scoped
+configuration Type/encoded size. Those are actual checked expansion values;
+`conduit expand` separately describes existing Source sugar and does not expose
+these ordinary local configurations. The alloc-only parser/checker and Speech authoring
+path are shared portable code; Thumb and WASM compilation establish compilation
+of that path, not firmware or browser execution. The current browser Source
+interaction entrance admits Human interaction data; it does not expose a
+separate Speech Source-checking service. Reuse requires no runtime file access,
+Host Call or new browser/firmware authority.
+
 Concrete Source checking executes the same domain preparation as the installed
 std Back. Parameterized startup remains unresolved until concrete preparation;
 a checked reusable Plot is not an executed inventory-membership receipt. The

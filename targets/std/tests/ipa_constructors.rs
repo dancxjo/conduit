@@ -18,6 +18,8 @@ const PHONEMIC: &str =
     include_str!("../../../semantics/speech/examples/ipa/quoted-phonemic.conduit");
 #[path = "ipa_constructors/readmission.rs"]
 mod readmission;
+#[path = "ipa_constructors/reusable_basis.rs"]
+mod reusable_basis;
 struct NoTimer;
 impl TimerAdapter for NoTimer {
     fn wait(&mut self, _: Duration) {
