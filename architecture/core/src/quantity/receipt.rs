@@ -61,7 +61,7 @@ impl<'a> ExactQuantityConversionReceipt<'a> {
     /// Decimal exponents belong to the source coordinate and target descriptor;
     /// they never multiply an affine offset.
     pub const fn source_transform(self) -> (i128, i128, i128) {
-        self.source.unit().canonical_transform()
+        self.source.reference_transform()
     }
     pub const fn target_transform(self) -> (i128, i128, i128) {
         let unit: QuantityUnit = match self.target.base() {

@@ -83,20 +83,51 @@ fn installed_quantity_conversion_emits_one_exact_receipt_through_the_shared_kern
             "1°C",
             "m",
         ),
+        (comparison::KIND, comparison::RECEIPT_NAME, "1000mm", "1m"),
+        (comparison::KIND, comparison::RECEIPT_NAME, "1m", "0.001km"),
+        (comparison::KIND, comparison::RECEIPT_NAME, "1MB", "1MiB"),
+        (comparison::KIND, comparison::RECEIPT_NAME, "1mW", "1MW"),
+        (comparison::KIND, comparison::RECEIPT_NAME, "1kg", "1000g"),
+        (comparison::KIND, comparison::RECEIPT_NAME, "0°C", "273.15K"),
+        (comparison::KIND, comparison::RECEIPT_NAME, "1°F", "0°C"),
+        (comparison::KIND, comparison::RECEIPT_NAME, "1Qm³", "1qm³"),
+        (comparison::KIND, comparison::RECEIPT_NAME, "-1Qm³", "-1qm³"),
+        (comparison::KIND, comparison::RECEIPT_NAME, "1Hz", "1m"),
+        (comparison::KIND, comparison::RECEIPT_NAME, "1rad", "1°"),
+        (
+            comparison::DIFFERENCE_KIND,
+            comparison::DIFFERENCE_RECEIPT_NAME,
+            "9°F",
+            "5K",
+        ),
+        (
+            comparison::DIFFERENCE_KIND,
+            comparison::DIFFERENCE_RECEIPT_NAME,
+            "1m°C",
+            "0.001K",
+        ),
+        (
+            comparison::DIFFERENCE_KIND,
+            comparison::DIFFERENCE_RECEIPT_NAME,
+            "1°F",
+            "1K",
+        ),
     ] {
-        let source = format!("plot conversion (\n receipt: {name} <= 8192B >>\n) {{\n converted: {kind}(source = \"{original}\", to = \"{target}\")\n converted.receipt >> receipt\n}}.\n");
+        let (first, second) = if matches!(kind, comparison::KIND | comparison::DIFFERENCE_KIND) {
+            ("left", "right")
+        } else {
+            ("source", "to")
+        };
+        let source = format!("plot conversion (\n receipt: {name} <= 8192B >>\n) {{\n converted: {kind}({first} = \"{original}\", {second} = \"{target}\")\n converted.receipt >> receipt\n}}.\n");
         let syntax = parse_syntax_document(&source);
         assert!(syntax.diagnostics.is_empty());
         let checked = check_syntax_document(&syntax, &startup).unwrap();
         validate_source(&syntax, &checked).unwrap();
         let authored =
             expand_canonical_plot_for_authoring(&checked, "conversion", &profile).unwrap();
-        let expected = if kind == KIND {
-            prepare_configuration(&authored.expanded.gears[0].configuration)
-        } else {
-            temperature_difference::prepare_configuration(&authored.expanded.gears[0].configuration)
-        }
-        .unwrap();
+        let expected =
+            prepare_operation_configuration(kind, &authored.expanded.gears[0].configuration)
+                .unwrap();
         let mut host = StdHost::new_with_composition(
             StdHostConfig {
                 host_id: "quantity-host".into(),
@@ -154,10 +185,12 @@ fn installed_quantity_conversion_emits_one_exact_receipt_through_the_shared_kern
             "{original} -> {target}"
         );
         let receipt = StructuredInfoValue::from_canonical_bytes(&collector.values[0]).unwrap();
-        if kind == KIND {
-            validate_receipt(&receipt)
-        } else {
-            temperature_difference::validate_receipt(&receipt)
+        match kind {
+            KIND => validate_receipt(&receipt),
+            temperature_difference::KIND => temperature_difference::validate_receipt(&receipt),
+            comparison::KIND => comparison::validate_receipt(&receipt),
+            comparison::DIFFERENCE_KIND => comparison::validate_difference_receipt(&receipt),
+            _ => unreachable!(),
         }
         .unwrap();
         let kernel = report.kernel.unwrap();
@@ -193,7 +226,12 @@ fn quantity_conversion_is_an_optional_math_host_offer() {
     };
     let minimal = make(StdHostComposition::minimal());
     let math = make(StdHostComposition::minimal().with_math());
-    for kind in [KIND, temperature_difference::KIND] {
+    for kind in [
+        KIND,
+        temperature_difference::KIND,
+        comparison::KIND,
+        comparison::DIFFERENCE_KIND,
+    ] {
         assert!(minimal
             .advertisement()
             .capabilities

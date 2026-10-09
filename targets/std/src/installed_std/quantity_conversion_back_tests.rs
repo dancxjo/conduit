@@ -6,18 +6,16 @@ use conduit_kernel::{
 
 fn placement_for(kind: &str, source: &str, target: &str) -> PlannedGear {
     let offer = offer_for(kind).unwrap();
-    let contract = if kind == conversion::KIND {
-        conversion::contract()
-    } else {
-        conversion::temperature_difference::contract()
-    };
+    let contract = conversion::operation_contract(kind).unwrap();
+    let first = contract.configuration[0].key.clone();
+    let second = contract.configuration[1].key.clone();
     conduit_core::planned_gear_from_parts! {
         semantic_contract: contract.semantic_contract(),
         placement_id: PlacementId::from("quantity-placement"), gear_id: GearId::from("quantity"),
         kind_id: offer.kind_id, kind_contract_revision: offer.kind_contract_revision,
         execution_profile_id: offer.implementation.execution_profile_id,
-        configuration: vec![ConfigurationEntry { key: "source".into(), value: ConfigurationValue::Text(source.into()) },
-            ConfigurationEntry { key: "to".into(), value: ConfigurationValue::Text(target.into()) }],
+        configuration: vec![ConfigurationEntry { key: first, value: ConfigurationValue::Text(source.into()) },
+            ConfigurationEntry { key: second, value: ConfigurationValue::Text(target.into()) }],
         host_id: HostId::from("quantity-host"), boot_id: BootId::from("quantity-boot"), offer_generation: OfferGeneration(1),
         capability_id: offer.capability_id, implementation_id: offer.implementation.implementation_id, artifact_id: offer.implementation.artifact_id,
         base: None, realization_characteristics: Vec::new(), limits: offer.limits,
@@ -26,10 +24,12 @@ fn placement_for(kind: &str, source: &str, target: &str) -> PlannedGear {
     }
 }
 
-fn placements() -> [PlannedGear; 2] {
+fn placements() -> [PlannedGear; 4] {
     [
         placement_for(conversion::KIND, "1Qm", "qm"),
         placement_for(conversion::temperature_difference::KIND, "9°F", "K"),
+        placement_for(conversion::comparison::KIND, "1000mm", "0.001km"),
+        placement_for(conversion::comparison::DIFFERENCE_KIND, "9°F", "5K"),
     ]
 }
 

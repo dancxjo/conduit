@@ -213,6 +213,8 @@ const FACTORIES: &[&BackFactory] = &[
     &super::ipa_constructor_back::PHONEMIC,
     &super::quantity_conversion_back::FACTORY,
     &super::quantity_conversion_back::DIFFERENCE_FACTORY,
+    &super::quantity_conversion_back::COMPARISON_FACTORY,
+    &super::quantity_conversion_back::DIFFERENCE_COMPARISON_FACTORY,
     #[cfg(test)]
     &TEST_FREQUENCY_SOURCE_FACTORY,
     #[cfg(test)]

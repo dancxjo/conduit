@@ -66,7 +66,7 @@ no legacy tag, keeping numeric representation admission separate.
 The bounded codec described below now separates the extended numeric profile
 from legacy storage. Explicit `ExactQuantity` startup parameters and defaults
 now admit that profile through ordinary checked Plot authoring. The remaining
-migration must integrate ordinary comparison and consumer execution.
+migration must integrate consumer execution and target eligibility.
 The legacy authored target now returns a representation-eligibility refusal
 when it cannot realize a recognized value. Explicit checked conversion and compatible comparison must
 retain source/target dimensions, exact ratio/offset, selected profile and result
@@ -210,8 +210,8 @@ receipt bytes and fixed value-storage capacity, including typed precision,
 overflow and dimension refusals. These are std/Linux execution results, not
 browser or firmware execution evidence.
 
-Exact comparison authoring, distinct temperature differences, browser/no_std
-execution eligibility and Audio/non-Audio consumers remain open acceptance work
+Browser/no_std execution eligibility, Audio/non-Audio consumers and stable
+acceptance of the quantity contracts remain open acceptance work
 for #5328.
 
 ## Explicit temperature differences
@@ -257,3 +257,49 @@ it neither reads Rust results nor imports the implementation's transform table.
 It covers 972 point/difference projections across signed, fractional, historical
 milli and extreme Kelvin prefix coordinates. This development contract still
 requires the full integration and stable-acceptance gates before #5328 closes.
+
+## Checked exact comparison
+
+The same installed quantity catalogue admits ordinary comparison authoring:
+
+```conduit
+plot compare (
+    receipt: ExactQuantityComparisonReceipt <= 8192B >>
+) {
+    compared: units/compare(left = "1000mm", right = "0.001km")
+    compared.receipt >> receipt
+}.
+```
+
+Both required quoted operands are bounded to 128 decoded bytes and use the
+reviewed suffix resolver and the bounded exact decimal source profile. The
+result is a typed `less`, `equal`, `greater` or `refused` case. Ordering uses the
+same exact rational common-reference law as Core comparison; it does not first
+convert an operand into the other's bounded decimal profile. Thus `1°F` is
+exactly less than `0°C` even though its Celsius projection is a repeating decimal.
+Incompatible dimensions and unsupported exact radian/degree relationships remain
+retained typed refusals.
+
+Each operand retains its original spelling, coordinate, complete suffix,
+resolved base/prefix, prefix/composed exponent, physical dimension and exact
+scale/offset/denominator equation. The enclosing receipt retains the catalogue,
+selected source representation and result. Readmission checks the exact Type and
+8192-byte bound, bounds original operands before copying, then recomputes all
+facts. Shape-valid modified results, coordinates or metadata refuse.
+
+`units/compare-temperature-differences` instead produces
+`ExactTemperatureDifferenceComparisonReceipt`, with distinct operand/result
+Types and zero offsets. It accepts only explicitly admitted temperature
+differences. A nine-degree Fahrenheit difference compares equal to `5K`;
+those same authored magnitudes under `units/compare` remain absolute points.
+No mixed-role comparison is inferred from unit spelling or expected output Type.
+
+The optional std math composition advertises distinct exact implementations for
+both comparison Kinds. Preparation checks their exact offered contracts and
+finite configuration, computes and encodes the receipt, and admits actual
+storage before Play. The existing fixed structured Value Back emits once under
+pressure and cancellation; it performs no arithmetic or encoding during Play.
+The independent comparison corpus contains 798 cases from Python `Fraction`,
+the independent 456-prefix scale matrix, affine temperature equations, and
+reviewed linear/binary factors. Ordinary source checking and canonical expansion
+exercise that corpus without Rust output serving as its expected result.

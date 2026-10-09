@@ -81,6 +81,12 @@ impl ExactDecimalQuantity {
         self.unit.dimension()
     }
 
+    /// Reviewed physical reference equation `(coordinate * scale + offset) / denominator`.
+    /// Temperature coordinates retain their absolute point offset here.
+    pub const fn reference_transform(self) -> (i128, i128, i128) {
+        self.unit.canonical_transform()
+    }
+
     pub fn semantic_digest(self) -> [u8; 32] {
         crate::semantic_digest(EXACT_DECIMAL_QUANTITY_INFO_ID, &self.encode())
     }

@@ -1,5 +1,7 @@
 //! Preparation diagnostics mapped to exact quoted source, including local aliases.
-use super::{contract_for, prepare_for, ConversionProfile, QuantityConversionPreparationRefusal};
+use super::{
+    operation_contract, prepare_operation_configuration, QuantityConversionPreparationRefusal,
+};
 use crate::{
     prelude::*, Argument, BackStatement, CanonicalStartupValue, CheckedSyntaxDocument, CordStage,
     ExpressionSyntax, Invocation, PlotSyntax, QuotedTextSourceMap, Span, SyntaxDocument,
@@ -25,10 +27,10 @@ pub fn validate_source(
     }
     for plot in &checked.plots {
         for gear in &plot.gears {
-            let Some(profile) = ConversionProfile::from_kind(&gear.kind) else {
+            let Some(contract) = operation_contract(&gear.kind) else {
                 continue;
             };
-            let fields = contract_for(profile).configuration;
+            let fields = contract.configuration;
             let diagnostic = |refusal, span| QuantityConversionSourceDiagnostic {
                 source_document_id: checked.source_document_id.clone(),
                 span,
@@ -78,13 +80,15 @@ pub fn validate_source(
                     value,
                 });
             }
-            if let Err(refusal) = prepare_for(profile, &configuration) {
+            if let Err(refusal) = prepare_operation_configuration(&gear.kind, &configuration) {
                 let field = match refusal {
                     QuantityConversionPreparationRefusal::Request(
                         ExactQuantityConversionRequestRefusal::Target(_)
                         | ExactQuantityConversionRequestRefusal::TargetTooLong,
                     ) => "to",
-                    _ => "source",
+                    QuantityConversionPreparationRefusal::ComparisonRight(_) => "right",
+                    QuantityConversionPreparationRefusal::ComparisonLeft(_) => "left",
+                    _ => fields[0].key.as_str(),
                 };
                 return Err(diagnostic(
                     refusal,
@@ -99,7 +103,11 @@ pub fn validate_source(
 }
 
 fn located(source: &str, call: &Invocation, plot: &PlotSyntax, name: &str) -> Option<Span> {
-    let position = if name == "source" { 0 } else { 1 };
+    let position = if matches!(name, "source" | "left") {
+        0
+    } else {
+        1
+    };
     let mut expression = call
         .arguments
         .iter()

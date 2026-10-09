@@ -2,6 +2,7 @@
 //! source retains authored spelling; no glyph or implicit rounding is needed.
 //! Preparation produces a finite receipt, including a typed precision refusal.
 
+pub mod comparison;
 mod encoding;
 mod profile;
 mod source;
@@ -77,27 +78,44 @@ fn receipt_type_for(profile: ConversionProfile) -> StructuredInfoType {
 }
 pub fn install(startup: &mut StartupCatalog, profile: &mut ProfileCatalog) -> Result<(), String> {
     install_for(ConversionProfile::Quantity, startup, profile)?;
-    install_for(ConversionProfile::TemperatureDifference, startup, profile)
+    install_for(ConversionProfile::TemperatureDifference, startup, profile)?;
+    comparison::install(startup, profile)
 }
 fn install_for(
     selected: ConversionProfile,
     startup: &mut StartupCatalog,
     profile: &mut ProfileCatalog,
 ) -> Result<(), String> {
-    startup.ensure_structured_type(selected.receipt_name(), receipt_type_for(selected))?;
+    install_text_receipt(
+        selected.receipt_name(),
+        receipt_type_for(selected),
+        contract_for(selected),
+        startup,
+        profile,
+    )
+}
+fn install_text_receipt(
+    name: &str,
+    receipt: StructuredInfoType,
+    contract: Kind,
+    startup: &mut StartupCatalog,
+    profile: &mut ProfileCatalog,
+) -> Result<(), String> {
+    startup.ensure_structured_type(name, receipt)?;
     startup.insert(KindSignature {
-        kind: selected.kind().into(),
-        startup_parameters: ["source", "to"]
-            .into_iter()
-            .map(|name| StartupParameterSignature {
-                name: name.into(),
+        kind: contract.kind_id.as_str().into(),
+        startup_parameters: contract
+            .startup_parameters
+            .iter()
+            .map(|parameter| StartupParameterSignature {
+                name: parameter.name.clone(),
                 value_type: "Text".into(),
                 default: None,
             })
             .collect(),
     })?;
     profile
-        .insert_kind(contract_for(selected))
+        .insert_kind(contract)
         .map_err(|error| format!("{error}"))?;
     Ok(())
 }
@@ -105,15 +123,28 @@ pub fn contract() -> Kind {
     contract_for(ConversionProfile::Quantity)
 }
 fn contract_for(profile: ConversionProfile) -> Kind {
-    let output = receipt_type_for(profile)
+    text_receipt_contract(
+        profile.kind(),
+        profile.revision(),
+        ["source", "to"],
+        receipt_type_for(profile),
+    )
+}
+fn text_receipt_contract(
+    kind: &str,
+    revision: &str,
+    names: [&str; 2],
+    receipt: StructuredInfoType,
+) -> Kind {
+    let output = receipt
         .profile()
         .expect("finite receipt")
         .value_kind()
         .clone();
     Kind {
-        kind_id: kind_id(profile.kind()),
-        kind_contract_revision: KindIdentity::from(profile.revision()),
-        startup_parameters: ["source", "to"]
+        kind_id: kind_id(kind),
+        kind_contract_revision: KindIdentity::from(revision),
+        startup_parameters: names
             .into_iter()
             .map(|name| FrontStartupParameter {
                 name: name.into(),
@@ -130,7 +161,7 @@ fn contract_for(profile: ConversionProfile) -> Kind {
             temporal: PortTemporal::Value,
             abnormal_kind: None,
         }],
-        configuration: ["source", "to"]
+        configuration: names
             .into_iter()
             .map(|name| KindConfigurationField {
                 key: name.into(),
@@ -159,6 +190,8 @@ pub enum QuantityConversionPreparationRefusal {
     ForgedReceipt,
     Configuration,
     Request(ExactQuantityConversionRequestRefusal),
+    ComparisonLeft(ExactQuantityConversionRequestRefusal),
+    ComparisonRight(ExactQuantityConversionRequestRefusal),
     Receipt(StructuredInfoRefusal),
     ReceiptTooLarge,
 }
@@ -175,11 +208,18 @@ fn prepare_for(
     profile: ConversionProfile,
     configuration: &[ConfigurationEntry],
 ) -> Result<StructuredInfoValue, QuantityConversionPreparationRefusal> {
+    let [source, target] = text_arguments(configuration, ["source", "to"])?;
+    encoding::prepare(profile, source, target)
+}
+fn text_arguments<'a>(
+    configuration: &'a [ConfigurationEntry],
+    names: [&str; 2],
+) -> Result<[&'a str; 2], QuantityConversionPreparationRefusal> {
     use QuantityConversionPreparationRefusal as R;
     if configuration.len() != 2 {
         return Err(R::Configuration);
     }
-    let parameter = |name: &str| -> Result<&str, R> {
+    let argument = |name: &str| {
         let mut entries = configuration.iter().filter(|entry| entry.key == name);
         let Some(entry) = entries.next() else {
             return Err(R::Configuration);
@@ -188,11 +228,37 @@ fn prepare_for(
             return Err(R::Configuration);
         }
         match &entry.value {
-            ConfigurationValue::Text(text) => Ok(text),
+            ConfigurationValue::Text(value) => Ok(value.as_str()),
             _ => Err(R::Configuration),
         }
     };
-    encoding::prepare(profile, parameter("source")?, parameter("to")?)
+    Ok([argument(names[0])?, argument(names[1])?])
+}
+
+/// Resolve only the reviewed exact quantity operations. The selected Kind
+/// carries the semantic role and receipt Type through preparation.
+pub fn operation_contract(kind: &str) -> Option<Kind> {
+    match kind {
+        KIND => Some(contract()),
+        temperature_difference::KIND => Some(temperature_difference::contract()),
+        comparison::KIND => Some(comparison::contract()),
+        comparison::DIFFERENCE_KIND => Some(comparison::difference_contract()),
+        _ => None,
+    }
+}
+pub fn prepare_operation_configuration(
+    kind: &str,
+    configuration: &[ConfigurationEntry],
+) -> Result<StructuredInfoValue, QuantityConversionPreparationRefusal> {
+    match kind {
+        KIND => prepare_configuration(configuration),
+        temperature_difference::KIND => {
+            temperature_difference::prepare_configuration(configuration)
+        }
+        comparison::KIND => comparison::prepare_configuration(configuration),
+        comparison::DIFFERENCE_KIND => comparison::prepare_difference_configuration(configuration),
+        _ => Err(QuantityConversionPreparationRefusal::Configuration),
+    }
 }
 
 fn dimension_name(dimension: QuantityDimension) -> &'static str {

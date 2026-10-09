@@ -119,3 +119,85 @@ fn product_checks_distinct_temperature_difference_contract_and_owned_refusals() 
             .contains(diagnostic["summary"].as_str().unwrap()));
     }
 }
+
+#[test]
+fn product_checks_exact_comparisons_and_preserves_the_offending_operand_span() {
+    let source = |kind: &str, name: &str, left: &str, right: &str| {
+        format!("# µ before original operands\nplot compare (\n receipt: {name} <= 8192B >>\n) {{\n original = \"{right}\"\n alias = original\n compared: {kind}(left = \"{left}\", right = alias)\n compared.receipt >> receipt\n}}.\n")
+    };
+    for (kind, name, left, right) in [
+        (
+            "units/compare",
+            "ExactQuantityComparisonReceipt",
+            "1000mm",
+            "0.001km",
+        ),
+        (
+            "units/compare",
+            "ExactQuantityComparisonReceipt",
+            "1°F",
+            "0°C",
+        ),
+        (
+            "units/compare",
+            "ExactQuantityComparisonReceipt",
+            "1Hz",
+            "1m",
+        ),
+        (
+            "units/compare-temperature-differences",
+            "ExactTemperatureDifferenceComparisonReceipt",
+            "9°F",
+            "5K",
+        ),
+    ] {
+        let result = check(&source(kind, name, left, right), true);
+        assert!(
+            result.status.success(),
+            "{}",
+            String::from_utf8_lossy(&result.stdout)
+        );
+        assert_eq!(
+            serde_json::from_slice::<Value>(&result.stdout).unwrap(),
+            serde_json::json!([])
+        );
+    }
+    for (kind, name, left, right, expected) in [
+        (
+            "units/compare",
+            "ExactQuantityComparisonReceipt",
+            "21C",
+            "1K",
+            "21C",
+        ),
+        (
+            "units/compare",
+            "ExactQuantityComparisonReceipt",
+            "1m",
+            "1mkg",
+            "1mkg",
+        ),
+        (
+            "units/compare-temperature-differences",
+            "ExactTemperatureDifferenceComparisonReceipt",
+            "1°C",
+            "1Hz",
+            "1Hz",
+        ),
+    ] {
+        let source = source(kind, name, left, right);
+        let human = check(&source, false);
+        let machine = check(&source, true);
+        assert!(!human.status.success());
+        assert!(!machine.status.success());
+        let diagnostics: Value = serde_json::from_slice(&machine.stdout).unwrap();
+        let diagnostic = &diagnostics[0];
+        assert_eq!(diagnostic["code"], "CND-QTY-001");
+        let start = diagnostic["primary_span"]["start"].as_u64().unwrap() as usize;
+        let end = diagnostic["primary_span"]["end"].as_u64().unwrap() as usize;
+        assert_eq!(&source[start..end], expected);
+        assert!(String::from_utf8(human.stdout)
+            .unwrap()
+            .contains(diagnostic["summary"].as_str().unwrap()));
+    }
+}

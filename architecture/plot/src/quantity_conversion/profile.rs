@@ -8,13 +8,6 @@ pub(super) enum ConversionProfile {
     TemperatureDifference,
 }
 impl ConversionProfile {
-    pub(super) fn from_kind(kind: &str) -> Option<Self> {
-        match kind {
-            KIND => Some(Self::Quantity),
-            temperature_difference::KIND => Some(Self::TemperatureDifference),
-            _ => None,
-        }
-    }
     pub(super) fn kind(self) -> &'static str {
         match self {
             Self::Quantity => KIND,

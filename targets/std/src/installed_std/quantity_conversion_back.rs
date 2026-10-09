@@ -11,6 +11,9 @@ use std::fmt::Write;
 
 pub(super) const IMPLEMENTATION: &str = "conduit.std/exact-quantity-conversion@1";
 const DIFFERENCE_IMPLEMENTATION: &str = "conduit.std/exact-temperature-difference-conversion@1";
+const COMPARISON_IMPLEMENTATION: &str = "conduit.std/exact-quantity-comparison@1";
+const DIFFERENCE_COMPARISON_IMPLEMENTATION: &str =
+    "conduit.std/exact-temperature-difference-comparison@1";
 const PROFILE: &str = "conduit.std/prepared-quantity-receipt@1";
 pub(super) static FACTORY: BackFactory = BackFactory {
     implementation_id: IMPLEMENTATION,
@@ -23,22 +26,35 @@ pub(super) static DIFFERENCE_FACTORY: BackFactory = BackFactory {
     budget,
     prepare,
 };
-pub(crate) fn offers() -> [CapabilityOffer; 2] {
+pub(super) static COMPARISON_FACTORY: BackFactory = BackFactory {
+    implementation_id: COMPARISON_IMPLEMENTATION,
+    budget,
+    prepare,
+};
+pub(super) static DIFFERENCE_COMPARISON_FACTORY: BackFactory = BackFactory {
+    implementation_id: DIFFERENCE_COMPARISON_IMPLEMENTATION,
+    budget,
+    prepare,
+};
+pub(crate) fn offers() -> [CapabilityOffer; 4] {
     [
         offer(),
         offer_for(conversion::temperature_difference::KIND).expect("reviewed difference Kind"),
+        offer_for(conversion::comparison::KIND).expect("reviewed comparison Kind"),
+        offer_for(conversion::comparison::DIFFERENCE_KIND)
+            .expect("reviewed difference comparison Kind"),
     ]
 }
 fn offer() -> CapabilityOffer {
     offer_for(conversion::KIND).expect("reviewed quantity Kind")
 }
 fn offer_for(kind: &str) -> Option<CapabilityOffer> {
-    let (contract, implementation) = match kind {
-        conversion::KIND => (conversion::contract(), IMPLEMENTATION),
-        conversion::temperature_difference::KIND => (
-            conversion::temperature_difference::contract(),
-            DIFFERENCE_IMPLEMENTATION,
-        ),
+    let contract = conversion::operation_contract(kind)?;
+    let implementation = match kind {
+        conversion::KIND => IMPLEMENTATION,
+        conversion::temperature_difference::KIND => DIFFERENCE_IMPLEMENTATION,
+        conversion::comparison::KIND => COMPARISON_IMPLEMENTATION,
+        conversion::comparison::DIFFERENCE_KIND => DIFFERENCE_COMPARISON_IMPLEMENTATION,
         _ => return None,
     };
     // The installed Back, codec, resolver, reviewed transforms and receipt
@@ -50,6 +66,10 @@ fn offer_for(kind: &str) -> Option<CapabilityOffer> {
             include_str!("quantity_conversion_back.rs"),
             include_str!("../../../../architecture/plot/src/quantity_conversion.rs"),
             include_str!("../../../../architecture/plot/src/quantity_conversion/encoding.rs"),
+            include_str!("../../../../architecture/plot/src/quantity_conversion/comparison.rs"),
+            include_str!(
+                "../../../../architecture/plot/src/quantity_conversion/comparison/operand.rs"
+            ),
             include_str!("../../../../architecture/plot/src/quantity_conversion/profile.rs"),
             include_str!(
                 "../../../../architecture/plot/src/quantity_conversion/temperature_difference.rs"
@@ -91,11 +111,8 @@ fn offer_for(kind: &str) -> Option<CapabilityOffer> {
 fn admitted(placement: &PlannedGear) -> Result<Vec<u8>, String> {
     let expected =
         offer_for(placement.kind_id.as_str()).ok_or("unsupported quantity conversion Kind")?;
-    let contract = if placement.kind_id.as_str() == conversion::KIND {
-        conversion::contract()
-    } else {
-        conversion::temperature_difference::contract()
-    };
+    let contract = conversion::operation_contract(placement.kind_id.as_str())
+        .ok_or("unsupported quantity operation Kind")?;
     if placement.kind_id != expected.kind_id
         || placement.kind_contract_revision != expected.kind_contract_revision
         || placement.capability_id != expected.capability_id
@@ -136,11 +153,10 @@ fn admitted(placement: &PlannedGear) -> Result<Vec<u8>, String> {
         conduit_plot::validate_configuration_value(field, &entry.value)
             .map_err(|error| format!("quantity conversion configuration: {error}"))?;
     }
-    let receipt = if placement.kind_id.as_str() == conversion::KIND {
-        conversion::prepare_configuration(&placement.configuration)
-    } else {
-        conversion::temperature_difference::prepare_configuration(&placement.configuration)
-    }
+    let receipt = conversion::prepare_operation_configuration(
+        placement.kind_id.as_str(),
+        &placement.configuration,
+    )
     .map_err(|error| format!("quantity conversion preparation: {error:?}"))?;
     if receipt
         .value_type()
