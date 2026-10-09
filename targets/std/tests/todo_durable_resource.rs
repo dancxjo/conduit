@@ -253,3 +253,92 @@ fn next_generation_requires_fresh_planned_version_and_read_grant() {
     assert_eq!(next_reader.recover(&next_read.authority[0]).unwrap(), next);
     std::fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn incompatible_schema_and_truncated_checkpoint_refuse_exact_selected_read() {
+    let root = root();
+    let write = placement("host-a", "boot-a", true, 2);
+    let read = placement("host-b", "boot-b", false, 2);
+    let writer = SelectedTodoResidence::prepare(&root, &write, identity()).unwrap();
+    let reader = SelectedTodoResidence::prepare(&root, &read, identity()).unwrap();
+    let state = TodoState::new("Groceries".into())
+        .unwrap()
+        .apply(&TodoCommand::Add {
+            text: "Milk".into(),
+        })
+        .unwrap();
+    writer.commit(&write.authority[0], &state).unwrap();
+    let checkpoint = std::fs::read_dir(&root)
+        .unwrap()
+        .map(|entry| entry.unwrap().path())
+        .find(|path| path.extension().is_some_and(|ext| ext == "checkpoint"))
+        .unwrap();
+    let original = std::fs::read(&checkpoint).unwrap();
+    let mut incompatible = original.clone();
+    incompatible[8] = 255;
+    std::fs::write(&checkpoint, incompatible).unwrap();
+    assert_eq!(reader.recover(&read.authority[0]), Err(Refusal::Corrupt));
+    for length in [0, 8, 73, original.len() - 1] {
+        std::fs::write(&checkpoint, &original[..length]).unwrap();
+        assert_eq!(reader.recover(&read.authority[0]), Err(Refusal::Corrupt));
+    }
+    std::fs::write(&checkpoint, original).unwrap();
+    assert_eq!(reader.recover(&read.authority[0]).unwrap(), state);
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn partial_unpublished_candidate_cannot_be_retried_as_committed_state() {
+    let root = root();
+    let write = placement("host-a", "boot-a", true, 2);
+    let read = placement("host-b", "boot-b", false, 2);
+    let writer = SelectedTodoResidence::prepare(&root, &write, identity()).unwrap();
+    let reader = SelectedTodoResidence::prepare(&root, &read, identity()).unwrap();
+    let state = TodoState::new("Groceries".into())
+        .unwrap()
+        .apply(&TodoCommand::Add {
+            text: "Milk".into(),
+        })
+        .unwrap();
+    writer.commit(&write.authority[0], &state).unwrap();
+    let entries: Vec<_> = std::fs::read_dir(&root)
+        .unwrap()
+        .map(|entry| entry.unwrap().path())
+        .collect();
+    let checkpoint = entries
+        .iter()
+        .find(|path| path.extension().is_some_and(|ext| ext == "checkpoint"))
+        .unwrap();
+    let selector = entries
+        .iter()
+        .find(|path| path.extension().is_some_and(|ext| ext == "current"))
+        .unwrap();
+    // Simulate a crash before publication with only a partial immutable candidate.
+    std::fs::remove_file(selector).unwrap();
+    std::fs::write(checkpoint, b"CDTODO02").unwrap();
+    assert_eq!(reader.recover(&read.authority[0]), Err(Refusal::Missing));
+    assert_eq!(
+        writer.commit(&write.authority[0], &state),
+        Err(Refusal::Corrupt)
+    );
+    assert_eq!(reader.recover(&read.authority[0]), Err(Refusal::Missing));
+    assert!(!selector.exists());
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn wrong_selected_provider_refuses_before_storage_mutation() {
+    let root = root();
+    let mut write = placement("host-a", "boot-a", true, 2);
+    write.resources[0]
+        .content
+        .as_mut()
+        .unwrap()
+        .residence_profile = conduit_core::kind_id("std/other-provider@1");
+    assert!(matches!(
+        SelectedTodoResidence::prepare(&root, &write, identity()),
+        Err(Refusal::InvalidBinding)
+    ));
+    assert_eq!(std::fs::read_dir(&root).unwrap().count(), 0);
+    std::fs::remove_dir_all(root).unwrap();
+}

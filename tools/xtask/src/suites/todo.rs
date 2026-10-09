@@ -51,6 +51,8 @@ pub(super) const TODO_STATE_STEPS: &[Step] = &[
             "--lib",
             "todo_",
             "--locked",
+            "--",
+            "--nocapture",
         ],
     ),
     Step::new(

@@ -1,0 +1,182 @@
+[
+  {
+    "body_id": "27bc58a32d4ae5868409bfe13544e01f287d53b8803759fafef5ce985e000002",
+    "checked_plot_id": "24f29c55b9f8adc95e7020735eb53d7c5f6630dcb4cc1ad639883e908fe135c6",
+    "child_invocations": 4,
+    "command_sha256": [
+      "sha256:9a8a150b1c75ab68fa0ef7546378ad72fb39d2cd9ce0dd1134ae0d4ad01bb8b7",
+      "sha256:5d9412e2105e2e8200cf6b965be41ee531fd4ba1e80b34c5723bac2cf4c93fee",
+      "sha256:df71d0f7b576fdc6c7db6cef5f48c2da39accb1e91da683004c08efeb58371d3",
+      "sha256:61bd8c44b06522566a736a099ebafdbf9a311b247efc25fc120b63a7a3b709a2"
+    ],
+    "failure": "Body kernel: BackFailed(Failure { code: HostCallFailed, detail: 17 })",
+    "initial_state_sha256": "sha256:2bfbceb30af5ab3a67a02b70d7fba1496c90a3d8fe53a19792797d602b72dd3a",
+    "plan_id": "body-plan/sha256:f1577ce0c16d5fb9a6033ee8d470ad5db204fb86c2466704c76556271db0bac4",
+    "play": {
+      "active_play_id": "body-play/sha256:17659d0196702b1006baccf227dc63a89e259ef84bbe7f6c169d63737a044875",
+      "body_id": "27bc58a32d4ae5868409bfe13544e01f287d53b8803759fafef5ce985e000002",
+      "plan_id": "body-plan/sha256:f1577ce0c16d5fb9a6033ee8d470ad5db204fb86c2466704c76556271db0bac4",
+      "play_sequence": 0,
+      "wake_id": "4e6d1291a65492fad7a215749855ccc30ea40ba71b9a6b425d4207b516c2a617"
+    },
+    "source_document_id": "198060b0dca63aa5c718754aff6c87db22baab34196844fbcb27fa63a04c890d",
+    "states": [
+      {
+        "items": [
+          {
+            "complete": false,
+            "id": "task-1",
+            "text": "Milk"
+          }
+        ],
+        "next_id": 2,
+        "revision": 1,
+        "sha256": "sha256:d677c15373f7a4750d8d1e5af3483eb88dcca61ce102aac9f2b775d5c3fa079d",
+        "title": "Groceries"
+      },
+      {
+        "items": [
+          {
+            "complete": false,
+            "id": "task-1",
+            "text": "Milk"
+          },
+          {
+            "complete": false,
+            "id": "task-2",
+            "text": "Eggs"
+          }
+        ],
+        "next_id": 3,
+        "revision": 2,
+        "sha256": "sha256:8c97381dea3feea2b86156beba0a835f4439c12a28641f64a084b488d153198b",
+        "title": "Groceries"
+      },
+      {
+        "items": [
+          {
+            "complete": false,
+            "id": "task-1",
+            "text": "Milk"
+          },
+          {
+            "complete": false,
+            "id": "task-2",
+            "text": "Eggs"
+          },
+          {
+            "complete": false,
+            "id": "task-3",
+            "text": "Bread"
+          }
+        ],
+        "next_id": 4,
+        "revision": 3,
+        "sha256": "sha256:d5060edf07499d3bb9f410539f421df567c73758b17703da93e4f7a1804d4975",
+        "title": "Groceries"
+      }
+    ],
+    "terminal": {
+      "Failed": {
+        "reason": "RequiredBranchFailed"
+      }
+    },
+    "terminal_sign": {
+      "active_play_id": "body-play/sha256:17659d0196702b1006baccf227dc63a89e259ef84bbe7f6c169d63737a044875",
+      "boot_id": "boot/todo-replay/missing-item",
+      "host_id": "host/todo-replay/missing-item",
+      "sequence": 2,
+      "sign_id": "de8d13d24936dbc393ce66c88225ed6b7a602feeb204bf4410f0fd58f13ba974"
+    }
+  },
+  {
+    "body_id": "12821accd311b131f641bb001307c48fe81666f413c470381ca9907c377e1504",
+    "checked_plot_id": "24f29c55b9f8adc95e7020735eb53d7c5f6630dcb4cc1ad639883e908fe135c6",
+    "child_invocations": 4,
+    "command_sha256": [
+      "sha256:9a8a150b1c75ab68fa0ef7546378ad72fb39d2cd9ce0dd1134ae0d4ad01bb8b7",
+      "sha256:5d9412e2105e2e8200cf6b965be41ee531fd4ba1e80b34c5723bac2cf4c93fee",
+      "sha256:df71d0f7b576fdc6c7db6cef5f48c2da39accb1e91da683004c08efeb58371d3",
+      "sha256:f3f13e23f88c65c4af338d41d63e144c0e63ca879ac6b3b3f174f10f06abf731"
+    ],
+    "failure": "Body kernel: BackFailed(Failure { code: HostCallFailed, detail: 17 })",
+    "initial_state_sha256": "sha256:2bfbceb30af5ab3a67a02b70d7fba1496c90a3d8fe53a19792797d602b72dd3a",
+    "plan_id": "body-plan/sha256:df0779e0b25c502124fce8e5bcf7e7dfc9c061e4859e4351fe87b2241d89ad80",
+    "play": {
+      "active_play_id": "body-play/sha256:0a8af8378db7c023302ef81b56d35a4ed66b024a133e82a633742e9f4bdb3487",
+      "body_id": "12821accd311b131f641bb001307c48fe81666f413c470381ca9907c377e1504",
+      "plan_id": "body-plan/sha256:df0779e0b25c502124fce8e5bcf7e7dfc9c061e4859e4351fe87b2241d89ad80",
+      "play_sequence": 0,
+      "wake_id": "3350618c537052df5a856c4ebfdcf6916da51e583700ee9a97ab9dab75fdfa2d"
+    },
+    "source_document_id": "198060b0dca63aa5c718754aff6c87db22baab34196844fbcb27fa63a04c890d",
+    "states": [
+      {
+        "items": [
+          {
+            "complete": false,
+            "id": "task-1",
+            "text": "Milk"
+          }
+        ],
+        "next_id": 2,
+        "revision": 1,
+        "sha256": "sha256:d677c15373f7a4750d8d1e5af3483eb88dcca61ce102aac9f2b775d5c3fa079d",
+        "title": "Groceries"
+      },
+      {
+        "items": [
+          {
+            "complete": false,
+            "id": "task-1",
+            "text": "Milk"
+          },
+          {
+            "complete": false,
+            "id": "task-2",
+            "text": "Eggs"
+          }
+        ],
+        "next_id": 3,
+        "revision": 2,
+        "sha256": "sha256:8c97381dea3feea2b86156beba0a835f4439c12a28641f64a084b488d153198b",
+        "title": "Groceries"
+      },
+      {
+        "items": [
+          {
+            "complete": false,
+            "id": "task-1",
+            "text": "Milk"
+          },
+          {
+            "complete": false,
+            "id": "task-2",
+            "text": "Eggs"
+          },
+          {
+            "complete": false,
+            "id": "task-3",
+            "text": "Bread"
+          }
+        ],
+        "next_id": 4,
+        "revision": 3,
+        "sha256": "sha256:d5060edf07499d3bb9f410539f421df567c73758b17703da93e4f7a1804d4975",
+        "title": "Groceries"
+      }
+    ],
+    "terminal": {
+      "Failed": {
+        "reason": "RequiredBranchFailed"
+      }
+    },
+    "terminal_sign": {
+      "active_play_id": "body-play/sha256:0a8af8378db7c023302ef81b56d35a4ed66b024a133e82a633742e9f4bdb3487",
+      "boot_id": "boot/todo-replay/missing-completion-target",
+      "host_id": "host/todo-replay/missing-completion-target",
+      "sequence": 2,
+      "sign_id": "fdb1202d04dbbd23f1a827f05dbd0aa8e11b2ac5f1bce09f1777f1f5d8d9df9a"
+    }
+  }
+]
