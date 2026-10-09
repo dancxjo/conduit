@@ -1,5 +1,7 @@
 //! Foreground owner of one installed Linux Host's retained Body.
 mod controller;
+#[cfg(test)]
+pub(crate) use controller::published_todo_test_fixture;
 mod image;
 mod native_observation;
 mod state;

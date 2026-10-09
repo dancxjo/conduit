@@ -4,8 +4,7 @@ use conduit_presentation::{FaceInteraction, FaceInteractionArgument, UTF8_TEXT_V
 use conduit_std_host::todo_durable_resource::MissingV2Disposition;
 use conduit_std_host::{StdHost, StdHostConfig};
 
-#[path = "../../../../semantics/presentation/tests/common/mod.rs"]
-mod mask_test_common;
+use crate::mask_test_common;
 
 #[path = "todo_continuity_tests.rs"]
 mod todo_continuity;
@@ -816,3 +815,7 @@ fn stale_current_and_foreign_grant_refuse_before_play() {
         .is_none());
     std::fs::remove_dir_all(state_root).unwrap();
 }
+
+#[path = "checkpoint_once_tests/published_fixture.rs"]
+mod published_fixture;
+pub(crate) use published_fixture::published_fixture;
