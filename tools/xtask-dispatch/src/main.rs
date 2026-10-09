@@ -119,10 +119,21 @@ mod workspace;
 
 mod ci_dispatch;
 mod local_storage;
+#[path = "../../xtask/src/commands/model_authoring.rs"]
+mod model_authoring;
 mod tool_setup;
 
 fn main() {
     let arguments: Vec<String> = std::env::args().skip(1).collect();
+    if arguments.first().map(String::as_str) == Some("prove")
+        && arguments.get(1).map(String::as_str) == Some("model-authoring")
+    {
+        if let Err(error) = model_authoring::run(&arguments[2..]) {
+            eprintln!("xtask error: {error}");
+            std::process::exit(1);
+        }
+        return;
+    }
     if let Some(setup) = tool_setup::route(&arguments) {
         if let Err(error) = tool_setup::run(setup) {
             eprintln!("xtask error: {error}");

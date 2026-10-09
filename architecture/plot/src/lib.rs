@@ -27,6 +27,7 @@ mod ecmascript_binding;
 mod expression_check;
 mod expression_definition;
 mod expression_evaluate;
+mod expression_f32;
 mod expression_numeric_type;
 mod expression_prepared;
 mod expression_program;
@@ -1311,3 +1312,5 @@ mod canonical_expansion_tests;
 
 mod source_type_preparation;
 pub use source_type_preparation::{prepare_source_types, PreparedSourceTypes};
+
+mod ieee_literal;

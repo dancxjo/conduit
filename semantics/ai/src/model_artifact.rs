@@ -24,7 +24,7 @@ pub struct ModelArtifact {
     pub content: BoundedResourceRef,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct MutableModelState {
     pub base_artifact_identity: [u8; 32],
     pub state_identity: String,
@@ -32,12 +32,13 @@ pub struct MutableModelState {
     pub generation: u64,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ModelCheckpoint {
     pub base_artifact_identity: [u8; 32],
     pub architecture_profile: String,
     pub state_schema_version: u32,
     pub generation: u64,
+    #[serde(with = "crate::model_work_contract::resource")]
     pub content: BoundedResourceRef,
 }
 

@@ -1,0 +1,140 @@
+# Authored abstract elapsed-second timeline, not a Host clock or clock mapping.
+type AudioTimelineIdentity = {
+    value: U64 in 1..=18446744073709551615
+}
+type AudioOriginIdentity = {
+    value: U64 in 1..=18446744073709551615
+}
+type AudioTrajectoryAnchor = {
+    timeline: AudioTimelineIdentity
+    origin: AudioOriginIdentity
+}
+type AudioExactTimeOffset = {
+    numerator_seconds: U64
+    denominator: U64 in 1..=18446744073709551615
+}
+type AudioTrajectoryProvenanceKind =
+    authored
+    | imported
+    | measured
+    | derived
+    | unknown
+type AudioTrajectoryProvenance = {
+    kind: AudioTrajectoryProvenanceKind
+    method: Text <= 128B not in [""]
+    version: Text <= 64B not in [""]?
+}
+type AudioTrajectoryQuantity =
+    frequency AudioFrequencyHz
+    | cycle AudioCycleDuration
+    | amplitude AudioRelativeAmplitude
+    | power AudioPowerRatio
+type AudioTrajectoryDomain =
+    frequency
+    | cycle
+    | amplitude
+    | power
+type AudioTrajectoryInterpolation =
+    step
+    | linear
+type AudioTrajectoryOutside =
+    refuse
+type AudioTrajectoryEndpoints =
+    right_continuous_final_included
+type AudioTrajectorySegment = {
+    start: AudioExactTimeOffset
+    end: AudioExactTimeOffset
+    left: AudioTrajectoryQuantity
+    right: AudioTrajectoryQuantity
+    interpolation: AudioTrajectoryInterpolation
+}
+type AudioQuantityTrajectory = {
+    anchor: AudioTrajectoryAnchor
+    provenance: AudioTrajectoryProvenance
+    segments: sequence AudioTrajectorySegment in 1..=16
+    outside: AudioTrajectoryOutside
+    endpoints: AudioTrajectoryEndpoints
+}
+type AudioTrajectoryQuery = {
+    anchor: AudioTrajectoryAnchor
+    time: AudioExactTimeOffset
+}
+# Explicitly raw numeric projection; not a substitute quantity Type.
+type AudioTrajectoryRatio = {
+    numerator: U64
+    denominator: U64
+    domain: AudioTrajectoryDomain
+}
+type AudioTrajectoryArithmeticInput = {
+    start: AudioExactTimeOffset
+    end: AudioExactTimeOffset
+    query: AudioExactTimeOffset
+    left: AudioTrajectoryRatio
+    right: AudioTrajectoryRatio
+    interpolation: AudioTrajectoryInterpolation
+    final_segment: Boolean
+}
+# Separately named conservative arithmetic eligibility. Full authored Types
+# above retain U64. Every multiply fits U64 under this admitted profile.
+type AudioTrajectoryU8Arithmetic = {
+    input: AudioTrajectoryArithmeticInput
+    where .input.start.numerator_seconds <= 255
+    where .input.start.denominator <= 255
+    where .input.end.numerator_seconds <= 255
+    where .input.end.denominator <= 255
+    where .input.query.numerator_seconds <= 255
+    where .input.query.denominator <= 255
+    where .input.left.numerator <= 255
+    where .input.left.denominator > 0 && .input.left.denominator <= 255
+    where .input.right.numerator <= 255
+    where .input.right.denominator > 0 && .input.right.denominator <= 255
+}
+type AudioTrajectoryWeight = {
+    numerator: U64
+    denominator: U64
+}
+type AudioTrajectoryBlendInput = {
+    request: AudioTrajectoryU8Arithmetic
+    weight: AudioTrajectoryWeight
+}
+type AudioTrajectorySegmentOrder = {
+    previous_end: AudioExactTimeOffset
+    next_start: AudioExactTimeOffset
+}
+type AudioTrajectoryOrderU8 = {
+    input: AudioTrajectorySegmentOrder
+    where .input.previous_end.numerator_seconds <= 255
+    where .input.previous_end.denominator <= 255
+    where .input.next_start.numerator_seconds <= 255
+    where .input.next_start.denominator <= 255
+}
+type AudioTrajectoryAnchorComparison = {
+    trajectory: AudioTrajectoryAnchor
+    query: AudioTrajectoryAnchor
+}
+type AudioTrajectoryDomainComparison = {
+    left: AudioTrajectoryDomain
+    right: AudioTrajectoryDomain
+}
+
+# Exact step needs only time cross-products: U32*U32 fits U64. Quantities retain
+# their full original U64 fractions; no interpolation arithmetic touches them.
+type AudioTrajectoryU32Step = {
+    input: AudioTrajectoryArithmeticInput
+    where .input.interpolation is step
+    where .input.start.numerator_seconds <= 4294967295
+    where .input.start.denominator <= 4294967295
+    where .input.end.numerator_seconds <= 4294967295
+    where .input.end.denominator <= 4294967295
+    where .input.query.numerator_seconds <= 4294967295
+    where .input.query.denominator <= 4294967295
+    where .input.left.denominator > 0
+    where .input.right.denominator > 0
+}
+type AudioTrajectoryOrderU32 = {
+    input: AudioTrajectorySegmentOrder
+    where .input.previous_end.numerator_seconds <= 4294967295
+    where .input.previous_end.denominator <= 4294967295
+    where .input.next_start.numerator_seconds <= 4294967295
+    where .input.next_start.denominator <= 4294967295
+}

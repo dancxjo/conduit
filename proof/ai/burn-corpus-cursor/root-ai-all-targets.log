@@ -1,0 +1,748 @@
+   Compiling conduit-ai v0.1.0 (/home/dancxjo/conduit-burn-corpus-cursor/semantics/ai)
+   Compiling conduit-composite v0.1.0 (/home/dancxjo/conduit-burn-corpus-cursor/architecture/composite)
+   Compiling conduit-chat v0.1.0 (/home/dancxjo/conduit-burn-corpus-cursor/semantics/chat)
+   Compiling conduit-std-offers v0.1.0 (/home/dancxjo/conduit-burn-corpus-cursor/targets/std/offers)
+   Compiling conduit-signal-conformance v0.1.0 (/home/dancxjo/conduit-burn-corpus-cursor/proof/conformance/signal)
+    Finished `test` profile [unoptimized] target(s) in 16.78s
+     Running unittests src/lib.rs (/home/dancxjo/conduit/target/debug/deps/conduit_ai-1e9e9adf3c640f78)
+
+running 27 tests
+test streaming_generation::tests::sequence_chunk_and_total_bounds_refuse_distinctly ... ok
+test model_signature::tests::dimension_constraint_retains_the_v1_manual_digest_bytes ... ok
+test provider::tests::portable_front_and_provider_protocol_keep_realization_and_failures_distinct ... ok
+test model_text::tests::generated_chunks_project_as_incremental_text_without_batching ... ok
+test streaming_generation::tests::generated_text_chunks_are_native_bounded_and_keep_the_exact_codec ... ok
+test model_work_contract::tests::canonical_command_round_trip_and_identity_bounds ... ok
+test model_work_contract::tests::oversized_noncanonical_and_unknown_payloads_refuse ... ok
+test model_work_contract::tests::full_state_reply_round_trips ... ok
+test relation::digest::tests::result_profile_digest_bytes_remain_exact ... ok
+test streaming_generation::tests::ordered_deltas_reconstruct_exactly_without_runtime_retention ... ok
+test training_digest::tests::missing_modality_policy_retains_the_v1_manual_digest_bytes ... ok
+test vector_search_contract::tests::portable_contract_is_typed_finite_and_backend_neutral ... ok
+test dynamics::tests::public_field_compatibility_retains_accuracy_defense_in_depth ... ok
+test bases::tests::implementation_artifact_and_resource_vectors_are_exact_and_distinct ... ok
+test bases::tests::three_materially_different_fixtures_offer_one_equal_checked_front ... ok
+test temporal_evidence_selection::tests::recent_first_page_cannot_masquerade_as_project_origin ... ok
+test model_work_contract::tests::ordinary_plot_checks_expands_and_plans_from_portable_contract ... ok
+test vector_search_contract::tests::ordinary_plot_checks_and_expands_without_backend_vocabulary ... ok
+test model_text::tests::only_canonical_produced_bounded_utf8_becomes_text ... ok
+test temporal_evidence_selection::tests::complete_history_reports_missing_boundary_without_fabricating_duration ... ok
+test temporal_evidence_selection::tests::state_interval_and_event_ordering_use_event_and_validity_truth ... ok
+test temporal_evidence_selection::tests::exact_boundary_and_latest_evidence_are_selected_deterministically ... ok
+test streaming_generation::tests::generated_text_flow_evidence_is_native_bounded_and_coherent ... ok
+test temporal_evidence_selection::tests::malformed_batch_refuses_before_selection ... ok
+test temporal_evidence_selection::tests::temporal_evidence_family_is_native_and_exactly_bounded ... ok
+test provider::tests::unchanged_plot_selects_direct_front_or_distributed_provider_back_exactly ... ok
+test model_work_contract::tests::maximal_mutating_receipt_fits_prepared_wire_bound ... ok
+
+test result: ok. 27 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/context_selection.rs (/home/dancxjo/conduit/target/debug/deps/context_selection-34107aa469e72d3b)
+
+running 7 tests
+test reranking_policy_is_native_and_intrinsically_bounded ... ok
+test finite_context_is_chronological_diverse_structured_and_inspectable ... ok
+test deterministic_and_model_reranking_keep_exact_evidence_but_distinct_proof ... ok
+test every_budget_and_required_annotation_fails_closed ... ok
+test retrieved_instruction_text_cannot_change_selection_policy_or_gain_authority ... ok
+test finite_token_budget_makes_each_truncation_inspectable ... ok
+test scorer_observations_are_exact_finite_and_cannot_invent_candidates ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/context_selection_plan.rs (/home/dancxjo/conduit/target/debug/deps/context_selection_plan-c6cdb4aca0b1e1b2)
+
+running 3 tests
+test portable_fronts_are_typed_bounded_and_require_no_authority ... ok
+test unreviewed_reranking_policy_refuses_canonical_expansion ... ok
+test proof_ordering_and_redundancy_policies_are_exact_plan_facts ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/dynamics.rs (/home/dancxjo/conduit/target/debug/deps/dynamics-0fc928eea1e9e2fb)
+
+running 3 tests
+test work_exhaustion_cancellation_and_failures_never_commit_state ... ok
+test two_solver_realizations_share_one_contract_and_emit_sampled_coupled_trajectory ... ok
+test exact_grid_stale_state_resource_bounds_and_unsupported_sde_refuse ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/effect_proposal.rs (/home/dancxjo/conduit/target/debug/deps/effect_proposal-8d958e9156129982)
+
+running 6 tests
+test provider_names_and_injected_rationale_never_mint_authority ... ok
+test decision_history_is_finite_without_evicting_prior_truth ... ok
+test actual_effect_and_resulting_signs_remain_distinct_and_bounded ... ok
+test replay_cancellation_and_replan_make_pending_requests_inert ... ok
+test same_model_proposal_requires_explicit_wiring_and_authority ... ok
+test structured_argument_bounds_shape_and_plan_are_independent_checks ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/embodiment.rs (/home/dancxjo/conduit/target/debug/deps/embodiment-12036612297353d5)
+
+running 3 tests
+test graph_wiring_alone_changes_model_context_and_power ... ok
+test provider_swap_plan_reuse_and_ambient_ports_refuse ... ok
+test unwired_or_unauthorized_effect_cannot_be_reported_as_real ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/fixed_neural.rs (/home/dancxjo/conduit/target/debug/deps/fixed_neural-d596e74bf586191e)
+
+running 5 tests
+test affine_row_order_matches_independent_double_precision_oracle ... ok
+test embedding_refuses_outside_fixed_table_without_touching_output ... ok
+test overflow_and_nonfinite_inputs_do_not_publish_partial_output ... ok
+test activation_profiles_match_independent_f64_functions_and_saturate ... ok
+test quantized_scales_are_per_output_and_missing_or_bad_metadata_refuses ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/fixed_numeric_back.rs (/home/dancxjo/conduit/target/debug/deps/fixed_numeric_back-00a623cf3bce0b06)
+
+running 6 tests
+test prepared_codec_rejects_nonfinite_wrong_schema_and_truncation_atomically ... ok
+test every_owned_conditioning_vector_fits_selected_envelope ... ok
+test planned_factory_refuses_wrong_identity_and_lost_or_stale_resource ... ok
+test blocked_output_does_not_consume_inputs_or_commit_private_completion ... ok
+test ordinary_plan_play_executes_exact_owned_tensor_affine ... ok
+test ordinary_scheduler_storage_refusal_does_not_commit_and_cancellation_is_distinct ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.41s
+
+     Running tests/fixed_tensor.rs (/home/dancxjo/conduit/target/debug/deps/fixed_tensor-7049ce8e221adf55)
+
+running 3 tests
+test corrupted_truncated_or_nonfinite_resources_refuse_before_execution ... ok
+test input_major_and_output_major_share_one_exact_affine_meaning ... ok
+test exact_resource_embedding_has_generic_indices_and_atomic_refusal ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/fixed_tensor_linear.rs (/home/dancxjo/conduit/target/debug/deps/fixed_tensor_linear-c7306be1419d5042)
+
+running 2 tests
+test unbiased_projection_has_no_synthetic_bias_and_exact_layout ... ok
+test unbiased_projection_refuses_nonfinite_input_weight_and_overflow_atomically ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/fixed_tensor_resource.rs (/home/dancxjo/conduit/target/debug/deps/fixed_tensor_resource-d34d2c4b97361ddb)
+
+running 4 tests
+test owned_resource_custody_outlives_loader_without_copying_content ... ok
+test shared_slices_refuse_bad_ranges_changed_bytes_extent_and_authority ... ok
+test resource_adoption_refuses_changed_content_and_lost_authority ... ok
+test exact_disjoint_slices_share_one_retained_blob_and_outlive_loader ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/grounded_answer.rs (/home/dancxjo/conduit/target/debug/deps/grounded_answer-967912bdbe8be4a7)
+
+running 6 tests
+test grounded_answer_policy_is_native_and_intrinsically_bounded ... ok
+test terminal_model_outcomes_and_request_mismatch_stay_distinct ... ok
+test hallucinated_or_mutated_non_context_citations_refuse ... ok
+test forged_context_accounting_and_every_policy_bound_fail_closed ... ok
+test unsupported_claims_and_evidence_dispositions_remain_explicit ... ok
+test ordinary_model_replacement_preserves_exact_portable_grounding ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/grounded_answer_plan.rs (/home/dancxjo/conduit/target/debug/deps/grounded_answer_plan-99f2964510a864fe)
+
+running 3 tests
+test ordinary_answer_front_consumes_query_and_structured_context_without_prompt_semantics ... ok
+test opaque_provider_citation_policy_refuses_canonical_expansion ... ok
+test retrieval_context_answer_chain_and_grounding_bounds_are_exact_plan_facts ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/house_context.rs (/home/dancxjo/conduit/target/debug/deps/house_context-e8f9a88fb58c1c8d)
+
+running 4 tests
+test admits_only_the_context_explicitly_supplied_by_the_plot ... ok
+test provenance_classes_remain_distinct_and_affect_exact_identity ... ok
+test complete_house_request_round_trips_through_its_native_owner ... ok
+test refuses_missing_implicit_or_unbounded_context ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/hybrid_retrieval.rs (/home/dancxjo/conduit/target/debug/deps/hybrid_retrieval-62434301f3813c76)
+
+running 7 tests
+test retriever_identity_is_native_and_exactly_bounded ... ok
+test deduplication_preserves_changed_source_versions_as_distinct_truth ... ok
+test required_mechanisms_stage_bounds_and_work_pressure_fail_closed ... ok
+test vector_lexical_metadata_and_temporal_paths_fuse_with_exact_provenance ... ok
+test provider_scores_remain_local_and_do_not_define_fusion_order ... ok
+test malformed_ranks_duplicate_stage_chunks_and_temporal_identity_leaks_refuse ... ok
+test recent_semantic_page_cannot_masquerade_as_historical_origin ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/hybrid_retrieval_codec.rs (/home/dancxjo/conduit/target/debug/deps/hybrid_retrieval_codec-aaec07ae2b0671f2)
+
+running 3 tests
+test terminal_boundary_outcomes_retain_exact_policy_identity ... ok
+test malformed_trailing_oversized_and_zero_rank_values_fail_closed ... ok
+test every_stage_and_fused_provenance_round_trip_canonically ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/hybrid_retrieval_kernel.rs (/home/dancxjo/conduit/target/debug/deps/hybrid_retrieval_kernel-3c3c2b529a997c7a)
+
+running 2 tests
+test cancellation_and_malformed_stage_are_distinct_kernel_terminals ... ok
+test exact_policy_fuses_four_canonical_inputs_through_the_production_kernel_and_sign ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/hybrid_retrieval_plan.rs (/home/dancxjo/conduit/target/debug/deps/hybrid_retrieval_plan-efaaa6702e99f36b)
+
+running 3 tests
+test portable_front_names_four_explicit_paths_and_no_realization_facts ... ok
+test unreviewed_policy_refuses_during_canonical_expansion ... ok
+test fusion_policy_and_temporal_behavior_are_exact_plan_configuration ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/integer_categorical_step.rs (/home/dancxjo/conduit/target/debug/deps/integer_categorical_step-f37263a6fb3663a6)
+
+running 6 tests
+test value_operation_finishes_once_while_closing_flow_reports_exact_end_of_input ... ok
+test bad_indices_malformed_frame_pressure_and_cancel_do_not_consume_or_advance_model_progress ... ok
+test prepared_exact_integer_inference_is_allocation_free_and_commits_receipts_only_after_ack ... ok
+test ordinary_scheduler_reuses_adopted_model_for_three_frames_after_provider_drop ... ok
+test exact_resource_planning_and_model_adoption_refuse_missing_foreign_or_unsealed_selection ... ok
+test scheduler_pressure_cancel_and_storage_failure_do_not_publish_uncommitted_frames ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/interpretation.rs (/home/dancxjo/conduit/target/debug/deps/interpretation-03ff74d620c2cd26)
+
+running 7 tests
+test fabricated_references_fail_and_unknown_references_can_be_marked_unresolved ... ok
+test exact_input_sign_identities_are_referenced_without_becoming_output_signs ... ok
+test insufficient_and_contradictory_evidence_and_modest_scores_are_explicit ... ok
+test invalid_clock_and_query_window_refuse_before_interpretation ... ok
+test model_request_carries_typed_reference_and_retrieval_intent ... ok
+test profile_reported_confidence_is_native_and_exactly_bounded ... ok
+test prompt_text_cannot_change_model_derived_provenance_or_mint_authority ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/learned_lifecycle.rs (/home/dancxjo/conduit/target/debug/deps/learned_lifecycle-4056bd79d4e2071f)
+
+running 6 tests
+test stale_candidate_disagreement_and_mutated_plan_refuse_distinctly ... ok
+test shadow_requires_exact_shared_input_and_stays_within_finite_resources ... ok
+test shadow_candidate_cannot_share_a_protected_effect_route ... ok
+test harmless_candidate_shadows_promotes_by_replacement_plan_and_rolls_back ... ok
+test favorable_metrics_do_not_grant_promotion_authority ... ok
+test rollback_is_separately_authorized_bounded_and_cannot_revive_another_target ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/llm_semantic_contracts.rs (/home/dancxjo/conduit/target/debug/deps/llm_semantic_contracts-8af41b4648245024)
+
+running 11 tests
+test confidence_and_work_accounting_are_native_values ... ok
+test exact_revision_and_front_compatibility_rejects_mutation ... ok
+test implementation_controls_and_determinism_claims_stay_outside_portable_semantics ... ok
+test generative_presentation_is_structured_and_distinct_from_input_interpretation ... ok
+test llm_work_bounds_are_native_and_exactly_bounded ... ok
+test streaming_generation_is_a_distinct_closing_delta_flow ... ok
+test model_derived_envelope_is_bounded_correlated_and_not_sign_evidence ... ok
+test malformed_oversized_and_unsupported_results_fail_distinctly ... ok
+test refusal_failure_cancellation_and_provider_loss_are_terminal_without_payload ... ok
+test machine_readable_semantic_contracts_have_exact_distinct_fronts ... ok
+test all_contracts_install_and_check_as_ordinary_provider_free_plots ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/local_model_offer.rs (/home/dancxjo/conduit/target/debug/deps/local_model_offer-90725de6895d63ef)
+
+running 6 tests
+test admission_refuses_each_finite_bound_before_inference ... ok
+test discovery_is_not_an_offer_until_initialization_reaches_ready ... ok
+test finite_memory_concurrency_queue_and_identity_fail_closed ... ok
+test inference_cancellation_loss_resource_failure_and_shutdown_stay_distinct ... ok
+test profiles_are_exact_unique_and_never_claim_fixture_determinism ... ok
+test initialized_offer_exposes_eight_exact_finite_l0_capabilities ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/model_artifact.rs (/home/dancxjo/conduit/target/debug/deps/model_artifact-da57c77d32157fd8)
+
+running 4 tests
+test artifact_state_checkpoint_and_runtime_are_distinct_exact_identities ... ok
+test immutable_model_custody_retains_exact_artifact_signature_and_one_storage ... ok
+test model_custody_refuses_changed_content_signature_extent_and_access ... ok
+test mismatched_signature_checkpoint_runtime_and_signal_shape_refuse_exactly ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+     Running tests/model_compute.rs (/home/dancxjo/conduit/target/debug/deps/model_compute-709090e432560cc4)
+
+running 3 tests
+test load_queue_active_cancel_loss_and_unload_are_explicit_and_bounded ... ok
+test selection_covers_general_operation_families_and_refuses_known_mismatches ... ok
+test every_memory_shape_concurrency_and_checkpoint_bound_fails_closed ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/native_base_vocabulary.rs (/home/dancxjo/conduit/target/debug/deps/native_base_vocabulary-be30994ae0451c7d)
+
+running 1 test
+test base_facts_round_trip_through_their_exact_native_types ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/native_compatible_metrics.rs (/home/dancxjo/conduit/target/debug/deps/native_compatible_metrics-bad8783e9d7d6f6a)
+
+running 2 tests
+test compatible_metrics_preserve_the_established_serde_shapes ... ok
+test compatible_metrics_exhaust_every_finite_boolean_value ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/native_context_selection_vocabulary.rs (/home/dancxjo/conduit/target/debug/deps/native_context_selection_vocabulary-5c51f31c6299ca02)
+
+running 1 test
+test context_selection_vocabularies_round_trip_through_their_native_types ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/native_execution_refusals.rs (/home/dancxjo/conduit/target/debug/deps/native_execution_refusals-c727a311e0c681b6)
+
+running 1 test
+test execution_refusals_round_trip_through_native_types ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/native_fusion_strategy.rs (/home/dancxjo/conduit/target/debug/deps/native_fusion_strategy-238be7a01d073151)
+
+running 2 tests
+test fusion_strategy_round_trips_through_its_exact_native_payload_type ... ok
+test fusion_strategy_refuses_rank_constants_outside_its_native_boundary ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/native_integration_accuracy.rs (/home/dancxjo/conduit/target/debug/deps/native_integration_accuracy-a0defe478db1ffdc)
+
+running 2 tests
+test integration_accuracy_round_trips_exact_authored_law_boundaries ... ok
+test integration_resources_are_intrinsically_finite_and_positive ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/native_interpretation_refusals.rs (/home/dancxjo/conduit/target/debug/deps/native_interpretation_refusals-71c7930b418967f0)
+
+running 1 test
+test interpretation_refusals_round_trip_through_native_types ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/native_learned_lifecycle_vocabulary.rs (/home/dancxjo/conduit/target/debug/deps/native_learned_lifecycle_vocabulary-02209b46bd794e25)
+
+running 1 test
+test learned_lifecycle_vocabulary_is_native_conduitese ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/native_llm_contract_types.rs (/home/dancxjo/conduit/target/debug/deps/native_llm_contract_types-1616f19107d76a02)
+
+running 3 tests
+test generated_text_terminal_round_trips_through_its_exact_native_type ... ok
+test llm_contract_vocabularies_round_trip_through_their_native_types ... ok
+test ai_lifecycle_vocabularies_round_trip_through_their_native_types ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/native_local_model_vocabulary.rs (/home/dancxjo/conduit/target/debug/deps/native_local_model_vocabulary-0d1c0b9732f4cc2a)
+
+running 1 test
+test local_model_vocabularies_round_trip_through_native_types ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/native_missing_modality_policy.rs (/home/dancxjo/conduit/target/debug/deps/native_missing_modality_policy-5f745559e7b90b6d)
+
+running 2 tests
+test missing_modality_policy_round_trips_through_its_exact_native_payload_type ... ok
+test missing_modality_and_sequence_enforce_exact_native_bounds ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/native_model_cache_policy.rs (/home/dancxjo/conduit/target/debug/deps/native_model_cache_policy-d0526d1965da44eb)
+
+running 2 tests
+test model_cache_policy_enforces_positive_model_and_byte_bounds ... ok
+test model_cache_policy_round_trips_through_its_exact_native_payload_type ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/native_model_contract_refusals.rs (/home/dancxjo/conduit/target/debug/deps/native_model_contract_refusals-f6a234e13cd35dc0)
+
+running 1 test
+test model_contract_refusals_round_trip_through_native_types ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/native_model_dimension_constraint.rs (/home/dancxjo/conduit/target/debug/deps/native_model_dimension_constraint-0a5617807e269dc6)
+
+running 2 tests
+test model_dimension_constraint_round_trips_exact_payloads ... ok
+test model_dimension_constraint_enforces_positive_native_boundaries ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/native_model_result_vocabulary.rs (/home/dancxjo/conduit/target/debug/deps/native_model_result_vocabulary-33ac9f12a40e1df4)
+
+running 1 test
+test model_result_vocabularies_round_trip_through_their_native_types ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/native_model_signature_vocabulary.rs (/home/dancxjo/conduit/target/debug/deps/native_model_signature_vocabulary-97e9784da91e0c90)
+
+running 3 tests
+test model_signature_codes_preserve_the_established_digest_tags ... ok
+test model_signature_native_bounds_refuse_invalid_construction ... ok
+test model_signature_vocabularies_round_trip_through_their_native_types ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/native_probability_vocabulary.rs (/home/dancxjo/conduit/target/debug/deps/native_probability_vocabulary-908f6f8138c3f583)
+
+running 2 tests
+test stochastic_profile_text_is_bounded_by_the_native_type ... ok
+test probability_vocabulary_has_native_identity_and_exact_round_trips ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/native_rag_spans.rs (/home/dancxjo/conduit/target/debug/deps/native_rag_spans-b5f1acf9a2f7e8c7)
+
+running 7 tests
+test context_selection_outcome_owns_positive_omission_truth ... ok
+test grounding_input_assessment_owns_its_bounded_limitation ... ok
+test retrieval_score_and_context_budget_are_native_values ... ok
+test grounded_claim_owns_a_nonempty_bounded_citation_list ... ok
+test rag_spans_are_native_nonempty_intervals ... ok
+test answer_claim_support_reuses_native_citation_and_limitation_bounds ... ok
+test retrieval_intent_owns_its_modes_identity_and_candidate_ceiling ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/native_rag_vocabulary.rs (/home/dancxjo/conduit/target/debug/deps/native_rag_vocabulary-02b2a45b6c84be26)
+
+running 1 test
+test rag_vocabularies_round_trip_through_their_native_types ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/native_relation_result_profile.rs (/home/dancxjo/conduit/target/debug/deps/native_relation_result_profile-e09de255462cbd36)
+
+running 4 tests
+test relation_result_profile_enforces_its_positive_sample_boundary ... ok
+test relation_result_profile_round_trips_through_its_exact_native_payload_type ... ok
+test relation_candidate_output_has_one_native_portable_shape ... ok
+test supported_relation_query_owns_finite_variables_and_positive_bounds ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/native_reranking_vocabulary.rs (/home/dancxjo/conduit/target/debug/deps/native_reranking_vocabulary-76dff5c99d0e2270)
+
+running 1 test
+test reranking_strategy_payload_is_one_bounded_native_type ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/native_retrieval_family.rs (/home/dancxjo/conduit/target/debug/deps/native_retrieval_family-20584a2c1eab428c)
+
+running 4 tests
+test generic_retrieval_carriers_have_one_authored_conduitese_family ... ok
+test retrieval_contribution_is_native_and_exactly_bounded ... ok
+test hybrid_policy_is_native_and_owns_its_finite_envelope ... ok
+test model_and_grounded_outputs_have_exact_native_specializations ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/native_retrieval_provenance_vocabulary.rs (/home/dancxjo/conduit/target/debug/deps/native_retrieval_provenance_vocabulary-d0a5d7161fd058e8)
+
+running 1 test
+test retrieval_provenance_vocabularies_round_trip_through_their_native_types ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/native_selection_refusals.rs (/home/dancxjo/conduit/target/debug/deps/native_selection_refusals-267b8ffef0f57617)
+
+running 1 test
+test selection_refusals_round_trip_through_native_types ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/native_source_extraction_profile.rs (/home/dancxjo/conduit/target/debug/deps/native_source_extraction_profile-7a1dcf9490a25cd0)
+
+running 2 tests
+test source_extraction_profiles_preserve_serde_and_postcard_shapes ... ok
+test source_extraction_profiles_round_trip_through_the_exact_native_payload_type ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/native_temporal_context_vocabulary.rs (/home/dancxjo/conduit/target/debug/deps/native_temporal_context_vocabulary-b63c5f45058c3cb1)
+
+running 2 tests
+test temporal_context_vocabularies_round_trip_through_their_native_types ... ok
+test temporal_retrieval_intent_is_a_native_payload_rich_type ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/native_training_vocabulary.rs (/home/dancxjo/conduit/target/debug/deps/native_training_vocabulary-77587bcae9d758a1)
+
+running 1 test
+test training_vocabularies_round_trip_through_native_types ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/native_validation_vocabulary.rs (/home/dancxjo/conduit/target/debug/deps/native_validation_vocabulary-9b0baf3aaf8b7d11)
+
+running 1 test
+test ai_validation_vocabulary_has_native_identity_and_exact_round_trips ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/native_vector_vocabulary.rs (/home/dancxjo/conduit/target/debug/deps/native_vector_vocabulary-b7262be1d6b0e14c)
+
+running 2 tests
+test similarity_scores_round_trip_exact_finite_ieee_values ... ok
+test vector_vocabularies_round_trip_through_their_native_types ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/probability.rs (/home/dancxjo/conduit/target/debug/deps/probability-0e2055e6a115491d)
+
+running 4 tests
+test moments_covariance_log_scores_and_truncation_refuse_malformed_claims ... ok
+test weighted_alternatives_are_finite_normalized_and_seeded ... ok
+test model_signature_declares_a_bounded_probabilistic_signal_output ... ok
+test one_observation_yields_multiple_plausible_articulations_not_one_truth ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/provider_dependency.rs (/home/dancxjo/conduit/target/debug/deps/provider_dependency-c32235a455938c12)
+
+running 1 test
+test production_ai_provider_does_not_depend_on_semantic_catalog ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/rag_r5_grounding.rs (/home/dancxjo/conduit/target/debug/deps/rag_r5_grounding-5bd3ab526f654bef)
+
+running 4 tests
+test invented_citation_and_model_loss_never_become_grounded_success ... ok
+test old_observation_origin_and_valid_at_intents_keep_temporal_truth ... ok
+test injection_and_unsupported_first_rank_cannot_gain_authority_or_support ... ok
+test crucial_budget_omission_conflict_and_no_evidence_remain_explicit ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/rag_r5_source_state.rs (/home/dancxjo/conduit/target/debug/deps/rag_r5_source_state-0aa9a262dd3879c0)
+
+running 2 tests
+test index_updates_deletions_and_loss_invalidate_every_prior_generation ... ok
+test updated_deleted_and_revoked_sources_never_rebind_old_chunks ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/rag_r6_plot.rs (/home/dancxjo/conduit/target/debug/deps/rag_r6_plot-b449a2ebc9b1b2ea)
+
+running 2 tests
+test ordinary_capstone_graph_is_exact_and_generically_inspectable ... ok
+test realization_swap_changes_plan_truth_not_portable_meaning ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/rag_r6_questions.rs (/home/dancxjo/conduit/target/debug/deps/rag_r6_questions-c2a024bd16dac2e1)
+
+running 2 tests
+test model_and_vector_realization_swaps_preserve_grounded_semantics ... ok
+test all_six_query_classes_retain_bounded_machine_readable_explanations ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/rag_semantics.rs (/home/dancxjo/conduit/target/debug/deps/rag_semantics-1165bc0cf32ccd7d)
+
+running 8 tests
+test contract_contains_no_prompt_provider_or_backend_identity ... ok
+test exact_source_version_span_and_transform_lineage_derive_chunk_identity ... ok
+test chunk_identity_is_one_native_fixed_digest ... ok
+test malformed_spans_ranks_budgets_and_claims_fail_closed ... ok
+test temporal_boundary_intent_is_typed_and_bounded ... ok
+test grounded_results_are_model_derived_and_citation_fenced ... ok
+test insufficient_and_conflicting_evidence_are_first_class ... ok
+test candidates_context_and_citations_remain_distinct_and_exact ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/relation.rs (/home/dancxjo/conduit/target/debug/deps/relation-b13978f76753a318)
+
+running 4 tests
+test native_relation_family_round_trips_and_owns_intrinsic_bounds ... ok
+test one_artifact_answers_both_non_bijective_conditional_directions ... ok
+test terminal_and_bounds_are_finite_and_do_not_make_results ... ok
+test missing_is_not_zero_and_undeclared_reverse_or_singleton_refuses ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.25s
+
+     Running tests/source_extraction.rs (/home/dancxjo/conduit/target/debug/deps/source_extraction-40dc0a8b50c99ee9)
+
+running 8 tests
+test portable_offer_is_finite_and_contains_no_source_or_provider_identity ... ok
+test source_extraction_limits_are_native_positive_bounds ... ok
+test structured_and_non_text_metadata_profiles_preserve_item_ranges ... ok
+test ordinary_authored_plot_checks_and_expands_without_realization_facts ... ok
+test malformed_extent_profile_and_every_finite_bound_fail_closed ... ok
+test source_mutation_deletion_duplicate_text_and_range_shift_remain_exact ... ok
+test utf8_text_extraction_is_deterministic_bounded_and_lineage_exact ... ok
+test extraction_receipt_codec_is_canonical_bounded_and_fail_closed ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/source_extraction_kernel.rs (/home/dancxjo/conduit/target/debug/deps/source_extraction_kernel-7a6495c1286eb117)
+
+running 2 tests
+test provider_loss_cancellation_and_pressure_remain_distinct_kernel_terminals ... ok
+test admitted_source_executes_through_the_production_kernel ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/source_extraction_plan.rs (/home/dancxjo/conduit/target/debug/deps/source_extraction_plan-746aab422f3a2a93)
+
+running 2 tests
+test ordinary_plot_seals_exact_operation_authority_resource_and_bounds ... ok
+test planning_refuses_missing_or_stale_authority_and_resource_grants ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/structured_results.rs (/home/dancxjo/conduit/target/debug/deps/structured_results-b74e3c8aaa5f18c1)
+
+running 4 tests
+test classification_requires_one_exact_member_of_a_finite_unique_label_set ... ok
+test extraction_requires_a_named_schema_and_unique_bounded_fields ... ok
+test classification_and_extraction_round_trip_through_native_owners ... ok
+test embedding_requires_exact_finite_dimensions_and_finite_values ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+     Running tests/temporal_context.rs (/home/dancxjo/conduit/target/debug/deps/temporal_context-abdcb9a6f0f5e7be)
+
+running 11 tests
+test future_event_is_a_typed_relation_but_not_an_age ... ok
+test exact_validity_boundaries_determine_duration ... ok
+test event_ordering_refuses_different_clock_bases ... ok
+test missing_boundary_and_invalid_intervals_refuse_explicitly ... ok
+test uncertain_age_remains_a_bounded_relation_not_a_scalar_guess ... ok
+test model_and_human_presentation_consume_the_same_canonical_relation ... ok
+test old_observation_retrieved_now_remains_old ... ok
+test retrieval_cannot_claim_knowledge_after_the_decision_instant ... ok
+test clock_basis_and_reference_are_native_with_exact_identity_bounds ... ok
+test provenance_round_trip_preserves_distinct_temporal_facts ... ok
+test retrieval_intent_names_boundaries_and_rejects_reversed_windows ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/temporal_follow_up.rs (/home/dancxjo/conduit/target/debug/deps/temporal_follow_up-88a019d711c5abe6)
+
+running 1 test
+test model_follow_up_timing_is_proposal_info_not_effect_authority ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/temporal_interpretation.rs (/home/dancxjo/conduit/target/debug/deps/temporal_interpretation-5f2bdf62c5cac7a8)
+
+running 7 tests
+test temporal_suggestion_has_no_calendar_write_authority ... ok
+test malformed_local_time_is_rejected_as_typed_data_before_resolution ... ok
+test explicit_reference_instant_zone_and_rule_set_must_match_resolution_truth ... ok
+test model_proposal_resolves_bounded_next_week_candidates_before_fresh_availability ... ok
+test provider_replacement_changes_provenance_not_portable_proposal_semantics ... ok
+test all_named_model_and_freshness_negative_cases_are_machine_readable ... ok
+test gap_fold_and_timezone_abbreviation_remain_distinct_refusals ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/training.rs (/home/dancxjo/conduit/target/debug/deps/training-557f24fca4d07319)
+
+running 5 tests
+test three_atomic_steps_commit_through_explicit_state_then_checkpoint ... ok
+test declared_missing_modalities_retain_relational_validation ... ok
+test portable_training_descriptions_are_native_and_keep_the_4096_example_bound ... ok
+test stale_half_steps_bad_splits_and_resource_overruns_refuse ... ok
+test cancellation_failure_and_evaluation_never_commit_state ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/training_lifecycle.rs (/home/dancxjo/conduit/target/debug/deps/training_lifecycle-225901c6e4abf95c)
+
+running 1 test
+test lifecycle_is_finite_and_terminal_paths_cleanly_unload ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/vector_exact_search.rs (/home/dancxjo/conduit/target/debug/deps/vector_exact_search-8d85c4f8074d383c)
+
+running 7 tests
+test score_values_remain_metric_values_not_probabilities ... ok
+test full_scan_work_is_admitted_before_filters_or_scores ... ok
+test index_membership_and_result_admission_are_exact ... ok
+test temporal_history_and_provenance_gaps_refuse_distinctly ... ok
+test filters_threshold_top_k_and_equal_score_ties_are_canonical ... ok
+test exact_oracle_defines_all_metric_orders_and_exact_generation ... ok
+test temporal_intents_select_exact_portable_evidence_before_scoring ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/vector_index_lifecycle.rs (/home/dancxjo/conduit/target/debug/deps/vector_index_lifecycle-405c42675efe9f1e)
+
+running 5 tests
+test cancellation_is_versioned_and_preserves_profile_and_members ... ok
+test maintenance_authority_busy_state_and_operation_identity_fail_closed ... ok
+test compaction_preserves_exact_sources_while_changing_storage_truth ... ok
+test rebuild_is_two_explicit_generations_and_replaces_profile_and_membership ... ok
+test replacement_membership_bounds_refuse_without_finishing_operation ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/vector_index_resource.rs (/home/dancxjo/conduit/target/debug/deps/vector_index_resource-ddd52cafbeef5a9f)
+
+running 7 tests
+test exhausted_generation_refuses_before_mutating_membership ... ok
+test mutations_advance_one_generation_and_stale_handles_never_rebind ... ok
+test item_storage_and_membership_truth_fail_closed ... ok
+test provider_loss_invalidates_old_handles_without_erasing_membership ... ok
+test query_only_authority_is_distinct_from_every_mutation_authority ... ok
+test query_bounds_are_admitted_by_the_generic_resource_binding ... ok
+test serialized_contract_is_portable_and_contains_no_provider_engine_choice ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/vector_retrieval.rs (/home/dancxjo/conduit/target/debug/deps/vector_retrieval-e16c3d78a0149827)
+
+running 10 tests
+test dimensions_and_metric_admission_are_exact_profile_compatibility ... ok
+test same_dimensions_do_not_make_spaces_models_or_providers_compatible ... ok
+test canonical_serialization_is_stable_and_contains_no_storage_engine_detail ... ok
+test equal_scores_have_canonical_source_then_resource_order ... ok
+test records_and_hits_preserve_exact_source_resource_and_temporal_provenance ... ok
+test thresholds_do_not_turn_similarity_into_probability_or_truth ... ok
+test normalization_and_zero_vector_laws_fail_closed ... ok
+test top_k_threshold_filters_and_temporal_intent_are_finite_and_typed ... ok
+test exact_cosine_dot_and_squared_l2_semantics_are_distinct ... ok
+test vector_vocabulary_round_trips_through_native_conduitese_owners ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

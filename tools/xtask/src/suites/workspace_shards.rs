@@ -114,7 +114,12 @@ package_test_shard!(
     "check.test.hosts-std",
     "Std host unit and integration tests",
     ["conduit-std-host", "conduit-std-offers",],
-    ["--", "--test-threads=1"]
+    [
+        "--features",
+        "conduit-std-host/burn-model",
+        "--",
+        "--test-threads=1"
+    ]
 );
 
 package_test_shard!(
@@ -161,6 +166,7 @@ package_test_shard!(
     "Product and integration unit and integration tests",
     [
         "conduit-ai",
+        "conduit-burn-model",
         "conduit-chat",
         "conduit-synth",
         "conduit-composite",
@@ -181,7 +187,7 @@ package_test_shard!(
     ],
     [
         "--features",
-        "conduit-tongues/speech,conduit-todo-plot/kernel-step"
+        "conduit-tongues/speech,conduit-todo-plot/kernel-step,conduit-ai/kernel-operation-owners"
     ]
 );
 
@@ -361,17 +367,8 @@ mod tests {
             for pair in packages.as_chunks::<2>().0 {
                 assert_eq!(pair[0], "-p", "{} package flag for {}", step.id, pair[1]);
             }
-            if step.id.starts_with("check.test.hosts") {
-                assert_eq!(
-                    &options[package_end..],
-                    ["--", "--test-threads=1"],
-                    "{} serial process fixtures",
-                    step.id
-                );
-            } else if package_end < options.len() {
-                let ["--features", features] = &options[package_end..] else {
-                    panic!("{} has unsupported trailing options", step.id);
-                };
+            let mut trailing = &options[package_end..];
+            if let ["--features", features, rest @ ..] = trailing {
                 for feature in features.split(',') {
                     let (package, feature) = feature
                         .split_once('/')
@@ -387,6 +384,21 @@ mod tests {
                         step.id
                     );
                 }
+                trailing = rest;
+            }
+            if step.id.starts_with("check.test.hosts") {
+                assert_eq!(
+                    trailing,
+                    ["--", "--test-threads=1"],
+                    "{} serial process fixtures",
+                    step.id
+                );
+            } else {
+                assert!(
+                    trailing.is_empty(),
+                    "{} unsupported trailing options",
+                    step.id
+                );
             }
         }
     }

@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { execFileSync } from 'node:child_process';
+import { requireExactAncestor } from './exact-ancestor.mjs';
 import { lstatSync, readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 
@@ -480,7 +480,7 @@ export function retainedTodoBrowserDevelopmentEvidence(root = TODO_BROWSER_DEVEL
     nativeAcknowledged.source_commit, nativeAction.source_commit,
     browserAfterNative.browser_source_commit, freshSource, continuousSource,
     '531b8ecae2a5dad4fba2eeff871b65b0343fe2b3']) {
-    try { execFileSync('git', ['merge-base', '--is-ancestor', source, publicationCommit]); }
+    try { requireExactAncestor(source, publicationCommit); }
     catch (cause) {
       throw new Error(`Todo browser capture ancestry check failed: ${source} -> ${publicationCommit}; status=${cause.status ?? cause.code ?? "unknown"}, signal=${cause.signal ?? "none"}; ${cause.message}`, { cause });
     }

@@ -1,0 +1,41 @@
+   Compiling conduit-audio v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/audio)
+   Compiling conduit-ai v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/ai)
+   Compiling conduit-midi v0.1.0 (/home/dancxjo/conduit-portable-foundations/mechanisms/protocols/midi)
+   Compiling conduit-synth v0.1.0 (/home/dancxjo/conduit-portable-foundations/mechanisms/implementations/synth)
+   Compiling conduit-speech v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/speech)
+   Compiling conduit-education v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/education)
+   Compiling conduit-semantic-catalog v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/catalog)
+   Compiling conduit-host-make v0.1.0 (/home/dancxjo/conduit-portable-foundations/make/host)
+   Compiling conduit-signal v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/signal)
+   Compiling patchbay-graph v0.1.0 (/home/dancxjo/conduit-portable-foundations/plots/patchbay/graph)
+   Compiling conduit-tour-model v0.1.0 (/home/dancxjo/conduit-portable-foundations/plots/tour)
+   Compiling patchbay-application v0.1.0 (/home/dancxjo/conduit-portable-foundations/plots/patchbay/application)
+   Compiling conduit-chat v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/chat)
+   Compiling conduit-tongues v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/tongues)
+   Compiling conduit-host-browser-make v0.1.0 (/home/dancxjo/conduit-portable-foundations/targets/browser/make)
+   Compiling conduit-std-offers v0.1.0 (/home/dancxjo/conduit-portable-foundations/targets/std/offers)
+   Compiling conduit-host-conduitos-make v0.1.0 (/home/dancxjo/conduit-portable-foundations/targets/conduitos/make)
+   Compiling conduit-host-raspberry-pi v0.1.0 (/home/dancxjo/conduit-portable-foundations/targets/raspberry-pi/make)
+   Compiling conduit-linear-framebuffer-make v0.1.0 (/home/dancxjo/conduit-portable-foundations/mechanisms/implementations/linear-framebuffer-make)
+   Compiling conduit-host-orange-pi v0.1.0 (/home/dancxjo/conduit-portable-foundations/targets/orange-pi/make)
+   Compiling conduit-host-esp32-make v0.1.0 (/home/dancxjo/conduit-portable-foundations/targets/esp32/make)
+   Compiling conduit-signal-conformance v0.1.0 (/home/dancxjo/conduit-portable-foundations/proof/conformance/signal)
+   Compiling conduit-host-hosted v0.1.0 (/home/dancxjo/conduit-portable-foundations/targets/std/make)
+   Compiling conduit-host-rp2040 v0.1.0 (/home/dancxjo/conduit-portable-foundations/targets/rp2040/make)
+   Compiling conduit-host-avr-make v0.1.0 (/home/dancxjo/conduit-portable-foundations/targets/avr/make)
+   Compiling conduit-browser-mask-offer v0.1.0 (/home/dancxjo/conduit-portable-foundations/targets/browser/mask-offer)
+   Compiling conduit-body-make v0.1.0 (/home/dancxjo/conduit-portable-foundations/make/body)
+   Compiling conduit-tutorial-plot v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/tutorial)
+   Compiling conduit-r1-network-conformance v0.1.0 (/home/dancxjo/conduit-portable-foundations/proof/conformance/network-r1)
+   Compiling conduit-burn-model v0.1.0 (/home/dancxjo/conduit-portable-foundations/mechanisms/implementations/burn-model)
+   Compiling conduit-workspace-make v0.1.0 (/home/dancxjo/conduit-portable-foundations/make/workspace)
+   Compiling conduit-browser-runtime v0.1.0 (/home/dancxjo/conduit-portable-foundations/targets/browser/runtime)
+   Compiling conduit-std-host v0.1.0 (/home/dancxjo/conduit-portable-foundations/targets/std)
+    Finished `test` profile [unoptimized] target(s) in 2m 01s
+     Running tests/burn_plot_journey.rs (/home/dancxjo/conduit/target/debug/deps/burn_plot_journey-644ef1f1834c325a)
+
+running 1 test
+test ordinary_plot_trains_saves_reloads_and_infers ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.51s
+

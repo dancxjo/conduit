@@ -1,3 +1,4 @@
+import { completePublicationHistory } from '../complete-publication-history.mjs';
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -20,6 +21,7 @@ const navigation = () => readFileSync('site/navigation.html', 'utf8');
 
 export function assembleSite(directory, sourceCommit, workspace = 'target/workspace-product') {
   if (!/^[a-f0-9]{40}$/.test(sourceCommit)) throw new Error('Website requires an exact source commit');
+  completePublicationHistory(sourceCommit);
   if (existsSync(directory)) throw new Error(`Website output already exists: ${directory}`);
   xtask('make', 'pages-root', directory);
   rmSync(path.join(directory, 'handbook'), { recursive: true });

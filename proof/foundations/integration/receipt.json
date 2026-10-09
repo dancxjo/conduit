@@ -1,0 +1,20 @@
+{
+  "audio_language_tested_source": "0147468b2193e093e670e659cf248c1a6ea5047e",
+  "burn_plot_tested_source": "da47432b5be18b9abb1f9748a4c73bc807dec120",
+  "proof_boundary": "Local integration probe only. Audio/Language 144 passing tests; ordinary Burn Plot journey one passing test after constructor repair. Initial compile failure is retained as failure. Probe source includes dev and Burn; the omnibus will integrate the actual merged dev before final-head CI. Strict all-target Clippy passes for AI/Audio/Language/Plot with conduit-ai/kernel-step enabled.",
+  "sha256": {
+    "audio-language.log": "2e755c11814c233053a964bf80189012d6aef0f00cc3439f6b2dc814ede992b7",
+    "burn-plot-journey.log": "0891e9eddb2f08e034fe0836aa0eba3333773a76b8f46d4f39a3819973d8516b",
+    "initial-burn-compile-failure.log": "d02a36fd1ea2659b128264da253d5c15970b5382bc4dbaec8e13ff651412112f",
+    "clippy.log": "c4ce08336df37af7336e20a12c2890fa949c5e73c20409e00be89bb4a77b9cbb",
+    "ai-plot.log": "08327373625f898c98128676c91a90f9ac29ac64c0f11f96f1c84c2a78378cd5"
+  },
+  "clippy_tested_source": "da47432b5be18b9abb1f9748a4c73bc807dec120",
+  "ai_plot_tested_source": "da47432b5be18b9abb1f9748a4c73bc807dec120",
+  "ai_plot_results": {
+    "executables": 103,
+    "passed": 730,
+    "failed": 0,
+    "ignored": 0
+  }
+}

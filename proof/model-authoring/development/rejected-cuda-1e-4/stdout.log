@@ -1,0 +1,11 @@
+
+running 1 test
+test admitted_cuda_training_and_resume ... FAILED
+
+failures:
+
+failures:
+    admitted_cuda_training_and_resume
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1 filtered out; finished in 1.59s
+

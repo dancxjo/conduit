@@ -1,0 +1,11 @@
+   Compiling conduit-burn-model v0.1.0 (/home/dancxjo/conduit-burn-corpus-cursor/mechanisms/implementations/burn-model)
+   Compiling conduit-std-host v0.1.0 (/home/dancxjo/conduit-burn-corpus-cursor/targets/std)
+    Finished `test` profile [unoptimized] target(s) in 10.72s
+     Running tests/burn_plot_journey.rs (/home/dancxjo/conduit/target/debug/deps/burn_plot_journey-644ef1f1834c325a)
+
+running 2 tests
+test ordinary_plot_train_next_resumes_actual_corpus_on_a_fresh_host ... ok
+test ordinary_plot_trains_saves_reloads_and_infers ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.48s
+

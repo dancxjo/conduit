@@ -1,0 +1,20 @@
+   Compiling conduit-std-host v0.1.0 (/home/dancxjo/conduit-5208-plot-journey/targets/std)
+    Finished `test` profile [unoptimized] target(s) in 1.52s
+     Running tests/burn_plot_journey.rs (/home/dancxjo/conduit/target/debug/deps/burn_plot_journey-ec03032f313bcde4)
+
+running 1 test
+model resources: [(KindId("model/work"), [ResourceBinding { pool_id: ResourcePoolId("model/session/regression-journey"), class_id: ResourceClassId("model/session-work"), units: 1, protected: None, compute: None, content: None }])]
+
+thread 'ordinary_plot_trains_saves_reloads_and_infers' (1814938) panicked at targets/std/tests/burn_plot_journey.rs:115:33:
+model operation 83, generation 80: installed kernel step: BackFailed(Failure { code: HostCallDenied, detail: 82 })
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test ordinary_plot_trains_saves_reloads_and_infers ... FAILED
+
+failures:
+
+failures:
+    ordinary_plot_trains_saves_reloads_and_infers
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.44s
+
+error: test failed, to rerun pass `-p conduit-std-host --test burn_plot_journey`

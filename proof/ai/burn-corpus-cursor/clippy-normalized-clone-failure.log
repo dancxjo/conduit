@@ -1,0 +1,17 @@
+    Checking conduit-burn-model v0.1.0 (/home/dancxjo/conduit-burn-corpus-cursor/mechanisms/implementations/burn-model)
+error: called `.iter().cloned().collect()` on a slice to create a `Vec`
+   --> mechanisms/implementations/burn-model/src/corpus.rs:204:30
+    |
+204 |         let batches = batches.iter().cloned().collect::<Vec<_>>();
+    |                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#iter_cloned_collect
+    = note: `-D clippy::iter-cloned-collect` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::iter_cloned_collect)]`
+help: calling `.to_vec()` is both faster and more readable
+    |
+204 -         let batches = batches.iter().cloned().collect::<Vec<_>>();
+204 +         let batches = batches.to_vec();
+    |
+
+error: could not compile `conduit-burn-model` (lib) due to 1 previous error
