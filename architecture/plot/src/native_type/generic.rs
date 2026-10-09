@@ -6,6 +6,7 @@ use crate::{
 use alloc::collections::{BTreeMap, BTreeSet};
 
 mod canonical;
+mod integer;
 mod substitution;
 use canonical::{application_key, expression as canonical};
 

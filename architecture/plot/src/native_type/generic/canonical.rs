@@ -29,14 +29,20 @@ pub(super) fn expression(expression: &TypeExpressionSyntax) -> String {
         }
         TypeExpressionSyntax::Collection {
             element, length, ..
-        } => alloc::format!("collection({length},{})", self::expression(element)),
+        } => alloc::format!(
+            "collection({},{})",
+            super::integer::canonical(length),
+            self::expression(element)
+        ),
         TypeExpressionSyntax::Sequence {
             element,
             minimum_items,
             maximum_items,
             ..
         } => alloc::format!(
-            "sequence({minimum_items},{maximum_items},{})",
+            "sequence({},{},{})",
+            super::integer::canonical(minimum_items),
+            super::integer::canonical(maximum_items),
             self::expression(element)
         ),
     }

@@ -1,5 +1,7 @@
 //! Lossless syntax for authored nominal semantic Types.
 
+mod integer;
+
 use super::Parser;
 use crate::prelude::*;
 use crate::surface_lex::{is_name, split_declaration};
@@ -206,22 +208,30 @@ impl Parser<'_> {
                 if let Some((element, maximum)) = rest.rsplit_once(" <= ") {
                     (
                         element,
-                        0,
-                        parse_collection_bound(maximum)
-                            .ok_or_else(|| self.invalid_statement(line, start))?,
+                        crate::NativeIntegerExpressionSyntax::Literal { value: 0, span },
+                        self.parse_integer_extent(
+                            maximum,
+                            offset + source.len() - maximum.len(),
+                            false,
+                        )?,
                     )
                 } else if let Some((element, bounds)) = rest.rsplit_once(" in ") {
                     let (minimum, maximum) = bounds
                         .split_once("..=")
                         .ok_or_else(|| self.invalid_statement(line, start))?;
-                    let minimum = minimum
-                        .parse::<u16>()
-                        .ok()
-                        .ok_or_else(|| self.invalid_statement(line, start))?;
-                    let maximum = parse_collection_bound(maximum)
-                        .ok_or_else(|| self.invalid_statement(line, start))?;
-                    if minimum > maximum {
-                        return Err(self.invalid_statement(line, start));
+                    let bounds_offset = offset + source.len() - bounds.len();
+                    let minimum = self.parse_integer_extent(minimum, bounds_offset, true)?;
+                    let maximum = self.parse_integer_extent(
+                        maximum,
+                        bounds_offset + bounds.len() - maximum.len(),
+                        false,
+                    )?;
+                    if let (Some(minimum), Some(maximum)) =
+                        (minimum.literal_value(), maximum.literal_value())
+                    {
+                        if minimum > maximum {
+                            return Err(self.invalid_statement(line, start));
+                        }
                     }
                     (element, minimum, maximum)
                 } else {
@@ -229,8 +239,8 @@ impl Parser<'_> {
                 };
             return Ok(TypeExpressionSyntax::Sequence {
                 element: Box::new(self.parse_type_expression(element, line, start)?),
-                minimum_items,
-                maximum_items,
+                minimum_items: Box::new(minimum_items),
+                maximum_items: Box::new(maximum_items),
                 span,
             });
         }
@@ -238,16 +248,11 @@ impl Parser<'_> {
             let (element, length) = rest
                 .rsplit_once(" = ")
                 .ok_or_else(|| self.invalid_statement(line, start))?;
-            let length = length
-                .parse::<u16>()
-                .ok()
-                .filter(|length| {
-                    usize::from(*length) <= conduit_core::MAXIMUM_STRUCTURED_COLLECTION_ITEMS
-                })
-                .ok_or_else(|| self.invalid_statement(line, start))?;
+            let length =
+                self.parse_integer_extent(length, offset + source.len() - length.len(), true)?;
             return Ok(TypeExpressionSyntax::Collection {
                 element: Box::new(self.parse_type_expression(element, line, start)?),
-                length,
+                length: Box::new(length),
                 span,
             });
         }
@@ -347,8 +352,25 @@ fn split_generic_application(source: &str) -> Option<(&str, Vec<&str>)> {
     Some((name, arguments))
 }
 
-fn parse_collection_bound(source: &str) -> Option<u16> {
-    source.parse::<u16>().ok().filter(|bound| {
-        *bound > 0 && usize::from(*bound) <= conduit_core::MAXIMUM_STRUCTURED_COLLECTION_ITEMS
-    })
+impl Parser<'_> {
+    fn parse_integer_extent(
+        &self,
+        source: &str,
+        offset: usize,
+        allow_zero: bool,
+    ) -> Result<crate::NativeIntegerExpressionSyntax, (PlotError, Span)> {
+        let expression = integer::parse(self, source, offset)?;
+        if expression.literal_value().is_some_and(|value| {
+            (!allow_zero && value == 0)
+                || usize::from(value) > conduit_core::MAXIMUM_STRUCTURED_COLLECTION_ITEMS
+        }) {
+            return Err((
+                PlotError::InvalidSyntax(
+                    "native collection bound exceeds its finite profile".into(),
+                ),
+                expression.span(),
+            ));
+        }
+        Ok(expression)
+    }
 }

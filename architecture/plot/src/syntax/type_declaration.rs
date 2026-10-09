@@ -3,6 +3,9 @@ use super::{Expression, SpannedText, ValueRefinement};
 use crate::prelude::*;
 use crate::Span;
 
+mod integer;
+pub use integer::*;
+
 /// One named finite Form for carrying a nominal semantic Type.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TypeFormSyntax {
@@ -92,13 +95,13 @@ pub enum TypeExpressionSyntax {
     },
     Collection {
         element: Box<TypeExpressionSyntax>,
-        length: u16,
+        length: Box<NativeIntegerExpressionSyntax>,
         span: Span,
     },
     Sequence {
         element: Box<TypeExpressionSyntax>,
-        minimum_items: u16,
-        maximum_items: u16,
+        minimum_items: Box<NativeIntegerExpressionSyntax>,
+        maximum_items: Box<NativeIntegerExpressionSyntax>,
         span: Span,
     },
 }

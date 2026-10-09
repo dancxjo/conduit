@@ -216,7 +216,7 @@ impl Context<'_> {
                 span,
             } => Ok(TypeExpressionSyntax::Collection {
                 element: Box::new(self.expression(element, substitutions)?),
-                length: *length,
+                length: Box::new(super::integer::extent(length, &BTreeMap::new(), false)?),
                 span: *span,
             }),
             TypeExpressionSyntax::Sequence {
@@ -226,8 +226,16 @@ impl Context<'_> {
                 span,
             } => Ok(TypeExpressionSyntax::Sequence {
                 element: Box::new(self.expression(element, substitutions)?),
-                minimum_items: *minimum_items,
-                maximum_items: *maximum_items,
+                minimum_items: Box::new(super::integer::extent(
+                    minimum_items,
+                    &BTreeMap::new(),
+                    true,
+                )?),
+                maximum_items: Box::new(super::integer::extent(
+                    maximum_items,
+                    &BTreeMap::new(),
+                    false,
+                )?),
                 span: *span,
             }),
         }

@@ -382,8 +382,18 @@ fn compile_expression(
             Ok(CompiledRepresentation {
                 value_type: StructuredInfoType::bounded_sequence(
                     compiled.value_type,
-                    *minimum_items,
-                    *maximum_items,
+                    minimum_items.literal_value().ok_or_else(|| {
+                        diagnostic(
+                            minimum_items.span(),
+                            "native sequence minimum is not closed".into(),
+                        )
+                    })?,
+                    maximum_items.literal_value().ok_or_else(|| {
+                        diagnostic(
+                            maximum_items.span(),
+                            "native sequence maximum is not closed".into(),
+                        )
+                    })?,
                 )
                 .map_err(|error| bounded(*span, error))?,
                 contracts: prefix_contracts(compiled.contracts, "[]"),
@@ -396,8 +406,16 @@ fn compile_expression(
         } => {
             let compiled = compile_expression(element, catalog)?;
             Ok(CompiledRepresentation {
-                value_type: StructuredInfoType::collection(compiled.value_type, Some(*length))
-                    .map_err(|error| bounded(*span, error))?,
+                value_type: StructuredInfoType::collection(
+                    compiled.value_type,
+                    Some(length.literal_value().ok_or_else(|| {
+                        diagnostic(
+                            length.span(),
+                            "native collection extent is not closed".into(),
+                        )
+                    })?),
+                )
+                .map_err(|error| bounded(*span, error))?,
                 contracts: prefix_contracts(compiled.contracts, "[]"),
             })
         }
