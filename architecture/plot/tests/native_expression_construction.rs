@@ -230,3 +230,44 @@ fn variant_payload_projection_preserves_exact_forwarded_refinements() {
             .contains("law validator")
     );
 }
+
+#[test]
+fn named_sequence_construction_checks_each_nominal_element_and_empty_sequences() {
+    let source = "type Word = Text <= 4B not in [\"\"]\ntype Words = sequence Word <= 2\ntype Frame = {\n words: Words\n}\nplot choose (\n >> input: Boolean\n output: Frame >>\n) = ({words: [\"β\", \"one\"]})\n";
+    assert!(compile(source).is_ok());
+    assert!(compile(&source.replace("[\"β\", \"one\"]", "[]")).is_ok());
+    for invalid in ["[\"\"]", "[\"hello\"]", "[\"one\", \"hello\"]"] {
+        assert!(compile(&source.replace("[\"β\", \"one\"]", invalid)).is_err());
+    }
+}
+
+#[test]
+fn closed_record_construction_executes_its_where_laws_before_play() {
+    let source = "type Frame = {\n value: I64\n where .value >= 0\n}\nplot choose (\n >> input: Boolean\n output: Frame >>\n) = ({value: 1})\n";
+    assert!(compile(source).is_ok());
+    assert!(compile(&source.replace("value: 1", "value: -1")).is_err());
+    assert!(compile(&source.replace("value: 1", "value: . ? 1 : -1")).is_err());
+}
+
+#[test]
+fn closed_parent_laws_cannot_bypass_nested_record_collection_or_variant_laws() {
+    let types = "type Child = {\n value: I64\n where .value == 1\n}\ntype Wrapped = {\n child: Child\n}\ntype Choice =\n known Wrapped\n | unknown\n";
+    for (field, value) in [
+        ("child: Child", "child: {value: 1}"),
+        (
+            "children: sequence Child in 1..=2",
+            "children: [{value: 1}]",
+        ),
+        (
+            "choice: Choice",
+            "choice: Choice.known({child: {value: 1}})",
+        ),
+    ] {
+        let source = format!("{types}type Parent = {{\n {field}\n marker: I64\n where .marker == 1\n}}\nplot choose (\n >> input: Boolean\n output: Parent >>\n) = ({{{value}, marker: 1}})\n");
+        assert!(compile(&source).is_ok(), "valid {field}");
+        assert!(
+            compile(&source.replace("value: 1", "value: 2")).is_err(),
+            "parent must retain child law: {field}"
+        );
+    }
+}

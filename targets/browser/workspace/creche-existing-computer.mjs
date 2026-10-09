@@ -380,7 +380,27 @@ export function createExistingComputerAdapter({ host, profile, prepareSpore: pre
         signature: rendezvousJoin.signature,
         observed_at_millis: rendezvousJoin.observed_at_millis,
       });
-      return Object.freeze({ join, evidence: Object.freeze({ schema: "conduit.host/rendezvous-spawn-observation@1", ...join }) });
+      // Admission retains the complete advertisement in join. The operation
+      // receipt records its exact digest without duplicating a large catalog
+      // into the independently bounded workflow evidence.
+      const { advertisement, ...proof } = join;
+      const advertisementBytes = encoder.encode(JSON.stringify(advertisement));
+      const evidence = Object.freeze({
+        schema: "conduit.host/rendezvous-spawn-observation@1",
+        ...proof,
+        advertisement_summary: Object.freeze({
+          schema: "conduit.creche/retained-browser-advertisement-summary@1",
+          host_id: advertisement.host_id,
+          boot_id: advertisement.boot_id,
+          offer_generation: advertisement.offer_generation,
+          capability_count: advertisement.capabilities.length,
+          planner_capability_count: advertisement.planner_capabilities?.length ?? 0,
+          json_bytes: advertisementBytes.length,
+          json_sha256: await sha256(advertisementBytes),
+        }),
+        retained_evidence: Object.freeze({ omitted_prior_fields: ["observation.advertisement"] }),
+      });
+      return Object.freeze({ join, evidence });
     }
     if (!profile.browser_carrier || !loadedHost) {
       refuse(profile, mode, "observe", "NoRunningCarrier", "no authenticated running host carrier is available for observation");

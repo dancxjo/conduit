@@ -1,3 +1,6 @@
+# Terminal codes for the compiled native English formant renderer, not IPA.
+# SpeechFormantPhoneBinding declares their checked Unicode IPA relation;
+# preparation retains the exact compiled renderer SOURCE_ID.
 type EnglishPhone =
     iy
     | ih

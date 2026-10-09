@@ -72,8 +72,11 @@ impl CanonicalSource {
         if let Some(diagnostic) = self.syntax.diagnostics.first() {
             return Err(format!("{}: {}", diagnostic.code, diagnostic.message));
         }
-        conduit_plot::check_syntax_document(&self.syntax, &self.startup)
-            .map_err(|diagnostic| format!("{}: {}", diagnostic.code, diagnostic.message))
+        let checked = conduit_plot::check_syntax_document(&self.syntax, &self.startup)
+            .map_err(|diagnostic| format!("{}: {}", diagnostic.code, diagnostic.message))?;
+        conduit_speech::ipa_constructors::validate_source(&self.syntax, &checked)
+            .map_err(|diagnostic| diagnostic.to_string())?;
+        Ok(checked)
     }
 
     pub(crate) fn expand_entry(&self) -> Result<ExpandedCanonicalPlot, String> {
@@ -113,6 +116,15 @@ impl CanonicalSource {
 }
 
 fn standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), String> {
+    // These catalogs contain only this executable's compiled semantic contracts.
+    // Check them once, then give each Source its own mutable copy. Host offers,
+    // authority and each authored document are still admitted independently.
+    static CATALOGS: std::sync::OnceLock<Result<(StartupCatalog, ProfileCatalog), String>> =
+        std::sync::OnceLock::new();
+    CATALOGS.get_or_init(prepare_standard_catalogs).clone()
+}
+
+fn prepare_standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), String> {
     let mut startup = conduit_signal::primary_signal_startup_catalog();
     let mut profiles = conduit_signal::primary_signal_profile_catalog();
     // This first Todo vertical has one exact authored initial Form and a leaf
@@ -122,6 +134,8 @@ fn standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), String> {
     conduit_presentation::install_mask_mechanism_catalog(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profiles)?;
     conduit_speech::kernel::install(&mut startup, &mut profiles)?;
+    conduit_speech::authoring::install(&mut startup)?;
+    conduit_speech::ipa_constructors::install(&mut startup, &mut profiles)?;
     conduit_text::install_morse_catalogs(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_indicator_presentation_catalog(&mut startup, &mut profiles)?;
     conduit_time::install_tick_catalog(&mut startup, &mut profiles)?;
@@ -174,6 +188,24 @@ mod tests {
     use super::*;
 
     #[test]
+    fn prepared_standard_catalogs_do_not_share_source_local_types() {
+        let (mut first, first_profiles) = standard_catalogs().unwrap();
+        let (second, second_profiles) = standard_catalogs().unwrap();
+        assert_eq!(first, second);
+        assert_eq!(first_profiles, second_profiles);
+        let local = conduit_plot::check_syntax_document(
+            &conduit_plot::parse_syntax_document("type QueueLocal = Text <= 8B\n"),
+            &StartupCatalog::new(),
+        )
+        .unwrap();
+        first
+            .insert_checked_native_type("QueueLocal", &local.native_types[0])
+            .unwrap();
+        assert_ne!(first, second);
+        assert_eq!(second, standard_catalogs().unwrap().0);
+    }
+
+    #[test]
     fn authored_entry_survives_checked_dependency_reordering() {
         let source = parse(include_str!("../../../plots/todo/live.conduit")).unwrap();
         assert_eq!(source.syntax.plots.last().unwrap().name.text, "todo/main");
@@ -185,6 +217,38 @@ mod tests {
             source.expand_entry_for_authoring().unwrap().expanded.name,
             "todo/main"
         );
+    }
+
+    #[test]
+    fn product_authoring_checks_quoted_ipa_with_the_ordinary_speech_catalog() {
+        let source = parse(include_str!(
+            "../../../semantics/speech/examples/ipa/quoted-phone.conduit"
+        ))
+        .unwrap();
+        assert_eq!(
+            source.expand_entry_for_authoring().unwrap().expanded.name,
+            "quoted-phone"
+        );
+        let invalid = parse(&source.source.replace("tʰ", "p_aspirated")).unwrap();
+        assert!(invalid.expand_entry_for_authoring().is_err());
+    }
+
+    #[test]
+    fn product_checks_qualified_quoted_transcriptions_and_located_refusals() {
+        for text in [
+            include_str!("../../../semantics/speech/examples/ipa/quoted-transcriptions.conduit"),
+            include_str!("../../../semantics/speech/examples/ipa/quoted-phonemic.conduit"),
+        ] {
+            let source = parse(text).unwrap();
+            assert!(source.expand_entry_for_authoring().is_ok());
+        }
+        let invalid = parse(
+            &include_str!("../../../semantics/speech/examples/ipa/quoted-transcriptions.conduit")
+                .replace("ˈt͡ʃãː.n̩", r"t͡ʃ\n"),
+        )
+        .unwrap();
+        let error = invalid.check().unwrap_err();
+        assert!(error.contains("CND-SPC-IPA at 5:"), "{error}");
     }
 
     #[test]

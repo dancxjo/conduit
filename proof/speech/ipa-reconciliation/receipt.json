@@ -1,0 +1,63 @@
+{
+  "issue": "https://github.com/dancxjo/conduit/issues/5329",
+  "selected_pr": "https://github.com/dancxjo/conduit/pull/5319",
+  "tested_head": "bee5007b966dfadda297061e5b2876eb56aae438",
+  "tested_tree": "4db714617cc5c7dd14fb963b4aabb68b0f195d34",
+  "dev_replay_head": "e4db742fc21accfcc64343a2e86c0bfaa3b9633f",
+  "dev_base": "33b85c2c45ddf5c903ef554e3c7f96570e721acd",
+  "dev_replay_tree_identical": true,
+  "results": {
+    "supported_suite": {
+      "command": "cargo xtask check speech-ipa",
+      "exit_code": 0,
+      "passed": 1121,
+      "test_targets": 25,
+      "ignored": 9,
+      "thumbv6m_none_eabi_no_std": "passed"
+    },
+    "strict_clippy": {
+      "command": "cargo clippy -p conduit-plot -p conduit-speech -p conduit-std-host -p conduit -p xtask --all-targets --locked -- -D warnings",
+      "exit_code": 0
+    },
+    "rustfmt": {
+      "command": "cargo fmt --all -- --check",
+      "exit_code": 0
+    },
+    "ci_foundation_regressions": {
+      "command": "node --test proof/ci/pipeline-publication-history.spec.mjs proof/ci/pipeline-exact-ancestor.spec.mjs",
+      "exit_code": 0,
+      "passed": 11
+    }
+  },
+  "build_environment": {
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_BUILD_JOBS": "2",
+    "CARGO_TARGET_DIR": "target/reconciliation"
+  },
+  "ignored_tests": [
+    "test body_clock_line::tests::real_process_clock_responder ... ignored",
+    "test direct_spoken_mask::tests::installed_espeak_admits_the_direct_face_mask_without_terminal_attachment ... ignored, requires installed eSpeak NG and data; proves live-provider planning, not audio playback",
+    "test hosted_speech_synthesis::tests::installed_espeak_produces_real_bounded_pcm_from_parameter_like_text ... ignored, requires explicitly selected installed eSpeak NG and English voice data; creates audio bytes but never playback",
+    "test installed_std::streaming_speech_tests::installed_espeak_narrates_a_chapter_through_incremental_plan_and_play ... ignored, requires installed eSpeak NG and data; produces a substantive real WAV, no playback/model inference",
+    "test spoken_face_stream_execution::tests::platform::installed_espeak_produces_exact_plan_play_pcm_receipt ... ignored, requires installed eSpeak NG and writes a real WAV",
+    "test spoken_face_stream_execution::tests::platform::installed_espeak_stream_drains_selected_alsa_speaker ... ignored, requires installed eSpeak NG, explicit ALSA card/device, and speaker output",
+    "test spoken_mask_journey::cancellation_tests::streamed_mask_stop_reaps_provider_and_never_acknowledges_partial_audio ... ignored, requires installed eSpeak NG; observes actual PCM, cancels and verifies no completed Mask artifact",
+    "test spoken_mask_journey::tests::installed_espeak_mask_retains_acknowledged_wav_through_plan_and_play ... ignored, requires explicitly installed eSpeak NG, English data and shared library; produces WAV only, no playback",
+    "test spoken_mask_journey::tests::installed_espeak_streaming_mask_acknowledges_substantive_chapter ... ignored, requires installed eSpeak NG; validates real streaming Mask audio using an explicitly fixture Presenter candidate"
+  ],
+  "limitations": [
+    "Local affected-package proof; no full workspace Clippy claim.",
+    "Nine existing environment-dependent std library tests ignored; none IPA.",
+    "Draft exhaustive required CI has not passed.",
+    "No physical audio playback, full Unicode IPA coverage, notation glyph grammar or Conduitese formatter claim.",
+    "Accepted integration and stable main coverage remain open gates."
+  ],
+  "files": {
+    "fmt.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "clippy.log": "38a4293f881df4ca506fc68e5b4f6c436b04b86f3bc2811587fb653357c06e86",
+    "source-manifest.json": "57eeac5c7516d75bad99af858870b7f649f6e5cbccc63a60acaec9dde1607558",
+    "ci-foundation.log": "79a8a738c4f8aea7849899eec2779d1400abc6ddd94dfa205839e93da503a8fb",
+    "speech-ipa.log": "f61e913806a102074a1c391b2aa7a231ec29b652ecfb40553d8c1cb404ddfeda",
+    "native-identities.json": "503be59f2f6320bee6ce19ab9516c51b94e97c55f6fd82f3f4d4112504608340"
+  }
+}

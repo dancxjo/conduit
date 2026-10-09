@@ -27,9 +27,9 @@ pub(crate) use relay::validate_endpoint_descriptor as validate_relay_endpoint_de
 const PROTOCOL: u16 = 1;
 // One control frame must hold the exact bounded standard Host advertisement
 // both before and after invitation admission. Keep this synchronized with the
-// browser peer; 256 KiB admits the current canonical catalog without making
+// browser peer; 512 KiB admits the four-constructor canonical catalog without making
 // the retained Line or its ordinary data frames unbounded.
-const MAXIMUM_FRAME_BYTES: usize = 256 * 1024;
+const MAXIMUM_FRAME_BYTES: usize = 512 * 1024;
 const MAXIMUM_ID_BYTES: usize = 192;
 const CODE_PREFIX: &str = "C1-WS";
 const SERIAL_CODE_PREFIX: &str = "C1-SERIAL";
@@ -732,6 +732,46 @@ mod protected_tests;
 mod tests {
     use super::*;
     use std::collections::VecDeque;
+
+    #[test]
+    fn canonical_host_advertisement_fits_the_bounded_rendezvous_envelope() {
+        let host = conduit_std_host::StdHost::new_with_config(conduit_std_host::StdHostConfig {
+            host_id: conduit_core::HostId::from("host/rendezvous-envelope"),
+            boot_id: conduit_core::BootId::from("boot/rendezvous-envelope"),
+            offer_generation: conduit_core::OfferGeneration(1),
+        });
+        let frame = Egress::Host {
+            protocol: PROTOCOL,
+            friendly_label: "This running computer",
+            target_id: "std/x86_64/computer",
+            image_content_digest: "sha256:fixture",
+            advertisement: host.advertisement(),
+            lines: ["conduit-line/loopback-websocket@1"],
+        };
+        let bytes = serde_json::to_vec(&frame).unwrap();
+        assert!(
+            bytes.len() <= MAXIMUM_FRAME_BYTES,
+            "advertisement requires {} bytes",
+            bytes.len()
+        );
+        let mut line = MemoryLine {
+            incoming: VecDeque::new(),
+        };
+        send(&mut line, &frame).unwrap();
+        let oversized_label = "x".repeat(MAXIMUM_FRAME_BYTES + 1);
+        let oversized = Egress::Host {
+            protocol: PROTOCOL,
+            friendly_label: &oversized_label,
+            target_id: "std/x86_64/computer",
+            image_content_digest: "sha256:fixture",
+            advertisement: host.advertisement(),
+            lines: ["conduit-line/loopback-websocket@1"],
+        };
+        assert_eq!(
+            send(&mut line, &oversized).unwrap_err(),
+            "rendezvous response exceeds its finite bound"
+        );
+    }
 
     struct MemoryLine {
         incoming: VecDeque<Vec<u8>>,
