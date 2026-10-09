@@ -94,6 +94,14 @@ fn selected_host_with_artifact(
     root: &std::path::Path,
     artifact: bool,
 ) -> (StdHost, AttachedEquipment) {
+    selected_host_profile(root, artifact, true)
+}
+
+fn selected_host_profile(
+    root: &std::path::Path,
+    artifact: bool,
+    physical: bool,
+) -> (StdHost, AttachedEquipment) {
     let mut host = host("host/owner-speech-test", "boot/owner-speech-test");
     let observation = AlsaPlaybackObservation {
         card_index: 999,
@@ -155,7 +163,9 @@ fn selected_host_with_artifact(
         )
         .unwrap();
     let realization_properties = adapter.offer().realization_properties;
-    host.attach_selected_playback(playback.clone()).unwrap();
+    if physical {
+        host.attach_selected_playback(playback.clone()).unwrap();
+    }
     if artifact {
         let artifact_root = root.join("mask-artifacts");
         fs::create_dir(&artifact_root).unwrap();
@@ -178,7 +188,7 @@ fn selected_host_with_artifact(
         realization_properties,
         before_play: None,
     };
-    assert!(equipment.matches(&host));
+    assert_eq!(equipment.matches(&host), physical);
     (host, equipment)
 }
 

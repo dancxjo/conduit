@@ -229,3 +229,63 @@ fn remaining_scope_and_pages_select_the_same_actual_todo_primary_items() {
     assert!(!readout.contains("task-1"));
     fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn artifact_remaining_batch_refuses_stale_source_and_precancel_without_provider_effect() {
+    use conduit_std_host::spoken_face_mask::ReaderCommand;
+    let root = root("artifact-detail-refusals");
+    let (mut host, _) = selected_host_profile(&root, true, false);
+    assert!(host.spoken_artifact_only_route_is_current());
+    let original = host.advertisement().clone();
+    let mut owner = owner(host);
+    let seal = owner.select_direct_spoken_route().unwrap();
+    let face = owner.local_face_snapshot().unwrap();
+    let show = fixture_show(&face, &seal.planned_mask);
+    owner
+        .acknowledge_selected_direct_spoken_show(&seal, &show)
+        .unwrap();
+    let mut reader = SpokenFaceSession::new(face.clone(), show.clone()).unwrap();
+    reader
+        .command(&face, &show, ReaderCommand::ReadAll, 1)
+        .unwrap();
+    let batch = reader.next_batch().unwrap().unwrap();
+    let mut stale = face.clone();
+    stale.revision += 1;
+    host = owner.host.take_for_play().unwrap();
+    let control = RunControl::default();
+    let failure = super::super::execution::batch::play_batch(
+        &mut host, &stale, &show, &batch, None, &control,
+    )
+    .err()
+    .unwrap();
+    assert_eq!(failure.outcome(), "refused");
+    let mut stale_show = show.clone();
+    stale_show.show.lifecycle = ManifestationLifecycle::Replaced;
+    let failure = super::super::execution::batch::play_batch(
+        &mut host,
+        &face,
+        &stale_show,
+        &batch,
+        None,
+        &control,
+    )
+    .err()
+    .unwrap();
+    assert_eq!(failure.outcome(), "refused");
+    control
+        .request_stop(RunControlRequestId::new("stop/artifact-detail").unwrap())
+        .unwrap();
+    let failure =
+        super::super::execution::batch::play_batch(&mut host, &face, &show, &batch, None, &control)
+            .err()
+            .unwrap();
+    assert_eq!(failure.outcome(), "cancelled");
+    assert_eq!(host.advertisement(), &original);
+    assert_eq!(
+        fs::read_dir(root.join("mask-artifacts")).unwrap().count(),
+        0
+    );
+    owner.host.restore_after_play(host).unwrap();
+    assert_eq!(owner.local_face_snapshot().unwrap(), face);
+    fs::remove_dir_all(root).unwrap();
+}

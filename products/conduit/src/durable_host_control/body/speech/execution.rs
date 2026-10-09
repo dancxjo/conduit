@@ -1,13 +1,9 @@
 //! Bounded acknowledged-Face reading through the existing selected audio Plan.
 use super::{AttachedEquipment, MaskShow, Presentation, RunControl, SpeechFailure, StdHost};
-use conduit_std_host::{
-    spoken_face_mask::{ReaderCommand, SpokenFaceSession},
-    spoken_face_stream_execution::{
-        execute_spoken_batch_on_attached_host_with_capture, SpokenPlaybackOutcome,
-        SpokenStreamExecutionRefusal,
-    },
-};
+use conduit_std_host::spoken_face_mask::{ReaderCommand, SpokenFaceSession};
 use serde_json::{json, Value};
+#[path = "batch.rs"]
+pub(super) mod batch;
 
 #[derive(Clone, Copy)]
 pub(super) enum ReadingScope {
@@ -34,7 +30,7 @@ pub(super) fn play_selected(
     host: &mut StdHost,
     face: &Presentation,
     show: &MaskShow,
-    equipment: &AttachedEquipment,
+    equipment: Option<&AttachedEquipment>,
     control: &RunControl,
     segments_per_batch: usize,
     maximum_batches: usize,
@@ -69,14 +65,17 @@ fn play_selected_inner(
     host: &mut StdHost,
     face: &Presentation,
     show: &MaskShow,
-    equipment: &AttachedEquipment,
+    equipment: Option<&AttachedEquipment>,
     control: &RunControl,
     segments_per_batch: usize,
     maximum_batches: usize,
     scope: ReadingScope,
     receipts: &mut Vec<Value>,
 ) -> Result<Value, SpeechFailure> {
-    if !equipment.matches(host) {
+    if equipment.map_or_else(
+        || !host.spoken_artifact_only_route_is_current(),
+        |equipment| !equipment.matches(host),
+    ) {
         return Err(SpeechFailure::Refused(
             "selected speech equipment changed before Play".into(),
         ));
@@ -108,85 +107,11 @@ fn play_selected_inner(
         else {
             break;
         };
-        let result = execute_spoken_batch_on_attached_host_with_capture(
-            face,
-            show,
-            &batch,
-            &conduit_language::LanguageRequest::new(
-                conduit_language::LanguageId::new("language/english".into())
-                    .expect("English mechanical Mask Language"),
-                None,
-                conduit_language::LanguageVarietyPolicy::LanguageSufficient,
-            )
-            .expect("explicit mechanical Mask request"),
-            &equipment.playback,
-            &equipment.authorization,
-            control,
-            host,
-        )
-        .map_err(|error| match error {
-            SpokenStreamExecutionRefusal::PlaybackPlay { detail, .. } => {
-                SpeechFailure::PlayRefused(detail)
-            }
-            other => SpeechFailure::Refused(format!("selected speaker Play refused: {other:?}")),
+        let (receipt, delivery) = batch::play_batch(host, face, show, &batch, equipment, control)?;
+        receipts.push(receipt);
+        let terminal = reader.acknowledge_batch(delivery).map_err(|error| {
+            SpeechFailure::Failed(format!("selected speaker receipt refused: {error:?}"))
         })?;
-        let outcome = match &result.outcome {
-            SpokenPlaybackOutcome::Completed => "completed",
-            SpokenPlaybackOutcome::Cancelled => "cancelled",
-            SpokenPlaybackOutcome::Failed => "failed",
-        };
-        let capture = match (&result.outcome, result.same_play_capture.as_ref()) {
-            (SpokenPlaybackOutcome::Completed, Some(capture)) => capture,
-            (SpokenPlaybackOutcome::Completed, None) => {
-                return Err(SpeechFailure::Failed(
-                    "selected speaker Play omitted same-Play WAV capture".into(),
-                ))
-            }
-            (SpokenPlaybackOutcome::Cancelled, _) => {
-                return Err(SpeechFailure::Cancelled(
-                    "selected speaker Play cancelled".into(),
-                ))
-            }
-            (SpokenPlaybackOutcome::Failed, _) => {
-                return Err(SpeechFailure::Failed("selected speaker Play failed".into()))
-            }
-        };
-        // Browser carriers receive only an exact file identity. A local proof
-        // reader resolves it beneath this installation's spoken-artifacts root.
-        let artifact_id = capture
-            .wav_path
-            .file_name()
-            .and_then(|name| name.to_str())
-            .filter(|name| {
-                name.len() == 73
-                    && name.starts_with("play-")
-                    && name.ends_with(".wav")
-                    && name[5..69].bytes().all(|byte| byte.is_ascii_hexdigit())
-            })
-            .ok_or_else(|| SpeechFailure::Failed("same-Play WAV locator is invalid".into()))?;
-        // The admitted reader supplied bounded ordered segments; the playback
-        // entrance validated their exact source digest.
-        let spoken_segments: Vec<&str> = batch
-            .segments
-            .iter()
-            .map(|segment| segment.segment.text.as_str())
-            .collect();
-        receipts.push(json!({"stream_identity":result.stream_identity,
-            "source_segments_sha256":result.source_segments_sha256,
-            "spoken_segments":spoken_segments,
-            "plan_id":result.playback_plan_id, "play_id":result.playback_play_id,
-            "provider_sha256":result.provider_sha256,
-            "speaker_blocks_committed":result.playback.metrics.blocks_committed,
-            "speaker_frames_committed":result.playback.metrics.frames_committed,
-            "wav_artifact_id":artifact_id, "wav_sha256":capture.wav_sha256,
-            "wav_bytes":capture.wav_bytes, "pcm_sha256":capture.pcm_sha256,
-            "pcm_bytes":capture.pcm_bytes, "pcm_blocks":capture.pcm_blocks,
-            "outcome":outcome}));
-        let terminal = reader
-            .acknowledge_batch(result.delivery())
-            .map_err(|error| {
-                SpeechFailure::Failed(format!("selected speaker receipt refused: {error:?}"))
-            })?;
         if let Some(terminal) = terminal {
             terminal_turn = Some(terminal);
             break;
@@ -211,9 +136,10 @@ fn play_selected_inner(
         "source_show_id":show.show_id.as_str(),
         "host_id":offered.host_id.as_str(), "boot_id":offered.boot_id.as_str(),
         "offer_generation":offered.offer_generation.0,
-        "provider_sha256":equipment.provider_sha256,
-        "selected_resource_pool_id":equipment.playback.pool_id().as_str(),
-        "authority_grant_id":equipment.authorization.grant_id(),
+        "provider_sha256":equipment.map(|equipment| equipment.provider_sha256.as_str()),
+        "output_mode":if equipment.is_some() { "speaker" } else { "wav-artifact" },
+        "selected_resource_pool_id":equipment.map(|equipment| equipment.playback.pool_id().as_str().to_owned()),
+        "authority_grant_id":equipment.map(|equipment| equipment.authorization.grant_id()),
         "completed_segments":terminal.completed_segments,
         "produced_pcm_bytes":terminal.produced_pcm_bytes,
         "correlation_sha256":terminal.correlation_sha256,
