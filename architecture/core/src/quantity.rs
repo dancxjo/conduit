@@ -1,5 +1,22 @@
 //! Typed finite quantities with exact-only conversions.
 
+mod conversion;
+mod conversion_law;
+mod exact;
+mod literal;
+mod literal_eligibility;
+mod magnitude;
+mod receipt;
+mod target;
+mod temperature_difference;
+mod wide_conversion;
+
+pub use exact::*;
+pub use receipt::*;
+pub use target::*;
+pub use temperature_difference::*;
+
+use conversion::{compare_legacy, convert_exact_rational, is_radian};
 use core::cmp::Ordering;
 use serde::{Deserialize, Serialize};
 
@@ -248,9 +265,28 @@ pub enum QuantityLiteralRefusal {
     InvalidValue,
     MissingUnit,
     UnknownUnit,
-    NonCanonicalUnit { canonical: &'static str },
+    AmbiguousUnit,
+    RepresentationIneligible {
+        profile: &'static str,
+        reason: QuantityRepresentationRefusal,
+    },
+    NonCanonicalUnit {
+        canonical: &'static str,
+    },
     Inexact,
     Overflow,
+}
+
+/// Numeric eligibility is separate from suffix recognition. These refusals
+/// identify the selected finite profile without classifying a known SI unit
+/// as unknown or silently changing persisted quantity identities.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum QuantityRepresentationRefusal {
+    NoExactLegacyUnit,
+    LiteralTooLong,
+    NumberTooLong,
+    SignificantDigitsExceeded,
+    ExponentOutOfRange,
 }
 
 impl QuantityUnit {
@@ -1255,27 +1291,7 @@ impl Quantity {
     /// is admitted only when a reviewed unit in the same dimension can retain
     /// the value without rounding (for example, `3.2m` becomes `320cm`).
     pub fn parse_plot_literal(literal: &str) -> Result<Self, QuantityLiteralRefusal> {
-        let value_end = literal
-            .char_indices()
-            .find_map(|(index, character)| {
-                (!(character.is_ascii_digit()
-                    || character == '.'
-                    || (index == 0 && character == '-')))
-                    .then_some(index)
-            })
-            .unwrap_or(literal.len());
-        let (value, suffix) = literal.split_at(value_end);
-        if value.is_empty() || value == "-" {
-            return Err(QuantityLiteralRefusal::MissingValue);
-        }
-        let unit = QuantityUnit::from_plot_suffix(suffix)?;
-        let Some((whole, fraction)) = value.split_once('.') else {
-            let value = value
-                .parse::<i64>()
-                .map_err(|_| QuantityLiteralRefusal::InvalidValue)?;
-            return Ok(Self::new(value, unit));
-        };
-        parse_exact_decimal(whole, fraction, unit)
+        literal::parse_plot_literal(literal)
     }
 
     pub fn convert(self, target: QuantityUnit) -> Result<Self, QuantityConversionRefusal> {
@@ -1304,15 +1320,7 @@ impl Quantity {
         {
             return Err(QuantityConversionRefusal::Inexact);
         }
-        let (left_numerator, left_denominator) = canonical_fraction(self)?;
-        let (right_numerator, right_denominator) = canonical_fraction(other)?;
-        let left = left_numerator
-            .checked_mul(right_denominator)
-            .ok_or(QuantityConversionRefusal::Overflow)?;
-        let right = right_numerator
-            .checked_mul(left_denominator)
-            .ok_or(QuantityConversionRefusal::Overflow)?;
-        Ok(left.cmp(&right))
+        compare_legacy(self, other)
     }
 
     pub const fn encode(self) -> [u8; QUANTITY_ENCODED_LEN] {
@@ -1349,253 +1357,4 @@ impl Quantity {
     pub fn semantic_digest(self) -> [u8; 32] {
         semantic_digest(QUANTITY_INFO_ID, &self.encode())
     }
-}
-
-fn canonical_fraction(value: Quantity) -> Result<(i128, i128), QuantityConversionRefusal> {
-    let (scale, offset, denominator) = value.unit.canonical_transform();
-    let numerator = i128::from(value.value)
-        .checked_mul(scale)
-        .and_then(|value| value.checked_add(offset))
-        .ok_or(QuantityConversionRefusal::Overflow)?;
-    Ok((numerator, denominator))
-}
-
-fn parse_exact_decimal(
-    whole: &str,
-    fraction: &str,
-    unit: QuantityUnit,
-) -> Result<Quantity, QuantityLiteralRefusal> {
-    if whole.is_empty()
-        || whole == "-"
-        || fraction.is_empty()
-        || !fraction.bytes().all(|byte| byte.is_ascii_digit())
-    {
-        return Err(QuantityLiteralRefusal::InvalidValue);
-    }
-    let negative = whole.starts_with('-');
-    let whole_magnitude = whole
-        .trim_start_matches('-')
-        .parse::<u64>()
-        .map_err(|_| QuantityLiteralRefusal::InvalidValue)?;
-    let exponent = u32::try_from(fraction.len()).map_err(|_| QuantityLiteralRefusal::Overflow)?;
-    let denominator = 10_u64
-        .checked_pow(exponent)
-        .ok_or(QuantityLiteralRefusal::Overflow)?;
-    let fraction = fraction
-        .parse::<u64>()
-        .map_err(|_| QuantityLiteralRefusal::InvalidValue)?;
-    let numerator = whole_magnitude
-        .checked_mul(denominator)
-        .and_then(|value| value.checked_add(fraction))
-        .ok_or(QuantityLiteralRefusal::Overflow)?;
-    for target in ALL_QUANTITY_UNITS {
-        if target.dimension() != unit.dimension()
-            || (unit.dimension() == QuantityDimension::Angle
-                && is_radian(unit) != is_radian(target))
-            || (unit.dimension() == QuantityDimension::Temperature
-                && temperature_family(unit) != temperature_family(target))
-        {
-            continue;
-        }
-        let signed_numerator = i128::from(numerator)
-            .checked_mul(if negative { -1 } else { 1 })
-            .ok_or(QuantityLiteralRefusal::Overflow)?;
-        match convert_exact_rational(signed_numerator, i128::from(denominator), unit, target) {
-            Ok(value) => return Ok(value),
-            Err(QuantityConversionRefusal::Inexact) => {}
-            Err(QuantityConversionRefusal::Overflow) => {
-                return Err(QuantityLiteralRefusal::Overflow)
-            }
-            Err(QuantityConversionRefusal::IncompatibleDimensions) => unreachable!(),
-        }
-    }
-    Err(QuantityLiteralRefusal::Inexact)
-}
-
-const fn temperature_family(unit: QuantityUnit) -> u8 {
-    match unit {
-        QuantityUnit::Millikelvin | QuantityUnit::Kelvin => 1,
-        QuantityUnit::MilliCelsius | QuantityUnit::Celsius => 2,
-        QuantityUnit::MilliFahrenheit | QuantityUnit::Fahrenheit => 3,
-        _ => 0,
-    }
-}
-
-const ALL_QUANTITY_UNITS: [QuantityUnit; 130] = [
-    QuantityUnit::Picosecond,
-    QuantityUnit::Nanosecond,
-    QuantityUnit::Shake,
-    QuantityUnit::Microsecond,
-    QuantityUnit::Millisecond,
-    QuantityUnit::Second,
-    QuantityUnit::Minute,
-    QuantityUnit::Moment,
-    QuantityUnit::Hour,
-    QuantityUnit::Day,
-    QuantityUnit::Week,
-    QuantityUnit::Fortnight,
-    QuantityUnit::JulianYear,
-    QuantityUnit::Millihertz,
-    QuantityUnit::Hertz,
-    QuantityUnit::Kilohertz,
-    QuantityUnit::Megahertz,
-    QuantityUnit::Gigahertz,
-    QuantityUnit::Nanovolt,
-    QuantityUnit::Microvolt,
-    QuantityUnit::Millivolt,
-    QuantityUnit::Volt,
-    QuantityUnit::Kilovolt,
-    QuantityUnit::Nanoampere,
-    QuantityUnit::Microampere,
-    QuantityUnit::Milliampere,
-    QuantityUnit::Ampere,
-    QuantityUnit::Kiloampere,
-    QuantityUnit::Millikelvin,
-    QuantityUnit::Kelvin,
-    QuantityUnit::MilliCelsius,
-    QuantityUnit::Celsius,
-    QuantityUnit::MilliFahrenheit,
-    QuantityUnit::Fahrenheit,
-    QuantityUnit::MicroampereHour,
-    QuantityUnit::MilliampereHour,
-    QuantityUnit::AmpereHour,
-    QuantityUnit::Micrometer,
-    QuantityUnit::Nanometer,
-    QuantityUnit::Millimeter,
-    QuantityUnit::Centimeter,
-    QuantityUnit::Meter,
-    QuantityUnit::Kilometer,
-    QuantityUnit::Angstrom,
-    QuantityUnit::Inch,
-    QuantityUnit::Hand,
-    QuantityUnit::Foot,
-    QuantityUnit::Yard,
-    QuantityUnit::Rod,
-    QuantityUnit::Chain,
-    QuantityUnit::Furlong,
-    QuantityUnit::Mile,
-    QuantityUnit::League,
-    QuantityUnit::NauticalMile,
-    QuantityUnit::AstronomicalUnit,
-    QuantityUnit::Microdegree,
-    QuantityUnit::Millidegree,
-    QuantityUnit::Degree,
-    QuantityUnit::Arcsecond,
-    QuantityUnit::Arcminute,
-    QuantityUnit::Gradian,
-    QuantityUnit::Turn,
-    QuantityUnit::Microradian,
-    QuantityUnit::Milliradian,
-    QuantityUnit::Radian,
-    QuantityUnit::Millionth,
-    QuantityUnit::PartPerBillion,
-    QuantityUnit::BasisPoint,
-    QuantityUnit::Permille,
-    QuantityUnit::Percent,
-    QuantityUnit::One,
-    QuantityUnit::Bit,
-    QuantityUnit::Byte,
-    QuantityUnit::Kilobyte,
-    QuantityUnit::Megabyte,
-    QuantityUnit::Gigabyte,
-    QuantityUnit::Kibibyte,
-    QuantityUnit::Mebibyte,
-    QuantityUnit::Gibibyte,
-    QuantityUnit::Terabyte,
-    QuantityUnit::Tebibyte,
-    QuantityUnit::Microgram,
-    QuantityUnit::Milligram,
-    QuantityUnit::Gram,
-    QuantityUnit::Kilogram,
-    QuantityUnit::Tonne,
-    QuantityUnit::Ounce,
-    QuantityUnit::Pound,
-    QuantityUnit::Stone,
-    QuantityUnit::SquareMillimeter,
-    QuantityUnit::SquareCentimeter,
-    QuantityUnit::SquareMeter,
-    QuantityUnit::Hectare,
-    QuantityUnit::SquareKilometer,
-    QuantityUnit::Acre,
-    QuantityUnit::Microliter,
-    QuantityUnit::Milliliter,
-    QuantityUnit::Liter,
-    QuantityUnit::CubicMeter,
-    QuantityUnit::MillimeterPerSecond,
-    QuantityUnit::MeterPerSecond,
-    QuantityUnit::KilometerPerHour,
-    QuantityUnit::MilePerHour,
-    QuantityUnit::Knot,
-    QuantityUnit::MeterPerSecondSquared,
-    QuantityUnit::StandardGravity,
-    QuantityUnit::Gal,
-    QuantityUnit::Millinewton,
-    QuantityUnit::Newton,
-    QuantityUnit::Kilonewton,
-    QuantityUnit::Millijoule,
-    QuantityUnit::Joule,
-    QuantityUnit::Kilojoule,
-    QuantityUnit::Megajoule,
-    QuantityUnit::WattHour,
-    QuantityUnit::KilowattHour,
-    QuantityUnit::Calorie,
-    QuantityUnit::Kilocalorie,
-    QuantityUnit::Milliwatt,
-    QuantityUnit::Watt,
-    QuantityUnit::Kilowatt,
-    QuantityUnit::Megawatt,
-    QuantityUnit::Pascal,
-    QuantityUnit::Kilopascal,
-    QuantityUnit::Megapascal,
-    QuantityUnit::Bar,
-    QuantityUnit::Millibar,
-    QuantityUnit::Atmosphere,
-    QuantityUnit::Torr,
-    QuantityUnit::Pixel,
-];
-
-const fn is_radian(unit: QuantityUnit) -> bool {
-    matches!(
-        unit,
-        QuantityUnit::Microradian | QuantityUnit::Milliradian | QuantityUnit::Radian
-    )
-}
-
-fn convert_exact_rational(
-    source_numerator: i128,
-    source_denominator: i128,
-    source: QuantityUnit,
-    target: QuantityUnit,
-) -> Result<Quantity, QuantityConversionRefusal> {
-    let (source_scale, source_offset, source_transform_denominator) = source.canonical_transform();
-    let (target_scale, target_offset, target_denominator) = target.canonical_transform();
-    let canonical_numerator = source_numerator
-        .checked_mul(source_scale)
-        .and_then(|value| {
-            source_offset
-                .checked_mul(source_denominator)?
-                .checked_add(value)
-        })
-        .ok_or(QuantityConversionRefusal::Overflow)?;
-    let canonical_denominator = source_denominator
-        .checked_mul(source_transform_denominator)
-        .ok_or(QuantityConversionRefusal::Overflow)?;
-    let target_numerator = canonical_numerator
-        .checked_mul(target_denominator)
-        .and_then(|value| {
-            target_offset
-                .checked_mul(canonical_denominator)?
-                .checked_neg()?
-                .checked_add(value)
-        })
-        .ok_or(QuantityConversionRefusal::Overflow)?;
-    let target_value_denominator = canonical_denominator
-        .checked_mul(target_scale)
-        .ok_or(QuantityConversionRefusal::Overflow)?;
-    if target_numerator % target_value_denominator != 0 {
-        return Err(QuantityConversionRefusal::Inexact);
-    }
-    let value = i64::try_from(target_numerator / target_value_denominator)
-        .map_err(|_| QuantityConversionRefusal::Overflow)?;
-    Ok(Quantity::new(value, target))
 }

@@ -2,6 +2,8 @@
 
 extern crate alloc;
 
+mod exact_quantity_projection;
+
 #[allow(dead_code, clippy::clone_on_copy)]
 mod generated {
     include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));

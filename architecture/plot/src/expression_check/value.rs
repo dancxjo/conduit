@@ -62,12 +62,36 @@ pub(super) fn atomic(
             span,
         );
     }
-    if let Ok(quantity) = conduit_core::Quantity::parse_plot_literal(text) {
-        return expected_or_exact(
-            CheckedExpressionType::semantic(quantity.dimension().info_id()),
-            expected,
-            span,
-        );
+    if expected
+        .and_then(CheckedExpressionType::value_kind)
+        .is_some_and(|kind| kind.as_str() == conduit_core::EXACT_DECIMAL_QUANTITY_INFO_ID)
+    {
+        conduit_core::ExactDecimalQuantity::parse_plot_literal(text).map_err(|refusal| {
+            diagnostic(
+                span,
+                &format!("selected exact quantity profile refused '{text}': {refusal:?}"),
+            )
+        })?;
+        return Ok(expected.unwrap().clone());
+    }
+    match conduit_core::Quantity::parse_plot_literal(text) {
+        Ok(quantity) => {
+            return expected_or_exact(
+                CheckedExpressionType::semantic(quantity.dimension().info_id()),
+                expected,
+                span,
+            )
+        }
+        Err(
+            refusal @ (conduit_core::QuantityLiteralRefusal::RepresentationIneligible { .. }
+            | conduit_core::QuantityLiteralRefusal::AmbiguousUnit),
+        ) => {
+            return refuse(
+                span,
+                &format!("quantity literal '{text}' refused: {refusal:?}"),
+            )
+        }
+        Err(_) => {}
     }
     let Some(expected) = expected else {
         return refuse(

@@ -117,10 +117,10 @@ fn parse_configuration_value(
             CanonicalStartupValue::Literal(literal) => {
                 conduit_core::Quantity::parse_plot_literal(&literal)
                     .map(ConfigurationValue::Quantity)
-                    .map_err(|_| {
+                    .map_err(|refusal| {
                         CanonicalExpansionDiagnostic::new(
                             "CND-FRM-041",
-                            format!("primitive startup quantity '{name}' is invalid"),
+                            format!("primitive startup quantity '{name}' is invalid: {refusal:?}"),
                         )
                     })
             }

@@ -205,7 +205,9 @@ fn classify_word(word: &str) -> SyntaxHighlightKind {
         _ if word.parse::<i128>().is_ok() || word.parse::<u128>().is_ok() => {
             SyntaxHighlightKind::Number
         }
-        _ if conduit_core::Quantity::parse_plot_literal(word).is_ok() => {
+        _ if conduit_core::Quantity::parse_plot_literal(word).is_ok()
+            || conduit_core::ExactDecimalQuantity::parse_plot_literal(word).is_ok() =>
+        {
             SyntaxHighlightKind::Number
         }
         _ if word.contains('/') || word.contains('.') || word.contains('@') => {

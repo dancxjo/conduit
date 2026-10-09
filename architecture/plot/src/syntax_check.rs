@@ -1344,7 +1344,11 @@ fn check_invocation(
                     resolver
                         .resolve_expression(
                             expression,
-                            catalog.structured_type(&parameter.value_type),
+                            crate::quantity_literal::selected_profile(
+                                catalog,
+                                &parameter.value_type,
+                            )
+                            .as_deref(),
                         )
                         .map_err(|error| error.diagnostic(expression.span))?,
                 );
@@ -1370,8 +1374,11 @@ fn check_invocation(
                     resolver
                         .resolve_expression(
                             value,
-                            catalog
-                                .structured_type(&signature.startup_parameters[index].value_type),
+                            crate::quantity_literal::selected_profile(
+                                catalog,
+                                &signature.startup_parameters[index].value_type,
+                            )
+                            .as_deref(),
                         )
                         .map_err(|error| error.diagnostic(value.span))?,
                 );
@@ -1487,7 +1494,8 @@ fn checked_activation(
         let initial = resolver
             .resolve_expression(
                 initial,
-                catalog.structured_type(accumulator.value_kind.as_str()),
+                crate::quantity_literal::selected_profile(catalog, accumulator.value_kind.as_str())
+                    .as_deref(),
             )
             .and_then(|value| {
                 canonicalize_integer_value(value, accumulator.value_kind.as_str(), catalog)
@@ -1671,7 +1679,9 @@ fn resolve_bound_value(
         } else {
             CanonicalStartupValue::PlotParameter(default.to_string())
         }
-    } else if let Some(expected) = catalog.structured_type(&parameter.value_type) {
+    } else if let Some(expected) =
+        crate::quantity_literal::selected_profile(catalog, &parameter.value_type).as_deref()
+    {
         let syntax = crate::structured_expression::parse(default, default, 0)
             .map_err(|(message, _)| SyntaxCheckError::StructuredExpression(message, None))?;
         let checked = crate::structured_startup::check_structured_expression(
@@ -1708,14 +1718,9 @@ fn resolve_bound_value(
         }
         CanonicalStartupValue::Structured(checked)
     } else {
-        match conduit_core::Quantity::parse_plot_literal(default) {
-            Ok(value) => CanonicalStartupValue::Quantity(value),
-            Err(conduit_core::QuantityLiteralRefusal::NonCanonicalUnit { canonical }) => {
-                return Err(SyntaxCheckError::QuantityLiteral(format!(
-                    "non-canonical quantity unit in '{default}'; use '{canonical}'"
-                )));
-            }
-            Err(_) => CanonicalStartupValue::Literal(default.to_string()),
+        match crate::quantity_literal::startup_quantity(default)? {
+            Some(value) => CanonicalStartupValue::Quantity(value),
+            None => CanonicalStartupValue::Literal(default.to_string()),
         }
     };
     visiting.remove(&index);

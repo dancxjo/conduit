@@ -470,6 +470,7 @@ const fn kind_name(kind: PrimitiveInfoKind) -> &'static str {
         PrimitiveInfoKind::I64 => "value/i64",
         PrimitiveInfoKind::I128 => "value/i128",
         PrimitiveInfoKind::Quantity => conduit_core::QUANTITY_INFO_ID,
+        PrimitiveInfoKind::ExactDecimalQuantity => conduit_core::EXACT_DECIMAL_QUANTITY_INFO_ID,
         PrimitiveInfoKind::Distance => conduit_core::DISTANCE_INFO_ID,
         PrimitiveInfoKind::Frequency => conduit_core::FREQUENCY_INFO_ID,
         PrimitiveInfoKind::Duration => conduit_core::DURATION_INFO_ID,

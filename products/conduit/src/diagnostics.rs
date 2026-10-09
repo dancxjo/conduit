@@ -11,17 +11,38 @@ pub(crate) fn run(path: &Path, json: bool) -> Result<bool, String> {
             match conduit_plot::check_syntax_document(&document.syntax, &document.startup) {
                 Err(diagnostic) => Some(structured(&document.source, &diagnostic)?),
                 Ok(checked) => {
-                    conduit_speech::ipa_constructors::validate_source(&document.syntax, &checked)
+                    let ipa = conduit_speech::ipa_constructors::validate_source(
+                        &document.syntax,
+                        &checked,
+                    )
+                    .err()
+                    .map(|diagnostic| {
+                        structured_parts(
+                            &document.source,
+                            "CND-SPC-IPA",
+                            &format!("{:?}", diagnostic.cause.refusal),
+                            diagnostic.span,
+                        )
+                    })
+                    .transpose()?;
+                    if ipa.is_some() {
+                        ipa
+                    } else {
+                        conduit_plot::quantity_conversion::validate_source(
+                            &document.syntax,
+                            &checked,
+                        )
                         .err()
                         .map(|diagnostic| {
                             structured_parts(
                                 &document.source,
-                                "CND-SPC-IPA",
-                                &format!("{:?}", diagnostic.cause.refusal),
+                                "CND-QTY-001",
+                                &format!("{:?}", diagnostic.refusal),
                                 diagnostic.span,
                             )
                         })
                         .transpose()?
+                    }
                 }
             };
         diagnostic.into_iter().collect::<Vec<_>>()
