@@ -9,9 +9,15 @@ use std::{
     io::{Read, Write},
     path::Path,
     process::{Child, Command, Output, Stdio},
+    sync::Mutex,
     thread,
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
+
+// These tests each install a complete Owner with a finite control deadline.
+// Admit one such fixture at a time rather than competing with five independent
+// services for the same runner's CPU and synchronous filesystem throughput.
+static INSTALLED_OWNER_FIXTURE: Mutex<()> = Mutex::new(());
 
 struct Service(Child);
 
@@ -24,6 +30,9 @@ impl Drop for Service {
 
 #[test]
 fn zero_body_client_refuses_two_plots_then_continues_one_retained_body() {
+    let _fixture_admission = INSTALLED_OWNER_FIXTURE
+        .lock()
+        .unwrap_or_else(|poison| poison.into_inner());
     let state = std::env::temp_dir().join(format!(
         "conduit-installed-birth-{}-{}",
         std::process::id(),
@@ -207,6 +216,9 @@ fn zero_body_client_refuses_two_plots_then_continues_one_retained_body() {
 
 #[test]
 fn retained_nonvisual_client_changes_the_owner_terminal_wardrobe() {
+    let _fixture_admission = INSTALLED_OWNER_FIXTURE
+        .lock()
+        .unwrap_or_else(|poison| poison.into_inner());
     let state = std::env::temp_dir().join(format!(
         "conduit-screen-free-wardrobe-{}-{}",
         std::process::id(),
@@ -309,6 +321,9 @@ fn retained_nonvisual_client_changes_the_owner_terminal_wardrobe() {
 
 #[test]
 fn post_birth_refuses_stale_activation_and_controls_clock() {
+    let _fixture_admission = INSTALLED_OWNER_FIXTURE
+        .lock()
+        .unwrap_or_else(|poison| poison.into_inner());
     let state = std::env::temp_dir().join(format!(
         "conduit-screen-free-stale-action-{}-{}",
         std::process::id(),
@@ -497,6 +512,9 @@ fn post_birth_refuses_stale_activation_and_controls_clock() {
 
 #[test]
 fn retained_screen_free_entrance_reopens_same_body_and_refuses_stale_boot() {
+    let _fixture_admission = INSTALLED_OWNER_FIXTURE
+        .lock()
+        .unwrap_or_else(|poison| poison.into_inner());
     let state = std::env::temp_dir().join(format!(
         "conduit-screen-free-return-{}-{}",
         std::process::id(),
@@ -683,6 +701,9 @@ fn read_until_prompt(input: &mut impl Read, prompt: &[u8]) -> String {
 
 #[test]
 fn interrupted_birth_publication_is_unknown_and_recovers_without_a_second_birth() {
+    let _fixture_admission = INSTALLED_OWNER_FIXTURE
+        .lock()
+        .unwrap_or_else(|poison| poison.into_inner());
     let state = std::env::temp_dir().join(format!(
         "conduit-interrupted-birth-{}-{}",
         std::process::id(),
@@ -746,6 +767,9 @@ fn interrupted_birth_publication_is_unknown_and_recovers_without_a_second_birth(
 #[test]
 #[ignore = "requires explicit ALSA card/device, installed eSpeak NG, and a real speaker"]
 fn selected_installed_birth_speaks_one_current_face_clause() {
+    let _fixture_admission = INSTALLED_OWNER_FIXTURE
+        .lock()
+        .unwrap_or_else(|poison| poison.into_inner());
     let card = std::env::var("CONDUIT_SPOKEN_TEST_ALSA_CARD").unwrap();
     let device = std::env::var("CONDUIT_SPOKEN_TEST_ALSA_DEVICE").unwrap();
     let coverage = std::env::var("CONDUIT_SPOKEN_TEST_LANGUAGE_COVERAGE").unwrap();
