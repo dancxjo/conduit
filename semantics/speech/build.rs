@@ -1,3 +1,5 @@
+#[path = "build_support/authoring_types.rs"]
+mod authoring_types;
 #[path = "build_support/graph.rs"]
 mod graph;
 #[path = "build_support/lower.rs"]
@@ -37,6 +39,7 @@ fn main() {
         "ipa_constructors.conduit",
         "../language/identity.conduit",
         "build_support/semantic_source.rs",
+        "build_support/authoring_types.rs",
     ] {
         println!("cargo:rerun-if-changed={path}");
     }
@@ -77,6 +80,48 @@ fn main() {
     let semantic =
         check_syntax_document(&parse_syntax_document(&semantic_source), &semantic_catalog)
             .expect("Speaking segment and listening contracts check");
+    // Retain the complete checked contracts used by Native generation. Runtime
+    // authoring imports these facts rather than checking the compiled source again.
+    let authoring_types: Vec<authoring_types::CompiledType> = semantic
+        .native_types
+        .iter()
+        .map(|ty| {
+            (
+                ty.name.clone(),
+                ty.identity.as_str().into(),
+                ty.value_type
+                    .canonical_bytes()
+                    .expect("checked Type encodes"),
+                ty.value_contracts
+                    .iter()
+                    .map(|contract| {
+                        (
+                            contract.representation_path.clone(),
+                            contract.contract.clone(),
+                        )
+                    })
+                    .collect(),
+                ty.invariants
+                    .iter()
+                    .map(|law| law.canonical_bytes().expect("checked law encodes"))
+                    .collect(),
+            )
+        })
+        .collect();
+    let authoring_bytes =
+        postcard::to_allocvec(&(semantic.source_document_id.as_str(), authoring_types))
+            .expect("compiled Types encode");
+    assert_eq!(
+        authoring_types::decode(&authoring_bytes, semantic.source_document_id.as_str())
+            .expect("compiled Types decode"),
+        semantic.native_types,
+        "compiled authoring retains every exact Type contract and law"
+    );
+    fs::write(
+        PathBuf::from(env::var_os("OUT_DIR").unwrap()).join("authoring_types.bin"),
+        authoring_bytes,
+    )
+    .unwrap();
     let expanded = expand_canonical_plot_for_authoring(
         &semantic,
         "speech/linguistic-prosody",

@@ -164,3 +164,28 @@ parameters/imports. #5317 owns the proposed `ph[…]`, `ph/…/` and `r/…/flag
 notation families. They must lower to this same checked contract; no delimiter
 grammar, formatter conformance, audio or full utterance IR is claimed here.
 #5260 stays open until its public-canon and accepted-integration gates are met.
+
+## Installed preparation and bounded rendezvous
+
+The compiled authoring catalog retains the same checked Native Type identities,
+representations, refinement contracts and portable invariant programs used by
+Native generation. The build checks the complete owning Source and asserts exact
+equality after encoding and decoding that catalog. Runtime Source admission and
+Host/authority checks remain independent; the compiled catalog grants neither
+availability nor authority. Per-Source catalog copies retain isolation.
+
+This removes repeated cold checking of the compiled Speech declarations from an
+installed Birth action. All five automated installed screen-free Birth tests pass
+locally with the existing two-second control deadline, including interrupted
+publication recovery and retained-owner reentry. The real-speaker test retains
+its existing environment-dependent exclusion.
+
+The running-Host rendezvous retains a complete advertisement for admission under
+its finite 512 KiB frame bound. Its separate 200 KiB operation receipt carries
+Host/Boot identity, offer generation, capability counts and an exact JSON digest
+and byte count, with advertisement omission explicit. It does not replace the
+advertisement used to admit Part and offers or enlarge the evidence ceilings.
+The live Chromium rendezvous regression passes with complete Part and offer
+admission. The native release is 58.58 MiB under the unchanged 64 MiB installer
+limit. Required exact-head Candidate acceptance remains pending for these
+integration corrections.

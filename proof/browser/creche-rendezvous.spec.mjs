@@ -59,6 +59,14 @@ test("a rendezvous code admits one already-running raw Host through the web Crè
     const offer = after.current_host_offers.find(item => item.host_id === evidence.observation.host_id);
     expect(offer).toMatchObject({ host_id: evidence.observation.host_id, boot_id: evidence.observation.boot_id });
     expect(offer.capabilities.length).toBeGreaterThan(0);
+    expect(evidence.observation.advertisement_summary).toMatchObject({
+      host_id: evidence.observation.host_id,
+      boot_id: evidence.observation.boot_id,
+      capability_count: offer.capabilities.length,
+    });
+    expect(evidence.observation.advertisement_summary.json_bytes).toBeGreaterThan(200 * 1024);
+    expect(evidence.observation.advertisement_summary.json_sha256).toMatch(/^sha256:[0-9a-f]{64}$/);
+
     await expectProcessSuccess(running);
   } finally {
     try {
