@@ -387,3 +387,56 @@ fn shipped_type_conflict_does_not_partially_mutate_the_import_catalog() {
     assert!(exports.install_shipped_types(&mut catalog).is_err());
     assert_eq!(catalog, before);
 }
+
+#[test]
+fn shipped_value_families_use_owner_dependencies_and_transparent_import_aliases() {
+    let manifest_source = "pack example/shapes (\n version = 1.0.0\n) {\n ship History\n}\n";
+    let manifest_document = parse_syntax_document(manifest_source);
+    let manifest = &manifest_document.packages[0];
+    let source = "type Dimension = U16 in 1..=64\ntype Sample = U8 in 1..=255\ntype Vector<N: Dimension> = collection Sample = N\ntype History<H: Dimension, D: Dimension> = collection Vector<D> = H\n";
+    let sources = [PackageMemberSource {
+        path: "main",
+        source,
+    }];
+    let bundle = CheckedPackageBundle::from_sources(manifest_source, manifest, &sources).unwrap();
+    let exports =
+        PackageExportCatalog::from_bundle(&bundle, manifest_source, manifest, &sources).unwrap();
+    let mut catalog = StartupCatalog::new();
+    assert!(exports
+        .install_shipped_types(&mut catalog)
+        .unwrap()
+        .is_empty());
+    let consumer =
+        "with example/shapes/History as Frames\ntype Sample = U32\ntype Value = Frames<2, 32>\n";
+    let first = check_syntax_document(&parse_syntax_document(consumer), &catalog).unwrap();
+    let second = check_syntax_document(
+        &parse_syntax_document(&consumer.replace("Frames", "Archive")),
+        &catalog,
+    )
+    .unwrap();
+    let owner = check_syntax_document(
+        &parse_syntax_document(&format!("{source}type Value = History<2, 32>\n")),
+        &StartupCatalog::new(),
+    )
+    .unwrap();
+    let value = |checked: &crate::CheckedSyntaxDocument| {
+        checked
+            .native_types
+            .iter()
+            .find(|value| value.name == "Value")
+            .unwrap()
+            .clone()
+    };
+    assert_eq!(value(&first), value(&second));
+    assert_eq!(value(&first), value(&owner));
+    let failure = check_syntax_document(
+        &parse_syntax_document(&consumer.replace("Frames<2, 32>", "Frames<2, 65>")),
+        &catalog,
+    )
+    .unwrap_err();
+    assert!(
+        failure.message.contains("scalar contract"),
+        "{}",
+        failure.message
+    );
+}

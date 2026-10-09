@@ -255,7 +255,7 @@ pub(crate) fn resolve_use_declarations(
     }
     for declaration in &document.uses {
         let path = declaration.path.as_str();
-        if catalog.structured_type(path).is_some() {
+        if catalog.structured_type(path).is_some() || catalog.native_families.contains_key(path) {
             continue;
         }
         let canonical = if catalog.get(path).is_some() || plots.contains_key(path) {

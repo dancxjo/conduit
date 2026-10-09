@@ -145,7 +145,11 @@ impl Context<'_> {
                     ));
                 };
                 let (resolved, bindings) = self.bind(template, arguments, substitutions, *span)?;
-                let key = family_key(template, &resolved, &bindings.parameter_contracts);
+                let key = family_key(
+                    self.origin(template),
+                    &resolved,
+                    &bindings.parameter_contracts,
+                );
                 if self.active.contains(&key)
                     || self.active.len() >= MAXIMUM_GENERIC_INSTANTIATION_DEPTH
                 {
@@ -177,7 +181,7 @@ impl Context<'_> {
                     self.active.push(key.clone());
                     let definition = self.definition(&template.definition, &bindings)?;
                     self.active.pop();
-                    let generated_name = instantiated_name(&value_type.text, &key);
+                    let generated_name = instantiated_name(&self.origin(template).name.text, &key);
                     self.generated.insert(
                         key.clone(),
                         TypeSyntax {

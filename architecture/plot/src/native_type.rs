@@ -9,6 +9,7 @@ use conduit_core::{
     data_reference_kind, kind_id, CheckedValueContract, KindId, StructuredFieldType,
     StructuredInfoType, StructuredVariantCase,
 };
+pub(crate) mod family;
 mod generic;
 mod identity;
 mod invariant;
@@ -26,8 +27,7 @@ pub(crate) fn check_native_types(
     declarations: &[TypeSyntax],
     base: &StartupCatalog,
 ) -> Result<(Vec<CheckedNativeType>, StartupCatalog), SyntaxCheckDiagnostic> {
-    let (declarations, public_names) = generic::instantiate(declarations, base)?;
-    let mut catalog = base.clone();
+    let (declarations, public_names, mut catalog) = generic::instantiate(declarations, base)?;
     let mut by_name = alloc::collections::BTreeMap::new();
     for declaration in &declarations {
         if by_name

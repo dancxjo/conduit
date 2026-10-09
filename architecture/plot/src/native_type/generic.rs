@@ -8,6 +8,7 @@ use alloc::collections::{BTreeMap, BTreeSet};
 mod binding;
 mod budget;
 mod canonical;
+mod imports;
 mod integer;
 mod law;
 mod parameter;
@@ -27,7 +28,7 @@ const MAXIMUM_GENERIC_INSTANTIATION_DEPTH: usize = 32;
 pub(super) fn instantiate(
     declarations: &[TypeSyntax],
     catalog: &crate::StartupCatalog,
-) -> Result<(Vec<TypeSyntax>, BTreeSet<String>), SyntaxCheckDiagnostic> {
+) -> Result<(Vec<TypeSyntax>, BTreeSet<String>, crate::StartupCatalog), SyntaxCheckDiagnostic> {
     budget::validate(declarations)?;
     let mut names = BTreeSet::new();
     let mut generics = BTreeMap::new();
@@ -74,6 +75,24 @@ pub(super) fn instantiate(
         }
     }
 
+    let imports = imports::Imports::prepare(catalog)?;
+    for template in &imports.templates {
+        generics.insert(template.name.text.as_str(), template);
+    }
+    for (alias, name) in &imports.aliases {
+        if names.contains(alias.as_str()) {
+            return Err(error(
+                declarations[0].name.span,
+                alloc::format!("imported Type family '{alias}' conflicts with a local declaration"),
+            ));
+        }
+        let template = imports
+            .templates
+            .iter()
+            .find(|template| template.name.text == *name)
+            .expect("captured family root");
+        generics.insert(alias.as_str(), template);
+    }
     let aliases = declarations
         .iter()
         .filter_map(|declaration| {
@@ -106,11 +125,12 @@ pub(super) fn instantiate(
             })
         })
         .collect();
-    let parameter_catalog = parameter::prepare(declarations, catalog)?;
+    let parameter_catalog = parameter::prepare(declarations, &imports.catalog)?;
     let mut context = Context {
         declarations,
         catalog: &parameter_catalog,
         generics,
+        origins: &imports.origins,
         aliases,
         generated: BTreeMap::new(),
         active: Vec::new(),
@@ -149,13 +169,14 @@ pub(super) fn instantiate(
             .map(|declaration| declaration.name.text.clone()),
     );
     concrete.extend(context.generated.into_values());
-    Ok((concrete, public))
+    Ok((concrete, public, imports.catalog))
 }
 
 struct Context<'a> {
     declarations: &'a [TypeSyntax],
     catalog: &'a crate::StartupCatalog,
     generics: BTreeMap<&'a str, &'a TypeSyntax>,
+    origins: &'a BTreeMap<String, TypeSyntax>,
     aliases: BTreeMap<String, SpannedText>,
     generated: BTreeMap<String, TypeSyntax>,
     active: Vec<String>,
@@ -164,6 +185,10 @@ struct Context<'a> {
 }
 
 impl Context<'_> {
+    fn origin<'a>(&'a self, template: &'a TypeSyntax) -> &'a TypeSyntax {
+        self.origins.get(&template.name.text).unwrap_or(template)
+    }
+
     fn public_definition(
         &mut self,
         definition: &TypeDefinitionSyntax,
@@ -191,7 +216,11 @@ impl Context<'_> {
                 .map(|definition| (definition, None, Bindings::default()));
         };
         let (resolved, bindings) = self.bind(template, arguments, &Bindings::default(), *span)?;
-        let key = canonical::family_key(template, &resolved, &bindings.parameter_contracts);
+        let key = canonical::family_key(
+            self.origin(template),
+            &resolved,
+            &bindings.parameter_contracts,
+        );
         self.active.push(key.clone());
         let result = self.definition(&template.definition, &bindings);
         self.active.pop();

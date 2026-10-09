@@ -7,6 +7,25 @@ pub(crate) fn install_import_aliases(
 ) -> Result<StartupCatalog, SyntaxCheckDiagnostic> {
     let mut catalog = base.clone();
     for declaration in &document.uses {
+        if let Some(family) = base.native_families.get(&declaration.path) {
+            if !document_mentions_type(document, &declaration.alias.text) {
+                return Err(super::diagnostic(
+                    declaration.alias.span,
+                    alloc::format!("unused with Type family alias '{}'", declaration.alias.text),
+                ));
+            }
+            if catalog
+                .native_families
+                .insert(declaration.alias.text.clone(), family.clone())
+                .is_some()
+            {
+                return Err(super::diagnostic(
+                    declaration.alias.span,
+                    "duplicate Type family import alias".into(),
+                ));
+            }
+            continue;
+        }
         let Some(value_type) = base.structured_type(&declaration.path).cloned() else {
             continue;
         };

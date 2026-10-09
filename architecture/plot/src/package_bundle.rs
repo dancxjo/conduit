@@ -300,10 +300,22 @@ impl PackageExportCatalog {
         &self,
         catalog: &mut crate::StartupCatalog,
     ) -> Result<Vec<crate::CheckedNativeType>, crate::SyntaxCheckDiagnostic> {
-        let (checked, _) = crate::native_type::check_native_types(&self.type_definitions, catalog)?;
+        let (checked, owner) =
+            crate::native_type::check_native_types(&self.type_definitions, catalog)?;
         let mut staged = catalog.clone();
         let mut shipped = Vec::new();
         for (source_path, syntax) in &self.type_exports {
+            if !syntax.parameters.is_empty() {
+                crate::native_type::family::install(
+                    &mut staged,
+                    source_path,
+                    syntax,
+                    &self.type_definitions,
+                    &owner,
+                    self.package_content_digest,
+                )?;
+                continue;
+            }
             let value_type = checked
                 .iter()
                 .find(|candidate| candidate.name == syntax.name.text)
