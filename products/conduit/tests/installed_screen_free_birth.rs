@@ -153,6 +153,10 @@ fn zero_body_client_refuses_two_plots_then_continues_one_retained_body() {
     assert!(
         String::from_utf8_lossy(&started.stdout).contains("conduit.body/service-run-requested@1")
     );
+    // Start acknowledges admission; the service begins the Play asynchronously.
+    // Observe the public lull action before requesting the lifecycle transition.
+    let playing = wait_for_available_action(&state, "conduit.intent/lull-clock@1");
+    assert_eq!(playing["presentation"]["basis"]["body_id"], body_id);
     let lull = product(&["body", "lull", "--state-dir", path(&state)]);
     assert!(
         lull.status.success(),

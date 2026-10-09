@@ -29,6 +29,31 @@ It verifies the surviving IDs, order, text, completion, and revision.
 Durability and Mask demonstrations have their own proof surfaces and are not
 established by this core check.
 
+The installed core replay additionally executes the unchanged `live.conduit`
+on two fresh std Hosts and independent fixture Bodies. Both receive the same
+seven commands: add Milk, Eggs and Bread; complete Milk twice; reopen Milk;
+remove Eggs. Each emitted state is checked against an explicit expected state,
+decoded and re-encoded, and compared byte-for-byte across the replays. The final
+state has revision 6, next ID 4, and open items `task-1` Milk and `task-3` Bread.
+Repeated completion has identical state bytes and revision. Missing-item remove
+and completion produce terminal failure after the three valid adds, with no
+state output for the refused command; empty text refuses before encoding.
+
+`cargo xtask check todo-state` prints `TODO_CORE_REPLAY_RECEIPT` and
+`TODO_CORE_REFUSAL_RECEIPT`, retaining Source/checked Plot, exact commands and
+state digests, selected Plan/Play, child invocation correlation and terminal
+Sign. These are independent replay fixtures, not a Host handoff or persistence
+demonstration. The [core replay packet](../../proof/todo/core-replay/README.md)
+records the expected ordered states and exact digest trace.
+
+The serialization boundary for #5265 is the bounded binary Form under exact
+Info Kinds `conduit.todo/state@1` and `conduit.todo/command@1`, decoded only by
+their owning checked codec. Encoding, decoding and semantic admission refuse
+malformed, oversized or invalid state; rendered JSON is not this wire contract.
+The resource envelope must separately bind Body/list, selected generation,
+provider, authority and acknowledged read/write evidence. These pure bytes and
+digests alone do not establish durable publication.
+
 ## Earlier generic JSON composition
 
 
