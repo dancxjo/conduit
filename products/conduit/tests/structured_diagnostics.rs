@@ -83,3 +83,28 @@ fn quoted_ipa_refusal_preserves_the_authored_escape_in_human_and_json_diagnostic
     assert!(human.contains("CND-SPC-IPA"));
     fs::remove_file(path).unwrap();
 }
+
+#[test]
+fn reusable_basis_refusal_locates_the_declared_revision_in_both_renderers() {
+    let source = include_str!("../../../semantics/speech/examples/ipa/reusable-basis.conduit")
+        .replacen(
+            "revision: \"revision/test\"",
+            "revision: \"revision/stale\"",
+            1,
+        );
+    let path = plot_path("ipa-basis", &source);
+    let human = diagnose(&path, false);
+    let machine = diagnose(&path, true);
+    assert!(!human.status.success());
+    assert!(!machine.status.success());
+    let diagnostics: Value = serde_json::from_slice(&machine.stdout).unwrap();
+    let diagnostic = &diagnostics[0];
+    assert_eq!(diagnostic["code"], "CND-SPC-IPA");
+    let start = diagnostic["primary_span"]["start"].as_u64().unwrap() as usize;
+    let end = diagnostic["primary_span"]["end"].as_u64().unwrap() as usize;
+    assert_eq!(&source[start..end], "\"revision/stale\"");
+    assert_eq!(diagnostic["source_document_id"].as_str().unwrap().len(), 64);
+    let human = String::from_utf8(human.stdout).unwrap();
+    assert!(human.contains(diagnostic["summary"].as_str().unwrap()));
+    fs::remove_file(path).unwrap();
+}
