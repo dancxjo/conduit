@@ -10,6 +10,11 @@ import { validateTodoJourney } from '../../tools/ci/pipeline/todo-journey.mjs';
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
 const read = file => JSON.parse(readFileSync(file));
 const textType = 'text/plain; charset=utf-8';
+const foreDigest = value => {
+  assert.equal(typeof value, 'string');
+  assert.match(value, /^sha256:[a-f0-9]{64}$/);
+  return value.slice('sha256:'.length);
+};
 
 export function finalizeTodoJourney(captureRoot) {
   const raw = read(path.join(captureRoot, 'live-run.json'));
@@ -147,7 +152,8 @@ export function finalizeTodoJourney(captureRoot) {
         pcm: batch.pcm_sha256, text: batch.spoken_segments.join(' ') } })));
   chapter('recover', { ...stamp(recovery.browser), observed_at_unix_ms: recovery.observed_at_unix_ms },
     { previous_boot_id: recovery.previous_boot_id, new_boot_id: recovery.new_boot_id,
-      pre_lull_state_sha256: recovery.pre_lull_state_sha256, recovered_state_sha256: recovery.recovered_state_sha256 },
+      pre_lull_state_sha256: foreDigest(recovery.pre_lull_state_sha256),
+      recovered_state_sha256: foreDigest(recovery.recovered_state_sha256) },
     [{ source: 'chromium', file: 'recovery/browser/browser-reencounter.png', alt: 'The same list reencountered after a fresh Owner Boot' }]);
   // Preserve the original producer bytes, including exact Rust u64 fields.
   add('live-run', 'machine-readable-manifest', readFileSync(path.join(captureRoot, 'live-run.json')), 'application/json');
