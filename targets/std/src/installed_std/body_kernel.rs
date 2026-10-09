@@ -1105,3 +1105,7 @@ mod activation_binding_tests;
 #[cfg(test)]
 #[path = "body_kernel/live_fore_tests.rs"]
 mod live_fore_tests;
+
+#[cfg(test)]
+#[path = "body_kernel/todo_core_replay_tests.rs"]
+mod todo_core_replay_tests;
