@@ -7,7 +7,7 @@ use conduit_core::{
     ResourceReferenceAccessRefusal, ResourceReferenceBinding,
 };
 
-use crate::{model_content_digest, ModelArtifact, ModelCompatibilityRefusal, ModelSignature};
+use crate::{ModelArtifact, ModelCompatibilityRefusal, ModelSignature, model_content_digest};
 
 pub const MODEL_READ_AUTHORITY: &str = "conduit.model/read-immutable-artifact@1";
 
@@ -87,3 +87,6 @@ impl AdmittedModelResource {
         self.descriptor_identity
     }
 }
+
+mod storage;
+pub use storage::{ModelResourcePreparationRefusal, ModelResourceStorageReceipt};

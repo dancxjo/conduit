@@ -98,6 +98,31 @@ impl ModelArtifact {
         Ok(())
     }
 
+    /// Allocation-free size of the unchanged v1 manual descriptor encoding.
+    pub fn descriptor_encoding_length(&self) -> Option<usize> {
+        self.architecture_profile
+            .len()
+            .checked_add(self.format_profile.len())?
+            .checked_add(self.precision_profile.len())?
+            .checked_add(6 + 4 + 32 + 32)
+    }
+    /// Actual requested payload capacities, excluding inline root/bookkeeping.
+    pub fn owned_heap_bytes(&self) -> usize {
+        self.architecture_profile
+            .capacity()
+            .saturating_add(self.format_profile.capacity())
+            .saturating_add(self.precision_profile.capacity())
+            .saturating_add(self.content.content_profile.owned_heap_bytes())
+            .saturating_add(self.content.access_class.owned_heap_bytes())
+            .saturating_add(
+                self.content
+                    .lifetime
+                    .expires_at
+                    .as_ref()
+                    .map_or(0, |v| v.clock_basis.capacity()),
+            )
+    }
+
     pub fn content_identity(&self) -> [u8; 32] {
         self.content.identity.digest()
     }
@@ -107,7 +132,10 @@ impl ModelArtifact {
         signature: &ModelSignature,
     ) -> Result<[u8; 32], ModelCompatibilityRefusal> {
         self.validate(signature)?;
-        let mut bytes = Vec::new();
+        let capacity = self
+            .descriptor_encoding_length()
+            .ok_or(ModelCompatibilityRefusal::InvalidArtifact)?;
+        let mut bytes = Vec::with_capacity(capacity);
         push_text(&mut bytes, &self.architecture_profile);
         push_text(&mut bytes, &self.format_profile);
         push_text(&mut bytes, &self.precision_profile);
