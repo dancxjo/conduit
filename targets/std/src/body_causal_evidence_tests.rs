@@ -298,6 +298,7 @@ fn report(terminal: TerminalDisposition) -> BodyRunReport {
         wake_at_start: wake,
         terminal,
         failure: None,
+        kernel_failure: None,
         cleanup_failure: None,
         terminal_sign: conduit_core::SignIdentity {
             sign_id: "sign/terminal".into(),

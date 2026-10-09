@@ -459,6 +459,9 @@ impl Owner {
             "read_play":report.play,
             "read_terminal":report.terminal,
             "read_failure":report.failure,
+            "read_kernel_failure":report.kernel_failure.map(|failure| serde_json::json!({
+                "code":failure.code.as_str(), "detail":failure.detail,
+            })),
             "read_cleanup_failure":report.cleanup_failure,
             "read_terminal_sign":report.terminal_sign,
             "read_host_call":report.requests.first().map(|call| serde_json::json!({

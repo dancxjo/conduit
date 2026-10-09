@@ -3,9 +3,10 @@
 
 use super::{clock_interval, Owner};
 use conduit_presentation::{
-    CommittedFaceAdmission, CommittedStateContributionBasis, CommittedStateSelection, Face,
-    FaceContext, FaceContribution, FaceContributionRole, FaceFocus, FaceInteraction, FaceNames,
-    FaceResidentPlotName, MaskShow, Presentation, PresentationContributionBasis,
+    CommittedFaceAdmission, CommittedStateContributionBasis, CommittedStateEvidenceRefusal,
+    CommittedStateSelection, Face, FaceContext, FaceContribution, FaceContributionRole, FaceFocus,
+    FaceInteraction, FaceNames, FaceResidentPlotName, MaskShow, Presentation,
+    PresentationContributionBasis,
 };
 use conduit_todo_face::{todo_command_from_contributed_interaction, todo_fragment};
 use conduit_todo_plot::{TodoCommand, TodoState};
@@ -19,14 +20,36 @@ impl Owner {
     ) -> Result<Presentation, String> {
         let receipt = self
             .todo_verified_read_receipt()
-            .ok_or("Todo has no verified selected read")?;
+            .ok_or(CommittedStateEvidenceRefusal::MissingReadReceipt.as_str())?;
+        if !receipt["read_terminal_sign"]["sign_id"].is_string()
+            || !receipt["write"]["terminal_sign"]["sign_id"].is_string()
+        {
+            return Err(CommittedStateEvidenceRefusal::MissingTerminalSign
+                .as_str()
+                .into());
+        }
+        if receipt["read_terminal"] != "Completed"
+            || !receipt["read_failure"].is_null()
+            || !receipt["read_cleanup_failure"].is_null()
+            || !receipt["read_kernel_failure"].is_null()
+            || receipt["write"]["terminal"] != "Completed"
+            || !receipt["write"]["failure"].is_null()
+            || !receipt["write"]["cleanup_failure"].is_null()
+        {
+            return Err(CommittedStateEvidenceRefusal::FailedTerminalSign
+                .as_str()
+                .into());
+        }
         let encoded = state.encode_info().map_err(super::debug)?;
         let mut digest = [0; 32];
         digest.copy_from_slice(&Sha256::digest(&encoded));
         let expected_sha = format!("sha256:{:x}", Sha256::digest(&encoded));
-        if basis.state_digest != digest
-            || receipt["restored_fore_sha256"] != expected_sha
-            || receipt["body_id"] != basis.body_id.as_str()
+        if basis.state_digest != digest || receipt["restored_fore_sha256"] != expected_sha {
+            return Err(CommittedStateEvidenceRefusal::ReadDigestMismatch
+                .as_str()
+                .into());
+        }
+        if receipt["body_id"] != basis.body_id.as_str()
             || receipt["read_plan_id"] != basis.read.plan_id.as_str()
             || receipt["read_play"]["active_play_id"] != basis.read.play_id.as_str()
             || receipt["read_terminal_sign"]["sign_id"] != basis.read.terminal_sign_id.as_str()
@@ -34,9 +57,16 @@ impl Owner {
             || receipt["write"]["play"]["active_play_id"] != basis.write.play_id.as_str()
             || receipt["write"]["terminal_sign"]["sign_id"] != basis.write.terminal_sign_id.as_str()
         {
-            return Err("Todo verified Face differs from retained read/write evidence".into());
+            return Err(CommittedStateEvidenceRefusal::EvidenceMismatch
+                .as_str()
+                .into());
         }
         let advertised = self.host.advertisement();
+        if receipt["read_terminal_sign"]["host_id"] != advertised.host_id.as_str()
+            || receipt["read_terminal_sign"]["boot_id"] != advertised.boot_id.as_str()
+        {
+            return Err(CommittedStateEvidenceRefusal::BootChanged.as_str().into());
+        }
         let mut selected = advertised.resources.iter().filter_map(|resource| {
             (resource.class_id.as_str() == "resource/todo-checkpoint@1")
                 .then_some(resource.content.as_ref())
@@ -49,7 +79,9 @@ impl Owner {
             || content.contract.access != conduit_core::ResourceAccessMode::ReadPublished
             || receipt["selected_content"] != serde_json::json!(content.contract)
         {
-            return Err("Todo verified Face has stale selected resource".into());
+            return Err(CommittedStateEvidenceRefusal::ReadVersionMismatch
+                .as_str()
+                .into());
         }
         let current_selection = CommittedStateSelection {
             resource: content.contract.identity,

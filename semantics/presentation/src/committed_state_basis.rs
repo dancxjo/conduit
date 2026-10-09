@@ -67,8 +67,26 @@ pub enum CommittedStateEvidenceRefusal {
     FailedTerminalSign,
     ReadVersionMismatch,
     ReadDigestMismatch,
+    EvidenceMismatch,
     CorruptCheckpoint,
     BootChanged,
+}
+
+impl CommittedStateEvidenceRefusal {
+    /// Stable machine-readable evidence verdict, independent of human detail.
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::MissingWriteReceipt => "todo-committed-missing-write",
+            Self::MissingReadReceipt => "todo-committed-missing-read",
+            Self::MissingTerminalSign => "todo-committed-missing-sign",
+            Self::FailedTerminalSign => "todo-committed-failed-sign",
+            Self::ReadVersionMismatch => "todo-committed-stale-version",
+            Self::ReadDigestMismatch => "todo-committed-digest-mismatch",
+            Self::EvidenceMismatch => "todo-committed-evidence-mismatch",
+            Self::CorruptCheckpoint => "todo-committed-corrupt-checkpoint",
+            Self::BootChanged => "todo-committed-wrong-boot",
+        }
+    }
 }
 
 const MAX_OPERATION_ID_BYTES: usize = 128;

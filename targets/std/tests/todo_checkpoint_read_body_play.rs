@@ -712,10 +712,24 @@ fn missing_stale_and_corrupt_versions_never_emit_state() {
         let root = root();
         let (missing, fore) = restore(&root, 2);
         assert_ne!(missing.terminal, TerminalDisposition::Completed);
+        assert_eq!(
+            missing.kernel_failure,
+            Some(conduit_kernel::Failure {
+                code: conduit_kernel::FailureCode::HostCallFailed,
+                detail: 1,
+            })
+        );
         assert!(fore.0.is_empty());
         seed(&root);
         let (stale, fore) = restore(&root, 3);
         assert_ne!(stale.terminal, TerminalDisposition::Completed);
+        assert_eq!(
+            stale.kernel_failure,
+            Some(conduit_kernel::Failure {
+                code: conduit_kernel::FailureCode::HostCallFailed,
+                detail: 3,
+            })
+        );
         assert!(fore.0.is_empty());
         let mut other_namespace = identity();
         other_namespace.workload = "other-todo-list".into();
@@ -735,6 +749,13 @@ fn missing_stale_and_corrupt_versions_never_emit_state() {
         std::fs::write(candidate, b"corrupt").unwrap();
         let (corrupt, fore) = restore(&root, 2);
         assert_ne!(corrupt.terminal, TerminalDisposition::Completed);
+        assert_eq!(
+            corrupt.kernel_failure,
+            Some(conduit_kernel::Failure {
+                code: conduit_kernel::FailureCode::HostCallFailed,
+                detail: 2,
+            })
+        );
         assert!(fore.0.is_empty());
         std::fs::remove_dir_all(root).unwrap();
     });

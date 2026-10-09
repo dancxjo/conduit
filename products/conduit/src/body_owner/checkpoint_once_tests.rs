@@ -460,6 +460,51 @@ fn waiting_owner_admits_exact_show_action_then_retains_commit_and_sign() {
         .contract
         .clone();
     let first_read_receipt = owner.todo_verified_read_receipt().unwrap().clone();
+    // A matching digest and Sign ID cannot lend a different Boot its witness.
+    owner.last_execution.as_mut().unwrap()["read_terminal_sign"]["boot_id"] =
+        serde_json::json!("boot/foreign-read-witness");
+    assert_eq!(
+        owner.local_face_snapshot().unwrap_err(),
+        "todo-committed-wrong-boot"
+    );
+    owner.last_execution = Some(first_read_receipt.clone());
+    assert!(owner.local_face_snapshot().is_ok());
+    for (field, value, code) in [
+        (
+            "verified",
+            serde_json::json!(false),
+            "todo-committed-missing-read",
+        ),
+        (
+            "restored_fore_sha256",
+            serde_json::json!("sha256:foreign"),
+            "todo-committed-digest-mismatch",
+        ),
+        (
+            "body_id",
+            serde_json::json!("body/foreign"),
+            "todo-committed-evidence-mismatch",
+        ),
+        (
+            "read_terminal_sign",
+            serde_json::Value::Null,
+            "todo-committed-missing-sign",
+        ),
+        (
+            "read_failure",
+            serde_json::json!("failed read"),
+            "todo-committed-failed-sign",
+        ),
+        (
+            "read_kernel_failure",
+            serde_json::json!({"code":"host_call_failed","detail":2}),
+            "todo-committed-failed-sign",
+        ),
+    ] {
+        owner.last_execution.as_mut().unwrap()[field] = value;
+        assert_eq!(owner.local_face_snapshot().unwrap_err(), code);
+        owner.last_execution = Some(first_read_receipt.clone());
+    }
     let next_selection =
         super::super::super::super::next_selected_todo_checkpoint(&state_root).unwrap();
     let next_write = next_selection.write_content();
@@ -695,6 +740,10 @@ fn corrupt_selected_read_lulls_without_claiming_verified_todo() {
     );
     assert!(owner.todo_verified_read_receipt().is_none());
     assert_eq!(owner.last_execution.as_ref().unwrap()["verified"], false);
+    assert_eq!(
+        owner.last_execution.as_ref().unwrap()["read_kernel_failure"],
+        serde_json::json!({"code":"host_call_failed", "detail":2}),
+    );
     std::fs::remove_dir_all(state_root).unwrap();
 }
 
