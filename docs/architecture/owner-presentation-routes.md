@@ -99,6 +99,27 @@ Starting workload execution requires detaching this provider because the current
 owner moves StdHost into its workload worker. Presentation during active workload
 execution is not claimed by this installed terminal slice.
 
+## Explicit direct spoken reading
+
+After selecting the direct spoken Mask and acknowledging its opening Show, request
+remaining primary items from that same current Face:
+
+```sh
+conduit body spoken-mask --state-dir <installation-directory> read-remaining
+conduit body spoken-mask --state-dir <installation-directory> status <operation-id>
+conduit body spoken-mask --state-dir <installation-directory> stop <operation-id>
+```
+
+The request uses the existing bounded spoken reader and selected speech worker.
+It requires the acknowledged direct Show, current route seal and selected equipment;
+missing acknowledgement, stale Face or changed Host offers refuse. It reads primary
+items, leaving completed items at inspection disclosure, and retains the original
+Face and Show identities. An empty selection uses the reader's “No current items.”
+response. Execution admits at most 64 speech batches. Status records the
+`remaining-items` scope and actual completed batch receipts; cancellation restores
+the owner's Host. Admission and text selection tests do not establish audible
+speaker delivery.
+
 ## Proof and scope
 
 Run the bounded deterministic and actual Unix-provider acceptance through:

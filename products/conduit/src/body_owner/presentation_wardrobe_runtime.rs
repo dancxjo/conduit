@@ -221,6 +221,13 @@ impl Owner {
     }
 
     pub(crate) fn validate_selected_native_show(&mut self, show: &MaskShow) -> Result<(), String> {
+        if self.selected_owner_show()? != *show {
+            return Err("native Mask Show differs from selected owner Show".into());
+        }
+        Ok(())
+    }
+
+    pub(crate) fn selected_owner_show(&mut self) -> Result<MaskShow, String> {
         let face = self.local_face_snapshot()?;
         let local = Self::current_attached_terminal_route(
             &self.host,
@@ -257,10 +264,7 @@ impl Owner {
             .ok_or("owner presentation wardrobe is not admitted")?
             .selected_show(&self.session, &face, &current)
             .map_err(wardrobe_error)?;
-        if selected != show {
-            return Err("native Mask Show differs from selected owner Show".into());
-        }
-        Ok(())
+        Ok(selected.clone())
     }
 
     /// The installed owner keeps the Body-lifetime wardrobe. The attached

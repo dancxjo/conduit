@@ -182,6 +182,31 @@ impl Owner {
         Ok(seal)
     }
 
+    /// Continue only the currently acknowledged direct Show. Reading chooses
+    /// content from this Face; it never acknowledges or creates another Show.
+    pub(crate) fn prepare_selected_direct_spoken_read(
+        &mut self,
+    ) -> Result<(LocalOwnerMaskRouteSeal, Presentation, MaskShow), String> {
+        let seal = self.selected_direct_spoken_seal()?;
+        let show = self.selected_owner_show()?;
+        if show.mask_plot != seal.planned_mask.mask.plot_identity {
+            return Err("selected Show is not the direct spoken Mask".into());
+        }
+        Ok((seal, self.local_face_snapshot()?, show))
+    }
+
+    pub(crate) fn validate_selected_direct_spoken_read(
+        &mut self,
+        seal: &LocalOwnerMaskRouteSeal,
+        show: &MaskShow,
+    ) -> Result<(), String> {
+        let (current_seal, _, current_show) = self.prepare_selected_direct_spoken_read()?;
+        if current_seal != *seal || current_show != *show {
+            return Err("direct spoken read source changed".into());
+        }
+        Ok(())
+    }
+
     /// Prepare the exact selected route before handing the sole Host to a
     /// cancellable worker. Preparation has no effect and mints no Show.
     pub(crate) fn prepare_selected_direct_spoken_start(
