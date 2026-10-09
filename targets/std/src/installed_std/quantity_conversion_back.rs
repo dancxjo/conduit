@@ -10,6 +10,7 @@ use conduit_plot::quantity_conversion as conversion;
 use std::fmt::Write;
 
 pub(super) const IMPLEMENTATION: &str = "conduit.std/exact-quantity-conversion@1";
+const DIFFERENCE_IMPLEMENTATION: &str = "conduit.std/exact-temperature-difference-conversion@1";
 const PROFILE: &str = "conduit.std/prepared-quantity-receipt@1";
 pub(super) static FACTORY: BackFactory = BackFactory {
     implementation_id: IMPLEMENTATION,
@@ -17,7 +18,29 @@ pub(super) static FACTORY: BackFactory = BackFactory {
     prepare,
 };
 
-pub(crate) fn offer() -> CapabilityOffer {
+pub(super) static DIFFERENCE_FACTORY: BackFactory = BackFactory {
+    implementation_id: DIFFERENCE_IMPLEMENTATION,
+    budget,
+    prepare,
+};
+pub(crate) fn offers() -> [CapabilityOffer; 2] {
+    [
+        offer(),
+        offer_for(conversion::temperature_difference::KIND).expect("reviewed difference Kind"),
+    ]
+}
+fn offer() -> CapabilityOffer {
+    offer_for(conversion::KIND).expect("reviewed quantity Kind")
+}
+fn offer_for(kind: &str) -> Option<CapabilityOffer> {
+    let (contract, implementation) = match kind {
+        conversion::KIND => (conversion::contract(), IMPLEMENTATION),
+        conversion::temperature_difference::KIND => (
+            conversion::temperature_difference::contract(),
+            DIFFERENCE_IMPLEMENTATION,
+        ),
+        _ => return None,
+    };
     // The installed Back, codec, resolver, reviewed transforms and receipt
     // schema participate in the artifact. No ambient file or external provider
     // substitutes for these compiled sources.
@@ -26,6 +49,12 @@ pub(crate) fn offer() -> CapabilityOffer {
         concat!(
             include_str!("quantity_conversion_back.rs"),
             include_str!("../../../../architecture/plot/src/quantity_conversion.rs"),
+            include_str!("../../../../architecture/plot/src/quantity_conversion/encoding.rs"),
+            include_str!("../../../../architecture/plot/src/quantity_conversion/profile.rs"),
+            include_str!(
+                "../../../../architecture/plot/src/quantity_conversion/temperature_difference.rs"
+            ),
+            include_str!("../../../../architecture/core/src/quantity/temperature_difference.rs"),
             include_str!("../../../../architecture/core/src/quantity.rs"),
             include_str!("../../../../architecture/core/src/quantity_prefix.rs"),
             include_str!("../../../../architecture/core/src/quantity_suffix.rs"),
@@ -42,23 +71,31 @@ pub(crate) fn offer() -> CapabilityOffer {
     for byte in digest {
         write!(&mut artifact, "{byte:02x}").expect("write digest");
     }
-    BackOfferBuilder::new(
-        conversion::contract(),
-        Back {
-            capability_id: CapabilityId::from(IMPLEMENTATION),
-            execution_profile_id: ExecutionProfileId::from(PROFILE),
-            implementation_id: ImplementationId::from(IMPLEMENTATION),
-            artifact_id: ArtifactId::from(artifact),
-            host_calls: vec![],
-            resource_requirements: vec![],
-            authority_requirements: vec![],
-        },
+    Some(
+        BackOfferBuilder::new(
+            contract,
+            Back {
+                capability_id: CapabilityId::from(implementation),
+                execution_profile_id: ExecutionProfileId::from(PROFILE),
+                implementation_id: ImplementationId::from(implementation),
+                artifact_id: ArtifactId::from(artifact),
+                host_calls: vec![],
+                resource_requirements: vec![],
+                authority_requirements: vec![],
+            },
+        )
+        .build(),
     )
-    .build()
 }
 
 fn admitted(placement: &PlannedGear) -> Result<Vec<u8>, String> {
-    let expected = offer();
+    let expected =
+        offer_for(placement.kind_id.as_str()).ok_or("unsupported quantity conversion Kind")?;
+    let contract = if placement.kind_id.as_str() == conversion::KIND {
+        conversion::contract()
+    } else {
+        conversion::temperature_difference::contract()
+    };
     if placement.kind_id != expected.kind_id
         || placement.kind_contract_revision != expected.kind_contract_revision
         || placement.capability_id != expected.capability_id
@@ -68,7 +105,7 @@ fn admitted(placement: &PlannedGear) -> Result<Vec<u8>, String> {
         || placement.inputs != expected.inputs
         || placement.outputs != expected.outputs
         || placement.limits != expected.limits
-        || placement.semantic_contract != conversion::contract().semantic_contract()
+        || placement.semantic_contract != contract.semantic_contract()
         || !placement.host_calls.is_empty()
         || !placement.resources.is_empty()
         || !placement.authority.is_empty()
@@ -81,7 +118,7 @@ fn admitted(placement: &PlannedGear) -> Result<Vec<u8>, String> {
         return Err("quantity conversion differs from its exact installed offer".into());
     }
     // Refuse malformed or oversized configuration before wide arithmetic.
-    let fields = conversion::contract().configuration;
+    let fields = contract.configuration;
     if placement.configuration.len() != fields.len() {
         return Err("quantity conversion configuration differs".into());
     }
@@ -99,8 +136,12 @@ fn admitted(placement: &PlannedGear) -> Result<Vec<u8>, String> {
         conduit_plot::validate_configuration_value(field, &entry.value)
             .map_err(|error| format!("quantity conversion configuration: {error}"))?;
     }
-    let receipt = conversion::prepare_configuration(&placement.configuration)
-        .map_err(|error| format!("quantity conversion preparation: {error:?}"))?;
+    let receipt = if placement.kind_id.as_str() == conversion::KIND {
+        conversion::prepare_configuration(&placement.configuration)
+    } else {
+        conversion::temperature_difference::prepare_configuration(&placement.configuration)
+    }
+    .map_err(|error| format!("quantity conversion preparation: {error:?}"))?;
     if receipt
         .value_type()
         .profile()

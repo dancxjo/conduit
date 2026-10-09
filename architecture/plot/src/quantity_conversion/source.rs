@@ -1,5 +1,5 @@
 //! Preparation diagnostics mapped to exact quoted source, including local aliases.
-use super::{contract, prepare_configuration, QuantityConversionPreparationRefusal, KIND};
+use super::{contract_for, prepare_for, ConversionProfile, QuantityConversionPreparationRefusal};
 use crate::{
     prelude::*, Argument, BackStatement, CanonicalStartupValue, CheckedSyntaxDocument, CordStage,
     ExpressionSyntax, Invocation, PlotSyntax, QuotedTextSourceMap, Span, SyntaxDocument,
@@ -23,12 +23,12 @@ pub fn validate_source(
     for plot in &syntax.plots {
         collect(plot, &mut invocations);
     }
-    let fields = contract().configuration;
     for plot in &checked.plots {
         for gear in &plot.gears {
-            if gear.kind != KIND {
+            let Some(profile) = ConversionProfile::from_kind(&gear.kind) else {
                 continue;
-            }
+            };
+            let fields = contract_for(profile).configuration;
             let diagnostic = |refusal, span| QuantityConversionSourceDiagnostic {
                 source_document_id: checked.source_document_id.clone(),
                 span,
@@ -78,7 +78,7 @@ pub fn validate_source(
                     value,
                 });
             }
-            if let Err(refusal) = prepare_configuration(&configuration) {
+            if let Err(refusal) = prepare_for(profile, &configuration) {
                 let field = match refusal {
                     QuantityConversionPreparationRefusal::Request(
                         ExactQuantityConversionRequestRefusal::Target(_)

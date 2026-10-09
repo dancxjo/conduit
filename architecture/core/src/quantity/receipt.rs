@@ -10,6 +10,7 @@ use crate::{QuantitySuffixRefusal, ResolvedQuantitySuffix};
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum ExactQuantityConversionRequestRefusal {
     Source(ExactDecimalQuantityRefusal),
+    TemperatureDifferenceSource(super::ExactTemperatureDifferenceRefusal),
     Target(QuantitySuffixRefusal),
     TargetTooLong,
 }
@@ -30,22 +31,7 @@ impl<'a> ExactQuantityConversionReceipt<'a> {
     ) -> Result<Self, ExactQuantityConversionRequestRefusal> {
         let source = ExactDecimalQuantity::parse_plot_literal(original)
             .map_err(ExactQuantityConversionRequestRefusal::Source)?;
-        if target.len() > super::EXACT_DECIMAL_MAX_LITERAL_BYTES {
-            return Err(ExactQuantityConversionRequestRefusal::TargetTooLong);
-        }
-        let suffix_start = original
-            .char_indices()
-            .find_map(|(index, character)| {
-                (!(character.is_ascii_digit()
-                    || character == '.'
-                    || (index == 0 && character == '-')))
-                    .then_some(index)
-            })
-            .expect("a parsed quantity contains its suffix");
-        let source_suffix = ResolvedQuantitySuffix::resolve(&original[suffix_start..])
-            .expect("the checked parser resolved this identical suffix");
-        let target = ResolvedQuantitySuffix::resolve(target)
-            .map_err(ExactQuantityConversionRequestRefusal::Target)?;
+        let (source_suffix, target) = resolve_conversion_suffixes(original, target)?;
         Ok(Self {
             original,
             source,
@@ -84,4 +70,28 @@ impl<'a> ExactQuantityConversionReceipt<'a> {
         };
         unit.canonical_transform()
     }
+}
+
+pub(super) fn resolve_conversion_suffixes<'a>(
+    original: &'a str,
+    target: &'a str,
+) -> Result<
+    (ResolvedQuantitySuffix<'a>, ResolvedQuantitySuffix<'a>),
+    ExactQuantityConversionRequestRefusal,
+> {
+    if target.len() > super::EXACT_DECIMAL_MAX_LITERAL_BYTES {
+        return Err(ExactQuantityConversionRequestRefusal::TargetTooLong);
+    }
+    let suffix_start = original
+        .char_indices()
+        .find_map(|(index, character)| {
+            (!(character.is_ascii_digit() || character == '.' || (index == 0 && character == '-')))
+                .then_some(index)
+        })
+        .expect("a parsed quantity contains its suffix");
+    let source_suffix = ResolvedQuantitySuffix::resolve(&original[suffix_start..])
+        .expect("the checked parser resolved this identical suffix");
+    let target = ResolvedQuantitySuffix::resolve(target)
+        .map_err(ExactQuantityConversionRequestRefusal::Target)?;
+    Ok((source_suffix, target))
 }

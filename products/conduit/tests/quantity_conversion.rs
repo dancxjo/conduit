@@ -73,3 +73,49 @@ fn invalid_conversion_requests_keep_exact_original_spans_in_both_product_present
         assert_eq!(diagnostic["source_document_id"].as_str().unwrap().len(), 64);
     }
 }
+
+#[test]
+fn product_checks_distinct_temperature_difference_contract_and_owned_refusals() {
+    let difference = |original: &str, target: &str| {
+        source(original, target)
+            .replace(
+                "ExactQuantityConversionReceipt",
+                "ExactTemperatureDifferenceConversionReceipt",
+            )
+            .replace("units/convert(", "units/convert-temperature-difference(")
+    };
+    for (original, target) in [
+        ("9°F", "K"),
+        ("1m°C", "K"),
+        ("1QK", "qK"),
+        ("1°F", "K"),
+        ("1°C", "m"),
+    ] {
+        let result = check(&difference(original, target), true);
+        assert!(
+            result.status.success(),
+            "{}",
+            String::from_utf8_lossy(&result.stdout)
+        );
+        assert_eq!(
+            serde_json::from_slice::<Value>(&result.stdout).unwrap(),
+            serde_json::json!([])
+        );
+    }
+    for (original, target, expected) in [("1Hz", "K", "1Hz"), ("1°C", "mkg", "mkg")] {
+        let source = difference(original, target);
+        let human = check(&source, false);
+        let machine = check(&source, true);
+        assert!(!human.status.success());
+        assert!(!machine.status.success());
+        let diagnostics: Value = serde_json::from_slice(&machine.stdout).unwrap();
+        let diagnostic = &diagnostics[0];
+        assert_eq!(diagnostic["code"], "CND-QTY-001");
+        let start = diagnostic["primary_span"]["start"].as_u64().unwrap() as usize;
+        let end = diagnostic["primary_span"]["end"].as_u64().unwrap() as usize;
+        assert_eq!(&source[start..end], expected);
+        assert!(String::from_utf8(human.stdout)
+            .unwrap()
+            .contains(diagnostic["summary"].as_str().unwrap()));
+    }
+}

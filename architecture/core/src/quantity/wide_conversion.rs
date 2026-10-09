@@ -143,10 +143,52 @@ pub(super) fn to_target_decimal(
     target: QuantityUnit,
     exponent: i16,
 ) -> Result<ExactDecimalQuantity, QuantityConversionRefusal> {
+    target_decimal(source, target, exponent, false)
+}
+
+pub(super) fn difference_to_target_decimal(
+    source: ExactDecimalQuantity,
+    target: QuantityUnit,
+    exponent: i16,
+) -> Result<ExactDecimalQuantity, QuantityConversionRefusal> {
+    target_decimal(source, target, exponent, true)
+}
+
+fn temperature_difference_transform(unit: QuantityUnit) -> (i128, i128, i128) {
+    let (scale, _, denominator) = unit.canonical_transform();
+    (scale, 0, denominator)
+}
+
+pub(super) fn compare_differences(
+    left: ExactDecimalQuantity,
+    right: ExactDecimalQuantity,
+) -> Result<Ordering, QuantityConversionRefusal> {
+    compatible(left.unit(), right.unit())?;
+    decimal(left)?
+        .with_source_transform(temperature_difference_transform(left.unit()))?
+        .compare(
+            decimal(right)?
+                .with_source_transform(temperature_difference_transform(right.unit()))?,
+        )
+}
+
+fn target_decimal(
+    source: ExactDecimalQuantity,
+    target: QuantityUnit,
+    exponent: i16,
+    difference: bool,
+) -> Result<ExactDecimalQuantity, QuantityConversionRefusal> {
     compatible(source.unit(), target)?;
+    let transform = |unit: QuantityUnit| {
+        if difference {
+            temperature_difference_transform(unit)
+        } else {
+            unit.canonical_transform()
+        }
+    };
     let (mut numerator, mut denominator) = decimal(source)?
-        .into_canonical(source.unit())?
-        .in_target(target)?
+        .with_source_transform(transform(source.unit()))?
+        .with_target_transform(transform(target))?
         .parts();
     let power = Magnitude::power_of_ten(exponent.unsigned_abs())
         .ok_or(QuantityConversionRefusal::Overflow)?;

@@ -44,9 +44,10 @@ choice among ambiguous suffixes.
 
 Celsius and Fahrenheit are absent from generalized prefix composition. Existing
 `m°C` is an absolute coordinate with scale 1 in millikelvin reference units and
-unchanged offset 273150; `°C` has scale 1000 and the same offset. A future
-point/difference contract must preserve these serialized absolute meanings and
-admit a distinct difference explicitly. Scaling the Celsius offset is invalid.
+unchanged offset 273150; `°C` has scale 1000 and the same offset. The explicit
+`units/convert-temperature-difference` Kind admits a distinct difference Type
+with zero offset. It does not reinterpret existing absolute literals or their
+serialized values. Scaling the Celsius offset is invalid.
 
 ## Representation and migration
 
@@ -65,11 +66,11 @@ no legacy tag, keeping numeric representation admission separate.
 The bounded codec described below now separates the extended numeric profile
 from legacy storage. Explicit `ExactQuantity` startup parameters and defaults
 now admit that profile through ordinary checked Plot authoring. The remaining
-migration must admit arithmetic execution and integrate the checked conversion Gear.
+migration must integrate ordinary comparison and consumer execution.
 The legacy authored target now returns a representation-eligibility refusal
 when it cannot realize a recognized value. Explicit checked conversion and compatible comparison must
 retain source/target dimensions, exact ratio/offset, selected profile and result
-or refusal. Extended runtime admission and Audio/non-Audio integrations remain open.
+or refusal. Browser/no_std realization eligibility and Audio/non-Audio integrations remain open.
 The checked authored conversion and receipt APIs are described below. Startup eligibility diagnostics retain the original
 literal span, and highlighting recognizes extended literals without claiming
 the legacy representation can realize them.
@@ -110,7 +111,8 @@ against the independent reference fixture. Reviewed compound suffixes such as
 Prepared identity transport admits exactly 20 input and output bytes, validates
 the versioned codec, and performs no allocations during evaluation. This evidence
 covers byte transport, not extended arithmetic execution, browser execution or
-physical target execution. Conversion receipts, temperature differences and
+physical target execution. Conversion receipts and the distinct temperature
+difference contract additionally use hosted preparation and the ordinary kernel;
 Audio/non-Audio integrations still need their own implementation and evidence.
 No silent projection to the legacy
 9-byte encoding is provided. A decimal output profile cannot represent every
@@ -148,8 +150,8 @@ It cannot be mistaken for a physical quantity tagged only with the base unit.
 Target prefix scaling is applied before bounded decimal projection, allowing
 small target coordinates even when an intermediate base coordinate exceeds the
 output profile. All 456 inverse scales are checked against the independent
-reference corpus. This remains a Core operation pending the ordinary authored
-hosted Back execution and integrated consumer receipts.
+reference corpus. The ordinary authored conversion Gear and prepared hosted Back use this same
+operation. Integrated consumer receipts remain required.
 
 ## Checked authored conversion Gear
 
@@ -211,3 +213,47 @@ browser or firmware execution evidence.
 Exact comparison authoring, distinct temperature differences, browser/no_std
 execution eligibility and Audio/non-Audio consumers remain open acceptance work
 for #5328.
+
+## Explicit temperature differences
+
+The installed conversion catalogue also admits a separate ordinary Gear:
+
+```conduit
+plot difference (
+    receipt: ExactTemperatureDifferenceConversionReceipt <= 8192B >>
+) {
+    converted: units/convert-temperature-difference(source = "9°F", to = "K")
+    converted.receipt >> receipt
+}.
+```
+
+This request means a temperature difference of nine Fahrenheit degrees. Its
+exact result is `5K`. The original `units/convert` request with the same spelling
+continues to mean an absolute Fahrenheit point. `1m°C` as a difference converts
+to `0.001K`; as an existing absolute point it converts to `273.151K`.
+
+`ExactTemperatureDifference` is a checked Core carrier, restricted to the
+Temperature dimension. It shares the same bounded decimal coordinate and
+rational arithmetic implementation. Its source/target transforms have zero
+offsets, and its semantic digest is distinct from the absolute coordinate.
+The Plot source is a distinct `quantity/exact-temperature-difference@1` record
+containing the 20-byte coordinate; those coordinate bytes alone are not a
+standalone difference encoding. Its target coordinate, result variant and
+receipt also have distinct checked Type identities. There is no implicit
+point-to-difference connection or absolute-point multiplication operation.
+
+Both quoted arguments retain the 128-byte bound. Preparation checks dimension,
+representation and exactness, emits the same 8192-byte-bounded receipt shape,
+and preserves inexact/overflow/dimension results. Receipt readmission recomputes
+the role-specific law and refuses forged offsets, source Types or results.
+The optional std math Host offers a distinct implementation for this Kind;
+both implementations prepare before Play and emit through the existing fixed
+structured Value Back under pressure and cancellation. Browser/no_std arithmetic
+checking remains separate from installed runtime realization eligibility.
+
+The independent temperature fixture is generated by Python `Fraction` from
+SI kelvin equations, including Celsius's origin and Fahrenheit's scale/origin;
+it neither reads Rust results nor imports the implementation's transform table.
+It covers 972 point/difference projections across signed, fractional, historical
+milli and extreme Kelvin prefix coordinates. This development contract still
+requires the full integration and stable-acceptance gates before #5328 closes.

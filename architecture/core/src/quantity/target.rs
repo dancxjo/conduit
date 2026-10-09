@@ -43,7 +43,7 @@ impl ExactDecimalQuantity {
     }
 }
 
-fn target_parts(target: ResolvedQuantitySuffix<'_>) -> (QuantityUnit, i16) {
+pub(super) fn target_parts(target: ResolvedQuantitySuffix<'_>) -> (QuantityUnit, i16) {
     match target.base() {
         Some(base) => (base.unit(), target.decimal_exponent().unwrap()),
         None => (target.legacy_unit().unwrap(), 0),

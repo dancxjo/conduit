@@ -8,11 +8,13 @@ mod literal_eligibility;
 mod magnitude;
 mod receipt;
 mod target;
+mod temperature_difference;
 mod wide_conversion;
 
 pub use exact::*;
 pub use receipt::*;
 pub use target::*;
+pub use temperature_difference::*;
 
 use conversion::{compare_legacy, convert_exact_rational, is_radian};
 use core::cmp::Ordering;

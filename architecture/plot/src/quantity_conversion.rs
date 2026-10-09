@@ -2,7 +2,11 @@
 //! source retains authored spelling; no glyph or implicit rounding is needed.
 //! Preparation produces a finite receipt, including a typed precision refusal.
 
+mod encoding;
+mod profile;
 mod source;
+use profile::ConversionProfile;
+pub mod temperature_difference;
 pub use source::{validate_source, QuantityConversionSourceDiagnostic};
 
 use crate::{prelude::*, KindSignature, ProfileCatalog, StartupCatalog, StartupParameterSignature};
@@ -19,9 +23,9 @@ fn leaf(identity: &str) -> StructuredInfoType {
 fn field(name: &str, ty: StructuredInfoType) -> StructuredFieldType {
     StructuredFieldType::new(name, ty).expect("reviewed field")
 }
-fn coordinate_type() -> StructuredInfoType {
+fn coordinate_type(profile: ConversionProfile) -> StructuredInfoType {
     StructuredInfoType::record(
-        kind_id("quantity/exact-target-coordinate@1"),
+        kind_id(profile.coordinate_id()),
         vec![
             field("coefficient", leaf("value/i128")),
             field("exponent", leaf("value/i16")),
@@ -29,20 +33,24 @@ fn coordinate_type() -> StructuredInfoType {
     )
     .expect("finite coordinate")
 }
-fn result_type() -> StructuredInfoType {
+fn result_type(profile: ConversionProfile) -> StructuredInfoType {
     StructuredInfoType::variant(
-        kind_id("quantity/exact-conversion-result@1"),
+        kind_id(profile.result_id()),
         vec![
-            StructuredVariantCase::new("converted", coordinate_type()).expect("reviewed case"),
+            StructuredVariantCase::new("converted", coordinate_type(profile))
+                .expect("reviewed case"),
             StructuredVariantCase::new("refused", leaf(TEXT_INFO_ID)).expect("reviewed case"),
         ],
     )
     .expect("finite result")
 }
 pub fn receipt_type() -> StructuredInfoType {
+    receipt_type_for(ConversionProfile::Quantity)
+}
+fn receipt_type_for(profile: ConversionProfile) -> StructuredInfoType {
     let mut fields = vec![
         field("original", leaf(TEXT_INFO_ID)),
-        field("source", leaf(EXACT_DECIMAL_QUANTITY_INFO_ID)),
+        field("source", profile.source_type()),
         field("source-suffix", leaf(TEXT_INFO_ID)),
         field("source-base", leaf(TEXT_INFO_ID)),
         field("source-prefix", leaf(TEXT_INFO_ID)),
@@ -53,7 +61,7 @@ pub fn receipt_type() -> StructuredInfoType {
         field("profile", leaf(TEXT_INFO_ID)),
         field("catalogue", leaf(TEXT_INFO_ID)),
         field("target-exponent", leaf("value/i16")),
-        field("result", result_type()),
+        field("result", result_type(profile)),
     ];
     for name in [
         "source-scale",
@@ -65,13 +73,20 @@ pub fn receipt_type() -> StructuredInfoType {
     ] {
         fields.push(field(name, leaf("value/i128")));
     }
-    StructuredInfoType::record(kind_id("quantity/exact-conversion-receipt@1"), fields)
-        .expect("finite receipt")
+    StructuredInfoType::record(kind_id(profile.receipt_id()), fields).expect("finite receipt")
 }
 pub fn install(startup: &mut StartupCatalog, profile: &mut ProfileCatalog) -> Result<(), String> {
-    startup.ensure_structured_type(RECEIPT_NAME, receipt_type())?;
+    install_for(ConversionProfile::Quantity, startup, profile)?;
+    install_for(ConversionProfile::TemperatureDifference, startup, profile)
+}
+fn install_for(
+    selected: ConversionProfile,
+    startup: &mut StartupCatalog,
+    profile: &mut ProfileCatalog,
+) -> Result<(), String> {
+    startup.ensure_structured_type(selected.receipt_name(), receipt_type_for(selected))?;
     startup.insert(KindSignature {
-        kind: KIND.into(),
+        kind: selected.kind().into(),
         startup_parameters: ["source", "to"]
             .into_iter()
             .map(|name| StartupParameterSignature {
@@ -82,19 +97,22 @@ pub fn install(startup: &mut StartupCatalog, profile: &mut ProfileCatalog) -> Re
             .collect(),
     })?;
     profile
-        .insert_kind(contract())
+        .insert_kind(contract_for(selected))
         .map_err(|error| format!("{error}"))?;
     Ok(())
 }
 pub fn contract() -> Kind {
-    let output = receipt_type()
+    contract_for(ConversionProfile::Quantity)
+}
+fn contract_for(profile: ConversionProfile) -> Kind {
+    let output = receipt_type_for(profile)
         .profile()
         .expect("finite receipt")
         .value_kind()
         .clone();
     Kind {
-        kind_id: kind_id(KIND),
-        kind_contract_revision: KindIdentity::from(REVISION),
+        kind_id: kind_id(profile.kind()),
+        kind_contract_revision: KindIdentity::from(profile.revision()),
         startup_parameters: ["source", "to"]
             .into_iter()
             .map(|name| FrontStartupParameter {
@@ -151,6 +169,12 @@ pub enum QuantityConversionPreparationRefusal {
 pub fn prepare_configuration(
     configuration: &[ConfigurationEntry],
 ) -> Result<StructuredInfoValue, QuantityConversionPreparationRefusal> {
+    prepare_for(ConversionProfile::Quantity, configuration)
+}
+fn prepare_for(
+    profile: ConversionProfile,
+    configuration: &[ConfigurationEntry],
+) -> Result<StructuredInfoValue, QuantityConversionPreparationRefusal> {
     use QuantityConversionPreparationRefusal as R;
     if configuration.len() != 2 {
         return Err(R::Configuration);
@@ -168,148 +192,7 @@ pub fn prepare_configuration(
             _ => Err(R::Configuration),
         }
     };
-    let receipt = ExactQuantityConversionReceipt::check(parameter("source")?, parameter("to")?)
-        .map_err(R::Request)?;
-    let (ss, so, sd) = receipt.source_transform();
-    let (ts, to, td) = receipt.target_transform();
-    let value = |identity: &str, bytes: Vec<u8>| {
-        StructuredInfoValue::leaf(leaf(identity), bytes).map_err(R::Receipt)
-    };
-    let text = |text: &str| value(TEXT_INFO_ID, text.as_bytes().to_vec());
-    let result = match receipt.result() {
-        Ok(coordinate) => {
-            let coordinate = StructuredInfoValue::record(
-                coordinate_type(),
-                vec![
-                    StructuredFieldValue::new(
-                        "coefficient",
-                        value(
-                            "value/i128",
-                            coordinate.coefficient().to_le_bytes().to_vec(),
-                        )?,
-                    )
-                    .map_err(R::Receipt)?,
-                    StructuredFieldValue::new(
-                        "exponent",
-                        value("value/i16", coordinate.exponent().to_le_bytes().to_vec())?,
-                    )
-                    .map_err(R::Receipt)?,
-                ],
-            )
-            .map_err(R::Receipt)?;
-            StructuredInfoValue::variant(result_type(), "converted", coordinate)
-                .map_err(R::Receipt)?
-        }
-        Err(refusal) => StructuredInfoValue::variant(
-            result_type(),
-            "refused",
-            text(match refusal {
-                QuantityConversionRefusal::IncompatibleDimensions => "incompatible-dimensions",
-                QuantityConversionRefusal::Inexact => "inexact",
-                QuantityConversionRefusal::Overflow => "overflow",
-            })?,
-        )
-        .map_err(R::Receipt)?,
-    };
-    let mut fields = vec![
-        ("original", text(receipt.original())?),
-        (
-            "source",
-            value(
-                EXACT_DECIMAL_QUANTITY_INFO_ID,
-                receipt.source().encode().to_vec(),
-            )?,
-        ),
-        ("source-suffix", text(receipt.source_suffix().source())?),
-        (
-            "source-base",
-            text(
-                receipt
-                    .source_suffix()
-                    .base()
-                    .map(|base| base.unit())
-                    .unwrap_or(receipt.source().unit())
-                    .plot_suffix(),
-            )?,
-        ),
-        (
-            "source-prefix",
-            text(
-                receipt
-                    .source_suffix()
-                    .prefix()
-                    .map_or("", |prefix| prefix.symbol()),
-            )?,
-        ),
-        (
-            "source-prefix-exponent",
-            value(
-                "value/i16",
-                i16::from(
-                    receipt
-                        .source_suffix()
-                        .prefix()
-                        .map_or(0, |prefix| prefix.exponent()),
-                )
-                .to_le_bytes()
-                .to_vec(),
-            )?,
-        ),
-        (
-            "source-dimension",
-            text(dimension_name(receipt.source().dimension()))?,
-        ),
-        (
-            "target-dimension",
-            text(dimension_name(
-                receipt
-                    .target()
-                    .base()
-                    .map(|base| base.unit())
-                    .unwrap_or_else(|| receipt.target().legacy_unit().unwrap())
-                    .dimension(),
-            ))?,
-        ),
-        ("target", text(receipt.target().source())?),
-        ("profile", text(EXACT_DECIMAL_QUANTITY_INFO_ID)?),
-        ("catalogue", text(QUANTITY_PREFIX_CATALOG_ID)?),
-        (
-            "target-exponent",
-            value(
-                "value/i16",
-                receipt
-                    .target()
-                    .decimal_exponent()
-                    .unwrap_or(0)
-                    .to_le_bytes()
-                    .to_vec(),
-            )?,
-        ),
-        ("result", result),
-    ];
-    for (name, number) in [
-        ("source-scale", ss),
-        ("source-offset", so),
-        ("source-denominator", sd),
-        ("target-scale", ts),
-        ("target-offset", to),
-        ("target-denominator", td),
-    ] {
-        fields.push((name, value("value/i128", number.to_le_bytes().to_vec())?));
-    }
-    let receipt = StructuredInfoValue::record(
-        receipt_type(),
-        fields
-            .into_iter()
-            .map(|(name, value)| StructuredFieldValue::new(name, value))
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(R::Receipt)?,
-    )
-    .map_err(R::Receipt)?;
-    if receipt.canonical_bytes().map_err(R::Receipt)?.len() > MAXIMUM_RECEIPT_BYTES as usize {
-        return Err(R::ReceiptTooLarge);
-    }
-    Ok(receipt)
+    encoding::prepare(profile, parameter("source")?, parameter("to")?)
 }
 
 fn dimension_name(dimension: QuantityDimension) -> &'static str {
@@ -343,8 +226,14 @@ fn dimension_name(dimension: QuantityDimension) -> &'static str {
 pub fn validate_receipt(
     receipt: &StructuredInfoValue,
 ) -> Result<(), QuantityConversionPreparationRefusal> {
+    validate_for(ConversionProfile::Quantity, receipt)
+}
+fn validate_for(
+    profile: ConversionProfile,
+    receipt: &StructuredInfoValue,
+) -> Result<(), QuantityConversionPreparationRefusal> {
     use QuantityConversionPreparationRefusal as R;
-    if receipt.value_type() != &receipt_type() {
+    if receipt.value_type() != &receipt_type_for(profile) {
         return Err(R::ForgedReceipt);
     }
     if receipt.canonical_bytes().map_err(R::Receipt)?.len() > MAXIMUM_RECEIPT_BYTES as usize {
@@ -368,16 +257,19 @@ pub fn validate_receipt(
             .map(|text| text.into())
             .map_err(|_| R::ForgedReceipt)
     };
-    let expected = prepare_configuration(&[
-        ConfigurationEntry {
-            key: "source".into(),
-            value: ConfigurationValue::Text(parameter("original")?),
-        },
-        ConfigurationEntry {
-            key: "to".into(),
-            value: ConfigurationValue::Text(parameter("target")?),
-        },
-    ])?;
+    let expected = prepare_for(
+        profile,
+        &[
+            ConfigurationEntry {
+                key: "source".into(),
+                value: ConfigurationValue::Text(parameter("original")?),
+            },
+            ConfigurationEntry {
+                key: "to".into(),
+                value: ConfigurationValue::Text(parameter("target")?),
+            },
+        ],
+    )?;
     if receipt != &expected {
         return Err(R::ForgedReceipt);
     }

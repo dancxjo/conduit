@@ -49,7 +49,13 @@ impl<A: Arithmetic> Fraction<A> {
         self,
         source: QuantityUnit,
     ) -> Result<Self, QuantityConversionRefusal> {
-        let (scale, offset, denominator) = source.canonical_transform();
+        self.with_source_transform(source.canonical_transform())
+    }
+
+    pub(super) fn with_source_transform(
+        self,
+        (scale, offset, denominator): (i128, i128, i128),
+    ) -> Result<Self, QuantityConversionRefusal> {
         let scaled = A::multiply(self.numerator, A::integer(scale))
             .ok_or(QuantityConversionRefusal::Overflow)?;
         let offset = A::multiply(A::integer(offset), self.denominator)
@@ -62,7 +68,13 @@ impl<A: Arithmetic> Fraction<A> {
     }
 
     pub(super) fn in_target(self, target: QuantityUnit) -> Result<Self, QuantityConversionRefusal> {
-        let (scale, offset, denominator) = target.canonical_transform();
+        self.with_target_transform(target.canonical_transform())
+    }
+
+    pub(super) fn with_target_transform(
+        self,
+        (scale, offset, denominator): (i128, i128, i128),
+    ) -> Result<Self, QuantityConversionRefusal> {
         let scaled = A::multiply(self.numerator, A::integer(denominator))
             .ok_or(QuantityConversionRefusal::Overflow)?;
         let offset = A::multiply(A::integer(offset), self.denominator)
