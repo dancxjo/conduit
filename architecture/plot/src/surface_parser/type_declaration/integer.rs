@@ -170,3 +170,59 @@ impl<'a, 'b> State<'a, 'b> {
         }))
     }
 }
+
+/// Parse an existing authored refinement operand, retaining its original origin.
+pub(crate) fn parse_integer_spanned(
+    source: &crate::SpannedText,
+) -> Result<crate::NativeIntegerExpressionSyntax, (PlotError, Span)> {
+    let parser = Parser::new(&source.text);
+    let mut expression = parse(&parser, &source.text, 0)
+        .map_err(|(error, span)| (error, relocate_span(span, source.span)))?;
+    relocate_integer(&mut expression, source.span);
+    Ok(expression)
+}
+
+fn relocate_span(span: Span, origin: Span) -> Span {
+    Span {
+        start: origin.start.saturating_add(span.start),
+        end: origin.start.saturating_add(span.end),
+        line: origin.line.saturating_add(span.line.saturating_sub(1)),
+        column: if span.line == 1 {
+            origin.column.saturating_add(span.column.saturating_sub(1))
+        } else {
+            span.column
+        },
+        end_line: origin.line.saturating_add(span.end_line.saturating_sub(1)),
+        end_column: if span.end_line == 1 {
+            origin
+                .column
+                .saturating_add(span.end_column.saturating_sub(1))
+        } else {
+            span.end_column
+        },
+    }
+}
+
+fn relocate_integer(value: &mut crate::NativeIntegerExpressionSyntax, origin: Span) {
+    use crate::NativeIntegerExpressionSyntax as Integer;
+    match value {
+        Integer::Literal { span, .. } => *span = relocate_span(*span, origin),
+        Integer::Parameter(name) => name.span = relocate_span(name.span, origin),
+        Integer::Group { value, span } => {
+            relocate_integer(value, origin);
+            *span = relocate_span(*span, origin);
+        }
+        Integer::Binary {
+            left,
+            right,
+            operator_span,
+            span,
+            ..
+        } => {
+            relocate_integer(left, origin);
+            relocate_integer(right, origin);
+            *operator_span = relocate_span(*operator_span, origin);
+            *span = relocate_span(*span, origin);
+        }
+    }
+}

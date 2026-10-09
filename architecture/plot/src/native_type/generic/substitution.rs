@@ -105,7 +105,16 @@ impl Context<'_> {
                             ),
                         ));
                     }
-                    return Ok(expression.clone());
+                    return Ok(TypeExpressionSyntax::Reference {
+                        value_type: value_type.clone(),
+                        arguments: Vec::new(),
+                        maximum_bytes: *maximum_bytes,
+                        refinements: super::refinement::substitute(
+                            refinements,
+                            &substitutions.values,
+                        )?,
+                        span: *span,
+                    });
                 }
                 if maximum_bytes.is_some() || !refinements.is_empty() {
                     return Err(error(

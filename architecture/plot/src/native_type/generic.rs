@@ -9,6 +9,7 @@ mod binding;
 mod canonical;
 mod integer;
 mod law;
+mod refinement;
 mod substitution;
 use binding::Bindings;
 use canonical::application_key;
@@ -215,9 +216,11 @@ fn expression_uses(expression: &TypeExpressionSyntax, parameter: &str) -> bool {
         TypeExpressionSyntax::Reference {
             value_type,
             arguments,
+            refinements,
             ..
         } => {
             value_type.text == parameter
+                || refinement::uses(refinements, parameter)
                 || arguments.iter().any(|argument| match argument {
                     crate::NativeTypeArgumentSyntax::Type(value) => {
                         expression_uses(value, parameter)

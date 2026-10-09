@@ -437,3 +437,5 @@ impl Parser<'_> {
             .map(|value| crate::NativeTypeArgumentSyntax::Type(Box::new(value)))
     }
 }
+
+pub(crate) use integer::parse_integer_spanned;
