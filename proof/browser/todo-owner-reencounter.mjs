@@ -86,11 +86,15 @@ try {
     null, { timeout: 12_000 });
   await page.getByRole('button', { name: 'Inspect current wardrobe' }).click();
   const wardrobe = async () => JSON.parse(await page.locator('[data-owner-wardrobe-evidence]').textContent());
+  const wardrobeIdle = () => page.waitForFunction(() =>
+    document.querySelector('[data-owner-wardrobe-refresh]')?.disabled === false,
+  null, { timeout: 12_000 });
   await page.waitForFunction(hostId => {
     try { return JSON.parse(document.querySelector('[data-owner-wardrobe-evidence]').textContent)
       .route_descriptions.some(route => route.host_id === hostId); }
     catch { return false; }
   }, identity.hostId, { timeout: 12_000 });
+  await wardrobeIdle();
   let currentWardrobe = await wardrobe();
   const description = currentWardrobe.route_descriptions.find(route => route.host_id === identity.hostId);
   assert.ok(description, 'owner must describe this browser Mask route');
@@ -101,6 +105,7 @@ try {
       try { return JSON.parse(document.querySelector('[data-owner-wardrobe-evidence]').textContent)
         .wardrobe_revision_decimal !== prior; } catch { return false; }
     }, previous, { timeout: 12_000 });
+    await wardrobeIdle();
     currentWardrobe = await wardrobe();
   };
   if (await page.getByRole('button', { name: `Wear ${description.mask_name}`, exact: true }).isEnabled()) {
