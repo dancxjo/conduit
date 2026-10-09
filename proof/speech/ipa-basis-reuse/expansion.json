@@ -1,0 +1,106 @@
+{
+  "schema": "conduit.speech-ipa-basis-expansion@1",
+  "boundary": "checked declared immutable scope; no pack imported; no played-value receipt",
+  "source": "semantics/speech/examples/ipa/reusable-basis.conduit",
+  "source_sha256": "81d7c93c102b13fd70094ab4a36d33ff5b166e7b9ea0445235bf8144e83a6c33",
+  "source_document_id": "ee70a44df70f883e0e730ad2d326908866a5f22e79789a8340db22040ec2ca57",
+  "checked_plot_id": "a9b6a1eab688d96d39abe6c7c6083a85b2b75517c29c7ff764c2842ab2a94d5d",
+  "expanded_plot_id": "7aa03e96c0c0a4156d62d618745267cafd229dba375fb68c2d21fe9ea7d1898f",
+  "pack": null,
+  "constructor_contract": "ipa-quoted@1",
+  "gears": [
+    {
+      "gear_id": "reusable-basis/one",
+      "kind_id": "speech/phonemic-from-ipa",
+      "configuration": [
+        {
+          "key": "request",
+          "value_kind": "structured-info/profile-0546bda5ee47a423e25dff1ba288af6e12c97fbd3c5e7b48032eabb8cb6ba65b@1",
+          "canonical_bytes": 1187
+        },
+        {
+          "key": "inventory",
+          "value_kind": "structured-info/profile-34d3ac9b8f55047c673fa03079051d03b7837ee93e0612b3b8c6ebd18652577b@1",
+          "canonical_bytes": 24045
+        },
+        {
+          "key": "basis",
+          "value_kind": "structured-info/profile-bdfd6b86946a6d7cd7073a6976012827d227af1b1a3a1b349c438cd30f995b65@1",
+          "canonical_bytes": 6587
+        },
+        {
+          "key": "phone-bindings",
+          "value_kind": "structured-info/profile-38e3f0d7b6b49bc3d45eeec62825edaa35d34e24ba9b2414c30fd144d3665007@1",
+          "canonical_bytes": 1392
+        },
+        {
+          "key": "phoneme-bindings",
+          "value_kind": "structured-info/profile-c1e83b233edaf2addbb5b94a6fd0190503c4e0e53c40f576c829cba2275cb54e@1",
+          "canonical_bytes": 1737
+        }
+      ]
+    },
+    {
+      "gear_id": "reusable-basis/single",
+      "kind_id": "speech/phoneme-from-ipa",
+      "configuration": [
+        {
+          "key": "request",
+          "value_kind": "structured-info/profile-0546bda5ee47a423e25dff1ba288af6e12c97fbd3c5e7b48032eabb8cb6ba65b@1",
+          "canonical_bytes": 1185
+        },
+        {
+          "key": "inventory",
+          "value_kind": "structured-info/profile-34d3ac9b8f55047c673fa03079051d03b7837ee93e0612b3b8c6ebd18652577b@1",
+          "canonical_bytes": 24045
+        },
+        {
+          "key": "basis",
+          "value_kind": "structured-info/profile-bdfd6b86946a6d7cd7073a6976012827d227af1b1a3a1b349c438cd30f995b65@1",
+          "canonical_bytes": 6587
+        },
+        {
+          "key": "phone-bindings",
+          "value_kind": "structured-info/profile-38e3f0d7b6b49bc3d45eeec62825edaa35d34e24ba9b2414c30fd144d3665007@1",
+          "canonical_bytes": 1392
+        },
+        {
+          "key": "phoneme-bindings",
+          "value_kind": "structured-info/profile-c1e83b233edaf2addbb5b94a6fd0190503c4e0e53c40f576c829cba2275cb54e@1",
+          "canonical_bytes": 1737
+        }
+      ]
+    },
+    {
+      "gear_id": "reusable-basis/two",
+      "kind_id": "speech/phonemic-from-ipa",
+      "configuration": [
+        {
+          "key": "request",
+          "value_kind": "structured-info/profile-0546bda5ee47a423e25dff1ba288af6e12c97fbd3c5e7b48032eabb8cb6ba65b@1",
+          "canonical_bytes": 1185
+        },
+        {
+          "key": "inventory",
+          "value_kind": "structured-info/profile-34d3ac9b8f55047c673fa03079051d03b7837ee93e0612b3b8c6ebd18652577b@1",
+          "canonical_bytes": 24045
+        },
+        {
+          "key": "basis",
+          "value_kind": "structured-info/profile-bdfd6b86946a6d7cd7073a6976012827d227af1b1a3a1b349c438cd30f995b65@1",
+          "canonical_bytes": 6587
+        },
+        {
+          "key": "phone-bindings",
+          "value_kind": "structured-info/profile-38e3f0d7b6b49bc3d45eeec62825edaa35d34e24ba9b2414c30fd144d3665007@1",
+          "canonical_bytes": 1392
+        },
+        {
+          "key": "phoneme-bindings",
+          "value_kind": "structured-info/profile-c1e83b233edaf2addbb5b94a6fd0190503c4e0e53c40f576c829cba2275cb54e@1",
+          "canonical_bytes": 1737
+        }
+      ]
+    }
+  ]
+}
