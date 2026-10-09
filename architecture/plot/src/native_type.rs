@@ -26,7 +26,7 @@ pub(crate) fn check_native_types(
     declarations: &[TypeSyntax],
     base: &StartupCatalog,
 ) -> Result<(Vec<CheckedNativeType>, StartupCatalog), SyntaxCheckDiagnostic> {
-    let (declarations, public_names) = generic::instantiate(declarations)?;
+    let (declarations, public_names) = generic::instantiate(declarations, base)?;
     let mut catalog = base.clone();
     let mut by_name = alloc::collections::BTreeMap::new();
     for declaration in &declarations {

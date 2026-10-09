@@ -6,6 +6,20 @@ use crate::Span;
 mod integer;
 pub use integer::*;
 
+/// A native family parameter's declaration determines its argument kind.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct NativeTypeParameterSyntax {
+    pub name: SpannedText,
+    /// None declares a Type parameter; Some declares a compile-time Info value.
+    pub value_type: Option<Box<TypeExpressionSyntax>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum NativeTypeArgumentSyntax {
+    Type(Box<TypeExpressionSyntax>),
+    Value(Box<NativeIntegerExpressionSyntax>),
+}
+
 /// One named finite Form for carrying a nominal semantic Type.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TypeFormSyntax {
@@ -36,7 +50,7 @@ pub struct TypeSyntax {
     pub name: SpannedText,
     /// Checked portable Type parameters. These are compile-time semantic
     /// placeholders and never survive in a runtime value.
-    pub parameters: Vec<SpannedText>,
+    pub parameters: Vec<NativeTypeParameterSyntax>,
     /// Checker-owned canonical generic declaration and argument provenance.
     /// Parsed declarations always leave this empty.
     pub(crate) generic_context: Option<String>,
@@ -80,7 +94,7 @@ pub enum TypeExpressionSyntax {
     Reference {
         value_type: SpannedText,
         /// Exact semantic arguments for an authored generic Type.
-        arguments: Vec<TypeExpressionSyntax>,
+        arguments: Vec<NativeTypeArgumentSyntax>,
         maximum_bytes: Option<u64>,
         refinements: Vec<ValueRefinement>,
         span: Span,

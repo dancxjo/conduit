@@ -5,10 +5,13 @@ use crate::{
 };
 use alloc::collections::{BTreeMap, BTreeSet};
 
+mod binding;
 mod canonical;
 mod integer;
+mod law;
 mod substitution;
-use canonical::{application_key, expression as canonical};
+use binding::Bindings;
+use canonical::application_key;
 
 const MAXIMUM_GENERIC_INSTANTIATION_DEPTH: usize = 32;
 
@@ -20,6 +23,7 @@ const MAXIMUM_GENERIC_INSTANTIATION_DEPTH: usize = 32;
 /// nominal identity.
 pub(super) fn instantiate(
     declarations: &[TypeSyntax],
+    catalog: &crate::StartupCatalog,
 ) -> Result<(Vec<TypeSyntax>, BTreeSet<String>), SyntaxCheckDiagnostic> {
     let mut names = BTreeSet::new();
     let mut generics = BTreeMap::new();
@@ -36,10 +40,13 @@ pub(super) fn instantiate(
         }
         let mut parameters = BTreeSet::new();
         for parameter in &declaration.parameters {
-            if !parameters.insert(parameter.text.as_str()) {
+            if !parameters.insert(parameter.name.text.as_str()) {
                 return Err(error(
-                    parameter.span,
-                    alloc::format!("generic Type parameter '{}' is duplicated", parameter.text),
+                    parameter.name.span,
+                    alloc::format!(
+                        "generic Type parameter '{}' is duplicated",
+                        parameter.name.text
+                    ),
                 ));
             }
         }
@@ -47,10 +54,15 @@ pub(super) fn instantiate(
             public.insert(declaration.name.text.clone());
         } else {
             for parameter in &declaration.parameters {
-                if !definition_uses(&declaration.definition, &parameter.text) {
+                if !definition_uses(&declaration.definition, &parameter.name.text)
+                    && !law::uses(&declaration.invariants, &parameter.name.text)
+                {
                     return Err(error(
-                        parameter.span,
-                        alloc::format!("generic Type parameter '{}' is unused", parameter.text),
+                        parameter.name.span,
+                        alloc::format!(
+                            "generic Type parameter '{}' is unused",
+                            parameter.name.text
+                        ),
                     ));
                 }
             }
@@ -71,7 +83,18 @@ pub(super) fn instantiate(
             else {
                 return None;
             };
-            (!arguments.is_empty() && refinements.is_empty()).then(|| {
+            (!arguments.is_empty()
+                && refinements.is_empty()
+                && declaration.parameters.is_empty()
+                && !generics
+                    .get(value_type.text.as_str())
+                    .is_some_and(|template: &&TypeSyntax| {
+                        template
+                            .parameters
+                            .iter()
+                            .any(|parameter| parameter.value_type.is_some())
+                    }))
+            .then(|| {
                 (
                     application_key(&value_type.text, arguments),
                     declaration.name.clone(),
@@ -81,10 +104,13 @@ pub(super) fn instantiate(
         .collect();
     let mut context = Context {
         declarations,
+        catalog,
         generics,
         aliases,
         generated: BTreeMap::new(),
         active: Vec::new(),
+        generated_instances: 0,
+        expression_steps: 0,
     };
     let mut concrete = Vec::new();
     for declaration in declarations
@@ -92,7 +118,21 @@ pub(super) fn instantiate(
         .filter(|declaration| declaration.parameters.is_empty())
     {
         let mut declaration = declaration.clone();
-        let (definition, generic_context) = context.public_definition(&declaration.definition)?;
+        let (definition, generic_context, bindings) =
+            context.public_definition(&declaration.definition)?;
+        let mut invariants = declaration.invariants.clone();
+        if generic_context.is_some() {
+            if let TypeDefinitionSyntax::Scalar(TypeExpressionSyntax::Reference {
+                value_type,
+                ..
+            }) = &declaration.definition
+            {
+                if let Some(template) = context.generics.get(value_type.text.as_str()) {
+                    invariants.extend(template.invariants.clone());
+                }
+            }
+        }
+        declaration.invariants = law::substitute(&invariants, &bindings.values)?;
         declaration.definition = definition;
         declaration.generic_context = generic_context;
         concrete.push(declaration);
@@ -109,17 +149,20 @@ pub(super) fn instantiate(
 
 struct Context<'a> {
     declarations: &'a [TypeSyntax],
+    catalog: &'a crate::StartupCatalog,
     generics: BTreeMap<&'a str, &'a TypeSyntax>,
     aliases: BTreeMap<String, SpannedText>,
     generated: BTreeMap<String, TypeSyntax>,
     active: Vec<String>,
+    generated_instances: usize,
+    expression_steps: usize,
 }
 
 impl Context<'_> {
     fn public_definition(
         &mut self,
         definition: &TypeDefinitionSyntax,
-    ) -> Result<(TypeDefinitionSyntax, Option<String>), SyntaxCheckDiagnostic> {
+    ) -> Result<(TypeDefinitionSyntax, Option<String>, Bindings), SyntaxCheckDiagnostic> {
         let TypeDefinitionSyntax::Scalar(TypeExpressionSyntax::Reference {
             value_type,
             arguments,
@@ -129,49 +172,25 @@ impl Context<'_> {
         }) = definition
         else {
             return self
-                .definition(definition, &BTreeMap::new())
-                .map(|definition| (definition, None));
+                .definition(definition, &Bindings::default())
+                .map(|definition| (definition, None, Bindings::default()));
         };
         if arguments.is_empty() || !refinements.is_empty() {
             return self
-                .definition(definition, &BTreeMap::new())
-                .map(|definition| (definition, None));
+                .definition(definition, &Bindings::default())
+                .map(|definition| (definition, None, Bindings::default()));
         }
         let Some(template) = self.generics.get(value_type.text.as_str()).copied() else {
             return self
-                .definition(definition, &BTreeMap::new())
-                .map(|definition| (definition, None));
+                .definition(definition, &Bindings::default())
+                .map(|definition| (definition, None, Bindings::default()));
         };
-        if template.parameters.len() != arguments.len() {
-            return Err(error(
-                *span,
-                alloc::format!(
-                    "generic semantic Type '{}' expects {} arguments but received {}",
-                    value_type.text,
-                    template.parameters.len(),
-                    arguments.len()
-                ),
-            ));
-        }
-        let resolved = arguments
-            .iter()
-            .map(|argument| self.expression(argument, &BTreeMap::new()))
-            .collect::<Result<Vec<_>, _>>()?;
-        let key = alloc::format!(
-            "{}<{}>",
-            value_type.text,
-            resolved.iter().map(canonical).collect::<Vec<_>>().join(",")
-        );
+        let (resolved, bindings) = self.bind(template, arguments, &Bindings::default(), *span)?;
+        let key = canonical::family_key(template, &resolved);
         self.active.push(key.clone());
-        let bindings = template
-            .parameters
-            .iter()
-            .map(|parameter| parameter.text.clone())
-            .zip(resolved)
-            .collect::<BTreeMap<_, _>>();
         let result = self.definition(&template.definition, &bindings);
         self.active.pop();
-        result.map(|definition| (definition, Some(key)))
+        result.map(|definition| (definition, Some(key), bindings))
     }
 }
 
@@ -199,14 +218,28 @@ fn expression_uses(expression: &TypeExpressionSyntax, parameter: &str) -> bool {
             ..
         } => {
             value_type.text == parameter
-                || arguments
-                    .iter()
-                    .any(|argument| expression_uses(argument, parameter))
+                || arguments.iter().any(|argument| match argument {
+                    crate::NativeTypeArgumentSyntax::Type(value) => {
+                        expression_uses(value, parameter)
+                    }
+                    crate::NativeTypeArgumentSyntax::Value(value) => integer_uses(value, parameter),
+                })
         }
         TypeExpressionSyntax::Optional { value, .. }
         | TypeExpressionSyntax::DataReference { value, .. } => expression_uses(value, parameter),
-        TypeExpressionSyntax::Collection { element, .. }
-        | TypeExpressionSyntax::Sequence { element, .. } => expression_uses(element, parameter),
+        TypeExpressionSyntax::Collection {
+            element, length, ..
+        } => expression_uses(element, parameter) || integer_uses(length, parameter),
+        TypeExpressionSyntax::Sequence {
+            element,
+            minimum_items,
+            maximum_items,
+            ..
+        } => {
+            expression_uses(element, parameter)
+                || integer_uses(minimum_items, parameter)
+                || integer_uses(maximum_items, parameter)
+        }
     }
 }
 
@@ -215,5 +248,16 @@ fn error(span: crate::Span, message: String) -> SyntaxCheckDiagnostic {
         code: "CND-FRM-058",
         span,
         message,
+    }
+}
+
+fn integer_uses(value: &crate::NativeIntegerExpressionSyntax, parameter: &str) -> bool {
+    match value {
+        crate::NativeIntegerExpressionSyntax::Literal { .. } => false,
+        crate::NativeIntegerExpressionSyntax::Parameter(name) => name.text == parameter,
+        crate::NativeIntegerExpressionSyntax::Group { value, .. } => integer_uses(value, parameter),
+        crate::NativeIntegerExpressionSyntax::Binary { left, right, .. } => {
+            integer_uses(left, parameter) || integer_uses(right, parameter)
+        }
     }
 }

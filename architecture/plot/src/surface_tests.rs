@@ -345,7 +345,7 @@ fn generic_native_type_syntax_is_lossless_and_target_neutral() {
         document.types[0]
             .parameters
             .iter()
-            .map(|parameter| parameter.text.as_str())
+            .map(|parameter| parameter.name.text.as_str())
             .collect::<Vec<_>>(),
         ["T", "U"]
     );

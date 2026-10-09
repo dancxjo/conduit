@@ -19,20 +19,37 @@ impl Parser<'_> {
         let declaration = header
             .strip_prefix("type ")
             .ok_or_else(|| self.invalid_statement(header, start))?;
-        let (name, body) = declaration
-            .split_once('=')
+        let (name, body) = split_type_header(declaration)
             .map(|(name, body)| (name.trim(), body.trim()))
             .ok_or_else(|| self.invalid_statement(header, start))?;
         let (name_text, parameter_names) =
             split_generic_application(name).ok_or_else(|| self.invalid_statement(header, start))?;
-        if !is_name(name_text) || parameter_names.iter().any(|parameter| !is_name(parameter)) {
+        if !is_name(name_text) {
             return Err(self.invalid_statement(header, start));
         }
         let name = self.spanned_at(name_text, header, start);
         let parameters = parameter_names
             .into_iter()
-            .map(|parameter| self.spanned_at(parameter, header, start))
-            .collect();
+            .map(|parameter| {
+                let (name, annotation) = parameter
+                    .split_once(':')
+                    .map_or((parameter, None), |(name, annotation)| {
+                        (name.trim(), Some(annotation.trim()))
+                    });
+                if !is_name(name) {
+                    return Err(self.invalid_statement(header, start));
+                }
+                Ok(crate::NativeTypeParameterSyntax {
+                    name: self.spanned_at(name, header, start),
+                    value_type: annotation
+                        .map(|source| {
+                            self.parse_type_expression(source, header, start)
+                                .map(Box::new)
+                        })
+                        .transpose()?,
+                })
+            })
+            .collect::<Result<Vec<_>, (PlotError, Span)>>()?;
         let declaration_start = start;
 
         let (definition, invariants) = if body == "{" {
@@ -276,7 +293,7 @@ impl Parser<'_> {
             }
             let arguments = argument_sources
                 .into_iter()
-                .map(|argument| self.parse_type_expression(argument, line, start))
+                .map(|argument| self.parse_native_argument(argument, line, start))
                 .collect::<Result<Vec<_>, _>>()?;
             return Ok(TypeExpressionSyntax::Reference {
                 value_type: self.spanned(value_type, offset),
@@ -299,7 +316,7 @@ impl Parser<'_> {
         }
         let arguments = argument_sources
             .into_iter()
-            .map(|argument| self.parse_type_expression(argument, line, start))
+            .map(|argument| self.parse_native_argument(argument, line, start))
             .collect::<Result<Vec<_>, _>>()?;
         Ok(TypeExpressionSyntax::Reference {
             value_type: self.spanned(value_type, offset),
@@ -326,7 +343,9 @@ fn split_generic_application(source: &str) -> Option<(&str, Vec<&str>)> {
     let mut start = 0;
     for (index, character) in body.char_indices() {
         match character {
-            '<' if body.as_bytes().get(index + 1) != Some(&b'=') => {
+            '<' if body.as_bytes().get(index + 1) != Some(&b'=')
+                && body.as_bytes().get(index.wrapping_sub(1)) != Some(&b'.') =>
+            {
                 depth = depth.checked_add(1)?;
             }
             '>' => depth = depth.checked_sub(1)?,
@@ -372,5 +391,49 @@ impl Parser<'_> {
             ));
         }
         Ok(expression)
+    }
+}
+
+fn split_type_header(source: &str) -> Option<(&str, &str)> {
+    let mut depth = 0_u16;
+    for (index, character) in source.char_indices() {
+        match character {
+            '<' if source.as_bytes().get(index + 1) != Some(&b'=')
+                && source.as_bytes().get(index.wrapping_sub(1)) != Some(&b'.') =>
+            {
+                depth = depth.checked_add(1)?
+            }
+            '>' => depth = depth.checked_sub(1)?,
+            '=' if depth == 0 => return Some((&source[..index], &source[index + 1..])),
+            _ => {}
+        }
+    }
+    None
+}
+
+impl Parser<'_> {
+    fn parse_native_argument(
+        &self,
+        source: &str,
+        line: &str,
+        start: usize,
+    ) -> Result<crate::NativeTypeArgumentSyntax, (PlotError, Span)> {
+        // Names remain unresolved Type syntax until the declared parameter kind
+        // selects Type or Info resolution. Capitalization has no semantic role.
+        if source.starts_with('(')
+            || source.chars().next().is_some_and(|c| c.is_ascii_digit())
+            || source.contains('+')
+            || source.contains('*')
+        {
+            let offset = start
+                + (source.as_ptr() as usize)
+                    .checked_sub(line.as_ptr() as usize)
+                    .filter(|offset| *offset <= line.len())
+                    .unwrap_or_else(|| line.find(source).unwrap_or(0));
+            return integer::parse(self, source, offset)
+                .map(|value| crate::NativeTypeArgumentSyntax::Value(Box::new(value)));
+        }
+        self.parse_type_expression(source, line, start)
+            .map(|value| crate::NativeTypeArgumentSyntax::Type(Box::new(value)))
     }
 }

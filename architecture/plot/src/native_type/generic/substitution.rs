@@ -1,18 +1,18 @@
 //! Recursive substitution of finite native Type expressions.
-use super::canonical::{application_key, instantiated_name};
+use super::binding::Bindings;
+use super::canonical::{family_key, instantiated_name};
 use super::{error, Context, MAXIMUM_GENERIC_INSTANTIATION_DEPTH};
 use crate::prelude::*;
 use crate::{
     SpannedText, SyntaxCheckDiagnostic, TypeDefinitionSyntax, TypeExpressionSyntax,
     TypeFieldSyntax, TypeSyntax, TypeVariantCaseSyntax, TypeVariantPayloadSyntax,
 };
-use alloc::collections::BTreeMap;
 
 impl Context<'_> {
     pub(super) fn definition(
         &mut self,
         definition: &TypeDefinitionSyntax,
-        arguments: &BTreeMap<String, TypeExpressionSyntax>,
+        arguments: &Bindings,
     ) -> Result<TypeDefinitionSyntax, SyntaxCheckDiagnostic> {
         Ok(match definition {
             TypeDefinitionSyntax::Scalar(expression) => {
@@ -57,7 +57,7 @@ impl Context<'_> {
     fn field(
         &mut self,
         field: &TypeFieldSyntax,
-        arguments: &BTreeMap<String, TypeExpressionSyntax>,
+        arguments: &Bindings,
     ) -> Result<TypeFieldSyntax, SyntaxCheckDiagnostic> {
         Ok(TypeFieldSyntax {
             name: field.name.clone(),
@@ -69,8 +69,15 @@ impl Context<'_> {
     pub(super) fn expression(
         &mut self,
         expression: &TypeExpressionSyntax,
-        substitutions: &BTreeMap<String, TypeExpressionSyntax>,
+        substitutions: &Bindings,
     ) -> Result<TypeExpressionSyntax, SyntaxCheckDiagnostic> {
+        self.expression_steps += 1;
+        if self.expression_steps > 4096 {
+            return Err(error(
+                super::binding::type_span(expression),
+                "native Type specialization exceeds its expression budget".into(),
+            ));
+        }
         match expression {
             TypeExpressionSyntax::Reference {
                 value_type,
@@ -80,7 +87,7 @@ impl Context<'_> {
                 span,
             } => {
                 if arguments.is_empty() {
-                    if let Some(substitution) = substitutions.get(&value_type.text) {
+                    if let Some(substitution) = substitutions.types.get(&value_type.text) {
                         if maximum_bytes.is_some() || !refinements.is_empty() {
                             return Err(error(
                                 *span,
@@ -106,10 +113,6 @@ impl Context<'_> {
                         "a generic Type application cannot be directly refined".into(),
                     ));
                 }
-                let resolved = arguments
-                    .iter()
-                    .map(|argument| self.expression(argument, substitutions))
-                    .collect::<Result<Vec<_>, _>>()?;
                 let Some(template) = self.generics.get(value_type.text.as_str()).copied() else {
                     if self
                         .declarations
@@ -132,18 +135,8 @@ impl Context<'_> {
                         ),
                     ));
                 };
-                if template.parameters.len() != resolved.len() {
-                    return Err(error(
-                        *span,
-                        alloc::format!(
-                            "generic semantic Type '{}' expects {} arguments but received {}",
-                            value_type.text,
-                            template.parameters.len(),
-                            resolved.len()
-                        ),
-                    ));
-                }
-                let key = application_key(&value_type.text, &resolved);
+                let (resolved, bindings) = self.bind(template, arguments, substitutions, *span)?;
+                let key = family_key(template, &resolved);
                 if self.active.contains(&key)
                     || self.active.len() >= MAXIMUM_GENERIC_INSTANTIATION_DEPTH
                 {
@@ -164,13 +157,15 @@ impl Context<'_> {
                     });
                 }
                 if !self.generated.contains_key(&key) {
+                    self.generated_instances += 1;
+                    if self.generated_instances > 128 {
+                        return Err(error(
+                            *span,
+                            "native Type specialization exceeds its generated-instance budget"
+                                .into(),
+                        ));
+                    }
                     self.active.push(key.clone());
-                    let bindings = template
-                        .parameters
-                        .iter()
-                        .map(|parameter| parameter.text.clone())
-                        .zip(resolved)
-                        .collect::<BTreeMap<_, _>>();
                     let definition = self.definition(&template.definition, &bindings)?;
                     self.active.pop();
                     let generated_name = instantiated_name(&value_type.text, &key);
@@ -184,7 +179,10 @@ impl Context<'_> {
                             parameters: Vec::new(),
                             generic_context: Some(key.clone()),
                             definition,
-                            invariants: template.invariants.clone(),
+                            invariants: super::law::substitute(
+                                &template.invariants,
+                                &bindings.values,
+                            )?,
                             span: template.span,
                         },
                     );
@@ -216,7 +214,11 @@ impl Context<'_> {
                 span,
             } => Ok(TypeExpressionSyntax::Collection {
                 element: Box::new(self.expression(element, substitutions)?),
-                length: Box::new(super::integer::extent(length, &BTreeMap::new(), false)?),
+                length: Box::new(super::integer::extent(
+                    length,
+                    &substitutions.values,
+                    false,
+                )?),
                 span: *span,
             }),
             TypeExpressionSyntax::Sequence {
@@ -228,12 +230,12 @@ impl Context<'_> {
                 element: Box::new(self.expression(element, substitutions)?),
                 minimum_items: Box::new(super::integer::extent(
                     minimum_items,
-                    &BTreeMap::new(),
+                    &substitutions.values,
                     true,
                 )?),
                 maximum_items: Box::new(super::integer::extent(
                     maximum_items,
-                    &BTreeMap::new(),
+                    &substitutions.values,
                     false,
                 )?),
                 span: *span,
