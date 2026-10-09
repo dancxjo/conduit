@@ -47,6 +47,22 @@ pub(crate) fn run(state_dir: &Path, command: SpokenMaskCommand) -> Result<(), St
             SpeechReply::Refused { code, .. } => return Err(code),
             _ => return Err("owner returned the wrong direct Mask selection response".into()),
         },
+        SpokenMaskCommand::ReadRemaining => {
+            match call(state_dir, |token| SpeechRequest::DirectReadRemaining {
+                protocol: PROTOCOL,
+                token,
+            })? {
+                SpeechReply::Started {
+                    protocol: PROTOCOL,
+                    operation_id,
+                } => json!({
+                    "schema":"conduit.body/direct-spoken-read-start@1",
+                    "operation_id":operation_id, "state":"running"
+                }),
+                SpeechReply::Refused { code, .. } => return Err(code),
+                _ => return Err("owner returned the wrong direct reading response".into()),
+            }
+        }
         SpokenMaskCommand::Start { llm } => match call(state_dir, |token| {
             if llm {
                 SpeechRequest::LlmStart {

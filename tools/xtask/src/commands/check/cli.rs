@@ -50,6 +50,8 @@ pub enum CheckSuite {
     TodoDurability,
     /// Check canonical IPA notation and first-class phone/phoneme authoring.
     SpeechIpa,
+    /// Prove bounded speech selection and explicit detail from exact Faces.
+    TodoSpeech,
     InputSemantics,
     /// Prove owner-issued presentation routes without waking the workload.
     OwnerPresentation,

@@ -2,6 +2,22 @@ use crate::process::Step;
 
 pub(super) const STEPS: &[Step] = &[
     Step::new(
+        "owner-presentation.direct-reading",
+        "Prove acknowledged direct Show reading, remaining-item scope and cancellation",
+        "cargo",
+        &[
+            "test",
+            "--locked",
+            "-p",
+            "conduit",
+            "--bin",
+            "conduit",
+            "direct_reading_tests",
+            "--",
+            "--test-threads=1",
+        ],
+    ),
+    Step::new(
         "owner-presentation.attachment",
         "Prove actual owner terminal Show, typed action and stale replacement refusal",
         "cargo",

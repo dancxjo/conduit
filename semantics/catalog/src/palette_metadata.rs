@@ -192,6 +192,11 @@ pub fn palette_metadata(kind_id: &KindId) -> Option<PaletteMetadata> {
             &["input", "keyboard", "modifier", "command"],
             PaletteIconKey::Keyboard,
         ),
+        crate::SCALAR_LITERAL_KIND => metadata(
+            PaletteCategory::Input,
+            &["scalar", "literal", "constant", "value"],
+            PaletteIconKey::Type,
+        ),
         conduit_text::TEXT_LITERAL_KIND => metadata(
             PaletteCategory::Transform,
             &["source", "constant", "string"],

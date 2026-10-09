@@ -109,10 +109,19 @@ fn step_failure(detail: u16) -> conduit_kernel::Failure {
 
 impl StructuredPresentationBack {}
 
-fn configured(placement: &PlannedGear) -> Result<&[u8], String> {
+fn configured(placement: &PlannedGear) -> Result<std::borrow::Cow<'_, [u8]>, String> {
     let [entry] = placement.configuration.as_slice() else {
         return Err("structured literal requires one exact value".into());
     };
+    if placement.kind_id.as_str() == conduit_semantic_catalog::SCALAR_LITERAL_KIND {
+        let ("value", ConfigurationValue::I64(value)) = (entry.key.as_str(), &entry.value) else {
+            return Err("Scalar literal requires one exact I64 value".into());
+        };
+        return Ok(conduit_core::Scalar::from_raw_microunits(*value)
+            .encode()
+            .to_vec()
+            .into());
+    }
     let ("value", ConfigurationValue::Structured(value)) = (entry.key.as_str(), &entry.value)
     else {
         return Err("structured literal value is not structured Info".into());
@@ -126,16 +135,26 @@ fn configured(placement: &PlannedGear) -> Result<&[u8], String> {
     {
         return Err("structured literal profile and value disagree".into());
     }
-    Ok(value.canonical_value())
+    Ok(value.canonical_value().into())
 }
 
 fn validate_literal(placement: &PlannedGear) -> Result<(), String> {
     let [output] = placement.outputs.as_slice() else {
         return Err("structured literal requires one output".into());
     };
-    if placement.kind_id != kind_id(conduit_semantic_catalog::STRUCTURED_LITERAL_KIND)
-        || placement.kind_contract_revision.as_str()
-            != conduit_semantic_catalog::STRUCTURED_LITERAL_REVISION
+    let exact_front = if placement.kind_id.as_str() == conduit_semantic_catalog::SCALAR_LITERAL_KIND
+    {
+        let contract = conduit_semantic_catalog::scalar_literal_contract()
+            .into_semantic_contract(conduit_semantic_catalog::VALUE_PRIMITIVE_CONTRACT_REVISION);
+        placement.kind_contract_revision == contract.kind_contract_revision
+            && placement.inputs == contract.inputs
+            && placement.outputs == contract.outputs
+    } else {
+        placement.kind_id == kind_id(conduit_semantic_catalog::STRUCTURED_LITERAL_KIND)
+            && placement.kind_contract_revision.as_str()
+                == conduit_semantic_catalog::STRUCTURED_LITERAL_REVISION
+    };
+    if !exact_front
         || placement.execution_profile_id.as_str()
             != conduit_std_offers::STRUCTURED_LITERAL_STD_PROFILE
         || placement.implementation_id.as_str()
@@ -158,9 +177,18 @@ fn validate_presentation(placement: &PlannedGear) -> Result<(), String> {
     let [input] = placement.inputs.as_slice() else {
         return Err("structured presentation requires one input".into());
     };
-    if placement.kind_id != kind_id(conduit_semantic_catalog::STRUCTURED_PRESENTATION_KIND)
-        || placement.kind_contract_revision.as_str()
-            != conduit_semantic_catalog::STRUCTURED_PRESENTATION_REVISION
+    let exact_front =
+        if placement.kind_id == kind_id(conduit_semantic_catalog::QUANTITY_PRESENTATION_KIND) {
+            let contract = conduit_semantic_catalog::quantity_presentation_semantic_contract();
+            placement.kind_contract_revision == contract.kind_contract_revision
+                && placement.inputs == contract.inputs
+                && placement.outputs == contract.outputs
+        } else {
+            placement.kind_id == kind_id(conduit_semantic_catalog::STRUCTURED_PRESENTATION_KIND)
+                && placement.kind_contract_revision.as_str()
+                    == conduit_semantic_catalog::STRUCTURED_PRESENTATION_REVISION
+        };
+    if !exact_front
         || placement.execution_profile_id.as_str()
             != conduit_std_offers::STRUCTURED_PRESENTATION_STD_PROFILE
         || placement.implementation_id.as_str()
@@ -213,7 +241,7 @@ fn prepare_literal(
 ) -> Result<InstalledBack, String> {
     validate_literal(placement)?;
     let value = values
-        .store(configured(placement)?)
+        .store(&configured(placement)?)
         .map_err(|error| format!("store structured literal: {error:?}"))?;
     Ok(InstalledBack::StructuredLiteral(StructuredLiteralBack {
         value: Some(value),
