@@ -427,6 +427,10 @@ impl TodoWaitingWorker {
                 "list_key":self.checkpoint_identity.workload,
             },
             "selected_content":self.selected_content,
+            // One prior verified witness survives a failed, unpublished command.
+            // Successful writes retain only the compact summary below, so this
+            // does not accumulate a receipt history across list revisions.
+            "retained_verified_read":previous_read.filter(|_| committed.is_none()),
             "previous_read":previous_read.map(|receipt| serde_json::json!({
                 "body_id":receipt["body_id"],
                 "read_plan_id":receipt["read_plan_id"],
@@ -452,6 +456,9 @@ impl TodoWaitingWorker {
         owner.session = next;
         owner.last_execution = Some(receipt);
         owner.todo_live = None;
+        if committed.is_none() {
+            owner.todo_verified = None;
+        }
         committed
             .ok_or("Todo waiting Play did not commit one checkpoint".into())
             .map(Some)

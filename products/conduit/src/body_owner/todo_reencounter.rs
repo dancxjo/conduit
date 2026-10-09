@@ -6,8 +6,32 @@ use conduit_todo_plot::TodoState;
 use std::path::Path;
 
 impl Owner {
+    /// Recovery evidence is distinct from a current Face's verified read. A
+    /// failed command may retain one preceding witness, but only an explicit
+    /// matching selection and a fresh admitted read can make it display truth.
+    fn retained_todo_read_for_reencounter(&self) -> Option<&serde_json::Value> {
+        let receipt = self.last_execution.as_ref()?;
+        if let Some(read) = self.todo_verified_read_receipt() {
+            return Some(read);
+        }
+        let read = &receipt["retained_verified_read"];
+        (receipt["schema"] == "conduit.todo/next-checkpoint-receipt@1"
+            && matches!(
+                serde_json::from_value::<TerminalDisposition>(receipt["terminal"].clone()),
+                Ok(TerminalDisposition::Failed { .. } | TerminalDisposition::Cancelled { .. })
+            )
+            && receipt["terminal_sign"]["sign_id"].is_string()
+            && receipt["terminal_sign"]["active_play_id"] == receipt["play"]["active_play_id"]
+            && receipt["committed_fore_count"] == 0
+            && read["schema"] == "conduit.todo/verified-read-receipt@1"
+            && read["verified"] == true
+            && read["body_id"] == receipt["body_id"]
+            && read["write"]["retained_verified_read"].is_null())
+        .then_some(read)
+    }
+
     pub(crate) fn has_retained_verified_todo_read(&self) -> bool {
-        let Some(read) = self.todo_verified_read_receipt() else {
+        let Some(read) = self.retained_todo_read_for_reencounter() else {
             return false;
         };
         match self.resident_name.as_deref() {
@@ -123,7 +147,7 @@ impl Owner {
         maximum_millis: u64,
     ) -> Result<TodoState, String> {
         let prior = self
-            .todo_verified_read_receipt()
+            .retained_todo_read_for_reencounter()
             .ok_or("Todo re-encounter has no verified prior read")?;
         if prior["body_id"] != self.session.evidence().body_id.as_str()
             || prior["selected_content"]["identity"] != serde_json::json!(selected_write.identity)

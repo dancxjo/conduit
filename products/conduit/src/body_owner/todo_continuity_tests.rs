@@ -323,6 +323,20 @@ fn same_body_three_items_recover_on_another_admitted_host_without_a_cache() {
 
 #[test]
 fn interrupted_next_action_can_read_an_explicitly_reselected_published_version() {
+    reselect_prior_published_version(false, false);
+}
+
+#[test]
+fn cancelled_next_action_can_read_an_explicitly_reselected_published_version() {
+    reselect_prior_published_version(true, false);
+}
+
+#[test]
+fn cancelled_next_action_refuses_unverified_retained_witness() {
+    reselect_prior_published_version(true, true);
+}
+
+fn reselect_prior_published_version(collect_failure: bool, corrupt_witness: bool) {
     let (mut owner, source, plot, grant, root, _checkpoint) = fixture();
     let expected = next_action(
         &mut owner,
@@ -345,10 +359,34 @@ fn interrupted_next_action_can_read_an_explicitly_reselected_published_version()
         assert!(Instant::now() < deadline);
         std::thread::sleep(Duration::from_millis(5));
     }
-    // Stop the worker without collecting its result: retained state still
-    // describes the interrupted waiting write, not a successful publication.
     worker.request_lull().unwrap();
+    if collect_failure {
+        loop {
+            match worker.progress(&mut owner, &root) {
+                Err(error) => {
+                    assert_eq!(error, "Todo waiting Play did not commit one checkpoint");
+                    break;
+                }
+                Ok(None) => {
+                    assert!(Instant::now() < deadline);
+                    std::thread::sleep(Duration::from_millis(5));
+                }
+                Ok(Some(_)) => panic!("cancelled command must not publish"),
+            }
+        }
+    }
     drop(worker);
+    if collect_failure {
+        assert!(owner.todo_verified.is_none());
+        assert!(owner.todo_verified_read_receipt().is_none());
+        let failed = owner.last_execution.as_mut().unwrap();
+        assert_eq!(failed["retained_verified_read"], read);
+        assert!(failed["retained_verified_read"]["write"]["retained_verified_read"].is_null());
+        if corrupt_witness {
+            failed["retained_verified_read"]["verified"] = serde_json::json!(false);
+            owner.persist(&root).unwrap();
+        }
+    }
     drop(owner);
     let unavailable = installed::owner::resume_service(
         resumed_todo_host_on_boot(&root, "boot/todo-interrupted/candidate"),
@@ -377,6 +415,15 @@ fn interrupted_next_action_can_read_an_explicitly_reselected_published_version()
     )
     .unwrap();
     assert_eq!(owner.session.evidence().body_id, body);
+    if corrupt_witness {
+        assert!(
+            owner.todo_verified.is_none(),
+            "unverified witness must not recover Todo"
+        );
+        drop(owner);
+        std::fs::remove_dir_all(root).unwrap();
+        return;
+    }
     assert_eq!(
         &owner
             .todo_verified
