@@ -180,7 +180,8 @@ configureFlowWorkspaceValidator(async document=>{
 });
 function workspaceChanged(status){
   updateWorkspaceControls(status);
-  if(status.status==="Ready"&&status.lens!==state.lens)selectLens(status.lens).catch(error=>{document.querySelector("#workspace-status").textContent=`Lens unavailable: ${error.message}`;});
+  // Status notifications can arrive from an older React render. Explicit
+  // layout controls restore their lens; notifications must not undo navigation.
 }
 async function authoringQuery(query,fields){
   const basis=state.snapshot.authoring;

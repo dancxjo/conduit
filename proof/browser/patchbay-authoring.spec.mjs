@@ -145,12 +145,20 @@ test("catalog queries and two durable layouts decorate the same live Plot", asyn
         const positions = annotated.layouts.find(saved => saved.name === layout).positions
           .filter(position => semanticGears.includes(position.subject))
           .sort((left, right) => left.subject.localeCompare(right.subject));
-        await expect.poll(() => page.evaluate(async () => {
-          const { flowSceneSnapshot } = await import("/assets/flow.js");
-          return (flowSceneSnapshot()?.nodes ?? []).filter(node => node.data.role === "Gear")
-            .map(node => ({ subject: node.data.workspaceSubject, ...node.position }))
+        const gearSubjects = initial.presentation.subjects.filter(subject => subject.role === "Gear")
+          .map(subject => [subject.identity, initial.presentation.properties.find(property =>
+            property.subject === subject.identity && property.name === "semantic-id").value.Identity]);
+        // The admitted application uses blob module identities. Importing the
+        // raw flow asset would inspect a separate, unused module instance.
+        await expect.poll(() => page.locator(".react-flow__node").evaluateAll((nodes, subjects) => {
+          const semanticIds = new Map(subjects);
+          return nodes.filter(node => node.querySelector(".flow-frontplate.role-gear"))
+            .map(node => {
+              const position = new DOMMatrixReadOnly(node.style.transform);
+              return { subject: semanticIds.get(node.dataset.id), x: position.m41, y: position.m42 };
+            })
             .sort((left, right) => left.subject.localeCompare(right.subject));
-        })).toEqual(positions);
+        }, gearSubjects)).toEqual(positions);
         for (const aspect of ["Plan", "Play", "Signs"]) {
           const button = page.locator(`#aspect-controls button[data-aspect="${aspect}"]`);
           await expect(button).toBeVisible();
