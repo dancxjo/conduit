@@ -358,8 +358,15 @@ pub(super) fn run(
             .arg(&bin)
             .args(["body", "terminal", "--state-dir"])
             .arg(&state);
-        let terminal_input = retain(&output, "terminal.input", b"quit\n")?;
-        let terminal_command = capture(&output, "terminal", &mut terminal, Some(b"quit\n"))?;
+        // Completed items stay subordinate in the default checklist. Request
+        // the existing precise inspection when this chapter completes one.
+        let terminal_keys: &[u8] = if args.cross_mask_actions {
+            b"inspect\npage down\npage down\npage down\nquit\n"
+        } else {
+            b"quit\n"
+        };
+        let terminal_input = retain(&output, "terminal.input", terminal_keys)?;
+        let terminal_command = capture(&output, "terminal", &mut terminal, Some(terminal_keys))?;
         let terminal_text =
             fs::read(output.join("terminal.stdout")).map_err(|error| error.to_string())?;
         if !String::from_utf8_lossy(&terminal_text).contains(item_text) {
