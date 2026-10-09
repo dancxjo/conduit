@@ -195,7 +195,7 @@ mod tests {
         .unwrap();
         assert!(matches!(
             cli.command,
-            Command::Make(MakeArgs {
+            Command::Make(args) if matches!(*args, MakeArgs {
                 target: MakeTarget::Conduitos(ConduitosArgs {
                     command: ConduitosCommand::ProtocolSource(_),
                 }),
@@ -226,7 +226,7 @@ mod tests {
             Cli::try_parse_from(command.into_iter().chain(pairs.into_iter().flatten())).unwrap();
         assert!(matches!(
             cli.command,
-            Command::Make(MakeArgs {
+            Command::Make(args) if matches!(*args, MakeArgs {
                 target: MakeTarget::Conduitos(ConduitosArgs {
                     command: ConduitosCommand::ProtocolImage(_),
                 }),
