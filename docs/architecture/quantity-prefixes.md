@@ -2,9 +2,10 @@
 
 Issue [#5328](https://github.com/dancxjo/conduit/issues/5328) extends the existing
 Quantity contract in stages. The immutable `quantity/decimal-prefix-catalog@1`
-now records all 24 official prefixes and reviewed prefix positions. This
-catalogue establishes exact semantic scale; it does not extend the authored
-literal parser or assert that every scale fits legacy runtime storage.
+now records all 24 official prefixes and reviewed prefix positions. The whole-suffix resolver uses this
+catalogue to establish exact semantic scale. The authored literal parser has
+not yet migrated, and resolution does not assert that every scale fits legacy
+runtime storage.
 
 The authoritative symbols and exponents come from the
 [BIPM SI prefix table](https://www.bipm.org/en/measurement-units/si-prefixes).
@@ -12,8 +13,10 @@ Symbols match exact UTF-8 bytes. The canonical micro symbol is U+00B5 `µ`.
 Greek U+03BC `μ`, ASCII `u`, whitespace, zero-width characters, and Unicode
 compatibility folding are absent from the canonical prefix table. Existing
 explicit ASCII aliases such as `us` remain accepted by the legacy suffix parser.
-A future source resolver must retain original spelling and spans when admitting
-an explicitly reviewed alias; it cannot rewrite source identity.
+The resolver retains original spelling and admits ASCII `u` at each reviewed
+micro prefix position, and `m2`, `m3`, `m/s2` at the corresponding powered
+positions. These are explicitly reviewed aliases, not Unicode normalization.
+Source spans remain the surrounding parser's responsibility.
 
 ## Reviewed compatibility matrix
 
@@ -52,9 +55,15 @@ Type per prefix. It stores signed decimal exponents, never floating-point
 factors or a materialized unbounded integer. The largest composed exponent in
 this matrix is 90 for cubic quetta meters.
 
-Semantic scale alone is not representation admission. The remaining migration
-must introduce a separately versioned, bounded exact profile, preserve original
-source facts, resolve full suffixes without greedy ambiguity, and return a
+Semantic scale alone is not representation admission. `ResolvedQuantitySuffix` considers all reviewed decompositions and refuses
+ambiguity rather than making an expected-Type or greedy choice. Existing
+noncanonical `C`/`F` diagnostics take precedence, and unprefixable historical
+suffixes retain their exact legacy lookup. Recognized extended suffixes expose
+no legacy tag, keeping numeric representation admission separate.
+
+The remaining migration must introduce a separately versioned, bounded exact
+profile, adopt this resolver in the authored parser, preserve original source
+facts, and return a
 representation-eligibility refusal when a selected legacy target cannot realize
 a recognized value. Explicit checked conversion and compatible comparison must
 retain source/target dimensions, exact ratio/offset, selected profile and result
