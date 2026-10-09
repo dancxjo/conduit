@@ -41,6 +41,7 @@ pub use generated::{
 
 mod audio_info;
 mod audio_render_demand;
+mod exact_quantity_projection;
 mod pcm_clip;
 mod sampled_signal_mapping;
 mod sound_info;

@@ -198,6 +198,28 @@ impl ExactDecimalQuantity {
         super::wide_conversion::to_decimal(self, target)
     }
 
+    /// Explicit unsigned integer projection in the requested reviewed unit.
+    /// Uses the same exact conversion law, then checks integer precision and
+    /// the full unsigned range. No negative value or fraction is rounded.
+    pub fn convert_to_u64(
+        self,
+        target: QuantityUnit,
+    ) -> Result<u64, super::QuantityConversionRefusal> {
+        use super::QuantityConversionRefusal as R;
+        let converted = self.convert_to_decimal(target)?;
+        if converted.coefficient < 0 {
+            return Err(R::Overflow);
+        }
+        if converted.exponent < 0 {
+            return Err(R::Inexact);
+        }
+        let coefficient = u64::try_from(converted.coefficient).map_err(|_| R::Overflow)?;
+        let scale = 10_u64
+            .checked_pow(converted.exponent as u32)
+            .ok_or(R::Overflow)?;
+        coefficient.checked_mul(scale).ok_or(R::Overflow)
+    }
+
     /// Compare physical values in a common exact rational reference, without
     /// selecting a lossy unit or increasing the legacy arithmetic profile.
     pub fn compare(

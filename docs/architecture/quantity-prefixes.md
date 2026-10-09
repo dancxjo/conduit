@@ -303,3 +303,30 @@ The independent comparison corpus contains 798 cases from Python `Fraction`,
 the independent 456-prefix scale matrix, affine temperature equations, and
 reviewed linear/binary factors. Ordinary source checking and canonical expansion
 exercise that corpus without Rust output serving as its expected result.
+
+## Existing consumer projections
+
+The bounded exact carrier projects explicitly into existing Audio and Robotics
+records. `MusicalPitch::from_exact_quantities` selects exact integer millihertz;
+`ToneIntent::from_exact_time` and `MusicalNoteEvent::from_exact_time` select
+microseconds while preserving correlation/occurrence, gate and ordering facts.
+The common Core `convert_to_u64` projection uses the same rational conversion
+law before checking integer precision and the full unsigned range. It permits
+existing event times above `i64::MAX`; the sound record still refuses its
+reserved `u64::MAX` endpoint. Sub-millihertz and sub-microsecond fractions refuse
+without rounding. These constructors introduce no new audio quantity family.
+
+`RangeObservation::from_exact_quantities` selects the existing millimetre and
+millisecond profile. `BatteryObservation::from_exact_quantities` selects
+permille and millivolts. Both retain their existing wire identities, numeric
+bounds and precise conversion refusals. A constructed observation is a portable
+value, not evidence of a physical measurement.
+
+The consumer tests cover equivalent prefixed frequency, duration, length and
+voltage inputs, native record readmission and unchanged encodings/digests,
+precision/dimension/range refusals, and unsigned event-time boundaries. The
+reference synth receives admitted note events built from exact prefixed pitch
+and time; its PCM and state match the existing integer path across different
+block sizes through note-on and release. This proves component execution, not
+a physical speaker or human listening. Browser realization and final accepted
+release evidence remain separate requirements.
