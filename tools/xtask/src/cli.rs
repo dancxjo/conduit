@@ -338,6 +338,9 @@ pub struct TodoJourneyArgs {
     /// Add three browser items, complete one through the installed terminal, then observe it in the browser.
     #[arg(long)]
     pub cross_mask_actions: bool,
+    /// Capture acknowledged direct opening and remaining-item WAVs through the selected artifact route.
+    #[arg(long, requires = "cross_mask_actions")]
+    pub direct_speech: bool,
 }
 
 #[derive(ValueEnum, Debug, Clone, Copy, PartialEq, Eq)]

@@ -104,3 +104,26 @@ fn terminal_action_help_names_actual_targets_and_values() {
     assert!(output.contains("reopen — Task 3: action todo.reopen.task-3"));
     assert!(output.contains("action todo.add <text>"));
 }
+
+#[test]
+fn requested_show_evidence_retains_exact_revision_and_refuses_a_foreign_face() {
+    let mut face = todo(2, 3, true);
+    face = Presentation::new_with_semantics(
+        u64::MAX,
+        face.basis,
+        face.subjects,
+        face.relationships,
+        face.properties,
+        face.text,
+        face.actions,
+        face.disclosures,
+    )
+    .unwrap();
+    let show = common::available_mask_show(&face);
+    let evidence = evidence_for_show(&face, &show).unwrap();
+    assert_eq!(evidence["face_revision"], "18446744073709551615");
+    assert_eq!(evidence["face_id"], face.identity.as_str());
+    assert_eq!(evidence["show_id"], show.show_id.as_str());
+    assert_eq!(evidence["mask_play_id"], show.show.active_play_id.as_str());
+    assert!(evidence_for_show(&todo(1, 3, true), &show).is_err());
+}

@@ -328,6 +328,7 @@ fn waiting_owner_admits_exact_show_action_then_retains_commit_and_sign() {
         conduit_std_host::BodyLiveForeAdmission::Accepted { .. }
     ));
     assert!(worker.submit_interaction(&owner, &show, &action).is_err());
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
     let committed = loop {
         if let Some(committed) = worker.progress(&mut owner, &state_root).unwrap() {
             break committed;
@@ -611,6 +612,9 @@ fn waiting_owner_admits_exact_show_action_then_retains_commit_and_sign() {
             .version,
         next_write.version
     );
+    // A new Play gets its own observation bound; earlier assertions are not
+    // part of the time allowed for this distinct action to become ready.
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
     while owner.todo_live.is_none() {
         assert!(next.progress(&mut owner, &state_root).unwrap().is_none());
         assert!(std::time::Instant::now() < deadline);
@@ -636,6 +640,7 @@ fn waiting_owner_admits_exact_show_action_then_retains_commit_and_sign() {
             .unwrap(),
         conduit_std_host::BodyLiveForeAdmission::Accepted { .. }
     ));
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
     let second = loop {
         if let Some(committed) = next.progress(&mut owner, &state_root).unwrap() {
             break committed;

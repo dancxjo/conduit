@@ -1,0 +1,91 @@
+[2J[H[1mGroceries[0m
+────────────────────────────────────────────────────────────────────────────────
+· Groceries
+  3 things left · 0 completed
+  1. [ ] Buy milk
+  2. [ ] Prepare lunch
+  3. [ ] Water plants
+  Wake
+  Open Body overview
+  Open Plots library
+  Open resident Plot
+  add an item
+  Item text
+  complete · Buy milk
+  complete · Prepare lunch
+  complete · Water plants
+
+
+
+
+
+Face · lines 1–14 / 14
+Tab focus · ↑↓ read · PgUp/PgDn · F2 inspect · Enter apply · Esc cancel
+Owner terminal Show show/debf0749839b631a91a9cda3eef2f0809e22810847f2747a22c09ef10934fe71 · route Plan plan/local-owner-mask/9eae95ab1286458715a9d1ec8f8e7f1dc35f2b6b0f2612522a3a9d506b6d306f · Host host/installed/abdf41184cd02a21b3b5f3503112b911a9c2ad6f31b5040b0fa626fdc48887c6 · Boot boot/installed/7955a1b6780d566d8a4515ab747b77d5a66b75412ff17926b8bba3c38f0db223 · offer generation 11 · 680 bytes written and flushed. Enter actions to list choices, action <identity> [value] for an available action, apply <value> when only one value action is available, show to present again, or quit to detach.
+Owner Body wardrobe: 3 worn terminal Mask, 1 admitted route; selected route: route/plan/local-owner-mask/9eae95ab1286458715a9d1ec8f8e7f1dc35f2b6b0f2612522a3a9d506b6d306f; current Show: show/debf0749839b631a91a9cda3eef2f0809e22810847f2747a22c09ef10934fe71; planning: "NotRequired". Preference: [{"checked_plot_id":"42c3bd21a5f74e4fe7138aca6b3ecabb63e5727648ae64352d28cf1e5d681232","expanded_plot_id":"458bdeb22a8b2456290357add1704d20967956b686c8439cd162d1de3cac0a78","source_document_id":"f650e6aa588ab71ec87a51e9c479b6b1d3f80911b424e2f4845b777a86677913"}]. Wear/doff/prefer address the currently admitted terminal Mask; browser selection awaits a complete carrier-Line Mask Plan.
+Wardrobe refused: owner presentation wardrobe refused: Control(Wardrobe(DuplicateMask))
+Owner Body wardrobe: 3 worn terminal Mask, 1 admitted route; selected route: route/plan/local-owner-mask/9eae95ab1286458715a9d1ec8f8e7f1dc35f2b6b0f2612522a3a9d506b6d306f; current Show: show/debf0749839b631a91a9cda3eef2f0809e22810847f2747a22c09ef10934fe71; planning: "NotRequired". Preference: [{"checked_plot_id":"42c3bd21a5f74e4fe7138aca6b3ecabb63e5727648ae64352d28cf1e5d681232","expanded_plot_id":"458bdeb22a8b2456290357add1704d20967956b686c8439cd162d1de3cac0a78","source_document_id":"f650e6aa588ab71ec87a51e9c479b6b1d3f80911b424e2f4845b777a86677913"}]. Wear/doff/prefer address the currently admitted terminal Mask; browser selection awaits a complete carrier-Line Mask Plan.
+[2J[H[1mGroceries[0m
+────────────────────────────────────────────────────────────────────────────────
+· Groceries
+  3 things left · 0 completed
+  1. [ ] Buy milk
+  2. [ ] Prepare lunch
+  3. [ ] Water plants
+  Wake
+  Open Body overview
+  Open Plots library
+  Open resident Plot
+  add an item
+  Item text
+  complete · Buy milk
+  complete · Prepare lunch
+  complete · Water plants
+
+
+
+
+
+Face · lines 1–14 / 14
+Tab focus · ↑↓ read · PgUp/PgDn · F2 inspect · Enter apply · Esc cancel
+Owner terminal Show show/ec0e12ac78eb4c36a24f6a3d9c9c8cf70dcf3c9ec0eacee1a4e42350190e0e27 · route Plan plan/local-owner-mask/9eae95ab1286458715a9d1ec8f8e7f1dc35f2b6b0f2612522a3a9d506b6d306f · Host host/installed/abdf41184cd02a21b3b5f3503112b911a9c2ad6f31b5040b0fa626fdc48887c6 · Boot boot/installed/7955a1b6780d566d8a4515ab747b77d5a66b75412ff17926b8bba3c38f0db223 · offer generation 11 · 680 bytes written and flushed. Enter actions to list choices, action <identity> [value] for an available action, apply <value> when only one value action is available, show to present again, or quit to detach.
+Owner Body wardrobe: 3 worn terminal Mask, 1 admitted route; selected route: route/plan/local-owner-mask/9eae95ab1286458715a9d1ec8f8e7f1dc35f2b6b0f2612522a3a9d506b6d306f; current Show: show/ec0e12ac78eb4c36a24f6a3d9c9c8cf70dcf3c9ec0eacee1a4e42350190e0e27; planning: "NotRequired". Preference: [{"checked_plot_id":"42c3bd21a5f74e4fe7138aca6b3ecabb63e5727648ae64352d28cf1e5d681232","expanded_plot_id":"458bdeb22a8b2456290357add1704d20967956b686c8439cd162d1de3cac0a78","source_document_id":"f650e6aa588ab71ec87a51e9c479b6b1d3f80911b424e2f4845b777a86677913"}]. Wear/doff/prefer address the currently admitted terminal Mask; browser selection awaits a complete carrier-Line Mask Plan.
+Owner terminal evidence {"body_id":"1f1d5d82f4eb8ee47011beb80e5b39c156d1c96f2ccdf611cd43e2fe0ff89f68","boot_id":"boot/installed/7955a1b6780d566d8a4515ab747b77d5a66b75412ff17926b8bba3c38f0db223","bytes_written":680,"face_id":"1d3b1d8f6f384fd22a3e87d95d5390da97b4dae28f496b2c66f8b50569278762","face_revision":"5055164355942367099","frame_sha256":[49,90,231,222,162,224,196,203,9,23,184,24,96,190,175,155,73,58,65,226,166,232,39,66,14,173,162,24,157,116,139,215],"host_id":"host/installed/abdf41184cd02a21b3b5f3503112b911a9c2ad6f31b5040b0fa626fdc48887c6","mask_plan_id":"f32f31f9e13b149f5dbb2fe0b90a9de44c185e09e63d093dc23c370e550c93ae","mask_play_id":"3b3ffe3e44e7d982799ae2d52e83f4a5f0cb8781b37ded7fd2365ccfd8ac759b","owner_selected_show_current":true,"route_plan_id":"plan/local-owner-mask/9eae95ab1286458715a9d1ec8f8e7f1dc35f2b6b0f2612522a3a9d506b6d306f","schema":"conduit.body/terminal-show-evidence@1","show_id":"show/ec0e12ac78eb4c36a24f6a3d9c9c8cf70dcf3c9ec0eacee1a4e42350190e0e27","show_sha256":[161,52,236,233,233,112,129,233,149,32,83,195,95,149,124,175,68,49,205,236,158,166,10,134,231,240,171,138,129,42,160,254],"show_state":"available"}
+Wake — Groceries: action body/action/wake/10
+Open Body overview — Groceries: action body/action/open-overview/10
+Open Plots library — Groceries: action body/action/open-library/10
+Open resident Plot — todo/checkpoint-restore: action body/action/open-plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd/10
+add an item — Groceries: action todo.add <text>
+complete — Buy milk: action todo.complete.task-1
+remove — Buy milk: action todo.remove.task-1
+complete — Prepare lunch: action todo.complete.task-2
+remove — Prepare lunch: action todo.remove.task-2
+complete — Water plants: action todo.complete.task-3
+remove — Water plants: action todo.remove.task-3
+Todo saved at revision 4.
+[2J[H[1mGroceries[0m
+────────────────────────────────────────────────────────────────────────────────
+· Groceries
+  2 things left · 1 completed
+  1. [ ] Prepare lunch
+  2. [ ] Water plants
+  Wake
+  Open Body overview
+  Open Plots library
+  Open resident Plot
+  add an item
+  Item text
+  complete · Prepare lunch
+  complete · Water plants
+
+
+
+
+
+
+
+Face · lines 1–12 / 12
+Tab focus · ↑↓ read · PgUp/PgDn · F2 inspect · Enter apply · Esc cancel
+Owner terminal Show show/32be6e338d72e9aac7aaac1f98a4b51334358bd7bdc82b7d2c5f4d44ab7906b4 · route Plan plan/local-owner-mask/db859af7aedb79f9c7fdbc0b6e2fe68113896399e1f51f87103829203ccecea5 · Host host/installed/abdf41184cd02a21b3b5f3503112b911a9c2ad6f31b5040b0fa626fdc48887c6 · Boot boot/installed/7955a1b6780d566d8a4515ab747b77d5a66b75412ff17926b8bba3c38f0db223 · offer generation 15 · 641 bytes written and flushed. Enter actions to list choices, action <identity> [value] for an available action, apply <value> when only one value action is available, show to present again, or quit to detach.
+Owner Body wardrobe: 3 worn terminal Mask, 1 admitted route; selected route: route/plan/local-owner-mask/db859af7aedb79f9c7fdbc0b6e2fe68113896399e1f51f87103829203ccecea5; current Show: show/32be6e338d72e9aac7aaac1f98a4b51334358bd7bdc82b7d2c5f4d44ab7906b4; planning: "NotRequired". Preference: [{"checked_plot_id":"42c3bd21a5f74e4fe7138aca6b3ecabb63e5727648ae64352d28cf1e5d681232","expanded_plot_id":"458bdeb22a8b2456290357add1704d20967956b686c8439cd162d1de3cac0a78","source_document_id":"f650e6aa588ab71ec87a51e9c479b6b1d3f80911b424e2f4845b777a86677913"}]. Wear/doff/prefer address the currently admitted terminal Mask; browser selection awaits a complete carrier-Line Mask Plan.
+Owner terminal evidence {"body_id":"1f1d5d82f4eb8ee47011beb80e5b39c156d1c96f2ccdf611cd43e2fe0ff89f68","boot_id":"boot/installed/7955a1b6780d566d8a4515ab747b77d5a66b75412ff17926b8bba3c38f0db223","bytes_written":641,"face_id":"25013aee998050049950c870c4d94dc806327706b1c1eec57e56d09fc69c5875","face_revision":"5055164355942367113","frame_sha256":[110,181,28,188,36,45,150,50,139,209,211,66,4,162,208,86,55,18,225,143,80,224,66,57,51,115,90,202,208,33,71,19],"host_id":"host/installed/abdf41184cd02a21b3b5f3503112b911a9c2ad6f31b5040b0fa626fdc48887c6","mask_plan_id":"c88f14706865d78a1933ff5b1bb9929233a6e7c3ca4b566a632fffaeb839e00e","mask_play_id":"0cb17fd69c6792a0f9b4dcaf60dea504ba81b9858891423ab7ab261593444008","owner_selected_show_current":true,"route_plan_id":"plan/local-owner-mask/db859af7aedb79f9c7fdbc0b6e2fe68113896399e1f51f87103829203ccecea5","schema":"conduit.body/terminal-show-evidence@1","show_id":"show/32be6e338d72e9aac7aaac1f98a4b51334358bd7bdc82b7d2c5f4d44ab7906b4","show_sha256":[158,204,84,213,117,38,192,60,106,7,250,26,172,139,187,28,235,77,251,184,235,88,56,178,47,233,50,156,8,143,61,132],"show_state":"available"}

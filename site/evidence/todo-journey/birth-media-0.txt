@@ -1,0 +1,53 @@
+[2J[H[1mGroceries[0m
+────────────────────────────────────────────────────────────────────────────────
+· Groceries is lulled with one resident plot.
+  Wake
+  Open Body overview
+  Open Plots library
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Face · lines 1–4 / 4
+Tab focus · ↑↓ read · PgUp/PgDn · F2 inspect · Enter apply · Esc cancel
+Owner terminal Show show/b4ce20357c209ff18228efdeeca222d030f42686014772b93b92ee818d41e3de · route Plan plan/local-owner-mask/23da0c77360fcd3f86669b5cc05db872b667040b5e800e5132f74ca9c4d87387 · Host host/installed/abdf41184cd02a21b3b5f3503112b911a9c2ad6f31b5040b0fa626fdc48887c6 · Boot boot/installed/7955a1b6780d566d8a4515ab747b77d5a66b75412ff17926b8bba3c38f0db223 · offer generation 2 · 503 bytes written and flushed. Enter actions to list choices, action <identity> [value] for an available action, apply <value> when only one value action is available, show to present again, or quit to detach.
+Owner Body wardrobe: 1 worn terminal Mask, 1 admitted route; selected route: route/plan/local-owner-mask/23da0c77360fcd3f86669b5cc05db872b667040b5e800e5132f74ca9c4d87387; current Show: show/b4ce20357c209ff18228efdeeca222d030f42686014772b93b92ee818d41e3de; planning: "NotRequired". Preference: [{"checked_plot_id":"42c3bd21a5f74e4fe7138aca6b3ecabb63e5727648ae64352d28cf1e5d681232","expanded_plot_id":"458bdeb22a8b2456290357add1704d20967956b686c8439cd162d1de3cac0a78","source_document_id":"f650e6aa588ab71ec87a51e9c479b6b1d3f80911b424e2f4845b777a86677913"}]. Wear/doff/prefer address the currently admitted terminal Mask; browser selection awaits a complete carrier-Line Mask Plan.
+Wardrobe refused: owner presentation wardrobe refused: Control(Wardrobe(DuplicateMask))
+Owner Body wardrobe: 1 worn terminal Mask, 1 admitted route; selected route: route/plan/local-owner-mask/23da0c77360fcd3f86669b5cc05db872b667040b5e800e5132f74ca9c4d87387; current Show: show/b4ce20357c209ff18228efdeeca222d030f42686014772b93b92ee818d41e3de; planning: "NotRequired". Preference: [{"checked_plot_id":"42c3bd21a5f74e4fe7138aca6b3ecabb63e5727648ae64352d28cf1e5d681232","expanded_plot_id":"458bdeb22a8b2456290357add1704d20967956b686c8439cd162d1de3cac0a78","source_document_id":"f650e6aa588ab71ec87a51e9c479b6b1d3f80911b424e2f4845b777a86677913"}]. Wear/doff/prefer address the currently admitted terminal Mask; browser selection awaits a complete carrier-Line Mask Plan.
+[2J[H[1mGroceries[0m
+────────────────────────────────────────────────────────────────────────────────
+· Groceries is lulled with one resident plot.
+  Wake
+  Open Body overview
+  Open Plots library
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Face · lines 1–4 / 4
+Tab focus · ↑↓ read · PgUp/PgDn · F2 inspect · Enter apply · Esc cancel
+Owner terminal Show show/7596561c9ac90de42ea5aa03a54eab722372290befb7bb86524f7ce864e8b92c · route Plan plan/local-owner-mask/23da0c77360fcd3f86669b5cc05db872b667040b5e800e5132f74ca9c4d87387 · Host host/installed/abdf41184cd02a21b3b5f3503112b911a9c2ad6f31b5040b0fa626fdc48887c6 · Boot boot/installed/7955a1b6780d566d8a4515ab747b77d5a66b75412ff17926b8bba3c38f0db223 · offer generation 2 · 503 bytes written and flushed. Enter actions to list choices, action <identity> [value] for an available action, apply <value> when only one value action is available, show to present again, or quit to detach.
+Owner Body wardrobe: 1 worn terminal Mask, 1 admitted route; selected route: route/plan/local-owner-mask/23da0c77360fcd3f86669b5cc05db872b667040b5e800e5132f74ca9c4d87387; current Show: show/7596561c9ac90de42ea5aa03a54eab722372290befb7bb86524f7ce864e8b92c; planning: "NotRequired". Preference: [{"checked_plot_id":"42c3bd21a5f74e4fe7138aca6b3ecabb63e5727648ae64352d28cf1e5d681232","expanded_plot_id":"458bdeb22a8b2456290357add1704d20967956b686c8439cd162d1de3cac0a78","source_document_id":"f650e6aa588ab71ec87a51e9c479b6b1d3f80911b424e2f4845b777a86677913"}]. Wear/doff/prefer address the currently admitted terminal Mask; browser selection awaits a complete carrier-Line Mask Plan.
+Owner terminal evidence {"body_id":"1f1d5d82f4eb8ee47011beb80e5b39c156d1c96f2ccdf611cd43e2fe0ff89f68","boot_id":"boot/installed/7955a1b6780d566d8a4515ab747b77d5a66b75412ff17926b8bba3c38f0db223","bytes_written":503,"face_id":"e7a0e73d34dc6ebfd986270c89e5f9bdf6e56b5740497eae07a22ad909f589b0","face_revision":"5055164355942367057","frame_sha256":[52,201,154,157,15,37,194,254,210,130,212,130,226,213,114,114,243,183,34,72,6,177,194,63,234,29,185,198,131,214,119,125],"host_id":"host/installed/abdf41184cd02a21b3b5f3503112b911a9c2ad6f31b5040b0fa626fdc48887c6","mask_plan_id":"58a945e4cbfb2ec3f9c74ca7e2cff07108bd731ec51c90f0f3d5683f3327f8a9","mask_play_id":"66c64efe75f9fab7242609a1c1d18f3115f236049584eb02263414917d7c9df4","owner_selected_show_current":true,"route_plan_id":"plan/local-owner-mask/23da0c77360fcd3f86669b5cc05db872b667040b5e800e5132f74ca9c4d87387","schema":"conduit.body/terminal-show-evidence@1","show_id":"show/7596561c9ac90de42ea5aa03a54eab722372290befb7bb86524f7ce864e8b92c","show_sha256":[239,161,128,149,202,171,4,205,12,4,104,112,99,155,211,122,140,2,37,54,0,36,255,118,212,220,78,165,30,126,249,166],"show_state":"available"}

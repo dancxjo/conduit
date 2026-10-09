@@ -1,8 +1,8 @@
 //! Retain an actual installed Todo owner's terminal encounter for the journey.
 //!
-//! This is deliberately a partial producer. The publication manifest requires
-//! browser, native, QMP, and same-Play audio evidence that this entrance does
-//! not capture. It never writes that manifest or a completed terminal receipt.
+//! Terminal-only modes retain partial receipts. Fresh direct-speech mode also
+//! captures the browser journey, selected WAV artifacts, recovery and refusal
+//! before producing the complete local publication packet.
 
 use crate::{
     cli::{GlobalOpts, TodoJourneyArgs},
@@ -125,6 +125,7 @@ pub fn run(args: TodoJourneyArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::
         || args.pinned_playwright.is_some()
         || args.first_item_text.is_some()
         || args.cross_mask_actions
+        || args.direct_speech
     {
         return Err("fresh Todo browser arguments require --fresh-body-source".into());
     }
