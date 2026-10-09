@@ -77,7 +77,7 @@ selection, and Host/resource eligibility. These cannot be repaired by a rename,
 shape coercion or overload selected by the expected output Type.
 
 The selected API remains `ipa-quoted@1`: neither draft API is an accepted release.
-The `ipa-admission@1` request/outcome families, Host operation and Back identities
+The `ipa-admission@1` request/outcome families, Host Call and Back identities
 are not installed as aliases. Legacy shape-only `SpeechInventory` and foreign
 wrappers must refuse at exact typed boundaries. A consumer of the superseded
 draft must deliberately reconstruct and check the selected request and whole
