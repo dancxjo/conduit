@@ -7,6 +7,9 @@ use conduit_std_host::{StdHost, StdHostConfig};
 #[path = "../../../../semantics/presentation/tests/common/mod.rs"]
 mod mask_test_common;
 
+#[path = "todo_continuity_tests.rs"]
+mod todo_continuity;
+
 const SOURCE: &str = include_str!("../../../../plots/todo/checkpoint-once.conduit");
 
 fn selected_host(root: &Path) -> StdHost {
@@ -175,13 +178,17 @@ fn failed_large_todo_read_fixture() -> (std::path::PathBuf, std::path::PathBuf, 
 }
 
 fn resumed_todo_host(state_root: &Path) -> StdHost {
+    resumed_todo_host_on_boot(state_root, "boot/todo-owner-failed-read-retry")
+}
+
+fn resumed_todo_host_on_boot(state_root: &Path, boot: &str) -> StdHost {
     let selected = super::super::super::super::selected_todo_checkpoint(state_root)
         .unwrap()
         .unwrap();
     StdHost::new_for_todo_checkpoint_once(
         StdHostConfig {
             host_id: HostId::from("host/todo-owner-test"),
-            boot_id: BootId::from("boot/todo-owner-failed-read-retry"),
+            boot_id: BootId::from(boot),
             offer_generation: OfferGeneration(1),
         },
         &selected.root,
