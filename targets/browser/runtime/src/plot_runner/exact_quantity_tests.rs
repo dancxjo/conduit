@@ -1,0 +1,261 @@
+//! Ordinary checked quantities cross the installed browser Plan and kernel.
+use super::*;
+use conduit_core::{ConfigurationValue, PlannedGear};
+use conduit_kernel::{HostedValueStore, ValueStorage};
+
+fn source(kind: &str, left: &str, right: &str, predicate: &str) -> String {
+    let names = if kind.contains("compare") {
+        ["left", "right"]
+    } else {
+        ["source", "to"]
+    };
+    format!(
+        r#"plot checked-quantity {{
+ operation: {kind}({} = "{left}", {} = "{right}")
+ show: presentation/bool-value
+ operation.receipt >> ({predicate}) >> show.value
+}}."#,
+        names[0], names[1]
+    )
+}
+fn converted(coefficient: i128, exponent: i16) -> String {
+    format!("variant/is(.result, \"converted\") ? (.result.converted.coefficient == {coefficient} ? .result.converted.exponent == {exponent} : false) : false")
+}
+fn run(source: &str) -> (TourSession, TourEffect) {
+    let (session, effect) =
+        TourSession::prepare("browser/exact-quantity", "boot/exact-quantity", source, 1)
+            .unwrap_or_else(|error| panic!("{error}\n{source}"));
+    let TourHostEffect::Manifestation(effect) = effect else {
+        panic!("planned Boolean effect")
+    };
+    assert_eq!(effect.text.as_deref(), Some("true"));
+    assert_eq!(effect.presentation_kind, "presentation/bool-value");
+    assert_eq!(effect.plan_id, session.fragments[0].plan_id.as_str());
+    assert!(effect
+        .expanded_gears
+        .iter()
+        .any(|gear| gear.kind_id.starts_with("units/")));
+    (session, *effect)
+}
+fn finish(mut session: TourSession, effect: TourEffect) {
+    let capacity = session.scheduler.values().allocation_capacities();
+    let TourProgress::Receipt(receipt) = session.advance().unwrap() else {
+        panic!("completed receipt")
+    };
+    assert_eq!(receipt.disposition, "completed");
+    assert_eq!(receipt.active_play_id, effect.active_play_id);
+    assert_eq!(session.scheduler.values().allocation_capacities(), capacity);
+}
+
+#[test]
+fn exact_quantity_browser_all_prefixes_and_affine_results_execute_checked_receipts() {
+    for (prefix, exponent) in [
+        ("da", 1),
+        ("h", 2),
+        ("k", 3),
+        ("M", 6),
+        ("G", 9),
+        ("T", 12),
+        ("P", 15),
+        ("E", 18),
+        ("Z", 21),
+        ("Y", 24),
+        ("R", 27),
+        ("Q", 30),
+        ("d", -1),
+        ("c", -2),
+        ("m", -3),
+        ("µ", -6),
+        ("n", -9),
+        ("p", -12),
+        ("f", -15),
+        ("a", -18),
+        ("z", -21),
+        ("y", -24),
+        ("r", -27),
+        ("q", -30),
+    ] {
+        let source = source(
+            "units/convert",
+            &format!("1{prefix}m"),
+            "m",
+            &converted(1, exponent),
+        );
+        let (session, effect) = run(&source);
+        finish(session, effect);
+    }
+    for (value, target, coefficient, exponent) in [
+        ("1kHz", "Hz", 1, 3),
+        ("1µs", "ns", 1, 3),
+        ("1cm²", "mm²", 1, 2),
+        ("0°C", "K", 27315, -2),
+        ("30°C", "°F", 86, 0),
+        ("1Qm", "qm", 1, 60),
+        ("1qm", "Qm", 1, -60),
+        ("1MB", "B", 1, 6),
+        ("1MiB", "B", 1048576, 0),
+    ] {
+        let (session, effect) = run(&source(
+            "units/convert",
+            value,
+            target,
+            &converted(coefficient, exponent),
+        ));
+        finish(session, effect);
+    }
+}
+
+#[test]
+fn exact_quantity_browser_semantic_roles_and_refusals_execute_through_the_kernel() {
+    for (kind, left, right, predicate) in [
+        ("units/convert-temperature-difference", "9°F", "K", converted(5, 0)),
+        ("units/convert-temperature-difference", "1m°C", "K", converted(1, -3)),
+        ("units/compare", "1000mm", "0.001km", "variant/is(.result, \"equal\")".into()),
+        ("units/compare", "1°F", "0°C", "variant/is(.result, \"less\")".into()),
+        ("units/compare", "1MB", "1MiB", "variant/is(.result, \"less\")".into()),
+        ("units/compare-temperature-differences", "9°F", "5K", "variant/is(.result, \"equal\")".into()),
+        ("units/convert", "1°F", "°C", "variant/is(.result, \"refused\") ? .result.refused == \"inexact\" : false".into()),
+        ("units/convert", "1Hz", "m", "variant/is(.result, \"refused\") ? .result.refused == \"incompatible-dimensions\" : false".into()),
+        ("units/convert", "1Qm³", "qm³", "variant/is(.result, \"refused\") ? .result.refused == \"overflow\" : false".into()),
+        ("units/compare", "1m", "1s", "variant/is(.result, \"refused\") ? .result.refused == \"incompatible-dimensions\" : false".into()),
+    ] {
+        let (session, effect) = run(&source(kind, left, right, &predicate));
+        finish(session, effect);
+    }
+}
+
+fn preparation_refuses(placement: &PlannedGear) {
+    let installation = crate::installed_browser::factory(&placement.implementation_id).unwrap();
+    let mut values = HostedValueStore::new(4, 8192, 32768).unwrap();
+    let before = values.allocation_capacities();
+    assert!((installation.prepare)(placement, &mut values).is_err());
+    assert_eq!(values.allocation_capacities(), before);
+}
+
+#[test]
+fn exact_quantity_browser_admission_refuses_identity_and_configuration_drift() {
+    for (kind, left, right, predicate) in [
+        ("units/convert", "1kHz", "Hz", converted(1, 3)),
+        (
+            "units/convert-temperature-difference",
+            "9°F",
+            "K",
+            converted(5, 0),
+        ),
+        (
+            "units/compare",
+            "1m",
+            "1000mm",
+            "variant/is(.result, \"equal\")".into(),
+        ),
+        (
+            "units/compare-temperature-differences",
+            "9°F",
+            "5K",
+            "variant/is(.result, \"equal\")".into(),
+        ),
+    ] {
+        let (session, _) = run(&source(kind, left, right, &predicate));
+        let placement = session.fragments[0]
+            .placements
+            .iter()
+            .find(|p| p.kind_id.as_str() == kind)
+            .unwrap();
+        let mut changed = placement.clone();
+        changed.artifact_id = "wrong/browser-quantity".into();
+        preparation_refuses(&changed);
+        let mut changed = placement.clone();
+        changed.capability_id = "wrong/capability".into();
+        preparation_refuses(&changed);
+        let mut changed = placement.clone();
+        changed.kind_contract_revision = "wrong/revision".into();
+        preparation_refuses(&changed);
+        let mut changed = placement.clone();
+        changed.semantic_contract.laws.clear();
+        preparation_refuses(&changed);
+        let mut changed = placement.clone();
+        changed.outputs[0].value_kind = "wrong/receipt".into();
+        preparation_refuses(&changed);
+        let mut changed = placement.clone();
+        changed.configuration.push(changed.configuration[0].clone());
+        preparation_refuses(&changed);
+        let mut changed = placement.clone();
+        changed.configuration[0].value = ConfigurationValue::Text("1".repeat(129));
+        preparation_refuses(&changed);
+    }
+    for (kind, left, right) in [
+        ("units/compare", "21C", "1°C"),
+        ("units/convert-temperature-difference", "1Hz", "K"),
+    ] {
+        assert!(TourSession::prepare(
+            "browser/refusal",
+            "boot/refusal",
+            &source(kind, left, right, "true"),
+            2
+        )
+        .err()
+        .expect("invalid quantity source refuses")
+        .contains("quantity source"));
+    }
+}
+
+#[test]
+fn exact_quantity_browser_stored_receipts_survive_pressure_byte_for_byte() {
+    use conduit_kernel::scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome};
+    use conduit_kernel::PortId;
+    const PORTS: usize = crate::installed_browser::BROWSER_PORTS_PER_GEAR;
+    for (kind, left, right, predicate) in [
+        ("units/convert", "1Qm", "qm", converted(1, 60)),
+        (
+            "units/convert-temperature-difference",
+            "9°F",
+            "K",
+            converted(5, 0),
+        ),
+        (
+            "units/compare",
+            "1000mm",
+            "0.001km",
+            "variant/is(.result, \"equal\")".into(),
+        ),
+        (
+            "units/compare-temperature-differences",
+            "9°F",
+            "5K",
+            "variant/is(.result, \"equal\")".into(),
+        ),
+    ] {
+        let (session, _) = run(&source(kind, left, right, &predicate));
+        let placement = session.fragments[0]
+            .placements
+            .iter()
+            .find(|p| p.kind_id.as_str() == kind)
+            .unwrap();
+        let expected = conduit_plot::quantity_conversion::prepare_operation_configuration(
+            kind,
+            &placement.configuration,
+        )
+        .unwrap()
+        .canonical_bytes()
+        .unwrap();
+        let installation = crate::installed_browser::factory(&placement.implementation_id).unwrap();
+        let mut values = HostedValueStore::new(4, 8192, 32768).unwrap();
+        let mut back = (installation.prepare)(placement, &mut values).unwrap();
+        let capacity = values.allocation_capacities();
+        let input = StepInputBytes::test_frame([None; PORTS], None);
+        for _ in 0..1000 {
+            let mut blocked =
+                StepIo::test_frame([None; PORTS], [false; PORTS], [None; PORTS], None, 8);
+            assert_eq!(back.step(&mut blocked, &input), StepOutcome::Await);
+            assert!(blocked.test_output(PortId(0)).is_none());
+        }
+        let mut ready =
+            StepIo::test_frame([None; PORTS], [false; PORTS], [Some(4096); PORTS], None, 8);
+        assert_eq!(back.step(&mut ready, &input), StepOutcome::Complete);
+        assert_eq!(
+            values.get(ready.test_output(PortId(0)).unwrap()).unwrap(),
+            expected
+        );
+        assert_eq!(values.allocation_capacities(), capacity);
+    }
+}

@@ -65,12 +65,13 @@ no legacy tag, keeping numeric representation admission separate.
 
 The bounded codec described below now separates the extended numeric profile
 from legacy storage. Explicit `ExactQuantity` startup parameters and defaults
-now admit that profile through ordinary checked Plot authoring. The remaining
-migration must integrate consumer execution and target eligibility.
+now admit that profile through ordinary checked Plot authoring. The existing Audio and Robotics consumers now have explicit checked projections;
+target realization eligibility is reported below.
 The legacy authored target now returns a representation-eligibility refusal
 when it cannot realize a recognized value. Explicit checked conversion and compatible comparison must
 retain source/target dimensions, exact ratio/offset, selected profile and result
-or refusal. Browser/no_std realization eligibility and Audio/non-Audio integrations remain open.
+or refusal. Browser execution uses an installed bounded receipt profile. Bare no_std targets
+retain explicit eligibility limits, as described below.
 The checked authored conversion and receipt APIs are described below. Startup eligibility diagnostics retain the original
 literal span, and highlighting recognizes extended literals without claiming
 the legacy representation can realize them.
@@ -113,7 +114,8 @@ the versioned codec, and performs no allocations during evaluation. This evidenc
 covers byte transport, not extended arithmetic execution, browser execution or
 physical target execution. Conversion receipts and the distinct temperature
 difference contract additionally use hosted preparation and the ordinary kernel;
-Audio/non-Audio integrations still need their own implementation and evidence.
+The consumer projections below have independent native and component execution
+evidence.
 No silent projection to the legacy
 9-byte encoding is provided. A decimal output profile cannot represent every
 rational coordinate; exact conversions must report inexactness when appropriate.
@@ -151,7 +153,7 @@ Target prefix scaling is applied before bounded decimal projection, allowing
 small target coordinates even when an intermediate base coordinate exceeds the
 output profile. All 456 inverse scales are checked against the independent
 reference corpus. The ordinary authored conversion Gear and prepared hosted Back use this same
-operation. Integrated consumer receipts remain required.
+operation. Existing consumer record projections are described below.
 
 ## Checked authored conversion Gear
 
@@ -328,5 +330,41 @@ precision/dimension/range refusals, and unsigned event-time boundaries. The
 reference synth receives admitted note events built from exact prefixed pitch
 and time; its PCM and state match the existing integer path across different
 block sizes through note-on and release. This proves component execution, not
-a physical speaker or human listening. Browser realization and final accepted
-release evidence remain separate requirements.
+a physical speaker or human listening. Final accepted release evidence remains required before issue closure.
+
+
+## Target realization eligibility
+
+| Target | Available contract | Proof class |
+| --- | --- | --- |
+| std math Host | Four conversion/comparison Kinds; 8192-byte exact receipts prepared before Play | Actual hosted kernel execution, measured zero-allocation pressure/cancellation tests |
+| browser | Same four Kinds and semantic receipt Types; installed 4096-byte value profile | Native browser runtime/kernel tests and pinned Chromium executing actual WebAssembly |
+| no_std Core/Plot/Audio/Robotics/Synth | Fixed exact codec and arithmetic; explicit legacy integer consumer projections | Cross-target compilation and native deterministic contract tests; no firmware execution claim |
+| bare no_std Host | Existing offered legacy Quantity realization; no installed exact receipt Back | An exact semantic coordinate does not imply an eligible bare Host realization |
+
+The browser computes and encodes each receipt during installed preparation,
+checks the exact offered artifact/contract/configuration, and stores it in the
+existing finite value arena. Its existing source Back emits the stored bytes
+once; no conversion or serialization occurs during Play. Receipts above the
+browser's 4096-byte profile explicitly refuse representation eligibility even
+though the portable Type permits 8192 bytes. Pressure tests retain full canonical
+receipt bytes and unchanged arena capacities for all four roles. The browser
+membership envelope admits its 129 installed capabilities while preserving its
+independent 192 KiB advertisement bound.
+
+The browser proof exercises all 24 prefix exponents plus ordinary frequency,
+time, squared-length, affine-temperature, extreme-prefix and decimal/binary-byte
+conversions. Separate cases execute temperature differences, exact comparison,
+and retained inexact/overflow/dimension refusals. Ordinary typed expressions
+inspect the actual receipt; an acknowledged Boolean presentation and completed
+Play are checked in Chromium. This is browser execution evidence, not physical
+measurement or firmware execution. Repository browser validation enters through
+`cargo xtask prove browser-host` with the pinned Chromium project, one worker and
+zero retries.
+
+Bare target availability is explicit: the shared arithmetic is allocation-free,
+but a compiled exact Type is not an offered Back. Unsupported extended runtime
+placements must remain ineligible; ordinary legacy literals retain their offered
+representation and recognized wider startup values retain the source-spanned
+representation-eligibility diagnostic. No implicit narrowing or rounded fallback
+is installed.

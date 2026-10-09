@@ -126,6 +126,8 @@ impl TourSession {
         }
         let checked = conduit_plot::check_syntax_document(&syntax, &startup)
             .map_err(|error| format!("check executable-tour Plot: {error:?}"))?;
+        conduit_plot::quantity_conversion::validate_source(&syntax, &checked)
+            .map_err(|error| format!("quantity source: {error:?}"))?;
         let selector_offers =
             crate::installed_browser::catalogs::install_checked_structured_selectors(
                 &checked,
@@ -365,6 +367,8 @@ fn placement_in_fragments(
 
 #[cfg(test)]
 mod clock_tests;
+#[cfg(test)]
+mod exact_quantity_tests;
 #[cfg(test)]
 mod firefly_choir_tests;
 #[cfg(test)]
