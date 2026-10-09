@@ -1,0 +1,59 @@
+    Finished `test` profile [unoptimized] target(s) in 0.13s
+     Running unittests src/lib.rs (/home/dancxjo/conduit/target/debug/deps/conduit_ai-79225b0ec6dd9e53)
+
+running 27 tests
+test streaming_generation::tests::sequence_chunk_and_total_bounds_refuse_distinctly ... ok
+test dynamics::tests::public_field_compatibility_retains_accuracy_defense_in_depth ... ok
+test streaming_generation::tests::generated_text_chunks_are_native_bounded_and_keep_the_exact_codec ... ok
+test model_text::tests::generated_chunks_project_as_incremental_text_without_batching ... ok
+test temporal_evidence_selection::tests::complete_history_reports_missing_boundary_without_fabricating_duration ... ok
+test provider::tests::portable_front_and_provider_protocol_keep_realization_and_failures_distinct ... ok
+test streaming_generation::tests::ordered_deltas_reconstruct_exactly_without_runtime_retention ... ok
+test model_work_contract::tests::full_state_reply_round_trips ... ok
+test relation::digest::tests::result_profile_digest_bytes_remain_exact ... ok
+test model_signature::tests::dimension_constraint_retains_the_v1_manual_digest_bytes ... ok
+test model_work_contract::tests::canonical_command_round_trip_and_identity_bounds ... ok
+test temporal_evidence_selection::tests::recent_first_page_cannot_masquerade_as_project_origin ... ok
+test training_digest::tests::missing_modality_policy_retains_the_v1_manual_digest_bytes ... ok
+test vector_search_contract::tests::portable_contract_is_typed_finite_and_backend_neutral ... ok
+test bases::tests::implementation_artifact_and_resource_vectors_are_exact_and_distinct ... ok
+test bases::tests::three_materially_different_fixtures_offer_one_equal_checked_front ... ok
+test model_work_contract::tests::oversized_noncanonical_and_unknown_payloads_refuse ... ok
+test model_text::tests::only_canonical_produced_bounded_utf8_becomes_text ... ok
+test vector_search_contract::tests::ordinary_plot_checks_and_expands_without_backend_vocabulary ... ok
+test model_work_contract::tests::ordinary_plot_checks_expands_and_plans_from_portable_contract ... ok
+test temporal_evidence_selection::tests::exact_boundary_and_latest_evidence_are_selected_deterministically ... ok
+test temporal_evidence_selection::tests::state_interval_and_event_ordering_use_event_and_validity_truth ... ok
+test streaming_generation::tests::generated_text_flow_evidence_is_native_bounded_and_coherent ... ok
+test temporal_evidence_selection::tests::malformed_batch_refuses_before_selection ... ok
+test provider::tests::unchanged_plot_selects_direct_front_or_distributed_provider_back_exactly ... ok
+test temporal_evidence_selection::tests::temporal_evidence_family_is_native_and_exactly_bounded ... ok
+test model_work_contract::tests::maximal_mutating_receipt_fits_prepared_wire_bound ... ok
+
+test result: ok. 27 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/native_training_vocabulary.rs (/home/dancxjo/conduit/target/debug/deps/native_training_vocabulary-b5a197e103d2ead6)
+
+running 1 test
+test training_vocabularies_round_trip_through_native_types ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/training.rs (/home/dancxjo/conduit/target/debug/deps/training-dd2c0917f4452039)
+
+running 5 tests
+test stale_half_steps_bad_splits_and_resource_overruns_refuse ... ok
+test three_atomic_steps_commit_through_explicit_state_then_checkpoint ... ok
+test declared_missing_modalities_retain_relational_validation ... ok
+test cancellation_failure_and_evaluation_never_commit_state ... ok
+test portable_training_descriptions_are_native_and_keep_the_4096_example_bound ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/training_lifecycle.rs (/home/dancxjo/conduit/target/debug/deps/training_lifecycle-a7a3d91c69c7ac21)
+
+running 1 test
+test lifecycle_is_finite_and_terminal_paths_cleanly_unload ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

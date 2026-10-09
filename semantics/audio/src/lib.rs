@@ -26,7 +26,9 @@ mod generated {
 }
 
 pub use generated::{
-    AudioRenderDemand, AudioToneTerminal, AudioToneTerminalForm, BeatReference,
+    AudioAmplitudePowerEligible, AudioAmplitudePowerRelationship, AudioAmplitudePowerRequest,
+    AudioCycleDuration, AudioFrequencyHz, AudioPowerRatio, AudioRelativeAmplitude,
+    AudioRenderDemand, AudioResonator, AudioToneTerminal, AudioToneTerminalForm, BeatReference,
     CancellationDisposition, Gate, GateForm, IncompatibilityReason, InstrumentAnalogEvent,
     InstrumentButtonEvent, InstrumentControl, InstrumentMapping, InstrumentPitchMillihertz,
     ModulationDestination, ModulationDestinationForm, MusicalControl, MusicalControlEvent,
@@ -50,3 +52,43 @@ pub use pcm_clip::*;
 pub use sampled_signal_mapping::*;
 pub use sound_info::*;
 pub use tone_terminal::*;
+
+mod acoustic_quantities;
+pub use acoustic_quantities::*;
+
+mod source_programs {
+    include!(concat!(env!("OUT_DIR"), "/acoustic_programs.rs"));
+}
+mod trajectory;
+pub use generated::{
+    AudioExactTimeOffset, AudioOriginIdentity, AudioQuantityTrajectory, AudioTimelineIdentity,
+    AudioTrajectoryAnchor, AudioTrajectoryDomain, AudioTrajectoryEndpoints,
+    AudioTrajectoryInterpolation, AudioTrajectoryOutside, AudioTrajectoryProvenance,
+    AudioTrajectoryProvenanceKind, AudioTrajectoryQuantity, AudioTrajectoryQuery,
+    AudioTrajectorySegment,
+};
+pub use trajectory::*;
+
+mod source_execution;
+pub use source_execution::{AudioSourceExecution, AudioSourceExecutionRefusal};
+mod rate_projection;
+pub use generated::{
+    AudioCumulativeFrameBasis, AudioCumulativeFrameCursor, AudioCumulativeFrameRequest,
+    AudioCumulativeFrameResult, AudioFrameGridFidelity, AudioFrameQuantization,
+    AudioIntegerFrameTarget, AudioSampleProjectionChain, AudioSampleProjectionQuantity,
+    AudioSampleProjectionRequest, AudioSampleProjectionResult, AudioSampleRateBasis,
+    AudioTimeFraction,
+};
+pub use rate_projection::*;
+mod rate_projection_report;
+pub use rate_projection_report::*;
+
+mod decibel_projection;
+pub use decibel_projection::*;
+pub use generated::{
+    AudioAmplitudePowerReferences, AudioDecibelBasis, AudioDecibelConvention, AudioDecibelFraction,
+    AudioDecibelLevel, AudioDecibelReference, AudioDecibelReferenceRole, AudioDecibelValue,
+    AudioLevelRatio, AudioReferencedAmplitudePowerRequest, AudioReferencedLevelRatio,
+};
+mod decibel_projection_report;
+pub use decibel_projection_report::*;

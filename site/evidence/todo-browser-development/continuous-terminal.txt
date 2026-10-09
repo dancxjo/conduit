@@ -1,0 +1,26 @@
+[2J[H[1mGroceries[0m
+────────────────────────────────────────────────────────────────────────────────
+· Groceries
+  1 thing left · 0 completed
+  1. [ ] Buy milk
+  Wake
+  Open Body overview
+  Open Plots library
+  Open resident Plot
+
+
+
+
+
+
+
+
+
+
+
+
+Face · lines 1–7 / 7
+Read only · ↑↓ read · PgUp/PgDn · F2 inspect · Esc close
+Owner Face revision 3748880338788965681 · Show show/2843b5298f546841817f0bee52ec98ac2031edbd332ffa9f52f3e0f0427712e2 · Host host/installed/8d8c8113045124107b2e2a89267928fe28ba8e7357733c490e7f98a725e01758 · Boot boot/installed/9354f0a4defa628c710a23383282afc8b38c71cf43bbcee3634ea76d0520c85d
+Commands: next, previous, page down, page up, inspect, control next, control previous, type TEXT, apply, refresh, help, quit. Available controls follow the current Face; refresh after lifecycle changes.
+body> 

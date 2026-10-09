@@ -1,0 +1,82 @@
+{
+  "base": "6cc4ba02f2139716e454da8463ff28f0b3502814",
+  "package_test_source": "26a26d5a407f934e6cb2dda879896cbad70c1e3e",
+  "final_clippy_source": "dc58979826913e686c0ccdc74bdee8cbbf23e802",
+  "original_fargan_head": "f813938ba22cb23e36181f3e1b9ee2e3c3edb61c",
+  "format_delta": {
+    "files": [
+      "architecture/plot/src/lib.rs",
+      "semantics/ai/src/lib.rs"
+    ],
+    "description": "Only module declaration ordering changed after package tests."
+  },
+  "results": {
+    "ai": {
+      "exit": 0,
+      "passed": 279,
+      "executables": 74
+    },
+    "plot": {
+      "exit": 0,
+      "passed": 446,
+      "executables": 29,
+      "note": "Plot sources remained unchanged through the package-test source commit; AI-only edits during this run do not affect Plot."
+    },
+    "strict_clippy": {
+      "exit": 0,
+      "packages": [
+        "conduit-ai",
+        "conduit-plot"
+      ],
+      "all_targets": true,
+      "features": [
+        "conduit-ai/kernel-step"
+      ]
+    },
+    "format": {
+      "exit": 0
+    }
+  },
+  "logs": [
+    {
+      "path": "ai-all-target-tests.log",
+      "bytes": 38833,
+      "sha256": "766dae49a675a1a2a67e71fa4ce2f47c76d915780d450f4a8c45c0bf7b8fa201"
+    },
+    {
+      "path": "plot-all-target-tests.log",
+      "bytes": 47136,
+      "sha256": "9c0378afcf799bdd2770f0fcbba50d6824f94d18f79f60eacc980e896552b47f"
+    },
+    {
+      "path": "clippy-before-format.log",
+      "bytes": 3597,
+      "sha256": "049719443c54b712f0009a7fffbbd78bc4e692b5c58bcddbf1675e1458f0c8af"
+    },
+    {
+      "path": "clippy-final-source.log",
+      "bytes": 2716,
+      "sha256": "06fd435cc1e22023b002760dacfb502d20c4fd314fea3374ad274af443dea40e"
+    },
+    {
+      "path": "scalar-focused-final.log",
+      "bytes": 1719,
+      "sha256": "6adec8e13d5b6c1be2fb506b3f168838f1cddeb207408667cbf2f3913dfdcf0f"
+    },
+    {
+      "path": "failure-missing-nominal-framing.log",
+      "bytes": 35377,
+      "sha256": "d0ecb3dee56a0730cc4a4e1ed1ce702c8ce05259a3ac24c80219beef4426ffe4"
+    },
+    {
+      "path": "failure-missing-nominal-collection.log",
+      "bytes": 1558,
+      "sha256": "014835861b7bfc8832ab4fb2b1fe68dab16917225abc245b427b4f0fc3f41883"
+    },
+    {
+      "path": "format-final.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ]
+}

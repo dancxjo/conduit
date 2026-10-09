@@ -1,0 +1,128 @@
+{
+  "capture_entrance": "cargo xtask prove todo-journey",
+  "capture_tool_commit": "78510e96269ed1c7f40565b8b0083456d6060e4d",
+  "chapter_scope": [
+    "birth",
+    "add",
+    "terminal-read"
+  ],
+  "error": null,
+  "finished_at_unix_ms": 1791485563327,
+  "installed_executable_sha256": "1771453cd85f25fc98b2ce665a33a58718b151d63384babc19d1ef54faa56410",
+  "installed_product_source_commit": "78510e96269ed1c7f40565b8b0083456d6060e4d",
+  "missing_for_publication": [
+    "remaining five continuous chapters",
+    "Add queue and child Sign correlation",
+    "native and QMP captures",
+    "requested-detail same-Play speech",
+    "new-Boot recovery",
+    "complete producer events and cross-Mask action receipts"
+  ],
+  "observation": {
+    "add": {
+      "after": {
+        "face_id": "f6acf33fd0aabce58d8e6bd7faaa8d1989b25cd69d485d6ce00160c781a73d55",
+        "face_revision": "3748880338788965680",
+        "show_id": "show/f29ee1d3dd7c908b3c2f0b9ee0a4df962b9ea3c1a9a899cd5917427f018ec2d1"
+      },
+      "before": {
+        "face_id": "b854747ba116f27efdce059357ef2ede3d5295c0354e45124700e29a9c967d80",
+        "face_revision": "3748880338788965671",
+        "show_id": "show/4afb5e6266284c055cda2d77c09a871aa43666f1fadff67efd3fd5fea53bef03"
+      },
+      "command": {
+        "exit_code": 0,
+        "stderr": {
+          "bytes": 0,
+          "path": "browser-add.stderr",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 0,
+          "path": "browser-add.stdout",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      },
+      "owner_face_id": "a09dde40e8524a74bdd88764d402396b346b1f4a06c0fe3fffe91adee2b0833f",
+      "owner_face_revision": 3748880338788965681,
+      "receipt": {
+        "bytes": 1243,
+        "path": "browser/receipt.json",
+        "sha256": "8a04ce6217679fd4c159e4528eb797bb75b820328168636c85b3ef63598af2a5"
+      },
+      "screenshots": [
+        {
+          "bytes": 99063,
+          "path": "browser/browser-before.png",
+          "sha256": "e48ec7aef8582224dfce9cdb32885d0907a7f2768fe335bb2a05a4a97aa38334"
+        },
+        {
+          "bytes": 66106,
+          "path": "browser/browser-after.png",
+          "sha256": "06ec39dceccc8537b13d05f85fce6e57ed34183a300ed2c9db35b5171c25992a"
+        }
+      ]
+    },
+    "birth": {
+      "command": {
+        "exit_code": 0,
+        "stderr": {
+          "bytes": 0,
+          "path": "birth.stderr",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 180735,
+          "path": "birth.stdout",
+          "sha256": "cac19229de664a3dd9e5df6c2596e5b7728cc4e3183036acb171564d64da4df9"
+        }
+      },
+      "face_id": "54d7ac4c63415bf43ef99f9d1dcc4abff2d76037b48080339176351d4b4c7292",
+      "face_revision": 3748880338788965666
+    },
+    "body_id": "1c98eda18c73b70d5a22bba685a02910b4b098530979c0b4d1034217d5476033",
+    "checkpoint_after": {
+      "entries": [
+        [
+          "e176da49748f89925c4be105798d17c1e89f602d196a1c8cf7b7e89a4dfd501e.874f02e81372a959bb7a43de74716e923729116cf518d993432367ca6c5f8b55.checkpoint",
+          "d97dc28523a35a3cc42dce0f2016a221abfbac059945983e3e134390aad282ec"
+        ],
+        [
+          "e176da49748f89925c4be105798d17c1e89f602d196a1c8cf7b7e89a4dfd501e.current",
+          "77d5ce39ae9acc567ed5ce38ae4372d85595caed4b6ea8291531c83dc16ad6bb"
+        ]
+      ],
+      "files": 2
+    },
+    "checkpoint_before": {
+      "entries": [],
+      "files": 0
+    },
+    "selected_checkpoint_root": "/home/dancxjo/Documents/Codex/2026-10-08/todo-fresh-78510e/selected-checkpoints",
+    "terminal": {
+      "command": {
+        "exit_code": 0,
+        "stderr": {
+          "bytes": 0,
+          "path": "terminal.stderr",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 1024,
+          "path": "terminal.stdout",
+          "sha256": "ad042aa9eb9e6cf3b7462055f7058213a484a2391f703adc446952a060427907"
+        }
+      },
+      "face_id": "a09dde40e8524a74bdd88764d402396b346b1f4a06c0fe3fffe91adee2b0833f",
+      "face_revision": 3748880338788965681,
+      "input": {
+        "bytes": 5,
+        "path": "terminal.input",
+        "sha256": "0a7b6a054f4637f0b3077c3427e3a0491812cda612eadf6a94ccfa11398564b6"
+      }
+    }
+  },
+  "publication_ready": false,
+  "schema": "conduit.todo-journey/partial-live-capture@1",
+  "started_at_unix_ms": 1791485559948
+}

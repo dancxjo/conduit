@@ -1,0 +1,82 @@
+   Compiling conduit-assigned-plan v0.1.0 (/home/dancxjo/conduit-portable-foundations/architecture/assigned-plan)
+   Compiling ring v0.17.14
+   Compiling patchbay-control v0.1.0 (/home/dancxjo/conduit-portable-foundations/plots/patchbay)
+   Compiling conduit-protected-line v0.1.0 (/home/dancxjo/conduit-portable-foundations/architecture/protected-line)
+   Compiling conduit-emergency-keyword-spotter v0.1.0 (/home/dancxjo/conduit-portable-foundations/mechanisms/implementations/emergency-keyword-spotter)
+   Compiling conduit-core v0.1.0 (/home/dancxjo/conduit-portable-foundations/architecture/core)
+   Compiling conduit-kernel v0.1.0 (/home/dancxjo/conduit-portable-foundations/architecture/kernel)
+   Compiling rustls-webpki v0.103.15
+   Compiling stun v0.17.2
+   Compiling rcgen v0.14.10
+   Compiling rustls v0.23.45
+   Compiling turn v0.17.2
+   Compiling ureq v3.4.2
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/conduit-portable-foundations/architecture/plot)
+   Compiling conduit-body v0.1.0 (/home/dancxjo/conduit-portable-foundations/architecture/body)
+   Compiling conduit-plan-lowering v0.1.0 (/home/dancxjo/conduit-portable-foundations/architecture/plan-lowering)
+   Compiling conduit-rp2040-network-realization v0.1.0 (/home/dancxjo/conduit-portable-foundations/targets/rp2040/network-realization)
+   Compiling conduit-observatory v0.1.0 (/home/dancxjo/conduit-portable-foundations/architecture/observatory)
+   Compiling conduit-composite v0.1.0 (/home/dancxjo/conduit-portable-foundations/architecture/composite)
+   Compiling conduit-time v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/time)
+   Compiling conduit-human v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/human)
+   Compiling conduit-audio v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/audio)
+   Compiling conduit-language v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/language)
+   Compiling conduit-web v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/web)
+   Compiling conduit-text v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/text)
+   Compiling conduit-alife v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/alife)
+   Compiling conduit-net v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/net)
+   Compiling conduit-purpose v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/purpose)
+   Compiling conduit-process v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/process)
+   Compiling conduit-robotics v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/robotics)
+   Compiling conduit-data v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/data)
+   Compiling conduit-presentation v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/presentation)
+   Compiling conduit-tongues v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/tongues)
+   Compiling conduit-signal v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/signal)
+   Compiling conduit-chat v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/chat)
+   Compiling conduit-todo-plot v0.1.0 (/home/dancxjo/conduit-portable-foundations/plots/todo/model)
+   Compiling conduit-wire v0.1.0 (/home/dancxjo/conduit-portable-foundations/architecture/wire)
+   Compiling conduit-body-invitation-plot v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/body-invitation)
+   Compiling conduit-tutorial-plot v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/tutorial)
+   Compiling conduit-plot-library v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/plot-library)
+   Compiling conduit-bluetooth v0.1.0 (/home/dancxjo/conduit-portable-foundations/mechanisms/protocols/bluetooth)
+   Compiling conduit-finance v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/finance)
+   Compiling conduit-ai v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/ai)
+   Compiling conduit-little-seismograph-fixture v0.1.0 (/home/dancxjo/conduit-portable-foundations/plots/little-seismograph/fixture)
+   Compiling conduit-midi v0.1.0 (/home/dancxjo/conduit-portable-foundations/mechanisms/protocols/midi)
+   Compiling conduit-synth v0.1.0 (/home/dancxjo/conduit-portable-foundations/mechanisms/implementations/synth)
+   Compiling conduit-education v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/education)
+   Compiling conduit-birth-plot v0.1.0 (/home/dancxjo/conduit-portable-foundations/plots/birth)
+   Compiling conduit-burn-model v0.1.0 (/home/dancxjo/conduit-portable-foundations/mechanisms/implementations/burn-model)
+   Compiling conduit-planner v0.1.0 (/home/dancxjo/conduit-portable-foundations/architecture/planner)
+   Compiling conduit-speech v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/speech)
+   Compiling conduit-semantic-catalog v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/catalog)
+   Compiling conduit-alife-distributed-conformance v0.1.0 (/home/dancxjo/conduit-portable-foundations/proof/conformance/alife-distributed)
+   Compiling conduit-host-make v0.1.0 (/home/dancxjo/conduit-portable-foundations/make/host)
+   Compiling patchbay-graph v0.1.0 (/home/dancxjo/conduit-portable-foundations/plots/patchbay/graph)
+   Compiling conduit-tour-model v0.1.0 (/home/dancxjo/conduit-portable-foundations/plots/tour)
+   Compiling patchbay-application v0.1.0 (/home/dancxjo/conduit-portable-foundations/plots/patchbay/application)
+   Compiling conduit-std-offers v0.1.0 (/home/dancxjo/conduit-portable-foundations/targets/std/offers)
+   Compiling conduit-signal-conformance v0.1.0 (/home/dancxjo/conduit-portable-foundations/proof/conformance/signal)
+   Compiling conduit-host-browser-make v0.1.0 (/home/dancxjo/conduit-portable-foundations/targets/browser/make)
+   Compiling conduit-host-rp2040 v0.1.0 (/home/dancxjo/conduit-portable-foundations/targets/rp2040/make)
+   Compiling conduit-host-orange-pi v0.1.0 (/home/dancxjo/conduit-portable-foundations/targets/orange-pi/make)
+   Compiling conduit-host-hosted v0.1.0 (/home/dancxjo/conduit-portable-foundations/targets/std/make)
+   Compiling conduit-host-avr-make v0.1.0 (/home/dancxjo/conduit-portable-foundations/targets/avr/make)
+   Compiling conduit-host-esp32-make v0.1.0 (/home/dancxjo/conduit-portable-foundations/targets/esp32/make)
+   Compiling conduit-host-raspberry-pi v0.1.0 (/home/dancxjo/conduit-portable-foundations/targets/raspberry-pi/make)
+   Compiling conduit-host-conduitos-make v0.1.0 (/home/dancxjo/conduit-portable-foundations/targets/conduitos/make)
+   Compiling conduit-linear-framebuffer-make v0.1.0 (/home/dancxjo/conduit-portable-foundations/mechanisms/implementations/linear-framebuffer-make)
+   Compiling conduit-browser-mask-offer v0.1.0 (/home/dancxjo/conduit-portable-foundations/targets/browser/mask-offer)
+   Compiling conduit-body-make v0.1.0 (/home/dancxjo/conduit-portable-foundations/make/body)
+   Compiling conduit-r1-network-conformance v0.1.0 (/home/dancxjo/conduit-portable-foundations/proof/conformance/network-r1)
+   Compiling conduit-workspace-make v0.1.0 (/home/dancxjo/conduit-portable-foundations/make/workspace)
+   Compiling conduit-browser-runtime v0.1.0 (/home/dancxjo/conduit-portable-foundations/targets/browser/runtime)
+   Compiling conduit-std-host v0.1.0 (/home/dancxjo/conduit-portable-foundations/targets/std)
+error[E0063]: missing field `todo_checkpoint_root` in initializer of `StdHost`
+    --> targets/std/src/lib.rs:1037:12
+     |
+1037 |         Ok(Self {
+     |            ^^^^ missing `todo_checkpoint_root`
+
+For more information about this error, try `rustc --explain E0063`.
+error: could not compile `conduit-std-host` (lib) due to 1 previous error

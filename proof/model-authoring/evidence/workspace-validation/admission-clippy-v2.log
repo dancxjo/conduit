@@ -1,0 +1,8 @@
+    Blocking waiting for file lock on build directory
+    Checking conduit-burn-model v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-07/take-on-dancxjo-conduit-5205-5207/work/conduit/mechanisms/implementations/burn-model)
+    Checking conduit-body-lifecycle-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-07/take-on-dancxjo-conduit-5205-5207/work/conduit/proof/conformance/body-lifecycle)
+    Checking conduit-tutorial-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-07/take-on-dancxjo-conduit-5205-5207/work/conduit/semantics/tutorial)
+    Checking conduit-xtask-dispatch v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-07/take-on-dancxjo-conduit-5205-5207/work/conduit/tools/xtask-dispatch)
+    Checking conduit-chat v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-07/take-on-dancxjo-conduit-5205-5207/work/conduit/semantics/chat)
+    Checking conduit-tongues v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-07/take-on-dancxjo-conduit-5205-5207/work/conduit/semantics/tongues)
+    Finished `dev` profile [unoptimized] target(s) in 3.81s

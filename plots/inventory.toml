@@ -1,5 +1,5 @@
 schema = "conduit.reviewed-plot-inventory/v2"
-maximum_plots = 118
+maximum_plots = 119
 maximum_combined_workloads = 4
 
 # Membership is explicit: repository path discovery validates this list but never creates it.
@@ -67,6 +67,12 @@ title = "Bench Telemetry"
 entry = "bench-telemetry"
 deterministic = { package = "conduit-data", test = "measurement_processing_reuse", case = "bench_consumes_the_exact_little_seismograph_plot_back_without_copying_source" }
 browser_safe_not_applicable = "the reusable plot Back is browser-installed, but Bench device acquisition and presentation remain separate unfinished Plots"
+[[plots]]
+slug = "model-authoring"
+title = "Model Authoring"
+entry = "model-authoring"
+deterministic = { package = "conduit-std-host", features = ["burn-model"], test = "burn_plot_journey", case = "ordinary_plot_trains_saves_reloads_and_infers" }
+browser_safe_not_applicable = "training and checkpoint persistence require a prepared hosted model session; the browser advertises no model/work realization"
 [[plots]]
 slug = "bounded-job"
 title = "Bounded Job"

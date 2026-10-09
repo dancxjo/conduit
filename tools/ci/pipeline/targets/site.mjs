@@ -1,3 +1,4 @@
+import { completePublicationHistory } from '../complete-publication-history.mjs';
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -20,6 +21,7 @@ const navigation = () => readFileSync('site/navigation.html', 'utf8');
 
 export function assembleSite(directory, sourceCommit, workspace = 'target/workspace-product') {
   if (!/^[a-f0-9]{40}$/.test(sourceCommit)) throw new Error('Website requires an exact source commit');
+  completePublicationHistory(sourceCommit);
   if (existsSync(directory)) throw new Error(`Website output already exists: ${directory}`);
   xtask('make', 'pages-root', directory);
   rmSync(path.join(directory, 'handbook'), { recursive: true });
@@ -54,6 +56,9 @@ export function assembleSite(directory, sourceCommit, workspace = 'target/worksp
     const destination = path.join(directory, 'journeys/current/one-body-five-masks');
     if (existsSync(destination)) throw new Error('Retained One Body route already exists');
     cpSync(threeHostDevelopment.root, destination, { recursive: true, errorOnExist: true });
+  }
+  if (oneBodyEvidence || threeHostDevelopment) {
+    renderTickerIntroduction(path.join(directory, 'journeys/current/ticker'));
   }
   const directSpokenDevelopment = retainedDirectSpokenDevelopmentEvidence();
   if (directSpokenDevelopment) {
@@ -98,7 +103,7 @@ export function assembleSite(directory, sourceCommit, workspace = 'target/worksp
     const anchor = '<!-- conduit-three-body-flagship@2 -->';
     if (!html.includes(anchor)) throw new Error('Journeys catalogue has no direct speech card seam');
     const card = '<article class="journey-card"><p class="eyebrow">Separate live speech proof</p>'
-      + '<h2>Hear the whole Face</h2><p>Listen to 11 bounded parts of one installed Linux Host reading.'
+      + '<h2>Inspect an earlier full Face reading</h2><p>This historical ticker recording reads proof metadata as well as content in 11 bounded parts. It is retained for inspection; current default speech gives a concise ticker summary.'
       + ' The WAVs came from the Plays delivered to its selected speaker; this is a separate development run,'
       + ' not a chapter of the three-host journey or a claim of human hearing.</p>'
       + '<a href="current/direct-spoken-development/">Listen to the direct reading</a></article>';
@@ -191,4 +196,11 @@ function renderFieldStation(source, destination, commit, handbook = false) {
     return;
   }
   writeFileSync(path.join(destination, 'index.html'), `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Field Station Clock · Conduit journeys</title><style>${styles()}</style></head><body data-application-theme="conduit.presentation/phosphor@1">${navigation()}<main class="site-content"><p><a href="../../">All journeys</a></p><p class="eyebrow">Browser · three steps</p><h1>Return to your clock after a reload</h1><p class="lede">Open the clock, reload the page, and stop it when you are finished. This walkthrough shows what stays with the body and what starts again when you return.</p><h2>Before you begin</h2><p>This recording uses the Field Station browser example. Opening the page creates and starts the clock automatically. You need a browser with local storage enabled.</p><ol class="journey-steps">${steps}</ol><h2>What happened?</h2><p>The same body returned after reload, with a new run of its clock. Lull stopped that run while keeping the body. The recording does not show the clock running while the browser was closed.</p><p>Next: <a href="../../">choose another Journey</a>, try the <a href="../handbook/">Handbook walkthrough</a>, or read <a href="/conduit/handbook/Bodies-hosts-plans-and-plays.html">how bodies keep their identity</a>.</p><details><summary>About this recording</summary><p>Captured in Chromium from source <code>${escape(commit)}</code>.</p><p><a href="index.json">Screenshot inventory</a> · <a href="runtime-evidence.json">Recorded runtime observations</a></p></details></main></body></html>`);
+}
+
+// Human orientation is separate from the immutable historical captures. Keep
+// their published routes and bytes intact, including old clock names in audio.
+export function renderTickerIntroduction(destination) {
+  mkdirSync(destination, { recursive: true });
+  writeFileSync(path.join(destination, 'index.html'), `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Interval ticker — Conduit</title><style>${styles()}</style></head><body data-application-theme="conduit.presentation/phosphor@1">${navigation()}<main class="site-content"><p><a href="../../">All journeys</a></p><p class="eyebrow">Ticker and lifecycle specimen</p><h1>Start, stop, and change a ticker</h1><p class="lede">An interval ticker emits a pulse at a chosen pace. It does not tell time of day.</p><p>Start the ticker, observe its running status, then stop it. While stopped, choose a new pace: 250, 500, 1000, or 2000 milliseconds between pulses. Starting again makes a new run of the same retained Body.</p><p>The current interface names the Plot “Interval ticker” and reports whether it is running, stopped, or waiting to start. Direct speech gives that status and the pulse interval. Exact identities and unavailable controls remain available through inspection or an explicit complete reading.</p><h2>What the recording demonstrates</h2><p>The retained development run exercises ticker controls through browser, ConduitOS, terminal, and speech. It records lifecycle and Host rejoin behavior. The recording states exactly which actions its run establishes; this introduction adds no execution evidence. QEMU is emulator execution and recorded audio does not establish attended human hearing.</p><h2>Next: an ordinary application</h2><p><a href="../../development/todo-browser/">Follow the Todo development steps</a> for a richer presentation specimen: a list with meaningful items, remaining-work summaries, and typed edits across Masks. The complete durable Todo flagship journey is separate unfinished work.</p><details><summary>Inspect the original recording and receipts</summary><p><a href="../one-body-five-masks/">Open the retained ticker recording</a>. Older screenshots, transcripts, and audio call it a clock and sometimes read proof metadata aloud. They remain historical evidence of their exact source, not examples of the current default presentation. Their original published route is preserved.</p></details></main></body></html>`);
 }

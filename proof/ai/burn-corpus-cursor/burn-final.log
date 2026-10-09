@@ -1,0 +1,115 @@
+   Compiling conduit-burn-model v0.1.0 (/home/dancxjo/conduit-burn-corpus-cursor/mechanisms/implementations/burn-model)
+    Finished `test` profile [unoptimized] target(s) in 3.52s
+     Running unittests src/lib.rs (/home/dancxjo/conduit/target/debug/deps/conduit_burn_model-88a542fe30c8ed74)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/authoring_contract.rs (/home/dancxjo/conduit/target/debug/deps/authoring_contract-37cbd8039c93108c)
+
+running 3 tests
+test signature_batch_bound_cannot_exceed_realization_admission ... ok
+test authoring_contract_refuses_invalid_profiles ... ok
+test fresh_initialization_refuses_unrelated_base_weights ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/checkpoint_contract.rs (/home/dancxjo/conduit/target/debug/deps/checkpoint_contract-703e3f8582549fce)
+
+running 9 tests
+test failed_pointer_replacement_never_advertises_partial_bundle ... ok
+test checkpoint_failure_retains_durable_cursor ... ok
+test cancellation_and_stale_resume_preserve_live_and_durable_progress ... ok
+test inference_reexport_preserves_checkpoint_generation_and_identity ... ok
+test inference_off_ramp_has_no_resume_authority ... ok
+test incompatible_recipe_and_corrupt_checkpoint_refuse_without_mutation ... ok
+test corrupt_weight_member_refuses_without_replacing_model ... ok
+test checkpoint_reload_preserves_inference ... ok
+test fresh_runtime_resumes_recorded_step_cursor ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s
+
+     Running tests/checkpoint_record_compatibility.rs (/home/dancxjo/conduit/target/debug/deps/checkpoint_record_compatibility-87bfff91bce08508)
+
+running 2 tests
+test foreign_optimizer_parameter_ids_refuse_even_with_valid_content_digests ... ok
+test incompatible_optimizer_shapes_refuse_even_with_valid_content_digests ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+
+     Running tests/corpus_cursor.rs (/home/dancxjo/conduit/target/debug/deps/corpus_cursor-203165ae64548bfb)
+
+running 7 tests
+test preparation_enforces_exact_membership_payload_and_declared_tail_and_resource_bounds ... ok
+test cancellation_evaluation_and_failed_checkpoint_distinguish_live_and_durable_cursor ... ok
+test corpus_memory_admission_and_unload_release_owned_progress ... ok
+test changed_actual_payload_recipe_and_missing_owner_refuse_before_any_state_mutation ... ok
+test actual_next_tensors_resume_across_seeded_epoch_boundary_without_replayed_caller_batch ... ok
+test stable_order_and_descriptor_version_are_checked_without_reopening_legacy_manual_state ... ok
+test training_only_cadence_stable_order_and_cursor_tampering_are_explicit ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.20s
+
+     Running tests/device_contract.rs (/home/dancxjo/conduit/target/debug/deps/device_contract-87feb0ef666c98cc)
+
+running 1 test
+test cuda_request_refuses_when_not_compiled ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/inference_only.rs (/home/dancxjo/conduit/target/debug/deps/inference_only-492c5379b478d0b5)
+
+running 2 tests
+test training_adapter_conversion_discards_training_contract ... ok
+test inference_export_reloads_without_dataset_session_or_optimizer ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+     Running tests/parameter_policy.rs (/home/dancxjo/conduit/target/debug/deps/parameter_policy-ffe7b1ab852c121e)
+
+running 1 test
+test frozen_parameter_group_remains_frozen_after_resume ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
+
+     Running tests/retained_journey.rs (/home/dancxjo/conduit/target/debug/deps/retained_journey-b57ddea1e32fd05e)
+
+running 1 test
+test retained_cpu_train_resume_export_reload_journey ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.21s
+
+     Running tests/state_safety.rs (/home/dancxjo/conduit/target/debug/deps/state_safety-f799b63c437e52f6)
+
+running 7 tests
+test frozen_model_never_advertises_or_enters_training ... ok
+test stale_generation_and_insufficient_work_refuse_before_mutation ... ok
+test invalid_evaluation_batch_refuses_before_objective_execution ... ok
+test cancellation_during_forward_discards_output_and_preserves_state ... ok
+test candidate_storage_exhaustion_retains_committed_state ... ok
+test cancellation_during_objective_discards_candidate ... ok
+test finite_loss_with_nonfinite_gradient_never_commits_candidate ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+     Running tests/training_contract.rs (/home/dancxjo/conduit/target/debug/deps/training_contract-a827887e466517e3)
+
+running 3 tests
+test cancelled_step_retains_parameters_and_optimizer ... ok
+test evaluation_preserves_training_state ... ok
+test burn_cpu_loss_decreases ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.19s
+
+   Doc-tests conduit_burn_model
+
+running 5 tests
+test mechanisms/implementations/burn-model/src/lib.rs - (line 128) ... ignored
+test mechanisms/implementations/burn-model/src/lib.rs - (line 115) - compile ... ok
+test mechanisms/implementations/burn-model/src/checkpoint.rs - checkpoint::BurnAdapter<D>::checkpoint (line 21) - compile fail ... ok
+test mechanisms/implementations/burn-model/src/lib.rs - (line 88) - compile ... ok
+test mechanisms/implementations/burn-model/src/checkpoint.rs - checkpoint::BurnAdapter<D>::export_inference (line 115) - compile fail ... ok
+
+test result: ok. 4 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.04s
+

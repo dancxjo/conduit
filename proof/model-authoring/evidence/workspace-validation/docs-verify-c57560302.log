@@ -1,0 +1,25 @@
+    Finished `dev` profile [unoptimized] target(s) in 0.17s
+     Running `target/debug/conduit-xtask-dispatch prove docs-verify --workspace-root .`
+   Compiling ring v0.17.14
+   Compiling conduit-ai v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-07/take-on-dancxjo-conduit-5205-5207/work/conduit/semantics/ai)
+   Compiling rustls v0.23.45
+   Compiling rustls-webpki v0.103.15
+   Compiling ureq v3.4.2
+   Compiling conduit-chat v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-07/take-on-dancxjo-conduit-5205-5207/work/conduit/semantics/chat)
+   Compiling conduit-tongues v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-07/take-on-dancxjo-conduit-5205-5207/work/conduit/semantics/tongues)
+   Compiling conduit-tutorial-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-07/take-on-dancxjo-conduit-5205-5207/work/conduit/semantics/tutorial)
+   Compiling conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-07/take-on-dancxjo-conduit-5205-5207/work/conduit/targets/conduitos)
+   Compiling conduit-std-offers v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-07/take-on-dancxjo-conduit-5205-5207/work/conduit/targets/std/offers)
+   Compiling conduit-host-hosted v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-07/take-on-dancxjo-conduit-5205-5207/work/conduit/targets/std/make)
+   Compiling conduit-signal-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-07/take-on-dancxjo-conduit-5205-5207/work/conduit/proof/conformance/signal)
+   Compiling conduit-patchbay-workbench-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-07/take-on-dancxjo-conduit-5205-5207/work/conduit/proof/conformance/patchbay-workbench)
+   Compiling conduit-pete v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-07/take-on-dancxjo-conduit-5205-5207/work/conduit/bodies/pete)
+   Compiling conduit-r1-network-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-07/take-on-dancxjo-conduit-5205-5207/work/conduit/proof/conformance/network-r1)
+   Compiling conduit-workspace-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-07/take-on-dancxjo-conduit-5205-5207/work/conduit/make/workspace)
+   Compiling conduit-browser-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-07/take-on-dancxjo-conduit-5205-5207/work/conduit/targets/browser/runtime)
+   Compiling conduit-std-host v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-07/take-on-dancxjo-conduit-5205-5207/work/conduit/targets/std)
+   Compiling conduit-patchbay-workbench v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-07/take-on-dancxjo-conduit-5205-5207/work/conduit/plots/patchbay/workbench/model)
+   Compiling xtask v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-07/take-on-dancxjo-conduit-5205-5207/work/conduit/tools/xtask)
+    Finished `dev` profile [unoptimized] target(s) in 38.74s
+     Running `target/debug/xtask prove docs-verify --workspace-root .`
+verified 4 canonical documentation visual references

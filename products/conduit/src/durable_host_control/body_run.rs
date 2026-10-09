@@ -46,6 +46,55 @@ impl DurableHostRuntime {
         show: &MaskShow,
         interaction: &FaceInteraction,
     ) -> Result<serde_json::Value, String> {
+        let committed = match &self.host {
+            HostSource::Body {
+                owner,
+                running: None,
+                ..
+            } if owner.has_verified_todo() => {
+                Some(owner.resolve_committed_todo_interaction(show, interaction)?)
+            }
+            _ => None,
+        };
+        if let Some(resolved) = committed {
+            return self.submit_committed_todo_action(show, interaction, resolved);
+        }
+        self.submit_waiting_todo_action(show, interaction, None)
+    }
+
+    pub(super) fn submit_committed_todo_action(
+        &mut self,
+        show: &MaskShow,
+        interaction: &FaceInteraction,
+        resolved: (conduit_todo_plot::TodoState, conduit_todo_plot::TodoCommand),
+    ) -> Result<serde_json::Value, String> {
+        self.start_owned_body(5_000, None)?;
+        let deadline = Instant::now() + Duration::from_secs(5);
+        loop {
+            self.progress_owned_body()?;
+            if matches!(&self.host, HostSource::Body { owner, .. } if owner.current_play_id().is_some())
+            {
+                break;
+            }
+            if Instant::now() >= deadline {
+                return Err(super::CONTROL_OUTCOME_UNKNOWN.into());
+            }
+            std::thread::sleep(Duration::from_millis(5));
+        }
+        let mut result = self.submit_waiting_todo_action(show, interaction, Some(resolved))?;
+        result["initiating_show"] =
+            serde_json::to_value(show).map_err(|error| error.to_string())?;
+        result["initiating_action"] =
+            serde_json::to_value(interaction).map_err(|error| error.to_string())?;
+        Ok(result)
+    }
+
+    fn submit_waiting_todo_action(
+        &mut self,
+        show: &MaskShow,
+        interaction: &FaceInteraction,
+        resolved: Option<(conduit_todo_plot::TodoState, conduit_todo_plot::TodoCommand)>,
+    ) -> Result<serde_json::Value, String> {
         let selected = crate::durable_host::selected_todo_checkpoint(match &self.host {
             HostSource::Body { root, .. } => root,
             _ => return Err("installed Todo does not own a Body".into()),
@@ -63,7 +112,12 @@ impl DurableHostRuntime {
             return Err("installed Todo has no current waiting Play".into());
         };
         let previous_generation = owner.host.advertisement().offer_generation;
-        let admitted = worker.submit_interaction(owner, show, interaction)?;
+        let admitted = match resolved {
+            Some((state, command)) => {
+                worker.submit_committed_action(owner, &state, &command, show, interaction)?
+            }
+            None => worker.submit_interaction(owner, show, interaction)?,
+        };
         if admitted == BodyLiveForeAdmission::Full {
             return Err("Todo command Fore is full".into());
         }

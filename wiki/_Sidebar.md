@@ -10,6 +10,8 @@
 
 ### Use
 
+- [[Creating models: teach Conduit to speak|Creating-models]]
+
 - [[Start here|Start-here]]
 - [[Bodies, hosts, plans and plays|Bodies-hosts-plans-and-plays]]
 - [[State, time and data|State-time-and-data]]

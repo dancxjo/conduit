@@ -114,6 +114,7 @@ pub(super) fn catalogs(
     conduit_tongues::install_research_catalogs(&mut startup, &mut profile)?;
     conduit_ai::install_llm_semantic_catalog(&mut startup, &mut profile)?;
     conduit_ai::install_model_text_catalog(&mut startup, &mut profile)?;
+    conduit_ai::install_model_work_catalog(&mut startup, &mut profile)?;
     conduit_tutorial_plot::presenter::install_tutorial_presenter_catalog(
         &mut startup,
         &mut profile,

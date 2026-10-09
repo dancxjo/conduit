@@ -1,0 +1,77 @@
+{
+  "schema": 1,
+  "source_commit": "482954f7de4c625cb886980c8497130c3eb47bb5",
+  "base_commit": "6cc4ba02f2139716e454da8463ff28f0b3502814",
+  "recorded_utc": "2026-10-08T19:50:52.868542+00:00",
+  "host": "forebrain",
+  "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)",
+  "environment": {
+    "CARGO_TARGET_DIR": "/home/dancxjo/conduit/target",
+    "CARGO_BUILD_JOBS": "2",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_INCREMENTAL": "0"
+  },
+  "commands": {
+    "tests": "cargo +stable test --locked -p conduit-language --test revision_lineage --test parser_availability_foundation --test text_revision --test lexical --offline",
+    "check": "cargo +stable check --locked -p conduit-language --lib --offline",
+    "clippy": "cargo +stable clippy --locked -p conduit-language --lib --test revision_lineage --test parser_availability_foundation -- -D warnings"
+  },
+  "tests": {
+    "passed": 18,
+    "failed": 0,
+    "ignored": 0,
+    "suites": {
+      "revision_lineage": 6,
+      "parser_availability_foundation": 2,
+      "text_revision": 4,
+      "lexical": 6
+    }
+  },
+  "logs": {
+    "tests": {
+      "path": "proof/evidence/language/revision-foundation/tests.log",
+      "bytes": 6941,
+      "sha256": "f82e7ed79177b8f3bbadb43034ed3dd166ed126603b9c58502b2449ad5d408c9",
+      "exit_code": 0
+    },
+    "check": {
+      "path": "proof/evidence/language/revision-foundation/check.log",
+      "bytes": 484,
+      "sha256": "91fe3b8fc7c0ee82eff5e273ee9b856097f0d4e4d5b7a6a2a9445c530b1c75f5",
+      "exit_code": 0
+    },
+    "clippy": {
+      "path": "proof/evidence/language/revision-foundation/clippy.log",
+      "bytes": 4326,
+      "sha256": "ec4ebe6b55e954662515c1f361d522d8cd08c2b250473e977525d91e9606e8dd",
+      "exit_code": 0
+    }
+  },
+  "changed_source_sha256": {
+    "semantics/language/build.rs": "755f37b72bc7147fc0cde6a7033bc507642b5bdac6e10de27ee26f2d4ed5e242",
+    "semantics/language/parser_available.conduit": "9505906ba63304647cc5aa83760bec0a5e1b58634067928b48972231087c02df",
+    "semantics/language/revision_lineage.conduit": "867816717c77af5fbc1b7379187f3f10fc92fce30e398b63491b8973ac38149a",
+    "semantics/language/src/catalog.rs": "a9f115c812544326c23fcf7e6700c9deeb0a33d03fc11b9a574c359ab185bdb5",
+    "semantics/language/src/lib.rs": "e3afe5e62694c35940c64760e8dc2bd542338d2660e11ffc8b4a93b45b4f2a07",
+    "semantics/language/src/parser_availability.rs": "77c1add7d602424c2556d376558932edb65864144b77610cde3e2bb12d75c73d",
+    "semantics/language/src/revision_lineage.rs": "fe7ddf22009c00fe8247ef79adad68e9bf67b088f436c28a1579527bd2c3ea9e",
+    "semantics/language/tests/parser_availability_foundation.rs": "0f6529dd0e93f2f6f04c17975bd3c760ec2ee0cbebc8680df73f961683767866",
+    "semantics/language/tests/revision_lineage.rs": "0ccefb427db5c042de5252ec9fd527f4da3aff4c3d3e9b1953159fdf2784a247"
+  },
+  "claims": [
+    "Exact revision metadata lineage Native admission",
+    "Four-token lexical availability Source program evaluation and Native admission",
+    "Existing lexical and scalar frontier regressions",
+    "Default no_std Language library and generated bindings compile",
+    "Scoped strict Clippy passes"
+  ],
+  "non_claims": [
+    "Public flowing parser Session",
+    "Surface/subsequence span correctness from availability schema alone",
+    "Learned model accuracy",
+    "Stable dependency or commitment authority",
+    "Audio playback",
+    "CI acceptance",
+    "Whole issue4907 completion"
+  ]
+}

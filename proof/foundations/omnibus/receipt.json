@@ -1,0 +1,37 @@
+{
+  "tested_source": "43d6ee05990cf60ed4bbb3a6a8c04b90f9a695ef",
+  "dev_base": "6cc4ba02f2139716e454da8463ff28f0b3502814",
+  "component_heads": [
+    "f69f6bb1064d87ef54f4be6402b6c1ccdcbb723e",
+    "a2fea6a2295e7ab34cfb32a9c187753e59b32585",
+    "1fd27657a1479bf2dbf02a05449bd0921f92c028"
+  ],
+  "final_results": {
+    "package_tests": 882,
+    "executables": 148,
+    "failed": 0,
+    "ignored": 0,
+    "ordinary_burn_plot_journey": 1,
+    "strict_all_target_clippy": "passed"
+  },
+  "commands": [
+    "cargo +stable test --locked -p conduit-ai -p conduit-audio -p conduit-language -p conduit-plot --all-targets --features conduit-ai/kernel-operation-owners",
+    "cargo +stable clippy --locked -p conduit-ai -p conduit-audio -p conduit-language -p conduit-plot -p conduit-burn-model -p conduit-std-host --all-targets --features conduit-ai/kernel-operation-owners,conduit-std-host/burn-model -- -D warnings",
+    "cargo +stable test --locked -p conduit-std-host --features burn-model,conduit-ai/kernel-operation-owners --test burn_plot_journey"
+  ],
+  "environment": {
+    "CARGO_TARGET_DIR": "/home/dancxjo/conduit/target",
+    "CARGO_BUILD_JOBS": "6",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0",
+    "CARGO_INCREMENTAL": "0"
+  },
+  "coverage_gap_record": "The earlier kernel-step profile passed 876 tests but compiled out six categorical scheduler tests. Final kernel-operation-owners profile runs all six; CI now uses this stronger profile.",
+  "proof_boundary": "Local CPU integration only; final evidence-only commit and final-head Candidate CI are separate. No trained voice, corpus/shuffle cursor restoration, public Language Session, physical playback or CUDA Plot claim.",
+  "sha256": {
+    "package-tests-kernel-step.log": "8aa0c7baed1ef8f8e0a6b1e7a8248f3a8b1f55c351c1fd096ca6660d0242a11c",
+    "package-tests-final.log": "a696edf21ab56e8e961475fec47bde89e540b8c96ebd43aa17589c40a8940df7",
+    "clippy-final.log": "78644972fbae443f7a84e70385e0bec21678b459f830940327db6cfecf017cdd",
+    "burn-plot-final.log": "a4509f54ba87241baaf8d078b2e3167a0f9b435e615590ee12a7096790d8c5fb"
+  }
+}
