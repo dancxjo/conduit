@@ -65,12 +65,12 @@ no legacy tag, keeping numeric representation admission separate.
 The bounded codec described below now separates the extended numeric profile
 from legacy storage. Explicit `ExactQuantity` startup parameters and defaults
 now admit that profile through ordinary checked Plot authoring. The remaining
-migration must admit arithmetic execution and complete authored conversion receipts.
+migration must admit arithmetic execution and integrate the checked conversion Gear.
 The legacy authored target now returns a representation-eligibility refusal
 when it cannot realize a recognized value. Explicit checked conversion and compatible comparison must
 retain source/target dimensions, exact ratio/offset, selected profile and result
-or refusal. Extended runtime admission, public conversion entrance and Audio/non-Audio
-integrations remain open. Startup eligibility diagnostics retain the original
+or refusal. Extended runtime admission and Audio/non-Audio integrations remain open.
+The checked authored conversion and receipt APIs are described below. Startup eligibility diagnostics retain the original
 literal span, and highlighting recognizes extended literals without claiming
 the legacy representation can realize them.
 
@@ -139,7 +139,7 @@ prefixes, decimal/binary bytes, signed limits and cubic extreme comparisons.
 A non-terminating target coordinate (`1°F` → Celsius, or `1m` → inches) refuses
 as inexact. `Qm` projected to legacy meters refuses overflow; `qm` refuses
 inexactness. These Rust methods establish numeric behavior, not completion of
-the ordinary authored conversion or target-admission requirements.
+all authored conversion or target-admission requirements.
 
 `convert_to_target` additionally accepts a whole-suffix catalogue descriptor,
 including all reviewed generalized prefixes. Its result retains that descriptor
@@ -149,4 +149,49 @@ Target prefix scaling is applied before bounded decimal projection, allowing
 small target coordinates even when an intermediate base coordinate exceeds the
 output profile. All 456 inverse scales are checked against the independent
 reference corpus. This remains a Core operation pending the ordinary authored
-conversion entrance and receipts.
+hosted Back execution and integrated consumer receipts.
+
+## Checked authored conversion Gear
+
+The public `conduit_plot::quantity_conversion` module installs the reviewed
+`units/convert` startup contract and `ExactQuantityConversionReceipt` output
+Type into ordinary startup/profile catalogues. For example:
+
+```conduit
+plot conversion (
+    receipt: ExactQuantityConversionReceipt <= 8192B >>
+) {
+    converted: units/convert(source = "1cm²", to = "mm²")
+    converted.receipt >> receipt
+}.
+```
+
+Quoted `source` preserves the exact original quantity spelling, including
+reviewed aliases. `to` selects a whole suffix from the pinned catalogue. Both
+are required Text startup values bounded to 128 decoded bytes. This constructor
+selects the bounded exact decimal output profile explicitly through its contract;
+it never retries a failed conversion in a different unit or legacy profile.
+
+`install`, ordinary `check_syntax_document`, owner `validate_source`, canonical
+expansion and `prepare_configuration` produce the checked receipt. The receipt
+retains the source coordinate, original suffix, canonical prefix/base,
+source/target dimensions, exact reference scale/offset/denominator triples,
+composed target exponent, catalogue and profile identities, and a `converted`
+coordinate or `refused` precision/dimension/range result. The reference equation
+is `(coordinate * scale + offset) / denominator`; target decimal scaling acts on
+the coordinate after the affine reference law. `validate_receipt` recomputes
+these facts during admission, rejecting forged facts in otherwise valid records.
+
+All 456 inverse prefix scales run through actual authored parsing, checking,
+canonical expansion and constructor preparation against the independent corpus.
+Invalid source/target requests retain original UTF-8 source locations, including
+checked local aliases and escaped Text custody. Foreign checked Source identities
+refuse correlation. Parameterized requests remain unresolved until concrete
+preparation, rather than producing a premature result.
+
+These are checked authoring and preparation APIs. The constructor is not yet
+installed as a product runtime Back, and the example requires the module's
+catalogue installation. No browser or firmware execution claim follows from
+compilation. Exact comparison authoring, admitted execution resource bounds,
+temperature differences and Audio/non-Audio consumers remain open acceptance
+work for #5328.

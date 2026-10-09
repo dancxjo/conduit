@@ -6,10 +6,12 @@ mod exact;
 mod literal;
 mod literal_eligibility;
 mod magnitude;
+mod receipt;
 mod target;
 mod wide_conversion;
 
 pub use exact::*;
+pub use receipt::*;
 pub use target::*;
 
 use conversion::{compare_legacy, convert_exact_rational, is_radian};

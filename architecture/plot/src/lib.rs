@@ -47,6 +47,7 @@ mod package_resolution;
 #[cfg(test)]
 mod package_resolution_tests;
 mod pure_expression;
+pub mod quantity_conversion;
 mod quantity_literal;
 mod quoted_text_source;
 pub use quoted_text_source::{source_span, QuotedTextSourceMap};
