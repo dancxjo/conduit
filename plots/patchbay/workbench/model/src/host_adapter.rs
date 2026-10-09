@@ -35,6 +35,10 @@ impl PatchbayHostAdapter for TestHostAdapter {
         let composition = match profile {
             PatchbayHostProfile::Signal => StdHostComposition::minimal().with_signal(),
             PatchbayHostProfile::Text => StdHostComposition::minimal().with_text(),
+            PatchbayHostProfile::Authoring => StdHostComposition::minimal()
+                .with_text()
+                .with_math()
+                .with_presentation(),
             PatchbayHostProfile::Reference => StdHostComposition::reference(),
             PatchbayHostProfile::PicoSimulation => StdHostComposition::minimal()
                 .with_signal()

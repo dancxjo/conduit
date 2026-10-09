@@ -20,17 +20,19 @@ test("catalog queries and two durable layouts decorate the same live Plot", asyn
       upper: text/upper
       label: text/join("Result: ")
       display: presentation/text(maximum-values = 4)
+      scalar: scalar/literal(value = 500000)
       map: math/map-quantity
       quantity: presentation/quantity
       wrapped: structured-info/wrap-quantity
       literal >> prefix >> upper >> label >> display
+      scalar.value >> map.in
       map >> wrapped >> quantity
     }\n`;
     const server = await startAuthoringEntrance(source);
     try {
       await page.goto(server.url);
       await page.getByRole("button", { name: "Open Plot Empty Plot" }).click();
-      await expect(page.locator(".flow-frontplate.role-gear")).toHaveCount(8);
+      await expect(page.locator(".flow-frontplate.role-gear")).toHaveCount(9);
       const initial = await current(page);
       const basis = initial.authoring.checked_plot_id;
       const semanticGears = initial.presentation.subjects.filter(subject => subject.role === "Gear")
@@ -115,6 +117,7 @@ test("catalog queries and two durable layouts decorate the same live Plot", asyn
         .toEqual(["A second independent annotation", "This frame is not executable scope"]);
       expect((await current(page)).authoring.checked_plot_id).toBe(basis);
       expect(await readFile(server.source, "utf8")).toBe(source);
+      await workspace.locator("summary").click();
 
       await clickNavigation(page, page.getByRole("button", { name: "Entrance", exact: true }));
       await selectRole(page, "Plot", "Empty Plot");
@@ -131,9 +134,11 @@ test("catalog queries and two durable layouts decorate the same live Plot", asyn
       const plan = live.presentation.basis.plan_id;
       const play = live.presentation.basis.active_play_id;
       await clickNavigation(page, page.getByRole("button", { name: "Plot", exact: true }));
+      await workspace.locator("summary").click();
       for (const layout of ["Teaching", "Wide"]) {
         await page.getByRole("combobox", { name: "Saved layouts", exact: true }).selectOption(layout);
         await page.getByRole("button", { name: "Use layout", exact: true }).click();
+        await expect(page.getByRole("button", { name: "Use layout", exact: true })).toBeEnabled();
         const after = await current(page);
         expect(after.presentation.basis.plan_id).toBe(plan);
         expect(after.presentation.basis.active_play_id).toBe(play);
@@ -141,12 +146,20 @@ test("catalog queries and two durable layouts decorate the same live Plot", asyn
         const positions = annotated.layouts.find(saved => saved.name === layout).positions
           .filter(position => semanticGears.includes(position.subject))
           .sort((left, right) => left.subject.localeCompare(right.subject));
-        await expect.poll(() => page.evaluate(async () => {
-          const { flowSceneSnapshot } = await import("/assets/flow.js");
-          return flowSceneSnapshot().nodes.filter(node => node.data.role === "Gear")
-            .map(node => ({ subject: node.data.workspaceSubject, ...node.position }))
+        const gearSubjects = initial.presentation.subjects.filter(subject => subject.role === "Gear")
+          .map(subject => [subject.identity, initial.presentation.properties.find(property =>
+            property.subject === subject.identity && property.name === "semantic-id").value.Identity]);
+        // The admitted application uses blob module identities. Importing the
+        // raw flow asset would inspect a separate, unused module instance.
+        await expect.poll(() => page.locator(".react-flow__node").evaluateAll((nodes, subjects) => {
+          const semanticIds = new Map(subjects);
+          return nodes.filter(node => node.querySelector(".flow-frontplate.role-gear"))
+            .map(node => {
+              const position = new DOMMatrixReadOnly(node.style.transform);
+              return { subject: semanticIds.get(node.dataset.id), x: position.m41, y: position.m42 };
+            })
             .sort((left, right) => left.subject.localeCompare(right.subject));
-        })).toEqual(positions);
+        }, gearSubjects)).toEqual(positions);
         for (const aspect of ["Plan", "Play", "Signs"]) {
           const button = page.locator(`#aspect-controls button[data-aspect="${aspect}"]`);
           await expect(button).toBeVisible();
@@ -157,7 +170,7 @@ test("catalog queries and two durable layouts decorate the same live Plot", asyn
           expect(gears.map(subject => projected.presentation.properties.find(property =>
             property.subject === subject.identity && property.name === "semantic-id").value.Identity).sort())
             .toEqual(semanticGears);
-          await expect(page.locator(".flow-frontplate.role-gear")).toHaveCount(8);
+          await expect(page.locator(".flow-frontplate.role-gear")).toHaveCount(9);
           await expect(page.locator(".flow-frontplate.role-gear").first())
             .toHaveAttribute("data-lens", aspect.toLowerCase());
           for (const gear of gears) {
@@ -229,11 +242,14 @@ async function clickInteraction(page, locator) {
 }
 
 async function clickNavigation(page, locator) {
+  const aspect = await locator.getAttribute("data-aspect");
   const response = page.waitForResponse(candidate =>
-    candidate.url().endsWith("/api/navigation") && candidate.request().method() === "POST");
-  await locator.press("Enter");
+    candidate.url().endsWith("/api/navigation") && candidate.request().method() === "POST"
+      && (!aspect || candidate.request().postDataJSON()?.operation?.aspect === aspect));
+  await locator.click();
   const snapshot = await (await response).json();
   expect(snapshot.interaction.last_disposition).toBe("Succeeded");
+  if (aspect) expect(snapshot.navigation.cursor.aspect).toBe(aspect);
   return snapshot;
 }
 

@@ -317,6 +317,7 @@ pub(super) fn build_advertisement(
     }
     if composition.math {
         capabilities.extend([
+            conduit_std_offers::scalar_literal_std_offer(),
             conduit_std_offers::math_clamp_offer(),
             conduit_std_offers::math_scale_offer(),
             conduit_std_offers::math_deadband_offer(),
@@ -337,6 +338,7 @@ pub(super) fn build_advertisement(
     }
     if composition.presentation {
         capabilities.extend([
+            conduit_std_offers::quantity_presentation_std_offer(),
             conduit_std_offers::presentation_icon_offer(),
             conduit_std_offers::presentation_frame_offer(),
             conduit_std_offers::presentation_badge_offer(),
