@@ -335,6 +335,9 @@ pub struct TodoJourneyArgs {
     /// First item text for the fresh browser Add (defaults to Buy milk).
     #[arg(long)]
     pub first_item_text: Option<String>,
+    /// Add three browser items, complete one through the installed terminal, then observe it in the browser.
+    #[arg(long)]
+    pub cross_mask_actions: bool,
 }
 
 #[derive(ValueEnum, Debug, Clone, Copy, PartialEq, Eq)]
