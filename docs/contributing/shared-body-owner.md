@@ -43,9 +43,13 @@ with the same explicit executable, data, engine and Language coverage arguments.
 This mode requires no speaker card or device and is mutually exclusive with
 `--selected-speech`. Each fresh Boot verifies the exact provider before offering
 voice and artifact Backs. Direct spoken Show admission and acknowledgement still
-use the Owner's ordinary Face and Mask route. The WAV proves synthesis; this mode
-records no device playback or human listening. The current `read remaining`
-playback entrance still requires a selected speaker.
+use the Owner's ordinary Face and Mask route. The WAV acknowledges synthesis; this mode
+records no device playback or human listening. After the direct opening Show is
+acknowledged, `conduit body spoken-mask --state-dir <installation-directory>
+read-remaining` uses the same selected Owner voice and artifact pool to read the
+remaining primary items. Its completed batch receipts distinguish WAV output
+from speaker delivery. A retained speaker selection still requires its matching
+equipment; missing equipment does not select artifact output instead.
 
 The selected voice Boot admits a finite pool of 64 create-new, per-Play WAV
 artifacts under `spoken-artifacts/`. Each admitted Play uses its own exact

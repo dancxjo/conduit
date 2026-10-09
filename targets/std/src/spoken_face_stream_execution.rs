@@ -53,6 +53,7 @@ pub enum SpokenStreamExecutionRefusal {
         detail: String,
     },
     IncompletePlay,
+    Cancelled,
     IncompleteArtifact,
 }
 
@@ -83,6 +84,63 @@ pub fn execute_real_spoken_batch(
     wav_path: &Path,
 ) -> Result<SpokenStreamExecution, SpokenStreamExecutionRefusal> {
     validate_batch_for_installed_fore(face, source_show, batch, wav_path)?;
+    let fresh = StdHost::new();
+    let offered = fresh.advertisement();
+    let config = StdHostConfig {
+        host_id: offered.host_id.clone(),
+        boot_id: offered.boot_id.clone(),
+        offer_generation: offered.offer_generation,
+    };
+    let adapter = discovery
+        .initialize(
+            config.host_id.clone(),
+            config.boot_id.clone(),
+            config.offer_generation,
+            "grant/spoken-face-speech".into(),
+            Duration::from_secs(30),
+        )
+        .map_err(|error| SpokenStreamExecutionRefusal::Plan(error.to_string()))?;
+    let artifact =
+        WavArtifactSelection::new(wav_path, config.boot_id.clone(), config.offer_generation)
+            .map_err(SpokenStreamExecutionRefusal::Plan)?;
+    let mut host = StdHost::new_with_composition(config, StdHostComposition::minimal().with_text());
+    host.attach_espeak_speech_and_wav_artifact(adapter, artifact)
+        .map_err(SpokenStreamExecutionRefusal::Plan)?;
+    execute_spoken_batch_on_attached_artifact_host(
+        face,
+        source_show,
+        batch,
+        language,
+        &crate::RunControl::default(),
+        &mut host,
+    )
+}
+
+/// Execute one exact bounded batch on the already selected Owner Host.
+/// Artifact acknowledgement does not assert speaker playback.
+pub fn execute_spoken_batch_on_attached_artifact_host(
+    face: &Presentation,
+    source_show: &MaskShow,
+    batch: &SpokenBatch,
+    language: &conduit_language::LanguageRequest,
+    control: &crate::RunControl,
+    host: &mut StdHost,
+) -> Result<SpokenStreamExecution, SpokenStreamExecutionRefusal> {
+    validate_spoken_source(face, source_show, batch)?;
+    if control.stop_requested() {
+        return Err(SpokenStreamExecutionRefusal::Cancelled);
+    }
+    if !host.spoken_mask_artifact_route_is_current() {
+        return Err(SpokenStreamExecutionRefusal::Plan(
+            "selected speech artifact route is unavailable".into(),
+        ));
+    }
+    let provider_sha256 = host
+        .speech_synthesis
+        .as_ref()
+        .ok_or_else(|| SpokenStreamExecutionRefusal::Plan("no selected speech provider".into()))?
+        .provider_sha256()
+        .to_owned();
     let mut startup = StartupCatalog::new();
     startup
         .insert_value_kind_alias(
@@ -103,29 +161,6 @@ pub fn execute_real_spoken_batch(
     let authoring = expand_canonical_plot_for_authoring(&checked, "spoken_face_stream", &profiles)
         .map_err(|error| SpokenStreamExecutionRefusal::Check(format!("{error:?}")))?;
 
-    let fresh = StdHost::new();
-    let offered = fresh.advertisement();
-    let config = StdHostConfig {
-        host_id: offered.host_id.clone(),
-        boot_id: offered.boot_id.clone(),
-        offer_generation: offered.offer_generation,
-    };
-    let provider_sha256 = discovery.provider_sha256.clone();
-    let adapter = discovery
-        .initialize(
-            config.host_id.clone(),
-            config.boot_id.clone(),
-            config.offer_generation,
-            "grant/spoken-face-speech".into(),
-            Duration::from_secs(30),
-        )
-        .map_err(|error| SpokenStreamExecutionRefusal::Plan(error.to_string()))?;
-    let artifact =
-        WavArtifactSelection::new(wav_path, config.boot_id.clone(), config.offer_generation)
-            .map_err(SpokenStreamExecutionRefusal::Plan)?;
-    let mut host = StdHost::new_with_composition(config, StdHostComposition::minimal().with_text());
-    host.attach_espeak_speech_and_wav_artifact(adapter, artifact)
-        .map_err(SpokenStreamExecutionRefusal::Plan)?;
     let hosts = [host.advertisement().clone()];
     let placements = conduit_planner::default_expanded_placements(&authoring.expanded, &hosts)
         .map_err(|error| SpokenStreamExecutionRefusal::Plan(format!("{error:?}")))?;
@@ -189,14 +224,23 @@ pub fn execute_real_spoken_batch(
         fn wait(&mut self, _: Duration) {}
     }
     let report = host
-        .run_external_plot_sequence_to(
+        .run_external_plot_sequence_controlled_to(
             fragment.clone(),
             &inputs,
             &mut NoOutput,
             &mut Vec::new(),
             &mut NoTimer,
+            control,
         )
         .map_err(SpokenStreamExecutionRefusal::Play)?;
+    if matches!(
+        report.observations.last().map(|item| &item.kind),
+        Some(ObservationKind::PlanTerminal {
+            disposition: TerminalDisposition::Cancelled { .. }
+        })
+    ) {
+        return Err(SpokenStreamExecutionRefusal::Cancelled);
+    }
     if !matches!(
         report.observations.last().map(|item| &item.kind),
         Some(ObservationKind::PlanTerminal {
@@ -214,7 +258,13 @@ pub fn execute_real_spoken_batch(
     if !wav.completed || wav.pcm_bytes == 0 || wav.blocks == 0 {
         return Err(SpokenStreamExecutionRefusal::IncompleteArtifact);
     }
-    let bytes = fs::read(wav_path).map_err(|_| SpokenStreamExecutionRefusal::IncompleteArtifact)?;
+    let wav_path = PathBuf::from(
+        wav.locator
+            .as_ref()
+            .ok_or(SpokenStreamExecutionRefusal::IncompleteArtifact)?,
+    );
+    let bytes =
+        fs::read(&wav_path).map_err(|_| SpokenStreamExecutionRefusal::IncompleteArtifact)?;
     if bytes.len() != wav.pcm_bytes as usize + 44
         || bytes.get(..4) != Some(b"RIFF")
         || bytes.get(8..12) != Some(b"WAVE")

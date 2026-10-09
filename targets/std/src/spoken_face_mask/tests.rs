@@ -893,6 +893,65 @@ fn smaller_closing_flows_preserve_all_face_text_and_cancel_between_batches() {
     assert!(reader.next_batch_with_limits(2, 64).unwrap().is_none());
 }
 
+#[test]
+fn final_primary_item_batch_completes_before_excluded_completed_detail() {
+    let (base, _) = face_with_action();
+    let mut subjects = base.subjects;
+    let mut disclosures = base.disclosures;
+    for index in 0..20 {
+        subjects.push(PresentationSubject {
+            identity: format!("item/{index}"),
+            role: PresentationRole::Item,
+            name: format!("Task {index}"),
+        });
+        disclosures.push(PresentationDisclosure {
+            subject: format!("item/{index}"),
+            level: if index < 3 {
+                PresentationDisclosureLevel::Primary
+            } else {
+                PresentationDisclosureLevel::SelectedDetail
+            },
+        });
+    }
+    let face = Presentation::new_with_semantics(
+        base.revision + 1,
+        base.basis,
+        subjects,
+        base.relationships,
+        base.properties,
+        base.text,
+        base.actions,
+        disclosures,
+    )
+    .unwrap();
+    let show = common::available_mask_show(&face);
+    let mut reader = SpokenFaceSession::new(face.clone(), show.clone()).unwrap();
+    reader
+        .command(&face, &show, ReaderCommand::ReadCurrentItems, 1)
+        .unwrap();
+    for index in 0..3 {
+        let batch = reader.next_batch_with_limits(1, 64).unwrap().unwrap();
+        assert_eq!(batch.segments.len(), 1);
+        assert_eq!(
+            batch.segments[0].segment.text,
+            format!("Task {index}, item.")
+        );
+        let terminal = reader
+            .acknowledge_batch(SpokenBatchDelivery::Completed(fixture_batch_receipt(
+                &batch,
+            )))
+            .unwrap();
+        if index == 2 {
+            let terminal = terminal.expect("final selected item must close the turn");
+            assert_eq!(terminal.outcome, SpokenTurnOutcome::Completed);
+            assert_eq!(terminal.completed_segments, 3);
+        } else {
+            assert!(terminal.is_none());
+        }
+    }
+    assert!(reader.next_batch_with_limits(1, 64).unwrap().is_none());
+}
+
 fn focus_action(session: &mut SpokenFaceSession, face: &Presentation, show: &MaskShow, id: &str) {
     let target = session
         .plan()

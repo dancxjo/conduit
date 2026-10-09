@@ -111,8 +111,12 @@ conduit body spoken-mask --state-dir <installation-directory> stop <operation-id
 ```
 
 The request uses the existing bounded spoken reader and selected speech worker.
-It requires the acknowledged direct Show, current route seal and selected equipment;
-missing acknowledgement, stale Face or changed Host offers refuse. It reads primary
+It requires the acknowledged direct Show, current route seal and explicit output
+selection. A selected speaker uses the existing playback path; explicit artifact-only
+selection writes each bounded batch to the Owner Host's per-Play WAV pool. Batch
+receipts identify the output mode and retain separate WAV/PCM digests. Artifact
+output reports zero committed speaker frames and does not assert playback or hearing.
+Missing acknowledgement, stale Face or changed Host offers refuse. It reads primary
 items, leaving completed items at inspection disclosure, and retains the original
 Face and Show identities. An empty selection uses the reader's “No current items.”
 response. This installed operation reads the complete primary-item stream; the
