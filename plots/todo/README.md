@@ -69,3 +69,31 @@ summary plot. The deterministic proof supplies the actual preceding edit output
 to this restore front and refuses corrupt JSON or invalid completion fields.
 This proves semantic restore and the runtime resource-operation boundary;
 durable storage across a real restart remains a separate acceptance claim.
+
+
+### Selected checkpoint continuity
+
+Run `cargo xtask check todo-durability` for the bounded typed checkpoint and
+installed-owner proofs. The continuity test adds three items and completes one through ordinary
+Todo checkpoint Plays, admits a second Host with an authenticated invitation,
+and hands off retained biography, source and lineage receipts to its fixture
+installation. Both installations explicitly select the same local provider.
+After discarding the first owner's display cache and retained owner directory,
+the second Host Boot reads the exact generation through a fresh Plan, Play,
+Host Call and terminal Sign. Body identity, one Birth, list state and item IDs
+survive. Removing the checkpoint produces a signed failed read with no verified
+state; restoring it permits a verified retry of the selected generation.
+
+The test emits `TODO_CONTINUITY_RECEIPT` with before/after lineage and the failed
+read. Companion tests cover corrupt, stale, wrong-namespace and unauthorized
+reads, cancellation, resource exhaustion and failed publication. An acknowledged
+filesystem sync is the provider's durability boundary; this suite makes no
+claim about a physical device surviving power loss. The handoff is an explicit
+local fixture, not remote transport or a rendered Mask demonstration.
+
+After an interrupted next action, explicitly reselecting the preceding published
+version with `conduit host service install --selected-todo-checkpoint-root …
+--selected-todo-checkpoint-version …` permits a fresh verified read on restart.
+Use the exact version from the retained successful write/read receipt. Selecting
+the unfinished candidate does not fall back to an older list, and a retained
+receipt never substitutes for reading the selected checkpoint bytes.
