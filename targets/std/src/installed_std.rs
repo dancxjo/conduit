@@ -45,6 +45,7 @@ mod image_text_record_back;
 mod indicator_host;
 mod input_semantic_backs;
 mod instrument_map_back;
+mod ipa_constructor_back;
 mod json_backs;
 mod json_summary_back;
 mod kernel_preparation;

@@ -877,3 +877,41 @@ The want entry follows the [Cambridge American pronunciation](https://dictionary
 The native-speech xtask proof writes `text-regular-plurals.wav` and
 `text-regular-past.wav` through the same fixed-storage renderer; linked MCU
 footprint and physical playback remain distinct proof classes.
+
+
+## Canonical IPA and authored linguistic entities
+
+`SpeechPhone` and `SpeechPhoneme` are separate domain Types available to the
+product CLI's Conduit authoring catalog. Their occurrences, features, inventory
+and explicit allophone rules remain typed values. See
+[`examples/ipa/phones-and-phonemes.conduit`](examples/ipa/phones-and-phonemes.conduit)
+and [the notation contract](../../docs/design/speech-ipa-notation.md).
+
+The Unicode notation profile preserves declared multicodepoint units, exact
+source spelling and explicit alias provenance. Inventory admission binds those
+units to the complete supplied inventory and language variety, refusing foreign
+references and unsupported or ambiguous notation. A plain record is a definition;
+notation/inventory admission remains an explicit additional check.
+
+The candidate provides ordinary quoted constructors `speech/phone-from-ipa`,
+`speech/phonetic-from-ipa`, `speech/phoneme-from-ipa` and
+`speech/phonemic-from-ipa`. See the
+[universal transcription](examples/ipa/quoted-transcriptions.conduit) and
+[explicit inventory transcription](examples/ipa/quoted-phonemic.conduit).
+They prepare distinct typed values before Play; phonemic construction requires
+the complete supplied inventory, Language/Variety basis, revision and bindings.
+Human and JSON checking diagnostics retain original quoted-source spans.
+Native generation and public authoring import the same checked Language owner
+contracts; older shape-only schema IDs are not silently coerced.
+The baseline supported suite passes 454 tests and a Thumb no_std contract
+compile. Reconciliation with the competing constructor contract is required by
+#5329 before #5260 can close; these candidate APIs are not stable acceptance.
+Reusable checked basis references follow that decision under #5330.
+
+Run focused conformance with `cargo xtask check speech-ipa`. Typed delimiter
+glyphs such as `p[tʰ]` and `p/t/` are proposed syntax under #5317, not an
+implemented entrance. The same generic mechanism proposes `r/[A-Z]+/i` for
+portable patterns. Existing collections, indexing and bare regex forms retain
+their meanings.
+The compact `EnglishPhone`/`EnglishPhoneme` tags used by the native renderer are
+its terminal profile codes; they do not define canonical linguistic IPA.

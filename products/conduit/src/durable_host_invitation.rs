@@ -284,16 +284,20 @@ pub(super) fn admit_body_request_document(
         .expect("owned Body checked above")
         .biography_sha256 = digest(&biography_bytes);
     let transaction_path = state_dir.join("body/admission-transaction.json");
-    write_json_atomic(
-        &transaction_path,
-        &AdmissionTransaction {
-            schema: "conduit.body/admission-transaction@1".into(),
-            admission,
-            biography,
-            installation,
-            receipt: receipt.clone(),
-        },
-    )?;
+    // Keep the internal journal compact: indentation of complete retained
+    // semantic contracts can exceed the recovery bound by itself.
+    let transaction_bytes = serde_json::to_vec(&AdmissionTransaction {
+        schema: "conduit.body/admission-transaction@1".into(),
+        admission,
+        biography,
+        installation,
+        receipt: receipt.clone(),
+    })
+    .map_err(|error| format!("encode Body admission transaction: {error}"))?;
+    if transaction_bytes.len() > 2 * 1024 * 1024 {
+        return Err("Body admission transaction exceeds its finite file bound".into());
+    }
+    write_bytes_atomic(&transaction_path, &transaction_bytes)?;
     recover_admission_transaction(state_dir, &biography_path)?;
     Ok(receipt)
 }

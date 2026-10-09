@@ -1634,24 +1634,23 @@ mod tests {
         )
         .unwrap();
         let receipt_path = joining_state.parent().unwrap().join("receipt.json");
-        write_json_atomic(
-            &receipt_path,
-            &invitation::PortableAdmissionReceipt {
-                schema: "conduit.body/spawn-admission-receipt@1".into(),
-                credential: retained_admission
-                    .receipts
-                    .last()
-                    .unwrap()
-                    .credential
-                    .clone(),
-                host_advertisement: pending.request.host_advertisement.clone(),
-                membership_admitted: true,
-                current_offers_available: true,
-                plan_created: false,
-                play_created: false,
-            },
-        )
+        // Match the compact receipt emitted by the public JSON entrance.
+        let receipt_bytes = serde_json::to_vec(&invitation::PortableAdmissionReceipt {
+            schema: "conduit.body/spawn-admission-receipt@1".into(),
+            credential: retained_admission
+                .receipts
+                .last()
+                .unwrap()
+                .credential
+                .clone(),
+            host_advertisement: pending.request.host_advertisement.clone(),
+            membership_admitted: true,
+            current_offers_available: true,
+            plan_created: false,
+            play_created: false,
+        })
         .unwrap();
+        write_bytes_atomic(&receipt_path, &receipt_bytes).unwrap();
         complete_body_join(&receipt_path, &joining_state, true).unwrap();
         let joined_installation =
             read_installation(&joining_state.join("installation.json")).unwrap();

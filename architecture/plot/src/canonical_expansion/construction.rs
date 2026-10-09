@@ -38,7 +38,7 @@ fn validate_node(
 ) -> Result<(), CanonicalExpansionDiagnostic> {
     if matches!(
         node.operation,
-        Op::Record(_) | Op::Variant { .. } | Op::Literal(_)
+        Op::Record(_) | Op::Variant { .. } | Op::Collection(_) | Op::Literal(_)
     ) {
         let is_native = match node.value_type.shape() {
             StructuredInfoTypeShape::Record { schema, .. }
@@ -66,7 +66,8 @@ fn validate_node(
             || (is_native && native.is_none()))
             && !native.is_some_and(|native| refinement::proves(node, input_type, native, types))
         {
-            if matches!(node.operation, Op::Literal(_)) {
+            let mut admitted_closed = false;
+            if closed(node) {
                 if let Some(native) = native.filter(|ty| ty.value_type == node.value_type) {
                     // A closed constant can establish its own laws before Play.
                     // It must not disable the existing proof of input arithmetic.
@@ -89,10 +90,14 @@ fn validate_node(
                             )
                         })
                         .map_err(|_| refusal())?;
-                    return Ok(());
+                    // The parent's own laws do not establish nested Types'
+                    // where laws. Continue through every constructed child.
+                    admitted_closed = true;
                 }
             }
-            return Err(refusal());
+            if !admitted_closed {
+                return Err(refusal());
+            }
         }
     }
     match &node.operation {
@@ -130,6 +135,18 @@ fn validate_node(
         Op::Input | Op::Literal(_) => {}
     }
     Ok(())
+}
+
+// Closed authored constructors can execute the same Native laws at preparation
+// time. An input-dependent expression cannot use this route to evade proof.
+fn closed(node: &PortableExpressionNode) -> bool {
+    match &node.operation {
+        Op::Literal(_) => true,
+        Op::Record(fields) => fields.iter().all(|(_, value)| closed(value)),
+        Op::Tuple(values) | Op::Collection(values) => values.iter().all(closed),
+        Op::Variant { payload, .. } => closed(payload),
+        _ => false,
+    }
 }
 
 // Inline record payloads have their own exact schema but retain the owning

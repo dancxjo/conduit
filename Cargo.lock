@@ -2465,6 +2465,7 @@ dependencies = [
  "conduit-plan-lowering",
  "conduit-planner",
  "conduit-plot",
+ "postcard",
 ]
 
 [[package]]

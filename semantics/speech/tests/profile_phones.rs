@@ -65,6 +65,28 @@ fn native_binding_refuses_a_conflicting_ipa_model() {
         Err(NativeBindingRefusal::ViolatedInvariant { .. })
     ));
 }
+
+#[test]
+fn affricate_projection_requires_explicit_single_phone_tie_bar() {
+    for (terminal, ipa, cluster) in [
+        (semantic::EnglishPhone::Ch, "t͡ʃ", "tʃ"),
+        (semantic::EnglishPhone::Jh, "d͡ʒ", "dʒ"),
+    ] {
+        let definition = |spelling: &str| {
+            SpeechPhone::new(
+                BoundedSequence::new(),
+                SpeechFeatureBundle::new(BoundedSequence::new()).unwrap(),
+                id("phone/affricate"),
+                spelling.into(),
+                SpeechSegmentStatus::Core,
+            )
+            .unwrap()
+        };
+        let checked = SpeechFormantPhoneBinding::new(definition(ipa), terminal).unwrap();
+        assert_eq!(checked.definition().ipa(), ipa);
+        assert!(SpeechFormantPhoneBinding::new(definition(cluster), terminal).is_err());
+    }
+}
 #[test]
 fn unsupported_and_ambiguous_profile_bindings_are_distinct() {
     let (reference, snapshot) = material(PhoneSpecification::known(id("opaque/t")).unwrap());

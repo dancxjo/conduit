@@ -1,0 +1,27 @@
+✔ complete actual parent walk admits self, ordinary, merge and reversed timestamps (67.147986ms)
+✔ unrelated, missing, noncommit and noncanonical identities refuse (86.774603ms)
+✔ missing reachable parent refuses even when source equals publication (22.260765ms)
+✔ shallow repositories refuse (25.663847ms)
+✔ replacement refs cannot invent ancestry or hide genuine ancestry (31.573907ms)
+✔ graft files refuse even if empty (16.117212ms)
+Publication history: {"stage":"fixture-before","git":"git version 2.53.0","head":"10d2c73a899d899f57802b0b93a3e7b46a2662a6","shallow":"true","commonDir":"/tmp/conduit-publication-history-ybZvTn/shallow/.git","boundary":{"bytes":41,"mtimeMs":1791504543562.8318,"inode":998225,"capped":false,"count":1,"sha":["10d2c73a899d899f57802b0b93a3e7b46a2662a6"]}}
+Publication history: {"stage":"before-acquisition","git":"git version 2.53.0","head":"10d2c73a899d899f57802b0b93a3e7b46a2662a6","shallow":"true","commonDir":"/tmp/conduit-publication-history-ybZvTn/shallow/.git","boundary":{"bytes":41,"mtimeMs":1791504543562.8318,"inode":998225,"capped":false,"count":1,"sha":["10d2c73a899d899f57802b0b93a3e7b46a2662a6"]}}
+Publication history: {"stage":"post-acquisition","git":"git version 2.53.0","head":"10d2c73a899d899f57802b0b93a3e7b46a2662a6","shallow":"false","commonDir":"/tmp/conduit-publication-history-ybZvTn/shallow/.git","boundary":null}
+Publication history: {"stage":"before-acquisition","git":"git version 2.53.0","head":"10d2c73a899d899f57802b0b93a3e7b46a2662a6","shallow":"true","commonDir":"/tmp/conduit-publication-history-zheGqt/shallow/.git","boundary":{"bytes":41,"mtimeMs":1791504543633.5635,"inode":998382,"capped":false,"count":1,"sha":["10d2c73a899d899f57802b0b93a3e7b46a2662a6"]}}
+Publication history: {"stage":"before-acquisition","git":"git version 2.53.0","head":"10d2c73a899d899f57802b0b93a3e7b46a2662a6","shallow":"true","commonDir":"/tmp/conduit-publication-history-ugCMIh/shallow/.git","boundary":{"bytes":41,"mtimeMs":1791504543668.565,"inode":998501,"capped":false,"count":1,"sha":["10d2c73a899d899f57802b0b93a3e7b46a2662a6"]}}
+Publication history: {"stage":"before-acquisition","git":"git version 2.53.0","head":"10d2c73a899d899f57802b0b93a3e7b46a2662a6","shallow":"false","commonDir":"/tmp/conduit-publication-history-SI4AlC/.git","boundary":null}
+Publication history: {"stage":"post-acquisition","git":"git version 2.53.0","head":"10d2c73a899d899f57802b0b93a3e7b46a2662a6","shallow":"false","commonDir":"/tmp/conduit-publication-history-SI4AlC/.git","boundary":null}
+Publication history: {"stage":"before-acquisition","git":"git version 2.53.0","head":"10d2c73a899d899f57802b0b93a3e7b46a2662a6","shallow":"true","commonDir":"/tmp/conduit-publication-history-ma9rKn/shallow/.git","boundary":{"bytes":41,"mtimeMs":1791504543740.2,"inode":998925,"capped":false,"count":1,"sha":["10d2c73a899d899f57802b0b93a3e7b46a2662a6"]}}
+✔ genuine shallow file-origin restoration admits exact ancestor and retains HEAD (72.823777ms)
+✔ shallow missing origin refuses without changing HEAD (33.892938ms)
+✔ shallow invalid origin refuses without changing HEAD (35.924059ms)
+✔ complete repository with invalid origin performs no fetch (36.93795ms)
+✔ HEAD mismatch and noncanonical identity refuse before any fetch (28.59106ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 11
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 307.736473
