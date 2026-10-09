@@ -7,7 +7,7 @@ use conduit_core::{
     ResourceReferenceAccessRefusal, ResourceReferenceBinding,
 };
 
-use crate::{ModelArtifact, ModelCompatibilityRefusal, ModelSignature, model_content_digest};
+use crate::{model_content_digest, ModelArtifact, ModelCompatibilityRefusal, ModelSignature};
 
 pub const MODEL_READ_AUTHORITY: &str = "conduit.model/read-immutable-artifact@1";
 
