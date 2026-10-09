@@ -56,7 +56,7 @@ pub enum Command {
     /// Plan repository CI obligations from an exact change.
     Ci(CiArgs),
     /// Construct repository artifacts for an exact target.
-    Make(MakeArgs),
+    Make(Box<MakeArgs>),
     /// Execute proofs and manage their bounded evidence.
     Prove(Box<ProveArgs>),
     /// Inspect repository and platform prerequisites.
@@ -430,6 +430,13 @@ pub enum SetupTarget {
 
 #[cfg(test)]
 mod tests {
+    fn make_args(command: Command) -> MakeArgs {
+        match command {
+            Command::Make(args) => *args,
+            _ => panic!("expected make command"),
+        }
+    }
+
     use super::*;
 
     #[test]
@@ -464,10 +471,10 @@ mod tests {
         let pico =
             Cli::try_parse_from(["xtask", "make", "pico", "build"]).expect("pico command parses");
         assert!(matches!(
-            pico.command,
-            Command::Make(MakeArgs {
+            make_args(pico.command),
+            MakeArgs {
                 target: MakeTarget::Pico(_)
-            })
+            }
         ));
 
         let host = Cli::try_parse_from([
@@ -483,10 +490,10 @@ mod tests {
         ])
         .expect("host BUILD command parses");
         assert!(matches!(
-            host.command,
-            Command::Make(MakeArgs {
+            make_args(host.command),
+            MakeArgs {
                 target: MakeTarget::Host(_)
-            })
+            }
         ));
 
         let body_new = Cli::try_parse_from([
@@ -502,10 +509,10 @@ mod tests {
         ])
         .expect("Body scaffold command parses");
         assert!(matches!(
-            body_new.command,
-            Command::Make(MakeArgs {
+            make_args(body_new.command),
+            MakeArgs {
                 target: MakeTarget::Body(_)
-            })
+            }
         ));
         assert!(Cli::try_parse_from([
             "xtask",
@@ -520,19 +527,19 @@ mod tests {
         let guided_body = Cli::try_parse_from(["xtask", "make", "body", "new"])
             .expect("interactive Body scaffold may prompt for its name");
         assert!(matches!(
-            guided_body.command,
-            Command::Make(MakeArgs {
+            make_args(guided_body.command),
+            MakeArgs {
                 target: MakeTarget::Body(_)
-            })
+            }
         ));
         let scripted_body =
             Cli::try_parse_from(["xtask", "make", "body", "new", "pete", "--no-interactive"])
                 .expect("scripted Body scaffold parses");
         assert!(matches!(
-            scripted_body.command,
-            Command::Make(MakeArgs {
+            make_args(scripted_body.command),
+            MakeArgs {
                 target: MakeTarget::Body(_)
-            })
+            }
         ));
 
         for command in [
@@ -573,10 +580,10 @@ mod tests {
             let parsed = Cli::try_parse_from(command.clone())
                 .unwrap_or_else(|error| panic!("host command {command:?} must parse: {error}"));
             assert!(matches!(
-                parsed.command,
-                Command::Make(MakeArgs {
+                make_args(parsed.command),
+                MakeArgs {
                     target: MakeTarget::Host(_)
-                })
+                }
             ));
         }
         assert!(Cli::try_parse_from([
@@ -597,21 +604,21 @@ mod tests {
         ])
         .expect("physical Pico Body admission proof parses");
         assert!(matches!(
-            pico_body.command,
-            Command::Make(MakeArgs {
+            make_args(pico_body.command),
+            MakeArgs {
                 target: MakeTarget::Pico(PicoArgs {
                     subcommand: Some(crate::commands::pico::PicoSubcommand::ProveBodyAdmission),
                     ..
                 })
-            })
+            }
         ));
 
         let pico_build_remote =
             Cli::try_parse_from(["xtask", "make", "pico", "build", "--usb-remote"])
                 .expect("pico build --usb-remote parses");
-        if let Command::Make(MakeArgs {
+        if let MakeArgs {
             target: MakeTarget::Pico(args),
-        }) = pico_build_remote.command
+        } = make_args(pico_build_remote.command)
         {
             assert!(args.usb_remote);
         } else {
@@ -621,9 +628,9 @@ mod tests {
         let pico_flash_remote =
             Cli::try_parse_from(["xtask", "make", "pico", "flash", "--usb-remote"])
                 .expect("pico flash --usb-remote parses");
-        if let Command::Make(MakeArgs {
+        if let MakeArgs {
             target: MakeTarget::Pico(args),
-        }) = pico_flash_remote.command
+        } = make_args(pico_flash_remote.command)
         {
             assert!(args.usb_remote);
         } else {
@@ -633,9 +640,9 @@ mod tests {
         let pico_build_control =
             Cli::try_parse_from(["xtask", "make", "pico", "build", "--r1-control"])
                 .expect("pico build --r1-control parses");
-        if let Command::Make(MakeArgs {
+        if let MakeArgs {
             target: MakeTarget::Pico(args),
-        }) = pico_build_control.command
+        } = make_args(pico_build_control.command)
         {
             assert!(args.r1_control);
         } else {
@@ -662,10 +669,10 @@ mod tests {
         let browser =
             Cli::try_parse_from(["xtask", "make", "browser"]).expect("browser Host parses");
         assert!(matches!(
-            browser.command,
-            Command::Make(MakeArgs {
+            make_args(browser.command),
+            MakeArgs {
                 target: MakeTarget::Browser
-            })
+            }
         ));
         assert!(Cli::try_parse_from(["xtask", "prove", "journey", "browser"]).is_err());
 
@@ -692,10 +699,10 @@ mod tests {
         ])
         .expect("unifont-subset command parses");
         assert!(matches!(
-            subset.command,
-            Command::Make(MakeArgs {
+            make_args(subset.command),
+            MakeArgs {
                 target: MakeTarget::UnifontSubset(_)
-            })
+            }
         ));
 
         let icons = Cli::try_parse_from([
@@ -707,10 +714,10 @@ mod tests {
         ])
         .expect("palette-icons command parses");
         assert!(matches!(
-            icons.command,
-            Command::Make(MakeArgs {
+            make_args(icons.command),
+            MakeArgs {
                 target: MakeTarget::PaletteIcons(_)
-            })
+            }
         ));
 
         let check =
@@ -926,10 +933,10 @@ mod tests {
             Cli::try_parse_from(["xtask", "make", "conduitos", "prove", "--arch", "x86-64"])
                 .expect("ConduitOS command parses");
         assert!(matches!(
-            conduitos.command,
-            Command::Make(MakeArgs {
+            make_args(conduitos.command),
+            MakeArgs {
                 target: MakeTarget::Conduitos(_)
-            })
+            }
         ));
 
         let conduitos_evidence = Cli::try_parse_from([
@@ -944,10 +951,10 @@ mod tests {
         ])
         .expect("ConduitOS evidence command parses");
         assert!(matches!(
-            conduitos_evidence.command,
-            Command::Make(MakeArgs {
+            make_args(conduitos_evidence.command),
+            MakeArgs {
                 target: MakeTarget::Conduitos(_)
-            })
+            }
         ));
 
         let audio =
@@ -1088,10 +1095,10 @@ mod tests {
         ])
         .expect("startup cue make parses");
         assert!(matches!(
-            cue.command,
-            Command::Make(MakeArgs {
+            make_args(cue.command),
+            MakeArgs {
                 target: MakeTarget::StartupCue(_)
-            })
+            }
         ));
     }
 }
