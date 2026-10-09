@@ -224,19 +224,19 @@ fn preparation_refuses_counterfeit_profiles_and_legacy_inventory_identity() {
             .unwrap();
     let configuration = &authored.expanded.gears[0].configuration;
     assert!(prepare_configuration(IpaConstructor::Phonemic, configuration).is_ok());
-    for index in 0..configuration.len() {
-        let mut counterfeit = configuration.clone();
-        let ConfigurationValue::Structured(original) = &configuration[index].value else {
+    for entry in configuration {
+        let ConfigurationValue::Structured(original) = &entry.value else {
             panic!("typed argument")
         };
-        counterfeit[index].value = ConfigurationValue::Structured(
+        assert!(
             StructuredConfigurationValue::new(
                 "structured-info/profile-foreign@1".into(),
                 original.canonical_value().to_vec(),
             )
-            .unwrap(),
+            .is_none(),
+            "counterfeit profile for {}",
+            entry.key
         );
-        assert!(prepare_configuration(IpaConstructor::Phonemic, &counterfeit).is_err());
     }
     let mut legacy = configuration.clone();
     let entry = legacy
@@ -254,12 +254,16 @@ fn preparation_refuses_counterfeit_profiles_and_legacy_inventory_identity() {
         .unwrap()
         + schema.len();
     // Exact shape-only root identity from the pinned #5327 generator. Keep all
-    // selected payload bytes and its declared profile to test root substitution.
+    // selected payload bytes, but give the legacy root its own correct profile.
+    // This is structurally valid Info, not the exact installed inventory Type.
     bytes[start..start + 64]
         .copy_from_slice(b"18be04a2cf4dee09e520c22f45fcea3ea4bbc5f4b5e4f9d3859305ab5eb0c656");
-    entry.value = ConfigurationValue::Structured(
-        StructuredConfigurationValue::new(original.profile().clone(), bytes).unwrap(),
-    );
+    let decoded = conduit_core::StructuredInfoValue::from_canonical_bytes(&bytes).unwrap();
+    let profile = decoded.value_type().profile().unwrap().value_kind().clone();
+    assert_ne!(&profile, original.profile());
+    assert!(SpeechInventory::decode(&bytes).is_err());
+    entry.value =
+        ConfigurationValue::Structured(StructuredConfigurationValue::new(profile, bytes).unwrap());
     assert!(prepare_configuration(IpaConstructor::Phonemic, &legacy).is_err());
 }
 
