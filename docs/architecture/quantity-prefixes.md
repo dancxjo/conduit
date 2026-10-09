@@ -140,3 +140,13 @@ A non-terminating target coordinate (`1°F` → Celsius, or `1m` → inches) ref
 as inexact. `Qm` projected to legacy meters refuses overflow; `qm` refuses
 inexactness. These Rust methods establish numeric behavior, not completion of
 the ordinary authored conversion or target-admission requirements.
+
+`convert_to_target` additionally accepts a whole-suffix catalogue descriptor,
+including all reviewed generalized prefixes. Its result retains that descriptor
+and the exact numeric coefficient/exponent in the selected target coordinate.
+It cannot be mistaken for a physical quantity tagged only with the base unit.
+Target prefix scaling is applied before bounded decimal projection, allowing
+small target coordinates even when an intermediate base coordinate exceeds the
+output profile. All 456 inverse scales are checked against the independent
+reference corpus. This remains a Core operation pending the ordinary authored
+conversion entrance and receipts.

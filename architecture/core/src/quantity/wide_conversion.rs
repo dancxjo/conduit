@@ -130,10 +130,43 @@ pub(super) fn to_decimal(
     target: QuantityUnit,
 ) -> Result<ExactDecimalQuantity, QuantityConversionRefusal> {
     compatible(source.unit(), target)?;
-    let (numerator, denominator) = decimal(source)?
+    project_decimal(
+        decimal(source)?
+            .into_canonical(source.unit())?
+            .in_target(target)?,
+        target,
+    )
+}
+
+pub(super) fn to_target_decimal(
+    source: ExactDecimalQuantity,
+    target: QuantityUnit,
+    exponent: i16,
+) -> Result<ExactDecimalQuantity, QuantityConversionRefusal> {
+    compatible(source.unit(), target)?;
+    let (mut numerator, mut denominator) = decimal(source)?
         .into_canonical(source.unit())?
         .in_target(target)?
         .parts();
+    let power = Magnitude::power_of_ten(exponent.unsigned_abs())
+        .ok_or(QuantityConversionRefusal::Overflow)?;
+    if exponent >= 0 {
+        denominator = denominator
+            .checked_mul(power)
+            .ok_or(QuantityConversionRefusal::Overflow)?;
+    } else {
+        numerator = numerator
+            .checked_mul(power)
+            .ok_or(QuantityConversionRefusal::Overflow)?;
+    }
+    project_decimal(Fraction::new(numerator, denominator), target)
+}
+
+fn project_decimal(
+    coordinate: Fraction<WideArithmetic>,
+    target: QuantityUnit,
+) -> Result<ExactDecimalQuantity, QuantityConversionRefusal> {
+    let (numerator, denominator) = coordinate.parts();
     let mut left = numerator.magnitude();
     let mut right = denominator.magnitude();
     while right != Magnitude::ZERO {

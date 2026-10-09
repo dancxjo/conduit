@@ -6,9 +6,11 @@ mod exact;
 mod literal;
 mod literal_eligibility;
 mod magnitude;
+mod target;
 mod wide_conversion;
 
 pub use exact::*;
+pub use target::*;
 
 use conversion::{compare_legacy, convert_exact_rational, is_radian};
 use core::cmp::Ordering;
