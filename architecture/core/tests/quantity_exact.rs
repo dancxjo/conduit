@@ -81,6 +81,45 @@ fn all_reviewed_scales_match_the_independent_arbitrary_precision_corpus() {
 }
 
 #[test]
+fn upper_exponent_literals_use_available_coefficient_capacity() {
+    for zeroes in [38, 39, 40, 75] {
+        for sign in [1_i128, -1] {
+            let literal = format!(
+                "{}1{}Qm³",
+                if sign < 0 { "-" } else { "" },
+                "0".repeat(zeroes)
+            );
+            let quantity = Exact::parse_plot_literal(&literal).unwrap();
+            let exponent = (90 + zeroes).min(128) as i16;
+            let coefficient = sign * 10_i128.pow((90 + zeroes - exponent as usize) as u32);
+            assert_eq!(
+                quantity,
+                Exact::new(coefficient, exponent, QuantityUnit::CubicMeter).unwrap()
+            );
+            assert_eq!(Exact::decode(&quantity.encode()), Ok(quantity));
+            let receipt =
+                conduit_core::ExactQuantityConversionReceipt::check(&literal, "Qm³").unwrap();
+            assert_eq!(receipt.original(), literal);
+            assert_eq!(receipt.source(), quantity);
+            let projected = receipt.result().unwrap();
+            assert_eq!(
+                (projected.coefficient(), projected.exponent()),
+                (sign, zeroes as i16)
+            );
+        }
+    }
+    assert_eq!(
+        Exact::parse_plot_literal(&format!("1{}Qm³", "0".repeat(76))),
+        Err(Refusal::SignificantDigitsExceeded)
+    );
+    // Codec fields remain bounded even when a literal can be rescaled exactly.
+    assert_eq!(
+        Exact::new(1, 129, QuantityUnit::CubicMeter),
+        Err(Refusal::ExponentOutOfRange)
+    );
+}
+
+#[test]
 fn bounded_precision_and_input_work_refuse_without_rounding() {
     let largest = "9".repeat(38);
     assert!(Exact::parse_plot_literal(&format!("{largest}m")).is_ok());

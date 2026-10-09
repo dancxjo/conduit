@@ -160,7 +160,17 @@ impl ExactDecimalQuantity {
             coefficient = -coefficient;
         }
         // The input bounds make these lengths exactly representable by i16.
-        let exponent = prefix_exponent - fraction.len() as i16 + trailing_zeroes as i16;
+        let mut exponent = prefix_exponent - fraction.len() as i16 + trailing_zeroes as i16;
+        // A literal's folded scale is not an encoded exponent field. Use the
+        // remaining coefficient capacity before refusing its exact coordinate.
+        // At most 38 iterations fit; the next multiplication refuses.
+        while exponent > EXACT_DECIMAL_MAX_EXPONENT {
+            coefficient = coefficient
+                .checked_mul(10)
+                .filter(|value| (-MAX_COEFFICIENT..=MAX_COEFFICIENT).contains(value))
+                .ok_or(ExactDecimalQuantityRefusal::SignificantDigitsExceeded)?;
+            exponent -= 1;
+        }
         Self::new(coefficient, exponent, unit)
     }
 
