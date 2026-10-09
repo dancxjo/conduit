@@ -147,5 +147,55 @@
         }
       }
     }
+  },
+  "selected_offers": {
+    "kind_revision": "conduit.speech/ipa-quoted@1",
+    "execution_profile": "conduit-native/checked-ipa@1",
+    "native_source_id": "495cfdae3b0954eaad92717d766ecfd4369da179ff96ce4a1d007b8a5348f538",
+    "verification": "Generated binding source SHA256 on combined head 3ae2ccb4b is identical to the pinned #5319 generator output. Artifact IDs follow the inspected offer factory exactly.",
+    "host_calls": [],
+    "resources": [],
+    "authority": [],
+    "maximum_active_instances": 8,
+    "queue_items": 1,
+    "queue_bytes": 262144,
+    "offers": {
+      "speech/phone-from-ipa": {
+        "capability_id": "conduit-native/ipa-phone@1",
+        "implementation_id": "conduit-native/ipa-phone@1",
+        "artifact_id": "conduit-native/ipa-phone@1/495cfdae3b0954eaad92717d766ecfd4369da179ff96ce4a1d007b8a5348f538",
+        "fore": "value",
+        "temporal": "Value",
+        "result_type": "SpeechPhoneNotation",
+        "result_value_kind": "structured-info/profile-2b4bff3e5440f95a7f88a4d25ef6410d9551d67b99c07da2dcc677fe6609b123@1"
+      },
+      "speech/phonetic-from-ipa": {
+        "capability_id": "conduit-native/ipa-phonetic@1",
+        "implementation_id": "conduit-native/ipa-phonetic@1",
+        "artifact_id": "conduit-native/ipa-phonetic@1/495cfdae3b0954eaad92717d766ecfd4369da179ff96ce4a1d007b8a5348f538",
+        "fore": "value",
+        "temporal": "Value",
+        "result_type": "SpeechPhoneticTranscription",
+        "result_value_kind": "structured-info/profile-44d591ffe3ab2943165a6dfe7232746f0d55808c89b653036107ed78e9b3d190@1"
+      },
+      "speech/phoneme-from-ipa": {
+        "capability_id": "conduit-native/ipa-phoneme@1",
+        "implementation_id": "conduit-native/ipa-phoneme@1",
+        "artifact_id": "conduit-native/ipa-phoneme@1/495cfdae3b0954eaad92717d766ecfd4369da179ff96ce4a1d007b8a5348f538",
+        "fore": "value",
+        "temporal": "Value",
+        "result_type": "SpeechPhonemeNotation",
+        "result_value_kind": "structured-info/profile-06fc55c18ccb27462b8a731b70f1eeeac16a62322b86ecf37ba791fd995f7ead@1"
+      },
+      "speech/phonemic-from-ipa": {
+        "capability_id": "conduit-native/ipa-phonemic@1",
+        "implementation_id": "conduit-native/ipa-phonemic@1",
+        "artifact_id": "conduit-native/ipa-phonemic@1/495cfdae3b0954eaad92717d766ecfd4369da179ff96ce4a1d007b8a5348f538",
+        "fore": "value",
+        "temporal": "Value",
+        "result_type": "SpeechPhonemicTranscription",
+        "result_value_kind": "structured-info/profile-0f06af5e66a7a8884bf9f6d1b28d4f039f81ececb78b6d205fdfa6f66a924b8d@1"
+      }
+    }
   }
 }
