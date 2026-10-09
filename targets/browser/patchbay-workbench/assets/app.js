@@ -172,7 +172,13 @@ function renderWatches(subject){
   }sharedPresentation.boundedArtifacts("watch-list",summaries);sharedPresentation.boundedArtifacts("watch-history",history);sharedPresentation.boundedArtifacts("learned-watch-list",learned,3);
 }
 
-const updateWorkspaceControls=installWorkspaceControls(document.querySelector("#workspace-controls"),()=>state.selected,selectLens);
+let navigationRequestSequence=0;
+const navigationHeading=document.querySelector(".canvas-heading");
+function reserveNavigationHeading(){document.documentElement.style.setProperty("--patchbay-navigation-bottom",`${navigationHeading.getBoundingClientRect().bottom}px`);}
+new ResizeObserver(reserveNavigationHeading).observe(navigationHeading);
+window.addEventListener("resize",reserveNavigationHeading);
+reserveNavigationHeading();
+const updateWorkspaceControls=installWorkspaceControls(document.querySelector("#workspace-controls"),()=>state.selected,selectLens,()=>navigationRequestSequence);
 configureFlowWorkspaceValidator(async document=>{
   const response=await fetch(apiUrl("workspace"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(document)});
   const result=await response.json();
@@ -266,6 +272,7 @@ let pendingNavigation=0;
 function fenceNavigationControls(pending){for(const root of document.querySelectorAll("#structured-navigator,#subjects,#place-controls,#aspect-controls,#flow-root")){root.inert=pending;root.setAttribute("aria-busy",String(pending));}}
 async function dispatchNavigation(operation){
   const navigation=state.snapshot.navigation;if(!navigation)throw new Error("portable navigation is unavailable");
+  navigationRequestSequence+=1;
   pendingNavigation+=1;fenceNavigationControls(true);
   try{
   const response=await fetch(apiUrl("navigation"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({presentation_id:state.snapshot.presentation.identity,presentation_revision:state.snapshot.presentation.revision,navigation_id:navigation.navigation.identity,operation})});

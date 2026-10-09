@@ -138,6 +138,7 @@ test("catalog queries and two durable layouts decorate the same live Plot", asyn
       for (const layout of ["Teaching", "Wide"]) {
         await page.getByRole("combobox", { name: "Saved layouts", exact: true }).selectOption(layout);
         await page.getByRole("button", { name: "Use layout", exact: true }).click();
+        await expect(page.getByRole("button", { name: "Use layout", exact: true })).toBeEnabled();
         const after = await current(page);
         expect(after.presentation.basis.plan_id).toBe(plan);
         expect(after.presentation.basis.active_play_id).toBe(play);
@@ -241,11 +242,14 @@ async function clickInteraction(page, locator) {
 }
 
 async function clickNavigation(page, locator) {
+  const aspect = await locator.getAttribute("data-aspect");
   const response = page.waitForResponse(candidate =>
-    candidate.url().endsWith("/api/navigation") && candidate.request().method() === "POST");
-  await locator.press("Enter");
+    candidate.url().endsWith("/api/navigation") && candidate.request().method() === "POST"
+      && (!aspect || candidate.request().postDataJSON()?.operation?.aspect === aspect));
+  await locator.click();
   const snapshot = await (await response).json();
   expect(snapshot.interaction.last_disposition).toBe("Succeeded");
+  if (aspect) expect(snapshot.navigation.cursor.aspect).toBe(aspect);
   return snapshot;
 }
 
