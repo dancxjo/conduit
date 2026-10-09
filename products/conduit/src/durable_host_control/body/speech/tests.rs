@@ -87,6 +87,13 @@ fn fixture_carrier_evidence(snapshot: &BrowserAdmittedSnapshot) -> BrowserCarrie
 }
 
 fn selected_host(root: &std::path::Path) -> (StdHost, AttachedEquipment) {
+    selected_host_with_artifact(root, false)
+}
+
+fn selected_host_with_artifact(
+    root: &std::path::Path,
+    artifact: bool,
+) -> (StdHost, AttachedEquipment) {
     let mut host = host("host/owner-speech-test", "boot/owner-speech-test");
     let observation = AlsaPlaybackObservation {
         card_index: 999,
@@ -114,7 +121,31 @@ fn selected_host(root: &std::path::Path) -> (StdHost, AttachedEquipment) {
     symlink("libespeak-ng.so.1.0", root.join("libespeak-ng.so.1")).unwrap();
     let discovery = EspeakDiscovery::inspect(&executable, &data, "en-us", &[engine]).unwrap();
     let provider_sha256 = discovery.provider_sha256.clone();
+    // This fixture declares coverage for admission only; its provider is never launched.
+    use conduit_language::{
+        LanguageCoverage, LanguageExternalIdentity, LanguageId, LanguageMappingDeclaration,
+    };
+    use conduit_plot::rust_binding::BoundedSequence;
+    let language = LanguageId::new("language/english".into()).unwrap();
+    let identity = discovery.provider_identity();
+    let mapping = LanguageMappingDeclaration::new(
+        LanguageExternalIdentity::new(identity.clone(), "en-us".into()).unwrap(),
+        language.clone(),
+        None,
+    )
+    .unwrap();
+    let coverage = LanguageCoverage::new(
+        identity,
+        BoundedSequence::try_from_iter([language]).unwrap(),
+        BoundedSequence::try_from_iter([mapping]).unwrap(),
+        "direct-reading-fixture@1".into(),
+        BoundedSequence::try_from_iter([]).unwrap(),
+        false,
+    )
+    .unwrap();
     let adapter = discovery
+        .declare_language_coverage(coverage)
+        .unwrap()
         .initialize(
             offered.host_id.clone(),
             offered.boot_id.clone(),
@@ -125,8 +156,21 @@ fn selected_host(root: &std::path::Path) -> (StdHost, AttachedEquipment) {
         .unwrap();
     let realization_properties = adapter.offer().realization_properties;
     host.attach_selected_playback(playback.clone()).unwrap();
-    host.attach_espeak_speech_for_selected_playback(adapter)
+    if artifact {
+        let artifact_root = root.join("mask-artifacts");
+        fs::create_dir(&artifact_root).unwrap();
+        let selected = conduit_std_host::hosted_wav_artifact::WavArtifactSelection::per_play_root(
+            &artifact_root,
+            offered.boot_id.clone(),
+            offered.offer_generation,
+        )
         .unwrap();
+        host.attach_espeak_speech_and_wav_artifact(adapter, selected)
+            .unwrap();
+    } else {
+        host.attach_espeak_speech_for_selected_playback(adapter)
+            .unwrap();
+    }
     let equipment = AttachedEquipment {
         playback,
         authorization: ExplicitPlaybackAuthorization::new("grant/test-speaker").unwrap(),
@@ -308,27 +352,7 @@ fn selected_direct_readout_stops_and_restores_the_one_current_host() {
     let (window_id, binding, request, show) = acknowledged_browser_show(&mut owner, &root);
     let gate = Arc::new(Barrier::new(2));
     equipment.before_play = Some(gate.clone());
-    let mut runtime = DurableHostRuntime {
-        target_id: "std/x86_64/computer".into(),
-        image_content_digest: "fixture".into(),
-        host: HostSource::Body {
-            owner: Box::new(owner),
-            root: root.clone(),
-            running: None,
-        },
-        birth: None,
-        birth_root: None,
-        remote_fragment: None,
-        pool_member: None,
-        cancellation_signal: None,
-        next_observation_sequence: 0,
-        terminal_route: None,
-        selected_speech_equipment: None,
-        speech_worker: None,
-        speech_terminal: None,
-        owner_spoken_worker: None,
-        owner_spoken_terminal: None,
-    };
+    let mut runtime = runtime(owner, &root);
     assert!(runtime
         .start_browser_speech(
             window_id.clone(),
@@ -409,3 +433,30 @@ fn selected_direct_readout_stops_and_restores_the_one_current_host() {
     assert_eq!(runtime.host.advertisement(), &original);
     fs::remove_dir_all(root).unwrap();
 }
+
+fn runtime(owner: Owner, root: &std::path::Path) -> DurableHostRuntime {
+    DurableHostRuntime {
+        target_id: "std/x86_64/computer".into(),
+        image_content_digest: "fixture".into(),
+        host: HostSource::Body {
+            owner: Box::new(owner),
+            root: root.to_path_buf(),
+            running: None,
+        },
+        birth: None,
+        birth_root: None,
+        remote_fragment: None,
+        pool_member: None,
+        cancellation_signal: None,
+        next_observation_sequence: 0,
+        terminal_route: None,
+        selected_speech_equipment: None,
+        speech_worker: None,
+        speech_terminal: None,
+        owner_spoken_worker: None,
+        owner_spoken_terminal: None,
+    }
+}
+
+#[path = "direct_reading_tests.rs"]
+mod direct_reading_tests;

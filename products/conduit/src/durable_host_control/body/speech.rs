@@ -1,16 +1,9 @@
-//! One acknowledged browser Show read through the installed owner's sole Host.
+//! One acknowledged browser or direct Show read through the owner's sole Host.
 use super::{DurableHostRuntime, HostSource};
 use crate::durable_host::selected_speech::AttachedEquipment;
 use conduit_core::LinkBindingId;
 use conduit_presentation::{MaskShow, OwnerFaceSnapshotRequest, Presentation};
-use conduit_std_host::{
-    spoken_face_mask::{ReaderCommand, SpokenFaceSession},
-    spoken_face_stream_execution::{
-        execute_spoken_batch_on_attached_host_with_capture, SpokenPlaybackOutcome,
-        SpokenStreamExecutionRefusal,
-    },
-    RunControl, RunControlRequestId, StdHost,
-};
+use conduit_std_host::{RunControl, RunControlRequestId, StdHost};
 use serde_json::{json, Value};
 use std::{sync::mpsc, thread::JoinHandle};
 
@@ -18,6 +11,10 @@ use std::{sync::mpsc, thread::JoinHandle};
 // keeps its one-segment batches; the direct owner Mask plays its Show's brief
 // opening through the separate accepted-wording path.
 const MAXIMUM_BATCHES: usize = 64;
+
+#[path = "speech/execution.rs"]
+mod execution;
+use execution::{play_selected, ReadingScope};
 
 #[cfg(all(test, unix))]
 #[path = "speech/tests.rs"]
@@ -65,12 +62,59 @@ impl SpeechFailure {
     }
 }
 
+struct BrowserSpeechStart {
+    window_id: String,
+    binding: LinkBindingId,
+    request: OwnerFaceSnapshotRequest,
+    show: MaskShow,
+}
+
+enum SpeechSource {
+    Browser {
+        window_id: String,
+        binding: LinkBindingId,
+        request: Box<OwnerFaceSnapshotRequest>,
+    },
+    Direct {
+        seal: Box<conduit_presentation::LocalOwnerMaskRouteSeal>,
+    },
+}
+impl SpeechSource {
+    fn scope(&self) -> ReadingScope {
+        match self {
+            Self::Browser { .. } => ReadingScope::WholeFace,
+            Self::Direct { .. } => ReadingScope::RemainingItems,
+        }
+    }
+    fn identity(&self) -> &str {
+        match self {
+            Self::Browser { window_id, .. } => window_id,
+            Self::Direct { seal } => seal.route_plan_id.as_str(),
+        }
+    }
+    fn is_direct(&self) -> bool {
+        matches!(self, Self::Direct { .. })
+    }
+    fn validate(
+        &self,
+        owner: &mut crate::durable_host::owner::Owner,
+        show: &MaskShow,
+    ) -> Result<(), String> {
+        match self {
+            Self::Browser {
+                window_id,
+                binding,
+                request,
+            } => owner.validate_browser_mask_show(window_id, binding, request, show),
+            Self::Direct { seal } => owner.validate_selected_direct_spoken_read(seal, show),
+        }
+    }
+}
+
 pub(in crate::durable_host_control) struct SpeechWorker {
     operation_id: String,
     control: RunControl,
-    source_window_id: String,
-    source_binding: LinkBindingId,
-    source_request: OwnerFaceSnapshotRequest,
+    source: SpeechSource,
     source_show: MaskShow,
     thread: JoinHandle<Option<(StdHost, Result<Value, SpeechFailure>)>>,
 }
@@ -83,7 +127,26 @@ impl DurableHostRuntime {
         request: OwnerFaceSnapshotRequest,
         show: MaskShow,
     ) -> Result<String, String> {
+        self.start_spoken_reading(Some(BrowserSpeechStart {
+            window_id,
+            binding,
+            request,
+            show,
+        }))
+    }
+
+    pub(in crate::durable_host_control) fn start_direct_remaining_speech(
+        &mut self,
+    ) -> Result<String, String> {
+        self.start_spoken_reading(None)
+    }
+
+    fn start_spoken_reading(
+        &mut self,
+        browser: Option<BrowserSpeechStart>,
+    ) -> Result<String, String> {
         self.progress_browser_speech()?;
+        self.progress_owner_spoken()?;
         if self.speech_worker.is_some() || self.owner_spoken_worker.is_some() {
             return Err("selected speech is already running".into());
         }
@@ -106,12 +169,38 @@ impl DurableHostRuntime {
         if !owner.selected_speech_host_is_idle() {
             return Err("Body Play or another Host effect already owns the Host".into());
         }
-        owner.validate_browser_mask_show(&window_id, &binding, &request, &show)?;
-        let face = owner.local_face_snapshot()?;
+        let (source, face, show) = if let Some(input) = browser {
+            owner.validate_browser_mask_show(
+                &input.window_id,
+                &input.binding,
+                &input.request,
+                &input.show,
+            )?;
+            (
+                SpeechSource::Browser {
+                    window_id: input.window_id,
+                    binding: input.binding,
+                    request: Box::new(input.request),
+                },
+                owner.local_face_snapshot()?,
+                input.show,
+            )
+        } else {
+            let (seal, face, show) = owner.prepare_selected_direct_spoken_read()?;
+            (
+                SpeechSource::Direct {
+                    seal: Box::new(seal),
+                },
+                face,
+                show,
+            )
+        };
+        let scope = source.scope();
         if !equipment.matches(owner.host.current()) {
             return Err("selected speech equipment differs from current Host Boot".into());
         }
-        let operation_id = crate::durable_host::fresh_identity("selected-speech", &window_id);
+        let operation_id =
+            crate::durable_host::fresh_identity("selected-speech", source.identity());
         // Start the worker before moving the Host. Failed spawn leaves it with
         // the owner; failed handoff returns the Host for restoration.
         let (sender, receiver) = mpsc::sync_channel::<Option<StdHost>>(1);
@@ -136,6 +225,7 @@ impl DurableHostRuntime {
                         &worker_control,
                         1,
                         MAXIMUM_BATCHES,
+                        scope,
                     )
                 }))
                 .unwrap_or_else(|_| {
@@ -164,9 +254,7 @@ impl DurableHostRuntime {
         self.speech_worker = Some(SpeechWorker {
             operation_id: operation_id.clone(),
             control,
-            source_window_id: window_id,
-            source_binding: binding,
-            source_request: request,
+            source,
             source_show: show,
             thread,
         });
@@ -194,18 +282,17 @@ impl DurableHostRuntime {
             .map_err(|_| "selected speech worker failed before returning Host".to_string())?
             .ok_or("selected speech worker exited without Host handoff")?;
         owner.host.restore_after_play(host)?;
-        let source_current = owner
-            .validate_browser_mask_show(
-                &worker.source_window_id,
-                &worker.source_binding,
-                &worker.source_request,
-                &worker.source_show,
-            )
-            .is_ok();
+        let source_current = worker.source.validate(owner, &worker.source_show).is_ok();
+        let source_mask = if worker.source.is_direct() {
+            "direct"
+        } else {
+            "browser"
+        };
         let terminal = match result {
             Ok(mut receipt) => {
                 receipt["operation_id"] = json!(worker.operation_id);
                 receipt["source_show_still_current"] = json!(source_current);
+                receipt["source_mask"] = json!(source_mask);
                 receipt
             }
             Err(failure) => {
@@ -218,6 +305,7 @@ impl DurableHostRuntime {
                     "boot_id":owner.host.advertisement().boot_id.as_str(),
                     "offer_generation":owner.host.advertisement().offer_generation.0,
                     "source_show_still_current":source_current,
+                    "source_mask":source_mask, "reader_scope":worker.source.scope().name(),
                     "completed_batch_count":completed_batches.len(),
                     "batches":completed_batches,
                     "detail":failure.detail()})
@@ -263,11 +351,44 @@ impl DurableHostRuntime {
             .map_err(|_| "selected speech stop already requested".into())
     }
 
+    fn is_direct_reading_operation(&self, operation_id: &str) -> bool {
+        self.speech_worker
+            .as_ref()
+            .is_some_and(|worker| worker.operation_id == operation_id && worker.source.is_direct())
+            || self.speech_terminal.as_ref().is_some_and(|terminal| {
+                terminal["operation_id"] == operation_id && terminal["source_mask"] == "direct"
+            })
+    }
+
+    pub(in crate::durable_host_control) fn direct_spoken_or_reading_status(
+        &mut self,
+        operation_id: &str,
+    ) -> Result<Value, String> {
+        self.progress_browser_speech()?;
+        if self.is_direct_reading_operation(operation_id) {
+            self.browser_speech_status(operation_id)
+        } else {
+            self.direct_spoken_status(operation_id)
+        }
+    }
+
+    pub(in crate::durable_host_control) fn stop_direct_spoken_or_reading(
+        &mut self,
+        operation_id: &str,
+    ) -> Result<(), String> {
+        self.progress_browser_speech()?;
+        if self.is_direct_reading_operation(operation_id) {
+            self.stop_browser_speech(operation_id)
+        } else {
+            self.stop_direct_spoken(operation_id)
+        }
+    }
+
     pub(super) fn stop_speech_from_window(&mut self, window_id: &str) {
         if let Some(worker) = self
             .speech_worker
             .as_ref()
-            .filter(|worker| worker.source_window_id == window_id)
+            .filter(|worker| matches!(&worker.source, SpeechSource::Browser { window_id: source, .. } if source == window_id))
         {
             if let Ok(request) = RunControlRequestId::new(format!("leave/{}", worker.operation_id))
             {
@@ -275,188 +396,4 @@ impl DurableHostRuntime {
             }
         }
     }
-}
-
-pub(super) fn play_selected(
-    host: &mut StdHost,
-    face: &Presentation,
-    show: &MaskShow,
-    equipment: &AttachedEquipment,
-    control: &RunControl,
-    segments_per_batch: usize,
-    maximum_batches: usize,
-) -> Result<Value, SpeechFailure> {
-    let mut receipts = Vec::with_capacity(maximum_batches);
-    let result = play_selected_inner(
-        host,
-        face,
-        show,
-        equipment,
-        control,
-        segments_per_batch,
-        maximum_batches,
-        &mut receipts,
-    );
-    result.map_err(|cause| {
-        if receipts.is_empty() {
-            cause
-        } else {
-            SpeechFailure::Partial {
-                cause: Box::new(cause),
-                completed_batches: receipts,
-            }
-        }
-    })
-}
-
-#[allow(clippy::too_many_arguments)]
-fn play_selected_inner(
-    host: &mut StdHost,
-    face: &Presentation,
-    show: &MaskShow,
-    equipment: &AttachedEquipment,
-    control: &RunControl,
-    segments_per_batch: usize,
-    maximum_batches: usize,
-    receipts: &mut Vec<Value>,
-) -> Result<Value, SpeechFailure> {
-    if !equipment.matches(host) {
-        return Err(SpeechFailure::Refused(
-            "selected speech equipment changed before Play".into(),
-        ));
-    }
-    let offered = host.advertisement().clone();
-    let mut reader = SpokenFaceSession::new(face.clone(), show.clone()).map_err(|error| {
-        SpeechFailure::Refused(format!("selected spoken Face refused: {error:?}"))
-    })?;
-    reader
-        .command(face, show, ReaderCommand::ReadAll, 1)
-        .map_err(|error| {
-            SpeechFailure::Refused(format!("selected spoken read-all refused: {error:?}"))
-        })?;
-    let mut terminal_turn = None;
-    for _ in 0..maximum_batches {
-        if control.stop_requested() {
-            return Err(SpeechFailure::Cancelled(
-                "selected speech stop requested".into(),
-            ));
-        }
-        let Some(batch) = reader
-            .next_batch_with_limits(segments_per_batch, 64)
-            .map_err(|error| {
-                SpeechFailure::Refused(format!("selected speech batch refused: {error:?}"))
-            })?
-        else {
-            break;
-        };
-        let result = execute_spoken_batch_on_attached_host_with_capture(
-            face,
-            show,
-            &batch,
-            &conduit_language::LanguageRequest::new(
-                conduit_language::LanguageId::new("language/english".into())
-                    .expect("English mechanical Mask Language"),
-                None,
-                conduit_language::LanguageVarietyPolicy::LanguageSufficient,
-            )
-            .expect("explicit mechanical Mask request"),
-            &equipment.playback,
-            &equipment.authorization,
-            control,
-            host,
-        )
-        .map_err(|error| match error {
-            SpokenStreamExecutionRefusal::PlaybackPlay { detail, .. } => {
-                SpeechFailure::PlayRefused(detail)
-            }
-            other => SpeechFailure::Refused(format!("selected speaker Play refused: {other:?}")),
-        })?;
-        let outcome = match &result.outcome {
-            SpokenPlaybackOutcome::Completed => "completed",
-            SpokenPlaybackOutcome::Cancelled => "cancelled",
-            SpokenPlaybackOutcome::Failed => "failed",
-        };
-        let capture = match (&result.outcome, result.same_play_capture.as_ref()) {
-            (SpokenPlaybackOutcome::Completed, Some(capture)) => capture,
-            (SpokenPlaybackOutcome::Completed, None) => {
-                return Err(SpeechFailure::Failed(
-                    "selected speaker Play omitted same-Play WAV capture".into(),
-                ))
-            }
-            (SpokenPlaybackOutcome::Cancelled, _) => {
-                return Err(SpeechFailure::Cancelled(
-                    "selected speaker Play cancelled".into(),
-                ))
-            }
-            (SpokenPlaybackOutcome::Failed, _) => {
-                return Err(SpeechFailure::Failed("selected speaker Play failed".into()))
-            }
-        };
-        // Browser carriers receive only an exact file identity. A local proof
-        // reader resolves it beneath this installation's spoken-artifacts root.
-        let artifact_id = capture
-            .wav_path
-            .file_name()
-            .and_then(|name| name.to_str())
-            .filter(|name| {
-                name.len() == 73
-                    && name.starts_with("play-")
-                    && name.ends_with(".wav")
-                    && name[5..69].bytes().all(|byte| byte.is_ascii_hexdigit())
-            })
-            .ok_or_else(|| SpeechFailure::Failed("same-Play WAV locator is invalid".into()))?;
-        // The admitted reader supplied bounded ordered segments; the playback
-        // entrance validated their exact source digest.
-        let spoken_segments: Vec<&str> = batch
-            .segments
-            .iter()
-            .map(|segment| segment.segment.text.as_str())
-            .collect();
-        receipts.push(json!({"stream_identity":result.stream_identity,
-            "source_segments_sha256":result.source_segments_sha256,
-            "spoken_segments":spoken_segments,
-            "plan_id":result.playback_plan_id, "play_id":result.playback_play_id,
-            "provider_sha256":result.provider_sha256,
-            "speaker_blocks_committed":result.playback.metrics.blocks_committed,
-            "speaker_frames_committed":result.playback.metrics.frames_committed,
-            "wav_artifact_id":artifact_id, "wav_sha256":capture.wav_sha256,
-            "wav_bytes":capture.wav_bytes, "pcm_sha256":capture.pcm_sha256,
-            "pcm_bytes":capture.pcm_bytes, "pcm_blocks":capture.pcm_blocks,
-            "outcome":outcome}));
-        let terminal = reader
-            .acknowledge_batch(result.delivery())
-            .map_err(|error| {
-                SpeechFailure::Failed(format!("selected speaker receipt refused: {error:?}"))
-            })?;
-        if let Some(terminal) = terminal {
-            terminal_turn = Some(terminal);
-            break;
-        }
-    }
-    let terminal = terminal_turn.ok_or_else(|| {
-        SpeechFailure::Refused(format!(
-            "complete Face reading exceeded {maximum_batches} admitted speech batches"
-        ))
-    })?;
-    if receipts.is_empty()
-        || terminal.outcome != conduit_std_host::spoken_face_mask::SpokenTurnOutcome::Completed
-    {
-        return Err(SpeechFailure::Failed(
-            "selected speech ended without bounded complete readout".into(),
-        ));
-    }
-    Ok(json!({"schema":"conduit.body/selected-speech-terminal@1",
-        "outcome":"completed", "face_id":face.identity.as_str(),
-        "face_revision":face.revision,
-        "face_revision_decimal":face.revision.to_string(),
-        "source_show_id":show.show_id.as_str(),
-        "host_id":offered.host_id.as_str(), "boot_id":offered.boot_id.as_str(),
-        "offer_generation":offered.offer_generation.0,
-        "provider_sha256":equipment.provider_sha256,
-        "selected_resource_pool_id":equipment.playback.pool_id().as_str(),
-        "authority_grant_id":equipment.authorization.grant_id(),
-        "completed_segments":terminal.completed_segments,
-        "produced_pcm_bytes":terminal.produced_pcm_bytes,
-        "correlation_sha256":terminal.correlation_sha256,
-        "batches":std::mem::take(receipts)}))
 }

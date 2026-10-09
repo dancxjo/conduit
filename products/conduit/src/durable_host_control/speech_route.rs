@@ -32,6 +32,10 @@ pub(crate) enum SpeechRequest {
         protocol: u16,
         token: Vec<u8>,
     },
+    DirectReadRemaining {
+        protocol: u16,
+        token: Vec<u8>,
+    },
     DirectStatus {
         protocol: u16,
         token: Vec<u8>,
@@ -131,6 +135,7 @@ pub(super) fn call(
         | SpeechRequest::DirectAdmit { token, .. }
         | SpeechRequest::DirectSelect { token, .. }
         | SpeechRequest::DirectStart { token, .. }
+        | SpeechRequest::DirectReadRemaining { token, .. }
         | SpeechRequest::DirectStatus { token, .. }
         | SpeechRequest::DirectStop { token, .. } => token.fill(0),
         SpeechRequest::LlmAdmit { token, .. }
@@ -167,6 +172,7 @@ pub(super) fn serve(
             SpeechRequest::DirectAdmit { protocol, token }
             | SpeechRequest::DirectSelect { protocol, token }
             | SpeechRequest::DirectStart { protocol, token }
+            | SpeechRequest::DirectReadRemaining { protocol, token }
             | SpeechRequest::DirectStatus {
                 protocol, token, ..
             }
@@ -225,14 +231,20 @@ pub(super) fn serve(
                         operation_id,
                     })
             }
+            SpeechRequest::DirectReadRemaining { .. } => runtime
+                .start_direct_remaining_speech()
+                .map(|operation_id| SpeechReply::Started {
+                    protocol: PROTOCOL,
+                    operation_id,
+                }),
             SpeechRequest::DirectStatus { operation_id, .. } => runtime
-                .direct_spoken_status(&operation_id)
+                .direct_spoken_or_reading_status(&operation_id)
                 .map(|status| SpeechReply::Status {
                     protocol: PROTOCOL,
                     status: Box::new(status),
                 }),
             SpeechRequest::DirectStop { operation_id, .. } => runtime
-                .stop_direct_spoken(&operation_id)
+                .stop_direct_spoken_or_reading(&operation_id)
                 .map(|()| SpeechReply::StopRequested {
                     protocol: PROTOCOL,
                     operation_id,
