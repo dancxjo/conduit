@@ -373,6 +373,8 @@ fn split_generic_application(source: &str) -> Option<(&str, Vec<&str>)> {
     let body = &source[open + 1..source.len() - 1];
     let mut arguments = Vec::new();
     let mut depth = 0_u16;
+    let mut parentheses = 0_u16;
+    let mut brackets = 0_u16;
     let mut start = 0;
     for (index, character) in body.char_indices() {
         match character {
@@ -382,9 +384,16 @@ fn split_generic_application(source: &str) -> Option<(&str, Vec<&str>)> {
                 depth = depth.checked_add(1)?;
             }
             '>' => depth = depth.checked_sub(1)?,
-            ',' if depth == 0 => {
+            '(' => parentheses = parentheses.checked_add(1)?,
+            ')' => parentheses = parentheses.checked_sub(1)?,
+            '[' => brackets = brackets.checked_add(1)?,
+            ']' => brackets = brackets.checked_sub(1)?,
+            ',' if depth == 0 && parentheses == 0 && brackets == 0 => {
                 let argument = body[start..index].trim();
                 if argument.is_empty() {
+                    return None;
+                }
+                if arguments.len() >= 15 {
                     return None;
                 }
                 arguments.push(argument);
@@ -393,7 +402,7 @@ fn split_generic_application(source: &str) -> Option<(&str, Vec<&str>)> {
             _ => {}
         }
     }
-    if depth != 0 {
+    if depth != 0 || parentheses != 0 || brackets != 0 {
         return None;
     }
     let argument = body[start..].trim();

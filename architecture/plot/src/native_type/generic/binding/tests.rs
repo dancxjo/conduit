@@ -348,3 +348,23 @@ fn imported_integral_alias_keeps_exact_owner_type_and_laws() {
     .unwrap_err();
     assert!(failure.message.contains("Type law"), "{}", failure.message);
 }
+
+#[test]
+fn parameter_membership_commas_do_not_create_extra_parameters() {
+    let source =
+        "type Vector<N: U16 in [2, 4], T> = collection T = N\ntype Value = Vector<4, U8>\n";
+    let parsed = parse_syntax_document(source);
+    assert!(parsed.diagnostics.is_empty(), "{:?}", parsed.diagnostics);
+    assert_eq!(parsed.types[0].parameters.len(), 2);
+    checked(source);
+    let failure = check_syntax_document(
+        &parse_syntax_document(&source.replace("Vector<4, U8>", "Vector<3, U8>")),
+        &StartupCatalog::new(),
+    )
+    .unwrap_err();
+    assert!(
+        failure.message.contains("scalar contract"),
+        "{}",
+        failure.message
+    );
+}
