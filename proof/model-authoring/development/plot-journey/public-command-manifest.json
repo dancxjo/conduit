@@ -1,0 +1,26 @@
+{
+  "build_profile": {
+    "debug_symbols": false,
+    "incremental": false,
+    "jobs": 2
+  },
+  "cuda_requested": false,
+  "device_evidence": null,
+  "does_not_establish": [
+    "trained voice",
+    "ConduitVoice training",
+    "FARGAN reconstruction",
+    "attended listening",
+    "stable acceptance"
+  ],
+  "establishes": "ordinary authored Plot, planner, installed Kernel HostCall training/checkpoint/export/reload/inference and fresh-runtime resume",
+  "exit_code": 0,
+  "log_sha256": "2a19d8f77dfa7a3864fbceff6712e336004233f9a2fe6911575bf005e5227527",
+  "passed": true,
+  "proof_class": "deterministic-unit",
+  "schema": "conduit.proof/model-authoring@1",
+  "scope": "ordinary-plot-model-work",
+  "source_head": "48d79a8d44cba9da50b617fd24c60fc082173f8b",
+  "source_unchanged": true,
+  "working_tree_dirty": true
+}

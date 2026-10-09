@@ -154,7 +154,7 @@ pub(super) fn serve(
         )? {
             show_ack::ShowGate::Accepted => {}
             show_ack::ShowGate::Refreshed(next) => {
-                grant = next;
+                grant = *next;
                 refreshes += 1;
                 sequence = 1;
                 continue;

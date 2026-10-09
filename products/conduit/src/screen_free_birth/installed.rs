@@ -14,7 +14,7 @@ use conduit_std_host::terminal_mask_execution::HostedTerminalMaskExecution;
 use super::{
     command_input::{CommandInput, DirectInput, InputEvent, SpokenInput},
     debug_error,
-    input::{parse_command, SCREEN_FREE_COMMANDS},
+    input::parse_command,
     selected_playback::SelectedPlayback,
     selected_readout::{emit_readout, OutputPhase},
     wardrobe::{self, WardrobeReadout},
@@ -99,11 +99,11 @@ fn run_with_input(
     let mut reader = SpokenFaceSession::new(face.clone(), show.clone()).map_err(debug_error)?;
     writeln!(
         output,
-        "Installed Host screen-free Birth. {} {SCREEN_FREE_COMMANDS}",
+        "Welcome to Birth. {} Type help for commands.",
         if playback.is_some() {
-            "Selected speaker playback; receipts follow each drained Play."
+            "Speech is on."
         } else {
-            "Text readout; no speech audio has been produced."
+            "Text readout is on."
         }
     )
     .map_err(|error| error.to_string())?;
@@ -302,8 +302,7 @@ fn run_body(
     let mut reader = SpokenFaceSession::new(face.clone(), show.clone()).map_err(debug_error)?;
     writeln!(
         output,
-        "Continuing retained Body {}. Commands: {SCREEN_FREE_COMMANDS} refresh, wardrobe (inspect), wardrobe wear/doff/prefer MASK.",
-        body_id.as_str()
+        "Welcome back. Type help for commands. Your current overview follows."
     )
     .map_err(|error| error.to_string())?;
     let mut sequence = 0_u64;
@@ -548,24 +547,21 @@ fn present(
 }
 
 pub(super) fn opening_commands(spoken: bool) -> impl Iterator<Item = ReaderCommand> {
-    // The Crèche starts at its current name control; a person can request
-    // every clause without waiting through it before their first edit.
-    spoken
-        .then_some(ReaderCommand::Help)
-        .into_iter()
-        .chain(std::iter::once(if spoken {
-            ReaderCommand::Repeat
-        } else {
-            ReaderCommand::ReadAll
-        }))
-        .chain(spoken.then_some(ReaderCommand::FocusAction("creche.name".into())))
+    // Lead with the useful Crèche summary. The complete command guide is
+    // available on request, so Birth does not begin with a long help Play.
+    std::iter::once(if spoken {
+        ReaderCommand::Summary
+    } else {
+        ReaderCommand::ReadAll
+    })
+    .chain(spoken.then_some(ReaderCommand::FocusAction("creche.name".into())))
 }
 
 /// A returning spoken user gets immediate orientation, then chooses whether
 /// to read the whole view. Reading it automatically can outlast a live Play
 /// and make its current Stop action unreachable through nonvisual input.
 fn opening_body_commands(_spoken: bool) -> impl Iterator<Item = ReaderCommand> {
-    // Start both nonvisual realizations with the useful summary. The person
-    // can explicitly request `read all` when they want the full Face detail.
-    std::iter::once(ReaderCommand::Repeat)
+    // Reuse the direct spoken Mask's Face-derived summary instead of reading
+    // whichever structural clause happens to occupy the cursor's first slot.
+    std::iter::once(ReaderCommand::Summary)
 }

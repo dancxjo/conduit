@@ -1,0 +1,10 @@
+{
+  "tested_source": "779cdd8efc643e223babd3f8993da448637dcdce",
+  "integrated_dev": "6cc4ba02f2139716e454da8463ff28f0b3502814",
+  "proof_boundary": "Local CPU ordinary Plot journey and strict all-target Clippy. Initial combined compile failed before constructor initialization repair. Evidence-only commit follows; final-head CI is separate.",
+  "sha256": {
+    "plot-journey.log": "faa72eaf03e69d44f5bddf8e2b2e6265534aea8905fc6f94cd4b61f020f1d74e",
+    "clippy.log": "22c76248cdc513a06ddc27216b76c0bc8b7a507998750cf669a24bd5b0dd5945",
+    "initial-combined-compile-failure.log": "d02a36fd1ea2659b128264da253d5c15970b5382bc4dbaec8e13ff651412112f"
+  }
+}

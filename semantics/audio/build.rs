@@ -4,17 +4,99 @@ use std::{env, fs, path::PathBuf};
 
 fn main() {
     println!("cargo:rerun-if-changed=types.conduit");
-    let checked = check_syntax_document(
-        &parse_syntax_document(include_str!("types.conduit")),
+    println!("cargo:rerun-if-changed=trajectory_types.conduit");
+    println!("cargo:rerun-if-changed=rate_types.conduit");
+    println!("cargo:rerun-if-changed=decibel_types.conduit");
+    println!("cargo:rerun-if-changed=decibel_projection.conduit");
+    println!("cargo:rerun-if-changed=rate_projection.conduit");
+    println!("cargo:rerun-if-changed=trajectory.conduit");
+    let type_source = format!(
+        "{}\n{}\n{}\n{}",
+        include_str!("types.conduit"),
+        include_str!("trajectory_types.conduit"),
+        include_str!("rate_types.conduit"),
+        include_str!("decibel_types.conduit")
+    );
+    let checked =
+        check_syntax_document(&parse_syntax_document(&type_source), &StartupCatalog::new())
+            .expect("audio semantic Types must check");
+    println!("cargo:rerun-if-changed=acoustic_quantities.conduit");
+    let acoustic_source = format!(
+        "{}\n{}\n{}\n{}\n{}",
+        type_source,
+        include_str!("acoustic_quantities.conduit"),
+        include_str!("trajectory.conduit"),
+        include_str!("rate_projection.conduit"),
+        include_str!("decibel_projection.conduit")
+    );
+    let acoustic = check_syntax_document(
+        &parse_syntax_document(&acoustic_source),
         &StartupCatalog::new(),
     )
-    .expect("audio semantic Types must check");
+    .expect("acoustic Source checks");
+    let mut programs = String::new();
+    for (name, constant) in [
+        ("audio/frequency-to-cycle", "FREQUENCY_TO_CYCLE"),
+        ("audio/cycle-to-frequency", "CYCLE_TO_FREQUENCY"),
+        ("audio/amplitude-to-power", "AMPLITUDE_TO_POWER"),
+        ("audio/trajectory-ratio", "TRAJECTORY_RATIO"),
+        ("audio/trajectory-anchor-equal", "TRAJECTORY_ANCHOR"),
+        ("audio/trajectory-segment-valid", "TRAJECTORY_VALID"),
+        ("audio/trajectory-domain-equal", "TRAJECTORY_DOMAIN"),
+        ("audio/trajectory-covers", "TRAJECTORY_COVERS"),
+        ("audio/trajectory-weight", "TRAJECTORY_WEIGHT"),
+        ("audio/trajectory-blend", "TRAJECTORY_BLEND"),
+        ("audio/trajectory-is-step", "TRAJECTORY_IS_STEP"),
+        ("audio/trajectory-step-valid", "TRAJECTORY_STEP_VALID"),
+        ("audio/trajectory-order-u32", "TRAJECTORY_ORDER_U32"),
+        ("audio/trajectory-step-covers", "TRAJECTORY_STEP_COVERS"),
+        ("audio/trajectory-step-select", "TRAJECTORY_STEP_SELECT"),
+        ("audio/sample-fraction", "SAMPLE_FRACTION"),
+        ("audio/sample-at-rate", "SAMPLE_AT_RATE"),
+        ("audio/frame-grid-fidelity", "FRAME_GRID_FIDELITY"),
+        ("audio/cumulative-basis-equal", "CUMULATIVE_BASIS"),
+        ("audio/cumulative-append", "CUMULATIVE_APPEND"),
+        ("audio/cumulative-origin", "CUMULATIVE_ORIGIN"),
+        ("audio/decibel-ratio-working", "DECIBEL_WORKING"),
+        ("audio/decibel-recognize-power-of-ten", "DECIBEL_RECOGNIZE"),
+        ("audio/decibel-from-power-of-ten", "DECIBEL_FROM_POWER"),
+        ("audio/decibel-inverse-recognize", "DECIBEL_INVERSE"),
+        ("audio/decibel-to-power-of-ten", "DECIBEL_TO_POWER"),
+    ] {
+        let expanded = conduit_plot::expand_canonical_plot_for_authoring(
+            &acoustic,
+            name,
+            &conduit_plot::ProfileCatalog::new(),
+        )
+        .unwrap_or_else(|error| panic!("expand {name}: {error:?}"));
+        let conduit_core::ConfigurationValue::Text(encoded) =
+            &expanded.expanded.gears[0].configuration[0].value
+        else {
+            panic!("acoustic program")
+        };
+        programs.push_str(&format!(
+            "pub(crate) const {constant}: &str = {encoded:?};\n"
+        ));
+    }
+    fs::write(
+        PathBuf::from(env::var_os("OUT_DIR").unwrap()).join("acoustic_programs.rs"),
+        programs,
+    )
+    .expect("write acoustic programs");
     let generated = generate_rust_bindings_with_forms(
         &checked.native_types,
         &checked.type_forms,
         &RustBindingOptions {
             derive_serde_for_variants: true,
             copy_record_types: [
+                "AudioRelativeAmplitude".into(),
+                "AudioPowerRatio".into(),
+                "AudioAmplitudePowerSquared".into(),
+                "AudioAmplitudePowerRequest".into(),
+                "AudioAmplitudePowerEligible".into(),
+                "AudioFrequencyHz".into(),
+                "AudioCycleDuration".into(),
+                "AudioResonator".into(),
                 "AudioRenderDemand".into(),
                 "BeatReference".into(),
                 "MusicalPitch".into(),
@@ -44,6 +126,13 @@ fn main() {
             .into(),
             serde_record_types: ["PcmCompatibilityProfile".into()].into(),
             direct_checked_record_constructors: [
+                "AudioRelativeAmplitude".into(),
+                "AudioPowerRatio".into(),
+                "AudioAmplitudePowerSquared".into(),
+                "AudioAmplitudePowerRequest".into(),
+                "AudioFrequencyHz".into(),
+                "AudioCycleDuration".into(),
+                "AudioResonator".into(),
                 "MusicalControlEvent".into(),
                 "MusicalPitch".into(),
                 "MusicalNoteEvent".into(),

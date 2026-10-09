@@ -1,0 +1,50 @@
+    Finished `dev` profile [unoptimized] target(s) in 0.16s
+     Running `target/debug/conduit-xtask-dispatch prove model-authoring --output ../proof-docs-0d8aca837/command`
+    Finished `test` profile [unoptimized] target(s) in 0.28s
+     Running unittests src/lib.rs (target/debug/deps/conduit_burn_model-88a542fe30c8ed74)
+     Running tests/authoring_contract.rs (target/debug/deps/authoring_contract-37cbd8039c93108c)
+     Running tests/checkpoint_contract.rs (target/debug/deps/checkpoint_contract-703e3f8582549fce)
+     Running tests/checkpoint_record_compatibility.rs (target/debug/deps/checkpoint_record_compatibility-87bfff91bce08508)
+
+thread 'incompatible_optimizer_shapes_refuse_even_with_valid_content_digests' (2337110) panicked at /home/dancxjo/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/burn-tensor-0.22.0/src/tensor/api/base.rs:2347:9:
+=== Tensor Operation Error ===
+  Operation: 'From Data'
+  Reason:
+    1. Given dimensions differ from the tensor rank. Tensor rank: '1', given dimensions: '[1, 1]'. 
+
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+     Running tests/device_contract.rs (target/debug/deps/device_contract-87feb0ef666c98cc)
+     Running tests/inference_only.rs (target/debug/deps/inference_only-492c5379b478d0b5)
+     Running tests/parameter_policy.rs (target/debug/deps/parameter_policy-ffe7b1ab852c121e)
+     Running tests/retained_journey.rs (target/debug/deps/retained_journey-b57ddea1e32fd05e)
+     Running tests/state_safety.rs (target/debug/deps/state_safety-f799b63c437e52f6)
+     Running tests/training_contract.rs (target/debug/deps/training_contract-a827887e466517e3)
+   Doc-tests conduit_burn_model
+error[E0596]: cannot borrow `*model` as mutable, as it is behind a `&` reference
+   --> mechanisms/implementations/burn-model/src/checkpoint.rs:118:5
+    |
+118 |     model.export_inference(store, &Cancellation::default()).unwrap();
+    |     ^^^^^ `model` is a `&` reference, so it cannot be borrowed as mutable
+    |
+help: consider changing this to be a mutable reference
+    |
+117 | fn export_requires_exclusive_adapter<D: BurnModelDefinition>(model: &mut BurnAdapter<D>, store: &DirectoryCheckpointStore) {
+    |                                                                      +++
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0596`.
+error[E0596]: cannot borrow `*model` as mutable, as it is behind a `&` reference
+  --> mechanisms/implementations/burn-model/src/checkpoint.rs:25:5
+   |
+25 |     model.checkpoint(store, vec![], &Cancellation::default()).unwrap();
+   |     ^^^^^ `model` is a `&` reference, so it cannot be borrowed as mutable
+   |
+help: consider changing this to be a mutable reference
+   |
+24 | fn checkpoint_requires_exclusive_adapter<D: BurnModelDefinition>(model: &mut BurnAdapter<D>, store: &DirectoryCheckpointStore) {
+   |                                                                          +++
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0596`.

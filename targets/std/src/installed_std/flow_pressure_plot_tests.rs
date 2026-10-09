@@ -101,6 +101,7 @@ fn scalar_source_can_use_coalesce_latest_as_a_continuous_std_plot() {
             keyboard: None,
             local_model: None,
             vector_search: None,
+            model_work: None,
             calendar: None,
             body_conversation_context: None,
         },

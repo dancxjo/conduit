@@ -119,6 +119,7 @@ fn portable_lesson_executes_with_generic_structured_sources() {
             keyboard: None,
             local_model: None,
             vector_search: None,
+            model_work: None,
             calendar: None,
             body_conversation_context: None,
         },

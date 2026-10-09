@@ -101,6 +101,20 @@ pub(super) fn evaluate_binary(
         };
         return PrimitiveValue::new(expected, &InfoBool::new(value).encode());
     }
+    if left.kind == PrimitiveInfoKind::F32
+        && matches!(operator, BinaryOperator::Equal | BinaryOperator::NotEqual)
+    {
+        let equal = left.as_slice() == right.as_slice();
+        return PrimitiveValue::new(
+            expected,
+            &InfoBool::new(if matches!(operator, BinaryOperator::Equal) {
+                equal
+            } else {
+                !equal
+            })
+            .encode(),
+        );
+    }
     if matches!(
         operator,
         BinaryOperator::Less
@@ -121,6 +135,12 @@ pub(super) fn evaluate_binary(
             _ => unreachable!(),
         };
         return PrimitiveValue::new(expected, &InfoBool::new(value).encode());
+    }
+    if left.kind == PrimitiveInfoKind::F32 {
+        let encoded =
+            crate::expression_f32::arithmetic(operator, left.as_slice(), right.as_slice())
+                .ok_or(Refusal::Arithmetic)?;
+        return PrimitiveValue::new(expected, &encoded);
     }
     if left.kind == PrimitiveInfoKind::Count {
         let left = decode_count(left.as_slice()).map_err(|_| Refusal::InvalidProgram)?;
@@ -175,6 +195,10 @@ pub(super) fn evaluate_binary(
 
 fn compare(left: &PrimitiveValue<'_>, right: &PrimitiveValue<'_>) -> Result<Ordering, Refusal> {
     match left.kind {
+        PrimitiveInfoKind::F32 => {
+            crate::expression_f32::ordering(left.as_slice(), right.as_slice())
+                .ok_or(Refusal::Arithmetic)
+        }
         PrimitiveInfoKind::Bool | PrimitiveInfoKind::Text => {
             Ok(left.as_slice().cmp(right.as_slice()))
         }

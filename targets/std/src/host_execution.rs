@@ -331,6 +331,7 @@ impl StdHost {
                         keyboard,
                         local_model: self.local_model.as_deref_mut(),
                         vector_search: self.vector_search.as_deref_mut(),
+                        model_work: self.model_work.as_deref_mut(),
                         calendar: self.calendar.as_deref_mut(),
                         body_conversation_context: self.body_conversation_context.as_ref(),
                     },

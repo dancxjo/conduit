@@ -114,7 +114,7 @@ pub(super) fn serve(
     }
     super::super::response_document::send(line, &response)?;
     Ok(match next {
-        Some(grant) => show_ack::ShowGate::Refreshed(grant),
+        Some(grant) => show_ack::ShowGate::Refreshed(Box::new(grant)),
         None => show_ack::ShowGate::Stopped,
     })
 }

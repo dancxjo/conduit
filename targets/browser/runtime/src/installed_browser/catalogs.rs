@@ -107,6 +107,7 @@ pub(crate) fn catalogs_for_presentation(
     conduit_chat::install_body_chat_catalog(&mut startup, &mut profile)?;
     conduit_ai::install_llm_semantic_catalog(&mut startup, &mut profile)?;
     conduit_ai::install_model_text_catalog(&mut startup, &mut profile)?;
+    conduit_ai::install_model_work_catalog(&mut startup, &mut profile)?;
     conduit_tongues::install_house_conversation_catalog(&mut startup, &mut profile)?;
     conduit_tongues::install_house_conversation_plot_catalog(&mut startup, &mut profile)?;
     conduit_tongues::install_speech_recognition_catalog(&mut startup, &mut profile)?;
@@ -258,6 +259,35 @@ pub(crate) fn backs(
 #[cfg(test)]
 mod conversation_tests {
     use super::*;
+
+    #[test]
+    fn browser_workspace_can_check_model_authoring_without_offering_training() {
+        let (startup, profile) = catalogs().unwrap();
+        let syntax = conduit_plot::parse_syntax_document(include_str!(
+            "../../../../../plots/model-authoring/main.conduit"
+        ));
+        assert!(syntax.diagnostics.is_empty());
+        let checked = conduit_plot::check_syntax_document(&syntax, &startup).unwrap();
+        let expanded = conduit_plot::expand_canonical_plot_for_authoring(
+            &checked,
+            "model-authoring",
+            &profile,
+        )
+        .unwrap()
+        .expanded;
+        assert_eq!(
+            expanded.gears[0].kind_id.as_str(),
+            conduit_ai::MODEL_WORK_KIND
+        );
+        assert!(conduit_planner::default_expanded_placements(
+            &expanded,
+            &[crate::installed_browser::advertisement(
+                "browser/model-catalog".into(),
+                "boot/model-catalog".into(),
+            )],
+        )
+        .is_err());
+    }
 
     #[test]
     fn browser_workspace_can_check_and_expand_conversation_meaning_without_offering_it() {

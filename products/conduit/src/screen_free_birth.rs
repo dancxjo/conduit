@@ -329,7 +329,7 @@ mod tests {
     }
 
     #[test]
-    fn selected_spoken_birth_opens_with_command_help_then_current_creche() {
+    fn selected_spoken_birth_opens_with_current_creche_and_help_on_request() {
         let host = StdHost::new();
         let advertisement = host.advertisement().clone();
         let door = ZeroBodyFrontDoor::from_model(
@@ -377,14 +377,10 @@ mod tests {
         let mut wrong_digest = first.clone();
         wrong_digest.source_segments_sha256 = "00".repeat(32);
         assert!(selected_playback::verified_spoken_segments(&face, &show, &wrong_digest).is_err());
-        assert!(
-            first.segments[0]
-                .segment
-                .text
-                .starts_with("Enter one command"),
-            "{:?}",
-            first.segments[0].segment.text
-        );
+        assert!(first.segments[0]
+            .segment
+            .text
+            .contains("A body of your own"));
         let stopped = first_batch
             .acknowledge_batch(SpokenBatchDelivery::Cancelled)
             .unwrap()
@@ -400,12 +396,23 @@ mod tests {
                 reader.take_text_readout().unwrap().unwrap()
             })
             .collect::<Vec<_>>();
-        assert_eq!(readings.len(), 3);
+        assert_eq!(readings.len(), 2);
         for reading in &readings {
             assert_eq!(reading.face_id, face.identity.as_str());
             assert_eq!(reading.show_id, show.show_id.as_str());
         }
-        let help = &readings[0].clauses[0];
+        assert!(readings[0].clauses[0].contains("A body of your own"));
+        assert_eq!(readings[1].clauses.len(), 1);
+        assert!(readings[1].clauses[0].contains("Friendly Body name"));
+        reader
+            .command(&face, &show, ReaderCommand::Help, 3)
+            .unwrap();
+        let help = reader
+            .take_text_readout()
+            .unwrap()
+            .unwrap()
+            .clauses
+            .join(" ");
         for command in [
             "Type help",
             "Type read all",
@@ -416,14 +423,6 @@ mod tests {
         ] {
             assert!(help.contains(command), "missing command {command}");
         }
-        assert_eq!(readings[1].clauses.len(), 1);
-        assert!(readings[1].clauses[0].contains("A body of your own"));
-        assert_eq!(readings[2].clauses.len(), 1);
-        assert!(
-            readings[2].clauses[0].contains("Friendly Body name"),
-            "{:?}",
-            readings[2].clauses[0]
-        );
         assert_eq!(
             installed::opening_commands(false).collect::<Vec<_>>(),
             vec![ReaderCommand::ReadAll]

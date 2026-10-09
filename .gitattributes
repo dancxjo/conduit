@@ -1,1 +1,9 @@
 site/evidence/one-body-five-masks/*.txt whitespace=-trailing-space,cr-at-eol
+
+# Retained Audio producer logs preserve terminal whitespace byte for byte.
+proof/audio/**/*.log whitespace=-trailing-space,-blank-at-eof
+# Retained producer logs are byte-exact evidence, including terminal whitespace.
+proof/model-authoring/**/*.log whitespace=-trailing-space,-blank-at-eof
+
+# Preserve raw failed browser CI logs without terminal whitespace rewriting.
+proof/foundations/omnibus/browser-ci/*.log whitespace=-trailing-space,-blank-at-eof

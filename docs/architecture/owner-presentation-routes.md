@@ -52,6 +52,47 @@ Mask Fore and replaces the same Body's retained clock workset while leaving it
 lulled. The consumed route cannot be submitted again; reattachment seals the new
 Face. Unsupported values and stale action bases refuse.
 
+When the current Face has several actions, enter `actions` to list available
+choices with their target names and command syntax. `action <identity> [value]`
+selects one exact action from that Show; it accepts zero arguments or one typed
+value. The command parser accepts the typed action forms of a Todo Face, such as `action todo.add Buy tea`,
+`action todo.complete.task-1`, `action todo.reopen.task-1`, or
+`action todo.remove.task-1`. Use the identities actually listed by `actions`;
+item identities are retained application truth, not list positions. For a verified
+committed Todo Face, the owner resolves the exact returned action before retiring
+this single-use terminal route. It detaches the provider, admits the existing
+next Todo write Play, and submits the typed command only if the newly admitted
+state matches the verified state. After publication and a fresh verified read,
+the terminal reattaches and renders the changed list. The receipt retains the
+initiating Show and action separately; primary output gives a short save message.
+Unknown or unavailable actions, unsupported values and stale Shows refuse.
+`apply <value>` remains a shortcut when exactly one single-value action is
+available. Listing choices does not refresh a stale Show; enter `show` explicitly.
+
+The repository capture entrance records a fresh Todo browser checklist and
+terminal interaction on one installed Body:
+
+```sh
+cargo xtask prove todo-journey --state-dir /absolute/host-state \
+  --conduit-bin /absolute/installed-conduit \
+  --fresh-body-source plots/todo/checkpoint-once.conduit \
+  --handbook-package /absolute/handbook-package \
+  --pinned-playwright /absolute/pinned-playwright/index.mjs \
+  --cross-mask-actions --output /absolute/new-capture
+```
+
+A matching sealed Linux/Handbook capture at `76ab56cb223c89c79f20085d249571e826cf7895`
+passed three successive browser additions, terminal completion at revision 4,
+visible refusal of the old browser action without mutation, and a refreshed
+browser checklist with two open items and one completed item. The terminal's
+precise inspection displays the completed item while its default checklist
+keeps completed items subordinate. The trace retains one Body and exact-source
+receipts separately from screenshots and terminal output. The actual-provider
+regression also covers fresh read, reattachment and stale-Show refusal.
+The capture remains partial: direct spoken playback, rejoin, failure traces and
+publication acceptance require their own evidence. The default capture still
+performs one browser Add followed by a terminal read.
+
 Disconnect, missing acknowledgement, stale Face, or changed Host/Boot/offer
 retires the attachment and Show. Cancellation retires the bounded Mask execution.
 Starting workload execution requires detaching this provider because the current

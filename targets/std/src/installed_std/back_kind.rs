@@ -39,6 +39,7 @@ use super::microphone_clip_back::MicrophoneClipBack;
 use super::midi_input_back::MidiInputBack;
 use super::midi_output_back::MidiOutputBack;
 use super::model_text_back::ModelTextBack;
+use super::model_work_back::ModelWorkBack;
 use super::navigation_backs::NavigationBack;
 use super::pacing_backs::{DelayBack, ThrottleBack};
 use super::pattern_comparison_back::PatternComparisonBack;
@@ -214,6 +215,7 @@ pub(super) enum InstalledBack {
     GeneratedSpeechCommit(GeneratedSpeechCommitBack),
     Navigation(NavigationBack),
     VectorSearch(VectorSearchBack),
+    ModelWork(ModelWorkBack),
     HttpClient(HttpClientBack),
     HttpServer(HttpServerBack),
     Json(JsonBack),

@@ -1,0 +1,25 @@
+   Compiling conduit-burn-model v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-07/take-on-dancxjo-conduit-5205-5207/work/conduit/mechanisms/implementations/burn-model)
+    Finished `test` profile [unoptimized] target(s) in 0.62s
+   Doc-tests conduit_burn_model
+
+running 5 tests
+test mechanisms/implementations/burn-model/src/lib.rs - (line 120) ... ignored
+test mechanisms/implementations/burn-model/src/lib.rs - (line 107) - compile ... ok
+test mechanisms/implementations/burn-model/src/lib.rs - (line 80) - compile ... ok
+test mechanisms/implementations/burn-model/src/checkpoint.rs - checkpoint::BurnAdapter<D>::checkpoint (line 21) - compile fail ... FAILED
+test mechanisms/implementations/burn-model/src/checkpoint.rs - checkpoint::BurnAdapter<D>::export_inference (line 114) - compile fail ... FAILED
+
+failures:
+
+---- mechanisms/implementations/burn-model/src/checkpoint.rs - checkpoint::BurnAdapter<D>::checkpoint (line 21) stdout ----
+Test compiled successfully, but it's marked `compile_fail`.
+---- mechanisms/implementations/burn-model/src/checkpoint.rs - checkpoint::BurnAdapter<D>::export_inference (line 114) stdout ----
+Test compiled successfully, but it's marked `compile_fail`.
+
+failures:
+    mechanisms/implementations/burn-model/src/checkpoint.rs - checkpoint::BurnAdapter<D>::checkpoint (line 21)
+    mechanisms/implementations/burn-model/src/checkpoint.rs - checkpoint::BurnAdapter<D>::export_inference (line 114)
+
+test result: FAILED. 2 passed; 2 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.13s
+
+error: doctest failed, to rerun pass `-p conduit-burn-model --doc`

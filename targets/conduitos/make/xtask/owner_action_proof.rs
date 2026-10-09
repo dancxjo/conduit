@@ -172,6 +172,10 @@ fn execute_mode(
     Ok(())
 }
 
+#[expect(
+    clippy::too_many_arguments,
+    reason = "one local proof invocation carries exact QMP and owner evidence"
+)]
 fn prove(
     directory: &std::path::Path,
     serial_path: &std::path::Path,

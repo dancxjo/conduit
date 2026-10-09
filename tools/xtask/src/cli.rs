@@ -45,6 +45,9 @@ pub struct GlobalOpts {
 }
 
 #[derive(Subcommand, Debug)]
+// This one-shot CLI keeps Clap's owned subcommand shapes visible to its
+// parser tests; the largest Make arguments do not live in a hot path.
+#[allow(clippy::large_enum_variant)]
 pub enum Command {
     /// Execute repository validation check suites.
     Check(CheckArgs),
@@ -282,6 +285,15 @@ pub struct ProveArgs {
 
 #[derive(Subcommand, Debug)]
 pub enum ProveCommand {
+    /// Prove the hosted Burn authoring and checkpoint contracts.
+    ModelAuthoring {
+        #[arg(long, conflicts_with = "cuda")]
+        documented_command: bool,
+        #[arg(long)]
+        output: Option<std::path::PathBuf>,
+        #[arg(long)]
+        cuda: bool,
+    },
     /// Run the bounded audible specimen through one exact selected output.
     AudioPlayback(AudioPlaybackArgs),
     /// Prove bounded Pete forebrain-motherbrain coordination.
@@ -323,6 +335,9 @@ pub struct TodoJourneyArgs {
     /// First item text for the fresh browser Add (defaults to Buy milk).
     #[arg(long)]
     pub first_item_text: Option<String>,
+    /// Add three browser items, complete one through the installed terminal, then observe it in the browser.
+    #[arg(long)]
+    pub cross_mask_actions: bool,
 }
 
 #[derive(ValueEnum, Debug, Clone, Copy, PartialEq, Eq)]

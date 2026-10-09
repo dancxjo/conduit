@@ -1,12 +1,13 @@
-//! Fresh Birth and first browser Add. This producer remains deliberately partial.
+//! Fresh Birth/browser actions, optional terminal completion and browser observation.
 //! Its raw product/browser receipts can seed a later continuous journey, but it
-//! cannot issue the eight-chapter terminal or publication manifest.
+//! cannot issue the complete Todo journey or a publication manifest.
 
 use super::{regular, retain, sha};
 use crate::cli::{GlobalOpts, TodoJourneyArgs};
 use serde_json::{json, Value};
 use std::{
     fs,
+    io::Write,
     os::unix::fs::DirBuilderExt,
     path::{Path, PathBuf},
     process::{Child, Command, Stdio},
@@ -33,11 +34,33 @@ fn now() -> Result<u128, String> {
         .as_millis())
 }
 
-fn capture(root: &Path, label: &str, command: &mut Command) -> Result<Value, String> {
-    let output = command
-        .stdin(Stdio::null())
-        .output()
+fn capture(
+    root: &Path,
+    label: &str,
+    command: &mut Command,
+    input: Option<&[u8]>,
+) -> Result<Value, String> {
+    let mut child = command
+        .stdin(if input.is_some() {
+            Stdio::piped()
+        } else {
+            Stdio::null()
+        })
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
         .map_err(|error| format!("start {label}: {error}"))?;
+    if let Some(input) = input {
+        child
+            .stdin
+            .take()
+            .ok_or("Todo capture command has no stdin")?
+            .write_all(input)
+            .map_err(|error| format!("write {label} input: {error}"))?;
+    }
+    let output = child
+        .wait_with_output()
+        .map_err(|error| format!("wait for {label}: {error}"))?;
     if output.stdout.len() > MAX_COMMAND_OUTPUT || output.stderr.len() > MAX_COMMAND_OUTPUT {
         return Err(format!("{label} command output exceeds capture bound"));
     }
@@ -50,7 +73,7 @@ fn capture(root: &Path, label: &str, command: &mut Command) -> Result<Value, Str
 }
 
 fn json_output(root: &Path, label: &str, command: &mut Command) -> Result<Value, String> {
-    capture(root, label, command)?;
+    capture(root, label, command, None)?;
     let bytes =
         fs::read(root.join(format!("{label}.stdout"))).map_err(|error| error.to_string())?;
     serde_json::from_slice(&bytes)
@@ -221,8 +244,13 @@ pub(super) fn run(
     }
     if opts.dry_run {
         println!(
-            "would Birth one Todo Body at {} and capture one browser Add in {}",
+            "would Birth one Todo Body at {} and capture {} in {}",
             state.display(),
+            if args.cross_mask_actions {
+                "three browser Adds, terminal completion and browser observation"
+            } else {
+                "one browser Add"
+            },
             args.output.display()
         );
         return Ok(());
@@ -240,7 +268,7 @@ pub(super) fn run(
             .args(["--state-dir"])
             .arg(&state)
             .args(["--name", "Groceries"]);
-        let birth_command = capture(&output, "birth", &mut birth)?;
+        let birth_command = capture(&output, "birth", &mut birth, None)?;
         let body_id = birth_body_id(
             &fs::read(output.join("birth.stdout")).map_err(|error| error.to_string())?,
         )?;
@@ -282,8 +310,13 @@ pub(super) fn run(
             .arg(output.join("browser"))
             .arg(&playwright)
             .arg(item_text)
+            .arg(if args.cross_mask_actions {
+                "cross-mask"
+            } else {
+                "first-add"
+            })
             .current_dir(repository);
-        let browser_command = capture(&output, "browser-add", &mut browser)?;
+        let browser_command = capture(&output, "browser-add", &mut browser, None)?;
         let browser_receipt: Value = serde_json::from_slice(
             &fs::read(output.join("browser/receipt.json")).map_err(|error| error.to_string())?,
         )
@@ -319,8 +352,45 @@ pub(super) fn run(
         if checkpoint_after["files"].as_u64().unwrap_or(0) == 0 {
             return Err("browser Add did not publish a selected Todo checkpoint".into());
         }
+        let mut terminal = Command::new("timeout");
+        terminal
+            .args(["-k", "5s", "30s"])
+            .arg(&bin)
+            .args(["body", "terminal", "--state-dir"])
+            .arg(&state);
+        // Completed items stay subordinate in the default checklist. Request
+        // the existing precise inspection when this chapter completes one.
+        let terminal_keys: &[u8] = if args.cross_mask_actions {
+            b"inspect\npage down\npage down\npage down\nquit\n"
+        } else {
+            b"quit\n"
+        };
+        let terminal_input = retain(&output, "terminal.input", terminal_keys)?;
+        let terminal_command = capture(&output, "terminal", &mut terminal, Some(terminal_keys))?;
+        let terminal_text =
+            fs::read(output.join("terminal.stdout")).map_err(|error| error.to_string())?;
+        if !String::from_utf8_lossy(&terminal_text).contains(item_text) {
+            return Err("terminal did not show the browser-added Todo item".into());
+        }
+        let mut terminal_face = Command::new("timeout");
+        terminal_face
+            .args(["-k", "5s", "15s"])
+            .arg(&bin)
+            .args(["body", "face", "--state-dir"])
+            .arg(&state)
+            .arg("--json");
+        let face_after_terminal = json_output(&output, "after-terminal-face", &mut terminal_face)?;
+        if face_after_terminal["presentation"]["basis"]["body_id"] != body_id
+            || !face_after_terminal["presentation"]["subjects"]
+                .as_array()
+                .is_some_and(|subjects| subjects.iter().any(|subject| subject["name"] == item_text))
+            || checkpoint_files(&selected)? != checkpoint_after
+        {
+            return Err("terminal read changed the Body or selected checkpoint".into());
+        }
         Ok(json!({
             "body_id":body_id,
+            "cross_mask":browser_receipt["cross_mask"],
             "birth":{"command":birth_command,"face_id":face_before["presentation"]["identity"],
                 "face_revision":face_before["presentation"]["revision"]},
             "add":{"command":browser_command,"receipt":browser_receipt_file,
@@ -330,20 +400,23 @@ pub(super) fn run(
                 "screenshots":[before_png,after_png]},
             "selected_checkpoint_root":selected,
             "checkpoint_before":checkpoint_before,"checkpoint_after":checkpoint_after,
+            "terminal":{"command":terminal_command,"input":terminal_input,
+                "face_id":face_after_terminal["presentation"]["identity"],
+                "face_revision":face_after_terminal["presentation"]["revision"]},
         }))
     })();
     let finished = now()?;
     let record = json!({
         "schema":"conduit.todo-journey/partial-live-capture@1",
         "capture_entrance":"cargo xtask prove todo-journey",
-        "chapter_scope":["birth","add"],"publication_ready":false,
+        "chapter_scope":if args.cross_mask_actions { vec!["birth","three-browser-adds","terminal-complete","browser-observe","terminal-read"] } else { vec!["birth","add","terminal-read"] },"publication_ready":false,
         "capture_tool_commit":commit,"installed_product_source_commit":installation["release_source_identity"],
         "installed_executable_sha256":sha(&fs::read(&bin)?),
         "started_at_unix_ms":started,"finished_at_unix_ms":finished,
         "observation":result.as_ref().ok(),"error":result.as_ref().err(),
-        "missing_for_publication":["remaining six continuous chapters", "Add queue and child Sign correlation",
-            "native and QMP captures", "requested-detail same-Play speech", "new-Boot recovery",
-            "complete producer events and terminal receipt"]
+        "missing_for_publication":["same-Face direct spoken Show and requested detail",
+            "lull/wake and admitted Host rejoin", "visible stale-Show and failed-checkpoint refusals",
+            "complete action/Plan/Play/Sign correlations", "accepted release and deployed Pages links"]
     });
     fs::write(
         output.join("partial-run.json"),
@@ -356,7 +429,7 @@ pub(super) fn run(
         )
     })?;
     println!(
-        "Retained fresh Todo Birth and browser Add at {}. Publication remains incomplete.",
+        "Retained partial fresh Todo browser/terminal capture at {}. Publication remains incomplete.",
         output.display()
     );
     Ok(())

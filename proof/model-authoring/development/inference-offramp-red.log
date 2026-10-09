@@ -1,0 +1,11 @@
+   Compiling conduit-burn-model v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-07/take-on-dancxjo-conduit-5205-5207/work/conduit/mechanisms/implementations/burn-model)
+error[E0432]: unresolved imports `conduit_burn_model::InferenceBurnAdapter`, `conduit_burn_model::InferenceContext`
+ --> mechanisms/implementations/burn-model/tests/inference_only.rs:3:73
+  |
+3 |     BurnAdapter, Cancellation, DeviceRequest, DirectoryCheckpointStore, InferenceBurnAdapter,
+  |                                                                         ^^^^^^^^^^^^^^^^^^^^ no `InferenceBurnAdapter` in the root
+4 |     InferenceContext, OptimizerRecipe,
+  |     ^^^^^^^^^^^^^^^^ no `InferenceContext` in the root
+
+For more information about this error, try `rustc --explain E0432`.
+error: could not compile `conduit-burn-model` (test "inference_only") due to 1 previous error

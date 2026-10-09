@@ -239,6 +239,14 @@ fn binary(
         })
         .encode()
         .to_vec()
+    } else if leaf_kind(&left.value_type)? == conduit_core::F32_INFO_ID {
+        crate::expression_f32::arithmetic(
+            operator,
+            &primitive_bytes(&left)?,
+            &primitive_bytes(&right)?,
+        )
+        .ok_or(PortableExpressionEvaluationRefusal::Arithmetic)?
+        .to_vec()
     } else if leaf_kind(&left.value_type)? == COUNT_INFO_ID {
         let left = decode_count(&primitive_bytes(&left)?)
             .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?;
@@ -299,7 +307,10 @@ fn binary(
 
 fn compare(left: &Value, right: &Value) -> Result<Ordering, PortableExpressionEvaluationRefusal> {
     let kind = leaf_kind(&left.value_type)?;
-    if fixed_integer(
+    if kind == conduit_core::F32_INFO_ID {
+        crate::expression_f32::ordering(&primitive_bytes(left)?, &primitive_bytes(right)?)
+            .ok_or(PortableExpressionEvaluationRefusal::Arithmetic)
+    } else if fixed_integer(
         primitive_info_kind(kind)
             .ok_or_else(|| PortableExpressionEvaluationRefusal::UnsupportedType(kind.into()))?,
     ) {

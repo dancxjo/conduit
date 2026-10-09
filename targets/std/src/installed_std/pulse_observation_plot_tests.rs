@@ -93,6 +93,7 @@ fn reusable_pulse_plot_plans_and_executes_outside_choir() {
             keyboard: None,
             local_model: None,
             vector_search: None,
+            model_work: None,
             calendar: None,
             body_conversation_context: None,
         },

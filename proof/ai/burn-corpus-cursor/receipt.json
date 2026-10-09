@@ -1,0 +1,121 @@
+{
+  "base": "d932da60c7f04bde62c797126e298e38aa9819d0",
+  "sources": {
+    "mechanisms/implementations/burn-model/src/adapter.rs": "d9fe0c2902278371aa948181fe032683cb55955b5c2096749a64163961627e05",
+    "mechanisms/implementations/burn-model/src/checkpoint.rs": "717da65b248eb8a9dabe6a91f0b714c248e2568007589f290a2ccf9b5cbbac54",
+    "mechanisms/implementations/burn-model/src/checkpoint_manifest.rs": "d30f2af5a9461b04897cc379312f1378c217da2e247b3b475ed06bc296e2b739",
+    "mechanisms/implementations/burn-model/src/lib.rs": "56ee7b5e72a2d8d6c21e2446ad12b929aef8432e07c604c13012b5fe55300d32",
+    "mechanisms/implementations/burn-model/src/training_step.rs": "2e8ffc531aa73ae9bffbbc9989c2c9a3abe3448b05da5f0c53fd661b876999da",
+    "semantics/ai/src/model_work_contract.rs": "1099be7d07a700d254d12456f2efaedb7ccfcdda7426c54a027e9447f1a9a247",
+    "semantics/ai/src/training.rs": "5db77525a0c67936481610366166230ff5ec69ba069230767be1c2c21d368b24",
+    "targets/std/src/hosted_burn_work.rs": "0223e7c2cbbb9091d6b3cfbd86d1e34063625fa4347e0bc8013bc45084d314de",
+    "targets/std/tests/burn_plot_journey.rs": "cf7bfffd9a6aab15c2444d04b83ab21269e9fb6462a32c0c92f66d3a107b87d0",
+    "mechanisms/implementations/burn-model/src/corpus.rs": "cb4eed09e9ea00c4a32c88b59fda62a529698a48935c61e9b9001344dea07ac9",
+    "mechanisms/implementations/burn-model/tests/corpus_cursor.rs": "6b9eb405148d649fa785942304d3cb4752be5814c3a6feaab54eefb01421a823",
+    "mechanisms/implementations/burn-model/tests/common/corpus.rs": "b3f476a9f79737c0718f0655ff228d3b6480c8f533022c88aaeab45fba9207d1"
+  },
+  "unchanged": true,
+  "results": [
+    {
+      "name": "burn-final",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduit-burn-model"
+      ],
+      "exit": 0,
+      "seconds": 4.619700557959732
+    },
+    {
+      "name": "plot-final",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduit-std-host",
+        "--features",
+        "burn-model",
+        "--test",
+        "burn_plot_journey"
+      ],
+      "exit": 0,
+      "seconds": 11.250142004981171
+    },
+    {
+      "name": "ai-final",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduit-ai",
+        "--lib",
+        "--test",
+        "training",
+        "--test",
+        "training_lifecycle",
+        "--test",
+        "native_training_vocabulary"
+      ],
+      "exit": 0,
+      "seconds": 0.19880745897535235
+    },
+    {
+      "name": "clippy-final",
+      "command": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "-p",
+        "conduit-burn-model",
+        "-p",
+        "conduit-ai",
+        "-p",
+        "conduit-std-host",
+        "--features",
+        "conduit-std-host/burn-model",
+        "--lib",
+        "--test",
+        "corpus_cursor",
+        "--test",
+        "checkpoint_contract",
+        "--test",
+        "training",
+        "--test",
+        "training_lifecycle",
+        "--test",
+        "native_training_vocabulary",
+        "--test",
+        "burn_plot_journey",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit": 0,
+      "seconds": 5.1385567400138825
+    }
+  ],
+  "tested_source_commit": "d5b3d281036702bc7ec4103e48b1945229de9874",
+  "provenance": "Gates ran on dirty implementation tree; every recorded source SHA256 reverified identical before source commit. Subsequent evidence commit changes only proof files.",
+  "root_additional_gates": [
+    {
+      "log": "root-ai-all-targets.log",
+      "result": "PASS",
+      "tests": 292,
+      "profile": "AI all targets kernel-operation-owners"
+    },
+    {
+      "log": "root-strong-plot.log",
+      "result": "PASS",
+      "tests": 2,
+      "profile": "std Burn Plot journeys strong feature combination"
+    }
+  ]
+}
