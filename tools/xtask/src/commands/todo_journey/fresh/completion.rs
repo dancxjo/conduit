@@ -54,12 +54,28 @@ pub(super) fn finish(
         capture(output, "publication-finalizer", &mut finalize, None)?;
         println!("Retained complete local Todo journey packet at {}. CI and Pages acceptance remain separate.", output.join("publication").display());
     } else {
+        let mut partial = record.clone();
+        partial["schema"] = json!("conduit.todo-journey/partial-live-capture@1");
+        partial["publication_ready"] = json!(false);
+        partial["chapter_scope"] = if args.cross_mask_actions {
+            json!([
+                "birth",
+                "three-browser-adds",
+                "terminal-complete",
+                "browser-observe",
+                "terminal-read"
+            ])
+        } else {
+            json!(["birth", "add", "terminal-read"])
+        };
+        partial["missing_for_publication"] = json!([
+            "Direct spoken opening and remaining items",
+            "Fresh Owner Boot and browser Host reencounter",
+            "Failed checkpoint refusal and exact repair"
+        ]);
         fs::write(
             output.join("partial-run.json"),
-            serde_json::to_vec_pretty(&json!({
-                "schema":"conduit.todo-journey/partial-live-capture@1", "publication_ready":false,
-                "capture":record,"missing_for_publication":["Direct spoken opening and remaining items", "Fresh Owner Boot and browser Host reencounter", "Failed checkpoint refusal and exact repair"]
-            }))?,
+            serde_json::to_vec_pretty(&partial)?,
         )?;
         println!(
             "Retained partial fresh Todo capture at {}. Publication remains incomplete.",

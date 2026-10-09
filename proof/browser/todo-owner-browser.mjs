@@ -127,6 +127,14 @@ try {
   }
   assert.equal(currentWardrobe.selected?.route_id, description.route_id,
     'browser Mask must be selected before the Todo Play');
+  // An explicit preference change retires the prior Show. Request this Mask's
+  // new Show before using it as the startup observation basis.
+  await page.getByRole('button', { name: 'Refresh this Face' }).click();
+  await page.waitForFunction(() => {
+    const current = globalThis.__conduitOwnerParticipation.face();
+    return current?.show_state === 'available'
+      && document.querySelector('[data-owner-show-acknowledged]')?.dataset.ownerShowAcknowledged === current.show_id;
+  }, null, { timeout: 12_000 });
   const beforeStart = await page.evaluate(() => globalThis.__conduitOwnerParticipation.face());
   owner(['body', 'start', '--state-dir', state, '--maximum-millis', '60000',
     '--todo-new-list', 'Groceries']);
