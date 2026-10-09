@@ -273,3 +273,6 @@ fn emit(value: &serde_json::Value) -> Result<(), String> {
 mod cli_smoke;
 #[cfg(all(test, target_os = "linux"))]
 mod service_clock_smoke;
+
+#[cfg(test)]
+mod todo_speech_tests;

@@ -1291,3 +1291,6 @@ fn stop_never_turns_a_late_audio_completion_into_success() {
     assert_eq!(terminal.outcome, SpokenTurnOutcome::Cancelled);
     assert_eq!(terminal.completed_segments, 1);
 }
+
+#[path = "selection_tests.rs"]
+mod selection;
