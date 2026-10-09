@@ -15,6 +15,12 @@ const insist = (condition, message) => { if (!condition) throw new Error(`Todo j
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const nonempty = value => typeof value === 'string' && value.trim().length > 0;
 
+function validFaceRevision(value) {
+  if (Number.isSafeInteger(value)) return value >= 0;
+  return typeof value === 'string' && /^(0|[1-9][0-9]{0,19})$/.test(value)
+    && BigInt(value) <= 18446744073709551615n;
+}
+
 function safePath(value) {
   insist(typeof value === 'string' && /^[a-z0-9][a-z0-9._/-]*$/.test(value)
     && !value.split('/').includes('..') && !value.split('/').includes('.'), 'unsafe evidence path');
@@ -139,8 +145,8 @@ export function validateTodoJourney(root, publicationCommit, { checkAncestry = t
     insist(receipt.schema === 'conduit.todo-journey/chapter-receipt@1' && receipt.chapter_id === chapter.id
       && nonempty(receipt.event_id) && !seenEvents.has(receipt.event_id)
       && Number.isSafeInteger(receipt.observed_at_unix_ms) && receipt.observed_at_unix_ms > lastTime
-      && nonempty(receipt.face_id) && Number.isSafeInteger(receipt.face_revision)
-      && receipt.face_revision >= 0 && nonempty(receipt.show_id) && nonempty(receipt.source_receipt_id), `${chapter.id} receipt is incomplete`);
+      && nonempty(receipt.face_id) && validFaceRevision(receipt.face_revision)
+      && nonempty(receipt.show_id) && nonempty(receipt.source_receipt_id), `${chapter.id} receipt is incomplete`);
     lastTime = receipt.observed_at_unix_ms;
     seenEvents.add(receipt.event_id);
     const source = json(requireOutput(receipt.source_receipt_id, 'machine-readable-manifest').bytesValue, `${chapter.id} source`);
@@ -207,22 +213,47 @@ export function validateTodoJourney(root, publicationCommit, { checkAncestry = t
         insist(output.media_type === 'text/plain; charset=utf-8' && capture.capture_source === 'terminal', 'unsupported terminal provenance');
         sources.add('terminal');
       } else {
-        insist(output.media_type === 'audio/wav' && ['speaker-play', 'qemu-audio'].includes(capture.capture_source)
+        const delivery = source.media.find(item => item.media_output_id === media.output_id)?.audio ?? source;
+        if (delivery !== source) {
+          linkedIdentity(delivery, journey, 'audio delivery');
+          insist(delivery.face_id === source.face_id && delivery.face_revision === source.face_revision,
+            'audio delivery belongs to another Face');
+        }
+        insist(output.media_type === 'audio/wav' && ['speaker-play', 'qemu-audio', 'selected-wav-artifact'].includes(capture.capture_source)
           && ['direct', 'model-assisted'].includes(capture.speech_mode)
           && nonempty(capture.play_id) && nonempty(capture.plan_id) && nonempty(capture.voice_id)
-          && SHA.test(capture.delivered_pcm_sha256) && wavPcm(output.bytesValue, capture) === capture.delivered_pcm_sha256,
+          && SHA.test(capture.capture_source === 'selected-wav-artifact' ? capture.artifact_pcm_sha256 : capture.delivered_pcm_sha256)
+          && wavPcm(output.bytesValue, capture) === (capture.capture_source === 'selected-wav-artifact' ? capture.artifact_pcm_sha256 : capture.delivered_pcm_sha256),
         'audio differs from claimed delivered Play PCM');
-        insist(source.play_id === capture.play_id && source.plan_id === capture.plan_id
-          && source.show_id === capture.show_id && source.delivered_pcm_sha256 === capture.delivered_pcm_sha256
-          && source.channels === capture.channels && source.sample_rate_hz === capture.sample_rate_hz
-          && source.bits_per_sample === capture.bits_per_sample, 'audio lacks same-Play delivery receipt');
-        if (capture.capture_source === 'qemu-audio') {
-          insist(nonempty(capture.qemu_boot_id) && source.qemu_boot_id === capture.qemu_boot_id
-            && nonempty(capture.qemu_output_id) && source.qemu_output_id === capture.qemu_output_id
-            && source.qemu_audio_frames_captured > 0, 'guest audio lacks QEMU output provenance');
+        insist(delivery.play_id === capture.play_id && delivery.plan_id === capture.plan_id
+          && delivery.show_id === capture.show_id
+          && (capture.capture_source === 'selected-wav-artifact'
+            ? delivery.artifact_pcm_sha256 === capture.artifact_pcm_sha256
+            : delivery.delivered_pcm_sha256 === capture.delivered_pcm_sha256)
+          && delivery.channels === capture.channels && delivery.sample_rate_hz === capture.sample_rate_hz
+          && delivery.bits_per_sample === capture.bits_per_sample, 'audio lacks same-Play delivery receipt');
+        if (capture.capture_source === 'selected-wav-artifact') {
+          insist(nonempty(delivery.host_id) && capture.host_id === delivery.host_id
+            && nonempty(delivery.boot_id) && capture.boot_id === delivery.boot_id
+            && SHA.test(delivery.provider_sha256) && capture.provider_sha256 === delivery.provider_sha256
+            && /^play-[a-f0-9]{64}\.wav$/.test(delivery.wav_artifact_id)
+            && capture.wav_artifact_id === delivery.wav_artifact_id
+            && delivery.output_mode === 'wav-artifact' && capture.output_mode === delivery.output_mode
+            && delivery.outcome === 'completed' && capture.outcome === delivery.outcome
+            && delivery.speaker_frames_committed === 0 && capture.speaker_frames_committed === 0
+            && delivery.speaker_blocks_committed === 0 && capture.speaker_blocks_committed === 0
+            && delivery.physical_playback === false && capture.physical_playback === false
+            && delivery.human_listening === false && capture.human_listening === false
+            && delivery.wav_sha256 === output.sha256 && capture.wav_sha256 === output.sha256
+            && delivery.delivered_pcm_sha256 === undefined && capture.delivered_pcm_sha256 === undefined,
+          'selected WAV artifact cannot claim speaker delivery or listening');
+        } else if (capture.capture_source === 'qemu-audio') {
+          insist(nonempty(capture.qemu_boot_id) && delivery.qemu_boot_id === capture.qemu_boot_id
+            && nonempty(capture.qemu_output_id) && delivery.qemu_output_id === capture.qemu_output_id
+            && delivery.qemu_audio_frames_captured > 0, 'guest audio lacks QEMU output provenance');
           const qemuOutput = outputs.get(capture.qemu_output_id);
           insist(qemuOutput && qemuOutput.scenario_id === journey.run_id
-            && qemuOutput.sha256 === source.qemu_output_sha256, 'guest QEMU output is not retained');
+            && qemuOutput.sha256 === delivery.qemu_output_sha256, 'guest QEMU output is not retained');
           if (qemuOutput.media_type === 'application/octet-stream') {
             insist(qemuOutput.bytesValue.length > 0
               && qemuOutput.bytesValue.length % (capture.channels * capture.bits_per_sample / 8) === 0,
@@ -232,11 +263,11 @@ export function validateTodoJourney(root, publicationCommit, { checkAncestry = t
             ? wavPcm(qemuOutput.bytesValue, capture)
             : qemuOutput.media_type === 'application/octet-stream' ? hash(qemuOutput.bytesValue) : null;
           insist(qemuPcm === capture.delivered_pcm_sha256, 'published WAV differs from same-run QEMU PCM');
-        } else insist(source.speaker_frames_committed > 0, 'speaker Play has no committed frames');
+        } else insist(delivery.speaker_frames_committed > 0, 'speaker Play has no committed frames');
         const transcript = requireOutput(capture.transcript_output_id, 'document');
         insist(transcript.media_type === 'text/plain; charset=utf-8'
           && transcript.bytesValue.length > 0 && transcript.sha256 === capture.transcript_sha256
-          && transcript.sha256 === source.spoken_text_sha256, 'audio has no matching spoken transcript');
+          && transcript.sha256 === delivery.spoken_text_sha256, 'audio has no matching spoken transcript');
         if (chapter.id === 'hear' || chapter.id === 'read') insist(capture.speech_mode === 'direct', 'screen-free chapter needs direct speech');
         sources.add(capture.capture_source);
       }
@@ -244,7 +275,7 @@ export function validateTodoJourney(root, publicationCommit, { checkAncestry = t
   }
   insist(['chromium', 'qmp', 'native'].some(source => sources.has(source)), 'missing graphical capture');
   for (const source of ['terminal', 'speaker-play']) {
-    if (source === 'speaker-play' && sources.has('qemu-audio')) continue;
+    if (source === 'speaker-play' && (sources.has('qemu-audio') || sources.has('selected-wav-artifact'))) continue;
     insist(sources.has(source), `missing ${source} capture`);
   }
   insist(maskKinds.get('add') !== maskKinds.get('complete'), 'actions did not cross Masks');
@@ -287,15 +318,22 @@ export function renderTodoJourney(root, destination, publicationCommit, styles, 
       else {
         const capture = json(outputs.get(item.receipt_id).bytesValue, 'capture receipt');
         const transcript = outputs.get(capture.transcript_output_id);
-        figure = `<audio controls preload="none" src="${href}"><a href="${href}">Download recorded Play</a></audio><p><strong>Spoken words:</strong> ${escape(transcript.bytesValue.toString('utf8'))}</p><p><a href="${escape(transcript.path)}">Exact transcript</a></p>`;
+        const route = capture.capture_source === 'selected-wav-artifact'
+          ? '<p>Selected WAV artifact from the acknowledged Play. No speaker delivery or human listening is claimed.</p>' : '';
+        figure = `${route}<audio controls preload="none" src="${href}"><a href="${href}">Download recorded Play</a></audio><p><strong>Spoken words:</strong> ${escape(transcript.bytesValue.toString('utf8'))}</p><p><a href="${escape(transcript.path)}">Exact transcript</a></p>`;
       }
       return `<figure>${figure}<figcaption>${escape(item.alt)} · <a href="${receipt}">Capture receipt</a></figcaption></figure>`;
     }).join('');
     return `<article id="${escape(chapter.id)}"><p class="eyebrow">Step ${index + 1} of ${CHAPTERS.length}</p><h2>${escape(chapter.title)}</h2><p><strong>You want to:</strong> ${escape(chapter.intention)}</p><p><strong>You do:</strong> ${escape(chapter.action)}</p><p><strong>What changes:</strong> ${escape(chapter.result)}</p><p><strong>Why it matters:</strong> ${escape(chapter.why)}</p><div class="todo-media">${media}</div><p><strong>Next:</strong> ${escape(chapter.next)}</p><details><summary>Exact evidence and limits</summary><p><a href="${escape(outputs.get(chapter.receipt_id).path)}">Chapter event receipt</a></p><ul>${chapter.limitations.map(note => `<li>${escape(note)}</li>`).join('')}</ul></details></article>`;
   }).join('');
   const toc = journey.chapters.map((chapter, index) => `<li><a href="#${escape(chapter.id)}">${index + 1}. ${escape(chapter.title)}</a></li>`).join('');
+  const artifactOnly = journey.chapters.flatMap(chapter => chapter.media)
+    .filter(item => outputs.get(item.output_id).kind === 'audio')
+    .every(item => json(outputs.get(item.receipt_id).bytesValue, 'audio receipt').capture_source === 'selected-wav-artifact');
+  const recordingNote = artifactOnly
+    ? ' The recordings below are selected WAV artifacts; no speaker delivery or attended listening is claimed.' : '';
   const css = `.todo-journey{max-width:78rem;margin:auto;padding:clamp(1rem,4vw,4rem)}.todo-journey h1{font-size:clamp(2.5rem,6vw,4.7rem);line-height:1.1}.todo-journey article{border-top:1px solid var(--conduit-structure-secondary);padding:2rem 0}.todo-media{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,25rem),1fr));gap:1rem}.todo-media figure{margin:0;padding:1rem;background:var(--conduit-surface);border:1px solid var(--conduit-structure-secondary);border-radius:.5rem;min-width:0}.todo-media img{display:block;width:100%;height:auto}.todo-media audio{width:100%}.todo-media pre{overflow:auto;max-height:20rem}.todo-media figcaption{color:var(--conduit-text-secondary)}.todo-journey details{overflow-wrap:anywhere}`;
-  const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Keep one Todo Body across Masks — Conduit</title><style>${styles}\n${css}</style></head><body data-application-theme="conduit.presentation/phosphor@1">${navigation}<main class="todo-journey"><p><a href="../../">All journeys</a></p><p class="eyebrow">One retained Body · documented user actions</p><h1>Keep one Todo list with you</h1><p class="lede">Birth a list, add and complete an item through different Masks, ask aloud what remains, and return to the same Body.</p><p>The retained producer attributes each screen and recording to this run. The page checks their relationships and digests; acceptance of the live capture command is separate. Ordinary controls lead; exact identities and limits sit behind each step.</p><nav aria-label="Journey steps"><ol>${toc}</ol></nav>${cards}<details><summary>Source and complete capture inventory</summary><p>Source <code>${escape(manifest.git_commit)}</code> · Run <code>${escape(journey.run_id)}</code> · Body <code>${escape(journey.body_id)}</code></p><p><a href="journey.json">Journey source</a> · <a href="${escape(outputs.get(journey.producer_terminal_receipt_id).path)}">Producer terminal receipt</a> · <a href="manifest.json">Digest-bound output inventory</a></p></details></main></body></html>`;
+  const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Keep one Todo Body across Masks — Conduit</title><style>${styles}\n${css}</style></head><body data-application-theme="conduit.presentation/phosphor@1">${navigation}<main class="todo-journey"><p><a href="../../">All journeys</a></p><p class="eyebrow">A grocery list across browser, terminal and speech</p><h1>Keep one Todo list with you</h1><p class="lede">Birth a list, add and complete an item through different Masks, ask aloud what remains, and return to the same Body.</p><p>Add errands, finish one, then check what remains from another Mask.${recordingNote}</p><nav aria-label="Journey steps"><ol>${toc}</ol></nav>${cards}<details><summary>Source and complete capture inventory</summary><p>The page verifies documentary relationships and digests. Acceptance of the live capture command and protected publication gates is separate.</p><p>Source <code>${escape(manifest.git_commit)}</code> · Run <code>${escape(journey.run_id)}</code> · Body <code>${escape(journey.body_id)}</code></p><p><a href="journey.json">Journey source</a> · <a href="${escape(outputs.get(journey.producer_terminal_receipt_id).path)}">Producer terminal receipt</a> · <a href="manifest.json">Digest-bound output inventory</a></p></details></main></body></html>`;
     writeFileSync(path.join(staging, 'index.html'), html);
     renameSync(staging, destination);
   } catch (error) {

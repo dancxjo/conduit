@@ -52,7 +52,7 @@ function wav() {
   return bytes;
 }
 
-function fixture({ guestAudio = false, graphicalExtras = true, graphicalSource = 'chromium', omitMask } = {}) {
+function fixture({ guestAudio = false, graphicalExtras = true, graphicalSource = 'chromium', artifactAudio = false, decimalRevisions = false, omitMask } = {}) {
   const root = mkdtempSync(path.join(tmpdir(), 'todo-journey-test-'));
   const outputs = [];
   const add = (id, kind, bytes, media_type, name = `${id}.json`) => {
@@ -68,6 +68,7 @@ function fixture({ guestAudio = false, graphicalExtras = true, graphicalSource =
   const kinds = { birth: ['terminal'], add: ['terminal'], join: ['chromium', 'qmp', 'native'],
     complete: ['qmp'], inspect: ['chromium'], hear: [guestAudio ? 'qemu-audio' : 'speaker-play'],
     read: ['speaker-play'], recover: ['terminal'] };
+  if (artifactAudio) { kinds.hear = ['selected-wav-artifact']; kinds.read = ['selected-wav-artifact']; }
   if (!graphicalExtras) {
     kinds.join = [graphicalSource];
     kinds.complete = [graphicalSource];
@@ -80,7 +81,7 @@ function fixture({ guestAudio = false, graphicalExtras = true, graphicalSource =
   for (const [index, id] of chapters.entries()) {
     const event = { ...base, schema: 'conduit.todo-journey/producer-event@1', chapter_id: id,
       event_id: `event/${id}`, observed_at_unix_ms: index + 1, face_id: `face/${id}`,
-      face_revision: index, show_id: `show/${id}` };
+      face_revision: decimalRevisions ? String(1014577901397425482n + BigInt(index)) : index, show_id: `show/${id}` };
     if (['add', 'complete'].includes(id)) {
       event.interaction_id = `interaction/${id}`; event.action_id = `todo.${id}`;
       event.mask_kind = id === 'add' ? 'terminal' : graphicalExtras ? 'conduitos-graphical' : graphicalSource;
@@ -112,7 +113,7 @@ function fixture({ guestAudio = false, graphicalExtras = true, graphicalSource =
     event.media = [];
     const media = kinds[id].map((source, n) => {
       const outputId = `${id}-media-${n}`;
-      const isAudio = source === 'speaker-play' || source === 'qemu-audio';
+      const isAudio = source === 'speaker-play' || source === 'qemu-audio' || source === 'selected-wav-artifact';
       const isTerminal = source === 'terminal';
       const bytes = isAudio ? wav() : isTerminal ? Buffer.from(`${id} visible Todo state\n`) : png;
       const output = add(outputId, isAudio ? 'audio' : isTerminal ? 'console-transcript' : 'screenshot',
@@ -127,6 +128,17 @@ function fixture({ guestAudio = false, graphicalExtras = true, graphicalSource =
         plan_id: event.plan_id, voice_id: 'test-voice', delivered_pcm_sha256: event.delivered_pcm_sha256,
         channels: 1, sample_rate_hz: 16000, bits_per_sample: 16,
         transcript_output_id: `${id}-transcript`, transcript_sha256: event.spoken_text_sha256 });
+      if (source === 'selected-wav-artifact') {
+        const artifact = { host_id: 'host/fixture', boot_id: 'boot/fixture',
+          provider_sha256: hash(Buffer.from('fixture provider')),
+          wav_artifact_id: `play-${hash(Buffer.from(event.play_id))}.wav`,
+          output_mode: 'wav-artifact', outcome: 'completed',
+          artifact_pcm_sha256: event.delivered_pcm_sha256, wav_sha256: output.sha256,
+          speaker_frames_committed: 0, speaker_blocks_committed: 0,
+          physical_playback: false, human_listening: false };
+        Object.assign(event, artifact); Object.assign(capture, artifact);
+        delete event.delivered_pcm_sha256; delete capture.delivered_pcm_sha256;
+      }
       if (source === 'qemu-audio') Object.assign(capture, {
         qemu_boot_id: event.qemu_boot_id, qemu_output_id: event.qemu_output_id,
       });
@@ -291,4 +303,111 @@ test('omitting any required Mask still refuses publication', t => {
     t.after(() => rmSync(root, { recursive: true, force: true }));
     assert.throws(() => validateTodoJourney(root, commit, { checkAncestry: false }), message);
   }
+});
+
+// This profile verifies documentary correlation, never live playback.
+function replaceOutput(root, manifest, id, edit) {
+  const output = manifest.outputs.find(item => item.id === id);
+  const value = JSON.parse(readFileSync(path.join(root, output.path)));
+  edit(value);
+  const bytes = Buffer.from(JSON.stringify(value));
+  writeFileSync(path.join(root, output.path), bytes);
+  output.bytes = bytes.length; output.sha256 = hash(bytes);
+  writeFileSync(path.join(root, 'manifest.json'), JSON.stringify(manifest));
+}
+
+test('explicit selected WAV route renders without claiming speaker delivery', t => {
+  const { root } = fixture({ artifactAudio: true, graphicalExtras: false });
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  validateTodoJourney(root, commit, { checkAncestry: false });
+  const destination = path.join(root, '..', `${path.basename(root)}-render`);
+  t.after(() => rmSync(destination, { recursive: true, force: true }));
+  renderTodoJourney(root, destination, commit, '', '', { checkAncestry: false });
+  assert.match(readFileSync(path.join(destination, 'index.html'), 'utf8'),
+    /Selected WAV artifact from the acknowledged Play. No speaker delivery or human listening is claimed/);
+});
+
+test('selected WAV route refuses false delivery, incomplete Plays, and mismatched PCM', t => {
+  for (const [field, value] of [
+    ['speaker_frames_committed', 1], ['speaker_blocks_committed', 1],
+    ['physical_playback', true], ['human_listening', true],
+    ['outcome', 'cancelled'], ['wav_sha256', '0'.repeat(64)],
+    ['host_id', 'host/foreign'], ['boot_id', 'boot/foreign'],
+    ['provider_sha256', '0'.repeat(64)], ['wav_artifact_id', '../foreign.wav'],
+    ['artifact_pcm_sha256', '0'.repeat(64)], ['delivered_pcm_sha256', '0'.repeat(64)],
+  ]) {
+    for (const id of ['hear-source', 'hear-media-0-receipt']) {
+      const { root, manifest } = fixture({ artifactAudio: true, graphicalExtras: false });
+      t.after(() => rmSync(root, { recursive: true, force: true }));
+      replaceOutput(root, manifest, id, valueToEdit => { valueToEdit[field] = value; });
+      assert.throws(() => validateTodoJourney(root, commit, { checkAncestry: false }),
+        /selected WAV artifact|audio differs|same-Play delivery/);
+    }
+  }
+});
+
+test('real u64 Face revisions retain exact decimal identity across chapter receipts', t => {
+  const { root } = fixture({ artifactAudio: true, graphicalExtras: false, decimalRevisions: true });
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const checked = validateTodoJourney(root, commit, { checkAncestry: false });
+  assert.equal(JSON.parse(checked.outputs.get('birth-receipt').bytesValue).face_revision, '1014577901397425482');
+});
+
+test('unsafe, overflowing and noncanonical Face revisions cannot publish', t => {
+  for (const revision of [9007199254740992, -1, '18446744073709551616',
+    '01', '+1', '1.0', '', '1e3', ' 1', '1'.repeat(500)]) {
+    const { root, manifest } = fixture({ decimalRevisions: true });
+    t.after(() => rmSync(root, { recursive: true, force: true }));
+    replaceOutput(root, manifest, 'birth-receipt', value => { value.face_revision = revision; });
+    assert.throws(() => validateTodoJourney(root, commit, { checkAncestry: false }), /birth receipt is incomplete/);
+  }
+  const { root, manifest } = fixture({ decimalRevisions: true });
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  replaceOutput(root, manifest, 'birth-source', value => { value.face_revision = '1014577901397425483'; });
+  assert.throws(() => validateTodoJourney(root, commit, { checkAncestry: false }), /producer event drift/);
+});
+
+test('one remaining-items chapter may retain distinct same-Face batch Plays', t => {
+  const { root, manifest } = fixture({ artifactAudio: true, graphicalExtras: false });
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const source = JSON.parse(readFileSync(path.join(root, 'read-source.json')));
+  const { media, ...audio } = source;
+  audio.play_id = 'play/read-batch-0'; audio.plan_id = 'plan/read-batch-0';
+  replaceOutput(root, manifest, 'read-source', value => { value.media[0].audio = audio; });
+  replaceOutput(root, manifest, 'read-media-0-receipt', value => { value.play_id = audio.play_id; value.plan_id = audio.plan_id; });
+  for (const index of [1, 2]) {
+    const outputId = `read-media-${index}`;
+    const batch = { ...audio, play_id: `play/read-batch-${index}`, plan_id: `plan/read-batch-${index}` };
+    for (const [originalId, id, filename, edit] of [
+      ['read-media-0', outputId, `${outputId}.wav`, null],
+      ['read-media-0-receipt', `${outputId}-receipt`, `${outputId}-receipt.json`, value => {
+        value.media_output_id = outputId; value.play_id = batch.play_id; value.plan_id = batch.plan_id;
+      }],
+    ]) {
+      const original = manifest.outputs.find(item => item.id === originalId);
+      let bytes = readFileSync(path.join(root, original.path));
+      if (edit) { const value = JSON.parse(bytes); edit(value); bytes = Buffer.from(JSON.stringify(value)); }
+      writeFileSync(path.join(root, filename), bytes);
+      manifest.outputs.push({ ...original, id, path: filename, bytes: bytes.length, sha256: hash(bytes) });
+    }
+    replaceOutput(root, manifest, 'read-source', value => {
+      value.media.push({ ...value.media[0], media_output_id: outputId, audio: batch });
+    });
+    replaceOutput(root, manifest, 'journey', value => {
+      value.chapters.find(chapter => chapter.id === 'read').media.push({ output_id: outputId,
+        receipt_id: `${outputId}-receipt`, alt: `Remaining batch ${index}` });
+    });
+    replaceOutput(root, manifest, 'producer-terminal', value => {
+      value.media_output_ids.splice(value.media_output_ids.indexOf('recover-media-0'), 0, outputId);
+    });
+  }
+  const validated = validateTodoJourney(root, commit, { checkAncestry: false });
+  assert.equal(validated.journey.chapters.find(chapter => chapter.id === 'read').media.length, 3);
+  replaceOutput(root, manifest, 'read-source', value => { value.media[1].audio.body_id = 'body/foreign'; });
+  assert.throws(() => validateTodoJourney(root, commit, { checkAncestry: false }), /audio delivery body_id drift/);
+  replaceOutput(root, manifest, 'read-source', value => { value.media[1].audio.body_id = source.body_id; value.media[1].audio.face_revision = 999; });
+  assert.throws(() => validateTodoJourney(root, commit, { checkAncestry: false }), /audio delivery belongs to another Face/);
+  replaceOutput(root, manifest, 'read-source', value => { value.media[1].audio.face_revision = source.face_revision; });
+  replaceOutput(root, manifest, 'read-media-0-receipt', value => { value.play_id = 'play/foreign-batch'; });
+  assert.throws(() => validateTodoJourney(root, commit, { checkAncestry: false }), /audio lacks same-Play delivery receipt/);
 });
