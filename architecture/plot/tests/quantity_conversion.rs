@@ -187,3 +187,43 @@ fn readmission_refuses_forged_facts_even_when_the_record_shape_is_valid() {
         assert!(validate_receipt(&forged).is_err(), "{name}");
     }
 }
+
+#[test]
+fn installing_conversion_keeps_existing_literal_checked_identities_and_legacy_values() {
+    use conduit_plot::{CanonicalStartupValue, KindSignature, StartupParameterSignature};
+    let mut legacy = StartupCatalog::new();
+    legacy
+        .insert(KindSignature {
+            kind: "test/legacy-literal".into(),
+            startup_parameters: vec![StartupParameterSignature {
+                name: "value".into(),
+                value_type: "Quantity".into(),
+                default: None,
+            }],
+        })
+        .unwrap();
+    let mut extended = legacy.clone();
+    install(&mut extended, &mut ProfileCatalog::new()).unwrap();
+    for literal in ["440Hz", "250ms", "3.2m", "21°C", "640px"] {
+        let source = format!("plot legacy {{\n value: test/legacy-literal({literal})\n}}\n");
+        let syntax = parse_syntax_document(&source);
+        let before = check_syntax_document(&syntax, &legacy).unwrap();
+        let after = check_syntax_document(&syntax, &extended).unwrap();
+        assert_eq!(
+            before.plots[0].checked_plot_id,
+            after.plots[0].checked_plot_id
+        );
+        let before = &before.plots[0].gears[0].startup_bindings[0].value;
+        let after = &after.plots[0].gears[0].startup_bindings[0].value;
+        assert_eq!(before, after);
+        let CanonicalStartupValue::Quantity(value) = after else {
+            panic!("legacy quantity");
+        };
+        assert_eq!(value.encode().len(), 9);
+        assert_eq!(
+            *value,
+            conduit_core::Quantity::parse_plot_literal(literal).unwrap()
+        );
+        assert_eq!(syntax.round_trip(), source);
+    }
+}

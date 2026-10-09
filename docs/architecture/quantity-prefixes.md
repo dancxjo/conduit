@@ -189,9 +189,25 @@ checked local aliases and escaped Text custody. Foreign checked Source identitie
 refuse correlation. Parameterized requests remain unresolved until concrete
 preparation, rather than producing a premature result.
 
-These are checked authoring and preparation APIs. The constructor is not yet
-installed as a product runtime Back, and the example requires the module's
-catalogue installation. No browser or firmware execution claim follows from
-compilation. Exact comparison authoring, admitted execution resource bounds,
-temperature differences and Audio/non-Audio consumers remain open acceptance
-work for #5328.
+The standard product now installs this catalogue and maps preparation refusals
+into both human and JSON diagnostics with identical source spans. The math
+composition of the std Host advertises the prepared conversion Back; the minimal
+composition omits it. Installed preparation checks the exact revision, artifact,
+implementation, Front, semantic law and limits, and bounds startup configuration
+before wide arithmetic. The artifact incorporates the compiled Back, codec,
+resolver, reviewed transforms and receipt schema sources.
+
+All numeric conversion and receipt encoding finish before Play. The installed
+budget admits two value slots with twice the actual encoded receipt bytes, no
+Host requests and eight Sign slots, within the 8192-byte receipt ceiling. Play
+uses the existing structured Value Back to emit the immutable stored receipt
+once. A 1000-step pressure test measures zero Back allocations and no output;
+release emits once, and cancellation prevents delivery. Ten actual authored
+Source → offer → plan → installed preparation → kernel scenarios preserve exact
+receipt bytes and fixed value-storage capacity, including typed precision,
+overflow and dimension refusals. These are std/Linux execution results, not
+browser or firmware execution evidence.
+
+Exact comparison authoring, distinct temperature differences, browser/no_std
+execution eligibility and Audio/non-Audio consumers remain open acceptance work
+for #5328.

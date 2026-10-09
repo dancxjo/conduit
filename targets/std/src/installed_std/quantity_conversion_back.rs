@@ -1,0 +1,149 @@
+//! Exact conversion executes during preparation. Play emits the admitted
+//! immutable receipt through the existing fixed-storage structured Value Back.
+use super::{
+    back::{BackBudget, BackFactory, InstalledBack},
+    structured_values_back::StructuredLiteralBack,
+};
+use conduit_core::*;
+use conduit_kernel::{HostedValueStore, ValueStorage};
+use conduit_plot::quantity_conversion as conversion;
+use std::fmt::Write;
+
+pub(super) const IMPLEMENTATION: &str = "conduit.std/exact-quantity-conversion@1";
+const PROFILE: &str = "conduit.std/prepared-quantity-receipt@1";
+pub(super) static FACTORY: BackFactory = BackFactory {
+    implementation_id: IMPLEMENTATION,
+    budget,
+    prepare,
+};
+
+pub(crate) fn offer() -> CapabilityOffer {
+    // The installed Back, codec, resolver, reviewed transforms and receipt
+    // schema participate in the artifact. No ambient file or external provider
+    // substitutes for these compiled sources.
+    let digest = semantic_digest(
+        "quantity/compiled-conversion-back@1",
+        concat!(
+            include_str!("quantity_conversion_back.rs"),
+            include_str!("../../../../architecture/plot/src/quantity_conversion.rs"),
+            include_str!("../../../../architecture/core/src/quantity.rs"),
+            include_str!("../../../../architecture/core/src/quantity_prefix.rs"),
+            include_str!("../../../../architecture/core/src/quantity_suffix.rs"),
+            include_str!("../../../../architecture/core/src/quantity/exact.rs"),
+            include_str!("../../../../architecture/core/src/quantity/target.rs"),
+            include_str!("../../../../architecture/core/src/quantity/receipt.rs"),
+            include_str!("../../../../architecture/core/src/quantity/conversion_law.rs"),
+            include_str!("../../../../architecture/core/src/quantity/wide_conversion.rs"),
+            include_str!("../../../../architecture/core/src/quantity/magnitude.rs")
+        )
+        .as_bytes(),
+    );
+    let mut artifact = String::from("sha256:");
+    for byte in digest {
+        write!(&mut artifact, "{byte:02x}").expect("write digest");
+    }
+    BackOfferBuilder::new(
+        conversion::contract(),
+        Back {
+            capability_id: CapabilityId::from(IMPLEMENTATION),
+            execution_profile_id: ExecutionProfileId::from(PROFILE),
+            implementation_id: ImplementationId::from(IMPLEMENTATION),
+            artifact_id: ArtifactId::from(artifact),
+            host_calls: vec![],
+            resource_requirements: vec![],
+            authority_requirements: vec![],
+        },
+    )
+    .build()
+}
+
+fn admitted(placement: &PlannedGear) -> Result<Vec<u8>, String> {
+    let expected = offer();
+    if placement.kind_id != expected.kind_id
+        || placement.kind_contract_revision != expected.kind_contract_revision
+        || placement.capability_id != expected.capability_id
+        || placement.execution_profile_id != expected.implementation.execution_profile_id
+        || placement.implementation_id != expected.implementation.implementation_id
+        || placement.artifact_id != expected.implementation.artifact_id
+        || placement.inputs != expected.inputs
+        || placement.outputs != expected.outputs
+        || placement.limits != expected.limits
+        || placement.semantic_contract != conversion::contract().semantic_contract()
+        || !placement.host_calls.is_empty()
+        || !placement.resources.is_empty()
+        || !placement.authority.is_empty()
+        || placement.base.is_some()
+        || !placement.realization_properties.is_empty()
+        || !placement.realization_characteristics.is_empty()
+        || !placement.pool_references.is_empty()
+        || !placement.terminal_transductions.is_empty()
+    {
+        return Err("quantity conversion differs from its exact installed offer".into());
+    }
+    // Refuse malformed or oversized configuration before wide arithmetic.
+    let fields = conversion::contract().configuration;
+    if placement.configuration.len() != fields.len() {
+        return Err("quantity conversion configuration differs".into());
+    }
+    for field in &fields {
+        let mut entries = placement
+            .configuration
+            .iter()
+            .filter(|entry| entry.key == field.key);
+        let entry = entries
+            .next()
+            .ok_or("quantity conversion configuration field missing")?;
+        if entries.next().is_some() {
+            return Err("quantity conversion configuration field duplicated".into());
+        }
+        conduit_plot::validate_configuration_value(field, &entry.value)
+            .map_err(|error| format!("quantity conversion configuration: {error}"))?;
+    }
+    let receipt = conversion::prepare_configuration(&placement.configuration)
+        .map_err(|error| format!("quantity conversion preparation: {error:?}"))?;
+    if receipt
+        .value_type()
+        .profile()
+        .map_err(|error| format!("quantity receipt Type: {error:?}"))?
+        .value_kind()
+        != &placement.outputs[0].value_kind
+    {
+        return Err("quantity receipt output Type differs".into());
+    }
+    receipt
+        .canonical_bytes()
+        .map_err(|error| format!("quantity receipt encoding: {error:?}"))
+}
+
+fn budget(placement: &PlannedGear) -> Result<BackBudget, String> {
+    let bytes = admitted(placement)?;
+    let maximum = u32::try_from(bytes.len()).map_err(|_| "quantity receipt exceeds storage")?;
+    if maximum > conversion::MAXIMUM_RECEIPT_BYTES {
+        return Err("quantity receipt exceeds admitted profile".into());
+    }
+    Ok(BackBudget {
+        value_items: 2,
+        value_bytes: maximum
+            .checked_mul(2)
+            .ok_or("quantity receipt budget overflow")?,
+        host_requests: 0,
+        sign_items: 8,
+        maximum_value_bytes: maximum,
+    })
+}
+fn prepare(
+    placement: &PlannedGear,
+    values: &mut HostedValueStore,
+) -> Result<InstalledBack, String> {
+    let bytes = admitted(placement)?;
+    let value = values
+        .store(&bytes)
+        .map_err(|error| format!("store quantity receipt: {error:?}"))?;
+    Ok(InstalledBack::StructuredLiteral(
+        StructuredLiteralBack::prepared(value),
+    ))
+}
+
+#[cfg(test)]
+#[path = "quantity_conversion_back_tests.rs"]
+mod tests;

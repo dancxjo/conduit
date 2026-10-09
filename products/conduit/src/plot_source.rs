@@ -76,6 +76,18 @@ impl CanonicalSource {
             .map_err(|diagnostic| format!("{}: {}", diagnostic.code, diagnostic.message))?;
         conduit_speech::ipa_constructors::validate_source(&self.syntax, &checked)
             .map_err(|diagnostic| diagnostic.to_string())?;
+        conduit_plot::quantity_conversion::validate_source(&self.syntax, &checked).map_err(
+            |diagnostic| {
+                format!(
+                    "CND-QTY-001 at {}:{}..{}:{}: {:?}",
+                    diagnostic.span.line,
+                    diagnostic.span.column,
+                    diagnostic.span.end_line,
+                    diagnostic.span.end_column,
+                    diagnostic.refusal
+                )
+            },
+        )?;
         Ok(checked)
     }
 
@@ -136,6 +148,7 @@ fn prepare_standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), Strin
     conduit_speech::kernel::install(&mut startup, &mut profiles)?;
     conduit_speech::authoring::install(&mut startup)?;
     conduit_speech::ipa_constructors::install(&mut startup, &mut profiles)?;
+    conduit_plot::quantity_conversion::install(&mut startup, &mut profiles)?;
     conduit_text::install_morse_catalogs(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_indicator_presentation_catalog(&mut startup, &mut profiles)?;
     conduit_time::install_tick_catalog(&mut startup, &mut profiles)?;

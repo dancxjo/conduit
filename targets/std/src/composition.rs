@@ -328,6 +328,7 @@ pub(super) fn build_advertisement(
             conduit_std_offers::quantity_map_offer(),
             conduit_std_offers::distance_frequency_map_offer(),
             conduit_std_offers::quantity_info_offer(),
+            installed_std::quantity_conversion_offer(),
         ]);
     }
     if composition.layout {
