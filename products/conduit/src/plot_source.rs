@@ -201,13 +201,8 @@ mod tests {
         first
             .insert_checked_native_type("QueueLocal", &local.native_types[0])
             .unwrap();
-        assert!(first.structured_type("QueueLocal").is_some());
-        assert!(second.structured_type("QueueLocal").is_none());
-        assert!(standard_catalogs()
-            .unwrap()
-            .0
-            .structured_type("QueueLocal")
-            .is_none());
+        assert_ne!(first, second);
+        assert_eq!(second, standard_catalogs().unwrap().0);
     }
 
     #[test]
