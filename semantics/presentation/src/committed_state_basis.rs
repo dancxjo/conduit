@@ -70,6 +70,8 @@ pub enum CommittedStateEvidenceRefusal {
     EvidenceMismatch,
     CorruptCheckpoint,
     BootChanged,
+    ReadResidenceChanged,
+    ReadAuthorityChanged,
 }
 
 impl CommittedStateEvidenceRefusal {
@@ -85,6 +87,8 @@ impl CommittedStateEvidenceRefusal {
             Self::EvidenceMismatch => "todo-committed-evidence-mismatch",
             Self::CorruptCheckpoint => "todo-committed-corrupt-checkpoint",
             Self::BootChanged => "todo-committed-wrong-boot",
+            Self::ReadResidenceChanged => "todo-committed-provider-changed",
+            Self::ReadAuthorityChanged => "todo-committed-authority-changed",
         }
     }
 }

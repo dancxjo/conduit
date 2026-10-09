@@ -171,6 +171,7 @@ fn failed_large_todo_read_fixture() -> (std::path::PathBuf, std::path::PathBuf, 
     let failed = owner.last_execution.as_ref().unwrap();
     assert_eq!(failed["verified"], false);
     assert!(failed["read_failure"].is_string());
+    assert_eq!(failed["refusal"], "todo-committed-corrupt");
     assert_eq!(failed["write"]["terminal"], "Completed");
     std::fs::write(candidate, original).unwrap();
     (state_root, checkpoint_root, body_id)
@@ -460,6 +461,81 @@ fn waiting_owner_admits_exact_show_action_then_retains_commit_and_sign() {
         .contract
         .clone();
     let first_read_receipt = owner.todo_verified_read_receipt().unwrap().clone();
+    assert_eq!(
+        first_read_receipt["selected_residence"],
+        serde_json::json!(owner
+            .host
+            .advertisement()
+            .resources
+            .iter()
+            .find(|resource| resource.class_id.as_str() == "resource/todo-checkpoint@1")
+            .unwrap()
+            .content
+            .as_ref()
+            .unwrap())
+    );
+    // Replacing current offer truth preserves the semantic version but cannot
+    // lend the already verified bytes a different residence or read authority.
+    for change in 0..4 {
+        let mut advertised = owner.host.advertisement().clone();
+        if change < 3 {
+            let content = advertised
+                .resources
+                .iter_mut()
+                .find(|resource| resource.class_id.as_str() == "resource/todo-checkpoint@1")
+                .unwrap()
+                .content
+                .as_mut()
+                .unwrap();
+            match change {
+                0 => content.owner_host = "host/foreign-checkpoint".into(),
+                1 => content.base_id = "base/foreign-checkpoint".into(),
+                _ => content.residence_profile = "profile/foreign-checkpoint@1".into(),
+            }
+        } else {
+            advertised
+                .capabilities
+                .iter_mut()
+                .find(|offer| {
+                    offer.implementation.implementation_id.as_str()
+                        == conduit_std_offers::TODO_CHECKPOINT_READ_IMPLEMENTATION
+                })
+                .unwrap()
+                .authority_requirements
+                .clear();
+        }
+        let prior = std::mem::replace(
+            &mut *owner.host,
+            StdHost::from_advertisement(advertised).unwrap(),
+        );
+        assert_eq!(
+            owner.local_face_snapshot().unwrap_err(),
+            if change < 3 {
+                "todo-committed-provider-changed"
+            } else {
+                "todo-committed-authority-changed"
+            }
+        );
+        *owner.host = prior;
+        assert!(owner.local_face_snapshot().is_ok());
+    }
+    owner.last_execution.as_mut().unwrap()["selected_residence"]["owner_host"] =
+        serde_json::json!("host/foreign-receipt");
+    assert_eq!(
+        owner.local_face_snapshot().unwrap_err(),
+        "todo-committed-provider-changed"
+    );
+    owner.last_execution = Some(first_read_receipt.clone());
+    // Unrelated Mask offer changes do not invalidate immutable read residence.
+    let mut advertised = owner.host.advertisement().clone();
+    advertised.offer_generation.0 += 1;
+    let prior = std::mem::replace(
+        &mut *owner.host,
+        StdHost::from_advertisement(advertised).unwrap(),
+    );
+    assert!(owner.local_face_snapshot().is_ok());
+    *owner.host = prior;
+
     // A matching digest and Sign ID cannot lend a different Boot its witness.
     owner.last_execution.as_mut().unwrap()["read_terminal_sign"]["boot_id"] =
         serde_json::json!("boot/foreign-read-witness");
@@ -469,6 +545,20 @@ fn waiting_owner_admits_exact_show_action_then_retains_commit_and_sign() {
     );
     owner.last_execution = Some(first_read_receipt.clone());
     assert!(owner.local_face_snapshot().is_ok());
+    for write in [false, true] {
+        let receipt = owner.last_execution.as_mut().unwrap();
+        let sign = if write {
+            &mut receipt["write"]["terminal_sign"]
+        } else {
+            &mut receipt["read_terminal_sign"]
+        };
+        sign["active_play_id"] = serde_json::json!("play/foreign-terminal");
+        assert_eq!(
+            owner.local_face_snapshot().unwrap_err(),
+            "todo-committed-evidence-mismatch"
+        );
+        owner.last_execution = Some(first_read_receipt.clone());
+    }
     for (field, value, code) in [
         (
             "verified",
@@ -596,6 +686,18 @@ fn waiting_owner_admits_exact_show_action_then_retains_commit_and_sign() {
         .any(|subject| subject.name == "Buy milk"));
     let old_read_play = second_read_receipt["read_play"]["active_play_id"].clone();
     let old_read_sign = second_read_receipt["read_terminal_sign"]["sign_id"].clone();
+    let current_read_receipt = second_read_receipt.clone();
+    // A late retained V1 acknowledgement cannot replace V2 display truth.
+    // The actual read worker is joined before another mutation is admitted;
+    // this injection tests the Face boundary against a superseded receipt.
+    owner.last_execution = Some(first_read_receipt.clone());
+    assert_eq!(
+        owner.local_face_snapshot().unwrap_err(),
+        "todo-committed-digest-mismatch"
+    );
+    assert_eq!(owner.todo_verified.as_ref().unwrap().1, second);
+    owner.last_execution = Some(current_read_receipt);
+    assert!(owner.local_face_snapshot().is_ok());
     drop(owner);
     let selected = super::super::super::super::selected_todo_checkpoint(&state_root)
         .unwrap()

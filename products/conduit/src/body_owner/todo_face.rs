@@ -53,9 +53,11 @@ impl Owner {
             || receipt["read_plan_id"] != basis.read.plan_id.as_str()
             || receipt["read_play"]["active_play_id"] != basis.read.play_id.as_str()
             || receipt["read_terminal_sign"]["sign_id"] != basis.read.terminal_sign_id.as_str()
+            || receipt["read_terminal_sign"]["active_play_id"] != basis.read.play_id.as_str()
             || receipt["write"]["plan_id"] != basis.write.plan_id.as_str()
             || receipt["write"]["play"]["active_play_id"] != basis.write.play_id.as_str()
             || receipt["write"]["terminal_sign"]["sign_id"] != basis.write.terminal_sign_id.as_str()
+            || receipt["write"]["terminal_sign"]["active_play_id"] != basis.write.play_id.as_str()
         {
             return Err(CommittedStateEvidenceRefusal::EvidenceMismatch
                 .as_str()
@@ -67,19 +69,14 @@ impl Owner {
         {
             return Err(CommittedStateEvidenceRefusal::BootChanged.as_str().into());
         }
-        let mut selected = advertised.resources.iter().filter_map(|resource| {
-            (resource.class_id.as_str() == "resource/todo-checkpoint@1")
-                .then_some(resource.content.as_ref())
-                .flatten()
-        });
-        let content = selected
-            .next()
-            .ok_or("Todo verified Face has no selected resource")?;
-        if selected.next().is_some()
-            || content.contract.access != conduit_core::ResourceAccessMode::ReadPublished
-            || receipt["selected_content"] != serde_json::json!(content.contract)
-        {
+        let content = selected_read_residence(advertised)?;
+        if receipt["selected_content"] != serde_json::json!(content.contract) {
             return Err(CommittedStateEvidenceRefusal::ReadVersionMismatch
+                .as_str()
+                .into());
+        }
+        if receipt["selected_residence"] != serde_json::json!(content) {
+            return Err(CommittedStateEvidenceRefusal::ReadResidenceChanged
                 .as_str()
                 .into());
         }
@@ -258,4 +255,43 @@ impl Owner {
             .map_err(|error| format!("owner-face-invalid:{error:?}"))?;
         clock_interval::with_clock_action(self, face.presentation)
     }
+}
+
+/// Revalidate the admitted resource residence and exact read Back independently
+/// of semantic content/version. A matching resource contract grants no authority.
+pub(super) fn selected_read_residence(
+    advertised: &conduit_core::HostAdvertisement,
+) -> Result<&conduit_core::ResourceContentOffer, String> {
+    let mut selected = advertised.resources.iter().filter_map(|resource| {
+        (resource.class_id.as_str() == "resource/todo-checkpoint@1")
+            .then_some(resource.content.as_ref())
+            .flatten()
+    });
+    let content = selected
+        .next()
+        .ok_or(CommittedStateEvidenceRefusal::ReadResidenceChanged.as_str())?;
+    if selected.next().is_some()
+        || content.contract.access != conduit_core::ResourceAccessMode::ReadPublished
+        || content.validate().is_err()
+        || content.owner_host != advertised.host_id
+        || content.owner_boot != advertised.boot_id
+        || content.base_id.as_str() != "std/explicit-shared-checkpoint"
+        || content.residence_profile.as_str() != "std/explicit-shared-checkpoint@1"
+    {
+        return Err(CommittedStateEvidenceRefusal::ReadResidenceChanged
+            .as_str()
+            .into());
+    }
+    let expected = conduit_std_offers::todo_checkpoint_read_offer(content.contract.clone())
+        .map_err(|_| CommittedStateEvidenceRefusal::ReadAuthorityChanged.as_str())?;
+    let mut reads = advertised.capabilities.iter().filter(|offer| {
+        offer.capability_id == expected.capability_id
+            || offer.implementation.implementation_id == expected.implementation.implementation_id
+    });
+    if reads.next() != Some(&expected) || reads.next().is_some() {
+        return Err(CommittedStateEvidenceRefusal::ReadAuthorityChanged
+            .as_str()
+            .into());
+    }
+    Ok(content)
 }

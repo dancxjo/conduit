@@ -171,6 +171,21 @@ not invent typed resource evidence or a Play. The last receipt is historical
 on reopen. Fresh Boot recovery preserves the Body and marks interrupted
 realization honestly; it never restarts an old Play.
 
+A committed Todo Face revalidates successful write/read terminal Signs against
+both exact Plays, the restored state digest, selected content version and the
+complete read residence (Host, Boot, base and profile). It also requires the
+current canonical read Back and its authority requirements. A semantic content
+contract alone grants no authority. Read failures retain the actual typed kernel
+failure/detail and expose finite `todo-committed-*` refusal codes; diagnostic prose
+is retained separately. Changing an unrelated Mask offer generation preserves a
+valid immutable checkpoint witness.
+
+The local JSON control envelope admits at most 2 MiB, including a browser
+admission snapshot containing both Host advertisements. Remote session frames
+and payloads retain their separate 512 KiB ceiling. A rejected JSON client frame
+or failed response leaves the retained Owner service running; no action is
+replayed after a transport failure.
+
 Biography, installation binding, and bounded execution receipt are published
 through a recoverable journal. Invalid or corrupt retained state is refused,
 not replaced by a new Body. Exclusive locks also fence legacy biography and

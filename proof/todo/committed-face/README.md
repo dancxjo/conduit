@@ -1,32 +1,16 @@
-# Committed Todo witness refusals
+# Committed Todo Face witness checks
 
-Development conformance for #5300; this is not complete two-Mask or stable-release
-acceptance. The existing selected checkpoint read still obtains state through
-its admitted Host Call, Fore and terminal Sign before projecting a lulled Face.
+This development slice strengthens the installed Owner's existing selected checkpoint read. A successful read retains the full admitted resource residence beside the semantic content contract. Face projection rechecks that residence, current Host/Boot, exact canonical read Back and authority requirements, restored byte digest, and both write/read terminal Sign-to-Play correlations. Unrelated Mask offer generation changes preserve an otherwise valid immutable witness.
 
-A Body run now preserves its exact kernel `BackFailed` code and numeric detail
-beside the human failure message. The retained Todo read receipt carries that
-value as `read_kernel_failure`. A failure in cleanup stays separate. There is
-no parsing of diagnostic prose and no change to checkpoint publication.
+`cargo xtask check todo-durability` exercises actual selected write/read Host Calls, fresh-Host recovery and failed read truth. The Owner action test also substitutes foreign current residences, altered read authority, foreign retained receipt fields, and a delayed V1 receipt after V2, then restores the authentic witness. Receipt substitution is an adversarial verifier test; the synchronous worker does not claim an out-of-order asynchronous delivery occurred.
 
-The resource read conformance exercises actual missing, stale and corrupt
-selected generations. Their `host_call_failed` details are respectively 1, 3
-and 2, and each emits no state Fore. These details belong to the correlated Todo
-read provider; generic kernel failures must not be interpreted as checkpoint
-verdicts without that context. The Owner corruption fixture checks the same
-value in the retained failed-read receipt.
+Actual missing, stale and corrupt selected-generation read tests retain
+`host_call_failed` details 1, 3 and 2 respectively, with no state Fore. The failed
+Owner corruption fixture retains the same typed failure alongside its finite
+public refusal. Cleanup failure remains independent of the kernel failure.
 
-The Face verifier uses the finite `CommittedStateEvidenceRefusal` codes for
-missing read/sign, failed Sign, digest mismatch, evidence mismatch, changed
-selected version and changed Host/Boot. A `verified` flag alone cannot substitute
-for successful read/write terminal outcomes and their exact identities.
-The existing Owner lifecycle fixture alters each retained witness fact, observes
-the explicit refusal, restores the original witness and continues the next
-selected commit and fresh-Boot read. It does not manufacture a second Birth.
+The public read refusal derives from the actual typed kernel failure and the canonical checkpoint read provider's finite detail vocabulary. It never parses diagnostic prose. Missing, corrupt, stale, authority, provider, invalid state, outcome-unknown, storage-unavailable, migration and cancellation retain distinct finite codes. Storage-unavailable does not independently distinguish permission denial from transient I/O.
 
-Run `cargo xtask check todo-durability` for resource, Body write/read and Owner
-conformance. Local focused checks cover the additional Face refusal cases.
-Required Candidate, Integration and identical accepted main-tree evidence remain
-separate. Actual acknowledged encounters through two distinct Masks, changed
-provider/authority lifetime and reviewed speech execution still require their
-own completion evidence. No device playback or human-listening claim is made.
+The local browser admission snapshot carries both Host advertisements. Its bounded JSON envelope is 2 MiB; remote session frames retain their separate 512 KiB ceiling. A framing regression round-trips real advertisements above the prior local bound and verifies oversized envelopes write no partial response. The Owner loop keeps running after rejected JSON client frames or failed response transport, without replaying a request.
+
+These checks alone establish neither an acknowledged multi-Mask encounter nor device playback. The exact installed Owner capture and stable Candidate/Integration/Publisher acceptance are separate gates. No physical power-loss, remote checkpoint transport, or human listening claim is made here.
