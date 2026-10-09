@@ -1,3 +1,5 @@
+mod spoken_mask;
+pub(crate) use spoken_mask::SpokenMaskCommand;
 mod speech;
 pub(crate) use speech::{BirthSpeechOptions, InstalledSpeechOptions};
 
@@ -514,37 +516,6 @@ pub(crate) enum BodyCommand {
         /// Explicitly authorize retaining membership in the admitted body.
         #[arg(long, required = true, action = clap::ArgAction::SetTrue)]
         authorize_membership: bool,
-    },
-}
-
-#[derive(Debug, Subcommand)]
-pub(crate) enum SpokenMaskCommand {
-    /// Admit the direct or --llm Face-to-artifact child in the Body Plan.
-    Admit {
-        #[arg(long)]
-        llm: bool,
-    },
-    /// Wear and select that exact child before its Play.
-    Select {
-        #[arg(long)]
-        llm: bool,
-    },
-    /// Start one cancellable selected spoken Mask Play.
-    Start {
-        #[arg(long)]
-        llm: bool,
-    },
-    /// Inspect the exact operation's terminal or running state.
-    Status {
-        operation_id: String,
-        #[arg(long)]
-        llm: bool,
-    },
-    /// Request cancellation of the exact running operation.
-    Stop {
-        operation_id: String,
-        #[arg(long)]
-        llm: bool,
     },
 }
 

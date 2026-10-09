@@ -23,6 +23,12 @@ impl SpokenFaceSession {
         }
         self.check_current(current_face, current_show)?;
         match command {
+            ReaderCommand::MoreItems => {
+                self.item_cursor.clone().ok_or(SpokenFaceRefusal::InvalidValue)?.next_page(current_face)?;
+                if self.reading.is_some() || self.pending.is_some() || self.pending_batch.is_some() {
+                    return Err(SpokenFaceRefusal::SpeechPressure);
+                }
+            }
             ReaderCommand::FocusSubject(identity) => {
                 if !self.cursor.plan().clauses.iter().any(|clause| {
                     matches!(&clause.provenance, FaceUtteranceProvenance::Subject(subject) if subject.identity() == identity)
