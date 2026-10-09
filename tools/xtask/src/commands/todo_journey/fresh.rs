@@ -190,6 +190,13 @@ pub(super) fn run(
         return Err("first Todo item text must be 1..64 trimmed UTF-8 bytes".into());
     }
     let state = fs::canonicalize(&args.state_dir)?;
+    #[cfg(target_os = "linux")]
+    {
+        use std::os::unix::ffi::OsStrExt;
+        if state.join("control.sock").as_os_str().as_bytes().len() > 107 {
+            return Err("installed Owner control socket path exceeds Linux's 107-byte pathname limit; select a short private state directory before Birth".into());
+        }
+    }
     let bin = fs::canonicalize(&args.conduit_bin)?;
     regular(&bin)?;
     let installation: Value = serde_json::from_slice(&fs::read(state.join("installation.json"))?)?;

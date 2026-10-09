@@ -147,7 +147,8 @@ internal development check; the supported site publication entrance remains
 `cargo xtask` through the site pipeline.
 
 The optional `--cross-mask-actions --direct-speech` capture runs three browser
-Adds, an acknowledged terminal completion, browser observation and stale-Show
+Adds, a direct spoken observation of those three remaining items, an
+acknowledged terminal completion, browser observation and stale-Show
 refusal, then the public direct spoken opening and explicit remaining-items
 command. It requires an explicitly selected artifact speech installation; it
 never falls back from missing physical equipment. The browser producer retains
@@ -174,6 +175,11 @@ Run the same fresh command with `--cross-mask-actions --direct-speech` to use
 this complete local producer. Its installed Owner, Handbook and source checkout
 must share one exact clean commit. Equipment selection and installation are
 prerequisites; no ambient speaker or synthesizer fallback is attempted.
+On Linux the canonical installed state directory must keep the full
+`control.sock` pathname within 107 bytes. Use a new private short directory,
+such as `/tmp/conduit-todo-RUN/state`, with an independent empty checkpoint
+directory. The producer refuses an oversized socket path before Birth. The
+capture and publication directories can live under a longer workspace path.
 
 A chapter with several bounded speech batches may attach an `audio` delivery
 witness to each matching producer `media` entry. Each capture still matches

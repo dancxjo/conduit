@@ -192,6 +192,13 @@ try {
     await writeFile(path.join(output, 'adds.json'), `${JSON.stringify(adds, null, 2)}\n`);
   }
   let crossMask = null;
+  const speechBeforeCompletion = scenario === 'cross-mask-speech'
+    ? await captureDirectTodoSpeech({ owner, state, output: path.join(output, 'spoken-before-complete'),
+      bodyId, readRemaining: false }) : null;
+  if (speechBeforeCompletion) {
+    assert.match(speechBeforeCompletion.opening.direct_opening_wording, /3 things left/);
+    assert.equal(speechBeforeCompletion.remaining, null);
+  }
   if (scenario.startsWith('cross-mask')) {
     // Join this Body in a terminal without a Todo mutation before completing it.
     const joinInput = 'wardrobe wear\nwardrobe prefer\nshow\nevidence\nquit\n';
@@ -307,6 +314,7 @@ try {
     ...sourceRecord,
     body_id: bodyId, browser_host_id: identity.hostId, browser_boot_id: identity.bootId,
     item_text: itemText, adds, cross_mask: crossMask, inspect_capture: inspectCapture,
+    speech_before_completion: speechBeforeCompletion,
     direct_speech: directSpeech, before: { face_id: before.face_id, face_revision: before.face_revision,
       show_id: before.show_id }, after: { face_id: after.face_id,
       face_revision: after.face_revision, show_id: after.show_id },

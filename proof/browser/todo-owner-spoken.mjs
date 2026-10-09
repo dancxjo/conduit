@@ -36,7 +36,7 @@ async function selectedWav(state, locator) {
   return { bytes, pcm, name };
 }
 
-export async function captureDirectTodoSpeech({ owner, state, output, bodyId }) {
+export async function captureDirectTodoSpeech({ owner, state, output, bodyId, readRemaining = true }) {
   await mkdir(output, { mode: 0o700 }); // Refuse existing output, preserve failures.
   const invoke = async (label, args) => {
     const value = owner(['body', 'spoken-mask', '--state-dir', state, ...args]);
@@ -80,38 +80,41 @@ export async function captureDirectTodoSpeech({ owner, state, output, bodyId }) 
   assert.equal(digest(openingWav.pcm), opening.artifact.content_sha256);
   assert.equal(openingWav.pcm.length, opening.artifact.pcm_bytes);
   await writeFile(path.join(output, 'opening.wav'), openingWav.bytes);
-  const remaining = await terminal('remaining', await invoke('read-remaining', ['read-remaining']));
-  const remainingObservedAt = Date.now();
-  assert.equal(remaining.outcome, 'completed');
-  assert.equal(remaining.reader_scope, 'remaining-items');
-  assert.equal(remaining.output_mode, 'wav-artifact');
-  assert.equal(remaining.source_show_id, opening.show_id);
-  assert.equal(remaining.source_show_still_current, true);
-  assert.equal(remaining.face_id, selected.presentation.identity);
-  assert.equal(remaining.face_revision_decimal, selected.presentation_revision_decimal);
-  assert.equal(remaining.host_id, selected.advertisement.host_id);
-  assert.equal(remaining.boot_id, selected.advertisement.boot_id);
-  const disclosures = new Map(selected.presentation.disclosures.map(item => [item.subject, item.level]));
-  const expected = selected.presentation.subjects.filter(item => item.role === 'Item'
-    && (disclosures.get(item.identity) ?? 'Primary') === 'Primary').map(item => `${item.name}, item.`);
-  assert.ok(remaining.batches.length > 0 && remaining.batches.length <= 64);
-  assert.deepEqual(remaining.batches.flatMap(batch => batch.spoken_segments), expected);
-  assert.equal(remaining.completed_segments, expected.length);
-  for (const [index, batch] of remaining.batches.entries()) {
-    assert.equal(batch.provider_sha256, installation.selected_speech.provider_sha256);
-    // The typed segment digest also binds sequence, Face, Show and commit reason;
-    // it is not a hash of this terminal receipt's simplified string array.
-    assert.match(batch.source_segments_sha256, /^[a-f0-9]{64}$/);
-    assert.equal(batch.outcome, 'completed');
-    assert.equal(batch.output_mode, 'wav-artifact');
-    assert.equal(batch.speaker_frames_committed, 0);
-    assert.equal(batch.speaker_blocks_committed, 0);
-    const wav = await selectedWav(state, batch.wav_artifact_id);
-    assert.equal(digest(wav.bytes), batch.wav_sha256);
-    assert.equal(digest(wav.pcm), batch.pcm_sha256);
-    assert.equal(wav.bytes.length, batch.wav_bytes);
-    assert.equal(wav.pcm.length, batch.pcm_bytes);
-    await writeFile(path.join(output, `remaining-${index}.wav`), wav.bytes);
+  let remaining = null, remainingObservedAt = null;
+  if (readRemaining) {
+    remaining = await terminal('remaining', await invoke('read-remaining', ['read-remaining']));
+    remainingObservedAt = Date.now();
+    assert.equal(remaining.outcome, 'completed');
+    assert.equal(remaining.reader_scope, 'remaining-items');
+    assert.equal(remaining.output_mode, 'wav-artifact');
+    assert.equal(remaining.source_show_id, opening.show_id);
+    assert.equal(remaining.source_show_still_current, true);
+    assert.equal(remaining.face_id, selected.presentation.identity);
+    assert.equal(remaining.face_revision_decimal, selected.presentation_revision_decimal);
+    assert.equal(remaining.host_id, selected.advertisement.host_id);
+    assert.equal(remaining.boot_id, selected.advertisement.boot_id);
+    const disclosures = new Map(selected.presentation.disclosures.map(item => [item.subject, item.level]));
+    const expected = selected.presentation.subjects.filter(item => item.role === 'Item'
+      && (disclosures.get(item.identity) ?? 'Primary') === 'Primary').map(item => `${item.name}, item.`);
+    assert.ok(remaining.batches.length > 0 && remaining.batches.length <= 64);
+    assert.deepEqual(remaining.batches.flatMap(batch => batch.spoken_segments), expected);
+    assert.equal(remaining.completed_segments, expected.length);
+    for (const [index, batch] of remaining.batches.entries()) {
+      assert.equal(batch.provider_sha256, installation.selected_speech.provider_sha256);
+      // The typed segment digest also binds sequence, Face, Show and commit reason;
+      // it is not a hash of this terminal receipt's simplified string array.
+      assert.match(batch.source_segments_sha256, /^[a-f0-9]{64}$/);
+      assert.equal(batch.outcome, 'completed');
+      assert.equal(batch.output_mode, 'wav-artifact');
+      assert.equal(batch.speaker_frames_committed, 0);
+      assert.equal(batch.speaker_blocks_committed, 0);
+      const wav = await selectedWav(state, batch.wav_artifact_id);
+      assert.equal(digest(wav.bytes), batch.wav_sha256);
+      assert.equal(digest(wav.pcm), batch.pcm_sha256);
+      assert.equal(wav.bytes.length, batch.wav_bytes);
+      assert.equal(wav.pcm.length, batch.pcm_bytes);
+      await writeFile(path.join(output, `remaining-${index}.wav`), wav.bytes);
+    }
   }
   const after = owner(['body', 'face', '--state-dir', state, '--json']);
   assert.equal(after.presentation.basis.body_id, bodyId);

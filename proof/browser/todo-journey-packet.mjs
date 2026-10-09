@@ -24,6 +24,10 @@ export function finalizeTodoJourney(captureRoot) {
   assert.equal(browser.adds.length, 3);
   assert.ok(observation.checkpoint_refusal, 'complete producer must retain its failure and repair');
   const speech = browser.direct_speech;
+  const initialSpeech = browser.speech_before_completion;
+  assert.ok(initialSpeech, 'three-Mask trace requires spoken observation before terminal completion');
+  assert.ok(initialSpeech.opening_observed_at_unix_ms < browser.cross_mask.completion.observed_at_unix_ms);
+  assert.equal(initialSpeech.remaining, null);
   const recovery = observation.recovery;
   assert.ok(speech && recovery);
   const root = path.join(captureRoot, 'publication');
@@ -145,9 +149,13 @@ export function finalizeTodoJourney(captureRoot) {
     { previous_boot_id: recovery.previous_boot_id, new_boot_id: recovery.new_boot_id,
       pre_lull_state_sha256: recovery.pre_lull_state_sha256, recovered_state_sha256: recovery.recovered_state_sha256 },
     [{ source: 'chromium', file: 'recovery/browser/browser-reencounter.png', alt: 'The same list reencountered after a fresh Owner Boot' }]);
-  document('live-run', raw);
-  document('browser-run', browser);
+  // Preserve the original producer bytes, including exact Rust u64 fields.
+  add('live-run', 'machine-readable-manifest', readFileSync(path.join(captureRoot, 'live-run.json')), 'application/json');
+  add('browser-run', 'machine-readable-manifest', readFileSync(path.join(captureRoot, 'browser/receipt.json')), 'application/json');
   document('checkpoint-refusal', read(path.join(captureRoot, 'checkpoint-refusal/refused-execution.json')));
+  document('initial-spoken-show', { ...identity, schema: 'conduit.proof/todo-initial-spoken-observation@1',
+    ...initialSpeech });
+  add('initial-spoken-recording', 'audio', readFileSync(path.join(captureRoot, 'browser/spoken-before-complete/opening.wav')), 'audio/wav', 'wav');
   add('checkpoint-refusal-visible', 'document', readFileSync(path.join(captureRoot, 'checkpoint-refusal/refused.stderr')), textType, 'txt');
   add('stale-action-visible', 'screenshot', readFileSync(path.join(captureRoot, 'browser/browser-stale.png')), 'image/png', 'png');
   document('recovery-read', read(path.join(captureRoot, 'recovery/owner-execution.json')));
