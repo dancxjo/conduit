@@ -40,6 +40,7 @@ pub struct PackageExportCatalog {
     package_content_digest: [u8; 32],
     exports: BTreeMap<String, PlotSyntax>,
     type_exports: BTreeMap<String, TypeSyntax>,
+    type_definitions: Vec<TypeSyntax>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -257,6 +258,7 @@ impl PackageExportCatalog {
                 types.insert(value_type.name.text.clone(), value_type);
             }
         }
+        let type_definitions = types.values().cloned().collect();
         let mut exports = BTreeMap::new();
         let mut type_exports = BTreeMap::new();
         for export in &bundle.package.exports {
@@ -279,6 +281,7 @@ impl PackageExportCatalog {
             package_content_digest: bundle.package.content_digest,
             exports,
             type_exports,
+            type_definitions,
         })
     }
 
@@ -297,14 +300,19 @@ impl PackageExportCatalog {
         &self,
         catalog: &mut crate::StartupCatalog,
     ) -> Result<Vec<crate::CheckedNativeType>, crate::SyntaxCheckDiagnostic> {
-        let declarations = self.type_exports.values().cloned().collect::<Vec<_>>();
-        let (checked, _) = crate::native_type::check_native_types(&declarations, catalog)?;
+        let (checked, _) = crate::native_type::check_native_types(&self.type_definitions, catalog)?;
+        let mut staged = catalog.clone();
+        let mut shipped = Vec::new();
         for (source_path, syntax) in &self.type_exports {
             let value_type = checked
                 .iter()
                 .find(|candidate| candidate.name == syntax.name.text)
-                .expect("every shipped Type was checked");
-            catalog
+                .ok_or_else(|| crate::SyntaxCheckDiagnostic {
+                    code: "CND-FRM-058",
+                    span: syntax.name.span,
+                    message: "shipped Type families require checked family installation".into(),
+                })?;
+            staged
                 .insert_native_type(
                     source_path.clone(),
                     value_type.value_type.clone(),
@@ -316,8 +324,10 @@ impl PackageExportCatalog {
                     span: syntax.name.span,
                     message,
                 })?;
+            shipped.push(value_type.clone());
         }
-        Ok(checked)
+        *catalog = staged;
+        Ok(shipped)
     }
 
     pub fn package_content_digest(&self) -> [u8; 32] {
