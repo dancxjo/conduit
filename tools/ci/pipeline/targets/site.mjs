@@ -57,9 +57,6 @@ export function assembleSite(directory, sourceCommit, workspace = 'target/worksp
     if (existsSync(destination)) throw new Error('Retained One Body route already exists');
     cpSync(threeHostDevelopment.root, destination, { recursive: true, errorOnExist: true });
   }
-  if (oneBodyEvidence || threeHostDevelopment) {
-    renderTickerIntroduction(path.join(directory, 'journeys/current/ticker'));
-  }
   const directSpokenDevelopment = retainedDirectSpokenDevelopmentEvidence();
   if (directSpokenDevelopment) {
     xtask('prove', 'verify', '--root', directSpokenDevelopment.root,
@@ -76,6 +73,9 @@ export function assembleSite(directory, sourceCommit, workspace = 'target/worksp
     ? renderTodoJourney(TODO_EVIDENCE_ROOT, path.join(directory, 'journeys/current/todo'),
       sourceCommit, styles(), navigation())
     : null;
+  if (oneBodyEvidence || threeHostDevelopment) {
+    renderTickerIntroduction(path.join(directory, 'journeys/current/ticker'), Boolean(todoJourney));
+  }
   const todoBrowserDevelopment = retainedTodoBrowserDevelopmentEvidence(
     'site/evidence/todo-browser-development', sourceCommit);
   mkdirSync(path.join(directory, 'journeys/development'), { recursive: true });
@@ -200,7 +200,10 @@ function renderFieldStation(source, destination, commit, handbook = false) {
 
 // Human orientation is separate from the immutable historical captures. Keep
 // their published routes and bytes intact, including old clock names in audio.
-export function renderTickerIntroduction(destination) {
+export function renderTickerIntroduction(destination, todoJourney = false) {
   mkdirSync(destination, { recursive: true });
-  writeFileSync(path.join(destination, 'index.html'), `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Interval ticker — Conduit</title><style>${styles()}</style></head><body data-application-theme="conduit.presentation/phosphor@1">${navigation()}<main class="site-content"><p><a href="../../">All journeys</a></p><p class="eyebrow">Ticker and lifecycle specimen</p><h1>Start, stop, and change a ticker</h1><p class="lede">An interval ticker emits a pulse at a chosen pace. It does not tell time of day.</p><p>Start the ticker, observe its running status, then stop it. While stopped, choose a new pace: 250, 500, 1000, or 2000 milliseconds between pulses. Starting again makes a new run of the same retained Body.</p><p>The current interface names the Plot “Interval ticker” and reports whether it is running, stopped, or waiting to start. Direct speech gives that status and the pulse interval. Exact identities and unavailable controls remain available through inspection or an explicit complete reading.</p><h2>What the recording demonstrates</h2><p>The retained development run exercises ticker controls through browser, ConduitOS, terminal, and speech. It records lifecycle and Host rejoin behavior. The recording states exactly which actions its run establishes; this introduction adds no execution evidence. QEMU is emulator execution and recorded audio does not establish attended human hearing.</p><h2>Next: an ordinary application</h2><p><a href="../../development/todo-browser/">Follow the Todo development steps</a> for a richer presentation specimen: a list with meaningful items, remaining-work summaries, and typed edits across Masks. The complete durable Todo flagship journey is separate unfinished work.</p><details><summary>Inspect the original recording and receipts</summary><p><a href="../one-body-five-masks/">Open the retained ticker recording</a>. Older screenshots, transcripts, and audio call it a clock and sometimes read proof metadata aloud. They remain historical evidence of their exact source, not examples of the current default presentation. Their original published route is preserved.</p></details></main></body></html>`);
+  const todoNext = todoJourney
+    ? '<p><a href="../todo/">Follow the complete Todo journey</a>: add three errands, finish one in another Mask, hear what remains, and return to the same list after a fresh Owner Boot.</p>'
+    : '<p><a href="../../development/todo-browser/">Follow the Todo development steps</a> for a richer presentation specimen: a list with meaningful items, remaining-work summaries, and typed edits across Masks. The complete durable Todo flagship journey is separate unfinished work.</p>';
+  writeFileSync(path.join(destination, 'index.html'), `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Interval ticker — Conduit</title><style>${styles()}</style></head><body data-application-theme="conduit.presentation/phosphor@1">${navigation()}<main class="site-content"><p><a href="../../">All journeys</a></p><p class="eyebrow">Ticker and lifecycle specimen</p><h1>Start, stop, and change a ticker</h1><p class="lede">An interval ticker emits a pulse at a chosen pace. It does not tell time of day.</p><p>Start the ticker, observe its running status, then stop it. While stopped, choose a new pace: 250, 500, 1000, or 2000 milliseconds between pulses. Starting again makes a new run of the same retained Body.</p><p>The current interface names the Plot “Interval ticker” and reports whether it is running, stopped, or waiting to start. Direct speech gives that status and the pulse interval. Exact identities and unavailable controls remain available through inspection or an explicit complete reading.</p><h2>What the recording demonstrates</h2><p>The retained development run exercises ticker controls through browser, ConduitOS, terminal, and speech. It records lifecycle and Host rejoin behavior. The recording states exactly which actions its run establishes; this introduction adds no execution evidence. QEMU is emulator execution and recorded audio does not establish attended human hearing.</p><h2>Next: an ordinary application</h2>${todoNext}<details><summary>Inspect the original recording and receipts</summary><p><a href="../one-body-five-masks/">Open the retained ticker recording</a>. Older screenshots, transcripts, and audio call it a clock and sometimes read proof metadata aloud. They remain historical evidence of their exact source, not examples of the current default presentation. Their original published route is preserved.</p></details></main></body></html>`);
 }

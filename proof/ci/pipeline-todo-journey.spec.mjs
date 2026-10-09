@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -11,6 +11,40 @@ const commit = 'a'.repeat(40);
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const chapters = ['birth', 'add', 'join', 'complete', 'inspect', 'hear', 'read', 'recover'];
 const base = { source_commit: commit, run_id: 'run/todo-1', body_id: 'body/todo-1' };
+
+test('retained complete producer packet exposes same-Body refusals and remaining work', t => {
+  const root = 'site/evidence/todo-journey';
+  const source = JSON.parse(readFileSync(path.join(root, 'manifest.json'))).git_commit;
+  const result = validateTodoJourney(root, source, { checkAncestry: false });
+  assert.match(result.refusals.staleText, /refused/);
+  assert.match(result.refusals.checkpointText, /todo-committed-corrupt/);
+  const output = mkdtempSync(path.join(tmpdir(), 'todo-retained-render-'));
+  t.after(() => rmSync(output, { recursive: true, force: true }));
+  renderTodoJourney(root, path.join(output, 'page'), source, '', '', { checkAncestry: false });
+  const html = readFileSync(path.join(output, 'page/index.html'), 'utf8');
+  assert.ok(html.indexOf('2 things left · 1 completed') < html.indexOf('aria-label="Journey steps"'));
+  assert.match(html, /An old action cannot change the current list/);
+  assert.match(html, /A damaged checkpoint cannot appear as saved truth/);
+  assert.match(html, /stale-action-visible\.png/);
+  assert.match(html, /docs\/journeys\/todo\.md/);
+});
+
+test('refusal evidence refuses foreign Body, changed list and false repair even with new file hashes', t => {
+  for (const [id, mutate, expected] of [
+    ['browser-run', value => { value.body_id = 'body/foreign'; }, /browser source or Body drift/],
+    ['browser-run', value => { value.cross_mask.stale.owner_after.presentation.properties.push({ subject: 'todo/foreign', name: 'complete', value: { Flag: true } }); }, /unchanged same-Body list/],
+    ['checkpoint-refusal', value => { value.last_execution.verified = true; }, /without verified state/],
+    ['repaired-read', value => { value.last_execution.restored_fore_sha256 = `sha256:${'0'.repeat(64)}`; }, /same committed state/],
+  ]) {
+    const directory = mkdtempSync(path.join(tmpdir(), 'todo-refusal-tamper-'));
+    const root = path.join(directory, 'packet');
+    t.after(() => rmSync(directory, { recursive: true, force: true }));
+    cpSync('site/evidence/todo-journey', root, { recursive: true });
+    const manifest = JSON.parse(readFileSync(path.join(root, 'manifest.json')));
+    replaceOutput(root, manifest, id, mutate);
+    assert.throws(() => validateTodoJourney(root, manifest.git_commit, { checkAncestry: false }), expected);
+  }
+});
 function crc32(bytes) {
   let value = 0xffffffff;
   for (const byte of bytes) {
