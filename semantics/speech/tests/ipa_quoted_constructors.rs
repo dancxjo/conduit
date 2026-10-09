@@ -262,3 +262,26 @@ fn preparation_refuses_counterfeit_profiles_and_legacy_inventory_identity() {
     );
     assert!(prepare_configuration(IpaConstructor::Phonemic, &legacy).is_err());
 }
+
+#[test]
+fn source_round_trip_preserves_escaped_provenance_and_explicit_nasal_spelling() {
+    let catalogs = catalogs();
+    for nasal in ["ã", "ã"] {
+        let body = format!("ˈt͡ʃ{nasal}ː.n̩");
+        let source = PHONETIC.replace("ˈt͡ʃãː.n̩", &body).replace(
+            "quoted transcription fixture",
+            r#"reviewed \"quote\" \\ 雪"#,
+        );
+        let value = prepared(&source, IpaConstructor::Phonetic, &catalogs);
+        let transcription = SpeechPhoneticTranscription::decode(value.bytes()).unwrap();
+        assert_eq!(transcription.original(), &body);
+        assert_eq!(
+            transcription.provenance().method(),
+            "reviewed \"quote\" \\ 雪"
+        );
+        assert_eq!(
+            SpeechPhoneticTranscription::decode(&transcription.encode().unwrap()).unwrap(),
+            transcription,
+        );
+    }
+}
