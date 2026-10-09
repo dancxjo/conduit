@@ -1,0 +1,68 @@
+# Decimal prefixes and exact quantity profiles
+
+Issue [#5328](https://github.com/dancxjo/conduit/issues/5328) extends the existing
+Quantity contract in stages. The immutable `quantity/decimal-prefix-catalog@1`
+now records all 24 official prefixes and reviewed prefix positions. This
+catalogue establishes exact semantic scale; it does not extend the authored
+literal parser or assert that every scale fits legacy runtime storage.
+
+The authoritative symbols and exponents come from the
+[BIPM SI prefix table](https://www.bipm.org/en/measurement-units/si-prefixes).
+Symbols match exact UTF-8 bytes. The canonical micro symbol is U+00B5 `µ`.
+Greek U+03BC `μ`, ASCII `u`, whitespace, zero-width characters, and Unicode
+compatibility folding are absent from the canonical prefix table. Existing
+explicit ASCII aliases such as `us` remain accepted by the legacy suffix parser.
+A future source resolver must retain original spelling and spans when admitting
+an explicitly reviewed alias; it cannot rewrite source identity.
+
+## Reviewed compatibility matrix
+
+Every official prefix is permitted at each position below. The descriptor's
+power determines the exact decimal exponent relative to its unprefixed unit.
+All 24 × 19 combinations are exercised by the catalogue conformance test.
+
+| Reviewed suffix | Prefix position | Exponent relative to the base |
+| --- | --- | --- |
+| `s`, `Hz`, `V`, `A`, `K`, `g`, `m`, `rad`, `N`, `J`, `W`, `Pa` | Before the complete symbol | e |
+| `L`, `B` | Before the approved non-SI base | e |
+| `m²` | Before the powered meter | 2e |
+| `m³` | Before the powered meter | 3e |
+| `m/s`, `m/s²` | Before numerator meter only | e |
+| `Ah` | Before ampere only | e |
+
+The mass base is gram. `kg` is kilo + gram; kilogram is not another prefixable
+base. Recursive or stacked prefixes are unavailable. Byte prefixes are decimal;
+`MiB` retains its separate legacy binary meaning. Minute, hour, year, degree,
+pixel, percent, `one`, historical units and already prefixed units do not occur
+in this matrix. They retain their existing reviewed suffixes and transforms.
+This policy does not add arbitrary unit-expression algebra or an expected-Type
+choice among ambiguous suffixes.
+
+Celsius and Fahrenheit are absent from generalized prefix composition. Existing
+`m°C` is an absolute coordinate with scale 1 in millikelvin reference units and
+unchanged offset 273150; `°C` has scale 1000 and the same offset. A future
+point/difference contract must preserve these serialized absolute meanings and
+admit a distinct difference explicitly. Scaling the Celsius offset is invalid.
+
+## Representation and migration
+
+`Quantity` and `QuantityUnit` retain their 9-byte and 1-byte encodings and all
+existing tags. The prefix catalogue allocates no new unit tag and introduces no
+Type per prefix. It stores signed decimal exponents, never floating-point
+factors or a materialized unbounded integer. The largest composed exponent in
+this matrix is 90 for cubic quetta meters.
+
+Semantic scale alone is not representation admission. The remaining migration
+must introduce a separately versioned, bounded exact profile, preserve original
+source facts, resolve full suffixes without greedy ambiguity, and return a
+representation-eligibility refusal when a selected legacy target cannot realize
+a recognized value. Explicit checked conversion and compatible comparison must
+retain source/target dimensions, exact ratio/offset, selected profile and result
+or refusal. Parser migration, extended value encoding, public conversion
+entrance, source-span diagnostics and Audio/non-Audio integrations remain open.
+
+Catalogue conformance covers every official prefix against every reviewed base,
+power composition, mass and stacking exclusions, case/confusables, and retained
+legacy aliases. Existing Quantity tests still cover finite exact conversions,
+legacy tags and structured transport. Those component results do not establish
+browser execution or complete issue acceptance.
