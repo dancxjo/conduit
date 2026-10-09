@@ -11,7 +11,8 @@ export function unusedAnnotationId(items, prefix) {
   }
 }
 
-export function installWorkspaceControls(root, selected, restoreLens) {
+export function installWorkspaceControls(root, selected, restoreLens, navigationVersion = () => 0) {
+  const pending = new Set();
   const status = document.createElement("output");
   status.id = "workspace-status";
   status.setAttribute("role", "status");
@@ -51,7 +52,7 @@ export function installWorkspaceControls(root, selected, restoreLens) {
     status.textContent = `${value.status}${value.notice ? ` · ${JSON.stringify(value.notice)}` : ""} · ${value.correlation?.orphaned_subjects.length ?? 0} orphaned subjects`;
     if (value.retained_workspaces?.length) status.textContent += ` · Retained correlation: ${JSON.stringify(value.retained_workspaces)}`;
     for (const control of root.querySelectorAll('button[data-needs-workspace="true"]')) {
-      control.disabled = value.available === false;
+      control.disabled = pending.has(control) || value.available === false;
     }
   }
   function button(label, action, needsWorkspace = true) {
@@ -60,17 +61,22 @@ export function installWorkspaceControls(root, selected, restoreLens) {
     control.textContent = label;
     control.dataset.needsWorkspace = String(needsWorkspace);
     control.onclick = async () => {
+      pending.add(control);
       control.disabled = true;
       try { await action(); update(); }
       catch (error) { status.textContent = `Workspace refused: ${error.message}${error.correlation ? ` · ${JSON.stringify(error.correlation)}` : ""}`; }
-      finally { control.disabled = needsWorkspace && flowWorkspaceStatus().available === false; }
+      finally {
+        pending.delete(control);
+        control.disabled = needsWorkspace && flowWorkspaceStatus().available === false;
+      }
     };
     root.append(control);
   }
   button("Save layout", () => saveFlowLayout(name.value));
   button("Use layout", async () => {
+    const version = navigationVersion();
     const result = await selectFlowLayout(layouts.value);
-    await restoreLens(result.lens);
+    if (navigationVersion() === version) await restoreLens(result.lens);
   });
   button("Add note", () => {
     const scene = flowSceneSnapshot();
@@ -97,8 +103,9 @@ export function installWorkspaceControls(root, selected, restoreLens) {
   });
   button("Export workspace", () => { encoded.value = exportFlowWorkspace(); });
   button("Import workspace", async () => {
+    const version = navigationVersion();
     const result = await importFlowWorkspace(encoded.value);
-    await restoreLens(result.lens);
+    if (navigationVersion() === version) await restoreLens(result.lens);
   });
   button("Inspect retained workspaces", async () => {
     const documents = await retainedFlowWorkspaces();

@@ -55,7 +55,7 @@ impl LocalFrontDoor {
             HostId::from(format!("patchbay-native/{nonce:x}")),
             BootId::from(format!("patchbay-boot/{nonce:x}")),
             OfferGeneration(1),
-            crate::PatchbayHostProfile::Text,
+            crate::PatchbayHostProfile::Authoring,
         )?;
         Self::from_model(adapter, PatchbayModel::from_advertisement(advertisement))
     }
@@ -69,7 +69,7 @@ impl LocalFrontDoor {
             host_id,
             boot_id,
             OfferGeneration(1),
-            crate::PatchbayHostProfile::Text,
+            crate::PatchbayHostProfile::Authoring,
         )?;
         Self::from_model(adapter, PatchbayModel::from_advertisement(advertisement))
     }
@@ -296,7 +296,7 @@ impl LocalFrontDoor {
             host_id.clone(),
             boot_id.clone(),
             offer_generation,
-            crate::PatchbayHostProfile::Text,
+            crate::PatchbayHostProfile::Authoring,
         )?;
         let next_model = PatchbayModel::from_advertisement(advertisement);
         self.membership
