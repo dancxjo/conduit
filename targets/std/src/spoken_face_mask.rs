@@ -215,9 +215,18 @@ impl SpokenFaceSession {
         let finished_piece = *offset == text.len();
         match reading {
             Reading::Clauses { current, offset } if finished_piece => {
-                *current = None;
                 *offset = 0;
-                if !self.cursor.has_pending() {
+                // Look ahead through the admitted reading selection. Excluded
+                // detail may remain in the full Face after its final selected
+                // clause; it must not keep a fully delivered turn open.
+                if self
+                    .cursor
+                    .next_read_clause(&self.face)
+                    .map_err(reading_refusal)?
+                    .is_some()
+                {
+                    *current = Some(self.cursor.focused_index());
+                } else {
                     self.reading = None;
                 }
             }
