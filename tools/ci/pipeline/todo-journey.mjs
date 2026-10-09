@@ -242,7 +242,8 @@ export function validateTodoJourney(root, publicationCommit, { checkAncestry = t
       }
     }
   }
-  for (const source of ['chromium', 'qmp', 'native', 'terminal', 'speaker-play']) {
+  insist(['chromium', 'qmp', 'native'].some(source => sources.has(source)), 'missing graphical capture');
+  for (const source of ['terminal', 'speaker-play']) {
     if (source === 'speaker-play' && sources.has('qemu-audio')) continue;
     insist(sources.has(source), `missing ${source} capture`);
   }

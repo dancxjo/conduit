@@ -52,7 +52,7 @@ function wav() {
   return bytes;
 }
 
-function fixture({ guestAudio = false } = {}) {
+function fixture({ guestAudio = false, graphicalExtras = true, graphicalSource = 'chromium', omitMask } = {}) {
   const root = mkdtempSync(path.join(tmpdir(), 'todo-journey-test-'));
   const outputs = [];
   const add = (id, kind, bytes, media_type, name = `${id}.json`) => {
@@ -68,13 +68,22 @@ function fixture({ guestAudio = false } = {}) {
   const kinds = { birth: ['terminal'], add: ['terminal'], join: ['chromium', 'qmp', 'native'],
     complete: ['qmp'], inspect: ['chromium'], hear: [guestAudio ? 'qemu-audio' : 'speaker-play'],
     read: ['speaker-play'], recover: ['terminal'] };
+  if (!graphicalExtras) {
+    kinds.join = [graphicalSource];
+    kinds.complete = [graphicalSource];
+  }
+  if (omitMask) for (const id of chapters) kinds[id] = kinds[id].map(source => {
+    const mask = ['chromium', 'qmp', 'native'].includes(source) ? 'graphical'
+      : source === 'terminal' ? 'terminal' : 'spoken';
+    return mask === omitMask ? (mask === 'terminal' ? 'chromium' : 'terminal') : source;
+  });
   for (const [index, id] of chapters.entries()) {
     const event = { ...base, schema: 'conduit.todo-journey/producer-event@1', chapter_id: id,
       event_id: `event/${id}`, observed_at_unix_ms: index + 1, face_id: `face/${id}`,
       face_revision: index, show_id: `show/${id}` };
     if (['add', 'complete'].includes(id)) {
       event.interaction_id = `interaction/${id}`; event.action_id = `todo.${id}`;
-      event.mask_kind = id === 'add' ? 'terminal' : 'conduitos-graphical';
+      event.mask_kind = id === 'add' ? 'terminal' : graphicalExtras ? 'conduitos-graphical' : graphicalSource;
     }
     if (id === 'read') {
       event.reader_command = 'read-current-items'; event.mask_play_id = 'mask-play/read';
@@ -261,4 +270,25 @@ test('requested spoken detail cannot be recast as a Body Face action', t => {
   writeFileSync(path.join(root, 'manifest.json'), JSON.stringify(manifest));
   assert.throws(() => validateTodoJourney(root, commit, { checkAncestry: false }),
     /Mask-local command, not an invented Face action/);
+});
+
+
+test('three required Masks publish without extra graphical providers', t => {
+  for (const graphicalSource of ['chromium', 'native', 'qmp']) {
+    const { root } = fixture({ graphicalExtras: false, graphicalSource });
+    t.after(() => rmSync(root, { recursive: true, force: true }));
+    assert.doesNotThrow(() => validateTodoJourney(root, commit, { checkAncestry: false }), graphicalSource);
+  }
+});
+
+test('omitting any required Mask still refuses publication', t => {
+  for (const [omitMask, message] of [
+    ['graphical', /missing graphical capture/],
+    ['terminal', /missing terminal capture/],
+    ['spoken', /missing speaker-play capture/],
+  ]) {
+    const { root } = fixture({ graphicalExtras: false, omitMask });
+    t.after(() => rmSync(root, { recursive: true, force: true }));
+    assert.throws(() => validateTodoJourney(root, commit, { checkAncestry: false }), message);
+  }
 });

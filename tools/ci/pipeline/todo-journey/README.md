@@ -45,9 +45,11 @@ Show, output, and producer receipt. Recovery names distinct old/new Boots and
 an exact pre-lull state digest equal to the recovered state digest under the
 same Body.
 
-A complete run needs a terminal capture, Chromium screenshot, QMP screenshot,
-native screenshot, and direct speech in both the status and requested-detail
-chapters. A screenshot must be an actual PNG from its named source; a terminal
+A complete run needs the three required Masks: a terminal capture, a graphical
+screenshot from Chromium, QMP **or** a native provider, and direct speech in both
+the status and requested-detail chapters. Additional graphical providers are
+optional; one journey does not need to demonstrate all graphical Hosts.
+A screenshot must be an actual PNG from its named source; a terminal
 capture is a UTF-8 transcript. WAV captures record the **same delivered
 Play**: the capture and producer receipts agree on Play, Plan, Show, PCM
 format and delivered PCM digest. A selected speaker Play needs positive
@@ -127,8 +129,8 @@ from actual Owner/Body/Mask observations, not copy or edit old clock evidence.
 The renderer verifies documentary consistency; only the producer and target
 acceptance prove that real actions and audio delivery happened.
 
-Focused fixture tests live in `proof/ci/todo-journey.spec.mjs`. Their generated
+Candidate preflight automatically discovers the fixture tests in `proof/ci/pipeline-todo-journey.spec.mjs`. Their generated
 images and WAV are rejection/layout fixtures only and are never staged for
-publication. Run them with `node --test proof/ci/todo-journey.spec.mjs` as an
+publication. Run them with `node --test proof/ci/pipeline-todo-journey.spec.mjs` as an
 internal development check; the supported site publication entrance remains
 `cargo xtask` through the site pipeline.
