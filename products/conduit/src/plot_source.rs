@@ -116,6 +116,15 @@ impl CanonicalSource {
 }
 
 fn standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), String> {
+    // These catalogs contain only this executable's compiled semantic contracts.
+    // Check them once, then give each Source its own mutable copy. Host offers,
+    // authority and each authored document are still admitted independently.
+    static CATALOGS: std::sync::OnceLock<Result<(StartupCatalog, ProfileCatalog), String>> =
+        std::sync::OnceLock::new();
+    CATALOGS.get_or_init(prepare_standard_catalogs).clone()
+}
+
+fn prepare_standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), String> {
     let mut startup = conduit_signal::primary_signal_startup_catalog();
     let mut profiles = conduit_signal::primary_signal_profile_catalog();
     // This first Todo vertical has one exact authored initial Form and a leaf
@@ -177,6 +186,29 @@ fn standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn prepared_standard_catalogs_do_not_share_source_local_types() {
+        let (mut first, first_profiles) = standard_catalogs().unwrap();
+        let (second, second_profiles) = standard_catalogs().unwrap();
+        assert_eq!(first, second);
+        assert_eq!(first_profiles, second_profiles);
+        let local = conduit_plot::check_syntax_document(
+            &conduit_plot::parse_syntax_document("type QueueLocal = Text <= 8B\n"),
+            &StartupCatalog::new(),
+        )
+        .unwrap();
+        first
+            .insert_checked_native_type("QueueLocal", &local.native_types[0])
+            .unwrap();
+        assert!(first.structured_type("QueueLocal").is_some());
+        assert!(second.structured_type("QueueLocal").is_none());
+        assert!(standard_catalogs()
+            .unwrap()
+            .0
+            .structured_type("QueueLocal")
+            .is_none());
+    }
 
     #[test]
     fn authored_entry_survives_checked_dependency_reordering() {
