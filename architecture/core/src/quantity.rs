@@ -1,12 +1,15 @@
 //! Typed finite quantities with exact-only conversions.
 
 mod conversion;
+mod conversion_law;
 mod exact;
 mod literal;
+mod magnitude;
+mod wide_conversion;
 
 pub use exact::*;
 
-use conversion::{canonical_fraction, convert_exact_rational, is_radian};
+use conversion::{compare_legacy, convert_exact_rational, is_radian};
 use core::cmp::Ordering;
 use serde::{Deserialize, Serialize};
 
@@ -1291,15 +1294,7 @@ impl Quantity {
         {
             return Err(QuantityConversionRefusal::Inexact);
         }
-        let (left_numerator, left_denominator) = canonical_fraction(self)?;
-        let (right_numerator, right_denominator) = canonical_fraction(other)?;
-        let left = left_numerator
-            .checked_mul(right_denominator)
-            .ok_or(QuantityConversionRefusal::Overflow)?;
-        let right = right_numerator
-            .checked_mul(left_denominator)
-            .ok_or(QuantityConversionRefusal::Overflow)?;
-        Ok(left.cmp(&right))
+        compare_legacy(self, other)
     }
 
     pub const fn encode(self) -> [u8; QUANTITY_ENCODED_LEN] {

@@ -164,6 +164,24 @@ impl ExactDecimalQuantity {
         Self::new(coefficient, exponent, unit)
     }
 
+    /// Explicit projection to the legacy integer representation. Refuses
+    /// inexactness, incompatible dimensions and range overflow without rounding.
+    pub fn convert_to_legacy(
+        self,
+        target: QuantityUnit,
+    ) -> Result<super::Quantity, super::QuantityConversionRefusal> {
+        super::wide_conversion::to_legacy(self, target)
+    }
+
+    /// Compare physical values in a common exact rational reference, without
+    /// selecting a lossy unit or increasing the legacy arithmetic profile.
+    pub fn compare(
+        self,
+        other: Self,
+    ) -> Result<core::cmp::Ordering, super::QuantityConversionRefusal> {
+        super::wide_conversion::compare(self, other)
+    }
+
     pub fn encode(self) -> [u8; EXACT_DECIMAL_QUANTITY_ENCODED_LEN] {
         let mut bytes = [0; EXACT_DECIMAL_QUANTITY_ENCODED_LEN];
         bytes[0] = 1;

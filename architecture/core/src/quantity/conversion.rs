@@ -1,16 +1,34 @@
-//! Exact rational legacy quantity conversion and comparison support.
+//! Legacy quantity conversion retains its original i128 arithmetic profile.
 
+use super::conversion_law::{Arithmetic, Fraction};
 use super::{Quantity, QuantityConversionRefusal, QuantityUnit};
+use core::cmp::Ordering;
 
-pub(super) fn canonical_fraction(
-    value: Quantity,
-) -> Result<(i128, i128), QuantityConversionRefusal> {
-    let (scale, offset, denominator) = value.unit.canonical_transform();
-    let numerator = i128::from(value.value)
-        .checked_mul(scale)
-        .and_then(|value| value.checked_add(offset))
-        .ok_or(QuantityConversionRefusal::Overflow)?;
-    Ok((numerator, denominator))
+struct LegacyArithmetic;
+
+impl Arithmetic for LegacyArithmetic {
+    type Number = i128;
+    fn integer(value: i128) -> Self::Number {
+        value
+    }
+    fn add(left: i128, right: i128) -> Option<i128> {
+        left.checked_add(right)
+    }
+    fn multiply(left: i128, right: i128) -> Option<i128> {
+        left.checked_mul(right)
+    }
+    fn negate(value: i128) -> Option<i128> {
+        value.checked_neg()
+    }
+    fn compare(left: i128, right: i128) -> Ordering {
+        left.cmp(&right)
+    }
+    fn exact_i64(numerator: i128, denominator: i128) -> Result<i64, QuantityConversionRefusal> {
+        if numerator % denominator != 0 {
+            return Err(QuantityConversionRefusal::Inexact);
+        }
+        i64::try_from(numerator / denominator).map_err(|_| QuantityConversionRefusal::Overflow)
+    }
 }
 
 pub(super) const fn is_radian(unit: QuantityUnit) -> bool {
@@ -26,35 +44,20 @@ pub(super) fn convert_exact_rational(
     source: QuantityUnit,
     target: QuantityUnit,
 ) -> Result<Quantity, QuantityConversionRefusal> {
-    let (source_scale, source_offset, source_transform_denominator) = source.canonical_transform();
-    let (target_scale, target_offset, target_denominator) = target.canonical_transform();
-    let canonical_numerator = source_numerator
-        .checked_mul(source_scale)
-        .and_then(|value| {
-            source_offset
-                .checked_mul(source_denominator)?
-                .checked_add(value)
-        })
-        .ok_or(QuantityConversionRefusal::Overflow)?;
-    let canonical_denominator = source_denominator
-        .checked_mul(source_transform_denominator)
-        .ok_or(QuantityConversionRefusal::Overflow)?;
-    let target_numerator = canonical_numerator
-        .checked_mul(target_denominator)
-        .and_then(|value| {
-            target_offset
-                .checked_mul(canonical_denominator)?
-                .checked_neg()?
-                .checked_add(value)
-        })
-        .ok_or(QuantityConversionRefusal::Overflow)?;
-    let target_value_denominator = canonical_denominator
-        .checked_mul(target_scale)
-        .ok_or(QuantityConversionRefusal::Overflow)?;
-    if target_numerator % target_value_denominator != 0 {
-        return Err(QuantityConversionRefusal::Inexact);
-    }
-    let value = i64::try_from(target_numerator / target_value_denominator)
-        .map_err(|_| QuantityConversionRefusal::Overflow)?;
-    Ok(Quantity::new(value, target))
+    Fraction::<LegacyArithmetic>::rational(source_numerator, source_denominator)?
+        .into_canonical(source)?
+        .in_target(target)?
+        .legacy_integer(target)
+}
+
+pub(super) fn compare_legacy(
+    left: Quantity,
+    right: Quantity,
+) -> Result<Ordering, QuantityConversionRefusal> {
+    Fraction::<LegacyArithmetic>::rational(i128::from(left.value()), 1)?
+        .into_canonical(left.unit())?
+        .compare(
+            Fraction::<LegacyArithmetic>::rational(i128::from(right.value()), 1)?
+                .into_canonical(right.unit())?,
+        )
 }

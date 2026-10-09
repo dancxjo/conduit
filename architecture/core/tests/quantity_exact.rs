@@ -162,3 +162,63 @@ fn versioned_encoding_is_canonical_and_keeps_legacy_quantity_bytes_separate() {
     assert_eq!(Exact::decode(&upper.encode()), Ok(upper));
     assert_eq!(upper.dimension(), QuantityDimension::Length);
 }
+
+#[test]
+fn physical_conversion_and_comparison_keep_exact_scale_and_affine_laws() {
+    use conduit_core::QuantityConversionRefusal as Conversion;
+    use core::cmp::Ordering;
+    for (source, target, value) in [
+        ("1kHz", QuantityUnit::Hertz, 1000),
+        ("1µs", QuantityUnit::Nanosecond, 1000),
+        ("1cm²", QuantityUnit::SquareMillimeter, 100),
+        ("0°C", QuantityUnit::Millikelvin, 273150),
+        ("30°C", QuantityUnit::Fahrenheit, 86),
+        ("1m°C", QuantityUnit::Millikelvin, 273151),
+        ("1MiB", QuantityUnit::Byte, 1048576),
+        ("1MB", QuantityUnit::Byte, 1000000),
+        ("-9223372036854775808m", QuantityUnit::Meter, i64::MIN),
+    ] {
+        assert_eq!(
+            Exact::parse_plot_literal(source)
+                .unwrap()
+                .convert_to_legacy(target),
+            Ok(Quantity::new(value, target)),
+            "{source}"
+        );
+    }
+    for (left, right, ordering) in [
+        ("1000mm", "1m", Ordering::Equal),
+        ("0°C", "273.15K", Ordering::Equal),
+        ("30°C", "86°F", Ordering::Equal),
+        ("1Qm³", "1qm³", Ordering::Greater),
+        ("-1Qm³", "-1qm³", Ordering::Less),
+        ("1MB", "1MiB", Ordering::Less),
+    ] {
+        assert_eq!(
+            Exact::parse_plot_literal(left)
+                .unwrap()
+                .compare(Exact::parse_plot_literal(right).unwrap()),
+            Ok(ordering),
+            "{left} vs {right}"
+        );
+    }
+    for (source, target, refusal) in [
+        ("1Qm", QuantityUnit::Meter, Conversion::Overflow),
+        ("1qm", QuantityUnit::Meter, Conversion::Inexact),
+        ("0°C", QuantityUnit::Kelvin, Conversion::Inexact),
+        (
+            "1m",
+            QuantityUnit::Second,
+            Conversion::IncompatibleDimensions,
+        ),
+        ("1rad", QuantityUnit::Degree, Conversion::Inexact),
+    ] {
+        assert_eq!(
+            Exact::parse_plot_literal(source)
+                .unwrap()
+                .convert_to_legacy(target),
+            Err(refusal),
+            "{source}"
+        );
+    }
+}
