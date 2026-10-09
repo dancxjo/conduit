@@ -519,7 +519,7 @@ fn prepare_runtime_with_todo(
         restrict_directory(&artifact_dir)?;
         // Retained capacity is selected before Boot advertisement; each
         // admitted Play derives a create-new destination from exact identity.
-        Some(selection.attach_to_fresh_host_with_artifact(&mut host, &artifact_dir)?)
+        selection.attach_to_fresh_host_with_artifact(&mut host, &artifact_dir)?
     } else {
         None
     };

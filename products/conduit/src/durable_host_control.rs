@@ -37,6 +37,9 @@ use std::{
 const PROTOCOL: u16 = 1;
 pub(crate) const CONTROL_OUTCOME_UNKNOWN: &str = "control-outcome-unknown";
 const MAXIMUM_CONTROL_FRAME_BYTES: usize = 512 * 1024;
+// Local admission snapshots carry both complete reviewed Host advertisements.
+// This JSON envelope bound is separate from remote session payload/frame limits.
+const MAXIMUM_LOCAL_CONTROL_FRAME_BYTES: usize = 2 * 1024 * 1024;
 
 fn supports_remote_mask_action_intent(intent: &str) -> bool {
     intent == crate::durable_host::owner::clock_interval_action()
@@ -1483,8 +1486,18 @@ pub(crate) fn serve(state_dir: &Path, mut runtime: DurableHostRuntime) -> Result
             speech_route::serve(&mut stream, &mut runtime, &token, first[0])?;
         } else {
             let mut request = std::io::Cursor::new(first).chain(&mut stream);
-            let response = handle(read_frame(&mut request)?, &token, &mut runtime);
-            write_frame(&mut stream, &response)?;
+            let response = match read_frame(&mut request) {
+                Ok(request) => handle(request, &token, &mut runtime),
+                Err(error) => {
+                    eprintln!("local control request refused: {error}");
+                    refused("invalid-local-control-frame")
+                }
+            };
+            // A malformed client or oversized response must not terminate the
+            // retained Owner. No request is replayed after a transport failure.
+            if let Err(error) = write_frame(&mut stream, &response) {
+                eprintln!("local control response refused: {error}");
+            }
         }
     }
 }
@@ -2495,10 +2508,10 @@ fn read_secret(path: &Path) -> Result<[u8; 32], String> {
 fn read_frame<R: Read, T: for<'de> Deserialize<'de>>(reader: &mut R) -> Result<T, String> {
     let mut bytes = Vec::with_capacity(4096);
     reader
-        .take((MAXIMUM_CONTROL_FRAME_BYTES + 1) as u64)
+        .take((MAXIMUM_LOCAL_CONTROL_FRAME_BYTES + 1) as u64)
         .read_to_end(&mut bytes)
         .map_err(|error| format!("read local control frame: {error}"))?;
-    if bytes.is_empty() || bytes.len() > MAXIMUM_CONTROL_FRAME_BYTES {
+    if bytes.is_empty() || bytes.len() > MAXIMUM_LOCAL_CONTROL_FRAME_BYTES {
         bytes.fill(0);
         return Err("local control frame violates its finite bound".into());
     }
@@ -2510,7 +2523,7 @@ fn read_frame<R: Read, T: for<'de> Deserialize<'de>>(reader: &mut R) -> Result<T
 
 fn write_frame<W: Write, T: Serialize>(writer: &mut W, value: &T) -> Result<(), String> {
     let bytes = serde_json::to_vec(value).map_err(|error| error.to_string())?;
-    if bytes.len() > MAXIMUM_CONTROL_FRAME_BYTES {
+    if bytes.len() > MAXIMUM_LOCAL_CONTROL_FRAME_BYTES {
         return Err("local control response violates its finite bound".into());
     }
     writer
@@ -2520,7 +2533,7 @@ fn write_frame<W: Write, T: Serialize>(writer: &mut W, value: &T) -> Result<(), 
 
 fn write_sensitive_frame<W: Write, T: Serialize>(writer: &mut W, value: &T) -> Result<(), String> {
     let mut bytes = serde_json::to_vec(value).map_err(|error| error.to_string())?;
-    if bytes.len() > MAXIMUM_CONTROL_FRAME_BYTES {
+    if bytes.len() > MAXIMUM_LOCAL_CONTROL_FRAME_BYTES {
         bytes.fill(0);
         return Err("local control response violates its finite bound".into());
     }
@@ -2550,6 +2563,35 @@ fn now_millis() -> Result<u64, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn local_admission_envelope_carries_two_host_offers_without_relaxing_remote_frames() {
+        // BrowserAdmittedSnapshot contains both full advertisements. Exercise
+        // that real payload shape rather than padding an otherwise tiny frame.
+        let owner = StdHost::new();
+        let browser = crate::std_websocket_line::host(crate::std_websocket_line::SINK_HOST);
+        let snapshot = serde_json::json!({
+            "owner_advertisement": owner.advertisement(),
+            "browser_advertisement": browser.advertisement(),
+        });
+        let mut bytes = Vec::new();
+        write_frame(&mut bytes, &snapshot).unwrap();
+        assert!(bytes.len() > MAXIMUM_CONTROL_FRAME_BYTES);
+        assert!(bytes.len() <= MAXIMUM_LOCAL_CONTROL_FRAME_BYTES);
+        let recovered: serde_json::Value = read_frame(&mut bytes.as_slice()).unwrap();
+        assert_eq!(recovered, snapshot);
+        assert_eq!(MAXIMUM_CONTROL_FRAME_BYTES, 512 * 1024);
+
+        let oversized = "x".repeat(MAXIMUM_LOCAL_CONTROL_FRAME_BYTES);
+        let mut refused_output = Vec::new();
+        assert!(write_frame(&mut refused_output, &oversized).is_err());
+        assert!(
+            refused_output.is_empty(),
+            "oversized response must write no partial frame"
+        );
+        let encoded = serde_json::to_vec(&oversized).unwrap();
+        assert!(read_frame::<_, String>(&mut encoded.as_slice()).is_err());
+    }
 
     #[test]
     fn unavailable_todo_intent_can_open_native_return_but_cannot_dispatch() {

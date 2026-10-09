@@ -3,9 +3,10 @@
 
 use super::{clock_interval, Owner};
 use conduit_presentation::{
-    CommittedFaceAdmission, CommittedStateContributionBasis, CommittedStateSelection, Face,
-    FaceContext, FaceContribution, FaceContributionRole, FaceFocus, FaceInteraction, FaceNames,
-    FaceResidentPlotName, MaskShow, Presentation, PresentationContributionBasis,
+    CommittedFaceAdmission, CommittedStateContributionBasis, CommittedStateEvidenceRefusal,
+    CommittedStateSelection, Face, FaceContext, FaceContribution, FaceContributionRole, FaceFocus,
+    FaceInteraction, FaceNames, FaceResidentPlotName, MaskShow, Presentation,
+    PresentationContributionBasis,
 };
 use conduit_todo_face::{todo_command_from_contributed_interaction, todo_fragment};
 use conduit_todo_plot::{TodoCommand, TodoState};
@@ -19,37 +20,65 @@ impl Owner {
     ) -> Result<Presentation, String> {
         let receipt = self
             .todo_verified_read_receipt()
-            .ok_or("Todo has no verified selected read")?;
+            .ok_or(CommittedStateEvidenceRefusal::MissingReadReceipt.as_str())?;
+        if !receipt["read_terminal_sign"]["sign_id"].is_string()
+            || !receipt["write"]["terminal_sign"]["sign_id"].is_string()
+        {
+            return Err(CommittedStateEvidenceRefusal::MissingTerminalSign
+                .as_str()
+                .into());
+        }
+        if receipt["read_terminal"] != "Completed"
+            || !receipt["read_failure"].is_null()
+            || !receipt["read_cleanup_failure"].is_null()
+            || !receipt["read_kernel_failure"].is_null()
+            || receipt["write"]["terminal"] != "Completed"
+            || !receipt["write"]["failure"].is_null()
+            || !receipt["write"]["cleanup_failure"].is_null()
+        {
+            return Err(CommittedStateEvidenceRefusal::FailedTerminalSign
+                .as_str()
+                .into());
+        }
         let encoded = state.encode_info().map_err(super::debug)?;
         let mut digest = [0; 32];
         digest.copy_from_slice(&Sha256::digest(&encoded));
         let expected_sha = format!("sha256:{:x}", Sha256::digest(&encoded));
-        if basis.state_digest != digest
-            || receipt["restored_fore_sha256"] != expected_sha
-            || receipt["body_id"] != basis.body_id.as_str()
+        if basis.state_digest != digest || receipt["restored_fore_sha256"] != expected_sha {
+            return Err(CommittedStateEvidenceRefusal::ReadDigestMismatch
+                .as_str()
+                .into());
+        }
+        if receipt["body_id"] != basis.body_id.as_str()
             || receipt["read_plan_id"] != basis.read.plan_id.as_str()
             || receipt["read_play"]["active_play_id"] != basis.read.play_id.as_str()
             || receipt["read_terminal_sign"]["sign_id"] != basis.read.terminal_sign_id.as_str()
+            || receipt["read_terminal_sign"]["active_play_id"] != basis.read.play_id.as_str()
             || receipt["write"]["plan_id"] != basis.write.plan_id.as_str()
             || receipt["write"]["play"]["active_play_id"] != basis.write.play_id.as_str()
             || receipt["write"]["terminal_sign"]["sign_id"] != basis.write.terminal_sign_id.as_str()
+            || receipt["write"]["terminal_sign"]["active_play_id"] != basis.write.play_id.as_str()
         {
-            return Err("Todo verified Face differs from retained read/write evidence".into());
+            return Err(CommittedStateEvidenceRefusal::EvidenceMismatch
+                .as_str()
+                .into());
         }
         let advertised = self.host.advertisement();
-        let mut selected = advertised.resources.iter().filter_map(|resource| {
-            (resource.class_id.as_str() == "resource/todo-checkpoint@1")
-                .then_some(resource.content.as_ref())
-                .flatten()
-        });
-        let content = selected
-            .next()
-            .ok_or("Todo verified Face has no selected resource")?;
-        if selected.next().is_some()
-            || content.contract.access != conduit_core::ResourceAccessMode::ReadPublished
-            || receipt["selected_content"] != serde_json::json!(content.contract)
+        if receipt["read_terminal_sign"]["host_id"] != advertised.host_id.as_str()
+            || receipt["read_terminal_sign"]["boot_id"] != advertised.boot_id.as_str()
         {
-            return Err("Todo verified Face has stale selected resource".into());
+            return Err(CommittedStateEvidenceRefusal::BootChanged.as_str().into());
+        }
+        let content = selected_read_residence(advertised)?;
+        if receipt["selected_content"] != serde_json::json!(content.contract) {
+            return Err(CommittedStateEvidenceRefusal::ReadVersionMismatch
+                .as_str()
+                .into());
+        }
+        if receipt["selected_residence"] != serde_json::json!(content) {
+            return Err(CommittedStateEvidenceRefusal::ReadResidenceChanged
+                .as_str()
+                .into());
         }
         let current_selection = CommittedStateSelection {
             resource: content.contract.identity,
@@ -226,4 +255,43 @@ impl Owner {
             .map_err(|error| format!("owner-face-invalid:{error:?}"))?;
         clock_interval::with_clock_action(self, face.presentation)
     }
+}
+
+/// Revalidate the admitted resource residence and exact read Back independently
+/// of semantic content/version. A matching resource contract grants no authority.
+pub(super) fn selected_read_residence(
+    advertised: &conduit_core::HostAdvertisement,
+) -> Result<&conduit_core::ResourceContentOffer, String> {
+    let mut selected = advertised.resources.iter().filter_map(|resource| {
+        (resource.class_id.as_str() == "resource/todo-checkpoint@1")
+            .then_some(resource.content.as_ref())
+            .flatten()
+    });
+    let content = selected
+        .next()
+        .ok_or(CommittedStateEvidenceRefusal::ReadResidenceChanged.as_str())?;
+    if selected.next().is_some()
+        || content.contract.access != conduit_core::ResourceAccessMode::ReadPublished
+        || content.validate().is_err()
+        || content.owner_host != advertised.host_id
+        || content.owner_boot != advertised.boot_id
+        || content.base_id.as_str() != "std/explicit-shared-checkpoint"
+        || content.residence_profile.as_str() != "std/explicit-shared-checkpoint@1"
+    {
+        return Err(CommittedStateEvidenceRefusal::ReadResidenceChanged
+            .as_str()
+            .into());
+    }
+    let expected = conduit_std_offers::todo_checkpoint_read_offer(content.contract.clone())
+        .map_err(|_| CommittedStateEvidenceRefusal::ReadAuthorityChanged.as_str())?;
+    let mut reads = advertised.capabilities.iter().filter(|offer| {
+        offer.capability_id == expected.capability_id
+            || offer.implementation.implementation_id == expected.implementation.implementation_id
+    });
+    if reads.next() != Some(&expected) || reads.next().is_some() {
+        return Err(CommittedStateEvidenceRefusal::ReadAuthorityChanged
+            .as_str()
+            .into());
+    }
+    Ok(content)
 }

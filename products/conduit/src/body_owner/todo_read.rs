@@ -154,6 +154,7 @@ impl Owner {
             .transition_todo_checkpoint_offer(checkpoint_root, read_content.clone())?;
         let prepared = (|| {
             let advertised = self.host.advertisement().clone();
+            let residence = super::todo_face::selected_read_residence(&advertised)?.clone();
             let offer = advertised
                 .capabilities
                 .iter()
@@ -248,10 +249,10 @@ impl Owner {
                     &advertised.boot_id,
                 )
                 .map_err(debug)?;
-            Ok::<_, String>(staged)
+            Ok::<_, String>((staged, residence))
         })();
-        let mut staged = match prepared {
-            Ok(staged) => staged,
+        let (mut staged, residence) = match prepared {
+            Ok(value) => value,
             Err(error) => {
                 self.host.transition_todo_checkpoint_offer(checkpoint_root, selected_write.clone())
                     .map_err(|rollback| format!("Todo read preparation failed: {error}; Host rollback failed: {rollback}"))?;
@@ -373,6 +374,9 @@ impl Owner {
                 .requests
                 .first()
                 .ok_or("Todo read made no Host Call")?;
+            if let Some(failure) = report.kernel_failure.as_ref() {
+                return Err(super::todo_read_failure::code(failure).into());
+            }
             if report.terminal != TerminalDisposition::Completed
                 || report.failure.is_some()
                 || report.cleanup_failure.is_some()
@@ -459,12 +463,16 @@ impl Owner {
             "read_play":report.play,
             "read_terminal":report.terminal,
             "read_failure":report.failure,
+            "read_kernel_failure":report.kernel_failure.map(|failure| serde_json::json!({
+                "code":failure.code.as_str(), "detail":failure.detail,
+            })),
             "read_cleanup_failure":report.cleanup_failure,
             "read_terminal_sign":report.terminal_sign,
             "read_host_call":report.requests.first().map(|call| serde_json::json!({
                 "node":call.node.0,"request":call.request.0,"call":call.call.0
             })),
             "selected_content":read_content,
+            "selected_residence":residence,
             "restored_fore_sha256":report.fore_deliveries.first().map(|fore| super::super::super::digest(&fore.bytes)),
         });
         state::retain_session(

@@ -67,6 +67,8 @@ mod todo_face;
 mod todo_next;
 #[path = "todo_read.rs"]
 mod todo_read;
+#[path = "todo_read_failure.rs"]
+mod todo_read_failure;
 #[path = "todo_reencounter.rs"]
 mod todo_reencounter;
 #[path = "todo_waiting.rs"]
