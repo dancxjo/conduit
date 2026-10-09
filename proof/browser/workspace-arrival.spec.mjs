@@ -282,6 +282,8 @@ test("first-wake audio stays silent after reload of the same body with a fresh B
 });
 
 test("removing the default cue survives reload and a later first-wake installation stays silent", async ({ page }) => {
+  // This journey completes several wake/lull cycles, real audio and a persisted reload.
+  test.setTimeout(60_000);
   await observeRealAudio(page);
   await page.goto(entrance.url);
   await page.getByRole('checkbox', { name: 'Tutorial', exact: true }).uncheck();

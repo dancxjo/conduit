@@ -1,0 +1,32 @@
+plot audio/sample-fraction (
+    >> value: AudioSampleProjectionQuantity
+    result: AudioSampleFraction >>
+) = (. is duration ? {numerator_seconds: .duration.numerator_seconds, denominator: .duration.denominator} : {numerator_seconds: .cycle.numerator_seconds, denominator: .cycle.denominator})
+
+plot audio/sample-at-rate (
+    >> value: AudioSampleProjectionEligible
+    result: AudioSampleProjectionRaw >>
+) = ({whole_frames: .fraction.numerator_seconds * .request.basis.sample_rate_hz / .fraction.denominator, remainder_numerator: (.fraction.numerator_seconds * .request.basis.sample_rate_hz) % .fraction.denominator})
+
+# The Source decision distinguishes exact integer endpoint from retained floor loss.
+plot audio/frame-grid-fidelity (
+    >> value: AudioFrameFidelityInput
+    result: AudioFrameGridFidelity >>
+) = (.remainder_numerator == 0 ? AudioFrameGridFidelity.exact : AudioFrameGridFidelity.floor_with_remainder)
+
+# Foreign clock relation is never inferred; these are declared abstract bases.
+plot audio/cumulative-basis-equal (
+    >> value: AudioCumulativeFrameEligible
+    result: Boolean >>
+) = (.request.cursor.basis.denominator == .fraction.denominator && .request.cursor.basis.basis.sample_rate_hz == .request.append.basis.sample_rate_hz && .request.cursor.basis.basis.anchor.timeline.value == .request.append.basis.anchor.timeline.value && .request.cursor.basis.basis.anchor.origin.value == .request.append.basis.anchor.origin.value && .request.cursor.basis.basis.quantization == .request.append.basis.quantization)
+
+# Admission and Source basis equality precede both multiply and add.
+plot audio/cumulative-append (
+    >> value: AudioCumulativeFrameEligible
+    result: AudioCumulativeFrameRaw >>
+) = ({frame_count: (.fraction.numerator_seconds * .request.append.basis.sample_rate_hz + .request.cursor.remainder_numerator) / .fraction.denominator, whole_frames: .request.cursor.whole_frames + (.fraction.numerator_seconds * .request.append.basis.sample_rate_hz + .request.cursor.remainder_numerator) / .fraction.denominator, remainder_numerator: (.fraction.numerator_seconds * .request.append.basis.sample_rate_hz + .request.cursor.remainder_numerator) % .fraction.denominator})
+
+plot audio/cumulative-origin (
+    >> value: AudioCumulativeFrameBasis
+    result: AudioCumulativeFrameRaw >>
+) = ({frame_count: 0, whole_frames: 0, remainder_numerator: 0})

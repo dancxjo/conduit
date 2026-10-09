@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { cpSync, existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { execFileSync } from 'node:child_process';
+import { requireExactAncestor } from './exact-ancestor.mjs';
 
 export const TODO_EVIDENCE_ROOT = 'site/evidence/todo-journey';
 const CHAPTERS = ['birth', 'add', 'join', 'complete', 'inspect', 'hear', 'read', 'recover'];
@@ -89,7 +89,7 @@ export function validateTodoJourney(root, publicationCommit, { checkAncestry = t
     && manifest.proof_id === 'journey-todo-one-body' && manifest.suite_id === 'journey-gallery'
     && COMMIT.test(manifest.git_commit), 'missing complete exact-source Todo manifest');
   if (checkAncestry) {
-    try { execFileSync('git', ['merge-base', '--is-ancestor', manifest.git_commit, publicationCommit]); }
+    try { requireExactAncestor(manifest.git_commit, publicationCommit); }
     catch { throw new Error('Todo journey: capture commit is not in the publication source ancestry'); }
   }
   insist(Array.isArray(manifest.outputs) && manifest.outputs.length > 0 && manifest.outputs.length <= MAX_OUTPUTS, 'output count exceeds bound');

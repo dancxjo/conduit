@@ -1,0 +1,60 @@
+{
+  "scope": "Scoped local registration repair checks; not final-head CI or a rerun of Burn training",
+  "tested_source_commit": "86e8b4274fb49b46cae2b011c713772bb64ccd46",
+  "environment": {
+    "CARGO_TARGET_DIR": "/home/dancxjo/conduit/target",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_INCREMENTAL": "0"
+  },
+  "checks": [
+    {
+      "path": "taxonomy.log",
+      "command": "cargo +stable test --locked -p conduit-xtask-dispatch --test repository_taxonomy --offline",
+      "build_jobs": 2,
+      "exit_code": 0,
+      "passed": 7,
+      "failed": 0,
+      "bytes": 901,
+      "sha256": "f066e25ab0de8b3b29c797e67fa53c7ea619eb758c7906a6ba411e1d76851968"
+    },
+    {
+      "path": "plots.log",
+      "command": "cargo +stable test --locked -p xtask --bin xtask commands::plots:: --offline -- --nocapture",
+      "build_jobs": 2,
+      "exit_code": 0,
+      "passed": 18,
+      "failed": 0,
+      "bytes": 14443,
+      "sha256": "18e392a1069c9cac284287fb93d6026584effd2e801710c4c40c368443d8f180"
+    },
+    {
+      "path": "browser.log",
+      "command": "cargo +stable test --locked -p conduit-browser-runtime --lib browser_workspace_can_check_model_authoring_without_offering_training --offline",
+      "build_jobs": 6,
+      "exit_code": 0,
+      "passed": 1,
+      "failed": 0,
+      "bytes": 6869,
+      "sha256": "53dcdab11ddf310aa61c5e6caa081926b4db2dcd7bf8e67e896953f3ad7aef69"
+    }
+  ],
+  "original_ci": {
+    "run": 37833607686,
+    "commit": "ad546453b7194616f9d599f2f3d32bfb714e8133",
+    "failure": "Canonical model-authoring Plot missing from reviewed inventory; products ownership and five Plot inventory/report tests failed; browser staging used the same mismatched inventory.",
+    "jobs": [
+      {
+        "job": 113505586827,
+        "url": "https://github.com/dancxjo/conduit/actions/runs/37833607686/job/113505586827",
+        "downloaded_log_sha256": "1c8f63ab691108c928b1a72f5694dad2d6e9e114a4f3bdc5c0405ab36d8d1038",
+        "downloaded_log_bytes": 514735
+      },
+      {
+        "job": 113505587030,
+        "url": "https://github.com/dancxjo/conduit/actions/runs/37833607686/job/113505587030",
+        "downloaded_log_sha256": "0e4c6d02b5bddee83125b690b9b262c9b6437a9b92a7f7cb7a1e8ceb4b564e6b",
+        "downloaded_log_bytes": 323770
+      }
+    ]
+  }
+}

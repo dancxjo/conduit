@@ -1,0 +1,4 @@
+    Checking conduit-std-host v0.1.0 (/home/dancxjo/conduit-5208-plot-journey/targets/std)
+    Checking conduit-burn-model v0.1.0 (/home/dancxjo/conduit-5208-plot-journey/mechanisms/implementations/burn-model)
+    Checking conduit-ai v0.1.0 (/home/dancxjo/conduit-5208-plot-journey/semantics/ai)
+    Finished `dev` profile [unoptimized] target(s) in 10.89s

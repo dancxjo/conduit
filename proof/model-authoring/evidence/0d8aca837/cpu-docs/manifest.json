@@ -1,0 +1,17 @@
+{
+  "document_sha256": "a54c383e8f05d05ccfe72a9023c231861755e3c489d66e5da58f72c0d34d36e4",
+  "executed_arguments": [
+    "cargo",
+    "xtask",
+    "prove",
+    "model-authoring",
+    "--output",
+    "../proof-docs-0d8aca837/command"
+  ],
+  "exit_code": 0,
+  "output_substitution": "host-local evidence directory",
+  "passed": true,
+  "proof_class": "deterministic-unit",
+  "schema": "conduit.proof/model-authoring-docs@1",
+  "scope": "hosted-model-library"
+}

@@ -1,0 +1,10 @@
+# A finite sequence of portable model work, realized by an admitted Host session.
+# These byte envelopes use the public canonical model-work codec.
+plot model-authoring (
+ >> request: ModelWorkRequestBytes...| <= 1048576B
+ reply: ModelWorkReplyBytes...| <= 1048576B >>
+) {
+ work: model/work
+ request >> work.request
+ work.reply >> reply
+}.

@@ -1,0 +1,10 @@
+   Compiling conduit-std-host v0.1.0 (/home/dancxjo/conduit-5208-plot-journey/targets/std)
+    Finished `test` profile [unoptimized] target(s) in 1.55s
+     Running tests/burn_plot_journey.rs (/home/dancxjo/conduit/target/debug/deps/burn_plot_journey-ec03032f313bcde4)
+
+running 1 test
+ordinary model Plot: loss 9000000 -> 4003 millionths; 80 steps; fresh resume80 ->81; exact inference reload; 90 successful HostCalls; stale step refused
+test ordinary_plot_trains_saves_reloads_and_infers ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.47s
+

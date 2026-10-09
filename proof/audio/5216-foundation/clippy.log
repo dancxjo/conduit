@@ -1,0 +1,15 @@
+   Compiling conduit-assigned-plan v0.1.0 (/home/dancxjo/conduit-5216-audio-foundation/architecture/assigned-plan)
+    Checking typenum v1.20.1
+   Compiling conduit-core v0.1.0 (/home/dancxjo/conduit-5216-audio-foundation/architecture/core)
+    Checking generic-array v0.14.7
+    Checking block-buffer v0.10.4
+    Checking crypto-common v0.1.7
+    Checking serde_core v1.0.229
+    Checking serde v1.0.229
+    Checking digest v0.10.7
+    Checking sha2 v0.10.9
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/conduit-5216-audio-foundation/architecture/plot)
+   Compiling conduit-time v0.1.0 (/home/dancxjo/conduit-5216-audio-foundation/semantics/time)
+   Compiling conduit-audio v0.1.0 (/home/dancxjo/conduit-5216-audio-foundation/semantics/audio)
+   Compiling conduit-data v0.1.0 (/home/dancxjo/conduit-5216-audio-foundation/semantics/data)
+    Finished `dev` profile [unoptimized] target(s) in 17.25s

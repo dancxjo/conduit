@@ -306,6 +306,7 @@ fn assert_pipeline_plans_and_plays(
             keyboard: None,
             local_model: None,
             vector_search: None,
+            model_work: None,
             calendar: None,
             body_conversation_context: None,
         },

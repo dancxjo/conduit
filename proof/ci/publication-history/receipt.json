@@ -1,0 +1,28 @@
+{
+  "parent": "0acf94d2f105c45b95e0e0b60def7c6bbfaa832e",
+  "source_files": {
+    "tools/ci/pipeline/complete-publication-history.mjs": "1142e118bb8380bfef359908315f6f0248cec5a5128efb674a8acc19ee884de4",
+    "tools/ci/pipeline/targets/browser.mjs": "776ec8f1f0c5663ef0e25670a1e56e29a103660a0c73d527b757dcd3ea27f14f",
+    "tools/ci/pipeline/targets/site.mjs": "aa5e753106ca0bb80882529f3cbf2fda9b5382edc5618fac0937a3458b392af0",
+    "proof/ci/pipeline-publication-history.spec.mjs": "69eab0af3ad3c6dd9b80b3c2e35d3005a15d7d2efe6b7f909cd651d77cc4f296"
+  },
+  "strict_helper": "1b050e7135727ab9b732cb18b55444f0ddde7837699290fe709e026c1efeb707",
+  "results": {
+    "pipeline_tests": 165,
+    "actual_full_history_retained_todo_gate": "pass"
+  },
+  "diagnosis": "Actual CI blocker is shallow repository at publication. Initial depth0 fetch logged, initial shallow state absent; point of transition not established.",
+  "source_commit": "c3473e6a96f2292f5383cc17aa9f5e2fbef9d2db",
+  "root_git255": {
+    "official_source": "e9019fcafe0040228b8631c30f97ae1adb61bcdc",
+    "pipeline_tests": 165,
+    "actual_complete_history_and_retained_todo": "pass"
+  },
+  "logs": {
+    "pipeline-tests.log": "ff05ffee2c9fd75e57c9039f1614b107ec0614777ed61c52345e866dd03a08f3",
+    "retained-todo-gate.log": "850c11bf0a11fdd0e53c53f6a9fe853fbe281117c3cfe2fdc5a676c426987eb3",
+    "original-ci-failure.log": "7ef2aa4556b7227c5f07966068ab5a798f6f9d6ca53c5deb08c1f60213411c5c",
+    "root-git255-pipeline.log": "95979725a39259a6d7ddf4893b6456f8c7b5f223276e5132996fe3c73fca2d6e",
+    "root-git255-retained.log": "218d454d8e07637b774ad1ac7ee0c5b5299e31e4d6115b0ae8ca7455fc74d586"
+  }
+}

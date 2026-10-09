@@ -1,0 +1,21 @@
+   Compiling conduit-ai v0.1.0 (/home/dancxjo/conduit-burn-corpus-cursor/semantics/ai)
+   Compiling conduit-chat v0.1.0 (/home/dancxjo/conduit-burn-corpus-cursor/semantics/chat)
+   Compiling conduit-tongues v0.1.0 (/home/dancxjo/conduit-burn-corpus-cursor/semantics/tongues)
+   Compiling conduit-tutorial-plot v0.1.0 (/home/dancxjo/conduit-burn-corpus-cursor/semantics/tutorial)
+   Compiling conduit-burn-model v0.1.0 (/home/dancxjo/conduit-burn-corpus-cursor/mechanisms/implementations/burn-model)
+   Compiling conduit-std-offers v0.1.0 (/home/dancxjo/conduit-burn-corpus-cursor/targets/std/offers)
+   Compiling conduit-signal-conformance v0.1.0 (/home/dancxjo/conduit-burn-corpus-cursor/proof/conformance/signal)
+   Compiling conduit-host-hosted v0.1.0 (/home/dancxjo/conduit-burn-corpus-cursor/targets/std/make)
+   Compiling conduit-r1-network-conformance v0.1.0 (/home/dancxjo/conduit-burn-corpus-cursor/proof/conformance/network-r1)
+   Compiling conduit-workspace-make v0.1.0 (/home/dancxjo/conduit-burn-corpus-cursor/make/workspace)
+   Compiling conduit-browser-runtime v0.1.0 (/home/dancxjo/conduit-burn-corpus-cursor/targets/browser/runtime)
+   Compiling conduit-std-host v0.1.0 (/home/dancxjo/conduit-burn-corpus-cursor/targets/std)
+    Finished `test` profile [unoptimized] target(s) in 26.05s
+     Running tests/burn_plot_journey.rs (/home/dancxjo/conduit/target/debug/deps/burn_plot_journey-745c2fb6222b3e11)
+
+running 2 tests
+test ordinary_plot_train_next_resumes_actual_corpus_on_a_fresh_host ... ok
+test ordinary_plot_trains_saves_reloads_and_infers ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.50s
+

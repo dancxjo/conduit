@@ -1,0 +1,5 @@
+The original parent browser attempt passed all 100 browser tests, then refused retained Todo capture ancestry. Exact local history, a fresh non-shallow fetch of the published head and GitHub compare all identify 99399c157c6e1d7d7fe740a312315b4709dccafd as an ancestor of d932da60c7f04bde62c797126e298e38aa9819d0. The CI discrepancy remains unexplained; no ancestry gate was removed or relaxed.
+
+The one same-head retry and the cursor run independently exhausted the unchanged 20-second total deadline for the complete cue lifecycle test at its post-reload library assertion. The cursor call log shows the assertion interrupted by session closure. This journey includes birth, real audio completion, removal/installation, lull/wake, persistence settlement, reload, fresh-Boot evidence and library interaction.
+
+The scoped source fix gives only that journey a 60-second total budget. All assertions, assertion deadlines, global defaults, worker count and retry policy remain intact. Node syntax and patch checks pass; new final-head CI is required. This change does not explain the separate ancestry refusal or claim a passing browser result. Raw failed logs remain byte-exact.

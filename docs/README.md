@@ -14,4 +14,5 @@ The [handbook source](../wiki/Home.md) is rendered by the website build as the
 [handbook](https://dancxjo.github.io/conduit/handbook/).
 
 For runtime-produced audio, see [the hosted speech guide](proof/runtime-speech.md).
+For the proposed learned-model journey, see [Creating models](../wiki/Creating-models.md).
 For cross-Host clock semantics and proof boundaries, see [Body time](body-time.md).

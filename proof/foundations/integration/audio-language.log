@@ -1,0 +1,456 @@
+   Compiling conduit-assigned-plan v0.1.0 (/home/dancxjo/conduit-portable-foundations/architecture/assigned-plan)
+   Compiling conduit-core v0.1.0 (/home/dancxjo/conduit-portable-foundations/architecture/core)
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/conduit-portable-foundations/architecture/plot)
+   Compiling conduit-time v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/time)
+   Compiling conduit-data v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/data)
+   Compiling conduit-audio v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/audio)
+   Compiling conduit-human v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/human)
+   Compiling conduit-presentation v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/presentation)
+   Compiling conduit-body v0.1.0 (/home/dancxjo/conduit-portable-foundations/architecture/body)
+   Compiling conduit-kernel v0.1.0 (/home/dancxjo/conduit-portable-foundations/architecture/kernel)
+   Compiling conduit-education v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/education)
+   Compiling conduit-web v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/web)
+   Compiling conduit-process v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/process)
+   Compiling conduit-text v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/text)
+   Compiling conduit-robotics v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/robotics)
+   Compiling conduit-net v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/net)
+   Compiling conduit-alife v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/alife)
+   Compiling conduit-purpose v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/purpose)
+   Compiling conduit-midi v0.1.0 (/home/dancxjo/conduit-portable-foundations/mechanisms/protocols/midi)
+   Compiling conduit-language v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/language)
+   Compiling conduit-semantic-catalog v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/catalog)
+   Compiling conduit-ai v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/ai)
+   Compiling conduit-tutorial-plot v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/tutorial)
+   Compiling conduit-home-model v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/home)
+   Compiling conduit-wire v0.1.0 (/home/dancxjo/conduit-portable-foundations/architecture/wire)
+warning: unused import: `ToString`
+  --> semantics/ai/src/model_work_contract.rs:12:22
+   |
+12 |     string::{String, ToString},
+   |                      ^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: `conduit-ai` (lib) generated 1 warning (run `cargo fix --lib -p conduit-ai` to apply 1 suggestion)
+   Compiling patchbay-graph v0.1.0 (/home/dancxjo/conduit-portable-foundations/plots/patchbay/graph)
+   Compiling conduit-plan-lowering v0.1.0 (/home/dancxjo/conduit-portable-foundations/architecture/plan-lowering)
+   Compiling patchbay-control v0.1.0 (/home/dancxjo/conduit-portable-foundations/plots/patchbay)
+   Compiling conduitos v0.1.0 (/home/dancxjo/conduit-portable-foundations/targets/conduitos)
+   Compiling patchbay-application v0.1.0 (/home/dancxjo/conduit-portable-foundations/plots/patchbay/application)
+   Compiling conduit-composite v0.1.0 (/home/dancxjo/conduit-portable-foundations/architecture/composite)
+   Compiling conduit-protected-line v0.1.0 (/home/dancxjo/conduit-portable-foundations/architecture/protected-line)
+   Compiling conduit-tour-model v0.1.0 (/home/dancxjo/conduit-portable-foundations/plots/tour)
+   Compiling conduit-birth-plot v0.1.0 (/home/dancxjo/conduit-portable-foundations/plots/birth)
+   Compiling conduit-observatory v0.1.0 (/home/dancxjo/conduit-portable-foundations/architecture/observatory)
+   Compiling conduit-planner v0.1.0 (/home/dancxjo/conduit-portable-foundations/architecture/planner)
+   Compiling conduit-synth v0.1.0 (/home/dancxjo/conduit-portable-foundations/mechanisms/implementations/synth)
+   Compiling conduit-conduitos-mask-offer v0.1.0 (/home/dancxjo/conduit-portable-foundations/targets/conduitos/mask-offer)
+    Finished `test` profile [unoptimized] target(s) in 1m 01s
+     Running unittests src/lib.rs (/home/dancxjo/conduit/target/debug/deps/conduit_audio-ca72998564164e8e)
+
+running 6 tests
+test acoustic_quantities::amplitude_admission_tests::raw_square_is_not_semantic_admission ... ok
+test audio_info::tests::pcm_frame_is_exact_bounded_and_canonical ... ok
+test tone_terminal::tests::cancellation_is_exact_bounded_terminal_info ... ok
+test pcm_clip::tests::multiple_contiguous_frames_round_trip_canonically ... ok
+test pcm_clip::tests::gaps_mixed_clocks_and_trailing_bytes_fail_distinctly ... ok
+test decibel_projection::tests::forged_zero_raw_denominator_refuses_semantic_admission ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/acoustic_quantities.rs (/home/dancxjo/conduit/target/debug/deps/acoustic_quantities-2a8e12c54c5cccfc)
+
+running 4 tests
+test native_storage_sizes_are_inspectable ... ok
+test resonator_fields_are_independent_and_not_sample_rate_bounded ... ok
+test reciprocal_source_executes_exact_authored_fractions ... ok
+test positive_domains_refuse_zero_and_malformed_inputs ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s
+
+     Running tests/amplitude_power.rs (/home/dancxjo/conduit/target/debug/deps/amplitude_power-272f74d0188dc457)
+
+running 4 tests
+test forged_typed_request_refuses_before_arithmetic ... ok
+test actual_native_type_and_value_sizes ... ok
+test full_quantity_domain_does_not_imply_square_eligibility ... ok
+test exact_square_matches_independent_u128_reference ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/decibel_projection.rs (/home/dancxjo/conduit/target/debug/deps/decibel_projection-a889035368528d39)
+
+running 7 tests
+test source_reference_role_laws_and_public_corrupt_frame_refusal ... ok
+test actual_native_type_and_value_sizes ... ok
+test core_exact_fidelity_report_rejects_invented_preservation_and_changed_target ... ok
+test explicit_same_proportionality_reference_pair_connects_amplitude_power_and_db ... ok
+test zero_has_explicit_negative_infinity_and_unreduced_original_is_preserved ... ok
+test unsupported_numeric_profiles_retain_original_and_source_recognition ... ok
+test all_exact_exponents_and_inverse_execute_source_with_independent_u128_reference ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.99s
+
+     Running tests/native_audio_frame_contracts.rs (/home/dancxjo/conduit/target/debug/deps/native_audio_frame_contracts-7f8952a80be0344c)
+
+running 2 tests
+test render_demand_owns_the_exact_checked_interval_without_losing_domain_refusals ... ok
+test pcm_header_derives_and_owns_every_exact_representation_width ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/native_instrument.rs (/home/dancxjo/conduit/target/debug/deps/native_instrument-0d4c5a40927d283e)
+
+running 2 tests
+test instrument_mapping_round_trips_through_its_authored_type ... ok
+test both_instrument_control_payloads_are_native ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/native_musical_control_event.rs (/home/dancxjo/conduit/target/debug/deps/native_musical_control_event-67efee27b6cc4f8f)
+
+running 2 tests
+test musical_control_event_enforces_time_boundary_and_typed_decode_refusals ... ok
+test musical_control_event_round_trips_and_preserves_codec_and_digest ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/native_musical_note_family.rs (/home/dancxjo/conduit/target/debug/deps/native_musical_note_family-d1314994613ff045)
+
+running 2 tests
+test musical_note_event_preserves_exact_codec_digest_and_bounds ... ok
+test note_occurrence_and_event_have_exact_native_round_trips ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/native_musical_pitch.rs (/home/dancxjo/conduit/target/debug/deps/native_musical_pitch-c420c5d50d518a51)
+
+running 2 tests
+test musical_pitch_bounds_belong_to_the_native_constructor ... ok
+test musical_pitch_has_exact_native_and_twenty_byte_round_trips ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/native_pcm_clip_profile.rs (/home/dancxjo/conduit/target/debug/deps/native_pcm_clip_profile-8495eda9544aa22e)
+
+running 2 tests
+test pcm_clip_profile_round_trips_exact_values ... ok
+test pcm_clip_profile_enforces_sample_rate_and_clock_bounds ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/native_timing_feedback.rs (/home/dancxjo/conduit/target/debug/deps/native_timing_feedback-339a79d35e2075ab)
+
+running 2 tests
+test timing_records_keep_the_exact_fields_and_primitive_bounds ... ok
+test complete_timing_feedback_family_round_trips_through_native_types ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/native_tone_intent.rs (/home/dancxjo/conduit/target/debug/deps/native_tone_intent-7600a9a42528289e)
+
+running 2 tests
+test tone_intent_native_constructor_owns_exact_bounds ... ok
+test tone_intent_preserves_native_identity_codec_and_digest ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/native_tone_terminal.rs (/home/dancxjo/conduit/target/debug/deps/native_tone_terminal-85560802917eef74)
+
+running 5 tests
+test native_tone_terminal_owns_semantic_identity_while_wire_codec_stays_explicit ... ok
+test musical_unit_variants_have_native_semantic_identity_and_exact_round_trips ... ok
+test pcm_unit_variants_have_native_semantic_identity_and_exact_round_trips ... ok
+test sound_stream_and_compatibility_vocabularies_have_native_identity ... ok
+test musical_control_payloads_round_trip_and_own_their_refinements ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/ownership.rs (/home/dancxjo/conduit/target/debug/deps/ownership-1c9c3b874a06fda8)
+
+running 1 test
+test portable_audio_meaning_has_one_host_neutral_owner ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/quantity_trajectory.rs (/home/dancxjo/conduit/target/debug/deps/quantity_trajectory-c0f14fb465f7b1c9)
+
+running 14 tests
+test refusals::forged_typed_zero_denominator_refuses_native_boundary ... ok
+test arithmetic_profile_extremes_remain_exact_and_within_u64 ... ok
+test refusals::full_domain_values_are_not_silently_reduced_into_arithmetic_profile ... ok
+test step_u32::original_full_u64_step_fractions_and_u32_cross_products_remain_exact ... ok
+test power_ratio_and_zero_amplitude_keep_distinct_quantity_identity ... ok
+test refusals::shared_boundary_is_right_continuous_and_final_endpoint_retains_authored_fraction ... ok
+test independent_overlapping_controls_and_fractional_time_preserve_identity ... ok
+test refusals::ordering_coincident_and_domain_refusals_are_source_owned ... ok
+test hz_and_cycle_interpolation_are_distinct_named_domains ... ok
+test refusals::gaps_outside_and_foreign_anchors_refuse_without_extrapolation ... ok
+test step_linear_and_exact_endpoint_receipts_execute_source ... ok
+test refusals::segment_count_and_provenance_bounds_are_native_admission ... ok
+test linear_fraction_results_match_independent_u128_reference ... ok
+test step_u32::real_formant_step_values_and_sample_time_queries_execute_exactly ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.54s
+
+     Running tests/rate_projection.rs (/home/dancxjo/conduit/target/debug/deps/rate_projection-48245141307fdd67)
+
+running 11 tests
+test refusals::forged_full_cursor_frame_refuses_before_source_arithmetic ... ok
+test reports::projection_report_rejects_omission_fabricated_preservation_and_other_loss ... ok
+test refusals::finite_chain_and_native_result_laws_refuse_forged_values ... ok
+test refusals::full_source_domains_do_not_imply_projection_eligibility ... ok
+test refusals::foreign_rate_anchor_and_unreduced_denominator_refuse_before_append ... ok
+test reports::core_reports_distinguish_integer_grid_loss_from_retained_exact_source ... ok
+test independent_u128_projection_reference_and_profile_extremes ... ok
+test native_projection_storage_costs_are_inspectable ... ok
+test refusals::cumulative_profile_checks_carry_and_cursor_before_multiply_add ... ok
+test one_authored_duration_and_200hz_cycle_project_at_8_16_48khz ... ok
+test repeated_thirds_carry_fractional_frames_without_drift ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.17s
+
+     Running tests/sampled_signal_mapping.rs (/home/dancxjo/conduit/target/debug/deps/sampled_signal_mapping-0fc3ab5a8839b8b0)
+
+running 1 test
+test every_pcm_representation_maps_losslessly_to_the_generic_clock_contract ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/sound_info.rs (/home/dancxjo/conduit/target/debug/deps/sound_info-df13cfed1fbcd798)
+
+running 7 tests
+test microtonal_pitch_and_explicit_tuning_are_not_midi_numbers ... ok
+test pitch_consumes_typed_frequency_without_changing_canonical_identity ... ok
+test render_demand_round_trips_one_exact_nonempty_clock_interval ... ok
+test overlapping_equal_pitches_retain_occurrence_identity ... ok
+test sustain_hold_and_release_are_distinct_ordered_events ... ok
+test velocity_and_pitch_bend_cover_their_exact_extrema ... ok
+test every_portable_event_round_trips_and_reserved_bytes_refuse ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/home/dancxjo/conduit/target/debug/deps/conduit_language-afecfa088d323a4b)
+
+running 2 tests
+test catalog::tests::four_item_linguistics_contracts_own_their_required_queue_capacity ... ok
+test request_contract::literal_tests::request_literal_roundtrips_exact_escaped_language_and_variety_identities ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/claims.rs (/home/dancxjo/conduit/target/debug/deps/claims-f3ff2bc85eae45ca)
+
+running 1 test
+test exact_revisioned_parser_alternatives_abstain_and_share_only_common_facts ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/coverage.rs (/home/dancxjo/conduit/target/debug/deps/coverage-1f47607edd5405cf)
+
+running 2 tests
+test exact_variety_requires_an_identity_and_metadata_limits_are_native_bounds ... ok
+test duplicate_and_incoherent_declarations_cannot_be_advertised_as_coverage ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/dependency_arcs.rs (/home/dancxjo/conduit/target/debug/deps/dependency_arcs-95425550df890189)
+
+running 4 tests
+test equal_analysis_revisions_cannot_join_different_source_revisions ... ok
+test root_and_token_heads_preserve_original_revisioned_endpoints ... ok
+test wrong_root_relation_self_source_and_revision_are_native_refusals ... ok
+test checked_plots_can_name_the_same_native_arc_contract ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+     Running tests/discourse.rs (/home/dancxjo/conduit/target/debug/deps/discourse-8f33f75ed1b2bc9f)
+
+running 4 tests
+test ledger_distinguishes_stability_withdrawal_and_commitment ... ok
+test nonvocative_wrong_source_analysis_and_bounds_refuse_before_derivation ... ok
+test discourse_schemas_are_installed_for_ordinary_authored_plots ... ok
+test initial_medial_and_final_vocatives_follow_exact_edges_without_punctuation ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
+
+     Running tests/external_mapping.rs (/home/dancxjo/conduit/target/debug/deps/external_mapping-ba5033a11f0ca82d)
+
+running 2 tests
+test ambiguous_and_unbounded_tables_and_foreign_variety_refuse ... ok
+test exact_external_contract_and_name_choose_explicit_language_and_variety ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/identity_ownership.rs (/home/dancxjo/conduit/target/debug/deps/identity_ownership-02c51425fdc9b95a)
+
+running 2 tests
+test language_and_variety_are_distinct_and_relationship_is_explicit ... ok
+test non_latin_text_and_occurrences_use_the_same_native_contracts ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/lexical.rs (/home/dancxjo/conduit/target/debug/deps/lexical-ef94cc6194a3f582)
+
+running 6 tests
+test unicode_runs_are_honest_unknown_units_not_segmented_language_claims ... ok
+test words_are_whole_and_lexical_ambiguity_is_profile_data ... ok
+test foreign_source_profiles_and_duplicate_data_refuse ... ok
+test stable_complete_occurrences_correspond_across_exact_revisions ... ok
+test scalar_spans_bounds_and_stale_source_are_checked ... ok
+test lexical_schemas_are_available_through_installed_catalog ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s
+
+     Running tests/mapping_projection.rs (/home/dancxjo/conduit/target/debug/deps/mapping_projection-b42ed92909a2d9e2)
+
+running 1 test
+test provider_private_identity_reports_declared_mapping_and_unknowns_remain_insufficient ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/native_info_family.rs (/home/dancxjo/conduit/target/debug/deps/native_info_family-24f494f838bdf9c9)
+
+running 2 tests
+test complete_linguistic_family_is_owned_by_native_types ... ok
+test text_span_round_trips_and_refuses_empty_identity ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/native_offset_basis.rs (/home/dancxjo/conduit/target/debug/deps/native_offset_basis-596b192ad816c7b4)
+
+running 1 test
+test native_offset_basis_owns_catalog_identity_and_round_trip ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/native_syntax_catalog.rs (/home/dancxjo/conduit/target/debug/deps/native_syntax_catalog-a86b6045a6e99fcc)
+
+running 1 test
+test language_owned_syntax_is_available_to_ordinary_authored_plots ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/parser_admission.rs (/home/dancxjo/conduit/target/debug/deps/parser_admission-ce9c5943e3f08898)
+
+running 2 tests
+test recursive_native_admission_refuses_forged_graph_and_foreign_basis ... ok
+test admitted_survivors_drive_the_source_agreement_graph ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 28.81s
+
+     Running tests/parser_availability_foundation.rs (/home/dancxjo/conduit/target/debug/deps/parser_availability_foundation-0c7c354bdadb6709)
+
+running 2 tests
+test source_availability_rejects_foreign_occurrence_revision_and_excess_extent ... ok
+test source_availability_keeps_incomplete_occurrences_out_and_finality_distinct ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.95s
+
+     Running tests/parser_beam.rs (/home/dancxjo/conduit/target/debug/deps/parser_beam-2cd9ec23724992f0)
+
+running 3 tests
+test pressure_cancellation_and_stability_gate_commitment ... ok
+test unprocessed_survivor_and_exact_basis_disagreement_prevent_stability ... ok
+test fixture_scores_preserve_ambiguous_graphs_until_survivors_agree ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 14.91s
+
+     Running tests/parser_catalog.rs (/home/dancxjo/conduit/target/debug/deps/parser_catalog-0ce0ecaa785b780a)
+
+running 1 test
+test symbolic_parser_schemas_are_admitted_through_the_installed_catalog ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.33s
+
+     Running tests/parser_graph.rs (/home/dancxjo/conduit/target/debug/deps/parser_graph-8f17f5cb4ec283fe)
+
+running 1 test
+test source_transition_graph_runs_under_ordinary_plan_and_play ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 35.83s
+
+     Running tests/parser_transition.rs (/home/dancxjo/conduit/target/debug/deps/parser_transition-b3fb15c910398e5e)
+
+running 6 tests
+test invalid_raw_graph_is_refused_by_native_and_source_admission ... ok
+test proposed_arc_that_closes_a_cycle_is_refused ... ok
+test headless_shift_can_receive_a_left_arc_before_input_end ... ok
+test root_vocative_and_reduce_are_source_owned_transitions ... ok
+test commitment_and_finite_token_bounds_refuse_mutation ... ok
+test illegal_or_stale_proposals_preserve_state ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 10.07s
+
+     Running tests/projection_report.rs (/home/dancxjo/conduit/target/debug/deps/projection_report-051e3c3f2ce72af5)
+
+running 1 test
+test external_unknown_alignment_and_cost_remain_visible_and_strict_refuses ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/prosody.rs (/home/dancxjo/conduit/target/debug/deps/prosody-7f8b73180d5a121b)
+
+running 6 tests
+test punctuation_and_uncompleted_words_are_not_admitted_as_word_prosody ... ok
+test symbolic_pitch_intent_is_rate_independent_and_accepted_by_language ... ok
+test same_identifier_with_different_source_material_and_foreign_language_refuse ... ok
+test prosody_schemas_install_without_changing_identity_family ... ok
+test punctuation_is_not_the_rich_selection_basis_and_foreign_occurrences_refuse ... ok
+test exact_vocative_bases_select_profile_data_in_all_three_positions ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.37s
+
+     Running tests/revision.rs (/home/dancxjo/conduit/target/debug/deps/revision-82d279c3941682a8)
+
+running 1 test
+test garden_path_revises_stabilizes_commits_and_corrects_without_erasure ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/revision_lineage.rs (/home/dancxjo/conduit/target/debug/deps/revision_lineage-91ef40ed1825bb45)
+
+running 6 tests
+test source_sequence_is_exact_above_float_precision_and_refuses_overflow ... ok
+test metadata_lineage_does_not_authorize_rewriting_a_stable_scalar_prefix ... ok
+test lineage_schema_is_admitted_through_installed_catalog ... ok
+test source_refuses_foreign_identity_or_language ... ok
+test source_admits_exact_unchanged_material_and_whole_revision_advance ... ok
+test source_refuses_missing_foreign_stale_and_reused_revision_metadata ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+     Running tests/shared_catalog.rs (/home/dancxjo/conduit/target/debug/deps/shared_catalog-e1ab04c559154b04)
+
+running 2 tests
+test conflicting_namesake_and_value_alias_cannot_replace_the_owner_schema ... ok
+test shared_request_registration_is_idempotent_before_the_language_catalog ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/source_material.rs (/home/dancxjo/conduit/target/debug/deps/source_material-4b80a7f7fc43eab8)
+
+running 3 tests
+test byte_basis_is_converted_exactly_and_a_split_utf8_scalar_refuses ... ok
+test stale_source_revision_and_wrong_language_are_distinct_refusals ... ok
+test non_latin_particle_and_word_order_use_shared_source_tokens_and_dependency_contracts ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+     Running tests/text_revision.rs (/home/dancxjo/conduit/target/debug/deps/text_revision-330157c9f3550935)
+
+running 4 tests
+test finality_and_stability_do_not_commit_or_bypass_finite_tail ... ok
+test exact_prior_and_sequence_are_required ... ok
+test refused_or_unpublished_candidates_preserve_previous_material ... ok
+test revisions_grow_and_revise_before_finality_on_scalar_basis ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/universal_dependencies.rs (/home/dancxjo/conduit/target/debug/deps/universal_dependencies-2055ffb08bdbde69)
+
+running 2 tests
+test universal_bases_have_exact_native_vocabulary_and_round_trip ... ok
+test subtypes_are_explicit_bounded_native_suffixes_and_catalog_types_check ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+

@@ -1,0 +1,28 @@
+{
+  "tested_source_commit": "fb2ffdb591be15fceeb47ff8f0a713de4ea6c7f8",
+  "publication_delta": "evidence-only; implementation and Cargo files unchanged from tested source commit",
+  "logs": {
+    "tests-missing-export.log": {
+      "sha256": "663908c7042a261bba14daa94d8dddfbc650f88638e5acb3e1b431dd975efc4f",
+      "bytes": 5298
+    },
+    "tests.log": {
+      "sha256": "03f5715281a408ca0db35ecb1699c945193581e14e506e4529ab3eb52994aeb2",
+      "bytes": 1868
+    },
+    "clippy.log": {
+      "sha256": "fd5164c95c1d3d1de30e0840de0f31995e85a1652959736e8b5b32d67a9e0824",
+      "bytes": 3796
+    },
+    "hosted-clippy.log": {
+      "sha256": "5afacaa13337c13ce48d4e38df4efdffe6f4c0822eaa2cb9107aaf4959b1dd57",
+      "bytes": 8999
+    },
+    "fmt-final.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    }
+  },
+  "failed_probe": "tests-missing-export.log precedes corrected MODEL_READ_AUTHORITY reexport; retained as failure, not passing proof",
+  "coverage": "tests.log contains six categorical Step Back/scheduler and four immutable artifact tests; extra zero-match filtered unit compile is not runtime coverage"
+}

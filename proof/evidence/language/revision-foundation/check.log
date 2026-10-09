@@ -1,0 +1,5 @@
+   Compiling conduit-assigned-plan v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/architecture/assigned-plan)
+    Checking conduit-core v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/architecture/core)
+    Checking conduit-plot v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/architecture/plot)
+   Compiling conduit-language v0.1.0 (/home/dancxjo/conduit-5196-revision-foundation/semantics/language)
+    Finished `dev` profile [unoptimized] target(s) in 26.32s
