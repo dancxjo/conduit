@@ -8,12 +8,14 @@ use super::{
 };
 use sha2::{Digest, Sha256};
 
-mod leaf_sequence;
 mod collection_iter;
+mod leaf_sequence;
 pub use collection_iter::ValidatedCanonicalCollectionIter;
 mod nominal;
 mod projection;
 mod record;
+mod record_access;
+pub use record_access::PreparedCanonicalRecordAccess;
 mod shape_observation;
 mod validated_extent;
 

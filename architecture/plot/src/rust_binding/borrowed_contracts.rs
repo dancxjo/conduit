@@ -11,13 +11,25 @@ pub fn validate_borrowed_native_contracts(
     value: ValidatedCanonicalStructuredValue<'_>,
     contracts: &[NativeTypeValueContract],
 ) -> Result<(), NativeBindingRefusal> {
+    validate_borrowed_native_contracts_with_record_access(value, contracts, None)
+}
+
+pub(super) fn validate_borrowed_native_contracts_with_record_access(
+    value: ValidatedCanonicalStructuredValue<'_>,
+    contracts: &[NativeTypeValueContract],
+    access: Option<&conduit_core::PreparedCanonicalRecordAccess<'static>>,
+) -> Result<(), NativeBindingRefusal> {
     for contract in contracts {
-        validate_at_path(value, &contract.representation_path, &contract.contract).map_err(
-            |refusal| NativeBindingRefusal::ViolatedConstraint {
-                representation_path: contract.representation_path.clone(),
-                refusal,
-            },
-        )?;
+        validate_at_path(
+            value,
+            &contract.representation_path,
+            &contract.contract,
+            access,
+        )
+        .map_err(|refusal| NativeBindingRefusal::ViolatedConstraint {
+            representation_path: contract.representation_path.clone(),
+            refusal,
+        })?;
     }
     Ok(())
 }
@@ -26,6 +38,7 @@ fn validate_at_path(
     mut value: ValidatedCanonicalStructuredValue<'_>,
     path: &str,
     contract: &CheckedValueContract,
+    access: Option<&conduit_core::PreparedCanonicalRecordAccess<'static>>,
 ) -> Result<(), ValueConstraintRefusal> {
     let wrong = || ValueConstraintRefusal::WrongConstraintKind;
     // Owned values expose the nominal representation shape directly.
@@ -39,7 +52,7 @@ fn validate_at_path(
     if let Some(rest) = path.strip_prefix("[]") {
         for item in value.collection_elements().map_err(|_| wrong())? {
             let item = item.map_err(|_| wrong())?;
-            validate_at_path(item, rest, contract)?;
+            validate_at_path(item, rest, contract, None)?;
         }
         return Ok(());
     }
@@ -50,18 +63,20 @@ fn validate_at_path(
                 .variant_payload("some")
                 .map_err(|_| wrong())?
                 .ok_or_else(wrong)?;
-            validate_at_path(payload, rest, contract)
+            validate_at_path(payload, rest, contract, None)
         } else {
             Ok(())
         };
     }
     if let Some(rest) = path.strip_prefix('.') {
         let (name, remaining) = split_component(rest);
-        let field = value
-            .record_field(name)
-            .map_err(|_| wrong())?
-            .ok_or_else(wrong)?;
-        return validate_at_path(field, remaining, contract);
+        let field = match access {
+            Some(access) if value.type_bytes().first() == Some(&2) => access.field(value, name),
+            _ => value.record_field(name),
+        }
+        .map_err(|_| wrong())?
+        .ok_or_else(wrong)?;
+        return validate_at_path(field, remaining, contract, None);
     }
     if let Some(rest) = path.strip_prefix('|') {
         let (wanted, remaining) = split_component(rest);
@@ -71,7 +86,7 @@ fn validate_at_path(
                 .variant_payload(wanted)
                 .map_err(|_| wrong())?
                 .ok_or_else(wrong)?;
-            validate_at_path(payload, remaining, contract)
+            validate_at_path(payload, remaining, contract, None)
         } else {
             Ok(())
         };
@@ -149,6 +164,12 @@ mod tests {
         .unwrap();
         let encoded = value.canonical_bytes().unwrap();
         let borrowed = validate_canonical_structured_value(&encoded).unwrap();
+        let recipe_type: &'static [u8] =
+            alloc::boxed::Box::leak(ty("Wrapper").canonical_bytes().unwrap().into_boxed_slice());
+        let bound =
+            conduit_core::PreparedCanonicalRecordAccess::storage_bound(recipe_type).unwrap();
+        let recipe =
+            conduit_core::PreparedCanonicalRecordAccess::prepare(recipe_type, bound).unwrap();
         for path in [
             ".choice?some.values[]",
             ".choice|some.values[]",
@@ -171,6 +192,15 @@ mod tests {
                     )
                     .unwrap(),
                 }];
+                assert_eq!(
+                    validate_borrowed_native_contracts_with_record_access(
+                        borrowed,
+                        &contracts,
+                        Some(&recipe)
+                    ),
+                    validate_borrowed_native_contracts(borrowed, &contracts),
+                    "prepared {path}"
+                );
                 assert_eq!(
                     validate_borrowed_native_contracts(borrowed, &contracts),
                     super::super::validate_native_contracts(&value, &contracts),

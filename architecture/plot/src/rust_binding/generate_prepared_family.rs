@@ -246,7 +246,7 @@ fn emit_converter(
                 .transpose()?
                 .unwrap_or_else(|| fields.iter().collect());
             for (index, field) in fields.iter().enumerate() {
-                writeln!(out, "        let __conduit_prepared_field_{index} = {};", decode(field.value_type(), &format!("value.record_field({:?}).map_err(NativeBindingRefusal::InvalidValue)?.ok_or(NativeBindingRefusal::InvalidValue(conduit_core::StructuredInfoRefusal::WrongType))?", field.name()), names)?).unwrap();
+                writeln!(out, "        let __conduit_prepared_field_{index} = {};", decode(field.value_type(), &format!("family.record_field(Self::PREPARED_DESCRIPTOR, value, {:?})?.ok_or(NativeBindingRefusal::InvalidValue(conduit_core::StructuredInfoRefusal::WrongType))?", field.name()), names)?).unwrap();
             }
             writeln!(out, "        family.validate(Self::PREPARED_DESCRIPTOR, value)?;\n        Ok(Self {{ {} }})", fields.iter().enumerate().map(|(index, field)| Ok(format!("{}: __conduit_prepared_field_{index}", rust_snake_identifier(field.name())?))).collect::<Result<Vec<_>, Error>>()?.join(", ")).unwrap();
         }
