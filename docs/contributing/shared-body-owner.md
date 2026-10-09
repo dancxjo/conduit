@@ -34,13 +34,23 @@ declaration through [the runtime speech entrance](../proof/runtime-speech.md). T
 reinstalls. Each fresh Boot rechecks the selected equipment and provider
 before publishing a runtime marker or admitting a Body. If they are absent or
 changed, startup fails explicitly. Reinstall with a new selection to recover,
-or use `--without-selected-speech` to remove it. Omit both selection flags to
+or use `--without-selected-speech` to remove it. Omit all speech selection flags to
 preserve the installed choice. Use an isolated state directory when trying
 this development entrance; a running service is not reconfigured in place.
-The selected voice Boot also reserves one create-new WAV destination under
-`spoken-artifacts/` for a direct spoken Show. A second retained audio artifact
-requires a fresh Boot until per-Play destinations are admitted; the speaker
-route remains subject to its current availability and playback checks.
+
+For synthesis into retained WAV artifacts, choose `--selected-artifact-speech`
+with the same explicit executable, data, engine and Language coverage arguments.
+This mode requires no speaker card or device and is mutually exclusive with
+`--selected-speech`. Each fresh Boot verifies the exact provider before offering
+voice and artifact Backs. Direct spoken Show admission and acknowledgement still
+use the Owner's ordinary Face and Mask route. The WAV proves synthesis; this mode
+records no device playback or human listening. The current `read remaining`
+playback entrance still requires a selected speaker.
+
+The selected voice Boot admits a finite pool of 64 create-new, per-Play WAV
+artifacts under `spoken-artifacts/`. Each admitted Play uses its own exact
+artifact destination; a physical speaker route separately checks current device
+availability and playback authority.
 
 An already local Ollama model can be offered by that same installed Host Boot:
 add `--selected-model MODEL --model-endpoint http://127.0.0.1:11434
@@ -160,6 +170,22 @@ cleanup failure. An untyped Host admission refusal is retained as such; it does
 not invent typed resource evidence or a Play. The last receipt is historical
 on reopen. Fresh Boot recovery preserves the Body and marks interrupted
 realization honestly; it never restarts an old Play.
+
+A committed Todo Face revalidates successful write/read terminal Signs against
+both exact Plays, the restored state digest, selected content version and the
+complete read residence (Host, Boot, base and profile). It also requires the
+current canonical read Back and its authority requirements. A semantic content
+contract alone grants no authority. Read failures retain the actual typed kernel
+failure/detail and expose finite `todo-committed-*` refusal codes, including distinct
+missing, corrupt, inaccessible and storage-unavailable outcomes; diagnostic prose
+is retained separately. Changing an unrelated Mask offer generation preserves a
+valid immutable checkpoint witness.
+
+The local JSON control envelope admits at most 2 MiB, including a browser
+admission snapshot containing both Host advertisements. Remote session frames
+and payloads retain their separate 512 KiB ceiling. A rejected JSON client frame
+or failed response leaves the retained Owner service running; no action is
+replayed after a transport failure.
 
 Biography, installation binding, and bounded execution receipt are published
 through a recoverable journal. Invalid or corrupt retained state is refused,

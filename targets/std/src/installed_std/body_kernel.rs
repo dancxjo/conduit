@@ -52,6 +52,7 @@ pub(crate) struct BodyKernel<'a> {
 pub(crate) struct BodyKernelResult {
     pub terminal: TerminalDisposition,
     pub failure: Option<String>,
+    pub kernel_failure: Option<Failure>,
     pub cleanup_failure: Option<String>,
     pub partitions: Vec<KernelIdentityMap>,
     pub requests: Vec<HostCallRequest>,
@@ -507,6 +508,7 @@ impl<'a> BodyKernel<'a> {
         );
         let mut deadlines = super::deadline_host::InstalledDeadlineHost::<PENDING_REQUESTS>::new();
         let mut clock_quality = admitted_clock_quality;
+        let mut kernel_failure = None;
         let result = (|| -> Result<TerminalDisposition, String> {
             let mut cancelling = false;
             loop {
@@ -961,10 +963,12 @@ impl<'a> BodyKernel<'a> {
                         )
                         .map_err(|error| format!("Body Host completion: {error:?}"))?;
                 }
-                let status = self
-                    .scheduler
-                    .step()
-                    .map_err(|error| format!("Body kernel: {error:?}"))?;
+                let status = self.scheduler.step().map_err(|error| {
+                    if let conduit_kernel::scheduler::SchedulerError::BackFailed(failure) = error {
+                        kernel_failure = Some(failure);
+                    }
+                    format!("Body kernel: {error:?}")
+                })?;
                 self.clock_observations.capture_new(
                     self.scheduler.signs().events(),
                     clock,
@@ -1060,6 +1064,7 @@ impl<'a> BodyKernel<'a> {
         BodyKernelResult {
             terminal,
             failure,
+            kernel_failure,
             cleanup_failure,
             partitions: self.partitions,
             requests: self.requests,

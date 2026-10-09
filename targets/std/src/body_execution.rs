@@ -73,6 +73,8 @@ pub struct BodyRunReport {
     /// Kernel execution disposition; cleanup may independently fail afterward.
     pub terminal: TerminalDisposition,
     pub failure: Option<String>,
+    /// Exact kernel Back failure, preserved independently of human diagnostics.
+    pub kernel_failure: Option<conduit_kernel::Failure>,
     pub cleanup_failure: Option<String>,
     pub terminal_sign: SignIdentity,
     pub partitions: Vec<KernelIdentityMap>,
@@ -474,6 +476,7 @@ impl StdHost {
                 wake_at_start,
                 terminal: result.terminal,
                 failure: result.failure,
+                kernel_failure: result.kernel_failure,
                 cleanup_failure: result.cleanup_failure,
                 terminal_sign,
                 partitions: result.partitions,
