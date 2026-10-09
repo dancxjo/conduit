@@ -64,6 +64,12 @@ exact supplied definition resolved against a complete checked inventory/basis;
 Equal-looking IPA never proves identity, membership, commitment or playback.
 Decoding a Native candidate alone does not establish inventory admission.
 
+Downstream #5261/#5273 consumers must carry or reconstruct admission against the
+original complete immutable inventory, not infer authority from matching encoded
+inventory IDs, revision, variety or bindings. Preserve the opaque prepared scope
+and executed admission receipt across that handoff. A decoded transcription is
+only a candidate until that independent domain check succeeds.
+
 The representation differences include request grouping, wrapper names and span
 layout. The semantic differences include Value versus closing Flow, Source or
 preparation refusal versus a runtime refused outcome, explicit universal profile
@@ -108,6 +114,12 @@ replayed onto that merge commit; its complete tree is identical to the tested
 head. The ordinary PR continues to target `dev`. Further changes to `dev`
 must be assessed before admission.
 
+Following the owner's COMMENT review, `dev` advanced through #5322 to
+`002bf4b0d7239bb4675645e5ea45c8c92c0fc71b`. The IPA stack was replayed onto
+that head, retaining both Todo durability and Speech IPA xtask dispatch entries.
+The original identical-tree receipt remains historical evidence for its pinned
+head; review follow-up proof and required CI must identify the newer candidate.
+
 Reuse #5327's useful Unicode/inventory refusal scenarios and its native-speech
 offer-fixture repair insight as attributable regression coverage. Preserve its
 original `proof/speech/unicode-ipa/receipt.json` and `final-gates-result.json`
@@ -131,6 +143,15 @@ delivery. Nine existing environment-dependent std tests are ignored; none are
 IPA tests. Strict affected-package all-target Clippy, workspace Rust formatting
 and 11 CI foundation regressions pass separately. This is not a full workspace
 Clippy or audio playback claim.
+
+The review at `bd2d0abc3` identified independently maintained finite spelling
+lists. `ipa_unicode::parity_tests` now structurally compares the complete parsed
+closed equality laws for `SpeechPhoneNotation` and every unit kind with the Rust
+whitelist, including rejection of broadened law shapes. A second test exercises
+all supported spellings, all five unit kinds, marks, unsupported/provider codes
+and perturbations of every segment through the Rust phone parser and both Native
+entrances. These tests run in the supported suite's Speech library stage; their
+new-head results must be recorded separately from the earlier 1,121-test packet.
 
 Delayed/duplicate Host completions are inapplicable because these selected Backs
 have no HostCall slots; ordinary Value duplicate/terminal behavior is tested.

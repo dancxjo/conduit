@@ -27,6 +27,10 @@ pub(crate) fn supported_unit(spelling: &str, kind: UnitKind) -> bool {
     }
 }
 #[cfg(test)]
+#[path = "ipa_unicode/parity_tests.rs"]
+mod parity_tests;
+
+#[cfg(test)]
 mod tests {
     use super::*;
     #[test]
