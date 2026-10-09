@@ -92,21 +92,21 @@ original composed or decomposed spelling and evidence.
 
 ## Integration and custody
 
-One owner changes the four public Kinds through #5319. Both competing PRs remain
-draft under #5329. Recovery refs preserve the selected `25ae8f84f` and competing
+One owner changes the four public Kinds through #5319. #5329 requires approved
+acceptance before either candidate leaves draft. Recovery refs preserve the selected `25ae8f84f` and competing
 `7a5a5788b` heads; #5327's later test-only repair stays on its origin branch.
 The original #5273 common-intent source `6806f08fbb07723237441b97c93cebf5d1e72138`
 and nominal projection fix `7817ee6098f85b996f44ade54ce5195d588eee96` are retained
 and attributed in the reuse ledger. The rest of #5273's session/render/playback
 stack remains separate work; selecting this API does not absorb or close it.
 
-The integration sequence is to replay only #5319's reviewed IPA delta onto the
-consolidated #5208 foundation `0acf94d2f105c45b95e0e0b60def7c6bbfaa832e`, resolving
-the shared Plot evaluator/catalog seams while retaining both sets of behavior.
-That gives one linear IPA commit stack above the foundation. The ordinary PR
-continues to target `dev`; #5208 must land, and any later `dev` changes must be
-reconciled before final proof. This document pins comparison inputs; the final
-combined head and regenerated identities must be recorded separately.
+The canonical IPA delta was replayed onto the consolidated #5208 foundation
+`91193940b78dd8a9e0446a620507d0a62dcf67a9`, retaining the foundation's nominal
+evaluator/catalog fixes and both sets of regression coverage. #5208 then landed
+in `dev` at `33b85c2c45ddf5c903ef554e3c7f96570e721acd`. The linear IPA stack was
+replayed onto that merge commit; its complete tree is identical to the tested
+head. The ordinary PR continues to target `dev`. Further changes to `dev`
+must be assessed before admission.
 
 Reuse #5327's useful Unicode/inventory refusal scenarios and its native-speech
 offer-fixture repair insight as attributable regression coverage. Preserve its
@@ -117,17 +117,26 @@ They do not prove the selected API or justify retaining the redundant call.
 Likewise #5319's 454-test supported suite, Thumb compile, strict affected-package
 Clippy and 16 final diagnostic/lint regressions are baseline evidence only.
 
-## Remaining proof and authoring work
+## Local proof and remaining acceptance
 
-The final head must run all four Source → check → prepare → actual std Plan →
-normal kernel → independently re-admitted Native journeys, full relevant std
-regressions (including installed offer enumeration), Speech/Plot/product
-human+JSON diagnostics, strict Clippy and no_std checking. Add any missing
-escaped quote/backslash, multiscalar span, counterfeit/legacy schema and complete
-inventory refusal cases. Prove exact offers, finite limits, pressure, cancellation
-and one delivery. Delayed/duplicate Host completions are inapplicable because
-these selected Backs have no HostCall slots; ordinary Value duplicate/terminal
-behavior still needs coverage. CI must finish on the final combined head.
+The [local proof packet](../../proof/speech/ipa-reconciliation/README.md) pins
+tested head `bee5007b966dfadda297061e5b2876eb56aae438`, commands, source hashes,
+terminal logs and unchanged generated Native identities. The supported suite
+passes 1,121 tests across 25 test targets and Thumb no_std compilation. It covers
+all four Source → check → prepare → actual std Plan → kernel → independently
+re-admitted Native journeys, the complete std library and offer enumeration,
+Speech/Plot/product human+JSON diagnostics, escaped source/provenance, foreign
+schemas and inventory refusals, exact offers, pressure, cancellation and one
+delivery. Nine existing environment-dependent std tests are ignored; none are
+IPA tests. Strict affected-package all-target Clippy, workspace Rust formatting
+and 11 CI foundation regressions pass separately. This is not a full workspace
+Clippy or audio playback claim.
+
+Delayed/duplicate Host completions are inapplicable because these selected Backs
+have no HostCall slots; ordinary Value duplicate/terminal behavior is tested.
+The later proof/documentation commit changes no executable inputs. Required
+exhaustive CI, approval and accepted integration remain open gates; local proof
+does not satisfy them.
 
 #5330 follows with one reusable explicit checked basis through existing typed
 parameters/imports. #5317 owns the proposed `ph[…]`, `ph/…/` and `r/…/flags`
