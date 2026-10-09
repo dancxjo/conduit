@@ -115,7 +115,10 @@ It requires the acknowledged direct Show, current route seal and selected equipm
 missing acknowledgement, stale Face or changed Host offers refuse. It reads primary
 items, leaving completed items at inspection disclosure, and retains the original
 Face and Show identities. An empty selection uses the reader's “No current items.”
-response. Execution admits at most 64 speech batches. Status records the
+response. This installed operation reads the complete primary-item stream; the
+interactive reader's `read remaining` and `more items` commands request three-item
+pages from the same primary selection. Both retain the exact Face basis and
+exclude completed inspection content. Execution admits at most 64 speech batches. Status records the
 `remaining-items` scope and actual completed batch receipts; cancellation restores
 the owner's Host. Admission and text selection tests do not establish audible
 speaker delivery.

@@ -137,7 +137,7 @@ fn direct_remaining_cancellation_restores_same_host_without_provider_effect() {
 }
 
 #[test]
-fn remaining_scope_reads_actual_todo_primary_items_without_completed_inspection() {
+fn remaining_scope_and_pages_select_the_same_actual_todo_primary_items() {
     use conduit_core::{ActivePlayId, CheckedPlotId, ExpandedPlotId, PlanId, SourceDocumentId};
     use conduit_presentation::{PresentationBasis, PresentationContributionBasis};
     use conduit_todo_plot::{TodoItem, TodoState};
@@ -151,7 +151,7 @@ fn remaining_scope_reads_actual_todo_primary_items_without_completed_inspection(
             .map(|id| TodoItem {
                 id: format!("task-{id}"),
                 text: format!("Current task {id:02}"),
-                complete: id > 3,
+                complete: id > 7,
             })
             .collect(),
     };
@@ -188,6 +188,24 @@ fn remaining_scope_reads_actual_todo_primary_items_without_completed_inspection(
     .unwrap();
     let prepared = host.prepare_direct_spoken_mask(&face).unwrap();
     let show = fixture_show(&face, &prepared.planned_mask);
+    let mut cursor = conduit_std_host::spoken_face_mask::SpokenItemCursor::new(&face).unwrap();
+    let mut page_sizes = Vec::new();
+    let mut paged_items = Vec::new();
+    loop {
+        let page = cursor.next_page(&face).unwrap();
+        page_sizes.push(page.subject_ids.len());
+        paged_items.extend(page.clauses);
+        if !page.more {
+            break;
+        }
+    }
+    assert_eq!(page_sizes, [3, 3, 1]);
+    assert_eq!(
+        paged_items,
+        (1..=7)
+            .map(|id| format!("Current task {id:02}, item."))
+            .collect::<Vec<_>>()
+    );
     let mut reader = SpokenFaceSession::new(face.clone(), show.clone()).unwrap();
     reader
         .command(&face, &show, ReadingScope::RemainingItems.command(), 1)
@@ -196,13 +214,13 @@ fn remaining_scope_reads_actual_todo_primary_items_without_completed_inspection(
     assert_eq!(readout.face_id, face.identity.as_str());
     assert_eq!(readout.show_id, show.show_id.as_str());
     let readout = readout.clauses.join(" ");
-    for id in 1..=3 {
+    for id in 1..=7 {
         assert!(
             readout.contains(&format!("Current task {id:02}")),
             "{readout}"
         );
     }
-    for id in 4..=20 {
+    for id in 8..=20 {
         assert!(
             !readout.contains(&format!("Current task {id:02}")),
             "{readout}"
