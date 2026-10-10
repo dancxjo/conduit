@@ -83,15 +83,29 @@ pub(super) fn initialized_structured_state(
                 )
             })?
     } else {
-        let Some(CanonicalStartupValue::Structured(initial)) = retained.initial.as_ref() else {
-            return Ok(None);
-        };
-        initial.try_concrete().ok_or_else(|| {
-            CanonicalExpansionDiagnostic::new(
-                "CND-FRM-039",
-                "retained structured initializer remains unresolved".into(),
-            )
-        })?
+        match retained.initial.as_ref() {
+            Some(CanonicalStartupValue::Structured(initial)) => {
+                initial.try_concrete().ok_or_else(|| {
+                    CanonicalExpansionDiagnostic::new(
+                        "CND-FRM-039",
+                        "retained structured initializer remains unresolved".into(),
+                    )
+                })?
+            }
+            Some(CanonicalStartupValue::Quantity(quantity)) => {
+                conduit_core::StructuredInfoValue::leaf(
+                    retained.value_type.clone(),
+                    quantity.value().encode().to_vec(),
+                )
+                .map_err(|_| {
+                    CanonicalExpansionDiagnostic::new(
+                        "CND-FRM-041",
+                        "retained quantity initializer does not match its exact type".into(),
+                    )
+                })?
+            }
+            _ => return Ok(None),
+        }
     };
     let canonical = concrete.canonical_bytes().map_err(|_| {
         CanonicalExpansionDiagnostic::new(

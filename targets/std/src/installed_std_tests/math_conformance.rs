@@ -142,7 +142,10 @@ fn quantity_range_and_quantization_refusals_reach_the_production_kernel() {
             conduit_std_offers::QUANTITY_MAP_IMPLEMENTATION
         );
         assert_eq!(mapping.host_calls[0].maximum_input_bytes, 8);
-        assert_eq!(mapping.host_calls[0].maximum_output_bytes, 9);
+        assert_eq!(
+            mapping.host_calls[0].maximum_output_bytes,
+            conduit_core::QUANTITY_ENCODED_LEN as u32
+        );
         let mut output = Vec::new();
         let mut timer = RecordingTimer { waits: Vec::new() };
         let report = host
@@ -222,7 +225,7 @@ fn run_presented_quantity(source: &str, entry: &str) -> (conduit_core::Plan, cra
             let bytes = if cord.value_kind.as_str() == conduit_core::SCALAR_INFO_ID {
                 8
             } else if cord.value_kind.as_str() == conduit_core::QUANTITY_INFO_ID {
-                9
+                conduit_core::QUANTITY_ENCODED_LEN as u32
             } else {
                 conduit_semantic_catalog::QUANTITY_INFO_MAXIMUM_BYTES as u32
             };
@@ -261,7 +264,7 @@ fn run_presented_quantity(source: &str, entry: &str) -> (conduit_core::Plan, cra
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),
             connection_item_capacity: 1,
-            connection_byte_capacity: conduit_semantic_catalog::QUANTITY_INFO_MAXIMUM_BYTES as u32,
+            connection_byte_capacity: SCALAR_ENCODED_LEN as u32,
             authority_grants: &[],
             protected_resource_grants: &[],
             line_offers: &[],

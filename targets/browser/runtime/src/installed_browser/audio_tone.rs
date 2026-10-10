@@ -230,11 +230,19 @@ impl<const PORTS: usize> StepBack<PORTS> for AudioToneBack {
 }
 
 fn frequency_millihertz(value: Quantity) -> Option<i128> {
-    value.to_i64(Unit::Millihertz).ok().map(i128::from)
+    let converted = value.convert(Unit::Millihertz).ok()?;
+    let coefficient = converted.coefficient();
+    let exponent = converted.exponent();
+    if exponent >= 0 {
+        coefficient.checked_mul(10_i128.checked_pow(exponent as u32)?)
+    } else {
+        let divisor = 10_i128.checked_pow(u32::from(exponent.unsigned_abs()))?;
+        (coefficient % divisor == 0).then_some(coefficient / divisor)
+    }
 }
 fn render(frequency: i128, phase: u32, start_frame: u64) -> Option<([u8; BLOCK_BYTES], u32)> {
-    let increment =
-        ((frequency << 32) / (i128::from(SAMPLE_RATE) * 1_000)).rem_euclid(1_i128 << 32) as u32;
+    let increment = (frequency.checked_mul(1_i128 << 32)? / (i128::from(SAMPLE_RATE) * 1_000))
+        .rem_euclid(1_i128 << 32) as u32;
     let header = PcmFrameHeader::new(
         PcmSampleRepresentation::Signed16LittleEndian,
         SAMPLE_RATE,

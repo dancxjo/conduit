@@ -11,7 +11,7 @@ fn quantity(source: &str) -> Quantity {
 fn exact_prefixed_pitch_and_time_feed_existing_bounded_synth_unchanged() {
     let expected_pitch = MusicalPitch::new(440_127, 440_000, 0).unwrap();
     let projected_pitch =
-        MusicalPitch::from_exact_quantities(quantity("0.440127kHz"), quantity("440000000µHz"), 0)
+        MusicalPitch::from_quantities(quantity("0.440127kHz"), quantity("440000000µHz"), 0)
             .unwrap();
     let mut expected = common::synth();
     let mut projected = common::synth();

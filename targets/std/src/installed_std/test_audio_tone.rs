@@ -431,7 +431,7 @@ pub(super) fn install_catalog(c: &mut ProfileCatalog) {
 fn source_budget(_: &PlannedGear) -> Result<BackBudget, String> {
     Ok(BackBudget {
         value_items: 2,
-        value_bytes: 18,
+        value_bytes: 2 * conduit_core::QUANTITY_ENCODED_LEN as u32,
         host_requests: 0,
         sign_items: 16,
         maximum_value_bytes: conduit_core::QUANTITY_ENCODED_LEN as u32,

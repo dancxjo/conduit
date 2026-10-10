@@ -333,7 +333,9 @@ plot pack (
 plot relay (
  >> input: Envelope
  output: Envelope >>
-) { input >> (.) >> output }
+) {
+ input >> (.) >> output
+}
 plot unpack (
  >> input: Envelope
  output: Unit >>

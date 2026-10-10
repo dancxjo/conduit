@@ -144,7 +144,10 @@ fn authored_quantities_survive_plan_play_sign_and_typed_presentation() {
         .expect("typed Presentation inspects the runtime Sign");
     assert!(artifact.presentation.properties.iter().any(|property| {
         property.name == "quantity-unit"
-            && property.value == PresentationPropertyValue::Identity("time/millisecond".into())
+            && property.value
+                == PresentationPropertyValue::Identity(
+                    conduit_core::Unit::Millisecond.semantic_id().into(),
+                )
     }));
     assert!(artifact.presentation.properties.iter().any(|property| {
         property.name == "quantity-unit"
