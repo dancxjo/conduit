@@ -2,6 +2,7 @@
 mod export_names;
 #[cfg(test)]
 mod notation_tests;
+mod shipped_notations;
 mod shipped_types;
 use export_names::*;
 

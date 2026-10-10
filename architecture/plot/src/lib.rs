@@ -35,6 +35,8 @@ mod expression_program_decode;
 mod expression_proof;
 mod expression_semantic_call;
 mod functional_front;
+#[cfg(test)]
+mod glyph_notation_test_support;
 mod integer_literal;
 mod native_type;
 mod package_bundle;

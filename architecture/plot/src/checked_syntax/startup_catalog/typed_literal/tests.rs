@@ -1,67 +1,7 @@
 use super::*;
-use conduit_core::{
-    kind_id, port_id, CapabilityLimits, Kind, KindSemanticLaw, KindTerminalBehavior,
-    PortDescriptor, PortDirection,
-};
+use conduit_core::kind_id;
 
-pub(super) fn fixture() -> (StartupCatalog, crate::ProfileCatalog, TypedLiteralFamily) {
-    let document =
-        crate::parse_syntax_document("type FixtureLiteral = {\n    payload: Text <= 64B\n}\n");
-    let checked = crate::check_syntax_document(&document, &StartupCatalog::new()).unwrap();
-    let ty = &checked.native_types[0];
-    let mut startup = StartupCatalog::new();
-    startup
-        .insert_checked_native_type("FixtureLiteral", ty)
-        .unwrap();
-    startup
-        .insert(KindSignature {
-            kind: "fixture/literal".into(),
-            startup_parameters: vec![],
-        })
-        .unwrap();
-    let mut profile = crate::ProfileCatalog::new();
-    profile
-        .insert_kind(Kind {
-            kind_id: kind_id("fixture/literal"),
-            kind_contract_revision: KindIdentity::from("fixture/literal@1"),
-            startup_parameters: vec![],
-            shorthand: None,
-            inputs: vec![],
-            outputs: vec![PortDescriptor {
-                port_id: port_id("value"),
-                value_kind: ty.value_type.profile().unwrap().value_kind().clone(),
-                direction: PortDirection::Output,
-                temporal: PortTemporal::Value,
-                abnormal_kind: None,
-            }],
-            configuration: vec![],
-            semantic_laws: vec![KindSemanticLaw::Terminal(KindTerminalBehavior::EmitsOnce)],
-            limits: CapabilityLimits {
-                max_active_instances: 1,
-                max_queue_items: 1,
-                max_queue_bytes: 16384,
-            },
-        })
-        .unwrap();
-    let family = TypedLiteralFamily {
-        revision: "fixture/notation@1".into(),
-        origin: TypedLiteralFamilyOrigin {
-            package_content_digest: [7; 32],
-            module_path: "fixture/notation".into(),
-            source_document_id: document.source_document_id().clone(),
-        },
-        branches: vec![TypedLiteralBranch {
-            delimiter: TypedLiteralDelimiter::Slash,
-            lexical_policy: TypedLiteralLexicalPolicy::RawUnicode,
-            parser_contract: "fixture/parser@1".into(),
-            constructor_kind: kind_id("fixture/literal"),
-            constructor_revision: KindIdentity::from("fixture/literal@1"),
-            result_type: ty.value_type.clone(),
-            maximum_payload_bytes: 64,
-        }],
-    };
-    (startup, profile, family)
-}
+pub(super) use crate::glyph_notation_test_support::fixture;
 
 #[test]
 fn fixed_branches_retain_one_exact_constructor_and_output_type() {
