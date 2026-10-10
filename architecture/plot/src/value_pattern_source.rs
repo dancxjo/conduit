@@ -5,9 +5,21 @@ use crate::TextPatternExpression;
 
 const MAX_SCALAR: u32 = 0x10_ffff;
 
+/// Finite authored pattern payload admitted before recursive parsing.
+pub const MAXIMUM_TEXT_PATTERN_SOURCE_BYTES: usize = 4096;
+/// Shared recursion ceiling for groups and leading assertions.
+pub const MAXIMUM_TEXT_PATTERN_SOURCE_DEPTH: usize = 32;
+
+#[cfg(test)]
+mod tests;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TextPatternSourceError {
     Empty,
+    SourceLimitExceeded,
+    DepthLimitExceeded {
+        offset: usize,
+    },
     Unexpected {
         offset: usize,
         character: Option<char>,
@@ -29,8 +41,40 @@ pub enum TextPatternSourceError {
     },
 }
 
+impl TextPatternSourceError {
+    fn shifted(self, base: usize) -> Self {
+        match self {
+            Self::Empty | Self::SourceLimitExceeded => self,
+            Self::DepthLimitExceeded { offset } => Self::DepthLimitExceeded {
+                offset: base + offset,
+            },
+            Self::Unexpected { offset, character } => Self::Unexpected {
+                offset: base + offset,
+                character,
+            },
+            Self::UnclosedGroup { offset } => Self::UnclosedGroup {
+                offset: base + offset,
+            },
+            Self::UnclosedClass { offset } => Self::UnclosedClass {
+                offset: base + offset,
+            },
+            Self::EmptyClass { offset } => Self::EmptyClass {
+                offset: base + offset,
+            },
+            Self::InvalidRange { offset } => Self::InvalidRange {
+                offset: base + offset,
+            },
+            Self::InvalidRepeat { offset } => Self::InvalidRepeat {
+                offset: base + offset,
+            },
+        }
+    }
+}
+
 /// Parses Conduit's deliberately bounded regular-expression surface.
 ///
+/// Authored payloads are limited to 4096 bytes and 32 combined levels of groups
+/// and assertions before recursive parsing or automaton construction.
 /// This parses the expression inside a `~ /.../flags` relation. The expression
 /// itself compiles as an exact regular language; the relation's anchor profile
 /// then selects bounded search, prefix, suffix, or whole-value matching. The
@@ -41,27 +85,49 @@ pub enum TextPatternSourceError {
 /// lookahead is admitted when its product automaton fits the same bounds;
 /// interior assertions refuse instead of introducing a backtracking engine.
 pub fn parse_text_pattern(source: &str) -> Result<TextPatternExpression, TextPatternSourceError> {
+    if source.len() > MAXIMUM_TEXT_PATTERN_SOURCE_BYTES {
+        return Err(TextPatternSourceError::SourceLimitExceeded);
+    }
+    parse_with_depth(source, 0)
+}
+
+fn parse_with_depth(
+    source: &str,
+    depth: usize,
+) -> Result<TextPatternExpression, TextPatternSourceError> {
+    if depth > MAXIMUM_TEXT_PATTERN_SOURCE_DEPTH {
+        return Err(TextPatternSourceError::DepthLimitExceeded { offset: 0 });
+    }
     if source.is_empty() {
         return Err(TextPatternSourceError::Empty);
     }
     if source.starts_with("(?=") || source.starts_with("(?!") {
+        if depth == MAXIMUM_TEXT_PATTERN_SOURCE_DEPTH {
+            return Err(TextPatternSourceError::DepthLimitExceeded { offset: 0 });
+        }
         let negated = source.as_bytes()[2] == b'!';
         let assertion_end = leading_assertion_end(source)?;
-        let assertion = parse_text_pattern(&source[3..assertion_end])?;
+        let assertion = parse_with_depth(&source[3..assertion_end], depth + 1)
+            .map_err(|error| error.shifted(3))?;
         if assertion_end + 1 == source.len() {
             return Err(TextPatternSourceError::Unexpected {
                 offset: source.len(),
                 character: None,
             });
         }
-        let remainder = parse_text_pattern(&source[assertion_end + 1..])?;
+        let remainder = parse_with_depth(&source[assertion_end + 1..], depth + 1)
+            .map_err(|error| error.shifted(assertion_end + 1))?;
         return Ok(TextPatternExpression::PrefixAssertion {
             assertion: Box::new(assertion),
             remainder: Box::new(remainder),
             negated,
         });
     }
-    let mut parser = PatternParser { source, offset: 0 };
+    let mut parser = PatternParser {
+        source,
+        offset: 0,
+        depth,
+    };
     let expression = parser.choice()?;
     if parser.offset != source.len() {
         return Err(parser.unexpected());
@@ -98,6 +164,7 @@ fn leading_assertion_end(source: &str) -> Result<usize, TextPatternSourceError> 
 struct PatternParser<'a> {
     source: &'a str,
     offset: usize,
+    depth: usize,
 }
 
 impl PatternParser<'_> {
@@ -177,6 +244,10 @@ impl PatternParser<'_> {
         let offset = self.offset;
         match self.take() {
             Some('(') => {
+                if self.depth == MAXIMUM_TEXT_PATTERN_SOURCE_DEPTH {
+                    return Err(TextPatternSourceError::DepthLimitExceeded { offset });
+                }
+                self.depth += 1;
                 if self.source[self.offset..].starts_with("?:") {
                     self.offset += 2;
                 } else if self.source[self.offset..].starts_with("?<") {
@@ -197,6 +268,7 @@ impl PatternParser<'_> {
                 if self.take() != Some(')') {
                     return Err(TextPatternSourceError::UnclosedGroup { offset });
                 }
+                self.depth -= 1;
                 Ok(expression)
             }
             Some('[') => self.class(offset),
