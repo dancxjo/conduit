@@ -3,9 +3,15 @@ use conduit_plot::{
     check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
     ProfileCatalog, StartupCatalog,
 };
-#[test]
-fn original_commit_source_checks_and_expands_on_current_language_contracts() {
-    let source = [
+#[path = "common/commit_fixture.rs"]
+mod commit_fixture;
+#[path = "common/parser_fixture.rs"]
+mod fixture;
+#[path = "common/parser_kernel.rs"]
+mod parser_kernel;
+
+fn original_commit_source() -> String {
+    [
         include_str!("../types.conduit"),
         include_str!("../identity.conduit"),
         include_str!("../coverage.conduit"),
@@ -26,7 +32,12 @@ fn original_commit_source_checks_and_expands_on_current_language_contracts() {
         include_str!("common/commit_source/parser_session_dependency.conduit"),
         include_str!("common/commit_source/parser_session_facts.conduit"),
     ]
-    .join("\n");
+    .join("\n")
+}
+
+#[test]
+fn original_commit_source_checks_and_expands_on_current_language_contracts() {
+    let source = original_commit_source();
     let syntax = parse_syntax_document(&source);
     assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);
     let checked = check_syntax_document(&syntax, &StartupCatalog::new()).unwrap();
@@ -38,4 +49,87 @@ fn original_commit_source_checks_and_expands_on_current_language_contracts() {
     .unwrap();
     assert_eq!(expanded.expanded.gears.len(), 1);
     assert_eq!(expanded.expanded.gears[0].configuration.len(), 1);
+}
+
+#[test]
+fn original_commit_flow_advances_only_active_frontiers_under_the_existing_kernel() {
+    use conduit_core::{StructuredInfoValue, ValuePayload, MAXIMUM_STRUCTURED_CANONICAL_BYTES};
+    use conduit_kernel::scheduler::RemoteIngressOutcome;
+    use fixture::{count, field};
+    let source = original_commit_source();
+    let checked =
+        check_syntax_document(&parse_syntax_document(&source), &StartupCatalog::new()).unwrap();
+    let query = commit_fixture::query(&checked);
+    let original_bytes = query.canonical_bytes().unwrap();
+    let mut run = parser_kernel::Execution::prepare(source, "language-parser-joint-commit");
+    let input_port = run.kernel.definition().boundary.input_fronts[0]
+        .external_port
+        .clone();
+    let output_port = run.kernel.definition().boundary.output_fronts[0]
+        .external_port
+        .clone();
+    run.kernel.start().unwrap();
+    let input = ValuePayload {
+        value_kind: input_port.value_kind,
+        encoded: original_bytes.clone(),
+    };
+    assert!(matches!(
+        run.kernel
+            .admit_input(&input_port.port_id, 0, &input)
+            .unwrap(),
+        RemoteIngressOutcome::Accepted { .. }
+    ));
+    let mut output = ValuePayload {
+        value_kind: output_port.value_kind,
+        encoded: Vec::with_capacity(MAXIMUM_STRUCTURED_CANONICAL_BYTES),
+    };
+    let received = (0..4000)
+        .find_map(|_| {
+            run.step();
+            run.kernel
+                .output_into(&output_port.port_id, &mut output)
+                .unwrap()
+        })
+        .expect("bounded actual commitment output");
+    assert_eq!(received, 0);
+    let proposal = StructuredInfoValue::from_canonical_bytes(&output.encoded).unwrap();
+    let beam = field(field(field(&query, "fact"), "query"), "beam");
+    for (name, active) in [
+        ("candidate0", true),
+        ("candidate1", true),
+        ("candidate2", false),
+        ("candidate3", false),
+    ] {
+        let before = field(beam, name);
+        let after = field(&proposal, name);
+        assert_eq!(field(before, "choices"), field(after, "choices"));
+        let before = field(before, "parser");
+        let after = field(after, "parser");
+        for retained in ["identity", "score", "active"] {
+            assert_eq!(field(before, retained), field(after, retained));
+        }
+        let before = field(before, "state");
+        let after = field(after, "state");
+        assert_eq!(
+            count(field(after, "committed")),
+            count(field(before, "committed")) + u64::from(active)
+        );
+        for retained in [
+            "basis",
+            "token_count",
+            "unread",
+            "depth",
+            "stack",
+            "heads",
+            "relation0",
+            "relation1",
+            "relation2",
+            "relation3",
+        ] {
+            assert_eq!(field(before, retained), field(after, retained));
+        }
+    }
+    assert_eq!(query.canonical_bytes().unwrap(), original_bytes);
+    run.kernel.complete_output(&output_port.port_id, 0).unwrap();
+    run.kernel.close_input(&input_port.port_id).unwrap();
 }
