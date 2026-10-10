@@ -4,7 +4,7 @@ use crate::prelude::*;
 use crate::{PlotCompletionPolicy, RuntimePort, Span};
 use alloc::collections::BTreeMap;
 use conduit_core::{CheckedFront, CheckedPlotId, ExpandedPlotId, SourceDocumentId};
-pub use startup_catalog::StartupCatalog;
+pub use startup_catalog::*;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StartupParameterSignature {

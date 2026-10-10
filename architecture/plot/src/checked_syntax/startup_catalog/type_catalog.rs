@@ -51,7 +51,9 @@ impl StartupCatalog {
         if name.is_empty() {
             return Err("structured startup type name must not be empty".into());
         }
-        if self.structured_types.contains_key(&name) || self.value_kind_aliases.contains_key(&name)
+        if self.structured_types.contains_key(&name)
+            || self.value_kind_aliases.contains_key(&name)
+            || self.typed_literal_families.contains_key(&name)
         {
             return Err(format!("duplicate structured startup type '{name}'"));
         }
@@ -116,7 +118,9 @@ impl StartupCatalog {
         if self.value_kind_aliases.get(&name) == Some(&value_kind) {
             return Ok(());
         }
-        if self.value_kind_aliases.contains_key(&name) || self.structured_types.contains_key(&name)
+        if self.value_kind_aliases.contains_key(&name)
+            || self.structured_types.contains_key(&name)
+            || self.typed_literal_families.contains_key(&name)
         {
             return Err(format!("duplicate startup value type '{name}'"));
         }

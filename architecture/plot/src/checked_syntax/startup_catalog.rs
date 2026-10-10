@@ -1,13 +1,16 @@
 //! Installed checking-time Kind, Type and authoring contracts.
 mod type_catalog;
+mod typed_literal;
 use super::{CheckedNativeType, KindSignature, NativeTypeSourceOrigin, NativeTypeValueContract};
 use crate::prelude::*;
 use alloc::collections::BTreeMap;
 use conduit_core::CheckedFront;
+pub use typed_literal::*;
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct StartupCatalog {
     kinds: BTreeMap<String, KindSignature>,
+    typed_literal_families: BTreeMap<String, TypedLiteralFamily>,
     fores: BTreeMap<String, CheckedFront>,
     variadic_fores: BTreeMap<String, crate::HomogeneousVariadicFore>,
     structured_types: BTreeMap<String, conduit_core::StructuredInfoType>,
@@ -25,7 +28,9 @@ impl StartupCatalog {
     }
 
     pub fn insert(&mut self, signature: KindSignature) -> Result<(), String> {
-        if self.kinds.contains_key(&signature.kind) {
+        if self.kinds.contains_key(&signature.kind)
+            || self.typed_literal_families.contains_key(&signature.kind)
+        {
             return Err(format!(
                 "duplicate startup signature for kind '{}'",
                 signature.kind
