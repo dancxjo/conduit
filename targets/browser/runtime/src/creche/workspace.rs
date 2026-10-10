@@ -176,11 +176,26 @@ fn catalog_plot_plan(
             plot.name == entry.entry && plot.checked_plot_id.as_str() == entry.checked_plot_id
         })
         .ok_or("reviewed plot has stale checked identity")?;
-    let mut profile = base_profile.clone();
-    let offers = crate::installed_browser::catalogs::install_checked_structured_selectors(
-        &document,
-        &mut profile,
-    )?;
+    let mut profile = std::borrow::Cow::Borrowed(base_profile);
+    let has_selectors = document
+        .plots
+        .iter()
+        .flat_map(|plot| &plot.cords)
+        .flat_map(|cord| &cord.stages)
+        .any(|stage| {
+            matches!(
+                stage,
+                conduit_plot::CheckedCordStage::StructuredSelector { .. }
+            )
+        });
+    let offers = if has_selectors {
+        crate::installed_browser::catalogs::install_checked_structured_selectors(
+            &document,
+            profile.to_mut(),
+        )?
+    } else {
+        Vec::new()
+    };
     let mut hosts = observed_hosts.to_vec();
     let local = hosts
         .iter_mut()
