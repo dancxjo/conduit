@@ -66,7 +66,7 @@ try {
   assert(proof.structured.schema === "education/feedback@1", "education schema reaches the browser");
   assert(proof.structured.variant === "passed", "assessment outcome remains a typed variant");
   assert(proof.structured.quantityUnit === "ratio/percent", "score retains its quantity unit");
-  assert(proof.structured.quantity === 88, "score retains its signed magnitude");
+  assert(proof.structured.quantity === "88e0", "score retains its exact decimal magnitude");
   assert(proof.application.view.revision === 1, "application view revision remains exact");
   assert(root.dataset.applicationTheme === "conduit.presentation/phosphor@1", "browser host consumes the shared renderer-neutral theme");
   const continueButton = root.querySelector("[data-application-action='nucleus.continue']");
