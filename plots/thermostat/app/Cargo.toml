@@ -1,0 +1,16 @@
+[package]
+name = "conduit-thermostat-app"
+version = "0.1.0"
+edition = "2021"
+publish = false
+[dependencies]
+conduit-thermostat-plot = { path = "../model" }
+conduit-thermostat-face = { path = "../face" }
+conduit-core = { path = "../../../architecture/core" }
+conduit-kernel = { path = "../../../architecture/kernel", features = ["alloc"] }
+conduit-plot = { path = "../../../architecture/plot" }
+conduit-planner = { path = "../../../architecture/planner" }
+conduit-composite = { path = "../../../architecture/composite" }
+conduit-plan-lowering = { path = "../../../architecture/plan-lowering" }
+conduit-presentation = { path = "../../../semantics/presentation" }
+serde_json = "1"

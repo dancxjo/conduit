@@ -188,3 +188,60 @@ pub fn run_text_lab(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>>
     run_step(&step, &root, opts)?;
     Ok(())
 }
+
+/// The public repository entrance owns package invocation details.
+pub fn run_thermostat(
+    args: &crate::cli::ThermostatDemoArgs,
+    opts: &GlobalOpts,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let root = workspace_root()?;
+    if args.verify {
+        run_step(
+            &Step::new(
+                "thermostat.contracts",
+                "Check thermostat meaning, Face availability and authored kernel execution",
+                "cargo",
+                &[
+                    "test",
+                    "--locked",
+                    "-p",
+                    "conduit-thermostat-plot",
+                    "-p",
+                    "conduit-thermostat-face",
+                    "-p",
+                    "conduit-thermostat-app",
+                ],
+            ),
+            &root,
+            opts,
+        )?;
+        run_step(
+            &Step::new(
+                "thermostat.browser",
+                "Prove the semantic thermostat controls in pinned Chromium",
+                "node",
+                &[
+                    "proof/browser/node_modules/@playwright/test/cli.js",
+                    "test",
+                    "--config",
+                    "proof/browser/thermostat.config.mjs",
+                    "--project",
+                    "chromium",
+                ],
+            ),
+            &root,
+            opts,
+        )?;
+    } else {
+        let step = Step::new(
+            "journey.thermostat",
+            "Open the semantic thermostat browser Mask over an authored kernel Plot",
+            "cargo",
+            &["run", "--locked", "-p", "conduit-thermostat-app"],
+        );
+        let mut arguments: Vec<String> = step.args.iter().map(|value| (*value).into()).collect();
+        arguments.extend(["--".into(), "--port".into(), args.port.to_string()]);
+        crate::process::run_step_with_arguments(&step, &arguments, &root, opts)?;
+    }
+    Ok(())
+}

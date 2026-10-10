@@ -1,0 +1,11 @@
+# Exact portable settings and observations. No sensor, relay, or Host binding.
+plot thermostat/main (
+    >> accumulator: conduit.thermostat/state@1 <= 13B
+    >> item: conduit.thermostat/command@1 <= 3B
+    combined: conduit.thermostat/state@1 <= 13B >>
+) {
+    step: thermostat/combine
+    accumulator >> step.accumulator
+    item >> step.item
+    step.combined >> combined
+}.

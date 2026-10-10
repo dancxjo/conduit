@@ -1,0 +1,9 @@
+[package]
+name = "conduit-thermostat-plot"
+version = "0.1.0"
+edition = "2021"
+publish = false
+[dependencies]
+conduit-core = { path = "../../../architecture/core", default-features = false }
+conduit-plot = { path = "../../../architecture/plot" }
+conduit-kernel = { path = "../../../architecture/kernel", default-features = false, features = ["alloc"] }

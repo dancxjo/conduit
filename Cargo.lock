@@ -2604,6 +2604,39 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-thermostat-app"
+version = "0.1.0"
+dependencies = [
+ "conduit-composite",
+ "conduit-core",
+ "conduit-kernel",
+ "conduit-plan-lowering",
+ "conduit-planner",
+ "conduit-plot",
+ "conduit-presentation",
+ "conduit-thermostat-face",
+ "conduit-thermostat-plot",
+ "serde_json",
+]
+
+[[package]]
+name = "conduit-thermostat-face"
+version = "0.1.0"
+dependencies = [
+ "conduit-presentation",
+ "conduit-thermostat-plot",
+]
+
+[[package]]
+name = "conduit-thermostat-plot"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
+ "conduit-plot",
+]
+
+[[package]]
 name = "conduit-time"
 version = "0.1.0"
 dependencies = [
@@ -10653,6 +10686,7 @@ dependencies = [
  "conduit-std-offers",
  "conduit-synth",
  "conduit-text",
+ "conduit-thermostat-plot",
  "conduit-time",
  "conduit-tongues",
  "conduit-tutorial-plot",
