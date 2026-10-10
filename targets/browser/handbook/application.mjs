@@ -33,7 +33,7 @@ export async function startApplication(application) {
   const bundle = JSON.stringify({ schema: 'conduit.creche/reviewed-plot-bundle@2', plots: specification.plots.map(plot => ({
     slug: plot.name, entry: plot.name, title: plot.title, source: application.text(plot.role),
   })) });
-  let host, body, play, checked, editor, selected, snapshot;
+  let host, body, play, checked, reviewed, editor, selected, snapshot;
   let busy = false;
   let playFailure = null;
   let foreground = null;
@@ -114,7 +114,10 @@ export async function startApplication(application) {
   };
   const selectExample = async () => {
     const entry = specification.plots.find(plot => plot.name === selector.value);
-    selected = checked.plots.find(plot => plot.name === entry.name);
+    // Retained edits take precedence; new packaged lessons remain selectable
+    // in Bodies born before this application update. Installation is explicit.
+    selected = checked.plots.find(plot => plot.name === entry.name)
+      ?? reviewed.plots.find(plot => plot.name === entry.name);
     source.value = selected.source;
     editor.render();
     root.querySelector('[data-lesson]').textContent = entry.lesson;
@@ -125,6 +128,7 @@ export async function startApplication(application) {
     host = await application.browser({ root: surface });
     checked = await host.plot(bundle).check();
     if (!checked.ok) throw new Error(checked.refusal.message);
+    reviewed = checked;
     body = await host.recover();
     const recovered = Boolean(body);
     if (!body) body = await host.birth({ name: specification.name,

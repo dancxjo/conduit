@@ -218,3 +218,61 @@ test("static Handbook applications retain independent local Bodies through use, 
     await site.close();
   }
 });
+
+test("Handbook lessons run text, arithmetic, logic and exact quantities in the local Body", async ({}, testInfo) => {
+  testInfo.setTimeout(120_000);
+  const site = await stageStaticApplications();
+  const session = await openStaticProfile(testInfo.outputPath("lesson-profile"), new URL(site.url).origin);
+  try {
+    const page = await session.context.newPage();
+    await page.goto(new URL("handbook/", site.url).href);
+    const first = await ready(page);
+    const selector = page.getByLabel("Choose an example", { exact: true });
+    await expect(selector.locator("option")).toHaveCount(10);
+    const surface = page.locator(".handbook-show");
+    const editor = page.getByRole("textbox", { name: "Plot source", exact: true });
+    const cases = [
+      ["hello-demo", "HELLO, WORLD."],
+      ["scale-demo", "3.000000"],
+      ["logic-demo", "false"],
+      ["convert-pitch-demo", "Exactly 1000 Hz"],
+      ["compare-distance-demo", "The distances are equal"],
+      ["temperature-change-demo", "The temperature change is exactly 5 K"],
+      ["inexact-conversion-demo", "Conversion refused: inexact"],
+    ];
+    for (const [name, result] of cases) {
+      await selector.selectOption(name);
+      await page.getByRole("button", { name: "Try in my Handbook", exact: true }).click();
+      await expect(page.locator("[data-check]")).toHaveText(`Checked ${name}.`);
+      await expect(surface.locator('[data-resident-plot]:visible')).toContainText(result);
+      const state = await current(page);
+      expect(state.bodyId).toBe(first.bodyId);
+      expect(state.installedPlots.some(plot => plot.checked_plot_id === state.selectedPlot)).toBe(true);
+    }
+    await selector.selectOption("text-lab");
+    await page.getByRole("button", { name: "Try in my Handbook", exact: true }).click();
+    await expect(page.locator("[data-check]")).toHaveText("Checked text-lab.");
+    await surface.focus();
+    await page.keyboard.type("hello");
+    await expect(surface.locator('[data-resident-plot]:visible')).toContainText("O");
+
+    // An edited unit request changes the computed output and survives recovery.
+    await selector.selectOption("compare-distance-demo");
+    const original = await editor.inputValue();
+    await editor.fill(original.replace('right = "0.001km"', 'right = "0.002km"'));
+    await page.getByRole("button", { name: "Try in my Handbook", exact: true }).click();
+    await expect(surface.locator('[data-resident-plot]:visible')).toContainText("The distances are not equal");
+    const edited = await current(page);
+    await page.reload();
+    const recovered = await ready(page);
+    expect(recovered.bodyId).toBe(first.bodyId);
+    expect(recovered.selectedPlot).toBe(edited.selectedPlot);
+    await expect(selector).toHaveValue("compare-distance-demo");
+    await expect(editor).toHaveValue(original.replace('right = "0.001km"', 'right = "0.002km"'));
+    await expect(surface.locator('[data-resident-plot]:visible')).toContainText("The distances are not equal");
+    session.assertClean();
+  } finally {
+    await session.context.close();
+    await site.close();
+  }
+});
