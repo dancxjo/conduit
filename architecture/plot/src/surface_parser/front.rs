@@ -1,5 +1,7 @@
 //! Parsing for the checked callable boundary of one authored Plot.
 
+pub(crate) mod pattern;
+
 mod kind_parameter;
 mod startup;
 
@@ -292,7 +294,7 @@ impl Parser<'_> {
             };
             if relation == "pattern" {
                 let (pattern, case_insensitive, anchored_start, anchored_end, consumed) =
-                    slash_pattern(&source[body_start..])
+                    pattern::slash_pattern(&source[body_start..])
                         .ok_or_else(|| self.invalid_statement(line, start))?;
                 let clause_end = body_start + consumed;
                 let pattern_offset = start
@@ -423,64 +425,4 @@ fn bracketed_members(source: &str) -> Option<usize> {
         }
     }
     None
-}
-
-fn slash_pattern(source: &str) -> Option<(&str, bool, bool, bool, usize)> {
-    if !source.starts_with('/') {
-        return None;
-    }
-    let mut escaped = false;
-    let mut class = false;
-    for (offset, character) in source.char_indices().skip(1) {
-        if escaped {
-            escaped = false;
-            continue;
-        }
-        match character {
-            '\\' => escaped = true,
-            '[' => class = true,
-            ']' => class = false,
-            '/' if !class => {
-                let flags_end = source[offset + 1..]
-                    .find(|character: char| !character.is_ascii_alphabetic())
-                    .map_or(source.len(), |relative| offset + 1 + relative);
-                let flags = &source[offset + 1..flags_end];
-                let case_insensitive = match flags {
-                    "" => false,
-                    "i" => true,
-                    _ => return None,
-                };
-                let mut pattern = &source[1..offset];
-                let anchored_start = pattern.starts_with('^');
-                if anchored_start {
-                    pattern = &pattern[1..];
-                }
-                let anchored_end = pattern.ends_with('$') && trailing_dollar_is_anchor(pattern);
-                if anchored_end {
-                    pattern = &pattern[..pattern.len() - 1];
-                }
-                if pattern.is_empty() {
-                    return None;
-                }
-                return Some((
-                    pattern,
-                    case_insensitive,
-                    anchored_start,
-                    anchored_end,
-                    flags_end,
-                ));
-            }
-            _ => {}
-        }
-    }
-    None
-}
-
-fn trailing_dollar_is_anchor(pattern: &str) -> bool {
-    let preceding_backslashes = pattern[..pattern.len().saturating_sub(1)]
-        .bytes()
-        .rev()
-        .take_while(|byte| *byte == b'\\')
-        .count();
-    preceding_backslashes % 2 == 0
 }
