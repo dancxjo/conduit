@@ -427,7 +427,12 @@ A Face may summarize or arrange runtime facts. It may not manufacture
 them. Semantic order is explicit when order is meaning; serialization order,
 geometry, DOM order, and spoken order do not silently become semantic order.
 Typed content is exact finite semantic data, never a DOM node, filesystem path,
-provider URL, framebuffer, or mask-owned cache.
+provider URL, framebuffer, or mask-owned cache. A Face property can carry either
+an exact bounded content-generation reference or a finite inline canonical value
+with its checked value contract. Inline values admit at most 1024 bytes and
+validate their portable kind, encoding, and constraints before projection.
+Graphical and spoken Masks interpret that same typed value; domain-specific
+integer scaling and unit inference do not belong in the renderer.
 
 A semantic Type states meaning independently of any target. A named **form**
 states one portable way to carry or store that Type; its exact compatibility

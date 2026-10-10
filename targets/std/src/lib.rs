@@ -136,6 +136,7 @@ pub mod spoken_mask_runtime;
 mod spoken_mask_runtime_tests;
 pub mod terminal_face_mask;
 pub mod terminal_mask_execution;
+mod thermostat_scan;
 pub mod todo_checkpoint_call;
 pub mod todo_checkpoint_read_call;
 mod todo_checkpoint_transition;

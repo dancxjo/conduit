@@ -42,6 +42,7 @@ pub(super) fn catalogs(
     conduit_semantic_catalog::install_input_semantic_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_button_indicator_catalogs(&mut startup, &mut profile)?;
     conduit_web::install_http_catalogs(&mut startup, &mut profile)?;
+    conduit_thermostat_plot::install_catalogs(&mut startup, &mut profile)?;
     conduit_web::install_json_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_recurrence_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_schedule_catalogs(&mut startup, &mut profile)?;

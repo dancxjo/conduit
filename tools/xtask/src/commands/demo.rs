@@ -188,3 +188,70 @@ pub fn run_text_lab(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>>
     run_step(&step, &root, opts)?;
     Ok(())
 }
+
+/// The public repository entrance owns package invocation details.
+pub fn run_thermostat(
+    args: &crate::cli::ThermostatDemoArgs,
+    opts: &GlobalOpts,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let root = workspace_root()?;
+    if args.verify {
+        run_step(
+            &Step::new(
+                "thermostat.contracts",
+                "Check thermostat meaning, Face availability and authored kernel execution",
+                "cargo",
+                &[
+                    "test",
+                    "--locked",
+                    "-p",
+                    "conduit-thermostat-plot",
+                    "-p",
+                    "conduit-thermostat-face",
+                    "-p",
+                    "conduit-thermostat-runtime",
+                ],
+            ),
+            &root,
+            opts,
+        )?;
+        run_step(
+            &Step::new(
+                "thermostat.owner",
+                "Check the normal Body Owner thermostat encounter",
+                "cargo",
+                &[
+                    "test",
+                    "--locked",
+                    "-p",
+                    "conduit",
+                    "--bin",
+                    "conduit",
+                    "thermostat",
+                ],
+            ),
+            &root,
+            opts,
+        )?;
+    } else {
+        run_step(
+            &Step::new(
+                "journey.thermostat",
+                "Play the ordinary Thermostat Plot in a Body",
+                "cargo",
+                &[
+                    "run",
+                    "--locked",
+                    "-p",
+                    "conduit",
+                    "--",
+                    "run",
+                    "plots/thermostat/main.conduit",
+                ],
+            ),
+            &root,
+            opts,
+        )?;
+    }
+    Ok(())
+}

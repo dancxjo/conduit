@@ -16,7 +16,7 @@ export async function startApplication(application) {
     <label>Choose an example <select aria-label="Choose an example"></select></label>
     <p data-lesson></p><label for="handbook-source">Plot source</label><textarea id="handbook-source" spellcheck="false" aria-label="Plot source"></textarea>
     <p data-check role="status"></p><button data-try>Try in my Handbook</button>
-    <p>First predict the result, then try it. Open Patchbay to follow the gears, typed ports, and cords of the installed example. Unapplied edits stay in the editor.</p>
+    <p>First predict the result, then try it. Open Patchbay to follow the gears, typed ports, and cords of the installed example. Trying another example stops the previous example; saved edits are kept. Unapplied edits stay in the editor.</p>
     <section class="handbook-show" tabindex="0" aria-label="Running example"></section>
     <details><summary>Your body and browser</summary><p data-durability></p><pre data-identities></pre>
       <button data-release>Release this tab</button><button data-reset>Start my Handbook over</button>
@@ -33,7 +33,7 @@ export async function startApplication(application) {
   const bundle = JSON.stringify({ schema: 'conduit.creche/reviewed-plot-bundle@2', plots: specification.plots.map(plot => ({
     slug: plot.name, entry: plot.name, title: plot.title, source: application.text(plot.role),
   })) });
-  let host, body, play, checked, editor, selected, snapshot;
+  let host, body, play, checked, reviewed, editor, selected, snapshot;
   let busy = false;
   let playFailure = null;
   let foreground = null;
@@ -114,7 +114,10 @@ export async function startApplication(application) {
   };
   const selectExample = async () => {
     const entry = specification.plots.find(plot => plot.name === selector.value);
-    selected = checked.plots.find(plot => plot.name === entry.name);
+    // Retained edits take precedence; new packaged lessons remain selectable
+    // in Bodies born before this application update. Installation is explicit.
+    selected = checked.plots.find(plot => plot.name === entry.name)
+      ?? reviewed.plots.find(plot => plot.name === entry.name);
     source.value = selected.source;
     editor.render();
     root.querySelector('[data-lesson]').textContent = entry.lesson;
@@ -125,6 +128,7 @@ export async function startApplication(application) {
     host = await application.browser({ root: surface });
     checked = await host.plot(bundle).check();
     if (!checked.ok) throw new Error(checked.refusal.message);
+    reviewed = checked;
     body = await host.recover();
     const recovered = Boolean(body);
     if (!body) body = await host.birth({ name: specification.name,
@@ -170,6 +174,15 @@ export async function startApplication(application) {
       checkStatus.textContent = `Checked ${next.name}.`;
       await lull();
       const state = await body.current();
+      // Keep a single resident lesson. Removing a Plot from the workset leaves
+      // its retained source inventory (including checked edits) available.
+      for (const candidate of checked.plots) {
+        if (candidate.checkedPlotId !== selected.checkedPlotId
+          && specification.plots.some(entry => entry.lesson && entry.name === candidate.name)
+          && state.evidence.body.workset.plots.some(plot => plot.checked_plot_id === candidate.checkedPlotId)) {
+          await body.remove(candidate);
+        }
+      }
       const previous = state.evidence.body.workset.plots.find(plot => plot.checked_plot_id === selected.checkedPlotId);
       if (previous && previous.checked_plot_id !== next.checkedPlotId) await body.replace(selected, next);
       else if (!state.evidence.body.workset.plots.some(plot => plot.checked_plot_id === next.checkedPlotId)) await body.install(next);

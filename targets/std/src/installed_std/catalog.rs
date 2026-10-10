@@ -177,6 +177,7 @@ use super::text_backs::{
 use super::text_state_back::{
     EDIT_FACTORY as TEXT_EDIT_FACTORY, SUBMIT_FACTORY as TEXT_SUBMIT_FACTORY,
 };
+use super::thermostat_combine_back::FACTORY as THERMOSTAT_COMBINE_FACTORY;
 #[cfg(test)]
 use super::tick_backs::TEST_OBSERVER_FACTORY;
 use super::tick_backs::{EVERY_FACTORY, TICK_FACTORY};
@@ -299,6 +300,7 @@ const FACTORIES: &[&BackFactory] = &[
     &CURRENT_SAMPLE_FACTORY,
     &COMBINE_LATEST_FACTORY,
     &TODO_COMBINE_FACTORY,
+    &THERMOSTAT_COMBINE_FACTORY,
     &TODO_CHECKPOINT_FACTORY,
     &TODO_CHECKPOINT_READ_FACTORY,
     &FLOW_ZIP_FACTORY,

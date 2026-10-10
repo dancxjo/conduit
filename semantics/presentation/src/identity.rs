@@ -98,6 +98,14 @@ impl Presentation {
                     digest.update((encoded.len() as u32).to_le_bytes());
                     digest.update(encoded);
                 }
+                PresentationPropertyValue::TypedValue { contract, bytes } => {
+                    digest.update([8]);
+                    let identity = contract.identity_bytes();
+                    digest.update((identity.len() as u32).to_le_bytes());
+                    digest.update(identity);
+                    digest.update((bytes.len() as u32).to_le_bytes());
+                    digest.update(bytes);
+                }
                 PresentationPropertyValue::ValueContract(contract) => {
                     digest.update([7]);
                     let identity = contract.identity_bytes();

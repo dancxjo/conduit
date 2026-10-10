@@ -1609,6 +1609,9 @@ dependencies = [
  "conduit-std-host",
  "conduit-std-offers",
  "conduit-text",
+ "conduit-thermostat-face",
+ "conduit-thermostat-plot",
+ "conduit-thermostat-runtime",
  "conduit-time",
  "conduit-todo-face",
  "conduit-todo-plot",
@@ -2518,6 +2521,7 @@ dependencies = [
  "conduit-std-offers",
  "conduit-synth",
  "conduit-text",
+ "conduit-thermostat-plot",
  "conduit-time",
  "conduit-todo-plot",
  "conduit-tongues",
@@ -2568,6 +2572,7 @@ dependencies = [
  "conduit-semantic-catalog",
  "conduit-signal",
  "conduit-text",
+ "conduit-thermostat-plot",
  "conduit-time",
  "conduit-todo-plot",
  "conduit-tongues",
@@ -2602,6 +2607,41 @@ dependencies = [
  "conduit-core",
  "conduit-plot",
  "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "conduit-thermostat-face"
+version = "0.1.0"
+dependencies = [
+ "conduit-body",
+ "conduit-core",
+ "conduit-planner",
+ "conduit-plot",
+ "conduit-presentation",
+ "conduit-thermostat-plot",
+]
+
+[[package]]
+name = "conduit-thermostat-plot"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
+ "conduit-plot",
+]
+
+[[package]]
+name = "conduit-thermostat-runtime"
+version = "0.1.0"
+dependencies = [
+ "conduit-body",
+ "conduit-core",
+ "conduit-planner",
+ "conduit-plot",
+ "conduit-presentation",
+ "conduit-std-host",
+ "conduit-thermostat-plot",
  "serde_json",
 ]
 
@@ -10655,6 +10695,7 @@ dependencies = [
  "conduit-std-offers",
  "conduit-synth",
  "conduit-text",
+ "conduit-thermostat-plot",
  "conduit-time",
  "conduit-tongues",
  "conduit-tutorial-plot",

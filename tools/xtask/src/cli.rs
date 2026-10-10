@@ -387,6 +387,7 @@ pub enum ProveTarget {
 mod demo;
 pub use demo::{
     DemoArgs, DemoCommand, LightSwitchDemoArgs, NativeSpeechArgs, PatchbayDemoArgs, PatchbayHost,
+    ThermostatDemoArgs,
 };
 
 #[derive(Args, Debug)]

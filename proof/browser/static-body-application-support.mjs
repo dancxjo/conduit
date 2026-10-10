@@ -1,16 +1,35 @@
 import assert from "node:assert/strict";
-import { cp, mkdir, mkdtemp, rm } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
+import { execFileSync } from "node:child_process";
 import path from "node:path";
 import { chromium } from "@playwright/test";
 import { startStaticProduct } from "./static-product-server.mjs";
 
-export async function stageStaticApplications() {
+export async function stageStaticApplications({ legacyLessonInventory = false } = {}) {
   const root = await mkdtemp(path.join(tmpdir(), "conduit-static-applications-"));
   let server;
   try {
     await cp("target/handbook-static", path.join(root, "handbook"), { recursive: true });
     await cp("target/handbook-static-second", path.join(root, "second"), { recursive: true });
+    if (legacyLessonInventory) {
+      // Produce a real compatible package whose Body is born with the earlier
+      // two-lesson source inventory, using the ordinary package producer.
+      const templateRoot = path.resolve("targets/browser/handbook");
+      const template = JSON.parse(await readFile(path.join(templateRoot, "handbook.application.template.json"), "utf8"));
+      const birth = JSON.parse(await readFile(path.join(templateRoot, "birth.json"), "utf8"));
+      birth.plots = birth.plots.filter(plot => !plot.role.startsWith("lesson-"));
+      const birthPath = path.join(root, "legacy-birth.json");
+      await writeFile(birthPath, JSON.stringify(birth));
+      for (const resource of template.resources) {
+        resource.source = resource.role === "birth-specification" ? birthPath
+          : path.resolve(templateRoot, resource.source ?? resource.path);
+      }
+      const templatePath = path.join(root, "legacy-template.json");
+      await writeFile(templatePath, JSON.stringify(template));
+      execFileSync(process.execPath, ["targets/browser/tools/package-static-application.mjs",
+        templatePath, "target/handbook-static/sdk/bundle", path.join(root, "legacy")], { stdio: "pipe" });
+    }
     server = await startStaticProduct(root);
     return { url: server.url, async close() {
       await stop(server.child);

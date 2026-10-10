@@ -31,6 +31,7 @@ mod screen_free_birth;
 mod source_expansion;
 mod source_format;
 mod std_websocket_line;
+mod thermostat_run;
 #[cfg(test)]
 mod two_std_line_tests;
 #[cfg(test)]
@@ -113,6 +114,18 @@ fn run_with_placements(
     await_terminal: bool,
 ) -> Result<(), String> {
     let source = plot_source::load(Path::new(path))?;
+    if source
+        .syntax
+        .plots
+        .last()
+        .is_some_and(|plot| plot.name.text == "thermostat/main")
+    {
+        let authoring = source.expand_entry_for_authoring()?;
+        if placements_path.is_some() || body_path.is_some() {
+            return Err("Thermostat stdin Play currently accepts local source without placement or Body overrides".into());
+        }
+        return thermostat_run::run(&source, &authoring, report_path, artifact_directory);
+    }
     let plot = source.expand_entry()?;
     let body_product = body_path.map(body_product::prepare).transpose()?;
     let mut context = match body_product {

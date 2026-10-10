@@ -48,6 +48,8 @@ mod current_sample;
 pub use current_sample::*;
 mod combine_latest;
 pub use combine_latest::*;
+mod thermostat;
+pub use thermostat::*;
 mod todo;
 pub use todo::*;
 mod flow_zip;

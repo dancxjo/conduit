@@ -72,6 +72,48 @@ fn checked_todo_initial_selects_the_installed_host_before_owner_planning() {
 }
 
 #[test]
+fn checked_thermostat_selects_the_ordinary_installed_plot_path() {
+    let source =
+        crate::plot_source::parse(include_str!("../../../../plots/thermostat/main.conduit"))
+            .unwrap();
+    let plot = source.expand_entry_for_authoring().unwrap();
+    let (initial, maximum) = super::super::scoped_thermostat_initial(&plot)
+        .unwrap()
+        .unwrap();
+    assert_eq!(maximum, 256);
+    let scoped = StdHost::new_for_thermostat_scan(
+        StdHostConfig {
+            host_id: HostId::from("host/owner-thermostat-test"),
+            boot_id: BootId::from("boot/thermostat-scoped"),
+            offer_generation: OfferGeneration(1),
+        },
+        &initial,
+        maximum,
+    )
+    .unwrap();
+    let mut owner = Owner::open(scoped, resident(&plot), None, "Living room").unwrap();
+    owner.plan_with_source(&source, &plot).unwrap();
+    let plan = &owner.session.realization().unwrap().plan.plots[0].plan;
+    assert!(conduit_core::verify_plan(plan));
+    let PlannedActivationEntry::Scan(scan) = &plan.activations[0] else {
+        panic!("Thermostat keeps the ordinary scan activation")
+    };
+    assert_eq!(scan.limits.maximum_items, 256);
+    assert_eq!(
+        scan.selected_plan.fragments[0].placements[0]
+            .kind_id
+            .as_str(),
+        conduit_thermostat_plot::THERMOSTAT_KIND
+    );
+    let mut invalid = plot.clone();
+    invalid.expanded.activations[0].initial_accumulator_bytes = Some(vec![0xff]);
+    assert!(super::super::scoped_thermostat_initial(&invalid).is_err());
+    invalid = plot;
+    invalid.expanded.activations[0].selected_plot = "other/transition".into();
+    assert!(super::super::scoped_thermostat_initial(&invalid).is_err());
+}
+
+#[test]
 fn scoped_todo_host_refuses_invalid_checked_form_and_keeps_ordinary_source() {
     assert!(scoped_todo_initial(&source()).unwrap().is_none());
     let mut checked = crate::plot_source::parse(TODO_SOURCE)

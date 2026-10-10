@@ -413,6 +413,9 @@ fn property_clause(face: &Presentation, property: &crate::PresentationProperty) 
         crate::PresentationPropertyValue::Count(value) => format!("count {value}"),
         crate::PresentationPropertyValue::Signed(value) => format!("signed value {value}"),
         crate::PresentationPropertyValue::Flag(value) => format!("flag {value}"),
+        crate::PresentationPropertyValue::TypedValue { contract, bytes } => {
+            crate::spoken_typed_value(contract, bytes)
+        }
         crate::PresentationPropertyValue::ValueContract(contract) => format!(
             "a value contract of kind {} permitting at most {} bytes: {}",
             contract.value_kind.as_str(),

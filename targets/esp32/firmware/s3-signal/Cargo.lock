@@ -521,6 +521,7 @@ dependencies = [
  "conduit-semantic-catalog",
  "conduit-signal",
  "conduit-text",
+ "conduit-thermostat-plot",
  "conduit-time",
  "conduit-todo-plot",
  "conduit-web",
@@ -534,6 +535,15 @@ dependencies = [
  "conduit-plot",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "conduit-thermostat-plot"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
+ "conduit-plot",
 ]
 
 [[package]]

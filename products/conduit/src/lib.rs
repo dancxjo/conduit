@@ -1,5 +1,9 @@
 //! Reusable public product entrances shared by packaged Conduit applications.
 
+#[cfg(test)]
+#[path = "../../../semantics/presentation/tests/common/mod.rs"]
+mod mask_test_common;
+
 mod hosted_two_std;
 mod plot_source;
 mod product_execution;

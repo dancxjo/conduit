@@ -42,3 +42,6 @@ mod tests;
 
 #[cfg(test)]
 mod typed_workset_tests;
+
+#[cfg(all(test, feature = "plot-runner"))]
+mod pure_expression_workset_tests;
