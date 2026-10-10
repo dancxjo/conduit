@@ -40,9 +40,17 @@ fn placement_for(kind: &str, source: &str, target: &str) -> PlannedGear {
 fn placements() -> [PlannedGear; 4] {
     [
         placement_for(conversion::KIND, "1Qm", "qm"),
-        placement_for(conversion::temperature_difference::KIND, "9°F", "K"),
+        placement_for(
+            conversion::temperature_difference::KIND,
+            "TemperatureDelta(9, °F)",
+            "K",
+        ),
         placement_for(conversion::comparison::KIND, "1000mm", "0.001km"),
-        placement_for(conversion::comparison::DIFFERENCE_KIND, "9°F", "5K"),
+        placement_for(
+            conversion::comparison::DIFFERENCE_KIND,
+            "TemperatureDelta(9, °F)",
+            "TemperatureDelta(5, K)",
+        ),
     ]
 }
 

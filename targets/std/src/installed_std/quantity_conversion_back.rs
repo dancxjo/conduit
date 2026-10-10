@@ -244,13 +244,13 @@ fn prepare(
         let yes = values
             .store(&InfoBool::TRUE.encode())
             .map_err(|error| format!("store true: {error:?}"))?;
-        return Ok(InstalledBack::ConvertedEquals(
+        return Ok(InstalledBack::ConvertedEquals(Box::new(
             conduit_semantic_catalog::ConvertedEqualsBack::new(
                 comparison,
                 [no, yes],
                 conversion::MAXIMUM_RECEIPT_BYTES,
             ),
-        ));
+        )));
     }
     let value = values
         .store(&bytes)
