@@ -51,6 +51,7 @@ fn rewrite(
                 .map_or_else(|| name.text.clone(), ToString::to_string),
             span: name.span,
         }),
+        Syntax::TypedGlyphLiteral(_) => value.clone(),
         Syntax::Input(span) => Syntax::Input(*span),
         Syntax::Projection {
             value,

@@ -44,6 +44,36 @@ impl GlyphNotationScope {
             .scan_literal(alias, source)
     }
 
+    /// Parse a bounded expression using only this document's resolved families.
+    /// Recognition retains lexical candidates; it does not admit domain Info.
+    pub fn parse_expression(
+        &self,
+        source: &str,
+        span: crate::Span,
+    ) -> Result<crate::Expression, (String, crate::Span)> {
+        let text = source.get(span.start..span.end).ok_or_else(|| {
+            (
+                "expression span is outside the authored UTF-8 source".into(),
+                span,
+            )
+        })?;
+        let syntax =
+            crate::pure_expression::parse_with_scope(source, text, span.start, Some(self))?;
+        let (line, column) = crate::surface_lex::location(source, span.start);
+        let (end_line, end_column) = crate::surface_lex::location(source, span.end);
+        Ok(crate::Expression {
+            text: text.into(),
+            syntax,
+            span: crate::Span {
+                line,
+                column,
+                end_line,
+                end_column,
+                ..span
+            },
+        })
+    }
+
     pub(crate) fn require_used(
         &self,
         used: &BTreeSet<String>,

@@ -57,7 +57,7 @@ pub(super) fn substitute_immutable_values(
 
     Ok(match expression {
         ExpressionSyntax::Atomic(value) => substitute(value)?.unwrap_or_else(|| expression.clone()),
-        ExpressionSyntax::Input(_) => expression.clone(),
+        ExpressionSyntax::Input(_) | ExpressionSyntax::TypedGlyphLiteral(_) => expression.clone(),
         ExpressionSyntax::Projection {
             value,
             member,

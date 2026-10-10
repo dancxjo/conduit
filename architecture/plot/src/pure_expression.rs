@@ -1,6 +1,7 @@
 //! Bounded parser for canonical pure Conduitese expressions.
 
 mod call;
+mod notation;
 mod operator;
 
 use crate::prelude::*;
@@ -19,12 +20,22 @@ pub(crate) fn parse(
     text: &str,
     source_start: usize,
 ) -> Result<ExpressionSyntax, (String, Span)> {
+    parse_with_scope(source, text, source_start, None)
+}
+
+pub(crate) fn parse_with_scope(
+    source: &str,
+    text: &str,
+    source_start: usize,
+    scope: Option<&crate::GlyphNotationScope>,
+) -> Result<ExpressionSyntax, (String, Span)> {
     let mut parser = Parser {
         source,
         text,
         source_start,
         offset: 0,
         nodes: 0,
+        scope,
     };
     let expression = parser.expression(0, 1)?;
     parser.whitespace();
@@ -35,6 +46,7 @@ pub(crate) fn parse(
 }
 
 struct Parser<'a> {
+    scope: Option<&'a crate::GlyphNotationScope>,
     source: &'a str,
     text: &'a str,
     source_start: usize,
@@ -117,65 +129,69 @@ impl Parser<'_> {
     fn prefix(&mut self, depth: usize) -> Result<ExpressionSyntax, (String, Span)> {
         self.whitespace();
         let start = self.offset;
-        let mut value = match self.peek() {
-            Some('!') => {
-                self.bump();
-                let operand = self.expression(12, depth)?;
-                ExpressionSyntax::Unary {
-                    operator: UnaryOperator::Not,
-                    span: self.from(start, operand.span().end - self.source_start),
-                    operand: Box::new(operand),
-                }
-            }
-            Some('-') => {
-                self.bump();
-                let operand = self.expression(12, depth)?;
-                ExpressionSyntax::Unary {
-                    operator: UnaryOperator::Negate,
-                    span: self.from(start, operand.span().end - self.source_start),
-                    operand: Box::new(operand),
-                }
-            }
-            Some('(') => self.parenthesized(depth)?,
-            Some('[') => self.collection(depth)?,
-            Some('{') => self.record(depth)?,
-            Some('.') => {
-                self.bump();
-                let input = ExpressionSyntax::Input(self.from(start, self.offset));
-                let member_start = self.offset;
-                while self.peek().is_some_and(|character| {
-                    character.is_alphanumeric() || matches!(character, '_' | '-')
-                }) {
+        let mut value = if let Some(literal) = self.notation()? {
+            literal
+        } else {
+            match self.peek() {
+                Some('!') => {
                     self.bump();
-                }
-                if self.offset == member_start {
-                    input
-                } else {
-                    let member = SpannedText {
-                        text: self.text[member_start..self.offset].to_string(),
-                        span: self.from(member_start, self.offset),
-                    };
-                    let projection = if member
-                        .text
-                        .chars()
-                        .all(|character| character.is_ascii_digit())
-                    {
-                        ExpressionProjection::TupleIndex(member)
-                    } else if is_name(&member.text) {
-                        ExpressionProjection::Field(member)
-                    } else {
-                        return Err(("invalid input projection member".into(), member.span));
-                    };
-                    ExpressionSyntax::Projection {
-                        value: Box::new(input),
-                        member: projection,
-                        span: self.from(start, self.offset),
+                    let operand = self.expression(12, depth)?;
+                    ExpressionSyntax::Unary {
+                        operator: UnaryOperator::Not,
+                        span: self.from(start, operand.span().end - self.source_start),
+                        operand: Box::new(operand),
                     }
                 }
+                Some('-') => {
+                    self.bump();
+                    let operand = self.expression(12, depth)?;
+                    ExpressionSyntax::Unary {
+                        operator: UnaryOperator::Negate,
+                        span: self.from(start, operand.span().end - self.source_start),
+                        operand: Box::new(operand),
+                    }
+                }
+                Some('(') => self.parenthesized(depth)?,
+                Some('[') => self.collection(depth)?,
+                Some('{') => self.record(depth)?,
+                Some('.') => {
+                    self.bump();
+                    let input = ExpressionSyntax::Input(self.from(start, self.offset));
+                    let member_start = self.offset;
+                    while self.peek().is_some_and(|character| {
+                        character.is_alphanumeric() || matches!(character, '_' | '-')
+                    }) {
+                        self.bump();
+                    }
+                    if self.offset == member_start {
+                        input
+                    } else {
+                        let member = SpannedText {
+                            text: self.text[member_start..self.offset].to_string(),
+                            span: self.from(member_start, self.offset),
+                        };
+                        let projection = if member
+                            .text
+                            .chars()
+                            .all(|character| character.is_ascii_digit())
+                        {
+                            ExpressionProjection::TupleIndex(member)
+                        } else if is_name(&member.text) {
+                            ExpressionProjection::Field(member)
+                        } else {
+                            return Err(("invalid input projection member".into(), member.span));
+                        };
+                        ExpressionSyntax::Projection {
+                            value: Box::new(input),
+                            member: projection,
+                            span: self.from(start, self.offset),
+                        }
+                    }
+                }
+                Some('\'') | Some('"') => self.quoted()?,
+                Some(_) => self.atomic_or_call(depth)?,
+                None => return Err(self.error("expected a pure expression value")),
             }
-            Some('\'') | Some('"') => self.quoted()?,
-            Some(_) => self.atomic_or_call(depth)?,
-            None => return Err(self.error("expected a pure expression value")),
         };
         loop {
             self.whitespace();

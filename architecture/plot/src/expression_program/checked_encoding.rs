@@ -58,6 +58,9 @@ fn push_checked(
         )
     };
     match syntax {
+        ExpressionSyntax::TypedGlyphLiteral(_) => {
+            return Err(PortableExpressionProgramRefusal::MissingCheckedNodeType);
+        }
         ExpressionSyntax::Input(_) => sink.push(0),
         ExpressionSyntax::Atomic(value) => {
             sink.push(1);

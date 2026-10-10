@@ -295,6 +295,10 @@ fn infer(
     node_types: &mut Vec<CheckedExpressionNodeType>,
 ) -> Result<CheckedExpressionType, ExpressionTypeDiagnostic> {
     let value_type = match syntax {
+        ExpressionSyntax::TypedGlyphLiteral(value) => refuse(
+            value.authored.span,
+            "typed glyph payload requires its exact ordinary constructor admission",
+        ),
         ExpressionSyntax::Input(_) => Ok(context.input.clone()),
         ExpressionSyntax::Atomic(value) => atomic(&value.text, value.span, expected, context),
         ExpressionSyntax::Projection {

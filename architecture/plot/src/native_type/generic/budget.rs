@@ -174,6 +174,11 @@ impl Budget {
         self.node(value.span(), depth)?;
         match value {
             Law::Atomic(value) => self.text(value)?,
+            Law::TypedGlyphLiteral(value) => {
+                self.text(&value.alias)?;
+                self.text(&value.authored)?;
+                self.text(&value.raw_payload)?;
+            }
             Law::Input(_) => {}
             Law::Projection { value, member, .. } => {
                 self.law(value, depth + 1)?;

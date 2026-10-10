@@ -14,6 +14,8 @@ pub struct Expression {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ExpressionSyntax {
     Atomic(SpannedText),
+    /// Scoped lexical candidate; only its ordinary owner may admit the payload.
+    TypedGlyphLiteral(TypedGlyphLiteralSyntax),
     Input(Span),
     Projection {
         value: Box<ExpressionSyntax>,
@@ -99,6 +101,7 @@ impl ExpressionSyntax {
     pub fn span(&self) -> Span {
         match self {
             Self::Atomic(value) => value.span,
+            Self::TypedGlyphLiteral(value) => value.authored.span,
             Self::Input(span) => *span,
             Self::Projection { span, .. }
             | Self::Unary { span, .. }
@@ -119,4 +122,18 @@ pub struct StructuredExpressionField {
     pub value: ExpressionSyntax,
     pub punned: bool,
     pub span: Span,
+}
+
+/// Lossless syntax and exact resolved family identity, before payload admission.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TypedGlyphLiteralSyntax {
+    pub alias: SpannedText,
+    pub delimiter: crate::TypedLiteralDelimiter,
+    pub family_identity: [u8; 32],
+    pub authored: SpannedText,
+    pub raw_payload: SpannedText,
+    pub payload: String,
+    pub case_insensitive: bool,
+    pub anchored_start: bool,
+    pub anchored_end: bool,
 }

@@ -172,7 +172,7 @@ fn expression_syntax(
                 expression_syntax(argument, type_substitutions, behavior_substitutions);
             }
         }
-        ExpressionSyntax::Input(_) => {}
+        ExpressionSyntax::Input(_) | ExpressionSyntax::TypedGlyphLiteral(_) => {}
     }
 }
 

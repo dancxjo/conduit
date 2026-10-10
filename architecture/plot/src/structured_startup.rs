@@ -291,7 +291,8 @@ pub(crate) fn check_structured_expression(
             });
             check_structured_expression(&negated, expected, resolve_atomic)
         }
-        ExpressionSyntax::Input(_)
+        ExpressionSyntax::TypedGlyphLiteral(_)
+        | ExpressionSyntax::Input(_)
         | ExpressionSyntax::Projection { .. }
         | ExpressionSyntax::Unary { .. }
         | ExpressionSyntax::Binary { .. }
