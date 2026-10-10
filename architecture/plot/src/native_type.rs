@@ -9,6 +9,8 @@ use conduit_core::{
     data_reference_kind, kind_id, CheckedValueContract, KindId, StructuredFieldType,
     StructuredInfoType, StructuredVariantCase,
 };
+mod catalog_preparation;
+pub(crate) use catalog_preparation::check as check_native_types_borrowed;
 pub(crate) mod family;
 mod generic;
 mod identity;
