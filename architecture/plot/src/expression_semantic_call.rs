@@ -15,6 +15,39 @@ pub(super) fn check(
         Option<&CheckedExpressionType>,
     ) -> Result<CheckedExpressionType, ExpressionTypeDiagnostic>,
 ) -> Result<CheckedExpressionType, ExpressionTypeDiagnostic> {
+    if name.text == "text/material" {
+        let [argument] = arguments else {
+            return Err(diagnostic(
+                span,
+                "text/material requires exactly one text value",
+            ));
+        };
+        let source = check_argument(argument, None)?;
+        let ty = source
+            .structured_info_type_with(context.structured_types)
+            .map_err(|_| {
+                diagnostic(
+                    argument.span(),
+                    "text/material requires text representation",
+                )
+            })?;
+        let mut representation = &ty;
+        while let conduit_core::StructuredInfoTypeShape::Nominal {
+            representation: inner,
+            ..
+        } = representation.shape()
+        {
+            representation = inner;
+        }
+        if !matches!(representation.shape(), conduit_core::StructuredInfoTypeShape::Leaf(kind) if kind.as_str() == conduit_core::TEXT_INFO_ID)
+        {
+            return Err(diagnostic(
+                argument.span(),
+                "text/material requires text representation",
+            ));
+        }
+        return Ok(CheckedExpressionType::semantic(conduit_core::TEXT_INFO_ID));
+    }
     if let Some(target) = integer_widening_target(&name.text) {
         if arguments.len() != 1 {
             return Err(diagnostic(
@@ -330,7 +363,8 @@ pub(crate) fn is_intrinsic(name: &str) -> bool {
     integer_widening_target(name).is_some()
         || matches!(
             name,
-            "variant/tag"
+            "text/material"
+                | "variant/tag"
                 | "variant/is"
                 | "sequence/length"
                 | "sequence/at"
