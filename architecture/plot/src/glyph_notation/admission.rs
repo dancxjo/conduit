@@ -231,7 +231,7 @@ pub fn check_syntax_document_with_prepared_glyph_literals(
 }
 
 // Collect exact authored nodes; execution remains behind expression admission.
-fn document_literals(
+pub(super) fn document_literals(
     document: &SyntaxDocument,
 ) -> Result<BTreeMap<(usize, usize), &TypedGlyphLiteralSyntax>, Span> {
     let mut roots = Vec::new();

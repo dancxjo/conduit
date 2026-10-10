@@ -9,6 +9,8 @@ pub use typed_literal::*;
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct StartupCatalog {
+    pub(crate) literal_owners:
+        BTreeMap<String, crate::glyph_notation::compiled::InstalledLiteralOwner>,
     kinds: BTreeMap<String, KindSignature>,
     pub(crate) prepared_source_values:
         BTreeMap<(usize, usize), (crate::Expression, crate::CanonicalStructuredStartupValue)>,

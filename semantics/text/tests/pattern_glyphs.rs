@@ -49,6 +49,12 @@ fn pattern_glyphs_reuse_ordinary_constructor_and_bare_pattern_law() {
         ("r/t͡ʃ/", "/t͡ʃ/"),
     ] {
         let document = source(&startup, glyph);
+        let before = startup.clone();
+        let automatically_checked =
+            check_syntax_document_with_literal_constructors(&document, &startup, &profile).unwrap();
+        assert_eq!(automatically_checked.plots[0].local_values.len(), 1);
+        parse_with_startup(document.round_trip(), &startup, &profile).unwrap();
+        assert_eq!(startup, before);
         assert!(
             document.diagnostics.is_empty(),
             "{:?}",
@@ -156,4 +162,14 @@ fn invalid_pattern_glyphs_refuse_without_extending_the_parser() {
             &profile
         )
         .is_err());
+}
+
+#[test]
+fn duplicate_compiled_owner_refuses_without_mutating_catalog() {
+    let (mut startup, profile) = catalogs();
+    let before = startup.clone();
+    assert!(startup
+        .install_literal_constructor(&PortablePatternConstructor, &profile)
+        .is_err());
+    assert_eq!(startup, before);
 }

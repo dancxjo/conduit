@@ -188,6 +188,7 @@ pub fn install_pattern_notation(
         .insert_kind(PortablePatternConstructor.contract())
         .map_err(|e| format!("{e}"))?;
     super::pattern_notation::install(&mut next_startup, &next_profile)?;
+    next_startup.install_literal_constructor(&PortablePatternConstructor, &next_profile)?;
     *startup = next_startup;
     *profile = next_profile;
     Ok(())

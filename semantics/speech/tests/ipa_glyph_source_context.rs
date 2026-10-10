@@ -254,8 +254,15 @@ fn authored_import_selects_exact_source_context() {
                 &profile,
             )
             .unwrap();
-        check_syntax_document_with_prepared_glyph_literals(&document, &startup, &[receipt])
-            .unwrap();
+        let explicit =
+            check_syntax_document_with_prepared_glyph_literals(&document, &startup, &[receipt])
+                .unwrap();
+        let before = startup.clone();
+        let automatic =
+            check_syntax_document_with_literal_constructors(&document, &startup, &profile).unwrap();
+        assert_eq!(automatic, explicit);
+        parse_with_startup(&source, &startup, &profile).unwrap();
+        assert_eq!(startup, before);
         let stale_source = source.replace("provenance: chosen-provenance", "provenance: absent");
         let stale = parse_syntax_document_with_glyph_notations(&stale_source, &startup);
         assert!(scope

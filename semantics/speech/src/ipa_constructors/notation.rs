@@ -31,8 +31,13 @@ pub fn install_notation(
     {
         return Err("Speech IPA notation path differs from its actual shipped declaration".into());
     }
+    let mut next = startup.clone();
     exports
-        .install_shipped_glyph_notations(startup, profile)
+        .install_shipped_glyph_notations(&mut next, profile)
         .map(|_| ())
-        .map_err(|e| format!("{e:?}"))
+        .map_err(|e| format!("{e:?}"))?;
+    next.install_literal_constructor(&super::IpaConstructor::Phonetic, profile)?;
+    next.install_literal_constructor(&super::IpaConstructor::Phonemic, profile)?;
+    *startup = next;
+    Ok(())
 }

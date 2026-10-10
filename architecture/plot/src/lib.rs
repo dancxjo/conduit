@@ -42,9 +42,10 @@ mod integer_literal;
 mod native_type;
 mod package_bundle;
 pub use glyph_notation::{
-    admit_glyph_values, check_syntax_document_with_prepared_glyph_literals,
-    resolve_glyph_notation_scope, AdmittedGlyphValues, CheckedGlyphNotation, GlyphNotationScope,
-    LiteralPreparationRefusal, LiteralValueConstructor, PreparedGlyphLiteral, ScopedGlyphNotation,
+    admit_glyph_values, check_syntax_document_with_literal_constructors,
+    check_syntax_document_with_prepared_glyph_literals, resolve_glyph_notation_scope,
+    AdmittedGlyphValues, CheckedGlyphNotation, GlyphNotationScope, LiteralPreparationRefusal,
+    LiteralValueConstructor, PreparedGlyphLiteral, ScopedGlyphNotation,
 };
 #[cfg(test)]
 mod package_bundle_tests;
@@ -744,11 +745,11 @@ pub fn parse_with_startup(
     startup: &StartupCatalog,
     catalog: &ProfileCatalog,
 ) -> Result<CheckedPlot, PlotError> {
-    let syntax = parse_syntax_document(source);
+    let syntax = parse_syntax_document_with_glyph_notations(source, startup);
     if let Some(diagnostic) = syntax.diagnostics.first() {
         return Err(PlotError::InvalidSyntax(diagnostic.message.clone()));
     }
-    let checked = check_syntax_document(&syntax, startup)
+    let checked = check_syntax_document_with_literal_constructors(&syntax, startup, catalog)
         .map_err(|diagnostic| PlotError::InvalidSyntax(diagnostic.message))?;
     let entry = checked
         .plots
