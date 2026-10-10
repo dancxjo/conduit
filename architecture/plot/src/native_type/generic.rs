@@ -5,6 +5,7 @@ use crate::{
 };
 use alloc::collections::{BTreeMap, BTreeSet};
 
+mod argument;
 mod binding;
 mod budget;
 mod canonical;
@@ -159,7 +160,7 @@ pub(super) fn instantiate(
         }
         declaration.invariants = law::substitute(&invariants, &bindings.values)?;
         declaration.definition = definition;
-        declaration.generic_context = generic_context;
+        declaration.generic_context = generic_context.or(declaration.generic_context);
         concrete.push(declaration);
     }
     public.extend(
@@ -220,6 +221,7 @@ impl Context<'_> {
             self.origin(template),
             &resolved,
             &bindings.parameter_contracts,
+            &bindings.argument_identities,
         );
         self.active.push(key.clone());
         let result = self.definition(&template.definition, &bindings);

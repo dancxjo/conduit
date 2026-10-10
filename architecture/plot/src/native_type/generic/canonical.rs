@@ -118,6 +118,7 @@ pub(super) fn family_key(
     template: &crate::TypeSyntax,
     arguments: &[NativeTypeArgumentSyntax],
     parameter_contracts: &[Vec<u8>],
+    argument_identities: &[Vec<u8>],
 ) -> String {
     let application = application_key(&template.name.text, arguments);
     if template
@@ -127,6 +128,7 @@ pub(super) fn family_key(
     {
         return application;
     }
+    let application = alloc::format!("{}<{argument_identities:?}>", template.name.text);
     let mut meaning = String::from("conduit.native-info-family@1\0");
     for parameter in &template.parameters {
         meaning.push_str(&alloc::format!(

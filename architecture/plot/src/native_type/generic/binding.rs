@@ -12,6 +12,7 @@ pub(super) struct Bindings {
     pub(super) types: BTreeMap<String, TypeExpressionSyntax>,
     pub(super) values: BTreeMap<String, u16>,
     pub(super) parameter_contracts: Vec<Vec<u8>>,
+    pub(super) argument_identities: Vec<Vec<u8>>,
 }
 
 impl Context<'_> {
@@ -98,6 +99,9 @@ impl Context<'_> {
                         .push(contract.contract.identity_bytes());
                 }
                 bindings.values.insert(parameter.name.text.clone(), scalar);
+                bindings
+                    .argument_identities
+                    .push(scalar.to_le_bytes().to_vec());
                 resolved.push(Argument::Value(Box::new(value)));
             } else {
                 let Argument::Type(value) = argument else {
@@ -123,6 +127,15 @@ impl Context<'_> {
                     }
                 }
                 let value = self.expression(value, outer)?;
+                if template
+                    .parameters
+                    .iter()
+                    .any(|parameter| parameter.value_type.is_some())
+                {
+                    bindings
+                        .argument_identities
+                        .push(self.type_argument_identity(&value)?);
+                }
                 bindings
                     .types
                     .insert(parameter.name.text.clone(), value.clone());

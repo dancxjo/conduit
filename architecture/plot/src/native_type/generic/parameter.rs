@@ -173,3 +173,33 @@ pub(super) fn validate_laws(
     }
     construct(value_type, scalar, catalog, span).map(|_| ())
 }
+
+pub(super) fn prepare_expression(
+    expression: &Type,
+    declarations: &[TypeSyntax],
+    base: &StartupCatalog,
+) -> Result<StartupCatalog, SyntaxCheckDiagnostic> {
+    let by_name = declarations
+        .iter()
+        .map(|value| (value.name.text.as_str(), value))
+        .collect::<BTreeMap<_, _>>();
+    let mut dependencies = Dependencies {
+        declarations: &by_name,
+        active: BTreeSet::new(),
+        complete: BTreeSet::new(),
+    };
+    let mut references = Vec::new();
+    super::super::expression_references(expression, &mut references);
+    for reference in references {
+        dependencies.visit(reference)?;
+    }
+    if dependencies.complete.is_empty() {
+        return Ok(base.clone());
+    }
+    let subset = declarations
+        .iter()
+        .filter(|value| dependencies.complete.contains(value.name.text.as_str()))
+        .cloned()
+        .collect::<Vec<_>>();
+    super::super::check_native_types(&subset, base).map(|(_, catalog)| catalog)
+}

@@ -149,6 +149,7 @@ impl Context<'_> {
                     self.origin(template),
                     &resolved,
                     &bindings.parameter_contracts,
+                    &bindings.argument_identities,
                 );
                 if self.active.contains(&key)
                     || self.active.len() >= MAXIMUM_GENERIC_INSTANTIATION_DEPTH
