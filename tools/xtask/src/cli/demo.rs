@@ -13,7 +13,7 @@ pub enum DemoCommand {
     Workspace(crate::commands::workspace::WorkspaceArgs),
     /// Run the native Signal Plot through the production kernel.
     Std,
-    /// Open the semantic thermostat browser encounter on loopback port 8765.
+    /// Play the ordinary Thermostat Plot in a Body.
     Thermostat(ThermostatDemoArgs),
     /// Run the three-sink Plot entirely on the native Host.
     Triple,
@@ -99,10 +99,7 @@ pub enum PatchbayHost {
 
 #[derive(Args, Debug)]
 pub struct ThermostatDemoArgs {
-    /// Loopback port for the browser encounter.
-    #[arg(long, default_value_t = 8765)]
-    pub port: u16,
-    /// Check semantic/kernel contracts and the pinned Chromium control encounter.
+    /// Check semantic, kernel, and installed Body Owner contracts.
     #[arg(long)]
     pub verify: bool,
 }

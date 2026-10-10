@@ -457,7 +457,14 @@ fn prepare_runtime(
     ),
     String,
 > {
-    prepare_runtime_with_todo(state_dir, None)
+    let thermostat = owner::retained_thermostat_scan(state_dir)?;
+    prepare_runtime_with_scans(
+        state_dir,
+        None,
+        thermostat
+            .as_ref()
+            .map(|(initial, maximum)| (initial, *maximum)),
+    )
 }
 
 /// Select the request-scoped Todo Back before the Host advertisement and

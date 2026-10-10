@@ -61,6 +61,11 @@ pub(crate) use clock_interval::{is_clock_control_intent, ClockAction, CLOCK_RUN_
 #[cfg(unix)]
 #[path = "terminal_route.rs"]
 mod terminal_route;
+#[path = "thermostat_face.rs"]
+mod thermostat_face;
+#[path = "thermostat_worker.rs"]
+mod thermostat_worker;
+pub(crate) use thermostat_worker::ThermostatWorker;
 #[path = "todo_face.rs"]
 mod todo_face;
 #[path = "todo_next.rs"]
@@ -181,6 +186,9 @@ pub(crate) struct Owner {
     direct_spoken_route: Option<conduit_presentation::LocalOwnerMaskRouteSeal>,
     llm_spoken_route: Option<conduit_presentation::LocalOwnerMaskRouteSeal>,
     presentation_wardrobe: Option<presentation_wardrobe::OwnerPresentationWardrobe>,
+    /// Bounded projection cache from the configured initial Form and the exact
+    /// current Thermostat scan Fore. The kernel owns its retained accumulator.
+    thermostat_live: Option<thermostat_face::ThermostatLive>,
     /// Projection cache for the exact currently Playing Todo encounter. The
     /// next Play must restore through its admitted read Host Call.
     todo_live: Option<(conduit_core::ActivePlayId, conduit_todo_plot::TodoState)>,
@@ -282,6 +290,7 @@ impl Owner {
             direct_spoken_route: None,
             llm_spoken_route: None,
             presentation_wardrobe: None,
+            thermostat_live: None,
             todo_live: None,
             todo_verified: None,
         })
@@ -307,6 +316,7 @@ impl Owner {
             direct_spoken_route: None,
             llm_spoken_route: None,
             presentation_wardrobe: None,
+            thermostat_live: None,
             todo_live: None,
             todo_verified: None,
         })
@@ -383,6 +393,9 @@ impl Owner {
     /// control service calls this; remote callers still need an exact admitted
     /// credential and current Part above.
     pub(crate) fn local_face_snapshot(&self) -> Result<Presentation, String> {
+        if let Some(live) = &self.thermostat_live {
+            return self.project_thermostat_face(live);
+        }
         match self.todo_live.as_ref() {
             Some((play, state)) if self.current_play_id() == Some(play) => {
                 self.project_face(Some((state, true)))
@@ -459,8 +472,8 @@ impl Owner {
     }
 
     /// Plan the exact retained source when its Host actually advertises an
-    /// activation coordinator. This seam is deliberately separate from Play:
-    /// the installed owner cannot yet route commands into an active scan.
+    /// activation coordinator. The selected scan worker supplies its bounded
+    /// ingress only after this exact parent and child Plan are sealed.
     fn plan_partition_with_source(
         &self,
         source: &crate::plot_source::CanonicalSource,

@@ -209,7 +209,7 @@ pub fn run_thermostat(
                     "-p",
                     "conduit-thermostat-face",
                     "-p",
-                    "conduit-thermostat-app",
+                    "conduit-thermostat-runtime",
                 ],
             ),
             &root,
@@ -217,31 +217,41 @@ pub fn run_thermostat(
         )?;
         run_step(
             &Step::new(
-                "thermostat.browser",
-                "Prove the semantic thermostat controls in pinned Chromium",
-                "node",
+                "thermostat.owner",
+                "Check the normal Body Owner thermostat encounter",
+                "cargo",
                 &[
-                    "proof/browser/node_modules/@playwright/test/cli.js",
                     "test",
-                    "--config",
-                    "proof/browser/thermostat.config.mjs",
-                    "--project",
-                    "chromium",
+                    "--locked",
+                    "-p",
+                    "conduit",
+                    "--bin",
+                    "conduit",
+                    "thermostat",
                 ],
             ),
             &root,
             opts,
         )?;
     } else {
-        let step = Step::new(
-            "journey.thermostat",
-            "Open the semantic thermostat browser Mask over an authored kernel Plot",
-            "cargo",
-            &["run", "--locked", "-p", "conduit-thermostat-app"],
-        );
-        let mut arguments: Vec<String> = step.args.iter().map(|value| (*value).into()).collect();
-        arguments.extend(["--".into(), "--port".into(), args.port.to_string()]);
-        crate::process::run_step_with_arguments(&step, &arguments, &root, opts)?;
+        run_step(
+            &Step::new(
+                "journey.thermostat",
+                "Play the ordinary Thermostat Plot in a Body",
+                "cargo",
+                &[
+                    "run",
+                    "--locked",
+                    "-p",
+                    "conduit",
+                    "--",
+                    "run",
+                    "plots/thermostat/main.conduit",
+                ],
+            ),
+            &root,
+            opts,
+        )?;
     }
     Ok(())
 }

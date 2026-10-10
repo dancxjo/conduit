@@ -12,82 +12,43 @@ pub fn fragment(
 ) -> Result<PresentationFragment, &'static str> {
     state.validate().map_err(|_| "invalid thermostat state")?;
     let mut fragment = PresentationFragment {
-        basis,
+        basis: basis.clone(),
         subjects: vec![
-            PresentationSubject {
-                identity: "thermostat/device".into(),
-                role: PresentationRole::Region,
-                name: "Living room".into(),
-            },
-            PresentationSubject {
-                identity: "thermostat/current".into(),
-                role: PresentationRole::Status,
-                name: "Current temperature".into(),
-            },
-            PresentationSubject {
-                identity: "thermostat/status".into(),
-                role: PresentationRole::Status,
-                name: "Requested control".into(),
-            },
+            subject("thermostat/device", PresentationRole::Region, "Living room"),
+            subject(
+                "thermostat/target",
+                PresentationRole::Info,
+                "Target temperature",
+            ),
+            subject(
+                "thermostat/current",
+                PresentationRole::Status,
+                "Current temperature",
+            ),
+            subject(
+                "thermostat/status",
+                PresentationRole::Status,
+                "Requested control",
+            ),
         ],
-        relationships: ["thermostat/current", "thermostat/status"]
-            .into_iter()
-            .map(|target| PresentationRelationship {
-                source: "thermostat/device".into(),
-                target: target.into(),
-                kind: PresentationRelationshipKind::Contains,
-            })
-            .collect(),
+        relationships: [
+            "thermostat/target",
+            "thermostat/current",
+            "thermostat/status",
+        ]
+        .into_iter()
+        .map(|target| contains("thermostat/device", target))
+        .collect(),
         composition: Vec::new(),
-        properties: vec![
-            property(
-                "thermostat-revision",
-                PresentationPropertyValue::Count(state.revision.into()),
-            ),
-            property(
-                "target-decicelsius",
-                PresentationPropertyValue::Count(state.target as u64),
-            ),
-            property(
-                "mode",
-                PresentationPropertyValue::Text(mode_name(state.mode).into()),
-            ),
-            property(
-                "fan",
-                PresentationPropertyValue::Text(
-                    match state.fan {
-                        Fan::Auto => "auto",
-                        Fan::On => "on",
-                    }
-                    .into(),
-                ),
-            ),
-            property(
-                "preset",
-                PresentationPropertyValue::Text(
-                    match state.preset {
-                        Preset::Custom => "custom",
-                        Preset::Comfort => "comfort",
-                        Preset::Eco => "eco",
-                        Preset::Sleep => "sleep",
-                    }
-                    .into(),
-                ),
-            ),
-            property(
-                "sensor-available",
-                PresentationPropertyValue::Flag(state.measured.is_some()),
-            ),
-            property(
-                "equipment-confirmed",
-                PresentationPropertyValue::Flag(false),
-            ),
-        ],
+        properties: vec![property(
+            "thermostat-revision",
+            PresentationPropertyValue::Count(state.revision.into()),
+        )],
         text: vec![
             PresentationText {
                 subject: "thermostat/current".into(),
                 text: match state.measured {
-                    Some(v) => format!("{:.1}°C observed", f64::from(v) / 10.0),
+                    Some(_) => "Observed temperature".into(),
                     None => "Sensor unavailable".into(),
                 },
             },
@@ -95,22 +56,109 @@ pub fn fragment(
                 subject: "thermostat/status".into(),
                 text: state.demand().into(),
             },
+            PresentationText {
+                subject: "thermostat/device".into(),
+                text: "Requested settings; equipment operation is unconfirmed.".into(),
+            },
         ],
         actions: Vec::new(),
-        disclosures: [
-            "thermostat/device",
-            "thermostat/current",
-            "thermostat/status",
-        ]
-        .into_iter()
-        .map(|subject| PresentationDisclosure {
-            subject: subject.into(),
-            level: PresentationDisclosureLevel::Primary,
-        })
-        .collect(),
+        disclosures: Vec::new(),
         temporal_references: Vec::new(),
         temporal_facts: Vec::new(),
     };
+    for (subject, value) in [
+        ("thermostat/target", Some(state.target)),
+        ("thermostat/current", state.measured),
+    ] {
+        let Some(value) = value else {
+            continue;
+        };
+        let quantity = conduit_core::ExactDecimalQuantity::new(
+            i128::from(value),
+            -1,
+            conduit_core::QuantityUnit::Celsius,
+        )
+        .map_err(|_| "invalid exact Celsius quantity")?;
+        let contract = conduit_core::CheckedValueContract::new(
+            conduit_core::kind_id(conduit_core::EXACT_DECIMAL_QUANTITY_INFO_ID),
+            conduit_core::EXACT_DECIMAL_QUANTITY_ENCODED_LEN as u32,
+            Vec::new(),
+        )
+        .map_err(|_| "invalid temperature value contract")?;
+        fragment.properties.push(PresentationProperty {
+            subject: subject.into(),
+            name: "value".into(),
+            value: PresentationPropertyValue::TypedValue {
+                contract,
+                bytes: quantity.encode().to_vec(),
+            },
+        });
+    }
+    for (group, name, options, selected) in [
+        (
+            "thermostat/mode",
+            "Mode",
+            &ACTIONS[2..6],
+            mode_name(state.mode),
+        ),
+        (
+            "thermostat/fan",
+            "Fan",
+            &ACTIONS[6..8],
+            match state.fan {
+                Fan::Auto => "auto",
+                Fan::On => "on",
+            },
+        ),
+        (
+            "thermostat/preset",
+            "Preset",
+            &ACTIONS[8..11],
+            match state.preset {
+                Preset::Custom => "custom",
+                Preset::Comfort => "comfort",
+                Preset::Eco => "eco",
+                Preset::Sleep => "sleep",
+            },
+        ),
+    ] {
+        fragment.subjects.push(subject(
+            group,
+            PresentationRole::Semantic(conduit_core::kind_id(CHOICE_GROUP_ROLE)),
+            name,
+        ));
+        fragment
+            .relationships
+            .push(contains("thermostat/device", group));
+        fragment.properties.push(PresentationProperty {
+            subject: group.into(),
+            name: "choice-multiplicity".into(),
+            value: PresentationPropertyValue::Text("exclusive".into()),
+        });
+        fragment.text.push(PresentationText {
+            subject: group.into(),
+            text: format!("{} selected", selected),
+        });
+        for (id, label) in options {
+            fragment
+                .subjects
+                .push(subject(id, PresentationRole::Action, label));
+            fragment.relationships.push(contains(group, id));
+            fragment.properties.push(PresentationProperty {
+                subject: (*id).into(),
+                name: "selected".into(),
+                value: PresentationPropertyValue::Flag(id.rsplit('.').next() == Some(selected)),
+            });
+        }
+    }
+    fragment.disclosures = fragment
+        .subjects
+        .iter()
+        .map(|subject| PresentationDisclosure {
+            subject: subject.identity.clone(),
+            level: PresentationDisclosureLevel::Primary,
+        })
+        .collect();
     for (id, label) in ACTIONS {
         let command = command_for_action(state, id)?;
         let availability = if !actions_admitted {
@@ -138,7 +186,11 @@ pub fn fragment(
         fragment.actions.push(PresentationAction {
             identity: id.into(),
             intent: format!("{id}@1"),
-            target: "thermostat/device".into(),
+            target: if id == "thermostat.lower" || id == "thermostat.raise" {
+                "thermostat/target".into()
+            } else {
+                id.into()
+            },
             name: label.into(),
             arguments: Vec::new(),
             disclosure: PresentationDisclosureLevel::CurrentAction,
@@ -150,6 +202,27 @@ pub fn fragment(
         .map_err(|_| "thermostat Face exceeds bounds")?;
     Ok(fragment)
 }
+/// Renderer-neutral choice grouping; multiplicity and selection remain Face facts.
+pub const CHOICE_GROUP_ROLE: &str = "conduit.presentation/choice-group@1";
+fn subject(identity: &str, role: PresentationRole, name: &str) -> PresentationSubject {
+    PresentationSubject {
+        identity: identity.into(),
+        role,
+        name: name.into(),
+    }
+}
+fn contains(source: &str, target: &str) -> PresentationRelationship {
+    PresentationRelationship {
+        source: source.into(),
+        target: target.into(),
+        kind: PresentationRelationshipKind::Contains,
+    }
+}
+mod interaction;
+pub use interaction::{thermostat_command_from_contributed_interaction, ThermostatFaceError};
+#[cfg(test)]
+mod tests;
+
 fn property(name: &str, value: PresentationPropertyValue) -> PresentationProperty {
     PresentationProperty {
         subject: "thermostat/device".into(),

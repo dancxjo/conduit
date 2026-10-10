@@ -22,7 +22,7 @@ pub(crate) fn run(
     let (host, plan) = prepare(source, plot)?;
     let advertisement = host.advertisement().clone();
     let source_plan = plan.clone();
-    let mut execution = conduit_thermostat_app::execution::Execution::from_plan(host, plan)?;
+    let mut execution = conduit_thermostat_runtime::execution::Execution::from_plan(host, plan)?;
     let body_plan = execution.body_plan().clone();
     let mut output = std::io::stdout().lock();
     let mut input = std::io::stdin().lock();

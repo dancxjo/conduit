@@ -12,7 +12,8 @@ pub(crate) use controller::run_service_window;
 pub(crate) use controller::{
     clock_interval_action, is_clock_control_intent, BrowserAdmittedSnapshot,
     BrowserCarrierLineEvidence, BrowserWindowAuthorization, ClockAction, DirectSpokenStart,
-    LlmSpokenStart, Owner, RunWorker, TodoWaitingWorker, CLOCK_RUN_MAXIMUM_MILLIS,
+    LlmSpokenStart, Owner, RunWorker, ThermostatWorker, TodoWaitingWorker,
+    CLOCK_RUN_MAXIMUM_MILLIS,
 };
 use serde::Deserialize;
 use std::{
@@ -101,6 +102,20 @@ fn scoped_todo_initial(
     }
     Ok(Some((initial, *maximum_items)))
 }
+/// Recover only the exact checked Thermostat source's scoped initial Form.
+/// Service boot must advertise this Back before the retained owner can plan it.
+pub(super) fn retained_thermostat_scan(
+    root: &Path,
+) -> Result<Option<(conduit_thermostat_plot::ThermostatState, u16)>, String> {
+    let Some(checked) = checked_retained_source(root)? else {
+        return Ok(None);
+    };
+    if checked.expanded.name != "thermostat/main" {
+        return Ok(None);
+    }
+    scoped_thermostat_initial(&checked)
+}
+
 /// Only a checked, exact Thermostat scan can request the scoped production offer.
 /// Its initial Form comes from authored source, never from the display name.
 fn scoped_thermostat_initial(

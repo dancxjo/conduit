@@ -155,6 +155,11 @@ pub enum PresentationPropertyValue {
     /// Canonical encoded `&T`: one exact bounded independently addressable
     /// content generation. It contains no path, URL, handle, or authority.
     Content(Vec<u8>),
+    /// One finite canonical value with its exact portable validation contract.
+    TypedValue {
+        contract: conduit_core::CheckedValueContract,
+        bytes: Vec<u8>,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -379,6 +384,10 @@ impl Presentation {
                     BoundedResourceRef::validate_encoded(encoded)
                         .map_err(|_| PresentationError::InvalidContent)?;
                 }
+                PresentationPropertyValue::TypedValue { contract, bytes } => {
+                    crate::typed_value::validate(contract, bytes)
+                        .map_err(|_| PresentationError::InvalidContent)?;
+                }
                 PresentationPropertyValue::ValueContract(contract) => contract
                     .validate_definition()
                     .map_err(|_| PresentationError::InvalidContent)?,
@@ -530,6 +539,9 @@ fn property_value_len(value: &PresentationPropertyValue) -> usize {
         PresentationPropertyValue::Count(_) | PresentationPropertyValue::Signed(_) => 8,
         PresentationPropertyValue::Flag(_) => 1,
         PresentationPropertyValue::Content(encoded) => encoded.len(),
+        PresentationPropertyValue::TypedValue { contract, bytes } => {
+            contract.identity_bytes().len() + bytes.len()
+        }
         PresentationPropertyValue::ValueContract(contract) => contract.identity_bytes().len(),
     }
 }

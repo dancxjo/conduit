@@ -79,14 +79,20 @@ impl DurableHostRuntime {
                     return Err("browser-show-basis-mismatch".into());
                 }
             }
-            if interaction.action_id.starts_with("todo.") {
+            if interaction.action_id.starts_with("todo.")
+                || interaction.action_id.starts_with("thermostat.")
+            {
                 None
             } else {
                 Some(owner.resolve_clock_interaction(show, interaction)?)
             }
         };
         let Some(action) = action else {
-            return self.submit_owned_todo_action(show, interaction);
+            return if interaction.action_id.starts_with("thermostat.") {
+                self.submit_owned_thermostat_action(show, interaction)
+            } else {
+                self.submit_owned_todo_action(show, interaction)
+            };
         };
         match action {
             crate::durable_host::owner::ClockAction::ChangeInterval => {

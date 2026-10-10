@@ -6,3 +6,9 @@ publish = false
 [dependencies]
 conduit-thermostat-plot = { path = "../model" }
 conduit-presentation = { path = "../../../semantics/presentation", default-features = false }
+conduit-core = { path = "../../../architecture/core", default-features = false }
+[dev-dependencies]
+conduit-body = { path = "../../../architecture/body" }
+conduit-planner = { path = "../../../architecture/planner" }
+conduit-plot = { path = "../../../architecture/plot" }
+conduit-presentation = { path = "../../../semantics/presentation", features = ["plot-catalog"] }

@@ -15,6 +15,7 @@ use std::{
 pub(super) enum OwnedRunWorker {
     General(crate::durable_host::owner::RunWorker),
     Todo(Box<crate::durable_host::owner::TodoWaitingWorker>),
+    Thermostat(Box<crate::durable_host::owner::ThermostatWorker>),
 }
 
 impl OwnedRunWorker {
@@ -25,6 +26,7 @@ impl OwnedRunWorker {
     ) -> Result<bool, String> {
         match self {
             Self::General(worker) => worker.progress(owner, root),
+            Self::Thermostat(worker) => worker.progress(owner, root),
             Self::Todo(worker) => Ok(worker.progress(owner, root)?.is_some()),
         }
     }
@@ -32,6 +34,7 @@ impl OwnedRunWorker {
     fn request_lull(&self) -> Result<(), String> {
         match self {
             Self::General(worker) => worker.request_lull(),
+            Self::Thermostat(worker) => worker.request_lull(),
             Self::Todo(worker) => worker.request_lull(),
         }
     }
@@ -238,7 +241,13 @@ impl DurableHostRuntime {
                 owner.start_next_todo_action(root, &next, maximum_millis)?,
             )),
             (None, None, None) => {
-                OwnedRunWorker::General(owner.start_service_run(root, maximum_millis)?)
+                if owner.is_thermostat() {
+                    OwnedRunWorker::Thermostat(Box::new(
+                        owner.start_thermostat_run(root, maximum_millis)?,
+                    ))
+                } else {
+                    OwnedRunWorker::General(owner.start_service_run(root, maximum_millis)?)
+                }
             }
             _ => return Err("selected Todo list and Host residence differ".into()),
         });

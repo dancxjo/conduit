@@ -1609,8 +1609,9 @@ dependencies = [
  "conduit-std-host",
  "conduit-std-offers",
  "conduit-text",
- "conduit-thermostat-app",
+ "conduit-thermostat-face",
  "conduit-thermostat-plot",
+ "conduit-thermostat-runtime",
  "conduit-time",
  "conduit-todo-face",
  "conduit-todo-plot",
@@ -2608,24 +2609,13 @@ dependencies = [
 ]
 
 [[package]]
-name = "conduit-thermostat-app"
+name = "conduit-thermostat-face"
 version = "0.1.0"
 dependencies = [
  "conduit-body",
  "conduit-core",
  "conduit-planner",
  "conduit-plot",
- "conduit-presentation",
- "conduit-std-host",
- "conduit-thermostat-face",
- "conduit-thermostat-plot",
- "serde_json",
-]
-
-[[package]]
-name = "conduit-thermostat-face"
-version = "0.1.0"
-dependencies = [
  "conduit-presentation",
  "conduit-thermostat-plot",
 ]
@@ -2637,6 +2627,20 @@ dependencies = [
  "conduit-core",
  "conduit-kernel",
  "conduit-plot",
+]
+
+[[package]]
+name = "conduit-thermostat-runtime"
+version = "0.1.0"
+dependencies = [
+ "conduit-body",
+ "conduit-core",
+ "conduit-planner",
+ "conduit-plot",
+ "conduit-presentation",
+ "conduit-std-host",
+ "conduit-thermostat-plot",
+ "serde_json",
 ]
 
 [[package]]

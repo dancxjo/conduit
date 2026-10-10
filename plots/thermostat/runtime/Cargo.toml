@@ -1,15 +1,16 @@
 [package]
-name = "conduit-thermostat-app"
+name = "conduit-thermostat-runtime"
 version = "0.1.0"
 edition = "2021"
 publish = false
 [dependencies]
 conduit-thermostat-plot = { path = "../model" }
-conduit-thermostat-face = { path = "../face" }
 conduit-core = { path = "../../../architecture/core" }
 conduit-plot = { path = "../../../architecture/plot" }
 conduit-planner = { path = "../../../architecture/planner" }
 conduit-body = { path = "../../../architecture/body" }
 conduit-std-host = { path = "../../../targets/std" }
 conduit-presentation = { path = "../../../semantics/presentation" }
+
+[dev-dependencies]
 serde_json = "1"

@@ -1,5 +1,5 @@
-use conduit_thermostat_app::execution::Execution;
 use conduit_thermostat_plot::{Command, Fan, Mode, Preset, ThermostatState};
+use conduit_thermostat_runtime::execution::Execution;
 
 #[test]
 fn authored_thermostat_commands_execute_exact_plan_and_play() {

@@ -297,6 +297,9 @@ fn display_property(value: &PresentationPropertyValue) -> String {
                 content.extent.items
             )
         }
+        PresentationPropertyValue::TypedValue { contract, bytes } => {
+            crate::display_typed_value(contract, bytes)
+        }
         PresentationPropertyValue::ValueContract(contract) => {
             format!("value-contract:{contract:?}")
         }
