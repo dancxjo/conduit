@@ -18,9 +18,9 @@ identities; this roadmap does not substitute planned work for any of those.
 
 The language can author payload-rich semantic Types, checked reusable Plots,
 behavioral parameters, concise pure Plots, compact Forms, and generated
-bindings. [#4375](https://github.com/dancxjo/conduit/issues/4375) now tracks the
-finite audited migration tail and current-truth reconciliation rather than a
-new edition. Bounded each/select/fold/scan and collection completed
+bindings. Completed [#4375](https://github.com/dancxjo/conduit/issues/4375)
+records the v1 semantic-abstraction and migration work rather than an open
+new-edition campaign. Bounded each/select/fold/scan and collection completed
 [#4378](https://github.com/dancxjo/conduit/issues/4378), with exact std/browser
 runtime proof and an explicit embedded applicability limit in the
 [language reference](../wiki/Current-language-surface.md).

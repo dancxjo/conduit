@@ -22,7 +22,7 @@ is actively implementing it. Follow an issue for its latest scope and state.
 
 ## Language boundaries worth knowing
 
-- Executable `plot` and portable representation `form` are implemented on `dev` by [#4800](https://github.com/dancxjo/conduit/pull/4800); [#4513](https://github.com/dancxjo/conduit/issues/4513) retains the separate stable-acceptance requirement.
+- Executable `plot` and portable representation `form` are implemented on `dev` by [#4800](https://github.com/dancxjo/conduit/pull/4800); completed [#4513](https://github.com/dancxjo/conduit/issues/4513) records its separate stable acceptance.
 - [[Units and quantities|Units-and-quantities]] now demonstrates completed
   [#5328](https://github.com/dancxjo/conduit/issues/5328): all 24 SI prefixes,
   exact conversions/comparisons, affine temperature points, temperature
