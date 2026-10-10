@@ -1,0 +1,8 @@
+# One shipped family, two exact ordinary transcription constructors.
+glyph notation notation = {
+    revision: "conduit.speech/ipa-notation@1",
+    branches: [
+        {delimiter: "square", lexical-policy: "raw-unicode", parser: "conduit.speech/ipa-quoted@1", constructor: "speech/phonetic-from-ipa", constructor-revision: "conduit.speech/ipa-quoted@1", result: "SpeechPhoneticTranscription", maximum-payload-bytes: 4096},
+        {delimiter: "slash", lexical-policy: "raw-unicode", parser: "conduit.speech/ipa-quoted@1", constructor: "speech/phonemic-from-ipa", constructor-revision: "conduit.speech/ipa-quoted@1", result: "SpeechPhonemicTranscription", maximum-payload-bytes: 4096}
+    ]
+}

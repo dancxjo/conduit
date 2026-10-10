@@ -1,0 +1,5 @@
+pack speech/ipa (
+    version = 1.0.0
+) {
+    ship notation
+}

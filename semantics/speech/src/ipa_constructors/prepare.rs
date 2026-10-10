@@ -263,3 +263,85 @@ fn check_basis(
     }
     Ok(())
 }
+
+// The generic literal entrance executes the ordinary owner's preparation. It
+// cannot infer membership by decoding the request or by inspecting delimiters.
+impl conduit_plot::StaticValueConstructor for IpaConstructor {
+    type Refusal = IpaConstructorDiagnostic;
+    fn contract(&self) -> conduit_core::Kind {
+        super::contract(*self)
+    }
+    fn result_type(&self) -> conduit_core::StructuredInfoType {
+        self.output_type()
+    }
+    fn prepare_configuration(
+        &self,
+        configuration: &[ConfigurationEntry],
+    ) -> Result<StructuredInfoValue, Self::Refusal> {
+        let prepared = prepare_configuration(*self, configuration)?;
+        StructuredInfoValue::from_canonical_bytes(prepared.bytes()).map_err(|error| {
+            IpaConstructorDiagnostic::native(NativeBindingRefusal::InvalidValue(error))
+        })
+    }
+}
+
+impl conduit_plot::LiteralValueConstructor for IpaConstructor {
+    fn parser_contract(&self) -> &str {
+        super::REVISION
+    }
+    fn lexical_policy(&self) -> conduit_plot::TypedLiteralLexicalPolicy {
+        conduit_plot::TypedLiteralLexicalPolicy::RawUnicode
+    }
+    fn literal_configuration(
+        &self,
+        literal: &conduit_plot::TypedGlyphLiteralSyntax,
+        context: &[ConfigurationEntry],
+    ) -> Result<Vec<ConfigurationEntry>, Self::Refusal> {
+        let parameters = self.parameters();
+        if context.len() != parameters.len()
+            || context
+                .iter()
+                .filter(|entry| entry.key == "provenance")
+                .count()
+                != 1
+            || parameters
+                .iter()
+                .skip(1)
+                .any(|(name, _, _)| context.iter().filter(|entry| entry.key == *name).count() != 1)
+        {
+            return Err(IpaConstructorDiagnostic::configuration());
+        }
+        let provenance = context
+            .iter()
+            .find(|entry| entry.key == "provenance")
+            .unwrap();
+        let ConfigurationValue::Structured(provenance) = &provenance.value else {
+            return Err(IpaConstructorDiagnostic::configuration());
+        };
+        let provenance = SpeechEvidenceProvenance::decode(provenance.canonical_value())
+            .map_err(|error| IpaConstructorDiagnostic::field(error, "provenance"))?;
+        let request = SpeechIpaUniversalRequest::new(literal.raw_payload.text.clone(), provenance)
+            .map_err(IpaConstructorDiagnostic::native)?;
+        let ty = self.request_type();
+        let encoded = request.encode().map_err(IpaConstructorDiagnostic::native)?;
+        let configured = conduit_core::StructuredConfigurationValue::new(
+            ty.profile()
+                .map_err(|_| IpaConstructorDiagnostic::configuration())?
+                .value_kind()
+                .clone(),
+            encoded,
+        )
+        .ok_or_else(IpaConstructorDiagnostic::configuration)?;
+        let mut configuration = alloc::vec![ConfigurationEntry {
+            key: "request".into(),
+            value: ConfigurationValue::Structured(configured),
+        }];
+        configuration.extend(
+            context
+                .iter()
+                .filter(|entry| entry.key != "provenance")
+                .cloned(),
+        );
+        Ok(configuration)
+    }
+}

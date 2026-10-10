@@ -1,4 +1,6 @@
 //! Checked Source glyph notation metadata, shared by shipment and admission.
+mod preparation;
+pub use preparation::{LiteralPreparationRefusal, LiteralValueConstructor, PreparedGlyphLiteral};
 mod scope;
 pub use scope::{resolve_glyph_notation_scope, GlyphNotationScope, ScopedGlyphNotation};
 

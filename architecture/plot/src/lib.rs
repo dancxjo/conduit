@@ -42,7 +42,8 @@ mod integer_literal;
 mod native_type;
 mod package_bundle;
 pub use glyph_notation::{
-    resolve_glyph_notation_scope, CheckedGlyphNotation, GlyphNotationScope, ScopedGlyphNotation,
+    resolve_glyph_notation_scope, CheckedGlyphNotation, GlyphNotationScope,
+    LiteralPreparationRefusal, LiteralValueConstructor, PreparedGlyphLiteral, ScopedGlyphNotation,
 };
 #[cfg(test)]
 mod package_bundle_tests;
@@ -58,6 +59,11 @@ mod quantity_literal;
 mod quoted_text_source;
 pub use quoted_text_source::{source_span, QuotedTextSourceMap};
 pub mod rust_binding;
+mod static_constructor;
+pub use static_constructor::{
+    prepare_static_constructor, PreparedStaticValue, StaticConstructorRefusal,
+    StaticValueConstructor,
+};
 mod structured_expression;
 mod structured_selector;
 mod structured_startup;
@@ -699,6 +705,16 @@ impl core::fmt::Display for PlotError {
 }
 
 impl core::error::Error for PlotError {}
+
+/// Parse fixed literal glyph positions using only explicitly imported checked
+/// family metadata. This recognizes syntax; ordinary constructor admission is
+/// still required before any payload becomes checked Info.
+pub fn parse_syntax_document_with_glyph_notations(
+    source: &str,
+    startup: &StartupCatalog,
+) -> SyntaxDocument {
+    surface_parser::parse_surface_scoped(source, startup)
+}
 
 /// Parses the canonical `plot NAME (...) { ... }` surface without performing
 /// catalog lookup or semantic lowering.
