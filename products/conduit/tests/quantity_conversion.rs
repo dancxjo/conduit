@@ -85,11 +85,11 @@ fn product_checks_distinct_temperature_difference_contract_and_owned_refusals() 
             .replace("units/convert(", "units/convert-temperature-difference(")
     };
     for (original, target) in [
-        ("9°F", "K"),
-        ("1m°C", "K"),
-        ("1QK", "qK"),
-        ("1°F", "K"),
-        ("1°C", "m"),
+        ("TemperatureDelta(9, °F)", "K"),
+        ("TemperatureDelta(1, m°C)", "K"),
+        ("TemperatureDelta(1, QK)", "qK"),
+        ("TemperatureDelta(1, °F)", "K"),
+        ("TemperatureDelta(1, °C)", "m"),
     ] {
         let result = check(&difference(original, target), true);
         assert!(
@@ -102,7 +102,10 @@ fn product_checks_distinct_temperature_difference_contract_and_owned_refusals() 
             serde_json::json!([])
         );
     }
-    for (original, target, expected) in [("1Hz", "K", "1Hz"), ("1°C", "mkg", "mkg")] {
+    for (original, target, expected) in [
+        ("1Hz", "K", "1Hz"),
+        ("TemperatureDelta(1, °C)", "mkg", "mkg"),
+    ] {
         let source = difference(original, target);
         let human = check(&source, false);
         let machine = check(&source, true);
@@ -147,8 +150,8 @@ fn product_checks_exact_comparisons_and_preserves_the_offending_operand_span() {
         (
             "units/compare-temperature-differences",
             "ExactTemperatureDifferenceComparisonReceipt",
-            "9°F",
-            "5K",
+            "TemperatureDelta(9, °F)",
+            "TemperatureDelta(5, K)",
         ),
     ] {
         let result = check(&source(kind, name, left, right), true);
@@ -180,7 +183,7 @@ fn product_checks_exact_comparisons_and_preserves_the_offending_operand_span() {
         (
             "units/compare-temperature-differences",
             "ExactTemperatureDifferenceComparisonReceipt",
-            "1°C",
+            "TemperatureDelta(1, °C)",
             "1Hz",
             "1Hz",
         ),
