@@ -1,6 +1,7 @@
 //! Execute generated consumers of closed value-parameterized Types.
 use conduit_plot::rust_binding::{generate_rust_bindings, RustBindingOptions};
-use std::{ffi::OsStr, fs, path::Path, process::Command};
+#[path = "common/generated_rust.rs"]
+mod generated_rust;
 
 #[test]
 fn generated_value_parameters_enforce_construction_decode_and_nested_laws() {
@@ -13,83 +14,7 @@ fn generated_value_parameters_enforce_construction_decode_and_nested_laws() {
     .unwrap();
     let generated =
         generate_rust_bindings(&checked.native_types, &RustBindingOptions::default()).unwrap();
-    let dependencies = std::env::current_exe()
-        .unwrap()
-        .parent()
-        .unwrap()
-        .to_path_buf();
-    let library = fs::read_dir(&dependencies)
-        .unwrap()
-        .filter_map(Result::ok)
-        .map(|entry| entry.path())
-        .filter(|path| {
-            path.extension() == Some(OsStr::new("rlib"))
-                && path
-                    .file_name()
-                    .and_then(OsStr::to_str)
-                    .is_some_and(|name| name.starts_with("libconduit_plot-"))
-        })
-        .max_by_key(|path| {
-            path.metadata()
-                .and_then(|metadata| metadata.modified())
-                .ok()
-        })
-        .expect("compiled Plot library");
-    let directory =
-        std::env::temp_dir().join(format!("conduit-value-binding-{}", std::process::id()));
-    fs::create_dir_all(&directory).unwrap();
-    let source = directory.join("bindings.rs");
-    fs::write(&source, format!("{}{}", generated.source, EXERCISE)).unwrap();
-    let executable = directory.join("bindings-test");
-    let mut compiler = rustc(&dependencies, &library);
-    let output = compiler
-        .args(["--test"])
-        .arg(&source)
-        .arg("-o")
-        .arg(&executable)
-        .output()
-        .unwrap();
-    assert!(
-        output.status.success(),
-        "generated consumer compile:\n{}",
-        String::from_utf8_lossy(&output.stderr)
-    );
-    let output = Command::new(&executable).output().unwrap();
-    assert!(
-        output.status.success(),
-        "generated consumer execution:\n{}\n{}",
-        String::from_utf8_lossy(&output.stdout),
-        String::from_utf8_lossy(&output.stderr)
-    );
-    let result = String::from_utf8_lossy(&output.stdout);
-    assert!(result.contains("3 passed; 0 failed"), "{result}");
-    println!("{result}");
-    let no_std_source = directory.join("bindings_no_std.rs");
-    fs::write(&no_std_source, format!("#![no_std]\n{}", generated.source)).unwrap();
-    let output = rustc(&dependencies, &library)
-        .arg("--crate-type=lib")
-        .arg(&no_std_source)
-        .arg("-o")
-        .arg(directory.join("libbindings_no_std.rlib"))
-        .output()
-        .unwrap();
-    assert!(
-        output.status.success(),
-        "generated no_std consumer compile:\n{}",
-        String::from_utf8_lossy(&output.stderr)
-    );
-    fs::remove_dir_all(directory).unwrap();
-}
-
-fn rustc(dependencies: &Path, library: &Path) -> Command {
-    let mut compiler = Command::new(std::env::var_os("RUSTC").unwrap_or_else(|| "rustc".into()));
-    compiler
-        .arg("--edition=2021")
-        .arg("-L")
-        .arg(format!("dependency={}", dependencies.display()))
-        .arg("--extern")
-        .arg(format!("conduit_plot={}", library.display()));
-    compiler
+    generated_rust::exercise(&generated.source, EXERCISE, 3, "value-binding");
 }
 
 const EXERCISE: &str = r#"
