@@ -214,16 +214,20 @@ pub fn check_syntax_document_with_literal_constructors(
             .plots
             .iter()
             .filter(|plot| span.start >= plot.span.start && span.end <= plot.span.end);
-        let plot = plots
-            .next()
-            .ok_or_else(|| fail(span, "glyph literal has no containing Plot"))?;
+        let plot = plots.next();
+        if plot.is_none() && (!owner.context_types().is_empty() || !binding.context.is_empty()) {
+            return Err(fail(
+                span,
+                "a contextual glyph literal requires a containing Plot",
+            ));
+        }
         if plots.next().is_some() {
             return Err(fail(span, "glyph literal has ambiguous Plot custody"));
         }
         receipts.push(owner.0.prepare(
             &scope,
             document,
-            &plot.name.text,
+            plot.map_or("", |plot| plot.name.text.as_str()),
             literal,
             startup,
             profile,

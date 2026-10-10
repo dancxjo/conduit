@@ -2,6 +2,7 @@
 use crate::*;
 use alloc::collections::BTreeMap;
 use sha2::{Digest, Sha256};
+mod type_literals;
 
 /// Checks ordinary Source using successfully prepared domain constructor results.
 /// Receipts are bound to exact parsed literal nodes, never substring matches or
@@ -237,6 +238,7 @@ pub(super) fn document_literals(
     let mut roots = Vec::new();
     let mut plots: Vec<_> = document.plots.iter().collect();
     let mut visited = 0usize;
+    type_literals::roots(document, &mut roots, &mut visited)?;
     while let Some(plot) = plots.pop() {
         visited += 1;
         if visited > 4096 {

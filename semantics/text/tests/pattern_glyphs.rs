@@ -214,3 +214,37 @@ fn prefixed_front_refinements_consume_the_prepared_pattern_with_a_finite_bound()
         );
     }
 }
+
+#[test]
+fn native_type_pattern_refinements_reuse_the_same_sealed_consumer() {
+    let (startup, profile) = catalogs();
+    for definition in [
+        "type Label = Text <= 32B ~ SPELLING\n",
+        "type Label = {\n name: Text <= 32B !~ SPELLING\n}\n",
+        "type Label = sequence Text <= 32B ~ SPELLING <= 4\n",
+    ] {
+        let ordinary = parse_syntax_document(&definition.replace("SPELLING", "/^[A-Z]+$/i"));
+        let ordinary = check_syntax_document(&ordinary, &startup).unwrap();
+        for spelling in ["r/^[A-Z]+$/i", "r⟦^[A-Z]+$⟧i"] {
+            let authored = format!(
+                "with {PATTERN_NOTATION_EXPORT_PATH} as r\n{}",
+                definition.replace("SPELLING", spelling)
+            );
+            let document = parse_syntax_document_with_glyph_notations(&authored, &startup);
+            assert!(
+                document.diagnostics.is_empty(),
+                "{:?}",
+                document.diagnostics
+            );
+            assert!(check_syntax_document(&document, &startup).is_err());
+            let checked =
+                check_syntax_document_with_literal_constructors(&document, &startup, &profile)
+                    .unwrap();
+            assert_eq!(
+                checked.native_types[0].value_contracts,
+                ordinary.native_types[0].value_contracts
+            );
+            assert_eq!(document.round_trip(), authored);
+        }
+    }
+}
