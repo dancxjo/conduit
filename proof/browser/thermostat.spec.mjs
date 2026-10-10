@@ -15,6 +15,7 @@ async function clickAction(page, control) {
 }
 
 test("thermostat semantic controls, revision guard, bounds and responsive encounter", async ({ page, request }, info) => {
+  const initialFace = await (await request.get("/face")).json();
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("/");
@@ -102,5 +103,8 @@ test("thermostat semantic controls, revision guard, bounds and responsive encoun
   await expect(page.locator("#target")).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await screenshot(page, "thermostat-mobile.png", info);
+  const finalFace = await (await request.get("/face")).json();
+  expect(finalFace.body_id).toBe(initialFace.body_id);
+  expect(finalFace.basis).toEqual(initialFace.basis);
   expect(errors).toEqual([]);
 });
