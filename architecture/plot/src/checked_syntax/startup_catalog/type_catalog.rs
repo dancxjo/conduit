@@ -173,6 +173,27 @@ impl StartupCatalog {
         self.structured_types.get(name)
     }
 
+    pub(crate) fn native_laws_for(
+        &self,
+        ty: &conduit_core::StructuredInfoType,
+    ) -> Option<(
+        &[NativeTypeValueContract],
+        &[crate::PortableExpressionProgram],
+    )> {
+        self.structured_types.iter().find_map(|(name, installed)| {
+            if installed != ty {
+                return None;
+            }
+            Some((
+                self.structured_type_contracts.get(name)?.as_slice(),
+                self.structured_type_invariants
+                    .get(name)
+                    .map(Vec::as_slice)
+                    .unwrap_or(&[]),
+            ))
+        })
+    }
+
     pub(crate) fn structured_type_contracts(
         &self,
         name: &str,

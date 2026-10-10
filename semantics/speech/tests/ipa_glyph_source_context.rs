@@ -326,6 +326,12 @@ fn one_family_context_admits_both_branches_and_checks_unused_selections() {
     let only_phonetic = source.replace("phonemic = ph/ˈt͡ʃaː/\n", "");
     let document = parse_syntax_document_with_glyph_notations(&only_phonetic, &startup);
     check_syntax_document_with_literal_constructors(&document, &startup, &profile).unwrap();
+    let invalid_native = only_phonetic.replace("explicit notation fixture", "");
+    assert_ne!(invalid_native, only_phonetic);
+    let invalid = parse_syntax_document_with_glyph_notations(&invalid_native, &startup);
+    let error =
+        check_syntax_document_with_literal_constructors(&invalid, &startup, &profile).unwrap_err();
+    assert!(error.message.contains("retained Native laws"), "{error:?}");
     let wrong = only_phonetic.replace(
         "inventory: chosen-inventory",
         "inventory: chosen-provenance",

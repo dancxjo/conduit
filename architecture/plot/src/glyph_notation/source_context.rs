@@ -1,5 +1,6 @@
 //! Explicit ordinary Source locals as the constructor's typed literal context.
 use crate::*;
+mod validation;
 use alloc::collections::{BTreeMap, BTreeSet};
 use conduit_core::{ConfigurationEntry, ConfigurationValue, StructuredConfigurationValue};
 
@@ -197,6 +198,8 @@ impl GlyphNotationScope {
             let encoded = concrete
                 .canonical_bytes()
                 .map_err(|_| diagnostic(span, "Source context exceeds canonical bounds"))?;
+            validation::validate(&concrete, startup)
+                .map_err(|message| diagnostic(span, &message))?;
             bytes = bytes.saturating_add(encoded.len());
             if bytes > 1024 * 1024 {
                 return Err(R::ContextLimit);
