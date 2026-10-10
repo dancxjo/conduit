@@ -35,29 +35,40 @@ pub fn query(checked: &CheckedSyntaxDocument) -> StructuredInfoValue {
             LanguageTextId::new("utterance".into()).unwrap(),
             language.clone(),
             LanguageTextRevisionId::new("source/1".into()).unwrap(),
-            "answer".into(),
+            "Hello Travis".into(),
         )
         .unwrap(),
         None,
         provenance.clone(),
         0,
-        Some(6),
+        Some(12),
     )
     .unwrap();
     let candidate = LanguageLexicalCandidate::new(
-        "answer".into(),
+        "Hello".into(),
         BoundedSequence::new(),
-        LanguageLexicalPos::Noun,
+        LanguageLexicalPos::Interjection,
     )
     .unwrap();
     let entry = LanguageLexicalEntry::new(
         BoundedSequence::try_from_iter([candidate]).unwrap(),
-        "answer".into(),
+        "Hello".into(),
+    )
+    .unwrap();
+    let record_entry = LanguageLexicalEntry::new(
+        BoundedSequence::try_from_iter([LanguageLexicalCandidate::new(
+            "Travis".into(),
+            BoundedSequence::new(),
+            LanguageLexicalPos::ProperNoun,
+        )
+        .unwrap()])
+        .unwrap(),
+        "Travis".into(),
     )
     .unwrap();
     let profile = LanguageLexicalProfile::new(
-        BoundedSequence::try_from_iter([entry]).unwrap(),
-        "fixture/answer".into(),
+        BoundedSequence::try_from_iter([entry, record_entry]).unwrap(),
+        "fixture/greeting".into(),
         language,
         provenance,
     )
@@ -71,15 +82,22 @@ pub fn query(checked: &CheckedSyntaxDocument) -> StructuredInfoValue {
                 "token_count",
                 number(
                     field_type(ty("LanguageParserJointLexical"), "token_count"),
-                    1,
+                    2,
                 ),
             ),
         ],
     );
     admit("LanguageParserJointLexical", &lexical);
     let mut f = Fixture::new();
-    let initial = f.initial(1);
+    let initial = f.initial(2);
     let transitioned = f.step(&initial, "right_arc", "root", "analysis/1");
+    assert!(accepted(&transitioned));
+    let transitioned = f.step(
+        field(&transitioned, "state"),
+        "right_arc",
+        "vocative",
+        "analysis/1",
+    );
     assert!(accepted(&transitioned));
     let original_state = field(&transitioned, "state");
     // Construct the exact checked state from the original operation's fields,
@@ -173,6 +191,83 @@ pub fn query(checked: &CheckedSyntaxDocument) -> StructuredInfoValue {
     );
     admit("LanguageParserJointStableFact", &fact);
     let query = record(ty("LanguageParserJointCommitQuery"), vec![("fact", fact)]);
+    admit("LanguageParserJointCommitQuery", &query);
+    query
+}
+
+/// Admit actual Source output before using it as the next query's retained beam.
+pub fn next_query(
+    checked: &CheckedSyntaxDocument,
+    original: &StructuredInfoValue,
+    proposal: &StructuredInfoValue,
+) -> StructuredInfoValue {
+    let owner = |name: &str| {
+        checked
+            .native_types
+            .iter()
+            .find(|ty| ty.name == name)
+            .unwrap()
+    };
+    let admit = |name: &str, value: &StructuredInfoValue| {
+        let ty = owner(name);
+        assert_eq!(value.value_type(), &ty.value_type);
+        validate_native_contracts(value, &ty.value_contracts).unwrap();
+        validate_native_invariants(value, &ty.invariants).unwrap();
+    };
+    let fact = field(original, "fact");
+    let consensus = field(fact, "query");
+    let mut beam = field(consensus, "beam").clone();
+    for name in ["candidate0", "candidate1", "candidate2", "candidate3"] {
+        let produced = field(proposal, name);
+        let produced_parser = field(produced, "parser");
+        let produced_state = field(produced_parser, "state");
+        let state_type = &owner("LanguageParserState").value_type;
+        let StructuredInfoTypeShape::Record { fields, .. } = state_type.shape() else {
+            panic!("state")
+        };
+        let state = record(
+            state_type,
+            fields
+                .iter()
+                .map(|member| (member.name(), field(produced_state, member.name()).clone()))
+                .collect(),
+        );
+        LanguageParserState::from_structured(state.clone()).unwrap();
+        let parser = record(
+            &owner("LanguageParserHypothesis").value_type,
+            vec![
+                ("state", state),
+                ("identity", field(produced_parser, "identity").clone()),
+                ("score", field(produced_parser, "score").clone()),
+                ("active", field(produced_parser, "active").clone()),
+            ],
+        );
+        LanguageParserHypothesis::from_structured(parser.clone()).unwrap();
+        let candidate = record(
+            &owner("LanguageParserJointHypothesis").value_type,
+            vec![
+                ("parser", parser),
+                ("choices", field(produced, "choices").clone()),
+            ],
+        );
+        admit("LanguageParserJointHypothesis", &candidate);
+        beam = replace(&beam, name, candidate);
+    }
+    admit("LanguageParserJointBeam", &beam);
+    let next_dependent = count(field(consensus, "dependent")) + 1;
+    let consensus = replace(consensus, "beam", beam);
+    let consensus = replace(
+        &consensus,
+        "dependent",
+        number(
+            field_type(consensus.value_type(), "dependent"),
+            next_dependent,
+        ),
+    );
+    admit("LanguageParserJointConsensusQuery", &consensus);
+    let fact = replace(fact, "query", consensus);
+    admit("LanguageParserJointStableFact", &fact);
+    let query = replace(original, "fact", fact);
     admit("LanguageParserJointCommitQuery", &query);
     query
 }

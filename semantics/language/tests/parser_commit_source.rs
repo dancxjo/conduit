@@ -123,6 +123,19 @@ fn original_commit_flow_advances_only_active_frontiers_under_the_existing_kernel
     )
     .is_err());
 
+    let expanded = expand_canonical_plot_for_authoring(
+        &checked,
+        "language-parser-joint-commit",
+        &ProfileCatalog::new(),
+    )
+    .unwrap();
+    let conduit_core::ConfigurationValue::Text(encoded) =
+        &expanded.expanded.gears[0].configuration[0].value
+    else {
+        panic!("original pure program")
+    };
+    let program = conduit_plot::PortableExpressionProgram::from_canonical_hex(encoded).unwrap();
+    let mut replay = conduit_plot::PreparedPortableExpressionEvaluator::new(&program).unwrap();
     let mut run = parser_kernel::Execution::prepare(source, "language-parser-joint-commit");
     let input_port = run.kernel.definition().boundary.input_fronts[0]
         .external_port
@@ -131,84 +144,126 @@ fn original_commit_flow_advances_only_active_frontiers_under_the_existing_kernel
         .external_port
         .clone();
     run.kernel.start().unwrap();
-    let input = ValuePayload {
-        value_kind: input_port.value_kind,
-        encoded: original_bytes.clone(),
-    };
-    assert!(matches!(
-        run.kernel
-            .admit_input(&input_port.port_id, 0, &input)
-            .unwrap(),
-        RemoteIngressOutcome::Accepted { .. }
-    ));
-    assert!(matches!(
-        run.kernel
-            .admit_input(&input_port.port_id, 1, &input)
-            .unwrap(),
-        RemoteIngressOutcome::Full { sequence: 1 }
-    ));
     let mut output = ValuePayload {
         value_kind: output_port.value_kind,
         encoded: Vec::with_capacity(MAXIMUM_STRUCTURED_CANONICAL_BYTES),
     };
-    assert!(run
-        .kernel
-        .output_into(&output_port.port_id, &mut output)
-        .unwrap()
-        .is_none());
-    let received = (0..4000)
-        .find_map(|_| {
-            run.step();
+    let mut current = query.clone();
+    let mut receipts = Vec::new();
+    for sequence in 0..2 {
+        let input = ValuePayload {
+            value_kind: input_port.value_kind.clone(),
+            encoded: current.canonical_bytes().unwrap(),
+        };
+        assert!(matches!(
             run.kernel
-                .output_into(&output_port.port_id, &mut output)
-                .unwrap()
-        })
-        .expect("bounded actual commitment output");
-    assert_eq!(received, 0);
-    let proposal = StructuredInfoValue::from_canonical_bytes(&output.encoded).unwrap();
-    let beam = field(field(field(&query, "fact"), "query"), "beam");
-    for (name, active) in [
-        ("candidate0", true),
-        ("candidate1", true),
-        ("candidate2", false),
-        ("candidate3", false),
-    ] {
-        let before = field(beam, name);
-        let after = field(&proposal, name);
-        assert_eq!(field(before, "choices"), field(after, "choices"));
-        let before = field(before, "parser");
-        let after = field(after, "parser");
-        for retained in ["identity", "score", "active"] {
-            assert_eq!(field(before, retained), field(after, retained));
-        }
-        let before = field(before, "state");
-        let after = field(after, "state");
+                .admit_input(&input_port.port_id, sequence, &input)
+                .unwrap(),
+            RemoteIngressOutcome::Accepted { .. }
+        ));
+        assert!(matches!(
+            run.kernel
+                .admit_input(&input_port.port_id, sequence + 1, &input)
+                .unwrap(),
+            RemoteIngressOutcome::Full { sequence: refused } if refused == sequence + 1
+        ));
+        assert!(run
+            .kernel
+            .output_into(&output_port.port_id, &mut output)
+            .unwrap()
+            .is_none());
+        let received = (0..4000)
+            .find_map(|_| {
+                run.step();
+                run.kernel
+                    .output_into(&output_port.port_id, &mut output)
+                    .unwrap()
+            })
+            .expect("bounded actual commitment output");
+        assert_eq!(received, sequence);
         assert_eq!(
-            count(field(after, "committed")),
-            count(field(before, "committed")) + u64::from(active)
+            replay.evaluate(&input.encoded).unwrap(),
+            output.encoded.as_slice()
         );
-        for retained in [
-            "basis",
-            "token_count",
-            "unread",
-            "depth",
-            "stack",
-            "heads",
-            "relation0",
-            "relation1",
-            "relation2",
-            "relation3",
+        receipts.push((input.encoded.clone(), output.encoded.clone()));
+        let proposal = StructuredInfoValue::from_canonical_bytes(&output.encoded).unwrap();
+        let beam = field(field(field(&current, "fact"), "query"), "beam");
+        for (name, active) in [
+            ("candidate0", true),
+            ("candidate1", true),
+            ("candidate2", false),
+            ("candidate3", false),
         ] {
-            assert_eq!(field(before, retained), field(after, retained));
+            let before = field(beam, name);
+            let after = field(&proposal, name);
+            assert_eq!(field(before, "choices"), field(after, "choices"));
+            let before = field(before, "parser");
+            let after = field(after, "parser");
+            for retained in ["identity", "score", "active"] {
+                assert_eq!(field(before, retained), field(after, retained));
+            }
+            let before = field(before, "state");
+            let after = field(after, "state");
+            assert_eq!(
+                count(field(after, "committed")),
+                count(field(before, "committed")) + u64::from(active)
+            );
+            for retained in [
+                "basis",
+                "token_count",
+                "unread",
+                "depth",
+                "stack",
+                "heads",
+                "relation0",
+                "relation1",
+                "relation2",
+                "relation3",
+            ] {
+                assert_eq!(field(before, retained), field(after, retained));
+            }
+        }
+        assert_eq!(query.canonical_bytes().unwrap(), original_bytes);
+        run.kernel
+            .complete_output(&output_port.port_id, sequence)
+            .unwrap();
+        if sequence == 0 {
+            current = commit_fixture::next_query(&checked, &current, &proposal);
+            assert_eq!(
+                field(field(field(&current, "fact"), "query"), "dependent"),
+                &fixture::number(
+                    fixture::field_type(
+                        field(field(&current, "fact"), "query").value_type(),
+                        "dependent"
+                    ),
+                    1
+                )
+            );
+        } else {
+            assert_eq!(
+                count(field(
+                    field(field(field(&proposal, "candidate0"), "parser"), "state"),
+                    "committed"
+                )),
+                2
+            );
         }
     }
-    assert_eq!(query.canonical_bytes().unwrap(), original_bytes);
-    run.kernel.complete_output(&output_port.port_id, 0).unwrap();
+    assert_eq!(receipts.len(), 2);
+    for (input, output) in &receipts {
+        let retained = StructuredInfoValue::from_canonical_bytes(input).unwrap();
+        assert_eq!(retained.canonical_bytes().unwrap(), *input);
+        assert_eq!(replay.evaluate(input).unwrap(), output.as_slice());
+    }
+    let input = ValuePayload {
+        value_kind: input_port.value_kind,
+        encoded: current.canonical_bytes().unwrap(),
+    };
     assert!(matches!(
         run.kernel
-            .admit_input(&input_port.port_id, 1, &input)
+            .admit_input(&input_port.port_id, 2, &input)
             .unwrap(),
-        RemoteIngressOutcome::Accepted { sequence: 1 }
+        RemoteIngressOutcome::Accepted { sequence: 2 }
     ));
     run.kernel.cancel().unwrap();
     assert_eq!(
@@ -222,7 +277,7 @@ fn original_commit_flow_advances_only_active_frontiers_under_the_existing_kernel
         .is_err());
     assert!(run
         .kernel
-        .admit_input(&input_port.port_id, 2, &input)
+        .admit_input(&input_port.port_id, 3, &input)
         .is_err());
     assert_eq!(query.canonical_bytes().unwrap(), original_bytes);
 }
