@@ -52,6 +52,7 @@ pub(super) fn compile(
                     conduit_core::BOOL_INFO_ID,
                 )),
                 &crate::ExpressionTypeContext {
+                    glyph_values: None,
                     input: &input,
                     immutable_values: &immutable_values,
                     structured_types: &structured_types,

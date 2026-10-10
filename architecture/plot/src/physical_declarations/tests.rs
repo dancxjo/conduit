@@ -315,6 +315,14 @@ fn admitted_physical_context_reuse_preserves_snapshot_and_checks_new_sources() {
         super::context::install(&extension, &snapshot).unwrap(),
         snapshot
     );
+    let borrowed = super::context::install_borrowed(&empty, &snapshot).unwrap();
+    assert!(
+        matches!(borrowed, alloc::borrow::Cow::Borrowed(value) if core::ptr::eq(value, &snapshot))
+    );
+    let borrowed = super::context::install_borrowed(&extension, &snapshot).unwrap();
+    assert!(
+        matches!(borrowed, alloc::borrow::Cow::Borrowed(value) if core::ptr::eq(value, &snapshot))
+    );
     assert!(!base.physical.units.contains_key("smoot"));
     assert!(snapshot.physical.units.contains_key("smoot"));
     let changed =

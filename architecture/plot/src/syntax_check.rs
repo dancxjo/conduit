@@ -21,7 +21,8 @@ mod resolution;
 mod shared_pool;
 mod specialization;
 mod structured_selector;
-use resolution::{is_atomic_literal, Resolver};
+use resolution::is_atomic_literal;
+pub(crate) use resolution::Resolver;
 use shared_pool::{check_pool_declarations, checked_pool};
 use specialization::specialize_named_type_parameters;
 
@@ -59,10 +60,20 @@ pub(crate) fn check_document(
             message: diagnostic.message.clone(),
         });
     }
-    let physical_catalog = crate::physical_declarations::context::install(document, catalog)?;
-    let aliased_catalog = crate::native_type::install_import_aliases(document, &physical_catalog)?;
+    let physical_catalog =
+        crate::physical_declarations::context::install_borrowed(document, catalog)?;
+    let aliased_catalog =
+        crate::native_type::install_import_aliases_borrowed(document, &physical_catalog)?;
+    let glyph_notation_scope = crate::resolve_glyph_notation_scope(document, catalog)?;
+    let glyph_notations = crate::glyph_notation::verify_declarations(document, catalog, None)?;
+    let used = catalog
+        .prepared_glyph_values
+        .values()
+        .map(|(literal, _)| literal.alias.text.clone())
+        .collect();
+    glyph_notation_scope.require_used(&used)?;
     let (native_types, checked_catalog) =
-        crate::native_type::check_native_types(&document.types, &aliased_catalog)?;
+        crate::native_type::check_native_types_borrowed(&document.types, &aliased_catalog)?;
     let type_forms =
         crate::type_form::check_type_forms(&document.type_forms, &document.types, &native_types)?;
     let catalog = &checked_catalog;
@@ -198,10 +209,12 @@ pub(crate) fn check_document(
     }
     Ok(CheckedSyntaxDocument {
         physical: catalog.physical.clone(),
+        glyph_values: crate::AdmittedGlyphValues::for_document(catalog),
         source_document_id: document.source_document_id(),
         native_types,
         retained_native_types: catalog.retained_native_types(),
         type_forms,
+        glyph_notations,
         plots: checked_plots,
         source_sugar_expansions,
         structured_types,
@@ -257,7 +270,10 @@ pub(crate) fn resolve_use_declarations(
     }
     for declaration in &document.uses {
         let path = declaration.path.as_str();
-        if catalog.structured_type(path).is_some() || catalog.native_families.contains_key(path) {
+        if catalog.structured_type(path).is_some()
+            || catalog.native_families.contains_key(path)
+            || catalog.typed_literal_family(path).is_some()
+        {
             continue;
         }
         let canonical = if catalog.get(path).is_some() || plots.contains_key(path) {
@@ -937,7 +953,10 @@ fn check_plot(
         &cords,
         &pools,
     );
+    let glyph_values = crate::AdmittedGlyphValues::for_plot(catalog, plot.span);
+    let checked_plot_id = glyph_values.bind_identity(checked_plot_id);
     Ok(CheckedCanonicalPlot {
+        glyph_values,
         checked_plot_id,
         name: plot.name.text.clone(),
         completion: plot.completion,

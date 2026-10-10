@@ -117,15 +117,17 @@ impl TourSession {
     ) -> Result<(Self, TourHostEffect), String> {
         let (startup, mut catalog) =
             crate::installed_browser::catalogs_for_presentation(presentation)?;
-        let syntax = conduit_plot::parse_syntax_document(source);
+        let syntax = conduit_plot::parse_syntax_document_with_glyph_notations(source, &startup);
         if let Some(diagnostic) = syntax.diagnostics.first() {
             return Err(format!(
                 "parse executable-tour Plot: {}",
                 diagnostic.message
             ));
         }
-        let checked = conduit_plot::check_syntax_document(&syntax, &startup)
-            .map_err(|error| format!("check executable-tour Plot: {error:?}"))?;
+        let checked = conduit_plot::check_syntax_document_with_literal_constructors(
+            &syntax, &startup, &catalog,
+        )
+        .map_err(|error| format!("check executable-tour Plot: {error:?}"))?;
         conduit_plot::quantity_conversion::validate_source(&syntax, &checked)
             .map_err(|error| format!("quantity source: {error:?}"))?;
         let selector_offers =
@@ -462,3 +464,5 @@ pub(crate) fn finite_connection_limits(
         })
         .collect()
 }
+#[cfg(test)]
+mod glyph_literal_tests;

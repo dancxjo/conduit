@@ -7,6 +7,7 @@ pub(crate) fn checked_refinements(
     maximum_bytes: Option<u64>,
     value_kind: &KindId,
     bound_span: crate::Span,
+    catalog: &crate::StartupCatalog,
 ) -> Result<(u32, Vec<ValueConstraint>), SyntaxCheckDiagnostic> {
     let maximum_bytes = maximum_bytes
         .or_else(|| intrinsic_maximum_bytes(value_kind.as_str()).map(u64::from))
@@ -37,6 +38,7 @@ pub(crate) fn checked_refinements(
                 Ok(ValueConstraint::FloatFinite)
             }
             crate::ValueRefinement::TextPattern {
+                glyph,
                 source,
                 case_insensitive,
                 anchored_start,
@@ -51,6 +53,13 @@ pub(crate) fn checked_refinements(
                         message: "the ~ and !~ relations may refine only canonical Text info"
                             .into(),
                     });
+                }
+                if let Some(expression) = glyph {
+                    let crate::ExpressionSyntax::TypedGlyphLiteral(literal) = &expression.syntax else {
+                        return Err(SyntaxCheckDiagnostic { code: "CND-GLY-004", span: expression.span, message: "pattern refinement requires one typed glyph literal".into() });
+                    };
+                    return catalog.glyph_text_constraint(literal, maximum_bytes, *negated)
+                        .map_err(|message| SyntaxCheckDiagnostic { code: "CND-GLY-004", span: expression.span, message });
                 }
                 let mut expression = crate::parse_text_pattern(&source.text).map_err(|error| {
                     SyntaxCheckDiagnostic {

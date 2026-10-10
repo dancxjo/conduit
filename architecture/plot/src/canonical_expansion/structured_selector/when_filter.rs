@@ -50,6 +50,7 @@ pub(super) fn expand_when_filter(
     let mut checked = crate::check_expression(
         &expression,
         &crate::ExpressionTypeContext {
+            glyph_values: Some(&source_plot.glyph_values),
             input: &crate::CheckedExpressionType::Semantic(input_kind),
             immutable_values: &BTreeMap::new(),
             structured_types,

@@ -57,12 +57,23 @@ pub(super) fn review(
     hosts: &[HostAdvertisement],
     bases: &[BaseImplementationId],
 ) -> Result<WorkloadReview, String> {
+    let mut catalogs = super::catalog_preparation::CatalogPreparation::default();
+    let checked = super::initial_plots::check_inventory_with_catalogs(source, &mut catalogs)?;
+    review_from_inventory(&checked, selection_json, hosts, bases, &mut catalogs)
+}
+
+pub(super) fn review_from_inventory(
+    checked_documents: &[super::initial_plots::CheckedInventoryEntry],
+    selection_json: &str,
+    hosts: &[HostAdvertisement],
+    bases: &[BaseImplementationId],
+    catalogs: &mut super::catalog_preparation::CatalogPreparation,
+) -> Result<WorkloadReview, String> {
     let selected: Vec<InitialPlotSelection> = serde_json::from_str(selection_json)
         .map_err(|_| "initial Plot selection is not an exact identity list".to_string())?;
     if selected.len() > conduit_body::MAX_BODY_PLOTS {
         return Err("initial Plot selection exceeds Body capacity".into());
     }
-    let checked_documents = super::initial_plots::check_inventory(source)?;
     let mut required_kinds = BTreeSet::new();
     let mut resource_totals = BTreeMap::<(HostId, ResourceClassId), u32>::new();
     let mut capability_totals = BTreeMap::<(HostId, CapabilityId), u32>::new();
@@ -92,13 +103,13 @@ pub(super) fn review(
                 selected_plot.name
             ));
         }
-        let (startup, mut profile) =
-            crate::installed_browser::catalogs_for_presentation(presentation)?;
+        let (startup, base_profile) = catalogs.get(presentation)?;
+        let mut profile = base_profile.clone();
         crate::installed_browser::catalogs::install_checked_structured_selectors(
             checked,
             &mut profile,
         )?;
-        let backs = crate::installed_browser::backs(&startup, &profile)?;
+        let backs = crate::installed_browser::backs(startup, &profile)?;
         let expanded =
             conduit_plot::expand_canonical_plot_with_backs(checked, &plot.name, &profile, &backs)
                 .map_err(|error| format!("expand reviewed plot {:?}: {error:?}", plot.name))?;

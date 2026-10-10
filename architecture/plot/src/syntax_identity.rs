@@ -281,6 +281,23 @@ pub(crate) fn canonical_expression(expression: &crate::ExpressionSyntax) -> Stri
             push_field(&mut value, "atomic");
             push_field(&mut value, &atomic.text);
         }
+        ExpressionSyntax::TypedGlyphLiteral(literal) => {
+            push_field(&mut value, "typed-glyph-literal");
+            push_field(&mut value, literal.source_document_id.as_str());
+            push_hex(&mut value, &literal.family_identity);
+            push_field(&mut value, &literal.alias.text);
+            push_field(&mut value, &format!("{:?}", literal.delimiter));
+            push_field(&mut value, &literal.authored.text);
+            push_field(&mut value, &literal.raw_payload.text);
+            push_field(&mut value, &literal.payload);
+            push_field(
+                &mut value,
+                &format!(
+                    "{}:{}:{}",
+                    literal.case_insensitive, literal.anchored_start, literal.anchored_end
+                ),
+            );
+        }
         ExpressionSyntax::Input(_) => push_field(&mut value, "input"),
         ExpressionSyntax::Projection {
             value: projected,

@@ -208,6 +208,7 @@ fn expand_argument_expression(
         expression,
         Some(&expected_type),
         &crate::ExpressionTypeContext {
+            glyph_values: Some(&source_plot.glyph_values),
             input: &input_type,
             immutable_values: &BTreeMap::new(),
             structured_types,

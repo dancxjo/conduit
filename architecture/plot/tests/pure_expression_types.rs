@@ -40,6 +40,7 @@ fn context<'a>(
     semantic_kinds: &'a BTreeMap<String, Kind>,
 ) -> ExpressionTypeContext<'a> {
     ExpressionTypeContext {
+        glyph_values: None,
         input,
         immutable_values,
         structured_types,

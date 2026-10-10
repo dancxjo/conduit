@@ -46,6 +46,7 @@ fn prepared_exact_transport_admits_canonical_bytes_and_never_grows_during_evalua
     };
     let input = CheckedExpressionType::semantic(QUANTITY_INFO_ID);
     let context = ExpressionTypeContext {
+        glyph_values: None,
         input: &input,
         immutable_values: &BTreeMap::new(),
         structured_types: &BTreeMap::new(),

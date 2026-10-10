@@ -1,0 +1,7 @@
+# Portable pattern source meaning; input work bounds belong to its consumer.
+type PortablePatternSpecification = {
+    source: Text <= 4096B not in [""]
+    case-insensitive: Boolean
+    anchored-start: Boolean
+    anchored-end: Boolean
+}

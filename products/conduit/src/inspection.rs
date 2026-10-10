@@ -35,7 +35,13 @@ fn inspect_plot(path: &Path) -> Result<String, String> {
         plot.connections.len(),
         plot.shared_pools.len(),
     );
-    if !source.syntax.types.is_empty() {
+    if !source.syntax.types.is_empty()
+        || source
+            .syntax
+            .uses
+            .iter()
+            .any(|import| source.startup.typed_literal_family(&import.path).is_some())
+    {
         rendered.push_str(&type_view);
     }
     Ok(rendered)

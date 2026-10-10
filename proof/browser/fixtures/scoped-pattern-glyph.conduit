@@ -1,0 +1,12 @@
+with text/pattern/notation as r
+plot equivalent (
+    >> input: Text
+    result: Boolean >>
+) = (r/^[A-Z]+$/i == r⟦^[A-Z]+$⟧i)
+plot scoped-pattern-glyph {
+    seed: text/literal("checked glyph equality")
+    compare: equivalent
+    show: presentation/bool-value
+    seed >> compare.input
+    compare.result >> show.value
+}.

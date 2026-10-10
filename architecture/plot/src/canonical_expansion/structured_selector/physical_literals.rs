@@ -232,7 +232,7 @@ fn walk(
         return Ok(());
     }
     match value {
-        E::Atomic(_) | E::Input(_) => {}
+        E::Atomic(_) | E::Input(_) | E::TypedGlyphLiteral(_) => {}
         E::Projection { value, .. }
         | E::Unary { operand: value, .. }
         | E::Variant { payload: value, .. } => walk(value, bindings, catalog, types, payloads)?,

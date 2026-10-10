@@ -68,6 +68,8 @@ test("independent entrances own distinct Hosts while reload retains Host and rep
   const secondPage = await browser.newPage();
   await Promise.all([firstPage.goto(firstEntrance.url), secondPage.goto(secondEntrance.url)]);
   await Promise.all([
+    expect(firstPage.locator("#host")).toBeVisible(),
+    expect(secondPage.locator("#host")).toBeVisible(),
     expect(firstPage.locator("#status")).toHaveText("Current and independently initialized"),
     expect(secondPage.locator("#status")).toHaveText("Current and independently initialized"),
   ]);
@@ -83,6 +85,7 @@ test("independent entrances own distinct Hosts while reload retains Host and rep
   await expect(secondPage.getByText("None", { exact: true })).toBeVisible();
 
   await firstPage.reload();
+  await expect(firstPage.locator("#host")).toBeVisible();
   await expect(firstPage.locator("#status")).toHaveText("Current and independently initialized");
   const replacementIdentity = await identity(firstPage);
   expect(replacementIdentity.hostId).toBe(firstIdentity.hostId);

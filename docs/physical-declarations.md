@@ -125,3 +125,20 @@ values, including forward numeric and Unit aliases. Constructor operands must be
 known at checking/preparation time. For reusable startup interfaces, construct
 the Quantity first and forward its ordinary typed value; this declaration feature
 does not introduce a runtime numeric-constructor Gear.
+
+## Development acceptance boundary
+
+The current declaration system admits normalized dimension definitions and pins
+those definitions inside Unit and Quantity capsules. A dimension definition is
+inspectable through the Rust Unit API. This does not yet provide an independent
+Conduitese `Dimension` value through startup parameters, structured fields and
+runtime ports. That three-way transport contract remains open under #5390;
+Unit/Quantity transport in #5391 must not be used to close it.
+
+The remaining vertical must admit a basis and a composed Dimension as checked
+values, expose a Unit's Dimension through an ordinary typed operation, preserve
+normalized algebra and source custody across each value boundary, and reject
+forged metadata or definition rebinding. Nominal quantity families and
+point/difference roles remain separate from dimension algebra. Exact symbolic
+constants, including the turn/radian relationship, and planner-selected numeric
+precision belong to the separate #5392 implementation.

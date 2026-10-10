@@ -132,7 +132,7 @@ fn validate_node(
             }
         }
         Op::Variant { payload, .. } => validate_node(payload, input_type, types)?,
-        Op::Input | Op::Literal(_) | Op::CanonicalLiteral(_) => {}
+        Op::Input | Op::Literal(_) | Op::CanonicalLiteral(_) | Op::Constant(_) => {}
     }
     Ok(())
 }

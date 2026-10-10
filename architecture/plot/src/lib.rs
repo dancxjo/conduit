@@ -35,9 +35,18 @@ mod expression_program_decode;
 mod expression_proof;
 mod expression_semantic_call;
 mod functional_front;
+mod glyph_notation;
+#[cfg(test)]
+mod glyph_notation_test_support;
 mod integer_literal;
 mod native_type;
 mod package_bundle;
+pub use glyph_notation::{
+    admit_glyph_values, check_syntax_document_with_literal_constructors,
+    check_syntax_document_with_prepared_glyph_literals, resolve_glyph_notation_scope,
+    AdmittedGlyphValues, CheckedGlyphNotation, GlyphNotationScope, LiteralPreparationRefusal,
+    LiteralValueConstructor, PreparedGlyphLiteral, ScopedGlyphNotation,
+};
 #[cfg(test)]
 mod package_bundle_tests;
 mod package_check;
@@ -54,6 +63,11 @@ pub use physical_declarations::*;
 mod quoted_text_source;
 pub use quoted_text_source::{source_span, QuotedTextSourceMap};
 pub mod rust_binding;
+mod static_constructor;
+pub use static_constructor::{
+    prepare_static_constructor, PreparedStaticValue, StaticConstructorRefusal,
+    StaticValueConstructor,
+};
 mod structured_expression;
 mod structured_selector;
 mod structured_startup;
@@ -61,6 +75,8 @@ mod surface_lex;
 mod surface_parser;
 pub mod syntax;
 mod syntax_check;
+mod syntax_format;
+pub use syntax_format::*;
 mod syntax_highlight;
 mod syntax_identity;
 mod text_value;
@@ -697,6 +713,16 @@ impl core::fmt::Display for PlotError {
 
 impl core::error::Error for PlotError {}
 
+/// Parse fixed literal glyph positions using only explicitly imported checked
+/// family metadata. This recognizes syntax; ordinary constructor admission is
+/// still required before any payload becomes checked Info.
+pub fn parse_syntax_document_with_glyph_notations(
+    source: &str,
+    startup: &StartupCatalog,
+) -> SyntaxDocument {
+    surface_parser::parse_surface_scoped(source, startup)
+}
+
 /// Parses the canonical `plot NAME (...) { ... }` surface without performing
 /// catalog lookup or semantic lowering.
 pub fn parse_syntax_document(source: &str) -> SyntaxDocument {
@@ -724,11 +750,11 @@ pub fn parse_with_startup(
     startup: &StartupCatalog,
     catalog: &ProfileCatalog,
 ) -> Result<CheckedPlot, PlotError> {
-    let syntax = parse_syntax_document(source);
+    let syntax = parse_syntax_document_with_glyph_notations(source, startup);
     if let Some(diagnostic) = syntax.diagnostics.first() {
         return Err(PlotError::InvalidSyntax(diagnostic.message.clone()));
     }
-    let checked = check_syntax_document(&syntax, startup)
+    let checked = check_syntax_document_with_literal_constructors(&syntax, startup, catalog)
         .map_err(|diagnostic| PlotError::InvalidSyntax(diagnostic.message))?;
     let entry = checked
         .plots

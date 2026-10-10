@@ -1,5 +1,10 @@
 //! Checked package members and exact package content identity.
+mod export_names;
+#[cfg(test)]
+mod notation_tests;
+mod shipped_notations;
 mod shipped_types;
+use export_names::*;
 
 use crate::prelude::*;
 use crate::{
@@ -23,6 +28,8 @@ pub struct CheckedPackageMember {
     pub content_digest: [u8; 32],
     pub plots: Vec<String>,
     pub types: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub glyph_notations: Vec<String>,
     pub local_requirements: Vec<String>,
 }
 
@@ -41,6 +48,8 @@ pub struct PackageExportCatalog {
     package_content_digest: [u8; 32],
     exports: BTreeMap<String, PlotSyntax>,
     type_exports: BTreeMap<String, TypeSyntax>,
+    glyph_notation_exports:
+        BTreeMap<String, (crate::GlyphNotationSyntax, crate::TypedLiteralFamilyOrigin)>,
     type_definitions: Vec<TypeSyntax>,
     type_documents: Vec<crate::SyntaxDocument>,
     type_origins: BTreeMap<String, crate::NativeTypeSourceOrigin>,
@@ -57,6 +66,7 @@ pub enum PackageBundleError {
     InvalidMemberSource(String),
     DuplicatePlot(String),
     DuplicateType(String),
+    DuplicateGlyphNotation(String),
     MissingLocalMember(String),
     MissingLocalPlot(String),
     AmbiguousLocalPlot(String),
@@ -102,6 +112,7 @@ impl CheckedPackageBundle {
         let mut member_plots = BTreeMap::<String, BTreeSet<String>>::new();
         let mut all_plots = BTreeSet::new();
         let mut all_types = BTreeSet::new();
+        let mut all_notations = BTreeSet::new();
         for member in sources {
             if !crate::surface_lex::is_operation(member.path) {
                 return Err(PackageBundleError::InvalidMemberPath(member.path.into()));
@@ -141,6 +152,17 @@ impl CheckedPackageBundle {
                     return Err(PackageBundleError::DuplicateType(value_type.clone()));
                 }
             }
+            let mut glyph_notations = document
+                .glyph_notations
+                .iter()
+                .map(|notation| notation.name.text.clone())
+                .collect::<Vec<_>>();
+            glyph_notations.sort();
+            for notation in &glyph_notations {
+                if !all_notations.insert(notation.clone()) {
+                    return Err(PackageBundleError::DuplicateGlyphNotation(notation.clone()));
+                }
+            }
             member_plots.insert(member.path.into(), plots.iter().cloned().collect());
             let mut local_requirements = document
                 .uses
@@ -159,6 +181,7 @@ impl CheckedPackageBundle {
                 content_digest: Sha256::digest(member.source.as_bytes()).into(),
                 plots,
                 types,
+                glyph_notations,
                 local_requirements,
             });
         }
@@ -223,6 +246,23 @@ impl CheckedPackageBundle {
         exported_type_name(&self.members, export).ok()
     }
 
+    /// A notation shipment is a source member, never an executable Plot.
+    pub fn resolve_glyph_notation_export(&self, source_path: &str) -> Option<&str> {
+        let export = source_path
+            .strip_prefix(&self.package.path)?
+            .strip_prefix('/')?;
+        if export.contains('/')
+            || self
+                .package
+                .exports
+                .binary_search_by(|candidate| candidate.as_str().cmp(export))
+                .is_err()
+        {
+            return None;
+        }
+        exported_glyph_notation_name(&self.members, export).ok()
+    }
+
     pub fn member_owning_plot(&self, plot: &str) -> Option<&str> {
         self.members
             .iter()
@@ -253,6 +293,7 @@ impl PackageExportCatalog {
         let mut plots = BTreeMap::new();
         let mut types = BTreeMap::new();
         let mut type_documents = Vec::new();
+        let mut notations = BTreeMap::new();
         let mut type_origins = BTreeMap::new();
         for member in member_sources {
             let document = crate::parse_syntax_document(member.source);
@@ -262,6 +303,19 @@ impl PackageExportCatalog {
                 bundle.package.content_digest,
             ));
             type_documents.push(document.clone());
+            for notation in &document.glyph_notations {
+                notations.insert(
+                    notation.name.text.clone(),
+                    (
+                        notation.clone(),
+                        crate::TypedLiteralFamilyOrigin {
+                            package_content_digest: bundle.package.content_digest,
+                            module_path: member.path.into(),
+                            source_document_id: document.source_document_id(),
+                        },
+                    ),
+                );
+            }
             for plot in document.plots {
                 plots.insert(plot.name.text.clone(), plot);
             }
@@ -272,6 +326,7 @@ impl PackageExportCatalog {
         let type_definitions = types.values().cloned().collect();
         let mut exports = BTreeMap::new();
         let mut type_exports = BTreeMap::new();
+        let mut glyph_notation_exports = BTreeMap::new();
         for export in &bundle.package.exports {
             let source_path = format!("{}/{export}", bundle.package.path);
             if let Some(canonical) = bundle.resolve_export(&source_path) {
@@ -284,6 +339,11 @@ impl PackageExportCatalog {
                     .remove(canonical)
                     .ok_or_else(|| PackageBundleError::MissingExport(export.clone()))?;
                 type_exports.insert(source_path, value_type);
+            } else if let Some(canonical) = bundle.resolve_glyph_notation_export(&source_path) {
+                let notation = notations
+                    .remove(canonical)
+                    .ok_or_else(|| PackageBundleError::MissingExport(export.clone()))?;
+                glyph_notation_exports.insert(source_path, notation);
             } else {
                 return Err(PackageBundleError::MissingExport(export.clone()));
             }
@@ -292,6 +352,7 @@ impl PackageExportCatalog {
             package_content_digest: bundle.package.content_digest,
             exports,
             type_exports,
+            glyph_notation_exports,
             type_definitions,
             type_documents,
             type_origins,
@@ -306,47 +367,20 @@ impl PackageExportCatalog {
         self.type_exports.get(source_path)
     }
 
+    pub fn resolve_glyph_notation(
+        &self,
+        source_path: &str,
+    ) -> Option<(
+        &crate::GlyphNotationSyntax,
+        &crate::TypedLiteralFamilyOrigin,
+    )> {
+        self.glyph_notation_exports
+            .get(source_path)
+            .map(|(syntax, origin)| (syntax, origin))
+    }
+
     pub fn package_content_digest(&self) -> [u8; 32] {
         self.package_content_digest
-    }
-}
-
-fn exported_plot_name<'a>(
-    members: &'a [CheckedPackageMember],
-    export: &str,
-) -> Result<&'a str, PackageBundleError> {
-    match unique_plot_leaf(members.iter().flat_map(|member| &member.plots), export) {
-        Ok(plot) => Ok(plot),
-        Err(PlotLeafError::Missing) => Err(PackageBundleError::MissingExport(export.into())),
-        Err(PlotLeafError::Ambiguous) => Err(PackageBundleError::AmbiguousExport(export.into())),
-    }
-}
-
-fn exported_type_name<'a>(
-    members: &'a [CheckedPackageMember],
-    export: &str,
-) -> Result<&'a str, PackageBundleError> {
-    match unique_plot_leaf(members.iter().flat_map(|member| &member.types), export) {
-        Ok(value_type) => Ok(value_type),
-        Err(PlotLeafError::Missing) => Err(PackageBundleError::MissingExport(export.into())),
-        Err(PlotLeafError::Ambiguous) => Err(PackageBundleError::AmbiguousExport(export.into())),
-    }
-}
-
-fn exported_member_name<'a>(
-    members: &'a [CheckedPackageMember],
-    export: &str,
-) -> Result<&'a str, PackageBundleError> {
-    match (
-        exported_plot_name(members, export),
-        exported_type_name(members, export),
-    ) {
-        (Ok(name), Err(PackageBundleError::MissingExport(_)))
-        | (Err(PackageBundleError::MissingExport(_)), Ok(name)) => Ok(name),
-        (Err(PackageBundleError::MissingExport(_)), Err(PackageBundleError::MissingExport(_))) => {
-            Err(PackageBundleError::MissingExport(export.into()))
-        }
-        _ => Err(PackageBundleError::AmbiguousExport(export.into())),
     }
 }
 
@@ -371,26 +405,6 @@ fn validate_local_requirements(
         }
     }
     Ok(())
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum PlotLeafError {
-    Missing,
-    Ambiguous,
-}
-
-fn unique_plot_leaf<'a, I>(plots: I, leaf: &str) -> Result<&'a str, PlotLeafError>
-where
-    I: IntoIterator<Item = &'a String>,
-{
-    let mut matches = plots
-        .into_iter()
-        .filter(|plot| plot.rsplit('/').next().is_some_and(|name| name == leaf));
-    let found = matches.next().ok_or(PlotLeafError::Missing)?;
-    if matches.next().is_some() {
-        return Err(PlotLeafError::Ambiguous);
-    }
-    Ok(found)
 }
 
 fn reject_member_cycles(members: &[CheckedPackageMember]) -> Result<(), PackageBundleError> {

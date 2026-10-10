@@ -3,6 +3,29 @@ use super::*;
 use crate::prelude::*;
 use crate::{StartupCatalog, SyntaxCheckDiagnostic, SyntaxDocument, TypeDefinitionSyntax};
 
+pub(crate) fn install_borrowed<'a>(
+    document: &SyntaxDocument,
+    base: &'a StartupCatalog,
+) -> Result<alloc::borrow::Cow<'a, StartupCatalog>, SyntaxCheckDiagnostic> {
+    let has_declarations = !document.dimensions.is_empty()
+        || !document.prefixes.is_empty()
+        || !document.units.is_empty()
+        || document
+            .types
+            .iter()
+            .any(|t| matches!(t.definition, TypeDefinitionSyntax::Quantity(_)));
+    if !base.physical_sources.is_empty()
+        && (!has_declarations
+            || base
+                .physical_sources
+                .iter()
+                .any(|source| source.source_document_id() == document.source_document_id()))
+    {
+        return Ok(alloc::borrow::Cow::Borrowed(base));
+    }
+    install(document, base).map(alloc::borrow::Cow::Owned)
+}
+
 pub(crate) fn install(
     document: &SyntaxDocument,
     base: &StartupCatalog,

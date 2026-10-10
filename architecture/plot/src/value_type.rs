@@ -148,6 +148,7 @@ pub(crate) fn checked_front(
                 parameter.maximum_bytes,
                 &checked.value_type,
                 parameter.value_type.span,
+                catalog,
             )?;
             Ok(FrontValueContract {
                 location: FrontValueLocation::Startup(parameter.name.text.clone()),
@@ -195,6 +196,7 @@ pub(crate) fn checked_front(
                 port.maximum_bytes,
                 &descriptor.value_kind,
                 port.value_type.span,
+                catalog,
             )?;
             value_contracts.push(FrontValueContract {
                 location: match port.direction {

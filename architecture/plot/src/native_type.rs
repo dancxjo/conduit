@@ -9,13 +9,17 @@ use conduit_core::{
     data_reference_kind, kind_id, CheckedValueContract, KindId, StructuredFieldType,
     StructuredInfoType, StructuredVariantCase,
 };
+mod catalog_preparation;
+pub(crate) use catalog_preparation::check as check_native_types_borrowed;
 pub(crate) mod family;
 mod generic;
 mod identity;
 mod invariant;
 mod use_contract;
 use identity::{schema_identity, schema_identity_for_record, schema_identity_for_variant};
-pub(crate) use use_contract::{install_import_aliases, validate_concrete_value};
+pub(crate) use use_contract::{
+    install_import_aliases, install_import_aliases_borrowed, validate_concrete_value,
+};
 
 #[derive(Clone)]
 struct CompiledRepresentation {
@@ -352,6 +356,7 @@ fn compile_expression(
                         *maximum_bytes,
                         primitive,
                         *span,
+                        catalog,
                     )?;
                 let mut contract =
                     CheckedValueContract::new(primitive.clone(), maximum_bytes, constraints)

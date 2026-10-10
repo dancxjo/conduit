@@ -8,6 +8,7 @@ use alloc::{boxed::Box, string::String, vec::Vec};
 use conduit_core::{PrimitiveInfoKind, StructuredInfoTypeShape};
 
 mod byte_observation;
+mod equality;
 mod inspection;
 mod shared_input;
 use shared_input::SharedBytes;
@@ -66,6 +67,7 @@ struct PreparedNode {
 }
 
 enum PreparedOperation {
+    Equality(Box<equality::PreparedEquality>),
     Input,
     Literal(Vec<u8>),
     Unary {
@@ -238,6 +240,15 @@ fn prepare_node(
 ) -> Result<PreparedNode, Refusal> {
     let kind = leaf_kind(&node.value_type)?;
     let operation = match &node.operation {
+        PortableExpressionOperation::Constant(value) => {
+            if value.value_type() != &node.value_type {
+                return Err(Refusal::InvalidProgram);
+            }
+            let conduit_core::StructuredInfoValueShape::Leaf(bytes) = value.shape() else {
+                return Err(Refusal::InvalidProgram);
+            };
+            PreparedOperation::Literal(bytes.to_vec())
+        }
         PortableExpressionOperation::Input => PreparedOperation::Input,
         PortableExpressionOperation::Literal(literal) => PreparedOperation::Literal(
             crate::expression_evaluate::literal_primitive_bytes(&node.value_type, literal)?,
@@ -256,12 +267,15 @@ fn prepare_node(
             proven,
             left,
             right,
-        } => PreparedOperation::Binary {
-            operator: *operator,
-            proven: *proven,
-            left: Box::new(prepare_node(left, input_type, prepared_input)?),
-            right: Box::new(prepare_node(right, input_type, prepared_input)?),
-        },
+        } => equality::binary(
+            *operator,
+            *proven,
+            kind,
+            left,
+            right,
+            input_type,
+            prepared_input,
+        )?,
         PortableExpressionOperation::Conditional {
             condition,
             when_true,
@@ -368,6 +382,7 @@ fn evaluate_node<'a>(
 ) -> Result<PrimitiveValue<'a>, Refusal> {
     let expected = node.kind;
     let value = match &mut node.operation {
+        PreparedOperation::Equality(equality) => equality.evaluate(input)?,
         PreparedOperation::Input => {
             if Some(expected) != input_kind {
                 return Err(Refusal::InvalidProgram);
