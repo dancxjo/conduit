@@ -158,13 +158,9 @@ impl Context<'_> {
                         ),
                     ));
                 }
-                if let Some(alias) = self
-                    .aliases
-                    .get(&key)
-                    .filter(|_| !self.origins.contains_key(&template.name.text))
-                {
+                if let Some(alias) = self.checked_alias(template, &origin, &key, &cache_key)? {
                     return Ok(TypeExpressionSyntax::Reference {
-                        value_type: alias.clone(),
+                        value_type: alias,
                         arguments: Vec::new(),
                         maximum_bytes: None,
                         refinements: Vec::new(),

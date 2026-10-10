@@ -376,3 +376,58 @@ fn nested_type_only_helper_arguments_keep_owner_nominal_names_after_collision() 
     );
     assert_eq!(value(&reversed, &combined), first_isolated);
 }
+
+#[test]
+fn type_only_family_arguments_keep_closed_owner_identity_through_import_aliases() {
+    let owner = "type Sample = U16 in 1..=64\ntype Pair<T> = collection T = 2\n";
+    let catalog = catalog_with_exports(owner, &["Sample", "Pair"]);
+    let source = "with example/families/Sample as Reading\nwith example/families/Pair as Cells\ntype Value = Cells<Reading>\n";
+    let imported = value(source, &catalog);
+    let nominal = value("with example/families/Pair as Cells\ntype Reading = U16 in 1..=64\ntype Value = Cells<Reading>\n", &catalog);
+    assert_ne!(nominal.identity, imported.identity);
+    assert_eq!(
+        imported,
+        value(&source.replace("Reading", "Measured"), &catalog)
+    );
+    assert_eq!(
+        imported,
+        value(
+            &alloc::format!("{owner}type Value = Pair<Sample>\n"),
+            &StartupCatalog::new()
+        )
+    );
+}
+
+#[test]
+fn local_specialization_alias_cannot_capture_a_foreign_same_named_type_argument() {
+    let owner = catalog("type Sample = U32\n", "Sample");
+    let source = "with example/families/Sample as Reading\ntype Sample = U8\ntype Pair<T> = collection T = 2\ntype Shared = Pair<Sample>\ntype Value = {\n cells: Pair<Reading>\n}\n";
+    let isolated = value(&source.replace("type Shared = Pair<Sample>\n", ""), &owner);
+    assert_eq!(value(source, &owner), isolated);
+}
+
+#[test]
+fn imported_type_arguments_still_reuse_matching_local_specialization_aliases() {
+    let owner = catalog("type Sample = U32\n", "Sample");
+    let source = "with example/families/Sample as Reading\ntype Pair<T> = collection T = 2\ntype Shared = Pair<Reading>\ntype Value = {\n cells: Pair<Reading>\n}\n";
+    assert_eq!(
+        value(source, &owner),
+        value(
+            &source.replace("cells: Pair<Reading>", "cells: Shared"),
+            &owner
+        )
+    );
+}
+
+#[test]
+fn nested_alias_candidates_are_checked_without_recursing_into_their_own_lookup() {
+    let owner = catalog("type Sample = U32\n", "Sample");
+    let source = "with example/families/Sample as Reading\ntype Pair<T> = collection T = 2\ntype Nested = Pair<Pair<Reading>>\ntype Value = {\n cells: Pair<Reading>\n}\n";
+    assert_eq!(
+        value(source, &owner),
+        value(
+            &source.replace("type Nested = Pair<Pair<Reading>>\n", ""),
+            &owner
+        )
+    );
+}
