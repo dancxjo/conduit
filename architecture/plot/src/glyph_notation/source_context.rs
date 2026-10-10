@@ -23,6 +23,51 @@ impl GlyphNotationScope {
         if fresh.binding(&literal.alias.text) != Some(binding) {
             return Err(LiteralPreparationRefusal::Identity);
         }
+        let fail = |message: &str| {
+            LiteralPreparationRefusal::SourceContext(SyntaxCheckDiagnostic {
+                code: "CND-GLY-002",
+                span: binding.import_span,
+                message: message.into(),
+            })
+        };
+        let mut known = BTreeMap::new();
+        let mut fields = constructor.context_types();
+        if fields.len() > 64 {
+            return Err(LiteralPreparationRefusal::ContextLimit);
+        }
+        for (key, ty) in &fields {
+            known.insert(key.clone(), ty.clone());
+        }
+        for branch in &binding.family.branches {
+            let Some(owner) = startup.literal_owners.get(branch.constructor_kind.as_str()) else {
+                continue;
+            };
+            let owner_fields = owner.context_types();
+            if owner_fields.len() > 64 {
+                return Err(LiteralPreparationRefusal::ContextLimit);
+            }
+            for (key, ty) in owner_fields {
+                if known.get(&key).is_some_and(|existing| existing != &ty) {
+                    return Err(fail(
+                        "glyph branches declare incompatible Types for a shared context key",
+                    ));
+                }
+                known.insert(key, ty);
+                if known.len() > 64 {
+                    return Err(LiteralPreparationRefusal::ContextLimit);
+                }
+            }
+        }
+        for (key, _) in &binding.context {
+            let ty = known.get(&key.text).ok_or_else(|| fail("selected context key is not declared by this glyph family's compiled constructors"))?;
+            if !fields.iter().any(|(required, _)| *required == key.text) {
+                fields.push((key.text.clone(), ty.clone()));
+            }
+        }
+        let constructor = FamilyContextConstructor {
+            owner: constructor,
+            fields,
+        };
         let selections = binding
             .context
             .iter()
@@ -33,7 +78,7 @@ impl GlyphNotationScope {
             plot_name,
             literal,
             &selections,
-            constructor,
+            &constructor,
             startup,
             profile,
         )
@@ -194,5 +239,51 @@ impl GlyphNotationScope {
             self.prepare_literal(document, literal, &context, constructor, startup, profile)?;
         prepared.source_context = retained;
         Ok(prepared)
+    }
+}
+
+/// Check all selected family context before projecting the exact configuration
+/// required by this literal's declared constructor branch.
+struct FamilyContextConstructor<'a, C> {
+    owner: &'a C,
+    fields: Vec<(String, conduit_core::StructuredInfoType)>,
+}
+impl<C: LiteralValueConstructor> StaticValueConstructor for FamilyContextConstructor<'_, C> {
+    type Refusal = C::Refusal;
+    fn contract(&self) -> conduit_core::Kind {
+        self.owner.contract()
+    }
+    fn result_type(&self) -> conduit_core::StructuredInfoType {
+        self.owner.result_type()
+    }
+    fn prepare_configuration(
+        &self,
+        configuration: &[ConfigurationEntry],
+    ) -> Result<conduit_core::StructuredInfoValue, Self::Refusal> {
+        self.owner.prepare_configuration(configuration)
+    }
+}
+impl<C: LiteralValueConstructor> LiteralValueConstructor for FamilyContextConstructor<'_, C> {
+    fn context_types(&self) -> Vec<(String, conduit_core::StructuredInfoType)> {
+        self.fields.clone()
+    }
+    fn parser_contract(&self) -> &str {
+        self.owner.parser_contract()
+    }
+    fn lexical_policy(&self) -> TypedLiteralLexicalPolicy {
+        self.owner.lexical_policy()
+    }
+    fn literal_configuration(
+        &self,
+        literal: &TypedGlyphLiteralSyntax,
+        context: &[ConfigurationEntry],
+    ) -> Result<Vec<ConfigurationEntry>, Self::Refusal> {
+        let required = self.owner.context_types();
+        let selected = context
+            .iter()
+            .filter(|entry| required.iter().any(|(key, _)| *key == entry.key))
+            .cloned()
+            .collect::<Vec<_>>();
+        self.owner.literal_configuration(literal, &selected)
     }
 }

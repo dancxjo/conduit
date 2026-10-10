@@ -3,6 +3,7 @@ use crate::*;
 use core::fmt;
 
 trait CompiledOwner: Send + Sync {
+    fn context_types(&self) -> Vec<(String, conduit_core::StructuredInfoType)>;
     fn contract(&self) -> conduit_core::Kind;
     fn prepare(
         &self,
@@ -19,6 +20,9 @@ where
     C: LiteralValueConstructor + Send + Sync,
     C::Refusal: fmt::Debug,
 {
+    fn context_types(&self) -> Vec<(String, conduit_core::StructuredInfoType)> {
+        LiteralValueConstructor::context_types(self)
+    }
     fn contract(&self) -> conduit_core::Kind {
         StaticValueConstructor::contract(self)
     }
@@ -48,6 +52,11 @@ where
 /// Equality preserves the actual owner object, including when catalogs clone.
 #[derive(Clone, Copy)]
 pub(crate) struct InstalledLiteralOwner(&'static dyn CompiledOwner);
+impl InstalledLiteralOwner {
+    pub(super) fn context_types(&self) -> Vec<(String, conduit_core::StructuredInfoType)> {
+        self.0.context_types()
+    }
+}
 impl fmt::Debug for InstalledLiteralOwner {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_tuple("InstalledLiteralOwner")

@@ -288,3 +288,58 @@ fn authored_import_selects_exact_source_context() {
             .is_err());
     }
 }
+
+#[test]
+fn one_family_context_admits_both_branches_and_checks_unused_selections() {
+    let (startup, profile) = catalogs();
+    let fields = material(PHONEMIC);
+    let selections = fields
+        .iter()
+        .map(|(key, _)| format!("{key}: chosen-{key}"))
+        .collect::<Vec<_>>()
+        .join(", ");
+    let declarations = fields
+        .iter()
+        .map(|(key, value)| format!("chosen-{key} = {value}\n"))
+        .collect::<String>();
+    let source = format!("with {NOTATION_EXPORT_PATH} as ph using {{{selections}}}\nplot authored {{\n{declarations}phonetic = ph[ˈt͡ʃaː]\nphonemic = ph/ˈt͡ʃaː/\n}}\n");
+    let document = parse_syntax_document_with_glyph_notations(&source, &startup);
+    let checked =
+        check_syntax_document_with_literal_constructors(&document, &startup, &profile).unwrap();
+    assert_eq!(checked.plots[0].local_values.len(), fields.len() + 2);
+    for (name, constructor) in [
+        ("phonetic", IpaConstructor::Phonetic),
+        ("phonemic", IpaConstructor::Phonemic),
+    ] {
+        let (_, CanonicalStartupValue::Structured(value)) = checked.plots[0]
+            .local_values
+            .iter()
+            .find(|(key, _)| key == name)
+            .unwrap()
+        else {
+            panic!()
+        };
+        assert_eq!(value.value_type(), &constructor.result_type());
+    }
+    parse_with_startup(&source, &startup, &profile).unwrap();
+    // Even the phonetic branch validates explicitly selected phonemic context.
+    let only_phonetic = source.replace("phonemic = ph/ˈt͡ʃaː/\n", "");
+    let document = parse_syntax_document_with_glyph_notations(&only_phonetic, &startup);
+    check_syntax_document_with_literal_constructors(&document, &startup, &profile).unwrap();
+    let wrong = only_phonetic.replace(
+        "inventory: chosen-inventory",
+        "inventory: chosen-provenance",
+    );
+    let document = parse_syntax_document_with_glyph_notations(&wrong, &startup);
+    assert!(
+        check_syntax_document_with_literal_constructors(&document, &startup, &profile).is_err()
+    );
+    let unknown = source.replace(
+        "provenance: chosen-provenance",
+        "unknown: chosen-provenance",
+    );
+    let document = parse_syntax_document_with_glyph_notations(&unknown, &startup);
+    let error =
+        check_syntax_document_with_literal_constructors(&document, &startup, &profile).unwrap_err();
+    assert!(error.message.contains("not declared"), "{error:?}");
+}
