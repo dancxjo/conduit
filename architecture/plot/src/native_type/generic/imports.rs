@@ -16,6 +16,9 @@ pub(crate) struct Imports {
 }
 impl Imports {
     pub(crate) fn prepare(catalog: &StartupCatalog) -> Result<Self, SyntaxCheckDiagnostic> {
+        if let Some(family) = catalog.native_families.values().next() {
+            super::super::family::budget::validate(catalog, None, family.templates[0].name.span)?;
+        }
         let mut imports = Self {
             catalog: catalog.clone(),
             templates: Vec::new(),

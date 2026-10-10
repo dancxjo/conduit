@@ -7,7 +7,7 @@ use alloc::collections::{BTreeMap, BTreeSet};
 
 mod argument;
 mod binding;
-mod budget;
+pub(super) mod budget;
 mod canonical;
 pub(super) mod imports;
 mod integer;

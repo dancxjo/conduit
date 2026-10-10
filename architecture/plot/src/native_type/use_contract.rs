@@ -16,6 +16,29 @@ pub(crate) fn install_import_aliases(
             }
             if catalog
                 .native_families
+                .contains_key(&declaration.alias.text)
+            {
+                return Err(super::diagnostic(
+                    declaration.alias.span,
+                    "duplicate Type family import alias".into(),
+                ));
+            }
+            if catalog.structured_type(&declaration.alias.text).is_some()
+                || catalog.value_kind_alias(&declaration.alias.text).is_some()
+                || catalog.get(&declaration.alias.text).is_some()
+            {
+                return Err(super::diagnostic(
+                    declaration.alias.span,
+                    "Type family import alias conflicts with an installed Type or Kind".into(),
+                ));
+            }
+            super::family::budget::validate(
+                &catalog,
+                Some((&declaration.alias.text, family)),
+                declaration.alias.span,
+            )?;
+            if catalog
+                .native_families
                 .insert(declaration.alias.text.clone(), family.clone())
                 .is_some()
             {

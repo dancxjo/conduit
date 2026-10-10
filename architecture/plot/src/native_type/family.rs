@@ -2,6 +2,7 @@
 use crate::prelude::*;
 use crate::{CheckedNativeType, TypeSyntax};
 use alloc::collections::BTreeMap;
+pub(crate) mod budget;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct NativeTypeFamily {
@@ -20,6 +21,23 @@ pub(crate) fn install(
     owner: &crate::StartupCatalog,
     package_content_digest: [u8; 32],
 ) -> Result<(), crate::SyntaxCheckDiagnostic> {
+    if catalog.structured_type(path).is_some()
+        || catalog.get(path).is_some()
+        || catalog.value_kind_alias(path).is_some()
+        || catalog.native_families.contains_key(path)
+    {
+        return Err(super::diagnostic(
+            root.name.span,
+            alloc::format!("duplicate or ambiguous shipped Type family '{path}'"),
+        ));
+    }
+    if catalog.native_families.len() >= budget::MAXIMUM_FAMILIES {
+        return Err(super::diagnostic(
+            root.name.span,
+            "native family registry exceeds its 128-entry profile".into(),
+        ));
+    }
+    budget::validate(catalog, None, root.name.span)?;
     let imports = super::generic::imports::Imports::prepare(owner)?;
     let mut templates = Vec::new();
     let mut origins = imports.origins;
@@ -40,15 +58,7 @@ pub(crate) fn install(
         origins,
         package_content_digest,
     };
-    if catalog.structured_type(path).is_some()
-        || catalog.get(path).is_some()
-        || catalog.native_families.contains_key(path)
-    {
-        return Err(super::diagnostic(
-            root.name.span,
-            alloc::format!("duplicate or ambiguous shipped Type family '{path}'"),
-        ));
-    }
+    budget::validate(catalog, Some((path, &family)), root.name.span)?;
     catalog.native_families.insert(path.into(), family);
     Ok(())
 }

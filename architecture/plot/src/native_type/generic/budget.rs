@@ -8,6 +8,12 @@ use crate::{
 };
 
 pub(super) fn validate(declarations: &[TypeSyntax]) -> Result<(), SyntaxCheckDiagnostic> {
+    validate_iter(declarations.iter())
+}
+
+pub(crate) fn validate_iter<'a>(
+    declarations: impl IntoIterator<Item = &'a TypeSyntax>,
+) -> Result<(), SyntaxCheckDiagnostic> {
     let mut budget = Budget { nodes: 0, bytes: 0 };
     for declaration in declarations {
         budget.node(declaration.span, 0)?;
