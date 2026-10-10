@@ -129,16 +129,19 @@ impl PatchbayHtmlServer {
             ),
             "edit" => {
                 let edit = input.edit.ok_or(ServerError::InvalidRequest)?;
-                let catalog = if edit.operation == "configure-gear" {
-                    self.zero_body_front_door
-                        .as_ref()
-                        .ok_or(ServerError::InvalidRequest)?
+                let catalog = if let Some(session) = self
+                    .zero_body_front_door
+                    .as_ref()
+                    .filter(|_| edit.operation == "configure-gear")
+                {
+                    session
                         .lock()
                         .map_err(|_| ServerError::InvalidRequest)?
                         .opened_plot_editor()
-                        .ok_or(ServerError::InvalidRequest)?
-                        .checked_physical_catalog()
+                        .map(|editor| editor.checked_physical_catalog())
+                        .transpose()
                         .map_err(|_| ServerError::InvalidRequest)?
+                        .unwrap_or_default()
                 } else {
                     conduit_plot::StartupCatalog::new()
                 };

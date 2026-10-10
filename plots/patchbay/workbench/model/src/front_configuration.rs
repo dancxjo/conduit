@@ -251,6 +251,13 @@ fn proposal_for_configuration(
         (InteractionFamily::Text(_), ConfigurationValue::Text(value)) => {
             InteractionValue::new(KindId::from(TEXT_INFO_ID), value.into_bytes())
         }
+        (
+            InteractionFamily::Structured(_),
+            value @ (ConfigurationValue::Unit(_)
+            | ConfigurationValue::Quantity(_)
+            | ConfigurationValue::TemperatureDifference(_)),
+        ) => patchbay_graph::physical_interaction_value(&value)
+            .map_err(|_| conduit_human::InteractionRefusal::MalformedValue),
         _ => {
             return Err(PlotEditorError::InvalidConfiguration(
                 "value does not fit the common interaction family".into(),
@@ -342,6 +349,43 @@ fn configuration_from_proposal(
                             "negative value for unsigned configuration".into(),
                         )
                     })
+            }
+        }
+        InteractionFamily::Structured(_) => {
+            let invalid = || {
+                PlotEditorError::InvalidConfiguration("malformed typed physical interaction".into())
+            };
+            let wrapped = conduit_core::StructuredInfoValue::from_canonical_bytes(value.bytes())
+                .map_err(|_| invalid())?;
+            let conduit_core::StructuredInfoValueShape::Leaf(bytes) = wrapped.shape() else {
+                return Err(invalid());
+            };
+            match rule {
+                KindConfigurationRule::Unit => {
+                    let unit = conduit_core::Unit::decode(bytes).map_err(|_| invalid())?;
+                    conduit_core::UnitConfigurationValue::new(unit, unit.canonical_symbol())
+                        .map(ConfigurationValue::Unit)
+                        .ok_or_else(invalid)
+                }
+                KindConfigurationRule::Quantity => {
+                    let quantity = Quantity::decode(bytes).map_err(|_| invalid())?;
+                    conduit_core::QuantityConfigurationValue::from_value(quantity)
+                        .map(ConfigurationValue::Quantity)
+                        .map_err(|_| invalid())
+                }
+                KindConfigurationRule::TemperatureDifference => {
+                    let quantity = Quantity::decode(bytes).map_err(|_| invalid())?;
+                    let difference =
+                        conduit_core::ExactTemperatureDifference::from_quantity(quantity)
+                            .map_err(|_| invalid())?;
+                    conduit_core::ExactTemperatureDifferenceConfigurationValue::new(
+                        difference,
+                        quantity.canonical_literal().map_err(|_| invalid())?,
+                    )
+                    .map(ConfigurationValue::TemperatureDifference)
+                    .ok_or_else(invalid)
+                }
+                _ => Err(invalid()),
             }
         }
         InteractionFamily::ChooseOne(_) | InteractionFamily::Text(_) => {

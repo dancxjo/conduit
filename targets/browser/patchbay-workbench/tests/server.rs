@@ -606,7 +606,7 @@ fn structured_browser_edit_normalizes_without_dom_or_widget_identity() {
     }))
     .unwrap();
     let response = post_interaction(snapshot, &body);
-    assert!(response.starts_with("HTTP/1.1 200 OK"));
+    assert!(response.starts_with("HTTP/1.1 200 OK"), "{response}");
     let decoded = conduit_browser_patchbay_workbench::RendererSnapshot::decode(
         response.split("\r\n\r\n").nth(1).unwrap().as_bytes(),
         1,

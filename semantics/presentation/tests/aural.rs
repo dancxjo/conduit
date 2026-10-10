@@ -456,7 +456,7 @@ fn exact_inward_participation_contract_survives_aural_projection() {
         ),
         (
             "sample/distance",
-            "a quantity from inclusive 1 length/meter through inclusive 2 length/meter",
+            &format!("a quantity from inclusive 1e0 {} through inclusive 2e0 {}", conduit_core::Unit::Meter.semantic_id(), conduit_core::Unit::Meter.semantic_id()),
         ),
         (
             "sample/mode",

@@ -133,10 +133,13 @@ fn hysteresis_profile_and_decision_payloads_round_trip_exactly() {
         ),
         Ok(profile)
     );
-    assert_eq!(
-        encode_measurement_hysteresis_profile(profile).unwrap(),
-        vec![1, 7, 40, 0, 0, 0, 0, 0, 0, 0, 7, 60, 0, 0, 0, 0, 0, 0, 0, 0,]
-    );
+    assert_eq!(encode_measurement_hysteresis_profile(profile).unwrap(), {
+        let mut bytes = vec![1];
+        bytes.extend_from_slice(&Quantity::new(40, Unit::Millivolt).encode());
+        bytes.extend_from_slice(&Quantity::new(60, Unit::Millivolt).encode());
+        bytes.push(0);
+        bytes
+    });
     let mut hysteresis = MeasurementHysteresis::new(profile.policy, profile.initial_state).unwrap();
     let decision = hysteresis
         .evaluate(&summary(60, Unit::Millivolt, 2))

@@ -42,6 +42,9 @@ pub enum FaceControlKind {
         maximum: u64,
         unit: Option<String>,
     },
+    PhysicalSource {
+        maximum_bytes: u32,
+    },
     ShortText {
         maximum_bytes: u32,
     },
@@ -156,6 +159,14 @@ pub fn project_controls(gear: &CheckedGear) -> Result<Vec<FaceControl>, Patchbay
                         choices: values.clone(),
                     }
                 }
+                (ConfigurationValue::Unit(_), KindConfigurationRule::Unit)
+                | (ConfigurationValue::Quantity(_), KindConfigurationRule::Quantity)
+                | (
+                    ConfigurationValue::TemperatureDifference(_),
+                    KindConfigurationRule::TemperatureDifference,
+                ) => FaceControlKind::PhysicalSource {
+                    maximum_bytes: conduit_core::QUANTITY_MAX_LITERAL_BYTES as u32,
+                },
                 _ => return Err(PatchbayGraphError::InvalidConfigurationContract),
             };
             let interaction = project_interaction(gear, &field.key, &value, &field.rule)?;
@@ -299,6 +310,26 @@ fn project_interaction(
                     .map_err(|_| PatchbayGraphError::InvalidConfigurationContract)?,
             )
         }
+        (ConfigurationValue::Unit(_), KindConfigurationRule::Unit)
+        | (ConfigurationValue::Quantity(_), KindConfigurationRule::Quantity)
+        | (
+            ConfigurationValue::TemperatureDifference(_),
+            KindConfigurationRule::TemperatureDifference,
+        ) => {
+            let current = physical_interaction_value(value)?;
+            let structured =
+                conduit_core::StructuredInfoValue::from_canonical_bytes(current.bytes())
+                    .map_err(|_| PatchbayGraphError::InvalidConfigurationContract)?;
+            let digest = structured
+                .value_type()
+                .semantic_digest()
+                .map_err(|_| PatchbayGraphError::InvalidConfigurationContract)?;
+            (
+                InteractionFamily::structured_value(value.semantic_kind(), digest, 1024),
+                None,
+                current,
+            )
+        }
         _ => return Ok(None),
     };
     let contract = InteractionContract::new(semantic_id, family)
@@ -315,4 +346,24 @@ fn interaction_value(kind: &str, bytes: &[u8]) -> Result<InteractionValue, Patch
 
 fn quantity_value(value: i64, unit: Unit) -> Result<InteractionValue, PatchbayGraphError> {
     interaction_value(QUANTITY_INFO_ID, &Quantity::new(value, unit).encode())
+}
+
+/// Canonical typed physical value carried by the common structured interaction.
+pub fn physical_interaction_value(
+    value: &ConfigurationValue,
+) -> Result<InteractionValue, PatchbayGraphError> {
+    let bytes = match value {
+        ConfigurationValue::Unit(value) => value.canonical_value(),
+        ConfigurationValue::Quantity(value) => value.canonical_value(),
+        ConfigurationValue::TemperatureDifference(value) => value.canonical_value(),
+        _ => return Err(PatchbayGraphError::InvalidConfigurationContract),
+    };
+    let kind = value.semantic_kind();
+    let ty = conduit_core::StructuredInfoType::leaf(kind.clone())
+        .map_err(|_| PatchbayGraphError::InvalidConfigurationContract)?;
+    let wrapped = conduit_core::StructuredInfoValue::leaf(ty, bytes.to_vec())
+        .and_then(|value| value.canonical_bytes())
+        .map_err(|_| PatchbayGraphError::InvalidConfigurationContract)?;
+    InteractionValue::new(kind, wrapped)
+        .map_err(|_| PatchbayGraphError::InvalidConfigurationContract)
 }

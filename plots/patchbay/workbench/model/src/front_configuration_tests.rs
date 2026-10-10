@@ -416,3 +416,40 @@ fn finite_text_contract_projects_an_exact_choice_and_rejects_invented_values() {
     ));
     assert_eq!(editor.view().source, source);
 }
+
+#[test]
+fn physical_unit_control_keeps_typed_source_when_edited() {
+    let mut editor = editor("plot controls {\n    map: math/map-quantity(unit = Hz)\n}\n");
+    let before = editor.expand_plot("controls").unwrap();
+    let graph = PatchbayGraph::from_expanded(&before).unwrap();
+    let control = graph.gears[0]
+        .controls
+        .iter()
+        .find(|control| control.key == "unit")
+        .unwrap();
+    assert!(matches!(
+        control.kind,
+        FaceControlKind::PhysicalSource { .. }
+    ));
+    assert!(matches!(control.value, ConfigurationValue::Unit(_)));
+    editor
+        .set_gear_configuration(
+            0,
+            &before.expanded_plot_id,
+            "map",
+            "unit",
+            ConfigurationValue::Unit(conduit_core::UnitConfigurationValue::parse("kHz").unwrap()),
+        )
+        .unwrap();
+    assert!(editor.view().source.contains("unit = kHz"));
+    let after = editor.expand_plot("controls").unwrap();
+    let graph = PatchbayGraph::from_expanded(&after).unwrap();
+    let control = graph.gears[0]
+        .controls
+        .iter()
+        .find(|control| control.key == "unit")
+        .unwrap();
+    assert!(
+        matches!(&control.value, ConfigurationValue::Unit(value) if value.value() == conduit_core::Unit::resolve("kHz").unwrap())
+    );
+}

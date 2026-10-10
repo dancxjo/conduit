@@ -227,7 +227,7 @@ fn text_adapter_preserves_exact_text_and_refuses_other_record_types() {
 }
 
 #[test]
-fn every_maximum_frame_fits_its_declared_structured_leaf() {
+fn maximum_bytes_payload_fits_frame_without_widening_bytes_primitive() {
     assert_eq!(
         MAXIMUM_TYPED_RECORD_FRAME_BYTES,
         conduit_core::MAXIMUM_STRUCTURED_LEAF_BYTES
@@ -235,13 +235,63 @@ fn every_maximum_frame_fits_its_declared_structured_leaf() {
     let payload_type = StructuredInfoType::leaf(kind_id("value/bytes")).unwrap();
     let empty = StructuredInfoValue::leaf(payload_type.clone(), Vec::new()).unwrap();
     let canonical_overhead = empty.canonical_bytes().unwrap().len();
-    let maximum_content = MAXIMUM_TYPED_RECORD_PAYLOAD_BYTES - canonical_overhead;
+    let maximum_content = conduit_core::MAXIMUM_BYTES_INFO_BYTES;
+    assert!(maximum_content + canonical_overhead <= MAXIMUM_TYPED_RECORD_PAYLOAD_BYTES);
     let original = StructuredInfoValue::leaf(payload_type, vec![7; maximum_content]).unwrap();
     let typed = typed_record_value(&original).unwrap();
     let mut bytes = [0; MAXIMUM_TYPED_RECORD_FRAME_BYTES];
     let written = frame_typed_record_value_into(&typed, &mut bytes).unwrap();
     assert!(written <= conduit_core::MAXIMUM_STRUCTURED_LEAF_BYTES);
     framed_typed_record_value(&bytes[..written]).unwrap();
+}
+
+#[test]
+fn maximum_structured_record_payload_fits_declared_frame_leaf() {
+    use conduit_core::{StructuredFieldType, StructuredFieldValue};
+    let bytes_type = StructuredInfoType::leaf(kind_id("value/bytes")).unwrap();
+    let record_type = StructuredInfoType::record(
+        kind_id("fixture/max-frame"),
+        vec![
+            StructuredFieldType::new("a", bytes_type.clone()).unwrap(),
+            StructuredFieldType::new("b", bytes_type.clone()).unwrap(),
+        ],
+    )
+    .unwrap();
+    let record = |a: usize, b: usize| {
+        StructuredInfoValue::record(
+            record_type.clone(),
+            vec![
+                StructuredFieldValue::new(
+                    "a",
+                    StructuredInfoValue::leaf(bytes_type.clone(), vec![7; a]).unwrap(),
+                )
+                .unwrap(),
+                StructuredFieldValue::new(
+                    "b",
+                    StructuredInfoValue::leaf(bytes_type.clone(), vec![8; b]).unwrap(),
+                )
+                .unwrap(),
+            ],
+        )
+        .unwrap()
+    };
+    let overhead = record(0, 0).canonical_bytes().unwrap().len();
+    let content = MAXIMUM_TYPED_RECORD_PAYLOAD_BYTES - overhead;
+    let first = conduit_core::MAXIMUM_BYTES_INFO_BYTES;
+    assert!(content - first <= conduit_core::MAXIMUM_BYTES_INFO_BYTES);
+    let original = record(first, content - first);
+    assert_eq!(
+        original.canonical_bytes().unwrap().len(),
+        MAXIMUM_TYPED_RECORD_PAYLOAD_BYTES
+    );
+    let typed = typed_record_value(&original).unwrap();
+    let mut bytes = vec![0; MAXIMUM_TYPED_RECORD_FRAME_BYTES];
+    let written = frame_typed_record_value_into(&typed, &mut bytes).unwrap();
+    let framed = framed_typed_record_value(&bytes[..written]).unwrap();
+    assert_eq!(
+        value_from_typed_record(&deframe_typed_record_value(&framed).unwrap()).unwrap(),
+        original
+    );
 }
 
 #[test]

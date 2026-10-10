@@ -233,8 +233,8 @@ fn paired_audio_and_ema_keep_source_clocks_then_derive_a_separate_aligned_view()
     assert_eq!(
         relation.semantic_digest().unwrap(),
         [
-            61, 45, 81, 23, 186, 250, 231, 2, 242, 73, 243, 53, 36, 236, 170, 64, 119, 214, 197,
-            76, 189, 108, 35, 184, 84, 140, 153, 64, 156, 93, 182, 66,
+            57, 168, 71, 32, 127, 253, 109, 85, 96, 175, 39, 140, 127, 63, 165, 62, 220, 105, 145,
+            84, 120, 86, 161, 83, 130, 175, 9, 33, 104, 225, 47, 88,
         ]
     );
     let zero_error_relation = ClockRelation::new(

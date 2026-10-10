@@ -122,8 +122,9 @@ fn dimension_and_range_mistakes_refuse_on_the_production_path() {
     let (startup, _) = theremin_catalogs();
     let syntax = parse_syntax_document(&wrong_dimension);
     let error = check_syntax_document(&syntax, &startup).unwrap_err();
-    assert_eq!(error.code, "CND-FRM-055");
-    assert!(error.message.contains("Distance"));
+    assert_eq!(error.code, "CND-FRM-051");
+    assert!(error.message.contains("declared quantity family and role"));
+    assert_eq!(&wrong_dimension[error.span.start..error.span.end], "30Hz");
 
     let outside_range = source.replacen("source-maximum = 30cm", "source-maximum = 10001cm", 1);
     let error = expand_theremin(&outside_range).unwrap_err();
@@ -135,7 +136,8 @@ fn dimension_and_range_mistakes_refuse_on_the_production_path() {
     let syntax = parse_syntax_document(&wrong_keep);
     let error = check_syntax_document(&syntax, &startup).unwrap_err();
     assert_eq!(error.code, "CND-FRM-051");
-    assert!(error.message.contains("wrong exact dimension"));
+    assert!(error.message.contains("quantity family"), "{error:?}");
+    assert!(wrong_keep[error.span.start..error.span.end].contains("440cm"));
 }
 
 #[test]

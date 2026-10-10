@@ -2,6 +2,34 @@
 use super::{JoinedLineObservation, PlanningAuthority};
 use conduit_body::{BodyBiographyEvidence, BodyPlotPlan};
 use conduit_core::{BootId, HostAdvertisement, HostId};
+use sha2::{Digest, Sha256};
+use std::cell::RefCell;
+
+// One immutable instance-local admission result. Source definitions and every
+// dynamic planning fact are bound; workset, query and view revision remain live.
+struct LibraryAdmission {
+    key: [u8; 32],
+    available: Vec<bool>,
+}
+thread_local! {
+    static LIBRARY_ADMISSION: RefCell<Option<LibraryAdmission>> = const { RefCell::new(None) };
+}
+
+fn admission_key(
+    source: &str,
+    hosts: &[HostAdvertisement],
+    host: &HostId,
+    boot: &BootId,
+    lines: &[JoinedLineObservation],
+) -> Result<[u8; 32], String> {
+    let lines: Vec<_> = lines
+        .iter()
+        .map(|line| (&line.host_id, &line.boot_id, &line.carrier))
+        .collect();
+    let evidence = serde_json::to_vec(&(source, hosts, host, boot, lines))
+        .map_err(|error| format!("library admission evidence: {error}"))?;
+    Ok(Sha256::digest(evidence).into())
+}
 
 #[derive(serde::Deserialize)]
 struct WorkspaceCatalog {
@@ -77,12 +105,39 @@ pub(crate) fn workspace_library(
         return Err("current browser Host offer was not freshly observed".into());
     }
     let plots = catalog.plots;
-    PlotLibrary::new(
+    let key = admission_key(source, observed_hosts, host, boot, joined_lines)?;
+    let available = LIBRARY_ADMISSION
+        .with(|cache| {
+            cache
+                .borrow()
+                .as_ref()
+                .filter(|prior| prior.key == key)
+                .map(|prior| prior.available.clone())
+        })
+        .unwrap_or_else(|| {
+            plots
+                .iter()
+                .map(|entry| {
+                    catalog_plot_plan(entry, observed_hosts, host, boot, joined_lines).is_ok()
+                })
+                .collect()
+        });
+    let availability = |index: usize| {
+        if available[index] {
+            conduit_plot_library::LibraryAvailability::Available
+        } else {
+            conduit_plot_library::LibraryAvailability::needs_capability(
+                plots[index].unavailable_hint.clone(),
+            )
+            .expect("reviewed library capability hint is bounded")
+        }
+    };
+    let library = PlotLibrary::new(
         plots
             .iter()
-            .map(|entry| {
-                let availability =
-                    catalog_availability(entry, observed_hosts, host, boot, joined_lines);
+            .enumerate()
+            .map(|(index, entry)| {
+                let entry_availability = availability(index);
                 Ok(LibraryEntry {
                     plot: conduit_body::ResidentPlot::new(
                         entry.source_document_id.clone().into(),
@@ -90,7 +145,7 @@ pub(crate) fn workspace_library(
                     ),
                     title: entry.title.clone(),
                     search_text: format!("{} {}", entry.entry, entry.required_kinds.join(" ")),
-                    availability,
+                    availability: entry_availability,
                     graceful_fallback: entry
                         .graceful_fallback
                         .as_ref()
@@ -100,17 +155,11 @@ pub(crate) fn workspace_library(
                                     "reviewed Workspace graceful fallback is malformed".into()
                                 );
                             }
-                            let fallback_entry = plots
+                            let fallback_index = plots
                                 .iter()
-                                .find(|candidate| candidate.slug == fallback.slug)
+                                .position(|candidate| candidate.slug == fallback.slug)
                                 .ok_or("reviewed Workspace graceful fallback is missing")?;
-                            let availability = catalog_availability(
-                                fallback_entry,
-                                observed_hosts,
-                                host,
-                                boot,
-                                joined_lines,
-                            );
+                            let availability = availability(fallback_index);
                             Ok(conduit_plot_library::LibraryFallback {
                                 title: fallback.title.clone(),
                                 availability,
@@ -121,22 +170,10 @@ pub(crate) fn workspace_library(
             })
             .collect::<Result<Vec<_>, String>>()?,
     )
-    .map_err(|error| format!("Plot library refused: {error:?}"))
-}
-
-fn catalog_availability(
-    entry: &CatalogPlot,
-    observed_hosts: &[HostAdvertisement],
-    host: &HostId,
-    boot: &BootId,
-    joined_lines: &[JoinedLineObservation],
-) -> conduit_plot_library::LibraryAvailability {
-    use conduit_plot_library::LibraryAvailability;
-    match catalog_plot_plan(entry, observed_hosts, host, boot, joined_lines) {
-        Ok(()) => LibraryAvailability::Available,
-        Err(_) => LibraryAvailability::needs_capability(entry.unavailable_hint.clone())
-            .expect("reviewed library capability hint is bounded"),
-    }
+    .map_err(|error| format!("Plot library refused: {error:?}"))?;
+    // Publish only after the complete inventory and presentation metadata admit.
+    LIBRARY_ADMISSION.with(|cache| *cache.borrow_mut() = Some(LibraryAdmission { key, available }));
+    Ok(library)
 }
 
 fn catalog_plot_plan(
@@ -272,3 +309,6 @@ pub(crate) fn plan_workspace_plots(
     }
     Ok(plans)
 }
+
+#[cfg(test)]
+mod admission_tests;

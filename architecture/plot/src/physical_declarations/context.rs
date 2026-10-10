@@ -7,6 +7,25 @@ pub(crate) fn install(
     document: &SyntaxDocument,
     base: &StartupCatalog,
 ) -> Result<StartupCatalog, SyntaxCheckDiagnostic> {
+    let has_declarations = !document.dimensions.is_empty()
+        || !document.prefixes.is_empty()
+        || !document.units.is_empty()
+        || document
+            .types
+            .iter()
+            .any(|t| matches!(t.definition, TypeDefinitionSyntax::Quantity(_)));
+    // Only this module installs physical source custody, and it returns it after
+    // the complete unit registry and every quantity role profile have checked.
+    // An unchanged source set therefore already carries the admitted meaning.
+    if !base.physical_sources.is_empty()
+        && (!has_declarations
+            || base
+                .physical_sources
+                .iter()
+                .any(|source| source.source_document_id() == document.source_document_id()))
+    {
+        return Ok(base.clone());
+    }
     let mut catalogue = base.clone();
     if catalogue.physical_sources.is_empty() {
         catalogue
@@ -15,13 +34,6 @@ pub(crate) fn install(
                 conduit_core::BUILTIN_PHYSICAL_SOURCE,
             ));
     }
-    let has_declarations = !document.dimensions.is_empty()
-        || !document.prefixes.is_empty()
-        || !document.units.is_empty()
-        || document
-            .types
-            .iter()
-            .any(|t| matches!(t.definition, TypeDefinitionSyntax::Quantity(_)));
     if has_declarations
         && !catalogue
             .physical_sources

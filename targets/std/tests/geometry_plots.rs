@@ -109,16 +109,24 @@ fn exact_translation_reports_frame_unit_and_overflow_refusals() {
         Quantity::new(2, Unit::Meter),
     )
     .unwrap();
-    let inexact = transform2_value(
+    let fractional_translation = transform2_value(
         "robot/base",
         "map",
         Quantity::new(1, Unit::Millimeter),
         Quantity::new(0, Unit::Meter),
     )
     .unwrap();
+    let fractional = apply_transform2(&meter_point, &fractional_translation).unwrap();
+    let StructuredInfoValueShape::Record(fields) = fractional.shape() else {
+        panic!("Point2 is a record");
+    };
+    let x = fields.iter().find(|field| field.name() == "x").unwrap();
+    let StructuredInfoValueShape::Leaf(bytes) = x.value().shape() else {
+        panic!("x is a quantity leaf");
+    };
     assert_eq!(
-        apply_transform2(&meter_point, &inexact),
-        Err(GeometryRefusal::InexactUnitConversion)
+        Quantity::decode(bytes).unwrap(),
+        Quantity::from_decimal(1001, -3, Unit::Meter).unwrap()
     );
     assert_eq!(
         transform2_value(
@@ -132,14 +140,19 @@ fn exact_translation_reports_frame_unit_and_overflow_refusals() {
 
     let overflow_point = point2_value(
         "robot/base",
-        Quantity::new(i64::MAX, Unit::Millimeter),
+        Quantity::from_decimal(
+            99_999_999_999_999_999_999_999_999_999_999_999_999,
+            0,
+            Unit::Millimeter,
+        )
+        .unwrap(),
         Quantity::new(0, Unit::Millimeter),
     )
     .unwrap();
     let overflow = transform2_value(
         "robot/base",
         "map",
-        Quantity::new(1, Unit::Millimeter),
+        Quantity::new(2, Unit::Millimeter),
         Quantity::new(0, Unit::Millimeter),
     )
     .unwrap();

@@ -394,7 +394,7 @@ mod startup_chime_tests;
 #[cfg(test)]
 mod continuous_lifecycle_tests;
 
-fn finite_connection_limits(
+pub(crate) fn finite_connection_limits(
     plot: &conduit_plot::ExpandedCanonicalPlot,
     default_bytes: u32,
 ) -> BTreeMap<conduit_planner::ConnectionEndpoints, conduit_planner::ConnectionQueueLimits> {

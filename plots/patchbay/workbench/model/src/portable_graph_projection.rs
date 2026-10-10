@@ -580,6 +580,9 @@ fn control_contract(kind: &FaceControlKind) -> String {
         } => {
             format!("{minimum}..{maximum}{unit}")
         }
+        FaceControlKind::PhysicalSource { maximum_bytes } => {
+            format!("physical source, max {maximum_bytes} bytes")
+        }
         FaceControlKind::ShortText { maximum_bytes } => format!("max {maximum_bytes} bytes"),
     }
 }

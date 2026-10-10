@@ -299,3 +299,39 @@ fn quantity_constructor_accepts_forward_ordinary_unit_values_without_reinterpret
         .round_trip()
         .contains("TemperatureDelta(amount, target)"));
 }
+
+#[test]
+fn admitted_physical_context_reuse_preserves_snapshot_and_checks_new_sources() {
+    let empty = crate::parse_syntax_document("");
+    let base = super::context::install(&empty, &crate::StartupCatalog::new()).unwrap();
+    let extension =
+        crate::parse_syntax_document("unit smoot : Distance = { reference: m, scale: 1.7018 }\n");
+    let snapshot = super::context::install(&extension, &base).unwrap();
+    assert_eq!(
+        super::context::install(&empty, &snapshot).unwrap(),
+        snapshot
+    );
+    assert_eq!(
+        super::context::install(&extension, &snapshot).unwrap(),
+        snapshot
+    );
+    assert!(!base.physical.units.contains_key("smoot"));
+    assert!(snapshot.physical.units.contains_key("smoot"));
+    let changed =
+        crate::parse_syntax_document("unit smoot : Distance = { reference: m, scale: 0.8509 }\n");
+    assert!(super::context::install(&changed, &snapshot).is_err());
+    let replacement = super::context::install(&changed, &base).unwrap();
+    assert_ne!(
+        snapshot.physical.units["smoot"],
+        replacement.physical.units["smoot"]
+    );
+    let unrelated =
+        crate::parse_syntax_document("unit stride : Distance = { reference: m, scale: 2 }\n");
+    let extended = super::context::install(&unrelated, &snapshot).unwrap();
+    assert_eq!(
+        extended.physical.units["smoot"],
+        snapshot.physical.units["smoot"]
+    );
+    assert!(extended.physical.units.contains_key("stride"));
+    assert!(!snapshot.physical.units.contains_key("stride"));
+}

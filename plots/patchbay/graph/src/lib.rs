@@ -21,7 +21,7 @@ pub use recursive_projection::{
 };
 
 pub use front_controls::{
-    project_controls as project_front_controls, FaceControl, FaceControlKind, FaceInteraction,
-    MAX_FACE_CONTROLS,
+    physical_interaction_value, project_controls as project_front_controls, FaceControl,
+    FaceControlKind, FaceInteraction, MAX_FACE_CONTROLS,
 };
 pub use types::*;

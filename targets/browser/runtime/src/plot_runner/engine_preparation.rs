@@ -89,6 +89,8 @@ pub(in crate::plot_runner) fn prepare_body_scheduler(
         return Err("Body exceeds the installed browser kernel tables".into());
     }
     let mut slot_capacities = Vec::new();
+    // Data scratch reservations cover Data profile storage only. Generic
+    // structured values are separately charged to the aggregate backing pool.
     let mut data_storage_bytes = 0_u64;
     let mut data_reserved_bytes = 0_u64;
     for (fragment, part) in partitions {
@@ -98,7 +100,16 @@ pub(in crate::plot_runner) fn prepare_body_scheduler(
                 bound,
                 usize::from(cord.spec.item_capacity),
             ));
-            if bound > MAXIMUM_BROWSER_STORED_VALUE_BYTES as u32 {
+            if bound > MAXIMUM_BROWSER_STORED_VALUE_BYTES as u32
+                && part.nodes.iter().any(|node| {
+                    (matches!(cord.spec.source, conduit_kernel::CordEndpoint::Local { node: source, .. } if source == node.node)
+                        || matches!(cord.spec.sink, conduit_kernel::CordEndpoint::Local { node: target, .. } if target == node.node))
+                        && fragment.placements.iter().any(|placement| {
+                            placement.placement_id == node.placement_id
+                                && crate::installed_browser::measurement_limits::queue_bound(placement.kind_id.as_str()).is_some()
+                        })
+                })
+            {
                 data_storage_bytes += u64::from(bound) * u64::from(cord.spec.item_capacity);
             }
         }
@@ -145,7 +156,12 @@ pub(in crate::plot_runner) fn prepare_body_scheduler(
                         bound,
                         usize::from(call.maximum_in_flight),
                     ));
-                    if bound > MAXIMUM_BROWSER_STORED_VALUE_BYTES as u32 {
+                    if bound > MAXIMUM_BROWSER_STORED_VALUE_BYTES as u32
+                        && crate::installed_browser::measurement_limits::queue_bound(
+                            placement.kind_id.as_str(),
+                        )
+                        .is_some()
+                    {
                         data_storage_bytes += u64::from(bound) * u64::from(call.maximum_in_flight);
                     }
                 }
@@ -166,7 +182,15 @@ pub(in crate::plot_runner) fn prepare_body_scheduler(
                     .max(1);
                 // Outputs retain one value while routing, independently of queues.
                 slot_capacities.push(bound);
-                if bound > MAXIMUM_BROWSER_STORED_VALUE_BYTES as u32 {
+                if bound > MAXIMUM_BROWSER_STORED_VALUE_BYTES as u32
+                    && fragment.placements.iter().any(|placement| {
+                        placement.placement_id == node.placement_id
+                            && crate::installed_browser::measurement_limits::queue_bound(
+                                placement.kind_id.as_str(),
+                            )
+                            .is_some()
+                    })
+                {
                     data_storage_bytes += u64::from(bound);
                 }
             }
