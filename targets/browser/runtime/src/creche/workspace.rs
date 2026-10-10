@@ -77,12 +77,19 @@ pub(crate) fn workspace_library(
         return Err("current browser Host offer was not freshly observed".into());
     }
     let plots = catalog.plots;
+    let mut catalogs = super::catalog_preparation::CatalogPreparation::default();
     PlotLibrary::new(
         plots
             .iter()
             .map(|entry| {
-                let availability =
-                    catalog_availability(entry, observed_hosts, host, boot, joined_lines);
+                let availability = catalog_availability(
+                    entry,
+                    observed_hosts,
+                    host,
+                    boot,
+                    joined_lines,
+                    &mut catalogs,
+                );
                 Ok(LibraryEntry {
                     plot: conduit_body::ResidentPlot::new(
                         entry.source_document_id.clone().into(),
@@ -110,6 +117,7 @@ pub(crate) fn workspace_library(
                                 host,
                                 boot,
                                 joined_lines,
+                                &mut catalogs,
                             );
                             Ok(conduit_plot_library::LibraryFallback {
                                 title: fallback.title.clone(),
@@ -130,9 +138,10 @@ fn catalog_availability(
     host: &HostId,
     boot: &BootId,
     joined_lines: &[JoinedLineObservation],
+    catalogs: &mut super::catalog_preparation::CatalogPreparation,
 ) -> conduit_plot_library::LibraryAvailability {
     use conduit_plot_library::LibraryAvailability;
-    match catalog_plot_plan(entry, observed_hosts, host, boot, joined_lines) {
+    match catalog_plot_plan(entry, observed_hosts, host, boot, joined_lines, catalogs) {
         Ok(()) => LibraryAvailability::Available,
         Err(_) => LibraryAvailability::needs_capability(entry.unavailable_hint.clone())
             .expect("reviewed library capability hint is bounded"),
@@ -145,6 +154,7 @@ fn catalog_plot_plan(
     host: &HostId,
     boot: &BootId,
     joined_lines: &[JoinedLineObservation],
+    catalogs: &mut super::catalog_preparation::CatalogPreparation,
 ) -> Result<(), String> {
     let presentation = match entry.presentation_profile {
         0 => crate::installed_browser::PresentationProfile::Annotation,
@@ -153,8 +163,9 @@ fn catalog_plot_plan(
         3 => crate::installed_browser::PresentationProfile::PatternComparison,
         _ => return Err("reviewed plot has an unsupported presentation profile".into()),
     };
+    let (startup, base_profile) = catalogs.get(presentation)?;
     let document =
-        super::initial_plots::check_source_for_presentation(&entry.source, presentation)?;
+        super::initial_plots::check_source_with_catalogs(&entry.source, startup, base_profile)?;
     if document.source_document_id.as_str() != entry.source_document_id {
         return Err("reviewed plot has stale source identity".into());
     }
@@ -165,7 +176,7 @@ fn catalog_plot_plan(
             plot.name == entry.entry && plot.checked_plot_id.as_str() == entry.checked_plot_id
         })
         .ok_or("reviewed plot has stale checked identity")?;
-    let (startup, mut profile) = crate::installed_browser::catalogs_for_presentation(presentation)?;
+    let mut profile = base_profile.clone();
     let offers = crate::installed_browser::catalogs::install_checked_structured_selectors(
         &document,
         &mut profile,
@@ -184,7 +195,7 @@ fn catalog_plot_plan(
             local.capabilities.push(offer);
         }
     }
-    let backs = crate::installed_browser::backs(&startup, &profile)?;
+    let backs = crate::installed_browser::backs(startup, &profile)?;
     let expanded =
         conduit_plot::expand_canonical_plot_with_backs(&document, &plot.name, &profile, &backs)
             .map_err(|error| format!("Workspace expansion refused: {error:?}"))?;

@@ -16,7 +16,7 @@ execution: the reviewed resident Theremin workload requires 2,150,400 bytes
 under the current native structured contracts. Larger workloads still fail
 ordinary capacity admission.
 
-Workspace preparation retains one immutable installed catalog pair while
+Workspace preparation and each Plot library render retain one immutable installed catalog pair while
 checking consecutive documents with the same presentation profile. A profile
 change drops that pair before preparing its replacement; finishing the operation
 drops the preparation owner. Checking, local offers and planning share the same

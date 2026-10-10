@@ -277,6 +277,7 @@ pub(super) fn check_source(source: &str) -> Result<conduit_plot::CheckedSyntaxDo
     )
 }
 
+#[cfg(test)]
 pub(super) fn check_source_for_presentation(
     source: &str,
     presentation: crate::installed_browser::PresentationProfile,
@@ -285,7 +286,7 @@ pub(super) fn check_source_for_presentation(
     check_source_with_catalogs(source, &startup, &profile)
 }
 
-fn check_source_with_catalogs(
+pub(super) fn check_source_with_catalogs(
     source: &str,
     startup: &conduit_plot::StartupCatalog,
     profile: &conduit_plot::ProfileCatalog,
