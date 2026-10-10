@@ -56,6 +56,12 @@ pub fn check_package_bundle(
             .get(member.path.as_str())
             .ok_or_else(|| PackageCheckError::MissingMemberSource(member.path.clone()))?;
         let document = crate::parse_syntax_document(source);
+        if let Some(notation) = document.glyph_notations.first() {
+            return Err(PackageCheckError::Syntax { module: member.path.clone(), diagnostic: SyntaxCheckDiagnostic {
+                code: "CND-FRM-062", span: notation.span,
+                message: "glyph notation declarations require checked family installation before package execution".into(),
+            }});
+        }
         for plot in &document.plots {
             owners.insert(plot.name.text.clone(), member.path.clone());
             all_plots.push(plot.clone());

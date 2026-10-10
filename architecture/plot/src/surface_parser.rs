@@ -18,6 +18,7 @@ use crate::{
 
 mod construction;
 pub(crate) mod front;
+mod glyph_notation;
 mod pack;
 mod shared_pool;
 mod type_declaration;
@@ -65,6 +66,7 @@ pub(crate) fn parse_surface(source: &str) -> SyntaxDocument {
             SyntaxDefinitions {
                 types: parsed.types,
                 type_forms: parsed.type_forms,
+                glyph_notations: parsed.glyph_notations,
                 plots: parsed.plots,
                 constructions: parsed.constructions,
                 packages: parsed.packages,
@@ -93,6 +95,7 @@ struct ParsedSurface {
     standard_glyphs: bool,
     types: Vec<TypeSyntax>,
     type_forms: Vec<TypeFormSyntax>,
+    glyph_notations: Vec<crate::GlyphNotationSyntax>,
     plots: Vec<PlotSyntax>,
     constructions: Vec<ConstructionSyntax>,
     packages: Vec<crate::syntax::PackageSyntax>,
@@ -128,6 +131,7 @@ impl<'a> Parser<'a> {
         let mut standard_glyphs = true;
         let mut types = Vec::new();
         let mut type_forms = Vec::new();
+        let mut glyph_notations = Vec::new();
         let mut plots = Vec::new();
         let mut constructions = Vec::new();
         let mut packages = Vec::new();
@@ -163,7 +167,17 @@ impl<'a> Parser<'a> {
         }
         while self.index < self.lines.len() {
             let (text, _) = self.lines[self.index].statement();
-            if text.starts_with("type ") {
+            if text.starts_with("glyph notation ") {
+                if glyph_notations.len() == crate::MAXIMUM_TYPED_LITERAL_FAMILIES {
+                    return Err((
+                        PlotError::InvalidSyntax(
+                            "glyph notation declaration limit exceeded".into(),
+                        ),
+                        self.line_span(self.lines[self.index]),
+                    ));
+                }
+                glyph_notations.push(glyph_notation::parse(&mut self)?);
+            } else if text.starts_with("type ") {
                 types.push(self.parse_type_declaration()?);
             } else if text.starts_with("form ") {
                 type_forms.push(parse_type_form(&mut self)?);
@@ -196,6 +210,7 @@ impl<'a> Parser<'a> {
         }
         if types.is_empty()
             && type_forms.is_empty()
+            && glyph_notations.is_empty()
             && plots.is_empty()
             && constructions.is_empty()
             && packages.is_empty()
@@ -205,6 +220,7 @@ impl<'a> Parser<'a> {
         if !packages.is_empty()
             && (!types.is_empty()
                 || !type_forms.is_empty()
+                || !glyph_notations.is_empty()
                 || !plots.is_empty()
                 || !constructions.is_empty()
                 || !uses.is_empty()
@@ -222,6 +238,7 @@ impl<'a> Parser<'a> {
             standard_glyphs,
             types,
             type_forms,
+            glyph_notations,
             plots,
             constructions,
             packages,
