@@ -30,7 +30,8 @@ one worker and zero retries. It switches compact/spacious CSS on one element,
 checks actual computed padding and unchanged Shadow DOM/control identity,
 then checks accessible button naming, focus, keyboard and pointer callback
 routing, unavailable-Show disabling, and native semantics without styling.
-It is included in the existing `cargo xtask prove browser-host` suite.
+It is included in the existing `cargo xtask prove browser-host` suite and the
+protected browser target described by the [CI guide](../contributing/ci.md).
 Its Face and callback are renderer fixtures: they prove the styling seam and
 native interactions, not Body mutation, Show acknowledgement, certification,
 or the same-Body Todo acceptance required to close #5376.
