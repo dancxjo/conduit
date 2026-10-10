@@ -300,12 +300,34 @@ pub(super) fn reviewed_browser_host(
 ) -> Result<conduit_core::HostAdvertisement, String> {
     let mut host = crate::installed_browser::advertisement(host, boot);
     for entry in check_inventory(source)? {
-        let (_, mut profile) =
+        let (startup, mut profile) =
             crate::installed_browser::catalogs_for_presentation(entry.presentation)?;
-        let offers = crate::installed_browser::catalogs::install_checked_structured_selectors(
+        let mut offers = crate::installed_browser::catalogs::install_checked_structured_selectors(
             &entry.checked,
             &mut profile,
         )?;
+        let backs = crate::installed_browser::backs(&startup, &profile)?;
+        for plot in &entry.checked.plots {
+            if entry
+                .entry_name
+                .as_deref()
+                .is_some_and(|name| name != plot.name)
+            {
+                continue;
+            }
+            let expanded = conduit_plot::expand_canonical_plot_with_backs(
+                &entry.checked,
+                &plot.name,
+                &profile,
+                &backs,
+            )
+            .map_err(|error| format!("browser expression offer expansion: {error:?}"))?;
+            offers.extend(
+                crate::installed_browser::catalogs::offers_for_expanded_pure_expressions(
+                    &expanded,
+                )?,
+            );
+        }
         for offer in offers {
             if !host
                 .capabilities
