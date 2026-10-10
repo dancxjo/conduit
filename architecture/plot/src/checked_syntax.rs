@@ -1,4 +1,5 @@
 mod type_catalog;
+pub use crate::native_type::family::source::NativeTypeSourceOrigin;
 use crate::prelude::*;
 use crate::{PlotCompletionPolicy, RuntimePort, Span};
 use alloc::collections::BTreeMap;
@@ -26,6 +27,8 @@ pub struct StartupCatalog {
     structured_type_contracts: BTreeMap<String, Vec<NativeTypeValueContract>>,
     structured_type_invariants: BTreeMap<String, Vec<crate::PortableExpressionProgram>>,
     value_kind_aliases: BTreeMap<String, conduit_core::KindId>,
+    pub(crate) native_type_sources: BTreeMap<String, NativeTypeSourceOrigin>,
+    pub(crate) native_families: BTreeMap<String, crate::native_type::family::NativeTypeFamily>,
     pub(crate) exact_initial_info: BTreeMap<(conduit_core::KindId, String), Vec<u8>>,
 }
 

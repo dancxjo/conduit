@@ -9,6 +9,7 @@ use conduit_core::{
     data_reference_kind, kind_id, CheckedValueContract, KindId, StructuredFieldType,
     StructuredInfoType, StructuredVariantCase,
 };
+pub(crate) mod family;
 mod generic;
 mod identity;
 mod invariant;
@@ -26,8 +27,7 @@ pub(crate) fn check_native_types(
     declarations: &[TypeSyntax],
     base: &StartupCatalog,
 ) -> Result<(Vec<CheckedNativeType>, StartupCatalog), SyntaxCheckDiagnostic> {
-    let (declarations, public_names) = generic::instantiate(declarations)?;
-    let mut catalog = base.clone();
+    let (declarations, public_names, mut catalog) = generic::instantiate(declarations, base)?;
     let mut by_name = alloc::collections::BTreeMap::new();
     for declaration in &declarations {
         if by_name
@@ -80,6 +80,12 @@ fn compile_named<'a>(
         return Ok(());
     }
     let declaration = declarations[name];
+    if active.len() >= conduit_core::MAXIMUM_STRUCTURED_INFO_DEPTH {
+        return Err(diagnostic(
+            declaration.name.span,
+            "native Type dependency depth exceeds its finite profile".into(),
+        ));
+    }
     if let Some(position) = active.iter().position(|candidate| *candidate == name) {
         let mut cycle = active[position..].to_vec();
         cycle.push(name);
@@ -142,7 +148,18 @@ fn definition_references<'a>(definition: &'a TypeDefinitionSyntax, out: &mut Vec
 
 fn expression_references<'a>(expression: &'a TypeExpressionSyntax, out: &mut Vec<&'a str>) {
     match expression {
-        TypeExpressionSyntax::Reference { value_type, .. } => out.push(&value_type.text),
+        TypeExpressionSyntax::Reference {
+            value_type,
+            arguments,
+            ..
+        } => {
+            out.push(&value_type.text);
+            for argument in arguments {
+                if let crate::NativeTypeArgumentSyntax::Type(value) = argument {
+                    expression_references(value, out);
+                }
+            }
+        }
         TypeExpressionSyntax::Optional { value, .. }
         | TypeExpressionSyntax::DataReference { value, .. } => expression_references(value, out),
         TypeExpressionSyntax::Sequence { element, .. } => expression_references(element, out),
@@ -154,10 +171,14 @@ fn compile_definition(
     declaration: &TypeSyntax,
     catalog: &StartupCatalog,
 ) -> Result<CheckedNativeType, SyntaxCheckDiagnostic> {
+    let semantic_name = declaration
+        .semantic_name
+        .as_deref()
+        .unwrap_or(&declaration.name.text);
     let compiled = match &declaration.definition {
         TypeDefinitionSyntax::Scalar(expression) => compile_expression(expression, catalog)?,
         TypeDefinitionSyntax::Record(fields) => compile_record(
-            &declaration.name.text,
+            semantic_name,
             declaration.generic_context.as_deref(),
             fields,
             &declaration.invariants,
@@ -178,7 +199,7 @@ fn compile_definition(
                         compile_expression(expression, catalog)?
                     }
                     TypeVariantPayloadSyntax::Record(fields) => compile_record(
-                        &alloc::format!("{}/{}", declaration.name.text, case.tag.text),
+                        &alloc::format!("{}/{}", semantic_name, case.tag.text),
                         declaration.generic_context.as_deref(),
                         fields,
                         &[],
@@ -196,7 +217,7 @@ fn compile_definition(
                 );
             }
             let identity = schema_identity_for_variant(
-                &declaration.name.text,
+                semantic_name,
                 declaration.generic_context.as_deref(),
                 &compiled_cases,
             );
@@ -210,7 +231,7 @@ fn compile_definition(
     let value_type = match &declaration.definition {
         TypeDefinitionSyntax::Scalar(_) => {
             let identity = schema_identity(
-                &declaration.name.text,
+                semantic_name,
                 declaration.generic_context.as_deref(),
                 &compiled.value_type,
                 &compiled.contracts,
@@ -382,8 +403,18 @@ fn compile_expression(
             Ok(CompiledRepresentation {
                 value_type: StructuredInfoType::bounded_sequence(
                     compiled.value_type,
-                    *minimum_items,
-                    *maximum_items,
+                    minimum_items.literal_value().ok_or_else(|| {
+                        diagnostic(
+                            minimum_items.span(),
+                            "native sequence minimum is not closed".into(),
+                        )
+                    })?,
+                    maximum_items.literal_value().ok_or_else(|| {
+                        diagnostic(
+                            maximum_items.span(),
+                            "native sequence maximum is not closed".into(),
+                        )
+                    })?,
                 )
                 .map_err(|error| bounded(*span, error))?,
                 contracts: prefix_contracts(compiled.contracts, "[]"),
@@ -396,8 +427,16 @@ fn compile_expression(
         } => {
             let compiled = compile_expression(element, catalog)?;
             Ok(CompiledRepresentation {
-                value_type: StructuredInfoType::collection(compiled.value_type, Some(*length))
-                    .map_err(|error| bounded(*span, error))?,
+                value_type: StructuredInfoType::collection(
+                    compiled.value_type,
+                    Some(length.literal_value().ok_or_else(|| {
+                        diagnostic(
+                            length.span(),
+                            "native collection extent is not closed".into(),
+                        )
+                    })?),
+                )
+                .map_err(|error| bounded(*span, error))?,
                 contracts: prefix_contracts(compiled.contracts, "[]"),
             })
         }

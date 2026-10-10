@@ -243,10 +243,10 @@ fn native_semantic_types_are_lossless_finite_syntax_not_rust_shapes() {
             _ => panic!("expected record payload"),
         },
         TypeExpressionSyntax::Sequence {
-            minimum_items: 0,
-            maximum_items: 16,
+            minimum_items,
+            maximum_items,
             ..
-        }
+        } if minimum_items.literal_value() == Some(0) && maximum_items.literal_value() == Some(16)
     ));
     assert_eq!(
         document.plots[0].front.runtime_ports[0].value_type.text,
@@ -289,10 +289,10 @@ fn native_sequence_can_state_exact_nonzero_cardinality_bounds() {
     assert!(matches!(
         &document.types[0].definition,
         TypeDefinitionSyntax::Scalar(TypeExpressionSyntax::Sequence {
-            minimum_items: 2,
-            maximum_items: 4,
+            minimum_items,
+            maximum_items,
             ..
-        })
+        }) if minimum_items.literal_value() == Some(2) && maximum_items.literal_value() == Some(4)
     ));
     for source in [
         "type Notes = sequence U8 in 4..=2\n",
@@ -314,7 +314,10 @@ fn native_fixed_collection_requires_one_exact_finite_length() {
     assert!(document.diagnostics.is_empty());
     assert!(matches!(
         &document.types[0].definition,
-        TypeDefinitionSyntax::Scalar(TypeExpressionSyntax::Collection { length: 4, .. })
+        TypeDefinitionSyntax::Scalar(TypeExpressionSyntax::Collection {
+            length,
+            ..
+        }) if length.literal_value() == Some(4)
     ));
     for source in [
         "type Quartet = collection U16\n",
@@ -342,7 +345,7 @@ fn generic_native_type_syntax_is_lossless_and_target_neutral() {
         document.types[0]
             .parameters
             .iter()
-            .map(|parameter| parameter.text.as_str())
+            .map(|parameter| parameter.name.text.as_str())
             .collect::<Vec<_>>(),
         ["T", "U"]
     );

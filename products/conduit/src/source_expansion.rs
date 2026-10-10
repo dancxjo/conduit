@@ -2,12 +2,19 @@ use conduit_plot::{SourceSugarExpansion, Span};
 use serde::Serialize;
 use std::path::Path;
 
+mod native_types;
+#[cfg(test)]
+mod type_tests;
+
 #[derive(Debug, Serialize)]
 struct ExpansionReport<'a> {
     schema: &'static str,
     boundary: &'static str,
     source_document_id: &'a str,
     expansions: Vec<ExpansionView<'a>>,
+    native_types: Vec<native_types::NativeTypeView<'a>>,
+    type_families: Vec<native_types::FamilyView<'a>>,
+    imports: Vec<native_types::ImportView<'a>>,
 }
 
 #[derive(Debug, Serialize)]
@@ -54,12 +61,22 @@ impl From<Span> for SourceSpan {
 
 pub(crate) fn run(path: &Path, json: bool) -> Result<String, String> {
     let source = crate::plot_source::load(path)?;
+    render_source(&source, json)
+}
+
+pub(crate) fn render_source(
+    source: &crate::plot_source::CanonicalSource,
+    json: bool,
+) -> Result<String, String> {
     let checked = source.check()?;
     let report = ExpansionReport {
         schema: "conduit.source-sugar-expansion@1",
         boundary: "authored source sugar; canonical checked Plot remains authoritative",
         source_document_id: checked.source_document_id.as_str(),
         expansions: checked.source_sugar_expansions.iter().map(view).collect(),
+        native_types: native_types::types(&source.syntax, &checked)?,
+        type_families: native_types::families(&source.syntax),
+        imports: native_types::imports(&source.syntax, &source.startup),
     };
     if json {
         serde_json::to_string_pretty(&report)
@@ -97,9 +114,12 @@ fn view(expansion: &SourceSugarExpansion) -> ExpansionView<'_> {
 fn render_human(report: &ExpansionReport<'_>) -> String {
     let mut output =
         String::from("Authored source sugar (the canonical checked Plot remains authoritative)\n");
-    if report.expansions.is_empty() {
+    output.push_str(&format!("source {}\n", report.source_document_id));
+    if report.expansions.is_empty()
+        && report.native_types.is_empty()
+        && report.type_families.is_empty()
+    {
         output.push_str("No admitted concise source spelling occurs.\n");
-        return output;
     }
     for expansion in &report.expansions {
         output.push_str(&format!(
@@ -123,6 +143,32 @@ fn render_human(report: &ExpansionReport<'_>) -> String {
             ));
         }
     }
+    for family in &report.type_families {
+        output.push_str(&format!(
+            "\nType family `{}` at {}:{}\n  authored: {}\n",
+            family.name, family.source_span.line, family.source_span.column, family.authored
+        ));
+    }
+    for value in &report.native_types {
+        output.push_str(&format!("\nType `{}` at {}:{}\n  authored: {}\n  checked Type: {}\n  closed representation: {}\n", value.name, value.source_span.line, value.source_span.column, value.authored, value.checked_identity, serde_json::to_string(&value.representation).expect("checked finite Type view")));
+    }
+    for import in &report.imports {
+        output.push_str(&format!(
+            "\nwith {} as {} at {}:{}\n",
+            import.path, import.alias, import.source_span.line, import.source_span.column
+        ));
+        for owner in &import.owner_sources {
+            output.push_str(&format!(
+                "  owner `{}` in {}:{}:{}\n  owner Source: {}\n  package content: {}\n",
+                owner.declaration_name,
+                owner.module_path,
+                owner.declaration_span.line,
+                owner.declaration_span.column,
+                owner.source_document_id,
+                owner.package_content_digest
+            ));
+        }
+    }
     output
 }
 
@@ -137,6 +183,9 @@ mod tests {
             boundary: "authored source sugar; canonical checked Plot remains authoritative",
             source_document_id: "source",
             expansions: Vec::new(),
+            native_types: Vec::new(),
+            type_families: Vec::new(),
+            imports: Vec::new(),
         };
         let rendered = render_human(&report);
         assert!(rendered.contains("canonical checked Plot remains authoritative"));

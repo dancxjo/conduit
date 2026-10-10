@@ -155,14 +155,43 @@ type Pair<T> = {
 type TextPair = Pair<Text>
 ```
 
-Parameters range only over finite checked semantic
-Types. Checking substitutes them through the complete structural definition
+An unannotated parameter such as `T` ranges over finite checked semantic
+Types. A parameter such as `N: U16` instead binds an exact finite Info value
+available during checking. The first value profile admits U16 and checked U16
+refinements, including imported nominal integral domains. Literal arguments,
+`+`, `*`, and parentheses evaluate with checked U16 intermediate arithmetic.
+Runtime inputs cannot instantiate a Type family.
+
+```conduit
+type Vector<T, N: U16> = collection T = N
+type Tier<T, Maximum: U16> = sequence T <= Maximum
+type Window<H: U16, D: U16> = {
+    window: Vector<U8, (H + 1) * D>
+    history: Vector<Vector<U8, D>, H>
+}
+type Window2x64 = Window<2, 64>
+```
+
+An exact collection has its declared count; a sequence has an independently
+bounded actual count. A capacity change neither inserts elements nor equates
+counts across tiers. Temporal anchors, units, overlap, occurrence correspondence,
+IPA inventory, source revision and commitment remain their domain owners'
+meaning. Fixed numeric shapes are permitted downstream representations, not
+a universal linguistic or gestural carrier.
+
+Checking substitutes arguments through the complete structural definition
 and its laws, rejects unused, duplicate, missing, excess, unknown, recursive,
 or unbounded applications, and leaves no open parameter or dynamic dispatcher
 for play. Each concrete identity includes the exact generic declaration and
 the exact semantic arguments. A generated binding may use target generics or
 finite monomorphized types; that representation choice is absent from Type
-identity.
+identity. Value arguments normalize to evaluated values for the same originating
+declaration; newly named declarations remain nominally distinct. Imported
+families and transparent `with` aliases retain checked owner dependencies,
+original module/Source spans and package content provenance. Specialization,
+syntax and captured metadata have finite work/storage limits and explicit
+refusals. Instantiated scalar refinements and record laws survive generated
+construction and decode.
 
 A kind is not a gear, and neither is an implementation. A port is not a renderer jack, queue slot, line endpoint, or base handle. info is specifically shaped/typed data and is not automatically Signal. A fore is not its back or an exact realization. An installed implementation is not necessarily initialized. An initialized implementation is not necessarily advertised. An advertised capability offer is not selected. A selected offer is not reserved. A reservation is not an active play.
 

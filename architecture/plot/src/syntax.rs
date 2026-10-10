@@ -1,6 +1,11 @@
 use crate::prelude::*;
 use crate::{CstToken, PlotDiagnostic, Span};
 
+mod front;
+mod type_declaration;
+pub use front::*;
+pub use type_declaration::*;
+
 /// Lossless canonical Conduit source plus its syntax-only AST.
 ///
 /// This layer deliberately does not perform catalog lookup, argument binding,
@@ -79,106 +84,6 @@ impl SyntaxDocument {
             diagnostics,
         }
     }
-}
-
-/// One named finite Form for carrying a nominal semantic Type.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct TypeFormSyntax {
-    pub name: SpannedText,
-    pub value_type: SpannedText,
-    pub storage: TypeFormStorageSyntax,
-    /// First iota discriminant. Defaults to zero.
-    pub first_discriminant: u8,
-    /// Empty means semantic variant order. Otherwise this is iota order.
-    pub mappings: Vec<TypeFormMappingSyntax>,
-    pub span: Span,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum TypeFormStorageSyntax {
-    U8,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct TypeFormMappingSyntax {
-    pub variant: SpannedText,
-    pub span: Span,
-}
-
-/// One authored nominal semantic Type declaration.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct TypeSyntax {
-    pub name: SpannedText,
-    /// Checked portable Type parameters. These are compile-time semantic
-    /// placeholders and never survive in a runtime value.
-    pub parameters: Vec<SpannedText>,
-    /// Checker-owned canonical generic declaration and argument provenance.
-    /// Parsed declarations always leave this empty.
-    pub(crate) generic_context: Option<String>,
-    pub definition: TypeDefinitionSyntax,
-    /// Pure Boolean laws every value of this Type must satisfy.
-    pub invariants: Vec<Expression>,
-    pub span: Span,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum TypeDefinitionSyntax {
-    Scalar(TypeExpressionSyntax),
-    Record(Vec<TypeFieldSyntax>),
-    Variant(Vec<TypeVariantCaseSyntax>),
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct TypeFieldSyntax {
-    pub name: SpannedText,
-    pub value_type: TypeExpressionSyntax,
-    pub span: Span,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct TypeVariantCaseSyntax {
-    pub tag: SpannedText,
-    pub payload: TypeVariantPayloadSyntax,
-    pub span: Span,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum TypeVariantPayloadSyntax {
-    Unit,
-    Type(TypeExpressionSyntax),
-    Record(Vec<TypeFieldSyntax>),
-}
-
-/// Finite structural representation used inside one nominal Type.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum TypeExpressionSyntax {
-    Reference {
-        value_type: SpannedText,
-        /// Exact semantic arguments for an authored generic Type.
-        arguments: Vec<TypeExpressionSyntax>,
-        maximum_bytes: Option<u64>,
-        refinements: Vec<ValueRefinement>,
-        span: Span,
-    },
-    Optional {
-        value: Box<TypeExpressionSyntax>,
-        span: Span,
-    },
-    DataReference {
-        value: Box<TypeExpressionSyntax>,
-        span: Span,
-    },
-    Collection {
-        element: Box<TypeExpressionSyntax>,
-        length: u16,
-        span: Span,
-    },
-    Sequence {
-        element: Box<TypeExpressionSyntax>,
-        minimum_items: u16,
-        maximum_items: u16,
-        span: Span,
-    },
 }
 
 /// One finite authored `pack.conduit` declaration.
@@ -264,111 +169,6 @@ pub enum PlotCompletionPolicy {
     Live,
     /// Draining establishes that this plot's meaning is fulfilled.
     SemanticCompletion,
-}
-
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
-pub struct PlotFront {
-    pub type_parameters: Vec<TypeParameter>,
-    pub kind_parameters: Vec<KindParameter>,
-    pub startup_parameters: Vec<StartupParameter>,
-    pub runtime_ports: Vec<RuntimePort>,
-    pub shorthand: Option<ShorthandPair>,
-    pub span: Option<Span>,
-}
-
-/// One exact compile-time Kind or checked source Plot parameter.
-///
-/// The parameter disappears during specialization. Its Fore is a semantic
-/// compatibility constraint, never a runtime callable value.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct KindParameter {
-    pub name: SpannedText,
-    pub front: PlotFront,
-    pub span: Span,
-}
-
-/// One compile-time checked type name. It is never a startup value.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct TypeParameter {
-    pub name: SpannedText,
-    pub span: Span,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct StartupParameter {
-    pub name: SpannedText,
-    pub value_type: SpannedText,
-    pub optional: bool,
-    pub maximum_bytes: Option<u64>,
-    pub refinements: Vec<ValueRefinement>,
-    pub default: Option<Expression>,
-    pub span: Span,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum RuntimePortDirection {
-    Input,
-    Output,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum RuntimePortTemporal {
-    Value,
-    OptionalValue,
-    Flow { closes: bool },
-    Current,
-    CurrentOptional,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct RuntimePort {
-    pub name: SpannedText,
-    pub value_type: SpannedText,
-    pub direction: RuntimePortDirection,
-    pub temporal: RuntimePortTemporal,
-    pub maximum_bytes: Option<u64>,
-    pub refinements: Vec<ValueRefinement>,
-    pub span: Span,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ValueRefinement {
-    Finite {
-        span: Span,
-    },
-    TextPattern {
-        source: SpannedText,
-        case_insensitive: bool,
-        anchored_start: bool,
-        anchored_end: bool,
-        negated: bool,
-        span: Span,
-    },
-    Range {
-        minimum: Option<SpannedText>,
-        maximum: Option<SpannedText>,
-        minimum_endpoint: RefinementIntervalEndpoint,
-        maximum_endpoint: RefinementIntervalEndpoint,
-        span: Span,
-    },
-    Membership {
-        members: Vec<SpannedText>,
-        negated: bool,
-        span: Span,
-    },
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum RefinementIntervalEndpoint {
-    Inclusive,
-    Exclusive,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ShorthandPair {
-    pub input_port: SpannedText,
-    pub output_port: SpannedText,
-    pub span: Span,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

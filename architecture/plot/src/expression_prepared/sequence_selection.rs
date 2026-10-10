@@ -5,7 +5,7 @@ use super::{
 };
 use crate::{PortableExpressionNode, PortableExpressionOperation};
 use alloc::{boxed::Box, vec::Vec};
-use conduit_core::{kind_id, StructuredInfoType, StructuredInfoTypeShape};
+use conduit_core::{kind_id, StructuredInfoType};
 
 pub(super) struct PreparedSequenceSelection {
     source: Box<PreparedPortableExpressionEvaluator>,
@@ -26,11 +26,8 @@ impl PreparedSequenceSelection {
         let [source, index] = arguments.as_slice() else {
             return Err(Refusal::InvalidProgram);
         };
-        let element = match source.value_type.shape() {
-            StructuredInfoTypeShape::Collection { element, .. }
-            | StructuredInfoTypeShape::Sequence { element, .. } => element,
-            _ => return Err(Refusal::InvalidProgram),
-        };
+        let element = crate::expression_semantic_call::collection_element(&source.value_type)
+            .ok_or(Refusal::InvalidProgram)?;
         if kind != "sequence/at"
             || element != &node.value_type
             || index.value_type

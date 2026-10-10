@@ -45,6 +45,7 @@ export default defineConfig({
     "browser-boot-profile.spec.mjs",
     "reviewed-plot-conformance.spec.mjs",
     "exact-quantity.spec.mjs",
+    "native-value-types.spec.mjs",
     "web-accessibility.spec.mjs",
     "creche-avr.spec.mjs",
     "creche-orange-pi.spec.mjs",

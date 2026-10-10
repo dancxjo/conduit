@@ -65,8 +65,17 @@ pub fn check_package_bundle(
         documents.push((member.path.clone(), document));
     }
 
+    let mut aliased = catalog.clone();
+    for (module, document) in &documents {
+        aliased = crate::native_type::install_import_aliases(document, &aliased).map_err(
+            |diagnostic| PackageCheckError::Syntax {
+                module: module.clone(),
+                diagnostic,
+            },
+        )?;
+    }
     let (native_types, package_catalog) =
-        crate::native_type::check_native_types(&all_types, catalog).map_err(|diagnostic| {
+        crate::native_type::check_native_types(&all_types, &aliased).map_err(|diagnostic| {
             PackageCheckError::Syntax {
                 module: "<package>".into(),
                 diagnostic,

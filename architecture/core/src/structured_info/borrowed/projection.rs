@@ -5,7 +5,16 @@ use super::{
 };
 impl<'a> ValidatedCanonicalStructuredValue<'a> {
     pub fn collection_index(self, index: u16) -> Result<Option<Self>, StructuredInfoRefusal> {
-        let mut kind = Cursor::new(self.type_bytes);
+        let mut representation = self.type_bytes;
+        for _ in 0..super::MAXIMUM_STRUCTURED_INFO_DEPTH {
+            let mut nominal = Cursor::new(representation);
+            if nominal.byte()? != 5 {
+                break;
+            }
+            nominal.text()?;
+            representation = nominal.remaining;
+        }
+        let mut kind = Cursor::new(representation);
         match kind.byte()? {
             1 => {
                 kind.u16()?;
