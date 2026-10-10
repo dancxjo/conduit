@@ -21,7 +21,7 @@ pub fn time_every_contract() -> StandardKindContract {
             rule: KindConfigurationRule::QuantityRange {
                 minimum: 0,
                 maximum: i64::MAX,
-                canonical_unit: Unit::Millisecond,
+                canonical_unit: Unit::Millisecond.into(),
             },
         }],
         limits: CapabilityLimits {

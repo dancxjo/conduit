@@ -46,7 +46,7 @@ pub fn validate_configuration_value(
             ConfigurationValue::Quantity(value),
         ) => value
             .value()
-            .to_i64(*canonical_unit)
+            .to_i64(**canonical_unit)
             .is_ok_and(|value| (*minimum..=*maximum).contains(&value)),
         (KindConfigurationRule::TextBytes { maximum }, ConfigurationValue::Text(value)) => {
             value.len() <= *maximum as usize

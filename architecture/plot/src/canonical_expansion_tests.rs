@@ -76,7 +76,7 @@ fn profile_startup_catalog_preserves_quantity_dimensions() {
                 rule: KindConfigurationRule::QuantityRange {
                     minimum: 0,
                     maximum: 10_000,
-                    canonical_unit: Unit::Millimeter,
+                    canonical_unit: Unit::Millimeter.into(),
                 },
             }],
         })

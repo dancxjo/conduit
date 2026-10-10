@@ -81,20 +81,16 @@ pub(super) fn atomic(
         })?;
         return Ok(expected.unwrap().clone());
     }
-    match conduit_core::Quantity::parse_plot_literal(text) {
-        Ok(quantity) => {
-            return expected_or_exact(
-                CheckedExpressionType::semantic(
-                    &conduit_core::quantity_role_info_id(quantity.family(), quantity.role())
-                        .map_err(|reason| {
-                            diagnostic(span, &format!("invalid physical family role: {reason:?}"))
-                        })?,
-                ),
-                expected,
-                span,
-            )
-        }
-        Err(_) => {}
+    if let Ok(quantity) = conduit_core::Quantity::parse_plot_literal(text) {
+        return expected_or_exact(
+            CheckedExpressionType::semantic(
+                &conduit_core::quantity_role_info_id(quantity.family(), quantity.role()).map_err(
+                    |reason| diagnostic(span, &format!("invalid physical family role: {reason:?}")),
+                )?,
+            ),
+            expected,
+            span,
+        );
     }
     let Some(expected) = expected else {
         return refuse(

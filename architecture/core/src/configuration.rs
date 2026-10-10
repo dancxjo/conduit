@@ -1,4 +1,4 @@
-use alloc::{string::String, vec::Vec};
+use alloc::{boxed::Box, string::String, vec::Vec};
 use serde::{de::Error as _, Deserialize, Deserializer, Serialize};
 
 use crate::{KindId, PortId, StructuredInfoValue, MAXIMUM_STRUCTURED_CANONICAL_BYTES};
@@ -163,7 +163,7 @@ pub enum KindConfigurationRule {
         minimum: i64,
         #[serde(with = "human_i64")]
         maximum: i64,
-        canonical_unit: crate::Unit,
+        canonical_unit: Box<crate::Unit>,
     },
     TextBytes {
         maximum: u32,

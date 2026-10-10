@@ -257,16 +257,15 @@ pub(crate) fn check_physical_declarations(
     }
     // Synthesize the complete finite namespace and refuse collisions even if
     // no source expression happens to use the conflicting spelling.
-    for index in 0..units.len() {
-        let definition = resolver.result.units[&units[index].symbol.text];
+    for unit in units {
+        let definition = resolver.result.units[&unit.symbol.text];
         for (prefix_index, prefix) in prefixes.iter().enumerate() {
-            if !enabled(units[index].prefixes, &prefix.group.text) {
+            if !enabled(unit.prefixes, &prefix.group.text) {
                 continue;
             }
             let canonical = &prefixes[prefix_groups.canonical_prefixes[prefix_index]];
-            let symbol = alloc::format!("{}{}", prefix.symbol.text, units[index].symbol.text);
-            let canonical_symbol =
-                alloc::format!("{}{}", canonical.symbol.text, units[index].symbol.text);
+            let symbol = alloc::format!("{}{}", prefix.symbol.text, unit.symbol.text);
+            let canonical_symbol = alloc::format!("{}{}", canonical.symbol.text, unit.symbol.text);
             let value = prefixed(definition, &symbol, canonical)?;
             if resolver
                 .result
@@ -281,10 +280,7 @@ pub(crate) fn check_physical_declarations(
                     ),
                 ));
             }
-            resolver
-                .result
-                .unit_spans
-                .insert(symbol.clone(), units[index].span);
+            resolver.result.unit_spans.insert(symbol.clone(), unit.span);
             resolver.result.aliases.insert(symbol, canonical_symbol);
             if resolver.result.units.len() > MAXIMUM_RESOLVED_UNITS {
                 return Err(refusal(

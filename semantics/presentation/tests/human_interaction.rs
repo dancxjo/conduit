@@ -131,8 +131,8 @@ fn ranged_and_member_arguments() -> Vec<FaceActionArgument> {
                 DISTANCE_INFO_ID.into(),
                 QUANTITY_ENCODED_LEN as u32,
                 vec![ValueConstraint::QuantityRange {
-                    minimum: Some(Quantity::new(1, Unit::Meter)),
-                    maximum: Some(Quantity::new(2, Unit::Meter)),
+                    minimum: Some(Quantity::new(1, Unit::Meter).into()),
+                    maximum: Some(Quantity::new(2, Unit::Meter).into()),
                     minimum_endpoint: IntervalEndpoint::Inclusive,
                     maximum_endpoint: IntervalEndpoint::Inclusive,
                 }],

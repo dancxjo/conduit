@@ -82,7 +82,7 @@ fn point_and_difference_declarations_admit_forward_references_without_prefix_def
     );
     assert!(!units[0].prefixes.si);
     assert!(units[1].prefixes.si);
-    assert!(matches!(units[0].transform.offset, Some(_)));
+    assert!(units[0].transform.offset.is_some());
     assert!(units[0]
         .difference
         .as_ref()

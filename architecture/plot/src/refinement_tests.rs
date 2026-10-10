@@ -41,8 +41,8 @@ fn authored_ranges_preserve_open_and_closed_endpoints() {
     assert_eq!(
         temperature.constraints,
         vec![ValueConstraint::QuantityRange {
-            minimum: Some(conduit_core::Quantity::new(18, conduit_core::Unit::Celsius)),
-            maximum: Some(conduit_core::Quantity::new(24, conduit_core::Unit::Celsius)),
+            minimum: Some(conduit_core::Quantity::new(18, conduit_core::Unit::Celsius).into()),
+            maximum: Some(conduit_core::Quantity::new(24, conduit_core::Unit::Celsius).into()),
             minimum_endpoint: IntervalEndpoint::Inclusive,
             maximum_endpoint: IntervalEndpoint::Exclusive,
         }]

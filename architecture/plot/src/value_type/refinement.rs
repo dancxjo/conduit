@@ -261,8 +261,8 @@ fn checked_range(
             minimum_endpoint = endpoint_or_inclusive(minimum.is_some(), minimum_endpoint);
             maximum_endpoint = endpoint_or_inclusive(maximum.is_some(), maximum_endpoint);
             Ok(ValueConstraint::QuantityRange {
-                minimum,
-                maximum,
+                minimum: minimum.map(Into::into),
+                maximum: maximum.map(Into::into),
                 minimum_endpoint,
                 maximum_endpoint,
             })

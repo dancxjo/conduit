@@ -203,7 +203,7 @@ fn add_shape_properties(
                 "leaf-byte-count",
                 PresentationPropertyValue::Count(u64::from(*byte_len)),
             ));
-            if let Some(StructuredInfoLeafSemantic::Quantity(quantity)) = semantic {
+            if let Some(StructuredInfoLeafSemantic::Quantity(quantity)) = semantic.as_deref() {
                 properties.push(property(
                     subject,
                     "quantity-unit",

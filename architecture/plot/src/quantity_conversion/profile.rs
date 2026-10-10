@@ -58,7 +58,7 @@ impl ConversionProfile {
     pub(super) fn source_id(self) -> String {
         match self {
             Self::Quantity => QUANTITY_INFO_ID.into(),
-            Self::TemperatureDifference => temperature_delta_info_id().into(),
+            Self::TemperatureDifference => temperature_delta_info_id(),
         }
     }
     pub(super) fn source_type(self) -> StructuredInfoType {

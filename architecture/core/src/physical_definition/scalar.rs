@@ -53,19 +53,19 @@ impl DefinitionScalar {
         let mut d = self.denominator as u128 / gcd;
         let mut twos = i32::from(self.decimal_exponent);
         let mut fives = twos;
-        while n % 2 == 0 {
+        while n.is_multiple_of(2) {
             n /= 2;
             twos += 1;
         }
-        while d % 2 == 0 {
+        while d.is_multiple_of(2) {
             d /= 2;
             twos -= 1;
         }
-        while n % 5 == 0 {
+        while n.is_multiple_of(5) {
             n /= 5;
             fives += 1;
         }
-        while d % 5 == 0 {
+        while d.is_multiple_of(5) {
             d /= 5;
             fives -= 1;
         }
@@ -98,19 +98,19 @@ impl DefinitionScalar {
             let mut d = value.denominator as u128;
             let mut twos = i32::from(value.decimal_exponent) + i32::from(binary);
             let mut fives = i32::from(value.decimal_exponent);
-            while n % 2 == 0 {
+            while n.is_multiple_of(2) {
                 n /= 2;
                 twos += 1;
             }
-            while d % 2 == 0 {
+            while d.is_multiple_of(2) {
                 d /= 2;
                 twos -= 1;
             }
-            while n % 5 == 0 {
+            while n.is_multiple_of(5) {
                 n /= 5;
                 fives += 1;
             }
-            while d % 5 == 0 {
+            while d.is_multiple_of(5) {
                 d /= 5;
                 fives -= 1;
             }
@@ -192,7 +192,7 @@ impl DefinitionScalar {
         }
         Self::new(value.numerator, value.denominator, value.decimal_exponent)
     }
-    pub fn add(self, other: Self) -> Result<Self, PhysicalDefinitionRefusal> {
+    pub fn checked_add(self, other: Self) -> Result<Self, PhysicalDefinitionRefusal> {
         let left_value = Self::new(self.numerator, self.denominator, self.decimal_exponent)?;
         let right_value = Self::new(other.numerator, other.denominator, other.decimal_exponent)?;
         if left_value.numerator == 0 {

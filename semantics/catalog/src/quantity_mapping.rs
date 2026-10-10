@@ -256,7 +256,7 @@ fn distance_frequency_configuration_fields() -> Vec<KindConfigurationField> {
                 rule: KindConfigurationRule::QuantityRange {
                     minimum,
                     maximum,
-                    canonical_unit,
+                    canonical_unit: canonical_unit.into(),
                 },
             }
         };

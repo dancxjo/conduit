@@ -72,7 +72,7 @@ pub fn time_every_semantic_contract() -> Kind {
         rule: KindConfigurationRule::QuantityRange {
             minimum: 0,
             maximum: i64::MAX,
-            canonical_unit: conduit_core::Unit::Millisecond,
+            canonical_unit: conduit_core::Unit::Millisecond.into(),
         },
     }];
     Kind {

@@ -515,11 +515,13 @@ fn validate_boxed_variant_payloads(
             .iter()
             .find(|case| case.tag() == case_name)
             .ok_or(RustBindingGenerationError::InvalidSemanticType)?;
-        let StructuredInfoTypeShape::Record { schema, .. } = case.payload_type().shape() else {
-            return Err(RustBindingGenerationError::InvalidSemanticType);
-        };
-        if external_names.contains_key(schema.as_str()) {
-            return Err(RustBindingGenerationError::InvalidSemanticType);
+        match case.payload_type().shape() {
+            StructuredInfoTypeShape::Record { schema, .. }
+                if !external_names.contains_key(schema.as_str()) => {}
+            StructuredInfoTypeShape::Leaf(kind) if !unit_type(case.payload_type()) => {
+                primitive_rust_type(kind.as_str())?;
+            }
+            _ => return Err(RustBindingGenerationError::InvalidSemanticType),
         }
     }
     Ok(())

@@ -62,7 +62,7 @@ fn self_contained_custom_affine_and_delta_laws_survive_transport() {
         kind_id(&role_kind),
         QUANTITY_ENCODED_LEN as u32,
         vec![ValueConstraint::QuantityRange {
-            minimum: Some(delta),
+            minimum: Some(Box::new(delta)),
             maximum: None,
             minimum_endpoint: IntervalEndpoint::Inclusive,
             maximum_endpoint: IntervalEndpoint::Inclusive,
@@ -286,8 +286,8 @@ fn exact_relation_exponent_spill_uses_available_coefficient_capacity() {
 fn differently_written_exact_offset_cancellation_never_expands_a_large_power() {
     let positive = scalar(1_i128 << 120, 1, 0);
     let negative = scalar(-(1_i128 << 80), 5_i128.pow(40), 40);
-    assert_eq!(positive.add(negative), Ok(scalar(0, 1, 0)));
-    assert_eq!(negative.add(positive), Ok(scalar(0, 1, 0)));
+    assert_eq!(positive.checked_add(negative), Ok(scalar(0, 1, 0)));
+    assert_eq!(negative.checked_add(positive), Ok(scalar(0, 1, 0)));
 }
 
 #[test]

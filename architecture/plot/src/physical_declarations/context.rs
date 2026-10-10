@@ -15,21 +15,20 @@ pub(crate) fn install(
                 conduit_core::BUILTIN_PHYSICAL_SOURCE,
             ));
     }
-    if !document.dimensions.is_empty()
+    let has_declarations = !document.dimensions.is_empty()
         || !document.prefixes.is_empty()
         || !document.units.is_empty()
         || document
             .types
             .iter()
-            .any(|t| matches!(t.definition, TypeDefinitionSyntax::Quantity(_)))
-    {
-        if !catalogue
+            .any(|t| matches!(t.definition, TypeDefinitionSyntax::Quantity(_)));
+    if has_declarations
+        && !catalogue
             .physical_sources
             .iter()
             .any(|source| source.source_document_id() == document.source_document_id())
-        {
-            catalogue.physical_sources.push(document.clone());
-        }
+    {
+        catalogue.physical_sources.push(document.clone());
     }
     if catalogue.physical_sources.len() > 64
         || catalogue

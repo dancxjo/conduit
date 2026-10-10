@@ -71,8 +71,8 @@ pub enum PrimitiveInfoRefusal {
     Unit(crate::UnitRefusal),
     Terminal(TerminalInfoDecodeRefusal),
     WrongQuantityDimension {
-        expected: QuantityDimension,
-        actual: QuantityDimension,
+        /// Full fingerprint of the ordered expected/actual dimension descriptors.
+        comparison: [u8; 32],
     },
     IntegerLength {
         expected: usize,
@@ -209,7 +209,17 @@ pub fn validate_primitive_info(identity: &str, encoded: &[u8]) -> Result<(), Pri
             if actual == expected {
                 Ok(())
             } else {
-                Err(PrimitiveInfoRefusal::WrongQuantityDimension { expected, actual })
+                let mut descriptors = [0; 2 * crate::DIMENSION_DEFINITION_ENCODED_LEN];
+                descriptors[..crate::DIMENSION_DEFINITION_ENCODED_LEN]
+                    .copy_from_slice(&expected.encode());
+                descriptors[crate::DIMENSION_DEFINITION_ENCODED_LEN..]
+                    .copy_from_slice(&actual.encode());
+                Err(PrimitiveInfoRefusal::WrongQuantityDimension {
+                    comparison: crate::semantic_digest(
+                        "physical/dimension-mismatch@1",
+                        &descriptors,
+                    ),
+                })
             }
         }
         Some(kind @ (PrimitiveInfoKind::F32 | PrimitiveInfoKind::F64)) => {

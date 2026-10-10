@@ -497,7 +497,7 @@ fn duration_field() -> KindConfigurationField {
         rule: KindConfigurationRule::QuantityRange {
             minimum: 0,
             maximum: TIME_MAXIMUM_DURATION_MS as i64,
-            canonical_unit: conduit_core::Unit::Millisecond,
+            canonical_unit: conduit_core::Unit::Millisecond.into(),
         },
     }
 }
@@ -706,12 +706,12 @@ mod tests {
             time_deadline_contract(),
         ] {
             assert!(matches!(
-                contract.configuration[0].rule,
+                &contract.configuration[0].rule,
                 KindConfigurationRule::QuantityRange {
                     minimum: 0,
                     maximum,
-                    canonical_unit: conduit_core::Unit::Millisecond,
-                } if maximum == TIME_MAXIMUM_DURATION_MS as i64
+                    canonical_unit,
+                } if *maximum == TIME_MAXIMUM_DURATION_MS as i64 && **canonical_unit == conduit_core::Unit::Millisecond
             ));
         }
     }

@@ -218,7 +218,7 @@ impl UnitDefinition {
         let result_offset = offset
             .multiply(reference_scale)?
             .multiply_binary(reference.binary_exponent())?
-            .add(reference.exact_offset(role)?)?;
+            .checked_add(reference.exact_offset(role)?)?;
         let mut value = Self::new_exact_role(
             reference.family,
             symbol,
@@ -286,7 +286,7 @@ impl UnitDefinition {
         let result_offset = offset
             .multiply(reference_scale)?
             .multiply_binary(reference.binary_exponent())?
-            .add(reference.exact_offset(reference.declared_role)?)?;
+            .checked_add(reference.exact_offset(reference.declared_role)?)?;
         let mut value = Self::new_exact(
             reference.family,
             symbol,

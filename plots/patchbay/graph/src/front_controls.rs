@@ -245,14 +245,14 @@ fn project_interaction(
         ) => {
             let value = value
                 .value()
-                .to_i64(*canonical_unit)
+                .to_i64(**canonical_unit)
                 .map_err(|_| PatchbayGraphError::InvalidConfigurationContract)?;
             if value < *minimum || value > *maximum {
                 return Ok(None);
             }
             (
                 InteractionFamily::scalar_range(
-                    *canonical_unit,
+                    **canonical_unit,
                     *minimum,
                     BoundKind::Inclusive,
                     *maximum,
@@ -260,7 +260,7 @@ fn project_interaction(
                     1,
                 ),
                 None,
-                quantity_value(value, *canonical_unit)?,
+                quantity_value(value, **canonical_unit)?,
             )
         }
         (ConfigurationValue::Text(value), KindConfigurationRule::TextBytes { maximum }) => (

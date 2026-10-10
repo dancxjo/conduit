@@ -93,7 +93,7 @@ fn ordinary_browser_plans_execute_layout_and_graphics_through_the_kernel() {
             property.name == "quantity-unit"
                 && property.value
                     == conduit_presentation::PresentationPropertyValue::Identity(
-                        conduit_core::Unit::Percent.semantic_id().into(),
+                        conduit_core::Unit::Percent.semantic_id(),
                     )
         }));
 }

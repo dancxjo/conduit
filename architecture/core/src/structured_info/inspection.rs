@@ -47,7 +47,7 @@ pub enum StructuredInfoInspectionShape {
     Leaf {
         kind: KindId,
         byte_len: u32,
-        semantic: Option<StructuredInfoLeafSemantic>,
+        semantic: Option<alloc::boxed::Box<StructuredInfoLeafSemantic>>,
     },
     Collection {
         length: u16,
@@ -225,9 +225,11 @@ fn inspection_shape(
         }
         (StructuredInfoTypeShape::Leaf(kind), StructuredInfoValueShape::Leaf(bytes)) => {
             let semantic = if kind.as_str() == QUANTITY_INFO_ID {
-                Some(StructuredInfoLeafSemantic::Quantity(
-                    Quantity::decode(bytes)
-                        .map_err(StructuredInfoInspectionRefusal::InvalidQuantity)?,
+                Some(alloc::boxed::Box::new(
+                    StructuredInfoLeafSemantic::Quantity(
+                        Quantity::decode(bytes)
+                            .map_err(StructuredInfoInspectionRefusal::InvalidQuantity)?,
+                    ),
                 ))
             } else {
                 None

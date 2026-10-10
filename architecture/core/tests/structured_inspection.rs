@@ -169,9 +169,9 @@ fn quantity_signs_retain_exact_typed_semantics_without_general_leaf_disclosure()
     assert!(matches!(
         &inspection.nodes[0].shape,
         StructuredInfoInspectionShape::Leaf {
-            semantic: Some(StructuredInfoLeafSemantic::Quantity(observed)),
+            semantic: Some(semantic),
             ..
-        } if *observed == quantity
+        } if matches!(semantic.as_ref(), StructuredInfoLeafSemantic::Quantity(observed) if *observed == quantity)
     ));
 
     let quantity_type = leaf_type(conduit_core::QUANTITY_INFO_ID);

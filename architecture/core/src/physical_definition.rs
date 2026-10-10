@@ -110,6 +110,25 @@ fn identity(domain: &str, bytes: &[u8]) -> [u8; 32] {
     semantic_digest(domain, bytes)
 }
 
+pub(crate) const fn generated_digest(bytes: &[u8], position: usize) -> [u8; 32] {
+    let mut result = [0; 32];
+    let mut i = 0;
+    while i < 32 {
+        result[i] = bytes[position + i];
+        i += 1;
+    }
+    result
+}
+pub(crate) const fn generated_i128(bytes: &[u8], position: usize) -> i128 {
+    let mut result = [0; 16];
+    let mut i = 0;
+    while i < 16 {
+        result[i] = bytes[position + i];
+        i += 1;
+    }
+    i128::from_le_bytes(result)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -255,23 +274,4 @@ mod tests {
             .equivalent(DefinitionScalar::new(68289, 250, 0).unwrap()));
         assert_eq!(UnitDefinition::decode(&relative.encode()), Ok(relative));
     }
-}
-
-pub(crate) const fn generated_digest(bytes: &[u8], position: usize) -> [u8; 32] {
-    let mut result = [0; 32];
-    let mut i = 0;
-    while i < 32 {
-        result[i] = bytes[position + i];
-        i += 1;
-    }
-    result
-}
-pub(crate) const fn generated_i128(bytes: &[u8], position: usize) -> i128 {
-    let mut result = [0; 16];
-    let mut i = 0;
-    while i < 16 {
-        result[i] = bytes[position + i];
-        i += 1;
-    }
-    i128::from_le_bytes(result)
 }
