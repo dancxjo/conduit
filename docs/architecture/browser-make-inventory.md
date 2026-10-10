@@ -6,14 +6,33 @@ Every exposed entry is versioned, targets `browser/wasm32/page`, binds to `condu
 
 The `cargo xtask make host release --platform browser` recipe builds the entire
 WASM dependency graph with size optimization
-(`opt-level = z`) and thin LTO. The reviewed superset measured 9,463,432 bytes
-with that recipe; fat LTO with one codegen unit still measured 8,735,379 bytes.
-The native server and browser bootstrap therefore admit runtime artifacts up to
-16 MiB. This download bound is separate from the unchanged 8 MiB page-profile
+(`opt-level = z`), fat LTO and one codegen unit. On source `5b344df52`, with the
+scoped glyph and checked IPA authoring consumers, the recipe produced
+16,515,525 bytes; the thin-LTO comparison produced 17,429,951 bytes. The workspace application template reserves 16 MiB
+for its runtime, matching the existing native-server, SDK and browser-bootstrap
+download bound. This download bound is separate from the unchanged 8 MiB page-profile
 heap allowance. Body Play reserves a finite 2,176 KiB value arena before
 execution: the reviewed resident Theremin workload requires 2,150,400 bytes
 under the current native structured contracts. Larger workloads still fail
 ordinary capacity admission.
+
+Workspace preparation and each Plot library render retain one immutable installed catalog pair while
+checking consecutive documents with the same presentation profile. A profile
+change drops that pair before preparing its replacement; finishing the operation
+drops the preparation owner. Checking, local offers and planning share the same
+original checked inventory. Each library render also prepares the installed Plot backs once per profile.
+Independent library admission checks run grouped by profile against one fresh
+Host observation; the shelf retains its original authored order. Graceful
+fallbacks use the same original entry admission from that operation.
+Entries without structured selectors borrow the installed profile and backs;
+document-specific selectors modify a profile copy and rederive its backs,
+and glyph receipts remain bound to their original document. This avoids
+repeated installed-Type preparation without caching source admission, Host
+observations, commitment or Play authority.
+Resident Patchbay preparation checks its original inventory once for all active
+subjects. Expansions and titles come from that same checked entry and retain
+the Body Plan order and exact Source/Plot identities; foreign residents and
+missing lexical glyph bindings still refuse.
 
 | Runtime mechanism | Make classification | Runtime prerequisite truth |
 | --- | --- | --- |

@@ -22,7 +22,7 @@ for (const resource of template.resources ?? []) {
   const path = resolve(destination, resource.path);
   if (!path.startsWith(root)) throw new Error(`application resource escapes destination: ${resource.path}`);
   const bytes = await readFile(path);
-  if (bytes.length === 0 || bytes.length > resource.maximum_bytes) throw new Error(`application resource exceeds bound: ${resource.role}`);
+  if (bytes.length === 0 || bytes.length > resource.maximum_bytes) throw new Error(`application resource exceeds bound: ${resource.role} (${bytes.length} bytes; maximum ${resource.maximum_bytes})`);
   if (resource.kind === "module") moduleSources.set(resource.role, bytes.toString("utf8"));
   resources.push({
     role: resource.role,

@@ -292,6 +292,9 @@ function handoffUrl(plot) {
 }
 
 test('a Gallery handoff installs in the retained body and cannot reinstall a later removed Plot on reload', async ({ page }) => {
+  // Birth, handoff recovery, removal and final recovery share one aggregate budget.
+  // Keep the individual transition assertions at their existing deadlines.
+  test.setTimeout(45_000);
   await birth(page);
   const initial = await current(page);
   const plot = await reviewedPlot(page, 'desk_telegraph');

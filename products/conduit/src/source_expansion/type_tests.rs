@@ -194,6 +194,8 @@ fn closed_type_import_reports_original_owner_source() {
         native_types: Vec::new(),
         type_families: Vec::new(),
         imports,
+        glyphs: Vec::new(),
+        glyph_contexts: Vec::new(),
     };
     let human = render_human(&report);
     assert!(human.contains("owner `Dimension` in original/domain:2:1"));

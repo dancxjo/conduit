@@ -7,6 +7,7 @@ use alloc::{boxed::Box, string::String, vec::Vec};
 use conduit_core::{StructuredInfoRefusal, StructuredInfoType};
 
 mod checked_encoding;
+mod constant;
 pub(crate) use checked_encoding::checked_canonical_hex;
 
 pub const MAXIMUM_PURE_EXPRESSION_PROGRAM_BYTES: usize = crate::MAXIMUM_PLOT_SOURCE_BYTES * 64;
@@ -28,6 +29,8 @@ pub struct PortableExpressionNode {
 pub enum PortableExpressionOperation {
     Input,
     Literal(String),
+    /// Already admitted ordinary constructor result; no runtime parsing.
+    Constant(conduit_core::StructuredInfoValue),
     Projection {
         value: Box<PortableExpressionNode>,
         member: PortableExpressionProjection,
@@ -192,8 +195,28 @@ fn node(
         .value_type
         .structured_info_type_with(&checked.semantic_structures)?;
     let operation = match syntax {
+        ExpressionSyntax::TypedGlyphLiteral(literal) => {
+            let value = checked
+                .glyph_values
+                .resolve(literal)
+                .and_then(crate::CanonicalStructuredStartupValue::try_concrete)
+                .ok_or(PortableExpressionProgramRefusal::MissingCheckedNodeType)?;
+            if value.value_type() != &value_type {
+                return Err(PortableExpressionProgramRefusal::MalformedEncoding);
+            }
+            PortableExpressionOperation::Constant(value)
+        }
         ExpressionSyntax::Input(_) => PortableExpressionOperation::Input,
-        ExpressionSyntax::Atomic(value) => PortableExpressionOperation::Literal(value.text.clone()),
+        ExpressionSyntax::Atomic(value) => {
+            if let Some(constant) = checked.immutable_constants.get(&value.text) {
+                if constant.value_type() != &value_type {
+                    return Err(PortableExpressionProgramRefusal::MalformedEncoding);
+                }
+                PortableExpressionOperation::Constant(constant.clone())
+            } else {
+                PortableExpressionOperation::Literal(value.text.clone())
+            }
+        }
         ExpressionSyntax::Projection { value, member, .. }
             if matches!(
                 value_type.shape(),
@@ -304,6 +327,15 @@ fn push_node(
 ) -> Result<(), PortableExpressionProgramRefusal> {
     push_type(encoded, &node.value_type)?;
     match &node.operation {
+        PortableExpressionOperation::Constant(value) => {
+            if value.value_type() != &node.value_type {
+                return Err(PortableExpressionProgramRefusal::MalformedEncoding);
+            }
+            let bytes = value.canonical_bytes()?;
+            encoded.push(11);
+            push_len(encoded, bytes.len());
+            encoded.extend_from_slice(&bytes);
+        }
         PortableExpressionOperation::Input => encoded.push(0),
         PortableExpressionOperation::Literal(value) => {
             encoded.push(1);

@@ -350,8 +350,12 @@ impl PlotEditor {
     pub(crate) fn apply_candidate(&mut self, candidate: String) -> Result<(), PlotEditorError> {
         ensure_source_bound(&candidate)?;
         let next_revision = self.revision.saturating_add(1);
-        let checked =
-            check_revision_with_catalog(next_revision, &candidate, &self.startup_catalog)?;
+        let checked = check_revision_with_catalog(
+            next_revision,
+            &candidate,
+            &self.startup_catalog,
+            &self.profile_catalog,
+        )?;
         if let Some(diagnostic) = checked.diagnostics.first() {
             return Err(PlotEditorError::Catalog(diagnostic.message.clone()));
         }

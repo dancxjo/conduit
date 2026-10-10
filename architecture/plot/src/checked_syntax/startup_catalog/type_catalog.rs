@@ -51,7 +51,9 @@ impl StartupCatalog {
         if name.is_empty() {
             return Err("structured startup type name must not be empty".into());
         }
-        if self.structured_types.contains_key(&name) || self.value_kind_aliases.contains_key(&name)
+        if self.structured_types.contains_key(&name)
+            || self.value_kind_aliases.contains_key(&name)
+            || self.typed_literal_families.contains_key(&name)
         {
             return Err(format!("duplicate structured startup type '{name}'"));
         }
@@ -116,7 +118,9 @@ impl StartupCatalog {
         if self.value_kind_aliases.get(&name) == Some(&value_kind) {
             return Ok(());
         }
-        if self.value_kind_aliases.contains_key(&name) || self.structured_types.contains_key(&name)
+        if self.value_kind_aliases.contains_key(&name)
+            || self.structured_types.contains_key(&name)
+            || self.typed_literal_families.contains_key(&name)
         {
             return Err(format!("duplicate startup value type '{name}'"));
         }
@@ -167,6 +171,27 @@ impl StartupCatalog {
 
     pub(crate) fn structured_type(&self, name: &str) -> Option<&conduit_core::StructuredInfoType> {
         self.structured_types.get(name)
+    }
+
+    pub(crate) fn native_laws_for(
+        &self,
+        ty: &conduit_core::StructuredInfoType,
+    ) -> Option<(
+        &[NativeTypeValueContract],
+        &[crate::PortableExpressionProgram],
+    )> {
+        self.structured_types.iter().find_map(|(name, installed)| {
+            if installed != ty {
+                return None;
+            }
+            Some((
+                self.structured_type_contracts.get(name)?.as_slice(),
+                self.structured_type_invariants
+                    .get(name)
+                    .map(Vec::as_slice)
+                    .unwrap_or(&[]),
+            ))
+        })
     }
 
     pub(crate) fn structured_type_contracts(

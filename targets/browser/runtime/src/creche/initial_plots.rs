@@ -93,8 +93,8 @@ pub(super) fn reviewed_inventory(source: &str) -> Result<ReviewedPlotInventory, 
     })
 }
 
-pub(super) fn checked_workset(
-    source: &str,
+pub(super) fn checked_workset_from_inventory(
+    checked_documents: &[CheckedInventoryEntry],
     initial_plots_json: &str,
 ) -> Result<(conduit_body::BodyWorkset, Vec<InitialPlotReceipt>), String> {
     let selected: Vec<InitialPlotSelection> = serde_json::from_str(initial_plots_json)
@@ -103,7 +103,6 @@ pub(super) fn checked_workset(
         return Err("initial Plot selection exceeds Body capacity".into());
     }
 
-    let checked_documents = check_inventory(source)?;
     let mut receipts = Vec::with_capacity(selected.len());
     let mut workset = conduit_body::BodyWorkset::default();
     for selection in selected {
@@ -153,8 +152,20 @@ pub(super) fn checked_workset(
 }
 
 pub(super) fn check_inventory(source: &str) -> Result<Vec<CheckedInventoryEntry>, String> {
+    check_inventory_with_catalogs(
+        source,
+        &mut super::catalog_preparation::CatalogPreparation::default(),
+    )
+}
+
+pub(super) fn check_inventory_with_catalogs(
+    source: &str,
+    catalogs: &mut super::catalog_preparation::CatalogPreparation,
+) -> Result<Vec<CheckedInventoryEntry>, String> {
     let Ok(bundle) = serde_json::from_str::<ReviewedPlotBundle>(source) else {
-        return check_source(source).map(|checked| {
+        let (startup, profile) =
+            catalogs.get(crate::installed_browser::PresentationProfile::Annotation)?;
+        return check_source_with_catalogs(source, startup, profile).map(|checked| {
             vec![CheckedInventoryEntry {
                 source: source.to_owned(),
                 checked,
@@ -190,7 +201,8 @@ pub(super) fn check_inventory(source: &str) -> Result<Vec<CheckedInventoryEntry>
             3 => crate::installed_browser::PresentationProfile::PatternComparison,
             _ => return Err("reviewed plot has an unsupported presentation profile".into()),
         };
-        let document = check_source_for_presentation(&entry.source, presentation)?;
+        let (startup, profile) = catalogs.get(presentation)?;
+        let document = check_source_with_catalogs(&entry.source, startup, profile)?;
         let expected_entry = entry.entry.unwrap_or_else(|| entry.slug.replace('-', "_"));
         let plot = document
             .plots
@@ -221,41 +233,49 @@ pub(super) fn check_inventory(source: &str) -> Result<Vec<CheckedInventoryEntry>
     Ok(checked)
 }
 
-pub(crate) fn expanded_inventory_plot(
+pub(crate) fn inventory_application_subjects(
     source: &str,
-    resident: &conduit_body::ResidentPlot,
-) -> Result<conduit_plot::ExpandedCanonicalPlot, String> {
-    for entry in check_inventory(source)? {
-        if entry.checked.source_document_id != resident.source_document_id {
-            continue;
-        }
-        if let Some(plot) = entry
-            .checked
-            .plots
-            .iter()
-            .find(|plot| plot.checked_plot_id == resident.checked_plot_id)
-        {
-            let (_, catalog) =
-                crate::installed_browser::catalogs_for_presentation(entry.presentation)?;
-            return conduit_plot::expand_canonical_plot(&entry.checked, &plot.name, &catalog)
-                .map_err(|error| format!("expand resident application subject: {error:?}"));
-        }
+    residents: &[conduit_body::ResidentPlot],
+) -> Result<Vec<(conduit_plot::ExpandedCanonicalPlot, String)>, String> {
+    if residents.len() > conduit_body::MAX_BODY_PLOTS {
+        return Err("resident application subjects exceed Body capacity".into());
     }
-    Err("resident application subject is absent from the reviewed inventory".into())
+    let mut catalogs = super::catalog_preparation::CatalogPreparation::default();
+    let inventory = check_inventory_with_catalogs(source, &mut catalogs)?;
+    residents
+        .iter()
+        .map(|resident| {
+            let (entry, plot) = inventory
+                .iter()
+                .filter(|entry| entry.checked.source_document_id == resident.source_document_id)
+                .find_map(|entry| {
+                    entry
+                        .checked
+                        .plots
+                        .iter()
+                        .find(|plot| {
+                            plot.checked_plot_id == resident.checked_plot_id
+                                && entry
+                                    .entry_name
+                                    .as_ref()
+                                    .is_none_or(|name| name == &plot.name)
+                        })
+                        .map(|plot| (entry, plot))
+                })
+                .ok_or("resident application subject is absent from the reviewed inventory")?;
+            let (_, profile) = catalogs.get(entry.presentation)?;
+            let expanded = conduit_plot::expand_canonical_plot(&entry.checked, &plot.name, profile)
+                .map_err(|error| format!("expand resident application subject: {error:?}"))?;
+            let title = entry
+                .entry_title
+                .clone()
+                .unwrap_or_else(|| title(&plot.name));
+            Ok((expanded, title))
+        })
+        .collect()
 }
 
-pub(crate) fn inventory_plot_title(
-    source: &str,
-    resident: &conduit_body::ResidentPlot,
-) -> Result<String, String> {
-    reviewed_inventory(source)?
-        .plots
-        .into_iter()
-        .find(|plot| plot.checked_plot_id == resident.checked_plot_id.as_str())
-        .map(|plot| plot.title)
-        .ok_or_else(|| "resident Plot is absent from the reviewed inventory".into())
-}
-
+#[cfg(test)]
 pub(super) fn check_source(source: &str) -> Result<conduit_plot::CheckedSyntaxDocument, String> {
     check_source_for_presentation(
         source,
@@ -263,19 +283,28 @@ pub(super) fn check_source(source: &str) -> Result<conduit_plot::CheckedSyntaxDo
     )
 }
 
+#[cfg(test)]
 pub(super) fn check_source_for_presentation(
     source: &str,
     presentation: crate::installed_browser::PresentationProfile,
 ) -> Result<conduit_plot::CheckedSyntaxDocument, String> {
-    let (startup, _) = crate::installed_browser::catalogs_for_presentation(presentation)?;
-    let syntax = conduit_plot::parse_syntax_document(source);
+    let (startup, profile) = crate::installed_browser::catalogs_for_presentation(presentation)?;
+    check_source_with_catalogs(source, &startup, &profile)
+}
+
+pub(super) fn check_source_with_catalogs(
+    source: &str,
+    startup: &conduit_plot::StartupCatalog,
+    profile: &conduit_plot::ProfileCatalog,
+) -> Result<conduit_plot::CheckedSyntaxDocument, String> {
+    let syntax = conduit_plot::parse_syntax_document_with_glyph_notations(source, startup);
     if let Some(diagnostic) = syntax.diagnostics.first() {
         return Err(format!(
             "parse reviewed plot inventory: {}",
             diagnostic.message
         ));
     }
-    conduit_plot::check_syntax_document(&syntax, &startup)
+    conduit_plot::check_syntax_document_with_literal_constructors(&syntax, startup, profile)
         .map_err(|error| format!("check reviewed plot inventory: {error:?}"))
 }
 
@@ -298,14 +327,41 @@ pub(super) fn reviewed_browser_host(
     host: conduit_core::HostId,
     boot: conduit_core::BootId,
 ) -> Result<conduit_core::HostAdvertisement, String> {
+    let mut catalogs = super::catalog_preparation::CatalogPreparation::default();
+    let inventory = check_inventory_with_catalogs(source, &mut catalogs)?;
+    reviewed_browser_host_with_inventory(&inventory, host, boot, &mut catalogs)
+}
+
+pub(super) fn reviewed_browser_host_with_inventory(
+    inventory: &[CheckedInventoryEntry],
+    host: conduit_core::HostId,
+    boot: conduit_core::BootId,
+    catalogs: &mut super::catalog_preparation::CatalogPreparation,
+) -> Result<conduit_core::HostAdvertisement, String> {
     let mut host = crate::installed_browser::advertisement(host, boot);
-    for entry in check_inventory(source)? {
-        let (startup, mut profile) =
-            crate::installed_browser::catalogs_for_presentation(entry.presentation)?;
-        let mut offers = crate::installed_browser::catalogs::install_checked_structured_selectors(
-            &entry.checked,
-            &mut profile,
-        )?;
+    for entry in inventory {
+        let (startup, base_profile) = catalogs.get(entry.presentation)?;
+        // Selectors are specific to this checked document, not retained in the
+        // installed base profile used for the next document.
+        let mut profile = std::borrow::Cow::Borrowed(base_profile);
+        let has_selectors = entry.checked.plots.iter().any(|plot| {
+            plot.cords.iter().any(|cord| {
+                cord.stages.iter().any(|stage| {
+                    matches!(
+                        stage,
+                        conduit_plot::CheckedCordStage::StructuredSelector { .. }
+                    )
+                })
+            })
+        });
+        let mut offers = if has_selectors {
+            crate::installed_browser::catalogs::install_checked_structured_selectors(
+                &entry.checked,
+                profile.to_mut(),
+            )?
+        } else {
+            Vec::new()
+        };
         // Expressions can occur in a called local Plot, so inspect the entire
         // checked document before deciding whether expansion is necessary.
         // Most shelf entries contain none: avoid constructing every Back and
@@ -322,7 +378,7 @@ pub(super) fn reviewed_browser_host(
             })
         });
         if has_expressions {
-            let backs = crate::installed_browser::backs(&startup, &profile)?;
+            let backs = crate::installed_browser::backs(startup, &profile)?;
             for plot in &entry.checked.plots {
                 if entry
                     .entry_name
@@ -358,4 +414,31 @@ pub(super) fn reviewed_browser_host(
     host.capabilities
         .sort_by(|a, b| a.capability_id.cmp(&b.capability_id));
     Ok(host)
+}
+
+#[cfg(test)]
+mod glyph_tests {
+    use super::*;
+    const SOURCE: &str =
+        include_str!("../../../../../proof/browser/fixtures/scoped-pattern-glyph.conduit");
+    #[test]
+    fn resident_inventory_retains_checked_glyph_source_identity() {
+        let checked = check_source(SOURCE).unwrap();
+        let inventory = reviewed_inventory(SOURCE).unwrap();
+        let root = inventory
+            .plots
+            .iter()
+            .find(|plot| plot.name == "scoped-pattern-glyph")
+            .unwrap();
+        let checked_root = checked
+            .plots
+            .iter()
+            .find(|plot| plot.name == root.name)
+            .unwrap();
+        assert_eq!(root.source_document_id, checked.source_document_id.as_str());
+        assert_eq!(root.checked_plot_id, checked_root.checked_plot_id.as_str());
+        assert!(
+            reviewed_inventory(&SOURCE.replace("with text/pattern/notation as r\n", "")).is_err()
+        );
+    }
 }

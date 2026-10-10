@@ -50,21 +50,25 @@ pub(super) fn birth(
         return Err("source changed after typed interaction admission".into());
     }
 
+    let mut catalogs = super::catalog_preparation::CatalogPreparation::default();
+    let inventory = super::initial_plots::check_inventory_with_catalogs(source, &mut catalogs)?;
     let (workset, initial_plots) =
-        super::initial_plots::checked_workset(source, initial_plots_json)?;
+        super::initial_plots::checked_workset_from_inventory(&inventory, initial_plots_json)?;
 
     let host_id = HostId::from(host);
     let boot_id = BootId::from(boot);
-    let proposed_hosts = [super::initial_plots::reviewed_browser_host(
-        source,
+    let proposed_hosts = [super::initial_plots::reviewed_browser_host_with_inventory(
+        &inventory,
         host_id.clone(),
         boot_id.clone(),
+        &mut catalogs,
     )?];
-    let initial_review = super::review::review(
-        source,
+    let initial_review = super::review::review_from_inventory(
+        &inventory,
         initial_plots_json,
         &proposed_hosts,
         &crate::installed_browser::local_bases(),
+        &mut catalogs,
     )?
     .review;
     let birth_sign = bind_sign(&host_id, &boot_id, None, birth_sequence);

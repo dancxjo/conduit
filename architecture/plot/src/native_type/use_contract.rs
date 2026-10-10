@@ -5,7 +5,14 @@ pub(crate) fn install_import_aliases(
     document: &crate::SyntaxDocument,
     base: &StartupCatalog,
 ) -> Result<StartupCatalog, SyntaxCheckDiagnostic> {
-    let mut catalog = base.clone();
+    install_import_aliases_borrowed(document, base).map(alloc::borrow::Cow::into_owned)
+}
+
+pub(crate) fn install_import_aliases_borrowed<'a>(
+    document: &crate::SyntaxDocument,
+    base: &'a StartupCatalog,
+) -> Result<alloc::borrow::Cow<'a, StartupCatalog>, SyntaxCheckDiagnostic> {
+    let mut catalog = alloc::borrow::Cow::Borrowed(base);
     for declaration in &document.uses {
         if let Some(family) = base.native_families.get(&declaration.path) {
             if !document_mentions_type(document, &declaration.alias.text) {
@@ -26,10 +33,13 @@ pub(crate) fn install_import_aliases(
             if catalog.structured_type(&declaration.alias.text).is_some()
                 || catalog.value_kind_alias(&declaration.alias.text).is_some()
                 || catalog.get(&declaration.alias.text).is_some()
+                || catalog
+                    .typed_literal_family(&declaration.alias.text)
+                    .is_some()
             {
                 return Err(super::diagnostic(
                     declaration.alias.span,
-                    "Type family import alias conflicts with an installed Type or Kind".into(),
+                    "Type family import alias conflicts with an installed Type, Kind or typed literal family".into(),
                 ));
             }
             super::family::budget::validate(
@@ -38,6 +48,7 @@ pub(crate) fn install_import_aliases(
                 declaration.alias.span,
             )?;
             if catalog
+                .to_mut()
                 .native_families
                 .insert(declaration.alias.text.clone(), family.clone())
                 .is_some()
@@ -74,6 +85,7 @@ pub(crate) fn install_import_aliases(
             .structured_type_invariants(&declaration.path)
             .map_or_else(Vec::new, <[crate::PortableExpressionProgram]>::to_vec);
         catalog
+            .to_mut()
             .insert_native_type(
                 declaration.alias.text.clone(),
                 value_type,
@@ -83,7 +95,7 @@ pub(crate) fn install_import_aliases(
             .map_err(|message| super::diagnostic(declaration.alias.span, message))?;
         if let Some(origin) = base.native_type_source(&declaration.path) {
             super::family::source::register(
-                &mut catalog,
+                catalog.to_mut(),
                 &declaration.alias.text,
                 origin,
                 declaration.alias.span,

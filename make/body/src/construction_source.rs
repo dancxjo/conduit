@@ -133,6 +133,9 @@ fn decode<T: DeserializeOwned>(syntax: &ExpressionSyntax) -> Result<T, String> {
 
 fn value(syntax: &ExpressionSyntax) -> Result<Value, String> {
     match syntax {
+        ExpressionSyntax::TypedGlyphLiteral(_) => {
+            Err("typed glyph values require semantic Source admission".into())
+        }
         ExpressionSyntax::Atomic(atom) => atomic(&atom.text),
         ExpressionSyntax::Collection { values, .. } => values
             .iter()

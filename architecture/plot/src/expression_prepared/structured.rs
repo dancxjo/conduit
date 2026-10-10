@@ -49,7 +49,7 @@ impl PreparedStructuredExpression {
             PortableExpressionOperation::Input if program.input_type == program.output_type => {
                 PreparedShape::Input
             }
-            PortableExpressionOperation::Literal(_) => {
+            PortableExpressionOperation::Literal(_) | PortableExpressionOperation::Constant(_) => {
                 let constant = PortableExpressionProgram {
                     input_type: StructuredInfoType::leaf(conduit_core::kind_id(
                         conduit_core::UNIT_INFO_ID,

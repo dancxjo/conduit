@@ -119,6 +119,18 @@ impl<'a> Cursor<'a> {
             .ok_or(PortableExpressionProgramRefusal::MalformedEncoding)?;
         let value_type = self.value_type()?;
         let operation = match self.byte()? {
+            11 => {
+                let length = self.length()?;
+                if length > conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES {
+                    return Err(PortableExpressionProgramRefusal::TooLarge);
+                }
+                let value =
+                    conduit_core::StructuredInfoValue::from_canonical_bytes(self.take(length)?)?;
+                if value.value_type() != &value_type {
+                    return Err(PortableExpressionProgramRefusal::MalformedEncoding);
+                }
+                PortableExpressionOperation::Constant(value)
+            }
             0 => PortableExpressionOperation::Input,
             1 => PortableExpressionOperation::Literal(self.text()?),
             2 => {

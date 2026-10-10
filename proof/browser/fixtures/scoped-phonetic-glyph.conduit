@@ -1,0 +1,8 @@
+with speech/ipa/notation as ph using {provenance: chosen-provenance}
+plot glyph-ipa {
+ chosen-provenance = {method: "quoted transcription fixture", source: manual(""), version: none("")}
+ value = ph[ˈt͡ʃãː.n̩]
+ seed: text/literal("checked IPA equality")
+ show: presentation/bool-value
+ seed >> (value == value) >> show.value
+}.
