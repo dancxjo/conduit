@@ -248,3 +248,38 @@ fn native_type_pattern_refinements_reuse_the_same_sealed_consumer() {
         }
     }
 }
+
+#[test]
+fn scoped_comments_and_highlights_keep_payload_bytes_opaque() {
+    let (startup, profile) = catalogs();
+    for spelling in ["r/a#b/", "r⟦t͡ʃ#b⟧", "r/a'b/", "r/a\"b/"] {
+        let authored = format!(
+            "with {PATTERN_NOTATION_EXPORT_PATH} as r\nplot example {{\n value = {spelling} # outer comment\n}}\n"
+        );
+        let document = parse_syntax_document_with_glyph_notations(&authored, &startup);
+        assert!(
+            document.diagnostics.is_empty(),
+            "{:?}",
+            document.diagnostics
+        );
+        check_syntax_document_with_literal_constructors(&document, &startup, &profile).unwrap();
+        let scope = resolve_glyph_notation_scope(&document, &startup).unwrap();
+        let spans = highlight_syntax_in_scope(&authored, &scope).unwrap();
+        assert_eq!(
+            spans
+                .iter()
+                .map(|span| &authored[span.start..span.end])
+                .collect::<String>(),
+            authored
+        );
+        let payload = &literal(&document).raw_payload;
+        assert!(spans.iter().any(|span| span.start == payload.span.start
+            && span.end == payload.span.end
+            && span.kind == SyntaxHighlightKind::Literal));
+        assert!(spans
+            .iter()
+            .any(|span| span.kind == SyntaxHighlightKind::Comment
+                && &authored[span.start..span.end] == "# outer comment"));
+        assert_eq!(document.round_trip(), authored);
+    }
+}

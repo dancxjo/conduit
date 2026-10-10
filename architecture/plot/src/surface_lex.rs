@@ -4,21 +4,52 @@ use crate::prelude::*;
 pub(crate) struct SourceLine<'a> {
     pub(crate) text: &'a str,
     pub(crate) start: usize,
+    pub(crate) statement_end: usize,
 }
 
 impl<'a> SourceLine<'a> {
-    pub(crate) fn trimmed(self) -> (&'a str, usize) {
-        let text = self.text.trim_start();
-        (text.trim_end(), self.start + self.text.len() - text.len())
-    }
-
-    /// Return the statement portion of a source line. A `#` outside a quoted
-    /// literal begins lossless CST trivia and is not part of surface grammar.
+    /// Return the statement portion using its prepared comment boundary.
+    /// Scoped parsing shields declared glyph payloads before setting this end.
     pub(crate) fn statement(self) -> (&'a str, usize) {
-        let (text, start) = self.trimmed();
-        let end = comment_start(text).unwrap_or(text.len());
-        (text[..end].trim_end(), start)
+        let text = &self.text[..self.statement_end];
+        let trimmed = text.trim_start();
+        (trimmed.trim_end(), self.start + text.len() - trimmed.len())
     }
+}
+
+pub(crate) fn comment_start_with_scope(
+    text: &str,
+    scope: &crate::GlyphNotationScope,
+) -> Option<usize> {
+    let mut offset = 0;
+    let mut quote = None;
+    let mut escaped = false;
+    while offset < text.len() {
+        if quote.is_none() {
+            if let Some(literal) = scope.scan_at(text, offset) {
+                offset += literal.consumed_bytes;
+                continue;
+            }
+        }
+        let character = text[offset..].chars().next().unwrap();
+        if let Some(active) = quote {
+            if character == active && !escaped {
+                quote = None;
+            }
+            escaped = character == '\\' && !escaped;
+            if character != '\\' {
+                escaped = false;
+            }
+        } else {
+            match character {
+                '\'' | '"' => quote = Some(character),
+                '#' => return Some(offset),
+                _ => {}
+            }
+        }
+        offset += character.len_utf8();
+    }
+    None
 }
 
 pub(crate) fn comment_start(text: &str) -> Option<usize> {

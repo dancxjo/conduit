@@ -54,6 +54,7 @@ impl<'a> Parser<'a> {
             lines.push(SourceLine {
                 text,
                 start: offset,
+                statement_end: crate::surface_lex::comment_start(text).unwrap_or(text.len()),
             });
             offset += raw.len();
         }

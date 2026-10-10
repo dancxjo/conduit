@@ -45,6 +45,35 @@ impl GlyphNotationScope {
             .scan_literal(alias, source)
     }
 
+    /// Recognize a declared lexical entrance at an exact byte boundary.
+    /// Tooling uses the same finite scanner as expression parsing.
+    pub(crate) fn scan_at<'a>(
+        &'a self,
+        source: &'a str,
+        offset: usize,
+    ) -> Option<ScannedTypedLiteral<'a>> {
+        let entrance = source.get(offset..)?;
+        if source[..offset]
+            .chars()
+            .next_back()
+            .is_some_and(|character| {
+                character.is_alphanumeric() || matches!(character, '_' | '-' | '/' | '.')
+            })
+        {
+            return None;
+        }
+        self.bindings().find_map(|binding| {
+            let tail = entrance.strip_prefix(&binding.alias)?;
+            binding
+                .family
+                .branches
+                .iter()
+                .any(|branch| tail.starts_with(branch.delimiter.pair().0))
+                .then(|| self.scan_literal(&binding.alias, entrance).ok())
+                .flatten()
+        })
+    }
+
     /// Parse a bounded expression using only this document's resolved families.
     /// Recognition retains lexical candidates; it does not admit domain Info.
     pub fn parse_expression(

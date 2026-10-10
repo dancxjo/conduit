@@ -141,6 +141,11 @@ impl Parser<'_> {
             let scope = crate::resolve_glyph_notation_scope(&header, startup)
                 .map_err(|refusal| (PlotError::InvalidSyntax(refusal.message), refusal.span))?;
             if scope.bindings().next().is_some() {
+                for line in &mut self.lines {
+                    line.statement_end =
+                        crate::surface_lex::comment_start_with_scope(line.text, &scope)
+                            .unwrap_or(line.text.len());
+                }
                 self.glyph_scope = Some(scope);
             }
         }
