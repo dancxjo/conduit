@@ -5,10 +5,7 @@ use crate::{
     PortableExpressionOperation, PortableExpressionProgram, UnaryOperator,
 };
 use alloc::{boxed::Box, vec::Vec};
-use conduit_core::{
-    primitive_info_kind, PrimitiveInfoKind, StructuredInfoTypeShape, BOOL_INFO_ID, COUNT_INFO_ID,
-    SCALAR_INFO_ID,
-};
+use conduit_core::{PrimitiveInfoKind, StructuredInfoTypeShape};
 
 mod byte_observation;
 mod equality;
@@ -24,7 +21,9 @@ mod storage_bound;
 mod structured;
 mod structured_contract;
 mod text_material;
-use primitive::{decode_bool, evaluate_binary, evaluate_unary, PrimitiveValue};
+use primitive::{
+    decode_bool, evaluate_binary, evaluate_unary, kind_name, leaf_kind, PrimitiveValue,
+};
 use structured::PreparedStructuredExpression;
 
 /// A prepared primitive-only evaluator. Construction owns every allocation;
@@ -418,90 +417,5 @@ fn evaluate_node<'a>(
         Ok(value)
     } else {
         Err(Refusal::InvalidProgram)
-    }
-}
-
-fn leaf_kind(value_type: &conduit_core::StructuredInfoType) -> Result<PrimitiveInfoKind, Refusal> {
-    match value_type.shape() {
-        StructuredInfoTypeShape::Leaf(kind) => primitive_info_kind(kind.as_str())
-            .ok_or_else(|| Refusal::UnsupportedType(kind.as_str().into())),
-        StructuredInfoTypeShape::Nominal { representation, .. } => leaf_kind(representation),
-        _ => Err(Refusal::UnsupportedType(
-            "structured expression runtime".into(),
-        )),
-    }
-}
-
-const fn fixed_integer(kind: PrimitiveInfoKind) -> bool {
-    matches!(
-        kind,
-        PrimitiveInfoKind::U8
-            | PrimitiveInfoKind::U16
-            | PrimitiveInfoKind::U32
-            | PrimitiveInfoKind::U64
-            | PrimitiveInfoKind::U128
-            | PrimitiveInfoKind::I8
-            | PrimitiveInfoKind::I16
-            | PrimitiveInfoKind::I32
-            | PrimitiveInfoKind::I64
-            | PrimitiveInfoKind::I128
-    )
-}
-
-const fn signed_integer(kind: PrimitiveInfoKind) -> bool {
-    matches!(
-        kind,
-        PrimitiveInfoKind::I8
-            | PrimitiveInfoKind::I16
-            | PrimitiveInfoKind::I32
-            | PrimitiveInfoKind::I64
-            | PrimitiveInfoKind::I128
-    )
-}
-
-const fn quantity_kind(kind: PrimitiveInfoKind) -> bool {
-    matches!(
-        kind,
-        PrimitiveInfoKind::Quantity
-            | PrimitiveInfoKind::Distance
-            | PrimitiveInfoKind::Frequency
-            | PrimitiveInfoKind::Duration
-            | PrimitiveInfoKind::Voltage
-            | PrimitiveInfoKind::Temperature
-            | PrimitiveInfoKind::Angle
-            | PrimitiveInfoKind::Ratio
-            | PrimitiveInfoKind::PixelCount
-    )
-}
-
-const fn kind_name(kind: PrimitiveInfoKind) -> &'static str {
-    match kind {
-        PrimitiveInfoKind::Unit => conduit_core::UNIT_INFO_ID,
-        PrimitiveInfoKind::Bool => BOOL_INFO_ID,
-        PrimitiveInfoKind::Text => conduit_core::TEXT_INFO_ID,
-        PrimitiveInfoKind::F32 => conduit_core::F32_INFO_ID,
-        PrimitiveInfoKind::Count => COUNT_INFO_ID,
-        PrimitiveInfoKind::Scalar => SCALAR_INFO_ID,
-        PrimitiveInfoKind::U8 => "value/u8",
-        PrimitiveInfoKind::U16 => "value/u16",
-        PrimitiveInfoKind::U32 => "value/u32",
-        PrimitiveInfoKind::U64 => "value/u64",
-        PrimitiveInfoKind::U128 => "value/u128",
-        PrimitiveInfoKind::I8 => "value/i8",
-        PrimitiveInfoKind::I16 => "value/i16",
-        PrimitiveInfoKind::I32 => "value/i32",
-        PrimitiveInfoKind::I64 => "value/i64",
-        PrimitiveInfoKind::I128 => "value/i128",
-        PrimitiveInfoKind::Quantity => conduit_core::QUANTITY_INFO_ID,
-        PrimitiveInfoKind::ExactDecimalQuantity => conduit_core::EXACT_DECIMAL_QUANTITY_INFO_ID,
-        PrimitiveInfoKind::Distance => conduit_core::DISTANCE_INFO_ID,
-        PrimitiveInfoKind::Frequency => conduit_core::FREQUENCY_INFO_ID,
-        PrimitiveInfoKind::Duration => conduit_core::DURATION_INFO_ID,
-        PrimitiveInfoKind::Voltage => conduit_core::VOLTAGE_INFO_ID,
-        PrimitiveInfoKind::Temperature => conduit_core::TEMPERATURE_INFO_ID,
-        PrimitiveInfoKind::Angle => conduit_core::ANGLE_INFO_ID,
-        PrimitiveInfoKind::Ratio => conduit_core::RATIO_INFO_ID,
-        PrimitiveInfoKind::PixelCount => conduit_core::PIXEL_COUNT_INFO_ID,
-        _ => "unsupported",
     }
 }
