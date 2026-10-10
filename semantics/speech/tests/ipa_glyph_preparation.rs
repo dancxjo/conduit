@@ -1,7 +1,8 @@
 #![cfg(feature = "semantic-bindings")]
 use conduit_core::{ConfigurationEntry, ConfigurationValue, StructuredConfigurationValue};
 use conduit_plot::{
-    check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
+    check_syntax_document, check_syntax_document_with_prepared_glyph_literals,
+    expand_canonical_plot_for_authoring, parse_syntax_document,
     parse_syntax_document_with_glyph_notations, resolve_glyph_notation_scope,
     rust_binding::NativeRustBinding, BackStatement, ExpressionSyntax, LiteralPreparationRefusal,
     ProfileCatalog, StartupCatalog, SyntaxDocument, TypedGlyphLiteralSyntax,
@@ -105,6 +106,48 @@ fn shipped_speech_family_elaborates_both_delimiters_through_ordinary_admission()
                 &profile,
             )
             .unwrap();
+        let checked = check_syntax_document_with_prepared_glyph_literals(
+            &document,
+            &startup,
+            core::slice::from_ref(&prepared),
+        )
+        .unwrap();
+        let conduit_plot::CanonicalStartupValue::Structured(value) =
+            &checked.plots[0].local_values[0].1
+        else {
+            panic!()
+        };
+        assert_eq!(
+            value.try_concrete().as_ref(),
+            Some(prepared.ordinary().value())
+        );
+        assert!(
+            check_syntax_document_with_prepared_glyph_literals(&document, &startup, &[]).is_err()
+        );
+        assert!(check_syntax_document_with_prepared_glyph_literals(
+            &document,
+            &startup,
+            &[prepared.clone(), prepared.clone()],
+        )
+        .is_err());
+        let foreign = parse_syntax_document_with_glyph_notations(
+            &format!("{}# distinct original Source\n", document.round_trip()),
+            &startup,
+        );
+        assert!(check_syntax_document_with_prepared_glyph_literals(
+            &foreign,
+            &startup,
+            core::slice::from_ref(&prepared),
+        )
+        .is_err());
+        let mut spoofed = document.clone();
+        spoofed.plots[0].back.clear();
+        assert!(check_syntax_document_with_prepared_glyph_literals(
+            &spoofed,
+            &startup,
+            core::slice::from_ref(&prepared),
+        )
+        .is_err());
         let explicit = prepare_configuration(constructor, &configuration).unwrap();
         assert_eq!(
             prepared.ordinary().value().canonical_bytes().unwrap(),

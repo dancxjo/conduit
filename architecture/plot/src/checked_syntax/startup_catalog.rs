@@ -10,6 +10,14 @@ pub use typed_literal::*;
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct StartupCatalog {
     kinds: BTreeMap<String, KindSignature>,
+    // Populated only by document-scoped receipt admission; never an ambient alias.
+    pub(crate) prepared_glyph_values: BTreeMap<
+        (usize, usize),
+        (
+            crate::TypedGlyphLiteralSyntax,
+            crate::CanonicalStructuredStartupValue,
+        ),
+    >,
     typed_literal_families: BTreeMap<String, TypedLiteralFamily>,
     fores: BTreeMap<String, CheckedFront>,
     variadic_fores: BTreeMap<String, crate::HomogeneousVariadicFore>,

@@ -9,6 +9,13 @@ pub(super) struct Resolver<'a> {
     pools: BTreeSet<String>,
     resolved: BTreeMap<String, CanonicalStartupValue>,
     visiting: BTreeSet<String>,
+    prepared_glyphs: &'a BTreeMap<
+        (usize, usize),
+        (
+            crate::TypedGlyphLiteralSyntax,
+            crate::CanonicalStructuredStartupValue,
+        ),
+    >,
 }
 
 impl<'a> Resolver<'a> {
@@ -17,6 +24,13 @@ impl<'a> Resolver<'a> {
         parameters: BTreeSet<String>,
         runtime_ports: BTreeSet<String>,
         pools: BTreeSet<String>,
+        prepared_glyphs: &'a BTreeMap<
+            (usize, usize),
+            (
+                crate::TypedGlyphLiteralSyntax,
+                crate::CanonicalStructuredStartupValue,
+            ),
+        >,
     ) -> Self {
         Self {
             locals,
@@ -25,6 +39,7 @@ impl<'a> Resolver<'a> {
             pools,
             resolved: BTreeMap::new(),
             visiting: BTreeSet::new(),
+            prepared_glyphs,
         }
     }
 
@@ -61,12 +76,15 @@ impl<'a> Resolver<'a> {
         expression: &crate::Expression,
         expected: Option<&conduit_core::StructuredInfoType>,
     ) -> Result<CanonicalStartupValue, SyntaxCheckError> {
+        if let crate::ExpressionSyntax::TypedGlyphLiteral(literal) = &expression.syntax {
+            return self.resolve_spanned(&literal.authored, expected);
+        }
         if let Some(expected) = expected {
             let checked = crate::structured_startup::check_structured_expression(
                 &expression.syntax,
                 expected,
                 &mut |atomic, atomic_expected| {
-                    self.resolve_atomic(&atomic.text, Some(atomic_expected))
+                    self.resolve_spanned(atomic, Some(atomic_expected))
                         .map_err(|error| error.diagnostic(atomic.span))
                 },
             )
@@ -123,6 +141,26 @@ impl<'a> Resolver<'a> {
                 }
                 error => error,
             })
+    }
+
+    fn resolve_spanned(
+        &mut self,
+        source: &crate::SpannedText,
+        expected: Option<&conduit_core::StructuredInfoType>,
+    ) -> Result<CanonicalStartupValue, SyntaxCheckError> {
+        if let Some((literal, value)) = self
+            .prepared_glyphs
+            .get(&(source.span.start, source.span.end))
+        {
+            if literal.authored != *source || expected.is_some_and(|ty| ty != value.value_type()) {
+                return Err(SyntaxCheckError::StructuredExpression(
+                    "prepared glyph has incompatible Source custody or exact Type".into(),
+                    Some(source.span),
+                ));
+            }
+            return Ok(CanonicalStartupValue::Structured(value.clone()));
+        }
+        self.resolve_atomic(&source.text, expected)
     }
 
     fn resolve_atomic(

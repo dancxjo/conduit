@@ -1,4 +1,5 @@
 mod literal;
+mod prepared;
 use literal::canonical_leaf_literal;
 pub(crate) use literal::parse_scalar_literal;
 
@@ -80,6 +81,17 @@ pub(crate) fn check_structured_expression(
         &StructuredInfoType,
     ) -> Result<CanonicalStartupValue, SyntaxCheckDiagnostic>,
 ) -> Result<CanonicalStructuredStartupValue, SyntaxCheckDiagnostic> {
+    // Resolve the sealed constructor result before unwrapping nominal Types:
+    // a branch has one exact result Type, independent of its expected position.
+    if let ExpressionSyntax::TypedGlyphLiteral(literal) = expression {
+        return match resolve_atomic(&literal.authored, expected)? {
+            CanonicalStartupValue::Structured(value) if value.value_type() == expected => Ok(value),
+            _ => Err(structured_diagnostic(
+                literal.authored.span,
+                "typed glyph requires an admitted constructor result of the exact declared Type",
+            )),
+        };
+    }
     if let StructuredInfoTypeShape::Nominal { representation, .. } = expected.shape() {
         let mut checked = check_structured_expression(expression, representation, resolve_atomic)?;
         checked.value_type = expected.clone();
