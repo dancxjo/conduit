@@ -80,6 +80,16 @@ fn ordinary_browser_plans_execute_layout_and_graphics_through_the_kernel() {
         .properties
         .iter()
         .any(|property| {
+            property.name == "quantity-unit-symbol"
+                && property.value
+                    == conduit_presentation::PresentationPropertyValue::Text("%".into())
+        }));
+    assert!(proof
+        .structured
+        .presentation
+        .properties
+        .iter()
+        .any(|property| {
             property.name == "quantity-unit"
                 && property.value
                     == conduit_presentation::PresentationPropertyValue::Identity(

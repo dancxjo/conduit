@@ -28,8 +28,9 @@ test("portable presentation nucleus executes in WASM and manifests in Chromium",
   const structured = page.locator("#nucleus [data-presentation-kind=structured-info]");
   await expect(structured).toHaveAttribute("data-schema", "education/feedback@1");
   await expect(structured).toHaveAttribute("data-variant", "passed");
-  await expect(structured).toHaveAttribute("data-quantity-unit", "ratio/percent");
+  await expect(structured).toHaveAttribute("data-quantity-unit", /^physical\/unit\/[a-f0-9]{64}$/);
   await expect(structured).toHaveAttribute("data-quantity", "88e0");
+  await expect(structured).toHaveAttribute("data-quantity-unit-symbol", "%");
   expect(failures).toEqual([]);
   expect(await page.evaluate(() => globalThis.__conduitPresentationNucleus)).toEqual({
     layoutChildren: 3,
@@ -38,7 +39,8 @@ test("portable presentation nucleus executes in WASM and manifests in Chromium",
     structured: {
       schema: "education/feedback@1",
       variant: "passed",
-      quantityUnit: "ratio/percent",
+      quantityUnit: expect.stringMatching(/^physical\/unit\/[a-f0-9]{64}$/),
+      quantityUnitSymbol: "%",
       quantity: "88e0",
     },
     application: {

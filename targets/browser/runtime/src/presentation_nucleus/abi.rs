@@ -111,6 +111,7 @@ fn encode_structured(
     let mut schema = "";
     let mut variant = "";
     let mut unit = "";
+    let mut unit_symbol = "";
     let mut quantity = "";
     for property in &artifact.presentation.properties {
         match (property.name.as_str(), &property.value) {
@@ -122,13 +123,14 @@ fn encode_structured(
             ("active-variant-tag", PresentationPropertyValue::Identity(value)) => variant = value,
             ("quantity-unit", PresentationPropertyValue::Identity(value)) => unit = value,
             ("quantity-value", PresentationPropertyValue::Text(value)) => quantity = value,
+            ("quantity-unit-symbol", PresentationPropertyValue::Text(value)) => unit_symbol = value,
             _ => {}
         }
     }
     let mut encoded = [0_u8; 512];
-    encoded[0] = 2;
+    encoded[0] = 3;
     let mut offset = 1;
-    for value in [schema, variant, unit, quantity] {
+    for value in [schema, variant, unit, quantity, unit_symbol] {
         encoded[offset] = value.len() as u8;
         offset += 1;
         encoded[offset..offset + value.len()].copy_from_slice(value.as_bytes());

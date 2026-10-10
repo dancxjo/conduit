@@ -43,7 +43,7 @@ function decodeLayout(encoded) {
 }
 
 function decodeGraphics(encoded) {
-  if (encoded.length < 2 || encoded[0] !== 2) throw new Error("invalid graphics scene");
+  if (encoded.length < 2 || encoded[0] !== 3) throw new Error("invalid graphics scene");
   const count = encoded[1];
   const view = new DataView(encoded.buffer, encoded.byteOffset, encoded.byteLength);
   const decoder = new TextDecoder();
@@ -74,11 +74,11 @@ function decodeGraphics(encoded) {
 }
 
 function decodeStructured(encoded) {
-  if (encoded.length < 5 || encoded[0] !== 2) throw new Error("invalid structured presentation frame");
+  if (encoded.length < 5 || encoded[0] !== 3) throw new Error("invalid structured presentation frame");
   const decoder = new TextDecoder("utf-8", { fatal: true });
   const fields = [];
   let offset = 1;
-  for (let index = 0; index < 4; index += 1) {
+  for (let index = 0; index < 5; index += 1) {
     if (offset >= encoded.length) throw new Error("truncated structured presentation frame");
     const length = encoded[offset];
     offset += 1;
@@ -88,7 +88,7 @@ function decodeStructured(encoded) {
     offset = end;
   }
   if (offset !== encoded.length) throw new Error("non-canonical structured presentation frame");
-  return Object.freeze({ schema: fields[0], variant: fields[1], quantityUnit: fields[2], quantity: fields[3] });
+  return Object.freeze({ schema: fields[0], variant: fields[1], quantityUnit: fields[2], quantity: fields[3], quantityUnitSymbol: fields[4] });
 }
 
 export async function instantiatePresentationNucleus(wasmBytes) {
@@ -162,6 +162,7 @@ export function manifestPresentationNucleus(api, root) {
   structuredPresentation.dataset.schema = structured.schema;
   structuredPresentation.dataset.variant = structured.variant;
   structuredPresentation.dataset.quantityUnit = structured.quantityUnit;
+  structuredPresentation.dataset.quantityUnitSymbol = structured.quantityUnitSymbol;
   structuredPresentation.dataset.quantity = String(structured.quantity);
   structuredPresentation.setAttribute("aria-label", "Education feedback structured information");
   applicationShell.append(structuredPresentation);

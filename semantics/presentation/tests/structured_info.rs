@@ -127,11 +127,15 @@ fn quantity_sign_projects_unit_identity_and_signed_value_without_formatting_text
 
     assert!(artifact.presentation.properties.iter().any(|property| {
         property.name == "quantity-unit"
-            && property.value == PresentationPropertyValue::Identity("voltage/millivolt".into())
+            && property.value == PresentationPropertyValue::Identity(Unit::Millivolt.semantic_id())
     }));
     assert!(artifact.presentation.properties.iter().any(|property| {
         property.name == "quantity-value"
-            && property.value == PresentationPropertyValue::Signed(-17)
+            && property.value == PresentationPropertyValue::Text("-17e0".into())
+    }));
+    assert!(artifact.presentation.properties.iter().any(|property| {
+        property.name == "quantity-unit-symbol"
+            && property.value == PresentationPropertyValue::Text("mV".into())
     }));
     assert!(artifact.presentation.text.is_empty());
 }

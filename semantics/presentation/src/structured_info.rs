@@ -211,6 +211,11 @@ fn add_shape_properties(
                 ));
                 properties.push(property(
                     subject,
+                    "quantity-unit-symbol",
+                    PresentationPropertyValue::Text(quantity.unit().canonical_symbol()),
+                ));
+                properties.push(property(
+                    subject,
                     "quantity-value",
                     PresentationPropertyValue::Text(alloc::format!(
                         "{}e{}",
