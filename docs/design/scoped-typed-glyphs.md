@@ -50,6 +50,30 @@ and revision context. An import never supplies that authority implicitly.
 The examples in `semantics/speech/examples/ipa/` retain the fully qualified
 constructor entrances and complete request/basis values.
 
+## Grammar and collision rules
+
+An imported alias is recognized only with its adjacent, declared opening
+delimiter. The branch fixes the closing delimiter, scanner policy, bounded
+payload parser and result Type; expected-Type inference never selects a branch.
+The lexer retains raw payload bytes. The domain constructor decides whether
+escapes, flags and the resulting value are valid.
+
+| Source form | Meaning or refusal |
+| --- | --- |
+| `ph[…]` | Phonetic transcription, with explicit checked provenance. |
+| `ph/…/` | Phonemic transcription, requiring the complete explicit checked basis. |
+| `r/…/i`, `r⟦…⟧i` | Declared aliases for one portable pattern specification. |
+| `[a, b]`, `in [a, b]`, `~ /…/i`, `!~ /…/i` | Existing collection, membership and bare-pattern syntax. |
+| `ph / x / y` with `ph` imported | Refusal: a bound introducer requires an adjacent declared delimiter. Use the qualified constructor. |
+| A local value, Type, Gear or second import named `ph` | Refusal at the conflicting lexical binding; rename the notation alias or use the qualified constructor. |
+| An undeclared or visually similar delimiter pair | Refusal; no implicit normalization or confusable substitution. |
+| Missing closer, invalid escape/flags or excess payload | Bounded scanner or domain-admission refusal, retaining authored source locations. |
+
+Multi-line payloads retain their original bytes and source spans. Punctuation
+inside a complete glyph does not become an outer Plot statement or comment.
+Importing notation leaves direct Quantity literals such as `440Hz`, `250ms`,
+`21°C` and `640px` native and import-free; `21C` still refuses.
+
 ## Formatting
 
 `conduit fmt source.conduit` prints formatted Source. It changes block
