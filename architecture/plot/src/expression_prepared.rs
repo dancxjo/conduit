@@ -23,6 +23,7 @@ mod primitive;
 mod storage_bound;
 mod structured;
 mod structured_contract;
+mod text_material;
 use primitive::{decode_bool, evaluate_binary, evaluate_unary, PrimitiveValue};
 use structured::PreparedStructuredExpression;
 
@@ -85,6 +86,7 @@ enum PreparedOperation {
     Projection(PreparedMemberSelection),
     SequenceSelection(sequence_selection::PreparedSequenceSelection),
     Widen(Box<PreparedNode>),
+    TextMaterial(Box<PreparedNode>),
     Inspection(inspection::PreparedInspection),
     Bytes(byte_observation::PreparedByteObservation),
 }
@@ -270,6 +272,11 @@ fn prepare_node(
             when_true: Box::new(prepare_node(when_true, input_type, prepared_input)?),
             when_false: Box::new(prepare_node(when_false, input_type, prepared_input)?),
         },
+        PortableExpressionOperation::SemanticCall { kind, arguments }
+            if kind == "text/material" =>
+        {
+            text_material::prepare(node, arguments, input_type, prepared_input)?
+        }
         PortableExpressionOperation::SemanticCall {
             kind: call,
             arguments,
@@ -393,6 +400,7 @@ fn evaluate_node<'a>(
             };
             evaluate_node(selected, input, input_kind)?
         }
+        PreparedOperation::TextMaterial(operand) => evaluate_node(operand, input, input_kind)?,
         PreparedOperation::Widen(operand) => {
             let operand = evaluate_node(operand, input, input_kind)?;
             primitive::evaluate_widen(expected, &operand)?
