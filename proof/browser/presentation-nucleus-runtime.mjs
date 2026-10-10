@@ -43,7 +43,7 @@ function decodeLayout(encoded) {
 }
 
 function decodeGraphics(encoded) {
-  if (encoded.length < 2 || encoded[0] !== 3) throw new Error("invalid graphics scene");
+  if (encoded.length < 2 || encoded[0] !== 2) throw new Error("invalid graphics scene");
   const count = encoded[1];
   const view = new DataView(encoded.buffer, encoded.byteOffset, encoded.byteLength);
   const decoder = new TextDecoder();
