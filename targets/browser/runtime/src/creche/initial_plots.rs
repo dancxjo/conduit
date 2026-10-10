@@ -315,7 +315,7 @@ pub(super) fn reviewed_browser_host(
             {
                 continue;
             }
-            let expanded = conduit_plot::expand_canonical_plot_with_backs(
+            let authored = conduit_plot::expand_canonical_plot_for_authoring_with_backs(
                 &entry.checked,
                 &plot.name,
                 &profile,
@@ -324,7 +324,7 @@ pub(super) fn reviewed_browser_host(
             .map_err(|error| format!("browser expression offer expansion: {error:?}"))?;
             offers.extend(
                 crate::installed_browser::catalogs::offers_for_expanded_pure_expressions(
-                    &expanded,
+                    &authored.expanded,
                 )?,
             );
         }
