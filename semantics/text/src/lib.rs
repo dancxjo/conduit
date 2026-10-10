@@ -26,6 +26,13 @@ mod generated_patterns {
     include!(concat!(env!("OUT_DIR"), "/pattern_types.rs"));
 }
 pub use generated_patterns::PortablePatternSpecification;
+mod pattern_constructor;
+mod pattern_notation;
+pub use pattern_constructor::{
+    install_pattern_notation, PatternConstructorRefusal, PortablePatternConstructor,
+    PATTERN_CONSTRUCTOR_KIND, PATTERN_CONSTRUCTOR_REVISION,
+};
+pub use pattern_notation::NOTATION_EXPORT_PATH as PATTERN_NOTATION_EXPORT_PATH;
 mod portable_pattern;
 pub use portable_pattern::{install_portable_pattern_type, PortablePatternSpecificationRefusal};
 
