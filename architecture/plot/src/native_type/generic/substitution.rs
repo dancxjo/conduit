@@ -145,8 +145,9 @@ impl Context<'_> {
                     ));
                 };
                 let (resolved, bindings) = self.bind(template, arguments, substitutions, *span)?;
+                let origin = self.semantic_origin(template)?;
                 let key = family_key(
-                    self.origin(template),
+                    &origin,
                     &resolved,
                     &bindings.parameter_contracts,
                     &bindings.argument_identities,

@@ -129,6 +129,16 @@ pub(super) fn family_key(
         return application;
     }
     let application = alloc::format!("{}<{argument_identities:?}>", template.name.text);
+    alloc::format!(
+        "{application};family={}",
+        declaration_key(template, parameter_contracts)
+    )
+}
+
+pub(super) fn declaration_key(
+    template: &crate::TypeSyntax,
+    parameter_contracts: &[Vec<u8>],
+) -> String {
     let mut meaning = String::from("conduit.native-info-family@1\0");
     for parameter in &template.parameters {
         meaning.push_str(&alloc::format!(
@@ -159,7 +169,7 @@ pub(super) fn family_key(
         use core::fmt::Write;
         write!(&mut encoded, "{byte:02x}").expect("writing to String cannot fail");
     }
-    alloc::format!("{application};family={encoded}")
+    encoded
 }
 
 fn definition(value: &crate::TypeDefinitionSyntax) -> String {

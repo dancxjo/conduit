@@ -179,8 +179,19 @@ pub(super) fn prepare_expression(
     declarations: &[TypeSyntax],
     base: &StartupCatalog,
 ) -> Result<StartupCatalog, SyntaxCheckDiagnostic> {
+    let mut references = Vec::new();
+    super::super::expression_references(expression, &mut references);
+    prepare_references(&references, declarations, base)
+}
+
+pub(super) fn prepare_references(
+    references: &[&str],
+    declarations: &[TypeSyntax],
+    base: &StartupCatalog,
+) -> Result<StartupCatalog, SyntaxCheckDiagnostic> {
     let by_name = declarations
         .iter()
+        .filter(|value| base.structured_type(&value.name.text).is_none())
         .map(|value| (value.name.text.as_str(), value))
         .collect::<BTreeMap<_, _>>();
     let mut dependencies = Dependencies {
@@ -188,8 +199,6 @@ pub(super) fn prepare_expression(
         active: BTreeSet::new(),
         complete: BTreeSet::new(),
     };
-    let mut references = Vec::new();
-    super::super::expression_references(expression, &mut references);
     for reference in references {
         dependencies.visit(reference)?;
     }

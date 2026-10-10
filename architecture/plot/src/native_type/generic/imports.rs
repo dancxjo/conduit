@@ -8,14 +8,14 @@ use crate::{
 };
 use alloc::collections::{BTreeMap, BTreeSet};
 
-pub(super) struct Imports {
-    pub(super) catalog: StartupCatalog,
-    pub(super) templates: Vec<TypeSyntax>,
-    pub(super) origins: BTreeMap<String, TypeSyntax>,
-    pub(super) aliases: BTreeMap<String, String>,
+pub(crate) struct Imports {
+    pub(crate) catalog: StartupCatalog,
+    pub(crate) templates: Vec<TypeSyntax>,
+    pub(crate) origins: BTreeMap<String, TypeSyntax>,
+    pub(crate) aliases: BTreeMap<String, String>,
 }
 impl Imports {
-    pub(super) fn prepare(catalog: &StartupCatalog) -> Result<Self, SyntaxCheckDiagnostic> {
+    pub(crate) fn prepare(catalog: &StartupCatalog) -> Result<Self, SyntaxCheckDiagnostic> {
         let mut imports = Self {
             catalog: catalog.clone(),
             templates: Vec::new(),
@@ -60,18 +60,15 @@ impl Imports {
                 }
                 let mut template = original.clone();
                 template.name.text.clone_from(name);
-                let parameters = template
-                    .parameters
-                    .iter()
-                    .map(|value| value.name.text.clone())
-                    .collect::<BTreeSet<_>>();
-                definition(&mut template.definition, &names, &parameters);
-                for parameter in &mut template.parameters {
-                    if let Some(annotation) = &mut parameter.value_type {
-                        expression(annotation, &names, &BTreeSet::new());
-                    }
-                }
-                imports.origins.insert(name.clone(), original.clone());
+                rewrite(&mut template, &names);
+                imports.origins.insert(
+                    name.clone(),
+                    family
+                        .origins
+                        .get(&original.name.text)
+                        .unwrap_or(original)
+                        .clone(),
+                );
                 imports.templates.push(template);
             }
             imports
@@ -82,6 +79,20 @@ impl Imports {
         Ok(imports)
     }
 }
+pub(crate) fn rewrite(template: &mut TypeSyntax, names: &BTreeMap<String, String>) {
+    let parameters = template
+        .parameters
+        .iter()
+        .map(|value| value.name.text.clone())
+        .collect::<BTreeSet<_>>();
+    definition(&mut template.definition, names, &parameters);
+    for parameter in &mut template.parameters {
+        if let Some(annotation) = &mut parameter.value_type {
+            expression(annotation, names, &BTreeSet::new());
+        }
+    }
+}
+
 fn definition(
     value: &mut Definition,
     names: &BTreeMap<String, String>,

@@ -170,3 +170,119 @@ fn local_closed_type_arguments_and_inline_refinements_are_checked() {
     let recursive = "with example/families/Grid as Samples\ntype Value = Samples<Value, 4>\n";
     assert!(check_syntax_document(&parse_syntax_document(recursive), &catalog).is_err());
 }
+
+#[test]
+fn downstream_package_family_retains_explicit_upstream_family_imports() {
+    let upstream = "type Dimension = U16 in 1..=64\ntype Sample = U8 in 1..=255\ntype Vector<N: Dimension> = collection Sample = N\n";
+    let upstream_catalog = catalog(upstream, "Vector");
+    let source = "with example/families/Vector as Cells\ntype History<H: U16, D: U16> = collection Cells<D> = H\n";
+    let manifest_source = "pack example/history (\n version = 1.0.0\n) {\n ship History\n}\n";
+    let manifest = parse_syntax_document(manifest_source);
+    let sources = [PackageMemberSource {
+        path: "main",
+        source,
+    }];
+    let bundle =
+        CheckedPackageBundle::from_sources(manifest_source, &manifest.packages[0], &sources)
+            .unwrap();
+    let exports = PackageExportCatalog::from_bundle(
+        &bundle,
+        manifest_source,
+        &manifest.packages[0],
+        &sources,
+    )
+    .unwrap();
+    let mut downstream_catalog = upstream_catalog.clone();
+    exports
+        .install_shipped_types(&mut downstream_catalog)
+        .unwrap();
+    let consumer = "with example/history/History as Archive\ntype Value = Archive<2, 32>\n";
+    let imported = value(consumer, &downstream_catalog);
+    let owner = value(
+        &alloc::format!("{source}type Value = History<2, 32>\n"),
+        &upstream_catalog,
+    );
+    assert_eq!(imported, owner);
+    let renamed_source = source.replace("Cells", "Rows");
+    let renamed_sources = [PackageMemberSource {
+        path: "main",
+        source: &renamed_source,
+    }];
+    let renamed_bundle = CheckedPackageBundle::from_sources(
+        manifest_source,
+        &manifest.packages[0],
+        &renamed_sources,
+    )
+    .unwrap();
+    let renamed_exports = PackageExportCatalog::from_bundle(
+        &renamed_bundle,
+        manifest_source,
+        &manifest.packages[0],
+        &renamed_sources,
+    )
+    .unwrap();
+    let mut renamed_catalog = upstream_catalog.clone();
+    renamed_exports
+        .install_shipped_types(&mut renamed_catalog)
+        .unwrap();
+    assert_eq!(value(consumer, &renamed_catalog), owner);
+    let capsule = downstream_catalog.native_families["example/history/History"].clone();
+    let mut isolated = StartupCatalog::new();
+    isolated
+        .native_families
+        .insert("example/history/History".into(), capsule.clone());
+    assert_eq!(value(consumer, &isolated), owner);
+    let mut foreign = catalog(
+        &upstream.replace("U8 in 1..=255", "U32 in 1..=255"),
+        "Vector",
+    );
+    foreign
+        .native_families
+        .insert("example/history/History".into(), capsule);
+    let combined = "with example/families/Vector as Foreign\nwith example/history/History as Archive\ntype Other = {\n samples: Foreign<32>\n}\ntype Value = Archive<2, 32>\n";
+    assert_eq!(value(combined, &foreign), owner);
+    let failure = check_syntax_document(
+        &parse_syntax_document(&consumer.replace("Archive<2, 32>", "Archive<2, 65>")),
+        &downstream_catalog,
+    )
+    .unwrap_err();
+    assert!(
+        failure.message.contains("scalar contract"),
+        "{}",
+        failure.message
+    );
+    crate::check_package_bundle(
+        &bundle,
+        manifest_source,
+        &manifest.packages[0],
+        &sources,
+        &upstream_catalog,
+    )
+    .unwrap();
+}
+
+#[test]
+fn dependency_identity_work_refuses_before_expanding_an_excessive_family() {
+    let mut source = alloc::string::String::new();
+    for child in 0..63 {
+        source.push_str(&alloc::format!("type Child{child}<N: U16> = {{\n"));
+        for field in 0..63 {
+            source.push_str(&alloc::format!(" field{field}: U8\n"));
+        }
+        source.push_str(" marker: collection U8 = N\n}\n");
+    }
+    source.push_str("type Huge<N: U16> = {\n");
+    for child in 0..63 {
+        source.push_str(&alloc::format!(" child{child}: Child{child}<N>\n"));
+    }
+    source.push_str(" marker: collection U8 = N\n}\ntype Value = Huge<1>\n");
+    let parsed = parse_syntax_document(&source);
+    assert!(parsed.diagnostics.is_empty(), "{:?}", parsed.diagnostics);
+    let failure = check_syntax_document(&parsed, &StartupCatalog::new()).unwrap_err();
+    assert!(
+        failure.message.contains("finite work budget"),
+        "{}",
+        failure.message
+    );
+    assert!(!source[failure.span.start..failure.span.end].is_empty());
+}

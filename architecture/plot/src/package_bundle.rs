@@ -41,6 +41,7 @@ pub struct PackageExportCatalog {
     exports: BTreeMap<String, PlotSyntax>,
     type_exports: BTreeMap<String, TypeSyntax>,
     type_definitions: Vec<TypeSyntax>,
+    type_documents: Vec<crate::SyntaxDocument>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -249,8 +250,10 @@ impl PackageExportCatalog {
         bundle.validate_against(manifest_source, manifest, member_sources)?;
         let mut plots = BTreeMap::new();
         let mut types = BTreeMap::new();
+        let mut type_documents = Vec::new();
         for member in member_sources {
             let document = crate::parse_syntax_document(member.source);
+            type_documents.push(document.clone());
             for plot in document.plots {
                 plots.insert(plot.name.text.clone(), plot);
             }
@@ -282,6 +285,7 @@ impl PackageExportCatalog {
             exports,
             type_exports,
             type_definitions,
+            type_documents,
         })
     }
 
@@ -300,8 +304,12 @@ impl PackageExportCatalog {
         &self,
         catalog: &mut crate::StartupCatalog,
     ) -> Result<Vec<crate::CheckedNativeType>, crate::SyntaxCheckDiagnostic> {
+        let mut aliased = catalog.clone();
+        for document in &self.type_documents {
+            aliased = crate::native_type::install_import_aliases(document, &aliased)?;
+        }
         let (checked, owner) =
-            crate::native_type::check_native_types(&self.type_definitions, catalog)?;
+            crate::native_type::check_native_types(&self.type_definitions, &aliased)?;
         let mut staged = catalog.clone();
         let mut shipped = Vec::new();
         for (source_path, syntax) in &self.type_exports {

@@ -9,9 +9,10 @@ mod argument;
 mod binding;
 mod budget;
 mod canonical;
-mod imports;
+pub(super) mod imports;
 mod integer;
 mod law;
+mod origin;
 mod parameter;
 mod refinement;
 mod substitution;
@@ -217,8 +218,9 @@ impl Context<'_> {
                 .map(|definition| (definition, None, Bindings::default()));
         };
         let (resolved, bindings) = self.bind(template, arguments, &Bindings::default(), *span)?;
+        let origin = self.semantic_origin(template)?;
         let key = canonical::family_key(
-            self.origin(template),
+            &origin,
             &resolved,
             &bindings.parameter_contracts,
             &bindings.argument_identities,
