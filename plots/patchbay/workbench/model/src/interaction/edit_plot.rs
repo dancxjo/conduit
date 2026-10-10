@@ -78,6 +78,8 @@ fn edit_configuration() -> Vec<KindConfigurationField> {
                     "scalar".into(),
                     "text".into(),
                     "quantity".into(),
+                    "unit".into(),
+                    "temperature-difference".into(),
                 ],
             },
         },

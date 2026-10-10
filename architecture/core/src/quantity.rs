@@ -239,7 +239,6 @@ pub enum QuantityConversionRefusal {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum CatalogueDecodeRefusal {
-    WrongLength { expected: usize, actual: usize },
     UnknownUnitTag(u8),
 }
 
@@ -256,20 +255,6 @@ pub enum QuantityLiteralRefusal {
 }
 
 impl CatalogUnit {
-    pub const fn encode(self) -> [u8; 1] {
-        [self.tag()]
-    }
-
-    pub fn decode(encoded: &[u8]) -> Result<Self, CatalogueDecodeRefusal> {
-        if encoded.len() != 1 {
-            return Err(CatalogueDecodeRefusal::WrongLength {
-                expected: 1,
-                actual: encoded.len(),
-            });
-        }
-        Self::from_tag(encoded[0])
-    }
-
     pub const fn semantic_id(self) -> &'static str {
         match self {
             Self::Picosecond => "time/picosecond",
@@ -964,7 +949,7 @@ impl CatalogUnit {
         }
     }
 
-    const fn tag(self) -> u8 {
+    pub(crate) const fn tag(self) -> u8 {
         match self {
             Self::Nanosecond => 0,
             Self::Microsecond => 1,
@@ -1099,7 +1084,7 @@ impl CatalogUnit {
         }
     }
 
-    fn from_tag(tag: u8) -> Result<Self, CatalogueDecodeRefusal> {
+    pub(crate) fn from_tag(tag: u8) -> Result<Self, CatalogueDecodeRefusal> {
         match tag {
             0 => Ok(Self::Nanosecond),
             1 => Ok(Self::Microsecond),

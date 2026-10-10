@@ -112,7 +112,7 @@ impl Unit {
         crate::semantic_digest(UNIT_INFO_ID, &self.encode())
     }
     pub fn encode(self) -> [u8; UNIT_ENCODED_LEN] {
-        [1, self.base.encode()[0], self.prefix_exponent as u8]
+        [1, self.base.tag(), self.prefix_exponent as u8]
     }
     pub fn decode(bytes: &[u8]) -> Result<Self, UnitRefusal> {
         if bytes.len() != UNIT_ENCODED_LEN {
@@ -121,7 +121,7 @@ impl Unit {
         if bytes[0] != 1 {
             return Err(UnitRefusal::UnsupportedEncodingVersion(bytes[0]));
         }
-        let base = CatalogUnit::decode(&bytes[1..2]).map_err(UnitRefusal::InvalidBase)?;
+        let base = CatalogUnit::from_tag(bytes[1]).map_err(UnitRefusal::InvalidBase)?;
         let prefix_exponent = bytes[2] as i8;
         if prefix_exponent != 0
             && (PrefixableUnit::for_catalogue(base).is_none()
