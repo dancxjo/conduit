@@ -156,6 +156,14 @@ impl TypedLiteralFamily {
 }
 
 impl StartupCatalog {
+    pub(crate) fn installed_literal_families(
+        &self,
+    ) -> impl Iterator<Item = (&str, &TypedLiteralFamily)> {
+        self.typed_literal_families
+            .iter()
+            .map(|(path, family)| (path.as_str(), family))
+    }
+
     pub fn typed_literal_family(&self, path: &str) -> Option<&TypedLiteralFamily> {
         self.typed_literal_families.get(path)
     }

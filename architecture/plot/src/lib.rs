@@ -35,11 +35,13 @@ mod expression_program_decode;
 mod expression_proof;
 mod expression_semantic_call;
 mod functional_front;
+mod glyph_notation;
 #[cfg(test)]
 mod glyph_notation_test_support;
 mod integer_literal;
 mod native_type;
 mod package_bundle;
+pub use glyph_notation::CheckedGlyphNotation;
 #[cfg(test)]
 mod package_bundle_tests;
 mod package_check;

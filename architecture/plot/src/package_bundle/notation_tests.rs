@@ -1,8 +1,6 @@
 use super::*;
 
-pub(super) const MANIFEST: &str =
-    "pack fixture/glyph (\n version = 1.0.0\n) {\n ship notation\n}\n";
-pub(super) const SOURCE: &str = "# Original π / IPA owner metadata\nglyph notation notation = {\n revision: \"fixture/notation@1\",\n branches: [{ delimiter: \"slash\", lexical-policy: \"raw-unicode\", parser: \"fixture/parser@1\", constructor: \"fixture/literal\", constructor-revision: \"fixture/literal@1\", result: \"FixtureLiteral\", maximum-payload-bytes: 64 }]\n}\n";
+pub(super) use crate::glyph_notation_test_support::{MANIFEST, SOURCE};
 
 fn bundle(source: &str) -> Result<CheckedPackageBundle, PackageBundleError> {
     let document = crate::parse_syntax_document(MANIFEST);

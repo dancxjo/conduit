@@ -169,6 +169,7 @@ pub struct CheckedSyntaxDocument {
     pub native_types: Vec<CheckedNativeType>,
     pub(crate) retained_native_types: Vec<CheckedNativeType>,
     pub type_forms: Vec<CheckedTypeForm>,
+    pub glyph_notations: Vec<crate::CheckedGlyphNotation>,
     pub plots: Vec<CheckedCanonicalPlot>,
     /// Authored shorthand correlated with the ordinary meaning established by
     /// this exact check. This is source inspection, not another expansion or

@@ -63,3 +63,7 @@ pub(crate) fn fixture() -> (StartupCatalog, crate::ProfileCatalog, TypedLiteralF
     };
     (startup, profile, family)
 }
+
+pub(crate) const MANIFEST: &str =
+    "pack fixture/glyph (\n version = 1.0.0\n) {\n ship notation\n}\n";
+pub(crate) const SOURCE: &str = "# Original π / IPA owner metadata\nglyph notation notation = {\n revision: \"fixture/notation@1\",\n branches: [{ delimiter: \"slash\", lexical-policy: \"raw-unicode\", parser: \"fixture/parser@1\", constructor: \"fixture/literal\", constructor-revision: \"fixture/literal@1\", result: \"FixtureLiteral\", maximum-payload-bytes: 64 }]\n}\n";
