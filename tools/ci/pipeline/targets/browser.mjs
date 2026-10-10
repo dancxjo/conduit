@@ -17,7 +17,7 @@ const SPECS = [
   'workspace-continuity', 'workspace-shared-journey',
   'field-station-clock',
   'sdk-body-participation',
-  'static-body-application',
+  'static-body-application', 'owner-face-component',
   'creche-browser-configuration', 'creche-rendezvous',
   'native-value-types', 'exact-quantity', 'scoped-glyphs', 'signal-dom-host', 'browser-body-time', 'browser-host-calls', 'browser-pointer', 'browser-human-input',
   'browser-host-entrance', 'browser-media-host', 'browser-device-base', 'browser-usb-device-base',
