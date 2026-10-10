@@ -5,9 +5,10 @@ Conduit distinguishes **the set of values a type means** from **the resources re
 A semantic numeric domain may therefore be open-ended:
 
 ```conduit
-type Nonnegative = Integer in 0..
+type TemperatureRange = Temperature in -273.15°C..
+type NonnegativeCount = Count in 0..
 type AtLeastFour = Count in 4..
-type AtMostOne = Scalar in ..=1
+type AtMostOne = Scalar in ..=1.000000
 ```
 
 The semantic meaning is not truncated merely because one host uses a finite machine representation.
