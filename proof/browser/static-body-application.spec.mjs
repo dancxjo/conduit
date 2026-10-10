@@ -293,7 +293,7 @@ test("an existing two-lesson Handbook gains new choices without resetting its Bo
     await editor.fill(edited);
     await page.getByRole("button", { name: "Try in my Handbook", exact: true }).click();
     await expect(page.locator("[data-check]")).toHaveText("Checked clock-demo.");
-    await page.getByText("Your body and browser", { exact: true }).click();
+    await page.locator(".handbook-application").getByText("Your body and browser", { exact: true }).click();
     await page.getByRole("button", { name: "Release this tab", exact: true }).click();
     await expect(page.locator("[data-session-status]")).toContainText("released your Handbook");
 

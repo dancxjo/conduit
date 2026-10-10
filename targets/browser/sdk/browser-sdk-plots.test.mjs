@@ -366,3 +366,29 @@ for (const fail of [false, true]) {
     }
   });
 }
+
+test("recovery preserves previously sealed pending history before replacing the continuity record", async () => {
+  const segment = { ordinal: 2, digest: Array(32).fill(9), records: ["retained sealed history"] };
+  const snapshot = bodySnapshot(3);
+  const retained = { schema: "conduit.browser/body-continuity@1", source,
+    durable: { ...snapshot, pending_archives: [segment] } };
+  const writes = [];
+  const bridge = {
+    crecheReviewedInventory: () => ({ status: 0, outputJson: { source_document_id: "sha256:source", plots: [plot] } }),
+    workspaceRequest(request) {
+      assert.notEqual(request.action, "AcknowledgeArchives", "old durable segments are not a fresh runtime archive barrier");
+      return { status: 0, outputJson: snapshot };
+    },
+  };
+  await recoverBrowserBody({ bridge, host: "host/1", boot: "boot/fresh",
+    membership: { advertisement: () => ({}) }, storage: {
+      readJson: async () => retained,
+      writeJsonBatch: async entries => writes.push(entries),
+      writeJson() { throw new Error("recovery must atomically preserve archived history"); },
+    } });
+  assert.equal(writes.length, 1);
+  assert.deepEqual(writes[0][0].value, segment);
+  assert.equal(writes[0][0].immutable, true);
+  assert.equal(writes[0][1].key, "body-continuity");
+  assert.equal(writes[0][1].value.source, source);
+});
