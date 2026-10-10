@@ -1,4 +1,7 @@
 //! Checked Source glyph notation metadata, shared by shipment and admission.
+mod scope;
+pub use scope::{resolve_glyph_notation_scope, GlyphNotationScope, ScopedGlyphNotation};
+
 use crate::prelude::*;
 use crate::{
     ExpressionSyntax, StructuredExpressionField, SyntaxCheckDiagnostic, TypedLiteralBranch,

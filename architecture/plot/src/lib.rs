@@ -41,7 +41,9 @@ mod glyph_notation_test_support;
 mod integer_literal;
 mod native_type;
 mod package_bundle;
-pub use glyph_notation::CheckedGlyphNotation;
+pub use glyph_notation::{
+    resolve_glyph_notation_scope, CheckedGlyphNotation, GlyphNotationScope, ScopedGlyphNotation,
+};
 #[cfg(test)]
 mod package_bundle_tests;
 mod package_check;

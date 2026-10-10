@@ -59,7 +59,11 @@ pub(crate) fn check_document(
             message: diagnostic.message.clone(),
         });
     }
+    let glyph_notation_scope = crate::resolve_glyph_notation_scope(document, catalog)?;
     let glyph_notations = crate::glyph_notation::verify_declarations(document, catalog, None)?;
+    // Literal elaboration supplies checked usage witnesses. The current ordinary
+    // expression AST contains no admitted typed literal uses.
+    glyph_notation_scope.require_used(&BTreeSet::new())?;
     let aliased_catalog = crate::native_type::install_import_aliases(document, catalog)?;
     let (native_types, checked_catalog) =
         crate::native_type::check_native_types(&document.types, &aliased_catalog)?;
