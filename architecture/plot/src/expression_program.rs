@@ -7,6 +7,7 @@ use alloc::{boxed::Box, string::String, vec::Vec};
 use conduit_core::{StructuredInfoRefusal, StructuredInfoType};
 
 mod checked_encoding;
+mod constant;
 pub(crate) use checked_encoding::checked_canonical_hex;
 
 pub const MAXIMUM_PURE_EXPRESSION_PROGRAM_BYTES: usize = crate::MAXIMUM_PLOT_SOURCE_BYTES * 64;
@@ -28,6 +29,8 @@ pub struct PortableExpressionNode {
 pub enum PortableExpressionOperation {
     Input,
     Literal(String),
+    /// Already admitted ordinary constructor result; no runtime parsing.
+    Constant(conduit_core::StructuredInfoValue),
     Projection {
         value: Box<PortableExpressionNode>,
         member: PortableExpressionProjection,
@@ -307,6 +310,15 @@ fn push_node(
 ) -> Result<(), PortableExpressionProgramRefusal> {
     push_type(encoded, &node.value_type)?;
     match &node.operation {
+        PortableExpressionOperation::Constant(value) => {
+            if value.value_type() != &node.value_type {
+                return Err(PortableExpressionProgramRefusal::MalformedEncoding);
+            }
+            let bytes = value.canonical_bytes()?;
+            encoded.push(11);
+            push_len(encoded, bytes.len());
+            encoded.extend_from_slice(&bytes);
+        }
         PortableExpressionOperation::Input => encoded.push(0),
         PortableExpressionOperation::Literal(value) => {
             encoded.push(1);

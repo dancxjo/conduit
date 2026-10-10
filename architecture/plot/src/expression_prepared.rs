@@ -228,6 +228,15 @@ fn prepare_node(
 ) -> Result<PreparedNode, Refusal> {
     let kind = leaf_kind(&node.value_type)?;
     let operation = match &node.operation {
+        PortableExpressionOperation::Constant(value) => {
+            if value.value_type() != &node.value_type {
+                return Err(Refusal::InvalidProgram);
+            }
+            let conduit_core::StructuredInfoValueShape::Leaf(bytes) = value.shape() else {
+                return Err(Refusal::InvalidProgram);
+            };
+            PreparedOperation::Literal(bytes.to_vec())
+        }
         PortableExpressionOperation::Input => PreparedOperation::Input,
         PortableExpressionOperation::Literal(literal) => PreparedOperation::Literal(
             crate::expression_evaluate::literal_primitive_bytes(&node.value_type, literal)?,
