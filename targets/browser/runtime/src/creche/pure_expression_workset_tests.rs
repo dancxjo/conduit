@@ -32,5 +32,5 @@ fn reviewed_body_host_offers_exact_checked_pure_expressions_once() {
         .collect();
     assert_eq!(offers.len(), 1);
     let placements = conduit_planner::default_expanded_placements(&expanded, &[host]).unwrap();
-    assert_eq!(placements.len(), expanded.gears.len());
+    assert_eq!(placements.by_gear.len(), expanded.gears.len());
 }
