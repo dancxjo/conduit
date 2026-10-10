@@ -3,6 +3,12 @@ use crate::*;
 use core::fmt;
 
 trait CompiledOwner: Send + Sync {
+    fn text_constraint(
+        &self,
+        value: &conduit_core::StructuredInfoValue,
+        bound: u32,
+        negated: bool,
+    ) -> Result<Option<conduit_core::ValueConstraint>, String>;
     fn context_types(&self) -> Vec<(String, conduit_core::StructuredInfoType)>;
     fn contract(&self) -> conduit_core::Kind;
     fn prepare(
@@ -20,6 +26,15 @@ where
     C: LiteralValueConstructor + Send + Sync,
     C::Refusal: fmt::Debug,
 {
+    fn text_constraint(
+        &self,
+        value: &conduit_core::StructuredInfoValue,
+        bound: u32,
+        negated: bool,
+    ) -> Result<Option<conduit_core::ValueConstraint>, String> {
+        LiteralValueConstructor::text_constraint(self, value, bound, negated)
+            .map_err(|error| format!("{error:?}"))
+    }
     fn context_types(&self) -> Vec<(String, conduit_core::StructuredInfoType)> {
         LiteralValueConstructor::context_types(self)
     }
@@ -72,6 +87,43 @@ impl PartialEq for InstalledLiteralOwner {
 impl Eq for InstalledLiteralOwner {}
 
 impl StartupCatalog {
+    pub(crate) fn glyph_text_constraint(
+        &self,
+        literal: &TypedGlyphLiteralSyntax,
+        bound: u32,
+        negated: bool,
+    ) -> Result<conduit_core::ValueConstraint, String> {
+        use sha2::{Digest, Sha256};
+        let (authored, prepared) = self
+            .prepared_glyph_values
+            .get(&(literal.authored.span.start, literal.authored.span.end))
+            .ok_or("glyph pattern requires ordinary constructor admission")?;
+        if authored != literal {
+            return Err("glyph pattern has foreign Source custody".into());
+        }
+        let family = self
+            .installed_literal_families()
+            .find_map(|(_, family)| {
+                let identity: [u8; 32] = Sha256::digest(family.identity_bytes().ok()?).into();
+                (identity == literal.family_identity).then_some(family)
+            })
+            .ok_or("glyph pattern family is missing")?;
+        let branch = family
+            .branch(literal.delimiter)
+            .ok_or("glyph pattern branch is missing")?;
+        let owner = self
+            .literal_owners
+            .get(branch.constructor_kind.as_str())
+            .ok_or("glyph pattern has no compiled consumer")?;
+        let value = prepared
+            .try_concrete()
+            .ok_or("glyph pattern value is not concrete")?;
+        owner
+            .0
+            .text_constraint(&value, bound, negated)?
+            .ok_or("glyph value has no finite Text constraint consumer".into())
+    }
+
     /// Attach a compiled ordinary constructor to its already checked shipped
     /// branches. Hosts and authored metadata cannot populate this table.
     pub fn install_literal_constructor<C>(

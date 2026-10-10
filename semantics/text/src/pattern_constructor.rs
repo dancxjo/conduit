@@ -119,6 +119,23 @@ impl StaticValueConstructor for PortablePatternConstructor {
     }
 }
 impl LiteralValueConstructor for PortablePatternConstructor {
+    fn text_constraint(
+        &self,
+        value: &StructuredInfoValue,
+        maximum_bytes: u32,
+        negated: bool,
+    ) -> Result<Option<ValueConstraint>, Self::Refusal> {
+        let bytes = value
+            .canonical_bytes()
+            .map_err(PatternConstructorRefusal::Core)?;
+        let specification = PortablePatternSpecification::decode(&bytes)
+            .map_err(PatternConstructorRefusal::Codec)?;
+        specification
+            .checked_constraint(maximum_bytes, negated)
+            .map(Some)
+            .map_err(PatternConstructorRefusal::Specification)
+    }
+
     fn parser_contract(&self) -> &str {
         PATTERN_CONSTRUCTOR_REVISION
     }

@@ -74,6 +74,7 @@ pub enum ValueRefinement {
         span: Span,
     },
     TextPattern {
+        glyph: Option<Box<Expression>>,
         source: SpannedText,
         case_insensitive: bool,
         anchored_start: bool,

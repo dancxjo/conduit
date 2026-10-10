@@ -248,6 +248,25 @@ pub(super) fn document_literals(
                 roots.push(&value.syntax);
             }
         }
+        for refinement in plot
+            .front
+            .startup_parameters
+            .iter()
+            .flat_map(|parameter| &parameter.refinements)
+            .chain(
+                plot.front
+                    .runtime_ports
+                    .iter()
+                    .flat_map(|port| &port.refinements),
+            )
+        {
+            if let crate::ValueRefinement::TextPattern {
+                glyph: Some(value), ..
+            } = refinement
+            {
+                roots.push(&value.syntax);
+            }
+        }
         for statement in &plot.back {
             match statement {
                 BackStatement::LocalValue(local) => roots.push(&local.value.syntax),

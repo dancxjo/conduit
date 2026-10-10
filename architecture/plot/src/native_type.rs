@@ -333,6 +333,7 @@ fn compile_expression(
                         *maximum_bytes,
                         primitive,
                         *span,
+                        catalog,
                     )?;
                 let mut contract =
                     CheckedValueContract::new(primitive.clone(), maximum_bytes, constraints)

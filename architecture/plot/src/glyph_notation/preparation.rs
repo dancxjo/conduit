@@ -16,6 +16,16 @@ pub trait LiteralValueConstructor: StaticValueConstructor {
     fn context_types(&self) -> Vec<(String, conduit_core::StructuredInfoType)> {
         Vec::new()
     }
+    /// Optional domain-owned finite Text constraint consumer for an already
+    /// constructed value. Metadata alone cannot grant this capability.
+    fn text_constraint(
+        &self,
+        _value: &conduit_core::StructuredInfoValue,
+        _maximum_bytes: u32,
+        _negated: bool,
+    ) -> Result<Option<conduit_core::ValueConstraint>, Self::Refusal> {
+        Ok(None)
+    }
     fn parser_contract(&self) -> &str;
     fn lexical_policy(&self) -> TypedLiteralLexicalPolicy;
     fn literal_configuration(

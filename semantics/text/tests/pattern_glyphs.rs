@@ -173,3 +173,44 @@ fn duplicate_compiled_owner_refuses_without_mutating_catalog() {
         .is_err());
     assert_eq!(startup, before);
 }
+
+#[test]
+fn prefixed_front_refinements_consume_the_prepared_pattern_with_a_finite_bound() {
+    let (startup, profile) = catalogs();
+    for (glyph, ordinary) in [
+        ("r/^[A-Z]+$/i", "/^[A-Z]+$/i"),
+        ("r⟦a[/]b⟧", "/a[/]b/"),
+        ("r/t͡ʃ/", "/t͡ʃ/"),
+    ] {
+        let authored = format!(
+            "with {PATTERN_NOTATION_EXPORT_PATH} as r\nplot bounded (\n >> value: Text <= 32B ~ {glyph}\n) {{\n}}\n"
+        );
+        let document = parse_syntax_document_with_glyph_notations(&authored, &startup);
+        assert_eq!(document.round_trip(), authored);
+        assert!(
+            document.diagnostics.is_empty(),
+            "{:?}",
+            document.diagnostics
+        );
+        assert!(check_syntax_document(&document, &startup).is_err());
+        let checked =
+            check_syntax_document_with_literal_constructors(&document, &startup, &profile).unwrap();
+        assert_eq!(
+            checked.plots[0]
+                .runtime_front
+                .value_contract(&FrontValueLocation::Input(port_id("value")))
+                .unwrap()
+                .constraints[0],
+            bare(ordinary)
+        );
+    }
+    for ty in ["Text <= 4294967296B", "U32 <= 32B"] {
+        let document = parse_syntax_document_with_glyph_notations(&format!(
+            "with {PATTERN_NOTATION_EXPORT_PATH} as r\nplot bounded (\n >> value: {ty} ~ r/foo/\n) {{\n}}\n"
+        ), &startup);
+        assert!(
+            check_syntax_document_with_literal_constructors(&document, &startup, &profile).is_err(),
+            "{ty}"
+        );
+    }
+}

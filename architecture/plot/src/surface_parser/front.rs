@@ -293,15 +293,65 @@ impl Parser<'_> {
                 return Err(self.invalid_statement(line, start));
             };
             if relation == "pattern" {
-                let (pattern, case_insensitive, anchored_start, anchored_end, consumed) =
-                    pattern::slash_pattern(&source[body_start..])
-                        .ok_or_else(|| self.invalid_statement(line, start))?;
+                let entrance = &source[body_start..];
+                let binding = self.glyph_scope.as_ref().and_then(|scope| {
+                    scope.bindings().find(|binding| {
+                        entrance.strip_prefix(&binding.alias).is_some_and(|tail| {
+                            binding
+                                .family
+                                .branches
+                                .iter()
+                                .any(|branch| tail.starts_with(branch.delimiter.pair().0))
+                        })
+                    })
+                });
+                let (
+                    pattern,
+                    case_insensitive,
+                    anchored_start,
+                    anchored_end,
+                    consumed,
+                    glyph,
+                    payload_offset,
+                ) = if let Some(binding) = binding {
+                    let scope = self.glyph_scope.as_ref().unwrap();
+                    let scanned = scope
+                        .scan_literal(&binding.alias, entrance)
+                        .map_err(|_| self.invalid_statement(line, start))?;
+                    let offset = start + source_offset + body_start;
+                    let expression = scope
+                        .parse_expression(
+                            self.source,
+                            self.span(offset, offset + scanned.consumed_bytes),
+                        )
+                        .map_err(|(message, span)| (PlotError::InvalidSyntax(message), span))?;
+                    (
+                        scanned.payload,
+                        scanned.case_insensitive,
+                        scanned.anchored_start,
+                        scanned.anchored_end,
+                        scanned.consumed_bytes,
+                        Some(alloc::boxed::Box::new(expression)),
+                        scanned.payload_bytes.start + usize::from(scanned.anchored_start),
+                    )
+                } else {
+                    let (payload, insensitive, begins, ends, consumed) =
+                        pattern::slash_pattern(entrance)
+                            .ok_or_else(|| self.invalid_statement(line, start))?;
+                    (
+                        payload,
+                        insensitive,
+                        begins,
+                        ends,
+                        consumed,
+                        None,
+                        1 + usize::from(begins),
+                    )
+                };
                 let clause_end = body_start + consumed;
-                let pattern_offset = start
-                    + source_offset
-                    + body_start
-                    + source[body_start..clause_end].find(pattern).unwrap();
+                let pattern_offset = start + source_offset + body_start + payload_offset;
                 refinements.push(crate::ValueRefinement::TextPattern {
+                    glyph,
                     source: self.spanned(pattern, pattern_offset),
                     case_insensitive,
                     anchored_start,

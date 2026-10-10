@@ -65,6 +65,9 @@ impl GlyphNotationScope {
                 fields.push((key.text.clone(), ty.clone()));
             }
         }
+        if fields.is_empty() && binding.context.is_empty() {
+            return self.prepare_literal(document, literal, &[], constructor, startup, profile);
+        }
         let constructor = FamilyContextConstructor {
             owner: constructor,
             fields,
