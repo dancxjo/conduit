@@ -346,3 +346,6 @@ fn stages<'a>(stages: &'a [CordStage], roots: &mut Vec<&'a ExpressionSyntax>) {
         }
     }
 }
+
+#[cfg(test)]
+mod pressure_tests;
