@@ -36,6 +36,9 @@ test("five ordinary plots start together beyond the old aggregate placement ceil
 });
 
 test("repeated Wake and Lull compacts retained evidence instead of exhausting lifecycle Signs", async ({ page }) => {
+  // Twelve complete durable lifecycle transitions can exceed the default
+  // aggregate budget on hosted runners; keep every transition assertion.
+  test.setTimeout(60_000);
   await birth(page);
   const identity = (await current(page)).body_id;
   for (let index = 0; index < 12; index++) {
