@@ -247,6 +247,7 @@ test("Handbook lessons run text, arithmetic, logic and exact quantities in the l
       await expect(surface.locator('[data-resident-plot]:visible')).toContainText(result);
       const state = await current(page);
       expect(state.bodyId).toBe(first.bodyId);
+      expect(state.installedPlots).toHaveLength(3); // Tour, Patchbay and one lesson.
       expect(state.installedPlots.some(plot => plot.checked_plot_id === state.selectedPlot)).toBe(true);
     }
     await selector.selectOption("text-lab");
