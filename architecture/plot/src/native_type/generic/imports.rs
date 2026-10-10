@@ -12,6 +12,7 @@ pub(crate) struct Imports {
     pub(crate) catalog: StartupCatalog,
     pub(crate) templates: Vec<TypeSyntax>,
     pub(crate) origins: BTreeMap<String, TypeSyntax>,
+    pub(crate) source_origins: BTreeMap<String, crate::NativeTypeSourceOrigin>,
     pub(crate) aliases: BTreeMap<String, String>,
 }
 impl Imports {
@@ -24,6 +25,7 @@ impl Imports {
             templates: Vec::new(),
             origins: BTreeMap::new(),
             aliases: BTreeMap::new(),
+            source_origins: BTreeMap::new(),
         };
         for (alias, family) in &catalog.native_families {
             budget::validate(&family.templates)?;
@@ -44,6 +46,13 @@ impl Imports {
                     )
                 })
                 .collect::<BTreeMap<_, _>>();
+            for (name, origin) in &family.source_origins {
+                if let Some(prepared) = names.get(name) {
+                    imports
+                        .source_origins
+                        .insert(prepared.clone(), origin.clone());
+                }
+            }
             for dependency in &family.dependencies {
                 let name = &names[&dependency.name];
                 if let Some(existing) = imports.catalog.structured_type(name) {

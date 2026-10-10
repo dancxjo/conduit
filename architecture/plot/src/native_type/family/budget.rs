@@ -37,7 +37,27 @@ pub(crate) fn validate(
         .native_families
         .keys()
         .fold(bytes, |sum, name| sum.saturating_add(name.len()));
+    if bytes > MAXIMUM_DEPENDENCY_BYTES {
+        return Err(super::super::diagnostic(
+            span,
+            "native family registry exceeds its finite lookup-byte profile".into(),
+        ));
+    }
     for family in families() {
+        for (name, origin) in &family.source_origins {
+            bytes = bytes
+                .saturating_add(name.len())
+                .saturating_add(origin.module_path.len())
+                .saturating_add(origin.declaration_name.len())
+                .saturating_add(origin.source_document_id.as_str().len())
+                .saturating_add(32 + 48);
+            if bytes > MAXIMUM_DEPENDENCY_BYTES {
+                return Err(super::super::diagnostic(
+                    span,
+                    "native family registry exceeds its finite source-provenance profile".into(),
+                ));
+            }
+        }
         for dependency in &family.dependencies {
             dependencies = dependencies.saturating_add(1);
             if dependencies > MAXIMUM_DEPENDENCIES {
@@ -102,6 +122,7 @@ mod tests {
                 &parsed.types,
                 &owner,
                 [0; 32],
+                &super::super::source::from_document(&parsed, "main", [0; 32]),
             )
             .unwrap();
         }
@@ -120,6 +141,7 @@ mod tests {
             &parsed.types,
             &owner,
             [0; 32],
+            &super::super::source::from_document(&parsed, "main", [0; 32]),
         )
         .unwrap_err();
         assert!(failure.message.contains("128-entry"));
@@ -131,6 +153,7 @@ mod tests {
             &parsed.types,
             &owner,
             [0; 32],
+            &super::super::source::from_document(&parsed, "main", [0; 32]),
         )
         .unwrap_err();
         assert!(collision.message.contains("duplicate or ambiguous"));
@@ -167,6 +190,7 @@ mod tests {
             &parsed.types,
             &owner,
             [0; 32],
+            &super::super::source::from_document(&parsed, "main", [0; 32]),
         )
         .unwrap_err();
         assert!(failure.message.contains("lookup-byte"));

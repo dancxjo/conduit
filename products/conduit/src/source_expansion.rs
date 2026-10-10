@@ -76,7 +76,7 @@ pub(crate) fn render_source(
         expansions: checked.source_sugar_expansions.iter().map(view).collect(),
         native_types: native_types::types(&source.syntax, &checked)?,
         type_families: native_types::families(&source.syntax),
-        imports: native_types::imports(&source.syntax),
+        imports: native_types::imports(&source.syntax, &source.startup),
     };
     if json {
         serde_json::to_string_pretty(&report)

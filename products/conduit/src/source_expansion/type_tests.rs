@@ -98,7 +98,7 @@ fn imported_family_view_retains_consumer_import_spans_and_closed_owner_identity(
     let syntax = parse_syntax_document(source);
     let checked = check_syntax_document(&syntax, &catalog).unwrap();
     let types = serde_json::to_value(native_types::types(&syntax, &checked).unwrap()).unwrap();
-    let imports = serde_json::to_value(native_types::imports(&syntax)).unwrap();
+    let imports = serde_json::to_value(native_types::imports(&syntax, &catalog)).unwrap();
     assert_eq!(types[0]["authored"], "type Value = Samples<32 + 32>");
     assert_eq!(
         types[0]["representation"]["representation"]["exact_items"],
@@ -116,6 +116,21 @@ fn imported_family_view_retains_consumer_import_spans_and_closed_owner_identity(
     );
     assert_eq!(imports[0]["path"], "example/types/Vector");
     assert_eq!(imports[0]["alias"], "Samples");
+    assert_eq!(imports[0]["owner_sources"][0]["module_path"], "main");
+    assert_eq!(imports[0]["owner_sources"][0]["declaration_name"], "Vector");
+    assert_eq!(
+        imports[0]["owner_sources"][0]["source_document_id"],
+        parse_syntax_document(sources[0].source)
+            .source_document_id()
+            .as_str()
+    );
+    assert_eq!(
+        imports[0]["owner_sources"][0]["package_content_digest"]
+            .as_str()
+            .unwrap()
+            .len(),
+        64
+    );
     let start = imports[0]["source_span"]["start"].as_u64().unwrap() as usize;
     let end = imports[0]["source_span"]["end"].as_u64().unwrap() as usize;
     assert_eq!(&source[start..end], "with example/types/Vector as Samples");

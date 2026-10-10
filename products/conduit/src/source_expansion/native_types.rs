@@ -33,6 +33,16 @@ pub(super) struct ImportView<'a> {
     pub path: &'a str,
     pub alias: &'a str,
     pub source_span: SourceSpan,
+    pub owner_sources: Vec<OwnerSourceView<'a>>,
+}
+
+#[derive(Debug, Serialize)]
+pub(super) struct OwnerSourceView<'a> {
+    package_content_digest: String,
+    module_path: &'a str,
+    source_document_id: &'a str,
+    declaration_name: &'a str,
+    declaration_span: SourceSpan,
 }
 
 #[derive(Debug, Serialize)]
@@ -176,7 +186,10 @@ pub(super) fn families(syntax: &SyntaxDocument) -> Vec<FamilyView<'_>> {
         .collect()
 }
 
-pub(super) fn imports(syntax: &SyntaxDocument) -> Vec<ImportView<'_>> {
+pub(super) fn imports<'a>(
+    syntax: &'a SyntaxDocument,
+    catalog: &'a conduit_plot::StartupCatalog,
+) -> Vec<ImportView<'a>> {
     syntax
         .uses
         .iter()
@@ -184,6 +197,22 @@ pub(super) fn imports(syntax: &SyntaxDocument) -> Vec<ImportView<'_>> {
             path: &declaration.path,
             alias: &declaration.alias.text,
             source_span: declaration.span.into(),
+            owner_sources: catalog
+                .native_family_sources(&declaration.path)
+                .into_iter()
+                .flatten()
+                .map(|origin| OwnerSourceView {
+                    package_content_digest: origin
+                        .package_content_digest
+                        .iter()
+                        .map(|byte| format!("{byte:02x}"))
+                        .collect(),
+                    module_path: &origin.module_path,
+                    source_document_id: origin.source_document_id.as_str(),
+                    declaration_name: &origin.declaration_name,
+                    declaration_span: origin.declaration_span.into(),
+                })
+                .collect(),
         })
         .collect()
 }

@@ -4,6 +4,7 @@ use crate::{CheckedNativeType, TypeSyntax};
 use alloc::collections::BTreeMap;
 pub(crate) mod budget;
 mod capture;
+pub(crate) mod source;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct NativeTypeFamily {
@@ -11,6 +12,7 @@ pub(crate) struct NativeTypeFamily {
     pub(crate) templates: Vec<TypeSyntax>,
     pub(crate) dependencies: Vec<CheckedNativeType>,
     pub(crate) origins: BTreeMap<String, TypeSyntax>,
+    pub(crate) source_origins: BTreeMap<String, source::NativeTypeSourceOrigin>,
     pub(crate) package_content_digest: [u8; 32],
 }
 
@@ -21,6 +23,7 @@ pub(crate) fn install(
     declarations: &[TypeSyntax],
     owner: &crate::StartupCatalog,
     package_content_digest: [u8; 32],
+    owner_origins: &BTreeMap<String, source::NativeTypeSourceOrigin>,
 ) -> Result<(), crate::SyntaxCheckDiagnostic> {
     if catalog.structured_type(path).is_some()
         || catalog.get(path).is_some()
@@ -43,6 +46,16 @@ pub(crate) fn install(
     let imports = super::generic::imports::Imports::prepare(&owner)?;
     let mut templates = Vec::new();
     let mut origins = imports.origins;
+    let mut source_origins = imports.source_origins;
+    for declaration in &selected {
+        let origin = owner_origins.get(&declaration.name.text).ok_or_else(|| {
+            super::diagnostic(
+                declaration.name.span,
+                "checked family owner module provenance is missing".into(),
+            )
+        })?;
+        source_origins.insert(declaration.name.text.clone(), origin.clone());
+    }
     for original in selected.iter().filter(|value| !value.parameters.is_empty()) {
         let mut template = original.clone();
         super::generic::imports::rewrite(&mut template, &imports.aliases);
@@ -57,6 +70,7 @@ pub(crate) fn install(
         dependencies,
         origins,
         package_content_digest,
+        source_origins,
     };
     budget::validate(catalog, Some((path, &family)), root.name.span)?;
     catalog.native_families.insert(path.into(), family);

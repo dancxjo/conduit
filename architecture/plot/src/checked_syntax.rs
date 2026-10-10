@@ -1,4 +1,5 @@
 mod type_catalog;
+pub use crate::native_type::family::source::NativeTypeSourceOrigin;
 use crate::prelude::*;
 use crate::{PlotCompletionPolicy, RuntimePort, Span};
 use alloc::collections::BTreeMap;
