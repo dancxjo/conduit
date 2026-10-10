@@ -11,6 +11,7 @@ use conduit_core::{
 };
 
 mod byte_observation;
+mod equality;
 mod inspection;
 mod shared_input;
 use shared_input::SharedBytes;
@@ -63,6 +64,7 @@ struct PreparedNode {
 }
 
 enum PreparedOperation {
+    Equality(Box<equality::PreparedEquality>),
     Input,
     Literal(Vec<u8>),
     Unary {
@@ -250,12 +252,15 @@ fn prepare_node(
             proven,
             left,
             right,
-        } => PreparedOperation::Binary {
-            operator: *operator,
-            proven: *proven,
-            left: Box::new(prepare_node(left, input_type, prepared_input)?),
-            right: Box::new(prepare_node(right, input_type, prepared_input)?),
-        },
+        } => equality::binary(
+            *operator,
+            *proven,
+            kind,
+            left,
+            right,
+            input_type,
+            prepared_input,
+        )?,
         PortableExpressionOperation::Conditional {
             condition,
             when_true,
@@ -353,6 +358,7 @@ fn evaluate_node<'a>(
 ) -> Result<PrimitiveValue<'a>, Refusal> {
     let expected = node.kind;
     let value = match &mut node.operation {
+        PreparedOperation::Equality(equality) => equality.evaluate(input)?,
         PreparedOperation::Input => {
             if Some(expected) != input_kind {
                 return Err(Refusal::InvalidProgram);
