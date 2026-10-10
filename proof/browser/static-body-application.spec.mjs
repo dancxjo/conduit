@@ -277,3 +277,41 @@ test("Handbook lessons run text, arithmetic, logic and exact quantities in the l
     await site.close();
   }
 });
+
+test("an existing two-lesson Handbook gains new choices without resetting its Body or saved edits", async ({}, testInfo) => {
+  testInfo.setTimeout(60_000);
+  const site = await stageStaticApplications({ legacyLessonInventory: true });
+  const session = await openStaticProfile(testInfo.outputPath("upgraded-profile"), new URL(site.url).origin);
+  try {
+    const page = await session.context.newPage();
+    await page.goto(new URL("legacy/", site.url).href);
+    const first = await ready(page);
+    const selector = page.getByLabel("Choose an example", { exact: true });
+    const editor = page.getByRole("textbox", { name: "Plot source", exact: true });
+    await expect(selector.locator("option")).toHaveCount(2);
+    const edited = (await editor.inputValue()).replace("time/every(1s)", "time/every(2s)");
+    await editor.fill(edited);
+    await page.getByRole("button", { name: "Try in my Handbook", exact: true }).click();
+    await expect(page.locator("[data-check]")).toHaveText("Checked clock-demo.");
+    await page.getByText("Your body and browser", { exact: true }).click();
+    await page.getByRole("button", { name: "Release this tab", exact: true }).click();
+    await expect(page.locator("[data-session-status]")).toContainText("released your Handbook");
+
+    await page.goto(new URL("handbook/", site.url).href);
+    expect((await ready(page)).bodyId).toBe(first.bodyId);
+    await expect(selector.locator("option")).toHaveCount(10);
+    await expect(editor).toHaveValue(edited);
+    await selector.selectOption("compare-distance-demo");
+    await page.getByRole("button", { name: "Try in my Handbook", exact: true }).click();
+    await expect(page.locator('.handbook-show [data-resident-plot]:visible')).toContainText("The distances are equal");
+    const upgraded = await current(page);
+    expect(upgraded.bodyId).toBe(first.bodyId);
+    expect(upgraded.installedPlots).toHaveLength(3);
+    await selector.selectOption("clock-demo");
+    await expect(editor).toHaveValue(edited);
+    session.assertClean();
+  } finally {
+    await session.context.close();
+    await site.close();
+  }
+});
