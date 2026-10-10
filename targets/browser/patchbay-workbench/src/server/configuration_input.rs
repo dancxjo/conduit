@@ -11,9 +11,12 @@ pub(super) enum ConfigurationInput {
 }
 #[derive(Deserialize)]
 pub(super) enum SourceConfigurationInput {
-    QuantitySource(String),
-    UnitSource(String),
-    TemperatureDifferenceSource(String),
+    #[serde(rename = "QuantitySource")]
+    Quantity(String),
+    #[serde(rename = "UnitSource")]
+    Unit(String),
+    #[serde(rename = "TemperatureDifferenceSource")]
+    TemperatureDifference(String),
 }
 impl ConfigurationInput {
     #[cfg(test)]
@@ -29,26 +32,26 @@ impl ConfigurationInput {
             Self::Source(source) => source,
         };
         let spelling = match &source {
-            SourceConfigurationInput::QuantitySource(source)
-            | SourceConfigurationInput::UnitSource(source)
-            | SourceConfigurationInput::TemperatureDifferenceSource(source) => source,
+            SourceConfigurationInput::Quantity(source)
+            | SourceConfigurationInput::Unit(source)
+            | SourceConfigurationInput::TemperatureDifference(source) => source,
         };
         let checked = parse_checked_physical_value(spelling, None, catalog)
             .map_err(|error| format!("physical value: {error:?}"))?;
         match (source, checked) {
             (
-                SourceConfigurationInput::QuantitySource(_),
+                SourceConfigurationInput::Quantity(_),
                 Some(CanonicalStartupValue::Quantity(value)),
             ) => Ok(ConfigurationValue::Quantity(value)),
-            (SourceConfigurationInput::UnitSource(_), Some(CanonicalStartupValue::Unit(value))) => {
+            (SourceConfigurationInput::Unit(_), Some(CanonicalStartupValue::Unit(value))) => {
                 Ok(ConfigurationValue::Unit(value))
             }
             (
-                SourceConfigurationInput::TemperatureDifferenceSource(_),
+                SourceConfigurationInput::TemperatureDifference(_),
                 Some(CanonicalStartupValue::TemperatureDifference(value)),
             ) => Ok(ConfigurationValue::TemperatureDifference(value)),
             (
-                SourceConfigurationInput::TemperatureDifferenceSource(_),
+                SourceConfigurationInput::TemperatureDifference(_),
                 Some(CanonicalStartupValue::Quantity(value)),
             ) => {
                 let difference =

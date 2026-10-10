@@ -146,7 +146,7 @@ fn authored_quantities_survive_plan_play_sign_and_typed_presentation() {
         property.name == "quantity-unit"
             && property.value
                 == PresentationPropertyValue::Identity(
-                    conduit_core::Unit::Millisecond.semantic_id().into(),
+                    conduit_core::Unit::Millisecond.semantic_id(),
                 )
     }));
     assert!(artifact.presentation.properties.iter().any(|property| {
