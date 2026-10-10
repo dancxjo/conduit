@@ -78,6 +78,11 @@ pub(crate) fn standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), Pl
         &mut profile,
     )
     .map_err(PlotEditorError::Catalog)?;
+    conduit_speech::authoring::install(&mut startup).map_err(PlotEditorError::Catalog)?;
+    conduit_speech::ipa_constructors::install(&mut startup, &mut profile)
+        .map_err(PlotEditorError::Catalog)?;
+    conduit_speech::ipa_constructors::install_notation(&mut startup, &profile)
+        .map_err(PlotEditorError::Catalog)?;
     Ok((startup, profile))
 }
 

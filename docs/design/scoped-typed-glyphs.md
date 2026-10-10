@@ -83,3 +83,10 @@ does not parse the payload again. Selected basis values appear once in
 `conduit expand source.conduit` and `conduit inspect source.conduit` also show
 the authored and checked forms in plain text, including selected basis names
 and identities. Native Type refinements are included alongside Plot literals.
+
+The native Patchbay editor uses the same scoped parser and checked constructor
+admission for initial Source, revision checks, composition edits and expansion.
+Its standard catalog includes the shipped pattern and IPA families. Replacing
+Source preserves authored bytes and requires a new revision check; an older
+check cannot replace the current revision. Native editor conformance does not
+establish browser execution or stable publication.
