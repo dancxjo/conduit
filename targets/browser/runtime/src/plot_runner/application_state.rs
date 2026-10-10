@@ -328,10 +328,12 @@ impl PreparedApplication {
 
                 #[cfg(feature = "creche-surface")]
                 {
+                    let residents: Vec<_> =
+                        plan.plots.iter().map(|part| part.plot.clone()).collect();
+                    let subjects =
+                        crate::creche::inventory_application_subjects(source, &residents)?;
                     let mut active = Vec::with_capacity(plan.plots.len());
-                    for part in &plan.plots {
-                        let expanded = crate::creche::expanded_inventory_plot(source, &part.plot)?;
-                        let title = crate::creche::inventory_plot_title(source, &part.plot)?;
+                    for (part, (expanded, title)) in plan.plots.iter().zip(subjects) {
                         active.push(
                             patchbay_application::PatchbayActivePlot::project(
                                 &expanded,

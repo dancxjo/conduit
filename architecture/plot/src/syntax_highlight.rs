@@ -50,17 +50,72 @@ pub fn highlight_syntax(source: &str) -> Result<Vec<SyntaxHighlightSpan>, Syntax
     // incomplete embedded string may legally contain whitespace while edited.
     tokenize_losslessly(source).map_err(|_| SyntaxHighlightRefusal::TooManyTokens)?;
     let mut spans = Vec::new();
-    scan_source(source, &mut spans)?;
+    scan_source(source, &mut spans, None)?;
+    Ok(spans)
+}
+
+/// Highlight declared glyph payloads as opaque literal bytes. The scope must
+/// come from normal checked import resolution; highlighting admits no values.
+pub fn highlight_syntax_in_scope(
+    source: &str,
+    scope: &crate::GlyphNotationScope,
+) -> Result<Vec<SyntaxHighlightSpan>, SyntaxHighlightRefusal> {
+    if source.len() > MAXIMUM_PLOT_SOURCE_BYTES {
+        return Err(SyntaxHighlightRefusal::SourceTooLarge);
+    }
+    tokenize_losslessly(source).map_err(|_| SyntaxHighlightRefusal::TooManyTokens)?;
+    let mut spans = Vec::new();
+    scan_source(source, &mut spans, Some(scope))?;
     Ok(spans)
 }
 
 fn scan_source(
     source: &str,
     spans: &mut Vec<SyntaxHighlightSpan>,
+    scope: Option<&crate::GlyphNotationScope>,
 ) -> Result<(), SyntaxHighlightRefusal> {
     let bytes = source.as_bytes();
     let mut offset = 0;
     while offset < bytes.len() {
+        if let Some(literal) = scope.and_then(|scope| scope.scan_at(source, offset)) {
+            let opener_bytes = literal.branch.delimiter.pair().0.len_utf8();
+            let closer_bytes = literal.branch.delimiter.pair().1.len_utf8();
+            let payload_start = offset + literal.payload_bytes.start;
+            let payload_end = offset + literal.payload_bytes.end;
+            push(
+                spans,
+                offset,
+                payload_start - opener_bytes,
+                SyntaxHighlightKind::Name,
+            )?;
+            push(
+                spans,
+                payload_start - opener_bytes,
+                payload_start,
+                SyntaxHighlightKind::Delimiter,
+            )?;
+            push(
+                spans,
+                payload_start,
+                payload_end,
+                SyntaxHighlightKind::Literal,
+            )?;
+            push(
+                spans,
+                payload_end,
+                payload_end + closer_bytes,
+                SyntaxHighlightKind::Delimiter,
+            )?;
+            let end = offset + literal.consumed_bytes;
+            push(
+                spans,
+                payload_end + closer_bytes,
+                end,
+                SyntaxHighlightKind::Name,
+            )?;
+            offset = end;
+            continue;
+        }
         let start = offset;
         let character = source[offset..]
             .chars()

@@ -2,33 +2,61 @@ use crate::prelude::*;
 use crate::{CanonicalStartupValue, SyntaxCheckError};
 use alloc::collections::{BTreeMap, BTreeSet};
 
-pub(super) struct Resolver<'a> {
-    pub(super) locals: BTreeMap<String, &'a crate::LocalValue>,
+pub(crate) struct Resolver<'a> {
+    context_budget: Option<(usize, usize)>,
+    pub(crate) locals: BTreeMap<String, &'a crate::LocalValue>,
     parameters: BTreeSet<String>,
     runtime_ports: BTreeSet<String>,
     pools: BTreeSet<String>,
     resolved: BTreeMap<String, CanonicalStartupValue>,
     visiting: BTreeSet<String>,
+    source_values:
+        &'a BTreeMap<(usize, usize), (crate::Expression, crate::CanonicalStructuredStartupValue)>,
+    prepared_glyphs: &'a BTreeMap<
+        (usize, usize),
+        (
+            crate::TypedGlyphLiteralSyntax,
+            crate::CanonicalStructuredStartupValue,
+        ),
+    >,
 }
 
 impl<'a> Resolver<'a> {
-    pub(super) fn new(
+    pub(crate) fn new(
         locals: BTreeMap<String, &'a crate::LocalValue>,
         parameters: BTreeSet<String>,
         runtime_ports: BTreeSet<String>,
         pools: BTreeSet<String>,
+        prepared_glyphs: &'a BTreeMap<
+            (usize, usize),
+            (
+                crate::TypedGlyphLiteralSyntax,
+                crate::CanonicalStructuredStartupValue,
+            ),
+        >,
+        source_values: &'a BTreeMap<
+            (usize, usize),
+            (crate::Expression, crate::CanonicalStructuredStartupValue),
+        >,
     ) -> Self {
         Self {
+            context_budget: None,
             locals,
             parameters,
             runtime_ports,
             pools,
             resolved: BTreeMap::new(),
             visiting: BTreeSet::new(),
+            prepared_glyphs,
+            source_values,
         }
     }
 
-    pub(super) fn resolve_name(
+    pub(crate) fn bound_glyph_context(&mut self) {
+        self.context_budget = Some((0, 0));
+    }
+
+    pub(crate) fn resolve_name(
         &mut self,
         name: &str,
         expected: Option<&conduit_core::StructuredInfoType>,
@@ -46,12 +74,42 @@ impl<'a> Resolver<'a> {
             }
             return Ok(value.clone());
         }
+        if self.visiting.len() >= 64 {
+            return Err(SyntaxCheckError::StructuredExpression(
+                "immutable Source dependency depth exceeds 64".into(),
+                None,
+            ));
+        }
         if !self.visiting.insert(name.to_string()) {
             return Err(SyntaxCheckError::DependencyCycle(name.to_string()));
         }
         let expression = self.locals[name].value.clone();
         let value = self.resolve_expression(&expression, expected)?;
         self.visiting.remove(name);
+        if let (Some((entries, bytes)), CanonicalStartupValue::Structured(structured)) =
+            (&mut self.context_budget, &value)
+        {
+            let encoded = structured
+                .try_concrete()
+                .and_then(|value| value.canonical_bytes().ok());
+            let size = encoded
+                .ok_or_else(|| {
+                    SyntaxCheckError::StructuredExpression(
+                        "glyph Source context must be concrete and canonically bounded".into(),
+                        Some(expression.span),
+                    )
+                })?
+                .len();
+            let retained_bytes = bytes
+                .saturating_add(expression.text.len())
+                .saturating_add(size);
+            if *entries >= 64 || retained_bytes > 1024 * 1024 {
+                return Err(SyntaxCheckError::StructuredExpression(
+                    "glyph Source context exceeds 64 entries or 1 MiB of authored and canonical bytes".into(), Some(expression.span)));
+            }
+            *entries += 1;
+            *bytes = retained_bytes;
+        }
         self.resolved.insert(name.to_string(), value.clone());
         Ok(value)
     }
@@ -61,12 +119,27 @@ impl<'a> Resolver<'a> {
         expression: &crate::Expression,
         expected: Option<&conduit_core::StructuredInfoType>,
     ) -> Result<CanonicalStartupValue, SyntaxCheckError> {
+        if let Some((authored, value)) = self
+            .source_values
+            .get(&(expression.span.start, expression.span.end))
+        {
+            if authored != expression || expected.is_some_and(|ty| ty != value.value_type()) {
+                return Err(SyntaxCheckError::StructuredExpression(
+                    "prepared Source context has incompatible custody or Type".into(),
+                    Some(expression.span),
+                ));
+            }
+            return Ok(CanonicalStartupValue::Structured(value.clone()));
+        }
+        if let crate::ExpressionSyntax::TypedGlyphLiteral(literal) = &expression.syntax {
+            return self.resolve_spanned(&literal.authored, expected);
+        }
         if let Some(expected) = expected {
             let checked = crate::structured_startup::check_structured_expression(
                 &expression.syntax,
                 expected,
                 &mut |atomic, atomic_expected| {
-                    self.resolve_atomic(&atomic.text, Some(atomic_expected))
+                    self.resolve_spanned(atomic, Some(atomic_expected))
                         .map_err(|error| error.diagnostic(atomic.span))
                 },
             )
@@ -123,6 +196,55 @@ impl<'a> Resolver<'a> {
                 }
                 error => error,
             })
+    }
+
+    pub(crate) fn resolved_context(
+        &self,
+    ) -> Option<Vec<(crate::Expression, crate::CanonicalStructuredStartupValue)>> {
+        let mut entries = 0usize;
+        let mut bytes = 0usize;
+        for (name, value) in &self.resolved {
+            if let CanonicalStartupValue::Structured(value) = value {
+                entries += 1;
+                bytes = bytes
+                    .saturating_add(self.locals[name].value.text.len())
+                    .saturating_add(value.try_concrete()?.canonical_bytes().ok()?.len());
+                if entries > 64 || bytes > 1024 * 1024 {
+                    return None;
+                }
+            }
+        }
+        Some(
+            self.resolved
+                .iter()
+                .filter_map(|(name, value)| match value {
+                    CanonicalStartupValue::Structured(value) => {
+                        Some((self.locals[name].value.clone(), value.clone()))
+                    }
+                    _ => None,
+                })
+                .collect(),
+        )
+    }
+
+    fn resolve_spanned(
+        &mut self,
+        source: &crate::SpannedText,
+        expected: Option<&conduit_core::StructuredInfoType>,
+    ) -> Result<CanonicalStartupValue, SyntaxCheckError> {
+        if let Some((literal, value)) = self
+            .prepared_glyphs
+            .get(&(source.span.start, source.span.end))
+        {
+            if literal.authored != *source || expected.is_some_and(|ty| ty != value.value_type()) {
+                return Err(SyntaxCheckError::StructuredExpression(
+                    "prepared glyph has incompatible Source custody or exact Type".into(),
+                    Some(source.span),
+                ));
+            }
+            return Ok(CanonicalStartupValue::Structured(value.clone()));
+        }
+        self.resolve_atomic(&source.text, expected)
     }
 
     fn resolve_atomic(
@@ -191,3 +313,6 @@ fn contains_identifier(expression: &str, name: &str) -> bool {
         .split(|character: char| !(character.is_alphanumeric() || matches!(character, '_' | '-')))
         .any(|candidate| candidate == name)
 }
+
+#[cfg(test)]
+mod context_pressure_tests;

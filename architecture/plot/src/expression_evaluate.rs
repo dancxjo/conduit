@@ -60,6 +60,12 @@ fn evaluate_node(
     input_type: &StructuredInfoType,
 ) -> Result<Value, PortableExpressionEvaluationRefusal> {
     let value = match &node.operation {
+        PortableExpressionOperation::Constant(value) => {
+            if value.value_type() != &node.value_type {
+                return Err(PortableExpressionEvaluationRefusal::InvalidProgram);
+            }
+            encoded_structured(value.clone())?
+        }
         PortableExpressionOperation::Input => {
             if &node.value_type != input_type {
                 return Err(PortableExpressionEvaluationRefusal::InvalidProgram);

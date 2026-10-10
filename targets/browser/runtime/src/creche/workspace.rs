@@ -77,12 +77,29 @@ pub(crate) fn workspace_library(
         return Err("current browser Host offer was not freshly observed".into());
     }
     let plots = catalog.plots;
+    let mut catalogs = super::catalog_preparation::CatalogPreparation::default();
+    // These checks use one immutable Host observation and have no effects.
+    // Group preparation by profile, then preserve the authored shelf order.
+    let mut preparation_order: Vec<usize> = (0..plots.len()).collect();
+    preparation_order.sort_by_key(|index| plots[*index].presentation_profile);
+    let mut availability = vec![None; plots.len()];
+    for index in preparation_order {
+        availability[index] = Some(catalog_availability(
+            &plots[index],
+            observed_hosts,
+            host,
+            boot,
+            joined_lines,
+            &mut catalogs,
+        ));
+    }
     PlotLibrary::new(
         plots
             .iter()
-            .map(|entry| {
-                let availability =
-                    catalog_availability(entry, observed_hosts, host, boot, joined_lines);
+            .enumerate()
+            .map(|(index, entry)| {
+                let entry_availability =
+                    availability[index].as_ref().expect("checked entry").clone();
                 Ok(LibraryEntry {
                     plot: conduit_body::ResidentPlot::new(
                         entry.source_document_id.clone().into(),
@@ -90,7 +107,7 @@ pub(crate) fn workspace_library(
                     ),
                     title: entry.title.clone(),
                     search_text: format!("{} {}", entry.entry, entry.required_kinds.join(" ")),
-                    availability,
+                    availability: entry_availability,
                     graceful_fallback: entry
                         .graceful_fallback
                         .as_ref()
@@ -100,17 +117,14 @@ pub(crate) fn workspace_library(
                                     "reviewed Workspace graceful fallback is malformed".into()
                                 );
                             }
-                            let fallback_entry = plots
+                            let fallback_index = plots
                                 .iter()
-                                .find(|candidate| candidate.slug == fallback.slug)
+                                .position(|candidate| candidate.slug == fallback.slug)
                                 .ok_or("reviewed Workspace graceful fallback is missing")?;
-                            let availability = catalog_availability(
-                                fallback_entry,
-                                observed_hosts,
-                                host,
-                                boot,
-                                joined_lines,
-                            );
+                            let availability = availability[fallback_index]
+                                .as_ref()
+                                .expect("checked fallback entry")
+                                .clone();
                             Ok(conduit_plot_library::LibraryFallback {
                                 title: fallback.title.clone(),
                                 availability,
@@ -130,9 +144,10 @@ fn catalog_availability(
     host: &HostId,
     boot: &BootId,
     joined_lines: &[JoinedLineObservation],
+    catalogs: &mut super::catalog_preparation::CatalogPreparation,
 ) -> conduit_plot_library::LibraryAvailability {
     use conduit_plot_library::LibraryAvailability;
-    match catalog_plot_plan(entry, observed_hosts, host, boot, joined_lines) {
+    match catalog_plot_plan(entry, observed_hosts, host, boot, joined_lines, catalogs) {
         Ok(()) => LibraryAvailability::Available,
         Err(_) => LibraryAvailability::needs_capability(entry.unavailable_hint.clone())
             .expect("reviewed library capability hint is bounded"),
@@ -145,6 +160,7 @@ fn catalog_plot_plan(
     host: &HostId,
     boot: &BootId,
     joined_lines: &[JoinedLineObservation],
+    catalogs: &mut super::catalog_preparation::CatalogPreparation,
 ) -> Result<(), String> {
     let presentation = match entry.presentation_profile {
         0 => crate::installed_browser::PresentationProfile::Annotation,
@@ -153,8 +169,9 @@ fn catalog_plot_plan(
         3 => crate::installed_browser::PresentationProfile::PatternComparison,
         _ => return Err("reviewed plot has an unsupported presentation profile".into()),
     };
+    let (startup, base_profile, installed_backs) = catalogs.get_with_backs(presentation)?;
     let document =
-        super::initial_plots::check_source_for_presentation(&entry.source, presentation)?;
+        super::initial_plots::check_source_with_catalogs(&entry.source, startup, base_profile)?;
     if document.source_document_id.as_str() != entry.source_document_id {
         return Err("reviewed plot has stale source identity".into());
     }
@@ -165,26 +182,45 @@ fn catalog_plot_plan(
             plot.name == entry.entry && plot.checked_plot_id.as_str() == entry.checked_plot_id
         })
         .ok_or("reviewed plot has stale checked identity")?;
-    let (startup, mut profile) = crate::installed_browser::catalogs_for_presentation(presentation)?;
-    let offers = crate::installed_browser::catalogs::install_checked_structured_selectors(
-        &document,
-        &mut profile,
-    )?;
-    let mut hosts = observed_hosts.to_vec();
+    let mut profile = std::borrow::Cow::Borrowed(base_profile);
+    let has_selectors = document
+        .plots
+        .iter()
+        .flat_map(|plot| &plot.cords)
+        .flat_map(|cord| &cord.stages)
+        .any(|stage| {
+            matches!(
+                stage,
+                conduit_plot::CheckedCordStage::StructuredSelector { .. }
+            )
+        });
+    let offers = if has_selectors {
+        crate::installed_browser::catalogs::install_checked_structured_selectors(
+            &document,
+            profile.to_mut(),
+        )?
+    } else {
+        Vec::new()
+    };
+    let mut hosts = std::borrow::Cow::Borrowed(observed_hosts);
     let local = hosts
-        .iter_mut()
-        .find(|observed| &observed.host_id == host && &observed.boot_id == boot)
+        .iter()
+        .position(|observed| &observed.host_id == host && &observed.boot_id == boot)
         .ok_or("current browser Host offer was not freshly observed")?;
     for offer in offers {
-        if !local
+        if !hosts[local]
             .capabilities
             .iter()
             .any(|current| current.capability_id == offer.capability_id)
         {
-            local.capabilities.push(offer);
+            hosts.to_mut()[local].capabilities.push(offer);
         }
     }
-    let backs = crate::installed_browser::backs(&startup, &profile)?;
+    let backs = if has_selectors {
+        std::borrow::Cow::Owned(crate::installed_browser::backs(startup, &profile)?)
+    } else {
+        std::borrow::Cow::Borrowed(installed_backs)
+    };
     let expanded =
         conduit_plot::expand_canonical_plot_with_backs(&document, &plot.name, &profile, &backs)
             .map_err(|error| format!("Workspace expansion refused: {error:?}"))?;
@@ -212,14 +248,20 @@ pub(crate) fn plan_workspace_plots(
     joined_lines: &[JoinedLineObservation],
     authority: PlanningAuthority,
 ) -> Result<Vec<BodyPlotPlan>, String> {
-    let inventory = super::initial_plots::check_inventory(source)?;
+    let mut catalogs = super::catalog_preparation::CatalogPreparation::default();
+    let inventory = super::initial_plots::check_inventory_with_catalogs(source, &mut catalogs)?;
     if !observed_hosts
         .iter()
         .any(|observed| &observed.host_id == host && &observed.boot_id == boot)
     {
         return Err("current browser Host offer was not freshly observed".into());
     }
-    let local = super::initial_plots::reviewed_browser_host(source, host.clone(), boot.clone())?;
+    let local = super::initial_plots::reviewed_browser_host_with_inventory(
+        &inventory,
+        host.clone(),
+        boot.clone(),
+        &mut catalogs,
+    )?;
     let mut hosts = vec![local];
     hosts.extend(
         observed_hosts
@@ -245,13 +287,13 @@ pub(crate) fn plan_workspace_plots(
                     .map(|plot| (&entry.checked, plot, entry.presentation))
             })
             .ok_or("Resident Plot has a stale or missing checked identity")?;
-        let (startup, mut profile) =
-            crate::installed_browser::catalogs_for_presentation(presentation)?;
+        let (startup, base_profile) = catalogs.get(presentation)?;
+        let mut profile = base_profile.clone();
         crate::installed_browser::catalogs::install_checked_structured_selectors(
             document,
             &mut profile,
         )?;
-        let backs = crate::installed_browser::backs(&startup, &profile)?;
+        let backs = crate::installed_browser::backs(startup, &profile)?;
         let expanded =
             conduit_plot::expand_canonical_plot_with_backs(document, &plot.name, &profile, &backs)
                 .map_err(|error| format!("Workspace expansion refused: {error:?}"))?;

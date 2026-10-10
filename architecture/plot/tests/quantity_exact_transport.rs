@@ -46,6 +46,7 @@ fn prepared_exact_transport_admits_twenty_bytes_and_never_grows_during_evaluatio
     };
     let input = CheckedExpressionType::semantic(EXACT_DECIMAL_QUANTITY_INFO_ID);
     let context = ExpressionTypeContext {
+        glyph_values: None,
         input: &input,
         immutable_values: &BTreeMap::new(),
         structured_types: &BTreeMap::new(),

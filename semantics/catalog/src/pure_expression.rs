@@ -99,6 +99,7 @@ mod tests {
         let checked = check_expression(
             &expression.syntax,
             &ExpressionTypeContext {
+                glyph_values: None,
                 input: &input,
                 immutable_values: &immutable_values,
                 structured_types: &structured_types,

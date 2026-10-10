@@ -612,3 +612,6 @@ fn partial_send_cancelled_before_receipt_remains_explicitly_undelivered() {
     assert_eq!(transcript.entries[0].event, "sent-record");
     assert_eq!(transcript.entries[1].event, "cancelled");
 }
+
+#[path = "glyph_tests.rs"]
+mod glyph_tests;

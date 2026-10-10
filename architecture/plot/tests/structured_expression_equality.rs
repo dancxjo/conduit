@@ -1,3 +1,7 @@
+#[path = "common/allocation_probe.rs"]
+mod allocation_probe;
+#[global_allocator]
+static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
 use conduit_core::{
     ConfigurationValue, InfoBool, StructuredFieldValue, StructuredInfoType,
     StructuredInfoTypeShape, StructuredInfoValue,
@@ -61,9 +65,22 @@ fn evaluate(
     .unwrap()
     .canonical_bytes()
     .unwrap();
-    InfoBool::decode(&p.evaluate(&input).unwrap())
+    let expected = InfoBool::decode(&p.evaluate(&input).unwrap())
         .unwrap()
-        .get()
+        .get();
+    let mut prepared = conduit_plot::PreparedPortableExpressionEvaluator::new(p).unwrap();
+    let capacity = prepared.output_capacity();
+    let (actual, storage) = allocation_probe::observe(|| {
+        InfoBool::decode(prepared.evaluate(&input).unwrap())
+            .unwrap()
+            .get()
+    });
+    assert_eq!(actual, expected);
+    assert_eq!(storage.allocations, 0);
+    assert_eq!(storage.reallocations, 0);
+    assert_eq!(storage.peak_bytes, 0);
+    assert_eq!(prepared.output_capacity(), capacity);
+    expected
 }
 #[test]
 fn variants_compare_tags_and_ieee_bits_instead_of_float_arithmetic() {
@@ -170,6 +187,62 @@ fn nested_records_compare_each_exact_member() {
 }
 
 #[test]
-fn structured_equality_is_refused_before_prepared_play() {
-    assert!(conduit_plot::PreparedPortableExpressionEvaluator::new(&program("==")).is_err());
+fn malformed_structured_input_refuses_without_allocation() {
+    let mut prepared =
+        conduit_plot::PreparedPortableExpressionEvaluator::new(&program("==")).unwrap();
+    let (refused, storage) = allocation_probe::observe(|| prepared.evaluate(&[0, 1, 2]).is_err());
+    assert!(refused);
+    assert_eq!(storage.allocations, 0);
+    assert_eq!(storage.reallocations, 0);
+}
+
+#[test]
+fn nested_quantity_equality_keeps_exact_unit_conversion_law() {
+    use conduit_core::{Quantity, QuantityUnit};
+    let source = "type Pair = {\n left: collection Quantity = 1\n right: collection Quantity = 1\n}\nplot equal (\n >> input: Pair\n result: Boolean >>\n) = (.left == .right)";
+    let checked =
+        check_syntax_document(&parse_syntax_document(source), &StartupCatalog::new()).unwrap();
+    let expanded = expand_canonical_plot_for_authoring(&checked, "equal", &ProfileCatalog::new())
+        .unwrap()
+        .expanded;
+    let ConfigurationValue::Text(encoded) = &expanded.gears[0].configuration[0].value else {
+        panic!()
+    };
+    let p = PortableExpressionProgram::from_canonical_hex(encoded).unwrap();
+    let ty = field(&p.input_type, "left");
+    let StructuredInfoTypeShape::Collection { element, .. } = ty.shape() else {
+        panic!()
+    };
+    let value = |quantity: Quantity| {
+        StructuredInfoValue::collection(
+            ty.clone(),
+            vec![StructuredInfoValue::leaf(element.clone(), quantity.encode().to_vec()).unwrap()],
+        )
+        .unwrap()
+    };
+    assert!(evaluate(
+        &p,
+        value(Quantity::new(1, QuantityUnit::Second)),
+        value(Quantity::new(1000, QuantityUnit::Millisecond))
+    ));
+    assert!(!evaluate(
+        &p,
+        value(Quantity::new(1, QuantityUnit::Second)),
+        value(Quantity::new(999, QuantityUnit::Millisecond))
+    ));
+}
+
+#[test]
+fn foreign_operand_type_and_non_boolean_structured_comparison_refuse_before_play() {
+    use conduit_plot::PortableExpressionOperation;
+    let mut foreign = program("==");
+    let PortableExpressionOperation::Binary { right, .. } = &mut foreign.root.operation else {
+        panic!()
+    };
+    right.value_type = foreign.input_type.clone();
+    assert!(conduit_plot::PreparedPortableExpressionEvaluator::new(&foreign).is_err());
+    let mut wrong_output = program("==");
+    wrong_output.output_type = StructuredInfoType::leaf("value/count".into()).unwrap();
+    wrong_output.root.value_type = wrong_output.output_type.clone();
+    assert!(conduit_plot::PreparedPortableExpressionEvaluator::new(&wrong_output).is_err());
 }
