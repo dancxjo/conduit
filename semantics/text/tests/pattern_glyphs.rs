@@ -380,3 +380,28 @@ fn formatting_preserves_glyph_spelling_values_and_distinct_source_custody() {
         assert_eq!(before.plots[0].local_values, after.plots[0].local_values);
     }
 }
+
+#[test]
+fn multiline_pattern_source_survives_formatting_and_checked_admission() {
+    let (startup, profile) = catalogs();
+    for newline in ["\n", "\r\n"] {
+        let payload = format!("a{newline}#[}}]=>>{newline}t͡ʃ");
+        let document = source(&startup, &format!("r⟦{payload}⟧"));
+        assert!(
+            document.diagnostics.is_empty(),
+            "{:?}",
+            document.diagnostics
+        );
+        let before =
+            check_syntax_document_with_literal_constructors(&document, &startup, &profile).unwrap();
+        let formatted = format_syntax(document.round_trip(), &startup).unwrap();
+        assert!(formatted.contains(&format!("r⟦{payload}⟧")));
+        assert_eq!(format_syntax(&formatted, &startup).unwrap(), formatted);
+        let after_document = parse_syntax_document_with_glyph_notations(&formatted, &startup);
+        let after =
+            check_syntax_document_with_literal_constructors(&after_document, &startup, &profile)
+                .unwrap();
+        assert_eq!(before.plots[0].local_values, after.plots[0].local_values);
+        assert_eq!(literal(&after_document).raw_payload.text, payload);
+    }
+}
