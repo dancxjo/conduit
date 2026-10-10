@@ -52,7 +52,7 @@ const comparatorCases = ["units/converted-equals", "=?"].flatMap((comparator) =>
   ["1Hz", "m", "1m", "Conversion did not yield exactly 1000 Hz"],
   ["1kHz", "Hz", "1m", "Conversion did not yield exactly 1000 Hz"],
 ].map(([left, right, expected, text]) => ({
-  kind: "units/converted-equals", left, right, expected,
+  kind: "units/converted-equals", left, right, expected, invocation: comparator,
   expected_text: text, expected_presentation: "presentation/text", implementation: "browser/converted-equals@1",
   source: `${comparator === "=?" ? "with units/converted-equals as =?\n" : ""}plot convert-pitch-demo {
  operation: units/convert(source = ${left}, to = ${right})
@@ -106,7 +106,7 @@ for (const [name, cases] of [["official prefix and affine corpus", convertedCase
         if (api.conduit_browser_plot_complete_effect(play.length, placement.length, effect.observation_sequence, 0) < 0) throw new Error(`effect acknowledgment: ${JSON.stringify(read())}`);
         const receipt = read();
         if (receipt.disposition !== "completed" || receipt.active_play_id !== effect.active_play_id) throw new Error(`completion: ${JSON.stringify(receipt)}`);
-        rows.push({ kind: request.kind, left: request.left, right: request.right, source: request.source, effect, receipt });
+        rows.push({ kind: request.kind, left: request.left, right: request.right, expected: request.expected, invocation: request.invocation, source: request.source, effect, receipt });
       }
       const digest = await crypto.subtle.digest("SHA-256", wasm);
       return { rows, wasm_sha256: [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join(""), browser: navigator.userAgent };
