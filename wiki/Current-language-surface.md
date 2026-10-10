@@ -187,7 +187,7 @@ A real current family is
 whose text specialization is bounded to 4096 bytes. This language support does
 not mean all generic domain families have already migrated.
 
-### Finite native Type value parameters (#5326, development)
+### Finite native Type value parameters (#5326)
 
 A typed parameter binds an exact checking-time Info value; an unannotated
 parameter still binds a Type:
@@ -229,7 +229,8 @@ many-to-many occurrence relations. Capacity does not imply a shared phone index
 or sampling clock. The private [compatibility witness](https://github.com/dancxjo/conduit/blob/dev/semantics/speech/tests/value_parameter_gesture_capacity.rs)
 uses existing intent, IPA inventory, revision and anchored Audio trajectory
 admission; it does not implement phonological gesture realization or replace
-the common linguistic IR. Published stable acceptance remains pending #5326.
+the common linguistic IR. Implementation and independent stable-release evidence
+are tracked separately in [#5326](https://github.com/dancxjo/conduit/issues/5326).
 
 ### Compact Forms
 

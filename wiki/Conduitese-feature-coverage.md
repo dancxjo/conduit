@@ -59,7 +59,7 @@ for the published product's exact release.
 | Named/anonymous/nested records and tuples | [[Nested record|Conduitese-by-example#construct-a-nested-record]] and [[structures|Types-and-state#anonymous-finite-structures]] |
 | Payload-bearing/payloadless finite variant constructors | [[Choice|Conduitese-by-example#choose-a-payload-bearing-variant]] |
 | Generic native Type families and checked identity | [[Generic Types|Current-language-surface#generic-native-types]] |
-| Finite U16 value parameters, shape arithmetic and independent sequence capacities (#5326, development) | [[Value parameters|Current-language-surface#finite-native-type-value-parameters-5326-development]] |
+| Finite U16 value parameters, shape arithmetic and independent sequence capacities (#5326) | [[Value parameters|Current-language-surface#finite-native-type-value-parameters-5326]] |
 | Native scalar declarations; resolved identity versus source aliases | [[Identity|Types-and-state#checked-type-identity-is-not-source-spelling]] |
 | Exact collections, bounded sequences, empty sequence and actual length | [[Finite containers|Conduitese-by-example#finite-collections-and-variable-length-sequences]] |
 | Byte bounds, membership, excluded membership, closed/open-ended ranges | [[Refinements|Current-language-surface#checked-refinements-and-portable-patterns]] |
@@ -86,9 +86,9 @@ for the published product's exact release.
 
 ## Proposed language features
 
-The scoped glyph family below remains a proposal. The value-parameter
-implementation under #5326 is documented as development grammar above; its
-stable acceptance is still pending.
+The scoped glyph family below remains a proposal. The implemented value-parameter
+surface under #5326 is documented above. Its issue tracks independent
+stable-release acceptance for the published product.
 
 ### Scoped typed delimiter glyph families — #5317
 

@@ -187,15 +187,16 @@ Their presence is not an additional physical or release acceptance claim:
   to trusted host-local executable state; the OS path remains provider-local
   machinery rather than portable identity.
 
-- **Finite native Type value parameters (#5326, development):** typed U16 or
+- **Finite native Type value parameters (#5326):** typed U16 or
   refined-U16 parameters specialize exact collections, independent bounded
   sequences, scalar refinements and record laws through checked finite `+`/`*`
   arithmetic. Shipped family aliases retain owner meaning and Source/package
   provenance. The real Numeric migration and generated construction/decode,
   exact Fore mismatch, and private temporal-capacity custody fixtures have local
-  proof. These component checks do not establish stable publication, a new
-  linguistic/gesture schema, phonological realization or model preparation;
-  complete portable/integration and published acceptance remain pending.
+  proof, including browser/WASM Plan and acknowledged kernel execution.
+  See #5326 for independent stable-release acceptance. The capacity
+  witness preserves existing linguistic custody; it does not establish a new
+  gesture schema, phonological realization or model preparation.
 
 - **Record laws (#4638):** native record types own pure Boolean `where` laws,
   include them in checked identity, and enforce them at generated construction
