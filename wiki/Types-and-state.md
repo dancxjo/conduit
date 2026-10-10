@@ -58,6 +58,24 @@ Executable declarations use `plot`; portable type representations use `form`.
 
 Source aliases are authoring convenience only.
 
+This complete source gives the existing `text/upper` Kind a local alias:
+
+```conduit
+with text/upper as shout
+
+plot aliased-upper (
+    input: Text >> output: Text
+) {
+    input >> shout >> output
+}
+```
+
+Replacing `shout` with another local alias changes the authored spelling, not
+the resolved Kind or its checked Fore. It does not create a new text Type.
+By contrast, a native declaration such as `type AlmostU32 = U32 where
+. < 4_294_967_295` introduces a checked scalar profile with its own law; see
+[[the consuming arithmetic example|Conduitese-by-example#give-an-arithmetic-invariant-to-the-type]].
+
 > **Two source spellings that resolve to the same exact semantic type must produce the same checked type/fore identity. Renaming an alias must not change plan compatibility.**
 
 This applies to startup parameters as well as runtime ports.

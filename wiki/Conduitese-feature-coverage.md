@@ -51,7 +51,7 @@ for the published product's exact release.
 | Integers, IEEE floats, Boolean, text and byte bounds | [[Scalar expressions|Plots-and-flow#systems-grade-scalar-expressions]] and [[refinements|Current-language-surface#checked-refinements-and-portable-patterns]] |
 | Decimal/hex/binary/octal literals and separators | [[Scalar literals|Plots-and-flow#systems-grade-scalar-expressions]] |
 | Text quoting, escapes, Unicode and source comments | [[Text and source spelling|Plots-and-flow#text-and-source-spelling]] |
-| Unary, arithmetic, comparison, equality, bitwise, shift and Boolean expressions | [[Scalar operations|Plots-and-flow#systems-grade-scalar-expressions]] |
+| Unary, arithmetic, comparison, equality, bitwise, shift and Boolean expressions | [[Complete expression Plots|Plots-and-flow#complete-expression-plots]] |
 | Pure expression Plot, input `.`, field and tuple projections | [[Expression Plot|Conduitese-by-example#a-pure-plot-with-a-default-parameter]] and [[structures|Types-and-state#anonymous-finite-structures]] |
 | Ternary evaluates one pure branch | [[Choice|Conduitese-by-example#choose-a-payload-bearing-variant]] |
 | Immutable local dependencies and record punning | [[Locals|Plots-and-flow#immutable-locals]] |
@@ -59,7 +59,7 @@ for the published product's exact release.
 | Named/anonymous/nested records and tuples | [[Nested record|Conduitese-by-example#construct-a-nested-record]] and [[structures|Types-and-state#anonymous-finite-structures]] |
 | Payload-bearing/payloadless finite variant constructors | [[Choice|Conduitese-by-example#choose-a-payload-bearing-variant]] |
 | Generic native Type families and checked identity | [[Generic Types|Current-language-surface#generic-native-types]] |
-| Scalar aliases; nominal identity versus source spelling | [[Identity|Types-and-state#checked-type-identity-is-not-source-spelling]] |
+| Native scalar declarations; resolved identity versus source aliases | [[Identity|Types-and-state#checked-type-identity-is-not-source-spelling]] |
 | Exact collections, bounded sequences, empty sequence and actual length | [[Finite containers|Conduitese-by-example#finite-collections-and-variable-length-sequences]] |
 | Byte bounds, membership, excluded membership, closed/open-ended ranges | [[Refinements|Current-language-surface#checked-refinements-and-portable-patterns]] |
 | Portable positive/negative text patterns, flags, conjunction | [[Patterns|Current-language-surface#checked-refinements-and-portable-patterns]] |
@@ -79,7 +79,7 @@ for the published product's exact release.
 | Relative module imports | [[Packs and imports|Packs-hosts-and-bodies#packs-imports-resolution-and-distribution]] |
 | Pack version, `ship`, `need`, exact lock and no authority grant | [[Pack|Conduitese-by-example#a-pack]] |
 | Host target/build/loader, resource pools, Base, Back, policy and bounds | [[Host source|Current-language-surface#host-source]] |
-| Body hosts, parts and spores; construction versus current membership | [[Construction|Packs-hosts-and-bodies#one-conduit-language-for-plot-host-body-and-pack-source]] |
+| Body hosts, parts and spores; construction versus current membership | [[Body construction example|Packs-hosts-and-bodies#a-body-construction-source]] |
 | Body unordered `wear` and optional ordered `want` | [[Wardrobe|Conduitese-by-example#body-wardrobe]] |
 | Mask as ordinary Plot; Face, interaction and Show | [[Native graphical Mask|Conduitese-by-example#a-mask-is-an-ordinary-plot]] |
 
