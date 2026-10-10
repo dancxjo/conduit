@@ -94,3 +94,20 @@ fn preparation_reuses_catalogs_without_reusing_document_receipts() {
     )
     .is_err());
 }
+
+#[test]
+fn preparation_retains_the_original_installed_back_receipts_across_profile_switches() {
+    use crate::installed_browser::PresentationProfile::{Annotation, Quantity};
+    let mut preparation = super::catalog_preparation::CatalogPreparation::default();
+    for presentation in [Annotation, Quantity, Annotation] {
+        let (cold_startup, cold_profile) =
+            crate::installed_browser::catalogs_for_presentation(presentation).unwrap();
+        let cold_backs = crate::installed_browser::backs(&cold_startup, &cold_profile).unwrap();
+        let (startup, profile, backs) = preparation.get_with_backs(presentation).unwrap();
+        assert_eq!(startup, &cold_startup);
+        assert_eq!(profile, &cold_profile);
+        // Whole equality retains the original checked Source, Plot identity,
+        // startup front and realization contracts rather than just Kind names.
+        assert_eq!(backs, &cold_backs);
+    }
+}

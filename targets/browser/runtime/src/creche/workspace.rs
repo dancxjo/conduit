@@ -163,7 +163,7 @@ fn catalog_plot_plan(
         3 => crate::installed_browser::PresentationProfile::PatternComparison,
         _ => return Err("reviewed plot has an unsupported presentation profile".into()),
     };
-    let (startup, base_profile) = catalogs.get(presentation)?;
+    let (startup, base_profile, installed_backs) = catalogs.get_with_backs(presentation)?;
     let document =
         super::initial_plots::check_source_with_catalogs(&entry.source, startup, base_profile)?;
     if document.source_document_id.as_str() != entry.source_document_id {
@@ -210,7 +210,11 @@ fn catalog_plot_plan(
             local.capabilities.push(offer);
         }
     }
-    let backs = crate::installed_browser::backs(startup, &profile)?;
+    let backs = if has_selectors {
+        std::borrow::Cow::Owned(crate::installed_browser::backs(startup, &profile)?)
+    } else {
+        std::borrow::Cow::Borrowed(installed_backs)
+    };
     let expanded =
         conduit_plot::expand_canonical_plot_with_backs(&document, &plot.name, &profile, &backs)
             .map_err(|error| format!("Workspace expansion refused: {error:?}"))?;

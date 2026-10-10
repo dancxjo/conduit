@@ -20,7 +20,9 @@ Workspace preparation and each Plot library render retain one immutable installe
 checking consecutive documents with the same presentation profile. A profile
 change drops that pair before preparing its replacement; finishing the operation
 drops the preparation owner. Checking, local offers and planning share the same
-original checked inventory. Document-specific selectors modify a profile copy,
+original checked inventory. Each library render also prepares the installed Plot backs once per profile.
+Entries without structured selectors borrow the installed profile and backs;
+document-specific selectors modify a profile copy and rederive its backs,
 and glyph receipts remain bound to their original document. This avoids
 repeated installed-Type preparation without caching source admission, Host
 observations, commitment or Play authority.
