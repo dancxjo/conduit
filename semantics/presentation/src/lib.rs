@@ -190,3 +190,6 @@ pub use structured_info::*;
 pub use temporal::*;
 pub use temporal_model::*;
 pub use temporal_wording::*;
+
+mod typed_value;
+pub use typed_value::{display_typed_value, spoken_typed_value, MAX_FACE_VALUE_BYTES};

@@ -51,7 +51,7 @@
 .owner-identity [data-copy-key] { display: block; margin-top: .5rem; }
 .handbook-application [data-owner-join] { max-width: 48rem; }
 .handbook-application [data-owner-join] input { display: block; box-sizing: border-box; width: 100%; font: inherit; padding: .5rem; }
-.handbook-application [data-owner-result] { max-width: 72ch; }
+.handbook-application [data-owner-result] { max-width: 72ch; overflow-wrap: anywhere; }
 .owner-face { margin-block: 2rem; padding: clamp(1rem,2vw,1.5rem); border: 1px solid var(--conduit-structure-secondary); border-radius: .75rem; background: var(--conduit-background); }
 .owner-face > header { max-width: 70ch; }
 .owner-face > header h3 { font-size: clamp(1.35rem,2.2vw,1.8rem); margin-block: .2rem .6rem; }
@@ -90,3 +90,4 @@
 .owner-wardrobe-controls { display: flex; flex-wrap: wrap; gap: .5rem; }
 @media(max-width:900px) { .handbook-first-steps ol { grid-template-columns: repeat(2,minmax(0,1fr)); } }
 @media(max-width:540px) { .handbook-first-steps ol, .handbook-reading { grid-template-columns: 1fr; }.handbook-application { padding: 1rem; }.handbook-application select { max-width: 100%; }.handbook-controls button { flex: 1 1 8rem; } }
+@media(max-width:540px) { .owner-identity { grid-template-columns: minmax(0,1fr); gap: .3rem; }.owner-identity dt:not(:first-child) { margin-top: .8rem; } }

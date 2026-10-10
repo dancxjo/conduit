@@ -10,8 +10,7 @@ use conduit_todo_face::todo_fragment;
 use conduit_todo_plot::TodoCommand;
 use std::sync::Mutex;
 
-#[path = "../../../../semantics/presentation/tests/common/mod.rs"]
-mod common;
+use crate::mask_test_common as common;
 
 struct FakeQueue {
     maximum: usize,

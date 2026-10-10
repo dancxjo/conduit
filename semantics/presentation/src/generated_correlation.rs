@@ -285,6 +285,9 @@ pub(crate) fn validate_correlation(
             &v.subject == subject
                 && &v.name == name
                 && match &v.value {
+                    crate::PresentationPropertyValue::TypedValue { contract, .. } => {
+                        contract.value_kind.as_str() == content_profile
+                    }
                     crate::PresentationPropertyValue::Content(encoded) => {
                         conduit_core::BoundedResourceRef::validate_encoded(encoded)
                             .is_ok_and(|reference| reference.content_profile == content_profile)

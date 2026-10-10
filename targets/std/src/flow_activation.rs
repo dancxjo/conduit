@@ -10,11 +10,28 @@ use conduit_core::{
     PreparationHostIdentity, PreparedFragmentReceipt, PreparedPlan,
 };
 
+mod pure_thermostat_scan;
+mod thermostat_combine;
+mod thermostat_scan_offer;
+pub use pure_thermostat_scan::install_pure_thermostat_scan;
+pub use thermostat_combine::{offer as thermostat_combine_offer, ThermostatCombineFactory};
+#[cfg(test)]
+pub(crate) use thermostat_scan_offer::tests::authored_thermostat_plan_on_host;
+pub use thermostat_scan_offer::thermostat_scan_offer;
+pub(crate) use thermostat_scan_offer::validate_planned_thermostat_scan;
 mod pure_todo_scan;
 mod todo_combine;
 mod todo_scan_offer;
 pub use pure_todo_scan::install_pure_todo_scan;
-pub(crate) use todo_combine::maximum_scan_child_steps;
+pub(crate) fn maximum_scan_child_steps(
+    planned: &conduit_core::PlannedScanActivation,
+) -> Result<u32, String> {
+    if planned.item_input.value_kind.as_str() == conduit_thermostat_plot::COMMAND_KIND {
+        thermostat_combine::maximum_scan_child_steps(planned)
+    } else {
+        todo_combine::maximum_scan_child_steps(planned)
+    }
+}
 pub use todo_combine::{offer as todo_combine_offer, TodoCombineFactory};
 #[cfg(test)]
 pub(crate) use todo_scan_offer::tests::authored_todo_plan;
@@ -29,6 +46,7 @@ pub(crate) use todo_scan_offer::validate_planned_todo_scan;
 pub fn standard_child_registry() -> Result<KernelOperationRegistry, String> {
     let mut registry = KernelOperationRegistry::new();
     registry.install(TodoCombineFactory)?;
+    registry.install(ThermostatCombineFactory)?;
     Ok(registry)
 }
 

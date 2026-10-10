@@ -61,6 +61,11 @@ pub(crate) use clock_interval::{is_clock_control_intent, ClockAction, CLOCK_RUN_
 #[cfg(unix)]
 #[path = "terminal_route.rs"]
 mod terminal_route;
+#[path = "thermostat_face.rs"]
+mod thermostat_face;
+#[path = "thermostat_worker.rs"]
+mod thermostat_worker;
+pub(crate) use thermostat_worker::ThermostatWorker;
 #[path = "todo_face.rs"]
 mod todo_face;
 #[path = "todo_next.rs"]
@@ -181,6 +186,9 @@ pub(crate) struct Owner {
     direct_spoken_route: Option<conduit_presentation::LocalOwnerMaskRouteSeal>,
     llm_spoken_route: Option<conduit_presentation::LocalOwnerMaskRouteSeal>,
     presentation_wardrobe: Option<presentation_wardrobe::OwnerPresentationWardrobe>,
+    /// Bounded projection cache from the configured initial Form and the exact
+    /// current Thermostat scan Fore. The kernel owns its retained accumulator.
+    thermostat_live: Option<thermostat_face::ThermostatLive>,
     /// Projection cache for the exact currently Playing Todo encounter. The
     /// next Play must restore through its admitted read Host Call.
     todo_live: Option<(conduit_core::ActivePlayId, conduit_todo_plot::TodoState)>,
@@ -282,6 +290,7 @@ impl Owner {
             direct_spoken_route: None,
             llm_spoken_route: None,
             presentation_wardrobe: None,
+            thermostat_live: None,
             todo_live: None,
             todo_verified: None,
         })
@@ -307,6 +316,7 @@ impl Owner {
             direct_spoken_route: None,
             llm_spoken_route: None,
             presentation_wardrobe: None,
+            thermostat_live: None,
             todo_live: None,
             todo_verified: None,
         })
@@ -383,6 +393,9 @@ impl Owner {
     /// control service calls this; remote callers still need an exact admitted
     /// credential and current Part above.
     pub(crate) fn local_face_snapshot(&self) -> Result<Presentation, String> {
+        if let Some(live) = &self.thermostat_live {
+            return self.project_thermostat_face(live);
+        }
         match self.todo_live.as_ref() {
             Some((play, state)) if self.current_play_id() == Some(play) => {
                 self.project_face(Some((state, true)))
@@ -459,8 +472,8 @@ impl Owner {
     }
 
     /// Plan the exact retained source when its Host actually advertises an
-    /// activation coordinator. This seam is deliberately separate from Play:
-    /// the installed owner cannot yet route commands into an active scan.
+    /// activation coordinator. The selected scan worker supplies its bounded
+    /// ingress only after this exact parent and child Plan are sealed.
     fn plan_partition_with_source(
         &self,
         source: &crate::plot_source::CanonicalSource,
@@ -471,9 +484,23 @@ impl Owner {
         if plot.expanded.activations.is_empty() {
             return self.plan_partition(plot, resident);
         }
-        if plot.expanded.name != "todo/main" || plot.expanded.activations.len() != 1 {
-            return Err("installed Body supports no other activation source".into());
-        }
+        let (state_bytes, command_bytes) = match plot.expanded.name.as_str() {
+            "todo/main" => {
+                super::scoped_todo_initial(plot)?.ok_or("Todo scan is missing")?;
+                (
+                    conduit_todo_plot::STATE_MAX_BYTES,
+                    conduit_todo_plot::COMMAND_MAX_BYTES,
+                )
+            }
+            "thermostat/main" => {
+                super::scoped_thermostat_initial(plot)?.ok_or("Thermostat scan is missing")?;
+                (
+                    conduit_thermostat_plot::STATE_BYTES,
+                    conduit_thermostat_plot::COMMAND_BYTES,
+                )
+            }
+            _ => return Err("installed Body supports no other activation source".into()),
+        };
         let expected = ResidentPlot::new(
             plot.expanded.source_document_id.clone(),
             plot.expanded.checked_plot_id.clone(),
@@ -485,8 +512,7 @@ impl Owner {
         let hosts = [advertisement.clone()];
         let placements =
             conduit_planner::default_expanded_placements(&plot.expanded, &hosts).map_err(debug)?;
-        let queue_bytes = (2 * conduit_todo_plot::STATE_MAX_BYTES
-            + 2 * conduit_todo_plot::COMMAND_MAX_BYTES) as u32;
+        let queue_bytes = (2 * state_bytes + 2 * command_bytes) as u32;
         let boundaries = BTreeMap::from([
             (
                 conduit_planner::ForeBoundaryKey {
@@ -496,7 +522,7 @@ impl Owner {
                 },
                 conduit_planner::ConnectionQueueLimits {
                     item_capacity: 1,
-                    byte_capacity: conduit_todo_plot::COMMAND_MAX_BYTES as u32,
+                    byte_capacity: command_bytes as u32,
                 },
             ),
             (
@@ -507,7 +533,7 @@ impl Owner {
                 },
                 conduit_planner::ConnectionQueueLimits {
                     item_capacity: 1,
-                    byte_capacity: conduit_todo_plot::STATE_MAX_BYTES as u32,
+                    byte_capacity: state_bytes as u32,
                 },
             ),
         ]);

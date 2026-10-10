@@ -34,7 +34,25 @@
       "role": "owner-participation",
       "kind": "module",
       "path": "owner-participation.mjs",
+      "maximum_bytes": 65536,
+      "dependencies": [
+        {
+          "role": "owner-face-component",
+          "specifier": "./owner-face-component.mjs"
+        }
+      ]
+    },
+    {
+      "role": "owner-face-component",
+      "kind": "module",
+      "path": "owner-face-component.mjs",
       "maximum_bytes": 65536
+    },
+    {
+      "role": "owner-face-look",
+      "kind": "style",
+      "path": "owner-face-look.css",
+      "maximum_bytes": 16384
     },
     {
       "role": "birth-specification",

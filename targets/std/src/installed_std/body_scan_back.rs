@@ -1,6 +1,6 @@
-//! Bounded parent-kernel Step bridge for an exact prepared pure Todo scan.
+//! Bounded parent-kernel Step bridge for an exact prepared pure scan.
 //! The selected child kernels are prepared through receipt transfer before
-//! Play; this Back never reconstructs a Todo state or dispatches a Host Call.
+//! Play; this Back never reconstructs domain state or dispatches a Host Call.
 
 use conduit_composite::{
     BoundedScanActivationHost, BoundedScanAdmission, BoundedScanError, BoundedScanState,
@@ -36,13 +36,17 @@ impl BodyScanBack {
             || planned.output.abnormal_kind.is_some()
             || planned.accumulator_input.abnormal_kind.is_some()
             || planned.limits.maximum_items == 0
-            || planned.limits.maximum_items > 64
+            || planned.limits.maximum_items
+                > if planned.item_input.value_kind.as_str() == conduit_thermostat_plot::COMMAND_KIND
+                {
+                    256
+                } else {
+                    64
+                }
             || planned.retained_item_bytes == 0
             || planned.retained_accumulator_bytes == 0
         {
-            return Err(
-                "installed pure Todo scan requires value-only bounded Flow terminals".into(),
-            );
+            return Err("installed pure scan requires value-only bounded Flow terminals".into());
         }
         let expected_children = usize::from(planned.limits.maximum_items);
         let (ready, receipts) = scan.allocation_capacities();
@@ -54,9 +58,7 @@ impl BodyScanBack {
             || queued < planned.retained_item_bytes as usize
             || admission < planned.retained_item_bytes as usize
         {
-            return Err(
-                "installed Todo scan child receipts or value scratch were not admitted".into(),
-            );
+            return Err("installed scan child receipts or value scratch were not admitted".into());
         }
         let maximum_child_steps = crate::flow_activation::maximum_scan_child_steps(planned)?;
         Ok(Self {
