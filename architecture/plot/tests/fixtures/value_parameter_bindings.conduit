@@ -1,0 +1,24 @@
+# Generated binding acceptance input for #5326; not a new domain schema.
+type Vector<T, N: U16> = collection T = N
+type Matrix<C: U16, R: U16> = {
+    columns: U16
+    rows: U16
+    where .columns == C && .rows == R
+}
+type Matrix192x128 = Matrix<192, 128>
+type Matrix193x128 = Matrix<193, 128>
+type OtherMatrix<C: U16, R: U16> = {
+    columns: U16
+    rows: U16
+    where .columns == C && .rows == R
+}
+type ForeignMatrix = OtherMatrix<192, 128>
+type Window<H: U16, D: U16> = {
+    window: Vector<U8, (H + 1) * D>
+    history: Vector<Vector<U8, D>, H>
+}
+type Window2x3 = Window<2, 3>
+type Window3x2 = Window<3, 2>
+type Envelope = {
+    matrix: Matrix192x128
+}
