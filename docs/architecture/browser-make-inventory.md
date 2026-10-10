@@ -29,6 +29,10 @@ document-specific selectors modify a profile copy and rederive its backs,
 and glyph receipts remain bound to their original document. This avoids
 repeated installed-Type preparation without caching source admission, Host
 observations, commitment or Play authority.
+Resident Patchbay preparation checks its original inventory once for all active
+subjects. Expansions and titles come from that same checked entry and retain
+the Body Plan order and exact Source/Plot identities; foreign residents and
+missing lexical glyph bindings still refuse.
 
 | Runtime mechanism | Make classification | Runtime prerequisite truth |
 | --- | --- | --- |

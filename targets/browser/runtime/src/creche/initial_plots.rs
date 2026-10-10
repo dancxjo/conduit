@@ -234,39 +234,46 @@ pub(super) fn check_inventory_with_catalogs(
     Ok(checked)
 }
 
-pub(crate) fn expanded_inventory_plot(
+pub(crate) fn inventory_application_subjects(
     source: &str,
-    resident: &conduit_body::ResidentPlot,
-) -> Result<conduit_plot::ExpandedCanonicalPlot, String> {
-    for entry in check_inventory(source)? {
-        if entry.checked.source_document_id != resident.source_document_id {
-            continue;
-        }
-        if let Some(plot) = entry
-            .checked
-            .plots
-            .iter()
-            .find(|plot| plot.checked_plot_id == resident.checked_plot_id)
-        {
-            let (_, catalog) =
-                crate::installed_browser::catalogs_for_presentation(entry.presentation)?;
-            return conduit_plot::expand_canonical_plot(&entry.checked, &plot.name, &catalog)
-                .map_err(|error| format!("expand resident application subject: {error:?}"));
-        }
+    residents: &[conduit_body::ResidentPlot],
+) -> Result<Vec<(conduit_plot::ExpandedCanonicalPlot, String)>, String> {
+    if residents.len() > conduit_body::MAX_BODY_PLOTS {
+        return Err("resident application subjects exceed Body capacity".into());
     }
-    Err("resident application subject is absent from the reviewed inventory".into())
-}
-
-pub(crate) fn inventory_plot_title(
-    source: &str,
-    resident: &conduit_body::ResidentPlot,
-) -> Result<String, String> {
-    reviewed_inventory(source)?
-        .plots
-        .into_iter()
-        .find(|plot| plot.checked_plot_id == resident.checked_plot_id.as_str())
-        .map(|plot| plot.title)
-        .ok_or_else(|| "resident Plot is absent from the reviewed inventory".into())
+    let mut catalogs = super::catalog_preparation::CatalogPreparation::default();
+    let inventory = check_inventory_with_catalogs(source, &mut catalogs)?;
+    residents
+        .iter()
+        .map(|resident| {
+            let (entry, plot) = inventory
+                .iter()
+                .filter(|entry| entry.checked.source_document_id == resident.source_document_id)
+                .find_map(|entry| {
+                    entry
+                        .checked
+                        .plots
+                        .iter()
+                        .find(|plot| {
+                            plot.checked_plot_id == resident.checked_plot_id
+                                && entry
+                                    .entry_name
+                                    .as_ref()
+                                    .is_none_or(|name| name == &plot.name)
+                        })
+                        .map(|plot| (entry, plot))
+                })
+                .ok_or("resident application subject is absent from the reviewed inventory")?;
+            let (_, profile) = catalogs.get(entry.presentation)?;
+            let expanded = conduit_plot::expand_canonical_plot(&entry.checked, &plot.name, profile)
+                .map_err(|error| format!("expand resident application subject: {error:?}"))?;
+            let title = entry
+                .entry_title
+                .clone()
+                .unwrap_or_else(|| title(&plot.name));
+            Ok((expanded, title))
+        })
+        .collect()
 }
 
 #[cfg(test)]

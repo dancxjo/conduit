@@ -14,7 +14,7 @@ mod session;
 #[cfg(feature = "plot-runner")]
 mod workspace;
 #[cfg(feature = "plot-runner")]
-pub(crate) use initial_plots::{expanded_inventory_plot, inventory_plot_title};
+pub(crate) use initial_plots::inventory_application_subjects;
 #[cfg(feature = "plot-runner")]
 pub(crate) use workspace::{
     handoff_workspace, plan_workspace_plots, require_workspace_plot, workspace_evidence,

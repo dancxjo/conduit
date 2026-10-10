@@ -111,3 +111,55 @@ fn preparation_retains_the_original_installed_back_receipts_across_profile_switc
         assert_eq!(backs, &cold_backs);
     }
 }
+
+#[test]
+fn application_subjects_retain_original_resident_order_titles_and_checked_glyphs() {
+    let first = include_str!("../../../../../proof/browser/fixtures/scoped-pattern-glyph.conduit");
+    let second = first.replace("scoped-pattern-glyph", "scoped-pattern-second");
+    let source = serde_json::json!({
+        "schema": "conduit.creche/reviewed-plot-bundle@2",
+        "plots": [
+            { "slug": "first", "entry": "scoped-pattern-glyph", "title": "Original café", "source": first },
+            { "slug": "second", "entry": "scoped-pattern-second", "title": "Second", "source": second }
+        ]
+    }).to_string();
+    let checked = initial_plots::check_inventory(&source).unwrap();
+    let residents: Vec<_> = checked
+        .iter()
+        .rev()
+        .map(|entry| {
+            conduit_body::ResidentPlot::new(
+                entry.checked.source_document_id.clone(),
+                entry
+                    .checked
+                    .plots
+                    .iter()
+                    .find(|plot| Some(&plot.name) == entry.entry_name.as_ref())
+                    .unwrap()
+                    .checked_plot_id
+                    .clone(),
+            )
+        })
+        .collect();
+    let subjects = initial_plots::inventory_application_subjects(&source, &residents).unwrap();
+    let (_, profile) = crate::installed_browser::catalogs().unwrap();
+    for ((expanded, _), entry) in subjects.iter().zip(checked.iter().rev()) {
+        let cold = conduit_plot::expand_canonical_plot(
+            &entry.checked,
+            entry.entry_name.as_ref().unwrap(),
+            &profile,
+        )
+        .unwrap();
+        assert_eq!(expanded, &cold);
+    }
+    assert_eq!(subjects[0].1, "Second");
+    assert_eq!(subjects[1].1, "Original café");
+    let mut foreign = residents.clone();
+    foreign[0].source_document_id = "source/foreign".into();
+    assert!(initial_plots::inventory_application_subjects(&source, &foreign).is_err());
+    let unbound = source.replace("with text/pattern/notation as r\\n", "");
+    assert_ne!(unbound, source);
+    assert!(initial_plots::inventory_application_subjects(&unbound, &residents).is_err());
+    let oversized = vec![residents[0].clone(); conduit_body::MAX_BODY_PLOTS + 1];
+    assert!(initial_plots::inventory_application_subjects(&source, &oversized).is_err());
+}
