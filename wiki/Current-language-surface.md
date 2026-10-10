@@ -1,7 +1,8 @@
 # Current language surface
 
 This reference describes the checked development surface reviewed on
-**1 October 2026**, with the Plot/Form vocabulary reviewed on **2 October 2026**.
+**9 October 2026**. The [[feature example index|Conduitese-feature-coverage]]
+maps the complete reviewed surface and distinguishes the open language proposals.
 Source tests linked below establish grammar and checking;
 target tests establish the named execution paths. Published products can lag
 `dev`. Detailed semantic laws live on the topic pages in the sidebar.
@@ -23,22 +24,17 @@ and [syntax tests](https://github.com/dancxjo/conduit/blob/dev/architecture/plot
 
 ### Named type parameters
 
-This signature sketch omits its implementation; `...` below is an editorial
-placeholder, not runnable body syntax. The complete bounded `flow/each` example
-later on this page shows a checked generic implementation.
-
 ```conduit
-plot latest (
+plot identity (
     item: type
-
-    >> values: item...
-    current: $item >>
+    >> value: item
+    result: item >>
 ) {
-    ...
+    value >> result
 }
 ```
 
-`type` is the canonical compile-time parameter declaration. When inference is insufficient, explicit application uses ordinary named arguments such as `latest(item = Text)`. This plot-parameter surface does not require runtime erasure, implicit `any`, or hidden closures. Owner: #4059.
+`type` is the canonical compile-time parameter declaration. When inference is insufficient, explicit application uses ordinary named arguments such as `identity(item = Text)`. This plot-parameter surface does not require runtime erasure, implicit `any`, or hidden closures. Owner: #4059.
 
 ### Explicit Current sampling
 
@@ -65,12 +61,17 @@ Graph matching is:
 
 ```conduit
 event >> ? {
-    [MusicEvent.note]: . >> play-note
-    [MusicEvent.rest]: . >> keep-silence
+    [MusicEvent.note] >> play-note
+    [MusicEvent.rest] >> keep-silence
 }
 ```
 
-Within a selected payload-bearing case, `.` is the case payload. Payloadless cases omit empty-call ceremony. Closed variants remain exhaustive. Owner: #4002.
+The route carries the selected case payload to the destination. Within a pure
+expression that consumes it, `.` denotes that payload. Current route arms use
+`>>`; the optional leading `_` stage is a carried-value placeholder, not a
+discard. Payloadless constructors omit empty-call ceremony. Closed variants
+remain exhaustive. Owner: #4002. See the
+[selector tests](https://github.com/dancxjo/conduit/blob/dev/architecture/plot/tests/structured_selectors.rs).
 
 ### gear glyphs
 
@@ -116,6 +117,9 @@ Checked expansion, plans and signs expose the ordinary gear behind every glyph. 
 choice: Text <= 8B in ["x", "y", "z"]
 count: Count in 1..=100
 code: Text <= 64B ~ /matches(?:lookahead)(?<name>[A-Z]+)/i
+name: Text <= 8B not in ["admin", "root"]
+excluded: Text <= 8B !~ /[A-Z]{2}/i
+probability: F32 finite in 0.0..=1.0
 ```
 
 Adjacent refinement relations are conjunctive:
@@ -130,9 +134,31 @@ code: Text <= 8B in ["AB12", "CD34"] ~ /[A-Z]{2}[0-9]{2}/
 
 `~ /pattern/` succeeds when the pattern has a match within the bounded text. Authors use canonical anchors when whole-value matching is intended. Flags are a finite reviewed Conduit set and participate in checked identity; a Boolean refinement does not admit a meaningless global-iteration flag.
 
+`!~` excludes matching text. `not in` excludes membership. `finite` refines
+only `F32`/`F64`, excluding infinity and NaN; a numeric range is a separate law.
+These examples are Fore fragments. Complete checked fixtures and refusals are
+in the [refinement tests](https://github.com/dancxjo/conduit/blob/dev/architecture/plot/src/refinement_tests.rs).
+
 The older `where pattern(...)`, `where range(...)` and `where member(...)` spellings are migration targets, not compatibility aliases. Owner: #4199.
 
 ## Native types, Forms, and record laws
+
+### Quantities and finite containers
+
+The native suffix `250ms` needs no notation import. Current development also
+provides explicit `units/convert`, `units/compare`, temperature-difference
+operations, all 24 SI prefixes and a separately admitted exact quantity
+profile. [[Units and quantities|Units-and-quantities]] contains complete plots,
+prefix examples and precise representation/refusal boundaries.
+
+```conduit
+type Samples = collection U16 = 2
+type Labels = sequence Text <= 2
+```
+
+An exact collection has two items; this sequence has zero to two. Element
+constraints, actual count and named Type identity remain checked. See
+[[container construction and indexing|Conduitese-by-example#finite-collections-and-variable-length-sequences]].
 
 ### Generic native types
 
