@@ -122,10 +122,7 @@ fn every_primitive_has_one_canonical_leaf_contract() {
             FREQUENCY_INFO_ID,
             &Quantity::new(30, Unit::Centimeter).encode(),
         ),
-        Err(PrimitiveInfoRefusal::WrongQuantityDimension {
-            expected: QuantityDimension::Frequency,
-            actual: QuantityDimension::Length,
-        })
+        Err(PrimitiveInfoRefusal::WrongQuantityFamily)
     );
     assert_eq!(validate_primitive_info("domain/leaf@1", b"owned"), Ok(()));
 }

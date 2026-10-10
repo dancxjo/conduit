@@ -127,10 +127,23 @@ impl PatchbayHtmlServer {
                     .as_deref()
                     .ok_or(ServerError::InvalidRequest)?,
             ),
-            "edit" => PatchbayInteractionRequest::edit(
-                request_id,
-                parse_html_edit(input.edit.ok_or(ServerError::InvalidRequest)?)?,
-            ),
+            "edit" => {
+                let edit = input.edit.ok_or(ServerError::InvalidRequest)?;
+                let catalog = if edit.operation == "configure-gear" {
+                    self.zero_body_front_door
+                        .as_ref()
+                        .ok_or(ServerError::InvalidRequest)?
+                        .lock()
+                        .map_err(|_| ServerError::InvalidRequest)?
+                        .opened_plot_editor()
+                        .ok_or(ServerError::InvalidRequest)?
+                        .checked_physical_catalog()
+                        .map_err(|_| ServerError::InvalidRequest)?
+                } else {
+                    conduit_plot::StartupCatalog::new()
+                };
+                PatchbayInteractionRequest::edit(request_id, parse_html_edit(edit, &catalog)?)
+            }
             _ => return Err(ServerError::InvalidRequest),
         }
         .map_err(|error| ServerError::Interaction(format!("{error:?}")))?;
@@ -402,7 +415,10 @@ struct HtmlEditInput {
     value: Option<super::configuration_input::ConfigurationInput>,
 }
 
-fn parse_html_edit(input: HtmlEditInput) -> Result<PatchbayEdit, ServerError> {
+fn parse_html_edit(
+    input: HtmlEditInput,
+    catalog: &conduit_plot::StartupCatalog,
+) -> Result<PatchbayEdit, ServerError> {
     let basis = PatchbayEditBasis::new(
         conduit_core::SourceDocumentId::from(input.source_document_id),
         input.source_revision,
@@ -443,7 +459,7 @@ fn parse_html_edit(input: HtmlEditInput) -> Result<PatchbayEdit, ServerError> {
             value: input
                 .value
                 .ok_or(ServerError::InvalidRequest)?
-                .checked()
+                .checked_with_catalog(catalog)
                 .map_err(|_| ServerError::InvalidRequest)?,
         }),
         _ => Err(ServerError::InvalidRequest),

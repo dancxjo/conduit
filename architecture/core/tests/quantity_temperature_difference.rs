@@ -15,17 +15,45 @@ fn point_and_difference_have_distinct_identity_and_affine_laws() {
         ("0°C", "K", 0, 0),
         ("1QK", "qK", 1, 60),
     ] {
-        let receipt = ExactTemperatureDifferenceConversionReceipt::check(source, target).unwrap();
+        let point = Point::parse_plot_literal(source).unwrap();
+        let authored = format!(
+            "TemperatureDelta({}, {})",
+            point
+                .canonical_literal()
+                .unwrap()
+                .strip_suffix(point.unit().symbol())
+                .unwrap(),
+            point.unit().symbol()
+        );
+        let receipt =
+            ExactTemperatureDifferenceConversionReceipt::check(&authored, target).unwrap();
         let difference = receipt.source();
         let result = receipt.result().unwrap();
         assert_eq!(
             (result.coefficient(), result.exponent()),
             (coefficient, exponent)
         );
-        assert_eq!(receipt.original(), source);
+        assert_eq!(receipt.original(), authored);
         assert_eq!(result.target().source(), target);
-        assert_eq!(receipt.source_transform().1, 0);
-        assert_eq!(receipt.target_transform().1, 0);
+        assert_eq!(
+            receipt
+                .source()
+                .storage_coordinate()
+                .unit()
+                .exact_offset(conduit_core::QuantityRole::Delta)
+                .unwrap()
+                .numerator,
+            0
+        );
+        assert_eq!(
+            receipt
+                .target()
+                .unit()
+                .exact_offset(conduit_core::QuantityRole::Delta)
+                .unwrap()
+                .numerator,
+            0
+        );
         assert_ne!(
             difference.semantic_digest(),
             Point::parse_plot_literal(source).unwrap().semantic_digest()
@@ -36,19 +64,19 @@ fn point_and_difference_have_distinct_identity_and_affine_laws() {
         Err(ExactTemperatureDifferenceRefusal::NotTemperature)
     );
     assert_eq!(
-        Difference::parse_plot_literal("9°F")
+        Difference::parse_plot_literal("TemperatureDelta(9, °F)")
             .unwrap()
-            .compare(Difference::parse_plot_literal("5K").unwrap()),
+            .compare(Difference::parse_plot_literal("TemperatureDelta(5, K)").unwrap()),
         Ok(Ordering::Equal)
     );
     assert_eq!(
-        Difference::parse_plot_literal("1°C")
+        Difference::parse_plot_literal("TemperatureDelta(1, °C)")
             .unwrap()
-            .compare(Difference::parse_plot_literal("0K").unwrap()),
+            .compare(Difference::parse_plot_literal("TemperatureDelta(0, K)").unwrap()),
         Ok(Ordering::Greater)
     );
     assert_eq!(
-        Difference::parse_plot_literal("1°C")
+        Difference::parse_plot_literal("TemperatureDelta(1, °C)")
             .unwrap()
             .convert_to_target(ResolvedQuantitySuffix::resolve("m").unwrap()),
         Err(QuantityConversionRefusal::IncompatibleDimensions)
@@ -87,10 +115,14 @@ fn both_roles_match_independent_unbounded_fraction_reference() {
                 .convert_to_target(target)
                 .map(|value| (value.coefficient(), value.exponent()))
         } else {
-            Difference::parse_plot_literal(source)
-                .unwrap()
-                .convert_to_target(target)
-                .map(|value| (value.coefficient(), value.exponent()))
+            Difference::new(
+                Point::parse_plot_literal(source).unwrap().coefficient(),
+                Point::parse_plot_literal(source).unwrap().exponent(),
+                Point::parse_plot_literal(source).unwrap().unit(),
+            )
+            .unwrap()
+            .convert_to_target(target)
+            .map(|value| (value.coefficient(), value.exponent()))
         };
         let expected = match case["refusal"].as_str() {
             Some("inexact") => Err(QuantityConversionRefusal::Inexact),

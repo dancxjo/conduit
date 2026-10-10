@@ -54,7 +54,6 @@ fn receipt_for(profile: ConversionProfile) -> StructuredInfoType {
             field("left", operand::value_type(profile)),
             field("right", operand::value_type(profile)),
             field("profile", leaf(TEXT_INFO_ID)),
-            field("catalogue", leaf(TEXT_INFO_ID)),
             field("result", result_type(profile)),
         ],
     )
@@ -127,14 +126,7 @@ fn prepare_for(
             },
             StructuredInfoValue::leaf(leaf(EMPTY_INFO_ID), vec![]).map_err(R::Receipt)?,
         ),
-        Err(refusal) => (
-            "refused",
-            text(match refusal {
-                QuantityConversionRefusal::IncompatibleDimensions => "incompatible-dimensions",
-                QuantityConversionRefusal::Inexact => "inexact",
-                QuantityConversionRefusal::Overflow => "overflow",
-            })?,
-        ),
+        Err(refusal) => ("refused", text(refusal_reason(refusal))?),
     };
     let result =
         StructuredInfoValue::variant(result_type(profile), tag, payload).map_err(R::Receipt)?;
@@ -143,8 +135,7 @@ fn prepare_for(
         [
             ("left", left.encode(profile)?),
             ("right", right.encode(profile)?),
-            ("profile", text(profile.source_id())?),
-            ("catalogue", text(QUANTITY_PREFIX_CATALOG_ID)?),
+            ("profile", text(&profile.source_id())?),
             ("result", result),
         ]
         .into_iter()

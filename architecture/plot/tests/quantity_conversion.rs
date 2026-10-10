@@ -150,13 +150,7 @@ fn readmission_refuses_forged_facts_even_when_the_record_shape_is_valid() {
     let StructuredInfoValueShape::Record(fields) = receipt.shape() else {
         panic!("record");
     };
-    for name in [
-        "profile",
-        "source-dimension",
-        "catalogue",
-        "target",
-        "original",
-    ] {
+    for name in ["profile", "target", "original"] {
         let fields = fields
             .iter()
             .map(|field| {
@@ -176,6 +170,33 @@ fn readmission_refuses_forged_facts_even_when_the_record_shape_is_valid() {
             })
             .collect();
         let forged = StructuredInfoValue::record(receipt_type(), fields).unwrap();
+        assert!(validate_receipt(&forged).is_err(), "{name}");
+    }
+}
+
+#[test]
+fn readmission_recomputes_result_from_embedded_quantity_and_unit_capsules() {
+    use conduit_core::StructuredFieldValue;
+    let receipt = prepare("0°C", "K");
+    let changed = prepare("1°C", "°C");
+    let StructuredInfoValueShape::Record(fields) = receipt.shape() else {
+        panic!("record")
+    };
+    for name in ["source", "target-unit", "result"] {
+        let forged = StructuredInfoValue::record(
+            receipt_type(),
+            fields
+                .iter()
+                .map(|entry| {
+                    if entry.name() == name {
+                        StructuredFieldValue::new(name, field(&changed, name).clone()).unwrap()
+                    } else {
+                        entry.clone()
+                    }
+                })
+                .collect(),
+        )
+        .unwrap();
         assert!(validate_receipt(&forged).is_err(), "{name}");
     }
 }

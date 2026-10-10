@@ -23,6 +23,7 @@ use conduit_signal_conformance::{
 use std::collections::BTreeMap;
 
 mod protected_resource_tests;
+mod quantity_connection_limits;
 
 pub(crate) fn plot() -> conduit_plot::CheckedPlot {
     parse_with_startup(
@@ -244,6 +245,7 @@ fn retained_duration_derives_exact_state_plan_truth() {
         temporal: conduit_core::PortTemporal::Current,
         abnormal_kind: None,
     }];
+    placement.limits.max_queue_bytes = conduit_core::QUANTITY_ENCODED_LEN as u32;
     let initial = conduit_core::Quantity::new(3, conduit_core::Unit::Meter);
     placement.configuration = vec![
         conduit_core::ConfigurationEntry {

@@ -49,18 +49,7 @@ fn configuration_type(field: &KindConfigurationField) -> &'static str {
             conduit_core::QuantityDimension::Angle => "Angle",
             conduit_core::QuantityDimension::Ratio => "Ratio",
             conduit_core::QuantityDimension::PixelCount => "PixelCount",
-            conduit_core::QuantityDimension::Current
-            | conduit_core::QuantityDimension::Charge
-            | conduit_core::QuantityDimension::DataSize
-            | conduit_core::QuantityDimension::Mass
-            | conduit_core::QuantityDimension::Area
-            | conduit_core::QuantityDimension::Volume
-            | conduit_core::QuantityDimension::Speed
-            | conduit_core::QuantityDimension::Acceleration
-            | conduit_core::QuantityDimension::Force
-            | conduit_core::QuantityDimension::Energy
-            | conduit_core::QuantityDimension::Power
-            | conduit_core::QuantityDimension::Pressure => "Quantity",
+            _ => "Quantity",
         },
         (_, ConfigurationValue::Text(_)) => "Text",
         (_, ConfigurationValue::U64(_)) => "Count",

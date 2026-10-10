@@ -20,6 +20,8 @@ pub struct KindSignature {
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct StartupCatalog {
+    pub(crate) physical: crate::physical_declarations::CheckedPhysicalCatalogue,
+    pub(crate) physical_sources: Vec<crate::SyntaxDocument>,
     kinds: BTreeMap<String, KindSignature>,
     fores: BTreeMap<String, CheckedFront>,
     variadic_fores: BTreeMap<String, crate::HomogeneousVariadicFore>,
@@ -308,6 +310,7 @@ pub struct CheckedCanonicalPlot {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CheckedSyntaxDocument {
+    pub(crate) physical: crate::physical_declarations::CheckedPhysicalCatalogue,
     pub source_document_id: SourceDocumentId,
     pub native_types: Vec<CheckedNativeType>,
     pub(crate) retained_native_types: Vec<CheckedNativeType>,

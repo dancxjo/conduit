@@ -8,7 +8,6 @@ enum Coordinate {
 pub(super) struct Operand<'a> {
     original: &'a str,
     coordinate: Coordinate,
-    suffix: ResolvedQuantitySuffix<'a>,
 }
 
 pub(super) fn value_type(profile: ConversionProfile) -> StructuredInfoType {
@@ -23,15 +22,6 @@ pub(super) fn value_type(profile: ConversionProfile) -> StructuredInfoType {
         vec![
             field("original", leaf(TEXT_INFO_ID)),
             field("coordinate", profile.source_type()),
-            field("suffix", leaf(TEXT_INFO_ID)),
-            field("base", leaf(TEXT_INFO_ID)),
-            field("prefix", leaf(TEXT_INFO_ID)),
-            field("prefix-exponent", leaf("value/i16")),
-            field("composed-exponent", leaf("value/i16")),
-            field("dimension", leaf(TEXT_INFO_ID)),
-            field("scale", leaf("value/i128")),
-            field("offset", leaf("value/i128")),
-            field("denominator", leaf("value/i128")),
         ],
     )
     .expect("finite operand")
@@ -51,21 +41,16 @@ impl<'a> Operand<'a> {
             ) => (value.source(), Coordinate::Difference(value.value())),
             _ => return Err(ExactQuantityConversionRequestRefusal::SourceEvidenceMismatch),
         };
-        let start = original
-            .char_indices()
-            .find_map(|(index, character)| {
-                (!(character.is_ascii_digit()
-                    || character == '.'
-                    || (index == 0 && character == '-')))
-                    .then_some(index)
-            })
-            .expect("parsed quantity has a suffix");
-        let suffix = ResolvedQuantitySuffix::resolve(&original[start..])
-            .expect("the checked parser resolved this exact suffix");
+        let value = match coordinate {
+            Coordinate::Quantity(value) => value,
+            Coordinate::Difference(value) => value.storage_coordinate(),
+        };
+        if !value.matches_literal_evidence(original) {
+            return Err(ExactQuantityConversionRequestRefusal::SourceEvidenceMismatch);
+        }
         Ok(Self {
             original,
             coordinate,
-            suffix,
         })
     }
     pub(super) fn compare(&self, other: &Self) -> Result<Ordering, QuantityConversionRefusal> {
@@ -80,12 +65,9 @@ impl<'a> Operand<'a> {
         profile: ConversionProfile,
     ) -> Result<StructuredInfoValue, QuantityConversionPreparationRefusal> {
         use QuantityConversionPreparationRefusal as R;
-        let (coordinate, (scale, offset, denominator)) = match self.coordinate {
-            Coordinate::Quantity(value) => (value, value.reference_transform()),
-            Coordinate::Difference(value) => (value.storage_coordinate(), value.transform()),
-        };
-        let value = |identity: &str, bytes: Vec<u8>| {
-            StructuredInfoValue::leaf(leaf(identity), bytes).map_err(R::Receipt)
+        let coordinate = match self.coordinate {
+            Coordinate::Quantity(value) => value,
+            Coordinate::Difference(value) => value.storage_coordinate(),
         };
         StructuredInfoValue::record(
             value_type(profile),
@@ -94,42 +76,6 @@ impl<'a> Operand<'a> {
                 (
                     "coordinate",
                     profile.source_value(coordinate).map_err(R::Receipt)?,
-                ),
-                ("suffix", text(self.suffix.source())?),
-                ("base", text(self.suffix.unit().base_unit().plot_suffix())?),
-                (
-                    "prefix",
-                    text(self.suffix.prefix().map_or("", |prefix| prefix.symbol()))?,
-                ),
-                (
-                    "prefix-exponent",
-                    value(
-                        "value/i16",
-                        i16::from(self.suffix.prefix().map_or(0, |prefix| prefix.exponent()))
-                            .to_le_bytes()
-                            .to_vec(),
-                    )?,
-                ),
-                (
-                    "composed-exponent",
-                    value(
-                        "value/i16",
-                        self.suffix
-                            .decimal_exponent()
-                            .unwrap_or(0)
-                            .to_le_bytes()
-                            .to_vec(),
-                    )?,
-                ),
-                ("dimension", text(dimension_name(coordinate.dimension()))?),
-                ("scale", value("value/i128", scale.to_le_bytes().to_vec())?),
-                (
-                    "offset",
-                    value("value/i128", offset.to_le_bytes().to_vec())?,
-                ),
-                (
-                    "denominator",
-                    value("value/i128", denominator.to_le_bytes().to_vec())?,
                 ),
             ]
             .into_iter()

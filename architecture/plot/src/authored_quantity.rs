@@ -7,7 +7,8 @@ pub(crate) fn expected_role(ty: &StructuredInfoType) -> Option<&'static str> {
     match ty.shape() {
         StructuredInfoTypeShape::Leaf(kind)
             if (kind.as_str() == QUANTITY_INFO_ID
-                || quantity_info_dimension(kind.as_str()).is_some()) =>
+                || quantity_info_dimension(kind.as_str()).is_some()
+                || primitive_info_kind(kind.as_str()) == Some(PrimitiveInfoKind::Quantity)) =>
         {
             Some("quantity")
         }

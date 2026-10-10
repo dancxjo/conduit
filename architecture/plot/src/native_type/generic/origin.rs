@@ -95,6 +95,7 @@ impl Context<'_> {
         work: &mut OriginWork,
     ) -> Result<(), SyntaxCheckDiagnostic> {
         match value {
+            Definition::Quantity(_) => {}
             Definition::Scalar(value) => {
                 self.origin_expression(value, parameters, catalog, work)?
             }

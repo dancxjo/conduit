@@ -109,7 +109,12 @@ impl PreparedConvertedEquals {
         }
         match source.compare(self.expected) {
             Ok(core::cmp::Ordering::Equal) => Ok(true),
-            Ok(_) | Err(QuantityConversionRefusal::IncompatibleDimensions) => Ok(false),
+            Ok(_)
+            | Err(
+                QuantityConversionRefusal::IncompatibleDimensions
+                | QuantityConversionRefusal::IncompatibleQuantityFamilies
+                | QuantityConversionRefusal::IncompatibleQuantityRoles,
+            ) => Ok(false),
             Err(_) => Err(R::Configuration),
         }
     }

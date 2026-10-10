@@ -34,12 +34,12 @@ const convertedCases = [
   ["units/convert", "1MiB", "B", converted(1048576, 0)],
 ];
 const roleCases = [
-  ["units/convert-temperature-difference", "9°F", "K", converted(5, 0)],
-  ["units/convert-temperature-difference", "1m°C", "K", converted(1, -3)],
+  ["units/convert-temperature-difference", "TemperatureDelta(9, °F)", "K", converted(5, 0)],
+  ["units/convert-temperature-difference", "TemperatureDelta(1, m°C)", "K", converted(1, -3)],
   ["units/compare", "1000mm", "0.001km", 'variant/is(.result, "equal")'],
   ["units/compare", "1°F", "0°C", 'variant/is(.result, "less")'],
   ["units/compare", "1MB", "1MiB", 'variant/is(.result, "less")'],
-  ["units/compare-temperature-differences", "9°F", "5K", 'variant/is(.result, "equal")'],
+  ["units/compare-temperature-differences", "TemperatureDelta(9, °F)", "TemperatureDelta(5, K)", 'variant/is(.result, "equal")'],
   ["units/convert", "1°F", "°C", refused("inexact")],
   ["units/convert", "1Hz", "m", refused("incompatible-dimensions")],
   ["units/convert", "1Qm³", "qm³", refused("overflow")],
@@ -63,7 +63,12 @@ const comparatorCases = ["units/converted-equals", "=?"].flatMap((comparator) =>
 }.`,
 })));
 
-for (const [name, cases] of [["official prefix and affine corpus", convertedCases], ["semantic roles and retained refusals", roleCases], ["full-name and scoped alias receipt comparator", comparatorCases]]) {
+const snapshotCases = [["1.7018", 17018, -4], ["2", 2, 0], ["1.7018", 17018, -4]].map(([scale, coefficient, exponent]) => ({
+  kind: "units/convert", left: "1smoot", right: "m", snapshot_scale: scale,
+  source: `unit smoot : Distance = { reference: m, scale: ${scale} }\n${source("units/convert", "1smoot", "m", converted(coefficient, exponent))}`,
+}));
+
+for (const [name, cases] of [["official prefix and affine corpus", convertedCases], ["semantic roles and retained refusals", roleCases], ["full-name and scoped alias receipt comparator", comparatorCases], ["immutable authored unit snapshots", snapshotCases]]) {
   test(`exact quantities execute ${name} through the browser kernel`, async ({ page }, testInfo) => {
     test.setTimeout(60_000);
     const errors = [];
@@ -106,7 +111,7 @@ for (const [name, cases] of [["official prefix and affine corpus", convertedCase
         if (api.conduit_browser_plot_complete_effect(play.length, placement.length, effect.observation_sequence, 0) < 0) throw new Error(`effect acknowledgment: ${JSON.stringify(read())}`);
         const receipt = read();
         if (receipt.disposition !== "completed" || receipt.active_play_id !== effect.active_play_id) throw new Error(`completion: ${JSON.stringify(receipt)}`);
-        rows.push({ kind: request.kind, left: request.left, right: request.right, expected: request.expected, invocation: request.invocation, source: request.source, effect, receipt });
+        rows.push({ kind: request.kind, left: request.left, right: request.right, expected: request.expected, invocation: request.invocation, snapshot_scale: request.snapshot_scale, source: request.source, effect, receipt });
       }
       const digest = await crypto.subtle.digest("SHA-256", wasm);
       return { rows, wasm_sha256: [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join(""), browser: navigator.userAgent };

@@ -483,7 +483,10 @@ fn physical_configuration_edits_preserve_canonical_bytes_and_source_spelling() {
         ),
         ConfigurationValue::Unit(conduit_core::UnitConfigurationValue::parse("°C").unwrap()),
         ConfigurationValue::TemperatureDifference(
-            conduit_core::ExactTemperatureDifferenceConfigurationValue::parse("9°F").unwrap(),
+            conduit_core::ExactTemperatureDifferenceConfigurationValue::parse(
+                "TemperatureDelta(9, °F)",
+            )
+            .unwrap(),
         ),
     ];
     for (index, value) in values.into_iter().enumerate() {

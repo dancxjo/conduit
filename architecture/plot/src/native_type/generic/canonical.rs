@@ -174,6 +174,7 @@ pub(super) fn declaration_key(
 
 fn definition(value: &crate::TypeDefinitionSyntax) -> String {
     match value {
+        crate::TypeDefinitionSyntax::Quantity(value) => alloc::format!("physical:{value:?}"),
         crate::TypeDefinitionSyntax::Scalar(value) => {
             alloc::format!("scalar:{}", expression(value))
         }

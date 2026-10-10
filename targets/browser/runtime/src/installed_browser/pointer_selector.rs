@@ -82,8 +82,8 @@ fn offer(selector: &StructuredSelector, implementation: &str) -> CapabilityOffer
                 contract_id: HOST_CALL.into(),
                 target_kind: Some(target_kind),
                 maximum_in_flight: 1,
-                maximum_input_bytes: super::MAXIMUM_BROWSER_VALUE_BYTES as u32,
-                maximum_output_bytes: super::MAXIMUM_BROWSER_VALUE_BYTES as u32,
+                maximum_input_bytes: super::NORMALIZED_POINTER_VALUE_BYTES as u32,
+                maximum_output_bytes: super::NORMALIZED_POINTER_VALUE_BYTES as u32,
             }],
             resource_requirements: Vec::new(),
             authority_requirements: Vec::new(),
@@ -92,7 +92,7 @@ fn offer(selector: &StructuredSelector, implementation: &str) -> CapabilityOffer
     .narrow_capacity(CapabilityLimits {
         max_active_instances: 8,
         max_queue_items: 1,
-        max_queue_bytes: super::MAXIMUM_BROWSER_VALUE_BYTES as u32,
+        max_queue_bytes: super::NORMALIZED_POINTER_VALUE_BYTES as u32,
     })
     .expect("browser pointer selector capacity narrows its exact dynamic contract")
     .build()
@@ -104,7 +104,7 @@ fn prepare(
 ) -> Result<BrowserBack, String> {
     PreparedSelector::new(placement)?;
     Ok(BrowserBack::unary(
-        super::MAXIMUM_BROWSER_VALUE_BYTES as u32,
+        super::NORMALIZED_POINTER_VALUE_BYTES as u32,
         1,
     ))
 }
@@ -141,7 +141,7 @@ impl PreparedSelector {
             input_type: expected.input_type().canonical_bytes().map_err(debug)?,
             output_type: expected.output_type().canonical_bytes().map_err(debug)?,
             selector: expected,
-            output: Vec::with_capacity(super::MAXIMUM_BROWSER_VALUE_BYTES),
+            output: Vec::with_capacity(super::NORMALIZED_POINTER_VALUE_BYTES),
         })
     }
 

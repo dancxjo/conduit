@@ -4,11 +4,8 @@ use crate::{
     BinaryOperator, PortableExpressionEvaluationRefusal as Refusal, PortableExpressionNode,
     PortableExpressionOperation, PortableExpressionProgram, UnaryOperator,
 };
-use alloc::{boxed::Box, vec::Vec};
-use conduit_core::{
-    primitive_info_kind, PrimitiveInfoKind, StructuredInfoTypeShape, BOOL_INFO_ID, COUNT_INFO_ID,
-    SCALAR_INFO_ID,
-};
+use alloc::{boxed::Box, string::String, vec::Vec};
+use conduit_core::{PrimitiveInfoKind, StructuredInfoTypeShape};
 
 mod byte_observation;
 mod inspection;
@@ -22,7 +19,10 @@ mod primitive;
 mod storage_bound;
 mod structured;
 mod structured_contract;
-use primitive::{decode_bool, evaluate_binary, evaluate_unary, PrimitiveValue};
+use primitive::{
+    decode_bool, evaluate_binary, evaluate_unary, kind_name, leaf_info_kind, leaf_kind,
+    PrimitiveValue,
+};
 use structured::PreparedStructuredExpression;
 
 /// A prepared primitive-only evaluator. Construction owns every allocation;
@@ -37,6 +37,7 @@ pub struct PreparedPortableExpressionEvaluator {
 enum PreparedInput {
     Primitive {
         kind: PrimitiveInfoKind,
+        info_kind: String,
         nominal_type: Option<SharedBytes>,
     },
     Structured(SharedBytes),
@@ -59,6 +60,7 @@ enum PreparedRoot {
 
 struct PreparedNode {
     kind: PrimitiveInfoKind,
+    info_kind: String,
     operation: PreparedOperation,
 }
 
@@ -111,6 +113,7 @@ impl PreparedPortableExpressionEvaluator {
         let input = match program.input_type.shape() {
             StructuredInfoTypeShape::Leaf(_) => PreparedInput::Primitive {
                 kind: leaf_kind(&program.input_type)?,
+                info_kind: leaf_info_kind(&program.input_type)?.into(),
                 nominal_type: None,
             },
             StructuredInfoTypeShape::Nominal { representation, .. }
@@ -118,6 +121,7 @@ impl PreparedPortableExpressionEvaluator {
             {
                 PreparedInput::Primitive {
                     kind: leaf_kind(&program.input_type)?,
+                    info_kind: leaf_info_kind(&program.input_type)?.into(),
                     nominal_type: Some(
                         program
                             .input_type
@@ -181,11 +185,15 @@ impl PreparedPortableExpressionEvaluator {
     pub fn evaluate(&mut self, input: &[u8]) -> Result<&[u8], Refusal> {
         let mut primitive_bytes = input;
         let primitive_input = match &self.input {
-            PreparedInput::Primitive { kind, nominal_type } => {
+            PreparedInput::Primitive {
+                kind,
+                info_kind,
+                nominal_type,
+            } => {
                 if let Some(expected) = nominal_type {
                     primitive_bytes = nominal::input_payload(input, expected)?;
                 }
-                conduit_core::validate_primitive_info(kind_name(*kind), primitive_bytes)
+                conduit_core::validate_primitive_info(info_kind, primitive_bytes)
                     .map_err(|_| Refusal::InvalidInput)?;
                 Some(*kind)
             }
@@ -232,6 +240,11 @@ fn prepare_node(
         PortableExpressionOperation::Literal(literal) => PreparedOperation::Literal(
             crate::expression_evaluate::literal_primitive_bytes(&node.value_type, literal)?,
         ),
+        PortableExpressionOperation::CanonicalLiteral(encoded) => {
+            crate::expression_program::validate_capsule_literal(&node.value_type, encoded)
+                .map_err(|_| Refusal::InvalidProgram)?;
+            PreparedOperation::Literal(encoded.clone())
+        }
         PortableExpressionOperation::Unary { operator, operand } => PreparedOperation::Unary {
             operator: *operator,
             operand: Box::new(prepare_node(operand, input_type, prepared_input)?),
@@ -334,7 +347,11 @@ fn prepare_node(
             ))
         }
     };
-    Ok(PreparedNode { kind, operation })
+    Ok(PreparedNode {
+        kind,
+        info_kind: leaf_info_kind(&node.value_type)?.into(),
+        operation,
+    })
 }
 
 fn evaluate_node<'a>(
@@ -392,93 +409,10 @@ fn evaluate_node<'a>(
         }
     };
     if value.kind == expected {
+        conduit_core::validate_primitive_info(&node.info_kind, value.as_slice())
+            .map_err(|_| Refusal::InvalidProgram)?;
         Ok(value)
     } else {
         Err(Refusal::InvalidProgram)
-    }
-}
-
-fn leaf_kind(value_type: &conduit_core::StructuredInfoType) -> Result<PrimitiveInfoKind, Refusal> {
-    match value_type.shape() {
-        StructuredInfoTypeShape::Leaf(kind) => primitive_info_kind(kind.as_str())
-            .ok_or_else(|| Refusal::UnsupportedType(kind.as_str().into())),
-        StructuredInfoTypeShape::Nominal { representation, .. } => leaf_kind(representation),
-        _ => Err(Refusal::UnsupportedType(
-            "structured expression runtime".into(),
-        )),
-    }
-}
-
-const fn fixed_integer(kind: PrimitiveInfoKind) -> bool {
-    matches!(
-        kind,
-        PrimitiveInfoKind::U8
-            | PrimitiveInfoKind::U16
-            | PrimitiveInfoKind::U32
-            | PrimitiveInfoKind::U64
-            | PrimitiveInfoKind::U128
-            | PrimitiveInfoKind::I8
-            | PrimitiveInfoKind::I16
-            | PrimitiveInfoKind::I32
-            | PrimitiveInfoKind::I64
-            | PrimitiveInfoKind::I128
-    )
-}
-
-const fn signed_integer(kind: PrimitiveInfoKind) -> bool {
-    matches!(
-        kind,
-        PrimitiveInfoKind::I8
-            | PrimitiveInfoKind::I16
-            | PrimitiveInfoKind::I32
-            | PrimitiveInfoKind::I64
-            | PrimitiveInfoKind::I128
-    )
-}
-
-const fn quantity_kind(kind: PrimitiveInfoKind) -> bool {
-    matches!(
-        kind,
-        PrimitiveInfoKind::Quantity
-            | PrimitiveInfoKind::Distance
-            | PrimitiveInfoKind::Frequency
-            | PrimitiveInfoKind::Duration
-            | PrimitiveInfoKind::Voltage
-            | PrimitiveInfoKind::Temperature
-            | PrimitiveInfoKind::Angle
-            | PrimitiveInfoKind::Ratio
-            | PrimitiveInfoKind::PixelCount
-    )
-}
-
-const fn kind_name(kind: PrimitiveInfoKind) -> &'static str {
-    match kind {
-        PrimitiveInfoKind::Empty => conduit_core::EMPTY_INFO_ID,
-        PrimitiveInfoKind::Bool => BOOL_INFO_ID,
-        PrimitiveInfoKind::Text => conduit_core::TEXT_INFO_ID,
-        PrimitiveInfoKind::F32 => conduit_core::F32_INFO_ID,
-        PrimitiveInfoKind::Count => COUNT_INFO_ID,
-        PrimitiveInfoKind::Scalar => SCALAR_INFO_ID,
-        PrimitiveInfoKind::U8 => "value/u8",
-        PrimitiveInfoKind::U16 => "value/u16",
-        PrimitiveInfoKind::U32 => "value/u32",
-        PrimitiveInfoKind::U64 => "value/u64",
-        PrimitiveInfoKind::U128 => "value/u128",
-        PrimitiveInfoKind::I8 => "value/i8",
-        PrimitiveInfoKind::I16 => "value/i16",
-        PrimitiveInfoKind::I32 => "value/i32",
-        PrimitiveInfoKind::I64 => "value/i64",
-        PrimitiveInfoKind::I128 => "value/i128",
-        PrimitiveInfoKind::Unit => conduit_core::UNIT_INFO_ID,
-        PrimitiveInfoKind::Quantity => conduit_core::QUANTITY_INFO_ID,
-        PrimitiveInfoKind::Distance => conduit_core::DISTANCE_INFO_ID,
-        PrimitiveInfoKind::Frequency => conduit_core::FREQUENCY_INFO_ID,
-        PrimitiveInfoKind::Duration => conduit_core::DURATION_INFO_ID,
-        PrimitiveInfoKind::Voltage => conduit_core::VOLTAGE_INFO_ID,
-        PrimitiveInfoKind::Temperature => conduit_core::TEMPERATURE_INFO_ID,
-        PrimitiveInfoKind::Angle => conduit_core::ANGLE_INFO_ID,
-        PrimitiveInfoKind::Ratio => conduit_core::RATIO_INFO_ID,
-        PrimitiveInfoKind::PixelCount => conduit_core::PIXEL_COUNT_INFO_ID,
-        _ => "unsupported",
     }
 }

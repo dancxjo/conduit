@@ -1,7 +1,8 @@
 //! Browser production realization of exact measurement summaries.
 
 use super::factory::{validate_placement, BrowserInstallation};
-use super::{BrowserBack, MAXIMUM_BROWSER_VALUE_BYTES};
+use super::measurement_limits;
+use super::BrowserBack;
 use conduit_core::{
     ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
     HostCallRequirement, ImplementationId, PlannedGear,
@@ -21,25 +22,27 @@ pub(super) static INSTALLATION: BrowserInstallation = BrowserInstallation {
 fn offer() -> CapabilityOffer {
     let contract = conduit_data::measurement_summary_semantic_contract();
     let kind = contract.kind_id.clone();
-    BackOfferBuilder::new(
-        contract,
-        Back {
-            capability_id: CapabilityId::from(IMPLEMENTATION),
-            execution_profile_id: ExecutionProfileId::from(IMPLEMENTATION),
-            implementation_id: ImplementationId::from(IMPLEMENTATION),
-            artifact_id: ArtifactId::from("conduit-browser-runtime/measurement-summary@1"),
-            host_calls: vec![HostCallRequirement {
-                contract_id: HOST_CALL.into(),
-                target_kind: Some(kind),
-                maximum_in_flight: 1,
-                maximum_input_bytes: MAXIMUM_BROWSER_VALUE_BYTES as u32,
-                maximum_output_bytes: MAXIMUM_BROWSER_VALUE_BYTES as u32,
-            }],
-            resource_requirements: Vec::new(),
-            authority_requirements: Vec::new(),
-        },
+    super::measurement_limits::finish_offer(
+        BackOfferBuilder::new(
+            contract,
+            Back {
+                capability_id: CapabilityId::from(IMPLEMENTATION),
+                execution_profile_id: ExecutionProfileId::from(IMPLEMENTATION),
+                implementation_id: ImplementationId::from(IMPLEMENTATION),
+                artifact_id: ArtifactId::from("conduit-browser-runtime/measurement-summary@1"),
+                host_calls: vec![HostCallRequirement {
+                    contract_id: HOST_CALL.into(),
+                    target_kind: Some(kind),
+                    maximum_in_flight: 1,
+                    maximum_input_bytes: measurement_limits::WINDOW as u32,
+                    maximum_output_bytes: measurement_limits::SUMMARY as u32,
+                }],
+                resource_requirements: Vec::new(),
+                authority_requirements: Vec::new(),
+            },
+        )
+        .build(),
     )
-    .build()
 }
 
 fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserBack, String> {
@@ -47,7 +50,7 @@ fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserB
     if !placement.configuration.is_empty() {
         return Err("measurement summary accepts no configuration".into());
     }
-    Ok(BrowserBack::unary(MAXIMUM_BROWSER_VALUE_BYTES as u32, 1))
+    Ok(BrowserBack::unary(measurement_limits::WINDOW as u32, 1))
 }
 
 pub(crate) fn execute(input: &[u8]) -> Result<Vec<u8>, Failure> {
@@ -60,7 +63,7 @@ pub(crate) fn execute(input: &[u8]) -> Result<Vec<u8>, Failure> {
             UnitMismatch => 4,
             ArithmeticOverflow => 5,
             InexactMean => 6,
-            TemperatureDifferenceRequired => 8,
+            PointDifferenceRequired => 8,
         })
     })?;
     let payload = conduit_data::encode_measurement_summary(&summary).map_err(|_| failure(7))?;
@@ -68,7 +71,7 @@ pub(crate) fn execute(input: &[u8]) -> Result<Vec<u8>, Failure> {
         conduit_core::StructuredInfoValue::leaf(conduit_data::measurement_summary_type(), payload)
             .map_err(|_| failure(7))?;
     let bytes = value.canonical_bytes().map_err(|_| failure(7))?;
-    if bytes.len() > MAXIMUM_BROWSER_VALUE_BYTES {
+    if bytes.len() > measurement_limits::SUMMARY {
         return Err(Failure {
             code: FailureCode::StorageExhausted,
             detail: 8,
@@ -119,7 +122,12 @@ mod tests {
         );
         assert_eq!(offer.inputs, semantic.inputs);
         assert_eq!(offer.outputs, semantic.outputs);
-        assert_eq!(offer.limits, semantic.limits);
+        assert!(offer.limits.max_queue_items <= semantic.limits.max_queue_items);
+        assert!(offer.limits.max_queue_bytes <= semantic.limits.max_queue_bytes);
+        assert!(offer
+            .resource_requirements
+            .iter()
+            .any(|item| item.class_id.as_str() == conduit_core::RUNTIME_MEMORY_RESOURCE_CLASS));
         let mut window = BoundedMeasurementWindow::new(MeasurementWindowProfile {
             capacity: 3,
             range: MeasurementRange {

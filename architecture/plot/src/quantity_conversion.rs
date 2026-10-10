@@ -51,40 +51,24 @@ pub fn receipt_type() -> StructuredInfoType {
     receipt_type_for(ConversionProfile::Quantity)
 }
 fn receipt_type_for(profile: ConversionProfile) -> StructuredInfoType {
-    let mut fields = vec![
-        field("original", leaf(TEXT_INFO_ID)),
-        field("source", profile.source_type()),
-        field("source-suffix", leaf(TEXT_INFO_ID)),
-        field("source-base", leaf(TEXT_INFO_ID)),
-        field("source-prefix", leaf(TEXT_INFO_ID)),
-        field("source-prefix-exponent", leaf("value/i16")),
-        field("source-dimension", leaf(TEXT_INFO_ID)),
-        field("target-dimension", leaf(TEXT_INFO_ID)),
-        field("target", leaf(TEXT_INFO_ID)),
-        field("profile", leaf(TEXT_INFO_ID)),
-        field("catalogue", leaf(TEXT_INFO_ID)),
-        field("target-exponent", leaf("value/i16")),
-        field("result", result_type(profile)),
-    ];
-    for name in [
-        "source-scale",
-        "source-offset",
-        "source-denominator",
-        "target-scale",
-        "target-offset",
-        "target-denominator",
-    ] {
-        fields.push(field(name, leaf("value/i128")));
-    }
-    StructuredInfoType::record(kind_id(profile.receipt_id()), fields).expect("finite receipt")
+    StructuredInfoType::record(
+        kind_id(profile.receipt_id()),
+        vec![
+            field("original", leaf(TEXT_INFO_ID)),
+            field("source", profile.source_type()),
+            field("target", leaf(TEXT_INFO_ID)),
+            field("target-unit", leaf(UNIT_INFO_ID)),
+            field("profile", leaf(TEXT_INFO_ID)),
+            field("result", result_type(profile)),
+        ],
+    )
+    .expect("finite self-contained receipt")
 }
+
 pub fn install(startup: &mut StartupCatalog, profile: &mut ProfileCatalog) -> Result<(), String> {
     install_for(ConversionProfile::Quantity, startup, profile)?;
     install_for(ConversionProfile::TemperatureDifference, startup, profile)?;
-    startup.ensure_structured_type(
-        "TemperatureDifference",
-        temperature_difference::source_type(),
-    )?;
+    startup.ensure_structured_type("TemperatureDelta", temperature_difference::source_type())?;
     comparison::install(startup, profile)?;
     converted_equals::install(startup, profile)
 }
@@ -119,15 +103,7 @@ fn install_receipt(
                 value_type: match parameter.value_type.as_str() {
                     QUANTITY_INFO_ID => "Quantity".into(),
                     UNIT_INFO_ID => "Unit".into(),
-                    kind if kind
-                        == temperature_difference::source_type()
-                            .profile()
-                            .expect("difference")
-                            .value_kind()
-                            .as_str() =>
-                    {
-                        "TemperatureDifference".into()
-                    }
+                    kind if kind == temperature_delta_info_id() => "TemperatureDelta".into(),
                     _ => "Text".into(),
                 },
                 default: None,
@@ -264,28 +240,13 @@ pub fn prepare_operation_configuration(
     }
 }
 
-fn dimension_name(dimension: QuantityDimension) -> &'static str {
-    match dimension {
-        QuantityDimension::Time => "time",
-        QuantityDimension::Frequency => "frequency",
-        QuantityDimension::Voltage => "voltage",
-        QuantityDimension::Current => "current",
-        QuantityDimension::Temperature => "temperature",
-        QuantityDimension::Charge => "charge",
-        QuantityDimension::Length => "length",
-        QuantityDimension::Angle => "angle",
-        QuantityDimension::Ratio => "ratio",
-        QuantityDimension::DataSize => "data-size",
-        QuantityDimension::PixelCount => "pixel-count",
-        QuantityDimension::Mass => "mass",
-        QuantityDimension::Area => "area",
-        QuantityDimension::Volume => "volume",
-        QuantityDimension::Speed => "speed",
-        QuantityDimension::Acceleration => "acceleration",
-        QuantityDimension::Force => "force",
-        QuantityDimension::Energy => "energy",
-        QuantityDimension::Power => "power",
-        QuantityDimension::Pressure => "pressure",
+pub(super) fn refusal_reason(refusal: QuantityConversionRefusal) -> &'static str {
+    match refusal {
+        QuantityConversionRefusal::IncompatibleDimensions => "incompatible-dimensions",
+        QuantityConversionRefusal::IncompatibleQuantityFamilies => "incompatible-quantity-families",
+        QuantityConversionRefusal::IncompatibleQuantityRoles => "incompatible-quantity-roles",
+        QuantityConversionRefusal::Inexact => "inexact",
+        QuantityConversionRefusal::Overflow => "overflow",
     }
 }
 
@@ -339,10 +300,19 @@ fn validate_for(
             },
             ConfigurationEntry {
                 key: "to".into(),
-                value: ConfigurationValue::Unit(
-                    UnitConfigurationValue::parse(&parameter("target")?)
-                        .map_err(|_| R::ForgedReceipt)?,
-                ),
+                value: ConfigurationValue::Unit({
+                    let target = fields
+                        .iter()
+                        .find(|f| f.name() == "target-unit")
+                        .ok_or(R::ForgedReceipt)?
+                        .value();
+                    let StructuredInfoValueShape::Leaf(bytes) = target.shape() else {
+                        return Err(R::ForgedReceipt);
+                    };
+                    let target = Unit::decode(bytes).map_err(|_| R::ForgedReceipt)?;
+                    UnitConfigurationValue::new(target, parameter("target")?)
+                        .ok_or(R::ForgedReceipt)?
+                }),
             },
         ],
     )?;

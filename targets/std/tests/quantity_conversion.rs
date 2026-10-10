@@ -118,6 +118,31 @@ fn installed_quantity_conversion_emits_one_exact_receipt_through_the_shared_kern
         } else {
             ("source", "to")
         };
+        let delta = |literal: &str| {
+            let boundary = literal
+                .char_indices()
+                .find(|(_, ch)| !ch.is_ascii_digit() && *ch != '-' && *ch != '.')
+                .unwrap()
+                .0;
+            format!(
+                "TemperatureDelta({}, {})",
+                &literal[..boundary],
+                &literal[boundary..]
+            )
+        };
+        let original = if matches!(
+            kind,
+            temperature_difference::KIND | comparison::DIFFERENCE_KIND
+        ) {
+            delta(original)
+        } else {
+            original.to_owned()
+        };
+        let target = if kind == comparison::DIFFERENCE_KIND {
+            delta(target)
+        } else {
+            target.to_owned()
+        };
         let source = format!("plot conversion (\n receipt: {name} <= 8192B >>\n) {{\n converted: {kind}({first} = {original}, {second} = {target})\n converted.receipt >> receipt\n}}.\n");
         let syntax = parse_syntax_document(&source);
         assert!(syntax.diagnostics.is_empty());

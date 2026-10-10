@@ -64,6 +64,7 @@ pub struct TypeSyntax {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TypeDefinitionSyntax {
+    Quantity(crate::QuantityDefinitionSyntax),
     Scalar(TypeExpressionSyntax),
     Record(Vec<TypeFieldSyntax>),
     Variant(Vec<TypeVariantCaseSyntax>),

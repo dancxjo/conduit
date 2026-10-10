@@ -19,6 +19,7 @@ use crate::{
 mod construction;
 pub(crate) mod front;
 mod pack;
+mod physical_declaration;
 mod shared_pool;
 mod type_declaration;
 pub(crate) use type_declaration::parse_integer_spanned;
@@ -64,6 +65,9 @@ pub(crate) fn parse_surface(source: &str) -> SyntaxDocument {
             parsed.standard_glyphs,
             SyntaxDefinitions {
                 types: parsed.types,
+                dimensions: parsed.dimensions,
+                prefixes: parsed.prefixes,
+                units: parsed.units,
                 type_forms: parsed.type_forms,
                 plots: parsed.plots,
                 constructions: parsed.constructions,
@@ -92,6 +96,9 @@ struct ParsedSurface {
     uses: Vec<UseDeclaration>,
     standard_glyphs: bool,
     types: Vec<TypeSyntax>,
+    dimensions: Vec<crate::DimensionDeclarationSyntax>,
+    prefixes: Vec<crate::PrefixDeclarationSyntax>,
+    units: Vec<crate::UnitDeclarationSyntax>,
     type_forms: Vec<TypeFormSyntax>,
     plots: Vec<PlotSyntax>,
     constructions: Vec<ConstructionSyntax>,
@@ -127,6 +134,9 @@ impl<'a> Parser<'a> {
         let mut uses = Vec::new();
         let mut standard_glyphs = true;
         let mut types = Vec::new();
+        let mut dimensions = Vec::new();
+        let mut prefixes = Vec::new();
+        let mut units = Vec::new();
         let mut type_forms = Vec::new();
         let mut plots = Vec::new();
         let mut constructions = Vec::new();
@@ -163,7 +173,13 @@ impl<'a> Parser<'a> {
         }
         while self.index < self.lines.len() {
             let (text, _) = self.lines[self.index].statement();
-            if text.starts_with("type ") {
+            if text.starts_with("dimension ") {
+                dimensions.push(self.parse_physical_dimension()?);
+            } else if text.starts_with("prefix ") {
+                prefixes.push(self.parse_physical_prefix()?);
+            } else if text.starts_with("unit ") {
+                units.push(self.parse_physical_unit()?);
+            } else if text.starts_with("type ") {
                 types.push(self.parse_type_declaration()?);
             } else if text.starts_with("form ") {
                 type_forms.push(parse_type_form(&mut self)?);
@@ -195,6 +211,9 @@ impl<'a> Parser<'a> {
             self.skip_empty();
         }
         if types.is_empty()
+            && dimensions.is_empty()
+            && prefixes.is_empty()
+            && units.is_empty()
             && type_forms.is_empty()
             && plots.is_empty()
             && constructions.is_empty()
@@ -203,7 +222,10 @@ impl<'a> Parser<'a> {
             return Err((PlotError::IncompletePlot, eof_span(self.source)));
         }
         if !packages.is_empty()
-            && (!types.is_empty()
+            && (!dimensions.is_empty()
+                || !prefixes.is_empty()
+                || !units.is_empty()
+                || !types.is_empty()
                 || !type_forms.is_empty()
                 || !plots.is_empty()
                 || !constructions.is_empty()
@@ -221,6 +243,9 @@ impl<'a> Parser<'a> {
             uses,
             standard_glyphs,
             types,
+            dimensions,
+            prefixes,
+            units,
             type_forms,
             plots,
             constructions,

@@ -132,7 +132,7 @@ fn validate_node(
             }
         }
         Op::Variant { payload, .. } => validate_node(payload, input_type, types)?,
-        Op::Input | Op::Literal(_) => {}
+        Op::Input | Op::Literal(_) | Op::CanonicalLiteral(_) => {}
     }
     Ok(())
 }
@@ -141,7 +141,7 @@ fn validate_node(
 // time. An input-dependent expression cannot use this route to evade proof.
 fn closed(node: &PortableExpressionNode) -> bool {
     match &node.operation {
-        Op::Literal(_) => true,
+        Op::Literal(_) | Op::CanonicalLiteral(_) => true,
         Op::Record(fields) => fields.iter().all(|(_, value)| closed(value)),
         Op::Tuple(values) | Op::Collection(values) => values.iter().all(closed),
         Op::Variant { payload, .. } => closed(payload),

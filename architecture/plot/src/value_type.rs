@@ -69,6 +69,11 @@ pub(crate) fn checked_value_kind(
     catalog
         .structured_type(source_type)
         .map(|value_type| {
+            if let conduit_core::StructuredInfoTypeShape::Leaf(kind) = value_type.shape() {
+                if crate::authored_quantity::expected_role(value_type).is_some() {
+                    return Ok(kind.clone());
+                }
+            }
             value_type
                 .profile()
                 .map(|profile| profile.value_kind().clone())

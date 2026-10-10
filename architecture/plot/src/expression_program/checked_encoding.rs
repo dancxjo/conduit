@@ -60,8 +60,25 @@ fn push_checked(
     match syntax {
         ExpressionSyntax::Input(_) => sink.push(0),
         ExpressionSyntax::Atomic(value) => {
-            sink.push(1);
-            push_text(sink, &value.text);
+            if let Some(bytes) = checked
+                .canonical_literals
+                .get(&(value.span.start, value.span.end))
+            {
+                let ty = checked
+                    .node_types
+                    .iter()
+                    .find(|node| same_span(node.span, value.span))
+                    .ok_or(PortableExpressionProgramRefusal::MissingCheckedNodeType)?
+                    .value_type
+                    .structured_info_type_with(&checked.semantic_structures)?;
+                validate_capsule_literal(&ty, bytes)?;
+                sink.push(11);
+                push_len(sink, bytes.len());
+                sink.extend_from_slice(bytes);
+            } else {
+                sink.push(1);
+                push_text(sink, &value.text);
+            }
         }
         ExpressionSyntax::Projection { value, member, .. }
             if variant

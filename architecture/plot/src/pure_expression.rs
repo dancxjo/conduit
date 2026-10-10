@@ -273,7 +273,11 @@ impl Parser<'_> {
         let mut fields = Vec::new();
         self.whitespace();
         if self.peek() == Some('}') {
-            return Err(self.error("structured records must contain at least one field"));
+            self.bump();
+            return Ok(ExpressionSyntax::Record {
+                fields,
+                span: self.from(start, self.offset),
+            });
         }
         loop {
             if fields.len() == MAXIMUM_STRUCTURED_RECORD_FIELDS {

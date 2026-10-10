@@ -47,11 +47,10 @@ pub const MAXIMUM_STRUCTURED_COLLECTION_ITEMS: usize = 1_024;
 pub const MAXIMUM_STRUCTURED_RECORD_FIELDS: usize = 64;
 pub const MAXIMUM_STRUCTURED_VARIANT_CASES: usize = 64;
 pub const MAXIMUM_STRUCTURED_NAME_BYTES: usize = 128;
-/// Largest authored primitive payload. This matches the portable `Bytes`
-/// ceiling; the canonical envelope remains separately and finitely bounded.
-pub const MAXIMUM_STRUCTURED_LEAF_BYTES: usize = 65_536;
-/// Room for two maximum-sized leaves plus finite aggregate type/value framing.
-/// This lets one bounded structured value carry a paged 128 KiB semantic payload.
+/// Finite native/domain leaf envelope, including a maximum measurement window.
+/// Individual primitive contracts retain their own tighter payload limits.
+pub const MAXIMUM_STRUCTURED_LEAF_BYTES: usize = 131_072;
+/// Finite whole-value ceiling, including aggregate type and value framing.
 pub const MAXIMUM_STRUCTURED_CANONICAL_BYTES: usize = 262_144;
 
 const TYPE_DIGEST_DOMAIN: &[u8] = b"conduit.structured-info.type.v1";

@@ -30,7 +30,7 @@ pub(super) fn validate_family(family: &InteractionFamily) -> Result<(), Interact
         InteractionFamily::RelativeAdjustment(value)
             if value.minimum_delta() <= value.maximum_delta()
                 && *value.granularity() > 0
-                && value.unit().dimension() != conduit_core::QuantityDimension::Temperature =>
+                && value.unit().declared_role() != conduit_core::QuantityRole::Point =>
         {
             Ok(())
         }

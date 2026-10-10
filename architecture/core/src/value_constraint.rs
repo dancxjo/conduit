@@ -439,9 +439,10 @@ impl ValueConstraint {
             }
             Self::QuantityRange {
                 minimum, maximum, ..
-            } if value_kind != crate::QUANTITY_INFO_ID
-                && minimum.as_ref().or(maximum.as_ref()).is_some_and(|bound| {
-                    crate::quantity_info_dimension(value_kind) != Some(bound.dimension())
+            } if (value_kind != crate::QUANTITY_INFO_ID
+                && crate::parse_quantity_role_info_id(value_kind).is_none())
+                || minimum.iter().chain(maximum.iter()).any(|bound| {
+                    crate::validate_primitive_info(value_kind, &bound.encode()).is_err()
                 }) =>
             {
                 Err(ConstraintDefinitionError::WrongConstraintKind)

@@ -58,9 +58,9 @@ depends on semantic, application, target, or proof packages.
 | `kind_effects.rs` | universal architecture | Reviewed semantic effect facts used to admit pure Kind calls without inferring behavior from names. |
 | `retry_evidence.rs` | universal architecture | Finite provider-owned retained evidence for one exact semantic operation, prior realization, and retry law; proves eligibility without inventing a retry loop or treating Step failure as semantic terminal truth. |
 | `quantity.rs` and children | generic value mechanism | One canonical bounded decimal Quantity codec carrying its full Unit descriptor, exact literals, physical comparison and rational conversion. |
-| `quantity_prefix.rs` | generic value mechanism | Immutable official decimal prefixes and reviewed base-unit composition positions. |
-| `quantity_suffix.rs` | generic value mechanism | Whole-suffix resolution with explicit aliases and preserved source spelling, separate from storage eligibility. |
-| `unit.rs` and children | generic value mechanism | Catalogue-pinned bounded physical Unit codec, exact scale and affine reference metadata. |
+| `physical_definition.rs` and children | generic value mechanism | Self-contained immutable family, dimension, role and Unit capsules admitted from authoritative Conduitese definitions; bounded exact scalar and explicit prefix policies. |
+| `quantity_suffix.rs` | generic value mechanism | Borrowed source evidence checked against the embedded Unit descriptor, with generated built-in convenience resolution. |
+| `unit.rs` | generic value mechanism | Standalone bounded physical Unit codec carrying complete declaration identity, reference anchor, exact affine law and admitted spelling. |
 | `quantity_configuration.rs` | generic value mechanism | Checked exact Quantity, physical Unit and temperature-difference startup values with separate bounded source evidence. |
 | `structured_info.rs` and children | generic value mechanism | Finite canonical structured type/value, selection, inspection, transport, and profile machinery. |
 | `temporal.rs` | generic value mechanism | Exact finite temporal identity, instant, relation, and offset-only civil primitives without clocks or timezone databases. |

@@ -179,3 +179,31 @@ fn reviewed_punctuation_units_do_not_change_numeric_operator_grammar() {
         );
     }
 }
+
+#[test]
+fn intrinsic_custom_quantity_parameters_forward_into_generic_quantity_contracts() {
+    let source = "dimension wobble\ntype Wobble = quantity {dimension:wobble}\nunit wob/s : Wobble = {reference:origin,scale:1}\nunit doublewob/s : Wobble = {reference:wob/s,scale:2}\nplot forward (\n seed: Wobble\n target: Unit\n receipt: ExactQuantityConversionReceipt <= 8192B >>\n) {\n operation: units/convert(source=seed,to=target)\n operation.receipt >> receipt\n}\nplot demo (\n receipt: ExactQuantityConversionReceipt <= 8192B >>\n) {\n operation: forward(seed=3doublewob/s,target=wob/s)\n operation.receipt >> receipt\n}.\n";
+    let expanded = expand(source, "demo");
+    let gear = expanded
+        .expanded
+        .gears
+        .iter()
+        .find(|gear| gear.kind_id.as_str() == quantity_conversion::KIND)
+        .unwrap();
+    let receipt = quantity_conversion::prepare_configuration(&gear.configuration).unwrap();
+    quantity_conversion::validate_receipt(&receipt).unwrap();
+    let ConfigurationValue::Quantity(value) = &gear.configuration[0].value else {
+        panic!("quantity")
+    };
+    assert_eq!(value.source(), "3doublewob/s");
+    // Unit is independent and cannot satisfy even the generic Quantity contract.
+    let mut startup = StartupCatalog::new();
+    let mut profiles = ProfileCatalog::new();
+    quantity_conversion::install(&mut startup, &mut profiles).unwrap();
+    let invalid = parse_syntax_document(
+        &source
+            .replace("seed: Wobble", "seed: Unit")
+            .replace("seed=3doublewob/s", "seed=wob/s"),
+    );
+    assert!(check_syntax_document(&invalid, &startup).is_err());
+}

@@ -10,22 +10,10 @@ use super::{
 use crate::ResolvedQuantitySuffix;
 use core::cmp::Ordering;
 
-pub const EXACT_TEMPERATURE_DIFFERENCE_INFO_ID: &str = "quantity/exact-temperature-difference@1";
-
-/// Ordinary difference values retain a record wrapper so their coordinate
-/// cannot be admitted as an absolute temperature point. The schema identity
-/// and shape-derived executable profile identity are deliberately distinct.
+pub const EXACT_TEMPERATURE_DIFFERENCE_INFO_ID: &str = crate::BUILTIN_TEMPERATURE_DELTA_INFO_ID;
 pub fn exact_temperature_difference_type() -> crate::StructuredInfoType {
-    crate::StructuredInfoType::record(
-        crate::kind_id(EXACT_TEMPERATURE_DIFFERENCE_INFO_ID),
-        alloc::vec![crate::StructuredFieldType::new(
-            "coordinate",
-            crate::StructuredInfoType::leaf(crate::kind_id(super::QUANTITY_INFO_ID))
-                .expect("reviewed quantity leaf"),
-        )
-        .expect("reviewed coordinate field")],
-    )
-    .expect("bounded temperature difference record")
+    crate::StructuredInfoType::leaf(crate::kind_id(EXACT_TEMPERATURE_DIFFERENCE_INFO_ID))
+        .expect("intrinsic declared temperature delta leaf")
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -46,7 +34,7 @@ impl ExactTemperatureDifference {
         unit: Unit,
     ) -> Result<Self, ExactTemperatureDifferenceRefusal> {
         Self::admit(
-            Quantity::from_decimal(coefficient, exponent, unit)
+            Quantity::from_decimal_role(coefficient, exponent, unit, crate::QuantityRole::Delta)
                 .map_err(ExactTemperatureDifferenceRefusal::Coordinate)?,
         )
     }
@@ -58,8 +46,14 @@ impl ExactTemperatureDifference {
         )
     }
 
+    pub fn from_quantity(coordinate: Quantity) -> Result<Self, ExactTemperatureDifferenceRefusal> {
+        Self::admit(coordinate)
+    }
+
     fn admit(coordinate: Quantity) -> Result<Self, ExactTemperatureDifferenceRefusal> {
-        if coordinate.dimension() != QuantityDimension::Temperature {
+        if coordinate.family().identity() != crate::builtin_temperature_family().identity()
+            || coordinate.role() != crate::QuantityRole::Delta
+        {
             return Err(ExactTemperatureDifferenceRefusal::NotTemperature);
         }
         Ok(Self { coordinate })
@@ -110,11 +104,6 @@ impl ExactTemperatureDifference {
             exponent: coordinate.exponent(),
         })
     }
-
-    pub const fn transform(self) -> (i128, i128, i128) {
-        let (scale, _, denominator) = self.coordinate.unit().canonical_transform();
-        (scale, 0, denominator)
-    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -152,16 +141,16 @@ impl<'a> ExactTemperatureDifferenceConversionReceipt<'a> {
         original: &'a str,
         target_source: &'a str,
     ) -> Result<Self, ExactQuantityConversionRequestRefusal> {
-        let evidence_source = ExactTemperatureDifference::parse_plot_literal(original)
-            .map_err(ExactQuantityConversionRequestRefusal::TemperatureDifferenceSource)?;
-        if evidence_source != source {
+        if !source
+            .storage_coordinate()
+            .matches_literal_evidence(original)
+        {
             return Err(ExactQuantityConversionRequestRefusal::SourceEvidenceMismatch);
         }
-        let (source_suffix, target) =
-            super::receipt::resolve_conversion_suffixes(original, target_source)?;
-        if crate::Unit::from_resolved(target) != target_unit {
-            return Err(ExactQuantityConversionRequestRefusal::TargetEvidenceMismatch);
-        }
+        let source_suffix =
+            super::receipt::source_suffix_from_evidence(original, source.storage_coordinate())?;
+        let target = ResolvedQuantitySuffix::from_unit(target_source, target_unit)
+            .map_err(|_| ExactQuantityConversionRequestRefusal::TargetEvidenceMismatch)?;
         let result = source
             .convert_to_unit(target_unit)
             .map(
@@ -186,15 +175,10 @@ impl<'a> ExactTemperatureDifferenceConversionReceipt<'a> {
     ) -> Result<Self, ExactQuantityConversionRequestRefusal> {
         let source = ExactTemperatureDifference::parse_plot_literal(original)
             .map_err(ExactQuantityConversionRequestRefusal::TemperatureDifferenceSource)?;
-        let (source_suffix, target) =
-            super::receipt::resolve_conversion_suffixes(original, target)?;
-        Ok(Self {
-            original,
-            source,
-            source_suffix,
-            target,
-            result: source.convert_to_target(target),
-        })
+        let target_unit = Unit::resolve(target).map_err(|e| {
+            ExactQuantityConversionRequestRefusal::Target(crate::QuantitySuffixRefusal::Unit(e))
+        })?;
+        Self::from_checked(source, target_unit, original, target)
     }
     pub const fn original(self) -> &'a str {
         self.original
@@ -212,13 +196,5 @@ impl<'a> ExactTemperatureDifferenceConversionReceipt<'a> {
         self,
     ) -> Result<ExactTemperatureDifferenceTargetCoordinate<'a>, QuantityConversionRefusal> {
         self.result
-    }
-    pub const fn source_transform(self) -> (i128, i128, i128) {
-        self.source.transform()
-    }
-    pub fn target_transform(self) -> (i128, i128, i128) {
-        let (unit, _) = super::target::target_parts(self.target);
-        let (scale, _, denominator) = unit.canonical_transform();
-        (scale, 0, denominator)
     }
 }

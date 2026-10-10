@@ -2,19 +2,10 @@
 //! startup resolution. Numeric eligibility must not fall back to opaque text.
 
 use crate::SyntaxCheckError;
-use conduit_core::{Quantity, QuantityLiteralRefusal};
 
 pub(crate) fn startup_quantity(
     text: &str,
 ) -> Result<Option<conduit_core::QuantityConfigurationValue>, SyntaxCheckError> {
-    if let Err(conduit_core::QuantityRefusal::Unit(conduit_core::QuantitySuffixRefusal::Literal(
-        QuantityLiteralRefusal::NonCanonicalUnit { canonical },
-    ))) = Quantity::parse_plot_literal(text)
-    {
-        return Err(SyntaxCheckError::QuantityLiteral(format!(
-            "non-canonical quantity unit in '{text}'; use '{canonical}'"
-        )));
-    }
     match conduit_core::QuantityConfigurationValue::parse(text) {
         Ok(value) => Ok(Some(value)),
         Err(_) => Ok(None),

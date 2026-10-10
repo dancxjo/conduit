@@ -42,7 +42,7 @@ pub(in crate::plot_runner) fn complete_host_effect_with_output(
             if value.value_type() != &conduit_semantic_catalog::pointer_event_type() {
                 return Err("pointer input has the wrong exact type".into());
             }
-            MAXIMUM_BROWSER_VALUE_BYTES as u32
+            crate::installed_browser::NORMALIZED_POINTER_VALUE_BYTES as u32
         }
         BrowserHostEffect::KeyEvent => {
             conduit_human::KeyEvent::decode(output)

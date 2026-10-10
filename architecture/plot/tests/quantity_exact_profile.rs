@@ -22,7 +22,7 @@ fn catalog() -> StartupCatalog {
 #[test]
 fn explicit_exact_type_admits_extreme_prefixes_as_checked_canonical_startup_values() {
     for literal in [
-        "1Qm", "1qm", "1Qm³", "1qm³", "-1qm", "1um2", "1uW", "273.15K",
+        "1Qm", "1qm", "1Qm³", "1qm³", "-1qm", "1um²", "1uW", "273.15K",
     ] {
         let source = format!("plot sample {{\n sink: test/exact-consumer({literal})\n}}\n");
         let parsed = parse_syntax_document(&source);

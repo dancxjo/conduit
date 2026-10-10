@@ -116,6 +116,7 @@ fn definition(
     parameters: &BTreeSet<String>,
 ) {
     match value {
+        Definition::Quantity(_) => {}
         Definition::Scalar(value) => expression(value, names, parameters),
         Definition::Record(fields) => {
             for field in fields {

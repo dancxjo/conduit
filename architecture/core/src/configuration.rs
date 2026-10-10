@@ -76,13 +76,7 @@ impl ConfigurationValue {
             Self::Text(_) => crate::TEXT_INFO_ID,
             Self::Quantity(_) => crate::QUANTITY_INFO_ID,
             Self::Unit(_) => crate::UNIT_INFO_ID,
-            Self::TemperatureDifference(_) => {
-                return crate::exact_temperature_difference_type()
-                    .profile()
-                    .expect("bounded difference profile")
-                    .value_kind()
-                    .clone()
-            }
+            Self::TemperatureDifference(_) => crate::BUILTIN_TEMPERATURE_DELTA_INFO_ID,
             Self::Structured(value) => value.profile().as_str(),
         })
     }

@@ -141,13 +141,13 @@ fn temperature_points_are_retained_without_inventing_point_ranges_or_uncertainty
     window.push(point.clone()).unwrap();
     assert_eq!(
         summarize_measurement_window(&window),
-        Err(MeasurementSummaryRefusal::TemperatureDifferenceRequired)
+        Err(MeasurementSummaryRefusal::PointDifferenceRequired)
     );
     point.observed_at = sample(0, 2).observed_at;
     point.uncertainty = Some(Quantity::parse_plot_literal("2°C").unwrap());
     assert_eq!(
         window.push(point.clone()),
-        Err(MeasurementWindowRefusal::TemperatureDifferenceRequired)
+        Err(MeasurementWindowRefusal::PointDifferenceRequired)
     );
     assert_eq!(
         encode_measurement_sample(&point),
@@ -176,5 +176,38 @@ fn zero_measurements_do_not_force_materializing_high_decimal_powers() {
     assert_eq!(
         decode_measurement_summary(&encode_measurement_summary(&summary).unwrap()).unwrap(),
         summary
+    );
+}
+
+#[test]
+fn paired_delta_measurements_preserve_role_through_summary_and_wire() {
+    let delta = |value| {
+        Quantity::from_decimal_role(value, 0, Unit::Celsius, conduit_core::QuantityRole::Delta)
+            .unwrap()
+    };
+    let mut delta_profile = profile();
+    delta_profile.range = MeasurementRange {
+        minimum: delta(-100),
+        maximum: delta(100),
+    };
+    let mut window = BoundedMeasurementWindow::new(delta_profile).unwrap();
+    for (value, ticks) in [(2, 1), (4, 2)] {
+        let mut measurement = sample(0, ticks);
+        measurement.value = delta(value);
+        measurement.uncertainty = Some(delta(1));
+        window.push(measurement).unwrap();
+    }
+    let summary = summarize_measurement_window(&window).unwrap();
+    assert_eq!(summary.mean, delta(3));
+    assert_eq!(summary.range, delta(2));
+    assert_eq!(
+        decode_measurement_summary(&encode_measurement_summary(&summary).unwrap()).unwrap(),
+        summary
+    );
+    let mut mixed = sample(0, 3);
+    mixed.value = Quantity::new(3, Unit::Celsius);
+    assert_eq!(
+        window.push(mixed),
+        Err(MeasurementWindowRefusal::UnitMismatch)
     );
 }

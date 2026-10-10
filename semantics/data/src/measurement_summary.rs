@@ -14,8 +14,8 @@ pub fn summarize_measurement_window(
         .first()
         .ok_or(MeasurementSummaryRefusal::EmptyWindow)?;
     let unit = window.profile().range.minimum.unit();
-    if unit.dimension() == conduit_core::QuantityDimension::Temperature {
-        return Err(MeasurementSummaryRefusal::TemperatureDifferenceRequired);
+    if first.value.role() == conduit_core::QuantityRole::Point {
+        return Err(MeasurementSummaryRefusal::PointDifferenceRequired);
     }
     let exponent = samples
         .iter()
@@ -75,8 +75,13 @@ pub fn summarize_measurement_window(
             .checked_sub(1)
             .ok_or(MeasurementSummaryRefusal::ArithmeticOverflow)?;
     }
-    let mean = Quantity::from_decimal(mean_coefficient / divisor, mean_exponent, unit)
-        .map_err(|_| MeasurementSummaryRefusal::ArithmeticOverflow)?;
+    let mean = Quantity::from_decimal_role(
+        mean_coefficient / divisor,
+        mean_exponent,
+        unit,
+        first.value.role(),
+    )
+    .map_err(|_| MeasurementSummaryRefusal::ArithmeticOverflow)?;
     let range = maximum
         .checked_sub(minimum)
         .ok_or(MeasurementSummaryRefusal::ArithmeticOverflow)?;
@@ -84,11 +89,11 @@ pub fn summarize_measurement_window(
         sample_count,
         first_observed_at: first.observed_at.clone(),
         last_observed_at: samples.last().unwrap().observed_at.clone(),
-        minimum: Quantity::from_decimal(minimum, exponent, unit)
+        minimum: Quantity::from_decimal_role(minimum, exponent, unit, first.value.role())
             .map_err(|_| MeasurementSummaryRefusal::ArithmeticOverflow)?,
-        maximum: Quantity::from_decimal(maximum, exponent, unit)
+        maximum: Quantity::from_decimal_role(maximum, exponent, unit, first.value.role())
             .map_err(|_| MeasurementSummaryRefusal::ArithmeticOverflow)?,
-        range: Quantity::from_decimal(range, exponent, unit)
+        range: Quantity::from_decimal_role(range, exponent, unit, first.value.role())
             .map_err(|_| MeasurementSummaryRefusal::ArithmeticOverflow)?,
         mean,
     })

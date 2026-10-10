@@ -37,7 +37,11 @@ pub(super) fn default_value(rule: &KindConfigurationRule) -> ConfigurationValue 
             ConfigurationValue::Unit(UnitConfigurationValue::parse("Hz").expect("reviewed default"))
         }
         KindConfigurationRule::TemperatureDifference => ConfigurationValue::TemperatureDifference(
-            ExactTemperatureDifferenceConfigurationValue::parse("0K").expect("reviewed default"),
+            ExactTemperatureDifferenceConfigurationValue::new(
+                ExactTemperatureDifference::new(0, 0, Unit::Kelvin).expect("reviewed delta"),
+                "TemperatureDelta(0, K)".into(),
+            )
+            .expect("reviewed default"),
         ),
         _ => unreachable!("physical rule"),
     }
@@ -46,11 +50,7 @@ pub(super) fn rule_kind(rule: &KindConfigurationRule) -> KindId {
     match rule {
         KindConfigurationRule::Quantity => kind_id(QUANTITY_INFO_ID),
         KindConfigurationRule::Unit => kind_id(UNIT_INFO_ID),
-        KindConfigurationRule::TemperatureDifference => temperature_difference::source_type()
-            .profile()
-            .expect("difference")
-            .value_kind()
-            .clone(),
+        KindConfigurationRule::TemperatureDifference => kind_id(&temperature_delta_info_id()),
         _ => unreachable!("physical rule"),
     }
 }

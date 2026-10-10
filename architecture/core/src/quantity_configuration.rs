@@ -20,7 +20,7 @@ impl QuantityConfigurationValue {
     }
 
     pub fn new(value: Quantity, source: String) -> Option<Self> {
-        (Quantity::parse_plot_literal(&source).ok()? == value).then(|| Self {
+        value.matches_literal_evidence(&source).then(|| Self {
             canonical_value: value.encode().to_vec(),
             source,
         })
@@ -66,7 +66,7 @@ pub struct UnitConfigurationValue {
 
 impl UnitConfigurationValue {
     pub fn new(value: Unit, source: String) -> Option<Self> {
-        (Unit::resolve(&source).ok()? == value).then(|| Self {
+        value.matches_source_evidence(&source).then(|| Self {
             canonical_value: value.encode().to_vec(),
             source,
         })
@@ -114,12 +114,13 @@ pub struct ExactTemperatureDifferenceConfigurationValue {
 
 impl ExactTemperatureDifferenceConfigurationValue {
     pub fn new(value: crate::ExactTemperatureDifference, source: String) -> Option<Self> {
-        (crate::ExactTemperatureDifference::parse_plot_literal(&source).ok()? == value).then(|| {
-            Self {
+        value
+            .storage_coordinate()
+            .matches_literal_evidence(&source)
+            .then(|| Self {
                 canonical_value: value.storage_coordinate().encode().to_vec(),
                 source,
-            }
-        })
+            })
     }
     pub fn parse(source: &str) -> Result<Self, crate::ExactTemperatureDifferenceRefusal> {
         let value = crate::ExactTemperatureDifference::parse_plot_literal(source)?;
@@ -131,12 +132,8 @@ impl ExactTemperatureDifferenceConfigurationValue {
     pub fn value(&self) -> crate::ExactTemperatureDifference {
         let coordinate =
             Quantity::decode(&self.canonical_value).expect("checked difference coordinate");
-        crate::ExactTemperatureDifference::new(
-            coordinate.coefficient(),
-            coordinate.exponent(),
-            coordinate.unit(),
-        )
-        .expect("checked temperature difference configuration")
+        crate::ExactTemperatureDifference::from_quantity(coordinate)
+            .expect("checked temperature difference configuration")
     }
     pub fn source(&self) -> &str {
         &self.source
@@ -156,12 +153,8 @@ impl<'de> Deserialize<'de> for ExactTemperatureDifferenceConfigurationValue {
         let encoded = Encoded::deserialize(deserializer)?;
         let coordinate = Quantity::decode(&encoded.canonical_value)
             .map_err(|_| D::Error::custom("invalid temperature difference encoding"))?;
-        let value = crate::ExactTemperatureDifference::new(
-            coordinate.coefficient(),
-            coordinate.exponent(),
-            coordinate.unit(),
-        )
-        .map_err(|_| D::Error::custom("invalid temperature difference dimension"))?;
+        let value = crate::ExactTemperatureDifference::from_quantity(coordinate)
+            .map_err(|_| D::Error::custom("invalid temperature difference dimension"))?;
         Self::new(value, encoded.source)
             .ok_or_else(|| D::Error::custom("temperature difference source evidence mismatch"))
     }

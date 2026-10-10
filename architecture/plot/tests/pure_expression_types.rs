@@ -245,7 +245,7 @@ fn nominal_structured_input_projects_into_anonymous_structures() {
 
 #[test]
 fn scientific_literal_unit_supplies_its_exact_expression_type() {
-    let temperature = CheckedExpressionType::semantic("value/temperature");
+    let temperature = CheckedExpressionType::semantic(conduit_core::TEMPERATURE_INFO_ID);
     let input = temperature.clone();
     let empty = BTreeMap::new();
     let no_structured = BTreeMap::new();

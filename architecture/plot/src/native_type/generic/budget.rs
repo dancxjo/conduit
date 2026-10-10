@@ -31,6 +31,17 @@ pub(crate) fn validate_iter<'a>(
             }
         }
         match &declaration.definition {
+            TypeDefinitionSyntax::Quantity(quantity) => match quantity {
+                crate::QuantityDefinitionSyntax::Point {
+                    difference_type, ..
+                } => budget.text(difference_type)?,
+                crate::QuantityDefinitionSyntax::Linear { dimensions, .. } => {
+                    for term in dimensions {
+                        budget.text(&term.dimension)?;
+                        budget.law(&term.power, 0)?;
+                    }
+                }
+            },
             TypeDefinitionSyntax::Scalar(value) => budget.expression(value, 0)?,
             TypeDefinitionSyntax::Record(fields) => budget.fields(fields)?,
             TypeDefinitionSyntax::Variant(cases) => {

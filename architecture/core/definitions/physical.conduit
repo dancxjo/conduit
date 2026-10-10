@@ -1,0 +1,278 @@
+# Authoritative built-in physical definitions. Rust bindings are generated from this source.
+# Every unit relationship is exact; prefixes require explicit admission.
+
+# Prefix groups are ordinary immutable source definitions. Units opt in explicitly.
+prefix si Q = { exponent: 30 }
+prefix si R = { exponent: 27 }
+prefix si Y = { exponent: 24 }
+prefix si Z = { exponent: 21 }
+prefix si E = { exponent: 18 }
+prefix si P = { exponent: 15 }
+prefix si T = { exponent: 12 }
+prefix si G = { exponent: 9 }
+prefix si M = { exponent: 6 }
+prefix si k = { exponent: 3 }
+prefix si h = { exponent: 2 }
+prefix si da = { exponent: 1 }
+prefix si d = { exponent: -1 }
+prefix si c = { exponent: -2 }
+prefix si m = { exponent: -3 }
+prefix si µ = { exponent: -6 }
+prefix si n = { exponent: -9 }
+prefix si p = { exponent: -12 }
+prefix si f = { exponent: -15 }
+prefix si a = { exponent: -18 }
+prefix si z = { exponent: -21 }
+prefix si y = { exponent: -24 }
+prefix si r = { exponent: -27 }
+prefix si q = { exponent: -30 }
+prefix si u = { exponent: -6, alias: µ }
+prefix binary Ki = { exponent: 10 }
+prefix binary Mi = { exponent: 20 }
+prefix binary Gi = { exponent: 30 }
+prefix binary Ti = { exponent: 40 }
+prefix binary Pi = { exponent: 50 }
+prefix binary Ei = { exponent: 60 }
+prefix binary Zi = { exponent: 70 }
+prefix binary Yi = { exponent: 80 }
+
+dimension time
+dimension current
+dimension temperature
+dimension length
+dimension angle
+dimension datasize
+dimension pixelcount
+dimension mass
+
+type Duration = quantity { dimension: time }
+type Frequency = quantity { dimension: { time: -1 } }
+type Voltage = quantity { dimension: { mass: 1, length: 2, time: -3, current: -1 } }
+type Current = quantity { dimension: current }
+type TemperatureDelta = quantity { dimension: temperature }
+type Temperature = quantity { point: TemperatureDelta }
+type Charge = quantity { dimension: { current: 1, time: 1 } }
+type Distance = quantity { dimension: length }
+type Angle = quantity { dimension: angle }
+type Ratio = quantity { dimension: {} }
+type DataSize = quantity { dimension: datasize }
+type PixelCount = quantity { dimension: pixelcount }
+type Mass = quantity { dimension: mass }
+type Area = quantity { dimension: { length: 2 } }
+type Volume = quantity { dimension: { length: 3 } }
+type Speed = quantity { dimension: { length: 1, time: -1 } }
+type Acceleration = quantity { dimension: { length: 1, time: -2 } }
+type Force = quantity { dimension: { mass: 1, length: 1, time: -2 } }
+type Energy = quantity { dimension: { mass: 1, length: 2, time: -2 } }
+type Power = quantity { dimension: { mass: 1, length: 2, time: -3 } }
+type Pressure = quantity { dimension: { mass: 1, length: -1, time: -2 } }
+
+# binding Second
+unit s : Duration = { reference: origin, scale: 1, prefixes: si }
+# binding Hertz
+unit Hz : Frequency = { reference: origin, scale: 1, prefixes: si }
+# binding Volt
+unit V : Voltage = { reference: origin, scale: 1, prefixes: si }
+# binding Ampere
+unit A : Current = { reference: origin, scale: 1, prefixes: si }
+# binding Kelvin
+unit K : Temperature = { reference: origin, scale: 1, delta: { quantity: TemperatureDelta, reference: origin, scale: 1 }, prefixes: si }
+# binding AmpereHour
+unit Ah : Charge = { reference: origin, scale: 1, prefixes: si }
+# binding Meter
+unit m : Distance = { reference: origin, scale: 1, prefixes: si }
+# binding Degree
+unit ° : Angle = { reference: turn, scale: 1/360 }
+# binding One
+unit one : Ratio = { reference: origin, scale: 1 }
+# binding Byte
+unit B : DataSize = { reference: origin, scale: 1, prefixes: [si, binary] }
+# binding Pixel
+unit px : PixelCount = { reference: origin, scale: 1 }
+# binding Gram
+unit g : Mass = { reference: origin, scale: 1, prefixes: si }
+# binding SquareMeter
+unit m² : Area = { reference: origin, scale: 1, prefixes: si, power: 2 }
+# binding CubicMeter
+unit m³ : Volume = { reference: origin, scale: 1, prefixes: si, power: 3 }
+# binding MeterPerSecond
+unit m/s : Speed = { reference: origin, scale: 1, prefixes: si }
+# binding MeterPerSecondSquared
+unit m/s² : Acceleration = { reference: origin, scale: 1, prefixes: si }
+# binding Newton
+unit N : Force = { reference: origin, scale: 1, prefixes: si }
+# binding Joule
+unit J : Energy = { reference: origin, scale: 1, prefixes: si }
+# binding Watt
+unit W : Power = { reference: origin, scale: 1, prefixes: si }
+# binding Pascal
+unit Pa : Pressure = { reference: origin, scale: 1, prefixes: si }
+# binding Shake
+unit shake : Duration = { reference: s, scale: 1/100000000 }
+# binding Minute
+unit min : Duration = { reference: s, scale: 60 }
+# binding Moment
+unit moment : Duration = { reference: s, scale: 90 }
+# binding Hour
+unit h : Duration = { reference: s, scale: 3600 }
+# binding Day
+unit d : Duration = { reference: s, scale: 86400 }
+# binding Week
+unit wk : Duration = { reference: s, scale: 604800 }
+# binding Fortnight
+unit fortnight : Duration = { reference: s, scale: 1209600 }
+# binding JulianYear
+unit a_j : Duration = { reference: s, scale: 31557600 }
+# binding MilliCelsius
+unit m°C : Temperature = { reference: K, scale: 1/1000, offset: 5463/20, delta: { quantity: TemperatureDelta, reference: K, scale: 1/1000 } }
+# binding Celsius
+unit °C : Temperature = { reference: K, scale: 1, offset: 5463/20, delta: { quantity: TemperatureDelta, reference: K, scale: 1 } }
+# binding MilliFahrenheit
+unit m°F : Temperature = { reference: K, scale: 1/1800, offset: 45967/180, delta: { quantity: TemperatureDelta, reference: K, scale: 1/1800 } }
+# binding Fahrenheit
+unit °F : Temperature = { reference: K, scale: 5/9, offset: 45967/180, delta: { quantity: TemperatureDelta, reference: K, scale: 5/9 } }
+# binding Angstrom
+unit Å : Distance = { reference: m, scale: 1/10000000000 }
+# binding Inch
+unit in : Distance = { reference: m, scale: 127/5000 }
+# binding Hand
+unit hand : Distance = { reference: m, scale: 127/1250 }
+# binding Foot
+unit ft : Distance = { reference: m, scale: 381/1250 }
+# binding Yard
+unit yd : Distance = { reference: m, scale: 1143/1250 }
+# binding Rod
+unit rod : Distance = { reference: m, scale: 12573/2500 }
+# binding Chain
+unit chain : Distance = { reference: m, scale: 12573/625 }
+# binding Furlong
+unit furlong : Distance = { reference: m, scale: 25146/125 }
+# binding Mile
+unit mi : Distance = { reference: m, scale: 201168/125 }
+# binding League
+unit league : Distance = { reference: m, scale: 603504/125 }
+# binding NauticalMile
+unit nmi : Distance = { reference: m, scale: 1852 }
+# binding AstronomicalUnit
+unit au : Distance = { reference: m, scale: 149597870700 }
+# binding Microdegree
+unit µ° : Angle = { reference: °, scale: 1/1000000 }
+# binding Millidegree
+unit m° : Angle = { reference: °, scale: 1/1000 }
+# binding Arcsecond
+unit arcsec : Angle = { reference: °, scale: 1/3600 }
+# binding Arcminute
+unit arcmin : Angle = { reference: °, scale: 1/60 }
+# binding Gradian
+unit gon : Angle = { reference: °, scale: 9/10 }
+# binding Turn
+unit turn : Angle = { reference: origin, scale: 1 }
+# binding Radian
+unit rad : Angle = { reference: origin(radian), scale: 1, prefixes: si }
+# binding Millionth
+unit ppm : Ratio = { reference: one, scale: 1/1000000 }
+# binding PartPerBillion
+unit ppb : Ratio = { reference: one, scale: 1/1000000000 }
+# binding BasisPoint
+unit bp : Ratio = { reference: one, scale: 1/10000 }
+# binding Permille
+unit ‰ : Ratio = { reference: one, scale: 1/1000 }
+# binding Percent
+unit % : Ratio = { reference: one, scale: 1/100 }
+# binding Bit
+unit bit : DataSize = { reference: B, scale: 1/8 }
+# binding Tonne
+unit t : Mass = { reference: g, scale: 1000000 }
+# binding Ounce
+unit oz_av : Mass = { reference: g, scale: 45359237/1600000 }
+# binding Pound
+unit lb_av : Mass = { reference: g, scale: 45359237/100000 }
+# binding Stone
+unit st : Mass = { reference: g, scale: 317514659/50000 }
+# binding Hectare
+unit ha : Area = { reference: m², scale: 10000 }
+# binding Acre
+unit acre_int : Area = { reference: m², scale: 316160658/78125 }
+# binding Liter
+unit L : Volume = { reference: m³, scale: 1/1000, prefixes: si }
+# binding KilometerPerHour
+unit km/h : Speed = { reference: m/s, scale: 5/18 }
+# binding MilePerHour
+unit mph : Speed = { reference: m/s, scale: 1397/3125 }
+# binding Knot
+unit kn : Speed = { reference: m/s, scale: 463/900 }
+# binding StandardGravity
+unit g₀ : Acceleration = { reference: m/s², scale: 196133/20000 }
+# binding Gal
+unit Gal : Acceleration = { reference: m/s², scale: 1/100 }
+# binding WattHour
+unit Wh : Energy = { reference: J, scale: 3600 }
+# binding KilowattHour
+unit kWh : Energy = { reference: J, scale: 3600000 }
+# binding Calorie
+unit cal_th : Energy = { reference: J, scale: 523/125 }
+# binding Kilocalorie
+unit kcal_th : Energy = { reference: J, scale: 4184 }
+# binding Bar
+unit bar : Pressure = { reference: Pa, scale: 100000 }
+# binding Millibar
+unit mbar : Pressure = { reference: Pa, scale: 100 }
+# binding Atmosphere
+unit atm : Pressure = { reference: Pa, scale: 101325 }
+# binding Torr
+unit Torr : Pressure = { reference: Pa, scale: 20265/152 }
+
+# Convenience binding names resolve through the source-defined prefix groups.
+# binding Picosecond = ps
+# binding Nanosecond = ns
+# binding Microsecond = µs
+# binding Millisecond = ms
+# binding Millihertz = mHz
+# binding Kilohertz = kHz
+# binding Megahertz = MHz
+# binding Gigahertz = GHz
+# binding Nanovolt = nV
+# binding Microvolt = µV
+# binding Millivolt = mV
+# binding Kilovolt = kV
+# binding Nanoampere = nA
+# binding Microampere = µA
+# binding Milliampere = mA
+# binding Kiloampere = kA
+# binding Millikelvin = mK
+# binding MicroampereHour = µAh
+# binding MilliampereHour = mAh
+# binding Micrometer = µm
+# binding Nanometer = nm
+# binding Millimeter = mm
+# binding Centimeter = cm
+# binding Kilometer = km
+# binding Microradian = µrad
+# binding Milliradian = mrad
+# binding Kilobyte = kB
+# binding Megabyte = MB
+# binding Gigabyte = GB
+# binding Kibibyte = KiB
+# binding Mebibyte = MiB
+# binding Gibibyte = GiB
+# binding Terabyte = TB
+# binding Tebibyte = TiB
+# binding Microgram = µg
+# binding Milligram = mg
+# binding Kilogram = kg
+# binding SquareMillimeter = mm²
+# binding SquareCentimeter = cm²
+# binding SquareKilometer = km²
+# binding Microliter = µL
+# binding Milliliter = mL
+# binding MillimeterPerSecond = mm/s
+# binding Millinewton = mN
+# binding Kilonewton = kN
+# binding Millijoule = mJ
+# binding Kilojoule = kJ
+# binding Megajoule = MJ
+# binding Milliwatt = mW
+# binding Kilowatt = kW
+# binding Megawatt = MW
+# binding Kilopascal = kPa
+# binding Megapascal = MPa

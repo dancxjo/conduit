@@ -70,6 +70,13 @@ fn evaluate_node(
             }
         }
         PortableExpressionOperation::Literal(literal) => literal_value(&node.value_type, literal)?,
+        PortableExpressionOperation::CanonicalLiteral(bytes) => {
+            validate_input(&node.value_type, bytes)?;
+            Value {
+                value_type: node.value_type.clone(),
+                encoded: bytes.clone(),
+            }
+        }
         PortableExpressionOperation::Projection { value, member } => projection(
             evaluate_node(value, input, input_type)?,
             member,
@@ -335,6 +342,8 @@ fn compare(left: &Value, right: &Value) -> Result<Ordering, PortableExpressionEv
             ))
     } else if conduit_core::quantity_info_dimension(kind).is_some()
         || kind == conduit_core::QUANTITY_INFO_ID
+        || conduit_core::primitive_info_kind(kind)
+            == Some(conduit_core::PrimitiveInfoKind::Quantity)
     {
         Quantity::decode(&left.encoded)
             .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?

@@ -64,7 +64,7 @@ pub fn constant(
 ) -> Result<String, String> {
     fn closed(value: &Node) -> bool {
         match &value.operation {
-            Op::Literal(_) => true,
+            Op::Literal(_) | Op::CanonicalLiteral(_) => true,
             Op::Record(fields) => fields.iter().all(|(_, field)| closed(field)),
             _ => false,
         }
@@ -78,6 +78,9 @@ pub fn constant(
 fn node(value: &Node, types: &[(StructuredInfoType, String)]) -> Result<String, String> {
     Ok(match &value.operation {
         Op::Input => "input".into(),
+        Op::CanonicalLiteral(_) => {
+            return Err("physical capsules require the portable expression runtime".into())
+        }
         Op::Literal(text) => {
             let kind = ty(&value.value_type, types)?;
             if types.iter().any(|(_, name)| name == &kind) {
@@ -247,7 +250,7 @@ fn context_node(value: &Node, remaining: &mut usize) -> bool {
     }
     *remaining -= 1;
     match &value.operation {
-        Op::Input | Op::Literal(_) => true,
+        Op::Input | Op::Literal(_) | Op::CanonicalLiteral(_) => true,
         Op::Projection { value, .. } => context_node(value, remaining),
         Op::Unary {
             operator: UnaryOperator::Not,

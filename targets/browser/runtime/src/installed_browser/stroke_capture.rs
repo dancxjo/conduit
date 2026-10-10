@@ -18,6 +18,9 @@ pub(crate) const OPERATIONS: [&str; 2] = [
 ];
 const IMPLEMENTATION: &str = "browser/bounded-stroke-capture@1";
 const MAXIMUM_POINTS: u32 = 4;
+// Four bounded 2D points carry two canonical quantities each plus type/frame metadata.
+pub(crate) const MAXIMUM_PATH_BYTES: usize =
+    MAXIMUM_POINTS as usize * 2 * conduit_core::QUANTITY_ENCODED_LEN + 1024;
 const FINISH_INPUT: &[u8] = b"conduit.stroke-capture/finish@1";
 const FINISH_REQUEST: RequestId = RequestId(MAXIMUM_POINTS + 1);
 
@@ -66,7 +69,7 @@ impl PreparedStrokeCapture {
                     .map_err(capture_failure)?
                     .canonical_bytes()
                     .map_err(|_| failure(4))?;
-                if output.len() > MAXIMUM_BROWSER_VALUE_BYTES {
+                if output.len() > MAXIMUM_PATH_BYTES {
                     return Err(Failure {
                         code: FailureCode::StorageExhausted,
                         detail: 5,
@@ -102,7 +105,7 @@ fn offer() -> CapabilityOffer {
                     target_kind: Some(target_kind),
                     maximum_in_flight: 1,
                     maximum_input_bytes: FINISH_INPUT.len() as u32,
-                    maximum_output_bytes: MAXIMUM_BROWSER_VALUE_BYTES as u32,
+                    maximum_output_bytes: MAXIMUM_PATH_BYTES as u32,
                 },
             ],
             resource_requirements: Vec::new(),
@@ -112,7 +115,7 @@ fn offer() -> CapabilityOffer {
     .narrow_capacity(CapabilityLimits {
         max_active_instances: 2,
         max_queue_items: MAXIMUM_POINTS as u16,
-        max_queue_bytes: MAXIMUM_BROWSER_VALUE_BYTES as u32,
+        max_queue_bytes: MAXIMUM_PATH_BYTES as u32,
     })
     .expect("browser stroke-capture capacity narrows its semantic contract")
     .build()

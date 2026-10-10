@@ -10,7 +10,7 @@ export function retainExactQuantityEvidence(results, destination, runtime, sourc
   if (!/^[a-f0-9]{40}$/.test(sourceHead ?? '')) throw new Error('Quantity proof requires exact source head');
   const reports = readdirSync(results, { recursive: true })
     .filter(name => path.basename(name) === 'exact-quantity-browser-evidence.json');
-  if (reports.length !== 3) throw new Error('Expected three current exact quantity browser proofs');
+  if (reports.length !== 4) throw new Error('Expected four current exact quantity browser proofs');
   const wasmDigest = sha256(readFileSync(runtime));
   const kinds = new Set();
   const comparisons = new Set();
@@ -29,6 +29,15 @@ export function retainExactQuantityEvidence(results, destination, runtime, sourc
       throw new Error('Quantity proof differs from sealed Chromium runtime');
     }
     if (!Array.isArray(proof.rows)) throw new Error('Quantity proof has no execution rows');
+    if (proof.rows.length === 3) {
+      if (proof.rows.map(row => row.snapshot_scale).join(',') !== '1.7018,2,1.7018'
+          || proof.rows.some((row, index) => row.kind !== 'units/convert' || row.left !== '1smoot' || row.right !== 'm'
+            || !row.source?.includes(`unit smoot : Distance = { reference: m, scale: ${row.snapshot_scale} }`)
+            || !row.source.includes(`coefficient == ${index === 1 ? 2 : 17018}`)
+            || !row.source.includes(`exponent == ${index === 1 ? 0 : -4}`))) {
+        throw new Error('Quantity proof lacks immutable authored unit snapshots');
+      }
+    }
     for (const row of proof.rows) {
       const planned = row.effect?.expanded_gears?.find(gear => gear.kind_id === row.kind);
       const comparator = row.kind === 'units/converted-equals';
@@ -58,9 +67,9 @@ export function retainExactQuantityEvidence(results, destination, runtime, sourc
   });
   const expectedKinds = ['units/convert', 'units/convert-temperature-difference',
     'units/compare', 'units/compare-temperature-differences', 'units/converted-equals'];
-  if (captures.map(capture => capture.cases).sort((a, b) => a - b).join(',') !== '8,10,33'
+  if (captures.map(capture => capture.cases).sort((a, b) => a - b).join(',') !== '3,8,10,33'
       || kinds.size !== 5 || comparisons.size !== 8 || expectedKinds.some(kind => !kinds.has(kind))) {
-    throw new Error('Quantity proof does not cover all three complete corpora and all five roles');
+    throw new Error('Quantity proof does not cover all four complete corpora and all five roles');
   }
   mkdirSync(destination);
   const evidence = captures.map(capture => {
@@ -71,7 +80,7 @@ export function retainExactQuantityEvidence(results, destination, runtime, sourc
   writeFileSync(path.join(destination, 'manifest.json'), JSON.stringify({
     schema: 'conduit.browser/exact-quantity-proof@1', source_head: sourceHead,
     wasm_sha256: wasmDigest, project: 'chromium', workers: 1, retries: 0,
-    kernel_cases: 51, evidence,
+    kernel_cases: 54, evidence,
     proof_class: 'Actual WebAssembly browser kernel execution; no physical or firmware claim',
   }, null, 2));
 }

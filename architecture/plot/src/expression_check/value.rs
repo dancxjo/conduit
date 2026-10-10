@@ -84,7 +84,12 @@ pub(super) fn atomic(
     match conduit_core::Quantity::parse_plot_literal(text) {
         Ok(quantity) => {
             return expected_or_exact(
-                CheckedExpressionType::semantic(quantity.dimension().info_id()),
+                CheckedExpressionType::semantic(
+                    &conduit_core::quantity_role_info_id(quantity.family(), quantity.role())
+                        .map_err(|reason| {
+                            diagnostic(span, &format!("invalid physical family role: {reason:?}"))
+                        })?,
+                ),
                 expected,
                 span,
             )

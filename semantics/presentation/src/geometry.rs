@@ -242,7 +242,9 @@ fn require_length(value: Quantity) -> Result<(), GeometryRefusal> {
 fn convert_offset(value: Quantity, unit: Unit) -> Result<Quantity, GeometryRefusal> {
     require_length(value)?;
     value.convert(unit).map_err(|error| match error {
-        QuantityConversionRefusal::IncompatibleDimensions => GeometryRefusal::IncompatibleUnit,
+        QuantityConversionRefusal::IncompatibleDimensions
+        | QuantityConversionRefusal::IncompatibleQuantityFamilies
+        | QuantityConversionRefusal::IncompatibleQuantityRoles => GeometryRefusal::IncompatibleUnit,
         QuantityConversionRefusal::Inexact => GeometryRefusal::InexactUnitConversion,
         QuantityConversionRefusal::Overflow => GeometryRefusal::Overflow,
     })

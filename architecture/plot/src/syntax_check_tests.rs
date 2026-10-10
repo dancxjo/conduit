@@ -1778,5 +1778,5 @@ fn scientific_quantity_dimension_and_canonical_spelling_are_checked() {
 
     let near_miss = diagnostic("plot bad (\n target: Temperature = 21C\n) {\n}\n");
     assert_eq!(near_miss.code, "CND-FRM-055");
-    assert!(near_miss.message.contains("°C"));
+    assert!(near_miss.message.contains("°C"), "{}", near_miss.message);
 }

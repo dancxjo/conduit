@@ -6,10 +6,10 @@ use conduit_core::{
     StructuredInfoType,
 };
 
-pub const STATE_VALUE_STD_PROFILE: &str = "std/state-value-kernel-128@1";
-pub const STATE_VALUE_STD_IMPLEMENTATION: &str = "std/kernel-state-value-128@1";
+pub const STATE_VALUE_STD_PROFILE: &str = "std/state-value-kernel-4096@1";
+pub const STATE_VALUE_STD_IMPLEMENTATION: &str = "std/kernel-state-value-4096@1";
 pub const STATE_VALUE_STD_ARTIFACT: &str = "conduit-kernel/state-delay@1";
-pub const STATE_VALUE_STD_MAXIMUM_BYTES: u32 = 128;
+pub const STATE_VALUE_STD_MAXIMUM_BYTES: u32 = 4096;
 pub const STATE_VALUE_DURABLE_STD_MAXIMUM_BYTES: u32 = conduit_data::MAXIMUM_DATA_TEXT_BYTES;
 pub const STATE_VALUE_DURABLE_STD_PROFILE: &str = "std/state-value-body-durable-4096@1";
 pub const STATE_VALUE_DURABLE_STD_IMPLEMENTATION: &str = "std/state-value-body-durable@2";

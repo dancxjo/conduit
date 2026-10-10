@@ -11,8 +11,8 @@ pub const MAX_CANDIDATES: usize = 16;
 pub const MAX_CANDIDATE_HISTORY: usize = 64;
 pub const MAX_INGRESS_REFUSALS: usize = 16;
 // Keep finite bounds that admit the real installed browser catalog, at least 1 KiB of transport
-// framing, and a small number of explicit capabilities instead of hiding installations.
-pub const MAX_CANDIDATE_ADVERTISEMENT_BYTES: u32 = 192 * 1024;
+// framing, including the richer intrinsic quantity profiles, instead of hiding installations.
+pub const MAX_CANDIDATE_ADVERTISEMENT_BYTES: u32 = 256 * 1024;
 pub const MAX_CANDIDATE_TOTAL_BYTES: u32 = 4 * MAX_CANDIDATE_ADVERTISEMENT_BYTES;
 pub const MAX_CANDIDATE_LABEL_BYTES: usize = 128;
 pub const MAX_CANDIDATE_RESOURCES: usize = 32;

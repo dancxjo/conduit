@@ -1,7 +1,10 @@
 //! Browser production realization of explicitly initialized measurement hysteresis.
 
 use super::factory::{validate_placement, BrowserInstallation};
-use super::{BrowserBack, MAXIMUM_BROWSER_VALUE_BYTES};
+use super::measurement_limits;
+use super::BrowserBack;
+#[cfg(test)]
+use super::MAXIMUM_BROWSER_VALUE_BYTES;
 use conduit_core::{
     ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
     HostCallRequirement, ImplementationId, PlannedGear,
@@ -81,7 +84,7 @@ impl PreparedHysteresis {
                 )
                 .map_err(|_| failure(11))?;
                 let bytes = value.canonical_bytes().map_err(|_| failure(11))?;
-                if bytes.len() > MAXIMUM_BROWSER_VALUE_BYTES {
+                if bytes.len() > measurement_limits::DECISION {
                     return Err(Failure {
                         code: FailureCode::StorageExhausted,
                         detail: 12,
@@ -97,33 +100,39 @@ impl PreparedHysteresis {
 fn offer() -> CapabilityOffer {
     let contract = conduit_data::measurement_hysteresis_semantic_contract();
     let kind = contract.kind_id.clone();
-    BackOfferBuilder::new(
-        contract,
-        Back {
-            capability_id: CapabilityId::from(IMPLEMENTATION),
-            execution_profile_id: ExecutionProfileId::from(IMPLEMENTATION),
-            implementation_id: ImplementationId::from(IMPLEMENTATION),
-            artifact_id: ArtifactId::from("conduit-browser-runtime/measurement-hysteresis@2"),
-            host_calls: OPERATIONS
-                .iter()
-                .enumerate()
-                .map(|(index, contract_id)| HostCallRequirement {
-                    contract_id: (*contract_id).into(),
-                    target_kind: Some(kind.clone()),
-                    maximum_in_flight: 1,
-                    maximum_input_bytes: MAXIMUM_BROWSER_VALUE_BYTES as u32,
-                    maximum_output_bytes: if index == 0 {
-                        0
-                    } else {
-                        MAXIMUM_BROWSER_VALUE_BYTES as u32
-                    },
-                })
-                .collect(),
-            resource_requirements: Vec::new(),
-            authority_requirements: Vec::new(),
-        },
+    super::measurement_limits::finish_offer(
+        BackOfferBuilder::new(
+            contract,
+            Back {
+                capability_id: CapabilityId::from(IMPLEMENTATION),
+                execution_profile_id: ExecutionProfileId::from(IMPLEMENTATION),
+                implementation_id: ImplementationId::from(IMPLEMENTATION),
+                artifact_id: ArtifactId::from("conduit-browser-runtime/measurement-hysteresis@2"),
+                host_calls: OPERATIONS
+                    .iter()
+                    .enumerate()
+                    .map(|(index, contract_id)| HostCallRequirement {
+                        contract_id: (*contract_id).into(),
+                        target_kind: Some(kind.clone()),
+                        maximum_in_flight: 1,
+                        maximum_input_bytes: if index == 0 {
+                            measurement_limits::HYSTERESIS
+                        } else {
+                            measurement_limits::SUMMARY
+                        } as u32,
+                        maximum_output_bytes: if index == 0 {
+                            0
+                        } else {
+                            measurement_limits::DECISION as u32
+                        },
+                    })
+                    .collect(),
+                resource_requirements: Vec::new(),
+                authority_requirements: Vec::new(),
+            },
+        )
+        .build(),
     )
-    .build()
 }
 
 fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserBack, String> {
@@ -195,7 +204,7 @@ impl<const PORTS: usize> StepBack<PORTS> for HysteresisBack {
             if self.profile_ready || self.pending.is_some() {
                 return StepOutcome::Fail(failure(23));
             }
-            let input = match BoundedValueRef::new(value, MAXIMUM_BROWSER_VALUE_BYTES as u32) {
+            let input = match BoundedValueRef::new(value, measurement_limits::HYSTERESIS as u32) {
                 Ok(input) => input,
                 Err(_) => return StepOutcome::Fail(failure(20)),
             };
@@ -209,7 +218,7 @@ impl<const PORTS: usize> StepBack<PORTS> for HysteresisBack {
             if !self.profile_ready || self.pending.is_some() || self.emitted {
                 return StepOutcome::Fail(failure(23));
             }
-            let input = match BoundedValueRef::new(value, MAXIMUM_BROWSER_VALUE_BYTES as u32) {
+            let input = match BoundedValueRef::new(value, measurement_limits::SUMMARY as u32) {
                 Ok(input) => input,
                 Err(_) => return StepOutcome::Fail(failure(21)),
             };
@@ -369,7 +378,12 @@ mod tests {
         );
         assert_eq!(offer.inputs, semantic.inputs);
         assert_eq!(offer.outputs, semantic.outputs);
-        assert_eq!(offer.limits, semantic.limits);
+        assert!(offer.limits.max_queue_items <= semantic.limits.max_queue_items);
+        assert!(offer.limits.max_queue_bytes <= semantic.limits.max_queue_bytes);
+        assert!(offer
+            .resource_requirements
+            .iter()
+            .any(|item| item.class_id.as_str() == conduit_core::RUNTIME_MEMORY_RESOURCE_CLASS));
         let mut prepared = PreparedHysteresis::for_placement(&placement())
             .unwrap()
             .unwrap();

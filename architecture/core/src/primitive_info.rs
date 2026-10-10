@@ -13,6 +13,7 @@ pub const CANCELLATION_REQUEST_INFO_ID: &str = "control/cancellation-request";
 pub const COUNT_INFO_ID: &str = "value/count";
 pub const TEXT_INFO_ID: &str = "value/text";
 pub const BYTES_INFO_ID: &str = "value/bytes";
+pub const MAXIMUM_BYTES_INFO_BYTES: usize = 65_536;
 pub const COUNT_ENCODED_LEN: usize = 8;
 pub const F32_INFO_ID: &str = "value/ieee754-binary32";
 pub const F64_INFO_ID: &str = "value/ieee754-binary64";
@@ -54,12 +55,18 @@ pub enum PrimitiveInfoKind {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PrimitiveInfoRefusal {
     EmptyNotEmpty,
+    WrongQuantityFamily,
+    WrongQuantityRole,
     Bool(InfoDecodeError),
     CountLength {
         actual: usize,
     },
     Scalar(InfoDecodeError),
     TextUtf8,
+    BytesTooLarge {
+        maximum: usize,
+        actual: usize,
+    },
     Quantity(QuantityRefusal),
     Unit(crate::UnitRefusal),
     Terminal(TerminalInfoDecodeRefusal),
@@ -77,7 +84,24 @@ pub enum PrimitiveInfoRefusal {
     },
 }
 
-pub const fn primitive_info_kind(identity: &str) -> Option<PrimitiveInfoKind> {
+pub fn primitive_info_kind(identity: &str) -> Option<PrimitiveInfoKind> {
+    for (name, kind) in [
+        (crate::DISTANCE_INFO_ID, PrimitiveInfoKind::Distance),
+        (crate::FREQUENCY_INFO_ID, PrimitiveInfoKind::Frequency),
+        (crate::DURATION_INFO_ID, PrimitiveInfoKind::Duration),
+        (crate::VOLTAGE_INFO_ID, PrimitiveInfoKind::Voltage),
+        (crate::TEMPERATURE_INFO_ID, PrimitiveInfoKind::Temperature),
+        (crate::ANGLE_INFO_ID, PrimitiveInfoKind::Angle),
+        (crate::RATIO_INFO_ID, PrimitiveInfoKind::Ratio),
+        (crate::PIXEL_COUNT_INFO_ID, PrimitiveInfoKind::PixelCount),
+    ] {
+        if identity == name {
+            return Some(kind);
+        }
+    }
+    if crate::parse_quantity_role_info_id(identity).is_some() {
+        return Some(PrimitiveInfoKind::Quantity);
+    }
     match identity.as_bytes() {
         b"value/empty" => Some(PrimitiveInfoKind::Empty),
         b"control/cancellation-request" => Some(PrimitiveInfoKind::CancellationRequest),
@@ -89,14 +113,6 @@ pub const fn primitive_info_kind(identity: &str) -> Option<PrimitiveInfoKind> {
         b"value/bytes" => Some(PrimitiveInfoKind::Bytes),
         b"value/quantity@1" => Some(PrimitiveInfoKind::Quantity),
         b"value/unit@1" => Some(PrimitiveInfoKind::Unit),
-        b"value/distance" => Some(PrimitiveInfoKind::Distance),
-        b"value/frequency" => Some(PrimitiveInfoKind::Frequency),
-        b"value/duration" => Some(PrimitiveInfoKind::Duration),
-        b"value/voltage" => Some(PrimitiveInfoKind::Voltage),
-        b"value/temperature" => Some(PrimitiveInfoKind::Temperature),
-        b"value/angle" => Some(PrimitiveInfoKind::Angle),
-        b"value/ratio" => Some(PrimitiveInfoKind::Ratio),
-        b"value/pixel-count" => Some(PrimitiveInfoKind::PixelCount),
         b"value/u8" => Some(PrimitiveInfoKind::U8),
         b"value/u16" => Some(PrimitiveInfoKind::U16),
         b"value/u32" => Some(PrimitiveInfoKind::U32),
@@ -114,7 +130,23 @@ pub const fn primitive_info_kind(identity: &str) -> Option<PrimitiveInfoKind> {
 }
 
 pub fn validate_primitive_info(identity: &str, encoded: &[u8]) -> Result<(), PrimitiveInfoRefusal> {
+    if let Some((family, role)) = crate::parse_quantity_role_info_id(identity) {
+        let quantity = Quantity::decode(encoded).map_err(PrimitiveInfoRefusal::Quantity)?;
+        if quantity.family().identity() != family {
+            return Err(PrimitiveInfoRefusal::WrongQuantityFamily);
+        }
+        if quantity.role() != role {
+            return Err(PrimitiveInfoRefusal::WrongQuantityRole);
+        }
+        return Ok(());
+    }
     match primitive_info_kind(identity) {
+        Some(PrimitiveInfoKind::Bytes) if encoded.len() > MAXIMUM_BYTES_INFO_BYTES => {
+            Err(PrimitiveInfoRefusal::BytesTooLarge {
+                maximum: MAXIMUM_BYTES_INFO_BYTES,
+                actual: encoded.len(),
+            })
+        }
         Some(PrimitiveInfoKind::Empty) if !encoded.is_empty() => {
             Err(PrimitiveInfoRefusal::EmptyNotEmpty)
         }

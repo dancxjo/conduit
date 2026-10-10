@@ -104,7 +104,8 @@ enum Codec {
 
 pub(super) struct TypedRecordHost {
     codec: Codec,
-    frame: [u8; conduit_net::MAXIMUM_TYPED_RECORD_FRAME_BYTES],
+    // Prepared finite backing stays on the heap across host collection/moves.
+    frame: Box<[u8]>,
     text_type: Vec<u8>,
     text_kind: String,
     typed_type: Vec<u8>,
@@ -116,7 +117,7 @@ impl TypedRecordHost {
     fn new(codec: Codec) -> Self {
         Self {
             codec,
-            frame: [0; conduit_net::MAXIMUM_TYPED_RECORD_FRAME_BYTES],
+            frame: vec![0; conduit_net::MAXIMUM_TYPED_RECORD_FRAME_BYTES].into_boxed_slice(),
             text_type: conduit_net::text_type()
                 .canonical_bytes()
                 .expect("text type is finite"),

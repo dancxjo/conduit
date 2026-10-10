@@ -78,6 +78,26 @@ fn parse_configuration_value(
     rule: &KindConfigurationRule,
 ) -> Result<ConfigurationValue, CanonicalExpansionDiagnostic> {
     match (&value, rule) {
+        (CanonicalStartupValue::Quantity(value), KindConfigurationRule::TemperatureDifference) => {
+            let delta = conduit_core::ExactTemperatureDifference::from_quantity(value.value())
+                .map_err(|reason| {
+                    CanonicalExpansionDiagnostic::new(
+                        "CND-FRM-040",
+                        format!("difference startup value has wrong family or role: {reason:?}"),
+                    )
+                })?;
+            let checked = conduit_core::ExactTemperatureDifferenceConfigurationValue::new(
+                delta,
+                value.source().into(),
+            )
+            .ok_or_else(|| {
+                CanonicalExpansionDiagnostic::new(
+                    "CND-FRM-040",
+                    "difference source evidence mismatch".into(),
+                )
+            })?;
+            return Ok(ConfigurationValue::TemperatureDifference(checked));
+        }
         (CanonicalStartupValue::Quantity(value), KindConfigurationRule::Quantity) => {
             return Ok(ConfigurationValue::Quantity(value.clone()))
         }

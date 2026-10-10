@@ -162,6 +162,13 @@ impl PlotEditor {
         check_revision_with_catalog(self.revision, &self.source, &self.startup_catalog)
     }
 
+    /// Immutable physical definitions admitted from this exact editor source.
+    pub fn checked_physical_catalog(&self) -> Result<StartupCatalog, PlotEditorError> {
+        let document = conduit_plot::parse_syntax_document(&self.source);
+        conduit_plot::checked_physical_catalog_for_document(&document, &self.startup_catalog)
+            .map_err(|error| PlotEditorError::Catalog(error.message))
+    }
+
     pub fn publish_checked(&mut self, checked: CheckedRevision) -> Result<(), PlotEditorError> {
         if checked.revision != self.revision {
             return Err(PlotEditorError::StaleRevision {

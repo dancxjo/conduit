@@ -121,6 +121,12 @@ impl<'a> Cursor<'a> {
         let operation = match self.byte()? {
             0 => PortableExpressionOperation::Input,
             1 => PortableExpressionOperation::Literal(self.text()?),
+            11 => {
+                let length = self.length()?;
+                let bytes = self.take(length)?.to_vec();
+                crate::expression_program::validate_capsule_literal(&value_type, &bytes)?;
+                PortableExpressionOperation::CanonicalLiteral(bytes)
+            }
             2 => {
                 let value = Box::new(self.node(depth + 1, remaining_nodes)?);
                 let member = match self.byte()? {

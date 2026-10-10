@@ -15,6 +15,9 @@ impl Context<'_> {
         arguments: &Bindings,
     ) -> Result<TypeDefinitionSyntax, SyntaxCheckDiagnostic> {
         Ok(match definition {
+            TypeDefinitionSyntax::Quantity(definition) => {
+                TypeDefinitionSyntax::Quantity(definition.clone())
+            }
             TypeDefinitionSyntax::Scalar(expression) => {
                 TypeDefinitionSyntax::Scalar(self.expression(expression, arguments)?)
             }

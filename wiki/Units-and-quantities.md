@@ -208,7 +208,7 @@ these examples do not promise that every integer realization can store it.
 | ronto `r` | `1rm` | 10⁻²⁷ |
 | quecto `q` | `1qm` | 10⁻³⁰ |
 
-The [reviewed prefixable table](https://github.com/dancxjo/conduit/blob/dev/architecture/core/src/quantity_prefix.rs)
+The [authored prefix policies](../architecture/core/definitions/physical.conduit)
 includes seconds, hertz, volts, amperes, kelvin, grams, metres, square/cubic
 metres, litres, radians, bytes, newtons, joules, watts, pascals, metres per
 second, metres per second squared, and ampere-hours. Prefixes are case-sensitive:
@@ -216,10 +216,28 @@ second, metres per second squared, and ampere-hours. Prefixes are case-sensitive
 `1mkg` refuses. Prefixes cannot be stacked or attached to arbitrary symbols.
 
 Canonical micro is `µ` (U+00B5). ASCII `u` is an explicit source alias, so
-`1us` can replace `1µs`. Greek `μ` (U+03BC) refuses. ASCII powers `m2`,
-`m3`, `m/s2` are reviewed aliases. Source bytes and provenance survive;
+`1us` can replace `1µs`. Greek `μ` (U+03BC) refuses. Powers use declared spellings such as `m²`, `m³`, and `m/s²`. Source bytes and provenance survive;
 there is no implicit Unicode normalization. Binary `KiB`/`MiB`/`GiB` remain
 distinct from decimal `kB`/`MB`/`GB`.
+
+Quantity families, dimensions, Unit reference laws, affine Point/Delta associations,
+and prefix policies are authored in Conduitese. The checked
+[`physical.conduit`](../architecture/core/definitions/physical.conduit) library is
+the builtin authority; a document can add `unit smoot : Distance = { reference: m,
+scale: 1.7018 }` without changing Rust. Prefixes are disabled unless the declaration
+explicitly opts into source-defined groups. Unit capsules occupy 768 bytes and
+retain their checked laws independently of later catalogue changes.
+
+`Angle` uses `turn` as its canonical, reference, and default Unit. Degrees have
+an exact scale of `1/360turn`, so `90°` is exactly `0.25turn`. Radians currently
+retain an independent named origin; radian/turn conversion returns typed
+`Inexact` until #5392 supplies the symbolic `2π` relation. No decimal approximation
+stands in for that relation.
+
+Reference anchors bind the family, source root symbol, and exact root law.
+Changing the root law creates a distinct anchor, preserving the meaning of old
+Unit/Quantity capsules and Plan/Play snapshots. A paired Point/Delta root shares
+one checked anchor.
 
 ## Extreme scale needs an explicit representation
 
@@ -234,7 +252,7 @@ plot extreme-distance (
 
 The exact coordinate has coefficient 1 and decimal exponent 60 in the target
 unit. The public `Quantity` Type carries an exact decimal coordinate and the full
-resolved Unit in one versioned 22-byte codec. There is no second narrow quantity
+resolved Unit in one versioned 788-byte codec. There is no second narrow quantity
 family. Recognized extreme scales remain ordinary Quantities; an integer domain
 projection has its own finite precision and range. Recognizing a suffix does not make its value fit
 every consumer. A fractional or overflowing integer projection refuses admission.
@@ -252,7 +270,7 @@ This Fore/default example checks the wider profile without performing an
 effect. Changing `Quantity` to `Distance` retains the same codec and requires the
 length dimension. A consumer requiring integer metres must explicitly project
 and refuse overflow for this extreme value. The [exact-profile tests](https://github.com/dancxjo/conduit/blob/dev/architecture/plot/tests/quantity_exact_profile.rs)
-also cover direct literals and the canonical 22-byte carrier.
+also cover direct literals and the canonical 788-byte carrier.
 
 ## Refusal is an inspectable result
 

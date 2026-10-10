@@ -39,6 +39,22 @@ fn prepare(left: &str, right: &str, difference: bool) -> StructuredInfoValue {
     } else {
         (comparison::KIND, comparison::RECEIPT_NAME)
     };
+    let delta = |value: &str| {
+        let split = value
+            .find(|c: char| !c.is_ascii_digit() && c != '.' && c != '-' && c != '+')
+            .unwrap();
+        format!("TemperatureDelta({}, {})", &value[..split], &value[split..])
+    };
+    let left = if difference {
+        delta(left)
+    } else {
+        left.to_owned()
+    };
+    let right = if difference {
+        delta(right)
+    } else {
+        right.to_owned()
+    };
     let source = format!("# µ original source\nplot compare (\n receipt: {name} <= 8192B >>\n) {{\n compared: {kind}(left = {left}, right = {right})\n compared.receipt >> receipt\n}}.\n");
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
@@ -99,12 +115,15 @@ fn ordinary_comparisons_match_independent_fraction_reference() {
 fn comparisons_preserve_exact_laws_and_do_not_project_to_a_repeating_decimal() {
     let receipt = prepare("1°F", "0°C", false);
     assert_eq!(result(&receipt), "less");
+    let coordinate =
+        conduit_core::Quantity::decode(bytes(field(field(&receipt, "left"), "coordinate")))
+            .unwrap();
     assert_ne!(
-        i128::from_le_bytes(
-            bytes(field(field(&receipt, "left"), "offset"))
-                .try_into()
-                .unwrap()
-        ),
+        coordinate
+            .unit()
+            .exact_offset(coordinate.role())
+            .unwrap()
+            .numerator,
         0
     );
     let point = prepare("9°F", "5K", false);
@@ -114,14 +133,6 @@ fn comparisons_preserve_exact_laws_and_do_not_project_to_a_repeating_decimal() {
     assert_ne!(point.value_type(), difference.value_type());
     assert!(comparison::validate_receipt(&difference).is_err());
     assert!(comparison::validate_difference_receipt(&point).is_err());
-    assert_eq!(
-        i128::from_le_bytes(
-            bytes(field(field(&difference, "left"), "offset"))
-                .try_into()
-                .unwrap()
-        ),
-        0
-    );
     for (left, right, refusal) in [
         ("1Hz", "1m", "incompatible-dimensions"),
         ("1rad", "1°", "inexact"),
@@ -134,19 +145,11 @@ fn comparisons_preserve_exact_laws_and_do_not_project_to_a_repeating_decimal() {
         assert_eq!(tag, "refused");
         assert_eq!(bytes(payload), refusal.as_bytes());
     }
-    let receipt = prepare("1um2", "1m²", false);
-    assert_eq!(
-        bytes(field(field(&receipt, "left"), "prefix")),
-        "µ".as_bytes()
-    );
-    assert_eq!(
-        i16::from_le_bytes(
-            bytes(field(field(&receipt, "left"), "composed-exponent"))
-                .try_into()
-                .unwrap()
-        ),
-        -12
-    );
+    let receipt = prepare("1um²", "1m²", false);
+    let coordinate =
+        conduit_core::Quantity::decode(bytes(field(field(&receipt, "left"), "coordinate")))
+            .unwrap();
+    assert!(coordinate.unit().matches_source_evidence("um²"));
 }
 
 #[test]
@@ -156,7 +159,12 @@ fn comparison_diagnostics_keep_the_correct_operand_original_unicode_and_alias_sp
     for (kind, left, right, expected) in [
         (comparison::KIND, "21C", "1K", "21C"),
         (comparison::KIND, "1m", "1mkg", "1mkg"),
-        (comparison::DIFFERENCE_KIND, "1°C", "1Hz", "1Hz"),
+        (
+            comparison::DIFFERENCE_KIND,
+            "TemperatureDelta(1, °C)",
+            "1Hz",
+            "1Hz",
+        ),
         (comparison::KIND, "1m", "1μs", "1μs"),
     ] {
         let source = format!("# µ before operands\nplot invalid {{\n compared: {kind}(left = {left}, right = {right})\n}}\n");
@@ -194,17 +202,12 @@ fn comparison_receipt_readmission_refuses_shape_valid_forged_results_and_operand
         }
     }
     let temperature = prepare("0°C", "273.15K", false);
-    let prefixed = prepare("1km", "1000m", false);
     let original_left = field(&receipt, "left");
     let StructuredInfoValueShape::Record(operand_fields) = original_left.shape() else {
         panic!("operand")
     };
-    for name in ["offset", "dimension", "prefix", "coordinate"] {
-        let replacement = if name == "prefix" {
-            field(field(&prefixed, "left"), name)
-        } else {
-            field(field(&temperature, "left"), name)
-        };
+    for name in ["original", "coordinate"] {
+        let replacement = field(field(&temperature, "left"), name);
         let operand = StructuredInfoValue::record(
             original_left.value_type().clone(),
             operand_fields

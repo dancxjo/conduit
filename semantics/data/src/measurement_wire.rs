@@ -9,9 +9,12 @@ use crate::{
     MAXIMUM_MEASUREMENT_PLOT_POINTS, MAXIMUM_MEASUREMENT_WINDOW_SAMPLES,
 };
 
-pub const MAXIMUM_MEASUREMENT_WINDOW_BYTES: usize = 32_768;
+pub const MAXIMUM_MEASUREMENT_WINDOW_BYTES: usize = MAXIMUM_MEASUREMENT_WINDOW_SAMPLES
+    * (2 * conduit_core::QUANTITY_ENCODED_LEN + 256)
+    + 2 * conduit_core::QUANTITY_ENCODED_LEN
+    + 256;
 pub const MAXIMUM_MEASUREMENT_PLOT_SERIES_BYTES: usize = 1_024;
-pub const MAXIMUM_MEASUREMENT_SUMMARY_BYTES: usize = 1_024;
+pub const MAXIMUM_MEASUREMENT_SUMMARY_BYTES: usize = 4 * conduit_core::QUANTITY_ENCODED_LEN + 1_024;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum MeasurementWireRefusal {
@@ -198,7 +201,7 @@ pub fn decode_measurement_summary(
 fn validate_summary(summary: &MeasurementSummary) -> Result<(), MeasurementWireRefusal> {
     use conduit_core::TemporalRelation;
     let unit = summary.minimum.unit();
-    if unit.dimension() == conduit_core::QuantityDimension::Temperature {
+    if summary.minimum.role() == conduit_core::QuantityRole::Point {
         return Err(MeasurementWireRefusal::Malformed);
     }
     let difference = |left: conduit_core::Quantity,
@@ -226,12 +229,13 @@ fn validate_summary(summary: &MeasurementSummary) -> Result<(), MeasurementWireR
                 )
                 .ok_or(MeasurementWireRefusal::Malformed)
         };
-        conduit_core::Quantity::from_decimal(
+        conduit_core::Quantity::from_decimal_role(
             align(left)?
                 .checked_sub(align(right)?)
                 .ok_or(MeasurementWireRefusal::Malformed)?,
             exponent,
             unit,
+            left.role(),
         )
         .map_err(|_| MeasurementWireRefusal::Malformed)
     };

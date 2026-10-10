@@ -104,7 +104,7 @@ fn fragment() -> PlanFragment {
             })
             .collect(),
     };
-    let maximum = MAXIMUM_BROWSER_VALUE_BYTES as u32;
+    let maximum = crate::installed_browser::stroke_capture::MAXIMUM_PATH_BYTES as u32;
     let line = process_owned_line_offer_with_limits(
         "fixture/stroke-line",
         "fixture/stroke-binding",
@@ -131,7 +131,7 @@ fn fragment() -> PlanFragment {
         ),
         vec![line.line_id.clone()],
     )]);
-    conduit_planner::plan_expanded_canonical_with_options(
+    conduit_planner::plan_expanded_canonical_with_connection_limits(
         &expanded,
         &hosts,
         &placements,
@@ -148,6 +148,7 @@ fn fragment() -> PlanFragment {
             protected_resource_grants: &[],
             line_offers: &[line],
         },
+        &BTreeMap::new(),
     )
     .unwrap()
     .fragments

@@ -7,7 +7,7 @@ use conduit_core::{
 fn reviewed_units_and_prefixes_retain_coordinates_and_physical_equality() {
     for source in [
         "1Qm", "1qm", "1Qm³", "1qm³", "3.2m", "0.001km", "1000mm", "-1.50km", "440Hz", "250ms",
-        "21°C", "1m°C", "1MiB", "1MB", "1um2",
+        "21°C", "1m°C", "1MiB", "1MB", "1um²",
     ] {
         let quantity = Exact::parse_plot_literal(source).unwrap();
         assert_eq!(Exact::decode(&quantity.encode()), Ok(quantity));
@@ -37,7 +37,9 @@ fn all_reviewed_scales_match_the_independent_arbitrary_precision_corpus() {
     for case in cases {
         let source = case["source"].as_str().unwrap();
         let quantity = Exact::parse_plot_literal(source).unwrap();
-        let exponent = quantity.exponent() + quantity.unit().decimal_exponent();
+        let base = Unit::resolve(case["base"].as_str().unwrap()).unwrap();
+        let exponent =
+            quantity.exponent() + quantity.unit().decimal_exponent() - base.decimal_exponent();
         let (numerator, denominator) = if exponent >= 0 {
             (
                 format!(
@@ -124,7 +126,7 @@ fn bounded_precision_and_input_work_refuse_without_rounding() {
     );
     assert_eq!(
         Exact::parse_plot_literal(&format!("{}m", "0".repeat(128))),
-        Err(Refusal::LiteralTooLong)
+        Err(Refusal::NumberTooLong)
     );
     assert_eq!(
         Exact::from_decimal(1, -129, Unit::resolve("qm³").unwrap()),
@@ -169,7 +171,7 @@ fn versioned_encoding_is_canonical_and_rejects_other_codec_widths() {
     assert_eq!(Exact::decode(&encoded), Ok(exact));
     assert_eq!(Exact::decode(&[0; 9]), Err(Refusal::WrongEncodingLength));
     let mut noncanonical = Exact::from_decimal(1, 0, Unit::Meter).unwrap().encode();
-    noncanonical[6..].copy_from_slice(&10_i128.to_le_bytes());
+    noncanonical[4 + conduit_core::UNIT_ENCODED_LEN..].copy_from_slice(&10_i128.to_le_bytes());
     assert_eq!(
         Exact::decode(&noncanonical),
         Err(Refusal::NonCanonicalEncoding)
@@ -289,7 +291,7 @@ fn extended_target_projection_admits_only_exact_bounded_decimals() {
 
 #[test]
 fn recognized_scales_are_values_and_integer_projection_is_explicit() {
-    for source in ["1Qm", "1qm", "1Qm³", "1qm³", "1um2", "1uW"] {
+    for source in ["1Qm", "1qm", "1Qm³", "1qm³", "1um²", "1uW"] {
         assert!(Quantity::parse_plot_literal(source).is_ok(), "{source}");
     }
     assert_eq!(

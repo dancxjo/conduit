@@ -14,7 +14,7 @@ pub const QUANTITY_INFO_WRAP_KIND: &str = "structured-info/wrap-quantity";
 pub const QUANTITY_INFO_WRAP_REVISION: &str = "conduit.std/wrap-quantity@1";
 pub const QUANTITY_PRESENTATION_KIND: &str = "presentation/quantity";
 pub const QUANTITY_PRESENTATION_REVISION: &str = "conduit.std/presentation-quantity@1";
-pub const QUANTITY_INFO_MAXIMUM_BYTES: usize = 128;
+pub const QUANTITY_INFO_MAXIMUM_BYTES: usize = 4096;
 
 pub fn wrapped_quantity_type() -> StructuredInfoType {
     StructuredInfoType::leaf(kind_id(QUANTITY_INFO_ID)).expect("Quantity is an exact leaf")

@@ -33,15 +33,15 @@ impl<'a> ExactQuantityConversionReceipt<'a> {
         original: &'a str,
         target_source: &'a str,
     ) -> Result<Self, ExactQuantityConversionRequestRefusal> {
-        let evidence_source = Quantity::parse_plot_literal(original)
-            .map_err(ExactQuantityConversionRequestRefusal::Source)?;
-        if evidence_source != source {
+        if target_source.len() > crate::UNIT_MAX_SOURCE_BYTES {
+            return Err(ExactQuantityConversionRequestRefusal::TargetTooLong);
+        }
+        if !source.matches_literal_evidence(original) {
             return Err(ExactQuantityConversionRequestRefusal::SourceEvidenceMismatch);
         }
-        let (source_suffix, target) = resolve_conversion_suffixes(original, target_source)?;
-        if crate::Unit::from_resolved(target) != target_unit {
-            return Err(ExactQuantityConversionRequestRefusal::TargetEvidenceMismatch);
-        }
+        let source_suffix = source_suffix_from_evidence(original, source)?;
+        let target = ResolvedQuantitySuffix::from_unit(target_source, target_unit)
+            .map_err(|_| ExactQuantityConversionRequestRefusal::TargetEvidenceMismatch)?;
         let result = source
             .convert_to_unit(target_unit)
             .map(|(coefficient, exponent)| {
@@ -66,14 +66,10 @@ impl<'a> ExactQuantityConversionReceipt<'a> {
     ) -> Result<Self, ExactQuantityConversionRequestRefusal> {
         let source = Quantity::parse_plot_literal(original)
             .map_err(ExactQuantityConversionRequestRefusal::Source)?;
-        let (source_suffix, target) = resolve_conversion_suffixes(original, target)?;
-        Ok(Self {
-            original,
-            source,
-            source_suffix,
-            target,
-            result: source.convert_to_target(target),
-        })
+        let target_unit = Unit::resolve(target).map_err(|e| {
+            ExactQuantityConversionRequestRefusal::Target(QuantitySuffixRefusal::Unit(e))
+        })?;
+        Self::from_checked(source, target_unit, original, target)
     }
     pub const fn original(self) -> &'a str {
         self.original
@@ -92,39 +88,26 @@ impl<'a> ExactQuantityConversionReceipt<'a> {
     ) -> Result<ExactQuantityTargetCoordinate<'a>, QuantityConversionRefusal> {
         self.result
     }
-    /// Base scale, affine offset and denominator for the source reference equation.
-    /// The full equation is `(coefficient * 10^(exponent + unit.decimal_exponent())
-    /// * scale + offset) / denominator`; see [`Quantity::reference_transform`].
-    /// Decimal exponents never multiply an affine offset.
-    pub const fn source_transform(self) -> (i128, i128, i128) {
-        self.source.reference_transform()
-    }
-    pub fn target_transform(self) -> (i128, i128, i128) {
-        let unit = Unit::from_resolved(self.target);
-        unit.canonical_transform()
-    }
 }
 
-pub(super) fn resolve_conversion_suffixes<'a>(
+pub(super) fn source_suffix_from_evidence<'a>(
     original: &'a str,
-    target: &'a str,
-) -> Result<
-    (ResolvedQuantitySuffix<'a>, ResolvedQuantitySuffix<'a>),
-    ExactQuantityConversionRequestRefusal,
-> {
-    if target.len() > super::QUANTITY_MAX_LITERAL_BYTES {
-        return Err(ExactQuantityConversionRequestRefusal::TargetTooLong);
-    }
-    let suffix_start = original
-        .char_indices()
-        .find_map(|(index, character)| {
-            (!(character.is_ascii_digit() || character == '.' || (index == 0 && character == '-')))
-                .then_some(index)
-        })
-        .expect("a parsed quantity contains its suffix");
-    let source_suffix = ResolvedQuantitySuffix::resolve(&original[suffix_start..])
-        .expect("the checked parser resolved this identical suffix");
-    let target = ResolvedQuantitySuffix::resolve(target)
-        .map_err(ExactQuantityConversionRequestRefusal::Target)?;
-    Ok((source_suffix, target))
+    source: Quantity,
+) -> Result<ResolvedQuantitySuffix<'a>, ExactQuantityConversionRequestRefusal> {
+    let unit = source.unit();
+    let symbol = unit.symbol();
+    let text = if original.trim_end().ends_with(')') {
+        let inner = original.trim_end().strip_suffix(')').unwrap();
+        inner
+            .rsplit_once(',')
+            .map(|(_, s)| s.trim())
+            .ok_or(ExactQuantityConversionRequestRefusal::SourceEvidenceMismatch)?
+    } else {
+        original
+            .strip_suffix(symbol)
+            .map(|_| &original[original.len() - symbol.len()..])
+            .ok_or(ExactQuantityConversionRequestRefusal::SourceEvidenceMismatch)?
+    };
+    ResolvedQuantitySuffix::from_unit(text, source.unit())
+        .map_err(|_| ExactQuantityConversionRequestRefusal::SourceEvidenceMismatch)
 }

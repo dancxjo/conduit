@@ -8,8 +8,9 @@ use crate::{
     MeasurementWireRefusal, MAXIMUM_MEASUREMENT_WINDOW_SAMPLES,
 };
 
-pub const MAXIMUM_MEASUREMENT_WINDOW_PROFILE_BYTES: usize = 1_024;
-pub const MAXIMUM_MEASUREMENT_SAMPLE_BYTES: usize = 1_024;
+pub const MAXIMUM_MEASUREMENT_WINDOW_PROFILE_BYTES: usize =
+    2 * conduit_core::QUANTITY_ENCODED_LEN + 1_024;
+pub const MAXIMUM_MEASUREMENT_SAMPLE_BYTES: usize = 2 * conduit_core::QUANTITY_ENCODED_LEN + 1_024;
 
 pub fn encode_measurement_window_profile(
     profile: &MeasurementWindowProfile,
@@ -71,7 +72,8 @@ pub fn encode_measurement_sample(
         .validate()
         .map_err(|_| MeasurementWireRefusal::Malformed)?;
     if sample.uncertainty.is_some_and(|uncertainty| {
-        sample.value.dimension() == conduit_core::QuantityDimension::Temperature
+        sample.value.role() == conduit_core::QuantityRole::Point
+            || uncertainty.role() != sample.value.role()
             || uncertainty.unit() != sample.value.unit()
             || uncertainty.coefficient() < 0
     }) {

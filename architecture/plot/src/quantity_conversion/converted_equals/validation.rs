@@ -37,40 +37,11 @@ fn require(condition: bool) -> Result<(), R> {
 pub(super) fn validate(receipt: View<'_>) -> Result<(Quantity, bool), R> {
     let source = Quantity::decode(bytes(receipt, "source", QUANTITY_INFO_ID)?)
         .map_err(|_| R::ForgedReceipt)?;
-    let original = text(receipt, "original")?;
-    require(Quantity::parse_plot_literal(original).ok() == Some(source))?;
-    let suffix_start = original
-        .char_indices()
-        .find_map(|(i, c)| (!(c.is_ascii_digit() || c == '.' || (i == 0 && c == '-'))).then_some(i))
-        .ok_or(R::ForgedReceipt)?;
-    let suffix =
-        ResolvedQuantitySuffix::resolve(&original[suffix_start..]).map_err(|_| R::ForgedReceipt)?;
-    let target_text = text(receipt, "target")?;
-    let target = Unit::resolve(target_text).map_err(|_| R::ForgedReceipt)?;
-    let (ss, so, sd) = source.reference_transform();
-    let (ts, to, td, te) = target.reference_transform();
-    require(text(receipt, "source-suffix")? == suffix.source())?;
-    require(text(receipt, "source-base")? == suffix.unit().base_unit().plot_suffix())?;
-    require(text(receipt, "source-prefix")? == suffix.prefix().map_or("", |p| p.symbol()))?;
-    require(
-        exponent(receipt, "source-prefix-exponent")?
-            == i16::from(suffix.prefix().map_or(0, |p| p.exponent())),
-    )?;
-    require(text(receipt, "source-dimension")? == dimension_name(source.dimension()))?;
-    require(text(receipt, "target-dimension")? == dimension_name(target.dimension()))?;
+    require(source.matches_literal_evidence(text(receipt, "original")?))?;
+    let target =
+        Unit::decode(bytes(receipt, "target-unit", UNIT_INFO_ID)?).map_err(|_| R::ForgedReceipt)?;
+    require(target.matches_source_evidence(text(receipt, "target")?))?;
     require(text(receipt, "profile")? == QUANTITY_INFO_ID)?;
-    require(text(receipt, "catalogue")? == QUANTITY_PREFIX_CATALOG_ID)?;
-    require(exponent(receipt, "target-exponent")? == te)?;
-    for (name, value) in [
-        ("source-scale", ss),
-        ("source-offset", so),
-        ("source-denominator", sd),
-        ("target-scale", ts),
-        ("target-offset", to),
-        ("target-denominator", td),
-    ] {
-        require(number(receipt, name)? == value)?;
-    }
     let result = field(receipt, "result")?;
     let tag = result.variant_tag().map_err(|_| R::ForgedReceipt)?;
     let payload = result
@@ -94,16 +65,7 @@ pub(super) fn validate(receipt: View<'_>) -> Result<(Quantity, bool), R> {
                     .map_err(|_| R::ForgedReceipt)?,
             )
             .map_err(|_| R::ForgedReceipt)?;
-            require(
-                reason
-                    == match refusal {
-                        QuantityConversionRefusal::IncompatibleDimensions => {
-                            "incompatible-dimensions"
-                        }
-                        QuantityConversionRefusal::Inexact => "inexact",
-                        QuantityConversionRefusal::Overflow => "overflow",
-                    },
-            )?;
+            require(reason == refusal_reason(refusal))?;
             Ok((source, false))
         }
     }

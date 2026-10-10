@@ -46,9 +46,11 @@ mod package_check_tests;
 mod package_resolution;
 #[cfg(test)]
 mod package_resolution_tests;
+mod physical_declarations;
 mod pure_expression;
 pub mod quantity_conversion;
 mod quantity_literal;
+pub use physical_declarations::*;
 mod quoted_text_source;
 pub use quoted_text_source::{source_span, QuotedTextSourceMap};
 pub mod rust_binding;
@@ -385,6 +387,7 @@ impl From<&conduit_core::Kind> for KindProjection {
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct ProfileCatalog {
+    pub(crate) physical: crate::physical_declarations::CheckedPhysicalCatalogue,
     kinds: BTreeMap<KindId, KindProjection>,
     canonical_kinds: BTreeMap<KindId, conduit_core::Kind>,
     variadic_fores: BTreeMap<KindId, HomogeneousVariadicFore>,

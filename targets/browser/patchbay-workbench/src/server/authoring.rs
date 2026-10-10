@@ -101,7 +101,11 @@ impl PatchbayHtmlServer {
                     &expanded_plot_id,
                     &gear,
                     &key,
-                    value.checked()?,
+                    value.checked_with_catalog(
+                        &editor
+                            .checked_physical_catalog()
+                            .map_err(|error| error.to_string())?,
+                    )?,
                 );
                 Ok(serde_json::json!({
                     "valid": result.is_ok(),

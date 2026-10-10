@@ -10,6 +10,13 @@ pub(super) fn equal(
         return Err(PortableExpressionEvaluationRefusal::InvalidProgram);
     }
     if let Ok(kind) = leaf_kind(&left.value_type) {
+        if kind == conduit_core::UNIT_INFO_ID {
+            let left = conduit_core::Unit::decode(&left.encoded)
+                .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?;
+            let right = conduit_core::Unit::decode(&right.encoded)
+                .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?;
+            return Ok(left.same_physical_definition(right));
+        }
         return if matches!(
             kind,
             conduit_core::F32_INFO_ID
@@ -36,6 +43,13 @@ fn equal_structured(
     match (left.shape(), right.shape()) {
         (StructuredInfoValueShape::Leaf(a), StructuredInfoValueShape::Leaf(b)) => {
             let kind = leaf_kind(left.value_type())?;
+            if kind == conduit_core::UNIT_INFO_ID {
+                let left = conduit_core::Unit::decode(a)
+                    .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?;
+                let right = conduit_core::Unit::decode(b)
+                    .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?;
+                return Ok(left.same_physical_definition(right));
+            }
             if matches!(
                 kind,
                 conduit_core::F32_INFO_ID

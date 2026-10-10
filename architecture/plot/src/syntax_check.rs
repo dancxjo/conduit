@@ -59,7 +59,8 @@ pub(crate) fn check_document(
             message: diagnostic.message.clone(),
         });
     }
-    let aliased_catalog = crate::native_type::install_import_aliases(document, catalog)?;
+    let physical_catalog = crate::physical_declarations::context::install(document, catalog)?;
+    let aliased_catalog = crate::native_type::install_import_aliases(document, &physical_catalog)?;
     let (native_types, checked_catalog) =
         crate::native_type::check_native_types(&document.types, &aliased_catalog)?;
     let type_forms =
@@ -196,6 +197,7 @@ pub(crate) fn check_document(
         structured_types.insert(value_kind, retained.value_type.clone());
     }
     Ok(CheckedSyntaxDocument {
+        physical: catalog.physical.clone(),
         source_document_id: document.source_document_id(),
         native_types,
         retained_native_types: catalog.retained_native_types(),
@@ -781,7 +783,7 @@ fn check_plot(
             ))
         })
         .collect::<Result<BTreeMap<_, _>, SyntaxCheckDiagnostic>>()?;
-    let mut resolver = Resolver::new(locals, parameter_types, runtime_names, pool_names);
+    let mut resolver = Resolver::new(locals, parameter_types, runtime_names, pool_names, catalog);
     let mut gears = Vec::new();
     let mut cords = Vec::new();
     let mut pools = Vec::new();
@@ -1655,12 +1657,31 @@ fn canonicalize_integer_value(
         SyntaxCheckError::InvalidIntegerLiteral(format!("unknown startup Type '{source_type}'"))
     })?;
     if let Some(actual) = crate::authored_quantity::value_kind(&value) {
-        let compatible = actual == target
-            || matches!(&value,CanonicalStartupValue::Quantity(q) if conduit_core::quantity_info_dimension(target.as_str())==Some(q.value().dimension()));
+        let compatible = match &value {
+            CanonicalStartupValue::Quantity(q) => {
+                conduit_core::validate_primitive_info(target.as_str(), &q.value().encode()).is_ok()
+            }
+            CanonicalStartupValue::Unit(u) => {
+                conduit_core::validate_primitive_info(target.as_str(), &u.value().encode()).is_ok()
+            }
+            _ => actual == target,
+        };
         if !compatible {
             return Err(SyntaxCheckError::QuantityLiteral(format!(
-                "physical value of Type '{}' cannot satisfy '{source_type}'",
-                actual.as_str()
+                "physical value of Type '{}' cannot satisfy '{source_type}'; declared Units: {}",
+                actual.as_str(),
+                catalog
+                    .physical
+                    .units
+                    .iter()
+                    .filter(|(_, unit)| catalog
+                        .physical
+                        .quantities
+                        .get(source_type)
+                        .is_some_and(|role| role.family == unit.family()))
+                    .map(|(symbol, _)| symbol.as_str())
+                    .collect::<Vec<_>>()
+                    .join(", ")
             )));
         }
     }
@@ -1713,7 +1734,11 @@ fn resolve_bound_value(
             .as_deref()
             .and_then(crate::authored_quantity::expected_role)
     {
-        crate::authored_quantity::parse(default, role)?
+        let expected = crate::quantity_literal::selected_profile(catalog, &parameter.value_type);
+        crate::physical_declarations::value::parse_value(default, expected.as_deref(), catalog)?
+            .ok_or_else(|| {
+                SyntaxCheckError::QuantityLiteral(format!("default is not a declared {role} value"))
+            })?
     } else if let Some(expected) =
         crate::quantity_literal::selected_profile(catalog, &parameter.value_type).as_deref()
     {

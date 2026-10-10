@@ -5,13 +5,13 @@ use conduit_plot::{
 
 #[test]
 fn reviewed_composed_suffixes_check_as_existing_quantity_values_without_source_rewrite() {
-    let source = "plot prefixes {\n distance = 1dam\n tiny_area = 1dam2\n old_pitch = 440Hz\n old_delay = 250ms\n}\n";
+    let source = "plot prefixes {\n distance = 1dam\n tiny_area = 1dam²\n old_pitch = 440Hz\n old_delay = 250ms\n}\n";
     let parsed = parse_syntax_document(source);
     assert_eq!(parsed.round_trip(), source);
     let checked = check_syntax_document(&parsed, &StartupCatalog::new()).unwrap();
     for (name, literal) in [
         ("distance", "1dam"),
-        ("tiny_area", "1dam2"),
+        ("tiny_area", "1dam²"),
         ("old_pitch", "440Hz"),
         ("old_delay", "250ms"),
     ] {

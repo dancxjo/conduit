@@ -119,7 +119,7 @@ fn measurement_refusals_round_trip_through_exact_native_types() {
         MeasurementWindowRefusal::InvalidTimestamp,
         MeasurementWindowRefusal::UnitMismatch,
         MeasurementWindowRefusal::UncertaintyUnitMismatch,
-        MeasurementWindowRefusal::TemperatureDifferenceRequired,
+        MeasurementWindowRefusal::PointDifferenceRequired,
         MeasurementWindowRefusal::NegativeUncertainty,
         MeasurementWindowRefusal::ClockMismatch,
         MeasurementWindowRefusal::TimestampRegression,
@@ -144,7 +144,7 @@ fn measurement_refusals_round_trip_through_exact_native_types() {
         MeasurementSummaryRefusal::UnitMismatch,
         MeasurementSummaryRefusal::ArithmeticOverflow,
         MeasurementSummaryRefusal::InexactMean,
-        MeasurementSummaryRefusal::TemperatureDifferenceRequired,
+        MeasurementSummaryRefusal::PointDifferenceRequired,
     ] {
         assert_round_trip(refusal);
     }

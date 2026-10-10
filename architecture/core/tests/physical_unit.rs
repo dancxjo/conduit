@@ -2,24 +2,19 @@ use conduit_core::*;
 
 #[test]
 fn physical_unit_catalogue_codec_is_bounded_and_distinct() {
-    for base in PREFIXABLE_UNITS {
-        for prefix in DECIMAL_PREFIXES {
-            let spelling = format!("{}{}", prefix.symbol(), base.unit().plot_suffix());
-            let unit = Unit::resolve(&spelling).unwrap();
-            assert_eq!(unit.dimension(), base.dimension());
-            assert_eq!(unit.decimal_exponent(), base.composed_exponent(prefix));
-            assert_eq!(unit.catalogue_id(), QUANTITY_PREFIX_CATALOG_ID);
-            assert_eq!(Unit::decode(&unit.encode()), Ok(unit));
-            assert_eq!(
-                validate_primitive_info(UNIT_INFO_ID, &unit.encode()),
-                Ok(())
-            );
-            assert!(validate_primitive_info(QUANTITY_INFO_ID, &unit.encode()).is_err());
-            assert!(validate_primitive_info(EMPTY_INFO_ID, &unit.encode()).is_err());
-        }
+    for &(_, definition) in BUILTIN_UNIT_DEFINITIONS {
+        let unit = Unit::from_definition(definition);
+        assert_eq!(Unit::decode(&unit.encode()), Ok(unit));
+        assert_eq!(
+            validate_primitive_info(UNIT_INFO_ID, &unit.encode()),
+            Ok(())
+        );
+        assert!(validate_primitive_info(QUANTITY_INFO_ID, &unit.encode()).is_err());
+        assert!(validate_primitive_info(EMPTY_INFO_ID, &unit.encode()).is_err());
     }
-    assert_eq!(Unit::resolve("um"), Unit::resolve("µm"));
-    assert_eq!(Unit::resolve("km2"), Unit::resolve("km²"));
+    assert!(Unit::resolve("um")
+        .unwrap()
+        .same_physical_definition(Unit::resolve("µm").unwrap()));
     assert_ne!(Unit::resolve("Hz"), Unit::resolve("kHz"));
     assert!(Unit::resolve("C").is_err());
     assert!(Unit::resolve("KHZ").is_err());
@@ -53,14 +48,17 @@ fn owned_unit_retains_exact_prefix_and_affine_conversion_laws() {
         celsius.convert_to_unit(Unit::resolve("°F").unwrap()),
         Ok((698, -1))
     );
-    let difference = ExactTemperatureDifference::parse_plot_literal("21°C").unwrap();
+    let difference =
+        ExactTemperatureDifference::parse_plot_literal("TemperatureDelta(21, °C)").unwrap();
     assert_eq!(
         difference.convert_to_unit(Unit::resolve("°F").unwrap()),
         Ok((378, -1))
     );
-    let (_, offset, _, exponent) = Unit::resolve("°C").unwrap().reference_transform();
-    assert_ne!(offset, 0);
-    assert_eq!(exponent, 0);
+    let offset = Unit::resolve("°C")
+        .unwrap()
+        .exact_offset(QuantityRole::Point)
+        .unwrap();
+    assert!(offset.equivalent(DefinitionScalar::new(27315, 100, 0).unwrap()));
 }
 
 #[test]
@@ -114,11 +112,12 @@ fn typed_receipt_construction_checks_evidence_without_using_it_as_conversion_inp
         ExactQuantityConversionReceipt::from_checked(source, target, "1kHz", "kHz"),
         Err(ExactQuantityConversionRequestRefusal::TargetEvidenceMismatch)
     );
-    let difference = ExactTemperatureDifference::parse_plot_literal("21°C").unwrap();
+    let difference =
+        ExactTemperatureDifference::parse_plot_literal("TemperatureDelta(21, °C)").unwrap();
     let receipt = ExactTemperatureDifferenceConversionReceipt::from_checked(
         difference,
         Unit::resolve("°F").unwrap(),
-        "21°C",
+        "TemperatureDelta(21, °C)",
         "°F",
     )
     .unwrap();
@@ -128,15 +127,12 @@ fn typed_receipt_construction_checks_evidence_without_using_it_as_conversion_inp
 
 #[test]
 fn temperature_difference_configuration_owns_its_structured_profile_identity() {
-    let difference = ExactTemperatureDifferenceConfigurationValue::parse("21°C").unwrap();
+    let difference =
+        ExactTemperatureDifferenceConfigurationValue::parse("TemperatureDelta(21, °C)").unwrap();
     let value = ConfigurationValue::TemperatureDifference(difference.clone());
-    let expected = exact_temperature_difference_type()
-        .profile()
-        .unwrap()
-        .value_kind()
-        .clone();
+    let expected = kind_id(EXACT_TEMPERATURE_DIFFERENCE_INFO_ID);
     assert_eq!(value.semantic_kind(), expected);
-    assert_ne!(
+    assert_eq!(
         value.semantic_kind(),
         kind_id(EXACT_TEMPERATURE_DIFFERENCE_INFO_ID)
     );

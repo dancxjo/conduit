@@ -36,9 +36,9 @@ pub(super) fn substitute_immutable_values(
         };
         let text = match local {
             CanonicalStartupValue::Literal(text) => text.clone(),
-            CanonicalStartupValue::Quantity(value) => value.source().into(),
-            CanonicalStartupValue::Unit(value) => value.source().into(),
-            CanonicalStartupValue::TemperatureDifference(value) => value.source().into(),
+            CanonicalStartupValue::Quantity(_)
+            | CanonicalStartupValue::Unit(_)
+            | CanonicalStartupValue::TemperatureDifference(_) => return Ok(None),
             _ => {
                 return Err(CanonicalExpansionDiagnostic::new(
                     "CND-FRM-046",

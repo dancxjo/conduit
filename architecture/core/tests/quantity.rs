@@ -1,6 +1,5 @@
 use conduit_core::{
-    Quantity, QuantityConversionRefusal, QuantityDimension, QuantityLiteralRefusal,
-    QuantityRefusal, QuantitySuffixRefusal, Unit,
+    Quantity, QuantityConversionRefusal, QuantityDimension, QuantityRefusal, Unit, UnitRefusal,
 };
 use core::cmp::Ordering;
 
@@ -157,9 +156,12 @@ fn uncommon_engineering_historical_and_scientific_units_are_exact() {
         Quantity::new(60, Unit::Arcsecond).convert(Unit::Arcminute),
         Ok(Quantity::new(1, Unit::Arcminute))
     );
-    assert_eq!(
-        Unit::AstronomicalUnit.semantic_id(),
-        "length/astronomical-unit"
+    assert!(Unit::AstronomicalUnit
+        .semantic_id()
+        .starts_with("physical/unit/"));
+    assert_ne!(
+        Unit::AstronomicalUnit.definition_identity(),
+        Unit::Meter.definition_identity()
     );
 }
 
@@ -297,9 +299,7 @@ fn plot_literals_refuse_unknown_parts_and_admit_exact_decimal_quantities() {
     );
     assert_eq!(
         Quantity::parse_plot_literal("21C"),
-        Err(QuantityRefusal::Unit(QuantitySuffixRefusal::Literal(
-            QuantityLiteralRefusal::NonCanonicalUnit { canonical: "°C" }
-        )))
+        Err(QuantityRefusal::Unit(UnitRefusal::UnknownSymbol))
     );
     assert_eq!(
         Quantity::parse_plot_literal("0.1ps")

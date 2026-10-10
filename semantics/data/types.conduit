@@ -34,7 +34,7 @@ type MeasurementWindowRefusal =
     | invalid_timestamp
     | unit_mismatch
     | uncertainty_unit_mismatch
-    | temperature_difference_required
+    | point_difference_required
     | negative_uncertainty
     | clock_mismatch
     | timestamp_regression
@@ -55,7 +55,7 @@ type MeasurementSummaryRefusal =
     | unit_mismatch
     | arithmetic_overflow
     | inexact_mean
-    | temperature_difference_required
+    | point_difference_required
 
 type MeasurementThresholdRefusal =
     policy_unit_mismatch

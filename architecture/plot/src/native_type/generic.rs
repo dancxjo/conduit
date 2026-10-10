@@ -233,6 +233,7 @@ impl Context<'_> {
 
 fn definition_uses(definition: &TypeDefinitionSyntax, parameter: &str) -> bool {
     match definition {
+        TypeDefinitionSyntax::Quantity(_) => false,
         TypeDefinitionSyntax::Scalar(value) => expression_uses(value, parameter),
         TypeDefinitionSyntax::Record(fields) => fields
             .iter()
