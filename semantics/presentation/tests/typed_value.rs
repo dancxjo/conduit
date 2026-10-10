@@ -99,7 +99,7 @@ fn inline_values_admit_only_finite_contracts_and_matching_canonical_bytes() {
     // violating its declared application contract: this must fail Face admission.
     let constrained = CheckedValueContract::new(
         kind_id(QUANTITY_INFO_ID),
-        20,
+        22,
         vec![ValueConstraint::CanonicalMembership {
             negated: false,
             members: vec![Quantity::from_decimal(21, 0, Unit::Celsius)
@@ -170,12 +170,12 @@ fn face_identity_binds_the_value_kind_contract_and_exact_coordinate() {
     assert_ne!(baseline.identity, face(changed).unwrap().identity);
     let bytes = Quantity::new(21, Unit::Celsius).encode().to_vec();
     let unqualified = face(PresentationPropertyValue::TypedValue {
-        contract: contract(QUANTITY_INFO_ID, 9),
+        contract: contract(QUANTITY_INFO_ID, 22),
         bytes: bytes.clone(),
     })
     .unwrap();
     let temperature = face(PresentationPropertyValue::TypedValue {
-        contract: contract(TEMPERATURE_INFO_ID, 9),
+        contract: contract(TEMPERATURE_INFO_ID, 22),
         bytes,
     })
     .unwrap();
