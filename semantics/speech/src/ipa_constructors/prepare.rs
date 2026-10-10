@@ -286,6 +286,19 @@ impl conduit_plot::StaticValueConstructor for IpaConstructor {
 }
 
 impl conduit_plot::LiteralValueConstructor for IpaConstructor {
+    fn context_types(&self) -> Vec<(alloc::string::String, conduit_core::StructuredInfoType)> {
+        let mut fields = alloc::vec![(
+            "provenance".into(),
+            SpeechEvidenceProvenance::semantic_type().expect("checked provenance")
+        )];
+        fields.extend(
+            self.parameters()
+                .into_iter()
+                .filter(|(name, _, _)| *name != "request")
+                .map(|(name, _, ty)| (name.into(), ty)),
+        );
+        fields
+    }
     fn parser_contract(&self) -> &str {
         super::REVISION
     }

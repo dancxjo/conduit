@@ -2,13 +2,15 @@ use crate::prelude::*;
 use crate::{CanonicalStartupValue, SyntaxCheckError};
 use alloc::collections::{BTreeMap, BTreeSet};
 
-pub(super) struct Resolver<'a> {
-    pub(super) locals: BTreeMap<String, &'a crate::LocalValue>,
+pub(crate) struct Resolver<'a> {
+    pub(crate) locals: BTreeMap<String, &'a crate::LocalValue>,
     parameters: BTreeSet<String>,
     runtime_ports: BTreeSet<String>,
     pools: BTreeSet<String>,
     resolved: BTreeMap<String, CanonicalStartupValue>,
     visiting: BTreeSet<String>,
+    source_values:
+        &'a BTreeMap<(usize, usize), (crate::Expression, crate::CanonicalStructuredStartupValue)>,
     prepared_glyphs: &'a BTreeMap<
         (usize, usize),
         (
@@ -19,7 +21,7 @@ pub(super) struct Resolver<'a> {
 }
 
 impl<'a> Resolver<'a> {
-    pub(super) fn new(
+    pub(crate) fn new(
         locals: BTreeMap<String, &'a crate::LocalValue>,
         parameters: BTreeSet<String>,
         runtime_ports: BTreeSet<String>,
@@ -31,6 +33,10 @@ impl<'a> Resolver<'a> {
                 crate::CanonicalStructuredStartupValue,
             ),
         >,
+        source_values: &'a BTreeMap<
+            (usize, usize),
+            (crate::Expression, crate::CanonicalStructuredStartupValue),
+        >,
     ) -> Self {
         Self {
             locals,
@@ -40,10 +46,11 @@ impl<'a> Resolver<'a> {
             resolved: BTreeMap::new(),
             visiting: BTreeSet::new(),
             prepared_glyphs,
+            source_values,
         }
     }
 
-    pub(super) fn resolve_name(
+    pub(crate) fn resolve_name(
         &mut self,
         name: &str,
         expected: Option<&conduit_core::StructuredInfoType>,
@@ -61,6 +68,12 @@ impl<'a> Resolver<'a> {
             }
             return Ok(value.clone());
         }
+        if self.visiting.len() >= 64 {
+            return Err(SyntaxCheckError::StructuredExpression(
+                "immutable Source dependency depth exceeds 64".into(),
+                None,
+            ));
+        }
         if !self.visiting.insert(name.to_string()) {
             return Err(SyntaxCheckError::DependencyCycle(name.to_string()));
         }
@@ -76,6 +89,18 @@ impl<'a> Resolver<'a> {
         expression: &crate::Expression,
         expected: Option<&conduit_core::StructuredInfoType>,
     ) -> Result<CanonicalStartupValue, SyntaxCheckError> {
+        if let Some((authored, value)) = self
+            .source_values
+            .get(&(expression.span.start, expression.span.end))
+        {
+            if authored != expression || expected.is_some_and(|ty| ty != value.value_type()) {
+                return Err(SyntaxCheckError::StructuredExpression(
+                    "prepared Source context has incompatible custody or Type".into(),
+                    Some(expression.span),
+                ));
+            }
+            return Ok(CanonicalStartupValue::Structured(value.clone()));
+        }
         if let crate::ExpressionSyntax::TypedGlyphLiteral(literal) = &expression.syntax {
             return self.resolve_spanned(&literal.authored, expected);
         }
@@ -141,6 +166,20 @@ impl<'a> Resolver<'a> {
                 }
                 error => error,
             })
+    }
+
+    pub(crate) fn resolved_context(
+        &self,
+    ) -> Vec<(crate::Expression, crate::CanonicalStructuredStartupValue)> {
+        self.resolved
+            .iter()
+            .filter_map(|(name, value)| match value {
+                CanonicalStartupValue::Structured(value) => {
+                    Some((self.locals[name].value.clone(), value.clone()))
+                }
+                _ => None,
+            })
+            .collect()
     }
 
     fn resolve_spanned(

@@ -1,0 +1,158 @@
+#![cfg(feature = "semantic-bindings")]
+use conduit_plot::*;
+use conduit_speech::ipa_constructors::*;
+const PHONETIC: &str = include_str!("../examples/ipa/quoted-transcriptions.conduit");
+const PHONEMIC: &str = include_str!("../examples/ipa/quoted-phonemic.conduit");
+fn catalogs() -> (StartupCatalog, ProfileCatalog) {
+    let mut startup = StartupCatalog::new();
+    let mut profile = ProfileCatalog::new();
+    conduit_speech::authoring::install(&mut startup).unwrap();
+    install(&mut startup, &mut profile).unwrap();
+    install_notation(&mut startup, &profile).unwrap();
+    (startup, profile)
+}
+fn material(quoted: &str) -> Vec<(String, String)> {
+    let document = parse_syntax_document(quoted);
+    let BackStatement::NamedGear(gear) = &document.plots[0].back[0] else {
+        panic!()
+    };
+    gear.invocation
+        .arguments
+        .iter()
+        .map(|argument| {
+            let Argument::Named { name, value, .. } = argument else {
+                panic!()
+            };
+            if name.text == "request" {
+                let ExpressionSyntax::Record { fields, .. } = &value.syntax else {
+                    panic!()
+                };
+                let provenance = fields
+                    .iter()
+                    .find(|field| field.name.text == "provenance")
+                    .unwrap();
+                let span = provenance.value.span();
+                (
+                    "provenance".into(),
+                    document.round_trip()[span.start..span.end].into(),
+                )
+            } else {
+                (name.text.clone(), value.text.clone())
+            }
+        })
+        .collect()
+}
+fn literal(document: &SyntaxDocument) -> &TypedGlyphLiteralSyntax {
+    let BackStatement::LocalValue(local) = document.plots[0].back.last().unwrap() else {
+        panic!()
+    };
+    let ExpressionSyntax::TypedGlyphLiteral(value) = &local.value.syntax else {
+        panic!()
+    };
+    value
+}
+#[test]
+fn selected_source_locals_supply_context_without_a_quoted_ipa_request() {
+    let (startup, profile) = catalogs();
+    for (constructor, quoted, spelling) in [
+        (IpaConstructor::Phonetic, PHONETIC, "ph[ˈt͡ʃãː.n̩]"),
+        (IpaConstructor::Phonemic, PHONEMIC, "ph/ˈt͡ʃaː/"),
+    ] {
+        let fields = material(quoted);
+        let declarations = fields
+            .iter()
+            .map(|(key, text)| format!(" chosen-{key} = {text}\n"))
+            .collect::<String>();
+        let source = format!("with {NOTATION_EXPORT_PATH} as ph\nplot authored {{\n{declarations} evidence = chosen-provenance\n value = {spelling}\n}}\n");
+        let document = parse_syntax_document_with_glyph_notations(&source, &startup);
+        assert!(
+            document.diagnostics.is_empty(),
+            "{:?}",
+            document.diagnostics
+        );
+        let selections = fields
+            .iter()
+            .map(|(key, _)| {
+                (
+                    key.clone(),
+                    if key == "provenance" {
+                        "evidence".into()
+                    } else {
+                        format!("chosen-{key}")
+                    },
+                )
+            })
+            .collect::<Vec<_>>();
+        let bindings = selections
+            .iter()
+            .map(|(key, name)| (key.as_str(), name.as_str()))
+            .collect::<Vec<_>>();
+        let scope = resolve_glyph_notation_scope(&document, &startup).unwrap();
+        let prepared = scope
+            .prepare_literal_from_source_locals(
+                &document,
+                "authored",
+                literal(&document),
+                &bindings,
+                &constructor,
+                &startup,
+                &profile,
+            )
+            .unwrap();
+        let checked = check_syntax_document_with_prepared_glyph_literals(
+            &document,
+            &startup,
+            core::slice::from_ref(&prepared),
+        )
+        .unwrap();
+        assert_eq!(checked.plots[0].local_values.len(), fields.len() + 2);
+        let original = parse_syntax_document(quoted);
+        let ordinary = check_syntax_document(&original, &startup).unwrap();
+        let expanded =
+            expand_canonical_plot_for_authoring(&ordinary, &original.plots[0].name.text, &profile)
+                .unwrap();
+        assert_eq!(
+            prepared.ordinary().value().canonical_bytes().unwrap(),
+            prepare_configuration(constructor, &expanded.expanded.gears[0].configuration)
+                .unwrap()
+                .bytes()
+        );
+        assert!(scope
+            .prepare_literal_from_source_locals(
+                &document,
+                "authored",
+                literal(&document),
+                &[],
+                &constructor,
+                &startup,
+                &profile
+            )
+            .is_err());
+        let mut missing = bindings.clone();
+        missing[0].1 = "missing";
+        assert!(scope
+            .prepare_literal_from_source_locals(
+                &document,
+                "authored",
+                literal(&document),
+                &missing,
+                &constructor,
+                &startup,
+                &profile
+            )
+            .is_err());
+        let cyclic = source.replace("evidence = chosen-provenance", "evidence = evidence");
+        let cyclic = parse_syntax_document_with_glyph_notations(&cyclic, &startup);
+        assert!(scope
+            .prepare_literal_from_source_locals(
+                &cyclic,
+                "authored",
+                literal(&cyclic),
+                &bindings,
+                &constructor,
+                &startup,
+                &profile
+            )
+            .is_err());
+    }
+}

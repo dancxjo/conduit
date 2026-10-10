@@ -45,6 +45,7 @@ pub fn admit_glyph_values(
         )
     })?;
     let mut admitted = BTreeMap::new();
+    let mut source_values = BTreeMap::new();
     let mut retained_bytes = 0usize;
     for receipt in receipts {
         let literal = receipt.authored();
@@ -96,6 +97,46 @@ pub fn admit_glyph_values(
                 "combined prepared glyph values exceed the finite byte bound",
             ));
         }
+        for (expression, value) in &receipt.source_context {
+            let context_key = (expression.span.start, expression.span.end);
+            let actual = document
+                .plots
+                .iter()
+                .flat_map(|plot| &plot.back)
+                .find_map(|statement| {
+                    let BackStatement::LocalValue(local) = statement else {
+                        return None;
+                    };
+                    (local.value.span == expression.span).then_some(&local.value)
+                });
+            if actual != Some(expression) {
+                return Err(fail(expression.span, "foreign Source context receipt"));
+            }
+            if let Some((existing_expression, existing_value)) = source_values.get(&context_key) {
+                if existing_expression != expression || existing_value != value {
+                    return Err(fail(
+                        expression.span,
+                        "conflicting Source context admissions",
+                    ));
+                }
+                continue;
+            }
+            let bytes = value
+                .try_concrete()
+                .ok_or_else(|| fail(expression.span, "non-concrete Source context"))?
+                .canonical_bytes()
+                .map_err(|_| fail(expression.span, "invalid Source context encoding"))?;
+            retained_bytes = retained_bytes
+                .saturating_add(bytes.len())
+                .saturating_add(expression.text.len());
+            if retained_bytes > 1024 * 1024 {
+                return Err(fail(
+                    expression.span,
+                    "combined Source context exceeds the finite byte bound",
+                ));
+            }
+            source_values.insert(context_key, (expression.clone(), value.clone()));
+        }
         admitted.insert(
             key,
             (
@@ -112,17 +153,28 @@ pub fn admit_glyph_values(
             ));
         }
     }
-    Ok(AdmittedGlyphValues { values: admitted })
+    Ok(AdmittedGlyphValues {
+        values: admitted,
+        source_values,
+    })
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct AdmittedGlyphValues {
+    pub(crate) source_values:
+        BTreeMap<(usize, usize), (crate::Expression, CanonicalStructuredStartupValue)>,
     pub(crate) values:
         BTreeMap<(usize, usize), (TypedGlyphLiteralSyntax, CanonicalStructuredStartupValue)>,
 }
 impl AdmittedGlyphValues {
     pub(crate) fn for_plot(catalog: &StartupCatalog, span: Span) -> Self {
         Self {
+            source_values: catalog
+                .prepared_source_values
+                .iter()
+                .filter(|((start, end), _)| *start >= span.start && *end <= span.end)
+                .map(|(key, value)| (*key, value.clone()))
+                .collect(),
             values: catalog
                 .prepared_glyph_values
                 .iter()
@@ -143,6 +195,13 @@ impl AdmittedGlyphValues {
             text.push_str(&format!(
                 "|{start}:{end}:{}:{}",
                 literal.source_document_id.as_str(),
+                value.canonical_identity()
+            ));
+        }
+        for ((start, end), (expression, value)) in &self.source_values {
+            text.push_str(&format!(
+                "|context:{start}:{end}:{}:{}",
+                crate::syntax_identity::canonical_expression(&expression.syntax),
                 value.canonical_identity()
             ));
         }
@@ -167,6 +226,7 @@ pub fn check_syntax_document_with_prepared_glyph_literals(
     let admitted = admit_glyph_values(document, catalog, receipts)?;
     let mut scoped = catalog.clone();
     scoped.prepared_glyph_values = admitted.values;
+    scoped.prepared_source_values = admitted.source_values;
     check_syntax_document(document, &scoped)
 }
 

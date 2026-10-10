@@ -21,7 +21,8 @@ mod resolution;
 mod shared_pool;
 mod specialization;
 mod structured_selector;
-use resolution::{is_atomic_literal, Resolver};
+use resolution::is_atomic_literal;
+pub(crate) use resolution::Resolver;
 use shared_pool::{check_pool_declarations, checked_pool};
 use specialization::specialize_named_type_parameters;
 
@@ -783,6 +784,7 @@ fn check_plot(
         runtime_names,
         pool_names,
         &catalog.prepared_glyph_values,
+        &catalog.prepared_source_values,
     );
     let mut gears = Vec::new();
     let mut cords = Vec::new();

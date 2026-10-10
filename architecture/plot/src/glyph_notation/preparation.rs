@@ -12,6 +12,10 @@ use sha2::{Digest, Sha256};
 /// into its existing ordinary constructor arguments. This is preparation-time
 /// Rust composition, never a parser callback supplied by Source or a Host.
 pub trait LiteralValueConstructor: StaticValueConstructor {
+    /// Exact Types of explicitly selected ordinary Source context values.
+    fn context_types(&self) -> Vec<(String, conduit_core::StructuredInfoType)> {
+        Vec::new()
+    }
     fn parser_contract(&self) -> &str;
     fn lexical_policy(&self) -> TypedLiteralLexicalPolicy;
     fn literal_configuration(
@@ -24,6 +28,7 @@ pub trait LiteralValueConstructor: StaticValueConstructor {
 #[derive(Debug)]
 pub enum LiteralPreparationRefusal<E> {
     Source,
+    SourceContext(crate::SyntaxCheckDiagnostic),
     Scope,
     Identity,
     ContextLimit,
@@ -38,6 +43,7 @@ pub struct PreparedGlyphLiteral {
     source_document_id: SourceDocumentId,
     authored: TypedGlyphLiteralSyntax,
     ordinary: PreparedStaticValue,
+    pub(crate) source_context: Vec<(crate::Expression, crate::CanonicalStructuredStartupValue)>,
 }
 impl PreparedGlyphLiteral {
     pub fn source_document_id(&self) -> &SourceDocumentId {
@@ -147,6 +153,7 @@ impl GlyphNotationScope {
             source_document_id: document.source_document_id(),
             authored: literal.clone(),
             ordinary,
+            source_context: Vec::new(),
         })
     }
 }
