@@ -31,6 +31,11 @@ Current source uses `plot` for executable composition and `form` for portable
 representation. See [[Current language surface|Current-language-surface]] for
 the checked grammar and proof boundaries.
 
+Read [[Conduitese by example|Conduitese-by-example]] for complete source,
+[[units and quantities|Units-and-quantities]] for dimensional meaning and exact
+conversion, and [[the feature example index|Conduitese-feature-coverage]] for
+every reviewed surface and the explicitly proposed additions.
+
 ## plots are semantic graphs
 
 ```conduit
@@ -98,7 +103,8 @@ The `.` is not an executable "stop now" statement. It changes the meaning of the
 
 ## Finite by default
 
-Every checked value type has an exact finite bound.
+Every actual executable value has a finite admitted carrier. A semantic numeric
+domain may remain open-ended; that does not promise unlimited runtime storage.
 
 ```conduit
 title: Text

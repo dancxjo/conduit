@@ -25,11 +25,22 @@ new edition. Bounded each/select/fold/scan and collection completed
 runtime proof and an explicit embedded applicability limit in the
 [language reference](../wiki/Current-language-surface.md).
 
-Record `where` laws are enforced at construction boundaries.
-[#4639](https://github.com/dancxjo/conduit/issues/4639) remains open for carrying
-those laws into consuming-plot arithmetic proofs. Canonical source uses `plot`
+Record `where` laws are enforced at construction boundaries. Completed
+[#4639](https://github.com/dancxjo/conduit/issues/4639) carries applicable
+invariant facts into consuming-plot arithmetic proofs. Canonical source uses `plot`
 for executable authored units and `form` for portable type representations.
 The paired vocabulary is `type -> form` and `plot -> plan -> play`.
+
+Language additions reviewed on **9 October 2026** are finite value parameters
+and shape-indexed Types [#5326](https://github.com/dancxjo/conduit/issues/5326)
+and scoped typed delimiter families [#5317](https://github.com/dancxjo/conduit/issues/5317).
+Completed SI quantity work [#5328](https://github.com/dancxjo/conduit/issues/5328)
+provides exact conversion/comparison, all 24 prefixes and explicit wider
+representation admission. The handbook's
+[feature example index](../wiki/Conduitese-feature-coverage.md) connects current
+language surfaces and these proposals to examples; the
+[quantity tutorial](../wiki/Units-and-quantities.md) distinguishes native literals
+from unfinished acoustic/Speech projection acceptance.
 
 ## ConduitOS shell
 

@@ -5,6 +5,8 @@
 - [[Architecture tour|Architecture-tour]]
 - [[Conduitese]]
 - [[Conduitese by example|Conduitese-by-example]]
+- [[Units and quantities|Units-and-quantities]]
+- [[Feature example index|Conduitese-feature-coverage]]
 - [[Plot diagrams|Plot-diagrams]]
 - [[Glossary]]
 
