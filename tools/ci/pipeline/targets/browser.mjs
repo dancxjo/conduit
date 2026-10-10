@@ -19,7 +19,7 @@ const SPECS = [
   'sdk-body-participation',
   'static-body-application',
   'creche-browser-configuration', 'creche-rendezvous',
-  'native-value-types', 'exact-quantity', 'signal-dom-host', 'browser-body-time', 'browser-host-calls', 'browser-pointer', 'browser-human-input',
+  'native-value-types', 'exact-quantity', 'scoped-glyphs', 'signal-dom-host', 'browser-body-time', 'browser-host-calls', 'browser-pointer', 'browser-human-input',
   'browser-host-entrance', 'browser-media-host', 'browser-device-base', 'browser-usb-device-base',
   'rp2040-browser-deployment', 'esp32-browser-deployment',
 ];

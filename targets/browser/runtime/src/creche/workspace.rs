@@ -202,18 +202,18 @@ fn catalog_plot_plan(
     } else {
         Vec::new()
     };
-    let mut hosts = observed_hosts.to_vec();
+    let mut hosts = std::borrow::Cow::Borrowed(observed_hosts);
     let local = hosts
-        .iter_mut()
-        .find(|observed| &observed.host_id == host && &observed.boot_id == boot)
+        .iter()
+        .position(|observed| &observed.host_id == host && &observed.boot_id == boot)
         .ok_or("current browser Host offer was not freshly observed")?;
     for offer in offers {
-        if !local
+        if !hosts[local]
             .capabilities
             .iter()
             .any(|current| current.capability_id == offer.capability_id)
         {
-            local.capabilities.push(offer);
+            hosts.to_mut()[local].capabilities.push(offer);
         }
     }
     let backs = if has_selectors {
