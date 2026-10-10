@@ -115,6 +115,9 @@ fn ordinary_source_names_refuse_before_any_literal_interpretation() {
         let doc = document("with fixture/glyph/notation as ph", body);
         let error = resolve_glyph_notation_scope(&doc, &startup).unwrap_err();
         assert!(error.message.contains("conflicts"), "{body}: {error:?}");
+        assert!(error
+            .message
+            .contains("qualified constructor: fixture/literal"));
     }
 }
 

@@ -405,3 +405,31 @@ fn multiline_pattern_source_survives_formatting_and_checked_admission() {
         assert_eq!(literal(&after_document).raw_payload.text, payload);
     }
 }
+
+#[test]
+fn notation_import_preserves_native_quantity_values_and_celsius_refusal() {
+    let (startup, profile) = catalogs();
+    let values = " tone = 440Hz\n delay = 250ms\n temperature = 21°C\n distance = 3.2m\n angle = 90°\n voltage = 12V\n width = 640px\n";
+    let ordinary = format!("plot quantities {{\n{values}}}\n");
+    let imported = format!(
+        "with {PATTERN_NOTATION_EXPORT_PATH} as r\nplot quantities {{\n{values} marker = r/a/\n}}\n"
+    );
+    let check = |source: &str| {
+        let document = parse_syntax_document_with_glyph_notations(source, &startup);
+        check_syntax_document_with_literal_constructors(&document, &startup, &profile)
+    };
+    let baseline = check(&ordinary).unwrap();
+    let scoped = check(&imported).unwrap();
+    let scoped_values: Vec<_> = scoped.plots[0]
+        .local_values
+        .iter()
+        .filter(|(name, _)| name != "marker")
+        .cloned()
+        .collect();
+    assert_eq!(baseline.plots[0].local_values, scoped_values);
+    for source in [ordinary, imported] {
+        let refused = check(&source.replace("21°C", "21C")).unwrap_err();
+        assert_eq!(refused.code, "CND-FRM-055");
+        assert!(refused.message.contains("use '°C'"));
+    }
+}

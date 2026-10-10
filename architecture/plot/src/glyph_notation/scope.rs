@@ -203,7 +203,10 @@ pub fn resolve_glyph_notation_scope(
         {
             return Err(error(
                 import.alias.span,
-                format!("glyph notation alias '{alias}' conflicts with another lexical binding"),
+                format!(
+                    "glyph notation alias '{alias}' conflicts with another lexical binding; rename the notation alias or use a qualified constructor: {}",
+                    family.branches.iter().map(|branch| branch.constructor_kind.as_str()).collect::<BTreeSet<_>>().into_iter().collect::<Vec<_>>().join(", ")
+                ),
             ));
         }
         let identity = family

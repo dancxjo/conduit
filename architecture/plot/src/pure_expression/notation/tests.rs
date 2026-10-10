@@ -149,6 +149,12 @@ fn no_binding_preserves_division_quantities_collections_and_ordinary_calls() {
         "12 / 3",
         "[1, 2]",
         "250ms",
+        "440Hz",
+        "21°C",
+        "3.2m",
+        "90°",
+        "12V",
+        "640px",
         "{text: \"ph[x]\"}",
         "math/sin(0)",
     ] {
