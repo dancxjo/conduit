@@ -142,7 +142,7 @@ impl Quantity {
         unit: Unit,
         role: QuantityRole,
     ) -> Result<Self, QuantityRefusal> {
-        if !unit.family().admits(role) {
+        if !unit.admits_role(role) {
             return Err(QuantityRefusal::InvalidRole);
         }
         let mut value = Self::from_decimal(coefficient, exponent, unit)?;

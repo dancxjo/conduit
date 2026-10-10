@@ -360,7 +360,7 @@ impl UnitDefinition {
         self,
         role: QuantityRole,
     ) -> Result<DefinitionScalar, PhysicalDefinitionRefusal> {
-        if !self.family.admits(role) {
+        if !self.admits_role(role) {
             return Err(PhysicalDefinitionRefusal::InvalidRoles);
         }
         DefinitionScalar::new(
@@ -424,6 +424,15 @@ impl UnitDefinition {
     }
     pub fn symbol(&self) -> &str {
         self.symbol.as_str()
+    }
+    /// Difference-only units cannot introduce a point origin.
+    pub const fn admits_role(self, role: QuantityRole) -> bool {
+        match (self.declared_role, role) {
+            (QuantityRole::Point, QuantityRole::Point | QuantityRole::Delta)
+            | (QuantityRole::Delta, QuantityRole::Delta)
+            | (QuantityRole::Linear, QuantityRole::Linear) => self.family.admits(role),
+            _ => false,
+        }
     }
     pub const fn declared_role(self) -> QuantityRole {
         self.declared_role

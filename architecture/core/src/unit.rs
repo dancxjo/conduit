@@ -47,6 +47,9 @@ impl Unit {
     pub const fn dimension(self) -> DimensionDefinition {
         self.0.family().dimension()
     }
+    pub const fn admits_role(self, role: QuantityRole) -> bool {
+        self.0.admits_role(role)
+    }
     pub const fn declared_role(self) -> QuantityRole {
         self.0.declared_role()
     }

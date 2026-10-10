@@ -94,7 +94,7 @@ fn compatible(source: Quantity, target: Unit) -> Result<(), QuantityConversionRe
     if source.family().identity() != target.family().identity() {
         return Err(QuantityConversionRefusal::IncompatibleQuantityFamilies);
     }
-    if !target.family().admits(source.role()) {
+    if !target.admits_role(source.role()) {
         return Err(QuantityConversionRefusal::IncompatibleQuantityRoles);
     }
     if source.unit().reference_anchor() != target.reference_anchor() {

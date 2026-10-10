@@ -394,3 +394,44 @@ fn root_declaration_identity_keeps_distinct_snapshots_separate() {
         scalar(0, 1, 0)
     );
 }
+
+#[test]
+fn difference_only_unit_cannot_create_or_receive_temperature_points() {
+    let difference = Unit::from_definition(
+        UnitDefinition::related_exact_role(
+            Unit::Celsius.definition(),
+            "Δ°C",
+            QuantityRole::Delta,
+            scalar(1, 1, 0),
+            scalar(0, 1, 0),
+            PrefixPolicy::NONE,
+        )
+        .unwrap(),
+    );
+    assert_eq!(
+        Quantity::from_decimal_role(21, 0, difference, QuantityRole::Point),
+        Err(QuantityRefusal::InvalidRole)
+    );
+    assert_eq!(
+        Quantity::new(21, Unit::Celsius).convert_to_decimal(difference),
+        Err(QuantityConversionRefusal::IncompatibleQuantityRoles)
+    );
+    assert!(difference
+        .definition()
+        .exact_offset(QuantityRole::Point)
+        .is_err());
+    let derivative =
+        Quantity::from_decimal_role(21, 0, Unit::Celsius, QuantityRole::Delta).unwrap();
+    assert_eq!(
+        derivative
+            .convert_to_decimal(difference)
+            .unwrap()
+            .coefficient(),
+        21
+    );
+    assert_eq!(Quantity::new(21, Unit::Celsius).role(), QuantityRole::Point);
+    let mut forged = Quantity::new(21, difference).encode();
+    // Changing only the role cannot introduce a point origin.
+    forged[1] = 1;
+    assert!(Quantity::decode(&forged).is_err());
+}
