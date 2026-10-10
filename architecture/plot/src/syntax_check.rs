@@ -205,6 +205,7 @@ pub(crate) fn check_document(
         structured_types.insert(value_kind, retained.value_type.clone());
     }
     Ok(CheckedSyntaxDocument {
+        glyph_values: crate::AdmittedGlyphValues::for_document(catalog),
         source_document_id: document.source_document_id(),
         native_types,
         retained_native_types: catalog.retained_native_types(),

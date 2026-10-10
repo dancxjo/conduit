@@ -70,3 +70,16 @@ byte bound. Syntax formatting is separate from domain-value admission:
 Changed authoring bytes have a new Source identity; literal spelling, imported
 family/parser identity, selected basis and ordinary checked values remain
 truthful. Formatting never restores an old receipt against changed Source.
+
+## Checked inspection
+
+`conduit expand source.conduit --json` reports each admitted glyph's authored
+bytes and spans, imported family identity, parser contract, ordinary constructor,
+exact result Type and checked value digest. `canonical_value_hex` contains the
+existing Core structured-value encoding, including its exact Type; inspection
+does not parse the payload again. Selected basis values appear once in
+`glyph_contexts`; glyph basis entries reference their context index and digest.
+
+`conduit expand source.conduit` and `conduit inspect source.conduit` also show
+the authored and checked forms in plain text, including selected basis names
+and identities. Native Type refinements are included alongside Plot literals.

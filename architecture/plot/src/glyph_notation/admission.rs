@@ -168,6 +168,42 @@ pub struct AdmittedGlyphValues {
         BTreeMap<(usize, usize), (TypedGlyphLiteralSyntax, CanonicalStructuredStartupValue)>,
 }
 impl AdmittedGlyphValues {
+    /// Borrow sealed literal results for authoring inspection. No mutation or
+    /// construction of an admitted value is exposed by this view.
+    pub fn literals(
+        &self,
+    ) -> impl Iterator<Item = (&TypedGlyphLiteralSyntax, &CanonicalStructuredStartupValue)> {
+        self.values
+            .values()
+            .map(|(literal, value)| (literal, value))
+    }
+
+    /// Borrow the deduplicated admitted context table for inspection.
+    pub fn contexts(
+        &self,
+    ) -> impl Iterator<Item = (&crate::Expression, &CanonicalStructuredStartupValue)> {
+        self.source_values
+            .values()
+            .map(|(expression, value)| (expression, value))
+    }
+
+    /// Resolve an exact authored context node already retained by admission.
+    pub fn context_value(
+        &self,
+        span: Span,
+    ) -> Option<(&crate::Expression, &CanonicalStructuredStartupValue)> {
+        self.source_values
+            .get(&(span.start, span.end))
+            .map(|(expression, value)| (expression, value))
+    }
+
+    pub(crate) fn for_document(catalog: &StartupCatalog) -> Self {
+        Self {
+            values: catalog.prepared_glyph_values.clone(),
+            source_values: catalog.prepared_source_values.clone(),
+        }
+    }
+
     pub(crate) fn for_plot(catalog: &StartupCatalog, span: Span) -> Self {
         Self {
             source_values: catalog

@@ -166,6 +166,8 @@ pub struct CheckedCanonicalPlot {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CheckedSyntaxDocument {
+    /// All sealed literal results, including glyphs in Native Type refinements.
+    pub glyph_values: crate::AdmittedGlyphValues,
     pub source_document_id: SourceDocumentId,
     pub native_types: Vec<CheckedNativeType>,
     pub(crate) retained_native_types: Vec<CheckedNativeType>,
