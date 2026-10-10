@@ -17,6 +17,7 @@ use crate::{
 mod construction;
 mod document;
 mod lexical_boundaries;
+mod logical_lines;
 pub(crate) use document::{glyph_scope_for_source_header, parse_surface, parse_surface_scoped};
 pub(crate) mod front;
 mod glyph_notation;

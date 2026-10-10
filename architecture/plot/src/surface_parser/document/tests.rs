@@ -153,3 +153,36 @@ fn full_source_refuses_conflicting_bindings_and_malformed_declared_branches() {
     );
     assert_eq!(startup, before);
 }
+
+#[test]
+fn multiline_glyph_payloads_preserve_bytes_spans_and_outer_statement_boundaries() {
+    let startup = installed();
+    for newline in ["\n", "\r\n"] {
+        let payload = format!("π{newline}# payload }} >> = \"{newline}t͡ʃ");
+        let source = format!(
+            "with fixture/glyph/notation as ph{newline}plot author {{{newline} value = ph[{payload}] # outside{newline} after = 440Hz{newline}}}{newline}"
+        );
+        let document = parsed(&source, &startup);
+        assert_eq!(document.round_trip(), source);
+        assert_eq!(document.plots[0].back.len(), 2);
+        let BackStatement::LocalValue(value) = &document.plots[0].back[0] else {
+            panic!()
+        };
+        let ExpressionSyntax::TypedGlyphLiteral(literal) = &value.value.syntax else {
+            panic!()
+        };
+        assert_eq!(literal.raw_payload.text, payload);
+        assert_eq!(
+            &source[literal.raw_payload.span.start..literal.raw_payload.span.end],
+            payload
+        );
+        assert_eq!(literal.raw_payload.span.line, 3);
+        assert_eq!(literal.raw_payload.span.end_line, 5);
+        assert_eq!(value.value.text, format!("ph[{payload}]"));
+        let BackStatement::LocalValue(after) = &document.plots[0].back[1] else {
+            panic!()
+        };
+        assert_eq!(after.value.text, "440Hz");
+        assert_eq!(after.value.span.line, 6);
+    }
+}
