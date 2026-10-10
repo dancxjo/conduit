@@ -41,12 +41,14 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
 
     const names = new Map(view.subjects.map(subject => [subject.identity, subject.name]));
     const documentNode = faceNode('article', '', 'owner-face-document');
+    documentNode.setAttribute('part', 'document');
     const { collections, placed } = this.#projectCollections(view);
     const renderedActions = new Set();
     const actionReady = action => this.#ready(view, action);
     const actionControl = (action, itemName) => {
       renderedActions.add(action.identity);
       const control = document.createElement('form');
+      control.setAttribute('part', 'action');
       control.dataset.ownerAction = action.identity;
       if (!itemName) control.append(faceNode('h5', action.name));
       const inputs = [];
@@ -80,11 +82,14 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
           supported = false;
           continue;
         }
+        label.setAttribute('part', 'label');
+        input.setAttribute('part', 'input');
         label.append(input);
         control.append(label);
         inputs.push({ name: argument.name, input });
       }
       const button = faceNode('button', itemName ? `${action.name} ${itemName}` : action.name);
+      button.setAttribute('part', 'button');
       button.type = 'submit';
       button.disabled = !actionReady(action) || !supported || inputs.length !== action.arguments.length;
       button.dataset.unavailable = String(action.availability !== 'available' || !supported || inputs.length !== action.arguments.length);
@@ -102,12 +107,14 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
     const renderSubject = subject => {
       const node = document.createElement(subject.role === 'Body' || subject.role === 'Plot' ? 'article' : 'section');
       node.className = 'owner-face-subject';
+      node.setAttribute('part', 'subject');
       node.dataset.faceRole = subject.role;
       node.append(faceNode('span', subject.semantic_role ?? subject.role, 'owner-face-role'));
       node.append(faceNode(subject.role === 'Body' ? 'h4' : 'h5', subject.name));
       for (const text of subject.text) node.append(faceNode('p', text));
       for (const value of subject.values ?? []) {
         const output = faceNode('p', value.text, 'owner-face-value');
+        output.setAttribute('part', 'value');
         output.setAttribute('aria-label', value.name);
         node.append(output);
       }
@@ -128,6 +135,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
     for (const { collection, open, completed, count } of collections) {
       const section = document.createElement('section');
       section.className = 'owner-face-collection';
+      section.setAttribute('part', 'collection');
       section.append(faceNode('h4', collection.name));
       for (const text of collection.text) section.append(faceNode('p', text));
       section.append(faceNode('p', count, 'owner-face-collection-count'));
@@ -186,6 +194,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
         || options.filter(option => option.flags.find(flag => flag.name === 'selected').value).length > 1) continue;
       const fieldset = document.createElement('fieldset');
       fieldset.className = 'owner-face-choice-group';
+      fieldset.setAttribute('part', 'choice-group');
       fieldset.append(faceNode('legend', group.name));
       for (const text of group.text) fieldset.append(faceNode('p', text));
       const choices = document.createElement('div');
@@ -194,6 +203,8 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
         const action = offered[index][0];
         const label = faceNode('label', '', 'owner-face-choice');
         const input = document.createElement('input');
+        label.setAttribute('part', 'choice');
+        input.setAttribute('part', 'input');
         input.type = 'radio';
         input.name = group.identity;
         input.value = option.identity;

@@ -100,3 +100,7 @@ already running installed Owner and a packaged Handbook. It uses the existing
 production SDK and browser WASM Mask, one pinned Chromium worker, and no retries.
 Its receipt distinguishes local development evidence from accepted releases,
 physical behavior, and attended human evidence.
+
+The [browser component audit](../../docs/architecture/browser-component-audit.md)
+records which parts of #5376 this shared component already satisfies and the
+remaining selected-Back, Look, fallback and accessibility acceptance.

@@ -47,6 +47,7 @@ export default defineConfig({
     "exact-quantity.spec.mjs",
     "native-value-types.spec.mjs",
     "web-accessibility.spec.mjs",
+    "owner-face-component.spec.mjs",
     "creche-avr.spec.mjs",
     "creche-orange-pi.spec.mjs",
     "creche-raspberry-pi.spec.mjs",

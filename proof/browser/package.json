@@ -2,7 +2,7 @@
   "name": "conduit-browser-host-proof",
   "private": true,
   "scripts": {
-    "test:browser-host": "cd ../.. && playwright test --config proof/browser/playwright.config.mjs --workers=1 --retries=0 signal-dom-host.spec.mjs browser-host-calls.spec.mjs browser-pointer.spec.mjs browser-human-input.spec.mjs browser-host-entrance.spec.mjs browser-webrtc-body.spec.mjs browser-body-time.spec.mjs exact-quantity.spec.mjs native-value-types.spec.mjs"
+    "test:browser-host": "cd ../.. && playwright test --config proof/browser/playwright.config.mjs --workers=1 --retries=0 signal-dom-host.spec.mjs browser-host-calls.spec.mjs browser-pointer.spec.mjs browser-human-input.spec.mjs browser-host-entrance.spec.mjs browser-webrtc-body.spec.mjs browser-body-time.spec.mjs exact-quantity.spec.mjs native-value-types.spec.mjs owner-face-component.spec.mjs"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.10.2",
