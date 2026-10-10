@@ -6,10 +6,7 @@ mod kind_parameter;
 mod startup;
 
 use super::Parser;
-use crate::surface_lex::{
-    split_declaration, split_top_level, split_top_level_token, top_level_positions,
-    top_level_token_positions,
-};
+use crate::surface_lex::{split_declaration, split_top_level_token};
 use crate::syntax::{
     Expression, KindParameter, PlotFront, RuntimePort, RuntimePortDirection, RuntimePortTemporal,
     ShorthandPair, TypeParameter,
@@ -78,17 +75,6 @@ pub(crate) fn canonical_default_bound(value_type: &str) -> Option<u64> {
     }
 }
 
-pub(super) fn split_default(text: &str) -> (&str, Option<&str>) {
-    top_level_positions(text, '=')
-        .into_iter()
-        .find(|position| {
-            *position == 0 || !matches!(text.as_bytes()[position - 1], b'<' | b'>' | b'!' | b'=')
-        })
-        .map_or((text, None), |position| {
-            (&text[..position], Some(&text[position + 1..]))
-        })
-}
-
 impl Parser<'_> {
     pub(super) fn parse_front(
         &mut self,
@@ -147,7 +133,7 @@ impl Parser<'_> {
             }
             if text.contains(">>") {
                 self.parse_front_runtime(text, start, &mut front)?;
-            } else if !top_level_positions(text, '>').is_empty() {
+            } else if !self.top_level_positions(text, '>').is_empty() {
                 return Err((
                     PlotError::InvalidSyntax(
                         "'>' is not a Conduitese cord or fore; use '>>'".into(),
@@ -155,7 +141,7 @@ impl Parser<'_> {
                     self.span(start, start + text.len()),
                 ));
             } else {
-                let (left, default) = split_default(text);
+                let (left, default) = self.split_default(text);
                 let declaration = split_declaration(left);
                 if declaration.is_some_and(|(_, value_type)| value_type == "type") {
                     if default.is_some() {
@@ -183,7 +169,7 @@ impl Parser<'_> {
         start: usize,
         front: &mut PlotFront,
     ) -> Result<(), (PlotError, Span)> {
-        let arrows = top_level_token_positions(text, ">>");
+        let arrows = self.top_level_token_positions(text, ">>");
         if arrows.len() != 1 {
             return Err((
                 PlotError::InvalidSyntax("malformed front arrows".into()),
@@ -370,7 +356,7 @@ impl Parser<'_> {
                     .ok_or_else(|| self.invalid_statement(line, start))?;
                 let clause_end = body_start + consumed;
                 let body = &source[body_start + 1..clause_end - 1];
-                let values = split_top_level(body, ',');
+                let values = self.split_top_level(body, ',');
                 if values.is_empty() || values.len() > conduit_core::MAX_MEMBERSHIP_VALUES {
                     return Err(self.invalid_statement(line, start));
                 }

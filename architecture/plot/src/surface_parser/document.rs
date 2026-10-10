@@ -261,7 +261,7 @@ impl Parser<'_> {
                 return Err(self.invalid_statement(line, start));
             }
             let mut declarations = Vec::new();
-            for member in split_top_level(members, ',') {
+            for member in self.split_top_level(members, ',') {
                 let member = member.trim();
                 if !is_name(member) {
                     return Err(self.invalid_statement(line, start));

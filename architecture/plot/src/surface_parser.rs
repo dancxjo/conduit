@@ -1,8 +1,6 @@
 use crate::prelude::*;
 use crate::surface_lex::{
-    delimiters_are_balanced, is_name, is_reference, is_source_import_path, location,
-    split_top_level, split_top_level_token, top_level_positions, top_level_token_positions,
-    SourceLine,
+    delimiters_are_balanced, is_name, is_reference, is_source_import_path, location, SourceLine,
 };
 use crate::syntax::{
     ActivationSyntax, Argument, BackStatement, ConstructionRole, ConstructionSyntax, Cord,
@@ -18,6 +16,7 @@ use crate::{
 
 mod construction;
 mod document;
+mod lexical_boundaries;
 pub(crate) use document::{parse_surface, parse_surface_scoped};
 pub(crate) mod front;
 mod glyph_notation;
@@ -258,7 +257,7 @@ impl<'a> Parser<'a> {
                 self.index += 1;
                 continue;
             }
-            let Some(split) = top_level_token_positions(text, ">>").first().copied() else {
+            let Some(split) = self.top_level_token_positions(text, ">>").first().copied() else {
                 return Err((
                     PlotError::InvalidSyntax(
                         "matched routing track requires PATTERN >> ROUTE".into(),
@@ -288,7 +287,7 @@ impl<'a> Parser<'a> {
                             pattern_span,
                         )
                     })?;
-                let equals = top_level_positions(body, '=');
+                let equals = self.top_level_positions(body, '=');
                 if equals.len() == 2 && equals[1] == equals[0] + 1 {
                     let left = body[..equals[0]].trim();
                     let expected = body[equals[1] + 1..].trim();
@@ -378,13 +377,16 @@ impl<'a> Parser<'a> {
         if let Some(cord) = self.parse_unary_glyph_cord(text, start) {
             return cord.map(BackStatement::Cord);
         }
-        if has_top_level_cord(text) {
+        if has_top_level_cord(text, self.glyph_scope.as_ref()) {
             return self.parse_cord(text, start).map(BackStatement::Cord);
         }
-        if let Some(equal) = top_level_assignment(text) {
+        if let Some(equal) = top_level_assignment(text, self.glyph_scope.as_ref()) {
             let name = text[..equal].trim();
             let value = text[equal + 1..].trim();
-            if !is_name(name) || value.is_empty() || top_level_assignment(value).is_some() {
+            if !is_name(name)
+                || value.is_empty()
+                || top_level_assignment(value, self.glyph_scope.as_ref()).is_some()
+            {
                 return Err(self.invalid_statement(text, start));
             }
             return Ok(BackStatement::LocalValue(LocalValue {
@@ -393,13 +395,13 @@ impl<'a> Parser<'a> {
                 span: self.span(start, start + text.len()),
             }));
         }
-        if has_legacy_top_level_cord(text) {
+        if has_legacy_top_level_cord(text, self.glyph_scope.as_ref()) {
             return Err((
                 PlotError::InvalidSyntax("'>' is not a Conduitese cord; use '>>'".into()),
                 self.span(start, start + text.len()),
             ));
         }
-        if let Some(colon) = top_level_positions(text, ':').first().copied() {
+        if let Some(colon) = self.top_level_positions(text, ':').first().copied() {
             let name = text[..colon].trim();
             let invoked = text[colon + 1..].trim();
             if !crate::surface_lex::is_gear_name(name) || invoked.is_empty() {
@@ -621,7 +623,7 @@ impl<'a> Parser<'a> {
                     .map(|value| (value.trim(), *duration))
             })
             .unwrap_or((source.trim(), RetainedDuration::Step));
-        let parts = split_top_level_token(value, "<=");
+        let parts = self.split_top_level_token(value, "<=");
         let (value, explicit_bound) = match parts.as_slice() {
             [value] => (value.trim(), None),
             [value, bound] => (
@@ -665,7 +667,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_cord(&self, text: &str, start: usize) -> Result<Cord, (PlotError, Span)> {
-        let parts = split_top_level_token(text, ">>");
+        let parts = self.split_top_level_token(text, ">>");
         if parts.len() < 2 || parts.iter().any(|part| part.trim().is_empty()) {
             return Err(self.invalid_statement(text, start));
         }
@@ -681,7 +683,7 @@ impl<'a> Parser<'a> {
         text: &str,
         start: usize,
     ) -> Result<Vec<CordStage>, (PlotError, Span)> {
-        let parts = split_top_level_token(text, ">>");
+        let parts = self.split_top_level_token(text, ">>");
         if parts.iter().any(|part| part.trim().is_empty()) {
             return Err(self.invalid_statement(text, start));
         }
@@ -794,7 +796,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_invocation(&self, text: &str, start: usize) -> Result<Invocation, (PlotError, Span)> {
-        if !top_level_positions(text, '{').is_empty() {
+        if !self.top_level_positions(text, '{').is_empty() {
             return Err((
                 PlotError::InvalidSyntax("a gear invocation cannot have a plot back".into()),
                 self.span(start, start + text.len()),
@@ -817,7 +819,7 @@ impl<'a> Parser<'a> {
         }
         let mut parsed = Vec::new();
         let mut saw_named = false;
-        for argument in split_top_level(arguments, ',') {
+        for argument in self.split_top_level(arguments, ',') {
             let argument = argument.trim();
             if argument.is_empty() {
                 if !arguments.trim().is_empty() {
@@ -829,7 +831,7 @@ impl<'a> Parser<'a> {
                 continue;
             }
             let argument_start = start + text.find(argument).unwrap();
-            if let Some(equal) = top_level_positions(argument, '=').first().copied() {
+            if let Some(equal) = self.top_level_positions(argument, '=').first().copied() {
                 saw_named = true;
                 let name = argument[..equal].trim();
                 let value = argument[equal + 1..].trim();
@@ -942,9 +944,10 @@ fn parse_activation_maximum(text: &str) -> Result<u16, &'static str> {
         .ok_or("maximum-items must be an exact positive u16 decimal")
 }
 
-fn has_top_level_cord(text: &str) -> bool {
-    top_level_token_positions(text, ">>")
+fn has_top_level_cord(text: &str, scope: Option<&crate::GlyphNotationScope>) -> bool {
+    crate::surface_lex::top_level_positions_in_scope(text, '>', scope)
         .into_iter()
+        .filter(|position| text[*position..].starts_with(">>"))
         .any(|position| !text[..position].ends_with('>') && !text[position + 2..].starts_with('>'))
 }
 
@@ -982,24 +985,28 @@ fn expression_body_cord(
     }))
 }
 
-fn has_legacy_top_level_cord(text: &str) -> bool {
-    top_level_positions(text, '>').into_iter().any(|position| {
-        !text[..position]
-            .chars()
-            .next_back()
-            .is_some_and(|character| matches!(character, '>' | '='))
-            && !text[position + 1..].starts_with(['>', '='])
-    })
+fn has_legacy_top_level_cord(text: &str, scope: Option<&crate::GlyphNotationScope>) -> bool {
+    crate::surface_lex::top_level_positions_in_scope(text, '>', scope)
+        .into_iter()
+        .any(|position| {
+            !text[..position]
+                .chars()
+                .next_back()
+                .is_some_and(|character| matches!(character, '>' | '='))
+                && !text[position + 1..].starts_with(['>', '='])
+        })
 }
 
-fn top_level_assignment(text: &str) -> Option<usize> {
-    top_level_positions(text, '=').into_iter().find(|position| {
-        !text[..*position]
-            .chars()
-            .next_back()
-            .is_some_and(|character| matches!(character, '<' | '>' | '!' | '='))
-            && !text[*position + 1..].starts_with('=')
-    })
+fn top_level_assignment(text: &str, scope: Option<&crate::GlyphNotationScope>) -> Option<usize> {
+    crate::surface_lex::top_level_positions_in_scope(text, '=', scope)
+        .into_iter()
+        .find(|position| {
+            !text[..*position]
+                .chars()
+                .next_back()
+                .is_some_and(|character| matches!(character, '<' | '>' | '!' | '='))
+                && !text[*position + 1..].starts_with('=')
+        })
 }
 
 fn parse_terminal_projection(part: &str) -> Option<(&str, crate::TerminalProjection)> {

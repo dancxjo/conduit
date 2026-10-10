@@ -283,3 +283,51 @@ fn scoped_comments_and_highlights_keep_payload_bytes_opaque() {
         assert_eq!(document.round_trip(), authored);
     }
 }
+
+#[test]
+fn glyph_payload_punctuation_does_not_split_outer_grammar() {
+    let (startup, profile) = catalogs();
+    for spelling in ["r/a=b/", "r/a>>b/", "r/a{2}b/", "r/a,b/", "r⟦a,b=>>x{2}⟧"] {
+        let document = source(&startup, spelling);
+        assert!(
+            document.diagnostics.is_empty(),
+            "{spelling}: {:?}",
+            document.diagnostics
+        );
+        check_syntax_document_with_literal_constructors(&document, &startup, &profile).unwrap();
+        let authored = format!(
+            "with {PATTERN_NOTATION_EXPORT_PATH} as r\nplot example {{\n work: example/accept(value={spelling}, count=1)\n}}\n"
+        );
+        let document = parse_syntax_document_with_glyph_notations(&authored, &startup);
+        assert!(
+            document.diagnostics.is_empty(),
+            "{spelling}: {:?}",
+            document.diagnostics
+        );
+        let BackStatement::NamedGear(gear) = &document.plots[0].back[0] else {
+            panic!()
+        };
+        assert_eq!(gear.invocation.arguments.len(), 2);
+        let Argument::Named { value, .. } = &gear.invocation.arguments[0] else {
+            panic!()
+        };
+        let ExpressionSyntax::TypedGlyphLiteral(literal) = &value.syntax else {
+            panic!()
+        };
+        assert_eq!(literal.authored.text, spelling);
+        assert_eq!(
+            &authored[literal.authored.span.start..literal.authored.span.end],
+            spelling
+        );
+    }
+    let authored = format!(
+        "with {PATTERN_NOTATION_EXPORT_PATH} as r\nplot example (\n pattern: Text <= 32B ~ r/a=b/\n >> value: Text <= 32B ~ r/a>>b/\n) {{\n}}\n"
+    );
+    let document = parse_syntax_document_with_glyph_notations(&authored, &startup);
+    assert!(
+        document.diagnostics.is_empty(),
+        "{:?}",
+        document.diagnostics
+    );
+    check_syntax_document_with_literal_constructors(&document, &startup, &profile).unwrap();
+}

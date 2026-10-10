@@ -128,11 +128,29 @@ pub(crate) fn top_level_token_positions(text: &str, token: &str) -> Vec<usize> {
 }
 
 pub(crate) fn top_level_positions(text: &str, target: char) -> Vec<usize> {
+    top_level_positions_in_scope(text, target, None)
+}
+
+pub(crate) fn top_level_positions_in_scope(
+    text: &str,
+    target: char,
+    scope: Option<&crate::GlyphNotationScope>,
+) -> Vec<usize> {
     let mut positions = Vec::new();
     let mut delimiters = Vec::new();
     let mut quote = None;
     let mut escaped = false;
-    for (offset, character) in text.char_indices() {
+    let mut offset = 0;
+    while offset < text.len() {
+        if quote.is_none() {
+            if let Some(literal) = scope.and_then(|scope| scope.scan_at(text, offset)) {
+                offset += literal.consumed_bytes;
+                continue;
+            }
+        }
+        let position = offset;
+        let character = text[offset..].chars().next().unwrap();
+        offset += character.len_utf8();
         if let Some(active) = quote {
             if character == active && !escaped {
                 quote = None;
@@ -141,7 +159,7 @@ pub(crate) fn top_level_positions(text: &str, target: char) -> Vec<usize> {
             continue;
         }
         if character == target && delimiters.is_empty() {
-            positions.push(offset);
+            positions.push(position);
         }
         match character {
             '\'' | '"' => quote = Some(character),
