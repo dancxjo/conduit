@@ -21,6 +21,14 @@ pub use generated::{
     MorsePattern, MorseSegment, MorseSegments,
 };
 
+#[allow(dead_code)]
+mod generated_patterns {
+    include!(concat!(env!("OUT_DIR"), "/pattern_types.rs"));
+}
+pub use generated_patterns::PortablePatternSpecification;
+mod portable_pattern;
+pub use portable_pattern::{install_portable_pattern_type, PortablePatternSpecificationRefusal};
+
 mod addressed_utterance;
 mod morse;
 #[cfg(feature = "plot-catalog")]
@@ -205,6 +213,8 @@ pub fn install_text_catalogs(
 ) -> Result<(), alloc::string::String> {
     use alloc::string::ToString;
     use conduit_plot::{KindSignature, StartupParameterSignature};
+
+    install_portable_pattern_type(startup)?;
 
     startup.insert_value_kind_alias("AddressSet", kind_id(ADDRESS_SET_VALUE_KIND))?;
     startup.insert_value_kind_alias("AddressDetection", kind_id(ADDRESS_DETECTION_VALUE_KIND))?;
