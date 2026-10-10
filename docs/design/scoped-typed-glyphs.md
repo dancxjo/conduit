@@ -90,3 +90,12 @@ Its standard catalog includes the shipped pattern and IPA families. Replacing
 Source preserves authored bytes and requires a new revision check; an older
 check cannot replace the current revision. Native editor conformance does not
 establish browser execution or stable publication.
+
+The installed browser profile uses scoped admission for execution, checked
+Patchbay projection, reviewed resident inventory and multi-host planning.
+Structured glyph constants reuse the ordinary prepared expression evaluator;
+equality preserves exact Types, IEEE bit identity and quantity conversion laws
+without allocating during evaluation. Local pinned Chromium proof exercises
+ASCII/Unicode pattern equality, completed Plays and refusals before Play for
+missing imports, invalid escapes and missing phonemic basis. Stable acceptance
+still requires protected integration and publication evidence.

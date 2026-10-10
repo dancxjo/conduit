@@ -267,15 +267,15 @@ pub(super) fn check_source_for_presentation(
     source: &str,
     presentation: crate::installed_browser::PresentationProfile,
 ) -> Result<conduit_plot::CheckedSyntaxDocument, String> {
-    let (startup, _) = crate::installed_browser::catalogs_for_presentation(presentation)?;
-    let syntax = conduit_plot::parse_syntax_document(source);
+    let (startup, profile) = crate::installed_browser::catalogs_for_presentation(presentation)?;
+    let syntax = conduit_plot::parse_syntax_document_with_glyph_notations(source, &startup);
     if let Some(diagnostic) = syntax.diagnostics.first() {
         return Err(format!(
             "parse reviewed plot inventory: {}",
             diagnostic.message
         ));
     }
-    conduit_plot::check_syntax_document(&syntax, &startup)
+    conduit_plot::check_syntax_document_with_literal_constructors(&syntax, &startup, &profile)
         .map_err(|error| format!("check reviewed plot inventory: {error:?}"))
 }
 
@@ -319,4 +319,31 @@ pub(super) fn reviewed_browser_host(
     host.capabilities
         .sort_by(|a, b| a.capability_id.cmp(&b.capability_id));
     Ok(host)
+}
+
+#[cfg(test)]
+mod glyph_tests {
+    use super::*;
+    const SOURCE: &str =
+        include_str!("../../../../../proof/browser/fixtures/scoped-pattern-glyph.conduit");
+    #[test]
+    fn resident_inventory_retains_checked_glyph_source_identity() {
+        let checked = check_source(SOURCE).unwrap();
+        let inventory = reviewed_inventory(SOURCE).unwrap();
+        let root = inventory
+            .plots
+            .iter()
+            .find(|plot| plot.name == "scoped-pattern-glyph")
+            .unwrap();
+        let checked_root = checked
+            .plots
+            .iter()
+            .find(|plot| plot.name == root.name)
+            .unwrap();
+        assert_eq!(root.source_document_id, checked.source_document_id.as_str());
+        assert_eq!(root.checked_plot_id, checked_root.checked_plot_id.as_str());
+        assert!(
+            reviewed_inventory(&SOURCE.replace("with text/pattern/notation as r\n", "")).is_err()
+        );
+    }
 }
