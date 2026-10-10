@@ -156,6 +156,7 @@ impl GlyphNotationScope {
             &empty,
             &source_values,
         );
+        resolver.bound_glyph_context();
         let mut context = Vec::new();
         let mut bytes = 0usize;
         let mut keys = BTreeSet::new();
@@ -220,24 +221,7 @@ impl GlyphNotationScope {
                 ),
             });
         }
-        let retained = resolver.resolved_context();
-        if retained.len() > 64 {
-            return Err(R::ContextLimit);
-        }
-        let mut bytes = 0usize;
-        for (expression, value) in &retained {
-            bytes = bytes.saturating_add(expression.text.len()).saturating_add(
-                value
-                    .try_concrete()
-                    .ok_or(R::Source)?
-                    .canonical_bytes()
-                    .map_err(|_| R::ContextLimit)?
-                    .len(),
-            );
-            if bytes > 1024 * 1024 {
-                return Err(R::ContextLimit);
-            }
-        }
+        let retained = resolver.resolved_context().ok_or(R::ContextLimit)?;
         let mut prepared =
             self.prepare_literal(document, literal, &context, constructor, startup, profile)?;
         prepared.source_context = retained;

@@ -3,6 +3,7 @@ use crate::{CanonicalStartupValue, SyntaxCheckError};
 use alloc::collections::{BTreeMap, BTreeSet};
 
 pub(crate) struct Resolver<'a> {
+    context_budget: Option<(usize, usize)>,
     pub(crate) locals: BTreeMap<String, &'a crate::LocalValue>,
     parameters: BTreeSet<String>,
     runtime_ports: BTreeSet<String>,
@@ -39,6 +40,7 @@ impl<'a> Resolver<'a> {
         >,
     ) -> Self {
         Self {
+            context_budget: None,
             locals,
             parameters,
             runtime_ports,
@@ -48,6 +50,10 @@ impl<'a> Resolver<'a> {
             prepared_glyphs,
             source_values,
         }
+    }
+
+    pub(crate) fn bound_glyph_context(&mut self) {
+        self.context_budget = Some((0, 0));
     }
 
     pub(crate) fn resolve_name(
@@ -80,6 +86,30 @@ impl<'a> Resolver<'a> {
         let expression = self.locals[name].value.clone();
         let value = self.resolve_expression(&expression, expected)?;
         self.visiting.remove(name);
+        if let (Some((entries, bytes)), CanonicalStartupValue::Structured(structured)) =
+            (&mut self.context_budget, &value)
+        {
+            let encoded = structured
+                .try_concrete()
+                .and_then(|value| value.canonical_bytes().ok());
+            let size = encoded
+                .ok_or_else(|| {
+                    SyntaxCheckError::StructuredExpression(
+                        "glyph Source context must be concrete and canonically bounded".into(),
+                        Some(expression.span),
+                    )
+                })?
+                .len();
+            let retained_bytes = bytes
+                .saturating_add(expression.text.len())
+                .saturating_add(size);
+            if *entries >= 64 || retained_bytes > 1024 * 1024 {
+                return Err(SyntaxCheckError::StructuredExpression(
+                    "glyph Source context exceeds 64 entries or 1 MiB of authored and canonical bytes".into(), Some(expression.span)));
+            }
+            *entries += 1;
+            *bytes = retained_bytes;
+        }
         self.resolved.insert(name.to_string(), value.clone());
         Ok(value)
     }
@@ -170,16 +200,31 @@ impl<'a> Resolver<'a> {
 
     pub(crate) fn resolved_context(
         &self,
-    ) -> Vec<(crate::Expression, crate::CanonicalStructuredStartupValue)> {
-        self.resolved
-            .iter()
-            .filter_map(|(name, value)| match value {
-                CanonicalStartupValue::Structured(value) => {
-                    Some((self.locals[name].value.clone(), value.clone()))
+    ) -> Option<Vec<(crate::Expression, crate::CanonicalStructuredStartupValue)>> {
+        let mut entries = 0usize;
+        let mut bytes = 0usize;
+        for (name, value) in &self.resolved {
+            if let CanonicalStartupValue::Structured(value) = value {
+                entries += 1;
+                bytes = bytes
+                    .saturating_add(self.locals[name].value.text.len())
+                    .saturating_add(value.try_concrete()?.canonical_bytes().ok()?.len());
+                if entries > 64 || bytes > 1024 * 1024 {
+                    return None;
                 }
-                _ => None,
-            })
-            .collect()
+            }
+        }
+        Some(
+            self.resolved
+                .iter()
+                .filter_map(|(name, value)| match value {
+                    CanonicalStartupValue::Structured(value) => {
+                        Some((self.locals[name].value.clone(), value.clone()))
+                    }
+                    _ => None,
+                })
+                .collect(),
+        )
     }
 
     fn resolve_spanned(
@@ -268,3 +313,6 @@ fn contains_identifier(expression: &str, name: &str) -> bool {
         .split(|character: char| !(character.is_alphanumeric() || matches!(character, '_' | '-')))
         .any(|candidate| candidate == name)
 }
+
+#[cfg(test)]
+mod context_pressure_tests;
