@@ -230,11 +230,21 @@ impl Parser<'_> {
         line: &str,
         start: usize,
     ) -> Result<Vec<UseDeclaration>, (PlotError, Span)> {
+        let (import, glyph_context) = super::glyph_context::parse(self.source, import, start)
+            .map_err(|message| {
+                (
+                    PlotError::InvalidSyntax(message),
+                    self.line_span(self.lines[self.index]),
+                )
+            })?;
         let import = import.trim();
         if import.is_empty() {
             return Err(self.invalid_statement(line, start));
         }
         if let Some(open) = import.find("/{") {
+            if !glyph_context.is_empty() {
+                return Err(self.invalid_statement(line, start));
+            }
             let prefix = &import[..open];
             let members = import[open + 2..].strip_suffix('}').ok_or_else(|| {
                 (
@@ -254,6 +264,7 @@ impl Parser<'_> {
                 let path = alloc::format!("{prefix}/{member}");
                 let member_offset = start + line.find(member).unwrap_or(0);
                 declarations.push(UseDeclaration {
+                    glyph_context: Vec::new(),
                     path,
                     path_span: self.span(member_offset, member_offset + member.len()),
                     alias: self.spanned(member, member_offset),
@@ -274,8 +285,10 @@ impl Parser<'_> {
         }
         let alias = alias.unwrap_or_else(|| path.rsplit('/').next().unwrap_or(path));
         let path_offset = start + line.find(path).unwrap_or(0);
-        let alias_offset = start + line.rfind(alias).unwrap_or(0);
+        let alias_offset =
+            start + line.find(import).unwrap_or(0) + import.rfind(alias).unwrap_or(0);
         Ok(vec![UseDeclaration {
+            glyph_context,
             path: path.to_string(),
             path_span: self.span(path_offset, path_offset + path.len()),
             alias: self.spanned(alias, alias_offset),

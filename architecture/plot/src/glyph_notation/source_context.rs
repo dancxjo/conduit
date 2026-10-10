@@ -4,6 +4,41 @@ use alloc::collections::{BTreeMap, BTreeSet};
 use conduit_core::{ConfigurationEntry, ConfigurationValue, StructuredConfigurationValue};
 
 impl GlyphNotationScope {
+    /// Prepare with the explicit `using {key: local}` selection retained by
+    /// this literal's authored glyph import.
+    pub fn prepare_literal_from_authored_context<C: LiteralValueConstructor>(
+        &self,
+        document: &SyntaxDocument,
+        plot_name: &str,
+        literal: &TypedGlyphLiteralSyntax,
+        constructor: &C,
+        startup: &StartupCatalog,
+        profile: &ProfileCatalog,
+    ) -> Result<PreparedGlyphLiteral, LiteralPreparationRefusal<C::Refusal>> {
+        let binding = self
+            .binding(&literal.alias.text)
+            .ok_or(LiteralPreparationRefusal::Identity)?;
+        let fresh = resolve_glyph_notation_scope(document, startup)
+            .map_err(LiteralPreparationRefusal::SourceContext)?;
+        if fresh.binding(&literal.alias.text) != Some(binding) {
+            return Err(LiteralPreparationRefusal::Identity);
+        }
+        let selections = binding
+            .context
+            .iter()
+            .map(|(key, local)| (key.text.as_str(), local.text.as_str()))
+            .collect::<Vec<_>>();
+        self.prepare_literal_from_source_locals(
+            document,
+            plot_name,
+            literal,
+            &selections,
+            constructor,
+            startup,
+            profile,
+        )
+    }
+
     /// Select named immutable locals explicitly; names and context keys never
     /// select the literal parser or invent a missing domain basis.
     #[allow(clippy::too_many_arguments)]

@@ -117,6 +117,8 @@ pub struct PackageRequirementSyntax {
 /// catalog.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UseDeclaration {
+    /// Explicit constructor-context keys mapped to immutable Plot-local names.
+    pub glyph_context: Vec<(SpannedText, SpannedText)>,
     pub path: String,
     pub path_span: Span,
     pub alias: SpannedText,

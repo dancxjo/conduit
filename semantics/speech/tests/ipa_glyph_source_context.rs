@@ -214,3 +214,70 @@ fn source_context_refuses_excessive_dependency_depth_and_wrong_type() {
         }
     }
 }
+
+#[test]
+fn authored_import_selects_exact_source_context() {
+    let (startup, profile) = catalogs();
+    for (constructor, quoted, spelling) in [
+        (IpaConstructor::Phonetic, PHONETIC, "ph[ˈt͡ʃãː.n̩]"),
+        (IpaConstructor::Phonemic, PHONEMIC, "ph/ˈt͡ʃaː/"),
+    ] {
+        let fields = material(quoted);
+        let context = fields
+            .iter()
+            .map(|(key, _)| format!("{key}: chosen-{key}"))
+            .collect::<Vec<_>>()
+            .join(", ");
+        let declarations = fields
+            .iter()
+            .map(|(key, value)| format!("chosen-{key} = {value}\n"))
+            .collect::<String>();
+        let source = format!("with {NOTATION_EXPORT_PATH} as ph using {{{context}}}\nplot authored {{\n{declarations}value = {spelling}\n}}\n");
+        let document = parse_syntax_document_with_glyph_notations(&source, &startup);
+        assert!(
+            document.diagnostics.is_empty(),
+            "{:?}",
+            document.diagnostics
+        );
+        for (key, local) in &document.uses[0].glyph_context {
+            assert_eq!(&source[key.span.start..key.span.end], key.text);
+            assert_eq!(&source[local.span.start..local.span.end], local.text);
+        }
+        let scope = resolve_glyph_notation_scope(&document, &startup).unwrap();
+        let receipt = scope
+            .prepare_literal_from_authored_context(
+                &document,
+                "authored",
+                literal(&document),
+                &constructor,
+                &startup,
+                &profile,
+            )
+            .unwrap();
+        check_syntax_document_with_prepared_glyph_literals(&document, &startup, &[receipt])
+            .unwrap();
+        let stale_source = source.replace("provenance: chosen-provenance", "provenance: absent");
+        let stale = parse_syntax_document_with_glyph_notations(&stale_source, &startup);
+        assert!(scope
+            .prepare_literal_from_authored_context(
+                &stale,
+                "authored",
+                literal(&stale),
+                &constructor,
+                &startup,
+                &profile,
+            )
+            .is_err());
+        let fresh = resolve_glyph_notation_scope(&stale, &startup).unwrap();
+        assert!(fresh
+            .prepare_literal_from_authored_context(
+                &stale,
+                "authored",
+                literal(&stale),
+                &constructor,
+                &startup,
+                &profile,
+            )
+            .is_err());
+    }
+}

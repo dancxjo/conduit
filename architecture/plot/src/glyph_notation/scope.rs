@@ -11,6 +11,7 @@ const MAXIMUM_ALIAS_BYTES: usize = 256;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ScopedGlyphNotation {
+    pub context: Vec<(crate::SpannedText, crate::SpannedText)>,
     pub alias: String,
     pub source_path: String,
     pub family: TypedLiteralFamily,
@@ -110,6 +111,12 @@ pub fn resolve_glyph_notation_scope(
     let mut bytes = 0usize;
     for import in &document.uses {
         let Some(family) = startup.typed_literal_family(&import.path) else {
+            if !import.glyph_context.is_empty() {
+                return Err(error(
+                    import.span,
+                    "using context requires a checked glyph notation import",
+                ));
+            }
             continue;
         };
         let alias = &import.alias.text;
@@ -166,7 +173,14 @@ pub fn resolve_glyph_notation_scope(
         bytes = bytes
             .saturating_add(alias.len())
             .saturating_add(import.path.len())
-            .saturating_add(identity.len());
+            .saturating_add(identity.len())
+            .saturating_add(
+                import
+                    .glyph_context
+                    .iter()
+                    .map(|(key, local)| key.text.len() + local.text.len())
+                    .sum::<usize>(),
+            );
         if scope.bindings.len() >= crate::MAXIMUM_TYPED_LITERAL_FAMILIES
             || bytes > MAXIMUM_SCOPE_BYTES
         {
@@ -178,6 +192,7 @@ pub fn resolve_glyph_notation_scope(
         scope.bindings.insert(
             alias.clone(),
             ScopedGlyphNotation {
+                context: import.glyph_context.clone(),
                 alias: alias.clone(),
                 source_path: import.path.clone(),
                 family: family.clone(),

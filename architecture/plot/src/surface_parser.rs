@@ -1011,3 +1011,5 @@ fn parse_terminal_projection(part: &str) -> Option<(&str, crate::TerminalProject
     };
     is_reference(endpoint).then_some((endpoint, terminal))
 }
+
+mod glyph_context;
