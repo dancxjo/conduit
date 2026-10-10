@@ -151,7 +151,8 @@ fn authored_quantities_survive_plan_play_sign_and_typed_presentation() {
     }));
     assert!(artifact.presentation.properties.iter().any(|property| {
         property.name == "quantity-unit"
-            && property.value == PresentationPropertyValue::Identity("frequency/hertz".into())
+            && property.value
+                == PresentationPropertyValue::Identity(conduit_core::Unit::Hertz.semantic_id())
     }));
     assert!(artifact.presentation.text.is_empty());
     let kernel = report.kernel.expect("kernel evidence exists");

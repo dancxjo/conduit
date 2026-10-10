@@ -259,7 +259,7 @@ fn offer(
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: 1,
-            max_queue_bytes: conduit_semantic_catalog::AUDIO_TONE_PCM_BLOCK_BYTES.max(conduit_core::QUANTITY_ENCODED_LEN as u32),
+            max_queue_bytes: conduit_semantic_catalog::AUDIO_TONE_QUEUE_BYTES,
         },
     }
 }

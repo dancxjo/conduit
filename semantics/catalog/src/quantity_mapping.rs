@@ -139,10 +139,10 @@ pub fn distance_frequency_map_contract() -> StandardKindContract {
         limits: CapabilityLimits {
             max_active_instances: 16,
             max_queue_items: 1,
-            // One item remains exact; the byte ceiling uses Conduit's ordinary
-            // shared finite Cord admission capacity so this mapping can compose
-            // with larger bounded values without importing their semantics.
-            max_queue_bytes: conduit_core::DEFAULT_CONNECTION_BYTE_CAPACITY,
+            // Admit the complete exact Quantity capsule while retaining the
+            // ordinary shared Cord tier when it is larger.
+            max_queue_bytes: conduit_core::DEFAULT_CONNECTION_BYTE_CAPACITY
+                .max(QUANTITY_ENCODED_LEN as u32),
         },
         terminal_behavior:
             KindTerminalBehavior::EmitsOneDecisionOrCompletesWhenDecisionBecomesImpossible,

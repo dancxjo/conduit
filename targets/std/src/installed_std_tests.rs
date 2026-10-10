@@ -192,8 +192,7 @@ fn current_frequency_drives_bounded_pcm_through_one_ordinary_play() {
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),
             connection_item_capacity: 1,
-            connection_byte_capacity: conduit_semantic_catalog::AUDIO_TONE_PCM_BLOCK_BYTES
-                .max(conduit_core::QUANTITY_ENCODED_LEN as u32),
+            connection_byte_capacity: conduit_semantic_catalog::AUDIO_TONE_QUEUE_BYTES,
             authority_grants: &[],
             protected_resource_grants: &[],
             line_offers: &[],
@@ -271,8 +270,7 @@ fn theremin_pitch_distance_maps_near_high_and_far_low() {
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),
             connection_item_capacity: 1,
-            connection_byte_capacity: conduit_semantic_catalog::AUDIO_TONE_PCM_BLOCK_BYTES
-                .max(conduit_core::QUANTITY_ENCODED_LEN as u32),
+            connection_byte_capacity: conduit_semantic_catalog::AUDIO_TONE_QUEUE_BYTES,
             authority_grants: &[],
             protected_resource_grants: &[],
             line_offers: &[],
@@ -342,8 +340,7 @@ fn authored_tone_cancellation_routes_exact_observed_terminal_truth() {
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),
             connection_item_capacity: 1,
-            connection_byte_capacity: conduit_semantic_catalog::AUDIO_TONE_PCM_BLOCK_BYTES
-                .max(conduit_core::QUANTITY_ENCODED_LEN as u32),
+            connection_byte_capacity: conduit_semantic_catalog::AUDIO_TONE_QUEUE_BYTES,
             authority_grants: &[],
             protected_resource_grants: &[],
             line_offers: &[],
