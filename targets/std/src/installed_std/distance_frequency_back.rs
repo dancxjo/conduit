@@ -17,6 +17,7 @@ pub(super) struct DistanceFrequencyBack {
     target_minimum_mhz: i64,
     target_maximum_mhz: i64,
     closed: bool,
+    output: Box<[u8]>,
 }
 
 impl DistanceFrequencyBack {
@@ -59,12 +60,9 @@ impl<const PORTS: usize> StepBack<PORTS> for DistanceFrequencyBack {
                 Err(detail) => return fail(detail),
             };
             io.consume(PortId(0)).expect("present Distance");
-            io.send_canonical(
-                PortId(0),
-                conduit_kernel::CanonicalValue::new(&frequency.encode())
-                    .expect("Frequency is fixed and bounded"),
-            )
-            .expect("ready Frequency output");
+            self.output.copy_from_slice(&frequency.encode());
+            io.send_prepared(PortId(0), self.output.len() as u32)
+                .expect("ready Frequency output");
             return StepOutcome::Progress;
         }
         if !self.closed && io.input_closed(PortId(0)) {
@@ -74,6 +72,10 @@ impl<const PORTS: usize> StepBack<PORTS> for DistanceFrequencyBack {
             return StepOutcome::Complete;
         }
         StepOutcome::Await
+    }
+
+    fn prepared_output(&self, port: PortId) -> Option<&[u8]> {
+        (port == PortId(0)).then_some(self.output.as_ref())
     }
 
     fn cancel(&mut self) {
@@ -120,6 +122,7 @@ fn prepared(placement: &PlannedGear) -> Result<DistanceFrequencyBack, String> {
         target_minimum_mhz: configuration(placement, "target-minimum", Unit::Millihertz)?,
         target_maximum_mhz: configuration(placement, "target-maximum", Unit::Millihertz)?,
         closed: false,
+        output: vec![0; conduit_core::QUANTITY_ENCODED_LEN].into_boxed_slice(),
     };
     if value.source_minimum_um >= value.source_maximum_um {
         return Err("distance-frequency mapping bounds are reversed".into());
@@ -163,6 +166,7 @@ mod tests {
             target_minimum_mhz: 220_000,
             target_maximum_mhz: 880_000,
             closed: false,
+            output: vec![0; conduit_core::QUANTITY_ENCODED_LEN].into_boxed_slice(),
         }
     }
 
@@ -189,6 +193,7 @@ mod tests {
             target_minimum_mhz: 1_760_000,
             target_maximum_mhz: 110_000,
             closed: false,
+            output: vec![0; conduit_core::QUANTITY_ENCODED_LEN].into_boxed_slice(),
         };
         assert_eq!(
             mapping.map(Quantity::new(0, Unit::Centimeter)),

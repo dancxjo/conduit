@@ -546,3 +546,26 @@ fn authored_custom_family_forwards_startup_and_crosses_record_runtime_ports() {
     let (session, effect) = run(&conversion);
     finish(session, effect);
 }
+
+#[test]
+fn browser_distance_frequency_mapper_emits_complete_quantity_capsules() {
+    for (distance, expected) in [("0cm", "1760Hz"), ("30cm", "110Hz")] {
+        let source = format!(
+            r#"plot mapper-capsule {{
+ trigger: scalar/literal(value = 1)
+ pitch: math/map-distance-frequency(source-minimum = 0cm, source-maximum = 30cm, target-minimum = 1760Hz, target-maximum = 110Hz)
+ show: presentation/bool-value
+ trigger.value >> ({distance}) >> pitch.distance
+ pitch.frequency >> (. == {expected}) >> show.value
+}}."#
+        );
+        let (session, effect) =
+            TourSession::prepare("browser/mapper", "boot/mapper", &source, 1).unwrap();
+        let TourHostEffect::Manifestation(effect) = effect else {
+            panic!("mapper presentation")
+        };
+        let effect = *effect;
+        assert_eq!(effect.text.as_deref(), Some("true"));
+        finish(session, effect);
+    }
+}

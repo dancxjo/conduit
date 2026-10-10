@@ -27,6 +27,8 @@ use crate::installed_browser::{backs, local_bases};
 use conduit_core::{
     bind_active_play, bind_presentation, bind_sign, Plan, PlanFragment, PresentationIdentity,
 };
+#[cfg(test)]
+use conduit_planner::plan_expanded_canonical_with_options;
 use conduit_planner::{default_expanded_placements, PlanningOptions};
 pub(super) use protocol::refusal;
 use protocol::{
@@ -407,9 +409,44 @@ fn finite_connection_limits(
                 .outputs
                 .iter()
                 .find(|port| port.port_id == connection.source_port_id)?;
-            let bound = crate::installed_browser::measurement_limits::value_queue_bound(
-                &output.value_kind,
-            )?;
+            let sink = plot
+                .gears
+                .iter()
+                .find(|gear| gear.gear_id == connection.sink_gear_id)?;
+            let sample_bound = [
+                (
+                    source,
+                    conduit_core::FrontValueLocation::Output(connection.source_port_id.clone()),
+                ),
+                (
+                    sink,
+                    conduit_core::FrontValueLocation::Input(connection.sink_port_id.clone()),
+                ),
+            ]
+            .into_iter()
+            .find_map(|(gear, location)| {
+                if !matches!(
+                    gear.kind_id.as_str(),
+                    conduit_semantic_catalog::TIME_SAMPLE_KIND
+                        | conduit_semantic_catalog::DISTANCE_FREQUENCY_MAP_KIND
+                ) {
+                    return None;
+                }
+                if location
+                    == conduit_core::FrontValueLocation::Input(conduit_core::port_id("cadence"))
+                {
+                    return Some(conduit_time::TICK_ENCODED_LEN);
+                }
+                gear.semantic_contract
+                    .value_contracts()
+                    .iter()
+                    .find(|entry| entry.location == location)
+                    .map(|entry| entry.contract.maximum_bytes)
+            });
+            let bound = sample_bound.or_else(|| {
+                crate::installed_browser::measurement_limits::value_queue_bound(&output.value_kind)
+                    .map(|bound| bound.max(default_bytes))
+            })?;
             Some((
                 (
                     connection.source_gear_id.clone(),
@@ -419,7 +456,7 @@ fn finite_connection_limits(
                 ),
                 conduit_planner::ConnectionQueueLimits {
                     item_capacity: 1,
-                    byte_capacity: bound.max(default_bytes),
+                    byte_capacity: bound.max(1),
                 },
             ))
         })

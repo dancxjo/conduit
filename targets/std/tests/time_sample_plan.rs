@@ -151,3 +151,121 @@ fn plan_retains_the_exact_non_authored_sample_specialization() {
         .iter()
         .all(|entry| entry.contract == value));
 }
+
+#[test]
+fn installed_sampler_preserves_physical_capsules_in_actual_plan_play() {
+    use conduit_core::{ConnectionTrack, Quantity, Unit};
+    use conduit_std_host::{
+        ExternalForeDelivery, ExternalForeInput, ExternalForeOutputAdapter, StdHost,
+        StdHostComposition, StdHostConfig, ThreadTimer,
+    };
+    use std::collections::BTreeMap;
+    #[derive(Default)]
+    struct Collector(Vec<Vec<u8>>);
+    impl ExternalForeOutputAdapter for Collector {
+        fn deliver(&mut self, delivery: ExternalForeDelivery) -> Result<(), String> {
+            if delivery.track == ConnectionTrack::Payload {
+                self.0.push(delivery.bytes);
+            }
+            Ok(())
+        }
+    }
+    for (name, info, bytes) in [
+        (
+            "Quantity",
+            conduit_core::QUANTITY_INFO_ID,
+            Quantity::new(1, Unit::Kilohertz).encode().to_vec(),
+        ),
+        (
+            "Unit",
+            conduit_core::UNIT_INFO_ID,
+            Unit::Kilohertz.encode().to_vec(),
+        ),
+    ] {
+        let value =
+            CheckedValueContract::new(kind_id(info), bytes.len() as u32, Vec::new()).unwrap();
+        let mut startup = conduit_plot::StartupCatalog::new();
+        let mut profile = conduit_plot::ProfileCatalog::new();
+        conduit_time::install_tick_catalog(&mut startup, &mut profile).unwrap();
+        conduit_semantic_catalog::install_time_sample_kind(&value, &mut startup, &mut profile)
+            .unwrap();
+        let source = format!("plot physical-sample (\n >> value: {name}...| <= {}B\n sample: {name}...| <= {}B >>\n) {{\n cadence: time/tick(count = 1, period-ms = 1)\n sampler: time/sample\n value >> sampler.value\n cadence.tick >> sampler.cadence\n sampler.sample >> sample\n}}.\n", bytes.len(), bytes.len());
+        let checked = conduit_plot::check_syntax_document(
+            &conduit_plot::parse_syntax_document(&source),
+            &startup,
+        )
+        .unwrap();
+        let authored = conduit_plot::expand_canonical_plot_for_authoring(
+            &checked,
+            "physical-sample",
+            &profile,
+        )
+        .unwrap();
+        let mut host = StdHost::new_with_composition(
+            StdHostConfig {
+                host_id: "physical-sample".into(),
+                boot_id: "sample-boot".into(),
+                offer_generation: OfferGeneration(1),
+            },
+            StdHostComposition::minimal().with_time(),
+        );
+        let mut advertisement = host.advertisement().clone();
+        advertisement
+            .capabilities
+            .push(conduit_std_offers::time_sample_offer(&value).unwrap());
+        host = StdHost::from_advertisement(advertisement).unwrap();
+        let hosts = [host.advertisement().clone()];
+        let placements =
+            conduit_planner::default_expanded_placements(&authored.expanded, &hosts).unwrap();
+        let boundaries = [
+            (PortDirection::Input, "value"),
+            (PortDirection::Output, "sample"),
+        ]
+        .into_iter()
+        .map(|(direction, name)| {
+            (
+                conduit_planner::ForeBoundaryKey {
+                    direction,
+                    front_port_id: name.into(),
+                    track: ConnectionTrack::Payload,
+                },
+                conduit_planner::ConnectionQueueLimits {
+                    item_capacity: 1,
+                    byte_capacity: bytes.len() as u32,
+                },
+            )
+        })
+        .collect();
+        let plan = conduit_planner::plan_expanded_authoring_with_options(
+            &authored,
+            &hosts,
+            &placements,
+            &[BaseImplementationId::from("conduit.base/local@1")],
+            conduit_planner::PlanningOptions {
+                connection_bases: &BTreeMap::new(),
+                line_candidates: &BTreeMap::new(),
+                connection_item_capacity: 1,
+                connection_byte_capacity: conduit_time::TICK_ENCODED_LEN,
+                authority_grants: &[],
+                protected_resource_grants: &[],
+                line_offers: &[],
+            },
+            &boundaries,
+        )
+        .unwrap();
+        let mut collector = Collector::default();
+        host.run_external_plot_to(
+            plan.fragments[0].clone(),
+            &[ExternalForeInput {
+                front_port_id: "value".into(),
+                track: ConnectionTrack::Payload,
+                bytes: bytes.clone(),
+            }],
+            &mut collector,
+            &mut Vec::new(),
+            &mut ThreadTimer,
+        )
+        .unwrap();
+        assert_eq!(collector.0, vec![bytes]);
+    }
+}
