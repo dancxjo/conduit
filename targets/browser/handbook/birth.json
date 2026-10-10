@@ -26,6 +26,54 @@
       "name": "memory_lantern",
       "title": "Turn keystrokes into text",
       "lesson": "Try the plot, focus the running example, and type a short message. Open Patchbay and select Memory Lantern: follow keyboard events through key mapping and bounded editing to visible text. Which part turns an event into a character? Your body survives reload; this example does not promise to retain the message."
+    },
+    {
+      "role": "lesson-hello-source",
+      "name": "hello-demo",
+      "title": "Uppercase a greeting",
+      "lesson": "Predict the uppercase result, then try it. Change the greeting and try again. The final period makes this a finite plot. Inspect the literal, uppercase gear, and display in Patchbay."
+    },
+    {
+      "role": "lesson-text-lab-source",
+      "name": "text-lab",
+      "title": "Uppercase as you type",
+      "lesson": "Try it, focus the running example, and type a few letters. Keyboard events become text before text/upper changes its case. Compare this immediate transformation with the editable message in Memory Lantern."
+    },
+    {
+      "role": "lesson-scale-source",
+      "name": "scale-demo",
+      "title": "Scale a number",
+      "lesson": "Predict 1.5 multiplied by 2.0. Try it, then change the factor to 3.0 and compare the displayed result. Inspect the typed scalar ports in Patchbay."
+    },
+    {
+      "role": "lesson-logic-source",
+      "name": "logic-demo",
+      "title": "Invert a Boolean",
+      "lesson": "Predict the opposite of true, then try it. Change the literal to false. Follow the Boolean through the inversion gear and display in Patchbay."
+    },
+    {
+      "role": "lesson-convert-pitch-source",
+      "name": "convert-pitch-demo",
+      "title": "Units: kilohertz to hertz",
+      "lesson": "Predict how many hertz are in 1kHz. Try it: the receipt stores the exact coordinate as coefficient 1 and exponent 3. Change 1kHz to 2kHz; the displayed check changes because the result is now 2000 Hz. Inspect the conversion and receipt in Patchbay."
+    },
+    {
+      "role": "lesson-compare-distance-source",
+      "name": "compare-distance-demo",
+      "title": "Units: compare distances",
+      "lesson": "Predict whether 1000mm and 0.001km describe the same distance. Try it, then change the right operand to 0.002km. Comparison uses exact compatible dimensions rather than rounded display values."
+    },
+    {
+      "role": "lesson-temperature-change-source",
+      "name": "temperature-change-demo",
+      "title": "Units: a temperature change",
+      "lesson": "Predict a change of 9 degrees Fahrenheit in kelvin. Try it: the change is 5 K, without an absolute-temperature offset. Compare with the units chapter, then change the source to 18°F and predict the new change."
+    },
+    {
+      "role": "lesson-inexact-conversion-source",
+      "name": "inexact-conversion-demo",
+      "title": "Units: inspect an inexact refusal",
+      "lesson": "Try converting the absolute temperature 1°F to °C. The exact finite-decimal profile refuses silently rounded coordinates. Change 1°F to 32°F: the result is exactly 0°C, so the refusal check changes. A typed result refusal differs from invalid source syntax."
     }
   ]
 }

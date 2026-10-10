@@ -9,7 +9,9 @@ async function current(page) {
 }
 
 async function ready(page) {
-  await expect(page.getByRole("button", { name: "Lull", exact: true })).toBeEnabled();
+  // The retained Candidate trace reached a real Playing Body after the default
+  // five-second assertion budget expired during cold SDK/WASM acquisition.
+  await expect(page.getByRole("button", { name: "Lull", exact: true })).toBeEnabled({ timeout: 30_000 });
   await page.waitForFunction(() => Boolean(globalThis.__conduitApplication));
   const state = await current(page);
   for (const key of ["hostId", "bootId", "bodyId", "planId", "playId"]) expect(state[key], key).toBeTruthy();
@@ -215,6 +217,103 @@ test("static Handbook applications retain independent local Bodies through use, 
       edited: example, inspected, lulled, reloaded, independent, reset, retained, distinct });
   } finally {
     await session?.context.close();
+    await site.close();
+  }
+});
+
+test("Handbook lessons run text, arithmetic, logic and exact quantities in the local Body", async ({}, testInfo) => {
+  testInfo.setTimeout(120_000);
+  const site = await stageStaticApplications();
+  const session = await openStaticProfile(testInfo.outputPath("lesson-profile"), new URL(site.url).origin);
+  try {
+    const page = await session.context.newPage();
+    await page.goto(new URL("handbook/", site.url).href);
+    const first = await ready(page);
+    const selector = page.getByLabel("Choose an example", { exact: true });
+    await expect(selector.locator("option")).toHaveCount(10);
+    const surface = page.locator(".handbook-show");
+    const editor = page.getByRole("textbox", { name: "Plot source", exact: true });
+    const cases = [
+      ["hello-demo", "HELLO, WORLD."],
+      ["scale-demo", "3.000000"],
+      ["logic-demo", "false"],
+      ["convert-pitch-demo", "Exactly 1000 Hz"],
+      ["compare-distance-demo", "The distances are equal"],
+      ["temperature-change-demo", "The temperature change is exactly 5 K"],
+      ["inexact-conversion-demo", "Conversion refused: inexact"],
+    ];
+    for (const [name, result] of cases) {
+      await selector.selectOption(name);
+      await page.getByRole("button", { name: "Try in my Handbook", exact: true }).click();
+      await expect(page.locator("[data-check]")).toHaveText(`Checked ${name}.`);
+      await expect(surface.locator('[data-resident-plot]:visible')).toContainText(result);
+      const state = await current(page);
+      expect(state.bodyId).toBe(first.bodyId);
+      expect(state.installedPlots).toHaveLength(3); // Tour, Patchbay and one lesson.
+      expect(state.installedPlots.some(plot => plot.checked_plot_id === state.selectedPlot)).toBe(true);
+    }
+    await selector.selectOption("text-lab");
+    await page.getByRole("button", { name: "Try in my Handbook", exact: true }).click();
+    await expect(page.locator("[data-check]")).toHaveText("Checked text-lab.");
+    await surface.focus();
+    await page.keyboard.type("hello");
+    await expect(surface.locator('[data-resident-plot]:visible')).toContainText("O");
+
+    // An edited unit request changes the computed output and survives recovery.
+    await selector.selectOption("compare-distance-demo");
+    const original = await editor.inputValue();
+    await editor.fill(original.replace('right = "0.001km"', 'right = "0.002km"'));
+    await page.getByRole("button", { name: "Try in my Handbook", exact: true }).click();
+    await expect(surface.locator('[data-resident-plot]:visible')).toContainText("The distances are not equal");
+    const edited = await current(page);
+    await page.reload();
+    const recovered = await ready(page);
+    expect(recovered.bodyId).toBe(first.bodyId);
+    expect(recovered.selectedPlot).toBe(edited.selectedPlot);
+    await expect(selector).toHaveValue("compare-distance-demo");
+    await expect(editor).toHaveValue(original.replace('right = "0.001km"', 'right = "0.002km"'));
+    await expect(surface.locator('[data-resident-plot]:visible')).toContainText("The distances are not equal");
+    session.assertClean();
+  } finally {
+    await session.context.close();
+    await site.close();
+  }
+});
+
+test("an existing two-lesson Handbook gains new choices without resetting its Body or saved edits", async ({}, testInfo) => {
+  testInfo.setTimeout(60_000);
+  const site = await stageStaticApplications({ legacyLessonInventory: true });
+  const session = await openStaticProfile(testInfo.outputPath("upgraded-profile"), new URL(site.url).origin);
+  try {
+    const page = await session.context.newPage();
+    await page.goto(new URL("legacy/", site.url).href);
+    const first = await ready(page);
+    const selector = page.getByLabel("Choose an example", { exact: true });
+    const editor = page.getByRole("textbox", { name: "Plot source", exact: true });
+    await expect(selector.locator("option")).toHaveCount(2);
+    const edited = (await editor.inputValue()).replace("time/every(1s)", "time/every(2s)");
+    await editor.fill(edited);
+    await page.getByRole("button", { name: "Try in my Handbook", exact: true }).click();
+    await expect(page.locator("[data-check]")).toHaveText("Checked clock-demo.");
+    await page.locator(".handbook-application").getByText("Your body and browser", { exact: true }).click();
+    await page.getByRole("button", { name: "Release this tab", exact: true }).click();
+    await expect(page.locator("[data-session-status]")).toContainText("released your Handbook");
+
+    await page.goto(new URL("handbook/", site.url).href);
+    expect((await ready(page)).bodyId).toBe(first.bodyId);
+    await expect(selector.locator("option")).toHaveCount(10);
+    await expect(editor).toHaveValue(edited);
+    await selector.selectOption("compare-distance-demo");
+    await page.getByRole("button", { name: "Try in my Handbook", exact: true }).click();
+    await expect(page.locator('.handbook-show [data-resident-plot]:visible')).toContainText("The distances are equal");
+    const upgraded = await current(page);
+    expect(upgraded.bodyId).toBe(first.bodyId);
+    expect(upgraded.installedPlots).toHaveLength(3);
+    await selector.selectOption("clock-demo");
+    await expect(editor).toHaveValue(edited);
+    session.assertClean();
+  } finally {
+    await session.context.close();
     await site.close();
   }
 });
