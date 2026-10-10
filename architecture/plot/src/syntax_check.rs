@@ -68,7 +68,7 @@ pub(crate) fn check_document(
         .map(|(literal, _)| literal.alias.text.clone())
         .collect();
     glyph_notation_scope.require_used(&used)?;
-    let aliased_catalog = crate::native_type::install_import_aliases(document, catalog)?;
+    let aliased_catalog = crate::native_type::install_import_aliases_borrowed(document, catalog)?;
     let (native_types, checked_catalog) =
         crate::native_type::check_native_types(&document.types, &aliased_catalog)?;
     let type_forms =
