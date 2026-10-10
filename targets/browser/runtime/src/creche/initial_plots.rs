@@ -93,8 +93,8 @@ pub(super) fn reviewed_inventory(source: &str) -> Result<ReviewedPlotInventory, 
     })
 }
 
-pub(super) fn checked_workset(
-    source: &str,
+pub(super) fn checked_workset_from_inventory(
+    checked_documents: &[CheckedInventoryEntry],
     initial_plots_json: &str,
 ) -> Result<(conduit_body::BodyWorkset, Vec<InitialPlotReceipt>), String> {
     let selected: Vec<InitialPlotSelection> = serde_json::from_str(initial_plots_json)
@@ -103,7 +103,6 @@ pub(super) fn checked_workset(
         return Err("initial Plot selection exceeds Body capacity".into());
     }
 
-    let checked_documents = check_inventory(source)?;
     let mut receipts = Vec::with_capacity(selected.len());
     let mut workset = conduit_body::BodyWorkset::default();
     for selection in selected {
