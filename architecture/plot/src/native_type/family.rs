@@ -3,6 +3,7 @@ use crate::prelude::*;
 use crate::{CheckedNativeType, TypeSyntax};
 use alloc::collections::BTreeMap;
 pub(crate) mod budget;
+mod capture;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct NativeTypeFamily {
@@ -38,23 +39,22 @@ pub(crate) fn install(
         ));
     }
     budget::validate(catalog, None, root.name.span)?;
-    let imports = super::generic::imports::Imports::prepare(owner)?;
+    let (selected, owner) = capture::select(root, declarations, owner)?;
+    let imports = super::generic::imports::Imports::prepare(&owner)?;
     let mut templates = Vec::new();
     let mut origins = imports.origins;
-    for original in declarations
-        .iter()
-        .filter(|value| !value.parameters.is_empty())
-    {
+    for original in selected.iter().filter(|value| !value.parameters.is_empty()) {
         let mut template = original.clone();
         super::generic::imports::rewrite(&mut template, &imports.aliases);
         origins.insert(template.name.text.clone(), original.clone());
         templates.push(template);
     }
     templates.extend(imports.templates);
+    let dependencies = capture::dependencies(&templates, &selected, &imports.catalog)?;
     let family = NativeTypeFamily {
         root: root.name.text.clone(),
         templates,
-        dependencies: imports.catalog.retained_native_types(),
+        dependencies,
         origins,
         package_content_digest,
     };

@@ -8,6 +8,10 @@ fn catalog(source: &str, name: &str) -> StartupCatalog {
 }
 
 fn catalog_with_exports(source: &str, names: &[&str]) -> StartupCatalog {
+    catalog_with_base(source, names, StartupCatalog::new())
+}
+
+fn catalog_with_base(source: &str, names: &[&str], mut catalog: StartupCatalog) -> StartupCatalog {
     let ships = names
         .iter()
         .map(|name| alloc::format!(" ship {name}\n"))
@@ -25,7 +29,6 @@ fn catalog_with_exports(source: &str, names: &[&str]) -> StartupCatalog {
     let exports =
         PackageExportCatalog::from_bundle(&bundle, &manifest_source, &parsed.packages[0], &sources)
             .unwrap();
-    let mut catalog = StartupCatalog::new();
     exports.install_shipped_types(&mut catalog).unwrap();
     catalog
 }
@@ -285,4 +288,41 @@ fn dependency_identity_work_refuses_before_expanding_an_excessive_family() {
         failure.message
     );
     assert!(!source[failure.span.start..failure.span.end].is_empty());
+}
+
+#[test]
+fn family_capture_excludes_unrelated_local_and_ambient_declarations() {
+    let ambient = catalog("type Ambient<N: U16> = collection U32 = N\n", "Ambient");
+    let owner = "type Positive = U16 where . > 0\ntype Dimension = Positive\ntype Vector<N: Dimension> = collection U8 = N\ntype Unrelated<N: U16> = collection U64 = N\ntype UnrelatedValue = U32\n";
+    let installed = catalog_with_base(owner, &["Vector"], ambient);
+    let capsule = &installed.native_families["example/families/Vector"];
+    assert_eq!(capsule.templates.len(), 1);
+    assert_eq!(capsule.templates[0].name.text, "Vector");
+    let names = capsule
+        .dependencies
+        .iter()
+        .map(|value| value.name.as_str())
+        .collect::<alloc::collections::BTreeSet<_>>();
+    assert_eq!(
+        names,
+        alloc::collections::BTreeSet::from(["Dimension", "Positive"])
+    );
+    let mut isolated = StartupCatalog::new();
+    isolated
+        .native_families
+        .insert("example/families/Vector".into(), capsule.clone());
+    let source = "with example/families/Vector as Samples\ntype Value = Samples<2>\n";
+    assert_eq!(
+        value(source, &isolated),
+        value(
+            &alloc::format!("{owner}type Value = Vector<2>\n"),
+            &StartupCatalog::new()
+        )
+    );
+    let refusal = check_syntax_document(
+        &parse_syntax_document(&source.replace("Samples<2>", "Samples<0>")),
+        &isolated,
+    )
+    .unwrap_err();
+    assert!(refusal.message.contains("Type law"), "{}", refusal.message);
 }
