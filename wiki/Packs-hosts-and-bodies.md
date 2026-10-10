@@ -69,8 +69,10 @@ plot identity (
 `name: type` is current grammar; explicit application uses ordinary named
 arguments where inference is insufficient, for example `identity(item = Text)`.
 See #4059 and [[the complete specialization example|Conduitese-by-example#specialize-a-reusable-plot]].
-Finite compile-time **value** parameters such as a vector length are a separate
-[[open proposal|Conduitese-feature-coverage#finite-value-parameters-and-shape-indexed-types-5326]].
+Native Type families also admit finite U16 Info parameters for checked shapes
+and independent sequence capacities. See
+[[value parameters|Current-language-surface#finite-native-type-value-parameters-5326]];
+#5326 tracks independent stable acceptance.
 
 No implicit `any`, wildcard zoo, or runtime type erasure requirement.
 
