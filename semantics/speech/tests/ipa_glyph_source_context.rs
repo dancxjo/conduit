@@ -156,3 +156,61 @@ fn selected_source_locals_supply_context_without_a_quoted_ipa_request() {
             .is_err());
     }
 }
+
+#[test]
+fn source_context_refuses_excessive_dependency_depth_and_wrong_type() {
+    let (startup, profile) = catalogs();
+    let provenance = material(PHONETIC)
+        .into_iter()
+        .find(|(key, _)| key == "provenance")
+        .unwrap()
+        .1;
+    for (declarations, selected, expected) in [
+        (
+            format!(
+                "chosen = {provenance}\n{}",
+                (0..65)
+                    .map(|index| format!(
+                        "alias-{index} = {}\n",
+                        if index == 0 {
+                            "chosen".into()
+                        } else {
+                            format!("alias-{}", index - 1)
+                        }
+                    ))
+                    .collect::<String>()
+            ),
+            "alias-64",
+            "immutable Source dependency depth exceeds 64",
+        ),
+        ("chosen = \"not provenance\"\n".into(), "chosen", ""),
+    ] {
+        let source = format!("with {NOTATION_EXPORT_PATH} as ph\nplot authored {{\n{declarations} value = ph[a]\n}}\n");
+        let document = parse_syntax_document_with_glyph_notations(&source, &startup);
+        assert!(
+            document.diagnostics.is_empty(),
+            "{:?}",
+            document.diagnostics
+        );
+        let scope = resolve_glyph_notation_scope(&document, &startup).unwrap();
+        let error = scope
+            .prepare_literal_from_source_locals(
+                &document,
+                "authored",
+                literal(&document),
+                &[("provenance", selected)],
+                &IpaConstructor::Phonetic,
+                &startup,
+                &profile,
+            )
+            .unwrap_err();
+        let LiteralPreparationRefusal::SourceContext(diagnostic) = error else {
+            panic!("unexpected refusal: {error:?}")
+        };
+        assert!(!diagnostic.message.is_empty());
+        assert!(diagnostic.span.end > diagnostic.span.start);
+        if !expected.is_empty() {
+            assert!(diagnostic.message.contains(expected), "{diagnostic:?}");
+        }
+    }
+}
