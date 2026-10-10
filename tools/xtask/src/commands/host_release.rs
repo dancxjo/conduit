@@ -94,7 +94,8 @@ fn build_browser(output: &Path, source_identity: &str) -> Result<(), Box<dyn std
             ])
             // Keep the retained browser product compact across its dependency graph.
             .env("CARGO_PROFILE_RELEASE_OPT_LEVEL", "z")
-            .env("CARGO_PROFILE_RELEASE_LTO", "thin"),
+            .env("CARGO_PROFILE_RELEASE_LTO", "fat")
+            .env("CARGO_PROFILE_RELEASE_CODEGEN_UNITS", "1"),
         "compile browser Host release",
     )?;
     fs::create_dir_all(output)?;
