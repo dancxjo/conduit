@@ -343,11 +343,25 @@ pub(super) fn reviewed_browser_host_with_inventory(
         let (startup, base_profile) = catalogs.get(entry.presentation)?;
         // Selectors are specific to this checked document, not retained in the
         // installed base profile used for the next document.
-        let mut profile = base_profile.clone();
-        let mut offers = crate::installed_browser::catalogs::install_checked_structured_selectors(
-            &entry.checked,
-            &mut profile,
-        )?;
+        let mut profile = std::borrow::Cow::Borrowed(base_profile);
+        let has_selectors = entry.checked.plots.iter().any(|plot| {
+            plot.cords.iter().any(|cord| {
+                cord.stages.iter().any(|stage| {
+                    matches!(
+                        stage,
+                        conduit_plot::CheckedCordStage::StructuredSelector { .. }
+                    )
+                })
+            })
+        });
+        let mut offers = if has_selectors {
+            crate::installed_browser::catalogs::install_checked_structured_selectors(
+                &entry.checked,
+                profile.to_mut(),
+            )?
+        } else {
+            Vec::new()
+        };
         // Expressions can occur in a called local Plot, so inspect the entire
         // checked document before deciding whether expansion is necessary.
         // Most shelf entries contain none: avoid constructing every Back and
