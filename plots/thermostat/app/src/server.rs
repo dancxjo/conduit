@@ -1,7 +1,7 @@
 //! Loopback browser Mask adapter; actions are routed into authored kernel work.
 use crate::execution::{Execution, ResultState};
 use conduit_presentation::{PresentationActionAvailability, PresentationFragment};
-use conduit_thermostat_plot::{Command, Mode, ThermostatState};
+use conduit_thermostat_plot::{Command, Mode};
 use serde_json::{json, Value};
 use std::{
     io::{Read, Write},
@@ -41,7 +41,7 @@ struct Encounter {
 impl Encounter {
     fn new() -> Result<Self, String> {
         let mut execution = Execution::new()?;
-        let current = execution.execute(ThermostatState::default(), Command::SetMode(Mode::Off))?;
+        let current = execution.execute(Command::SetMode(Mode::Off))?;
         Ok(Self {
             execution,
             current,
@@ -49,13 +49,17 @@ impl Encounter {
         })
     }
     fn fragment(&self) -> Result<PresentationFragment, String> {
-        conduit_thermostat_face::fragment(&self.current.state, self.current.basis.clone(), true)
-            .map_err(str::to_string)
+        conduit_thermostat_face::fragment(
+            &self.current.state,
+            self.current.basis.clone(),
+            self.execution.accepts_actions(),
+        )
+        .map_err(str::to_string)
     }
     fn face(&self) -> Result<Value, String> {
         let fragment = self.fragment()?;
         Ok(
-            json!({ "revision": self.revision, "basis": { "checked_plot_id": fragment.basis.checked_plot_id, "plan_id": fragment.basis.plan_id, "active_play_id": fragment.basis.active_play_id }, "subjects": fragment.subjects, "relationships": fragment.relationships, "properties": fragment.properties, "text": fragment.text, "actions": fragment.actions, "disclosures": fragment.disclosures }),
+            json!({ "revision": self.revision, "body_id": self.current.body_id, "basis": { "checked_plot_id": fragment.basis.checked_plot_id, "plan_id": fragment.basis.plan_id, "active_play_id": fragment.basis.active_play_id }, "subjects": fragment.subjects, "relationships": fragment.relationships, "properties": fragment.properties, "text": fragment.text, "actions": fragment.actions, "disclosures": fragment.disclosures }),
         )
     }
     fn action(&mut self, request: Value) -> Result<Value, ActionRefusal> {
@@ -85,7 +89,7 @@ impl Encounter {
             .revision
             .checked_add(1)
             .ok_or("Face revision exhausted")?;
-        let next = self.execution.execute(self.current.state, command)?;
+        let next = self.execution.execute(command)?;
         self.current = next;
         self.revision = revision;
         self.face().map_err(ActionRefusal::from)
@@ -105,7 +109,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     let listener = TcpListener::bind(("127.0.0.1", port))?;
     let address = listener.local_addr()?;
     let mut encounter = Encounter::new()?;
-    println!("Thermostat: http://{address}\nSession settings run through the Conduit kernel. Sensor and equipment are unconnected. Ctrl-C to stop.");
+    println!("Thermostat: http://{address}\nSession settings run through the Conduit kernel. Sensor and equipment are unconnected. Ctrl-C exits the process.");
     for stream in listener.incoming() {
         let mut stream = stream?;
         if let Err(error) = serve(&mut stream, &mut encounter, &address.to_string()) {
@@ -249,7 +253,7 @@ mod tests {
             .action(json!({"revision":0,"action_id":"thermostat.raise"}))
             .unwrap();
         assert_eq!(app.current.state.target, 215);
-        assert_ne!(
+        assert_eq!(
             first["basis"]["active_play_id"],
             next["basis"]["active_play_id"]
         );

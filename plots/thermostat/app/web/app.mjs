@@ -30,7 +30,7 @@ function render() {
   $("target").textContent = Number.isFinite(target) ? (target / 10).toFixed(1) : "—";
   $("room-name").textContent = face?.subjects?.find((s) => s.identity === subject)?.name || "Thermostat";
   $("current").textContent = semanticText("thermostat/current", "Sensor unavailable");
-  $("status").textContent = semanticText("thermostat/status", "Control demo");
+  $("status").textContent = semanticText("thermostat/status", "Thermostat Plot");
   const mode = property("mode");
   document.querySelector(".temperature-card").dataset.mode = mode || "off";
   for (const id of ["lower", "raise"]) {

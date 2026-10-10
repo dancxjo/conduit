@@ -1,5 +1,5 @@
-# Exact portable settings and observations. No sensor, relay, or Host binding.
-plot thermostat/main (
+# Retained settings in an ordinary bounded live scan Plot.
+plot thermostat/transition (
     >> accumulator: conduit.thermostat/state@1 <= 13B
     >> item: conduit.thermostat/command@1 <= 3B
     combined: conduit.thermostat/state@1 <= 13B >>
@@ -8,4 +8,12 @@ plot thermostat/main (
     accumulator >> step.accumulator
     item >> step.item
     step.combined >> combined
+}
+plot thermostat/main (
+    >> commands: conduit.thermostat/command@1...| <= 3B
+    states: conduit.thermostat/state@1...| <= 13B >>
+) {
+    reducer: scan("Living room", maximum-items = 256) thermostat/transition()
+    commands >> reducer.item
+    reducer.combined >> states
 }.

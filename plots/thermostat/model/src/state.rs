@@ -66,6 +66,12 @@ impl Default for ThermostatState {
     }
 }
 impl ThermostatState {
+    pub fn encode_info(&self) -> Result<alloc::vec::Vec<u8>, Refusal> {
+        self.encode().map(|bytes| bytes.to_vec())
+    }
+    pub fn decode_info(bytes: &[u8]) -> Result<Self, Refusal> {
+        Self::decode(bytes)
+    }
     pub fn validate(&self) -> Result<(), Refusal> {
         if !(MIN_TARGET..=MAX_TARGET).contains(&self.target) || self.target % TARGET_STEP != 0 {
             return Err(Refusal::TargetRange);

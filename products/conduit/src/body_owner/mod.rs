@@ -101,6 +101,42 @@ fn scoped_todo_initial(
     }
     Ok(Some((initial, *maximum_items)))
 }
+/// Only a checked, exact Thermostat scan can request the scoped production offer.
+/// Its initial Form comes from authored source, never from the display name.
+fn scoped_thermostat_initial(
+    checked: &conduit_plot::ExpandedAuthoringPlot,
+) -> Result<Option<(conduit_thermostat_plot::ThermostatState, u16)>, String> {
+    if checked.expanded.activations.is_empty() {
+        return Ok(None);
+    }
+    if checked.expanded.name != "thermostat/main" || checked.expanded.activations.len() != 1 {
+        return Err("installed Body supports no other activation source".into());
+    }
+    let activation = &checked.expanded.activations[0];
+    if activation.selected_plot != "thermostat/transition" {
+        return Err("installed Thermostat scan requires the exact transition child".into());
+    }
+    let ActivationSyntax::Scan { maximum_items, .. } = &activation.mode else {
+        return Err("installed Thermostat activation is not scan".into());
+    };
+    if *maximum_items == 0 || *maximum_items > 256 {
+        return Err("installed Thermostat scan admits 1..=256 controls".into());
+    }
+    let bytes = activation
+        .initial_accumulator_bytes
+        .as_deref()
+        .ok_or("installed Thermostat scan has no checked initial Form")?;
+    let initial = conduit_thermostat_plot::ThermostatState::decode_info(bytes)
+        .map_err(|error| format!("installed Thermostat initial Form: {error:?}"))?;
+    if initial
+        .encode_info()
+        .map_err(|error| format!("installed Thermostat initial Form: {error:?}"))?
+        != bytes
+    {
+        return Err("installed Thermostat initial Form is not canonical".into());
+    }
+    Ok(Some((initial, *maximum_items)))
+}
 #[derive(Deserialize)]
 #[serde(tag = "operation", rename_all = "kebab-case", deny_unknown_fields)]
 enum Request {
@@ -149,11 +185,22 @@ pub(crate) fn run(source: &Path, directory: &Path, name: &str) -> Result<(), Str
         checked.expanded.checked_plot_id.clone(),
     );
     let retained = state::load(&root)?;
-    let todo = scoped_todo_initial(&checked)?;
-    let (mut status, runtime) = super::prepare_runtime_with_todo(
-        &root,
-        todo.as_ref().map(|(initial, maximum)| (initial, *maximum)),
-    )?;
+    let (mut status, runtime) = if checked.expanded.name == "thermostat/main" {
+        let thermostat = scoped_thermostat_initial(&checked)?;
+        super::prepare_runtime_with_scans(
+            &root,
+            None,
+            thermostat
+                .as_ref()
+                .map(|(initial, maximum)| (initial, *maximum)),
+        )?
+    } else {
+        let todo = scoped_todo_initial(&checked)?;
+        super::prepare_runtime_with_todo(
+            &root,
+            todo.as_ref().map(|(initial, maximum)| (initial, *maximum)),
+        )?
+    };
     let result = (|| {
         let mut owner =
             controller::Owner::open(runtime.into_owner_host(), resident, retained, name)?;

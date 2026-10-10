@@ -471,9 +471,23 @@ impl Owner {
         if plot.expanded.activations.is_empty() {
             return self.plan_partition(plot, resident);
         }
-        if plot.expanded.name != "todo/main" || plot.expanded.activations.len() != 1 {
-            return Err("installed Body supports no other activation source".into());
-        }
+        let (state_bytes, command_bytes) = match plot.expanded.name.as_str() {
+            "todo/main" => {
+                super::scoped_todo_initial(plot)?.ok_or("Todo scan is missing")?;
+                (
+                    conduit_todo_plot::STATE_MAX_BYTES,
+                    conduit_todo_plot::COMMAND_MAX_BYTES,
+                )
+            }
+            "thermostat/main" => {
+                super::scoped_thermostat_initial(plot)?.ok_or("Thermostat scan is missing")?;
+                (
+                    conduit_thermostat_plot::STATE_BYTES,
+                    conduit_thermostat_plot::COMMAND_BYTES,
+                )
+            }
+            _ => return Err("installed Body supports no other activation source".into()),
+        };
         let expected = ResidentPlot::new(
             plot.expanded.source_document_id.clone(),
             plot.expanded.checked_plot_id.clone(),
@@ -485,8 +499,7 @@ impl Owner {
         let hosts = [advertisement.clone()];
         let placements =
             conduit_planner::default_expanded_placements(&plot.expanded, &hosts).map_err(debug)?;
-        let queue_bytes = (2 * conduit_todo_plot::STATE_MAX_BYTES
-            + 2 * conduit_todo_plot::COMMAND_MAX_BYTES) as u32;
+        let queue_bytes = (2 * state_bytes + 2 * command_bytes) as u32;
         let boundaries = BTreeMap::from([
             (
                 conduit_planner::ForeBoundaryKey {
@@ -496,7 +509,7 @@ impl Owner {
                 },
                 conduit_planner::ConnectionQueueLimits {
                     item_capacity: 1,
-                    byte_capacity: conduit_todo_plot::COMMAND_MAX_BYTES as u32,
+                    byte_capacity: command_bytes as u32,
                 },
             ),
             (
@@ -507,7 +520,7 @@ impl Owner {
                 },
                 conduit_planner::ConnectionQueueLimits {
                     item_capacity: 1,
-                    byte_capacity: conduit_todo_plot::STATE_MAX_BYTES as u32,
+                    byte_capacity: state_bytes as u32,
                 },
             ),
         ]);

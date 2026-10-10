@@ -19,7 +19,15 @@ pub fn install_catalogs(
     })?;
     profile
         .insert_kind(thermostat_kind())
-        .map_err(|e| e.to_string())
+        .map_err(|e| e.to_string())?;
+    startup.insert_exact_initial_info(
+        kind_id(STATE_KIND),
+        conduit_plot::text_startup_literal("Living room"),
+        crate::ThermostatState::default()
+            .encode_info()
+            .map_err(|e| alloc::format!("{e:?}"))?,
+        |bytes| crate::ThermostatState::decode(bytes).is_ok(),
+    )
 }
 pub fn thermostat_kind() -> Kind {
     Kind {
