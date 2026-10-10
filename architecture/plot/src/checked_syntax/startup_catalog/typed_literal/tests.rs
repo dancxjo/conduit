@@ -4,7 +4,7 @@ use conduit_core::{
     PortDescriptor, PortDirection,
 };
 
-fn fixture() -> (StartupCatalog, crate::ProfileCatalog, TypedLiteralFamily) {
+pub(super) fn fixture() -> (StartupCatalog, crate::ProfileCatalog, TypedLiteralFamily) {
     let document =
         crate::parse_syntax_document("type FixtureLiteral = {\n    payload: Text <= 64B\n}\n");
     let checked = crate::check_syntax_document(&document, &StartupCatalog::new()).unwrap();

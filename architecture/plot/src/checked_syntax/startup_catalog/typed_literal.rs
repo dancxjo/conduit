@@ -2,6 +2,9 @@
 use super::*;
 use conduit_core::{KindId, KindIdentity, PortTemporal, SourceDocumentId, StructuredInfoType};
 
+mod scan;
+pub use scan::{ScannedTypedLiteral, TypedLiteralScanRefusal};
+
 #[cfg(test)]
 mod tests;
 

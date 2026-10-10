@@ -2,7 +2,15 @@
 //! Scanning quotes closers but never decodes or admits a domain escape.
 
 pub(crate) fn slash_pattern(source: &str) -> Option<(&str, bool, bool, bool, usize)> {
-    if !source.starts_with('/') {
+    delimited_pattern(source, '/', '/')
+}
+
+pub(crate) fn delimited_pattern(
+    source: &str,
+    opener: char,
+    closer: char,
+) -> Option<(&str, bool, bool, bool, usize)> {
+    if !source.starts_with(opener) {
         return None;
     }
     let mut escaped = false;
@@ -16,17 +24,18 @@ pub(crate) fn slash_pattern(source: &str) -> Option<(&str, bool, bool, bool, usi
             '\\' => escaped = true,
             '[' => class = true,
             ']' => class = false,
-            '/' if !class => {
-                let flags_end = source[offset + 1..]
+            character if character == closer && !class => {
+                let close_end = offset + closer.len_utf8();
+                let flags_end = source[close_end..]
                     .find(|character: char| !character.is_ascii_alphabetic())
-                    .map_or(source.len(), |relative| offset + 1 + relative);
-                let flags = &source[offset + 1..flags_end];
+                    .map_or(source.len(), |relative| close_end + relative);
+                let flags = &source[close_end..flags_end];
                 let case_insensitive = match flags {
                     "" => false,
                     "i" => true,
                     _ => return None,
                 };
-                let mut pattern = &source[1..offset];
+                let mut pattern = &source[opener.len_utf8()..offset];
                 let anchored_start = pattern.starts_with('^');
                 if anchored_start {
                     pattern = &pattern[1..];
