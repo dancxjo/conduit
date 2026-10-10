@@ -212,14 +212,20 @@ pub(crate) fn plan_workspace_plots(
     joined_lines: &[JoinedLineObservation],
     authority: PlanningAuthority,
 ) -> Result<Vec<BodyPlotPlan>, String> {
-    let inventory = super::initial_plots::check_inventory(source)?;
+    let mut catalogs = super::catalog_preparation::CatalogPreparation::default();
+    let inventory = super::initial_plots::check_inventory_with_catalogs(source, &mut catalogs)?;
     if !observed_hosts
         .iter()
         .any(|observed| &observed.host_id == host && &observed.boot_id == boot)
     {
         return Err("current browser Host offer was not freshly observed".into());
     }
-    let local = super::initial_plots::reviewed_browser_host(source, host.clone(), boot.clone())?;
+    let local = super::initial_plots::reviewed_browser_host_with_inventory(
+        &inventory,
+        host.clone(),
+        boot.clone(),
+        &mut catalogs,
+    )?;
     let mut hosts = vec![local];
     hosts.extend(
         observed_hosts
@@ -245,13 +251,13 @@ pub(crate) fn plan_workspace_plots(
                     .map(|plot| (&entry.checked, plot, entry.presentation))
             })
             .ok_or("Resident Plot has a stale or missing checked identity")?;
-        let (startup, mut profile) =
-            crate::installed_browser::catalogs_for_presentation(presentation)?;
+        let (startup, base_profile) = catalogs.get(presentation)?;
+        let mut profile = base_profile.clone();
         crate::installed_browser::catalogs::install_checked_structured_selectors(
             document,
             &mut profile,
         )?;
-        let backs = crate::installed_browser::backs(&startup, &profile)?;
+        let backs = crate::installed_browser::backs(startup, &profile)?;
         let expanded =
             conduit_plot::expand_canonical_plot_with_backs(document, &plot.name, &profile, &backs)
                 .map_err(|error| format!("Workspace expansion refused: {error:?}"))?;

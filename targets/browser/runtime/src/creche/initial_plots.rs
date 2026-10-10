@@ -153,8 +153,20 @@ pub(super) fn checked_workset(
 }
 
 pub(super) fn check_inventory(source: &str) -> Result<Vec<CheckedInventoryEntry>, String> {
+    check_inventory_with_catalogs(
+        source,
+        &mut super::catalog_preparation::CatalogPreparation::default(),
+    )
+}
+
+pub(super) fn check_inventory_with_catalogs(
+    source: &str,
+    catalogs: &mut super::catalog_preparation::CatalogPreparation,
+) -> Result<Vec<CheckedInventoryEntry>, String> {
     let Ok(bundle) = serde_json::from_str::<ReviewedPlotBundle>(source) else {
-        return check_source(source).map(|checked| {
+        let (startup, profile) =
+            catalogs.get(crate::installed_browser::PresentationProfile::Annotation)?;
+        return check_source_with_catalogs(source, startup, profile).map(|checked| {
             vec![CheckedInventoryEntry {
                 source: source.to_owned(),
                 checked,
@@ -190,7 +202,8 @@ pub(super) fn check_inventory(source: &str) -> Result<Vec<CheckedInventoryEntry>
             3 => crate::installed_browser::PresentationProfile::PatternComparison,
             _ => return Err("reviewed plot has an unsupported presentation profile".into()),
         };
-        let document = check_source_for_presentation(&entry.source, presentation)?;
+        let (startup, profile) = catalogs.get(presentation)?;
+        let document = check_source_with_catalogs(&entry.source, startup, profile)?;
         let expected_entry = entry.entry.unwrap_or_else(|| entry.slug.replace('-', "_"));
         let plot = document
             .plots
@@ -256,6 +269,7 @@ pub(crate) fn inventory_plot_title(
         .ok_or_else(|| "resident Plot is absent from the reviewed inventory".into())
 }
 
+#[cfg(test)]
 pub(super) fn check_source(source: &str) -> Result<conduit_plot::CheckedSyntaxDocument, String> {
     check_source_for_presentation(
         source,
@@ -268,14 +282,22 @@ pub(super) fn check_source_for_presentation(
     presentation: crate::installed_browser::PresentationProfile,
 ) -> Result<conduit_plot::CheckedSyntaxDocument, String> {
     let (startup, profile) = crate::installed_browser::catalogs_for_presentation(presentation)?;
-    let syntax = conduit_plot::parse_syntax_document_with_glyph_notations(source, &startup);
+    check_source_with_catalogs(source, &startup, &profile)
+}
+
+fn check_source_with_catalogs(
+    source: &str,
+    startup: &conduit_plot::StartupCatalog,
+    profile: &conduit_plot::ProfileCatalog,
+) -> Result<conduit_plot::CheckedSyntaxDocument, String> {
+    let syntax = conduit_plot::parse_syntax_document_with_glyph_notations(source, startup);
     if let Some(diagnostic) = syntax.diagnostics.first() {
         return Err(format!(
             "parse reviewed plot inventory: {}",
             diagnostic.message
         ));
     }
-    conduit_plot::check_syntax_document_with_literal_constructors(&syntax, &startup, &profile)
+    conduit_plot::check_syntax_document_with_literal_constructors(&syntax, startup, profile)
         .map_err(|error| format!("check reviewed plot inventory: {error:?}"))
 }
 
@@ -298,10 +320,23 @@ pub(super) fn reviewed_browser_host(
     host: conduit_core::HostId,
     boot: conduit_core::BootId,
 ) -> Result<conduit_core::HostAdvertisement, String> {
+    let mut catalogs = super::catalog_preparation::CatalogPreparation::default();
+    let inventory = check_inventory_with_catalogs(source, &mut catalogs)?;
+    reviewed_browser_host_with_inventory(&inventory, host, boot, &mut catalogs)
+}
+
+pub(super) fn reviewed_browser_host_with_inventory(
+    inventory: &[CheckedInventoryEntry],
+    host: conduit_core::HostId,
+    boot: conduit_core::BootId,
+    catalogs: &mut super::catalog_preparation::CatalogPreparation,
+) -> Result<conduit_core::HostAdvertisement, String> {
     let mut host = crate::installed_browser::advertisement(host, boot);
-    for entry in check_inventory(source)? {
-        let (startup, mut profile) =
-            crate::installed_browser::catalogs_for_presentation(entry.presentation)?;
+    for entry in inventory {
+        let (startup, base_profile) = catalogs.get(entry.presentation)?;
+        // Selectors are specific to this checked document, not retained in the
+        // installed base profile used for the next document.
+        let mut profile = base_profile.clone();
         let mut offers = crate::installed_browser::catalogs::install_checked_structured_selectors(
             &entry.checked,
             &mut profile,
@@ -322,7 +357,7 @@ pub(super) fn reviewed_browser_host(
             })
         });
         if has_expressions {
-            let backs = crate::installed_browser::backs(&startup, &profile)?;
+            let backs = crate::installed_browser::backs(startup, &profile)?;
             for plot in &entry.checked.plots {
                 if entry
                     .entry_name

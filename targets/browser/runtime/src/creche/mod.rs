@@ -3,6 +3,7 @@
 mod abi;
 mod birth_draft;
 mod browser_configuration;
+mod catalog_preparation;
 pub(crate) use browser_configuration::BrowserConfigurationSelection;
 mod durable;
 mod graduation;

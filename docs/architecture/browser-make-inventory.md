@@ -6,15 +6,24 @@ Every exposed entry is versioned, targets `browser/wasm32/page`, binds to `condu
 
 The `cargo xtask make host release --platform browser` recipe builds the entire
 WASM dependency graph with size optimization
-(`opt-level = z`), fat LTO and one codegen unit. With the scoped glyph and
-checked IPA authoring consumers, this recipe measures 16,515,525 bytes; thin LTO
-measures 17,429,951 bytes. The workspace application template reserves 16 MiB
+(`opt-level = z`), fat LTO and one codegen unit. On source `5b344df52`, with the
+scoped glyph and checked IPA authoring consumers, the recipe produced
+16,515,525 bytes; the thin-LTO comparison produced 17,429,951 bytes. The workspace application template reserves 16 MiB
 for its runtime, matching the existing native-server, SDK and browser-bootstrap
 download bound. This download bound is separate from the unchanged 8 MiB page-profile
 heap allowance. Body Play reserves a finite 2,176 KiB value arena before
 execution: the reviewed resident Theremin workload requires 2,150,400 bytes
 under the current native structured contracts. Larger workloads still fail
 ordinary capacity admission.
+
+Workspace preparation retains one immutable installed catalog pair while
+checking consecutive documents with the same presentation profile. A profile
+change drops that pair before preparing its replacement; finishing the operation
+drops the preparation owner. Checking, local offers and planning share the same
+original checked inventory. Document-specific selectors modify a profile copy,
+and glyph receipts remain bound to their original document. This avoids
+repeated installed-Type preparation without caching source admission, Host
+observations, commitment or Play authority.
 
 | Runtime mechanism | Make classification | Runtime prerequisite truth |
 | --- | --- | --- |
