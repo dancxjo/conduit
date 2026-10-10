@@ -51,6 +51,12 @@ impl PackageExportCatalog {
                     span: syntax.name.span,
                     message,
                 })?;
+            crate::native_type::family::source::register(
+                &mut staged,
+                source_path,
+                &self.type_origins[&syntax.name.text],
+                syntax.name.span,
+            )?;
             shipped.push(value_type.clone());
         }
         *catalog = staged;

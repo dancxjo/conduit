@@ -157,6 +157,17 @@ fn render_human(report: &ExpansionReport<'_>) -> String {
             "\nwith {} as {} at {}:{}\n",
             import.path, import.alias, import.source_span.line, import.source_span.column
         ));
+        for owner in &import.owner_sources {
+            output.push_str(&format!(
+                "  owner `{}` in {}:{}:{}\n  owner Source: {}\n  package content: {}\n",
+                owner.declaration_name,
+                owner.module_path,
+                owner.declaration_span.line,
+                owner.declaration_span.column,
+                owner.source_document_id,
+                owner.package_content_digest
+            ));
+        }
     }
     output
 }

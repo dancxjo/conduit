@@ -81,6 +81,14 @@ pub(crate) fn install_import_aliases(
                 invariants,
             )
             .map_err(|message| super::diagnostic(declaration.alias.span, message))?;
+        if let Some(origin) = base.native_type_source(&declaration.path) {
+            super::family::source::register(
+                &mut catalog,
+                &declaration.alias.text,
+                origin,
+                declaration.alias.span,
+            )?;
+        }
     }
     Ok(catalog)
 }

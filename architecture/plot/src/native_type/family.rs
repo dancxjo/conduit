@@ -64,6 +64,11 @@ pub(crate) fn install(
     }
     templates.extend(imports.templates);
     let dependencies = capture::dependencies(&templates, &selected, &imports.catalog)?;
+    for dependency in &dependencies {
+        if let Some(origin) = imports.catalog.native_type_source(&dependency.name) {
+            source_origins.insert(dependency.name.clone(), origin.clone());
+        }
+    }
     let family = NativeTypeFamily {
         root: root.name.text.clone(),
         templates,

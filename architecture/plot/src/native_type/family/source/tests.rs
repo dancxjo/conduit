@@ -117,3 +117,47 @@ fn changed_module_bytes_cannot_supply_provenance_for_a_checked_bundle() {
             .is_err()
     );
 }
+
+#[test]
+fn closed_type_import_owner_survives_family_capture_and_private_preparation() {
+    let domain = "# original Ω source\ntype Dimension = U16 in 1..=64\n";
+    let upstream = exports(
+        "pack example/domain (\n version = 1.0.0\n) {\n ship Dimension\n}\n",
+        &[PackageMemberSource {
+            path: "domain/original",
+            source: domain,
+        }],
+    );
+    let mut catalog = StartupCatalog::new();
+    upstream.install_shipped_types(&mut catalog).unwrap();
+    let original = catalog
+        .native_type_source("example/domain/Dimension")
+        .unwrap()
+        .clone();
+    let vector =
+        "with example/domain/Dimension as Width\ntype Vector<N: Width> = collection U8 = N\n";
+    let downstream = exports(
+        "pack example/vector (\n version = 1.0.0\n) {\n ship Vector\n}\n",
+        &[PackageMemberSource {
+            path: "vector/main",
+            source: vector,
+        }],
+    );
+    downstream.install_shipped_types(&mut catalog).unwrap();
+    let captured = catalog
+        .native_family_sources("example/vector/Vector")
+        .unwrap()
+        .find(|origin| origin.declaration_name == "Dimension")
+        .unwrap();
+    assert_eq!(captured, &original);
+    let prepared = crate::native_type::generic::imports::Imports::prepare(&catalog).unwrap();
+    assert!(prepared
+        .catalog
+        .native_type_sources
+        .values()
+        .any(|origin| origin == &original));
+    let consumer =
+        parse_syntax_document("with example/domain/Dimension as Size\ntype Value = Size\n");
+    let aliased = crate::native_type::install_import_aliases(&consumer, &catalog).unwrap();
+    assert_eq!(aliased.native_type_source("Size"), Some(&original));
+}

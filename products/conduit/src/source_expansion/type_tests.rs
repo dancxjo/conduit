@@ -152,3 +152,54 @@ fn repeated_admitted_types_refuse_excessive_inspection_expansion() {
     let refusal = native_types::types(&syntax, &checked).unwrap_err();
     assert!(refusal.contains("inspection exceeds"), "{refusal}");
 }
+
+#[test]
+fn closed_type_import_reports_original_owner_source() {
+    use conduit_plot::{
+        parse_syntax_document, CheckedPackageBundle, PackageExportCatalog, PackageMemberSource,
+        StartupCatalog,
+    };
+    let manifest_source = "pack example/domain (\n version = 1.0.0\n) {\n ship Dimension\n}\n";
+    let manifest = parse_syntax_document(manifest_source);
+    let sources = [PackageMemberSource {
+        path: "original/domain",
+        source: "# Ω\ntype Dimension = U16 in 1..=64\n",
+    }];
+    let bundle =
+        CheckedPackageBundle::from_sources(manifest_source, &manifest.packages[0], &sources)
+            .unwrap();
+    let exports = PackageExportCatalog::from_bundle(
+        &bundle,
+        manifest_source,
+        &manifest.packages[0],
+        &sources,
+    )
+    .unwrap();
+    let mut catalog = StartupCatalog::new();
+    exports.install_shipped_types(&mut catalog).unwrap();
+    let syntax =
+        parse_syntax_document("with example/domain/Dimension as Width\ntype Value = Width\n");
+    let imports = native_types::imports(&syntax, &catalog);
+    let json = serde_json::to_value(&imports).unwrap();
+    assert_eq!(
+        json[0]["owner_sources"][0]["module_path"],
+        "original/domain"
+    );
+    assert_eq!(json[0]["owner_sources"][0]["declaration_name"], "Dimension");
+    let report = ExpansionReport {
+        schema: "conduit.source-sugar-expansion@1",
+        boundary: "checked Source",
+        source_document_id: "consumer",
+        expansions: Vec::new(),
+        native_types: Vec::new(),
+        type_families: Vec::new(),
+        imports,
+    };
+    let human = render_human(&report);
+    assert!(human.contains("owner `Dimension` in original/domain:2:1"));
+    assert!(human.contains(
+        parse_syntax_document(sources[0].source)
+            .source_document_id()
+            .as_str()
+    ));
+}

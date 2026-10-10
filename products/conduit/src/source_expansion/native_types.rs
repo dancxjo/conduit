@@ -38,11 +38,11 @@ pub(super) struct ImportView<'a> {
 
 #[derive(Debug, Serialize)]
 pub(super) struct OwnerSourceView<'a> {
-    package_content_digest: String,
-    module_path: &'a str,
-    source_document_id: &'a str,
-    declaration_name: &'a str,
-    declaration_span: SourceSpan,
+    pub(super) package_content_digest: String,
+    pub(super) module_path: &'a str,
+    pub(super) source_document_id: &'a str,
+    pub(super) declaration_name: &'a str,
+    pub(super) declaration_span: SourceSpan,
 }
 
 #[derive(Debug, Serialize)]
@@ -201,6 +201,7 @@ pub(super) fn imports<'a>(
                 .native_family_sources(&declaration.path)
                 .into_iter()
                 .flatten()
+                .chain(catalog.native_type_source(&declaration.path))
                 .map(|origin| OwnerSourceView {
                     package_content_digest: origin
                         .package_content_digest

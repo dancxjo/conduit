@@ -55,15 +55,20 @@ impl Imports {
             }
             for dependency in &family.dependencies {
                 let name = &names[&dependency.name];
-                if let Some(existing) = imports.catalog.structured_type(name) {
-                    if existing == &dependency.value_type {
-                        continue;
-                    }
+                if imports.catalog.structured_type(name) != Some(&dependency.value_type) {
+                    imports
+                        .catalog
+                        .insert_checked_native_type(name.clone(), dependency)
+                        .map_err(|message| error(family.templates[0].name.span, message))?;
                 }
-                imports
-                    .catalog
-                    .insert_checked_native_type(name.clone(), dependency)
-                    .map_err(|message| error(family.templates[0].name.span, message))?;
+                if let Some(origin) = family.source_origins.get(&dependency.name) {
+                    super::super::family::source::register(
+                        &mut imports.catalog,
+                        name,
+                        origin,
+                        family.templates[0].name.span,
+                    )?;
+                }
             }
             for original in &family.templates {
                 let name = &names[&original.name.text];
