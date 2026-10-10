@@ -5,9 +5,10 @@ Conduit distinguishes **the set of values a type means** from **the resources re
 A semantic numeric domain may therefore be open-ended:
 
 ```conduit
-type Temperature = Scalar in -273.15..
-type Count = Integer in 0..
-type AtMostOne = Scalar in ..=1
+type TemperatureRange = Temperature in -273.15°C..
+type NonnegativeCount = Count in 0..
+type AtLeastFour = Count in 4..
+type AtMostOne = Scalar in ..=1.000000
 ```
 
 The semantic meaning is not truncated merely because one host uses a finite machine representation.
@@ -56,6 +57,24 @@ Executable declarations use `plot`; portable type representations use `form`.
 ## Checked type identity is not source spelling
 
 Source aliases are authoring convenience only.
+
+This complete source gives the existing `text/upper` Kind a local alias:
+
+```conduit
+with text/upper as shout
+
+plot aliased-upper (
+    input: Text >> output: Text
+) {
+    input >> shout >> output
+}
+```
+
+Replacing `shout` with another local alias changes the authored spelling, not
+the resolved Kind or its checked Fore. It does not create a new text Type.
+By contrast, a native declaration such as `type AlmostU32 = U32 where
+. < 4_294_967_295` introduces a checked scalar profile with its own law; see
+[[the consuming arithmetic example|Conduitese-by-example#give-an-arithmetic-invariant-to-the-type]].
 
 > **Two source spellings that resolve to the same exact semantic type must produce the same checked type/fore identity. Renaming an alias must not change plan compatibility.**
 
@@ -106,7 +125,7 @@ Canonical retained-value grammar:
 
 ```conduit
 count:    keep Count(0) for life
-middle:   keep Integer for this play
+middle:   keep I64 for this play
 name:     keep Text <= 128B for this body
 draft:    keep Text <= 4KiB for this wake
 cache:    keep Bytes <= 2MiB for this boot
@@ -183,7 +202,7 @@ T     the value itself
 &T    ordinary info naming one exact data generation containing T
 ~~~
 
-`&T` is **not** a pointer, borrow, path, residence, capability, handle or authority token. Initially reject accidental recursive `&&T` spelling unless a concrete semantic need later earns it.
+`&T` is **not** a pointer, borrow, path, residence, capability, handle or authority token. The current runtime-port grammar rejects accidental recursive `&&T` spelling.
 
 `&T` in type grammar coexists with infix bitwise `&` in expression grammar. Grammar position, never whitespace, distinguishes them.
 
@@ -267,7 +286,56 @@ An empty sequence is a real zero-item sequence, not a fixed storage vector padde
 
 Encoding/validation must carry exact sequence type/bounds and actual item count, and remain allocation-free-capable for constrained targets.
 
-Exact authored sequence syntax beyond the accepted structural syntax remains subject to parser/canon conformance; do not invent a second collection language.
+Current declarations express both bounded variable cardinality and exact
+cardinality:
+
+```conduit
+type Octets = sequence U8 <= 4
+type NonemptyOctets = sequence U8 in 1..=4
+type PairOfWords = collection U16 = 2
+
+type Packet = {
+    octets: Octets
+}
+
+plot packet (
+    input: U8 >> packet: Packet
+) = ({ octets: [., .] })
+
+plot pair (
+    input: U16 >> pair: PairOfWords
+) = ([1, 2])
+```
+
+`sequence U8 <= 4` admits 0 through 4 actual items. `in 1..=4` supplies both
+item-count bounds. `collection U16 = 2` admits exactly two items. The
+[named record tests](https://github.com/dancxjo/conduit/blob/dev/architecture/plot/tests/named_record_expression.rs)
+and [exact collection tests](https://github.com/dancxjo/conduit/blob/dev/architecture/plot/tests/nominal_collection_expression.rs)
+cover contextual literals, cardinality refusal and prepared expression
+execution.
+
+Runtime selection uses an explicit finite index and actual count:
+
+```conduit
+type Request = {
+    bytes: sequence U8 <= 4
+    index: U64
+}
+
+type Result =
+    octet U8
+    | short
+
+plot guarded (
+    value: Request >> result: Result
+) = (.index < sequence/length(.bytes) ? octet(sequence/at(.bytes, .index)) : short(unit))
+```
+
+Only the selected ternary branch evaluates, so a short sequence returns
+`short` without indexing it. Unguarded out-of-range `sequence/at` refuses.
+The [prepared selection tests](https://github.com/dancxjo/conduit/blob/dev/architecture/plot/tests/prepared_sequence_selection.rs)
+establish these outcomes. Packed `Bytes` uses `bytes/length` and `bytes/at`
+instead: byte extent and sequence item count are different contracts.
 
 Provenance: #3717, structured-info ancestry #1386/#1387.
 
@@ -309,30 +377,58 @@ Provenance: #3975.
 
 ## Finite variants
 
-Semantic law is canonical: variants are finite typed structured info, with exact cases and optional bounded payloads.
-
-Existing structured-info heritage such as:
+Current authored variants have exact finite alternatives and optional bounded
+payloads. This complete conditional constructor comes from the
+[native expression tests](https://github.com/dancxjo/conduit/blob/dev/architecture/plot/tests/native_expression_construction.rs):
 
 ```conduit
-note_on({ velocity: 96, pitches: [60, 62, 64] })
+type Choice =
+    known I64
+    | unknown
+
+plot choose (
+    >> value: I64
+    result: Choice >>
+) = (. >= 0 ? Choice.known(.) : Choice.unknown)
 ```
 
-is the preferred construction direction.
+A case may also own a record payload:
 
-Graph patterns use the routing machinery. Preferred direction already recorded:
+```conduit
+type Note = U8 in 0..=127
+
+type MusicEvent =
+    note {
+        velocity: U8 in 0..=127
+        pitches: sequence Note <= 16
+    }
+    | rest
+```
+
+The checked record payload keeps both refinements and finite sequence bounds.
+Qualified construction uses `MusicEvent.note({ velocity: 96, pitches: [60, 62, 64] })`
+or payloadless `MusicEvent.rest` when the expected type is in scope.
+
+Current graph matching uses `>>` arms, with the selected payload carried
+directly into the named destination:
 
 ```conduit
 event >> ? {
-    [MusicEvent.note]: . >> play-note
-    [MusicEvent.rest]: . >> keep-silence
+    [MusicEvent.note] >> play-note
+    [MusicEvent.rest] >> keep-silence
 }
 ```
 
-Closed variants must be exhaustive.
+These are scoped endpoint fragments, not declarations of the destination
+fores. Closed variants must be exhaustive. `variant/is(value, "case")` and
+`variant/tag(value)` provide checked expression observations; the latter
+returns ordinary text, so spelling a tag in a text comparison does not itself
+validate that spelling against the case set. See
+[[current routing and placeholder details|Plots-and-flow#exactly-one-graph-routing]].
 
-**STATUS: FROZEN.** Qualified construction uses `Variant.case(payload)` / payloadless `Variant.case`; graph matching uses `[Variant.case]`. Closed variants remain exhaustive. See #4002.
-
-Provenance: #4002.
+Provenance: #4002;
+[surface tests](https://github.com/dancxjo/conduit/blob/dev/architecture/plot/src/surface_tests.rs)
+and [selector tests](https://github.com/dancxjo/conduit/blob/dev/architecture/plot/tests/structured_selectors.rs).
 
 ---
 
@@ -342,7 +438,7 @@ Low-level plots may pass admitted runtime resources through typed ports, but **d
 
 ```text
 { address, length }        descriptive info
-MmioRegion capability      admitted unforgeable resource/authority
+resource machine/memory/mmio/region    admitted runtime resource
 ```
 
 Resource values are created only by admitted backs/kernel operations and carry exact lifecycle/provenance constraints. Impossible cross-host transfer must refuse before play.
@@ -354,3 +450,75 @@ Canonical source spelling is `resource T`. There are no resource literals and no
 Provenance: #4065.
 
 ---
+
+## Concrete temporal boundaries
+
+Each temporal shape is visible in a fore. This declaration demonstrates the
+current grammar; its empty body is a signature specimen, not a working
+implementation:
+
+```conduit
+plot temporal-boundary (
+    >> one: Text
+    >> maybe: Text?
+    >> flow: Text...
+    >> closing: Text...|
+    >> current: $Text
+    current-maybe: $Text? >>
+    snapshot: &Text >>
+) {
+}
+```
+
+There is no implicit Current-to-value coercion. `note @ save-request >> snapshot`
+explicitly samples causally visible Current when a trigger is consumed.
+`&Text` names immutable data; it does not sample Current or confer authority.
+Port temporal parsing and reference refusal are covered by the
+[surface tests](https://github.com/dancxjo/conduit/blob/dev/architecture/plot/src/surface_tests.rs).
+
+Optional retained state is explicit:
+
+```conduit
+plot retained {
+    available: keep Boolean? for this play
+    enabled: keep Boolean(true) for this wake
+}
+```
+
+The optional cell can answer none. The initializer in the second declaration
+provides ordinary Boolean truth. These checked declarations do not themselves
+prove durable storage on every host; a selected back must satisfy the requested
+lifetime. See the [retained expansion tests](https://github.com/dancxjo/conduit/blob/dev/architecture/plot/src/canonical_expansion_tests.rs).
+
+## Named records and finite floats
+
+Named records can be constructed from the current expression input:
+
+```conduit
+type Inner = {
+    value: I128
+}
+
+type Outer = {
+    inner: Inner
+}
+
+plot nested (
+    input: I128 >> output: Outer
+) = ({ inner: { value: . } })
+
+plot extract (
+    input: Outer >> output: I128
+) = (.inner.value)
+
+type FiniteFloat = F32 finite
+type Probability = F32 finite in 0.0..=1.0
+```
+
+Finite floating-point refinements exclude non-finite values; range refinement
+adds a separate relation. A finite input does not guarantee every arithmetic
+result stays finite. The
+[nested record tests](https://github.com/dancxjo/conduit/blob/dev/architecture/plot/tests/named_record_expression.rs),
+[finite float tests](https://github.com/dancxjo/conduit/blob/dev/architecture/plot/tests/finite_f32_arithmetic.rs)
+and [generated ECMAScript tests](https://github.com/dancxjo/conduit/blob/dev/architecture/plot/tests/ecmascript_types.rs)
+provide scoped construction, evaluation and binding evidence.

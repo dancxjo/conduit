@@ -6,6 +6,7 @@ For closing flow:
 items >> consume
 items| >> finish
 items! >> explain
+items; >> resting
 ```
 
 Law:
@@ -14,15 +15,40 @@ Law:
 items     ordinary values
 items|    meaningful normal close; legal only for T...|
 items!    abnormal terminal truth
+items;    observed quiescence, a non-terminal track
 ```
 
-Silence/quiescence is neither `|` nor `!`.
+Silence/quiescence is neither `|` nor `!`. The explicit `;` projection reports
+quiescence; it does not close a flow or terminate a live plot. Normal-close and
+quiescence tracks carry `Unit`. An abnormal track carries the exact fault type
+declared by its endpoint; an undeclared abnormal contract refuses.
 
 `endpoint!` is not exception throwing. It exposes typed semantic terminal truth as an ordinary graph track.
 
 Successful internal fallback/replan does **not** manufacture a semantic `!` if the endpoint continues satisfying its contract.
 
 No `try`, `catch`, `throw`, hidden unwinding, or global error bus.
+
+The following complete source is a checking/expansion fixture from the
+[canonical expansion tests](https://github.com/dancxjo/conduit/blob/dev/architecture/plot/src/canonical_expansion_tests.rs):
+
+```conduit
+plot observe-terminals {
+    source: test/closing-source
+    finish: test/unit-sink
+    resting: test/unit-sink
+    explain: test/fault-sink
+
+    source| >> finish
+    source! >> explain
+    source; >> resting
+}
+```
+
+The fixture catalog supplies the named `test/` fores and proves three distinct
+typed tracks. These names are not installed application kinds. Wiring `!` into
+a `Unit` sink, projecting `|` from a standing flow, or projecting an undeclared
+fault refuses. Successful parsing alone is not terminal execution evidence.
 
 Provenance: #3970, #3999, #4001.
 
@@ -83,7 +109,22 @@ It is distinct from:
 - typed `cancelled` terminal disposition;
 - scheduler/lifecycle cancellation.
 
-Sending cancellation does not prove it succeeded.
+Sending cancellation does not prove it succeeded. Current expansion checks the
+semantic cancellation law and the exact control port, rather than guessing
+from a port name. This fixture is accepted only with the reviewed cancellable
+contract from the same canonical expansion tests:
+
+```conduit
+plot cancel-work {
+    deadline: test/deadline
+    work: test/cancellable-work
+
+    deadline >> work~
+}
+```
+
+A similar-looking gear with a port named `cancel`, but without the declared
+cancellation law, refuses.
 
 Provenance: #4049.
 
@@ -102,7 +143,25 @@ Distinct operations remain distinct:
 - merge arrivals;
 - race/first result.
 
-These are ordinary semantic gears/plots with exact finite pending-state, pressure, and terminal laws.
+These are ordinary semantic gears/plots with exact finite pending-state,
+pressure, and terminal laws. With compatible exact fores in scope, the glyph
+prelude makes the relationship visible:
+
+```conduit
+left &> right >> paired
+current-left <> current-right >> latest-pair
+note @ save-request >> snapshot
+first ?> second >> winner
+a >< b >> merged
+```
+
+The glyphs respectively name `flow/zip`, `state/combine-latest`,
+`current/sample`, `flow/race`, and `flow/merge`. The examples are scoped cord
+fragments; their exact result shapes and terminal behavior come from the
+selected fores. A glyph binding or parsed cord does not establish universal
+execution support for every combination. See the
+[glyph checking tests](https://github.com/dancxjo/conduit/blob/dev/architecture/plot/src/syntax_check_tests.rs)
+and [[glyph composition|Plots-and-flow#glyph-composition-and-exact-selectors]].
 
 No hidden `combineLatest`, timestamp-proximity join, or source-order synchronization.
 

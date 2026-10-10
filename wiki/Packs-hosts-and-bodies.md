@@ -56,20 +56,21 @@ have a separate checked surface, `type Pair<T> = ...` and `Pair<Text>`. Both
 specialize to finite checked meaning before play. See
 [[Current language surface|Current-language-surface#generic-native-types]].
 
-Plot signature sketch; the body is omitted, so `...` is not runnable source:
-
 ```conduit
-plot latest (
+plot identity (
     item: type
-
-    >> values: item...
-    current: $item >>
+    >> value: item
+    result: item >>
 ) {
-    ...
+    value >> result
 }
 ```
 
-**STATUS: FROZEN.** `name: type` is canonical; explicit application uses ordinary named arguments where inference is insufficient. See #4059.
+`name: type` is current grammar; explicit application uses ordinary named
+arguments where inference is insufficient, for example `identity(item = Text)`.
+See #4059 and [[the complete specialization example|Conduitese-by-example#specialize-a-reusable-plot]].
+Finite compile-time **value** parameters such as a vector length are a separate
+[[open proposal|Conduitese-feature-coverage#finite-value-parameters-and-shape-indexed-types-5326]].
 
 No implicit `any`, wildcard zoo, or runtime type erasure requirement.
 
@@ -116,6 +117,7 @@ Source import spelling is canonical `with` syntax:
 with audio/plots/tone
 with math/geometry/{vector2, matrix2}
 with house/sensors/temperature as room-temperature
+with ./support/helper as worker
 ~~~
 
 `with` aliases may be ordinary identifiers or admissible gear glyphs under #4335. Pack authoring uses `pack.conduit`; generated exact lock truth uses `conduit.lock`.
@@ -123,5 +125,26 @@ with house/sensors/temperature as room-temperature
 Pack versioning may use familiar version syntax for ecosystem convenience, but Conduit's checker decides semantic compatibility; version numbers are not a universal compatibility oracle.
 
 Provenance: #4054–#4058.
+
+## A Body construction source
+
+This is the complete checked-in
+[two-host fixture](https://github.com/dancxjo/conduit/blob/dev/proof/fixtures/bodies/std-line.body.conduit):
+
+```conduit
+body std-line {
+    schema = 2
+    id = "body:std-line"
+    host = {name: "clock", part: "part:clock", configuration: "../../../targets/std/profiles/linux-clock.host.conduit", spore: {join_mode: "prejoined", output: "native-bundle"}}
+    host = {name: "serial", part: "part:serial", configuration: "../../../targets/std/profiles/linux-serial.host.conduit", spore: {join_mode: "prejoined", output: "native-bundle"}}
+}
+```
+
+Relative configuration paths resolve from the source's location. These host and
+part names are construction facts; they do not establish present membership,
+authority or a live line. A spore's declared join mode and output describe the
+construction artifact. Actual provisioning and admission require their own
+runtime evidence. Host target/resource/Base/Back examples are in
+[[Current language surface|Current-language-surface#host-source]].
 
 ---
