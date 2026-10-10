@@ -78,18 +78,28 @@ pub(crate) fn workspace_library(
     }
     let plots = catalog.plots;
     let mut catalogs = super::catalog_preparation::CatalogPreparation::default();
+    // These checks use one immutable Host observation and have no effects.
+    // Group preparation by profile, then preserve the authored shelf order.
+    let mut preparation_order: Vec<usize> = (0..plots.len()).collect();
+    preparation_order.sort_by_key(|index| plots[*index].presentation_profile);
+    let mut availability = vec![None; plots.len()];
+    for index in preparation_order {
+        availability[index] = Some(catalog_availability(
+            &plots[index],
+            observed_hosts,
+            host,
+            boot,
+            joined_lines,
+            &mut catalogs,
+        ));
+    }
     PlotLibrary::new(
         plots
             .iter()
-            .map(|entry| {
-                let availability = catalog_availability(
-                    entry,
-                    observed_hosts,
-                    host,
-                    boot,
-                    joined_lines,
-                    &mut catalogs,
-                );
+            .enumerate()
+            .map(|(index, entry)| {
+                let entry_availability =
+                    availability[index].as_ref().expect("checked entry").clone();
                 Ok(LibraryEntry {
                     plot: conduit_body::ResidentPlot::new(
                         entry.source_document_id.clone().into(),
@@ -97,7 +107,7 @@ pub(crate) fn workspace_library(
                     ),
                     title: entry.title.clone(),
                     search_text: format!("{} {}", entry.entry, entry.required_kinds.join(" ")),
-                    availability,
+                    availability: entry_availability,
                     graceful_fallback: entry
                         .graceful_fallback
                         .as_ref()
@@ -107,18 +117,14 @@ pub(crate) fn workspace_library(
                                     "reviewed Workspace graceful fallback is malformed".into()
                                 );
                             }
-                            let fallback_entry = plots
+                            let fallback_index = plots
                                 .iter()
-                                .find(|candidate| candidate.slug == fallback.slug)
+                                .position(|candidate| candidate.slug == fallback.slug)
                                 .ok_or("reviewed Workspace graceful fallback is missing")?;
-                            let availability = catalog_availability(
-                                fallback_entry,
-                                observed_hosts,
-                                host,
-                                boot,
-                                joined_lines,
-                                &mut catalogs,
-                            );
+                            let availability = availability[fallback_index]
+                                .as_ref()
+                                .expect("checked fallback entry")
+                                .clone();
                             Ok(conduit_plot_library::LibraryFallback {
                                 title: fallback.title.clone(),
                                 availability,

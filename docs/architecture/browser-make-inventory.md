@@ -21,6 +21,9 @@ checking consecutive documents with the same presentation profile. A profile
 change drops that pair before preparing its replacement; finishing the operation
 drops the preparation owner. Checking, local offers and planning share the same
 original checked inventory. Each library render also prepares the installed Plot backs once per profile.
+Independent library admission checks run grouped by profile against one fresh
+Host observation; the shelf retains its original authored order. Graceful
+fallbacks use the same original entry admission from that operation.
 Entries without structured selectors borrow the installed profile and backs;
 document-specific selectors modify a profile copy and rederive its backs,
 and glyph receipts remain bound to their original document. This avoids
