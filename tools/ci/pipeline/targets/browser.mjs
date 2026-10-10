@@ -6,6 +6,7 @@ import { publicationHistorySnapshot } from '../complete-publication-history.mjs'
 import { retainedTodoBrowserDevelopmentEvidence } from '../todo-browser-development-evidence.mjs';
 import { retainWorkspaceEvidence } from './workspace-evidence.mjs';
 import { retainExactQuantityEvidence } from './quantity-evidence.mjs';
+import { retainNativeValueEvidence } from './native-value-evidence.mjs';
 
 // Exact staged Workspace acceptance plus independent browser adapter contracts.
 // Cross-target deployment tests require another lane's artifacts and are not
@@ -18,7 +19,7 @@ const SPECS = [
   'sdk-body-participation',
   'static-body-application',
   'creche-browser-configuration', 'creche-rendezvous',
-  'exact-quantity', 'signal-dom-host', 'browser-body-time', 'browser-host-calls', 'browser-pointer', 'browser-human-input',
+  'native-value-types', 'exact-quantity', 'signal-dom-host', 'browser-body-time', 'browser-host-calls', 'browser-pointer', 'browser-human-input',
   'browser-host-entrance', 'browser-media-host', 'browser-device-base', 'browser-usb-device-base',
   'rp2040-browser-deployment', 'esp32-browser-deployment',
 ];
@@ -70,6 +71,8 @@ export function browser(directory) {
       CONDUIT_CRECHE_RENDEZVOUS_PRODUCT: product },
   });
   retainExactQuantityEvidence('proof/browser/test-results', path.join(directory, 'exact-quantity'),
+    path.join(releases, 'runtime.wasm'), process.env.CONDUIT_CHECKOUT_SHA);
+  retainNativeValueEvidence('proof/browser/test-results', path.join(directory, 'native-value-types'),
     path.join(releases, 'runtime.wasm'), process.env.CONDUIT_CHECKOUT_SHA);
   command('node', ['tools/ci/pipeline/targets/browser-smoke.mjs', product, path.join(directory, 'accessibility.json')]);
   retainWorkspaceEvidence('proof/browser/test-results', path.join(directory, 'workspace-journey'),

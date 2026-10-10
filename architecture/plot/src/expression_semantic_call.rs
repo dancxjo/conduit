@@ -87,16 +87,12 @@ pub(super) fn check(
                     "sequence selection requires an exact finite collection Type",
                 )
             })?;
-        let element = match ty.shape() {
-            conduit_core::StructuredInfoTypeShape::Collection { element, .. }
-            | conduit_core::StructuredInfoTypeShape::Sequence { element, .. } => element,
-            _ => {
-                return Err(diagnostic(
-                    source.span(),
-                    "sequence selection requires an exact finite collection Type",
-                ))
-            }
-        };
+        let element = collection_element(&ty).ok_or_else(|| {
+            diagnostic(
+                source.span(),
+                "sequence selection requires an exact finite collection Type",
+            )
+        })?;
         return Ok(CheckedExpressionType::from_member(element));
     }
     if name.text == "sequence/length" {
@@ -115,11 +111,7 @@ pub(super) fn check(
                     "sequence length requires an exact finite collection Type",
                 )
             })?;
-        if !matches!(
-            ty.shape(),
-            conduit_core::StructuredInfoTypeShape::Sequence { .. }
-                | conduit_core::StructuredInfoTypeShape::Collection { .. }
-        ) {
+        if collection_element(&ty).is_none() {
             return Err(diagnostic(
                 argument.span(),
                 "sequence length requires an exact finite collection Type",
@@ -230,6 +222,26 @@ pub(super) fn check(
     Ok(CheckedExpressionType::Semantic(
         kind.outputs[0].value_kind.clone(),
     ))
+}
+
+/// Observe collection representation without changing its or its elements' Type.
+pub(crate) fn collection_element(
+    value_type: &conduit_core::StructuredInfoType,
+) -> Option<&conduit_core::StructuredInfoType> {
+    let mut value_type = value_type;
+    for _ in 0..=conduit_core::MAXIMUM_STRUCTURED_INFO_DEPTH {
+        match value_type.shape() {
+            conduit_core::StructuredInfoTypeShape::Nominal { representation, .. } => {
+                value_type = representation;
+            }
+            conduit_core::StructuredInfoTypeShape::Collection { element, .. }
+            | conduit_core::StructuredInfoTypeShape::Sequence { element, .. } => {
+                return Some(element)
+            }
+            _ => return None,
+        }
+    }
+    None
 }
 
 pub(crate) fn integer_widening_target(name: &str) -> Option<&str> {
