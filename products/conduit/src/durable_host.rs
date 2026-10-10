@@ -457,7 +457,14 @@ fn prepare_runtime(
     ),
     String,
 > {
-    prepare_runtime_with_todo(state_dir, None)
+    let thermostat = owner::retained_thermostat_scan(state_dir)?;
+    prepare_runtime_with_scans(
+        state_dir,
+        None,
+        thermostat
+            .as_ref()
+            .map(|(initial, maximum)| (initial, *maximum)),
+    )
 }
 
 /// Select the request-scoped Todo Back before the Host advertisement and
@@ -473,15 +480,36 @@ fn prepare_runtime_with_todo(
     ),
     String,
 > {
+    prepare_runtime_with_scans(state_dir, todo, None)
+}
+
+/// Select only the admitted domain-owned scan before Host advertisement.
+fn prepare_runtime_with_scans(
+    state_dir: &Path,
+    todo: Option<(&conduit_todo_plot::TodoState, u16)>,
+    thermostat: Option<(&conduit_thermostat_plot::ThermostatState, u16)>,
+) -> Result<
+    (
+        RuntimeStatus,
+        crate::durable_host_control::DurableHostRuntime,
+    ),
+    String,
+> {
+    if todo.is_some() && thermostat.is_some() {
+        return Err("installed Host accepts one scoped scan domain".into());
+    }
     let installation = read_installation(&state_dir.join("installation.json"))?;
-    if todo.is_some()
+    if (todo.is_some() || thermostat.is_some())
         && (installation.selected_model.is_some()
             || installation.selected_speech.is_some()
             || installation.selected_todo_checkpoint.is_some())
     {
-        return Err(
-            "installed Todo scan cannot preserve selected equipment in its scoped Host".into(),
-        );
+        return Err(if thermostat.is_some() {
+            "installed Thermostat scan cannot preserve selected equipment in its scoped Host"
+        } else {
+            "installed Todo scan cannot preserve selected equipment in its scoped Host"
+        }
+        .into());
     }
     let boot_id = fresh_identity("boot/installed", &installation.host_id);
     let config = StdHostConfig {
@@ -491,6 +519,8 @@ fn prepare_runtime_with_todo(
     };
     let mut host = if let Some((initial, maximum_items)) = todo {
         StdHost::new_for_todo_scan(config, initial, maximum_items)?
+    } else if let Some((initial, maximum_items)) = thermostat {
+        StdHost::new_for_thermostat_scan(config, initial, maximum_items)?
     } else if let Some(selection) = &installation.selected_todo_checkpoint {
         selection.validate()?;
         if let Some(model) = &installation.selected_model {

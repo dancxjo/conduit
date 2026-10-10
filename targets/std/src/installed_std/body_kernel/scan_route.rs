@@ -1,6 +1,4 @@
-//! Exact pre-Play child-pool handoff for the one supported pure Todo scan.
-//! The scoped std Host may authorize this exact finite preloaded route; the
-//! broad inventory and later Mask action ingress remain unavailable.
+//! Exact pre-Play child-pool handoff for supported pure domain-owned scans.
 
 use super::super::{back::BackBudget, body_scan_back::BodyScanBack};
 use conduit_body::BodyPlotPlan;
@@ -46,11 +44,23 @@ pub(super) fn prepare(
             || !owner.host_calls.is_empty()
             || !owner.resources.is_empty()
             || !owner.authority.is_empty()
-            || planned.limits.maximum_items > 64
+            || planned.limits.maximum_items
+                > if planned.item_input.value_kind.as_str() == conduit_thermostat_plot::COMMAND_KIND
+                {
+                    256
+                } else {
+                    64
+                }
         {
-            return Err("installed pure Todo scan parent or bound is unsupported".into());
+            return Err("installed pure scan parent or bound is unsupported".into());
         }
-        crate::flow_activation::validate_planned_todo_scan(owner, planned)?;
+        let thermostat =
+            planned.item_input.value_kind.as_str() == conduit_thermostat_plot::COMMAND_KIND;
+        if thermostat {
+            crate::flow_activation::validate_planned_thermostat_scan(owner, planned)?;
+        } else {
+            crate::flow_activation::validate_planned_todo_scan(owner, planned)?;
+        }
         let identity = PreparationHostIdentity {
             host_id: fragment.host_id.clone(),
             boot_id: fragment.boot_id.clone(),
@@ -62,7 +72,12 @@ pub(super) fn prepare(
         );
         let mut prepared = prepare_plan_on_hosts(&partition.plan, &mut [&mut host])
             .map_err(|error| format!("prepare exact scan Plan: {error:?}"))?;
-        let scan = crate::flow_activation::install_pure_todo_scan(
+        let install = if thermostat {
+            crate::flow_activation::install_pure_thermostat_scan
+        } else {
+            crate::flow_activation::install_pure_todo_scan
+        };
+        let scan = install(
             &partition.plan,
             &mut prepared,
             &planned.activation_id,

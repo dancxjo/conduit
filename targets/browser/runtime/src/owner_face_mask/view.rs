@@ -41,6 +41,39 @@ impl OwnerBrowserMask {
                     identity: subject.identity.clone(),
                     name: subject.name.clone(),
                     role: format!("{:?}", subject.role),
+                    semantic_role: match &subject.role {
+                        conduit_presentation::PresentationRole::Semantic(id) => {
+                            Some(id.as_str().into())
+                        }
+                        _ => None,
+                    },
+                    choice_multiplicity: face.properties.iter().find_map(|property| {
+                        if property.subject == subject.identity
+                            && property.name == "choice-multiplicity"
+                        {
+                            if let PresentationPropertyValue::Text(value) = &property.value {
+                                return Some(value.clone());
+                            }
+                        }
+                        None
+                    }),
+                    values: face
+                        .properties
+                        .iter()
+                        .filter(|property| property.subject == subject.identity)
+                        .filter_map(|property| match &property.value {
+                            PresentationPropertyValue::TypedValue { contract, bytes } => {
+                                Some(ValueView {
+                                    name: property.name.clone(),
+                                    kind: contract.value_kind.as_str().into(),
+                                    text: conduit_presentation::display_typed_value(
+                                        contract, bytes,
+                                    ),
+                                })
+                            }
+                            _ => None,
+                        })
+                        .collect(),
                     disclosure: face
                         .disclosures
                         .iter()
@@ -161,6 +194,9 @@ fn property_value(value: &PresentationPropertyValue) -> String {
         PresentationPropertyValue::Count(value) => value.to_string(),
         PresentationPropertyValue::Signed(value) => value.to_string(),
         PresentationPropertyValue::Flag(value) => value.to_string(),
+        PresentationPropertyValue::TypedValue { contract, bytes } => {
+            conduit_presentation::display_typed_value(contract, bytes)
+        }
         PresentationPropertyValue::ValueContract(value) => format!("{value:?}"),
         PresentationPropertyValue::Content(value) => format!("{} content bytes", value.len()),
     }

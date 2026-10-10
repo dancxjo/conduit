@@ -79,10 +79,20 @@ struct SubjectView {
     identity: String,
     name: String,
     role: String,
+    semantic_role: Option<String>,
+    choice_multiplicity: Option<String>,
+    values: Vec<ValueView>,
     disclosure: String,
     text: Vec<String>,
     properties: Vec<String>,
     flags: Vec<FlagView>,
+}
+
+#[derive(Serialize)]
+struct ValueView {
+    name: String,
+    kind: String,
+    text: String,
 }
 
 #[derive(Serialize)]

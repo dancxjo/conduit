@@ -150,6 +150,7 @@ pub(super) enum InstalledBack {
     CurrentSample(CurrentSampleBack),
     CombineLatest(CombineLatestBack),
     TodoCombine(Box<TodoCombineBack>),
+    ThermostatCombine(Box<conduit_thermostat_plot::ThermostatBack>),
     TodoCheckpoint(crate::todo_checkpoint_call::TodoCheckpointBack),
     TodoCheckpointRead(crate::todo_checkpoint_read_call::TodoCheckpointReadBack),
     FlowZip(FlowZipBack),

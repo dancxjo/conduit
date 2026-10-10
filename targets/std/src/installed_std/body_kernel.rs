@@ -44,7 +44,7 @@ pub(crate) struct BodyKernel<'a> {
     input_keymaps: [conduit_human::ConduitIntlKeymap; MAX_NODES],
     requests: Vec<HostCallRequest>,
     clock_observations: KernelClockObservations,
-    supported_todo_scan: bool,
+    supported_pure_scan: bool,
     todo_checkpoint: Option<crate::todo_checkpoint_call::TodoCheckpointHost>,
     todo_checkpoint_read: Option<crate::todo_checkpoint_read_call::TodoCheckpointReadHost>,
 }
@@ -207,13 +207,13 @@ impl<'a> BodyKernel<'a> {
                 return Err("preloaded Todo commands exceed the selected scan bound".into());
             }
         }
-        let supported_todo_scan = scans.len() == 1
+        let supported_pure_scan = scans.len() == 1
             && partitions.len() == 1
             && fragments[0].placements.len() == 1
             && !has_keyboard
             && sequential_fore
             && has_fore_output
-            && (live.is_some() || fore_inputs.len() <= 64)
+            && (live.is_some() || fore_inputs.len() <= 256)
             && fragments[0].placements[0].host_calls.is_empty();
         let plans = partitions
             .iter()
@@ -383,7 +383,7 @@ impl<'a> BodyKernel<'a> {
             input_keymaps: [conduit_human::ConduitIntlKeymap::new(); MAX_NODES],
             requests: Vec::with_capacity(request_capacity),
             clock_observations: KernelClockObservations::with_capacity(usize::from(sign_items)),
-            supported_todo_scan,
+            supported_pure_scan,
             todo_checkpoint: None,
             todo_checkpoint_read: None,
         })
@@ -476,7 +476,7 @@ impl<'a> BodyKernel<'a> {
             .activations
             .iter()
             .any(|bound| !bound.entries.is_empty())
-            && !self.supported_todo_scan
+            && !self.supported_pure_scan
         {
             return Err("Body activation coordinator is not installed".into());
         }
@@ -1114,3 +1114,7 @@ mod live_fore_tests;
 #[cfg(test)]
 #[path = "body_kernel/todo_core_replay_tests.rs"]
 mod todo_core_replay_tests;
+
+#[cfg(test)]
+#[path = "body_kernel/thermostat_live_fore_tests.rs"]
+mod thermostat_live_fore_tests;

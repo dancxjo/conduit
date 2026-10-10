@@ -13,6 +13,8 @@ pub enum DemoCommand {
     Workspace(crate::commands::workspace::WorkspaceArgs),
     /// Run the native Signal Plot through the production kernel.
     Std,
+    /// Play the ordinary Thermostat Plot in a Body.
+    Thermostat(ThermostatDemoArgs),
     /// Run the three-sink Plot entirely on the native Host.
     Triple,
     /// Build and launch the native Patchbay from this checkout.
@@ -93,4 +95,11 @@ pub enum PatchbayHost {
     #[default]
     Native,
     Browser,
+}
+
+#[derive(Args, Debug)]
+pub struct ThermostatDemoArgs {
+    /// Check semantic, kernel, and installed Body Owner contracts.
+    #[arg(long)]
+    pub verify: bool,
 }

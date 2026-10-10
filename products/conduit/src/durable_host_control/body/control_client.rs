@@ -10,7 +10,10 @@ use std::{
 
 use socket2::{Domain, SockAddr, Socket, Type};
 
-use super::super::{Request, Response, CONTROL_OUTCOME_UNKNOWN, MAXIMUM_CONTROL_FRAME_BYTES};
+use super::super::{
+    Request, Response, CONTROL_OUTCOME_UNKNOWN, MAXIMUM_CONTROL_FRAME_BYTES,
+    MAXIMUM_LOCAL_CONTROL_FRAME_BYTES,
+};
 use super::{CONTROL_DEADLINE, TODO_ACTION_DEADLINE};
 
 pub(crate) fn call(state_dir: &Path, mut request: Request) -> Result<Response, String> {
@@ -74,7 +77,7 @@ fn round_trip(path: &Path, bytes: &[u8], maximum: Duration) -> Result<Response, 
         match stream.read(&mut chunk) {
             Ok(0) => break,
             Ok(count) => {
-                if response.len().saturating_add(count) > MAXIMUM_CONTROL_FRAME_BYTES {
+                if response.len().saturating_add(count) > MAXIMUM_LOCAL_CONTROL_FRAME_BYTES {
                     return Err(CONTROL_OUTCOME_UNKNOWN.into());
                 }
                 response.extend_from_slice(&chunk[..count]);
@@ -173,5 +176,54 @@ mod tests {
         finished.send(()).unwrap();
         server.join().unwrap();
         fs::remove_dir_all(directory).unwrap();
+    }
+
+    #[test]
+    fn local_control_reply_uses_its_distinct_finite_response_bound() {
+        fn reply(payload_bytes: usize) -> Result<Response, String> {
+            let directory = std::env::temp_dir().join(format!(
+                "conduit-control-reply-{}-{}",
+                std::process::id(),
+                SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap()
+                    .as_nanos(),
+            ));
+            fs::create_dir(&directory).unwrap();
+            let path = directory.join("control.sock");
+            let listener = UnixListener::bind(&path).unwrap();
+            let server = thread::spawn(move || {
+                let (mut stream, _) = listener.accept().unwrap();
+                stream
+                    .set_write_timeout(Some(Duration::from_secs(3)))
+                    .unwrap();
+                let mut request = Vec::new();
+                stream.read_to_end(&mut request).unwrap();
+                assert_eq!(request, b"{}");
+                let response = serde_json::to_vec(&Response::BodyTruth {
+                    protocol: 1,
+                    truth: serde_json::json!({"payload":"x".repeat(payload_bytes)}),
+                })
+                .unwrap();
+                // Refusing an oversized reply closes the peer mid-write.
+                let _ = stream.write_all(&response);
+            });
+            let result = round_trip(&path, b"{}", Duration::from_secs(3));
+            server.join().unwrap();
+            fs::remove_dir_all(directory).unwrap();
+            result
+        }
+
+        assert_eq!(MAXIMUM_CONTROL_FRAME_BYTES, 512 * 1024);
+        assert_eq!(MAXIMUM_LOCAL_CONTROL_FRAME_BYTES, 2 * 1024 * 1024);
+        match reply(600 * 1024).unwrap() {
+            Response::BodyTruth { protocol, truth } => {
+                assert_eq!(protocol, 1);
+                assert_eq!(truth["payload"].as_str().unwrap().len(), 600 * 1024);
+            }
+            _ => panic!("the finite local Body response must survive the round trip"),
+        }
+        assert!(matches!(reply(MAXIMUM_LOCAL_CONTROL_FRAME_BYTES + 1),
+            Err(code) if code == CONTROL_OUTCOME_UNKNOWN));
     }
 }

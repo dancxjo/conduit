@@ -45,11 +45,25 @@ fn supports_remote_mask_action_intent(intent: &str) -> bool {
     intent == crate::durable_host::owner::clock_interval_action()
         || matches!(
             intent,
-            "todo/add@1" | "todo/complete@1" | "todo/reopen@1" | "todo/remove@1"
+            "todo/add@1"
+                | "todo/complete@1"
+                | "todo/reopen@1"
+                | "todo/remove@1"
+                | "thermostat.lower@1"
+                | "thermostat.raise@1"
+                | "thermostat.mode.off@1"
+                | "thermostat.mode.heat@1"
+                | "thermostat.mode.cool@1"
+                | "thermostat.mode.auto@1"
+                | "thermostat.fan.auto@1"
+                | "thermostat.fan.on@1"
+                | "thermostat.preset.comfort@1"
+                | "thermostat.preset.eco@1"
+                | "thermostat.preset.sleep@1"
         )
 }
 
-/// Native return needs a route before its Todo actions can become available.
+/// Native return needs a route before reviewed Plot actions become available.
 /// This permits route setup only; it does not make an unavailable action executable.
 pub(crate) fn has_native_return_route_intent(face: &Presentation) -> bool {
     face.actions
@@ -79,6 +93,7 @@ pub(crate) mod direct_spoken;
 #[cfg(unix)]
 #[path = "durable_host_control/speech_route.rs"]
 pub(crate) mod speech_route;
+mod thermostat_action;
 #[cfg(not(unix))]
 pub(crate) mod direct_spoken {
     pub(crate) fn run(_: &std::path::Path, _: crate::cli::SpokenMaskCommand) -> Result<(), String> {
@@ -2594,7 +2609,7 @@ mod tests {
     }
 
     #[test]
-    fn unavailable_todo_intent_can_open_native_return_but_cannot_dispatch() {
+    fn unavailable_todo_and_thermostat_intents_can_open_native_return_but_cannot_dispatch() {
         use conduit_presentation::{PresentationActionAvailability, PresentationActionRefusal};
 
         let mut face: Presentation = serde_json::from_value(serde_json::json!({
@@ -2627,6 +2642,38 @@ mod tests {
 
         face.actions[0].availability = PresentationActionAvailability::Available;
         assert!(has_remote_mask_action(&face));
+
+        for intent in [
+            "thermostat.lower@1",
+            "thermostat.raise@1",
+            "thermostat.mode.off@1",
+            "thermostat.mode.heat@1",
+            "thermostat.mode.cool@1",
+            "thermostat.mode.auto@1",
+            "thermostat.fan.auto@1",
+            "thermostat.fan.on@1",
+            "thermostat.preset.comfort@1",
+            "thermostat.preset.eco@1",
+            "thermostat.preset.sleep@1",
+        ] {
+            face.actions[0].intent = intent.into();
+            face.actions[0].availability = PresentationActionAvailability::Unavailable {
+                reason_code: "return-route-unavailable".into(),
+                explanation: "This action has no admitted return route.".into(),
+            };
+            assert!(has_native_return_route_intent(&face), "{intent}");
+            assert!(!has_remote_mask_action(&face), "{intent}");
+            assert!(matches!(
+                face.resolve_action(1, "todo.add"),
+                Err(PresentationActionRefusal::Unavailable { .. })
+            ));
+            face.actions[0].availability = PresentationActionAvailability::Available;
+            assert!(has_remote_mask_action(&face), "{intent}");
+        }
+        assert!(!supports_remote_mask_action_intent("thermostat.observe@1"));
+        assert!(!supports_remote_mask_action_intent(
+            "thermostat.mode.heat@2"
+        ));
 
         face.actions[0].intent = "unsupported/action@1".into();
         assert!(!has_native_return_route_intent(&face));

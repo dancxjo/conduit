@@ -74,5 +74,7 @@ conduit-std-host = { path = "../../targets/std", features = ["local-model-proof"
 conduit-human = { path = "../../semantics/human" }
 conduit-wire = { path = "../../architecture/wire" }
 
+conduit-thermostat-plot = { path = "../../plots/thermostat/model" }
+
 [dev-dependencies]
 libc = "0.2"
