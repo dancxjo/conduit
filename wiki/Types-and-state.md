@@ -106,7 +106,7 @@ Canonical retained-value grammar:
 
 ```conduit
 count:    keep Count(0) for life
-middle:   keep Integer for this play
+middle:   keep I64 for this play
 name:     keep Text <= 128B for this body
 draft:    keep Text <= 4KiB for this wake
 cache:    keep Bytes <= 2MiB for this boot
