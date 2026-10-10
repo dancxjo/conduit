@@ -7,6 +7,48 @@ pub(crate) fn install_import_aliases(
 ) -> Result<StartupCatalog, SyntaxCheckDiagnostic> {
     let mut catalog = base.clone();
     for declaration in &document.uses {
+        if let Some(family) = base.native_families.get(&declaration.path) {
+            if !document_mentions_type(document, &declaration.alias.text) {
+                return Err(super::diagnostic(
+                    declaration.alias.span,
+                    alloc::format!("unused with Type family alias '{}'", declaration.alias.text),
+                ));
+            }
+            if catalog
+                .native_families
+                .contains_key(&declaration.alias.text)
+            {
+                return Err(super::diagnostic(
+                    declaration.alias.span,
+                    "duplicate Type family import alias".into(),
+                ));
+            }
+            if catalog.structured_type(&declaration.alias.text).is_some()
+                || catalog.value_kind_alias(&declaration.alias.text).is_some()
+                || catalog.get(&declaration.alias.text).is_some()
+            {
+                return Err(super::diagnostic(
+                    declaration.alias.span,
+                    "Type family import alias conflicts with an installed Type or Kind".into(),
+                ));
+            }
+            super::family::budget::validate(
+                &catalog,
+                Some((&declaration.alias.text, family)),
+                declaration.alias.span,
+            )?;
+            if catalog
+                .native_families
+                .insert(declaration.alias.text.clone(), family.clone())
+                .is_some()
+            {
+                return Err(super::diagnostic(
+                    declaration.alias.span,
+                    "duplicate Type family import alias".into(),
+                ));
+            }
+            continue;
+        }
         let Some(value_type) = base.structured_type(&declaration.path).cloned() else {
             continue;
         };
@@ -39,6 +81,14 @@ pub(crate) fn install_import_aliases(
                 invariants,
             )
             .map_err(|message| super::diagnostic(declaration.alias.span, message))?;
+        if let Some(origin) = base.native_type_source(&declaration.path) {
+            super::family::source::register(
+                &mut catalog,
+                &declaration.alias.text,
+                origin,
+                declaration.alias.span,
+            )?;
+        }
     }
     Ok(catalog)
 }
@@ -47,6 +97,11 @@ fn document_mentions_type(document: &crate::SyntaxDocument, name: &str) -> bool 
     document.types.iter().any(|declaration| {
         let mut references = Vec::new();
         super::definition_references(&declaration.definition, &mut references);
+        for parameter in &declaration.parameters {
+            if let Some(annotation) = &parameter.value_type {
+                super::expression_references(annotation, &mut references);
+            }
+        }
         references.contains(&name)
     }) || document.plots.iter().any(|plot| {
         plot.front

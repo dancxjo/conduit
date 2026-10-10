@@ -21,6 +21,7 @@ pub(crate) mod front;
 mod pack;
 mod shared_pool;
 mod type_declaration;
+pub(crate) use type_declaration::parse_integer_spanned;
 mod type_form_declaration;
 use construction::parse_construction;
 use front::{canonical_default_bound, parse_finite_bound, parse_port_type};

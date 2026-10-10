@@ -1,82 +1,51 @@
 # Generic finite f32 numeric value and immutable tensor-view profiles.
 # Resource authority and ModelArtifact compatibility are separately admitted.
 type NumericFiniteF32 = F32 finite
-type NumericF32Vector2 = collection NumericFiniteF32 = 2
-type NumericF32Vector3 = collection NumericFiniteF32 = 3
-type NumericF32Vector12 = collection NumericFiniteF32 = 12
-type NumericF32Vector20 = collection NumericFiniteF32 = 20
-type NumericF32Vector32 = collection NumericFiniteF32 = 32
-type NumericF32Vector64 = collection NumericFiniteF32 = 64
-type NumericF32Vector128 = collection NumericFiniteF32 = 128
-type NumericF32Vector192 = collection NumericFiniteF32 = 192
-type NumericF32Vector320 = collection NumericFiniteF32 = 320
+type NumericVector<N: U16> = collection NumericFiniteF32 = N
+type NumericF32Vector2 = NumericVector<2>
+type NumericF32Vector3 = NumericVector<3>
+type NumericF32Vector12 = NumericVector<12>
+type NumericF32Vector20 = NumericVector<20>
+type NumericF32Vector32 = NumericVector<32>
+type NumericF32Vector64 = NumericVector<64>
+type NumericF32Vector128 = NumericVector<128>
+type NumericF32Vector192 = NumericVector<192>
+type NumericF32Vector320 = NumericVector<320>
 type NumericTensorDigest = collection U8 = 32
 type NumericTensorElement =
     f32
-type NumericEmbedding224x12 = {
-    resource: ResourceRef
-    content_digest: NumericTensorDigest
-    element: NumericTensorElement
-    columns: U16 in 224..=224
-    rows: U16 in 12..=12
-}
-type NumericF32MatrixRef32x64 = {
-    resource: ResourceRef
-    content_digest: NumericTensorDigest
-    element: NumericTensorElement
-    columns: U16 in 32..=32
-    rows: U16 in 64..=64
-}
-type NumericF32MatrixRef192x128 = {
-    resource: ResourceRef
-    content_digest: NumericTensorDigest
-    element: NumericTensorElement
-    columns: U16 in 192..=192
-    rows: U16 in 128..=128
-}
-type NumericF32MatrixRef128x320 = {
-    resource: ResourceRef
-    content_digest: NumericTensorDigest
-    element: NumericTensorElement
-    columns: U16 in 128..=128
-    rows: U16 in 320..=320
-}
-type NumericF32BiasRef64 = {
-    resource: ResourceRef
-    content_digest: NumericTensorDigest
-    element: NumericTensorElement
-    length: U16 in 64..=64
-}
-type NumericF32BiasRef128 = {
-    resource: ResourceRef
-    content_digest: NumericTensorDigest
-    element: NumericTensorElement
-    length: U16 in 128..=128
-}
-type NumericF32BiasRef320 = {
-    resource: ResourceRef
-    content_digest: NumericTensorDigest
-    element: NumericTensorElement
-    length: U16 in 320..=320
-}
 
-type NumericHistory2x64 = collection NumericF32Vector64 = 2
-
-type NumericF32MatrixRef3x2 = {
+type NumericMatrixRef<C: U16, R: U16> = {
     resource: ResourceRef
     content_digest: NumericTensorDigest
     element: NumericTensorElement
-    columns: U16 in 3..=3
-    rows: U16 in 2..=2
+    columns: U16 in C..=C
+    rows: U16 in R..=R
+    where .columns == C && .rows == R
 }
-type NumericF32BiasRef2 = {
+type NumericEmbedding224x12 = NumericMatrixRef<224, 12>
+type NumericF32MatrixRef32x64 = NumericMatrixRef<32, 64>
+type NumericF32MatrixRef192x128 = NumericMatrixRef<192, 128>
+type NumericF32MatrixRef128x320 = NumericMatrixRef<128, 320>
+type NumericF32MatrixRef3x2 = NumericMatrixRef<3, 2>
+
+type NumericBiasRef<N: U16> = {
     resource: ResourceRef
     content_digest: NumericTensorDigest
     element: NumericTensorElement
-    length: U16 in 2..=2
+    length: U16 in N..=N
+    where .length == N
 }
+type NumericF32BiasRef64 = NumericBiasRef<64>
+type NumericF32BiasRef128 = NumericBiasRef<128>
+type NumericF32BiasRef320 = NumericBiasRef<320>
+type NumericF32BiasRef2 = NumericBiasRef<2>
 
-type NumericWindow2x64 = {
-    window: NumericF32Vector192
-    next_history: NumericHistory2x64
+type NumericHistory<H: U16, D: U16> = collection NumericVector<D> = H
+type NumericHistory2x64 = NumericHistory<2, 64>
+
+type NumericWindow<H: U16, D: U16> = {
+    window: NumericVector<(H + 1) * D>
+    next_history: NumericHistory<H, D>
 }
+type NumericWindow2x64 = NumericWindow<2, 64>

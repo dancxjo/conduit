@@ -1,4 +1,5 @@
 //! Checked package members and exact package content identity.
+mod shipped_types;
 
 use crate::prelude::*;
 use crate::{
@@ -40,6 +41,9 @@ pub struct PackageExportCatalog {
     package_content_digest: [u8; 32],
     exports: BTreeMap<String, PlotSyntax>,
     type_exports: BTreeMap<String, TypeSyntax>,
+    type_definitions: Vec<TypeSyntax>,
+    type_documents: Vec<crate::SyntaxDocument>,
+    type_origins: BTreeMap<String, crate::NativeTypeSourceOrigin>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -248,8 +252,16 @@ impl PackageExportCatalog {
         bundle.validate_against(manifest_source, manifest, member_sources)?;
         let mut plots = BTreeMap::new();
         let mut types = BTreeMap::new();
+        let mut type_documents = Vec::new();
+        let mut type_origins = BTreeMap::new();
         for member in member_sources {
             let document = crate::parse_syntax_document(member.source);
+            type_origins.extend(crate::native_type::family::source::from_document(
+                &document,
+                member.path,
+                bundle.package.content_digest,
+            ));
+            type_documents.push(document.clone());
             for plot in document.plots {
                 plots.insert(plot.name.text.clone(), plot);
             }
@@ -257,6 +269,7 @@ impl PackageExportCatalog {
                 types.insert(value_type.name.text.clone(), value_type);
             }
         }
+        let type_definitions = types.values().cloned().collect();
         let mut exports = BTreeMap::new();
         let mut type_exports = BTreeMap::new();
         for export in &bundle.package.exports {
@@ -279,6 +292,9 @@ impl PackageExportCatalog {
             package_content_digest: bundle.package.content_digest,
             exports,
             type_exports,
+            type_definitions,
+            type_documents,
+            type_origins,
         })
     }
 
@@ -288,36 +304,6 @@ impl PackageExportCatalog {
 
     pub fn resolve_type(&self, source_path: &str) -> Option<&TypeSyntax> {
         self.type_exports.get(source_path)
-    }
-
-    /// Installs shipped Type paths for downstream `with ... as ...` checking.
-    /// The package path is a source lookup name only; the checked Type keeps
-    /// the same semantic identity it had in its defining pack.
-    pub fn install_shipped_types(
-        &self,
-        catalog: &mut crate::StartupCatalog,
-    ) -> Result<Vec<crate::CheckedNativeType>, crate::SyntaxCheckDiagnostic> {
-        let declarations = self.type_exports.values().cloned().collect::<Vec<_>>();
-        let (checked, _) = crate::native_type::check_native_types(&declarations, catalog)?;
-        for (source_path, syntax) in &self.type_exports {
-            let value_type = checked
-                .iter()
-                .find(|candidate| candidate.name == syntax.name.text)
-                .expect("every shipped Type was checked");
-            catalog
-                .insert_native_type(
-                    source_path.clone(),
-                    value_type.value_type.clone(),
-                    value_type.value_contracts.clone(),
-                    value_type.invariants.clone(),
-                )
-                .map_err(|message| crate::SyntaxCheckDiagnostic {
-                    code: "CND-FRM-058",
-                    span: syntax.name.span,
-                    message,
-                })?;
-        }
-        Ok(checked)
     }
 
     pub fn package_content_digest(&self) -> [u8; 32] {

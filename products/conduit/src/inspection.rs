@@ -19,8 +19,13 @@ pub(crate) fn inspect(path: &Path) -> Result<String, String> {
 }
 
 fn inspect_plot(path: &Path) -> Result<String, String> {
-    let plot = crate::plot_source::load(path)?.expand_entry()?;
-    Ok(format!(
+    let source = crate::plot_source::load(path)?;
+    let type_view = crate::source_expansion::render_source(&source, false)?;
+    if source.syntax.plots.is_empty() {
+        return Ok(type_view);
+    }
+    let plot = source.expand_entry()?;
+    let mut rendered = format!(
         "Plot {}\nsource {}\nchecked {}\nexpanded {}\ngears {}\nconnections {}\nshared pools {}\n",
         plot.name,
         plot.source_document_id.as_str(),
@@ -29,7 +34,11 @@ fn inspect_plot(path: &Path) -> Result<String, String> {
         plot.gears.len(),
         plot.connections.len(),
         plot.shared_pools.len(),
-    ))
+    );
+    if !source.syntax.types.is_empty() {
+        rendered.push_str(&type_view);
+    }
+    Ok(rendered)
 }
 
 fn inspect_json(path: &Path, bytes: &[u8]) -> Result<String, String> {

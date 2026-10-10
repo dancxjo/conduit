@@ -374,6 +374,8 @@ mod firefly_choir_tests;
 #[cfg(test)]
 mod measurement_observation_tests;
 #[cfg(test)]
+mod native_value_type_tests;
+#[cfg(test)]
 mod quantity_output_tests;
 #[cfg(test)]
 mod tests;

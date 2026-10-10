@@ -59,6 +59,7 @@ for the published product's exact release.
 | Named/anonymous/nested records and tuples | [[Nested record|Conduitese-by-example#construct-a-nested-record]] and [[structures|Types-and-state#anonymous-finite-structures]] |
 | Payload-bearing/payloadless finite variant constructors | [[Choice|Conduitese-by-example#choose-a-payload-bearing-variant]] |
 | Generic native Type families and checked identity | [[Generic Types|Current-language-surface#generic-native-types]] |
+| Finite U16 value parameters, shape arithmetic and independent sequence capacities (#5326) | [[Value parameters|Current-language-surface#finite-native-type-value-parameters-5326]] |
 | Native scalar declarations; resolved identity versus source aliases | [[Identity|Types-and-state#checked-type-identity-is-not-source-spelling]] |
 | Exact collections, bounded sequences, empty sequence and actual length | [[Finite containers|Conduitese-by-example#finite-collections-and-variable-length-sequences]] |
 | Byte bounds, membership, excluded membership, closed/open-ended ranges | [[Refinements|Current-language-surface#checked-refinements-and-portable-patterns]] |
@@ -85,36 +86,9 @@ for the published product's exact release.
 
 ## Proposed language features
 
-The repository issue inventory currently contains two open issues explicitly
-adding Conduitese grammar/type-system surfaces. The examples below come from
-their proposals. They cannot be checked as current programs.
-
-### Finite value parameters and shape-indexed Types — #5326
-
-[Issue #5326](https://github.com/dancxjo/conduit/issues/5326) proposes compile-time
-value parameters alongside existing Type parameters:
-
-```conduit
-# PROPOSAL ONLY: finite value parameters are not current grammar.
-type NumericFiniteF32 = F32 finite
-type NumericVector<N: U16> = collection NumericFiniteF32 = N
-type NumericHistory<H: U16, D: U16> = collection NumericVector<D> = H
-
-type NumericWindow<H: U16, D: U16> = {
-    window: NumericVector<(H + 1) * D>
-    next_history: NumericHistory<H, D>
-}
-
-type NumericWindow2x64 = NumericWindow<2, 64>
-```
-
-The worked example derives a 192-element window from `(2 + 1) * 64`.
-`NumericVector<64>` and `<128>` must refuse mismatched ports; `<32 + 32>`
-must normalize to `<64>` for the same family. Zero where forbidden, overflow,
-wrong argument kinds, cycles, runtime dimensions and excessive specialization
-must refuse. Matrix resource laws such as `.columns == C` must survive
-specialization, construction and decode. Grammar is still subject to the
-issue's resolution and Type-identity review.
+The scoped glyph family below remains a proposal. The implemented value-parameter
+surface under #5326 is documented above. Its issue tracks independent
+stable-release acceptance for the published product.
 
 ### Scoped typed delimiter glyph families — #5317
 

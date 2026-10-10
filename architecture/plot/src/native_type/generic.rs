@@ -1,12 +1,24 @@
 use crate::prelude::*;
 use crate::{
-    SpannedText, SyntaxCheckDiagnostic, TypeDefinitionSyntax, TypeExpressionSyntax,
-    TypeFieldSyntax, TypeSyntax, TypeVariantCaseSyntax, TypeVariantPayloadSyntax,
+    SpannedText, SyntaxCheckDiagnostic, TypeDefinitionSyntax, TypeExpressionSyntax, TypeSyntax,
+    TypeVariantPayloadSyntax,
 };
 use alloc::collections::{BTreeMap, BTreeSet};
 
+mod argument;
+mod binding;
+pub(super) mod budget;
 mod canonical;
-use canonical::{application_key, expression as canonical, instantiated_name};
+pub(super) mod imports;
+mod integer;
+mod keys;
+mod law;
+mod origin;
+mod parameter;
+mod refinement;
+mod substitution;
+use binding::Bindings;
+use canonical::application_key;
 
 const MAXIMUM_GENERIC_INSTANTIATION_DEPTH: usize = 32;
 
@@ -18,7 +30,9 @@ const MAXIMUM_GENERIC_INSTANTIATION_DEPTH: usize = 32;
 /// nominal identity.
 pub(super) fn instantiate(
     declarations: &[TypeSyntax],
-) -> Result<(Vec<TypeSyntax>, BTreeSet<String>), SyntaxCheckDiagnostic> {
+    catalog: &crate::StartupCatalog,
+) -> Result<(Vec<TypeSyntax>, BTreeSet<String>, crate::StartupCatalog), SyntaxCheckDiagnostic> {
+    budget::validate(declarations)?;
     let mut names = BTreeSet::new();
     let mut generics = BTreeMap::new();
     let mut public = BTreeSet::new();
@@ -34,10 +48,13 @@ pub(super) fn instantiate(
         }
         let mut parameters = BTreeSet::new();
         for parameter in &declaration.parameters {
-            if !parameters.insert(parameter.text.as_str()) {
+            if !parameters.insert(parameter.name.text.as_str()) {
                 return Err(error(
-                    parameter.span,
-                    alloc::format!("generic Type parameter '{}' is duplicated", parameter.text),
+                    parameter.name.span,
+                    alloc::format!(
+                        "generic Type parameter '{}' is duplicated",
+                        parameter.name.text
+                    ),
                 ));
             }
         }
@@ -45,10 +62,15 @@ pub(super) fn instantiate(
             public.insert(declaration.name.text.clone());
         } else {
             for parameter in &declaration.parameters {
-                if !definition_uses(&declaration.definition, &parameter.text) {
+                if !definition_uses(&declaration.definition, &parameter.name.text)
+                    && !law::uses(&declaration.invariants, &parameter.name.text)
+                {
                     return Err(error(
-                        parameter.span,
-                        alloc::format!("generic Type parameter '{}' is unused", parameter.text),
+                        parameter.name.span,
+                        alloc::format!(
+                            "generic Type parameter '{}' is unused",
+                            parameter.name.text
+                        ),
                     ));
                 }
             }
@@ -56,6 +78,24 @@ pub(super) fn instantiate(
         }
     }
 
+    let imports = imports::Imports::prepare(catalog)?;
+    for template in &imports.templates {
+        generics.insert(template.name.text.as_str(), template);
+    }
+    for (alias, name) in &imports.aliases {
+        if names.contains(alias.as_str()) {
+            return Err(error(
+                declarations[0].name.span,
+                alloc::format!("imported Type family '{alias}' conflicts with a local declaration"),
+            ));
+        }
+        let template = imports
+            .templates
+            .iter()
+            .find(|template| template.name.text == *name)
+            .expect("captured family root");
+        generics.insert(alias.as_str(), template);
+    }
     let aliases = declarations
         .iter()
         .filter_map(|declaration| {
@@ -69,7 +109,18 @@ pub(super) fn instantiate(
             else {
                 return None;
             };
-            (!arguments.is_empty() && refinements.is_empty()).then(|| {
+            (!arguments.is_empty()
+                && refinements.is_empty()
+                && declaration.parameters.is_empty()
+                && !generics
+                    .get(value_type.text.as_str())
+                    .is_some_and(|template: &&TypeSyntax| {
+                        template
+                            .parameters
+                            .iter()
+                            .any(|parameter| parameter.value_type.is_some())
+                    }))
+            .then(|| {
                 (
                     application_key(&value_type.text, arguments),
                     declaration.name.clone(),
@@ -77,12 +128,18 @@ pub(super) fn instantiate(
             })
         })
         .collect();
+    let parameter_catalog = parameter::prepare(declarations, &imports.catalog)?;
     let mut context = Context {
         declarations,
+        catalog: &parameter_catalog,
         generics,
+        origins: &imports.origins,
         aliases,
+        alias_checks: BTreeSet::new(),
         generated: BTreeMap::new(),
         active: Vec::new(),
+        generated_instances: 0,
+        expression_steps: 0,
     };
     let mut concrete = Vec::new();
     for declaration in declarations
@@ -90,9 +147,23 @@ pub(super) fn instantiate(
         .filter(|declaration| declaration.parameters.is_empty())
     {
         let mut declaration = declaration.clone();
-        let (definition, generic_context) = context.public_definition(&declaration.definition)?;
+        let (definition, generic_context, bindings) =
+            context.public_definition(&declaration.definition)?;
+        let mut invariants = declaration.invariants.clone();
+        if generic_context.is_some() {
+            if let TypeDefinitionSyntax::Scalar(TypeExpressionSyntax::Reference {
+                value_type,
+                ..
+            }) = &declaration.definition
+            {
+                if let Some(template) = context.generics.get(value_type.text.as_str()) {
+                    invariants.extend(template.invariants.clone());
+                }
+            }
+        }
+        declaration.invariants = law::substitute(&invariants, &bindings.values)?;
         declaration.definition = definition;
-        declaration.generic_context = generic_context;
+        declaration.generic_context = generic_context.or(declaration.generic_context);
         concrete.push(declaration);
     }
     public.extend(
@@ -102,22 +173,31 @@ pub(super) fn instantiate(
             .map(|declaration| declaration.name.text.clone()),
     );
     concrete.extend(context.generated.into_values());
-    Ok((concrete, public))
+    Ok((concrete, public, imports.catalog))
 }
 
 struct Context<'a> {
     declarations: &'a [TypeSyntax],
+    catalog: &'a crate::StartupCatalog,
     generics: BTreeMap<&'a str, &'a TypeSyntax>,
+    origins: &'a BTreeMap<String, TypeSyntax>,
     aliases: BTreeMap<String, SpannedText>,
+    alias_checks: BTreeSet<String>,
     generated: BTreeMap<String, TypeSyntax>,
     active: Vec<String>,
+    generated_instances: usize,
+    expression_steps: usize,
 }
 
 impl Context<'_> {
+    fn origin<'a>(&'a self, template: &'a TypeSyntax) -> &'a TypeSyntax {
+        self.origins.get(&template.name.text).unwrap_or(template)
+    }
+
     fn public_definition(
         &mut self,
         definition: &TypeDefinitionSyntax,
-    ) -> Result<(TypeDefinitionSyntax, Option<String>), SyntaxCheckDiagnostic> {
+    ) -> Result<(TypeDefinitionSyntax, Option<String>, Bindings), SyntaxCheckDiagnostic> {
         let TypeDefinitionSyntax::Scalar(TypeExpressionSyntax::Reference {
             value_type,
             arguments,
@@ -127,273 +207,27 @@ impl Context<'_> {
         }) = definition
         else {
             return self
-                .definition(definition, &BTreeMap::new())
-                .map(|definition| (definition, None));
+                .definition(definition, &Bindings::default())
+                .map(|definition| (definition, None, Bindings::default()));
         };
         if arguments.is_empty() || !refinements.is_empty() {
             return self
-                .definition(definition, &BTreeMap::new())
-                .map(|definition| (definition, None));
+                .definition(definition, &Bindings::default())
+                .map(|definition| (definition, None, Bindings::default()));
         }
         let Some(template) = self.generics.get(value_type.text.as_str()).copied() else {
             return self
-                .definition(definition, &BTreeMap::new())
-                .map(|definition| (definition, None));
+                .definition(definition, &Bindings::default())
+                .map(|definition| (definition, None, Bindings::default()));
         };
-        if template.parameters.len() != arguments.len() {
-            return Err(error(
-                *span,
-                alloc::format!(
-                    "generic semantic Type '{}' expects {} arguments but received {}",
-                    value_type.text,
-                    template.parameters.len(),
-                    arguments.len()
-                ),
-            ));
-        }
-        let resolved = arguments
-            .iter()
-            .map(|argument| self.expression(argument, &BTreeMap::new()))
-            .collect::<Result<Vec<_>, _>>()?;
-        let key = alloc::format!(
-            "{}<{}>",
-            value_type.text,
-            resolved.iter().map(canonical).collect::<Vec<_>>().join(",")
-        );
-        self.active.push(key.clone());
-        let bindings = template
-            .parameters
-            .iter()
-            .map(|parameter| parameter.text.clone())
-            .zip(resolved)
-            .collect::<BTreeMap<_, _>>();
+        let (resolved, bindings) = self.bind(template, arguments, &Bindings::default(), *span)?;
+        let origin = self.semantic_origin(template)?;
+        let key = self.semantic_key(&origin, &resolved, &bindings);
+        let cache_key = self.cache_key(template, &origin, &key, &bindings);
+        self.active.push(cache_key);
         let result = self.definition(&template.definition, &bindings);
         self.active.pop();
-        result.map(|definition| (definition, Some(key)))
-    }
-
-    fn definition(
-        &mut self,
-        definition: &TypeDefinitionSyntax,
-        arguments: &BTreeMap<String, TypeExpressionSyntax>,
-    ) -> Result<TypeDefinitionSyntax, SyntaxCheckDiagnostic> {
-        Ok(match definition {
-            TypeDefinitionSyntax::Scalar(expression) => {
-                TypeDefinitionSyntax::Scalar(self.expression(expression, arguments)?)
-            }
-            TypeDefinitionSyntax::Record(fields) => TypeDefinitionSyntax::Record(
-                fields
-                    .iter()
-                    .map(|field| self.field(field, arguments))
-                    .collect::<Result<_, _>>()?,
-            ),
-            TypeDefinitionSyntax::Variant(cases) => TypeDefinitionSyntax::Variant(
-                cases
-                    .iter()
-                    .map(|case| {
-                        Ok(TypeVariantCaseSyntax {
-                            tag: case.tag.clone(),
-                            payload: match &case.payload {
-                                TypeVariantPayloadSyntax::Unit => TypeVariantPayloadSyntax::Unit,
-                                TypeVariantPayloadSyntax::Type(value) => {
-                                    TypeVariantPayloadSyntax::Type(
-                                        self.expression(value, arguments)?,
-                                    )
-                                }
-                                TypeVariantPayloadSyntax::Record(fields) => {
-                                    TypeVariantPayloadSyntax::Record(
-                                        fields
-                                            .iter()
-                                            .map(|field| self.field(field, arguments))
-                                            .collect::<Result<_, _>>()?,
-                                    )
-                                }
-                            },
-                            span: case.span,
-                        })
-                    })
-                    .collect::<Result<_, SyntaxCheckDiagnostic>>()?,
-            ),
-        })
-    }
-
-    fn field(
-        &mut self,
-        field: &TypeFieldSyntax,
-        arguments: &BTreeMap<String, TypeExpressionSyntax>,
-    ) -> Result<TypeFieldSyntax, SyntaxCheckDiagnostic> {
-        Ok(TypeFieldSyntax {
-            name: field.name.clone(),
-            value_type: self.expression(&field.value_type, arguments)?,
-            span: field.span,
-        })
-    }
-
-    fn expression(
-        &mut self,
-        expression: &TypeExpressionSyntax,
-        substitutions: &BTreeMap<String, TypeExpressionSyntax>,
-    ) -> Result<TypeExpressionSyntax, SyntaxCheckDiagnostic> {
-        match expression {
-            TypeExpressionSyntax::Reference {
-                value_type,
-                arguments,
-                maximum_bytes,
-                refinements,
-                span,
-            } => {
-                if arguments.is_empty() {
-                    if let Some(substitution) = substitutions.get(&value_type.text) {
-                        if maximum_bytes.is_some() || !refinements.is_empty() {
-                            return Err(error(
-                                *span,
-                                "a generic Type parameter cannot be directly refined".into(),
-                            ));
-                        }
-                        return Ok(substitution.clone());
-                    }
-                    if self.generics.contains_key(value_type.text.as_str()) {
-                        return Err(error(
-                            *span,
-                            alloc::format!(
-                                "generic semantic Type '{}' requires arguments",
-                                value_type.text
-                            ),
-                        ));
-                    }
-                    return Ok(expression.clone());
-                }
-                if maximum_bytes.is_some() || !refinements.is_empty() {
-                    return Err(error(
-                        *span,
-                        "a generic Type application cannot be directly refined".into(),
-                    ));
-                }
-                let resolved = arguments
-                    .iter()
-                    .map(|argument| self.expression(argument, substitutions))
-                    .collect::<Result<Vec<_>, _>>()?;
-                let Some(template) = self.generics.get(value_type.text.as_str()).copied() else {
-                    if self
-                        .declarations
-                        .iter()
-                        .any(|candidate| candidate.name.text == value_type.text)
-                    {
-                        return Err(error(
-                            *span,
-                            alloc::format!(
-                                "semantic Type '{}' does not accept generic arguments",
-                                value_type.text
-                            ),
-                        ));
-                    }
-                    return Err(error(
-                        *span,
-                        alloc::format!(
-                            "generic semantic Type '{}' is not in scope",
-                            value_type.text
-                        ),
-                    ));
-                };
-                if template.parameters.len() != resolved.len() {
-                    return Err(error(
-                        *span,
-                        alloc::format!(
-                            "generic semantic Type '{}' expects {} arguments but received {}",
-                            value_type.text,
-                            template.parameters.len(),
-                            resolved.len()
-                        ),
-                    ));
-                }
-                let key = application_key(&value_type.text, &resolved);
-                if self.active.contains(&key)
-                    || self.active.len() >= MAXIMUM_GENERIC_INSTANTIATION_DEPTH
-                {
-                    return Err(error(
-                        *span,
-                        alloc::format!(
-                            "recursive or unbounded generic semantic Type instantiation: {key}"
-                        ),
-                    ));
-                }
-                if let Some(alias) = self.aliases.get(&key) {
-                    return Ok(TypeExpressionSyntax::Reference {
-                        value_type: alias.clone(),
-                        arguments: Vec::new(),
-                        maximum_bytes: None,
-                        refinements: Vec::new(),
-                        span: *span,
-                    });
-                }
-                if !self.generated.contains_key(&key) {
-                    self.active.push(key.clone());
-                    let bindings = template
-                        .parameters
-                        .iter()
-                        .map(|parameter| parameter.text.clone())
-                        .zip(resolved)
-                        .collect::<BTreeMap<_, _>>();
-                    let definition = self.definition(&template.definition, &bindings)?;
-                    self.active.pop();
-                    let generated_name = instantiated_name(&value_type.text, &key);
-                    self.generated.insert(
-                        key.clone(),
-                        TypeSyntax {
-                            name: SpannedText {
-                                text: generated_name,
-                                span: template.name.span,
-                            },
-                            parameters: Vec::new(),
-                            generic_context: Some(key.clone()),
-                            definition,
-                            invariants: template.invariants.clone(),
-                            span: template.span,
-                        },
-                    );
-                }
-                Ok(TypeExpressionSyntax::Reference {
-                    value_type: SpannedText {
-                        text: self.generated[&key].name.text.clone(),
-                        span: value_type.span,
-                    },
-                    arguments: Vec::new(),
-                    maximum_bytes: None,
-                    refinements: Vec::new(),
-                    span: *span,
-                })
-            }
-            TypeExpressionSyntax::Optional { value, span } => Ok(TypeExpressionSyntax::Optional {
-                value: Box::new(self.expression(value, substitutions)?),
-                span: *span,
-            }),
-            TypeExpressionSyntax::DataReference { value, span } => {
-                Ok(TypeExpressionSyntax::DataReference {
-                    value: Box::new(self.expression(value, substitutions)?),
-                    span: *span,
-                })
-            }
-            TypeExpressionSyntax::Collection {
-                element,
-                length,
-                span,
-            } => Ok(TypeExpressionSyntax::Collection {
-                element: Box::new(self.expression(element, substitutions)?),
-                length: *length,
-                span: *span,
-            }),
-            TypeExpressionSyntax::Sequence {
-                element,
-                minimum_items,
-                maximum_items,
-                span,
-            } => Ok(TypeExpressionSyntax::Sequence {
-                element: Box::new(self.expression(element, substitutions)?),
-                minimum_items: *minimum_items,
-                maximum_items: *maximum_items,
-                span: *span,
-            }),
-        }
+        result.map(|definition| (definition, Some(key), bindings))
     }
 }
 
@@ -418,17 +252,33 @@ fn expression_uses(expression: &TypeExpressionSyntax, parameter: &str) -> bool {
         TypeExpressionSyntax::Reference {
             value_type,
             arguments,
+            refinements,
             ..
         } => {
             value_type.text == parameter
-                || arguments
-                    .iter()
-                    .any(|argument| expression_uses(argument, parameter))
+                || refinement::uses(refinements, parameter)
+                || arguments.iter().any(|argument| match argument {
+                    crate::NativeTypeArgumentSyntax::Type(value) => {
+                        expression_uses(value, parameter)
+                    }
+                    crate::NativeTypeArgumentSyntax::Value(value) => integer_uses(value, parameter),
+                })
         }
         TypeExpressionSyntax::Optional { value, .. }
         | TypeExpressionSyntax::DataReference { value, .. } => expression_uses(value, parameter),
-        TypeExpressionSyntax::Collection { element, .. }
-        | TypeExpressionSyntax::Sequence { element, .. } => expression_uses(element, parameter),
+        TypeExpressionSyntax::Collection {
+            element, length, ..
+        } => expression_uses(element, parameter) || integer_uses(length, parameter),
+        TypeExpressionSyntax::Sequence {
+            element,
+            minimum_items,
+            maximum_items,
+            ..
+        } => {
+            expression_uses(element, parameter)
+                || integer_uses(minimum_items, parameter)
+                || integer_uses(maximum_items, parameter)
+        }
     }
 }
 
@@ -437,5 +287,16 @@ fn error(span: crate::Span, message: String) -> SyntaxCheckDiagnostic {
         code: "CND-FRM-058",
         span,
         message,
+    }
+}
+
+fn integer_uses(value: &crate::NativeIntegerExpressionSyntax, parameter: &str) -> bool {
+    match value {
+        crate::NativeIntegerExpressionSyntax::Literal { .. } => false,
+        crate::NativeIntegerExpressionSyntax::Parameter(name) => name.text == parameter,
+        crate::NativeIntegerExpressionSyntax::Group { value, .. } => integer_uses(value, parameter),
+        crate::NativeIntegerExpressionSyntax::Binary { left, right, .. } => {
+            integer_uses(left, parameter) || integer_uses(right, parameter)
+        }
     }
 }

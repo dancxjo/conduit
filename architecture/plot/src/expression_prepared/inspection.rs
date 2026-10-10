@@ -60,11 +60,8 @@ impl PreparedInspection {
             }
             "sequence/length"
                 if arguments.len() == 1
-                    && matches!(
-                        source.value_type.shape(),
-                        StructuredInfoTypeShape::Collection { .. }
-                            | StructuredInfoTypeShape::Sequence { .. }
-                    ) =>
+                    && crate::expression_semantic_call::collection_element(&source.value_type)
+                        .is_some() =>
             {
                 Operation::Length
             }

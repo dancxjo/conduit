@@ -11,7 +11,7 @@ use conduit_plot::{
 };
 
 pub const FIXED_NUMERIC_SOURCE: &str = include_str!("../fixed_numeric.conduit");
-pub const FIXED_NUMERIC_REVISION: &str = "conduit.numeric/fixed-f32-libm@1";
+pub const FIXED_NUMERIC_REVISION: &str = "conduit.numeric/fixed-f32-libm@2";
 
 pub fn fixed_numeric_types() -> Result<Vec<CheckedNativeType>, String> {
     let mut catalog = StartupCatalog::new();

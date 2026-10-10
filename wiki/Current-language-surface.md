@@ -187,6 +187,51 @@ A real current family is
 whose text specialization is bounded to 4096 bytes. This language support does
 not mean all generic domain families have already migrated.
 
+### Finite native Type value parameters (#5326)
+
+A typed parameter binds an exact checking-time Info value; an unannotated
+parameter still binds a Type:
+
+```conduit
+type Vector<T, N: U16> = collection T = N
+type Tier<T, Capacity: U16> = sequence T <= Capacity
+type Window<H: U16, D: U16> = {
+    window: Vector<U8, (H + 1) * D>
+    history: Vector<Vector<U8, D>, H>
+}
+type Window2x64 = Window<2, 64>
+```
+
+The Window computes 192 items and a two-by-64 history. The first Info profile
+uses U16 or a checked U16 refinement. Literals, `+`, `*`, and parentheses have
+checked U16 intermediate arithmetic; every exact collection extent and sequence
+maximum must fit the finite profile (currently 1 through 1024). Sequence minima
+may be zero. Wrong kinds/arity, runtime dimensions, overflow, cycles and excessive
+specialization refuse at Source spans. Refinements and `where` laws substitute
+through nested shapes and validate generated construction and decode.
+
+For the same declaration, `32 + 32` and `64` produce the same specialization.
+A newly named declaration remains nominally distinct; a transparent `with`
+alias preserves its owner's meaning. Shipped families retain checked private
+helpers, integral domains, laws and original module/Source/package provenance.
+`conduit expand file.conduit --json` and `conduit inspect file.conduit` expose
+authored arguments and closed representations, including Type-only files.
+
+The [actual Numeric Source](https://github.com/dancxjo/conduit/blob/dev/semantics/ai/fixed_numeric.conduit)
+uses five families for the original vectors, matrix/bias references, history
+and Window. Resource references, 32-byte digests and the closed `f32` case retain
+their meaning. Its catalogue revision changes because checked identities change;
+persisted old identities require an explicit migration, rather than relabeling.
+
+An exact vector differs from a bounded variable sequence. Independent temporal
+tiers can retain different actual counts, overlapping elapsed-time spans and
+many-to-many occurrence relations. Capacity does not imply a shared phone index
+or sampling clock. The private [compatibility witness](https://github.com/dancxjo/conduit/blob/dev/semantics/speech/tests/value_parameter_gesture_capacity.rs)
+uses existing intent, IPA inventory, revision and anchored Audio trajectory
+admission; it does not implement phonological gesture realization or replace
+the common linguistic IR. Implementation and independent stable-release evidence
+are tracked separately in [#5326](https://github.com/dancxjo/conduit/issues/5326).
+
 ### Compact Forms
 
 This [checked-in declaration](https://github.com/dancxjo/conduit/blob/dev/semantics/alife/types.conduit)

@@ -58,11 +58,8 @@ pub(super) fn intrinsic_call(
         let [source, index] = arguments.as_slice() else {
             return Err(PortableExpressionEvaluationRefusal::InvalidProgram);
         };
-        let element = match source.value_type.shape() {
-            StructuredInfoTypeShape::Collection { element, .. }
-            | StructuredInfoTypeShape::Sequence { element, .. } => element,
-            _ => return Err(PortableExpressionEvaluationRefusal::InvalidProgram),
-        };
+        let element = crate::expression_semantic_call::collection_element(&source.value_type)
+            .ok_or(PortableExpressionEvaluationRefusal::InvalidProgram)?;
         if element != expected
             || index.value_type
                 != StructuredInfoType::leaf(conduit_core::kind_id("value/u64"))
