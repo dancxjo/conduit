@@ -39,7 +39,7 @@ test("portable presentation nucleus executes in WASM and manifests in Chromium",
       schema: "education/feedback@1",
       variant: "passed",
       quantityUnit: "ratio/percent",
-      quantity: 88,
+      quantity: "88e0",
     },
     application: {
       revision: 1,

@@ -92,9 +92,10 @@ impl<'a> ExactQuantityConversionReceipt<'a> {
     ) -> Result<ExactQuantityTargetCoordinate<'a>, QuantityConversionRefusal> {
         self.result
     }
-    /// Exact physical reference equation `(coordinate * scale + offset) / denominator`.
-    /// Decimal exponents belong to the source coordinate and target descriptor;
-    /// they never multiply an affine offset.
+    /// Base scale, affine offset and denominator for the source reference equation.
+    /// The full equation is `(coefficient * 10^(exponent + unit.decimal_exponent())
+    /// * scale + offset) / denominator`; see [`Quantity::reference_transform`].
+    /// Decimal exponents never multiply an affine offset.
     pub const fn source_transform(self) -> (i128, i128, i128) {
         self.source.reference_transform()
     }

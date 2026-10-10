@@ -125,7 +125,7 @@ fn canonical_prefix_symbols_do_not_admit_aliases_or_confusables() {
         DecimalPrefix::from_symbol("m"),
         DecimalPrefix::from_symbol("M")
     );
-    // Existing aliases remain an independent legacy source policy.
+    // Reviewed source aliases remain an independent source policy.
     assert_eq!(Unit::from_plot_suffix("us"), Ok(Unit::Microsecond));
     assert_eq!(Unit::from_plot_suffix("µs"), Ok(Unit::Microsecond));
     assert_eq!(Unit::from_plot_suffix("MiB"), Ok(Unit::Mebibyte));
