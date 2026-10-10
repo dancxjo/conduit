@@ -328,7 +328,7 @@ export class BrowserBody {
     const { status, outputJson } = this.#bridge.workspaceRequest({ action: "Durable" });
     if (status < 0) throw sdkRefusal("Body.retain", outputJson, this.#identities());
     const record = Object.freeze({ schema: CONTINUITY_SCHEMA, source: this.#source, durable: outputJson });
-    this.#persistence = this.#persistence.then(() => this.#storage.writeJson(CONTINUITY_KEY, record));
+    this.#persistence = this.#persistence.then(() => retainContinuity(this.#bridge, this.#storage, record));
     try { await this.#persistence; }
     catch (error) {
       this.#persistenceFailure = sdkRefusal("Body.retain", {
@@ -455,6 +455,26 @@ function freezeJsonValue(value) {
   return value;
 }
 
+// Rust seals history segments. Commit them together with the newer continuity
+// record before acknowledging the archive barrier, as the Workspace does.
+async function retainContinuity(bridge, storage, record, recoveredArchives = []) {
+  const pending = record.durable.pending_archives ?? [];
+  const archives = new Map();
+  for (const segment of [...recoveredArchives, ...pending]) {
+    const digest = segment.digest.map(byte => byte.toString(16).padStart(2, "0")).join("");
+    archives.set(`body-history/${segment.ordinal}-${digest}`, segment);
+  }
+  if (archives.size === 0) return storage.writeJson(CONTINUITY_KEY, record);
+  await storage.writeJsonBatch([
+    ...[...archives].map(([key, value]) => ({ key, value, immutable: true })),
+    { key: CONTINUITY_KEY, value: record },
+  ]);
+  if (pending.length) {
+    const acknowledged = bridge.workspaceRequest({ action: "AcknowledgeArchives", head_digest: pending.at(-1).digest });
+    if (acknowledged.status < 0) throw sdkRefusal("Body.retain.archives", acknowledged.outputJson);
+  }
+}
+
 export async function birthBrowserBody({ bridge, host, boot, api, root, createPlay, acquireBodyHost, membership, storage, name, plots, sequence }) {
   if (!Array.isArray(plots) || plots.length === 0) throw new TypeError("BIRTH requires at least one checked Plot");
   if (storage && await readContinuity(storage, host, boot) !== null) throw sdkRefusal("Body.birth", {
@@ -526,7 +546,7 @@ export async function recoverBrowserBody({ bridge, host, boot, api, root, create
   const currentDurable = bridge.workspaceRequest({ action: "Durable" });
   if (currentDurable.status < 0) throw sdkRefusal("Host.recover.retain", currentDurable.outputJson, { bodyId: evidence.body_id, hostId: host, bootId: boot });
   try {
-    await storage.writeJson(CONTINUITY_KEY, { schema: CONTINUITY_SCHEMA, source: retained.source, durable: currentDurable.outputJson });
+    await retainContinuity(bridge, storage, { schema: CONTINUITY_SCHEMA, source: retained.source, durable: currentDurable.outputJson }, retained.durable.pending_archives);
   } catch (error) {
     throw sdkRefusal("Host.recover.retain", {
       code: error?.code ?? "StorageUnavailable",

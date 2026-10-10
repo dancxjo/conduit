@@ -322,3 +322,47 @@ test("bundled edits retain reviewed presentation profiles and Patchbay projects 
   snapshot.foreground = null;
   await assert.rejects(body.patchbay(), error => error.code === "PatchbayPlotIdentityMismatch");
 });
+
+for (const fail of [false, true]) {
+  test(`Body archive acknowledgement follows an atomic durable commit${fail ? " and is withheld on storage failure" : ""}`, async () => {
+    const events = [];
+    const segment = { ordinal: 1, digest: Array(32).fill(7), records: ["sealed runtime history"] };
+    const snapshot = bodySnapshot(0);
+    const bridge = {
+      crecheAdmitSourceInteraction: () => ({ status: 0, outputJson: {} }),
+      crecheBirth: () => ({ status: 0, outputJson: { body_id: "body/1" } }),
+      crecheAttachHere: () => ({ status: 0, outputJson: { body_id: "body/1" } }),
+      workspaceRequest(request) {
+        if (request.action === "Durable") return { status: 0, outputJson: { ...snapshot, pending_archives: [segment] } };
+        if (request.action === "AcknowledgeArchives") {
+          events.push("acknowledge");
+          assert.deepEqual(request.head_digest, segment.digest);
+        }
+        return { status: 0, outputJson: snapshot };
+      },
+    };
+    const storage = {
+      readJson: async () => null,
+      async writeJsonBatch(entries) {
+        events.push("transaction");
+        assert.equal(entries.length, 2);
+        assert.equal(entries[0].key, `body-history/1-${"07".repeat(32)}`);
+        assert.equal(entries[0].immutable, true);
+        assert.deepEqual(entries[0].value, segment);
+        assert.equal(entries[1].key, "body-continuity");
+        if (fail) throw Object.assign(new Error("storage full"), { code: "ApplicationCapacityExhausted" });
+        events.push("committed");
+      },
+      writeJson() { throw new Error("archive and continuity must share a transaction"); },
+    };
+    const checked = { schema: "conduit.browser/checked-plot@1", name: "clock", source, documentSource: source, sourceDocumentId: "sha256:source", checkedPlotId: "sha256:checked" };
+    const birth = birthBrowserBody({ bridge, host: "host/1", boot: "boot/1", membership: { advertisement: () => ({}) }, storage, name: "Clock", plots: [checked], sequence: () => 1 });
+    if (fail) {
+      await assert.rejects(birth, error => error.code === "ApplicationCapacityExhausted");
+      assert.deepEqual(events, ["transaction"]);
+    } else {
+      await birth;
+      assert.deepEqual(events, ["transaction", "committed", "acknowledge"]);
+    }
+  });
+}
