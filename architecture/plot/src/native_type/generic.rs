@@ -11,6 +11,7 @@ pub(super) mod budget;
 mod canonical;
 pub(super) mod imports;
 mod integer;
+mod keys;
 mod law;
 mod origin;
 mod parameter;
@@ -219,13 +220,9 @@ impl Context<'_> {
         };
         let (resolved, bindings) = self.bind(template, arguments, &Bindings::default(), *span)?;
         let origin = self.semantic_origin(template)?;
-        let key = canonical::family_key(
-            &origin,
-            &resolved,
-            &bindings.parameter_contracts,
-            &bindings.argument_identities,
-        );
-        self.active.push(key.clone());
+        let key = self.semantic_key(&origin, &resolved, &bindings);
+        let cache_key = self.cache_key(template, &origin, &key, &bindings);
+        self.active.push(cache_key);
         let result = self.definition(&template.definition, &bindings);
         self.active.pop();
         result.map(|definition| (definition, Some(key), bindings))

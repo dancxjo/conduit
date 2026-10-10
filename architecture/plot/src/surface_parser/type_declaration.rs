@@ -85,6 +85,7 @@ impl Parser<'_> {
             name,
             parameters,
             generic_context: None,
+            semantic_name: None,
             definition,
             invariants,
             span: self.span(declaration_start, end.start + end.text.len()),

@@ -54,6 +54,8 @@ pub struct TypeSyntax {
     /// Checker-owned canonical generic declaration and argument provenance.
     /// Parsed declarations always leave this empty.
     pub(crate) generic_context: Option<String>,
+    /// Checker-owned nominal name when a preparation lookup needs disambiguation.
+    pub(crate) semantic_name: Option<String>,
     pub definition: TypeDefinitionSyntax,
     /// Pure Boolean laws every value of this Type must satisfy.
     pub invariants: Vec<Expression>,

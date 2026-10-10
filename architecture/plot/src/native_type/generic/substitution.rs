@@ -1,6 +1,6 @@
 //! Recursive substitution of finite native Type expressions.
 use super::binding::Bindings;
-use super::canonical::{family_key, instantiated_name};
+use super::canonical::instantiated_name;
 use super::{error, Context, MAXIMUM_GENERIC_INSTANTIATION_DEPTH};
 use crate::prelude::*;
 use crate::{
@@ -146,13 +146,9 @@ impl Context<'_> {
                 };
                 let (resolved, bindings) = self.bind(template, arguments, substitutions, *span)?;
                 let origin = self.semantic_origin(template)?;
-                let key = family_key(
-                    &origin,
-                    &resolved,
-                    &bindings.parameter_contracts,
-                    &bindings.argument_identities,
-                );
-                if self.active.contains(&key)
+                let key = self.semantic_key(&origin, &resolved, &bindings);
+                let cache_key = self.cache_key(template, &origin, &key, &bindings);
+                if self.active.contains(&cache_key)
                     || self.active.len() >= MAXIMUM_GENERIC_INSTANTIATION_DEPTH
                 {
                     return Err(error(
@@ -162,7 +158,11 @@ impl Context<'_> {
                         ),
                     ));
                 }
-                if let Some(alias) = self.aliases.get(&key) {
+                if let Some(alias) = self
+                    .aliases
+                    .get(&key)
+                    .filter(|_| !self.origins.contains_key(&template.name.text))
+                {
                     return Ok(TypeExpressionSyntax::Reference {
                         value_type: alias.clone(),
                         arguments: Vec::new(),
@@ -171,7 +171,7 @@ impl Context<'_> {
                         span: *span,
                     });
                 }
-                if !self.generated.contains_key(&key) {
+                if !self.generated.contains_key(&cache_key) {
                     self.generated_instances += 1;
                     if self.generated_instances > 128 {
                         return Err(error(
@@ -180,12 +180,24 @@ impl Context<'_> {
                                 .into(),
                         ));
                     }
-                    self.active.push(key.clone());
+                    self.active.push(cache_key.clone());
                     let definition = self.definition(&template.definition, &bindings)?;
                     self.active.pop();
                     let generated_name = instantiated_name(&self.origin(template).name.text, &key);
+                    let (generated_name, semantic_name) = if self
+                        .generated
+                        .values()
+                        .any(|value| value.name.text == generated_name)
+                    {
+                        (
+                            instantiated_name(&generated_name, &cache_key),
+                            Some(generated_name),
+                        )
+                    } else {
+                        (generated_name, None)
+                    };
                     self.generated.insert(
-                        key.clone(),
+                        cache_key.clone(),
                         TypeSyntax {
                             name: SpannedText {
                                 text: generated_name,
@@ -193,6 +205,7 @@ impl Context<'_> {
                             },
                             parameters: Vec::new(),
                             generic_context: Some(key.clone()),
+                            semantic_name,
                             definition,
                             invariants: super::law::substitute(
                                 &template.invariants,
@@ -204,7 +217,7 @@ impl Context<'_> {
                 }
                 Ok(TypeExpressionSyntax::Reference {
                     value_type: SpannedText {
-                        text: self.generated[&key].name.text.clone(),
+                        text: self.generated[&cache_key].name.text.clone(),
                         span: value_type.span,
                     },
                     arguments: Vec::new(),

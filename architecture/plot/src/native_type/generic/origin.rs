@@ -21,13 +21,6 @@ impl Context<'_> {
         &self,
         template: &TypeSyntax,
     ) -> Result<TypeSyntax, SyntaxCheckDiagnostic> {
-        if template
-            .parameters
-            .iter()
-            .all(|parameter| parameter.value_type.is_none())
-        {
-            return Ok(self.origin(template).clone());
-        }
         let mut references = Vec::new();
         super::super::definition_references(&template.definition, &mut references);
         for parameter in &template.parameters {
@@ -47,7 +40,20 @@ impl Context<'_> {
             .chain(self.generated.values())
             .cloned()
             .collect::<Vec<_>>();
-        let catalog = parameter::prepare_references(&references, &declarations, self.catalog)?;
+        let catalog = parameter::prepare_references(&references, &declarations, self.catalog)
+            .map_err(|diagnostic| {
+                if diagnostic
+                    .message
+                    .starts_with("native parameter Type dependencies are recursive")
+                {
+                    error(
+                        diagnostic.span,
+                        "recursive or unbounded generic semantic Type dependency meaning".into(),
+                    )
+                } else {
+                    diagnostic
+                }
+            })?;
         self.normalize_origin(template, &catalog, &mut OriginWork::default())
     }
     fn normalize_origin(

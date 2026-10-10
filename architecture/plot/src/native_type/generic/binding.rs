@@ -127,15 +127,9 @@ impl Context<'_> {
                     }
                 }
                 let value = self.expression(value, outer)?;
-                if template
-                    .parameters
-                    .iter()
-                    .any(|parameter| parameter.value_type.is_some())
-                {
-                    bindings
-                        .argument_identities
-                        .push(self.type_argument_identity(&value)?);
-                }
+                bindings
+                    .argument_identities
+                    .push(self.type_argument_identity(&value)?);
                 bindings
                     .types
                     .insert(parameter.name.text.clone(), value.clone());

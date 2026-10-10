@@ -171,10 +171,14 @@ fn compile_definition(
     declaration: &TypeSyntax,
     catalog: &StartupCatalog,
 ) -> Result<CheckedNativeType, SyntaxCheckDiagnostic> {
+    let semantic_name = declaration
+        .semantic_name
+        .as_deref()
+        .unwrap_or(&declaration.name.text);
     let compiled = match &declaration.definition {
         TypeDefinitionSyntax::Scalar(expression) => compile_expression(expression, catalog)?,
         TypeDefinitionSyntax::Record(fields) => compile_record(
-            &declaration.name.text,
+            semantic_name,
             declaration.generic_context.as_deref(),
             fields,
             &declaration.invariants,
@@ -195,7 +199,7 @@ fn compile_definition(
                         compile_expression(expression, catalog)?
                     }
                     TypeVariantPayloadSyntax::Record(fields) => compile_record(
-                        &alloc::format!("{}/{}", declaration.name.text, case.tag.text),
+                        &alloc::format!("{}/{}", semantic_name, case.tag.text),
                         declaration.generic_context.as_deref(),
                         fields,
                         &[],
@@ -213,7 +217,7 @@ fn compile_definition(
                 );
             }
             let identity = schema_identity_for_variant(
-                &declaration.name.text,
+                semantic_name,
                 declaration.generic_context.as_deref(),
                 &compiled_cases,
             );
@@ -227,7 +231,7 @@ fn compile_definition(
     let value_type = match &declaration.definition {
         TypeDefinitionSyntax::Scalar(_) => {
             let identity = schema_identity(
-                &declaration.name.text,
+                semantic_name,
                 declaration.generic_context.as_deref(),
                 &compiled.value_type,
                 &compiled.contracts,

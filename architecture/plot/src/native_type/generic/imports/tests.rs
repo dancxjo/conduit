@@ -326,3 +326,53 @@ fn family_capture_excludes_unrelated_local_and_ambient_declarations() {
     .unwrap_err();
     assert!(refusal.message.contains("Type law"), "{}", refusal.message);
 }
+
+#[test]
+fn type_only_owner_helpers_do_not_share_foreign_specialization_caches() {
+    let owner = "type Sample = U8\ntype Cell<T> = {\n value: T\n sample: Sample\n}\ntype History<N: U16> = collection Cell<U16> = N\n";
+    let first = catalog(owner, "History");
+    let mut combined = catalog(&owner.replace("Sample = U8", "Sample = U32"), "History");
+    combined.native_families.insert(
+        "example/first/History".into(),
+        first.native_families["example/families/History"].clone(),
+    );
+    let source = "with example/first/History as First\nwith example/families/History as Second\ntype Other = First<2>\ntype Value = Second<2>\n";
+    let isolated = value(
+        "with example/families/History as Second\ntype Value = Second<2>\n",
+        &combined,
+    );
+    assert_eq!(value(source, &combined), isolated);
+    let reversed = source
+        .replace("Other = First<2>", "Other = Second<2>")
+        .replace("Value = Second<2>", "Value = First<2>");
+    let first_isolated = value(
+        "with example/first/History as First\ntype Value = First<2>\n",
+        &combined,
+    );
+    assert_eq!(value(&reversed, &combined), first_isolated);
+}
+
+#[test]
+fn nested_type_only_helper_arguments_keep_owner_nominal_names_after_collision() {
+    let owner = "type Sample = U8\ntype Cell<T> = {\n value: T\n sample: Sample\n}\ntype Wrap<T> = collection T = 2\ntype History<N: U16> = collection Wrap<Cell<U16>> = N\n";
+    let first = catalog(owner, "History");
+    let mut combined = catalog(&owner.replace("Sample = U8", "Sample = U32"), "History");
+    combined.native_families.insert(
+        "example/first/History".into(),
+        first.native_families["example/families/History"].clone(),
+    );
+    let source = "with example/first/History as First\nwith example/families/History as Second\ntype Other = First<2>\ntype Value = Second<2>\n";
+    let isolated = value(
+        "with example/families/History as Second\ntype Value = Second<2>\n",
+        &combined,
+    );
+    assert_eq!(value(source, &combined), isolated);
+    let reversed = source
+        .replace("Other = First<2>", "Other = Second<2>")
+        .replace("Value = Second<2>", "Value = First<2>");
+    let first_isolated = value(
+        "with example/first/History as First\ntype Value = First<2>\n",
+        &combined,
+    );
+    assert_eq!(value(&reversed, &combined), first_isolated);
+}
