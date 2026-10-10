@@ -188,6 +188,7 @@ pub struct CheckedExpression {
     /// Arithmetic nodes whose safety follows from declared input-Type laws.
     pub proven_arithmetic: BTreeSet<(usize, usize)>,
     pub(crate) glyph_values: crate::AdmittedGlyphValues,
+    pub(crate) immutable_constants: BTreeMap<String, conduit_core::StructuredInfoValue>,
     pub(crate) semantic_structures: BTreeMap<KindId, StructuredInfoType>,
 }
 
@@ -298,6 +299,7 @@ pub(crate) fn check_expression_as(
         proven_arithmetic: BTreeSet::new(),
         semantic_structures,
         glyph_values: context.glyph_values.cloned().unwrap_or_default(),
+        immutable_constants: BTreeMap::new(),
     })
 }
 

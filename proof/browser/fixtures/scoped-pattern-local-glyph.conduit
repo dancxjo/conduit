@@ -1,0 +1,8 @@
+with text/pattern/notation as r
+plot glyph-pattern {
+ first = r/^[A-Z]+$/i
+ second = r⟦^[A-Z]+$⟧i
+ seed: text/literal("checked pattern locals")
+ show: presentation/bool-value
+ seed >> (first == second) >> show.value
+}.

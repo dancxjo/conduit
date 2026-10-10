@@ -50,6 +50,11 @@ and revision context. An import never supplies that authority implicitly.
 The examples in `semantics/speech/examples/ipa/` retain the fully qualified
 constructor entrances and complete request/basis values.
 
+A glyph result can be stored in an ordinary immutable local and used by a pure
+expression. Expansion retains its checked structured value and exact Type as a
+portable constant, preserving the reference span without reparsing the payload.
+Only referenced locals are retained in the expression program.
+
 ## Grammar and collision rules
 
 An imported alias is recognized only with its adjacent, declared opening

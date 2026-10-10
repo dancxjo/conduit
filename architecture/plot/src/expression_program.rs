@@ -207,7 +207,16 @@ fn node(
             PortableExpressionOperation::Constant(value)
         }
         ExpressionSyntax::Input(_) => PortableExpressionOperation::Input,
-        ExpressionSyntax::Atomic(value) => PortableExpressionOperation::Literal(value.text.clone()),
+        ExpressionSyntax::Atomic(value) => {
+            if let Some(constant) = checked.immutable_constants.get(&value.text) {
+                if constant.value_type() != &value_type {
+                    return Err(PortableExpressionProgramRefusal::MalformedEncoding);
+                }
+                PortableExpressionOperation::Constant(constant.clone())
+            } else {
+                PortableExpressionOperation::Literal(value.text.clone())
+            }
+        }
         ExpressionSyntax::Projection { value, member, .. }
             if matches!(
                 value_type.shape(),

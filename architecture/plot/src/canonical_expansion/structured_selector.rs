@@ -288,7 +288,40 @@ fn expand_expression(
 
     let input_type = crate::CheckedExpressionType::Semantic(input_kind);
     let expression = substitute_immutable_values(expression, source_plot, environment)?;
-    let immutable_values = BTreeMap::new();
+    let constants = substitution::structured_constants(&expression, source_plot, environment)?;
+    let immutable_values = constants
+        .iter()
+        .map(|(name, value)| {
+            (
+                name.clone(),
+                crate::CheckedExpressionType::from_member(value.value_type()),
+            )
+        })
+        .collect();
+    let mut structured_types = structured_types.clone();
+    for value in constants.values() {
+        let ty = value.value_type();
+        let kind = ty
+            .profile()
+            .map_err(|error| {
+                CanonicalExpansionDiagnostic::new(
+                    "CND-FRM-046",
+                    format!("immutable value has no finite profile: {error:?}"),
+                )
+            })?
+            .value_kind()
+            .clone();
+        if structured_types
+            .get(&kind)
+            .is_some_and(|existing| existing != ty)
+        {
+            return Err(CanonicalExpansionDiagnostic::new(
+                "CND-FRM-046",
+                "immutable value conflicts with the exact Type registry".into(),
+            ));
+        }
+        structured_types.insert(kind, ty.clone());
+    }
     let literal_types = BTreeMap::new();
     let numeric_types = BTreeSet::new();
     let semantic_kinds = catalog
@@ -312,7 +345,7 @@ fn expand_expression(
             glyph_values: Some(&source_plot.glyph_values),
             input: &input_type,
             immutable_values: &immutable_values,
-            structured_types,
+            structured_types: &structured_types,
             literal_types: &literal_types,
             numeric_types: &numeric_types,
             semantic_kinds: &semantic_kinds,
@@ -327,6 +360,7 @@ fn expand_expression(
             ),
         )
     })?;
+    checked.immutable_constants = constants;
     if let Some(invariants) = catalog.type_invariants(
         checked
             .input_type
@@ -346,7 +380,7 @@ fn expand_expression(
                 .and_then(crate::CheckedExpressionType::value_kind),
             source_span,
             source_plot,
-            structured_types,
+            &structured_types,
             catalog,
             path,
             gears,

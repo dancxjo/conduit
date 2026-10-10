@@ -6,6 +6,11 @@ const fixture = readFileSync(new URL("./fixtures/scoped-pattern-glyph.conduit", 
 for (const [name, sourceText, accepted] of [
   ["ASCII and Unicode equality", fixture, true],
   ["both ASCII aliases", fixture.replace("r⟦^[A-Z]+$⟧i", "r/^[A-Z]+$/i"), true],
+  ...["pattern-local", "phonetic", "phonemic"].map((name) => [
+    `${name} immutable glyph value`,
+    readFileSync(new URL(`./fixtures/scoped-${name}-glyph.conduit`, import.meta.url), "utf8"),
+    true,
+  ]),
   ["unimported glyph", fixture.replace("with text/pattern/notation as r\n", ""), false],
   ["invalid portable escape", fixture.replace("r/^[A-Z]+$/i", "r/a\\/b/"), false],
   ["missing phonemic basis", fixture.replace("with text/pattern/notation as r", "with speech/ipa/notation as r").replace("r/^[A-Z]+$/i", "r/t͡ʃ/").replace("r⟦^[A-Z]+$⟧i", "r/t͡ʃ/"), false],

@@ -34,6 +34,9 @@ pub(super) fn substitute_immutable_values(
             }
             local => local,
         };
+        if matches!(local, CanonicalStartupValue::Structured(_)) {
+            return Ok(None);
+        }
         let text = match local {
             CanonicalStartupValue::Literal(text) => text.clone(),
             CanonicalStartupValue::Quantity(quantity) => {
@@ -174,4 +177,82 @@ fn substitute_values(
         .iter()
         .map(|value| substitute_immutable_values(value, source_plot, environment))
         .collect()
+}
+
+/// Retain concrete checked Info without inventing an authored syntax node.
+pub(super) fn structured_constants(
+    expression: &ExpressionSyntax,
+    source_plot: &CheckedCanonicalPlot,
+    environment: &BTreeMap<String, CanonicalStartupValue>,
+) -> Result<BTreeMap<String, conduit_core::StructuredInfoValue>, CanonicalExpansionDiagnostic> {
+    let mut names = BTreeSet::new();
+    immutable_names(expression, &mut names);
+    let mut values = BTreeMap::new();
+    for name in names {
+        let local = source_plot
+            .local_values
+            .iter()
+            .find(|(key, _)| key == name)
+            .map(|(_, value)| value)
+            .or_else(|| {
+                source_plot
+                    .startup_parameters
+                    .iter()
+                    .any(|parameter| parameter.name == name)
+                    .then(|| environment.get(name))
+                    .flatten()
+            });
+        let Some(local) = local else { continue };
+        let resolved = super::super::startup::substitute(local, environment)?;
+        if let CanonicalStartupValue::Structured(value) = resolved {
+            let concrete = value.try_concrete().ok_or_else(|| {
+                CanonicalExpansionDiagnostic::new(
+                    "CND-FRM-046",
+                    format!("immutable structured value '{name}' remains unresolved"),
+                )
+            })?;
+            values.insert(name.into(), concrete);
+        }
+    }
+    Ok(values)
+}
+
+fn immutable_names<'a>(expression: &'a ExpressionSyntax, names: &mut BTreeSet<&'a str>) {
+    match expression {
+        ExpressionSyntax::Atomic(value) => {
+            names.insert(&value.text);
+        }
+        ExpressionSyntax::Input(_) | ExpressionSyntax::TypedGlyphLiteral(_) => (),
+        ExpressionSyntax::Projection { value, .. } => immutable_names(value, names),
+        ExpressionSyntax::Unary { operand, .. } => immutable_names(operand, names),
+        ExpressionSyntax::Binary { left, right, .. } => {
+            immutable_names(left, names);
+            immutable_names(right, names);
+        }
+        ExpressionSyntax::Conditional {
+            condition,
+            when_true,
+            when_false,
+            ..
+        } => {
+            immutable_names(condition, names);
+            immutable_names(when_true, names);
+            immutable_names(when_false, names);
+        }
+        ExpressionSyntax::Tuple { values, .. }
+        | ExpressionSyntax::Collection { values, .. }
+        | ExpressionSyntax::SemanticCall {
+            arguments: values, ..
+        } => {
+            for value in values {
+                immutable_names(value, names);
+            }
+        }
+        ExpressionSyntax::Record { fields, .. } => {
+            for field in fields {
+                immutable_names(&field.value, names);
+            }
+        }
+        ExpressionSyntax::Variant { payload, .. } => immutable_names(payload, names),
+    }
 }
