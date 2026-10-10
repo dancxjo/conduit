@@ -84,6 +84,9 @@ fn parse(source: &str, startup: Option<&crate::StartupCatalog>) -> SyntaxDocumen
             parsed.uses,
             parsed.standard_glyphs,
             SyntaxDefinitions {
+                dimensions: parsed.dimensions,
+                prefixes: parsed.prefixes,
+                units: parsed.units,
                 types: parsed.types,
                 type_forms: parsed.type_forms,
                 glyph_notations: parsed.glyph_notations,
@@ -107,6 +110,9 @@ fn parse(source: &str, startup: Option<&crate::StartupCatalog>) -> SyntaxDocumen
 struct ParsedSurface {
     uses: Vec<UseDeclaration>,
     standard_glyphs: bool,
+    dimensions: Vec<crate::DimensionDeclarationSyntax>,
+    prefixes: Vec<crate::PrefixDeclarationSyntax>,
+    units: Vec<crate::UnitDeclarationSyntax>,
     types: Vec<TypeSyntax>,
     type_forms: Vec<TypeFormSyntax>,
     glyph_notations: Vec<crate::GlyphNotationSyntax>,
@@ -156,6 +162,9 @@ impl Parser<'_> {
         mut self,
         startup: Option<&crate::StartupCatalog>,
     ) -> Result<ParsedSurface, (PlotError, Span)> {
+        let mut dimensions = Vec::new();
+        let mut prefixes = Vec::new();
+        let mut units = Vec::new();
         let mut types = Vec::new();
         let mut type_forms = Vec::new();
         let mut glyph_notations = Vec::new();
@@ -191,6 +200,12 @@ impl Parser<'_> {
                     ));
                 }
                 glyph_notations.push(glyph_notation::parse(&mut self)?);
+            } else if text.starts_with("dimension ") {
+                dimensions.push(self.parse_physical_dimension()?);
+            } else if text.starts_with("prefix ") {
+                prefixes.push(self.parse_physical_prefix()?);
+            } else if text.starts_with("unit ") {
+                units.push(self.parse_physical_unit()?);
             } else if text.starts_with("type ") {
                 types.push(self.parse_type_declaration()?);
             } else if text.starts_with("form ") {
@@ -222,7 +237,10 @@ impl Parser<'_> {
             }
             self.skip_empty();
         }
-        if types.is_empty()
+        if dimensions.is_empty()
+            && prefixes.is_empty()
+            && units.is_empty()
+            && types.is_empty()
             && type_forms.is_empty()
             && glyph_notations.is_empty()
             && plots.is_empty()
@@ -232,7 +250,10 @@ impl Parser<'_> {
             return Err((PlotError::IncompletePlot, eof_span(self.source)));
         }
         if !packages.is_empty()
-            && (!types.is_empty()
+            && (!dimensions.is_empty()
+                || !prefixes.is_empty()
+                || !units.is_empty()
+                || !types.is_empty()
                 || !type_forms.is_empty()
                 || !glyph_notations.is_empty()
                 || !plots.is_empty()
@@ -250,6 +271,9 @@ impl Parser<'_> {
         Ok(ParsedSurface {
             uses,
             standard_glyphs,
+            dimensions,
+            prefixes,
+            units,
             types,
             type_forms,
             glyph_notations,

@@ -1,4 +1,4 @@
-use conduit_core::{InfoDecodeError, Quantity, QuantityConversionRefusal, QuantityUnit};
+use conduit_core::{InfoDecodeError, Quantity, QuantityConversionRefusal, Unit};
 use conduit_robotics::{
     BatteryObservation, OdometryObservation, OrientationObservation, RangeObservation,
     HALF_PI_MICRORADIANS, MAXIMUM_BATTERY_MILLIVOLTS, MAXIMUM_OBSERVATION_AGE_MS,
@@ -65,33 +65,27 @@ fn malformed_or_out_of_range_robotics_values_refuse_deterministically() {
 #[test]
 fn robotics_consumes_typed_range_and_battery_without_changing_encoding() {
     let range = RangeObservation::from_quantities(
-        Quantity::new(2, QuantityUnit::Meter),
-        Quantity::new(1, QuantityUnit::Second),
+        Quantity::new(2, Unit::Meter),
+        Quantity::new(1, Unit::Second),
     )
     .unwrap();
     assert_eq!(range, RangeObservation::new(2_000, 1_000).unwrap());
-    assert_eq!(
-        range.distance(),
-        Quantity::new(2_000, QuantityUnit::Millimeter)
-    );
-    assert_eq!(range.age(), Quantity::new(1_000, QuantityUnit::Millisecond));
+    assert_eq!(range.distance(), Quantity::new(2_000, Unit::Millimeter));
+    assert_eq!(range.age(), Quantity::new(1_000, Unit::Millisecond));
 
     let battery = BatteryObservation::from_quantities(
-        Quantity::new(75, QuantityUnit::Percent),
-        Quantity::new(12, QuantityUnit::Volt),
+        Quantity::new(75, Unit::Percent),
+        Quantity::new(12, Unit::Volt),
     )
     .unwrap();
     assert_eq!(battery, BatteryObservation::new(750, 12_000).unwrap());
-    assert_eq!(battery.charge(), Quantity::new(750, QuantityUnit::Permille));
-    assert_eq!(
-        battery.voltage(),
-        Quantity::new(12_000, QuantityUnit::Millivolt)
-    );
+    assert_eq!(battery.charge(), Quantity::new(750, Unit::Permille));
+    assert_eq!(battery.voltage(), Quantity::new(12_000, Unit::Millivolt));
 
     assert_eq!(
         RangeObservation::from_quantities(
-            Quantity::new(1, QuantityUnit::Hertz),
-            Quantity::new(1, QuantityUnit::Second),
+            Quantity::new(1, Unit::Hertz),
+            Quantity::new(1, Unit::Second),
         ),
         Err(InfoDecodeError::QuantityConversion(
             QuantityConversionRefusal::IncompatibleDimensions

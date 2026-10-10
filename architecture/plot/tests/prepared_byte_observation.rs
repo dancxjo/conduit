@@ -27,7 +27,7 @@ plot length (
 ) = (bytes/length(.bytes))
 plot guarded (
  value: Request >> result: Result
-) = (.index < bytes/length(.bytes) ? octet(bytes/at(.bytes, .index)) : short(unit))
+) = (.index < bytes/length(.bytes) ? octet(bytes/at(.bytes, .index)) : short(empty))
 plot computed (
  value: Request >> result: U8
 ) = (bytes/at(.index == 0 ? .bytes : .bytes, .index))

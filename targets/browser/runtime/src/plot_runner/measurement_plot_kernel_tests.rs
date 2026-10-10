@@ -1,9 +1,10 @@
 //! Deterministic measurement ingress through the installed browser production kernel.
 
 use super::*;
+use crate::plot_runner::finite_connection_limits;
 use conduit_core::{
     process_owned_line_offer_with_limits, BaseImplementationId, Kind, LinkLimits, PortDirection,
-    Quantity, QuantityUnit, StructuredInfoValue, TemporalInstant, TemporalScale,
+    Quantity, StructuredInfoValue, TemporalInstant, TemporalScale, Unit,
 };
 use conduit_data::{
     BoundedMeasurementWindow, FullWindowPolicy, MeasurementRange, MeasurementSample,
@@ -108,7 +109,7 @@ fn fragment() -> PlanFragment {
             })
             .collect(),
     };
-    let maximum = MAXIMUM_BROWSER_VALUE_BYTES as u32;
+    let maximum = crate::installed_browser::measurement_limits::WINDOW as u32;
     let line = process_owned_line_offer_with_limits(
         "fixture/measurement-line",
         "fixture/measurement-binding",
@@ -135,7 +136,7 @@ fn fragment() -> PlanFragment {
         ),
         vec![line.line_id.clone()],
     )]);
-    conduit_planner::plan_expanded_canonical_with_options(
+    conduit_planner::plan_expanded_canonical_with_connection_limits(
         &expanded,
         &hosts,
         &placements,
@@ -147,11 +148,12 @@ fn fragment() -> PlanFragment {
             connection_bases: &BTreeMap::new(),
             line_candidates: &candidates,
             connection_item_capacity: 1,
-            connection_byte_capacity: maximum,
+            connection_byte_capacity: MAXIMUM_BROWSER_VALUE_BYTES as u32,
             authority_grants: &[],
             protected_resource_grants: &[],
             line_offers: &[line],
         },
+        &finite_connection_limits(&expanded, MAXIMUM_BROWSER_VALUE_BYTES as u32),
     )
     .unwrap()
     .fragments
@@ -164,8 +166,8 @@ fn window_value() -> Vec<u8> {
     let mut window = BoundedMeasurementWindow::new(MeasurementWindowProfile {
         capacity: 3,
         range: MeasurementRange {
-            minimum: Quantity::new(0, QuantityUnit::Millivolt),
-            maximum: Quantity::new(100, QuantityUnit::Millivolt),
+            minimum: Quantity::new(0, Unit::Millivolt),
+            maximum: Quantity::new(100, Unit::Millivolt),
         },
         clock_basis: "fixture-clock".into(),
         full_policy: FullWindowPolicy::Reject,
@@ -174,7 +176,7 @@ fn window_value() -> Vec<u8> {
     for (value, ticks) in [(0, 1), (50, 2), (100, 3)] {
         window
             .push(MeasurementSample {
-                value: Quantity::new(value, QuantityUnit::Millivolt),
+                value: Quantity::new(value, Unit::Millivolt),
                 observed_at: TemporalInstant {
                     ticks,
                     scale: TemporalScale::Milliseconds,
@@ -203,17 +205,32 @@ fn planned_browser_plot_projects_through_the_production_kernel() {
     let (mut scheduler, lowered) = prepare_remote_fragment(&fragment).unwrap();
     let remote = &lowered.remote_endpoints[0];
     let capacities = scheduler.values().allocation_capacities();
-    scheduler
+    let admitted = scheduler
         .admit_remote_input(remote.endpoint, remote.cord, 0, &window_value())
         .unwrap();
+    assert!(matches!(
+        admitted,
+        conduit_kernel::scheduler::RemoteIngressOutcome::Accepted { sequence: 0 }
+    ));
     scheduler
         .close_remote_input(remote.endpoint, remote.cord)
         .unwrap();
-    let DriveStatus::Effect(pending) = drive(&mut scheduler, &fragment).unwrap() else {
-        panic!("expected plot manifestation")
+    let pending = match drive(&mut scheduler, &fragment).unwrap() {
+        DriveStatus::Effect(pending) => pending,
+        DriveStatus::Waiting { pending_effects } => panic!(
+            "expected plot manifestation; waiting={pending_effects}, signs={:?}",
+            scheduler.signs().events().collect::<Vec<_>>()
+        ),
+        _ => panic!(
+            "expected plot manifestation; terminal, signs={:?}",
+            scheduler.signs().events().collect::<Vec<_>>()
+        ),
     };
     let BrowserHostEffect::Manifestation(output) = &pending.effect else {
-        panic!("expected plot manifestation")
+        panic!(
+            "expected plot manifestation; failure={:?}",
+            scheduler.failure
+        )
     };
     let type_bytes = conduit_data::measurement_plot_series_type()
         .canonical_bytes()

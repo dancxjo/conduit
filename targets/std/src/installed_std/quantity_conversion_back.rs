@@ -1,5 +1,6 @@
-//! Exact conversion executes during preparation. Play emits the admitted
-//! immutable receipt through the existing fixed-storage structured Value Back.
+//! Exact conversion executes during preparation and emits its immutable receipt.
+//! The receipt comparator validates a runtime input with prepared bounded schema
+//! state and emits one of two admitted Boolean values through the shared kernel.
 use super::{
     back::{BackBudget, BackFactory, InstalledBack},
     structured_values_back::StructuredLiteralBack,
@@ -14,7 +15,9 @@ const DIFFERENCE_IMPLEMENTATION: &str = "conduit.std/exact-temperature-differenc
 const COMPARISON_IMPLEMENTATION: &str = "conduit.std/exact-quantity-comparison@1";
 const DIFFERENCE_COMPARISON_IMPLEMENTATION: &str =
     "conduit.std/exact-temperature-difference-comparison@1";
+const CONVERTED_EQUALS_IMPLEMENTATION: &str = "conduit.std/converted-equals@1";
 const PROFILE: &str = "conduit.std/prepared-quantity-receipt@1";
+const COMPARATOR_PROFILE: &str = "conduit.std/checked-receipt-comparator@1";
 pub(super) static FACTORY: BackFactory = BackFactory {
     implementation_id: IMPLEMENTATION,
     budget,
@@ -36,9 +39,15 @@ pub(super) static DIFFERENCE_COMPARISON_FACTORY: BackFactory = BackFactory {
     budget,
     prepare,
 };
-pub(crate) fn offers() -> [CapabilityOffer; 4] {
+pub(super) static CONVERTED_EQUALS_FACTORY: BackFactory = BackFactory {
+    implementation_id: CONVERTED_EQUALS_IMPLEMENTATION,
+    budget,
+    prepare,
+};
+pub(crate) fn offers() -> [CapabilityOffer; 5] {
     [
         offer(),
+        offer_for(conversion::converted_equals::KIND).expect("reviewed receipt comparator Kind"),
         offer_for(conversion::temperature_difference::KIND).expect("reviewed difference Kind"),
         offer_for(conversion::comparison::KIND).expect("reviewed comparison Kind"),
         offer_for(conversion::comparison::DIFFERENCE_KIND)
@@ -49,9 +58,10 @@ fn offer() -> CapabilityOffer {
     offer_for(conversion::KIND).expect("reviewed quantity Kind")
 }
 fn offer_for(kind: &str) -> Option<CapabilityOffer> {
-    let contract = conversion::operation_contract(kind)?;
+    let contract = operation_contract(kind)?;
     let implementation = match kind {
         conversion::KIND => IMPLEMENTATION,
+        conversion::converted_equals::KIND => CONVERTED_EQUALS_IMPLEMENTATION,
         conversion::temperature_difference::KIND => DIFFERENCE_IMPLEMENTATION,
         conversion::comparison::KIND => COMPARISON_IMPLEMENTATION,
         conversion::comparison::DIFFERENCE_KIND => DIFFERENCE_COMPARISON_IMPLEMENTATION,
@@ -64,6 +74,11 @@ fn offer_for(kind: &str) -> Option<CapabilityOffer> {
         "quantity/compiled-conversion-back@1",
         concat!(
             include_str!("quantity_conversion_back.rs"),
+            include_str!("../../../../semantics/catalog/src/converted_equals_back.rs"),
+            include_str!(
+                "../../../../architecture/plot/src/quantity_conversion/converted_equals.rs"
+            ),
+            include_str!("../../../../architecture/plot/src/quantity_conversion/converted_equals/validation.rs"),
             include_str!("../../../../architecture/plot/src/quantity_conversion.rs"),
             include_str!("../../../../architecture/plot/src/quantity_conversion/encoding.rs"),
             include_str!("../../../../architecture/plot/src/quantity_conversion/comparison.rs"),
@@ -76,7 +91,16 @@ fn offer_for(kind: &str) -> Option<CapabilityOffer> {
             ),
             include_str!("../../../../architecture/core/src/quantity/temperature_difference.rs"),
             include_str!("../../../../architecture/core/src/quantity.rs"),
-            include_str!("../../../../architecture/core/src/quantity_prefix.rs"),
+            include_str!("../../../../architecture/core/src/unit.rs"),
+            include_str!("../../../../architecture/core/definitions/physical.conduit"),
+            include_str!("../../../../architecture/core/src/physical_definition.rs"),
+            include_str!("../../../../architecture/core/src/physical_definition/dimension.rs"),
+            include_str!("../../../../architecture/core/src/physical_definition/family.rs"),
+            include_str!("../../../../architecture/core/src/physical_definition/generated.rs"),
+            include_str!("../../../../architecture/core/src/physical_definition/role_kind.rs"),
+            include_str!("../../../../architecture/core/src/physical_definition/scalar.rs"),
+            include_str!("../../../../architecture/core/src/physical_definition/unit.rs"),
+            include_str!("../../../../architecture/core/src/quantity_configuration.rs"),
             include_str!("../../../../architecture/core/src/quantity_suffix.rs"),
             include_str!("../../../../architecture/core/src/quantity/exact.rs"),
             include_str!("../../../../architecture/core/src/quantity/target.rs"),
@@ -96,7 +120,13 @@ fn offer_for(kind: &str) -> Option<CapabilityOffer> {
             contract,
             Back {
                 capability_id: CapabilityId::from(implementation),
-                execution_profile_id: ExecutionProfileId::from(PROFILE),
+                execution_profile_id: ExecutionProfileId::from(
+                    if kind == conversion::converted_equals::KIND {
+                        COMPARATOR_PROFILE
+                    } else {
+                        PROFILE
+                    },
+                ),
                 implementation_id: ImplementationId::from(implementation),
                 artifact_id: ArtifactId::from(artifact),
                 host_calls: vec![],
@@ -111,7 +141,7 @@ fn offer_for(kind: &str) -> Option<CapabilityOffer> {
 fn admitted(placement: &PlannedGear) -> Result<Vec<u8>, String> {
     let expected =
         offer_for(placement.kind_id.as_str()).ok_or("unsupported quantity conversion Kind")?;
-    let contract = conversion::operation_contract(placement.kind_id.as_str())
+    let contract = operation_contract(placement.kind_id.as_str())
         .ok_or("unsupported quantity operation Kind")?;
     if placement.kind_id != expected.kind_id
         || placement.kind_contract_revision != expected.kind_contract_revision
@@ -153,6 +183,10 @@ fn admitted(placement: &PlannedGear) -> Result<Vec<u8>, String> {
         conduit_plot::validate_configuration_value(field, &entry.value)
             .map_err(|error| format!("quantity conversion configuration: {error}"))?;
     }
+    if placement.kind_id.as_str() == conversion::converted_equals::KIND {
+        comparator(placement)?;
+        return Ok(Vec::new());
+    }
     let receipt = conversion::prepare_operation_configuration(
         placement.kind_id.as_str(),
         &placement.configuration,
@@ -174,6 +208,15 @@ fn admitted(placement: &PlannedGear) -> Result<Vec<u8>, String> {
 
 fn budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     let bytes = admitted(placement)?;
+    if placement.kind_id.as_str() == conversion::converted_equals::KIND {
+        return Ok(BackBudget {
+            value_items: 4,
+            value_bytes: conversion::MAXIMUM_RECEIPT_BYTES + 2,
+            host_requests: 0,
+            sign_items: 8,
+            maximum_value_bytes: conversion::MAXIMUM_RECEIPT_BYTES,
+        });
+    }
     let maximum = u32::try_from(bytes.len()).map_err(|_| "quantity receipt exceeds storage")?;
     if maximum > conversion::MAXIMUM_RECEIPT_BYTES {
         return Err("quantity receipt exceeds admitted profile".into());
@@ -193,6 +236,22 @@ fn prepare(
     values: &mut HostedValueStore,
 ) -> Result<InstalledBack, String> {
     let bytes = admitted(placement)?;
+    if placement.kind_id.as_str() == conversion::converted_equals::KIND {
+        let comparison = comparator(placement)?;
+        let no = values
+            .store(&InfoBool::FALSE.encode())
+            .map_err(|error| format!("store false: {error:?}"))?;
+        let yes = values
+            .store(&InfoBool::TRUE.encode())
+            .map_err(|error| format!("store true: {error:?}"))?;
+        return Ok(InstalledBack::ConvertedEquals(Box::new(
+            conduit_semantic_catalog::ConvertedEqualsBack::new(
+                comparison,
+                [no, yes],
+                conversion::MAXIMUM_RECEIPT_BYTES,
+            ),
+        )));
+    }
     let value = values
         .store(&bytes)
         .map_err(|error| format!("store quantity receipt: {error:?}"))?;
@@ -204,3 +263,25 @@ fn prepare(
 #[cfg(test)]
 #[path = "quantity_conversion_back_tests.rs"]
 mod tests;
+
+fn comparator(
+    placement: &PlannedGear,
+) -> Result<conversion::converted_equals::PreparedConvertedEquals, String> {
+    let [entry] = placement.configuration.as_slice() else {
+        return Err("receipt comparator requires expected Quantity".into());
+    };
+    let ("expected", ConfigurationValue::Quantity(expected)) = (entry.key.as_str(), &entry.value)
+    else {
+        return Err("receipt comparator expected Type differs".into());
+    };
+    conversion::converted_equals::PreparedConvertedEquals::new(expected.value())
+        .map_err(|error| format!("receipt comparator configuration: {error:?}"))
+}
+
+fn operation_contract(kind: &str) -> Option<Kind> {
+    if kind == conversion::converted_equals::KIND {
+        Some(conversion::converted_equals::contract())
+    } else {
+        conversion::operation_contract(kind)
+    }
+}

@@ -233,12 +233,13 @@ impl Context<'_> {
 
 fn definition_uses(definition: &TypeDefinitionSyntax, parameter: &str) -> bool {
     match definition {
+        TypeDefinitionSyntax::Quantity(_) => false,
         TypeDefinitionSyntax::Scalar(value) => expression_uses(value, parameter),
         TypeDefinitionSyntax::Record(fields) => fields
             .iter()
             .any(|field| expression_uses(&field.value_type, parameter)),
         TypeDefinitionSyntax::Variant(cases) => cases.iter().any(|case| match &case.payload {
-            TypeVariantPayloadSyntax::Unit => false,
+            TypeVariantPayloadSyntax::Empty => false,
             TypeVariantPayloadSyntax::Type(value) => expression_uses(value, parameter),
             TypeVariantPayloadSyntax::Record(fields) => fields
                 .iter()

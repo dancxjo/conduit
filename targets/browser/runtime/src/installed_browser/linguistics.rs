@@ -257,7 +257,7 @@ mod tests {
         let syntax = conduit_plot::parse_syntax_document(
             r#"plot preparation-language {
             tokenize: language/tokenize-four(material = { identity: "text/fixture", language: "language/english", revision: "source/1", text: "Bright stars shine." })
-            annotate: language/annotate-four(language-request = { language: "language/english", variety: none(""), variety_policy: language_sufficient("") })
+            annotate: language/annotate-four(language-request = { language: "language/english", variety: none(empty), variety_policy: language_sufficient(empty) })
             tokenize.tokens >> annotate.tokens
         }"#,
         );

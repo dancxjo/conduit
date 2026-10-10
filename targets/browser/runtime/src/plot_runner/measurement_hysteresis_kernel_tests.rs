@@ -3,7 +3,7 @@
 use super::*;
 use conduit_core::{
     process_owned_line_offer_with_limits, BaseImplementationId, LinkLimits, PortDirection,
-    Quantity, QuantityUnit, StructuredInfoValue, TemporalInstant, TemporalScale,
+    Quantity, StructuredInfoValue, TemporalInstant, TemporalScale, Unit,
 };
 use conduit_data::{
     MeasurementHysteresisProfile, MeasurementSummary, MeasurementThresholdPolicy,
@@ -200,8 +200,8 @@ fn planned_browser_hysteresis_uses_exact_profile_and_initial_state() {
         profile_type,
         conduit_data::encode_measurement_hysteresis_profile(MeasurementHysteresisProfile {
             policy: MeasurementThresholdPolicy::new(
-                Quantity::new(40, QuantityUnit::Millivolt),
-                Quantity::new(60, QuantityUnit::Millivolt),
+                Quantity::new(40, Unit::Millivolt),
+                Quantity::new(60, Unit::Millivolt),
             )
             .unwrap(),
             initial_state: MeasurementThresholdState::Above,
@@ -232,10 +232,10 @@ fn planned_browser_hysteresis_uses_exact_profile_and_initial_state() {
         sample_count: 2,
         first_observed_at: instant.clone().try_into().unwrap(),
         last_observed_at: instant.try_into().unwrap(),
-        minimum: Quantity::new(40, QuantityUnit::Millivolt),
-        maximum: Quantity::new(40, QuantityUnit::Millivolt),
-        range: Quantity::new(0, QuantityUnit::Millivolt),
-        mean: Quantity::new(40, QuantityUnit::Millivolt),
+        minimum: Quantity::new(40, Unit::Millivolt),
+        maximum: Quantity::new(40, Unit::Millivolt),
+        range: Quantity::new(0, Unit::Millivolt),
+        mean: Quantity::new(40, Unit::Millivolt),
     };
     let summary = leaf(
         summary_type,

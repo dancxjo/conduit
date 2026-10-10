@@ -29,6 +29,7 @@ mod little_seismograph_source;
 mod logic;
 mod math;
 pub(crate) mod measurement_hysteresis;
+pub(crate) mod measurement_limits;
 mod measurement_observation;
 pub(crate) mod measurement_plot;
 mod measurement_presentation;
@@ -93,6 +94,7 @@ pub(crate) use limits::{
     BROWSER_ROUTE_TARGETS, BROWSER_SIGN_ITEMS, BROWSER_TOTAL_VALUE_BYTES, BROWSER_VALUE_ITEMS,
     MAXIMUM_BROWSER_CORDS, MAXIMUM_BROWSER_GEARS, MAXIMUM_BROWSER_PLOT_CORDS,
     MAXIMUM_BROWSER_PLOT_GEARS, MAXIMUM_BROWSER_STORED_VALUE_BYTES, MAXIMUM_BROWSER_VALUE_BYTES,
+    NORMALIZED_POINTER_VALUE_BYTES,
 };
 pub(crate) use membership_offer::advertisement as membership_advertisement;
 pub(crate) use normalized_quantity::{

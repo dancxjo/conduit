@@ -1,9 +1,10 @@
 //! Exact profiled measurement samples through the planned browser production kernel.
 
 use super::*;
+use crate::plot_runner::finite_connection_limits;
 use conduit_core::{
     process_owned_line_offer_with_limits, BaseImplementationId, LinkLimits, PortDirection,
-    Quantity, QuantityUnit, StructuredInfoValue, TemporalInstant, TemporalScale,
+    Quantity, StructuredInfoValue, TemporalInstant, TemporalScale, Unit,
 };
 use conduit_data::{
     FullWindowPolicy, MeasurementRange, MeasurementSample, MeasurementWindowProfile,
@@ -107,7 +108,7 @@ fn fragment() -> PlanFragment {
             })
             .collect(),
     };
-    let maximum = MAXIMUM_BROWSER_VALUE_BYTES as u32;
+    let maximum = crate::installed_browser::measurement_limits::WINDOW as u32;
     let lines = [
         (
             "fixture/measurement-profile-line",
@@ -151,7 +152,7 @@ fn fragment() -> PlanFragment {
             vec![line.line_id.clone()],
         );
     }
-    conduit_planner::plan_expanded_canonical_with_options(
+    conduit_planner::plan_expanded_canonical_with_connection_limits(
         &expanded,
         &hosts,
         &placements,
@@ -163,11 +164,12 @@ fn fragment() -> PlanFragment {
             connection_bases: &BTreeMap::new(),
             line_candidates: &candidates,
             connection_item_capacity: 1,
-            connection_byte_capacity: maximum,
+            connection_byte_capacity: MAXIMUM_BROWSER_VALUE_BYTES as u32,
             authority_grants: &[],
             protected_resource_grants: &[],
             line_offers: &lines,
         },
+        &finite_connection_limits(&expanded, MAXIMUM_BROWSER_VALUE_BYTES as u32),
     )
     .unwrap()
     .fragments
@@ -211,8 +213,8 @@ fn planned_browser_window_retains_exact_profile_samples_and_drop_evidence() {
     let profile = MeasurementWindowProfile {
         capacity: 2,
         range: MeasurementRange {
-            minimum: Quantity::new(0, QuantityUnit::Millivolt),
-            maximum: Quantity::new(100, QuantityUnit::Millivolt),
+            minimum: Quantity::new(0, Unit::Millivolt),
+            maximum: Quantity::new(100, Unit::Millivolt),
         },
         clock_basis: "fixture-clock".into(),
         full_policy: FullWindowPolicy::DropOldest,
@@ -235,7 +237,7 @@ fn planned_browser_window_retains_exact_profile_samples_and_drop_evidence() {
     drain_to_remote_idle(&mut scheduler, &fragment);
     for (sequence, (value, ticks)) in [(0, (0, 1)), (1, (50, 2)), (2, (100, 3))] {
         let sample = MeasurementSample {
-            value: Quantity::new(value, QuantityUnit::Millivolt),
+            value: Quantity::new(value, Unit::Millivolt),
             observed_at: TemporalInstant {
                 ticks,
                 scale: TemporalScale::Milliseconds,
@@ -284,6 +286,163 @@ fn planned_browser_window_retains_exact_profile_samples_and_drop_evidence() {
             .map(|point| *point.value_millionths())
             .collect::<Vec<_>>(),
         [500_000, 1_000_000]
+    );
+    complete_host_effect(&mut scheduler, &pending).unwrap();
+    assert!(matches!(
+        drive(&mut scheduler, &fragment).unwrap(),
+        DriveStatus::Quiescent
+    ));
+}
+
+#[test]
+fn selected_data_plan_refuses_unsealed_or_insufficient_memory_before_play() {
+    let mut selected = fragment();
+    let lowered = conduit_plan_lowering::lowering::lower_plan_fragment(&selected).unwrap();
+    let placement = selected
+        .placements
+        .iter_mut()
+        .find(|gear| gear.kind_id.as_str() == conduit_data::MEASUREMENT_COUNT_WINDOW_KIND)
+        .unwrap();
+    let memory = placement
+        .resources
+        .iter_mut()
+        .find(|resource| resource.class_id.as_str() == conduit_core::RUNTIME_MEMORY_RESOURCE_CLASS)
+        .unwrap();
+    memory.units -= 1;
+    assert!(prepare_scheduler(&selected, &lowered)
+        .err()
+        .unwrap()
+        .contains("memory reservation"));
+}
+
+#[test]
+fn planned_browser_maximum_window_uses_sealed_large_storage_and_completes() {
+    let fragment = fragment();
+    let lowered = conduit_plan_lowering::lowering::lower_plan_fragment(&fragment).unwrap();
+    assert_eq!(lowered.remote_endpoints.len(), 2);
+    let mut scheduler = prepare_scheduler(&fragment, &lowered).unwrap();
+    assert!(scheduler
+        ._prepared_storage
+        .matches(&[(&fragment, &lowered)]));
+    assert!(scheduler
+        ._prepared_storage
+        .slot_capacities
+        .iter()
+        .any(|capacity| *capacity > 8192));
+    assert!(scheduler._prepared_storage.data_memory_reservation > 0);
+    let profile_type = conduit_data::measurement_window_profile_type();
+    let profile_endpoint = lowered
+        .remote_endpoints
+        .iter()
+        .find(|endpoint| endpoint.temporal == conduit_core::PortTemporal::Value)
+        .unwrap();
+    let sample_type = conduit_data::measurement_sample_type();
+    let sample_endpoint = lowered
+        .remote_endpoints
+        .iter()
+        .find(|endpoint| endpoint.temporal == conduit_core::PortTemporal::Flow { closes: true })
+        .unwrap();
+    let profile = MeasurementWindowProfile {
+        capacity: 64,
+        range: MeasurementRange {
+            minimum: Quantity::from_decimal_role(
+                0,
+                0,
+                Unit::Hertz,
+                conduit_core::QuantityRole::Linear,
+            )
+            .unwrap(),
+            maximum: Quantity::from_decimal_role(
+                100,
+                0,
+                Unit::Hertz,
+                conduit_core::QuantityRole::Linear,
+            )
+            .unwrap(),
+        },
+        clock_basis: "fixture-clock".into(),
+        full_policy: FullWindowPolicy::DropOldest,
+    };
+    let profile = leaf(
+        profile_type,
+        conduit_data::encode_measurement_window_profile(&profile).unwrap(),
+    );
+    scheduler
+        .admit_remote_input(
+            profile_endpoint.endpoint,
+            profile_endpoint.cord,
+            0,
+            &profile,
+        )
+        .unwrap();
+    scheduler
+        .close_remote_input(profile_endpoint.endpoint, profile_endpoint.cord)
+        .unwrap();
+    drain_to_remote_idle(&mut scheduler, &fragment);
+    for sequence in 0..64 {
+        let (value, ticks) = (50, sequence + 1);
+        let sample = MeasurementSample {
+            value: Quantity::from_decimal_role(
+                value as i128,
+                0,
+                Unit::Hertz,
+                conduit_core::QuantityRole::Linear,
+            )
+            .unwrap(),
+            observed_at: TemporalInstant {
+                ticks,
+                scale: TemporalScale::Milliseconds,
+                clock_basis: "fixture-clock".into(),
+                resolution_ticks: 1,
+                uncertainty_ticks: 0,
+            }
+            .try_into()
+            .unwrap(),
+            uncertainty: Some(
+                Quantity::from_decimal_role(1, 0, Unit::Hertz, conduit_core::QuantityRole::Linear)
+                    .unwrap(),
+            ),
+        };
+        let sample = leaf(
+            sample_type.clone(),
+            conduit_data::encode_measurement_sample(&sample).unwrap(),
+        );
+        scheduler
+            .admit_remote_input(
+                sample_endpoint.endpoint,
+                sample_endpoint.cord,
+                sequence,
+                &sample,
+            )
+            .unwrap();
+        drain_to_remote_idle(&mut scheduler, &fragment);
+    }
+    scheduler
+        .close_remote_input(sample_endpoint.endpoint, sample_endpoint.cord)
+        .unwrap();
+
+    let DriveStatus::Effect(pending) = drive(&mut scheduler, &fragment).unwrap() else {
+        panic!("expected plot manifestation")
+    };
+    let BrowserHostEffect::Manifestation(output) = &pending.effect else {
+        panic!("expected plot manifestation")
+    };
+    let value = StructuredInfoValue::from_canonical_bytes(&output.canonical_value).unwrap();
+    let conduit_core::StructuredInfoValueShape::Leaf(payload) = value.shape() else {
+        panic!("expected plot leaf")
+    };
+    let series = conduit_data::decode_measurement_plot_series(payload).unwrap();
+    assert_eq!(
+        (series.source_samples(), series.omitted_samples()),
+        (64, 62)
+    );
+    assert_eq!(
+        series
+            .points()
+            .iter()
+            .map(|point| *point.value_millionths())
+            .collect::<Vec<_>>(),
+        [500_000, 500_000]
     );
     complete_host_effect(&mut scheduler, &pending).unwrap();
     assert!(matches!(

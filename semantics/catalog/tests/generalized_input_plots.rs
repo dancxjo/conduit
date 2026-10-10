@@ -1,7 +1,7 @@
 use conduit_core::{
     BaseImplementationId, BootId, HostAdvertisement, HostId, HostProfileId, OfferGeneration,
-    Quantity, QuantityUnit, StructuredInfoValue, StructuredInfoValueShape, StructuredSelection,
-    StructuredSelector, UnmatchedVariantDisposition, PROTOCOL_VERSION,
+    Quantity, StructuredInfoValue, StructuredInfoValueShape, StructuredSelection,
+    StructuredSelector, Unit, UnmatchedVariantDisposition, PROTOCOL_VERSION,
 };
 use conduit_plot::{
     check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
@@ -91,19 +91,19 @@ fn structured_selection_routes_one_semantic_axis_without_new_syntax() {
 #[test]
 fn normalized_axes_and_pressure_refuse_hidden_device_integer_semantics() {
     assert_eq!(
-        validate_normalized_axis(Quantity::new(1, QuantityUnit::Meter)),
+        validate_normalized_axis(Quantity::new(1, Unit::Meter)),
         Err(GeneralizedInputRefusal::NonRatio)
     );
     assert_eq!(
-        validate_normalized_axis(Quantity::new(1_000_001, QuantityUnit::Millionth)),
+        validate_normalized_axis(Quantity::new(1_000_001, Unit::Millionth)),
         Err(GeneralizedInputRefusal::OutsideNormalizedRange)
     );
     assert_eq!(
-        validate_normalized_axis(Quantity::new(-1_000_000, QuantityUnit::Millionth)),
+        validate_normalized_axis(Quantity::new(-1_000_000, Unit::Millionth)),
         Ok(())
     );
     assert_eq!(
-        validate_normalized_pressure(Quantity::new(-1, QuantityUnit::Millionth)),
+        validate_normalized_pressure(Quantity::new(-1, Unit::Millionth)),
         Err(GeneralizedInputRefusal::OutsideNormalizedRange)
     );
 }

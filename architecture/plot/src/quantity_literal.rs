@@ -2,29 +2,17 @@
 //! startup resolution. Numeric eligibility must not fall back to opaque text.
 
 use crate::SyntaxCheckError;
-use conduit_core::{Quantity, QuantityLiteralRefusal};
 
-pub(crate) fn startup_quantity(text: &str) -> Result<Option<Quantity>, SyntaxCheckError> {
-    match Quantity::parse_plot_literal(text) {
+pub(crate) fn startup_quantity(
+    text: &str,
+) -> Result<Option<conduit_core::QuantityConfigurationValue>, SyntaxCheckError> {
+    match conduit_core::QuantityConfigurationValue::parse(text) {
         Ok(value) => Ok(Some(value)),
-        Err(QuantityLiteralRefusal::NonCanonicalUnit { canonical }) => {
-            Err(SyntaxCheckError::QuantityLiteral(format!(
-                "non-canonical quantity unit in '{text}'; use '{canonical}'"
-            )))
-        }
-        Err(
-            refusal @ (QuantityLiteralRefusal::RepresentationIneligible { .. }
-            | QuantityLiteralRefusal::AmbiguousUnit),
-        ) => Err(SyntaxCheckError::QuantityEligibility(
-            format!("quantity literal '{text}' refused: {refusal:?}"),
-            None,
-        )),
         Err(_) => Ok(None),
     }
 }
 
-/// A wider representation is an explicit selected Type. Existing catalogs and
-/// checked identities receive no extra declarations when it is unused.
+/// Resolve the canonical physical Types without an import.
 pub(crate) fn selected_profile<'a>(
     catalog: &'a crate::StartupCatalog,
     source_type: &str,
@@ -33,17 +21,16 @@ pub(crate) fn selected_profile<'a>(
         return Some(alloc::borrow::Cow::Borrowed(existing));
     }
     let kind = crate::value_type::canonical_value_kind(source_type);
-    if kind.as_str() != conduit_core::EXACT_DECIMAL_QUANTITY_INFO_ID {
+    if !matches!(
+        kind.as_str(),
+        conduit_core::QUANTITY_INFO_ID | conduit_core::UNIT_INFO_ID
+    ) && conduit_core::quantity_info_dimension(kind.as_str()).is_none()
+    {
         return None;
     }
     conduit_core::StructuredInfoType::leaf(kind)
         .ok()
         .map(alloc::borrow::Cow::Owned)
-}
-
-pub(crate) fn is_exact_profile(expected: &conduit_core::StructuredInfoType) -> bool {
-    matches!(expected.shape(), conduit_core::StructuredInfoTypeShape::Leaf(kind)
-        if kind.as_str() == conduit_core::EXACT_DECIMAL_QUANTITY_INFO_ID)
 }
 
 /// A slash is part of a quantity token only for a complete reviewed suffix
@@ -90,5 +77,47 @@ pub(crate) fn compound_token_length(tail: &str) -> Option<usize> {
         (!character.is_ascii_digit() && character != '.').then_some(index)
     })?;
     conduit_core::ResolvedQuantitySuffix::resolve(&candidate[suffix_start..]).ok()?;
+    Some(end)
+}
+
+/// Punctuation inside a complete reviewed Unit token belongs to that value.
+/// Numeric remainder and unreviewed divisions retain their ordinary grammar.
+pub(crate) fn unit_token_length(tail: &str) -> Option<usize> {
+    if tail.starts_with(|c: char| c.is_ascii_digit()) {
+        return None;
+    }
+    let end = tail
+        .char_indices()
+        .find_map(|(i, c)| {
+            (c.is_whitespace()
+                || matches!(
+                    c,
+                    '(' | ')'
+                        | '['
+                        | ']'
+                        | '{'
+                        | '}'
+                        | ','
+                        | ':'
+                        | '?'
+                        | '!'
+                        | '+'
+                        | '-'
+                        | '*'
+                        | '<'
+                        | '>'
+                        | '='
+                        | '&'
+                        | '^'
+                        | '|'
+                ))
+            .then_some(i)
+        })
+        .unwrap_or(tail.len());
+    let candidate = &tail[..end];
+    if !candidate.contains('/') && candidate != "%" {
+        return None;
+    }
+    conduit_core::Unit::resolve(candidate).ok()?;
     Some(end)
 }

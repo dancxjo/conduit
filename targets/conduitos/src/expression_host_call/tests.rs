@@ -167,7 +167,7 @@ mod planned;
 
 #[test]
 fn empty_unit_frames_keep_one_admitted_queue_cell_and_execute() {
-    let unit = StructuredInfoType::leaf(kind_id(UNIT_INFO_ID)).unwrap();
+    let unit = StructuredInfoType::leaf(kind_id(EMPTY_INFO_ID)).unwrap();
     let program = PortableExpressionProgram {
         input_type: unit.clone(),
         output_type: unit.clone(),

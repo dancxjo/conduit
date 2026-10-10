@@ -233,7 +233,11 @@ pub(crate) fn append_keymap_offer(advertisement: &mut HostAdvertisement, build_i
 
 fn checked_expanded_plot() -> Result<conduit_plot::ExpandedCanonicalPlot, PreparationError> {
     let syntax = conduit_plot::parse_syntax_document(PLOT_SOURCE);
-    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut startup = conduit_plot::checked_physical_catalog_for_document(
+        &conduit_plot::parse_syntax_document(""),
+        &conduit_plot::StartupCatalog::new(),
+    )
+    .map_err(|_| PreparationError::PlotRejected)?;
     let mut profile = conduit_plot::ProfileCatalog::new();
     conduit_semantic_catalog::install_keyboard_catalogs(&mut startup, &mut profile)
         .map_err(|_| PreparationError::PlotRejected)?;

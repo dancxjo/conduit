@@ -145,10 +145,17 @@ The older `where pattern(...)`, `where range(...)` and `where member(...)` spell
 
 ### Quantities and finite containers
 
-The native suffix `250ms` needs no notation import. Current development also
-provides explicit `units/convert`, `units/compare`, temperature-difference
-operations, all 24 SI prefixes and a separately admitted exact quantity
-profile. [[Units and quantities|Units-and-quantities]] contains complete plots,
+Native `250ms` is a checked `Quantity`; bare `Hz`, `kHz` and `°C` are checked
+`Unit` values. Neither needs notation imports or quotation marks. `Quantity`
+uses one bounded exact decimal codec carrying the full Unit descriptor;
+`Empty` is the distinct empty product value. Dimension-specific consumer Types
+use the same quantity codec and enforce their dimensions. Integer realizations
+perform explicit checked projections with precision and range refusal.
+Current development provides typed `units/convert(source = 1kHz, to = Hz)`,
+`units/compare`, distinct temperature-difference operations, and all 24 SI
+prefixes. `units/converted-equals(expected = 1000Hz)` consumes a validated
+conversion receipt and emits an explicit Boolean projection. The optional
+scoped import `with units/converted-equals as =?` abbreviates that same Fore. [[Units and quantities|Units-and-quantities]] contains complete plots,
 prefix examples and precise representation/refusal boundaries.
 
 ```conduit

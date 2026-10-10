@@ -23,7 +23,7 @@ pub fn copy_result_type() -> StructuredInfoType {
 pub fn copy_success_value(bytes_copied: u64) -> Result<conduit_core::StructuredInfoValue, String> {
     let bytes_copied = i64::try_from(bytes_copied)
         .map_err(|_| "copied byte count exceeds the quantity profile".to_string())?;
-    let quantity = conduit_core::Quantity::new(bytes_copied, conduit_core::QuantityUnit::Byte);
+    let quantity = conduit_core::Quantity::new(bytes_copied, conduit_core::Unit::Byte);
     let outcome = conduit_data::FileCopyOutcome::success(quantity)
         .map_err(|error| format!("construct file copy result: {error:?}"))?;
     conduit_data::FileCopyResult::new(outcome)

@@ -78,6 +78,7 @@ pub fn expand_canonical_plot_for_authoring_with_backs(
     let mut stack = Vec::new();
     let mut realization_backs = Vec::new();
     let mut catalog = catalog.clone();
+    catalog.physical = document.physical.clone();
     catalog.install_type_invariants(&document.native_types);
     let fragment = expand_instance(
         plot,

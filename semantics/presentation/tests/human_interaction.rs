@@ -6,7 +6,7 @@ use common::{
     available_mask_show, checked_renderer_plot, host, plan_for, presentation, WAYLAND_RESOURCE,
 };
 use conduit_core::{
-    encode_count, CheckedValueContract, IntervalEndpoint, Quantity, QuantityUnit, ValueConstraint,
+    encode_count, CheckedValueContract, IntervalEndpoint, Quantity, Unit, ValueConstraint,
     COUNT_ENCODED_LEN, COUNT_INFO_ID, DISTANCE_INFO_ID, QUANTITY_ENCODED_LEN,
 };
 use conduit_plot::TextPatternExpression;
@@ -131,8 +131,8 @@ fn ranged_and_member_arguments() -> Vec<FaceActionArgument> {
                 DISTANCE_INFO_ID.into(),
                 QUANTITY_ENCODED_LEN as u32,
                 vec![ValueConstraint::QuantityRange {
-                    minimum: Some(Quantity::new(1, QuantityUnit::Meter)),
-                    maximum: Some(Quantity::new(2, QuantityUnit::Meter)),
+                    minimum: Some(Quantity::new(1, Unit::Meter).into()),
+                    maximum: Some(Quantity::new(2, Unit::Meter).into()),
                     minimum_endpoint: IntervalEndpoint::Inclusive,
                     maximum_endpoint: IntervalEndpoint::Inclusive,
                 }],
@@ -594,33 +594,18 @@ fn ranges_and_finite_membership_are_face_truth_across_admission_and_linear_inspe
         )
     };
 
-    interaction(
-        3,
-        Quantity::new(150, QuantityUnit::Centimeter),
-        b"careful",
-        1,
-    )
-    .expect("all canonical values satisfy the Face contracts");
+    interaction(3, Quantity::new(150, Unit::Centimeter), b"careful", 1)
+        .expect("all canonical values satisfy the Face contracts");
     assert_eq!(
-        interaction(
-            5,
-            Quantity::new(150, QuantityUnit::Centimeter),
-            b"careful",
-            2,
-        ),
+        interaction(5, Quantity::new(150, Unit::Centimeter), b"careful", 2,),
         Err(FaceInteractionRefusal::ViolatedConstraint)
     );
     assert_eq!(
-        interaction(3, Quantity::new(3, QuantityUnit::Meter), b"careful", 3,),
+        interaction(3, Quantity::new(3, Unit::Meter), b"careful", 3,),
         Err(FaceInteractionRefusal::ViolatedConstraint)
     );
     assert_eq!(
-        interaction(
-            3,
-            Quantity::new(150, QuantityUnit::Centimeter),
-            b"reckless",
-            4,
-        ),
+        interaction(3, Quantity::new(150, Unit::Centimeter), b"reckless", 4,),
         Err(FaceInteractionRefusal::ViolatedConstraint)
     );
 

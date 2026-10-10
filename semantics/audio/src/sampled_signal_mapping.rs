@@ -1,7 +1,7 @@
 //! Lossless semantic mapping from compact PCM blocks to generic sampled signals.
 
 use alloc::{format, string::ToString};
-use conduit_core::{Quantity, QuantityUnit};
+use conduit_core::{Quantity, Unit};
 use conduit_data::{
     tensor_content_digest, SampledSignal, SignalCadence, SignalContinuity, SignalStart, TensorAxis,
     TensorAxisRole, TensorBacking, TensorElement, TensorValue,
@@ -25,7 +25,7 @@ pub fn pcm_as_sampled_signal(
         clock_identity: format!("audio/pcm-clock/{}", header.clock_id()),
         start: SignalStart::at_sample(header.start_frame()),
         cadence: SignalCadence::regular(
-            Quantity::new(1, QuantityUnit::Second),
+            Quantity::new(1, Unit::Second),
             u64::from(header.sample_rate_hz()),
         )
         .map_err(|_| SoundInfoError::OutOfRange("pcm-cadence"))?,
@@ -55,7 +55,7 @@ pub fn pcm_as_sampled_signal(
                         }
                         .to_string(),
                     ),
-                    unit: Some(QuantityUnit::One),
+                    unit: Some(Unit::One),
                 },
             ])
             .map_err(|_| SoundInfoError::OutOfRange("pcm-axes"))?,
@@ -89,7 +89,7 @@ pub fn sampled_signal_as_pcm(
     let SignalCadence::Regular(regular) = &signal.cadence else {
         return Err(SoundInfoError::OutOfRange("pcm-cadence"));
     };
-    if regular.per() != &Quantity::new(1, QuantityUnit::Second) {
+    if regular.per() != &Quantity::new(1, Unit::Second) {
         return Err(SoundInfoError::OutOfRange("pcm-cadence"));
     }
     let sample_rate_hz = u32::try_from(*regular.samples())

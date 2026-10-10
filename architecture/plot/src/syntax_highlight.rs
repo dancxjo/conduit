@@ -261,7 +261,7 @@ fn classify_word(word: &str) -> SyntaxHighlightKind {
             SyntaxHighlightKind::Number
         }
         _ if conduit_core::Quantity::parse_plot_literal(word).is_ok()
-            || conduit_core::ExactDecimalQuantity::parse_plot_literal(word).is_ok() =>
+            || conduit_core::Quantity::parse_plot_literal(word).is_ok() =>
         {
             SyntaxHighlightKind::Number
         }

@@ -557,7 +557,7 @@ requires no empty call. A routing companion to append to the same source is:
 plot route-choice (
     >> value: Choice <= 4096B
     known: I64 >>
-    unknown: Unit >>
+    unknown: Empty >>
 ) {
     value >> ? {
         [Choice.known] >> known
@@ -613,7 +613,7 @@ type Result =
 
 plot guarded-index (
     value: Request >> result: Result
-) = (.index < sequence/length(.bytes) ? octet(sequence/at(.bytes, .index)) : short(unit))
+) = (.index < sequence/length(.bytes) ? octet(sequence/at(.bytes, .index)) : short(empty))
 ```
 
 The selected branch uses a finite checked semantic call. An index inside the

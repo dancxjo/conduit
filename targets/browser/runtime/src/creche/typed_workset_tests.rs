@@ -188,7 +188,7 @@ fn text_and_pattern_presentations_plan_together_under_one_body() {
             sign_bytes: u32::from(limits.sign_items)
                 * core::mem::size_of::<conduit_kernel::KernelEvent>() as u32,
         };
-        lower_local_fragment_set(
+        let lowered = lower_local_fragment_set(
             &fragments,
             conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PROFILE,
             bounds,
@@ -202,7 +202,7 @@ fn text_and_pattern_presentations_plan_together_under_one_body() {
                 < page_profile["bounds"]["heap_arena_bytes"].as_u64().unwrap()
         );
         let too_small = FragmentSetBounds {
-            value_bytes: 640 * 1024,
+            value_bytes: lowered.value_bytes - 1,
             ..bounds
         };
         let refusal = lower_local_fragment_set(

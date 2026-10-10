@@ -73,15 +73,15 @@ pub fn fragment(
         let Some(value) = value else {
             continue;
         };
-        let quantity = conduit_core::ExactDecimalQuantity::new(
+        let quantity = conduit_core::Quantity::from_decimal(
             i128::from(value),
             -1,
-            conduit_core::QuantityUnit::Celsius,
+            conduit_core::Unit::Celsius,
         )
         .map_err(|_| "invalid exact Celsius quantity")?;
         let contract = conduit_core::CheckedValueContract::new(
-            conduit_core::kind_id(conduit_core::EXACT_DECIMAL_QUANTITY_INFO_ID),
-            conduit_core::EXACT_DECIMAL_QUANTITY_ENCODED_LEN as u32,
+            conduit_core::kind_id(conduit_core::QUANTITY_INFO_ID),
+            conduit_core::QUANTITY_ENCODED_LEN as u32,
             Vec::new(),
         )
         .map_err(|_| "invalid temperature value contract")?;

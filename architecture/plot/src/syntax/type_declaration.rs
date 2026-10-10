@@ -64,6 +64,7 @@ pub struct TypeSyntax {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TypeDefinitionSyntax {
+    Quantity(crate::QuantityDefinitionSyntax),
     Scalar(TypeExpressionSyntax),
     Record(Vec<TypeFieldSyntax>),
     Variant(Vec<TypeVariantCaseSyntax>),
@@ -85,7 +86,7 @@ pub struct TypeVariantCaseSyntax {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TypeVariantPayloadSyntax {
-    Unit,
+    Empty,
     Type(TypeExpressionSyntax),
     Record(Vec<TypeFieldSyntax>),
 }

@@ -2,7 +2,7 @@
 
 use super::back::{BackBudget, BackFactory, InstalledBack};
 use conduit_audio::{AudioToneTerminal, PcmChannelLayout, PcmFrameHeader, PcmSampleRepresentation};
-use conduit_core::{PlannedGear, Quantity, QuantityUnit};
+use conduit_core::{PlannedGear, Quantity, Unit};
 use conduit_kernel::{
     scheduler::{
         AssignedAbnormalTransduction, AssignedCancellationTransduction,
@@ -99,11 +99,14 @@ impl<const PORTS: usize> StepBack<PORTS> for AudioToneBack {
 }
 
 fn frequency_millihertz(quantity: Quantity) -> Option<i128> {
-    let value = i128::from(quantity.value());
-    match quantity.unit() {
-        QuantityUnit::Millihertz => Some(value),
-        QuantityUnit::Hertz => Some(value * 1_000),
-        _ => None,
+    let converted = quantity.convert(Unit::Millihertz).ok()?;
+    let coefficient = converted.coefficient();
+    let exponent = converted.exponent();
+    if exponent >= 0 {
+        coefficient.checked_mul(10_i128.checked_pow(exponent as u32)?)
+    } else {
+        let divisor = 10_i128.checked_pow(u32::from(exponent.unsigned_abs()))?;
+        (coefficient % divisor == 0).then_some(coefficient / divisor)
     }
 }
 
@@ -118,7 +121,8 @@ fn render_block(
     phase: u32,
     start_frame: u64,
 ) -> Result<(CanonicalValue, u32), ()> {
-    let turns = (frequency_millihertz << 32) / (i128::from(SAMPLE_RATE) * 1_000);
+    let turns = frequency_millihertz.checked_mul(1_i128 << 32).ok_or(())?
+        / (i128::from(SAMPLE_RATE) * 1_000);
     let increment = turns.rem_euclid(1_i128 << 32) as u32;
     let header = PcmFrameHeader::new(
         PcmSampleRepresentation::Signed16LittleEndian,
@@ -229,11 +233,11 @@ mod tests {
     #[test]
     fn every_checked_frequency_encoding_crosses_the_back_boundary() {
         for quantity in [
-            Quantity::new(i64::MIN, QuantityUnit::Hertz),
-            Quantity::new(i64::MAX, QuantityUnit::Hertz),
-            Quantity::new(i64::MIN, QuantityUnit::Millihertz),
-            Quantity::new(i64::MAX, QuantityUnit::Millihertz),
-            Quantity::new(0, QuantityUnit::Hertz),
+            Quantity::new(i64::MIN, Unit::Hertz),
+            Quantity::new(i64::MAX, Unit::Hertz),
+            Quantity::new(i64::MIN, Unit::Millihertz),
+            Quantity::new(i64::MAX, Unit::Millihertz),
+            Quantity::new(0, Unit::Hertz),
         ] {
             let frequency = decode_frequency_input(&quantity.encode()).expect("checked Frequency");
             let (block, _) = render_block(frequency, u32::MAX, u64::MAX).unwrap();

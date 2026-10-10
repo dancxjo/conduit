@@ -112,8 +112,7 @@ impl ClockRelation {
             ClockRelationQuality::Estimated(estimated) => {
                 let maximum_error = estimated.maximum_error();
                 bytes.push(1);
-                bytes.extend_from_slice(&maximum_error.value().to_le_bytes());
-                bytes.push(time_unit_tag(maximum_error.unit()));
+                bytes.extend_from_slice(&maximum_error.encode());
             }
         }
         Ok(semantic_digest("science/clock-relation@1", &bytes))
@@ -129,7 +128,7 @@ impl CoordinateFrame {
         for axis in &self.axes {
             push_text(&mut bytes, axis.get());
         }
-        push_text(&mut bytes, quantity_unit_name(self.unit));
+        push_text(&mut bytes, &self.unit.semantic_id());
         Ok(semantic_digest("science/coordinate-frame@1", &bytes))
     }
 }
@@ -250,24 +249,4 @@ fn push_optional_text(output: &mut Vec<u8>, value: Option<&str>) {
 fn push_text(output: &mut Vec<u8>, value: &str) {
     output.extend_from_slice(&(value.len() as u16).to_le_bytes());
     output.extend_from_slice(value.as_bytes());
-}
-
-fn time_unit_tag(unit: conduit_core::QuantityUnit) -> u8 {
-    match unit {
-        conduit_core::QuantityUnit::Nanosecond => 0,
-        conduit_core::QuantityUnit::Microsecond => 1,
-        conduit_core::QuantityUnit::Millisecond => 2,
-        conduit_core::QuantityUnit::Second => 3,
-        other => other.encode()[0],
-    }
-}
-
-fn quantity_unit_name(unit: conduit_core::QuantityUnit) -> &'static str {
-    match unit {
-        conduit_core::QuantityUnit::Micrometer => "micrometer",
-        conduit_core::QuantityUnit::Millimeter => "millimeter",
-        conduit_core::QuantityUnit::Centimeter => "centimeter",
-        conduit_core::QuantityUnit::Meter => "meter",
-        other => other.semantic_id(),
-    }
 }

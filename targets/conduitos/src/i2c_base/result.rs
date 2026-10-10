@@ -35,8 +35,10 @@ impl PreparedI2cResultEncoder {
                 .map(|case| case.payload_type())
                 .ok_or(StructuredInfoRefusal::UnknownVariantTag)
         };
-        let mut unit =
-            PreparedStructuredComposer::new(&StructuredInfoType::leaf(kind_id("value/unit"))?, 64)?;
+        let mut unit = PreparedStructuredComposer::new(
+            &StructuredInfoType::leaf(kind_id("value/empty"))?,
+            64,
+        )?;
         let unit = unit.leaf(&[])?.to_vec();
         Ok(Self {
             result: PreparedStructuredComposer::new(

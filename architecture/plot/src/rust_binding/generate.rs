@@ -515,11 +515,13 @@ fn validate_boxed_variant_payloads(
             .iter()
             .find(|case| case.tag() == case_name)
             .ok_or(RustBindingGenerationError::InvalidSemanticType)?;
-        let StructuredInfoTypeShape::Record { schema, .. } = case.payload_type().shape() else {
-            return Err(RustBindingGenerationError::InvalidSemanticType);
-        };
-        if external_names.contains_key(schema.as_str()) {
-            return Err(RustBindingGenerationError::InvalidSemanticType);
+        match case.payload_type().shape() {
+            StructuredInfoTypeShape::Record { schema, .. }
+                if !external_names.contains_key(schema.as_str()) => {}
+            StructuredInfoTypeShape::Leaf(kind) if !unit_type(case.payload_type()) => {
+                primitive_rust_type(kind.as_str())?;
+            }
+            _ => return Err(RustBindingGenerationError::InvalidSemanticType),
         }
     }
     Ok(())
@@ -621,7 +623,7 @@ fn hash_type(value_type: &StructuredInfoType) -> bool {
         StructuredInfoTypeShape::Leaf(kind) => matches!(
             conduit_core::primitive_info_kind(kind.as_str()),
             Some(
-                PrimitiveInfoKind::Unit
+                PrimitiveInfoKind::Empty
                     | PrimitiveInfoKind::CancellationRequest
                     | PrimitiveInfoKind::Bool
                     | PrimitiveInfoKind::Count
@@ -703,7 +705,7 @@ pub(super) fn rust_type(
 
 pub(super) fn primitive_rust_type(identity: &str) -> Result<String, RustBindingGenerationError> {
     let value = match conduit_core::primitive_info_kind(identity) {
-        Some(PrimitiveInfoKind::Unit | PrimitiveInfoKind::CancellationRequest) => "()",
+        Some(PrimitiveInfoKind::Empty | PrimitiveInfoKind::CancellationRequest) => "()",
         Some(PrimitiveInfoKind::Bool) => "bool",
         Some(PrimitiveInfoKind::Count) => "u64",
         Some(PrimitiveInfoKind::Scalar) => "conduit_core::Scalar",
@@ -733,8 +735,7 @@ pub(super) fn primitive_rust_type(identity: &str) -> Result<String, RustBindingG
             | PrimitiveInfoKind::Ratio
             | PrimitiveInfoKind::PixelCount,
         ) => "conduit_core::Quantity",
-        Some(PrimitiveInfoKind::QuantityUnit) => "conduit_core::QuantityUnit",
-        Some(PrimitiveInfoKind::ExactDecimalQuantity) => "conduit_core::ExactDecimalQuantity",
+        Some(PrimitiveInfoKind::Unit) => "conduit_core::Unit",
         Some(PrimitiveInfoKind::U8) => "u8",
         Some(PrimitiveInfoKind::U16) => "u16",
         Some(PrimitiveInfoKind::U32) => "u32",
@@ -762,5 +763,5 @@ pub(super) fn data_reference_content_kind(identity: &str) -> Option<&str> {
 }
 
 pub(super) fn unit_type(value_type: &StructuredInfoType) -> bool {
-    matches!(value_type.shape(), StructuredInfoTypeShape::Leaf(kind) if kind.as_str() == conduit_core::UNIT_INFO_ID)
+    matches!(value_type.shape(), StructuredInfoTypeShape::Leaf(kind) if kind.as_str() == conduit_core::EMPTY_INFO_ID)
 }

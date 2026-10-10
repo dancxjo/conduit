@@ -207,7 +207,7 @@ fn nested_conditional_and_variant_fields_preserve_every_active_refinement() {
     assert!(compile(&source.replace("{address: 8}", "{address: 0}"))
         .unwrap_err()
         .contains("law validator"));
-    let variant = "type Query = {\n address: U8 in 8..=119\n}\ntype Choice =\n known Query\n | missing\nplot choose (\n >> query: Query\n result: Choice >>\n) = (.address == 8 ? known(.) : missing(unit))\n";
+    let variant = "type Query = {\n address: U8 in 8..=119\n}\ntype Choice =\n known Query\n | missing\nplot choose (\n >> query: Query\n result: Choice >>\n) = (.address == 8 ? known(.) : missing(empty))\n";
     assert!(compile(variant).is_ok());
     assert!(compile(&variant.replace("known(.)", "known({address: 0})"))
         .unwrap_err()
@@ -216,7 +216,7 @@ fn nested_conditional_and_variant_fields_preserve_every_active_refinement() {
 
 #[test]
 fn variant_payload_projection_preserves_exact_forwarded_refinements() {
-    let source = "type Address = {\n address: U8 in 8..=119\n}\ntype Choice =\n known Address\n | missing\nplot choose (\n >> input: Choice\n output: Choice >>\n) = (. is known ? known({address: .known.address}) : missing(unit))\n";
+    let source = "type Address = {\n address: U8 in 8..=119\n}\ntype Choice =\n known Address\n | missing\nplot choose (\n >> input: Choice\n output: Choice >>\n) = (. is known ? known({address: .known.address}) : missing(empty))\n";
     assert!(compile(source).is_ok());
     let broad_input = "type Broad = {\n address: U8 in 0..=255\n}\ntype InputChoice =\n known Broad\n | missing\n";
     let rejected = format!(

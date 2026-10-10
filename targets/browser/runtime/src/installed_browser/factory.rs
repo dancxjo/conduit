@@ -281,7 +281,11 @@ pub(crate) fn advertisement_for_machinery(
     boot_id: BootId,
     machinery: BrowserMachinery,
 ) -> HostAdvertisement {
-    let mut resources = Vec::new();
+    let mut resources = vec![resource_offer(
+        "browser/runtime-memory",
+        conduit_core::RUNTIME_MEMORY_RESOURCE_CLASS,
+        super::measurement_limits::MEMORY_POOL_BYTES,
+    )];
     if machinery.audio {
         resources.push(resource_offer(
             super::startup_chime::POOL,
@@ -353,7 +357,19 @@ pub(crate) fn advertisement_for_machinery(
             .filter(|entry| machinery.admits(entry))
             .map(|entry| {
                 let mut offer = (entry.offer)();
-                offer.limits.max_queue_bytes = super::MAXIMUM_BROWSER_VALUE_BYTES as u32;
+                offer.limits.max_queue_bytes = super::measurement_limits::queue_bound(
+                    offer.kind_id.as_str(),
+                )
+                .unwrap_or(match entry.implementation_id {
+                    "browser/bounded-stroke-capture@1" => {
+                        super::stroke_capture::MAXIMUM_PATH_BYTES as u32
+                    }
+                    "browser/plot-pointer-source@1"
+                    | "browser/select-pointer-position@1"
+                    | "browser/select-point-x@1"
+                    | "browser/select-point-y@1" => super::NORMALIZED_POINTER_VALUE_BYTES as u32,
+                    _ => super::MAXIMUM_BROWSER_VALUE_BYTES as u32,
+                });
                 offer
             })
             .collect(),

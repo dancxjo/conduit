@@ -56,7 +56,7 @@ fn quantity_validation_keeps_units_subject_and_stability_exact() {
 fn planner_characteristic_quantities_converge_only_for_reviewed_units() {
     assert_eq!(
         CharacteristicQuantity::from_quantity(
-            Quantity::new(2, QuantityUnit::Kibibyte),
+            Quantity::new(2, Unit::Kibibyte),
             CharacteristicUnit::Bytes,
         ),
         Ok(CharacteristicQuantity {
@@ -70,11 +70,11 @@ fn planner_characteristic_quantities_converge_only_for_reviewed_units() {
             unit: CharacteristicUnit::Bytes,
         }
         .quantity(),
-        Some(Quantity::new(2_048, QuantityUnit::Byte))
+        Some(Quantity::new(2_048, Unit::Byte))
     );
     assert_eq!(
         CharacteristicQuantity::from_quantity(
-            Quantity::new(440, QuantityUnit::Hertz),
+            Quantity::new(440, Unit::Hertz),
             CharacteristicUnit::Millihertz,
         ),
         Ok(CharacteristicQuantity {
@@ -92,7 +92,7 @@ fn planner_characteristic_quantities_converge_only_for_reviewed_units() {
     );
     assert_eq!(
         CharacteristicQuantity::from_quantity(
-            Quantity::new(1, QuantityUnit::Millisecond),
+            Quantity::new(1, Unit::Millisecond),
             CharacteristicUnit::Microseconds,
         ),
         Ok(CharacteristicQuantity {
@@ -102,21 +102,21 @@ fn planner_characteristic_quantities_converge_only_for_reviewed_units() {
     );
     assert_eq!(
         CharacteristicQuantity::from_quantity(
-            Quantity::new(1, QuantityUnit::One),
+            Quantity::new(1, Unit::One),
             CharacteristicUnit::Tokens,
         ),
-        Err(CharacteristicDefinitionError::UnsupportedQuantityUnit)
+        Err(CharacteristicDefinitionError::UnsupportedUnit)
     );
     assert_eq!(
         CharacteristicQuantity::from_quantity(
-            Quantity::new(-1, QuantityUnit::Byte),
+            Quantity::new(-1, Unit::Byte),
             CharacteristicUnit::Bytes,
         ),
         Err(CharacteristicDefinitionError::NegativeQuantity)
     );
     assert_eq!(
         CharacteristicQuantity::from_quantity(
-            Quantity::new(1, QuantityUnit::Second),
+            Quantity::new(1, Unit::Second),
             CharacteristicUnit::Hertz,
         ),
         Err(CharacteristicDefinitionError::QuantityConversion(

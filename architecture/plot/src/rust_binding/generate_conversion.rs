@@ -96,6 +96,11 @@ pub(super) fn emit_variant_binding(
                 case.payload_type().shape(),
                 StructuredInfoTypeShape::Record { .. }
             ) {
+                if boxed_variant_payloads.contains(&format!("{authored_type_name}.{}", case.tag()))
+                {
+                    writeln!(out, "                let payload = *payload;")
+                        .expect("String writing is infallible");
+                }
                 let encoded =
                     encode_expression(case.payload_type(), "payload", "payload_type", names)?;
                 writeln!(out, "                let _ = &payload_type;")

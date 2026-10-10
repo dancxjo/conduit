@@ -104,7 +104,8 @@ enum Codec {
 
 pub(super) struct TypedRecordHost {
     codec: Codec,
-    frame: [u8; conduit_net::MAXIMUM_TYPED_RECORD_FRAME_BYTES],
+    // Prepared finite backing stays on the heap across host collection/moves.
+    frame: Box<[u8]>,
     text_type: Vec<u8>,
     text_kind: String,
     typed_type: Vec<u8>,
@@ -116,7 +117,7 @@ impl TypedRecordHost {
     fn new(codec: Codec) -> Self {
         Self {
             codec,
-            frame: [0; conduit_net::MAXIMUM_TYPED_RECORD_FRAME_BYTES],
+            frame: vec![0; conduit_net::MAXIMUM_TYPED_RECORD_FRAME_BYTES].into_boxed_slice(),
             text_type: conduit_net::text_type()
                 .canonical_bytes()
                 .expect("text type is finite"),
@@ -349,7 +350,7 @@ mod tests {
     fn text_decoder_refuses_a_quantity_record() {
         let quantity = StructuredInfoValue::leaf(
             StructuredInfoType::leaf(kind_id(conduit_core::QUANTITY_INFO_ID)).unwrap(),
-            conduit_core::Quantity::new(42, conduit_core::QuantityUnit::Millivolt)
+            conduit_core::Quantity::new(42, conduit_core::Unit::Millivolt)
                 .encode()
                 .to_vec(),
         )

@@ -156,7 +156,7 @@ fn signal_with_role(byte: u8, feature_role: TensorAxisRole) -> SampledSignal {
         clock_identity: "corpus/aligned".into(),
         start: SignalStart::at_sample(0),
         cadence: SignalCadence::regular(
-            conduit_core::Quantity::new(1, conduit_core::QuantityUnit::Millisecond),
+            conduit_core::Quantity::new(1, conduit_core::Unit::Millisecond),
             1,
         )
         .unwrap(),
@@ -169,7 +169,7 @@ fn signal_with_role(byte: u8, feature_role: TensorAxisRole) -> SampledSignal {
                 TensorAxis {
                     role: TensorAxisRole::Time,
                     identity: Some("frame".into()),
-                    unit: Some(conduit_core::QuantityUnit::Millisecond),
+                    unit: Some(conduit_core::Unit::Millisecond),
                 },
                 TensorAxis {
                     role: feature_role,

@@ -325,5 +325,5 @@ fn progress_value(
 }
 
 fn ratio(value: i64) -> conduit_core::Quantity {
-    conduit_core::Quantity::new(value, conduit_core::QuantityUnit::Millionth)
+    conduit_core::Quantity::new(value, conduit_core::Unit::Millionth)
 }

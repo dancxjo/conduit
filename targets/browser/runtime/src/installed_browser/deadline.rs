@@ -3,7 +3,7 @@
 use super::factory::{validate_placement, BrowserInstallation};
 use super::{BrowserBack, BROWSER_TIMER_MAXIMUM_MILLIS};
 use conduit_core::{
-    encode_monotonic_duration, resource_requirement, ConfigurationValue, PlannedGear, QuantityUnit,
+    encode_monotonic_duration, resource_requirement, ConfigurationValue, PlannedGear, Unit,
     TIMER_RESOURCE_CLASS,
 };
 use conduit_kernel::ValueStorage;
@@ -46,12 +46,10 @@ fn prepare(
     else {
         return Err("time/deadline duration is malformed".into());
     };
-    let duration_ms: u64 = quantity
-        .convert(QuantityUnit::Millisecond)
-        .map_err(|_| "time/deadline duration is not milliseconds")?
+    let duration_ms = quantity
         .value()
-        .try_into()
-        .map_err(|_| "time/deadline duration is negative")?;
+        .convert_to_u64(Unit::Millisecond)
+        .map_err(|_| "time/deadline duration must be exact nonnegative milliseconds")?;
     if duration_ms > BROWSER_TIMER_MAXIMUM_MILLIS {
         return Err("time/deadline exceeds the browser timer bound".into());
     }

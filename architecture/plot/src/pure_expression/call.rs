@@ -8,6 +8,7 @@ impl Parser<'_> {
         let start = self.offset;
         let path = self.semantic_path_end().or_else(|| {
             crate::quantity_literal::compound_token_length(&self.text[start..])
+                .or_else(|| crate::quantity_literal::unit_token_length(&self.text[start..]))
                 .map(|length| start + length)
         });
         if let Some(end) = path {
@@ -65,7 +66,7 @@ impl Parser<'_> {
         }
         self.take(')')?;
         let span = self.from(start, self.offset);
-        if atom.text.contains('/') {
+        if atom.text.contains('/') || arguments.len() == 2 && is_name(&atom.text) {
             Ok(ExpressionSyntax::SemanticCall {
                 kind: atom,
                 arguments,

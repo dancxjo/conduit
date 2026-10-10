@@ -1,7 +1,7 @@
 use alloc::vec::Vec;
 use conduit_core::{
-    Quantity, QuantityDimension, QuantityUnit, StructuredFieldValue, StructuredInfoType,
-    StructuredInfoValue,
+    Quantity, QuantityDimension, StructuredFieldValue, StructuredInfoType, StructuredInfoValue,
+    Unit,
 };
 
 use crate::{RoboticsStructuredRefusal, MAXIMUM_ROBOTICS_IDENTITY_BYTES};
@@ -9,7 +9,7 @@ use crate::{RoboticsStructuredRefusal, MAXIMUM_ROBOTICS_IDENTITY_BYTES};
 pub(super) fn require_uncertainty(
     value: Quantity,
     dimension: QuantityDimension,
-    canonical: QuantityUnit,
+    canonical: Unit,
     field: &'static str,
 ) -> Result<(), RoboticsStructuredRefusal> {
     if require_exact(value, dimension, canonical, field)? < 0 {
@@ -21,7 +21,7 @@ pub(super) fn require_uncertainty(
 pub(super) fn require_nonnegative(
     value: Quantity,
     dimension: QuantityDimension,
-    canonical: QuantityUnit,
+    canonical: Unit,
     field: &'static str,
 ) -> Result<(), RoboticsStructuredRefusal> {
     if require_exact(value, dimension, canonical, field)? < 0 {
@@ -33,15 +33,14 @@ pub(super) fn require_nonnegative(
 pub(super) fn require_exact(
     value: Quantity,
     dimension: QuantityDimension,
-    canonical: QuantityUnit,
+    canonical: Unit,
     field: &'static str,
 ) -> Result<i64, RoboticsStructuredRefusal> {
     if value.dimension() != dimension {
         return Err(RoboticsStructuredRefusal::IncompatibleDimension { field });
     }
     value
-        .convert(canonical)
-        .map(|value| value.value())
+        .to_i64(canonical)
         .map_err(|_| RoboticsStructuredRefusal::InexactPrecision { field })
 }
 
@@ -80,7 +79,7 @@ pub(super) fn unit_variant(
     Ok(StructuredInfoValue::variant(
         value_type,
         tag,
-        leaf_value("value/unit", Vec::new())?,
+        leaf_value("value/empty", Vec::new())?,
     )?)
 }
 

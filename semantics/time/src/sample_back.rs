@@ -4,7 +4,7 @@ use alloc::vec;
 use alloc::vec::Vec;
 use conduit_kernel::{
     scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
-    CanonicalValue, Failure, FailureCode, PortId,
+    Failure, FailureCode, PortId,
 };
 
 pub struct CadenceSampleBack {
@@ -18,7 +18,9 @@ pub struct CadenceSampleBack {
 
 impl CadenceSampleBack {
     pub fn prepare(maximum_value_bytes: usize) -> Result<Self, &'static str> {
-        if maximum_value_bytes == 0 || maximum_value_bytes > CanonicalValue::MAXIMUM_BYTES {
+        if maximum_value_bytes == 0
+            || maximum_value_bytes > conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES
+        {
             return Err("time/sample value bound is invalid");
         }
         Ok(Self {
@@ -43,7 +45,10 @@ impl<const PORTS: usize> StepBack<PORTS> for CadenceSampleBack {
         }
         let value = io.input(PortId(0));
         let cadence = io.input(PortId(1));
-        if cadence.is_some() && value.is_some() && !io.output_ready(PortId(0)) {
+        if cadence.is_some()
+            && (value.is_some() || self.candidate_len.is_some() || self.has_current)
+            && !io.output_ready(PortId(0))
+        {
             return StepOutcome::Await;
         }
         if let Some(reference) = value {
@@ -76,11 +81,9 @@ impl<const PORTS: usize> StepBack<PORTS> for CadenceSampleBack {
                 if !io.output_ready(PortId(0)) {
                     return StepOutcome::Await;
                 }
-                let Ok(sampled) = CanonicalValue::new(sampled) else {
+                if io.send_prepared(PortId(0), sampled.len() as u32).is_err() {
                     return fail(815);
-                };
-                io.send_canonical(PortId(0), sampled)
-                    .expect("ready exact time/sample output");
+                }
             }
             return StepOutcome::Progress;
         }
@@ -99,6 +102,18 @@ impl<const PORTS: usize> StepBack<PORTS> for CadenceSampleBack {
             return StepOutcome::Progress;
         }
         StepOutcome::Await
+    }
+
+    fn prepared_output(&self, port: PortId) -> Option<&[u8]> {
+        if port != PortId(0) {
+            return None;
+        }
+        self.candidate_len
+            .map(|len| &self.candidate[..len])
+            .or_else(|| {
+                self.has_current
+                    .then_some(&self.current[..self.current_len])
+            })
     }
 
     fn step_committed(&mut self) {
@@ -149,7 +164,10 @@ mod tests {
                     cadence.map(|bytes| reference(2, bytes)),
                 ],
                 [false; 2],
-                [ready.then_some(100), None],
+                [
+                    ready.then_some(conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32),
+                    None,
+                ],
                 None,
                 8,
             ),
@@ -163,13 +181,21 @@ mod tests {
         let tick = crate::encode_tick(1);
         let (mut io, inputs) = frame(Some(b"new"), Some(&tick), true);
         assert_eq!(operation.step(&mut io, &inputs), StepOutcome::Progress);
-        assert_eq!(io.test_canonical_output().unwrap().1.as_slice(), b"new");
+        assert!(io.test_prepared_output().is_some());
+        assert_eq!(
+            <CadenceSampleBack as StepBack<2>>::prepared_output(&operation, PortId(0)),
+            Some(b"new".as_slice())
+        );
         <CadenceSampleBack as StepBack<2>>::step_committed(&mut operation);
 
         let next = crate::encode_tick(2);
         let (mut io, inputs) = frame(None, Some(&next), true);
         assert_eq!(operation.step(&mut io, &inputs), StepOutcome::Progress);
-        assert_eq!(io.test_canonical_output().unwrap().1.as_slice(), b"new");
+        assert!(io.test_prepared_output().is_some());
+        assert_eq!(
+            <CadenceSampleBack as StepBack<2>>::prepared_output(&operation, PortId(0)),
+            Some(b"new".as_slice())
+        );
     }
 
     #[test]
@@ -194,6 +220,50 @@ mod tests {
         assert_eq!(
             operation.step(&mut io, &StepInputBytes::test_frame([None; 2], None)),
             StepOutcome::Complete
+        );
+    }
+    #[test]
+    fn physical_capsules_sample_and_retain_without_growing_play_storage() {
+        let quantity = conduit_core::Quantity::new(3, conduit_core::Unit::Meter).encode();
+        let unit = conduit_core::Unit::Celsius.encode();
+        for bytes in [quantity.as_slice(), unit.as_slice()] {
+            let mut operation = CadenceSampleBack::prepare(bytes.len()).unwrap();
+            let capacity = operation.allocation_capacity();
+            let tick = crate::encode_tick(1);
+            let (mut blocked, inputs) = frame(Some(bytes), Some(&tick), false);
+            assert_eq!(operation.step(&mut blocked, &inputs), StepOutcome::Await);
+            assert_eq!(blocked.test_prepared_output(), None);
+            let (mut io, inputs) = frame(Some(bytes), Some(&tick), true);
+            assert_eq!(operation.step(&mut io, &inputs), StepOutcome::Progress);
+            assert!(io.test_prepared_output().is_some());
+            assert_eq!(
+                <CadenceSampleBack as StepBack<2>>::prepared_output(&operation, PortId(0)),
+                Some(bytes)
+            );
+            <CadenceSampleBack as StepBack<2>>::step_committed(&mut operation);
+            let next = crate::encode_tick(2);
+            let (mut blocked, inputs) = frame(None, Some(&next), false);
+            assert_eq!(operation.step(&mut blocked, &inputs), StepOutcome::Await);
+            assert!(!blocked.test_consumed(PortId(1)));
+            assert!(!blocked.test_consumed(PortId(0)));
+            assert_eq!(blocked.test_prepared_output(), None);
+            assert_eq!(operation.allocation_capacity(), capacity);
+            assert_eq!(
+                <CadenceSampleBack as StepBack<2>>::prepared_output(&operation, PortId(0)),
+                Some(bytes)
+            );
+            let (mut io, inputs) = frame(None, Some(&next), true);
+            assert_eq!(operation.step(&mut io, &inputs), StepOutcome::Progress);
+            assert!(io.test_prepared_output().is_some());
+            assert_eq!(
+                <CadenceSampleBack as StepBack<2>>::prepared_output(&operation, PortId(0)),
+                Some(bytes)
+            );
+            assert_eq!(operation.allocation_capacity(), capacity);
+        }
+        assert!(
+            CadenceSampleBack::prepare(conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES + 1)
+                .is_err()
         );
     }
 }

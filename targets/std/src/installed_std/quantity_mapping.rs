@@ -1,6 +1,6 @@
 //! Configuration and bounded transformation for the installed quantity mapper.
 
-use conduit_core::{ConfigurationValue, PlannedGear, QuantityUnit, Scalar, QUANTITY_ENCODED_LEN};
+use conduit_core::{ConfigurationValue, PlannedGear, Scalar, QUANTITY_ENCODED_LEN};
 use conduit_kernel::{Failure, FailureCode};
 use conduit_semantic_catalog::{
     QuantityMapping, QuantityMappingRefusal, QuantizationPolicy, RangePolicy,
@@ -41,8 +41,18 @@ pub(super) fn configuration(placement: &PlannedGear) -> Result<QuantityMapping, 
         target_minimum: number("target-minimum")?,
         target_maximum: number("target-maximum")?,
         target_granularity: number("target-granularity")?,
-        target_unit: QuantityUnit::from_plot_suffix(text("unit")?)
-            .map_err(|error| format!("quantity mapping unit: {error:?}"))?,
+        target_unit: placement
+            .configuration
+            .iter()
+            .find_map(|field| {
+                if field.key == "unit" {
+                    if let ConfigurationValue::Unit(value) = &field.value {
+                        return Some(value.value());
+                    }
+                }
+                None
+            })
+            .ok_or_else(|| "quantity mapping requires checked Unit 'unit'".to_string())?,
         range_policy: match text("range-policy")? {
             "refuse" => RangePolicy::Refuse,
             "clamp" => RangePolicy::Clamp,
@@ -83,7 +93,7 @@ pub(super) fn transform(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use conduit_core::Quantity;
+    use conduit_core::{Quantity, Unit};
 
     fn mapping() -> QuantityMapping {
         QuantityMapping {
@@ -92,7 +102,7 @@ mod tests {
             target_minimum: 0,
             target_maximum: 100,
             target_granularity: 1,
-            target_unit: QuantityUnit::Percent,
+            target_unit: Unit::Percent,
             range_policy: RangePolicy::Refuse,
             quantization: QuantizationPolicy::Exact,
         }
@@ -103,7 +113,7 @@ mod tests {
         let value = transform(mapping(), &Scalar::from_raw_microunits(500_000).encode()).unwrap();
         assert_eq!(
             Quantity::decode(&value),
-            Ok(Quantity::new(50, QuantityUnit::Percent))
+            Ok(Quantity::new(50, Unit::Percent))
         );
         let malformed = transform(mapping(), &[0]).unwrap_err();
         let outside = transform(mapping(), &Scalar::from_raw_microunits(-1).encode()).unwrap_err();

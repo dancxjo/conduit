@@ -4,8 +4,8 @@ use conduit_core::{
     kind_id, port_id, AbnormalTerminalTransduction, ArtifactId, CancellationTransduction,
     CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId, ImplementationId, Kind,
     KindIdentity, KindSemanticLaw, NormalCloseTransduction, PlannedGear, PortDescriptor,
-    PortDirection, PortTemporal, Quantity, QuantityUnit, TerminalTransductionProfile,
-    FREQUENCY_INFO_ID, UNIT_INFO_ID,
+    PortDirection, PortTemporal, Quantity, TerminalTransductionProfile, Unit, EMPTY_INFO_ID,
+    FREQUENCY_INFO_ID,
 };
 use conduit_kernel::{
     scheduler::{
@@ -259,7 +259,7 @@ fn offer(
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: 1,
-            max_queue_bytes: conduit_semantic_catalog::AUDIO_TONE_PCM_BLOCK_BYTES,
+            max_queue_bytes: conduit_semantic_catalog::AUDIO_TONE_QUEUE_BYTES,
         },
     }
 }
@@ -343,7 +343,7 @@ fn recovery_input() -> PortDescriptor {
 fn recovery_output() -> PortDescriptor {
     port(
         "recovered",
-        UNIT_INFO_ID,
+        EMPTY_INFO_ID,
         PortDirection::Output,
         PortTemporal::Value,
     )
@@ -377,7 +377,7 @@ pub(super) fn close_offer() -> CapabilityOffer {
         CLOSE_IMPLEMENTATION,
         vec![port(
             "closed",
-            conduit_core::UNIT_INFO_ID,
+            conduit_core::EMPTY_INFO_ID,
             PortDirection::Input,
             PortTemporal::Value,
         )],
@@ -431,10 +431,10 @@ pub(super) fn install_catalog(c: &mut ProfileCatalog) {
 fn source_budget(_: &PlannedGear) -> Result<BackBudget, String> {
     Ok(BackBudget {
         value_items: 2,
-        value_bytes: 18,
+        value_bytes: 2 * conduit_core::QUANTITY_ENCODED_LEN as u32,
         host_requests: 0,
         sign_items: 16,
-        maximum_value_bytes: 9,
+        maximum_value_bytes: conduit_core::QUANTITY_ENCODED_LEN as u32,
     })
 }
 fn prepare_source(
@@ -442,10 +442,10 @@ fn prepare_source(
     s: &mut conduit_kernel::HostedValueStore,
 ) -> Result<InstalledBack, String> {
     let a = s
-        .store(&Quantity::new(220, QuantityUnit::Hertz).encode())
+        .store(&Quantity::new(220, Unit::Hertz).encode())
         .map_err(|e| format!("{e:?}"))?;
     let b = s
-        .store(&Quantity::new(880, QuantityUnit::Hertz).encode())
+        .store(&Quantity::new(880, Unit::Hertz).encode())
         .map_err(|e| format!("{e:?}"))?;
     Ok(InstalledBack::TestFrequencySource(FrequencySourceBack {
         values: [a, b],
@@ -457,10 +457,10 @@ fn prepare_distance_source(
     s: &mut conduit_kernel::HostedValueStore,
 ) -> Result<InstalledBack, String> {
     let a = s
-        .store(&Quantity::new(0, QuantityUnit::Centimeter).encode())
+        .store(&Quantity::new(0, Unit::Centimeter).encode())
         .map_err(|e| format!("{e:?}"))?;
     let b = s
-        .store(&Quantity::new(30, QuantityUnit::Centimeter).encode())
+        .store(&Quantity::new(30, Unit::Centimeter).encode())
         .map_err(|e| format!("{e:?}"))?;
     Ok(InstalledBack::TestDistanceSource(DistanceSourceBack {
         values: [a, b],

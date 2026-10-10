@@ -317,14 +317,20 @@ Their presence is not an additional physical or release acceptance claim:
 - **Reusable applications:** plots-as-gears is implemented, while several
   complete reusable application compositions still have open acceptance work.
   [The roadmap](docs/roadmap.md#reusable-plots) names those remaining slices.
-- **Exact decimal quantities (#5328):** the reviewed 24-prefix catalogue,
+- **First-class units and quantities (#5390):** catalogue-resolved `Unit`,
+  bounded exact `Quantity`, and the distinct empty value `Empty` have canonical
+  checked codecs. Bare unit symbols and quantity literals pass through typed
+  startup parameters, structured fields and runtime connections; conversion
+  and comparison Fores consume checked values. The ordinary
+  `units/converted-equals` Gear projects validated receipts to Boolean, with
+  optional local `=?` aliasing. The reviewed 24-prefix catalogue,
   bounded versioned decimal coordinates, ordinary conversion/comparison Gears,
   distinct temperature differences, and existing Audio/Robotics projections
   share one exact conversion law. std and browser Backs prepare finite receipts
   before Play; no_std arithmetic and consumer checking do not imply an installed
   firmware realization. [The quantity guide](docs/architecture/quantity-prefixes.md)
-  records profiles, refusals and proof classes. Final integration and stable
-  acceptance remain required before the issue closes.
+  records profiles, refusals and proof classes. Local implementation and test
+  evidence must be distinguished from hosted candidate and stable acceptance.
 
 The current `cargo xtask make conduitos std-gap` report also identifies missing
 ConduitOS Host Calls for `math/map-quantity` and

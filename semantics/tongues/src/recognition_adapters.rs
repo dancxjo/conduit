@@ -426,7 +426,7 @@ mod tests {
         crate::install_speech_recognition_catalog(&mut startup, &mut profile).unwrap();
         let checked = check_syntax_document(
             &parse_syntax_document(
-                "plot main (\n    >> audio: audio/pcm-frames@1...|\n    events: speech/recognition-event@1...| >>\n) {\n    recognize: speech/recognize-stream(language-request = { language: \"language/french\", variety: none(\"\"), variety_policy: language_sufficient(\"\") })\n    audio >> recognize.audio\n    recognize.events >> events\n}",
+                "plot main (\n    >> audio: audio/pcm-frames@1...|\n    events: speech/recognition-event@1...| >>\n) {\n    recognize: speech/recognize-stream(language-request = { language: \"language/french\", variety: none(empty), variety_policy: language_sufficient(empty) })\n    audio >> recognize.audio\n    recognize.events >> events\n}",
             ),
             &startup,
         )

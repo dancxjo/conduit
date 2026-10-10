@@ -1,5 +1,5 @@
 use super::back::BackBudget;
-use conduit_core::{ConfigurationValue, PlannedGear, Quantity, QuantityUnit};
+use conduit_core::{ConfigurationValue, PlannedGear, Quantity, Unit};
 
 #[derive(Clone, Copy)]
 pub(super) struct TimingConfiguration {
@@ -21,7 +21,7 @@ pub(super) fn parse(
     for entry in &placement.configuration {
         match (entry.key.as_str(), &entry.value) {
             ("duration-ms", ConfigurationValue::Quantity(value)) => {
-                duration_ms = Some(quantity_milliseconds(*value)?)
+                duration_ms = Some(quantity_milliseconds(value.value())?)
             }
             ("maximum-values", ConfigurationValue::U64(value)) => maximum_values = Some(*value),
             ("policy", ConfigurationValue::Text(value)) => policy = Some(value.as_str()),
@@ -65,13 +65,13 @@ fn parse_duration_only(placement: &PlannedGear, kind: &str) -> Result<u64, Strin
         return Err(format!("{kind} has an incomplete exact configuration"));
     }
     let entry = &placement.configuration[0];
-    let ConfigurationValue::Quantity(value) = entry.value else {
+    let ConfigurationValue::Quantity(value) = &entry.value else {
         return Err(format!("{kind} duration is invalid"));
     };
     if entry.key != "duration-ms" {
         return Err(format!("{kind} configuration field is invalid"));
     }
-    let duration_ms = quantity_milliseconds(value)?;
+    let duration_ms = quantity_milliseconds(value.value())?;
     if duration_ms > conduit_semantic_catalog::TIME_MAXIMUM_DURATION_MS {
         return Err(format!("{kind} duration exceeds the reviewed maximum"));
     }
@@ -92,7 +92,7 @@ pub(super) fn parse_pacing(
     for entry in &placement.configuration {
         match (entry.key.as_str(), &entry.value) {
             ("duration-ms", ConfigurationValue::Quantity(value)) => {
-                duration_ms = Some(quantity_milliseconds(*value)?)
+                duration_ms = Some(quantity_milliseconds(value.value())?)
             }
             ("maximum-values", ConfigurationValue::U64(value)) => maximum_values = Some(*value),
             ("policy", ConfigurationValue::Text(value)) => actual_policy = Some(value.as_str()),
@@ -119,12 +119,9 @@ pub(super) fn parse_pacing(
 }
 
 fn quantity_milliseconds(value: Quantity) -> Result<u64, String> {
-    value
-        .convert(QuantityUnit::Millisecond)
-        .map_err(|_| "timing duration must be an exact time quantity".to_string())?
-        .value()
-        .try_into()
-        .map_err(|_| "timing duration must be nonnegative".to_string())
+    value.convert_to_u64(Unit::Millisecond).map_err(|_| {
+        "timing duration must be an exact nonnegative millisecond quantity".to_string()
+    })
 }
 
 pub(super) fn budget(

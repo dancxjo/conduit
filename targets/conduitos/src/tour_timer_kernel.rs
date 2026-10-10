@@ -131,9 +131,9 @@ fn configured_milliseconds(
         .iter()
         .find_map(|entry| match (&*entry.key, &entry.value) {
             (candidate, ConfigurationValue::Quantity(value)) if candidate == key => value
-                .convert(conduit_core::QuantityUnit::Millisecond)
-                .ok()
-                .and_then(|value| u64::try_from(value.value()).ok()),
+                .value()
+                .convert_to_u64(conduit_core::Unit::Millisecond)
+                .ok(),
             _ => None,
         })
         .ok_or(SchedulerError::InvalidPlan)

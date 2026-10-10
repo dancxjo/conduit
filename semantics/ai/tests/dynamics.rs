@@ -1,5 +1,5 @@
 use conduit_ai::*;
-use conduit_core::{QuantityUnit, StateContinuation};
+use conduit_core::{StateContinuation, Unit};
 use conduit_data::{
     tensor_content_digest, SampledSignal, SignalCadence, SignalContinuity, SignalStart, TensorAxis,
     TensorAxisRole, TensorBacking, TensorElement, TensorValue,
@@ -47,7 +47,7 @@ fn contract() -> IntegrateContract {
         interval: IntegrationInterval {
             start: 0,
             end: 1_000,
-            unit: QuantityUnit::Millisecond,
+            unit: Unit::Millisecond,
         },
         sampling: OutputSamplingGrid {
             clock_identity: "experiment/monotonic-ms".into(),
@@ -90,7 +90,7 @@ fn candidate(solver: &str, internal_steps: u64) -> IntegrationCandidate {
                 vec![TensorAxis {
                     role: TensorAxisRole::Time,
                     identity: Some("requested-output-grid".into()),
-                    unit: Some(QuantityUnit::Millisecond),
+                    unit: Some(Unit::Millisecond),
                 }],
                 coordinates,
             ))
@@ -104,7 +104,7 @@ fn candidate(solver: &str, internal_steps: u64) -> IntegrationCandidate {
                     TensorAxis {
                         role: TensorAxisRole::Time,
                         identity: Some("requested-output-grid".into()),
-                        unit: Some(QuantityUnit::Millisecond),
+                        unit: Some(Unit::Millisecond),
                     },
                     TensorAxis {
                         role: TensorAxisRole::Feature,

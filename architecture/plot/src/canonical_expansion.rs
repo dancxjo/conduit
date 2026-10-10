@@ -764,7 +764,7 @@ fn instantiate_gear(
                         ),
                     ));
                 };
-                if quantity.dimension() != expected_dimension {
+                if quantity.value().dimension() != expected_dimension {
                     return Err(CanonicalExpansionDiagnostic::new(
                         "CND-FRM-040",
                         format!(
@@ -775,7 +775,7 @@ fn instantiate_gear(
                 }
                 configuration.push(conduit_core::ConfigurationEntry {
                     key: "initial".into(),
-                    value: conduit_core::ConfigurationValue::Quantity(*quantity),
+                    value: conduit_core::ConfigurationValue::Quantity(quantity.clone()),
                 });
             }
             let input = PortDescriptor {

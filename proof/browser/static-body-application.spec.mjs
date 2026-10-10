@@ -264,7 +264,10 @@ test("Handbook lessons run text, arithmetic, logic and exact quantities in the l
     // An edited unit request changes the computed output and survives recovery.
     await selector.selectOption("compare-distance-demo");
     const original = await editor.inputValue();
-    await editor.fill(original.replace('right = "0.001km"', 'right = "0.002km"'));
+    expect(original).toContain("right = 0.001km");
+    const editedSource = original.replace("right = 0.001km", "right = 0.002km");
+    expect(editedSource).not.toBe(original);
+    await editor.fill(editedSource);
     await page.getByRole("button", { name: "Try in my Handbook", exact: true }).click();
     await expect(surface.locator('[data-resident-plot]:visible')).toContainText("The distances are not equal");
     const edited = await current(page);
@@ -273,7 +276,7 @@ test("Handbook lessons run text, arithmetic, logic and exact quantities in the l
     expect(recovered.bodyId).toBe(first.bodyId);
     expect(recovered.selectedPlot).toBe(edited.selectedPlot);
     await expect(selector).toHaveValue("compare-distance-demo");
-    await expect(editor).toHaveValue(original.replace('right = "0.001km"', 'right = "0.002km"'));
+    await expect(editor).toHaveValue(editedSource);
     await expect(surface.locator('[data-resident-plot]:visible')).toContainText("The distances are not equal");
     session.assertClean();
   } finally {

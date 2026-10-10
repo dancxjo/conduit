@@ -203,7 +203,7 @@ fn add_shape_properties(
                 "leaf-byte-count",
                 PresentationPropertyValue::Count(u64::from(*byte_len)),
             ));
-            if let Some(StructuredInfoLeafSemantic::Quantity(quantity)) = semantic {
+            if let Some(StructuredInfoLeafSemantic::Quantity(quantity)) = semantic.as_deref() {
                 properties.push(property(
                     subject,
                     "quantity-unit",
@@ -211,8 +211,17 @@ fn add_shape_properties(
                 ));
                 properties.push(property(
                     subject,
+                    "quantity-unit-symbol",
+                    PresentationPropertyValue::Text(quantity.unit().canonical_symbol()),
+                ));
+                properties.push(property(
+                    subject,
                     "quantity-value",
-                    PresentationPropertyValue::Signed(quantity.value()),
+                    PresentationPropertyValue::Text(alloc::format!(
+                        "{}e{}",
+                        quantity.coefficient(),
+                        quantity.exponent()
+                    )),
                 ));
             }
         }

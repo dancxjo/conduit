@@ -7,7 +7,7 @@ type AudioDecibelReference = {
     identity: Text <= 128B not in [""]
     numerator: U64 in 1..=18446744073709551615
     denominator: U64 in 1..=18446744073709551615
-    unit: QuantityUnit
+    unit: Unit
     role: AudioDecibelReferenceRole
     provenance: AudioTrajectoryProvenance
 }

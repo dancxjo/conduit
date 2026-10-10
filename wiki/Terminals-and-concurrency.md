@@ -20,7 +20,7 @@ items;    observed quiescence, a non-terminal track
 
 Silence/quiescence is neither `|` nor `!`. The explicit `;` projection reports
 quiescence; it does not close a flow or terminate a live plot. Normal-close and
-quiescence tracks carry `Unit`. An abnormal track carries the exact fault type
+quiescence tracks carry `Empty`. An abnormal track carries the exact fault type
 declared by its endpoint; an undeclared abnormal contract refuses.
 
 `endpoint!` is not exception throwing. It exposes typed semantic terminal truth as an ordinary graph track.
@@ -47,7 +47,7 @@ plot observe-terminals {
 
 The fixture catalog supplies the named `test/` fores and proves three distinct
 typed tracks. These names are not installed application kinds. Wiring `!` into
-a `Unit` sink, projecting `|` from a standing flow, or projecting an undeclared
+a `Empty` sink, projecting `|` from a standing flow, or projecting an undeclared
 fault refuses. Successful parsing alone is not terminal execution evidence.
 
 Provenance: #3970, #3999, #4001.

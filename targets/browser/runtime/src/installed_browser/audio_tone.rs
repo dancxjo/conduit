@@ -5,7 +5,7 @@ use super::BrowserBack;
 use conduit_audio::{AudioToneTerminal, PcmChannelLayout, PcmFrameHeader, PcmSampleRepresentation};
 use conduit_core::{
     Back, BackOfferBuilder, CapabilityId, ExecutionProfileId, HostCallContractId,
-    HostCallRequirement, ImplementationId, PlannedGear, Quantity, QuantityUnit,
+    HostCallRequirement, ImplementationId, PlannedGear, Quantity, Unit,
 };
 use conduit_kernel::{
     scheduler::{
@@ -230,15 +230,19 @@ impl<const PORTS: usize> StepBack<PORTS> for AudioToneBack {
 }
 
 fn frequency_millihertz(value: Quantity) -> Option<i128> {
-    match value.unit() {
-        QuantityUnit::Millihertz => Some(i128::from(value.value())),
-        QuantityUnit::Hertz => Some(i128::from(value.value()) * 1_000),
-        _ => None,
+    let converted = value.convert(Unit::Millihertz).ok()?;
+    let coefficient = converted.coefficient();
+    let exponent = converted.exponent();
+    if exponent >= 0 {
+        coefficient.checked_mul(10_i128.checked_pow(exponent as u32)?)
+    } else {
+        let divisor = 10_i128.checked_pow(u32::from(exponent.unsigned_abs()))?;
+        (coefficient % divisor == 0).then_some(coefficient / divisor)
     }
 }
 fn render(frequency: i128, phase: u32, start_frame: u64) -> Option<([u8; BLOCK_BYTES], u32)> {
-    let increment =
-        ((frequency << 32) / (i128::from(SAMPLE_RATE) * 1_000)).rem_euclid(1_i128 << 32) as u32;
+    let increment = (frequency.checked_mul(1_i128 << 32)? / (i128::from(SAMPLE_RATE) * 1_000))
+        .rem_euclid(1_i128 << 32) as u32;
     let header = PcmFrameHeader::new(
         PcmSampleRepresentation::Signed16LittleEndian,
         SAMPLE_RATE,
@@ -350,7 +354,7 @@ mod tests {
             start_frame: 0,
         };
         renderer
-            .update(&Quantity::new(440, QuantityUnit::Hertz).encode())
+            .update(&Quantity::new(440, Unit::Hertz).encode())
             .unwrap();
         let first = renderer.render().unwrap();
         let second = renderer.render().unwrap();

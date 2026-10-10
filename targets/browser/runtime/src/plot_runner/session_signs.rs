@@ -9,10 +9,28 @@ pub(super) struct KernelSignEvidence {
     boot_id: String,
     active_play_id: String,
     item_capacity: u16,
+    prepared_storage: PreparedStorageEvidence,
     retention_gap: Option<KernelSignGap>,
     placements: Vec<PlacementBinding>,
     events: Vec<KernelEventEvidence>,
     host_completions: super::host_outcomes::HostOutcomeEvidence,
+}
+
+/// Preparation evidence distinguishes allocated backing from the live-byte quota.
+#[derive(Debug, Serialize)]
+struct PreparedStorageEvidence {
+    partitions: Vec<StoragePartition>,
+    slot_capacities: Vec<u32>,
+    reserved_storage_bytes: usize,
+    live_byte_quota: u32,
+    data_memory_reservation: u64,
+    memory_pool_bytes: u32,
+}
+
+#[derive(Debug, Serialize)]
+struct StoragePartition {
+    plan_id: String,
+    fragment_id: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -82,6 +100,25 @@ impl TourSession {
             boot_id: self.boot_id.as_str().into(),
             active_play_id: self.active_play_id.as_str().into(),
             item_capacity: log.item_capacity(),
+            prepared_storage: {
+                let storage = &self.scheduler._prepared_storage;
+                PreparedStorageEvidence {
+                    partitions: storage
+                        .identities
+                        .iter()
+                        .map(|(plan, fragment)| StoragePartition {
+                            plan_id: plan.as_str().into(),
+                            fragment_id: fragment.as_str().into(),
+                        })
+                        .collect(),
+                    slot_capacities: storage.slot_capacities.clone(),
+                    reserved_storage_bytes: storage.reserved_storage_bytes,
+                    live_byte_quota: storage.live_byte_quota,
+                    data_memory_reservation: storage.data_memory_reservation,
+                    memory_pool_bytes:
+                        crate::installed_browser::measurement_limits::MEMORY_POOL_BYTES,
+                }
+            },
             retention_gap: log.retention_gap().map(|gap| KernelSignGap {
                 first_sequence: gap.first_sequence,
                 last_sequence: gap.last_sequence,

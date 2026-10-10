@@ -20,6 +20,7 @@ pub(super) fn roots<'a>(
                 .filter_map(|parameter| parameter.value_type.as_deref()),
         );
         match &declaration.definition {
+            TypeDefinitionSyntax::Quantity(_) => {}
             TypeDefinitionSyntax::Scalar(value) => types.push(value),
             TypeDefinitionSyntax::Record(fields) => {
                 types.extend(fields.iter().map(|field| &field.value_type));
@@ -27,7 +28,7 @@ pub(super) fn roots<'a>(
             TypeDefinitionSyntax::Variant(cases) => {
                 for case in cases {
                     match &case.payload {
-                        TypeVariantPayloadSyntax::Unit => {}
+                        TypeVariantPayloadSyntax::Empty => {}
                         TypeVariantPayloadSyntax::Type(value) => types.push(value),
                         TypeVariantPayloadSyntax::Record(fields) => {
                             types.extend(fields.iter().map(|field| &field.value_type));

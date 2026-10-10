@@ -104,7 +104,7 @@ fn slots(
 ) -> StructuredInfoType {
     let slot = StructuredInfoType::variant(
         kind_id(kind),
-        vec![case(active, payload), case("unused", leaf("value/unit"))],
+        vec![case(active, payload), case("unused", leaf("value/empty"))],
     )
     .expect("reviewed calendar slot");
     StructuredInfoType::collection(slot, Some(maximum)).expect("finite calendar slots")
@@ -413,7 +413,7 @@ pub fn unused_collection(
     };
     let values = (0..length)
         .map(|_| {
-            StructuredInfoValue::variant(element.clone(), "unused", leaf_value("value/unit", "")?)
+            StructuredInfoValue::variant(element.clone(), "unused", leaf_value("value/empty", "")?)
                 .map_err(value_error)
         })
         .collect::<Result<Vec<_>, String>>()?;

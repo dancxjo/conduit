@@ -28,15 +28,13 @@ fn resolve(payload_bytes: usize, aliases: usize) -> Result<usize, SyntaxCheckErr
             (local.name.text.clone(), local)
         })
         .collect();
-    let glyphs = BTreeMap::new();
-    let source_values = BTreeMap::new();
+    let startup = StartupCatalog::new();
     let mut resolver = Resolver::new(
         locals,
+        BTreeMap::new(),
         BTreeSet::new(),
         BTreeSet::new(),
-        BTreeSet::new(),
-        &glyphs,
-        &source_values,
+        &startup,
     );
     resolver.bound_glyph_context();
     resolver.resolve_name("base", Some(ty))?;

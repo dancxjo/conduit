@@ -141,23 +141,27 @@ impl GlyphNotationScope {
                 }
             }
         }
-        let empty = BTreeMap::new();
-        let source_values = BTreeMap::new();
+
         let mut resolver = crate::syntax_check::Resolver::new(
             locals,
             plot.front
                 .startup_parameters
                 .iter()
-                .map(|p| p.name.text.clone())
-                .collect(),
+                .map(|p| {
+                    Ok((
+                        p.name.text.clone(),
+                        crate::value_type::checked_value_kind(&p.value_type.text, startup)
+                            .map_err(|_| R::Source)?,
+                    ))
+                })
+                .collect::<Result<BTreeMap<_, _>, _>>()?,
             plot.front
                 .runtime_ports
                 .iter()
                 .map(|p| p.name.text.clone())
                 .collect(),
             BTreeSet::new(),
-            &empty,
-            &source_values,
+            startup,
         );
         resolver.bound_glyph_context();
         let mut context = Vec::new();

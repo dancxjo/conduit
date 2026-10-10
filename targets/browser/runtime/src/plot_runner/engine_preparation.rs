@@ -88,12 +88,148 @@ pub(in crate::plot_runner) fn prepare_body_scheduler(
     if active_nodes > MAXIMUM_BROWSER_GEARS || active_cords > MAXIMUM_BROWSER_CORDS {
         return Err("Body exceeds the installed browser kernel tables".into());
     }
-    let mut values = HostedValueStore::new(
-        BROWSER_VALUE_ITEMS,
-        MAXIMUM_BROWSER_STORED_VALUE_BYTES as u32,
-        BROWSER_TOTAL_VALUE_BYTES,
-    )
-    .map_err(|error| format!("browser value store: {error:?}"))?;
+    let mut slot_capacities = Vec::new();
+    // Data scratch reservations cover Data profile storage only. Generic
+    // structured values are separately charged to the aggregate backing pool.
+    let mut data_storage_bytes = 0_u64;
+    let mut data_reserved_bytes = 0_u64;
+    for (fragment, part) in partitions {
+        for cord in &part.cords {
+            let bound = cord.spec.maximum_value_bytes.max(1);
+            slot_capacities.extend(core::iter::repeat_n(
+                bound,
+                usize::from(cord.spec.item_capacity),
+            ));
+            if bound > MAXIMUM_BROWSER_STORED_VALUE_BYTES as u32
+                && part.nodes.iter().any(|node| {
+                    (matches!(cord.spec.source, conduit_kernel::CordEndpoint::Local { node: source, .. } if source == node.node)
+                        || matches!(cord.spec.sink, conduit_kernel::CordEndpoint::Local { node: target, .. } if target == node.node))
+                        && fragment.placements.iter().any(|placement| {
+                            placement.placement_id == node.placement_id
+                                && crate::installed_browser::measurement_limits::queue_bound(placement.kind_id.as_str()).is_some()
+                        })
+                })
+            {
+                data_storage_bytes += u64::from(bound) * u64::from(cord.spec.item_capacity);
+            }
+        }
+        for placement in &fragment.placements {
+            if crate::installed_browser::measurement_limits::queue_bound(placement.kind_id.as_str())
+                .is_some()
+            {
+                let selected =
+                    factory(&placement.implementation_id).ok_or("missing browser Back")?;
+                let offer = (selected.offer)();
+                let requirement = offer
+                    .resource_requirements
+                    .iter()
+                    .find(|item| {
+                        item.class_id.as_str() == conduit_core::RUNTIME_MEMORY_RESOURCE_CLASS
+                    })
+                    .ok_or("Data Back lacks memory reservation")?;
+                let binding = placement
+                    .resources
+                    .iter()
+                    .find(|item| {
+                        item.class_id.as_str() == conduit_core::RUNTIME_MEMORY_RESOURCE_CLASS
+                            && item.pool_id.as_str() == "browser/runtime-memory"
+                    })
+                    .ok_or("Data Plan lacks selected memory reservation")?;
+                if binding.units != requirement.units {
+                    return Err("Data Plan memory reservation differs from installed Back".into());
+                }
+                data_reserved_bytes += u64::from(binding.units);
+            }
+            for call in &placement.host_calls {
+                if call.maximum_output_bytes > 0 {
+                    let bound = if crate::installed_browser::measurement_limits::queue_bound(
+                        placement.kind_id.as_str(),
+                    )
+                    .is_some()
+                    {
+                        call.maximum_output_bytes
+                    } else {
+                        call.maximum_output_bytes
+                            .min(MAXIMUM_BROWSER_STORED_VALUE_BYTES as u32)
+                    };
+                    slot_capacities.extend(core::iter::repeat_n(
+                        bound,
+                        usize::from(call.maximum_in_flight),
+                    ));
+                    if bound > MAXIMUM_BROWSER_STORED_VALUE_BYTES as u32
+                        && crate::installed_browser::measurement_limits::queue_bound(
+                            placement.kind_id.as_str(),
+                        )
+                        .is_some()
+                    {
+                        data_storage_bytes += u64::from(bound) * u64::from(call.maximum_in_flight);
+                    }
+                }
+            }
+        }
+        for node in &part.nodes {
+            for output in &node.outputs {
+                let bound = part
+                    .cords
+                    .iter()
+                    .filter(|cord| {
+                        cord.spec.source
+                            == conduit_kernel::CordEndpoint::local(node.node, output.port)
+                    })
+                    .map(|cord| cord.spec.maximum_value_bytes)
+                    .max()
+                    .unwrap_or(MAXIMUM_BROWSER_STORED_VALUE_BYTES as u32)
+                    .max(1);
+                // Outputs retain one value while routing, independently of queues.
+                slot_capacities.push(bound);
+                if bound > MAXIMUM_BROWSER_STORED_VALUE_BYTES as u32
+                    && fragment.placements.iter().any(|placement| {
+                        placement.placement_id == node.placement_id
+                            && crate::installed_browser::measurement_limits::queue_bound(
+                                placement.kind_id.as_str(),
+                            )
+                            .is_some()
+                    })
+                {
+                    data_storage_bytes += u64::from(bound);
+                }
+            }
+        }
+    }
+    if slot_capacities.is_empty() {
+        slot_capacities.push(1);
+    }
+    let backing_bytes = slot_capacities
+        .iter()
+        .try_fold(0_u32, |sum, value| sum.checked_add(*value))
+        .ok_or("browser storage reservation overflow")?;
+    if slot_capacities.len() > usize::from(BROWSER_VALUE_ITEMS)
+        || data_storage_bytes > data_reserved_bytes
+        || u64::from(backing_bytes) + data_reserved_bytes
+            > u64::from(crate::installed_browser::measurement_limits::MEMORY_POOL_BYTES)
+    {
+        return Err("Plan exceeds the prepared browser storage/memory reservation".into());
+    }
+    let mut values = HostedValueStore::new_with_slot_capacities(&slot_capacities, backing_bytes)
+        .map_err(|error| format!("browser value store: {error:?}"))?;
+    if values.reserved_storage_bytes() as u64 + data_reserved_bytes
+        > u64::from(crate::installed_browser::measurement_limits::MEMORY_POOL_BYTES)
+    {
+        return Err("Plan exceeds the browser backing and scratch memory pool".into());
+    }
+    let prepared_storage = PreparedStorageWitness {
+        identities: partitions
+            .iter()
+            .map(|(fragment, _)| (fragment.plan_id.clone(), fragment.fragment_id.clone()))
+            .collect(),
+        slot_capacities,
+        reserved_storage_bytes: values.reserved_storage_bytes(),
+        live_byte_quota: backing_bytes,
+        data_memory_reservation: data_reserved_bytes,
+    };
+    if !prepared_storage.matches(partitions) {
+        return Err("browser storage witness does not bind selected Plans".into());
+    }
     let mut operations = Vec::with_capacity(MAXIMUM_BROWSER_GEARS);
     let mut mappings = empty_slots(active_nodes);
     let mut audio_tones = empty_slots(active_nodes);
@@ -314,6 +450,7 @@ pub(in crate::plot_runner) fn prepare_body_scheduler(
     Ok(TourScheduler {
         failure: None,
         kernel: Box::new(kernel),
+        _prepared_storage: prepared_storage,
         mappings,
         audio_tones,
         audio_gains,

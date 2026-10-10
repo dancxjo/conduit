@@ -1,5 +1,5 @@
 plot compare-distance-demo {
-    operation: units/compare(left = "1000mm", right = "0.001km")
+    operation: units/compare(left = 1000mm, right = 0.001km)
     show: presentation/text
     operation.receipt >> (variant/is(.result, "equal") ? "The distances are equal" : "The distances are not equal") >> show.text
 }.

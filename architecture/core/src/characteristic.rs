@@ -1,4 +1,4 @@
-use crate::{CharacteristicId, Quantity, QuantityConversionRefusal, QuantityUnit};
+use crate::{CharacteristicId, Quantity, QuantityConversionRefusal, Unit};
 use alloc::string::String;
 use alloc::vec::Vec;
 use serde::{Deserialize, Serialize};
@@ -85,18 +85,18 @@ pub enum CharacteristicDefinitionError {
     UnitMismatch,
     QuantityOutOfRange,
     UnknownLabel,
-    UnsupportedQuantityUnit,
+    UnsupportedUnit,
     NegativeQuantity,
     QuantityConversion(QuantityConversionRefusal),
 }
 
 impl CharacteristicUnit {
-    pub const fn quantity_unit(self) -> Option<QuantityUnit> {
+    pub const fn quantity_unit(self) -> Option<Unit> {
         match self {
-            Self::Bytes => Some(QuantityUnit::Byte),
-            Self::Hertz => Some(QuantityUnit::Hertz),
-            Self::Millihertz => Some(QuantityUnit::Millihertz),
-            Self::Microseconds => Some(QuantityUnit::Microsecond),
+            Self::Bytes => Some(Unit::Byte),
+            Self::Hertz => Some(Unit::Hertz),
+            Self::Millihertz => Some(Unit::Millihertz),
+            Self::Microseconds => Some(Unit::Microsecond),
             Self::Tokens
             | Self::Microcents
             | Self::Frames
@@ -114,12 +114,13 @@ impl CharacteristicQuantity {
     ) -> Result<Self, CharacteristicDefinitionError> {
         let target = unit
             .quantity_unit()
-            .ok_or(CharacteristicDefinitionError::UnsupportedQuantityUnit)?;
-        let converted = quantity
-            .convert(target)
+            .ok_or(CharacteristicDefinitionError::UnsupportedUnit)?;
+        if quantity.coefficient() < 0 && quantity.dimension() == target.dimension() {
+            return Err(CharacteristicDefinitionError::NegativeQuantity);
+        }
+        let value = quantity
+            .convert_to_u64(target)
             .map_err(CharacteristicDefinitionError::QuantityConversion)?;
-        let value = u64::try_from(converted.value())
-            .map_err(|_| CharacteristicDefinitionError::NegativeQuantity)?;
         Ok(Self { value, unit })
     }
 

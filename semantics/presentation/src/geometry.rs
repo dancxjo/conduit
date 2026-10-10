@@ -2,9 +2,9 @@
 
 use alloc::{string::String, vec, vec::Vec};
 use conduit_core::{
-    kind_id, Quantity, QuantityConversionRefusal, QuantityDimension, QuantityUnit,
-    StructuredFieldType, StructuredFieldValue, StructuredInfoRefusal, StructuredInfoType,
-    StructuredInfoValue, StructuredInfoValueShape, MAXIMUM_STRUCTURED_COLLECTION_ITEMS,
+    kind_id, Quantity, QuantityConversionRefusal, QuantityDimension, StructuredFieldType,
+    StructuredFieldValue, StructuredInfoRefusal, StructuredInfoType, StructuredInfoValue,
+    StructuredInfoValueShape, Unit, MAXIMUM_STRUCTURED_COLLECTION_ITEMS,
 };
 
 pub const POINT2_TYPE: &str = "Point2";
@@ -180,18 +180,8 @@ pub fn apply_transform2(
     let y = record_quantity(point, "y")?;
     let offset_x = convert_offset(record_quantity(transform, "offset_x")?, x.unit())?;
     let offset_y = convert_offset(record_quantity(transform, "offset_y")?, y.unit())?;
-    let x = Quantity::new(
-        x.value()
-            .checked_add(offset_x.value())
-            .ok_or(GeometryRefusal::Overflow)?,
-        x.unit(),
-    );
-    let y = Quantity::new(
-        y.value()
-            .checked_add(offset_y.value())
-            .ok_or(GeometryRefusal::Overflow)?,
-        y.unit(),
-    );
+    let x = add_coordinates(x, offset_x)?;
+    let y = add_coordinates(y, offset_y)?;
     point2_value(&record_text(transform, "to_frame")?, x, y)
 }
 
@@ -214,16 +204,47 @@ pub fn apply_transform2_to_path(
     )
 }
 
+fn add_coordinates(left: Quantity, right: Quantity) -> Result<Quantity, GeometryRefusal> {
+    let exponent = if left.coefficient() == 0 {
+        right.exponent()
+    } else if right.coefficient() == 0 {
+        left.exponent()
+    } else {
+        left.exponent().min(right.exponent())
+    };
+    let align = |value: Quantity| -> Result<i128, GeometryRefusal> {
+        if value.coefficient() == 0 {
+            return Ok(0);
+        }
+        let power = u32::try_from(i32::from(value.exponent()) - i32::from(exponent))
+            .map_err(|_| GeometryRefusal::Overflow)?;
+        let scale = 10_i128
+            .checked_pow(power)
+            .ok_or(GeometryRefusal::Overflow)?;
+        value
+            .coefficient()
+            .checked_mul(scale)
+            .ok_or(GeometryRefusal::Overflow)
+    };
+    let coefficient = align(left)?
+        .checked_add(align(right)?)
+        .ok_or(GeometryRefusal::Overflow)?;
+    Quantity::from_decimal(coefficient, exponent, left.unit())
+        .map_err(|_| GeometryRefusal::Overflow)
+}
+
 fn require_length(value: Quantity) -> Result<(), GeometryRefusal> {
     (value.dimension() == QuantityDimension::Length)
         .then_some(())
         .ok_or(GeometryRefusal::IncompatibleUnit)
 }
 
-fn convert_offset(value: Quantity, unit: QuantityUnit) -> Result<Quantity, GeometryRefusal> {
+fn convert_offset(value: Quantity, unit: Unit) -> Result<Quantity, GeometryRefusal> {
     require_length(value)?;
     value.convert(unit).map_err(|error| match error {
-        QuantityConversionRefusal::IncompatibleDimensions => GeometryRefusal::IncompatibleUnit,
+        QuantityConversionRefusal::IncompatibleDimensions
+        | QuantityConversionRefusal::IncompatibleQuantityFamilies
+        | QuantityConversionRefusal::IncompatibleQuantityRoles => GeometryRefusal::IncompatibleUnit,
         QuantityConversionRefusal::Inexact => GeometryRefusal::InexactUnitConversion,
         QuantityConversionRefusal::Overflow => GeometryRefusal::Overflow,
     })

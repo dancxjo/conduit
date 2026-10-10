@@ -26,25 +26,27 @@ pub(super) static INSTALLATION: BrowserInstallation = BrowserInstallation {
 fn offer() -> conduit_core::CapabilityOffer {
     let contract = conduit_data::measurement_observation_semantic_contract();
     let kind = contract.kind_id.clone();
-    BackOfferBuilder::new(
-        contract,
-        Back {
-            capability_id: CapabilityId::from(IMPLEMENTATION),
-            execution_profile_id: ExecutionProfileId::from(IMPLEMENTATION),
-            implementation_id: ImplementationId::from(IMPLEMENTATION),
-            artifact_id: ArtifactId::from("conduit-browser-runtime/measurement-observation@1"),
-            host_calls: vec![HostCallRequirement {
-                contract_id: HOST_CALL.into(),
-                target_kind: Some(kind),
-                maximum_in_flight: 1,
-                maximum_input_bytes: conduit_core::QUANTITY_ENCODED_LEN as u32,
-                maximum_output_bytes: super::MAXIMUM_BROWSER_VALUE_BYTES as u32,
-            }],
-            resource_requirements: Vec::new(),
-            authority_requirements: Vec::new(),
-        },
+    super::measurement_limits::finish_offer(
+        BackOfferBuilder::new(
+            contract,
+            Back {
+                capability_id: CapabilityId::from(IMPLEMENTATION),
+                execution_profile_id: ExecutionProfileId::from(IMPLEMENTATION),
+                implementation_id: ImplementationId::from(IMPLEMENTATION),
+                artifact_id: ArtifactId::from("conduit-browser-runtime/measurement-observation@1"),
+                host_calls: vec![HostCallRequirement {
+                    contract_id: HOST_CALL.into(),
+                    target_kind: Some(kind),
+                    maximum_in_flight: 1,
+                    maximum_input_bytes: conduit_core::QUANTITY_ENCODED_LEN as u32,
+                    maximum_output_bytes: super::measurement_limits::SAMPLE as u32,
+                }],
+                resource_requirements: Vec::new(),
+                authority_requirements: Vec::new(),
+            },
+        )
+        .build(),
     )
-    .build()
 }
 
 fn prepare(

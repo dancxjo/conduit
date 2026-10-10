@@ -2,7 +2,7 @@ use super::back::{BackBudget, BackFactory, InstalledBack};
 use super::timing_configuration::{self, TimingConfiguration};
 use conduit_core::{
     encode_monotonic_duration, InfoBool, PlannedGear, PortDirection, BOOL_INFO_ID,
-    CANCELLATION_REQUEST_INFO_ID, UNIT_INFO_ID,
+    CANCELLATION_REQUEST_INFO_ID, EMPTY_INFO_ID,
 };
 use conduit_kernel::{
     scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
@@ -566,7 +566,7 @@ fn validate_deadline(placement: &PlannedGear) -> Result<(), String> {
         conduit_semantic_catalog::TIME_DEADLINE_KIND,
         CANCELLATION_REQUEST_INFO_ID,
     )?;
-    if placement.inputs.len() != 1 || placement.inputs[0].value_kind.as_str() != UNIT_INFO_ID {
+    if placement.inputs.len() != 1 || placement.inputs[0].value_kind.as_str() != EMPTY_INFO_ID {
         return Err("planned time/deadline arm is not exact Unit".to_string());
     }
     Ok(())

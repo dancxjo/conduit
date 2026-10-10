@@ -1,6 +1,5 @@
 use conduit_core::{
-    ConfigurationValue, ObservationKind, Quantity, QuantityUnit, TerminalDisposition,
-    DURATION_INFO_ID,
+    ConfigurationValue, ObservationKind, Quantity, TerminalDisposition, Unit, DURATION_INFO_ID,
 };
 use conduit_plot::{
     check_syntax_document, expand_canonical_plot, parse_syntax_document, ProfileCatalog,
@@ -90,7 +89,10 @@ fn duration_spellings_have_one_semantic_identity_and_execute_until_explicit_stop
     );
     assert_eq!(
         every.configuration[0].value,
-        ConfigurationValue::Quantity(Quantity::new(1, QuantityUnit::Second))
+        ConfigurationValue::Quantity(
+            conduit_core::QuantityConfigurationValue::from_value(Quantity::new(1, Unit::Second))
+                .expect("bounded quantity configuration")
+        )
     );
 
     let mut host = StdHost::new();

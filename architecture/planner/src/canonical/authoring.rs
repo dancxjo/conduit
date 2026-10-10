@@ -209,12 +209,12 @@ fn seal_fore(
                     matches!(
                         internal.temporal,
                         conduit_core::PortTemporal::Flow { closes: true }
-                    ) && descriptor.value_kind.as_str() == conduit_core::UNIT_INFO_ID
+                    ) && descriptor.value_kind.as_str() == conduit_core::EMPTY_INFO_ID
                         && descriptor.temporal == conduit_core::PortTemporal::Value
                 }
                 conduit_core::ConnectionTrack::Quiescence => {
                     matches!(internal.temporal, conduit_core::PortTemporal::Flow { .. })
-                        && descriptor.value_kind.as_str() == conduit_core::UNIT_INFO_ID
+                        && descriptor.value_kind.as_str() == conduit_core::EMPTY_INFO_ID
                         && descriptor.temporal == conduit_core::PortTemporal::Value
                 }
             };

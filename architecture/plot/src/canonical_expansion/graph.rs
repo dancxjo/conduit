@@ -92,6 +92,8 @@ pub(super) fn pool_references(
             CanonicalStartupValue::PoolReference(pool) => Some(pool),
             CanonicalStartupValue::Literal(_)
             | CanonicalStartupValue::Quantity(_)
+            | CanonicalStartupValue::Unit(_)
+            | CanonicalStartupValue::TemperatureDifference(_)
             | CanonicalStartupValue::PlotParameter(_)
             | CanonicalStartupValue::Structured(_) => None,
         })
@@ -471,10 +473,10 @@ pub(super) fn connect(
                 value_kind: match connection_track {
                     conduit_core::ConnectionTrack::Payload => source_port.value_kind.clone(),
                     conduit_core::ConnectionTrack::NormalClose => {
-                        conduit_core::kind_id(conduit_core::UNIT_INFO_ID)
+                        conduit_core::kind_id(conduit_core::EMPTY_INFO_ID)
                     }
                     conduit_core::ConnectionTrack::Quiescence => {
-                        conduit_core::kind_id(conduit_core::UNIT_INFO_ID)
+                        conduit_core::kind_id(conduit_core::EMPTY_INFO_ID)
                     }
                     conduit_core::ConnectionTrack::AbnormalTerminal => source_port
                         .abnormal_kind

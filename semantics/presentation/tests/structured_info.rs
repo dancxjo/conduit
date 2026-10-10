@@ -1,7 +1,7 @@
 use conduit_core::{
-    BootId, HostId, KindId, Observation, ObservationKind, Quantity, QuantityUnit, SignId,
-    StructuredFieldType, StructuredFieldValue, StructuredInfoType, StructuredInfoValue,
-    StructuredVariantCase, ValuePayload,
+    BootId, HostId, KindId, Observation, ObservationKind, Quantity, SignId, StructuredFieldType,
+    StructuredFieldValue, StructuredInfoType, StructuredInfoValue, StructuredVariantCase, Unit,
+    ValuePayload,
 };
 use conduit_presentation::{
     PresentationAspect, PresentationCursor, PresentationDepth, PresentationPlace,
@@ -120,18 +120,22 @@ fn llm_leaf_bytes_never_enter_presentation_content() {
 
 #[test]
 fn quantity_sign_projects_unit_identity_and_signed_value_without_formatting_text() {
-    let quantity = Quantity::new(-17, QuantityUnit::Millivolt);
+    let quantity = Quantity::new(-17, Unit::Millivolt);
     let value = leaf(conduit_core::QUANTITY_INFO_ID, &quantity.encode());
     let artifact =
         StructuredSignPresentation::from_sign(2, &sign(&value), value.value_type()).unwrap();
 
     assert!(artifact.presentation.properties.iter().any(|property| {
         property.name == "quantity-unit"
-            && property.value == PresentationPropertyValue::Identity("voltage/millivolt".into())
+            && property.value == PresentationPropertyValue::Identity(Unit::Millivolt.semantic_id())
     }));
     assert!(artifact.presentation.properties.iter().any(|property| {
         property.name == "quantity-value"
-            && property.value == PresentationPropertyValue::Signed(-17)
+            && property.value == PresentationPropertyValue::Text("-17e0".into())
+    }));
+    assert!(artifact.presentation.properties.iter().any(|property| {
+        property.name == "quantity-unit-symbol"
+            && property.value == PresentationPropertyValue::Text("mV".into())
     }));
     assert!(artifact.presentation.text.is_empty());
 }

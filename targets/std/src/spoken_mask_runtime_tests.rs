@@ -277,7 +277,7 @@ fn execute_spoken_mask_with_final_slot(
  validator: presentation/generated-semantic-validator
  accepted: presentation/retain-generated-validation
  speech: presentation/generated-manifestation-speech
- voice: speech/synthesize(language-request = { language: "language/english", variety: none(""), variety_policy: language_sufficient("") }, maximum-output-bytes = 32768)
+ voice: speech/synthesize(language-request = { language: "language/english", variety: none(empty), variety_policy: language_sufficient(empty) }, maximum-output-bytes = 32768)
  convert: audio/convert-pcm-profile(output-sample-rate-hz = 48000, output-channel-layout = "stereo-left-right")
  artifact: presentation/spoken-artifact
  shown: presentation/artifact-acknowledged-show
