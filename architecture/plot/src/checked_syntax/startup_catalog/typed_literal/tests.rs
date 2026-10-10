@@ -120,6 +120,54 @@ fn constructor_requires_both_installed_startup_and_semantic_truth() {
 }
 
 #[test]
+fn source_type_imports_cannot_shadow_an_installed_literal_family() {
+    let (mut startup, profile, family) = fixture();
+    startup
+        .insert_typed_literal_family("ph", family.clone(), &profile)
+        .unwrap();
+    let manifest = "pack fixture/vector (\n version = 1.0.0\n) {\n ship Vector\n}\n";
+    let package = crate::parse_syntax_document(manifest);
+    let members = [crate::PackageMemberSource {
+        path: "types/vector",
+        source: "type Vector<N: U16> = collection U8 = N\n",
+    }];
+    let bundle =
+        crate::CheckedPackageBundle::from_sources(manifest, &package.packages[0], &members)
+            .unwrap();
+    crate::PackageExportCatalog::from_bundle(&bundle, manifest, &package.packages[0], &members)
+        .unwrap()
+        .install_shipped_types(&mut startup)
+        .unwrap();
+    let before = startup.clone();
+    for source in [
+        "with fixture/vector/Vector as ph\ntype Value = ph<2>\n",
+        "with FixtureLiteral as ph\ntype Value = ph\n",
+    ] {
+        let document = crate::parse_syntax_document(source);
+        assert!(
+            document.diagnostics.is_empty(),
+            "{:?}",
+            document.diagnostics
+        );
+        let failure = crate::native_type::install_import_aliases(&document, &startup).unwrap_err();
+        assert!(
+            failure.message.contains("typed literal family")
+                || failure
+                    .message
+                    .contains("duplicate structured startup type")
+        );
+        assert_eq!(startup, before);
+        assert_eq!(startup.typed_literal_family("ph"), Some(&family));
+    }
+    let distinct = crate::parse_syntax_document(
+        "with fixture/vector/Vector as Cells\ntype Value = Cells<2>\n",
+    );
+    let checked = crate::check_syntax_document(&distinct, &startup).unwrap();
+    assert_eq!(checked.native_types.len(), 1);
+    assert_eq!(startup, before);
+}
+
+#[test]
 fn installed_family_cannot_be_rebound_as_a_type_or_gear() {
     let (mut startup, profile, family) = fixture();
     startup

@@ -26,10 +26,13 @@ pub(crate) fn install_import_aliases(
             if catalog.structured_type(&declaration.alias.text).is_some()
                 || catalog.value_kind_alias(&declaration.alias.text).is_some()
                 || catalog.get(&declaration.alias.text).is_some()
+                || catalog
+                    .typed_literal_family(&declaration.alias.text)
+                    .is_some()
             {
                 return Err(super::diagnostic(
                     declaration.alias.span,
-                    "Type family import alias conflicts with an installed Type or Kind".into(),
+                    "Type family import alias conflicts with an installed Type, Kind or typed literal family".into(),
                 ));
             }
             super::family::budget::validate(
