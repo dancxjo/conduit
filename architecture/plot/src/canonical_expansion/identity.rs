@@ -4,6 +4,7 @@ use conduit_core::ExpandedPlotId;
 impl ExpandedCanonicalPlot {
     pub fn validate_expansion(&self) -> Result<(), CanonicalExpansionDiagnostic> {
         let plot = CheckedCanonicalPlot {
+            glyph_values: crate::AdmittedGlyphValues::default(),
             checked_plot_id: self.checked_plot_id.clone(),
             name: self.name.clone(),
             completion: self.completion,

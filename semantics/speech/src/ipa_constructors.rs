@@ -1,7 +1,9 @@
 //! Reviewed quoted-IPA Kinds. Parsing and membership run during preparation.
 mod contract;
+mod notation;
 mod placeholder;
 mod prepare;
+pub use notation::{install_notation, NOTATION_EXPORT_PATH};
 mod source;
 use crate::semantic::*;
 use alloc::vec::Vec;

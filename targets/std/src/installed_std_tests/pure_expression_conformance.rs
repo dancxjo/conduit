@@ -55,6 +55,7 @@ fn anonymous_record_and_tuple_plan_and_play_through_the_std_host() {
     let checked = check_expression(
         &expression.syntax,
         &ExpressionTypeContext {
+            glyph_values: None,
             input: &input_type,
             immutable_values: &empty_values,
             structured_types: &empty_types,

@@ -43,7 +43,7 @@ fn push_checked(
     syntax: &ExpressionSyntax,
     checked: &CheckedExpression,
 ) -> Result<(), PortableExpressionProgramRefusal> {
-    let variant = {
+    let value_type = {
         let ty = checked
             .node_types
             .iter()
@@ -52,16 +52,41 @@ fn push_checked(
             .value_type
             .structured_info_type_with(&checked.semantic_structures)?;
         push_type(sink, &ty)?;
-        matches!(
-            ty.shape(),
-            conduit_core::StructuredInfoTypeShape::Variant { .. }
-        )
+        ty
     };
+    let variant = matches!(
+        value_type.shape(),
+        conduit_core::StructuredInfoTypeShape::Variant { .. }
+    );
     match syntax {
+        ExpressionSyntax::TypedGlyphLiteral(literal) => {
+            let value = checked
+                .glyph_values
+                .resolve(literal)
+                .and_then(crate::CanonicalStructuredStartupValue::try_concrete)
+                .ok_or(PortableExpressionProgramRefusal::MissingCheckedNodeType)?;
+            if value.value_type() != &value_type {
+                return Err(PortableExpressionProgramRefusal::MalformedEncoding);
+            }
+            let bytes = value.canonical_bytes()?;
+            sink.push(11);
+            push_len(sink, bytes.len());
+            sink.extend_from_slice(&bytes);
+        }
         ExpressionSyntax::Input(_) => sink.push(0),
         ExpressionSyntax::Atomic(value) => {
-            sink.push(1);
-            push_text(sink, &value.text);
+            if let Some(constant) = checked.immutable_constants.get(&value.text) {
+                if constant.value_type() != &value_type {
+                    return Err(PortableExpressionProgramRefusal::MalformedEncoding);
+                }
+                let bytes = constant.canonical_bytes()?;
+                sink.push(11);
+                push_len(sink, bytes.len());
+                sink.extend_from_slice(&bytes);
+            } else {
+                sink.push(1);
+                push_text(sink, &value.text);
+            }
         }
         ExpressionSyntax::Projection { value, member, .. }
             if variant
@@ -179,6 +204,53 @@ mod tests {
     use alloc::collections::{BTreeMap, BTreeSet};
 
     #[test]
+    fn checked_immutable_constants_keep_exact_types_in_both_encoders() {
+        let input = crate::CheckedExpressionType::semantic("value/u8");
+        let values = BTreeMap::from([("bound".into(), input.clone())]);
+        let structures = BTreeMap::new();
+        let literals = BTreeMap::new();
+        let numeric = BTreeSet::new();
+        let kinds = BTreeMap::new();
+        let context = crate::ExpressionTypeContext {
+            glyph_values: None,
+            input: &input,
+            immutable_values: &values,
+            structured_types: &structures,
+            literal_types: &literals,
+            numeric_types: &numeric,
+            semantic_kinds: &kinds,
+        };
+        let syntax = crate::pure_expression::parse("bound", "bound", 0).unwrap();
+        let mut checked = crate::check_expression(&syntax, &context).unwrap();
+        for (kind, bytes, accepted) in [
+            ("value/u8", vec![7], true),
+            ("value/u16", vec![7, 0], false),
+        ] {
+            let value = conduit_core::StructuredInfoValue::leaf(
+                StructuredInfoType::leaf(conduit_core::kind_id(kind)).unwrap(),
+                bytes,
+            )
+            .unwrap();
+            checked.immutable_constants.insert("bound".into(), value);
+            if accepted {
+                let retained = PortableExpressionProgram::from_checked(&checked).unwrap();
+                let streamed = checked_canonical_hex(&checked).unwrap();
+                assert_eq!(retained.canonical_hex().unwrap(), streamed);
+                assert_eq!(retained.evaluate(&[0]).unwrap(), vec![7]);
+            } else {
+                assert_eq!(
+                    PortableExpressionProgram::from_checked(&checked),
+                    Err(PortableExpressionProgramRefusal::MalformedEncoding)
+                );
+                assert_eq!(
+                    checked_canonical_hex(&checked),
+                    Err(PortableExpressionProgramRefusal::MalformedEncoding)
+                );
+            }
+        }
+    }
+
+    #[test]
     fn streamed_checked_programs_match_the_retained_v2_tree_encoding() {
         let input = crate::CheckedExpressionType::semantic("value/u8");
         let values = BTreeMap::new();
@@ -186,6 +258,7 @@ mod tests {
         let numeric = BTreeSet::new();
         let kinds = BTreeMap::new();
         let context = crate::ExpressionTypeContext {
+            glyph_values: None,
             input: &input,
             immutable_values: &values,
             structured_types: &structures,

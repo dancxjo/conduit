@@ -153,7 +153,7 @@
       "role": "runtime",
       "kind": "wasm",
       "path": "runtime.wasm",
-      "maximum_bytes": 12582912,
+      "maximum_bytes": 16777216,
       "dependencies": []
     },
     {

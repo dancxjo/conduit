@@ -46,6 +46,7 @@ export default defineConfig({
     "reviewed-plot-conformance.spec.mjs",
     "exact-quantity.spec.mjs",
     "native-value-types.spec.mjs",
+    "scoped-glyphs.spec.mjs",
     "web-accessibility.spec.mjs",
     "owner-face-component.spec.mjs",
     "creche-avr.spec.mjs",

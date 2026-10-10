@@ -22,6 +22,7 @@ fn program() -> PortableExpressionProgram {
         &check_expression(
             &expression.syntax,
             &ExpressionTypeContext {
+                glyph_values: None,
                 input: &input,
                 immutable_values: &values,
                 structured_types: &types,

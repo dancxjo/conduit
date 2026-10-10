@@ -56,6 +56,13 @@ pub(crate) enum Command {
         #[arg(long)]
         json: bool,
     },
+    /// Format Source indentation while preserving literal spelling.
+    Fmt {
+        source: PathBuf,
+        /// Refuse when formatting would change the Source; emit no rewrite.
+        #[arg(long)]
+        check: bool,
+    },
     /// Explain concise source as the ordinary checked semantics it names.
     Expand {
         plot: PathBuf,
@@ -643,7 +650,7 @@ mod public_surface_tests {
     fn public_help_names_intent_not_retired_shells_or_protocol_phases() {
         let help = Cli::command().render_long_help().to_string();
         for entrance in [
-            "run", "check", "expand", "diagram", "inspect", "body", "host",
+            "run", "check", "fmt", "expand", "diagram", "inspect", "body", "host",
         ] {
             assert!(help.contains(entrance), "missing {entrance} in:\n{help}");
         }

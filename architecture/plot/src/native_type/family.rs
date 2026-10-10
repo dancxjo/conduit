@@ -25,7 +25,8 @@ pub(crate) fn install(
     package_content_digest: [u8; 32],
     owner_origins: &BTreeMap<String, source::NativeTypeSourceOrigin>,
 ) -> Result<(), crate::SyntaxCheckDiagnostic> {
-    if catalog.structured_type(path).is_some()
+    if catalog.typed_literal_family(path).is_some()
+        || catalog.structured_type(path).is_some()
         || catalog.get(path).is_some()
         || catalog.value_kind_alias(path).is_some()
         || catalog.native_families.contains_key(path)

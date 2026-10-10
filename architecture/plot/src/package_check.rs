@@ -50,12 +50,26 @@ pub fn check_package_bundle(
     let mut all_plots = Vec::new();
     let mut all_types = Vec::new();
     let mut all_forms = Vec::new();
+    let mut glyph_notations = Vec::new();
     let mut owners = BTreeMap::new();
     for member in &bundle.members {
         let source = source_by_path
             .get(member.path.as_str())
             .ok_or_else(|| PackageCheckError::MissingMemberSource(member.path.clone()))?;
         let document = crate::parse_syntax_document(source);
+        let origin = crate::TypedLiteralFamilyOrigin {
+            package_content_digest: bundle.package.content_digest,
+            module_path: member.path.clone(),
+            source_document_id: document.source_document_id(),
+        };
+        glyph_notations.extend(
+            crate::glyph_notation::verify_declarations(&document, catalog, Some(&origin)).map_err(
+                |diagnostic| PackageCheckError::Syntax {
+                    module: member.path.clone(),
+                    diagnostic,
+                },
+            )?,
+        );
         for plot in &document.plots {
             owners.insert(plot.name.text.clone(), member.path.clone());
             all_plots.push(plot.clone());
@@ -147,6 +161,7 @@ pub fn check_package_bundle(
     })?;
     checked.native_types = native_types;
     checked.type_forms = type_forms;
+    checked.glyph_notations = glyph_notations;
     Ok(checked)
 }
 

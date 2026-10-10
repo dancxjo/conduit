@@ -6,6 +6,23 @@ pub(super) fn intrinsic_call(
     mut arguments: Vec<Value>,
     expected: &StructuredInfoType,
 ) -> Result<Value, PortableExpressionEvaluationRefusal> {
+    if kind == "text/material" {
+        let [argument] = arguments.as_slice() else {
+            return Err(PortableExpressionEvaluationRefusal::InvalidProgram);
+        };
+        let target = StructuredInfoType::leaf(conduit_core::kind_id(conduit_core::TEXT_INFO_ID))
+            .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?;
+        if expected != &target || leaf_kind(&argument.value_type)? != conduit_core::TEXT_INFO_ID {
+            return Err(PortableExpressionEvaluationRefusal::InvalidProgram);
+        }
+        let encoded = primitive_bytes(argument)?;
+        conduit_core::validate_primitive_info(conduit_core::TEXT_INFO_ID, &encoded)
+            .map_err(|_| PortableExpressionEvaluationRefusal::InvalidInput)?;
+        return Ok(Value {
+            value_type: target,
+            encoded,
+        });
+    }
     if matches!(kind, "bytes/length" | "bytes/at") {
         let count = if kind == "bytes/at" { 2 } else { 1 };
         let source_type = StructuredInfoType::leaf(conduit_core::kind_id("value/bytes"))

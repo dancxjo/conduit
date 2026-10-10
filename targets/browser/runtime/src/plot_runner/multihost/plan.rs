@@ -59,15 +59,16 @@ fn prepare_with_base(
         return Err("two-browser lesson requires distinct Host and Boot identities".into());
     }
     let (startup, catalog) = catalogs()?;
-    let syntax = conduit_plot::parse_syntax_document(source);
+    let syntax = conduit_plot::parse_syntax_document_with_glyph_notations(source, &startup);
     if let Some(diagnostic) = syntax.diagnostics.first() {
         return Err(format!(
             "parse multi-host executable-tour Plot: {}",
             diagnostic.message
         ));
     }
-    let checked = conduit_plot::check_syntax_document(&syntax, &startup)
-        .map_err(|error| format!("check multi-host executable-tour Plot: {error:?}"))?;
+    let checked =
+        conduit_plot::check_syntax_document_with_literal_constructors(&syntax, &startup, &catalog)
+            .map_err(|error| format!("check multi-host executable-tour Plot: {error:?}"))?;
     let entry = super::super::executable_entry(&checked)?;
     let plot = conduit_plot::expand_canonical_plot(&checked, &entry, &catalog)
         .map_err(|error| format!("expand multi-host executable-tour Plot: {error:?}"))?;
@@ -167,8 +168,12 @@ fn prepare_with_base(
         }
         selected
     };
-    let source_host = advertisement(source_host_id.into(), source_boot_id.into());
-    let sink_host = advertisement(sink_host_id.into(), sink_boot_id.into());
+    let expression_offers =
+        crate::installed_browser::catalogs::offers_for_expanded_pure_expressions(&plot)?;
+    let mut source_host = advertisement(source_host_id.into(), source_boot_id.into());
+    let mut sink_host = advertisement(sink_host_id.into(), sink_boot_id.into());
+    source_host.capabilities.extend(expression_offers.clone());
+    sink_host.capabilities.extend(expression_offers);
     let placements = PlacementChoices {
         by_gear: plot
             .gears
@@ -254,14 +259,36 @@ pub(super) fn accept(
             "received multi-host Plan does not retain distinct Host and Boot identities".into(),
         );
     }
-    let source_host = advertisement(
+    let mut source_host = advertisement(
         admitted.binding.source.host_id.clone(),
         admitted.binding.source.boot_id.clone(),
     );
-    let sink_host = advertisement(
+    let mut sink_host = advertisement(
         admitted.binding.sink.host_id.clone(),
         admitted.binding.sink.boot_id.clone(),
     );
+    for fragment in &plan.fragments {
+        for placement in &fragment.placements {
+            if let Some(offer) =
+                crate::installed_browser::pure_expression::offer_for_placement(placement)?
+            {
+                let host = if fragment.host_id == source_host.host_id {
+                    &mut source_host
+                } else if fragment.host_id == sink_host.host_id {
+                    &mut sink_host
+                } else {
+                    return Err("expression placement belongs to an unknown browser Host".into());
+                };
+                if !host
+                    .capabilities
+                    .iter()
+                    .any(|existing| existing.capability_id == offer.capability_id)
+                {
+                    host.capabilities.push(offer);
+                }
+            }
+        }
+    }
     let line = memory_line(&source_host, &sink_host, admitted.binding.base.as_str())?;
     if admitted != &line.admitted_line() {
         return Err("received multi-host Plan changed the exact browser-memory Line".into());

@@ -131,15 +131,16 @@ fn project_with_schema(
 ) -> Result<CompactPatchbayProjection, String> {
     let interaction = crate::source_interaction::admit_source(source.as_bytes(), sequence)?;
     let (startup, mut catalog) = catalogs_for_presentation(presentation)?;
-    let syntax = conduit_plot::parse_syntax_document(source);
+    let syntax = conduit_plot::parse_syntax_document_with_glyph_notations(source, &startup);
     if let Some(diagnostic) = syntax.diagnostics.first() {
         return Err(format!(
             "parse checked-Plot Patchbay: {}",
             diagnostic.message
         ));
     }
-    let checked = conduit_plot::check_syntax_document(&syntax, &startup)
-        .map_err(|error| format!("check checked-Plot Patchbay: {error:?}"))?;
+    let checked =
+        conduit_plot::check_syntax_document_with_literal_constructors(&syntax, &startup, &catalog)
+            .map_err(|error| format!("check checked-Plot Patchbay: {error:?}"))?;
     crate::installed_browser::catalogs::install_checked_structured_selectors(
         &checked,
         &mut catalog,

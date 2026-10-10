@@ -2,6 +2,7 @@ use conduit_plot::{SourceSugarExpansion, Span};
 use serde::Serialize;
 use std::path::Path;
 
+mod glyphs;
 mod native_types;
 #[cfg(test)]
 mod type_tests;
@@ -15,6 +16,8 @@ struct ExpansionReport<'a> {
     native_types: Vec<native_types::NativeTypeView<'a>>,
     type_families: Vec<native_types::FamilyView<'a>>,
     imports: Vec<native_types::ImportView<'a>>,
+    glyphs: Vec<glyphs::GlyphView<'a>>,
+    glyph_contexts: Vec<glyphs::ContextView<'a>>,
 }
 
 #[derive(Debug, Serialize)]
@@ -69,6 +72,7 @@ pub(crate) fn render_source(
     json: bool,
 ) -> Result<String, String> {
     let checked = source.check()?;
+    let glyph_values = glyphs::views(&source.syntax, &checked, &source.startup)?;
     let report = ExpansionReport {
         schema: "conduit.source-sugar-expansion@1",
         boundary: "authored source sugar; canonical checked Plot remains authoritative",
@@ -77,6 +81,8 @@ pub(crate) fn render_source(
         native_types: native_types::types(&source.syntax, &checked)?,
         type_families: native_types::families(&source.syntax),
         imports: native_types::imports(&source.syntax, &source.startup),
+        glyphs: glyph_values.glyphs,
+        glyph_contexts: glyph_values.contexts,
     };
     if json {
         serde_json::to_string_pretty(&report)
@@ -118,6 +124,7 @@ fn render_human(report: &ExpansionReport<'_>) -> String {
     if report.expansions.is_empty()
         && report.native_types.is_empty()
         && report.type_families.is_empty()
+        && report.glyphs.is_empty()
     {
         output.push_str("No admitted concise source spelling occurs.\n");
     }
@@ -143,6 +150,8 @@ fn render_human(report: &ExpansionReport<'_>) -> String {
             ));
         }
     }
+    glyphs::render(&report.glyphs, &mut output);
+    glyphs::render_contexts(&report.glyph_contexts, &mut output);
     for family in &report.type_families {
         output.push_str(&format!(
             "\nType family `{}` at {}:{}\n  authored: {}\n",
@@ -186,6 +195,8 @@ mod tests {
             native_types: Vec::new(),
             type_families: Vec::new(),
             imports: Vec::new(),
+            glyphs: Vec::new(),
+            glyph_contexts: Vec::new(),
         };
         let rendered = render_human(&report);
         assert!(rendered.contains("canonical checked Plot remains authoritative"));

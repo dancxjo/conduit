@@ -95,15 +95,17 @@ pub(super) fn reviewed_gallery() -> Result<Gallery, String> {
             "browser/gallery-boot".into(),
             presentation,
         );
-        let syntax = conduit_plot::parse_syntax_document(source);
+        let syntax = conduit_plot::parse_syntax_document_with_glyph_notations(source, &startup);
         if let Some(diagnostic) = syntax.diagnostics.first() {
             return Err(format!(
                 "parse reviewed Gallery Plot {name}: {}",
                 diagnostic.message
             ));
         }
-        let checked = conduit_plot::check_syntax_document(&syntax, &startup)
-            .map_err(|error| format!("check reviewed Gallery Plot {name}: {error:?}"))?;
+        let checked = conduit_plot::check_syntax_document_with_literal_constructors(
+            &syntax, &startup, &profile,
+        )
+        .map_err(|error| format!("check reviewed Gallery Plot {name}: {error:?}"))?;
         let selector_offers =
             crate::installed_browser::catalogs::install_checked_structured_selectors(
                 &checked,

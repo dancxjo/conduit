@@ -1,5 +1,13 @@
 # Canonical linguistic entities and IPA notation
 
+The #5317 development candidate now implements the imported typed glyph families
+described in [Scoped typed glyphs](scoped-typed-glyphs.md), including the shipped
+`speech/ipa/notation` and `text/pattern/notation` declarations. That document owns
+the current grammar, finite bounds, formatter and inspection behavior. Protected
+integration and stable publication remain required for this candidate.
+The proposal and checkpoint sections below retain earlier design/proof history;
+their statements that shorthand is unimplemented describe those earlier sources.
+
 Speech keeps phonemes, phones, their definitions and their occurrences distinct.
 IPA is canonical notation on those typed entities. An IPA string alone cannot
 establish inventory/variety membership, contextual realization or commitment.
@@ -46,7 +54,7 @@ Recovered source: `origin/codex/5212-common-intent` at
 `6806f08fbb07723237441b97c93cebf5d1e72138`. Historical proof on that branch does
 not prove the current candidate; current validation is recorded below.
 
-## Proposed typed delimiter glyphs
+## Historical typed delimiter glyph proposal
 
 Current glyph aliases resolve fixed unary/relational syntax to ordinary checked
 Gears. They preserve source expansion evidence without arbitrary grammar changes.
@@ -55,7 +63,7 @@ A related extension could bind paired notation to a typed domain decoder:
 ```conduit
 # Proposal only: this declaration grammar is not implemented.
 with speech/ipa/notation as ph
-with pattern/portable/notation as r
+with text/pattern/notation as r
 ```
 
 Each imported member exports one checked notation family. The local prefix
@@ -158,7 +166,7 @@ Passing a pattern as typed Info must not bypass that admission step. Supporting
 subset; duplicate/unknown flags and unsupported expressions still refuse.
 
 
-## Current development evidence
+## Earlier development evidence
 
 The ordinary [quoted-phone constructor](../../semantics/speech/examples/ipa/quoted-phone.conduit)
 checks a single universal phone through `SpeechPhoneNotation`, including its
