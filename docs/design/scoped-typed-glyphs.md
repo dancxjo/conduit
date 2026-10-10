@@ -58,6 +58,14 @@ payload parser and result Type; expected-Type inference never selects a branch.
 The lexer retains raw payload bytes. The domain constructor decides whether
 escapes, flags and the resulting value are valid.
 
+Version one recognizes only the reviewed square (`[…]`), slash (`/…/`), angle
+(`⟨…⟩`) and double-square (`⟦…⟧`) pairs. A family declares its subset; metadata
+cannot install arbitrary punctuation, combining marks, invisible delimiters or
+bidi controls. A catalogue contains at most 64 families, each with at most four
+branches and a payload bound of at most 4096 bytes. Portable patterns use only
+the slash or double-square branches. These are byte limits, not character limits.
+Unicode payloads retain their exact spelling without NFC/NFKC rewriting.
+
 | Source form | Meaning or refusal |
 | --- | --- |
 | `ph[…]` | Phonetic transcription, with explicit checked provenance. |
