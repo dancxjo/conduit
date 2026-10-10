@@ -15,7 +15,7 @@ pub struct Expression {
 pub enum ExpressionSyntax {
     Atomic(SpannedText),
     /// Scoped lexical candidate; only its ordinary owner may admit the payload.
-    TypedGlyphLiteral(TypedGlyphLiteralSyntax),
+    TypedGlyphLiteral(Box<TypedGlyphLiteralSyntax>),
     Input(Span),
     Projection {
         value: Box<ExpressionSyntax>,
@@ -127,6 +127,7 @@ pub struct StructuredExpressionField {
 /// Lossless syntax and exact resolved family identity, before payload admission.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TypedGlyphLiteralSyntax {
+    pub source_document_id: conduit_core::SourceDocumentId,
     pub alias: SpannedText,
     pub delimiter: crate::TypedLiteralDelimiter,
     pub family_identity: [u8; 32],

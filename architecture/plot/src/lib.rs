@@ -42,9 +42,9 @@ mod integer_literal;
 mod native_type;
 mod package_bundle;
 pub use glyph_notation::{
-    check_syntax_document_with_prepared_glyph_literals, resolve_glyph_notation_scope,
-    CheckedGlyphNotation, GlyphNotationScope, LiteralPreparationRefusal, LiteralValueConstructor,
-    PreparedGlyphLiteral, ScopedGlyphNotation,
+    admit_glyph_values, check_syntax_document_with_prepared_glyph_literals,
+    resolve_glyph_notation_scope, AdmittedGlyphValues, CheckedGlyphNotation, GlyphNotationScope,
+    LiteralPreparationRefusal, LiteralValueConstructor, PreparedGlyphLiteral, ScopedGlyphNotation,
 };
 #[cfg(test)]
 mod package_bundle_tests;

@@ -62,7 +62,8 @@ impl GlyphNotationScope {
         profile: &ProfileCatalog,
     ) -> Result<PreparedGlyphLiteral, LiteralPreparationRefusal<C::Refusal>> {
         use LiteralPreparationRefusal as R;
-        if !document.diagnostics.is_empty()
+        if literal.source_document_id != document.source_document_id()
+            || !document.diagnostics.is_empty()
             || document.round_trip().len() > crate::MAXIMUM_PLOT_SOURCE_BYTES
         {
             return Err(R::Source);

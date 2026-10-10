@@ -36,6 +36,7 @@ pub(crate) fn parse_with_scope(
         offset: 0,
         nodes: 0,
         scope,
+        source_document_id: None,
     };
     let expression = parser.expression(0, 1)?;
     parser.whitespace();
@@ -46,6 +47,7 @@ pub(crate) fn parse_with_scope(
 }
 
 struct Parser<'a> {
+    source_document_id: Option<conduit_core::SourceDocumentId>,
     scope: Option<&'a crate::GlyphNotationScope>,
     source: &'a str,
     text: &'a str,

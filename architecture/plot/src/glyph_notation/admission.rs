@@ -6,11 +6,11 @@ use sha2::{Digest, Sha256};
 /// Checks ordinary Source using successfully prepared domain constructor results.
 /// Receipts are bound to exact parsed literal nodes, never substring matches or
 /// expected-Type dispatch. The supplied startup catalog remains unchanged.
-pub fn check_syntax_document_with_prepared_glyph_literals(
+pub fn admit_glyph_values(
     document: &SyntaxDocument,
     catalog: &StartupCatalog,
     receipts: &[PreparedGlyphLiteral],
-) -> Result<CheckedSyntaxDocument, SyntaxCheckDiagnostic> {
+) -> Result<AdmittedGlyphValues, SyntaxCheckDiagnostic> {
     let fail = |span, message: &str| SyntaxCheckDiagnostic {
         code: "CND-GLY-001",
         span,
@@ -38,7 +38,7 @@ pub fn check_syntax_document_with_prepared_glyph_literals(
         ));
     }
     let scope = resolve_glyph_notation_scope(document, catalog)?;
-    let nodes = startup_literals(document).map_err(|span| {
+    let nodes = document_literals(document).map_err(|span| {
         fail(
             span,
             "glyph startup traversal exceeds its finite node bound",
@@ -112,14 +112,66 @@ pub fn check_syntax_document_with_prepared_glyph_literals(
             ));
         }
     }
+    Ok(AdmittedGlyphValues { values: admitted })
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct AdmittedGlyphValues {
+    pub(crate) values:
+        BTreeMap<(usize, usize), (TypedGlyphLiteralSyntax, CanonicalStructuredStartupValue)>,
+}
+impl AdmittedGlyphValues {
+    pub(crate) fn for_plot(catalog: &StartupCatalog, span: Span) -> Self {
+        Self {
+            values: catalog
+                .prepared_glyph_values
+                .iter()
+                .filter(|((start, end), _)| *start >= span.start && *end <= span.end)
+                .map(|(key, value)| (*key, value.clone()))
+                .collect(),
+        }
+    }
+    pub(crate) fn bind_identity(
+        &self,
+        base: conduit_core::CheckedPlotId,
+    ) -> conduit_core::CheckedPlotId {
+        if self.values.is_empty() {
+            return base;
+        }
+        let mut text = format!("checked-glyph-values@1:{}", base.as_str());
+        for ((start, end), (literal, value)) in &self.values {
+            text.push_str(&format!(
+                "|{start}:{end}:{}:{}",
+                literal.source_document_id.as_str(),
+                value.canonical_identity()
+            ));
+        }
+        conduit_core::CheckedPlotId::from(crate::hash_string(&text))
+    }
+
+    pub(crate) fn resolve(
+        &self,
+        literal: &TypedGlyphLiteralSyntax,
+    ) -> Option<&CanonicalStructuredStartupValue> {
+        let span = literal.authored.span;
+        let (authored, value) = self.values.get(&(span.start, span.end))?;
+        (authored == literal).then_some(value)
+    }
+}
+
+pub fn check_syntax_document_with_prepared_glyph_literals(
+    document: &SyntaxDocument,
+    catalog: &StartupCatalog,
+    receipts: &[PreparedGlyphLiteral],
+) -> Result<CheckedSyntaxDocument, SyntaxCheckDiagnostic> {
+    let admitted = admit_glyph_values(document, catalog, receipts)?;
     let mut scoped = catalog.clone();
-    scoped.prepared_glyph_values = admitted;
+    scoped.prepared_glyph_values = admitted.values;
     check_syntax_document(document, &scoped)
 }
 
-// Only ordinary startup positions are admitted here. Pure runtime expressions
-// retain their separate checked program admission boundary.
-fn startup_literals(
+// Collect exact authored nodes; execution remains behind expression admission.
+fn document_literals(
     document: &SyntaxDocument,
 ) -> Result<BTreeMap<(usize, usize), &TypedGlyphLiteralSyntax>, Span> {
     let mut roots = Vec::new();
@@ -171,7 +223,10 @@ fn startup_literals(
         match node {
             ExpressionSyntax::TypedGlyphLiteral(literal) => {
                 let span = literal.authored.span;
-                if found.insert((span.start, span.end), literal).is_some() {
+                if found
+                    .insert((span.start, span.end), literal.as_ref())
+                    .is_some()
+                {
                     return Err(span);
                 }
             }
@@ -224,6 +279,9 @@ fn stages<'a>(stages: &'a [CordStage], roots: &mut Vec<&'a ExpressionSyntax>) {
             CordStage::InlineGear(invocation) | CordStage::RelationalGear { invocation, .. } => {
                 arguments(invocation, roots)
             }
+            CordStage::PureExpression(value)
+            | CordStage::Literal(value)
+            | CordStage::When(value) => roots.push(&value.syntax),
             _ => {}
         }
     }

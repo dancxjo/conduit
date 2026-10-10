@@ -74,23 +74,25 @@ mod tests {
             text: "ph[k]".into(),
             span,
         };
-        let literal = ExpressionSyntax::TypedGlyphLiteral(crate::TypedGlyphLiteralSyntax {
-            alias: SpannedText {
-                text: "ph".into(),
-                span,
-            },
-            delimiter: crate::TypedLiteralDelimiter::Square,
-            family_identity: [0; 32],
-            authored: authored.clone(),
-            raw_payload: SpannedText {
-                text: "k".into(),
-                span,
-            },
-            payload: "k".into(),
-            case_insensitive: false,
-            anchored_start: false,
-            anchored_end: false,
-        });
+        let literal =
+            ExpressionSyntax::TypedGlyphLiteral(Box::new(crate::TypedGlyphLiteralSyntax {
+                source_document_id: crate::parse_syntax_document("ph[k]").source_document_id(),
+                alias: SpannedText {
+                    text: "ph".into(),
+                    span,
+                },
+                delimiter: crate::TypedLiteralDelimiter::Square,
+                family_identity: [0; 32],
+                authored: authored.clone(),
+                raw_payload: SpannedText {
+                    text: "k".into(),
+                    span,
+                },
+                payload: "k".into(),
+                case_insensitive: false,
+                anchored_start: false,
+                anchored_end: false,
+            }));
         let text = StructuredInfoType::leaf(KindId::new("Text")).unwrap();
         let nominal =
             StructuredInfoType::nominal(KindId::new("test/transcription@1"), text.clone()).unwrap();

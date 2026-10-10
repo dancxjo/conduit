@@ -148,6 +148,42 @@ fn shipped_speech_family_elaborates_both_delimiters_through_ordinary_admission()
             core::slice::from_ref(&prepared),
         )
         .is_err());
+        let admitted =
+            conduit_plot::admit_glyph_values(&document, &startup, core::slice::from_ref(&prepared))
+                .unwrap();
+        let empty_map = std::collections::BTreeMap::new();
+        let structures = std::collections::BTreeMap::new();
+        let kinds = std::collections::BTreeMap::new();
+        let numeric = std::collections::BTreeSet::new();
+        let input = conduit_plot::CheckedExpressionType::semantic(conduit_core::UNIT_INFO_ID);
+        let type_context = conduit_plot::ExpressionTypeContext {
+            glyph_values: Some(&admitted),
+            input: &input,
+            immutable_values: &empty_map,
+            structured_types: &structures,
+            literal_types: &empty_map,
+            numeric_types: &numeric,
+            semantic_kinds: &kinds,
+        };
+        let syntax = ExpressionSyntax::TypedGlyphLiteral(Box::new(literal(&document).clone()));
+        let expression = conduit_plot::check_expression(&syntax, &type_context).unwrap();
+        let program = conduit_plot::PortableExpressionProgram::from_checked(&expression).unwrap();
+        let encoded = program.canonical_bytes().unwrap();
+        let decoded =
+            conduit_plot::PortableExpressionProgram::from_canonical_bytes(&encoded).unwrap();
+        assert_eq!(
+            decoded.evaluate(&[]).unwrap(),
+            prepared.ordinary().value().canonical_bytes().unwrap()
+        );
+        let mut evaluator =
+            conduit_plot::PreparedPortableExpressionEvaluator::new(&decoded).unwrap();
+        assert_eq!(
+            evaluator.evaluate(&[]).unwrap(),
+            prepared.ordinary().value().canonical_bytes().unwrap()
+        );
+        let foreign_syntax =
+            ExpressionSyntax::TypedGlyphLiteral(Box::new(literal(&foreign).clone()));
+        assert!(conduit_plot::check_expression(&foreign_syntax, &type_context).is_err());
         let explicit = prepare_configuration(constructor, &configuration).unwrap();
         assert_eq!(
             prepared.ordinary().value().canonical_bytes().unwrap(),
@@ -328,4 +364,80 @@ fn oversized_explicit_context_refuses_before_configuration_cloning() {
         ),
         Err(LiteralPreparationRefusal::ContextLimit)
     ));
+}
+
+#[test]
+fn glyph_source_expression_expands_to_the_same_portable_constructor_value() {
+    let (startup, profile) = catalogs();
+    for (constructor, quoted, glyph, result_type) in [
+        (
+            IpaConstructor::Phonetic,
+            PHONETIC,
+            "ph[ˈt͡ʃãː.n̩]",
+            "SpeechPhoneticTranscription",
+        ),
+        (
+            IpaConstructor::Phonemic,
+            PHONEMIC,
+            "ph/ˈt͡ʃaː/",
+            "SpeechPhonemicTranscription",
+        ),
+    ] {
+        let source = format!("with {NOTATION_EXPORT_PATH} as ph\nplot typed (\n >> input: Unit\n value: {result_type} <= 262144B >>\n) {{\n input >> ({glyph}) >> value\n}}\n");
+        let document = parse_syntax_document_with_glyph_notations(&source, &startup);
+        assert!(
+            document.diagnostics.is_empty(),
+            "{:?}",
+            document.diagnostics
+        );
+        let BackStatement::Cord(cord) = &document.plots[0].back[0] else {
+            panic!()
+        };
+        let conduit_plot::CordStage::PureExpression(expression) = &cord.stages[1] else {
+            panic!()
+        };
+        let ExpressionSyntax::TypedGlyphLiteral(literal) = &expression.syntax else {
+            panic!()
+        };
+        let configuration = ordinary(quoted, &startup, &profile);
+        let scope = resolve_glyph_notation_scope(&document, &startup).unwrap();
+        let prepared = scope
+            .prepare_literal(
+                &document,
+                literal,
+                &context(&configuration),
+                &constructor,
+                &startup,
+                &profile,
+            )
+            .unwrap();
+        let checked = check_syntax_document_with_prepared_glyph_literals(
+            &document,
+            &startup,
+            core::slice::from_ref(&prepared),
+        )
+        .unwrap();
+        let expanded = expand_canonical_plot_for_authoring(&checked, "typed", &profile)
+            .unwrap()
+            .expanded;
+        assert_eq!(expanded.gears.len(), 1);
+        let entry = expanded.gears[0]
+            .configuration
+            .iter()
+            .find(|entry| entry.key == "program")
+            .unwrap();
+        let ConfigurationValue::Text(encoded) = &entry.value else {
+            panic!()
+        };
+        let program = conduit_plot::PortableExpressionProgram::from_canonical_hex(encoded).unwrap();
+        assert_eq!(
+            program.output_type,
+            *prepared.ordinary().value().value_type()
+        );
+        let expected = prepared.ordinary().value().canonical_bytes().unwrap();
+        assert_eq!(program.evaluate(&[]).unwrap(), expected);
+        let mut evaluator =
+            conduit_plot::PreparedPortableExpressionEvaluator::new(&program).unwrap();
+        assert_eq!(evaluator.evaluate(&[]).unwrap(), expected);
+    }
 }

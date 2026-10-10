@@ -150,6 +150,7 @@ pub struct CheckedPoolDeclaration {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CheckedCanonicalPlot {
+    pub glyph_values: crate::AdmittedGlyphValues,
     pub checked_plot_id: CheckedPlotId,
     pub name: String,
     pub completion: PlotCompletionPolicy,

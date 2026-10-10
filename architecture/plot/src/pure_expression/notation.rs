@@ -38,7 +38,17 @@ impl Parser<'_> {
             .family
             .identity_bytes()
             .map_err(|message| (message, self.from(start, start + length)))?;
+        let source_document_id = self
+            .source_document_id
+            .get_or_insert_with(|| {
+                conduit_core::SourceDocumentId::from(crate::hash_string(&format!(
+                    "canonical-source:{}",
+                    self.source
+                )))
+            })
+            .clone();
         let literal = TypedGlyphLiteralSyntax {
+            source_document_id,
             alias: SpannedText {
                 text: alias.into(),
                 span: self.from(start, start + length),
@@ -62,7 +72,7 @@ impl Parser<'_> {
             anchored_end: scanned.anchored_end,
         };
         self.offset += scanned.consumed_bytes;
-        Ok(Some(ExpressionSyntax::TypedGlyphLiteral(literal)))
+        Ok(Some(ExpressionSyntax::TypedGlyphLiteral(Box::new(literal))))
     }
 }
 

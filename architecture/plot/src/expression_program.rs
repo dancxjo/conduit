@@ -195,8 +195,16 @@ fn node(
         .value_type
         .structured_info_type_with(&checked.semantic_structures)?;
     let operation = match syntax {
-        ExpressionSyntax::TypedGlyphLiteral(_) => {
-            return Err(PortableExpressionProgramRefusal::MissingCheckedNodeType);
+        ExpressionSyntax::TypedGlyphLiteral(literal) => {
+            let value = checked
+                .glyph_values
+                .resolve(literal)
+                .and_then(crate::CanonicalStructuredStartupValue::try_concrete)
+                .ok_or(PortableExpressionProgramRefusal::MissingCheckedNodeType)?;
+            if value.value_type() != &value_type {
+                return Err(PortableExpressionProgramRefusal::MalformedEncoding);
+            }
+            PortableExpressionOperation::Constant(value)
         }
         ExpressionSyntax::Input(_) => PortableExpressionOperation::Input,
         ExpressionSyntax::Atomic(value) => PortableExpressionOperation::Literal(value.text.clone()),

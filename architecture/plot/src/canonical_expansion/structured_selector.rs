@@ -309,6 +309,7 @@ fn expand_expression(
         &expression,
         expected_output.as_ref(),
         &crate::ExpressionTypeContext {
+            glyph_values: Some(&source_plot.glyph_values),
             input: &input_type,
             immutable_values: &immutable_values,
             structured_types,

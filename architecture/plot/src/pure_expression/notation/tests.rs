@@ -214,6 +214,7 @@ fn lexical_candidate_cannot_bypass_ordinary_info_admission() {
     let input = crate::CheckedExpressionType::semantic("value/text");
     let empty = BTreeMap::new();
     let context = crate::ExpressionTypeContext {
+        glyph_values: None,
         input: &input,
         immutable_values: &empty,
         structured_types: &BTreeMap::new(),

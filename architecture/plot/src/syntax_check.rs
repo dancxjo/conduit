@@ -937,7 +937,10 @@ fn check_plot(
         &cords,
         &pools,
     );
+    let glyph_values = crate::AdmittedGlyphValues::for_plot(catalog, plot.span);
+    let checked_plot_id = glyph_values.bind_identity(checked_plot_id);
     Ok(CheckedCanonicalPlot {
+        glyph_values,
         checked_plot_id,
         name: plot.name.text.clone(),
         completion: plot.completion,

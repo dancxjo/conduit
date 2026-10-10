@@ -187,6 +187,7 @@ pub struct CheckedExpression {
     pub node_types: Vec<CheckedExpressionNodeType>,
     /// Arithmetic nodes whose safety follows from declared input-Type laws.
     pub proven_arithmetic: BTreeSet<(usize, usize)>,
+    pub(crate) glyph_values: crate::AdmittedGlyphValues,
     pub(crate) semantic_structures: BTreeMap<KindId, StructuredInfoType>,
 }
 
@@ -203,6 +204,8 @@ pub struct ExpressionTypeDiagnostic {
 }
 
 pub struct ExpressionTypeContext<'a> {
+    /// Exact, sealed constructor admissions for this Source's glyph nodes.
+    pub glyph_values: Option<&'a crate::AdmittedGlyphValues>,
     pub input: &'a CheckedExpressionType,
     pub immutable_values: &'a BTreeMap<String, CheckedExpressionType>,
     pub structured_types: &'a BTreeMap<KindId, StructuredInfoType>,
@@ -231,8 +234,32 @@ pub(crate) fn check_expression_as(
     expected: Option<&CheckedExpressionType>,
     context: &ExpressionTypeContext<'_>,
 ) -> Result<CheckedExpression, ExpressionTypeDiagnostic> {
-    let structures = structures::registry(context.structured_types);
+    let mut structures = structures::registry(context.structured_types);
+    if let Some(values) = context.glyph_values {
+        for (_, value) in values.values.values() {
+            let kind = value
+                .value_type()
+                .profile()
+                .map_err(|_| ExpressionTypeDiagnostic {
+                    span: syntax.span(),
+                    message: "glyph result has no finite exact profile".into(),
+                })?
+                .value_kind()
+                .clone();
+            if structures
+                .get(&kind)
+                .is_some_and(|existing| existing != value.value_type())
+            {
+                return refuse(
+                    syntax.span(),
+                    "glyph result conflicts with the exact Type registry",
+                );
+            }
+            structures.insert(kind, value.value_type().clone());
+        }
+    }
     let context = &ExpressionTypeContext {
+        glyph_values: context.glyph_values,
         structured_types: &structures,
         input: context.input,
         immutable_values: context.immutable_values,
@@ -270,6 +297,7 @@ pub(crate) fn check_expression_as(
         node_types,
         proven_arithmetic: BTreeSet::new(),
         semantic_structures,
+        glyph_values: context.glyph_values.cloned().unwrap_or_default(),
     })
 }
 
@@ -295,10 +323,28 @@ fn infer(
     node_types: &mut Vec<CheckedExpressionNodeType>,
 ) -> Result<CheckedExpressionType, ExpressionTypeDiagnostic> {
     let value_type = match syntax {
-        ExpressionSyntax::TypedGlyphLiteral(value) => refuse(
-            value.authored.span,
-            "typed glyph payload requires its exact ordinary constructor admission",
-        ),
+        ExpressionSyntax::TypedGlyphLiteral(literal) => {
+            let value = context
+                .glyph_values
+                .and_then(|values| values.resolve(literal))
+                .ok_or_else(|| ExpressionTypeDiagnostic {
+                    span: literal.authored.span,
+                    message:
+                        "typed glyph payload requires its exact ordinary constructor admission"
+                            .into(),
+                })?;
+            Ok(CheckedExpressionType::Semantic(
+                value
+                    .value_type()
+                    .profile()
+                    .map_err(|_| ExpressionTypeDiagnostic {
+                        span: literal.authored.span,
+                        message: "invalid glyph result profile".into(),
+                    })?
+                    .value_kind()
+                    .clone(),
+            ))
+        }
         ExpressionSyntax::Input(_) => Ok(context.input.clone()),
         ExpressionSyntax::Atomic(value) => atomic(&value.text, value.span, expected, context),
         ExpressionSyntax::Projection {

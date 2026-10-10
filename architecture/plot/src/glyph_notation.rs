@@ -1,6 +1,8 @@
 //! Checked Source glyph notation metadata, shared by shipment and admission.
 mod admission;
-pub use admission::check_syntax_document_with_prepared_glyph_literals;
+pub use admission::{
+    admit_glyph_values, check_syntax_document_with_prepared_glyph_literals, AdmittedGlyphValues,
+};
 mod preparation;
 pub use preparation::{LiteralPreparationRefusal, LiteralValueConstructor, PreparedGlyphLiteral};
 mod scope;
