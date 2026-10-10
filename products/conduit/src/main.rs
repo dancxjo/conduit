@@ -29,6 +29,7 @@ mod rendezvous_relay;
 mod report_artifact;
 mod screen_free_birth;
 mod source_expansion;
+mod source_format;
 mod std_websocket_line;
 #[cfg(test)]
 mod two_std_line_tests;
@@ -443,6 +444,9 @@ fn main() {
             Ok(false) => std::process::exit(1),
             Err(error) => Err(error),
         },
+        Some(cli::Command::Fmt { source, check }) => {
+            source_format::run(&source, check).map(|rendered| print!("{rendered}"))
+        }
         Some(cli::Command::Expand { plot, json }) => {
             source_expansion::run(&plot, json).map(|rendered| print!("{rendered}"))
         }

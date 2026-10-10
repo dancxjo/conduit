@@ -353,3 +353,30 @@ fn editing_header_resolution_preserves_exact_context_and_import_spans() {
     )
     .is_err());
 }
+
+#[test]
+fn formatting_preserves_glyph_spelling_values_and_distinct_source_custody() {
+    let (startup, profile) = catalogs();
+    for spelling in ["r/^[A-Z]+$/i", "r⟦a#'\",b={2}⟧", "r⟦a[{]b⟧"] {
+        let source = format!("with {PATTERN_NOTATION_EXPORT_PATH} as r\nplot example {{\n\t value = {spelling}   \n   }}");
+        let formatted = format_syntax(&source, &startup).unwrap();
+        assert_eq!(formatted, format!("with {PATTERN_NOTATION_EXPORT_PATH} as r\nplot example {{\n    value = {spelling}\n}}\n"));
+        assert_eq!(format_syntax(&formatted, &startup).unwrap(), formatted);
+        let before = parse_syntax_document_with_glyph_notations(&source, &startup);
+        let after = parse_syntax_document_with_glyph_notations(&formatted, &startup);
+        assert_eq!(
+            literal(&before).authored.text,
+            literal(&after).authored.text
+        );
+        assert_eq!(
+            literal(&before).raw_payload.text,
+            literal(&after).raw_payload.text
+        );
+        assert_ne!(before.source_document_id(), after.source_document_id());
+        let before =
+            check_syntax_document_with_literal_constructors(&before, &startup, &profile).unwrap();
+        let after =
+            check_syntax_document_with_literal_constructors(&after, &startup, &profile).unwrap();
+        assert_eq!(before.plots[0].local_values, after.plots[0].local_values);
+    }
+}

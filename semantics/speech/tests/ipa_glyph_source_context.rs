@@ -349,3 +349,31 @@ fn one_family_context_admits_both_branches_and_checks_unused_selections() {
         check_syntax_document_with_literal_constructors(&document, &startup, &profile).unwrap_err();
     assert!(error.message.contains("not declared"), "{error:?}");
 }
+
+#[test]
+fn formatter_preserves_both_ipa_branches_and_the_selected_checked_basis() {
+    let (startup, profile) = catalogs();
+    let fields = material(PHONEMIC);
+    let selections = fields
+        .iter()
+        .map(|(key, _)| format!("{key}: chosen-{key}"))
+        .collect::<Vec<_>>()
+        .join(", ");
+    let declarations = fields
+        .iter()
+        .map(|(key, value)| format!("\tchosen-{key} = {value}   \n"))
+        .collect::<String>();
+    let source = format!("with {NOTATION_EXPORT_PATH} as ph using {{{selections}}}\nplot authored {{\n{declarations}\tphonetic = ph[ˈt͡ʃaː]\n\tphonemic = ph/ˈt͡ʃaː/\n   }}");
+    let formatted = format_syntax(&source, &startup).unwrap();
+    assert_eq!(format_syntax(&formatted, &startup).unwrap(), formatted);
+    assert!(formatted.contains("    phonetic = ph[ˈt͡ʃaː]\n"));
+    assert!(formatted.contains("    phonemic = ph/ˈt͡ʃaː/\n"));
+    let before = parse_syntax_document_with_glyph_notations(&source, &startup);
+    let after = parse_syntax_document_with_glyph_notations(&formatted, &startup);
+    assert_ne!(before.source_document_id(), after.source_document_id());
+    let before =
+        check_syntax_document_with_literal_constructors(&before, &startup, &profile).unwrap();
+    let after =
+        check_syntax_document_with_literal_constructors(&after, &startup, &profile).unwrap();
+    assert_eq!(before.plots[0].local_values, after.plots[0].local_values);
+}

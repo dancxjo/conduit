@@ -73,6 +73,8 @@ mod surface_lex;
 mod surface_parser;
 pub mod syntax;
 mod syntax_check;
+mod syntax_format;
+pub use syntax_format::*;
 mod syntax_highlight;
 mod syntax_identity;
 mod text_value;
