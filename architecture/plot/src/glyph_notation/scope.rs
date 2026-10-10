@@ -24,6 +24,16 @@ pub struct GlyphNotationScope {
 }
 
 impl GlyphNotationScope {
+    /// Resolve only the bounded import header for editing tools. The remaining
+    /// Source may be incomplete. This neither checks declaration collisions nor
+    /// admits values; full Source checking still resolves the complete document.
+    pub fn from_source_header(
+        source: &str,
+        startup: &StartupCatalog,
+    ) -> Result<Self, SyntaxCheckDiagnostic> {
+        crate::surface_parser::glyph_scope_for_source_header(source, startup)
+    }
+
     pub fn binding(&self, alias: &str) -> Option<&ScopedGlyphNotation> {
         self.bindings.get(alias)
     }

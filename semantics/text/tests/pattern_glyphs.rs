@@ -331,3 +331,25 @@ fn glyph_payload_punctuation_does_not_split_outer_grammar() {
     );
     check_syntax_document_with_literal_constructors(&document, &startup, &profile).unwrap();
 }
+
+#[test]
+fn editing_header_resolution_preserves_exact_context_and_import_spans() {
+    let (startup, _) = catalogs();
+    let authored = format!("# Unicode π\nwith {PATTERN_NOTATION_EXPORT_PATH} as rx\nplot unfinished {{\n value = rx/a#b/\n");
+    let scope = GlyphNotationScope::from_source_header(&authored, &startup).unwrap();
+    let binding = scope.binding("rx").unwrap();
+    assert_eq!(
+        &authored[binding.import_span.start..binding.import_span.end],
+        format!("with {PATTERN_NOTATION_EXPORT_PATH} as rx")
+    );
+    let spans = highlight_syntax_in_scope(&authored, &scope).unwrap();
+    assert!(spans
+        .iter()
+        .any(|span| span.kind == SyntaxHighlightKind::Literal
+            && &authored[span.start..span.end] == "a#b"));
+    assert!(GlyphNotationScope::from_source_header(
+        "with text/pattern/notation as r\nwith text/pattern/notation as r\nplot unfinished {",
+        &startup
+    )
+    .is_err());
+}

@@ -1,6 +1,35 @@
 //! Full Source assembly and explicit checked-family lexical entrance.
 use super::*;
 
+pub(crate) fn glyph_scope_for_source_header(
+    source: &str,
+    startup: &crate::StartupCatalog,
+) -> Result<crate::GlyphNotationScope, crate::SyntaxCheckDiagnostic> {
+    let fail = |(error, span): (PlotError, Span)| crate::SyntaxCheckDiagnostic {
+        code: "CND-GLY-005",
+        span,
+        message: alloc::format!("invalid glyph notation import header: {error}"),
+    };
+    if source.len() > MAXIMUM_PLOT_SOURCE_BYTES {
+        return Err(fail((
+            PlotError::SourceLimitExceeded,
+            crate::whole_source_span(source),
+        )));
+    }
+    let tokens =
+        tokenize_losslessly(source).map_err(|span| fail((PlotError::TokenLimitExceeded, span)))?;
+    let (uses, standard_glyphs) = Parser::new(source).parse_header().map_err(fail)?;
+    let header = SyntaxDocument::new(
+        source.into(),
+        tokens,
+        uses,
+        standard_glyphs,
+        SyntaxDefinitions::default(),
+        Vec::new(),
+    );
+    crate::resolve_glyph_notation_scope(&header, startup)
+}
+
 pub(crate) fn parse_surface(source: &str) -> SyntaxDocument {
     parse(source, None)
 }
@@ -87,18 +116,9 @@ struct ParsedSurface {
 }
 
 impl Parser<'_> {
-    fn parse_document(
-        mut self,
-        startup: Option<&crate::StartupCatalog>,
-    ) -> Result<ParsedSurface, (PlotError, Span)> {
+    fn parse_header(&mut self) -> Result<(Vec<UseDeclaration>, bool), (PlotError, Span)> {
         let mut uses = Vec::new();
         let mut standard_glyphs = true;
-        let mut types = Vec::new();
-        let mut type_forms = Vec::new();
-        let mut glyph_notations = Vec::new();
-        let mut plots = Vec::new();
-        let mut constructions = Vec::new();
-        let mut packages = Vec::new();
         self.skip_empty();
         while self.index < self.lines.len() {
             let (text, start) = self.lines[self.index].statement();
@@ -129,6 +149,20 @@ impl Parser<'_> {
             self.index += 1;
             self.skip_empty();
         }
+        Ok((uses, standard_glyphs))
+    }
+
+    fn parse_document(
+        mut self,
+        startup: Option<&crate::StartupCatalog>,
+    ) -> Result<ParsedSurface, (PlotError, Span)> {
+        let mut types = Vec::new();
+        let mut type_forms = Vec::new();
+        let mut glyph_notations = Vec::new();
+        let mut plots = Vec::new();
+        let mut constructions = Vec::new();
+        let mut packages = Vec::new();
+        let (uses, standard_glyphs) = self.parse_header()?;
         if let Some(startup) = startup {
             let header = SyntaxDocument::new(
                 self.source.into(),

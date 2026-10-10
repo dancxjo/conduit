@@ -55,7 +55,7 @@ A related extension could bind paired notation to a typed domain decoder:
 ```conduit
 # Proposal only: this declaration grammar is not implemented.
 with speech/ipa/notation as ph
-with pattern/portable/notation as r
+with text/pattern/notation as r
 ```
 
 Each imported member exports one checked notation family. The local prefix

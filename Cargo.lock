@@ -1852,6 +1852,7 @@ dependencies = [
  "conduit-semantic-catalog",
  "conduit-signal",
  "conduit-signal-conformance",
+ "conduit-speech",
  "conduit-std-offers",
  "conduit-synth",
  "conduit-text",
