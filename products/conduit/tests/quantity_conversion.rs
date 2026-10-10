@@ -7,7 +7,7 @@ use std::{
 };
 
 fn source(original: &str, target: &str) -> String {
-    format!("# Unicode µ before owned spans\nplot conversion (\n receipt: ExactQuantityConversionReceipt <= 8192B >>\n) {{\n original = \"{original}\"\n alias = original\n converted: units/convert(source = alias, to = \"{target}\")\n converted.receipt >> receipt\n}}.\n")
+    format!("# Unicode µ before owned spans\nplot conversion (\n receipt: ExactQuantityConversionReceipt <= 8192B >>\n) {{\n converted: units/convert(source = {original}, to = {target})\n converted.receipt >> receipt\n}}.\n")
 }
 fn check(source: &str, json: bool) -> std::process::Output {
     let nonce = SystemTime::now()
@@ -63,12 +63,12 @@ fn invalid_conversion_requests_keep_exact_original_spans_in_both_product_present
         assert!(!machine.status.success());
         let diagnostics: Value = serde_json::from_slice(&machine.stdout).unwrap();
         let diagnostic = &diagnostics[0];
-        assert_eq!(diagnostic["code"], "CND-QTY-001");
+        assert_eq!(diagnostic["code"], "CND-FRM-051");
         let start = diagnostic["primary_span"]["start"].as_u64().unwrap() as usize;
         let end = diagnostic["primary_span"]["end"].as_u64().unwrap() as usize;
         assert_eq!(&source[start..end], expected);
         let human = String::from_utf8(human.stdout).unwrap();
-        assert!(human.contains("CND-QTY-001"));
+        assert!(human.contains("CND-FRM-051"));
         assert!(human.contains(diagnostic["summary"].as_str().unwrap()));
         assert_eq!(diagnostic["source_document_id"].as_str().unwrap().len(), 64);
     }
@@ -110,7 +110,7 @@ fn product_checks_distinct_temperature_difference_contract_and_owned_refusals() 
         assert!(!machine.status.success());
         let diagnostics: Value = serde_json::from_slice(&machine.stdout).unwrap();
         let diagnostic = &diagnostics[0];
-        assert_eq!(diagnostic["code"], "CND-QTY-001");
+        assert_eq!(diagnostic["code"], "CND-FRM-051");
         let start = diagnostic["primary_span"]["start"].as_u64().unwrap() as usize;
         let end = diagnostic["primary_span"]["end"].as_u64().unwrap() as usize;
         assert_eq!(&source[start..end], expected);
@@ -123,7 +123,7 @@ fn product_checks_distinct_temperature_difference_contract_and_owned_refusals() 
 #[test]
 fn product_checks_exact_comparisons_and_preserves_the_offending_operand_span() {
     let source = |kind: &str, name: &str, left: &str, right: &str| {
-        format!("# µ before original operands\nplot compare (\n receipt: {name} <= 8192B >>\n) {{\n original = \"{right}\"\n alias = original\n compared: {kind}(left = \"{left}\", right = alias)\n compared.receipt >> receipt\n}}.\n")
+        format!("# µ before original operands\nplot compare (\n receipt: {name} <= 8192B >>\n) {{\n compared: {kind}(left = {left}, right = {right})\n compared.receipt >> receipt\n}}.\n")
     };
     for (kind, name, left, right) in [
         (
@@ -192,7 +192,7 @@ fn product_checks_exact_comparisons_and_preserves_the_offending_operand_span() {
         assert!(!machine.status.success());
         let diagnostics: Value = serde_json::from_slice(&machine.stdout).unwrap();
         let diagnostic = &diagnostics[0];
-        assert_eq!(diagnostic["code"], "CND-QTY-001");
+        assert_eq!(diagnostic["code"], "CND-FRM-051");
         let start = diagnostic["primary_span"]["start"].as_u64().unwrap() as usize;
         let end = diagnostic["primary_span"]["end"].as_u64().unwrap() as usize;
         assert_eq!(&source[start..end], expected);

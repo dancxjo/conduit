@@ -238,7 +238,7 @@ fn definition_uses(definition: &TypeDefinitionSyntax, parameter: &str) -> bool {
             .iter()
             .any(|field| expression_uses(&field.value_type, parameter)),
         TypeDefinitionSyntax::Variant(cases) => cases.iter().any(|case| match &case.payload {
-            TypeVariantPayloadSyntax::Unit => false,
+            TypeVariantPayloadSyntax::Empty => false,
             TypeVariantPayloadSyntax::Type(value) => expression_uses(value, parameter),
             TypeVariantPayloadSyntax::Record(fields) => fields
                 .iter()

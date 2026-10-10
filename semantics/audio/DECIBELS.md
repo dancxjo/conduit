@@ -8,7 +8,7 @@ The broad Source owners retain exact authored fractions without reduction:
 
 | Owner | Domain / declared meaning |
 | --- | --- |
-| `AudioDecibelReference` | Positive full-U64 numerator/denominator magnitude, existing Core `QuantityUnit`, nonempty identity (128B), explicit amplitude-magnitude or power role, existing Audio provenance kind/method/version. |
+| `AudioDecibelReference` | Positive full-U64 numerator/denominator magnitude, existing Core `Unit`, nonempty identity (128B), explicit amplitude-magnitude or power role, existing Audio provenance kind/method/version. |
 | `AudioReferencedLevelRatio` | Nonnegative full-U64 fraction x/x_ref, with positive denominator; magnitude reference and convention remain attached. |
 | `AudioDecibelFraction` | Signed I64 numerator in dB / positive full-U64 denominator. |
 | `AudioDecibelValue` | Finite rational dB or explicit negative infinity. |

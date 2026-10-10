@@ -3,7 +3,7 @@
 use super::*;
 use conduit_core::{
     process_owned_line_offer_with_limits, BaseImplementationId, Kind, LinkLimits, PortDirection,
-    Quantity, QuantityUnit, StructuredInfoValue, TemporalInstant, TemporalScale,
+    Quantity, StructuredInfoValue, TemporalInstant, TemporalScale, Unit,
 };
 use conduit_data::{
     BoundedMeasurementWindow, FullWindowPolicy, MeasurementRange, MeasurementSample,
@@ -164,8 +164,8 @@ fn window_value() -> Vec<u8> {
     let mut window = BoundedMeasurementWindow::new(MeasurementWindowProfile {
         capacity: 3,
         range: MeasurementRange {
-            minimum: Quantity::new(0, QuantityUnit::Millivolt),
-            maximum: Quantity::new(100, QuantityUnit::Millivolt),
+            minimum: Quantity::new(0, Unit::Millivolt),
+            maximum: Quantity::new(100, Unit::Millivolt),
         },
         clock_basis: "fixture-clock".into(),
         full_policy: FullWindowPolicy::Reject,
@@ -174,7 +174,7 @@ fn window_value() -> Vec<u8> {
     for (value, ticks) in [(0, 1), (50, 2), (100, 3)] {
         window
             .push(MeasurementSample {
-                value: Quantity::new(value, QuantityUnit::Millivolt),
+                value: Quantity::new(value, Unit::Millivolt),
                 observed_at: TemporalInstant {
                     ticks,
                     scale: TemporalScale::Milliseconds,

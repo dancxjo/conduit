@@ -1,7 +1,7 @@
 use super::{host, installed_std, RecordingTimer};
 use conduit_core::{
-    BaseImplementationId, ObservationKind, Quantity, QuantityUnit, StructuredFieldType,
-    StructuredFieldValue, StructuredInfoType, StructuredInfoValue,
+    BaseImplementationId, ObservationKind, Quantity, StructuredFieldType, StructuredFieldValue,
+    StructuredInfoType, StructuredInfoValue, Unit,
 };
 use conduit_plot::{
     check_syntax_document, expand_canonical_plot, parse_syntax_document, ProfileCatalog,
@@ -28,9 +28,7 @@ fn quantity_record() -> (StructuredInfoType, StructuredInfoValue) {
                 "elapsed",
                 StructuredInfoValue::leaf(
                     quantity.clone(),
-                    Quantity::new(17, QuantityUnit::Millisecond)
-                        .encode()
-                        .to_vec(),
+                    Quantity::new(17, Unit::Millisecond).encode().to_vec(),
                 )
                 .unwrap(),
             )
@@ -39,7 +37,7 @@ fn quantity_record() -> (StructuredInfoType, StructuredInfoValue) {
                 "frequency",
                 StructuredInfoValue::leaf(
                     quantity,
-                    Quantity::new(440, QuantityUnit::Hertz).encode().to_vec(),
+                    Quantity::new(440, Unit::Hertz).encode().to_vec(),
                 )
                 .unwrap(),
             )

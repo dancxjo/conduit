@@ -10,8 +10,8 @@ use crate::{
 use conduit_core::{
     kind_id, port_id, AbnormalTerminalTransduction, CancellationTransduction, CapabilityLimits,
     ExternalEffectBehavior, FrontStartupParameter, Kind, KindIdentity, KindSemanticLaw,
-    NormalCloseTransduction, PortDescriptor, PortDirection, Quantity, QuantityUnit,
-    SuspensionBehavior, TemporalStateBehavior, TerminalTransductionProfile,
+    NormalCloseTransduction, PortDescriptor, PortDirection, Quantity, SuspensionBehavior,
+    TemporalStateBehavior, TerminalTransductionProfile, Unit,
 };
 use conduit_kernel::scheduler::{
     AssignedAbnormalTransduction, AssignedCancellationTransduction, AssignedConnectionTrack,
@@ -66,14 +66,17 @@ fn profile_startup_catalog_preserves_quantity_dimensions() {
             outputs: vec![],
             configuration: vec![KindConfigurationField {
                 key: "distance".into(),
-                default_value: ConfigurationValue::Quantity(Quantity::new(
-                    500,
-                    QuantityUnit::Millimeter,
-                )),
+                default_value: ConfigurationValue::Quantity(
+                    conduit_core::QuantityConfigurationValue::from_value(Quantity::new(
+                        500,
+                        Unit::Millimeter,
+                    ))
+                    .unwrap(),
+                ),
                 rule: KindConfigurationRule::QuantityRange {
                     minimum: 0,
                     maximum: 10_000,
-                    canonical_unit: QuantityUnit::Millimeter,
+                    canonical_unit: Unit::Millimeter,
                 },
             }],
         })
@@ -404,7 +407,7 @@ fn optional_keep_lowers_omitted_and_present_initializers_to_none_and_some() {
                 .unwrap(),
         );
     }
-    assert_eq!(maximums, vec![100, 100]);
+    assert_eq!(maximums, vec![101, 101]);
 }
 
 #[test]
@@ -434,16 +437,8 @@ fn optional_dimensioned_keep_preserves_none_some_identity_bound_and_duration() {
         .unwrap();
 
     for (value_type, literal, quantity) in [
-        (
-            "Distance",
-            "150cm",
-            Quantity::new(150, QuantityUnit::Centimeter),
-        ),
-        (
-            "Frequency",
-            "440Hz",
-            Quantity::new(440, QuantityUnit::Hertz),
-        ),
+        ("Distance", "150cm", Quantity::new(150, Unit::Centimeter)),
+        ("Frequency", "440Hz", Quantity::new(440, Unit::Hertz)),
     ] {
         let mut variants = Vec::new();
         let mut value_kinds = Vec::new();
@@ -1039,7 +1034,7 @@ fn terminal_catalogs() -> (StartupCatalog, ProfileCatalog) {
             kind_contract_revision: KindIdentity::from("test/unit-sink@1"),
             inputs: vec![PortDescriptor {
                 port_id: port_id("in"),
-                value_kind: kind_id(conduit_core::UNIT_INFO_ID),
+                value_kind: kind_id(conduit_core::EMPTY_INFO_ID),
                 direction: PortDirection::Input,
                 temporal: conduit_core::PortTemporal::Value,
                 abnormal_kind: None,
@@ -1116,7 +1111,7 @@ fn terminal_catalogs() -> (StartupCatalog, ProfileCatalog) {
             kind_contract_revision: KindIdentity::from("test/name-only-cancellable-work@1"),
             inputs: vec![PortDescriptor {
                 port_id: port_id("cancel"),
-                value_kind: kind_id(conduit_core::UNIT_INFO_ID),
+                value_kind: kind_id(conduit_core::EMPTY_INFO_ID),
                 direction: PortDirection::Input,
                 temporal: conduit_core::PortTemporal::Value,
                 abnormal_kind: None,
@@ -1145,14 +1140,14 @@ fn terminal_catalogs() -> (StartupCatalog, ProfileCatalog) {
             kind_contract_revision: KindIdentity::from("test/unit-pass@1"),
             inputs: vec![PortDescriptor {
                 port_id: port_id("in"),
-                value_kind: kind_id(conduit_core::UNIT_INFO_ID),
+                value_kind: kind_id(conduit_core::EMPTY_INFO_ID),
                 direction: PortDirection::Input,
                 temporal: conduit_core::PortTemporal::Value,
                 abnormal_kind: None,
             }],
             outputs: vec![PortDescriptor {
                 port_id: port_id("out"),
-                value_kind: kind_id(conduit_core::UNIT_INFO_ID),
+                value_kind: kind_id(conduit_core::EMPTY_INFO_ID),
                 direction: PortDirection::Output,
                 temporal: conduit_core::PortTemporal::Value,
                 abnormal_kind: None,
@@ -1207,7 +1202,7 @@ fn terminal_catalogs() -> (StartupCatalog, ProfileCatalog) {
         }],
         outputs: vec![PortDescriptor {
             port_id: port_id("recovered"),
-            value_kind: kind_id(conduit_core::UNIT_INFO_ID),
+            value_kind: kind_id(conduit_core::EMPTY_INFO_ID),
             direction: PortDirection::Output,
             temporal: conduit_core::PortTemporal::Value,
             abnormal_kind: None,
@@ -1248,7 +1243,7 @@ fn terminal_projections_lower_to_distinct_typed_connection_tracks() {
         .iter()
         .find(|connection| connection.track == conduit_core::ConnectionTrack::NormalClose)
         .expect("normal close is an exact graph track");
-    assert_eq!(normal.value_kind.as_str(), conduit_core::UNIT_INFO_ID);
+    assert_eq!(normal.value_kind.as_str(), conduit_core::EMPTY_INFO_ID);
     assert_eq!(normal.temporal, conduit_core::PortTemporal::Value);
     let abnormal = expanded
         .connections
@@ -1262,7 +1257,7 @@ fn terminal_projections_lower_to_distinct_typed_connection_tracks() {
         .iter()
         .find(|connection| connection.track == conduit_core::ConnectionTrack::Quiescence)
         .expect("quiescence is an exact non-terminal graph track");
-    assert_eq!(quiescence.value_kind.as_str(), conduit_core::UNIT_INFO_ID);
+    assert_eq!(quiescence.value_kind.as_str(), conduit_core::EMPTY_INFO_ID);
     assert_eq!(quiescence.temporal, conduit_core::PortTemporal::Value);
     assert_ne!(normal, abnormal);
     assert_ne!(normal, quiescence);
@@ -1349,7 +1344,7 @@ fn semantic_cancellation_is_an_ordinary_cord_to_an_exact_declared_fore_control()
 #[test]
 fn terminal_projection_survives_a_nested_plot_input_boundary() {
     let (startup, profile) = terminal_catalogs();
-    let source = "plot relay (\n input: test/value...| >> closed: Unit\n) {\n finish: test/unit-pass\n input| >> finish >> closed\n}\n\nplot main {\n source: test/closing-source\n relay: relay\n sink: test/unit-sink\n source >> relay.input\n relay.closed >> sink\n}\n";
+    let source = "plot relay (\n input: test/value...| >> closed: Empty\n) {\n finish: test/unit-pass\n input| >> finish >> closed\n}\n\nplot main {\n source: test/closing-source\n relay: relay\n sink: test/unit-sink\n source >> relay.input\n relay.closed >> sink\n}\n";
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
     let expanded = expand_canonical_plot(&checked, "main", &profile).unwrap();
     let terminal = expanded
@@ -1359,7 +1354,7 @@ fn terminal_projection_survives_a_nested_plot_input_boundary() {
         .expect("nested Plot boundary retains the normal-close track");
     assert_eq!(terminal.source_gear_id.as_str(), "main/source");
     assert_eq!(terminal.sink_gear_id.as_str(), "main/relay/finish");
-    assert_eq!(terminal.value_kind.as_str(), conduit_core::UNIT_INFO_ID);
+    assert_eq!(terminal.value_kind.as_str(), conduit_core::EMPTY_INFO_ID);
 }
 
 #[test]

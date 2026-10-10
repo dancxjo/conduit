@@ -62,14 +62,17 @@ pub fn tick_semantic_contract() -> Kind {
 pub fn time_every_semantic_contract() -> Kind {
     let configuration = vec![KindConfigurationField {
         key: "freq".into(),
-        default_value: ConfigurationValue::Quantity(conduit_core::Quantity::new(
-            1_000,
-            conduit_core::QuantityUnit::Millisecond,
-        )),
+        default_value: ConfigurationValue::Quantity(
+            conduit_core::QuantityConfigurationValue::from_value(conduit_core::Quantity::new(
+                1_000,
+                conduit_core::Unit::Millisecond,
+            ))
+            .expect("bounded quantity configuration"),
+        ),
         rule: KindConfigurationRule::QuantityRange {
             minimum: 0,
             maximum: i64::MAX,
-            canonical_unit: conduit_core::QuantityUnit::Millisecond,
+            canonical_unit: conduit_core::Unit::Millisecond,
         },
     }];
     Kind {

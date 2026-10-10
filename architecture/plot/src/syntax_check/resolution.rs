@@ -4,7 +4,7 @@ use alloc::collections::{BTreeMap, BTreeSet};
 
 pub(super) struct Resolver<'a> {
     pub(super) locals: BTreeMap<String, &'a crate::LocalValue>,
-    parameters: BTreeSet<String>,
+    parameters: BTreeMap<String, conduit_core::KindId>,
     runtime_ports: BTreeSet<String>,
     pools: BTreeSet<String>,
     resolved: BTreeMap<String, CanonicalStartupValue>,
@@ -14,7 +14,7 @@ pub(super) struct Resolver<'a> {
 impl<'a> Resolver<'a> {
     pub(super) fn new(
         locals: BTreeMap<String, &'a crate::LocalValue>,
-        parameters: BTreeSet<String>,
+        parameters: BTreeMap<String, conduit_core::KindId>,
         runtime_ports: BTreeSet<String>,
         pools: BTreeSet<String>,
     ) -> Self {
@@ -34,6 +34,14 @@ impl<'a> Resolver<'a> {
         expected: Option<&conduit_core::StructuredInfoType>,
     ) -> Result<CanonicalStartupValue, SyntaxCheckError> {
         if let Some(value) = self.resolved.get(name) {
+            if expected
+                .and_then(crate::authored_quantity::expected_role)
+                .is_some()
+                && crate::authored_quantity::value_kind(value).is_none()
+            {
+                let expression = self.locals[name].value.clone();
+                return self.resolve_expression(&expression, expected);
+            }
             if let (Some(expected), CanonicalStartupValue::Structured(actual)) = (expected, value) {
                 if actual.value_type() != expected {
                     return Err(SyntaxCheckError::StructuredExpression(
@@ -62,6 +70,16 @@ impl<'a> Resolver<'a> {
         expected: Option<&conduit_core::StructuredInfoType>,
     ) -> Result<CanonicalStartupValue, SyntaxCheckError> {
         if let Some(expected) = expected {
+            if crate::authored_quantity::expected_role(expected).is_some() {
+                return self
+                    .resolve_atomic(&expression.text, Some(expected))
+                    .map_err(|error| match error {
+                        SyntaxCheckError::QuantityLiteral(message) => {
+                            SyntaxCheckError::StructuredExpression(message, Some(expression.span))
+                        }
+                        other => other,
+                    });
+            }
             let checked = crate::structured_startup::check_structured_expression(
                 &expression.syntax,
                 expected,
@@ -96,10 +114,7 @@ impl<'a> Resolver<'a> {
                 operand,
                 ..
             } if matches!(operand.as_ref(), crate::ExpressionSyntax::Atomic(_))
-                && matches!(conduit_core::Quantity::parse_plot_literal(&expression.text),
-                    Ok(_) | Err(conduit_core::QuantityLiteralRefusal::RepresentationIneligible { .. }
-                        | conduit_core::QuantityLiteralRefusal::NonCanonicalUnit { .. }
-                        | conduit_core::QuantityLiteralRefusal::AmbiguousUnit))
+                && conduit_core::Quantity::parse_plot_literal(&expression.text).is_ok()
         );
         if !matches!(expression.syntax, crate::ExpressionSyntax::Atomic(_))
             && !negative_integer
@@ -117,12 +132,6 @@ impl<'a> Resolver<'a> {
             ));
         }
         self.resolve_atomic(&expression.text, None)
-            .map_err(|error| match error {
-                SyntaxCheckError::QuantityEligibility(detail, None) => {
-                    SyntaxCheckError::QuantityEligibility(detail, Some(expression.span))
-                }
-                error => error,
-            })
     }
 
     fn resolve_atomic(
@@ -134,17 +143,32 @@ impl<'a> Resolver<'a> {
             self.resolve_name(expression, expected)
         } else if self.runtime_ports.contains(expression) {
             Err(SyntaxCheckError::RuntimeAsStartup(expression.to_string()))
-        } else if self.parameters.contains(expression) {
+        } else if self.parameters.contains_key(expression) {
+            if let Some(expected) = expected {
+                if crate::authored_quantity::expected_role(expected).is_some()
+                    && match expected.shape() {
+                        conduit_core::StructuredInfoTypeShape::Leaf(kind) => Some(kind.clone()),
+                        _ => expected.profile().ok().map(|p| p.value_kind().clone()),
+                    }
+                    .as_ref()
+                        != self.parameters.get(expression)
+                {
+                    return Err(SyntaxCheckError::QuantityLiteral(format!(
+                        "startup parameter '{expression}' has an incompatible exact physical Type"
+                    )));
+                }
+            }
             Ok(CanonicalStartupValue::PlotParameter(expression.to_string()))
         } else if self.pools.contains(expression) {
             Ok(CanonicalStartupValue::PoolReference(
                 conduit_core::SharedPoolId::from(expression),
             ))
         } else if is_atomic_literal(expression) {
-            if expected.is_some_and(crate::quantity_literal::is_exact_profile) {
-                // Preserve raw authored spelling until the selected leaf codec
-                // validates semantic suffix and finite representation together.
-                return Ok(CanonicalStartupValue::Literal(expression.to_string()));
+            if let Some(role) = expected.and_then(crate::authored_quantity::expected_role) {
+                return crate::authored_quantity::parse(expression, role);
+            }
+            if let Ok(value) = conduit_core::UnitConfigurationValue::parse(expression) {
+                return Ok(CanonicalStartupValue::Unit(value));
             }
             match crate::quantity_literal::startup_quantity(expression)? {
                 Some(value) => Ok(CanonicalStartupValue::Quantity(value)),
@@ -175,6 +199,7 @@ pub(super) fn is_atomic_literal(expression: &str) -> bool {
     let quoted = (expression.starts_with('"') && expression.ends_with('"'))
         || (expression.starts_with('\'') && expression.ends_with('\''));
     quoted
+        || conduit_core::Unit::resolve(expression).is_ok()
         || crate::quantity_literal::compound_token_length(expression) == Some(expression.len())
         || !expression.is_empty()
             && !expression.chars().any(|character| {

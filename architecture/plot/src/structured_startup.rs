@@ -106,25 +106,47 @@ pub(crate) fn check_structured_expression(
                     node: CanonicalStructuredStartupNode::Literal { canonical },
                 })
             }
-            CanonicalStartupValue::Quantity(value) => {
-                let StructuredInfoTypeShape::Leaf(kind) = expected.shape() else {
-                    return Err(structured_diagnostic(
-                        atomic.span,
-                        "a quantity literal cannot satisfy a structured record, variant, or collection",
-                    ));
-                };
-                let canonical = value.encode().to_vec();
-                conduit_core::validate_primitive_info(kind.as_str(), &canonical).map_err(
-                    |error| {
+            value @ (CanonicalStartupValue::Quantity(_) | CanonicalStartupValue::Unit(_)) => {
+                let canonical =
+                    crate::authored_quantity::bytes(&value, expected).ok_or_else(|| {
                         structured_diagnostic(
                             atomic.span,
-                            &format!("quantity literal has the wrong exact dimension: {error:?}"),
+                            "physical value has an incompatible exact Type",
                         )
-                    },
-                )?;
+                    })?;
                 Ok(CanonicalStructuredStartupValue {
                     value_type: expected.clone(),
                     node: CanonicalStructuredStartupNode::Literal { canonical },
+                })
+            }
+            CanonicalStartupValue::TemperatureDifference(value) => {
+                let concrete = crate::quantity_conversion::profile_source_difference(value.value())
+                    .map_err(|_| {
+                        structured_diagnostic(atomic.span, "invalid temperature difference")
+                    })?;
+                if concrete.value_type() != expected {
+                    return Err(structured_diagnostic(
+                        atomic.span,
+                        "temperature point and difference Types are distinct",
+                    ));
+                }
+                let coordinate = value.value().storage_coordinate();
+                Ok(CanonicalStructuredStartupValue {
+                    value_type: expected.clone(),
+                    node: CanonicalStructuredStartupNode::Record(vec![
+                        CanonicalStructuredStartupField {
+                            name: "coordinate".into(),
+                            value: CanonicalStructuredStartupValue {
+                                value_type: StructuredInfoType::leaf(conduit_core::kind_id(
+                                    conduit_core::QUANTITY_INFO_ID,
+                                ))
+                                .expect("exact coordinate"),
+                                node: CanonicalStructuredStartupNode::Literal {
+                                    canonical: coordinate.encode().to_vec(),
+                                },
+                            },
+                        },
+                    ]),
                 })
             }
             CanonicalStartupValue::PlotParameter(name) => Ok(CanonicalStructuredStartupValue {

@@ -349,7 +349,7 @@ mod tests {
     fn text_decoder_refuses_a_quantity_record() {
         let quantity = StructuredInfoValue::leaf(
             StructuredInfoType::leaf(kind_id(conduit_core::QUANTITY_INFO_ID)).unwrap(),
-            conduit_core::Quantity::new(42, conduit_core::QuantityUnit::Millivolt)
+            conduit_core::Quantity::new(42, conduit_core::Unit::Millivolt)
                 .encode()
                 .to_vec(),
         )

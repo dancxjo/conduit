@@ -4,7 +4,7 @@ use super::{
 use alloc::string::ToString;
 use alloc::vec;
 use alloc::vec::Vec;
-use conduit_core::{kind_id, CapabilityLimits, ConfigurationValue, Kind, Quantity, QuantityUnit};
+use conduit_core::{kind_id, CapabilityLimits, ConfigurationValue, Kind, Quantity, Unit};
 
 pub fn time_every_contract() -> StandardKindContract {
     StandardKindContract {
@@ -17,11 +17,11 @@ pub fn time_every_contract() -> StandardKindContract {
         outputs: conduit_time::time_every_outputs(),
         configuration: vec![KindConfigurationField {
             key: "freq".to_string(),
-            default_value: ConfigurationValue::Quantity(Quantity::new(1_000, QuantityUnit::Millisecond)),
+            default_value: ConfigurationValue::Quantity(conduit_core::QuantityConfigurationValue::from_value(Quantity::new(1_000, Unit::Millisecond)).expect("bounded quantity configuration")),
             rule: KindConfigurationRule::QuantityRange {
                 minimum: 0,
                 maximum: i64::MAX,
-                canonical_unit: QuantityUnit::Millisecond,
+                canonical_unit: Unit::Millisecond,
             },
         }],
         limits: CapabilityLimits {

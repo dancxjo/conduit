@@ -549,8 +549,10 @@ fn control_value(value: &conduit_core::ConfigurationValue) -> String {
             value.profile().as_str(),
             value.canonical_value().len()
         ),
-        conduit_core::ConfigurationValue::Quantity(value) => {
-            format!("{}{}", value.value(), value.unit().plot_suffix())
+        conduit_core::ConfigurationValue::Quantity(value) => value.source().to_string(),
+        conduit_core::ConfigurationValue::Unit(value) => value.source().to_string(),
+        conduit_core::ConfigurationValue::TemperatureDifference(value) => {
+            value.source().to_string()
         }
     }
 }
@@ -569,7 +571,7 @@ fn control_contract(kind: &FaceControlKind) -> String {
             maximum,
             unit,
         } => {
-            format!("{minimum}..{maximum}{}", unit.unwrap_or(""))
+            format!("{minimum}..{maximum}{}", unit.as_deref().unwrap_or(""))
         }
         FaceControlKind::ScalarNumber {
             minimum,

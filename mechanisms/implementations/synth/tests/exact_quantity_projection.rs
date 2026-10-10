@@ -1,10 +1,10 @@
 mod common;
 
 use conduit_audio::{Gate, MusicalNoteEvent, MusicalPitch, NoteOccurrenceId};
-use conduit_core::ExactDecimalQuantity;
+use conduit_core::Quantity;
 
-fn quantity(source: &str) -> ExactDecimalQuantity {
-    ExactDecimalQuantity::parse_plot_literal(source).unwrap()
+fn quantity(source: &str) -> Quantity {
+    Quantity::parse_plot_literal(source).unwrap()
 }
 
 #[test]

@@ -1,7 +1,7 @@
 use conduit_core::{
-    ExactDecimalQuantity as Point, ExactTemperatureDifference as Difference,
-    ExactTemperatureDifferenceConversionReceipt, ExactTemperatureDifferenceRefusal,
-    QuantityConversionRefusal, ResolvedQuantitySuffix,
+    ExactTemperatureDifference as Difference, ExactTemperatureDifferenceConversionReceipt,
+    ExactTemperatureDifferenceRefusal, Quantity as Point, QuantityConversionRefusal,
+    ResolvedQuantitySuffix,
 };
 use core::cmp::Ordering;
 
@@ -53,13 +53,12 @@ fn point_and_difference_have_distinct_identity_and_affine_laws() {
             .convert_to_target(ResolvedQuantitySuffix::resolve("m").unwrap()),
         Err(QuantityConversionRefusal::IncompatibleDimensions)
     );
-    let largest =
-        Difference::new(10_i128.pow(38) - 1, 128, conduit_core::QuantityUnit::Kelvin).unwrap();
+    let largest = Difference::new(10_i128.pow(38) - 1, 128, conduit_core::Unit::Kelvin).unwrap();
     assert_eq!(
         largest.convert_to_target(ResolvedQuantitySuffix::resolve("qK").unwrap()),
         Err(QuantityConversionRefusal::Overflow)
     );
-    let smallest = Difference::new(1, -128, conduit_core::QuantityUnit::Kelvin).unwrap();
+    let smallest = Difference::new(1, -128, conduit_core::Unit::Kelvin).unwrap();
     assert_eq!(
         smallest.convert_to_target(ResolvedQuantitySuffix::resolve("QK").unwrap()),
         Err(QuantityConversionRefusal::Overflow)

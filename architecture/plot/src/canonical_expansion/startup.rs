@@ -21,7 +21,10 @@ pub(super) fn substitute(
     environment: &BTreeMap<String, CanonicalStartupValue>,
 ) -> Result<CanonicalStartupValue, CanonicalExpansionDiagnostic> {
     match value {
-        CanonicalStartupValue::Literal(_) | CanonicalStartupValue::Quantity(_) => Ok(value.clone()),
+        CanonicalStartupValue::Literal(_)
+        | CanonicalStartupValue::Quantity(_)
+        | CanonicalStartupValue::Unit(_)
+        | CanonicalStartupValue::TemperatureDifference(_) => Ok(value.clone()),
         CanonicalStartupValue::Structured(value) if value.try_concrete().is_some() => {
             Ok(CanonicalStartupValue::Structured(value.clone()))
         }
@@ -69,9 +72,15 @@ pub(super) fn canonical_initial_bytes(
         CanonicalStartupValue::Structured(value) => value
             .try_concrete()
             .and_then(|value| value.canonical_bytes().ok()),
-        CanonicalStartupValue::Quantity(value) => Some(value.encode().to_vec()),
+        CanonicalStartupValue::Quantity(value) => Some(value.value().encode().to_vec()),
+        CanonicalStartupValue::Unit(value) => Some(value.value().encode().to_vec()),
+        CanonicalStartupValue::TemperatureDifference(value) => {
+            crate::quantity_conversion::profile_source_difference(value.value())
+                .ok()
+                .and_then(|v| v.canonical_bytes().ok())
+        }
         CanonicalStartupValue::Literal(literal) => match conduit_core::primitive_info_kind(kind) {
-            Some(conduit_core::PrimitiveInfoKind::Unit) if literal == "unit" => Some(Vec::new()),
+            Some(conduit_core::PrimitiveInfoKind::Empty) if literal == "unit" => Some(Vec::new()),
             Some(conduit_core::PrimitiveInfoKind::Bool) => match literal.as_str() {
                 "true" => Some(conduit_core::InfoBool::TRUE.encode().to_vec()),
                 "false" => Some(conduit_core::InfoBool::FALSE.encode().to_vec()),

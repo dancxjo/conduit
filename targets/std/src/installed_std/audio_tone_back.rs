@@ -2,7 +2,7 @@
 
 use super::back::{BackBudget, BackFactory, InstalledBack};
 use conduit_audio::{AudioToneTerminal, PcmChannelLayout, PcmFrameHeader, PcmSampleRepresentation};
-use conduit_core::{PlannedGear, Quantity, QuantityUnit};
+use conduit_core::{PlannedGear, Quantity, Unit};
 use conduit_kernel::{
     scheduler::{
         AssignedAbnormalTransduction, AssignedCancellationTransduction,
@@ -99,12 +99,7 @@ impl<const PORTS: usize> StepBack<PORTS> for AudioToneBack {
 }
 
 fn frequency_millihertz(quantity: Quantity) -> Option<i128> {
-    let value = i128::from(quantity.value());
-    match quantity.unit() {
-        QuantityUnit::Millihertz => Some(value),
-        QuantityUnit::Hertz => Some(value * 1_000),
-        _ => None,
-    }
+    quantity.to_i64(Unit::Millihertz).ok().map(i128::from)
 }
 
 fn decode_frequency_input(encoded: &[u8]) -> Option<i128> {
@@ -229,11 +224,11 @@ mod tests {
     #[test]
     fn every_checked_frequency_encoding_crosses_the_back_boundary() {
         for quantity in [
-            Quantity::new(i64::MIN, QuantityUnit::Hertz),
-            Quantity::new(i64::MAX, QuantityUnit::Hertz),
-            Quantity::new(i64::MIN, QuantityUnit::Millihertz),
-            Quantity::new(i64::MAX, QuantityUnit::Millihertz),
-            Quantity::new(0, QuantityUnit::Hertz),
+            Quantity::new(i64::MIN, Unit::Hertz),
+            Quantity::new(i64::MAX, Unit::Hertz),
+            Quantity::new(i64::MIN, Unit::Millihertz),
+            Quantity::new(i64::MAX, Unit::Millihertz),
+            Quantity::new(0, Unit::Hertz),
         ] {
             let frequency = decode_frequency_input(&quantity.encode()).expect("checked Frequency");
             let (block, _) = render_block(frequency, u32::MAX, u64::MAX).unwrap();

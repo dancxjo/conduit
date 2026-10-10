@@ -1,11 +1,11 @@
-use conduit_core::{StructuredInfoValue, StructuredInfoValueShape, EXACT_DECIMAL_QUANTITY_INFO_ID};
+use conduit_core::{StructuredInfoValue, StructuredInfoValueShape, QUANTITY_INFO_ID};
 use conduit_plot::{
     check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
     quantity_conversion::*, ProfileCatalog, StartupCatalog,
 };
 
 fn prepare(original: &str, target: &str) -> StructuredInfoValue {
-    let source = format!("# Preserve Unicode before all source spans: µ\nplot conversion (\n receipt: ExactQuantityConversionReceipt <= 8192B >>\n) {{\n converted: units/convert(source = \"{original}\", to = \"{target}\")\n converted.receipt >> receipt\n}}.\n");
+    let source = format!("# Preserve Unicode before all source spans: µ\nplot conversion (\n receipt: ExactQuantityConversionReceipt <= 8192B >>\n) {{\n converted: units/convert(source = {original}, to = {target})\n converted.receipt >> receipt\n}}.\n");
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     install(&mut startup, &mut profile).unwrap();
@@ -60,7 +60,7 @@ fn ordinary_checked_gear_returns_source_target_law_profile_and_exact_coordinate(
         assert_eq!(bytes(field(&receipt, "target")), target.as_bytes());
         assert_eq!(
             bytes(field(&receipt, "profile")),
-            EXACT_DECIMAL_QUANTITY_INFO_ID.as_bytes()
+            QUANTITY_INFO_ID.as_bytes()
         );
         let StructuredInfoValueShape::Variant { tag, payload } = field(&receipt, "result").shape()
         else {
@@ -75,9 +75,7 @@ fn ordinary_checked_gear_returns_source_target_law_profile_and_exact_coordinate(
             i16::from_le_bytes(bytes(field(payload, "exponent")).try_into().unwrap()),
             exponent
         );
-        assert!(
-            conduit_core::ExactDecimalQuantity::decode(bytes(field(&receipt, "source"))).is_ok()
-        );
+        assert!(conduit_core::Quantity::decode(bytes(field(&receipt, "source"))).is_ok());
     }
 }
 
@@ -106,19 +104,13 @@ fn invalid_request_diagnostics_keep_original_unicode_spans_and_local_aliases() {
         ("1m", "mkg", "mkg"),
         ("1μs", "s", "1μs"),
     ] {
-        let source = format!("# Unicode µ before the invalid literal\nplot conversion {{\n original = \"{original}\"\n alias = original\n converted: units/convert(source = alias, to = \"{target}\")\n}}\n");
+        let source = format!("# Unicode µ before the invalid literal\nplot conversion {{\n original = {original}\n alias = original\n converted: units/convert(source = alias, to = {target})\n}}\n");
         let mut startup = StartupCatalog::new();
         let mut profile = ProfileCatalog::new();
         install(&mut startup, &mut profile).unwrap();
         let syntax = parse_syntax_document(&source);
-        let checked = check_syntax_document(&syntax, &startup).unwrap();
-        let error = validate_source(&syntax, &checked).unwrap_err();
+        let error = check_syntax_document(&syntax, &startup).unwrap_err();
         assert_eq!(&source[error.span.start..error.span.end], expected);
-        let foreign = parse_syntax_document(&format!("# foreign\n{source}"));
-        assert_eq!(
-            *validate_source(&foreign, &checked).unwrap_err().refusal,
-            QuantityConversionPreparationRefusal::SourceCorrelation
-        );
     }
 }
 
@@ -189,12 +181,12 @@ fn readmission_refuses_forged_facts_even_when_the_record_shape_is_valid() {
 }
 
 #[test]
-fn installing_conversion_keeps_existing_literal_checked_identities_and_legacy_values() {
+fn installing_conversion_keeps_intrinsic_literal_checked_identities() {
     use conduit_plot::{CanonicalStartupValue, KindSignature, StartupParameterSignature};
-    let mut legacy = StartupCatalog::new();
-    legacy
+    let mut intrinsic = StartupCatalog::new();
+    intrinsic
         .insert(KindSignature {
-            kind: "test/legacy-literal".into(),
+            kind: "test/intrinsic-literal".into(),
             startup_parameters: vec![StartupParameterSignature {
                 name: "value".into(),
                 value_type: "Quantity".into(),
@@ -202,12 +194,12 @@ fn installing_conversion_keeps_existing_literal_checked_identities_and_legacy_va
             }],
         })
         .unwrap();
-    let mut extended = legacy.clone();
+    let mut extended = intrinsic.clone();
     install(&mut extended, &mut ProfileCatalog::new()).unwrap();
     for literal in ["440Hz", "250ms", "3.2m", "21°C", "640px"] {
-        let source = format!("plot legacy {{\n value: test/legacy-literal({literal})\n}}\n");
+        let source = format!("plot intrinsic {{\n value: test/intrinsic-literal({literal})\n}}\n");
         let syntax = parse_syntax_document(&source);
-        let before = check_syntax_document(&syntax, &legacy).unwrap();
+        let before = check_syntax_document(&syntax, &intrinsic).unwrap();
         let after = check_syntax_document(&syntax, &extended).unwrap();
         assert_eq!(
             before.plots[0].checked_plot_id,
@@ -217,11 +209,14 @@ fn installing_conversion_keeps_existing_literal_checked_identities_and_legacy_va
         let after = &after.plots[0].gears[0].startup_bindings[0].value;
         assert_eq!(before, after);
         let CanonicalStartupValue::Quantity(value) = after else {
-            panic!("legacy quantity");
+            panic!("intrinsic quantity");
         };
-        assert_eq!(value.encode().len(), 9);
         assert_eq!(
-            *value,
+            value.value().encode().len(),
+            conduit_core::QUANTITY_ENCODED_LEN
+        );
+        assert_eq!(
+            value.value(),
             conduit_core::Quantity::parse_plot_literal(literal).unwrap()
         );
         assert_eq!(syntax.round_trip(), source);

@@ -31,7 +31,7 @@ impl Context<'_> {
                         Ok(TypeVariantCaseSyntax {
                             tag: case.tag.clone(),
                             payload: match &case.payload {
-                                TypeVariantPayloadSyntax::Unit => TypeVariantPayloadSyntax::Unit,
+                                TypeVariantPayloadSyntax::Empty => TypeVariantPayloadSyntax::Empty,
                                 TypeVariantPayloadSyntax::Type(value) => {
                                     TypeVariantPayloadSyntax::Type(
                                         self.expression(value, arguments)?,

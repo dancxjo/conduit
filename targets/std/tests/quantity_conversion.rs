@@ -118,7 +118,7 @@ fn installed_quantity_conversion_emits_one_exact_receipt_through_the_shared_kern
         } else {
             ("source", "to")
         };
-        let source = format!("plot conversion (\n receipt: {name} <= 8192B >>\n) {{\n converted: {kind}({first} = \"{original}\", {second} = \"{target}\")\n converted.receipt >> receipt\n}}.\n");
+        let source = format!("plot conversion (\n receipt: {name} <= 8192B >>\n) {{\n converted: {kind}({first} = {original}, {second} = {target})\n converted.receipt >> receipt\n}}.\n");
         let syntax = parse_syntax_document(&source);
         assert!(syntax.diagnostics.is_empty());
         let checked = check_syntax_document(&syntax, &startup).unwrap();
@@ -245,5 +245,94 @@ fn quantity_conversion_is_an_optional_math_host_offer() {
                 .count(),
             1
         );
+    }
+}
+
+#[test]
+fn full_name_receipt_comparator_runs_through_std_kernel() {
+    let mut startup = StartupCatalog::new();
+    let mut profile = ProfileCatalog::new();
+    install(&mut startup, &mut profile).unwrap();
+    for (source, target, expected, result) in [
+        ("1kHz", "Hz", "1000Hz", true),
+        ("1kHz", "Hz", "999Hz", false),
+        ("1Hz", "m", "1m", false),
+        ("1kHz", "Hz", "1m", false),
+    ] {
+        let source = format!("plot conversion (\n result: Boolean >>\n) {{\n operation: units/convert(source = {source}, to = {target})\n exact: units/converted-equals(expected = {expected})\n operation.receipt >> exact.receipt\n exact.result >> result\n}}.");
+        let syntax = parse_syntax_document(&source);
+        assert!(syntax.diagnostics.is_empty());
+        let checked = check_syntax_document(&syntax, &startup).unwrap();
+        validate_source(&syntax, &checked).unwrap();
+        let authored =
+            expand_canonical_plot_for_authoring(&checked, "conversion", &profile).unwrap();
+        let mut host = StdHost::new_with_composition(
+            StdHostConfig {
+                host_id: "quantity-host".into(),
+                boot_id: "quantity-boot".into(),
+                offer_generation: conduit_core::OfferGeneration(1),
+            },
+            StdHostComposition::minimal().with_math(),
+        );
+        let hosts = [host.advertisement().clone()];
+        let placements =
+            conduit_planner::default_expanded_placements(&authored.expanded, &hosts).unwrap();
+        let boundaries = [(
+            conduit_planner::ForeBoundaryKey {
+                direction: PortDirection::Output,
+                front_port_id: "result".into(),
+                track: ConnectionTrack::Payload,
+            },
+            conduit_planner::ConnectionQueueLimits {
+                item_capacity: 1,
+                byte_capacity: MAXIMUM_RECEIPT_BYTES,
+            },
+        )]
+        .into_iter()
+        .collect();
+        let plan = conduit_planner::plan_expanded_authoring_with_options(
+            &authored,
+            &hosts,
+            &placements,
+            &[BaseImplementationId::from("conduit.base/local@1")],
+            conduit_planner::PlanningOptions {
+                connection_bases: &BTreeMap::new(),
+                line_candidates: &BTreeMap::new(),
+                connection_item_capacity: 1,
+                connection_byte_capacity: MAXIMUM_RECEIPT_BYTES,
+                authority_grants: &[],
+                protected_resource_grants: &[],
+                line_offers: &[],
+            },
+            &boundaries,
+        )
+        .unwrap();
+        let mut collector = Collector::default();
+        let report = host
+            .run_external_plot_to(
+                plan.fragments[0].clone(),
+                &[],
+                &mut collector,
+                &mut Vec::new(),
+                &mut NoTimer,
+            )
+            .unwrap();
+
+        assert_eq!(collector.values.len(), 1);
+        assert_eq!(
+            conduit_core::InfoBool::decode(&collector.values[0])
+                .unwrap()
+                .get(),
+            result
+        );
+        let kernel = report.kernel.unwrap();
+        assert_eq!(
+            kernel.value_allocation_capacity_before,
+            kernel.value_allocation_capacity_after
+        );
+        assert!(kernel
+            .kernel_sign
+            .iter()
+            .all(|sign| sign.kind != conduit_kernel::KernelEventKind::BackFailed));
     }
 }

@@ -3,7 +3,7 @@
 //! These values contain musical/media meaning only. MIDI keys, device names,
 //! PCM handles, OPL registers, and host callback facts belong to realizations.
 
-use conduit_core::{semantic_digest, Quantity, QuantityConversionRefusal, QuantityUnit};
+use conduit_core::{semantic_digest, Quantity, QuantityConversionRefusal, Unit};
 use core::{
     cmp::Ordering,
     hash::{Hash, Hasher},
@@ -52,15 +52,13 @@ impl MusicalPitch {
         detune_microcents: i32,
     ) -> Result<Self, SoundInfoError> {
         let frequency = frequency
-            .convert(QuantityUnit::Millihertz)
+            .convert_to_u64(Unit::Millihertz)
             .map_err(SoundInfoError::QuantityConversion)?;
         let a4_reference = a4_reference
-            .convert(QuantityUnit::Millihertz)
+            .convert_to_u64(Unit::Millihertz)
             .map_err(SoundInfoError::QuantityConversion)?;
-        let frequency_millihertz = u64::try_from(frequency.value())
-            .map_err(|_| SoundInfoError::OutOfRange("frequency-millihertz"))?;
-        let a4_reference_millihertz = u64::try_from(a4_reference.value())
-            .map_err(|_| SoundInfoError::OutOfRange("a4-reference-millihertz"))?;
+        let frequency_millihertz = frequency;
+        let a4_reference_millihertz = a4_reference;
         Self::new(
             frequency_millihertz,
             a4_reference_millihertz,
@@ -99,14 +97,11 @@ impl MusicalPitch {
     }
 
     pub const fn frequency(self) -> Quantity {
-        Quantity::new(self.frequency_millihertz() as i64, QuantityUnit::Millihertz)
+        Quantity::new(self.frequency_millihertz() as i64, Unit::Millihertz)
     }
 
     pub const fn a4_reference(self) -> Quantity {
-        Quantity::new(
-            self.a4_reference_millihertz() as i64,
-            QuantityUnit::Millihertz,
-        )
+        Quantity::new(self.a4_reference_millihertz() as i64, Unit::Millihertz)
     }
 
     pub const fn encode(self) -> [u8; 20] {

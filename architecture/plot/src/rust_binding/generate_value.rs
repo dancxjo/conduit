@@ -497,11 +497,7 @@ fn optional_quantity_literal(value: &Option<conduit_core::Quantity>) -> String {
     value
         .as_ref()
         .map(|value| {
-            format!(
-                "Some(conduit_core::Quantity::new({}, conduit_core::QuantityUnit::{:?}))",
-                value.value(),
-                value.unit()
-            )
+            format!(r#"Some(conduit_core::Quantity::decode(&{:?}).expect("checked quantity constant"))"#, value.encode())
         })
         .unwrap_or_else(|| "None".into())
 }

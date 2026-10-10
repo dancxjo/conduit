@@ -304,9 +304,9 @@ fn drive_with_boundary<'a>(
             if operation.contract_id.as_str() == crate::installed_browser::pitch_tone::HOST_CALL {
                 let quantity = conduit_core::Quantity::decode(&input)
                     .map_err(|error| format!("pitch tone quantity: {error:?}"))?
-                    .convert(conduit_core::QuantityUnit::Hertz)
+                    .to_i64(conduit_core::Unit::Hertz)
                     .map_err(|error| format!("pitch tone frequency: {error:?}"))?;
-                let hertz = u32::try_from(quantity.value())
+                let hertz = u32::try_from(quantity)
                     .map_err(|_| "pitch tone frequency must be positive".to_string())?;
                 if !(20..=20_000).contains(&hertz) {
                     return Err("pitch tone frequency must be between 20 Hz and 20000 Hz".into());

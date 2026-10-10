@@ -12,7 +12,10 @@ pub(super) fn equal(
     if let Ok(kind) = leaf_kind(&left.value_type) {
         return if matches!(
             kind,
-            conduit_core::F32_INFO_ID | conduit_core::F64_INFO_ID | conduit_core::UNIT_INFO_ID
+            conduit_core::F32_INFO_ID
+                | conduit_core::F64_INFO_ID
+                | conduit_core::EMPTY_INFO_ID
+                | conduit_core::UNIT_INFO_ID
         ) {
             Ok(left.encoded == right.encoded)
         } else {
@@ -35,7 +38,10 @@ fn equal_structured(
             let kind = leaf_kind(left.value_type())?;
             if matches!(
                 kind,
-                conduit_core::F32_INFO_ID | conduit_core::F64_INFO_ID | conduit_core::UNIT_INFO_ID
+                conduit_core::F32_INFO_ID
+                    | conduit_core::F64_INFO_ID
+                    | conduit_core::EMPTY_INFO_ID
+                    | conduit_core::UNIT_INFO_ID
             ) {
                 Ok(a == b)
             } else {

@@ -237,7 +237,10 @@ fn proposal_for_configuration(
             )
         }
         (InteractionFamily::Scalar(_), ConfigurationValue::Quantity(value)) => {
-            InteractionValue::new(KindId::from(QUANTITY_INFO_ID), value.encode().to_vec())
+            InteractionValue::new(
+                KindId::from(QUANTITY_INFO_ID),
+                value.value().encode().to_vec(),
+            )
         }
         (InteractionFamily::ChooseOne(family), ConfigurationValue::Text(value)) => {
             InteractionValue::new(
@@ -301,24 +304,29 @@ fn configuration_from_proposal(
             let decoded = Quantity::decode(value.bytes()).map_err(|_| {
                 PlotEditorError::InvalidConfiguration("malformed scalar quantity".into())
             })?;
-            if *family.unit() == conduit_core::QuantityUnit::Millionth {
-                Ok(ConfigurationValue::I64(decoded.value()))
+            if *family.unit() == conduit_core::Unit::Millionth {
+                decoded
+                    .to_i64(*family.unit())
+                    .map(ConfigurationValue::I64)
+                    .map_err(|_| {
+                        PlotEditorError::InvalidConfiguration("inexact scalar quantity".into())
+                    })
             } else if matches!(rule, KindConfigurationRule::DurationMillis { .. }) {
                 decoded
-                    .convert(*family.unit())
-                    .and_then(|value| {
-                        u64::try_from(value.value())
-                            .map_err(|_| conduit_core::QuantityConversionRefusal::Overflow)
-                    })
+                    .convert_to_u64(*family.unit())
                     .map(ConfigurationValue::U64)
                     .map_err(|_| {
                         PlotEditorError::InvalidConfiguration(
                             "inexact, incompatible, or negative quantity".into(),
                         )
                     })
-            } else if *family.unit() != conduit_core::QuantityUnit::One {
+            } else if *family.unit() != conduit_core::Unit::One {
                 decoded
                     .convert(*family.unit())
+                    .and_then(|quantity| {
+                        conduit_core::QuantityConfigurationValue::from_value(quantity)
+                            .map_err(|_| conduit_core::QuantityConversionRefusal::Overflow)
+                    })
                     .map(ConfigurationValue::Quantity)
                     .map_err(|_| {
                         PlotEditorError::InvalidConfiguration(
@@ -327,8 +335,7 @@ fn configuration_from_proposal(
                     })
             } else {
                 decoded
-                    .value()
-                    .try_into()
+                    .convert_to_u64(*family.unit())
                     .map(ConfigurationValue::U64)
                     .map_err(|_| {
                         PlotEditorError::InvalidConfiguration(
@@ -370,8 +377,8 @@ pub(crate) fn configuration_spelling(
             value.profile().as_str(),
             value.canonical_value().len()
         ),
-        (_, ConfigurationValue::Quantity(value)) => {
-            format!("{}{}", value.value(), value.unit().plot_suffix())
-        }
+        (_, ConfigurationValue::Quantity(value)) => value.source().to_string(),
+        (_, ConfigurationValue::Unit(value)) => value.source().to_string(),
+        (_, ConfigurationValue::TemperatureDifference(value)) => value.source().to_string(),
     }
 }

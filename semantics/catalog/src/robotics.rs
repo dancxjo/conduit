@@ -5,7 +5,7 @@ use alloc::string::ToString;
 use alloc::{vec, vec::Vec};
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, ConfigurationEntry, ConfigurationValue, InfoBool, Kind,
-    PortDescriptor, PortDirection, PortTemporal, Quantity, QuantityUnit, Scalar, BOOL_INFO_ID,
+    PortDescriptor, PortDirection, PortTemporal, Quantity, Scalar, Unit, BOOL_INFO_ID,
     SCALAR_INFO_ID,
 };
 pub use conduit_robotics::RoboticsSimulationAvailability;
@@ -80,8 +80,8 @@ pub fn robotics_simulation_values(
             quantity_u32(
                 entries,
                 "distance",
-                Quantity::new(1_000, QuantityUnit::Millimeter),
-                QuantityUnit::Millimeter,
+                Quantity::new(1_000, Unit::Millimeter),
+                Unit::Millimeter,
             )?,
             u32_value(entries, "age-ms", 0)?,
         )
@@ -174,10 +174,10 @@ pub fn robotics_observe_range_contract() -> StandardKindContract {
             availability_field(),
             quantity_field(
                 "distance",
-                Quantity::new(1_000, QuantityUnit::Millimeter),
+                Quantity::new(1_000, Unit::Millimeter),
                 0,
                 i64::from(MAXIMUM_RANGE_MM),
-                QuantityUnit::Millimeter,
+                Unit::Millimeter,
             ),
             u64_field("age-ms", 0, 0, u64::from(MAXIMUM_OBSERVATION_AGE_MS)),
         ],
@@ -439,18 +439,18 @@ fn quantity_u32(
     entries: &[ConfigurationEntry],
     key: &str,
     default: Quantity,
-    canonical_unit: QuantityUnit,
+    canonical_unit: Unit,
 ) -> Result<u32, &'static str> {
     let value = entries
         .iter()
         .find_map(|entry| match (&*entry.key, &entry.value) {
-            (found, ConfigurationValue::Quantity(value)) if found == key => Some(*value),
+            (found, ConfigurationValue::Quantity(value)) if found == key => Some(value.value()),
             _ => None,
         })
         .unwrap_or(default)
-        .convert(canonical_unit)
+        .to_i64(canonical_unit)
         .map_err(|_| "robotics quantity configuration is incompatible or inexact")?;
-    u32::try_from(value.value()).map_err(|_| "robotics quantity configuration exceeds u32")
+    u32::try_from(value).map_err(|_| "robotics quantity configuration exceeds u32")
 }
 
 fn u16_value(entries: &[ConfigurationEntry], key: &str, default: u16) -> Result<u16, &'static str> {
@@ -501,11 +501,14 @@ fn quantity_field(
     default: Quantity,
     minimum: i64,
     maximum: i64,
-    canonical_unit: QuantityUnit,
+    canonical_unit: Unit,
 ) -> KindConfigurationField {
     KindConfigurationField {
         key: key.to_string(),
-        default_value: ConfigurationValue::Quantity(default),
+        default_value: ConfigurationValue::Quantity(
+            conduit_core::QuantityConfigurationValue::from_value(default)
+                .expect("bounded quantity configuration"),
+        ),
         rule: KindConfigurationRule::QuantityRange {
             minimum,
             maximum,
@@ -521,6 +524,8 @@ pub(crate) fn configuration_type(field: &KindConfigurationField) -> &'static str
         ConfigurationValue::U64(_) => "Count",
         ConfigurationValue::I64(_) => "Scalar",
         ConfigurationValue::Quantity(_) => "Quantity",
+        ConfigurationValue::Unit(_) => "Unit",
+        ConfigurationValue::TemperatureDifference(_) => "TemperatureDifference",
         _ => unreachable!("portable configuration is finite text/integer/quantity"),
     }
 }

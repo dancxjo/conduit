@@ -1,5 +1,5 @@
 use conduit_ai::*;
-use conduit_core::{semantic_digest, Quantity, QuantityUnit};
+use conduit_core::{semantic_digest, Quantity, Unit};
 use conduit_data::*;
 use conduit_plot::rust_binding::{BoundedBytes, BoundedSequence, NativeRustBinding};
 
@@ -22,7 +22,7 @@ fn tensor(values: &[f32], dimensions: Vec<u64>, roles: Vec<TensorAxisRole>) -> T
         axes: BoundedSequence::try_from_iter(roles.into_iter().map(|role| TensorAxis {
             role,
             identity: None,
-            unit: Some(QuantityUnit::One),
+            unit: Some(Unit::One),
         }))
         .unwrap(),
         content_digest: tensor_content_digest(&payload),
@@ -45,7 +45,7 @@ fn trajectory(value: f32) -> SampledSignal {
     SampledSignal {
         clock_identity: "inference/query-clock".into(),
         start: SignalStart::at_sample(0),
-        cadence: SignalCadence::regular(Quantity::new(1, QuantityUnit::Second), 100).unwrap(),
+        cadence: SignalCadence::regular(Quantity::new(1, Unit::Second), 100).unwrap(),
         sample_count: 2,
         continuity: SignalContinuity::Continuous,
         samples: tensor(

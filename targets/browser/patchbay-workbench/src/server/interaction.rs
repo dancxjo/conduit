@@ -399,7 +399,7 @@ struct HtmlEditInput {
     primary: String,
     secondary: Option<String>,
     key: Option<String>,
-    value: Option<conduit_core::ConfigurationValue>,
+    value: Option<super::configuration_input::ConfigurationInput>,
 }
 
 fn parse_html_edit(input: HtmlEditInput) -> Result<PatchbayEdit, ServerError> {
@@ -440,7 +440,11 @@ fn parse_html_edit(input: HtmlEditInput) -> Result<PatchbayEdit, ServerError> {
             basis,
             subject_identity: input.primary,
             key: input.key.ok_or(ServerError::InvalidRequest)?,
-            value: input.value.ok_or(ServerError::InvalidRequest)?,
+            value: input
+                .value
+                .ok_or(ServerError::InvalidRequest)?
+                .checked()
+                .map_err(|_| ServerError::InvalidRequest)?,
         }),
         _ => Err(ServerError::InvalidRequest),
     }

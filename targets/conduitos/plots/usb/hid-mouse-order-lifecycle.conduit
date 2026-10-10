@@ -42,11 +42,11 @@ type UsbMouseOrderWork =
 
 plot usb-hid-mouse-order-session-initialize (
     order: UsbMouseOrderState...| >> session: UsbMouseOrderSession...|
-) = ({ terminal: false, end: closed(unit), order: . })
+) = ({ terminal: false, end: closed(empty), order: . })
 
 plot usb-hid-mouse-order-session-ready (
     ready: UsbMouseOrderReady...| >> session: UsbMouseOrderSession...|
-) = ({ terminal: false, end: closed(unit), order: .state })
+) = ({ terminal: false, end: closed(empty), order: .state })
 
 plot usb-hid-mouse-order-session-observation (
     ready: UsbMouseOrderReady...| >> observation: UsbMouseOrderedObservation...|
@@ -62,11 +62,11 @@ plot usb-hid-mouse-order-command-message (
 
 plot usb-hid-mouse-order-session-route (
     session: UsbMouseOrderSession...| >> route: UsbMouseOrderRoute...|
-) = (.terminal ? stopped(.end) : ((.order.slots.0 is held ? .order.slots.0.held.ordinal == .order.expected : false) ? (.order.slots.0 is held ? emitting({ state: { expected: .order.expected + 1, slots: [vacant(unit), .order.slots.1] }, observation: .order.slots.0.held }) : waiting(.)) : ((.order.slots.1 is held ? .order.slots.1.held.ordinal == .order.expected : false) ? (.order.slots.1 is held ? emitting({ state: { expected: .order.expected + 1, slots: [.order.slots.0, vacant(unit)] }, observation: .order.slots.1.held }) : waiting(.)) : waiting(.))))
+) = (.terminal ? stopped(.end) : ((.order.slots.0 is held ? .order.slots.0.held.ordinal == .order.expected : false) ? (.order.slots.0 is held ? emitting({ state: { expected: .order.expected + 1, slots: [vacant(empty), .order.slots.1] }, observation: .order.slots.0.held }) : waiting(.)) : ((.order.slots.1 is held ? .order.slots.1.held.ordinal == .order.expected : false) ? (.order.slots.1 is held ? emitting({ state: { expected: .order.expected + 1, slots: [.order.slots.0, vacant(empty)] }, observation: .order.slots.1.held }) : waiting(.)) : waiting(.))))
 
 plot usb-hid-mouse-order-session-command (
     pair: UsbMouseOrderCommandPair...| >> work: UsbMouseOrderWork...|
-) = (.1 is observation ? inserting({ state: .0.order, observation: .1.observation }) : ending(.1 is finish ? (.0.order.slots.0 is vacant && .0.order.slots.1 is vacant ? closed(unit) : gap(unit)) : (.1 is stalled ? stalled(unit) : (.1 is provider-lost ? provider-lost(unit) : (.1 is timeout ? timeout(unit) : unsupported(unit))))))
+) = (.1 is observation ? inserting({ state: .0.order, observation: .1.observation }) : ending(.1 is finish ? (.0.order.slots.0 is vacant && .0.order.slots.1 is vacant ? closed(empty) : gap(empty)) : (.1 is stalled ? stalled(empty) : (.1 is provider-lost ? provider-lost(empty) : (.1 is timeout ? timeout(empty) : unsupported(empty))))))
 
 type UsbMouseOrderWorkAdmission =
     accepted UsbMouseOrderState
@@ -74,14 +74,14 @@ type UsbMouseOrderWorkAdmission =
 
 plot usb-hid-mouse-order-work-update (
     work: UsbMouseOrderWork...| >> update: UsbMouseOrderWorkAdmission...|
-) = (. is inserting ? (.inserting.observation.ordinal < .inserting.state.expected ? ended(stale(unit)) : (.inserting.observation.ordinal == 18446744073709551615 || .inserting.observation.ordinal - .inserting.state.expected >= 2 ? ended(outside-window(unit)) : ((.inserting.state.slots.0 is held ? .inserting.state.slots.0.held.ordinal == .inserting.observation.ordinal : false) || (.inserting.state.slots.1 is held ? .inserting.state.slots.1.held.ordinal == .inserting.observation.ordinal : false) ? ended(duplicate(unit)) : (.inserting.state.slots.0 is vacant ? accepted({ expected: .inserting.state.expected, slots: [held(.inserting.observation), .inserting.state.slots.1] }) : (.inserting.state.slots.1 is vacant ? accepted({ expected: .inserting.state.expected, slots: [.inserting.state.slots.0, held(.inserting.observation)] }) : ended(pressure(unit))))))) : ended(.ending))
+) = (. is inserting ? (.inserting.observation.ordinal < .inserting.state.expected ? ended(stale(empty)) : (.inserting.observation.ordinal == 18446744073709551615 || .inserting.observation.ordinal - .inserting.state.expected >= 2 ? ended(outside-window(empty)) : ((.inserting.state.slots.0 is held ? .inserting.state.slots.0.held.ordinal == .inserting.observation.ordinal : false) || (.inserting.state.slots.1 is held ? .inserting.state.slots.1.held.ordinal == .inserting.observation.ordinal : false) ? ended(duplicate(empty)) : (.inserting.state.slots.0 is vacant ? accepted({ expected: .inserting.state.expected, slots: [held(.inserting.observation), .inserting.state.slots.1] }) : (.inserting.state.slots.1 is vacant ? accepted({ expected: .inserting.state.expected, slots: [.inserting.state.slots.0, held(.inserting.observation)] }) : ended(pressure(empty))))))) : ended(.ending))
 
 plot usb-hid-mouse-order-update-session (
     update: UsbMouseOrderWorkAdmission...| >> state: UsbMouseOrderSession...|
-) = (. is accepted ? { terminal: false, end: closed(unit), order: .accepted } : { terminal: true, end: .ended, order: { expected: 0, slots: [vacant(unit), vacant(unit)] } })
+) = (. is accepted ? { terminal: false, end: closed(empty), order: .accepted } : { terminal: true, end: .ended, order: { expected: 0, slots: [vacant(empty), vacant(empty)] } })
 
 plot usb-hid-mouse-order-lifecycle (
-    >> begin: Unit...|
+    >> begin: Empty...|
     >> command: UsbMouseOrderCommand...| <= 4096B
     observation: UsbMouseOrderedObservation...| >>
     ended: UsbMouseOrderEnd...| >>

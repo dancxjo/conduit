@@ -8,6 +8,7 @@ impl Parser<'_> {
         let start = self.offset;
         let path = self.semantic_path_end().or_else(|| {
             crate::quantity_literal::compound_token_length(&self.text[start..])
+                .or_else(|| crate::quantity_literal::unit_token_length(&self.text[start..]))
                 .map(|length| start + length)
         });
         if let Some(end) = path {

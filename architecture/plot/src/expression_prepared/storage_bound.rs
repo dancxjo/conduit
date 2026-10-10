@@ -45,6 +45,9 @@ fn node(ty: &StructuredInfoType) -> usize {
     .min(MAXIMUM_STRUCTURED_CANONICAL_BYTES)
 }
 fn leaf(kind: &str) -> usize {
+    if conduit_core::quantity_info_dimension(kind).is_some() {
+        return conduit_core::QUANTITY_ENCODED_LEN;
+    }
     let Some(kind) = primitive_info_kind(kind) else {
         return MAXIMUM_STRUCTURED_LEAF_BYTES;
     };
@@ -53,11 +56,12 @@ fn leaf(kind: &str) -> usize {
         return fixed;
     }
     match kind {
-        PrimitiveInfoKind::Unit | PrimitiveInfoKind::CancellationRequest => 0,
+        PrimitiveInfoKind::Empty | PrimitiveInfoKind::CancellationRequest => 0,
         PrimitiveInfoKind::Bool => 1,
         PrimitiveInfoKind::Count => 8,
         PrimitiveInfoKind::Scalar => 16,
-        PrimitiveInfoKind::ExactDecimalQuantity => conduit_core::EXACT_DECIMAL_QUANTITY_ENCODED_LEN,
+        PrimitiveInfoKind::Unit => conduit_core::UNIT_ENCODED_LEN,
+        PrimitiveInfoKind::Quantity => conduit_core::QUANTITY_ENCODED_LEN,
         PrimitiveInfoKind::F32 => 4,
         PrimitiveInfoKind::F64 => 8,
         _ => MAXIMUM_STRUCTURED_LEAF_BYTES,

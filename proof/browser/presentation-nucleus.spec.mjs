@@ -29,7 +29,7 @@ test("portable presentation nucleus executes in WASM and manifests in Chromium",
   await expect(structured).toHaveAttribute("data-schema", "education/feedback@1");
   await expect(structured).toHaveAttribute("data-variant", "passed");
   await expect(structured).toHaveAttribute("data-quantity-unit", "ratio/percent");
-  await expect(structured).toHaveAttribute("data-quantity", "88");
+  await expect(structured).toHaveAttribute("data-quantity", "88e0");
   expect(failures).toEqual([]);
   expect(await page.evaluate(() => globalThis.__conduitPresentationNucleus)).toEqual({
     layoutChildren: 3,

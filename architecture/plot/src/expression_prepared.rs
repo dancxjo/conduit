@@ -453,7 +453,7 @@ const fn quantity_kind(kind: PrimitiveInfoKind) -> bool {
 
 const fn kind_name(kind: PrimitiveInfoKind) -> &'static str {
     match kind {
-        PrimitiveInfoKind::Unit => conduit_core::UNIT_INFO_ID,
+        PrimitiveInfoKind::Empty => conduit_core::EMPTY_INFO_ID,
         PrimitiveInfoKind::Bool => BOOL_INFO_ID,
         PrimitiveInfoKind::Text => conduit_core::TEXT_INFO_ID,
         PrimitiveInfoKind::F32 => conduit_core::F32_INFO_ID,
@@ -469,8 +469,8 @@ const fn kind_name(kind: PrimitiveInfoKind) -> &'static str {
         PrimitiveInfoKind::I32 => "value/i32",
         PrimitiveInfoKind::I64 => "value/i64",
         PrimitiveInfoKind::I128 => "value/i128",
+        PrimitiveInfoKind::Unit => conduit_core::UNIT_INFO_ID,
         PrimitiveInfoKind::Quantity => conduit_core::QUANTITY_INFO_ID,
-        PrimitiveInfoKind::ExactDecimalQuantity => conduit_core::EXACT_DECIMAL_QUANTITY_INFO_ID,
         PrimitiveInfoKind::Distance => conduit_core::DISTANCE_INFO_ID,
         PrimitiveInfoKind::Frequency => conduit_core::FREQUENCY_INFO_ID,
         PrimitiveInfoKind::Duration => conduit_core::DURATION_INFO_ID,

@@ -387,7 +387,7 @@ pub fn optional_info_type(
         vec![
             StructuredVariantCase::new(
                 "none",
-                StructuredInfoType::leaf(crate::kind_id(crate::UNIT_INFO_ID))?,
+                StructuredInfoType::leaf(crate::kind_id(crate::EMPTY_INFO_ID))?,
             )?,
             StructuredVariantCase::new("some", value_type)?,
         ],
@@ -411,7 +411,7 @@ impl PreparedOptionalInfoEncoder {
             optional.clone(),
             "none",
             StructuredInfoValue::leaf(
-                StructuredInfoType::leaf(crate::kind_id(crate::UNIT_INFO_ID))?,
+                StructuredInfoType::leaf(crate::kind_id(crate::EMPTY_INFO_ID))?,
                 Vec::new(),
             )?,
         )?

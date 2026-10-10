@@ -1,4 +1,4 @@
-use conduit_core::{Quantity, QuantityUnit};
+use conduit_core::{Quantity, Unit};
 use conduit_data::*;
 use conduit_plot::rust_binding::{BoundedBytes, BoundedSequence};
 
@@ -7,7 +7,7 @@ fn signal(clock: &str, start: u64, count: u64, channels: u64) -> SampledSignal {
     SampledSignal {
         clock_identity: clock.into(),
         start: SignalStart::at_sample(start),
-        cadence: SignalCadence::regular(Quantity::new(1, QuantityUnit::Second), 100).unwrap(),
+        cadence: SignalCadence::regular(Quantity::new(1, Unit::Second), 100).unwrap(),
         sample_count: count,
         continuity: SignalContinuity::Continuous,
         samples: TensorValue {
@@ -22,7 +22,7 @@ fn signal(clock: &str, start: u64, count: u64, channels: u64) -> SampledSignal {
                 TensorAxis {
                     role: TensorAxisRole::Feature,
                     identity: Some("channel".into()),
-                    unit: Some(QuantityUnit::One),
+                    unit: Some(Unit::One),
                 },
             ])
             .unwrap(),

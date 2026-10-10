@@ -6,7 +6,7 @@ use alloc::string::String;
 use alloc::{vec, vec::Vec};
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, Kind, PortDescriptor, PortDirection, PortTemporal,
-    Quantity, QuantityUnit, StructuredInfoType, StructuredInfoValue, QUANTITY_ENCODED_LEN,
+    Quantity, StructuredInfoType, StructuredInfoValue, Unit, QUANTITY_ENCODED_LEN,
     QUANTITY_INFO_ID,
 };
 
@@ -22,7 +22,7 @@ pub fn wrapped_quantity_type() -> StructuredInfoType {
 
 /// Prepare the canonical envelope before Play; subsequent wrapping only copies bytes.
 pub fn quantity_info_prefix() -> Vec<u8> {
-    let quantity = Quantity::new(0, QuantityUnit::One).encode();
+    let quantity = Quantity::new(0, Unit::One).encode();
     let mut envelope = StructuredInfoValue::leaf(wrapped_quantity_type(), quantity.to_vec())
         .expect("canonical Quantity leaf")
         .canonical_bytes()
@@ -156,11 +156,11 @@ mod tests {
     fn prepared_quantity_prefix_preserves_canonical_values_and_units() {
         let prefix = quantity_info_prefix();
         for unit in [
-            QuantityUnit::Hertz,
-            QuantityUnit::Percent,
-            QuantityUnit::One,
-            QuantityUnit::Nanosecond,
-            QuantityUnit::Mebibyte,
+            Unit::Hertz,
+            Unit::Percent,
+            Unit::One,
+            Unit::Nanosecond,
+            Unit::Mebibyte,
         ] {
             for value in [i64::MIN, -1, 0, 1, i64::MAX] {
                 let quantity = Quantity::new(value, unit).encode();

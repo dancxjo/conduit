@@ -5,7 +5,7 @@ use super::BrowserBack;
 use conduit_audio::{AudioToneTerminal, PcmChannelLayout, PcmFrameHeader, PcmSampleRepresentation};
 use conduit_core::{
     Back, BackOfferBuilder, CapabilityId, ExecutionProfileId, HostCallContractId,
-    HostCallRequirement, ImplementationId, PlannedGear, Quantity, QuantityUnit,
+    HostCallRequirement, ImplementationId, PlannedGear, Quantity, Unit,
 };
 use conduit_kernel::{
     scheduler::{
@@ -230,11 +230,7 @@ impl<const PORTS: usize> StepBack<PORTS> for AudioToneBack {
 }
 
 fn frequency_millihertz(value: Quantity) -> Option<i128> {
-    match value.unit() {
-        QuantityUnit::Millihertz => Some(i128::from(value.value())),
-        QuantityUnit::Hertz => Some(i128::from(value.value()) * 1_000),
-        _ => None,
-    }
+    value.to_i64(Unit::Millihertz).ok().map(i128::from)
 }
 fn render(frequency: i128, phase: u32, start_frame: u64) -> Option<([u8; BLOCK_BYTES], u32)> {
     let increment =
@@ -350,7 +346,7 @@ mod tests {
             start_frame: 0,
         };
         renderer
-            .update(&Quantity::new(440, QuantityUnit::Hertz).encode())
+            .update(&Quantity::new(440, Unit::Hertz).encode())
             .unwrap();
         let first = renderer.render().unwrap();
         let second = renderer.render().unwrap();

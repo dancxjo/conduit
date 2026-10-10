@@ -4,11 +4,11 @@
 //! Domain-owned leaves remain the responsibility of their semantic owners.
 
 use crate::{
-    InfoBool, InfoDecodeError, Quantity, QuantityDecodeRefusal, QuantityDimension, QuantityUnit,
-    Scalar, TerminalInfo, TerminalInfoDecodeRefusal,
+    InfoBool, InfoDecodeError, Quantity, QuantityDimension, QuantityRefusal, Scalar, TerminalInfo,
+    TerminalInfoDecodeRefusal,
 };
 
-pub const UNIT_INFO_ID: &str = "value/unit";
+pub const EMPTY_INFO_ID: &str = "value/empty";
 pub const CANCELLATION_REQUEST_INFO_ID: &str = "control/cancellation-request";
 pub const COUNT_INFO_ID: &str = "value/count";
 pub const TEXT_INFO_ID: &str = "value/text";
@@ -19,7 +19,7 @@ pub const F64_INFO_ID: &str = "value/ieee754-binary64";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PrimitiveInfoKind {
-    Unit,
+    Empty,
     CancellationRequest,
     Terminal,
     Bool,
@@ -28,8 +28,7 @@ pub enum PrimitiveInfoKind {
     Text,
     Bytes,
     Quantity,
-    ExactDecimalQuantity,
-    QuantityUnit,
+    Unit,
     Distance,
     Frequency,
     Duration,
@@ -54,16 +53,15 @@ pub enum PrimitiveInfoKind {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PrimitiveInfoRefusal {
-    UnitNotEmpty,
+    EmptyNotEmpty,
     Bool(InfoDecodeError),
     CountLength {
         actual: usize,
     },
     Scalar(InfoDecodeError),
     TextUtf8,
-    Quantity(QuantityDecodeRefusal),
-    ExactDecimalQuantity(crate::ExactDecimalQuantityRefusal),
-    QuantityUnit(QuantityDecodeRefusal),
+    Quantity(QuantityRefusal),
+    Unit(crate::UnitRefusal),
     Terminal(TerminalInfoDecodeRefusal),
     WrongQuantityDimension {
         expected: QuantityDimension,
@@ -81,7 +79,7 @@ pub enum PrimitiveInfoRefusal {
 
 pub const fn primitive_info_kind(identity: &str) -> Option<PrimitiveInfoKind> {
     match identity.as_bytes() {
-        b"value/unit" => Some(PrimitiveInfoKind::Unit),
+        b"value/empty" => Some(PrimitiveInfoKind::Empty),
         b"control/cancellation-request" => Some(PrimitiveInfoKind::CancellationRequest),
         b"conduit/terminal-info@1" => Some(PrimitiveInfoKind::Terminal),
         b"value/bool" => Some(PrimitiveInfoKind::Bool),
@@ -89,9 +87,8 @@ pub const fn primitive_info_kind(identity: &str) -> Option<PrimitiveInfoKind> {
         b"value/scalar" => Some(PrimitiveInfoKind::Scalar),
         b"value/text" => Some(PrimitiveInfoKind::Text),
         b"value/bytes" => Some(PrimitiveInfoKind::Bytes),
-        b"value/quantity" => Some(PrimitiveInfoKind::Quantity),
-        b"value/exact-decimal-quantity@1" => Some(PrimitiveInfoKind::ExactDecimalQuantity),
-        b"value/quantity-unit" => Some(PrimitiveInfoKind::QuantityUnit),
+        b"value/quantity@1" => Some(PrimitiveInfoKind::Quantity),
+        b"value/unit@1" => Some(PrimitiveInfoKind::Unit),
         b"value/distance" => Some(PrimitiveInfoKind::Distance),
         b"value/frequency" => Some(PrimitiveInfoKind::Frequency),
         b"value/duration" => Some(PrimitiveInfoKind::Duration),
@@ -118,17 +115,17 @@ pub const fn primitive_info_kind(identity: &str) -> Option<PrimitiveInfoKind> {
 
 pub fn validate_primitive_info(identity: &str, encoded: &[u8]) -> Result<(), PrimitiveInfoRefusal> {
     match primitive_info_kind(identity) {
-        Some(PrimitiveInfoKind::Unit) if !encoded.is_empty() => {
-            Err(PrimitiveInfoRefusal::UnitNotEmpty)
+        Some(PrimitiveInfoKind::Empty) if !encoded.is_empty() => {
+            Err(PrimitiveInfoRefusal::EmptyNotEmpty)
         }
         Some(PrimitiveInfoKind::CancellationRequest) if !encoded.is_empty() => {
-            Err(PrimitiveInfoRefusal::UnitNotEmpty)
+            Err(PrimitiveInfoRefusal::EmptyNotEmpty)
         }
         Some(PrimitiveInfoKind::Terminal) => TerminalInfo::decode(encoded)
             .map(|_| ())
             .map_err(PrimitiveInfoRefusal::Terminal),
         Some(
-            PrimitiveInfoKind::Unit
+            PrimitiveInfoKind::Empty
             | PrimitiveInfoKind::CancellationRequest
             | PrimitiveInfoKind::Bytes,
         )
@@ -151,14 +148,9 @@ pub fn validate_primitive_info(identity: &str, encoded: &[u8]) -> Result<(), Pri
         Some(PrimitiveInfoKind::Quantity) => Quantity::decode(encoded)
             .map(|_| ())
             .map_err(PrimitiveInfoRefusal::Quantity),
-        Some(PrimitiveInfoKind::ExactDecimalQuantity) => {
-            crate::ExactDecimalQuantity::decode(encoded)
-                .map(|_| ())
-                .map_err(PrimitiveInfoRefusal::ExactDecimalQuantity)
-        }
-        Some(PrimitiveInfoKind::QuantityUnit) => QuantityUnit::decode(encoded)
+        Some(PrimitiveInfoKind::Unit) => crate::Unit::decode(encoded)
             .map(|_| ())
-            .map_err(PrimitiveInfoRefusal::QuantityUnit),
+            .map_err(PrimitiveInfoRefusal::Unit),
         Some(
             PrimitiveInfoKind::Distance
             | PrimitiveInfoKind::Frequency
@@ -251,4 +243,20 @@ pub fn decode_count(encoded: &[u8]) -> Result<u64, PrimitiveInfoRefusal> {
                 actual: encoded.len(),
             })?;
     Ok(u64::from_le_bytes(bytes))
+}
+
+/// The empty product value, encoded with no payload bytes.
+#[derive(Debug, Copy, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct InfoEmpty;
+impl InfoEmpty {
+    pub const fn encode(self) -> [u8; 0] {
+        []
+    }
+    pub fn decode(encoded: &[u8]) -> Result<Self, PrimitiveInfoRefusal> {
+        if encoded.is_empty() {
+            Ok(Self)
+        } else {
+            Err(PrimitiveInfoRefusal::EmptyNotEmpty)
+        }
+    }
 }

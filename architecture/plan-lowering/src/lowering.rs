@@ -84,12 +84,12 @@ fn source_contract_matches(
         }
         ConnectionTrack::NormalClose => {
             descriptor.temporal == (PortTemporal::Flow { closes: true })
-                && value_kind.as_str() == conduit_core::UNIT_INFO_ID
+                && value_kind.as_str() == conduit_core::EMPTY_INFO_ID
                 && temporal == PortTemporal::Value
         }
         ConnectionTrack::Quiescence => {
             matches!(descriptor.temporal, PortTemporal::Flow { .. })
-                && value_kind.as_str() == conduit_core::UNIT_INFO_ID
+                && value_kind.as_str() == conduit_core::EMPTY_INFO_ID
                 && temporal == PortTemporal::Value
         }
     }
@@ -1245,12 +1245,12 @@ fn lower_verified_fragment_for_profile(
             }
             ConnectionTrack::NormalClose => {
                 descriptor.temporal == (PortTemporal::Flow { closes: true })
-                    && planned.value_kind.as_str() == conduit_core::UNIT_INFO_ID
+                    && planned.value_kind.as_str() == conduit_core::EMPTY_INFO_ID
                     && planned.temporal == PortTemporal::Value
             }
             ConnectionTrack::Quiescence => {
                 matches!(descriptor.temporal, PortTemporal::Flow { .. })
-                    && planned.value_kind.as_str() == conduit_core::UNIT_INFO_ID
+                    && planned.value_kind.as_str() == conduit_core::EMPTY_INFO_ID
                     && planned.temporal == PortTemporal::Value
             }
         };
@@ -1656,7 +1656,7 @@ mod terminal_track_tests {
         assert!(source_contract_matches(
             &descriptor,
             ConnectionTrack::NormalClose,
-            &kind_id(conduit_core::UNIT_INFO_ID),
+            &kind_id(conduit_core::EMPTY_INFO_ID),
             PortTemporal::Value
         ));
         let mut standing = descriptor.clone();
@@ -1664,7 +1664,7 @@ mod terminal_track_tests {
         assert!(!source_contract_matches(
             &standing,
             ConnectionTrack::NormalClose,
-            &kind_id(conduit_core::UNIT_INFO_ID),
+            &kind_id(conduit_core::EMPTY_INFO_ID),
             PortTemporal::Value
         ));
         assert!(!source_contract_matches(
@@ -1676,7 +1676,7 @@ mod terminal_track_tests {
         assert!(!source_contract_matches(
             &descriptor,
             ConnectionTrack::NormalClose,
-            &kind_id(conduit_core::UNIT_INFO_ID),
+            &kind_id(conduit_core::EMPTY_INFO_ID),
             PortTemporal::Flow { closes: true }
         ));
     }

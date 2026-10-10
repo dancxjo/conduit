@@ -1,11 +1,13 @@
-//! Ordinary checked startup Gear for explicit exact conversion. The quoted
-//! source retains authored spelling; no glyph or implicit rounding is needed.
+//! Ordinary checked startup Gear for explicit exact conversion. Typed values
+//! retain authored spelling as evidence; no glyph or implicit rounding is needed.
 //! Preparation produces a finite receipt, including a typed precision refusal.
 
 pub mod comparison;
+pub mod converted_equals;
 mod encoding;
 mod profile;
 mod source;
+mod typed_arguments;
 use profile::ConversionProfile;
 pub mod temperature_difference;
 pub use source::{validate_source, QuantityConversionSourceDiagnostic};
@@ -14,7 +16,7 @@ use crate::{prelude::*, KindSignature, ProfileCatalog, StartupCatalog, StartupPa
 use conduit_core::*;
 
 pub const KIND: &str = "units/convert";
-pub const REVISION: &str = "quantity/exact-conversion@1";
+pub const REVISION: &str = "quantity/exact-conversion@2";
 pub const RECEIPT_NAME: &str = "ExactQuantityConversionReceipt";
 pub const MAXIMUM_RECEIPT_BYTES: u32 = 8192;
 
@@ -79,14 +81,19 @@ fn receipt_type_for(profile: ConversionProfile) -> StructuredInfoType {
 pub fn install(startup: &mut StartupCatalog, profile: &mut ProfileCatalog) -> Result<(), String> {
     install_for(ConversionProfile::Quantity, startup, profile)?;
     install_for(ConversionProfile::TemperatureDifference, startup, profile)?;
-    comparison::install(startup, profile)
+    startup.ensure_structured_type(
+        "TemperatureDifference",
+        temperature_difference::source_type(),
+    )?;
+    comparison::install(startup, profile)?;
+    converted_equals::install(startup, profile)
 }
 fn install_for(
     selected: ConversionProfile,
     startup: &mut StartupCatalog,
     profile: &mut ProfileCatalog,
 ) -> Result<(), String> {
-    install_text_receipt(
+    install_receipt(
         selected.receipt_name(),
         receipt_type_for(selected),
         contract_for(selected),
@@ -94,7 +101,7 @@ fn install_for(
         profile,
     )
 }
-fn install_text_receipt(
+fn install_receipt(
     name: &str,
     receipt: StructuredInfoType,
     contract: Kind,
@@ -109,7 +116,20 @@ fn install_text_receipt(
             .iter()
             .map(|parameter| StartupParameterSignature {
                 name: parameter.name.clone(),
-                value_type: "Text".into(),
+                value_type: match parameter.value_type.as_str() {
+                    QUANTITY_INFO_ID => "Quantity".into(),
+                    UNIT_INFO_ID => "Unit".into(),
+                    kind if kind
+                        == temperature_difference::source_type()
+                            .profile()
+                            .expect("difference")
+                            .value_kind()
+                            .as_str() =>
+                    {
+                        "TemperatureDifference".into()
+                    }
+                    _ => "Text".into(),
+                },
                 default: None,
             })
             .collect(),
@@ -123,17 +143,24 @@ pub fn contract() -> Kind {
     contract_for(ConversionProfile::Quantity)
 }
 fn contract_for(profile: ConversionProfile) -> Kind {
-    text_receipt_contract(
+    typed_arguments::contract(
         profile.kind(),
         profile.revision(),
         ["source", "to"],
+        [profile.configuration_rule(), KindConfigurationRule::Unit],
         receipt_type_for(profile),
     )
 }
-fn text_receipt_contract(
+pub(crate) fn profile_source_difference(
+    value: ExactTemperatureDifference,
+) -> Result<StructuredInfoValue, StructuredInfoRefusal> {
+    ConversionProfile::TemperatureDifference.source_value(value.storage_coordinate())
+}
+fn typed_receipt_contract(
     kind: &str,
     revision: &str,
     names: [&str; 2],
+    rules: [KindConfigurationRule; 2],
     receipt: StructuredInfoType,
 ) -> Kind {
     let output = receipt
@@ -146,9 +173,10 @@ fn text_receipt_contract(
         kind_contract_revision: KindIdentity::from(revision),
         startup_parameters: names
             .into_iter()
-            .map(|name| FrontStartupParameter {
+            .zip(&rules)
+            .map(|(name, rule)| FrontStartupParameter {
                 name: name.into(),
-                value_type: kind_id(TEXT_INFO_ID),
+                value_type: typed_arguments::rule_kind(rule),
                 has_default: false,
             })
             .collect(),
@@ -163,12 +191,11 @@ fn text_receipt_contract(
         }],
         configuration: names
             .into_iter()
-            .map(|name| KindConfigurationField {
+            .zip(rules)
+            .map(|(name, rule)| KindConfigurationField {
                 key: name.into(),
-                default_value: ConfigurationValue::Text(String::new()),
-                rule: KindConfigurationRule::TextBytes {
-                    maximum: EXACT_DECIMAL_MAX_LITERAL_BYTES as u32,
-                },
+                default_value: typed_arguments::default_value(&rule),
+                rule,
             })
             .collect(),
         semantic_laws: vec![KindSemanticLaw::ValueContracts(vec![FrontValueContract {
@@ -198,7 +225,7 @@ pub enum QuantityConversionPreparationRefusal {
 
 /// Execute after ordinary startup checking and canonical expansion. Every
 /// semantic value and refusal is retained in the receipt; no conversion is
-/// retried with a different unit or silently projected to legacy storage.
+/// retried with a different unit or silently narrowed to integer storage.
 pub fn prepare_configuration(
     configuration: &[ConfigurationEntry],
 ) -> Result<StructuredInfoValue, QuantityConversionPreparationRefusal> {
@@ -208,33 +235,9 @@ fn prepare_for(
     profile: ConversionProfile,
     configuration: &[ConfigurationEntry],
 ) -> Result<StructuredInfoValue, QuantityConversionPreparationRefusal> {
-    let [source, target] = text_arguments(configuration, ["source", "to"])?;
+    let [source, target] = typed_arguments::arguments(configuration, ["source", "to"])?;
     encoding::prepare(profile, source, target)
 }
-fn text_arguments<'a>(
-    configuration: &'a [ConfigurationEntry],
-    names: [&str; 2],
-) -> Result<[&'a str; 2], QuantityConversionPreparationRefusal> {
-    use QuantityConversionPreparationRefusal as R;
-    if configuration.len() != 2 {
-        return Err(R::Configuration);
-    }
-    let argument = |name: &str| {
-        let mut entries = configuration.iter().filter(|entry| entry.key == name);
-        let Some(entry) = entries.next() else {
-            return Err(R::Configuration);
-        };
-        if entries.next().is_some() {
-            return Err(R::Configuration);
-        }
-        match &entry.value {
-            ConfigurationValue::Text(value) => Ok(value.as_str()),
-            _ => Err(R::Configuration),
-        }
-    };
-    Ok([argument(names[0])?, argument(names[1])?])
-}
-
 /// Resolve only the reviewed exact quantity operations. The selected Kind
 /// carries the semantic role and receipt Type through preparation.
 pub fn operation_contract(kind: &str) -> Option<Kind> {
@@ -316,7 +319,7 @@ fn validate_for(
         let StructuredInfoValueShape::Leaf(bytes) = field.value().shape() else {
             return Err(R::ForgedReceipt);
         };
-        if bytes.len() > EXACT_DECIMAL_MAX_LITERAL_BYTES {
+        if bytes.len() > QUANTITY_MAX_LITERAL_BYTES {
             return Err(R::ForgedReceipt);
         }
         core::str::from_utf8(bytes)
@@ -328,11 +331,18 @@ fn validate_for(
         &[
             ConfigurationEntry {
                 key: "source".into(),
-                value: ConfigurationValue::Text(parameter("original")?),
+                value: typed_arguments::source_from_receipt(
+                    profile,
+                    receipt,
+                    &parameter("original")?,
+                )?,
             },
             ConfigurationEntry {
                 key: "to".into(),
-                value: ConfigurationValue::Text(parameter("target")?),
+                value: ConfigurationValue::Unit(
+                    UnitConfigurationValue::parse(&parameter("target")?)
+                        .map_err(|_| R::ForgedReceipt)?,
+                ),
             },
         ],
     )?;

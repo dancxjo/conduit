@@ -3,7 +3,7 @@
 use super::*;
 
 pub const KIND: &str = "units/convert-temperature-difference";
-pub const REVISION: &str = "quantity/exact-temperature-difference-conversion@1";
+pub const REVISION: &str = "quantity/exact-temperature-difference-conversion@2";
 pub const RECEIPT_NAME: &str = "ExactTemperatureDifferenceConversionReceipt";
 
 pub fn receipt_type() -> StructuredInfoType {
@@ -44,7 +44,7 @@ pub fn validate_source_value(
     let StructuredInfoValueShape::Leaf(bytes) = field.value().shape() else {
         return Err(R::ForgedReceipt);
     };
-    let coordinate = ExactDecimalQuantity::decode(bytes).map_err(|error| {
+    let coordinate = Quantity::decode(bytes).map_err(|error| {
         R::Request(
             ExactQuantityConversionRequestRefusal::TemperatureDifferenceSource(
                 ExactTemperatureDifferenceRefusal::Coordinate(error),

@@ -194,7 +194,7 @@ impl Parser<'_> {
             } else if let Some(payload) = payload_source {
                 TypeVariantPayloadSyntax::Type(self.parse_type_expression(payload, text, start)?)
             } else {
-                TypeVariantPayloadSyntax::Unit
+                TypeVariantPayloadSyntax::Empty
             };
             let end = self.lines[self.index.saturating_sub(1)];
             cases.push(TypeVariantCaseSyntax {

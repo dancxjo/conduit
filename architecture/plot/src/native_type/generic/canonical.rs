@@ -182,7 +182,7 @@ fn definition(value: &crate::TypeDefinitionSyntax) -> String {
             .iter()
             .map(|case| {
                 let payload = match &case.payload {
-                    crate::TypeVariantPayloadSyntax::Unit => "unit".into(),
+                    crate::TypeVariantPayloadSyntax::Empty => "empty".into(),
                     crate::TypeVariantPayloadSyntax::Type(value) => expression(value),
                     crate::TypeVariantPayloadSyntax::Record(fields) => fields_identity(fields),
                 };

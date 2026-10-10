@@ -212,7 +212,11 @@ fn add_shape_properties(
                 properties.push(property(
                     subject,
                     "quantity-value",
-                    PresentationPropertyValue::Signed(quantity.value()),
+                    PresentationPropertyValue::Text(alloc::format!(
+                        "{}e{}",
+                        quantity.coefficient(),
+                        quantity.exponent()
+                    )),
                 ));
             }
         }

@@ -101,8 +101,10 @@ pub(super) fn evaluate_binary(
         };
         return PrimitiveValue::new(expected, &InfoBool::new(value).encode());
     }
-    if left.kind == PrimitiveInfoKind::F32
-        && matches!(operator, BinaryOperator::Equal | BinaryOperator::NotEqual)
+    if matches!(
+        left.kind,
+        PrimitiveInfoKind::F32 | PrimitiveInfoKind::Unit | PrimitiveInfoKind::Empty
+    ) && matches!(operator, BinaryOperator::Equal | BinaryOperator::NotEqual)
     {
         let equal = left.as_slice() == right.as_slice();
         return PrimitiveValue::new(

@@ -16,7 +16,7 @@ function refused(reason) {
 function source(kind, left, right, predicate) {
   const names = kind.includes("compare") ? ["left", "right"] : ["source", "to"];
   return `plot checked-quantity {
- operation: ${kind}(${names[0]} = "${left}", ${names[1]} = "${right}")
+ operation: ${kind}(${names[0]} = ${left}, ${names[1]} = ${right})
  show: presentation/bool-value
  operation.receipt >> (${predicate}) >> show.value
 }.`;
@@ -46,13 +46,30 @@ const roleCases = [
   ["units/compare", "1m", "1s", refused("incompatible-dimensions")],
 ];
 
-for (const [name, cases] of [["official prefix and affine corpus", convertedCases], ["semantic roles and retained refusals", roleCases]]) {
+const comparatorCases = ["units/converted-equals", "=?"].flatMap((comparator) => [
+  ["1kHz", "Hz", "1000Hz", "Exactly 1000 Hz"],
+  ["1kHz", "Hz", "999Hz", "Conversion did not yield exactly 1000 Hz"],
+  ["1Hz", "m", "1m", "Conversion did not yield exactly 1000 Hz"],
+  ["1kHz", "Hz", "1m", "Conversion did not yield exactly 1000 Hz"],
+].map(([left, right, expected, text]) => ({
+  kind: "units/converted-equals", left, right, expected,
+  expected_text: text, expected_presentation: "presentation/text", implementation: "browser/converted-equals@1",
+  source: `${comparator === "=?" ? "with units/converted-equals as =?\n" : ""}plot convert-pitch-demo {
+ operation: units/convert(source = ${left}, to = ${right})
+ exact: ${comparator}(expected = ${expected})
+ show: presentation/text
+ operation.receipt >> exact.receipt
+ exact.result >> (. ? "Exactly 1000 Hz" : "Conversion did not yield exactly 1000 Hz") >> show.text
+}.`,
+})));
+
+for (const [name, cases] of [["official prefix and affine corpus", convertedCases], ["semantic roles and retained refusals", roleCases], ["full-name and scoped alias receipt comparator", comparatorCases]]) {
   test(`exact quantities execute ${name} through the browser kernel`, async ({ page }, testInfo) => {
     test.setTimeout(60_000);
     const errors = [];
     page.on("pageerror", (error) => errors.push(error.message));
     await page.goto("/proof/browser/exact-quantity.test.html");
-    const sources = cases.map(([kind, left, right, predicate]) => ({ kind, left, right, source: source(kind, left, right, predicate) }));
+    const sources = cases.map((entry) => Array.isArray(entry) ? { kind: entry[0], left: entry[1], right: entry[2], source: source(...entry) } : entry);
     const evidence = await page.evaluate(async (sources) => {
       const response = await fetch("/target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm");
       if (!response.ok) throw new Error(`WASM fetch failed: ${response.status}`);
@@ -79,9 +96,9 @@ for (const [name, cases] of [["official prefix and affine corpus", convertedCase
         write(host, boot, bytes);
         if (api.conduit_browser_plot_start(host.length, boot.length, bytes.length, BigInt(index + 1)) < 0) throw new Error(`${request.left} -> ${request.right}: ${JSON.stringify(read())}`);
         const effect = read();
-        if (effect.effect_kind !== "manifestation" || effect.presentation_kind !== "presentation/bool-value" || effect.text !== "true") throw new Error(`${request.left} -> ${request.right}: ${JSON.stringify(effect)}`);
+        if (effect.effect_kind !== "manifestation" || effect.presentation_kind !== (request.expected_presentation ?? "presentation/bool-value") || effect.text !== (request.expected_text ?? "true")) throw new Error(`${request.left} -> ${request.right}: ${JSON.stringify(effect)}`);
         const planned = effect.expanded_gears.find((gear) => gear.kind_id === request.kind);
-        if (!planned?.implementation_id.startsWith("browser/exact-")) throw new Error("exact operation did not select the installed browser Back");
+        if (!(request.implementation ? planned?.implementation_id === request.implementation : planned?.implementation_id.startsWith("browser/exact-"))) throw new Error("exact operation did not select the installed browser Back");
         document.querySelector("#result").textContent = effect.text;
         const play = encoder.encode(effect.active_play_id);
         const placement = encoder.encode(effect.placement_id);
@@ -96,7 +113,7 @@ for (const [name, cases] of [["official prefix and affine corpus", convertedCase
     }, sources);
     expect(errors).toEqual([]);
     expect(evidence.rows).toHaveLength(cases.length);
-    await expect(page.locator("#result")).toHaveText("true");
+    await expect(page.locator("#result")).toHaveText(sources.at(-1).expected_text ?? "true");
     const evidencePath = testInfo.outputPath("exact-quantity-browser-evidence.json");
     await writeFile(evidencePath, JSON.stringify(evidence, null, 2));
     await testInfo.attach("exact-quantity-browser-evidence.json", { path: evidencePath, contentType: "application/json" });

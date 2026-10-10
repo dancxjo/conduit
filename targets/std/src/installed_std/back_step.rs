@@ -325,6 +325,7 @@ installed_step_dispatch!(
     PureFilter,
     PureExpression,
     StructuredLiteral,
+    ConvertedEquals,
     StructuredPresentation,
     #[cfg(test)]
     TestTextSource,

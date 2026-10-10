@@ -1,9 +1,9 @@
 use conduit_core::{
     encode_count, BootId, HostId, KindId, Observation, ObservationKind, PrimitiveInfoRefusal,
-    Quantity, QuantityDecodeRefusal, QuantityUnit, SignId, StructuredFieldType,
-    StructuredFieldValue, StructuredInfoInspection, StructuredInfoInspectionRefusal,
-    StructuredInfoInspectionShape, StructuredInfoLeafSemantic, StructuredInfoType,
-    StructuredInfoValue, ValuePayload, MAXIMUM_STRUCTURED_INSPECTION_NODES,
+    Quantity, QuantityRefusal, SignId, StructuredFieldType, StructuredFieldValue,
+    StructuredInfoInspection, StructuredInfoInspectionRefusal, StructuredInfoInspectionShape,
+    StructuredInfoLeafSemantic, StructuredInfoType, StructuredInfoValue, Unit, ValuePayload,
+    MAXIMUM_STRUCTURED_INSPECTION_NODES,
 };
 
 fn leaf_type(kind: &str) -> StructuredInfoType {
@@ -162,7 +162,7 @@ fn non_value_malformed_and_wrong_profile_signs_refuse_distinctly() {
 
 #[test]
 fn quantity_signs_retain_exact_typed_semantics_without_general_leaf_disclosure() {
-    let quantity = Quantity::new(-17, QuantityUnit::Millivolt);
+    let quantity = Quantity::new(-17, Unit::Millivolt);
     let value = leaf(conduit_core::QUANTITY_INFO_ID, &quantity.encode());
     let inspection =
         StructuredInfoInspection::from_sign(&sign(&value), value.value_type()).unwrap();
@@ -178,10 +178,7 @@ fn quantity_signs_retain_exact_typed_semantics_without_general_leaf_disclosure()
     assert_eq!(
         StructuredInfoValue::leaf(quantity_type, vec![0; 8]),
         Err(conduit_core::StructuredInfoRefusal::InvalidPrimitiveLeaf(
-            PrimitiveInfoRefusal::Quantity(QuantityDecodeRefusal::WrongLength {
-                expected: conduit_core::QUANTITY_ENCODED_LEN,
-                actual: 8,
-            })
+            PrimitiveInfoRefusal::Quantity(QuantityRefusal::WrongEncodingLength)
         ))
     );
 }

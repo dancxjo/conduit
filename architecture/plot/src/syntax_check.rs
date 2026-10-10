@@ -765,7 +765,23 @@ fn check_plot(
         }
     }
 
-    let mut resolver = Resolver::new(locals, parameter_names, runtime_names, pool_names);
+    let parameter_types = signature
+        .startup_parameters
+        .iter()
+        .map(|p| {
+            Ok((
+                p.name.clone(),
+                crate::value_type::checked_value_kind(&p.value_type, catalog).map_err(|_| {
+                    SyntaxCheckError::QuantityLiteral(format!(
+                        "unknown startup Type '{}'",
+                        p.value_type
+                    ))
+                    .diagnostic(plot.name.span)
+                })?,
+            ))
+        })
+        .collect::<Result<BTreeMap<_, _>, SyntaxCheckDiagnostic>>()?;
+    let mut resolver = Resolver::new(locals, parameter_types, runtime_names, pool_names);
     let mut gears = Vec::new();
     let mut cords = Vec::new();
     let mut pools = Vec::new();
@@ -1635,6 +1651,19 @@ fn canonicalize_integer_value(
     source_type: &str,
     catalog: &StartupCatalog,
 ) -> Result<CanonicalStartupValue, SyntaxCheckError> {
+    let target = crate::value_type::checked_value_kind(source_type, catalog).map_err(|_| {
+        SyntaxCheckError::InvalidIntegerLiteral(format!("unknown startup Type '{source_type}'"))
+    })?;
+    if let Some(actual) = crate::authored_quantity::value_kind(&value) {
+        let compatible = actual == target
+            || matches!(&value,CanonicalStartupValue::Quantity(q) if conduit_core::quantity_info_dimension(target.as_str())==Some(q.value().dimension()));
+        if !compatible {
+            return Err(SyntaxCheckError::QuantityLiteral(format!(
+                "physical value of Type '{}' cannot satisfy '{source_type}'",
+                actual.as_str()
+            )));
+        }
+    }
     let CanonicalStartupValue::Literal(literal) = value else {
         return Ok(value);
     };
@@ -1679,6 +1708,12 @@ fn resolve_bound_value(
         } else {
             CanonicalStartupValue::PlotParameter(default.to_string())
         }
+    } else if let Some(role) =
+        crate::quantity_literal::selected_profile(catalog, &parameter.value_type)
+            .as_deref()
+            .and_then(crate::authored_quantity::expected_role)
+    {
+        crate::authored_quantity::parse(default, role)?
     } else if let Some(expected) =
         crate::quantity_literal::selected_profile(catalog, &parameter.value_type).as_deref()
     {
@@ -1738,7 +1773,7 @@ fn validate_quantity_type(
     };
     let kind = crate::value_type::canonical_value_kind(source_type);
     if kind.as_str() == conduit_core::QUANTITY_INFO_ID
-        || conduit_core::validate_primitive_info(kind.as_str(), &quantity.encode()).is_ok()
+        || conduit_core::validate_primitive_info(kind.as_str(), &quantity.value().encode()).is_ok()
     {
         return Ok(());
     }
@@ -1747,8 +1782,8 @@ fn validate_quantity_type(
         span,
         message: format!(
             "quantity unit '{}' has dimension {:?}, which cannot satisfy '{}'",
-            quantity.unit().plot_suffix(),
-            quantity.dimension(),
+            quantity.value().unit().plot_suffix(),
+            quantity.value().dimension(),
             source_type
         ),
     })

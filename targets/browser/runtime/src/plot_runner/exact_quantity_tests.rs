@@ -11,7 +11,7 @@ fn source(kind: &str, left: &str, right: &str, predicate: &str) -> String {
     };
     format!(
         r#"plot checked-quantity {{
- operation: {kind}({} = "{left}", {} = "{right}")
+ operation: {kind}({} = {left}, {} = {right})
  show: presentation/bool-value
  operation.receipt >> ({predicate}) >> show.value
 }}."#,
@@ -187,15 +187,16 @@ fn exact_quantity_browser_admission_refuses_identity_and_configuration_drift() {
         ("units/compare", "21C", "1°C"),
         ("units/convert-temperature-difference", "1Hz", "K"),
     ] {
-        assert!(TourSession::prepare(
-            "browser/refusal",
-            "boot/refusal",
-            &source(kind, left, right, "true"),
-            2
-        )
-        .err()
-        .expect("invalid quantity source refuses")
-        .contains("quantity source"));
+        assert!(
+            TourSession::prepare(
+                "browser/refusal",
+                "boot/refusal",
+                &source(kind, left, right, "true"),
+                2
+            )
+            .is_err(),
+            "invalid typed quantity source refuses"
+        );
     }
 }
 
@@ -258,4 +259,152 @@ fn exact_quantity_browser_stored_receipts_survive_pressure_byte_for_byte() {
         );
         assert_eq!(values.allocation_capacities(), capacity);
     }
+}
+
+#[test]
+fn full_name_receipt_comparator_runs_through_browser_kernel() {
+    for (source, target, expected, result) in [
+        ("1kHz", "Hz", "1000Hz", "true"),
+        ("1kHz", "Hz", "999Hz", "false"),
+        ("1Hz", "m", "1m", "false"),
+        ("1kHz", "Hz", "1m", "false"),
+    ] {
+        let authored = format!(
+            r#"plot converted-equals-demo {{
+ operation: units/convert(source = {source}, to = {target})
+ exact: units/converted-equals(expected = {expected})
+ show: presentation/bool-value
+ operation.receipt >> exact.receipt
+ exact.result >> show.value
+}}."#
+        );
+        let (session, effect) =
+            TourSession::prepare("browser/comparator", "boot/comparator", &authored, 1).unwrap();
+        let TourHostEffect::Manifestation(effect) = effect else {
+            panic!("planned Boolean effect")
+        };
+        assert_eq!(effect.text.as_deref(), Some(result));
+        assert!(effect
+            .expanded_gears
+            .iter()
+            .any(|gear| gear.kind_id == "units/converted-equals"));
+        finish(session, *effect);
+    }
+}
+
+#[test]
+fn issue_demo_full_name_and_scoped_alias_render_exact_text() {
+    for (imports, comparator) in [
+        ("", "units/converted-equals"),
+        ("with units/converted-equals as =?\n", "=?"),
+    ] {
+        let source = format!(
+            r#"{imports}plot convert-pitch-demo {{
+ operation: units/convert(source = 1kHz, to = Hz)
+ exact: {comparator}(expected = 1000Hz)
+ show: presentation/text
+ operation.receipt >> exact.receipt
+ exact.result >> (. ? "Exactly 1000 Hz" : "Conversion did not yield exactly 1000 Hz") >> show.text
+}}."#
+        );
+        let (session, effect) =
+            TourSession::prepare("browser/issue-demo", "boot/issue-demo", &source, 1).unwrap();
+        let TourHostEffect::Manifestation(effect) = effect else {
+            panic!("planned Text effect")
+        };
+        assert_eq!(effect.text.as_deref(), Some("Exactly 1000 Hz"));
+        finish(session, *effect);
+    }
+}
+
+#[test]
+fn unit_value_crosses_literal_record_relay_and_projection_in_browser_kernel() {
+    let source = r#"type Envelope = {
+ value: Unit
+}
+plot unit-source (
+ >> trigger: Scalar
+ output: Unit >>
+) = (kHz)
+plot pack (
+ >> input: Unit
+ output: Envelope >>
+) = ({ value: . })
+plot relay (
+ >> input: Envelope
+ output: Envelope >>
+) { input >> (.) >> output }
+plot unpack (
+ >> input: Envelope
+ output: Unit >>
+) = (.value)
+plot unit-transport-demo {
+ trigger: scalar/literal(value = 1)
+ source: unit-source
+ packed: pack
+ relayed: relay
+ unpacked: unpack
+ show: presentation/text
+ trigger.value >> source.trigger
+ source.output >> packed.input
+ packed.output >> relayed.input
+ relayed.output >> unpacked.input
+ unpacked.output >> (. == kHz ? "Unit preserved" : "Unit changed") >> show.text
+}."#;
+    let (session, effect) =
+        TourSession::prepare("browser/unit-transport", "boot/unit-transport", source, 1).unwrap();
+    let TourHostEffect::Manifestation(effect) = effect else {
+        panic!("planned Text effect")
+    };
+    assert_eq!(effect.text.as_deref(), Some("Unit preserved"));
+    finish(session, *effect);
+}
+
+#[test]
+fn installed_browser_comparator_rejects_forged_runtime_receipts() {
+    const PORTS: usize = crate::installed_browser::BROWSER_PORTS_PER_GEAR;
+    use conduit_kernel::scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome};
+    use conduit_kernel::PortId;
+    let source = r#"plot comparator-forgery {
+ operation: units/convert(source = 1kHz, to = Hz)
+ exact: units/converted-equals(expected = 1000Hz)
+ show: presentation/bool-value
+ operation.receipt >> exact.receipt
+ exact.result >> show.value
+}."#;
+    let (session, effect) = run(source);
+    let producer = session.fragments[0]
+        .placements
+        .iter()
+        .find(|placement| placement.kind_id.as_str() == "units/convert")
+        .unwrap();
+    let comparator = session.fragments[0]
+        .placements
+        .iter()
+        .find(|placement| placement.kind_id.as_str() == "units/converted-equals")
+        .unwrap();
+    let bytes = conduit_plot::quantity_conversion::prepare_configuration(&producer.configuration)
+        .unwrap()
+        .canonical_bytes()
+        .unwrap();
+    for index in [0, bytes.len() - 1] {
+        let mut forged = bytes.clone();
+        forged[index] ^= 1;
+        let mut values = HostedValueStore::new(4, 8192, 16384).unwrap();
+        let installation =
+            crate::installed_browser::factory(&comparator.implementation_id).unwrap();
+        let mut back = (installation.prepare)(comparator, &mut values).unwrap();
+        let input = values.store(&forged).unwrap();
+        let mut inputs = [None; PORTS];
+        inputs[0] = Some(input);
+        let mut canonical = [None; PORTS];
+        canonical[0] = Some(forged.as_slice());
+        let mut io = StepIo::test_frame(inputs, [false; PORTS], [Some(1); PORTS], None, 8);
+        assert!(matches!(
+            back.step(&mut io, &StepInputBytes::test_frame(canonical, None)),
+            StepOutcome::Fail(_)
+        ));
+        assert!(io.test_output(PortId(0)).is_none());
+    }
+    finish(session, effect);
 }

@@ -5,7 +5,7 @@ export function authoringBasis(value) {
 }
 
 export function configurationText(value) {
-  return String(value.U64 ?? value.I64 ?? value.Bool ?? value.Text ?? value.Quantity?.value ?? "");
+  return String(value.U64 ?? value.I64 ?? value.Bool ?? value.Text ?? value.Quantity?.source ?? value.Unit?.source ?? value.TemperatureDifference?.source ?? "");
 }
 
 export function configurationValue(value, raw) {
@@ -21,11 +21,9 @@ export function configurationValue(value, raw) {
     return { Bool: raw === "true" };
   }
   if (value.Text !== undefined) return { Text: raw };
-  if (value.Quantity) {
-    const number = Number(raw);
-    if (!/^-?\d+$/.test(raw) || !Number.isSafeInteger(number)) throw new Error("An exact supported quantity is required");
-    return { Quantity: { value: number, unit: value.Quantity.unit } };
-  }
+  if (value.Quantity) return { QuantitySource: raw };
+  if (value.Unit) return { UnitSource: raw };
+  if (value.TemperatureDifference) return { TemperatureDifferenceSource: raw };
   throw new Error("This value requires a structured configuration editor");
 }
 
@@ -47,7 +45,7 @@ export function renderConfigurationFields(root, fields, apply) {
       }
     } else {
       input.type = "text";
-      if (field.value.U64 !== undefined || field.value.I64 !== undefined || field.value.Quantity) input.inputMode = "numeric";
+      if (field.value.U64 !== undefined || field.value.I64 !== undefined) input.inputMode = "numeric";
     }
     input.value = configurationText(field.value);
     label.append(input);

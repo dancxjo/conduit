@@ -208,7 +208,9 @@ fn generate_configuration(
                         UnsupportedPlanFeature::StructuredConfiguration,
                     ));
                 }
-                ConfigurationValue::Quantity(_) => {
+                ConfigurationValue::Quantity(_)
+                | ConfigurationValue::Unit(_)
+                | ConfigurationValue::TemperatureDifference(_) => {
                     return Err(GenerationError::Unsupported(
                         UnsupportedPlanFeature::QuantityConfiguration,
                     ));

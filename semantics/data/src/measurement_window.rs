@@ -28,7 +28,12 @@ impl MeasurementWindowProfile {
             return Err(MeasurementWindowRefusal::InvalidClockProfile);
         }
         if self.range.minimum.unit() != self.range.maximum.unit()
-            || self.range.minimum.value() > self.range.maximum.value()
+            || self
+                .range
+                .minimum
+                .compare(self.range.maximum)
+                .map_err(|_| MeasurementWindowRefusal::InvalidRange)?
+                == core::cmp::Ordering::Greater
         {
             return Err(MeasurementWindowRefusal::InvalidRange);
         }
@@ -109,15 +114,26 @@ impl BoundedMeasurementWindow {
             return Err(MeasurementWindowRefusal::ClockMismatch);
         }
         if let Some(uncertainty) = sample.uncertainty {
+            if unit.dimension() == conduit_core::QuantityDimension::Temperature {
+                return Err(MeasurementWindowRefusal::TemperatureDifferenceRequired);
+            }
             if uncertainty.unit() != unit {
                 return Err(MeasurementWindowRefusal::UncertaintyUnitMismatch);
             }
-            if uncertainty.value() < 0 {
+            if uncertainty.coefficient() < 0 {
                 return Err(MeasurementWindowRefusal::NegativeUncertainty);
             }
         }
-        if sample.value.value() < self.profile.range.minimum.value()
-            || sample.value.value() > self.profile.range.maximum.value()
+        if sample
+            .value
+            .compare(self.profile.range.minimum)
+            .map_err(|_| MeasurementWindowRefusal::OutOfRange)?
+            == core::cmp::Ordering::Less
+            || sample
+                .value
+                .compare(self.profile.range.maximum)
+                .map_err(|_| MeasurementWindowRefusal::OutOfRange)?
+                == core::cmp::Ordering::Greater
         {
             return Err(MeasurementWindowRefusal::OutOfRange);
         }

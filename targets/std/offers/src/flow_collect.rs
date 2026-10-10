@@ -2,7 +2,7 @@
 
 use conduit_core::{
     kind_id, ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer,
-    CheckedValueContract, ExecutionProfileId, ImplementationId, UNIT_INFO_ID,
+    CheckedValueContract, ExecutionProfileId, ImplementationId, EMPTY_INFO_ID,
 };
 
 pub const FLOW_COLLECT_EXECUTION_PROFILE: &str = "conduit.std/flow-collect-prepared@1";
@@ -23,7 +23,7 @@ pub fn flow_collect_offer(
     {
         return Err("std flow/collect specialization exceeds its prepared bounds");
     }
-    let overflow = CheckedValueContract::new(kind_id(UNIT_INFO_ID), 0, Vec::new())
+    let overflow = CheckedValueContract::new(kind_id(EMPTY_INFO_ID), 0, Vec::new())
         .map_err(|_| "std flow/collect Unit overflow contract is invalid")?;
     let contract = conduit_semantic_catalog::flow_collect_semantic_contract(
         element,
@@ -61,7 +61,7 @@ mod tests {
         let law = offer.semantic_contract.bounded_collect().unwrap();
         assert_eq!(law.element, element);
         assert_eq!(law.maximum_items, 4);
-        assert_eq!(law.overflow_disposition.value_kind.as_str(), UNIT_INFO_ID);
+        assert_eq!(law.overflow_disposition.value_kind.as_str(), EMPTY_INFO_ID);
         assert!(offer.host_calls.is_empty());
         assert!(offer.resource_requirements.is_empty());
         assert!(offer.authority_requirements.is_empty());

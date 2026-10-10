@@ -1,10 +1,10 @@
-//! Immutable decimal-prefix law, separate from legacy quantity storage.
+//! Immutable decimal-prefix law for reviewed physical Unit descriptors.
 //!
 //! A descriptor establishes semantic scale, not runtime representation eligibility.
-//! This catalogue does not yet extend the authored literal parser. Symbols match
+//! The authored whole-suffix resolver uses this catalogue. Symbols match
 //! exact UTF-8 bytes: aliases are a unit-resolver policy, never Unicode folding.
 
-use crate::{QuantityDimension, QuantityUnit};
+use crate::{CatalogUnit, QuantityDimension};
 
 /// Version of the reviewed prefix/base-unit policy, not a Quantity wire version.
 pub const QUANTITY_PREFIX_CATALOG_ID: &str = "quantity/decimal-prefix-catalog@1";
@@ -166,12 +166,15 @@ pub const DECIMAL_PREFIXES: [DecimalPrefix; 24] = [
 /// Prefixing a power applies the exponent to the entire powered base symbol.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct PrefixableUnit {
-    unit: QuantityUnit,
+    unit: CatalogUnit,
     prefix_power: u8,
 }
 
 impl PrefixableUnit {
-    pub const fn unit(self) -> QuantityUnit {
+    pub const fn unit(self) -> crate::Unit {
+        crate::Unit::from_catalogue(self.unit)
+    }
+    pub const fn catalogue_unit(self) -> CatalogUnit {
         self.unit
     }
     pub const fn prefix_power(self) -> u8 {
@@ -189,7 +192,13 @@ impl PrefixableUnit {
     }
 
     /// Admit an exact reviewed base, never an already prefixed unit.
-    pub fn for_unit(unit: QuantityUnit) -> Option<Self> {
+    pub fn for_unit(unit: crate::Unit) -> Option<Self> {
+        if unit.decimal_exponent() != 0 {
+            return None;
+        }
+        Self::for_catalogue(unit.base_unit())
+    }
+    pub(crate) fn for_catalogue(unit: CatalogUnit) -> Option<Self> {
         PREFIXABLE_UNITS
             .iter()
             .copied()
@@ -200,85 +209,85 @@ impl PrefixableUnit {
 /// Explicit policy: all 24 prefixes are meaningful at these reviewed positions.
 /// Gram is the mass base; kilogram cannot be prefixed again. Liter and byte are
 /// approved non-SI bases. Compound prefixes apply to the numerator only, except
-/// powers of meter where the prefix is raised to that power. Other legacy units
+/// powers of meter where the prefix is raised to that power. Other catalogue units
 /// remain available through their existing exact suffix table, not this policy.
-/// Affine Celsius/Fahrenheit and legacy milli variants require a separate
+/// Affine Celsius/Fahrenheit and catalogue milli variants require a separate
 /// point/difference contract and are deliberately absent here.
 pub const PREFIXABLE_UNITS: [PrefixableUnit; 19] = [
     PrefixableUnit {
-        unit: QuantityUnit::Second,
+        unit: CatalogUnit::Second,
         prefix_power: 1,
     },
     PrefixableUnit {
-        unit: QuantityUnit::Hertz,
+        unit: CatalogUnit::Hertz,
         prefix_power: 1,
     },
     PrefixableUnit {
-        unit: QuantityUnit::Volt,
+        unit: CatalogUnit::Volt,
         prefix_power: 1,
     },
     PrefixableUnit {
-        unit: QuantityUnit::Ampere,
+        unit: CatalogUnit::Ampere,
         prefix_power: 1,
     },
     PrefixableUnit {
-        unit: QuantityUnit::Kelvin,
+        unit: CatalogUnit::Kelvin,
         prefix_power: 1,
     },
     PrefixableUnit {
-        unit: QuantityUnit::Gram,
+        unit: CatalogUnit::Gram,
         prefix_power: 1,
     },
     PrefixableUnit {
-        unit: QuantityUnit::Meter,
+        unit: CatalogUnit::Meter,
         prefix_power: 1,
     },
     PrefixableUnit {
-        unit: QuantityUnit::SquareMeter,
+        unit: CatalogUnit::SquareMeter,
         prefix_power: 2,
     },
     PrefixableUnit {
-        unit: QuantityUnit::CubicMeter,
+        unit: CatalogUnit::CubicMeter,
         prefix_power: 3,
     },
     PrefixableUnit {
-        unit: QuantityUnit::Liter,
+        unit: CatalogUnit::Liter,
         prefix_power: 1,
     },
     PrefixableUnit {
-        unit: QuantityUnit::Radian,
+        unit: CatalogUnit::Radian,
         prefix_power: 1,
     },
     PrefixableUnit {
-        unit: QuantityUnit::Byte,
+        unit: CatalogUnit::Byte,
         prefix_power: 1,
     },
     PrefixableUnit {
-        unit: QuantityUnit::Newton,
+        unit: CatalogUnit::Newton,
         prefix_power: 1,
     },
     PrefixableUnit {
-        unit: QuantityUnit::Joule,
+        unit: CatalogUnit::Joule,
         prefix_power: 1,
     },
     PrefixableUnit {
-        unit: QuantityUnit::Watt,
+        unit: CatalogUnit::Watt,
         prefix_power: 1,
     },
     PrefixableUnit {
-        unit: QuantityUnit::Pascal,
+        unit: CatalogUnit::Pascal,
         prefix_power: 1,
     },
     PrefixableUnit {
-        unit: QuantityUnit::MeterPerSecond,
+        unit: CatalogUnit::MeterPerSecond,
         prefix_power: 1,
     },
     PrefixableUnit {
-        unit: QuantityUnit::MeterPerSecondSquared,
+        unit: CatalogUnit::MeterPerSecondSquared,
         prefix_power: 1,
     },
     PrefixableUnit {
-        unit: QuantityUnit::AmpereHour,
+        unit: CatalogUnit::AmpereHour,
         prefix_power: 1,
     },
 ];

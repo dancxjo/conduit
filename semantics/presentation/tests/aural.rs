@@ -1,8 +1,8 @@
 use conduit_core::{
     kind_id, BaseImplementationId, BoundedResourceRef, CheckedValueContract, IntervalEndpoint,
-    Quantity, QuantityUnit, ResourceClassId, ResourceExtent, ResourceLifetime,
-    ResourceSemanticIdentity, ResourceVersionIdentity, ValueConstraint, COUNT_ENCODED_LEN,
-    COUNT_INFO_ID, DISTANCE_INFO_ID, QUANTITY_ENCODED_LEN, SCALAR_ENCODED_LEN, SCALAR_INFO_ID,
+    Quantity, ResourceClassId, ResourceExtent, ResourceLifetime, ResourceSemanticIdentity,
+    ResourceVersionIdentity, Unit, ValueConstraint, COUNT_ENCODED_LEN, COUNT_INFO_ID,
+    DISTANCE_INFO_ID, QUANTITY_ENCODED_LEN, SCALAR_ENCODED_LEN, SCALAR_INFO_ID,
 };
 use conduit_plot::TextPatternExpression;
 use conduit_presentation::{
@@ -400,8 +400,8 @@ fn participation_face(pattern_maximum: u16) -> Presentation {
                         DISTANCE_INFO_ID.into(),
                         QUANTITY_ENCODED_LEN as u32,
                         vec![ValueConstraint::QuantityRange {
-                            minimum: Some(Quantity::new(1, QuantityUnit::Meter)),
-                            maximum: Some(Quantity::new(2, QuantityUnit::Meter)),
+                            minimum: Some(Quantity::new(1, Unit::Meter)),
+                            maximum: Some(Quantity::new(2, Unit::Meter)),
                             minimum_endpoint: IntervalEndpoint::Inclusive,
                             maximum_endpoint: IntervalEndpoint::Inclusive,
                         }],

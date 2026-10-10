@@ -1,4 +1,4 @@
-use conduit_core::{KindId, QuantityUnit};
+use conduit_core::{KindId, Unit};
 use conduit_human::{
     BoundKind, InteractionApplicationOutcome, InteractionFamily, InteractionProposalPayload,
     InteractionRefusal, InteractionTypeDigest, InteractionValue, InteractionValueKind,
@@ -82,14 +82,14 @@ fn interaction_family_is_one_payload_rich_native_type() {
         InteractionFamily::choice_one(kind.clone(), 4),
         InteractionFamily::choice_many(kind.clone(), 8, 1, 3),
         InteractionFamily::scalar_range(
-            QuantityUnit::Percent,
+            Unit::Percent,
             0,
             BoundKind::Inclusive,
             100,
             BoundKind::Exclusive,
             5,
         ),
-        InteractionFamily::relative_range(QuantityUnit::One, -12, 12, 1),
+        InteractionFamily::relative_range(Unit::One, -12, 12, 1),
         InteractionFamily::text_value(4_096, false),
         InteractionFamily::structured_value(kind, [7; 32], 8_192),
     ] {

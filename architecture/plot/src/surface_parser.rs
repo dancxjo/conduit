@@ -1215,7 +1215,7 @@ fn top_level_assignment(text: &str) -> Option<usize> {
             .chars()
             .next_back()
             .is_some_and(|character| matches!(character, '<' | '>' | '!' | '='))
-            && !text[*position + 1..].starts_with('=')
+            && !text[*position + 1..].starts_with(['=', '?'])
     })
 }
 

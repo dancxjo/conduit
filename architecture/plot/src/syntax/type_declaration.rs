@@ -85,7 +85,7 @@ pub struct TypeVariantCaseSyntax {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TypeVariantPayloadSyntax {
-    Unit,
+    Empty,
     Type(TypeExpressionSyntax),
     Record(Vec<TypeFieldSyntax>),
 }

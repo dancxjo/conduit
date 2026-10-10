@@ -247,6 +247,8 @@ fn value_type(value: &ConfigurationValue) -> &'static str {
         ConfigurationValue::Bool(_) => "Boolean",
         ConfigurationValue::Structured(_) => "Structured",
         ConfigurationValue::Quantity(_) => "Quantity",
+        ConfigurationValue::Unit(_) => "Unit",
+        ConfigurationValue::TemperatureDifference(_) => "TemperatureDifference",
     }
 }
 
@@ -257,9 +259,9 @@ fn render_default(value: &ConfigurationValue) -> alloc::string::String {
         ConfigurationValue::Text(value) => format!("\"{value}\""),
         ConfigurationValue::Bool(value) => value.to_string(),
         ConfigurationValue::Structured(_) => "structured".to_string(),
-        ConfigurationValue::Quantity(value) => {
-            format!("{}{}", value.value(), value.unit().plot_suffix())
-        }
+        ConfigurationValue::Quantity(value) => value.source().into(),
+        ConfigurationValue::Unit(value) => value.source().into(),
+        ConfigurationValue::TemperatureDifference(value) => value.source().into(),
     }
 }
 

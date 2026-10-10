@@ -4,7 +4,7 @@ use super::engine::{
     complete_host_effect, complete_host_effect_with_output, drive, prepare, BrowserHostEffect,
     DriveStatus,
 };
-use conduit_core::{Quantity, QuantityUnit, StructuredInfoValueShape, TemporalScale};
+use conduit_core::{Quantity, StructuredInfoValueShape, TemporalScale, Unit};
 use conduit_planner::{default_expanded_placements, plan_expanded_canonical_with_options};
 use conduit_plot::{KindProjection, KindSignature};
 use std::collections::BTreeMap;
@@ -178,7 +178,7 @@ fn deterministic_control_runs_the_authored_measurement_plot_in_the_production_ke
         panic!("measurement proof requested an unexpected Host effect")
     };
     let sample = decode_sample(&manifestation.canonical_value);
-    assert_eq!(sample.value, Quantity::new(25, QuantityUnit::Millivolt));
+    assert_eq!(sample.value, Quantity::new(25, Unit::Millivolt));
     assert_eq!(sample.observed_at.ticks, 1);
     assert_eq!(sample.observed_at.scale, TemporalScale::Milliseconds.into());
     assert_eq!(sample.observed_at.clock_basis, "control-occurrence");
@@ -232,7 +232,7 @@ fn browser_pointer_and_deterministic_control_share_the_exact_measurement_plot() 
         panic!("interactive measurement requested an unexpected Host effect")
     };
     let sample = decode_sample(&manifestation.canonical_value);
-    assert_eq!(sample.value, Quantity::new(25, QuantityUnit::Millivolt));
+    assert_eq!(sample.value, Quantity::new(25, Unit::Millivolt));
     assert_eq!(sample.observed_at.clock_basis, "control-occurrence");
     assert!(scheduler
         .signs()

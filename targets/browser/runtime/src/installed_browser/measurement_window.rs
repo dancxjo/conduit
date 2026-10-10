@@ -99,6 +99,7 @@ impl PreparedWindow {
                         OutOfRange => 19,
                         Full => 20,
                         DiscardCountOverflow => 21,
+                        TemperatureDifferenceRequired => 22,
                     })
                 })?;
                 Ok(None)
@@ -321,8 +322,8 @@ fn failure(detail: u16) -> Failure {
 mod tests {
     use super::*;
     use conduit_core::{
-        ConfigurationEntry, OfferGeneration, Quantity, QuantityUnit, StructuredInfoValue,
-        TemporalInstant, TemporalScale,
+        ConfigurationEntry, OfferGeneration, Quantity, StructuredInfoValue, TemporalInstant,
+        TemporalScale, Unit,
     };
     use conduit_data::{
         FullWindowPolicy, MeasurementRange, MeasurementSample, MeasurementWindowProfile,
@@ -361,8 +362,8 @@ mod tests {
         MeasurementWindowProfile {
             capacity: 2,
             range: MeasurementRange {
-                minimum: Quantity::new(0, QuantityUnit::Millivolt),
-                maximum: Quantity::new(100, QuantityUnit::Millivolt),
+                minimum: Quantity::new(0, Unit::Millivolt),
+                maximum: Quantity::new(100, Unit::Millivolt),
             },
             clock_basis: "browser-window-clock".into(),
             full_policy: FullWindowPolicy::DropOldest,
@@ -378,7 +379,7 @@ mod tests {
 
     fn sample(value: i64, ticks: u64) -> MeasurementSample {
         MeasurementSample {
-            value: Quantity::new(value, QuantityUnit::Millivolt),
+            value: Quantity::new(value, Unit::Millivolt),
             observed_at: TemporalInstant {
                 ticks,
                 scale: TemporalScale::Milliseconds,
@@ -431,7 +432,7 @@ mod tests {
             window
                 .samples()
                 .iter()
-                .map(|sample| sample.value.value())
+                .map(|sample| sample.value.to_i64(sample.value.unit()).unwrap())
                 .collect::<Vec<_>>(),
             [50, 100]
         );
@@ -450,7 +451,7 @@ mod tests {
         );
         prepared.execute(OPERATIONS[0], &profile).unwrap();
         let wrong_unit = MeasurementSample {
-            value: Quantity::new(1, QuantityUnit::Volt),
+            value: Quantity::new(1, Unit::Volt),
             ..sample(1, 1)
         };
         let wrong_unit = leaf(

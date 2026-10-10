@@ -73,7 +73,7 @@ fn validate_node(
                     // It must not disable the existing proof of input arithmetic.
                     let constant = PortableExpressionProgram {
                         input_type: conduit_core::StructuredInfoType::leaf(conduit_core::kind_id(
-                            conduit_core::UNIT_INFO_ID,
+                            conduit_core::EMPTY_INFO_ID,
                         ))
                         .map_err(|_| refusal())?,
                         output_type: node.value_type.clone(),

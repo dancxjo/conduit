@@ -37,7 +37,7 @@ pub(crate) fn validate_iter<'a>(
                 for case in cases {
                     budget.text(&case.tag)?;
                     match &case.payload {
-                        TypeVariantPayloadSyntax::Unit => {}
+                        TypeVariantPayloadSyntax::Empty => {}
                         TypeVariantPayloadSyntax::Type(value) => budget.expression(value, 0)?,
                         TypeVariantPayloadSyntax::Record(fields) => budget.fields(fields)?,
                     }

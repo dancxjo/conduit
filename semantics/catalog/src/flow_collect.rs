@@ -6,7 +6,7 @@ use alloc::{vec, vec::Vec};
 use conduit_core::{
     kind_id, port_id, BoundedCollectSemanticLaw, CapabilityLimits, CheckedValueContract,
     FrontValueContract, FrontValueLocation, Kind, KindIdentity, KindSemanticLaw, PortDescriptor,
-    PortDirection, PortTemporal, PreparedLeafSequenceEncoder, UNIT_INFO_ID,
+    PortDirection, PortTemporal, PreparedLeafSequenceEncoder, EMPTY_INFO_ID,
 };
 
 pub const FLOW_COLLECT_KIND: &str = "flow/collect";
@@ -21,11 +21,11 @@ pub fn flow_collect_semantic_contract(
     maximum_items: u16,
     overflow_disposition: &CheckedValueContract,
 ) -> Result<Kind, &'static str> {
-    if element.maximum_bytes == 0 && element.value_kind.as_str() != UNIT_INFO_ID {
+    if element.maximum_bytes == 0 && element.value_kind.as_str() != EMPTY_INFO_ID {
         return Err("flow/collect requires a finite canonical element envelope");
     }
     if overflow_disposition.maximum_bytes == 0
-        && overflow_disposition.value_kind.as_str() != UNIT_INFO_ID
+        && overflow_disposition.value_kind.as_str() != EMPTY_INFO_ID
     {
         return Err("flow/collect requires a finite canonical overflow disposition");
     }

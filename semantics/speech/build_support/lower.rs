@@ -218,7 +218,7 @@ fn node(value: &Node, types: &[(StructuredInfoType, String)]) -> Result<String, 
                 .iter()
                 .find(|case| case.tag() == tag)
                 .ok_or("variant/is case")?;
-            let pattern = if matches!(case.payload_type().shape(),StructuredInfoTypeShape::Leaf(kind) if kind.as_str()==conduit_core::UNIT_INFO_ID)
+            let pattern = if matches!(case.payload_type().shape(),StructuredInfoTypeShape::Leaf(kind) if kind.as_str()==conduit_core::EMPTY_INFO_ID)
             {
                 ""
             } else {

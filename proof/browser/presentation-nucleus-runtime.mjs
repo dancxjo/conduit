@@ -74,11 +74,12 @@ function decodeGraphics(encoded) {
 }
 
 function decodeStructured(encoded) {
-  if (encoded.length < 12 || encoded[0] !== 1) throw new Error("invalid structured presentation frame");
+  if (encoded.length < 5 || encoded[0] !== 2) throw new Error("invalid structured presentation frame");
   const decoder = new TextDecoder("utf-8", { fatal: true });
   const fields = [];
   let offset = 1;
-  for (let index = 0; index < 3; index += 1) {
+  for (let index = 0; index < 4; index += 1) {
+    if (offset >= encoded.length) throw new Error("truncated structured presentation frame");
     const length = encoded[offset];
     offset += 1;
     const end = offset + length;
@@ -86,9 +87,8 @@ function decodeStructured(encoded) {
     fields.push(decoder.decode(encoded.slice(offset, end)));
     offset = end;
   }
-  if (offset + 8 !== encoded.length) throw new Error("non-canonical structured presentation frame");
-  const quantity = Number(new DataView(encoded.buffer, encoded.byteOffset + offset, 8).getBigInt64(0, true));
-  return Object.freeze({ schema: fields[0], variant: fields[1], quantityUnit: fields[2], quantity });
+  if (offset !== encoded.length) throw new Error("non-canonical structured presentation frame");
+  return Object.freeze({ schema: fields[0], variant: fields[1], quantityUnit: fields[2], quantity: fields[3] });
 }
 
 export async function instantiatePresentationNucleus(wasmBytes) {

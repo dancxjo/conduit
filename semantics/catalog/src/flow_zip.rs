@@ -8,8 +8,8 @@ use conduit_core::{
     CheckedValueContract, FiniteTerminalEmission, FrontValueContract, FrontValueLocation, Kind,
     KindIdentity, KindSemanticLaw, NormalCloseTransduction, PortDescriptor, PortDirection,
     PortTemporal, PreparedTuplePairEncoder, PreparedTypedTuplePairEncoder, StructuredInfoType,
-    StructuredInfoTypeShape, TerminalTransductionProfile, TERMINAL_INFO_ENCODED_LEN,
-    TERMINAL_INFO_ID, UNIT_INFO_ID,
+    StructuredInfoTypeShape, TerminalTransductionProfile, EMPTY_INFO_ID, TERMINAL_INFO_ENCODED_LEN,
+    TERMINAL_INFO_ID,
 };
 
 pub const FLOW_ZIP_KIND: &str = "flow/zip";
@@ -25,8 +25,8 @@ pub fn flow_zip_semantic_contract(
     left: &CheckedValueContract,
     right: &CheckedValueContract,
 ) -> Result<Kind, &'static str> {
-    if (left.maximum_bytes == 0 && left.value_kind.as_str() != UNIT_INFO_ID)
-        || (right.maximum_bytes == 0 && right.value_kind.as_str() != UNIT_INFO_ID)
+    if (left.maximum_bytes == 0 && left.value_kind.as_str() != EMPTY_INFO_ID)
+        || (right.maximum_bytes == 0 && right.value_kind.as_str() != EMPTY_INFO_ID)
     {
         return Err("flow/zip requires finite canonical input envelopes");
     }
@@ -71,8 +71,8 @@ pub fn flow_zip_typed_semantic_contract(
     {
         return Err("flow/zip schema differs from its exact input value contract");
     }
-    if (left.maximum_bytes == 0 && left.value_kind.as_str() != UNIT_INFO_ID)
-        || (right.maximum_bytes == 0 && right.value_kind.as_str() != UNIT_INFO_ID)
+    if (left.maximum_bytes == 0 && left.value_kind.as_str() != EMPTY_INFO_ID)
+        || (right.maximum_bytes == 0 && right.value_kind.as_str() != EMPTY_INFO_ID)
     {
         return Err("flow/zip requires finite canonical input envelopes");
     }

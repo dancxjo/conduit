@@ -232,6 +232,7 @@ pub(super) enum InstalledBack {
     PureFilter(StructuredSelectorBack),
     PureExpression(PureExpressionBack),
     StructuredLiteral(StructuredLiteralBack),
+    ConvertedEquals(conduit_semantic_catalog::ConvertedEqualsBack),
     StructuredPresentation(StructuredPresentationBack),
     #[cfg(test)]
     TestTextSource(super::test_text_source::TestTextSourceBack),

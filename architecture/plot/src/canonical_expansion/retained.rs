@@ -36,7 +36,7 @@ pub(super) fn initialized_structured_state(
                 "some",
                 conduit_core::StructuredInfoValue::leaf(
                     payload_type.clone(),
-                    quantity.encode().to_vec(),
+                    quantity.value().encode().to_vec(),
                 )
                 .map_err(|_| {
                     CanonicalExpansionDiagnostic::new(
@@ -50,12 +50,12 @@ pub(super) fn initialized_structured_state(
                 "none",
                 conduit_core::StructuredInfoValue::leaf(
                     conduit_core::StructuredInfoType::leaf(conduit_core::kind_id(
-                        conduit_core::UNIT_INFO_ID,
+                        conduit_core::EMPTY_INFO_ID,
                     ))
                     .map_err(|_| {
                         CanonicalExpansionDiagnostic::new(
                             "CND-FRM-041",
-                            "canonical optional Unit payload is invalid".into(),
+                            "canonical optional Empty payload is invalid".into(),
                         )
                     })?,
                     Vec::new(),
@@ -224,13 +224,11 @@ fn canonical_optional_some_bytes(
     };
     let encoded = match kind.as_str() {
         conduit_core::BOOL_INFO_ID => conduit_core::InfoBool::FALSE.encode().to_vec(),
-        conduit_core::DISTANCE_INFO_ID => {
-            conduit_core::Quantity::new(0, conduit_core::QuantityUnit::Meter)
-                .encode()
-                .to_vec()
-        }
+        conduit_core::DISTANCE_INFO_ID => conduit_core::Quantity::new(0, conduit_core::Unit::Meter)
+            .encode()
+            .to_vec(),
         conduit_core::FREQUENCY_INFO_ID => {
-            conduit_core::Quantity::new(0, conduit_core::QuantityUnit::Hertz)
+            conduit_core::Quantity::new(0, conduit_core::Unit::Hertz)
                 .encode()
                 .to_vec()
         }

@@ -21,6 +21,12 @@ pub fn validate_configuration_value(
     value: &ConfigurationValue,
 ) -> Result<(), CanonicalExpansionDiagnostic> {
     let accepted = match (&field.rule, value) {
+        (KindConfigurationRule::Quantity, ConfigurationValue::Quantity(_))
+        | (KindConfigurationRule::Unit, ConfigurationValue::Unit(_))
+        | (
+            KindConfigurationRule::TemperatureDifference,
+            ConfigurationValue::TemperatureDifference(_),
+        ) => true,
         (KindConfigurationRule::Any, ConfigurationValue::Structured(_)) => false,
         (KindConfigurationRule::Any, _) => true,
         (
@@ -39,8 +45,9 @@ pub fn validate_configuration_value(
             },
             ConfigurationValue::Quantity(value),
         ) => value
-            .convert(*canonical_unit)
-            .is_ok_and(|value| (*minimum..=*maximum).contains(&value.value())),
+            .value()
+            .to_i64(*canonical_unit)
+            .is_ok_and(|value| (*minimum..=*maximum).contains(&value)),
         (KindConfigurationRule::TextBytes { maximum }, ConfigurationValue::Text(value)) => {
             value.len() <= *maximum as usize
         }
@@ -70,6 +77,19 @@ fn parse_configuration_value(
     value: CanonicalStartupValue,
     rule: &KindConfigurationRule,
 ) -> Result<ConfigurationValue, CanonicalExpansionDiagnostic> {
+    match (&value, rule) {
+        (CanonicalStartupValue::Quantity(value), KindConfigurationRule::Quantity) => {
+            return Ok(ConfigurationValue::Quantity(value.clone()))
+        }
+        (CanonicalStartupValue::Unit(value), KindConfigurationRule::Unit) => {
+            return Ok(ConfigurationValue::Unit(value.clone()))
+        }
+        (
+            CanonicalStartupValue::TemperatureDifference(value),
+            KindConfigurationRule::TemperatureDifference,
+        ) => return Ok(ConfigurationValue::TemperatureDifference(value.clone())),
+        _ => {}
+    }
     if let KindConfigurationRule::Structured { profile } = rule {
         let CanonicalStartupValue::Structured(value) = value else {
             return Err(CanonicalExpansionDiagnostic::new(
@@ -115,7 +135,7 @@ fn parse_configuration_value(
         return match value {
             CanonicalStartupValue::Quantity(quantity) => Ok(ConfigurationValue::Quantity(quantity)),
             CanonicalStartupValue::Literal(literal) => {
-                conduit_core::Quantity::parse_plot_literal(&literal)
+                conduit_core::QuantityConfigurationValue::parse(&literal)
                     .map(ConfigurationValue::Quantity)
                     .map_err(|refusal| {
                         CanonicalExpansionDiagnostic::new(
@@ -133,21 +153,15 @@ fn parse_configuration_value(
     if matches!(rule, KindConfigurationRule::DurationMillis { .. }) {
         if let CanonicalStartupValue::Quantity(quantity) = value {
             let milliseconds = quantity
-                .convert(conduit_core::QuantityUnit::Millisecond)
+                .value()
+                .convert_to_u64(conduit_core::Unit::Millisecond)
                 .map_err(|_| {
                     CanonicalExpansionDiagnostic::new(
                         "CND-FRM-041",
                         format!("primitive startup duration '{name}' is invalid or inexact"),
                     )
                 })?;
-            return u64::try_from(milliseconds.value())
-                .map(ConfigurationValue::U64)
-                .map_err(|_| {
-                    CanonicalExpansionDiagnostic::new(
-                        "CND-FRM-041",
-                        format!("primitive startup duration '{name}' is negative or overflows"),
-                    )
-                });
+            return Ok(ConfigurationValue::U64(milliseconds));
         }
     }
     let CanonicalStartupValue::Literal(literal) = value else {

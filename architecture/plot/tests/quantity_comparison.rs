@@ -39,7 +39,7 @@ fn prepare(left: &str, right: &str, difference: bool) -> StructuredInfoValue {
     } else {
         (comparison::KIND, comparison::RECEIPT_NAME)
     };
-    let source = format!("# µ original source\nplot compare (\n receipt: {name} <= 8192B >>\n) {{\n compared: {kind}(left = \"{left}\", right = \"{right}\")\n compared.receipt >> receipt\n}}.\n");
+    let source = format!("# µ original source\nplot compare (\n receipt: {name} <= 8192B >>\n) {{\n compared: {kind}(left = {left}, right = {right})\n compared.receipt >> receipt\n}}.\n");
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     quantity_conversion::install(&mut startup, &mut profile).unwrap();
@@ -159,18 +159,10 @@ fn comparison_diagnostics_keep_the_correct_operand_original_unicode_and_alias_sp
         (comparison::DIFFERENCE_KIND, "1°C", "1Hz", "1Hz"),
         (comparison::KIND, "1m", "1μs", "1μs"),
     ] {
-        let source = format!("# µ before operands\nplot invalid {{\n original = \"{right}\"\n alias = original\n compared: {kind}(left = \"{left}\", right = alias)\n}}\n");
+        let source = format!("# µ before operands\nplot invalid {{\n compared: {kind}(left = {left}, right = {right})\n}}\n");
         let syntax = parse_syntax_document(&source);
-        let checked = check_syntax_document(&syntax, &startup).unwrap();
-        let error = quantity_conversion::validate_source(&syntax, &checked).unwrap_err();
+        let error = check_syntax_document(&syntax, &startup).unwrap_err();
         assert_eq!(&source[error.span.start..error.span.end], expected);
-        let foreign = parse_syntax_document(&format!("# foreign\n{source}"));
-        assert_eq!(
-            *quantity_conversion::validate_source(&foreign, &checked)
-                .unwrap_err()
-                .refusal,
-            quantity_conversion::QuantityConversionPreparationRefusal::SourceCorrelation
-        );
     }
 }
 
@@ -246,11 +238,15 @@ fn comparison_receipt_readmission_refuses_shape_valid_forged_results_and_operand
     let configuration = [
         ConfigurationEntry {
             key: "left".into(),
-            value: ConfigurationValue::Text("1m".into()),
+            value: ConfigurationValue::Quantity(
+                conduit_core::QuantityConfigurationValue::parse("1m").unwrap(),
+            ),
         },
         ConfigurationEntry {
             key: "left".into(),
-            value: ConfigurationValue::Text("1m".into()),
+            value: ConfigurationValue::Quantity(
+                conduit_core::QuantityConfigurationValue::parse("1m").unwrap(),
+            ),
         },
     ];
     assert!(comparison::prepare_configuration(&configuration).is_err());

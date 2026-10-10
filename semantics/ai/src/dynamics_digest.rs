@@ -1,5 +1,5 @@
 use alloc::vec::Vec;
-use conduit_core::{semantic_digest, QuantityUnit};
+use conduit_core::semantic_digest;
 
 use crate::{DynamicsProfile, DynamicsRefusal, IntegrateContract};
 
@@ -11,7 +11,7 @@ impl IntegrateContract {
         bytes.extend_from_slice(&self.vector_field_artifact_identity);
         bytes.extend_from_slice(&self.interval.start.to_le_bytes());
         bytes.extend_from_slice(&self.interval.end.to_le_bytes());
-        bytes.push(unit_tag(self.interval.unit));
+        bytes.extend_from_slice(&self.interval.unit.encode());
         push_text(&mut bytes, &self.sampling.clock_identity);
         bytes.extend_from_slice(&(self.sampling.coordinates.len() as u64).to_le_bytes());
         for coordinate in &self.sampling.coordinates {
@@ -44,14 +44,4 @@ impl IntegrateContract {
 fn push_text(output: &mut Vec<u8>, value: &str) {
     output.extend_from_slice(&(value.len() as u64).to_le_bytes());
     output.extend_from_slice(value.as_bytes());
-}
-
-fn unit_tag(unit: QuantityUnit) -> u8 {
-    match unit {
-        QuantityUnit::Second => 0,
-        QuantityUnit::Millisecond => 1,
-        QuantityUnit::Microsecond => 2,
-        QuantityUnit::Nanosecond => 3,
-        _ => unreachable!("validation admits only temporal units"),
-    }
 }

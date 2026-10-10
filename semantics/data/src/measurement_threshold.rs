@@ -23,7 +23,12 @@ impl MeasurementHysteresis {
         if policy.lower().unit() != policy.upper().unit() {
             return Err(MeasurementThresholdRefusal::PolicyUnitMismatch);
         }
-        if policy.lower().value() >= policy.upper().value() {
+        if policy
+            .lower()
+            .compare(*policy.upper())
+            .map_err(|_| MeasurementThresholdRefusal::InvalidPolicyOrder)?
+            != core::cmp::Ordering::Less
+        {
             return Err(MeasurementThresholdRefusal::InvalidPolicyOrder);
         }
         Ok(Self {
@@ -41,13 +46,21 @@ impl MeasurementHysteresis {
         }
         let transition = match self.state {
             MeasurementThresholdState::Below
-                if summary.mean.value() >= self.policy.upper().value() =>
+                if summary
+                    .mean
+                    .compare(*self.policy.upper())
+                    .map_err(|_| MeasurementThresholdRefusal::SummaryUnitMismatch)?
+                    != core::cmp::Ordering::Less =>
             {
                 self.state = MeasurementThresholdState::Above;
                 Some(MeasurementThresholdTransition::RoseAbove)
             }
             MeasurementThresholdState::Above
-                if summary.mean.value() <= self.policy.lower().value() =>
+                if summary
+                    .mean
+                    .compare(*self.policy.lower())
+                    .map_err(|_| MeasurementThresholdRefusal::SummaryUnitMismatch)?
+                    != core::cmp::Ordering::Greater =>
             {
                 self.state = MeasurementThresholdState::Below;
                 Some(MeasurementThresholdTransition::FellBelow)

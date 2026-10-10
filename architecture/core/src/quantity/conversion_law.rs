@@ -1,8 +1,6 @@
-//! Shared exact rational quantity law, specialized by the selected finite
-//! arithmetic profile. Legacy quantities keep their existing small profile;
-//! the extended profile admits wider fixed storage explicitly.
+//! Shared exact rational quantity law with fixed admitted arithmetic storage.
 
-use super::{Quantity, QuantityConversionRefusal, QuantityUnit};
+use super::{CatalogUnit, QuantityConversionRefusal};
 use core::cmp::Ordering;
 
 pub(super) trait Arithmetic {
@@ -35,19 +33,9 @@ impl<A: Arithmetic> Fraction<A> {
         (self.numerator, self.denominator)
     }
 
-    pub(super) fn rational(
-        numerator: i128,
-        denominator: i128,
-    ) -> Result<Self, QuantityConversionRefusal> {
-        if denominator <= 0 {
-            return Err(QuantityConversionRefusal::Inexact);
-        }
-        Ok(Self::new(A::integer(numerator), A::integer(denominator)))
-    }
-
     pub(super) fn into_canonical(
         self,
-        source: QuantityUnit,
+        source: CatalogUnit,
     ) -> Result<Self, QuantityConversionRefusal> {
         self.with_source_transform(source.canonical_transform())
     }
@@ -67,10 +55,6 @@ impl<A: Arithmetic> Fraction<A> {
         ))
     }
 
-    pub(super) fn in_target(self, target: QuantityUnit) -> Result<Self, QuantityConversionRefusal> {
-        self.with_target_transform(target.canonical_transform())
-    }
-
     pub(super) fn with_target_transform(
         self,
         (scale, offset, denominator): (i128, i128, i128),
@@ -87,11 +71,8 @@ impl<A: Arithmetic> Fraction<A> {
         ))
     }
 
-    pub(super) fn legacy_integer(
-        self,
-        target: QuantityUnit,
-    ) -> Result<Quantity, QuantityConversionRefusal> {
-        A::exact_i64(self.numerator, self.denominator).map(|value| Quantity::new(value, target))
+    pub(super) fn integer(self) -> Result<i64, QuantityConversionRefusal> {
+        A::exact_i64(self.numerator, self.denominator)
     }
 
     pub(super) fn compare(self, other: Self) -> Result<Ordering, QuantityConversionRefusal> {

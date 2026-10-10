@@ -1,5 +1,5 @@
 use conduit_core::{
-    ConfigurationValue, PortTemporal, Quantity, QuantityDimension, QuantityUnit, DISTANCE_INFO_ID,
+    ConfigurationValue, PortTemporal, Quantity, QuantityDimension, Unit, DISTANCE_INFO_ID,
     FREQUENCY_INFO_ID,
 };
 use conduit_plot::{
@@ -140,8 +140,8 @@ fn dimension_and_range_mistakes_refuse_on_the_production_path() {
 
 #[test]
 fn dimensioned_primitive_ids_share_quantity_bytes_without_erasing_meaning() {
-    let distance = Quantity::new(30, QuantityUnit::Centimeter);
-    let frequency = Quantity::new(440, QuantityUnit::Hertz);
+    let distance = Quantity::new(30, Unit::Centimeter);
+    let frequency = Quantity::new(440, Unit::Hertz);
     assert_eq!(distance.dimension(), QuantityDimension::Length);
     assert_eq!(frequency.dimension(), QuantityDimension::Frequency);
     assert_eq!(

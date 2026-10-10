@@ -384,9 +384,21 @@ fn push_field(target: &mut String, value: &str) {
 pub(crate) fn canonical_value(value: &CanonicalStartupValue) -> String {
     match value {
         CanonicalStartupValue::Literal(value) => format!("literal:{value}"),
-        CanonicalStartupValue::Quantity(value) => {
-            format!("quantity:{}:{}", value.unit().semantic_id(), value.value())
-        }
+        CanonicalStartupValue::Quantity(value) => format!(
+            "exact-quantity:{:?}:{}",
+            value.value().encode(),
+            value.source()
+        ),
+        CanonicalStartupValue::Unit(value) => format!(
+            "physical-unit:{:?}:{}",
+            value.value().encode(),
+            value.source()
+        ),
+        CanonicalStartupValue::TemperatureDifference(value) => format!(
+            "temperature-difference:{:?}:{}",
+            value.value().storage_coordinate().encode(),
+            value.source()
+        ),
         CanonicalStartupValue::PlotParameter(name) => format!("parameter:{name}"),
         CanonicalStartupValue::PoolReference(pool) => {
             format!("pool-reference:{}", pool.as_str())

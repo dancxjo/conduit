@@ -187,12 +187,12 @@ mod tests {
             "evaluation/exact".to_string(),
             EducationAssessmentOutcome::partial(conduit_core::Quantity::new(
                 500_000,
-                conduit_core::QuantityUnit::Millionth,
+                conduit_core::Unit::Millionth,
             ))
             .unwrap(),
             "question/1".to_string(),
             "response/1".to_string(),
-            conduit_core::Quantity::new(500_000, conduit_core::QuantityUnit::Millionth),
+            conduit_core::Quantity::new(500_000, conduit_core::Unit::Millionth),
         )
         .unwrap();
         let hint = EducationOptionalHint::provided(
@@ -261,7 +261,7 @@ mod tests {
             EducationAssessmentOutcome::Correct,
             "question/rhythm/1".to_string(),
             "response/rhythm/1".to_string(),
-            conduit_core::Quantity::new(1_000_000, conduit_core::QuantityUnit::Millionth),
+            conduit_core::Quantity::new(1_000_000, conduit_core::Unit::Millionth),
         )
         .unwrap();
         let feedback = EducationLessonFeedback::new(

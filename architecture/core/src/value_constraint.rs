@@ -1093,7 +1093,7 @@ mod tests {
 
     #[test]
     fn zero_byte_unit_and_exact_empty_text_remain_expressible() {
-        let unit = CheckedValueContract::new(crate::kind_id(crate::UNIT_INFO_ID), 0, vec![])
+        let unit = CheckedValueContract::new(crate::kind_id(crate::EMPTY_INFO_ID), 0, vec![])
             .expect("unit has an exact zero-byte canonical encoding");
         assert_eq!(unit.validate(&[]), Ok(()));
 
@@ -1187,19 +1187,19 @@ mod tests {
             crate::kind_id(crate::DISTANCE_INFO_ID),
             crate::QUANTITY_ENCODED_LEN as u32,
             vec![ValueConstraint::QuantityRange {
-                minimum: Some(crate::Quantity::new(1, crate::QuantityUnit::Meter)),
-                maximum: Some(crate::Quantity::new(2, crate::QuantityUnit::Meter)),
+                minimum: Some(crate::Quantity::new(1, crate::Unit::Meter)),
+                maximum: Some(crate::Quantity::new(2, crate::Unit::Meter)),
                 minimum_endpoint: IntervalEndpoint::Inclusive,
                 maximum_endpoint: IntervalEndpoint::Inclusive,
             }],
         )
         .unwrap();
         assert_eq!(
-            distance.validate(&crate::Quantity::new(150, crate::QuantityUnit::Centimeter).encode()),
+            distance.validate(&crate::Quantity::new(150, crate::Unit::Centimeter).encode()),
             Ok(())
         );
         assert_eq!(
-            distance.validate(&crate::Quantity::new(3, crate::QuantityUnit::Meter).encode()),
+            distance.validate(&crate::Quantity::new(3, crate::Unit::Meter).encode()),
             Err(ValueConstraintRefusal::QuantityRange)
         );
     }
@@ -1301,8 +1301,8 @@ mod tests {
                 crate::kind_id(crate::DISTANCE_INFO_ID),
                 crate::QUANTITY_ENCODED_LEN as u32,
                 vec![ValueConstraint::QuantityRange {
-                    minimum: Some(crate::Quantity::new(1, crate::QuantityUnit::Second)),
-                    maximum: Some(crate::Quantity::new(2, crate::QuantityUnit::Second)),
+                    minimum: Some(crate::Quantity::new(1, crate::Unit::Second)),
+                    maximum: Some(crate::Quantity::new(2, crate::Unit::Second)),
                     minimum_endpoint: IntervalEndpoint::Inclusive,
                     maximum_endpoint: IntervalEndpoint::Inclusive,
                 }],
@@ -1314,8 +1314,8 @@ mod tests {
                 crate::kind_id(crate::QUANTITY_INFO_ID),
                 crate::QUANTITY_ENCODED_LEN as u32,
                 vec![ValueConstraint::QuantityRange {
-                    minimum: Some(crate::Quantity::new(1, crate::QuantityUnit::Meter)),
-                    maximum: Some(crate::Quantity::new(2, crate::QuantityUnit::Second)),
+                    minimum: Some(crate::Quantity::new(1, crate::Unit::Meter)),
+                    maximum: Some(crate::Quantity::new(2, crate::Unit::Second)),
                     minimum_endpoint: IntervalEndpoint::Inclusive,
                     maximum_endpoint: IntervalEndpoint::Inclusive,
                 }],

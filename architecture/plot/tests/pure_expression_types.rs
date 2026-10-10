@@ -3,8 +3,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, ConfigurationValue, ExternalEffectBehavior, Kind, KindId,
     KindIdentity, KindSemanticLaw, PortDescriptor, PortDirection, PortTemporal, Quantity,
-    QuantityUnit, ReplayBehavior, SemanticDependence, StructuredFieldType, StructuredFieldValue,
-    StructuredInfoType, StructuredInfoValue, SuspensionBehavior, TemporalStateBehavior,
+    ReplayBehavior, SemanticDependence, StructuredFieldType, StructuredFieldValue,
+    StructuredInfoType, StructuredInfoValue, SuspensionBehavior, TemporalStateBehavior, Unit,
     VariabilityBehavior,
 };
 use conduit_plot::{
@@ -268,20 +268,20 @@ fn scientific_literal_unit_supplies_its_exact_expression_type() {
     let program = PortableExpressionProgram::from_checked(&checked).unwrap();
     assert_eq!(
         program
-            .evaluate(&Quantity::new(31, QuantityUnit::Celsius).encode())
+            .evaluate(&Quantity::new(31, Unit::Celsius).encode())
             .unwrap(),
         conduit_core::InfoBool::TRUE.encode()
     );
     assert_eq!(
         program
-            .evaluate(&Quantity::new(303_150, QuantityUnit::Millikelvin).encode())
+            .evaluate(&Quantity::new(303_150, Unit::Millikelvin).encode())
             .unwrap(),
         conduit_core::InfoBool::FALSE.encode()
     );
     let mut prepared = PreparedPortableExpressionEvaluator::new(&program).unwrap();
     assert_eq!(
         prepared
-            .evaluate(&Quantity::new(31, QuantityUnit::Celsius).encode())
+            .evaluate(&Quantity::new(31, Unit::Celsius).encode())
             .unwrap(),
         conduit_core::InfoBool::TRUE.encode()
     );

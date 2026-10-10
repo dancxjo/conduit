@@ -1,6 +1,4 @@
-use conduit_core::{
-    DecimalPrefix, PrefixableUnit, QuantityUnit, DECIMAL_PREFIXES, PREFIXABLE_UNITS,
-};
+use conduit_core::{DecimalPrefix, PrefixableUnit, Unit, DECIMAL_PREFIXES, PREFIXABLE_UNITS};
 
 #[test]
 fn official_catalogue_and_complete_compatibility_matrix_are_exact() {
@@ -61,45 +59,45 @@ fn prefix_positions_handle_mass_powers_and_compounds_without_stacking() {
     let centi = DecimalPrefix::from_symbol("c").unwrap();
     let quetta = DecimalPrefix::from_symbol("Q").unwrap();
     assert_eq!(
-        PrefixableUnit::for_unit(QuantityUnit::Gram)
+        PrefixableUnit::for_unit(Unit::Gram)
             .unwrap()
             .composed_exponent(kilo),
         3
     );
     assert_eq!(
-        PrefixableUnit::for_unit(QuantityUnit::SquareMeter)
+        PrefixableUnit::for_unit(Unit::SquareMeter)
             .unwrap()
             .composed_exponent(centi),
         -4
     );
     assert_eq!(
-        PrefixableUnit::for_unit(QuantityUnit::CubicMeter)
+        PrefixableUnit::for_unit(Unit::CubicMeter)
             .unwrap()
             .composed_exponent(quetta),
         90
     );
     assert_eq!(
-        PrefixableUnit::for_unit(QuantityUnit::MeterPerSecondSquared)
+        PrefixableUnit::for_unit(Unit::MeterPerSecondSquared)
             .unwrap()
             .composed_exponent(kilo),
         3
     );
     for unit in [
-        QuantityUnit::Kilogram,
-        QuantityUnit::Millimeter,
-        QuantityUnit::Minute,
-        QuantityUnit::Hour,
-        QuantityUnit::JulianYear,
-        QuantityUnit::Degree,
-        QuantityUnit::Pixel,
-        QuantityUnit::Percent,
-        QuantityUnit::One,
-        QuantityUnit::Celsius,
-        QuantityUnit::MilliCelsius,
-        QuantityUnit::Fahrenheit,
-        QuantityUnit::Kibibyte,
-        QuantityUnit::Mebibyte,
-        QuantityUnit::Inch,
+        Unit::Kilogram,
+        Unit::Millimeter,
+        Unit::Minute,
+        Unit::Hour,
+        Unit::JulianYear,
+        Unit::Degree,
+        Unit::Pixel,
+        Unit::Percent,
+        Unit::One,
+        Unit::Celsius,
+        Unit::MilliCelsius,
+        Unit::Fahrenheit,
+        Unit::Kibibyte,
+        Unit::Mebibyte,
+        Unit::Inch,
     ] {
         assert_eq!(PrefixableUnit::for_unit(unit), None, "{unit:?}");
     }
@@ -128,20 +126,8 @@ fn canonical_prefix_symbols_do_not_admit_aliases_or_confusables() {
         DecimalPrefix::from_symbol("M")
     );
     // Existing aliases remain an independent legacy source policy.
-    assert_eq!(
-        QuantityUnit::from_plot_suffix("us"),
-        Ok(QuantityUnit::Microsecond)
-    );
-    assert_eq!(
-        QuantityUnit::from_plot_suffix("µs"),
-        Ok(QuantityUnit::Microsecond)
-    );
-    assert_eq!(
-        QuantityUnit::from_plot_suffix("MiB"),
-        Ok(QuantityUnit::Mebibyte)
-    );
-    assert_eq!(
-        QuantityUnit::from_plot_suffix("m°C"),
-        Ok(QuantityUnit::MilliCelsius)
-    );
+    assert_eq!(Unit::from_plot_suffix("us"), Ok(Unit::Microsecond));
+    assert_eq!(Unit::from_plot_suffix("µs"), Ok(Unit::Microsecond));
+    assert_eq!(Unit::from_plot_suffix("MiB"), Ok(Unit::Mebibyte));
+    assert_eq!(Unit::from_plot_suffix("m°C"), Ok(Unit::MilliCelsius));
 }

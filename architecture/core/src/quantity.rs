@@ -3,8 +3,6 @@
 mod conversion;
 mod conversion_law;
 mod exact;
-mod literal;
-mod literal_eligibility;
 mod magnitude;
 mod receipt;
 mod target;
@@ -16,13 +14,9 @@ pub use receipt::*;
 pub use target::*;
 pub use temperature_difference::*;
 
-use conversion::{compare_legacy, convert_exact_rational, is_radian};
-use core::cmp::Ordering;
+use crate::Unit;
 use serde::{Deserialize, Serialize};
 
-use crate::semantic_digest;
-
-pub const QUANTITY_INFO_ID: &str = "value/quantity";
 /// Exact length-dimension quantity. Uses the canonical Quantity wire encoding.
 pub const DISTANCE_INFO_ID: &str = "value/distance";
 /// Exact frequency-dimension quantity. Uses the canonical Quantity wire encoding.
@@ -34,9 +28,6 @@ pub const ANGLE_INFO_ID: &str = "value/angle";
 pub const RATIO_INFO_ID: &str = "value/ratio";
 /// Pixel count is an image/display dimension, never physical length.
 pub const PIXEL_COUNT_INFO_ID: &str = "value/pixel-count";
-pub const QUANTITY_ENCODED_LEN: usize = 9;
-pub const QUANTITY_UNIT_INFO_ID: &str = "value/quantity-unit";
-pub const QUANTITY_UNIT_ENCODED_LEN: usize = 1;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum QuantityDimension {
@@ -106,7 +97,7 @@ pub fn quantity_info_dimension(identity: &str) -> Option<QuantityDimension> {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub enum QuantityUnit {
+pub enum CatalogUnit {
     Picosecond,
     Nanosecond,
     Shake,
@@ -239,13 +230,6 @@ pub enum QuantityUnit {
     Pixel,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct Quantity {
-    value: i64,
-    unit: QuantityUnit,
-}
-
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum QuantityConversionRefusal {
     IncompatibleDimensions,
@@ -254,7 +238,7 @@ pub enum QuantityConversionRefusal {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum QuantityDecodeRefusal {
+pub enum CatalogueDecodeRefusal {
     WrongLength { expected: usize, actual: usize },
     UnknownUnitTag(u8),
 }
@@ -266,38 +250,20 @@ pub enum QuantityLiteralRefusal {
     MissingUnit,
     UnknownUnit,
     AmbiguousUnit,
-    RepresentationIneligible {
-        profile: &'static str,
-        reason: QuantityRepresentationRefusal,
-    },
-    NonCanonicalUnit {
-        canonical: &'static str,
-    },
+    NonCanonicalUnit { canonical: &'static str },
     Inexact,
     Overflow,
 }
 
-/// Numeric eligibility is separate from suffix recognition. These refusals
-/// identify the selected finite profile without classifying a known SI unit
-/// as unknown or silently changing persisted quantity identities.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum QuantityRepresentationRefusal {
-    NoExactLegacyUnit,
-    LiteralTooLong,
-    NumberTooLong,
-    SignificantDigitsExceeded,
-    ExponentOutOfRange,
-}
-
-impl QuantityUnit {
-    pub const fn encode(self) -> [u8; QUANTITY_UNIT_ENCODED_LEN] {
+impl CatalogUnit {
+    pub const fn encode(self) -> [u8; 1] {
         [self.tag()]
     }
 
-    pub fn decode(encoded: &[u8]) -> Result<Self, QuantityDecodeRefusal> {
-        if encoded.len() != QUANTITY_UNIT_ENCODED_LEN {
-            return Err(QuantityDecodeRefusal::WrongLength {
-                expected: QUANTITY_UNIT_ENCODED_LEN,
+    pub fn decode(encoded: &[u8]) -> Result<Self, CatalogueDecodeRefusal> {
+        if encoded.len() != 1 {
+            return Err(CatalogueDecodeRefusal::WrongLength {
+                expected: 1,
                 actual: encoded.len(),
             });
         }
@@ -975,7 +941,7 @@ impl QuantityUnit {
     /// `(value * scale_numerator + offset_numerator) / denominator`.
     /// Keeping this metadata on every reviewed unit lets one conversion engine
     /// serve linear and offset units alike.
-    const fn canonical_transform(self) -> (i128, i128, i128) {
+    pub(crate) const fn canonical_transform(self) -> (i128, i128, i128) {
         match self {
             Self::Picosecond => (1, 0, 1_000),
             Self::Nanometer => (1, 0, 1_000),
@@ -1133,7 +1099,7 @@ impl QuantityUnit {
         }
     }
 
-    fn from_tag(tag: u8) -> Result<Self, QuantityDecodeRefusal> {
+    fn from_tag(tag: u8) -> Result<Self, CatalogueDecodeRefusal> {
         match tag {
             0 => Ok(Self::Nanosecond),
             1 => Ok(Self::Microsecond),
@@ -1265,96 +1231,7 @@ impl QuantityUnit {
             127 => Ok(Self::Millibar),
             128 => Ok(Self::Atmosphere),
             129 => Ok(Self::Torr),
-            other => Err(QuantityDecodeRefusal::UnknownUnitTag(other)),
+            other => Err(CatalogueDecodeRefusal::UnknownUnitTag(other)),
         }
-    }
-}
-
-impl Quantity {
-    pub const fn new(value: i64, unit: QuantityUnit) -> Self {
-        Self { value, unit }
-    }
-
-    pub const fn value(self) -> i64 {
-        self.value
-    }
-
-    pub const fn unit(self) -> QuantityUnit {
-        self.unit
-    }
-
-    pub const fn dimension(self) -> QuantityDimension {
-        self.unit.dimension()
-    }
-
-    /// Parses a reviewed scientific quantity literal exactly. Decimal source
-    /// is admitted only when a reviewed unit in the same dimension can retain
-    /// the value without rounding (for example, `3.2m` becomes `320cm`).
-    pub fn parse_plot_literal(literal: &str) -> Result<Self, QuantityLiteralRefusal> {
-        literal::parse_plot_literal(literal)
-    }
-
-    pub fn convert(self, target: QuantityUnit) -> Result<Self, QuantityConversionRefusal> {
-        if self.unit.dimension() != target.dimension() {
-            return Err(QuantityConversionRefusal::IncompatibleDimensions);
-        }
-        if self.unit == target {
-            return Ok(self);
-        }
-        if self.dimension() == QuantityDimension::Angle && is_radian(self.unit) != is_radian(target)
-        {
-            return Err(QuantityConversionRefusal::Inexact);
-        }
-        convert_exact_rational(i128::from(self.value), 1, self.unit, target)
-    }
-
-    /// Compares compatible quantities in their shared canonical reference
-    /// scale without requiring either operand to be representable in the
-    /// other's unit.
-    pub fn compare(self, other: Self) -> Result<Ordering, QuantityConversionRefusal> {
-        if self.dimension() != other.dimension() {
-            return Err(QuantityConversionRefusal::IncompatibleDimensions);
-        }
-        if self.dimension() == QuantityDimension::Angle
-            && is_radian(self.unit) != is_radian(other.unit)
-        {
-            return Err(QuantityConversionRefusal::Inexact);
-        }
-        compare_legacy(self, other)
-    }
-
-    pub const fn encode(self) -> [u8; QUANTITY_ENCODED_LEN] {
-        let value = self.value.to_le_bytes();
-        [
-            self.unit.tag(),
-            value[0],
-            value[1],
-            value[2],
-            value[3],
-            value[4],
-            value[5],
-            value[6],
-            value[7],
-        ]
-    }
-
-    pub fn decode(encoded: &[u8]) -> Result<Self, QuantityDecodeRefusal> {
-        if encoded.len() != QUANTITY_ENCODED_LEN {
-            return Err(QuantityDecodeRefusal::WrongLength {
-                expected: QUANTITY_ENCODED_LEN,
-                actual: encoded.len(),
-            });
-        }
-        let unit = QuantityUnit::from_tag(encoded[0])?;
-        let value = i64::from_le_bytes(
-            encoded[1..]
-                .try_into()
-                .expect("quantity length checked before value decode"),
-        );
-        Ok(Self::new(value, unit))
-    }
-
-    pub fn semantic_digest(self) -> [u8; 32] {
-        semantic_digest(QUANTITY_INFO_ID, &self.encode())
     }
 }

@@ -1,5 +1,5 @@
 plot inexact-conversion-demo {
-    operation: units/convert(source = "1°F", to = "°C")
+    operation: units/convert(source = 1°F, to = °C)
     show: presentation/text
     operation.receipt >> ((variant/is(.result, "refused") ? .result.refused == "inexact" : false) ? "Conversion refused: inexact" : "This request did not produce an inexact refusal") >> show.text
 }.

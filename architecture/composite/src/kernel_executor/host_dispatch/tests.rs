@@ -33,7 +33,7 @@ fn pending_call() -> (KernelCompositeHost, AdmittedKernelCompositeHostRequest) {
     let mut fragment = common::fragment();
     let placement = &mut fragment.placements[0];
     placement.inputs[0].value_kind = kind_id(BOOL_INFO_ID);
-    placement.outputs[0].value_kind = kind_id(UNIT_INFO_ID);
+    placement.outputs[0].value_kind = kind_id(EMPTY_INFO_ID);
     placement.host_calls = vec![HostCallRequirement {
         contract_id: "fixture/unit-result@1".into(),
         target_kind: None,
@@ -111,7 +111,7 @@ fn unit_completion_retains_zero_extent_and_is_delivered_once() {
     let (mut host, admitted) = pending_call();
     let output = port_id("current");
     let mut payload = ValuePayload {
-        value_kind: kind_id(UNIT_INFO_ID),
+        value_kind: kind_id(EMPTY_INFO_ID),
         encoded: Vec::new(),
     };
     let allocations = allocation::allocations_during(|| {

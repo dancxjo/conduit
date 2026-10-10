@@ -7,7 +7,7 @@ extern crate alloc;
 use alloc::{string::ToString, vec, vec::Vec};
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection,
-    PortTemporal, Quantity, QuantityUnit, TemporalInstant, TemporalScale,
+    PortTemporal, Quantity, TemporalInstant, TemporalScale, Unit,
 };
 use conduit_plot::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
 
@@ -87,8 +87,8 @@ pub fn deterministic_little_seismograph_inputs() -> (
     let profile = MeasurementWindowProfile {
         capacity: 2,
         range: MeasurementRange {
-            minimum: Quantity::new(0, QuantityUnit::Millivolt),
-            maximum: Quantity::new(100, QuantityUnit::Millivolt),
+            minimum: Quantity::new(0, Unit::Millivolt),
+            maximum: Quantity::new(100, Unit::Millivolt),
         },
         clock_basis: "fixture-clock".into(),
         full_policy: FullWindowPolicy::DropOldest,
@@ -97,7 +97,7 @@ pub fn deterministic_little_seismograph_inputs() -> (
         .into_iter()
         .enumerate()
         .map(|(index, value)| MeasurementSample {
-            value: Quantity::new(value, QuantityUnit::Millivolt),
+            value: Quantity::new(value, Unit::Millivolt),
             observed_at: TemporalInstant {
                 ticks: index as u64 + 1,
                 scale: TemporalScale::Milliseconds,
@@ -112,8 +112,8 @@ pub fn deterministic_little_seismograph_inputs() -> (
         .collect();
     let threshold = MeasurementHysteresisProfile {
         policy: MeasurementThresholdPolicy::new(
-            Quantity::new(40, QuantityUnit::Millivolt),
-            Quantity::new(60, QuantityUnit::Millivolt),
+            Quantity::new(40, Unit::Millivolt),
+            Quantity::new(60, Unit::Millivolt),
         )
         .unwrap(),
         initial_state: MeasurementThresholdState::Below,

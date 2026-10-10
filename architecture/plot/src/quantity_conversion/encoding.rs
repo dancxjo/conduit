@@ -4,7 +4,7 @@ use super::*;
 
 struct Facts<'a> {
     original: &'a str,
-    source: ExactDecimalQuantity,
+    source: Quantity,
     source_suffix: ResolvedQuantitySuffix<'a>,
     target: ResolvedQuantitySuffix<'a>,
     source_transform: (i128, i128, i128),
@@ -14,16 +14,24 @@ struct Facts<'a> {
 
 pub(super) fn prepare(
     profile: ConversionProfile,
-    original: &str,
-    target: &str,
+    source: &ConfigurationValue,
+    target: &ConfigurationValue,
 ) -> Result<StructuredInfoValue, QuantityConversionPreparationRefusal> {
     use QuantityConversionPreparationRefusal as R;
-    let receipt = match profile {
-        ConversionProfile::Quantity => {
-            let receipt =
-                ExactQuantityConversionReceipt::check(original, target).map_err(R::Request)?;
+    let ConfigurationValue::Unit(target) = target else {
+        return Err(R::Configuration);
+    };
+    let receipt = match (profile, source) {
+        (ConversionProfile::Quantity, ConfigurationValue::Quantity(source)) => {
+            let receipt = ExactQuantityConversionReceipt::from_checked(
+                source.value(),
+                target.value(),
+                source.source(),
+                target.source(),
+            )
+            .map_err(R::Request)?;
             Facts {
-                original,
+                original: source.source(),
                 source: receipt.source(),
                 source_suffix: receipt.source_suffix(),
                 target: receipt.target(),
@@ -34,11 +42,19 @@ pub(super) fn prepare(
                     .map(|value| (value.coefficient(), value.exponent())),
             }
         }
-        ConversionProfile::TemperatureDifference => {
-            let receipt = ExactTemperatureDifferenceConversionReceipt::check(original, target)
-                .map_err(R::Request)?;
+        (
+            ConversionProfile::TemperatureDifference,
+            ConfigurationValue::TemperatureDifference(source),
+        ) => {
+            let receipt = ExactTemperatureDifferenceConversionReceipt::from_checked(
+                source.value(),
+                target.value(),
+                source.source(),
+                target.source(),
+            )
+            .map_err(R::Request)?;
             Facts {
-                original,
+                original: source.source(),
                 source: receipt.source().storage_coordinate(),
                 source_suffix: receipt.source_suffix(),
                 target: receipt.target(),
@@ -49,6 +65,7 @@ pub(super) fn prepare(
                     .map(|value| (value.coefficient(), value.exponent())),
             }
         }
+        _ => return Err(R::Configuration),
     };
     let (ss, so, sd) = receipt.source_transform;
     let (ts, to, td) = receipt.target_transform;
@@ -97,19 +114,12 @@ pub(super) fn prepare(
         ("source-suffix", text(receipt.source_suffix.source())?),
         (
             "source-base",
-            text(
-                receipt
-                    .source_suffix
-                    .base()
-                    .map(|base| base.unit())
-                    .unwrap_or(receipt.source.unit())
-                    .plot_suffix(),
-            )?,
+            text(receipt.source_suffix.unit().base_unit().plot_suffix())?,
         ),
         (
             "source-prefix",
             text(
-                receipt
+                &receipt
                     .source_suffix
                     .prefix()
                     .map_or("", |prefix| prefix.symbol()),
@@ -135,14 +145,7 @@ pub(super) fn prepare(
         ),
         (
             "target-dimension",
-            text(dimension_name(
-                receipt
-                    .target
-                    .base()
-                    .map(|base| base.unit())
-                    .unwrap_or_else(|| receipt.target.legacy_unit().unwrap())
-                    .dimension(),
-            ))?,
+            text(dimension_name(receipt.target.unit().dimension()))?,
         ),
         ("target", text(receipt.target.source())?),
         ("profile", text(profile.source_id())?),

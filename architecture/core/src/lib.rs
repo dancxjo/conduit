@@ -37,6 +37,7 @@ mod port;
 mod preparation;
 mod primitive_info;
 mod quantity;
+mod quantity_configuration;
 mod quantity_prefix;
 mod quantity_suffix;
 mod resource;
@@ -44,6 +45,7 @@ mod resource_canonical;
 mod resource_content;
 mod resource_port;
 pub mod revision;
+mod unit;
 use resource_canonical::push_resource_binding;
 mod body_time;
 mod body_time_exchange;
@@ -117,6 +119,7 @@ pub use port::{PortDescriptor, PortDirection, PortTemporal};
 pub use preparation::*;
 pub use primitive_info::*;
 pub use quantity::*;
+pub use quantity_configuration::*;
 pub use quantity_prefix::*;
 pub use quantity_suffix::*;
 pub use resource::*;
@@ -139,6 +142,7 @@ pub use temporal_civil_conversion::*;
 pub use temporal_clock::*;
 pub use temporal_quantity::*;
 pub use terminal_info::*;
+pub use unit::*;
 pub use value_constraint::*;
 
 pub const PROTOCOL_VERSION: u16 = 1;
@@ -1304,12 +1308,12 @@ fn verify_fragment_fore_ports(fragment: &PlanFragment) -> bool {
                                 }
                                 ConnectionTrack::NormalClose => {
                                     port.temporal == (PortTemporal::Flow { closes: true })
-                                        && boundary.value_kind.as_str() == UNIT_INFO_ID
+                                        && boundary.value_kind.as_str() == EMPTY_INFO_ID
                                         && boundary.temporal == PortTemporal::Value
                                 }
                                 ConnectionTrack::Quiescence => {
                                     matches!(port.temporal, PortTemporal::Flow { .. })
-                                        && boundary.value_kind.as_str() == UNIT_INFO_ID
+                                        && boundary.value_kind.as_str() == EMPTY_INFO_ID
                                         && boundary.temporal == PortTemporal::Value
                                 }
                             };

@@ -323,7 +323,7 @@ fn checked_member(
         ),
     };
     let bytes = match conduit_core::primitive_info_kind(value_kind.as_str()) {
-        Some(PrimitiveInfoKind::Unit) if member.text == "()" => Vec::new(),
+        Some(PrimitiveInfoKind::Empty) if member.text == "()" => Vec::new(),
         Some(PrimitiveInfoKind::Bool) => match member.text.as_str() {
             "false" => conduit_core::InfoBool::FALSE.encode().to_vec(),
             "true" => conduit_core::InfoBool::TRUE.encode().to_vec(),
@@ -343,8 +343,8 @@ fn checked_member(
         Some(PrimitiveInfoKind::Text) => crate::text_value::parse_quoted_text(&member.text)
             .map(|value| value.into_bytes())
             .ok_or_else(|| invalid("expected a quoted Text literal"))?,
-        Some(PrimitiveInfoKind::ExactDecimalQuantity) => {
-            conduit_core::ExactDecimalQuantity::parse_plot_literal(&member.text)
+        Some(PrimitiveInfoKind::Quantity) => {
+            conduit_core::Quantity::parse_plot_literal(&member.text)
                 .map(|value| value.encode().to_vec())
                 .map_err(|refusal| {
                     invalid(&alloc::format!(
@@ -353,8 +353,7 @@ fn checked_member(
                 })?
         }
         Some(
-            PrimitiveInfoKind::Quantity
-            | PrimitiveInfoKind::Distance
+            PrimitiveInfoKind::Distance
             | PrimitiveInfoKind::Frequency
             | PrimitiveInfoKind::Duration
             | PrimitiveInfoKind::Voltage
@@ -450,7 +449,7 @@ fn checked_integer_member(
 
 fn intrinsic_maximum_bytes(value_kind: &str) -> Option<u32> {
     match conduit_core::primitive_info_kind(value_kind)? {
-        PrimitiveInfoKind::Unit | PrimitiveInfoKind::CancellationRequest => Some(0),
+        PrimitiveInfoKind::Empty | PrimitiveInfoKind::CancellationRequest => Some(0),
         PrimitiveInfoKind::Bool => Some(conduit_core::BOOL_ENCODED_LEN as u32),
         PrimitiveInfoKind::Count => Some(conduit_core::COUNT_ENCODED_LEN as u32),
         PrimitiveInfoKind::Scalar => Some(conduit_core::SCALAR_ENCODED_LEN as u32),
@@ -463,10 +462,7 @@ fn intrinsic_maximum_bytes(value_kind: &str) -> Option<u32> {
         | PrimitiveInfoKind::Angle
         | PrimitiveInfoKind::Ratio
         | PrimitiveInfoKind::PixelCount => Some(conduit_core::QUANTITY_ENCODED_LEN as u32),
-        PrimitiveInfoKind::ExactDecimalQuantity => {
-            Some(conduit_core::EXACT_DECIMAL_QUANTITY_ENCODED_LEN as u32)
-        }
-        PrimitiveInfoKind::QuantityUnit => Some(conduit_core::QUANTITY_UNIT_ENCODED_LEN as u32),
+        PrimitiveInfoKind::Unit => Some(conduit_core::UNIT_ENCODED_LEN as u32),
         kind @ (PrimitiveInfoKind::U8
         | PrimitiveInfoKind::U16
         | PrimitiveInfoKind::U32

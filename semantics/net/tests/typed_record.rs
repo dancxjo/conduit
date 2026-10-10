@@ -1,6 +1,6 @@
 use conduit_core::{
-    kind_id, Quantity, QuantityUnit, StructuredInfoType, StructuredInfoValue,
-    StructuredInfoValueShape, QUANTITY_INFO_ID,
+    kind_id, Quantity, StructuredInfoType, StructuredInfoValue, StructuredInfoValueShape, Unit,
+    QUANTITY_INFO_ID,
 };
 use conduit_net::*;
 
@@ -142,7 +142,7 @@ fn encoded() -> ([u8; MAXIMUM_TYPED_RECORD_FRAME_BYTES], usize) {
 fn quantity_record_parts() -> (String, Vec<u8>) {
     let value = StructuredInfoValue::leaf(
         StructuredInfoType::leaf(kind_id(QUANTITY_INFO_ID)).unwrap(),
-        Quantity::new(42, QuantityUnit::Millivolt).encode().to_vec(),
+        Quantity::new(42, Unit::Millivolt).encode().to_vec(),
     )
     .unwrap();
     let value_kind = value
@@ -209,7 +209,7 @@ fn text_adapter_preserves_exact_text_and_refuses_other_record_types() {
 
     let quantity = StructuredInfoValue::leaf(
         StructuredInfoType::leaf(kind_id(QUANTITY_INFO_ID)).unwrap(),
-        Quantity::new(42, QuantityUnit::Millivolt).encode().to_vec(),
+        Quantity::new(42, Unit::Millivolt).encode().to_vec(),
     )
     .unwrap();
     assert_eq!(
@@ -263,7 +263,7 @@ fn same_framing_contract_carries_a_non_text_quantity_record() {
     };
     assert_eq!(
         Quantity::decode(bytes).unwrap(),
-        Quantity::new(42, QuantityUnit::Millivolt)
+        Quantity::new(42, Unit::Millivolt)
     );
 }
 

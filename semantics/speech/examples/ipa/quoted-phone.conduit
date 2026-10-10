@@ -4,4 +4,4 @@ with SpeechPhoneNotation as Phone
 plot quoted-phone (
     >> input: Boolean
     phone: Phone >>
-) = ({spelling: "tʰ", provenance: {source: SpeechEvidenceSource.manual, method: "quoted IPA fixture", version: none(unit)}})
+) = ({spelling: "tʰ", provenance: {source: SpeechEvidenceSource.manual, method: "quoted IPA fixture", version: none(empty)}})

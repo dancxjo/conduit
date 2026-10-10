@@ -131,7 +131,7 @@ fn definition_references<'a>(definition: &'a TypeDefinitionSyntax, out: &mut Vec
         TypeDefinitionSyntax::Variant(cases) => {
             for case in cases {
                 match &case.payload {
-                    TypeVariantPayloadSyntax::Unit => {}
+                    TypeVariantPayloadSyntax::Empty => {}
                     TypeVariantPayloadSyntax::Type(expression) => {
                         expression_references(expression, out);
                     }
@@ -190,8 +190,8 @@ fn compile_definition(
             let mut contracts = Vec::new();
             for case in cases {
                 let payload = match &case.payload {
-                    TypeVariantPayloadSyntax::Unit => CompiledRepresentation {
-                        value_type: StructuredInfoType::leaf(kind_id("value/unit"))
+                    TypeVariantPayloadSyntax::Empty => CompiledRepresentation {
+                        value_type: StructuredInfoType::leaf(kind_id("value/empty"))
                             .map_err(|error| bounded(case.span, error))?,
                         contracts: Vec::new(),
                     },

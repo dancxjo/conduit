@@ -1,4 +1,4 @@
-use conduit_core::{Quantity, QuantityUnit};
+use conduit_core::{Quantity, Unit};
 use conduit_data::{
     tensor_content_digest, ClockRelation, ClockRelationQuality, DataLoadTextTerminal,
     DataSaveTextTerminal, DatasetExampleIdentity, DatasetSplitMembership, FullWindowPolicy,
@@ -24,14 +24,14 @@ where
 #[test]
 fn measurement_range_and_hysteresis_profile_are_native_records() {
     let range = MeasurementRange {
-        minimum: Quantity::new(-20, QuantityUnit::Celsius),
-        maximum: Quantity::new(50, QuantityUnit::Celsius),
+        minimum: Quantity::new(-20, Unit::Celsius),
+        maximum: Quantity::new(50, Unit::Celsius),
     };
     assert_round_trip(range);
 
     let policy = MeasurementThresholdPolicy::new(
-        Quantity::new(18, QuantityUnit::Celsius),
-        Quantity::new(24, QuantityUnit::Celsius),
+        Quantity::new(18, Unit::Celsius),
+        Quantity::new(24, Unit::Celsius),
     )
     .unwrap();
     assert_round_trip(MeasurementHysteresisProfile {
@@ -43,7 +43,7 @@ fn measurement_range_and_hysteresis_profile_are_native_records() {
 #[test]
 fn measurement_sample_uses_the_native_temporal_instant() {
     let sample = MeasurementSample {
-        value: Quantity::new(21, QuantityUnit::Celsius),
+        value: Quantity::new(21, Unit::Celsius),
         observed_at: NativeTemporalInstant::new(
             "sensor-clock".into(),
             1,
@@ -52,7 +52,7 @@ fn measurement_sample_uses_the_native_temporal_instant() {
             0,
         )
         .unwrap(),
-        uncertainty: Some(Quantity::new(1, QuantityUnit::Celsius)),
+        uncertainty: Some(Quantity::new(1, Unit::Celsius)),
     };
     assert_owned_round_trip(sample);
 }
@@ -93,19 +93,13 @@ fn dataset_split_membership_uses_native_bounded_identity_pages() {
 #[test]
 fn measurement_threshold_policy_round_trips_exact_quantities() {
     let policy = MeasurementThresholdPolicy::new(
-        Quantity::new(i64::MIN, QuantityUnit::Millivolt),
-        Quantity::new(i64::MAX, QuantityUnit::Millivolt),
+        Quantity::new(i64::MIN, Unit::Millivolt),
+        Quantity::new(i64::MAX, Unit::Millivolt),
     )
     .unwrap();
     assert_round_trip(policy);
-    assert_eq!(
-        *policy.lower(),
-        Quantity::new(i64::MIN, QuantityUnit::Millivolt)
-    );
-    assert_eq!(
-        *policy.upper(),
-        Quantity::new(i64::MAX, QuantityUnit::Millivolt)
-    );
+    assert_eq!(*policy.lower(), Quantity::new(i64::MIN, Unit::Millivolt));
+    assert_eq!(*policy.upper(), Quantity::new(i64::MAX, Unit::Millivolt));
 }
 
 fn assert_owned_round_trip<T>(value: T)
@@ -125,6 +119,7 @@ fn measurement_refusals_round_trip_through_exact_native_types() {
         MeasurementWindowRefusal::InvalidTimestamp,
         MeasurementWindowRefusal::UnitMismatch,
         MeasurementWindowRefusal::UncertaintyUnitMismatch,
+        MeasurementWindowRefusal::TemperatureDifferenceRequired,
         MeasurementWindowRefusal::NegativeUncertainty,
         MeasurementWindowRefusal::ClockMismatch,
         MeasurementWindowRefusal::TimestampRegression,
@@ -149,6 +144,7 @@ fn measurement_refusals_round_trip_through_exact_native_types() {
         MeasurementSummaryRefusal::UnitMismatch,
         MeasurementSummaryRefusal::ArithmeticOverflow,
         MeasurementSummaryRefusal::InexactMean,
+        MeasurementSummaryRefusal::TemperatureDifferenceRequired,
     ] {
         assert_round_trip(refusal);
     }
@@ -344,7 +340,7 @@ fn tensor_family_round_trips_native_shape_axes_units_and_backing() {
     let axes = BoundedSequence::try_from_iter([TensorAxis {
         role: TensorAxisRole::Time,
         identity: Some("medieval-clock".into()),
-        unit: Some(QuantityUnit::Moment),
+        unit: Some(Unit::Moment),
     }])
     .unwrap();
     let dimensions = BoundedSequence::try_from_iter([2]).unwrap();
@@ -368,7 +364,7 @@ fn tensor_family_round_trips_native_shape_axes_units_and_backing() {
 
 #[test]
 fn sampled_signal_family_round_trips_native_cadence_and_tensor_meaning() {
-    let cadence = SignalCadence::regular(Quantity::new(1, QuantityUnit::Moment), 2).unwrap();
+    let cadence = SignalCadence::regular(Quantity::new(1, Unit::Moment), 2).unwrap();
     assert_owned_round_trip(cadence.clone());
 
     let signal = SampledSignal {
@@ -383,7 +379,7 @@ fn sampled_signal_family_round_trips_native_cadence_and_tensor_meaning() {
             axes: BoundedSequence::try_from_iter([TensorAxis {
                 role: TensorAxisRole::Time,
                 identity: Some("moment".into()),
-                unit: Some(QuantityUnit::Moment),
+                unit: Some(Unit::Moment),
             }])
             .unwrap(),
             content_digest: tensor_content_digest(&[1, 2]),
@@ -397,14 +393,13 @@ fn sampled_signal_family_round_trips_native_cadence_and_tensor_meaning() {
 
 #[test]
 fn clock_relation_quality_keeps_duration_meaning_in_the_native_type() {
-    let estimated =
-        ClockRelationQuality::estimated(Quantity::new(3, QuantityUnit::Microsecond)).unwrap();
+    let estimated = ClockRelationQuality::estimated(Quantity::new(3, Unit::Microsecond)).unwrap();
     let ClockRelationQuality::Estimated(payload) = &estimated else {
         panic!("estimated quality retains its maximum error")
     };
     assert_eq!(
         *payload.maximum_error(),
-        Quantity::new(3, QuantityUnit::Microsecond)
+        Quantity::new(3, Unit::Microsecond)
     );
     let structured = estimated.clone().into_structured().unwrap();
     assert_eq!(
@@ -419,7 +414,7 @@ fn clock_relation_quality_keeps_duration_meaning_in_the_native_type() {
         exact
     );
 
-    assert!(ClockRelationQuality::estimated(Quantity::new(1, QuantityUnit::Celsius)).is_err());
+    assert!(ClockRelationQuality::estimated(Quantity::new(1, Unit::Celsius)).is_err());
 }
 
 #[test]

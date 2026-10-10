@@ -106,7 +106,7 @@ impl Context<'_> {
             Definition::Variant(cases) => {
                 for case in cases {
                     match &mut case.payload {
-                        Payload::Unit => {}
+                        Payload::Empty => {}
                         Payload::Type(value) => {
                             self.origin_expression(value, parameters, catalog, work)?
                         }

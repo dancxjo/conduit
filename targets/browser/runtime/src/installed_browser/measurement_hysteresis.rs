@@ -268,8 +268,8 @@ fn failure(detail: u16) -> Failure {
 mod tests {
     use super::*;
     use conduit_core::{
-        ConfigurationEntry, OfferGeneration, Quantity, QuantityUnit, StructuredInfoValue,
-        TemporalInstant, TemporalScale,
+        ConfigurationEntry, OfferGeneration, Quantity, StructuredInfoValue, TemporalInstant,
+        TemporalScale, Unit,
     };
     use conduit_kernel::{HostCallOutcome, ValueRef};
 
@@ -323,8 +323,8 @@ mod tests {
             conduit_data::encode_measurement_hysteresis_profile(
                 conduit_data::MeasurementHysteresisProfile {
                     policy: conduit_data::MeasurementThresholdPolicy::new(
-                        Quantity::new(40, QuantityUnit::Millivolt),
-                        Quantity::new(60, QuantityUnit::Millivolt),
+                        Quantity::new(40, Unit::Millivolt),
+                        Quantity::new(60, Unit::Millivolt),
                     )
                     .unwrap(),
                     initial_state,
@@ -334,7 +334,7 @@ mod tests {
         )
     }
 
-    fn summary(value: i64, unit: QuantityUnit) -> Vec<u8> {
+    fn summary(value: i64, unit: Unit) -> Vec<u8> {
         let instant = TemporalInstant {
             ticks: 1,
             scale: TemporalScale::Milliseconds,
@@ -381,7 +381,7 @@ mod tests {
             Ok(None)
         );
         let output = prepared
-            .execute(OPERATIONS[1], &summary(40, QuantityUnit::Millivolt))
+            .execute(OPERATIONS[1], &summary(40, Unit::Millivolt))
             .unwrap()
             .unwrap();
         let payload = exact_leaf(
@@ -410,7 +410,7 @@ mod tests {
             )
             .unwrap();
         assert_eq!(
-            prepared.execute(OPERATIONS[1], &summary(50, QuantityUnit::Millimeter)),
+            prepared.execute(OPERATIONS[1], &summary(50, Unit::Millimeter)),
             Err(failure(10))
         );
     }

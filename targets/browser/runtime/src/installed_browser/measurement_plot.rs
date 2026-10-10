@@ -136,7 +136,7 @@ fn failure(detail: u16) -> Failure {
 mod tests {
     use super::*;
     use conduit_core::{
-        ConfigurationEntry, OfferGeneration, Quantity, QuantityUnit, TemporalInstant, TemporalScale,
+        ConfigurationEntry, OfferGeneration, Quantity, TemporalInstant, TemporalScale, Unit,
     };
     use conduit_data::{
         BoundedMeasurementWindow, FullWindowPolicy, MeasurementRange, MeasurementSample,
@@ -198,8 +198,8 @@ mod tests {
         let mut window = BoundedMeasurementWindow::new(MeasurementWindowProfile {
             capacity: 3,
             range: MeasurementRange {
-                minimum: Quantity::new(0, QuantityUnit::Millivolt),
-                maximum: Quantity::new(100, QuantityUnit::Millivolt),
+                minimum: Quantity::new(0, Unit::Millivolt),
+                maximum: Quantity::new(100, Unit::Millivolt),
             },
             clock_basis: "browser-source-clock".into(),
             full_policy: FullWindowPolicy::Reject,
@@ -208,7 +208,7 @@ mod tests {
         for (value, ticks) in [(0, 1), (50, 2), (100, 3)] {
             window
                 .push(MeasurementSample {
-                    value: Quantity::new(value, QuantityUnit::Millivolt),
+                    value: Quantity::new(value, Unit::Millivolt),
                     observed_at: TemporalInstant {
                         ticks,
                         scale: TemporalScale::Milliseconds,

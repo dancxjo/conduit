@@ -60,6 +60,7 @@ pub(crate) fn execute(input: &[u8]) -> Result<Vec<u8>, Failure> {
             UnitMismatch => 4,
             ArithmeticOverflow => 5,
             InexactMean => 6,
+            TemperatureDifferenceRequired => 8,
         })
     })?;
     let payload = conduit_data::encode_measurement_summary(&summary).map_err(|_| failure(7))?;
@@ -99,9 +100,7 @@ fn failure(detail: u16) -> Failure {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use conduit_core::{
-        Quantity, QuantityUnit, StructuredInfoValue, TemporalInstant, TemporalScale,
-    };
+    use conduit_core::{Quantity, StructuredInfoValue, TemporalInstant, TemporalScale, Unit};
     use conduit_data::{
         BoundedMeasurementWindow, FullWindowPolicy, MeasurementRange, MeasurementSample,
         MeasurementWindowProfile,
@@ -124,8 +123,8 @@ mod tests {
         let mut window = BoundedMeasurementWindow::new(MeasurementWindowProfile {
             capacity: 3,
             range: MeasurementRange {
-                minimum: Quantity::new(0, QuantityUnit::Millivolt),
-                maximum: Quantity::new(100, QuantityUnit::Millivolt),
+                minimum: Quantity::new(0, Unit::Millivolt),
+                maximum: Quantity::new(100, Unit::Millivolt),
             },
             clock_basis: "browser-summary-clock".into(),
             full_policy: FullWindowPolicy::Reject,
@@ -134,7 +133,7 @@ mod tests {
         for (value, ticks) in [(0, 1), (50, 2), (100, 3)] {
             window
                 .push(MeasurementSample {
-                    value: Quantity::new(value, QuantityUnit::Millivolt),
+                    value: Quantity::new(value, Unit::Millivolt),
                     observed_at: TemporalInstant {
                         ticks,
                         scale: TemporalScale::Milliseconds,
@@ -159,7 +158,7 @@ mod tests {
         let payload = exact_leaf(&output, &conduit_data::measurement_summary_type()).unwrap();
         let summary = conduit_data::decode_measurement_summary(payload).unwrap();
         assert_eq!(summary.sample_count, 3);
-        assert_eq!(summary.mean, Quantity::new(50, QuantityUnit::Millivolt));
+        assert_eq!(summary.mean, Quantity::new(50, Unit::Millivolt));
         assert_eq!(summary.first_observed_at.ticks, 1);
         assert_eq!(summary.last_observed_at.ticks, 3);
     }
@@ -176,8 +175,8 @@ mod tests {
         let empty = BoundedMeasurementWindow::new(MeasurementWindowProfile {
             capacity: 1,
             range: MeasurementRange {
-                minimum: Quantity::new(0, QuantityUnit::Millivolt),
-                maximum: Quantity::new(1, QuantityUnit::Millivolt),
+                minimum: Quantity::new(0, Unit::Millivolt),
+                maximum: Quantity::new(1, Unit::Millivolt),
             },
             clock_basis: "browser-summary-clock".into(),
             full_policy: FullWindowPolicy::Reject,

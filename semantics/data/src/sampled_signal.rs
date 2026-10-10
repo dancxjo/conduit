@@ -1,7 +1,7 @@
 //! Finite observations of a process on an explicit source clock.
 
 use alloc::vec::Vec;
-use conduit_core::{semantic_digest, QuantityDimension, QuantityUnit, TemporalScale};
+use conduit_core::{semantic_digest, QuantityDimension, TemporalScale};
 use conduit_plot::rust_binding::BoundedSequence;
 
 use crate::{
@@ -44,7 +44,7 @@ impl SampledSignal {
         match &self.cadence {
             SignalCadence::Regular(regular) => {
                 if *regular.samples() == 0
-                    || regular.per().value() <= 0
+                    || regular.per().coefficient() <= 0
                     || regular.per().dimension() != QuantityDimension::Time
                 {
                     return Err(SampledSignalRefusal::InvalidCadence);
@@ -106,7 +106,9 @@ impl SampledSignal {
                             == conduit_core::TemporalScale::from(*instant.value().scale())
                                 .quantity_unit() =>
                 {
-                    let delta = u64::try_from(regular.per().value())
+                    let delta = regular
+                        .per()
+                        .convert_to_u64(regular.per().unit())
                         .map_err(|_| SampledSignalRefusal::TemporalOverflow)?
                         .checked_mul(offset)
                         .ok_or(SampledSignalRefusal::TemporalOverflow)?;
@@ -178,8 +180,7 @@ impl SampledSignal {
             SignalCadence::Regular(regular) => {
                 bytes.push(0);
                 bytes.extend_from_slice(&regular.samples().to_le_bytes());
-                bytes.extend_from_slice(&regular.per().value().to_le_bytes());
-                bytes.push(quantity_unit_tag(regular.per().unit()));
+                bytes.extend_from_slice(&regular.per().encode());
             }
             SignalCadence::Irregular(irregular) => {
                 bytes.push(1);
@@ -279,25 +280,6 @@ fn scale_tag(scale: TemporalScale) -> u8 {
         TemporalScale::Milliseconds => 1,
         TemporalScale::Microseconds => 2,
         TemporalScale::Nanoseconds => 3,
-    }
-}
-
-fn quantity_unit_tag(unit: QuantityUnit) -> u8 {
-    match unit {
-        QuantityUnit::Nanosecond => 0,
-        QuantityUnit::Microsecond => 1,
-        QuantityUnit::Millisecond => 2,
-        QuantityUnit::Second => 3,
-        QuantityUnit::Picosecond => 4,
-        QuantityUnit::Shake => 5,
-        QuantityUnit::Minute => 6,
-        QuantityUnit::Moment => 7,
-        QuantityUnit::Hour => 8,
-        QuantityUnit::Day => 9,
-        QuantityUnit::Week => 10,
-        QuantityUnit::Fortnight => 11,
-        QuantityUnit::JulianYear => 12,
-        _ => unreachable!("validated cadence only accepts time units"),
     }
 }
 

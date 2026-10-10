@@ -66,6 +66,8 @@ fn configuration_type(field: &KindConfigurationField) -> &'static str {
         (_, ConfigurationValue::U64(_)) => "Count",
         (_, ConfigurationValue::I64(_)) => "Scalar",
         (_, ConfigurationValue::Quantity(_)) => "Quantity",
+        (_, ConfigurationValue::Unit(_)) => "Unit",
+        (_, ConfigurationValue::TemperatureDifference(_)) => "TemperatureDifference",
         _ => unreachable!("robotics configuration is finite text/integer/quantity"),
     }
 }
@@ -75,9 +77,9 @@ fn configuration_source(field: &KindConfigurationField) -> String {
         ConfigurationValue::Text(value) => format!("\"{value}\""),
         ConfigurationValue::U64(value) => value.to_string(),
         ConfigurationValue::I64(value) => value.to_string(),
-        ConfigurationValue::Quantity(value) => {
-            format!("{}{}", value.value(), value.unit().plot_suffix())
-        }
+        ConfigurationValue::Quantity(value) => value.source().into(),
+        ConfigurationValue::Unit(value) => value.source().into(),
+        ConfigurationValue::TemperatureDifference(value) => value.source().into(),
         _ => unreachable!("robotics configuration is finite text/integer"),
     }
 }

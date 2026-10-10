@@ -176,13 +176,14 @@ pub(crate) fn is_source_import_path(text: &str) -> bool {
 /// unavailable as a binding, so a glyph can never redefine cord, terminal,
 /// cancellation, route, grouping, or completion syntax.
 pub(crate) fn is_glyph(text: &str) -> bool {
-    !text.is_empty()
-        && text.len() <= 8
-        && text
-            .chars()
-            .all(|character| matches!(character, '<' | '>' | '&' | '?' | '@' | '^'))
-        && !text.contains(">>")
-        && !matches!(text, ">>" | ">" | "|" | "!" | "~" | "?" | ".")
+    text == "=?"
+        || !text.is_empty()
+            && text.len() <= 8
+            && text
+                .chars()
+                .all(|character| matches!(character, '<' | '>' | '&' | '?' | '@' | '^'))
+            && !text.contains(">>")
+            && !matches!(text, ">>" | ">" | "|" | "!" | "~" | "?" | ".")
 }
 
 pub(crate) fn is_gear_name(text: &str) -> bool {

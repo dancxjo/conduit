@@ -22,14 +22,14 @@ fn identities(
         ConversionProfile::Quantity => (
             KIND,
             RECEIPT_NAME,
-            "quantity/exact-comparison@1",
+            "quantity/exact-comparison@2",
             "quantity/exact-comparison-receipt@1",
             "quantity/exact-comparison-result@1",
         ),
         ConversionProfile::TemperatureDifference => (
             DIFFERENCE_KIND,
             DIFFERENCE_RECEIPT_NAME,
-            "quantity/exact-temperature-difference-comparison@1",
+            "quantity/exact-temperature-difference-comparison@2",
             "quantity/exact-temperature-difference-comparison-receipt@1",
             "quantity/exact-temperature-difference-comparison-result@1",
         ),
@@ -39,9 +39,9 @@ fn result_type(profile: ConversionProfile) -> StructuredInfoType {
     StructuredInfoType::variant(
         kind_id(identities(profile).4),
         vec![
-            StructuredVariantCase::new("less", leaf(UNIT_INFO_ID)).expect("reviewed case"),
-            StructuredVariantCase::new("equal", leaf(UNIT_INFO_ID)).expect("reviewed case"),
-            StructuredVariantCase::new("greater", leaf(UNIT_INFO_ID)).expect("reviewed case"),
+            StructuredVariantCase::new("less", leaf(EMPTY_INFO_ID)).expect("reviewed case"),
+            StructuredVariantCase::new("equal", leaf(EMPTY_INFO_ID)).expect("reviewed case"),
+            StructuredVariantCase::new("greater", leaf(EMPTY_INFO_ID)).expect("reviewed case"),
             StructuredVariantCase::new("refused", leaf(TEXT_INFO_ID)).expect("reviewed case"),
         ],
     )
@@ -74,7 +74,13 @@ pub fn difference_contract() -> Kind {
 }
 fn contract_for(profile: ConversionProfile) -> Kind {
     let (kind, _, revision, _, _) = identities(profile);
-    text_receipt_contract(kind, revision, ["left", "right"], receipt_for(profile))
+    typed_arguments::contract(
+        kind,
+        revision,
+        ["left", "right"],
+        [profile.configuration_rule(), profile.configuration_rule()],
+        receipt_for(profile),
+    )
 }
 pub(super) fn install(
     startup: &mut StartupCatalog,
@@ -84,7 +90,7 @@ pub(super) fn install(
         ConversionProfile::Quantity,
         ConversionProfile::TemperatureDifference,
     ] {
-        install_text_receipt(
+        install_receipt(
             identities(role).1,
             receipt_for(role),
             contract_for(role),
@@ -109,9 +115,9 @@ fn prepare_for(
     configuration: &[ConfigurationEntry],
 ) -> Result<StructuredInfoValue, QuantityConversionPreparationRefusal> {
     use QuantityConversionPreparationRefusal as R;
-    let [left, right] = text_arguments(configuration, ["left", "right"])?;
-    let left = operand::Operand::parse(profile, left).map_err(R::ComparisonLeft)?;
-    let right = operand::Operand::parse(profile, right).map_err(R::ComparisonRight)?;
+    let [left, right] = typed_arguments::arguments(configuration, ["left", "right"])?;
+    let left = operand::Operand::from_checked(profile, left).map_err(R::ComparisonLeft)?;
+    let right = operand::Operand::from_checked(profile, right).map_err(R::ComparisonRight)?;
     let (tag, payload) = match left.compare(&right) {
         Ok(ordering) => (
             match ordering {
@@ -119,7 +125,7 @@ fn prepare_for(
                 Ordering::Equal => "equal",
                 Ordering::Greater => "greater",
             },
-            StructuredInfoValue::leaf(leaf(UNIT_INFO_ID), vec![]).map_err(R::Receipt)?,
+            StructuredInfoValue::leaf(leaf(EMPTY_INFO_ID), vec![]).map_err(R::Receipt)?,
         ),
         Err(refusal) => (
             "refused",
@@ -197,7 +203,7 @@ fn validate_for(
         let StructuredInfoValueShape::Leaf(bytes) = original.shape() else {
             return Err(R::ForgedReceipt);
         };
-        if bytes.len() > EXACT_DECIMAL_MAX_LITERAL_BYTES {
+        if bytes.len() > QUANTITY_MAX_LITERAL_BYTES {
             return Err(R::ForgedReceipt);
         }
         core::str::from_utf8(bytes)
@@ -209,11 +215,11 @@ fn validate_for(
         &[
             ConfigurationEntry {
                 key: "left".into(),
-                value: ConfigurationValue::Text(original("left")?),
+                value: operand::from_receipt(profile, receipt, "left", &original("left")?)?,
             },
             ConfigurationEntry {
                 key: "right".into(),
-                value: ConfigurationValue::Text(original("right")?),
+                value: operand::from_receipt(profile, receipt, "right", &original("right")?)?,
             },
         ],
     )?;

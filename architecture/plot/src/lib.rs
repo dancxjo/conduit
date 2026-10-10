@@ -992,7 +992,7 @@ fn validate_export_fronts(export: &CheckedExport, gears: &[CheckedGear]) -> Resu
                     matches!(
                         endpoint.temporal,
                         conduit_core::PortTemporal::Flow { closes: true }
-                    ) && front.external_port.value_kind.as_str() == conduit_core::UNIT_INFO_ID
+                    ) && front.external_port.value_kind.as_str() == conduit_core::EMPTY_INFO_ID
                         && front.external_port.temporal == conduit_core::PortTemporal::Value
                 }
                 conduit_core::ConnectionTrack::AbnormalTerminal => {
@@ -1001,7 +1001,7 @@ fn validate_export_fronts(export: &CheckedExport, gears: &[CheckedGear]) -> Resu
                 }
                 conduit_core::ConnectionTrack::Quiescence => {
                     matches!(endpoint.temporal, conduit_core::PortTemporal::Flow { .. })
-                        && front.external_port.value_kind.as_str() == conduit_core::UNIT_INFO_ID
+                        && front.external_port.value_kind.as_str() == conduit_core::EMPTY_INFO_ID
                         && front.external_port.temporal == conduit_core::PortTemporal::Value
                 }
             };
@@ -1238,46 +1238,6 @@ fn push_identity_field(canonical: &mut String, value: &str) {
     canonical.push('|');
 }
 
-fn projected_startup_parameter(field: &KindConfigurationField) -> StartupParameterSignature {
-    StartupParameterSignature {
-        name: field.key.clone(),
-        value_type: match (&field.rule, &field.default_value) {
-            (
-                KindConfigurationRule::QuantityRange { canonical_unit, .. },
-                ConfigurationValue::Quantity(_),
-            ) => canonical_unit.dimension().info_id(),
-            (_, ConfigurationValue::Bool(_)) => "Boolean",
-            (_, ConfigurationValue::U64(_)) => "Count",
-            (_, ConfigurationValue::I64(_)) => "Scalar",
-            (_, ConfigurationValue::Text(_)) => "Text",
-            (_, ConfigurationValue::Structured(value)) => value.profile().as_str(),
-            (_, ConfigurationValue::Quantity(_)) => "Quantity",
-        }
-        .into(),
-        // A legacy projection has no independently declared callable Fore, so
-        // its historical configuration default remains the only available
-        // omission contract. Canonical Kinds take the stricter branch above.
-        default: Some(render_value(&field.default_value)),
-    }
-}
-
-fn render_value(value: &ConfigurationValue) -> String {
-    match value {
-        ConfigurationValue::Bool(value) => value.to_string(),
-        ConfigurationValue::U64(value) => value.to_string(),
-        ConfigurationValue::I64(value) => value.to_string(),
-        ConfigurationValue::Text(value) => format!("{value:?}"),
-        ConfigurationValue::Structured(value) => alloc::format!(
-            "<structured:{}:{}-bytes>",
-            value.profile().as_str(),
-            value.canonical_value().len()
-        ),
-        ConfigurationValue::Quantity(value) => {
-            alloc::format!("{}{}", value.value(), value.unit().plot_suffix())
-        }
-    }
-}
-
 fn hash_string(text: &str) -> String {
     let digest = Sha256::digest(text.as_bytes());
     let mut encoded = String::with_capacity(digest.len() * 2);
@@ -1318,3 +1278,8 @@ mod source_type_preparation;
 pub use source_type_preparation::{prepare_source_types, PreparedSourceTypes};
 
 mod ieee_literal;
+
+mod authored_quantity;
+
+mod configuration_projection;
+use configuration_projection::{projected_startup_parameter, render_value};

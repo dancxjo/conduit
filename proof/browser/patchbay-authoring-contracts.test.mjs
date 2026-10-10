@@ -21,10 +21,13 @@ test("configuration controls preserve exact canonical integer values for checkin
   }
 });
 
-test("configuration presentation neither coerces Boolean nor changes quantity units", () => {
+test("physical configuration submits authored source to Rust admission", () => {
   assert.deepEqual(configurationValue({ Bool: false }, "true"), { Bool: true });
   assert.throws(() => configurationValue({ Bool: false }, "1"));
-  assert.deepEqual(configurationValue({ Quantity: { value: 1, unit: "Hertz" } }, "42"),
-    { Quantity: { value: 42, unit: "Hertz" } });
-  assert.throws(() => configurationValue({ Quantity: { value: 1, unit: "Hertz" } }, "9223372036854775807"));
+  const quantity = { Quantity: { canonical_value: [], source: "1Hz" } };
+  assert.equal(configurationText(quantity), "1Hz");
+  assert.deepEqual(configurationValue(quantity, "1Qm"), { QuantitySource: "1Qm" });
+  assert.deepEqual(configurationValue(quantity, "9223372036854775807Hz"), { QuantitySource: "9223372036854775807Hz" });
+  assert.deepEqual(configurationValue({ Unit: { source: "Hz" } }, "kHz"), { UnitSource: "kHz" });
+  assert.deepEqual(configurationValue({ TemperatureDifference: { source: "9°F" } }, "5K"), { TemperatureDifferenceSource: "5K" });
 });

@@ -11,7 +11,7 @@ fn optional_info_is_exactly_the_finite_none_or_some_variant() {
     let scalar = leaf_type("value/scalar");
     let optional = optional_info_type(scalar.clone()).unwrap();
     let none =
-        StructuredInfoValue::variant(optional.clone(), "none", leaf("value/unit", &[])).unwrap();
+        StructuredInfoValue::variant(optional.clone(), "none", leaf("value/empty", &[])).unwrap();
     let some = StructuredInfoValue::variant(
         optional.clone(),
         "some",
@@ -43,7 +43,7 @@ fn prepared_optional_encoding_matches_the_canonical_variant_without_growth() {
     .unwrap()
     .canonical_bytes()
     .unwrap();
-    let expected_none = StructuredInfoValue::variant(optional, "none", leaf("value/unit", &[]))
+    let expected_none = StructuredInfoValue::variant(optional, "none", leaf("value/empty", &[]))
         .unwrap()
         .canonical_bytes()
         .unwrap();

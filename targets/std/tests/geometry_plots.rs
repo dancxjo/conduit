@@ -1,7 +1,7 @@
 use conduit_core::{
     BaseImplementationId, BootId, ConfigurationValue, HostAdvertisement, HostId, HostProfileId,
-    OfferGeneration, Quantity, QuantityUnit, StructuredInfoTypeShape, StructuredInfoValue,
-    StructuredInfoValueShape, PROTOCOL_VERSION,
+    OfferGeneration, Quantity, StructuredInfoTypeShape, StructuredInfoValue,
+    StructuredInfoValueShape, Unit, PROTOCOL_VERSION,
 };
 use conduit_plot::{
     check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
@@ -73,15 +73,15 @@ fn canonical_geometry_configuration_flows_through_one_checked_plot_and_plan() {
 fn exact_translation_reports_frame_unit_and_overflow_refusals() {
     let point = point2_value(
         "robot/base",
-        Quantity::new(1000, QuantityUnit::Millimeter),
-        Quantity::new(2000, QuantityUnit::Millimeter),
+        Quantity::new(1000, Unit::Millimeter),
+        Quantity::new(2000, Unit::Millimeter),
     )
     .unwrap();
     let transform = transform2_value(
         "robot/base",
         "map",
-        Quantity::new(1, QuantityUnit::Meter),
-        Quantity::new(-500, QuantityUnit::Millimeter),
+        Quantity::new(1, Unit::Meter),
+        Quantity::new(-500, Unit::Millimeter),
     )
     .unwrap();
     let moved = apply_transform2(&point, &transform).unwrap();
@@ -91,8 +91,8 @@ fn exact_translation_reports_frame_unit_and_overflow_refusals() {
     let wrong_frame = transform2_value(
         "camera",
         "map",
-        Quantity::new(0, QuantityUnit::Millimeter),
-        Quantity::new(0, QuantityUnit::Millimeter),
+        Quantity::new(0, Unit::Millimeter),
+        Quantity::new(0, Unit::Millimeter),
     )
     .unwrap();
     assert_eq!(
@@ -105,15 +105,15 @@ fn exact_translation_reports_frame_unit_and_overflow_refusals() {
 
     let meter_point = point2_value(
         "robot/base",
-        Quantity::new(1, QuantityUnit::Meter),
-        Quantity::new(2, QuantityUnit::Meter),
+        Quantity::new(1, Unit::Meter),
+        Quantity::new(2, Unit::Meter),
     )
     .unwrap();
     let inexact = transform2_value(
         "robot/base",
         "map",
-        Quantity::new(1, QuantityUnit::Millimeter),
-        Quantity::new(0, QuantityUnit::Meter),
+        Quantity::new(1, Unit::Millimeter),
+        Quantity::new(0, Unit::Meter),
     )
     .unwrap();
     assert_eq!(
@@ -124,23 +124,23 @@ fn exact_translation_reports_frame_unit_and_overflow_refusals() {
         transform2_value(
             "robot/base",
             "map",
-            Quantity::new(1, QuantityUnit::Degree),
-            Quantity::new(0, QuantityUnit::Meter),
+            Quantity::new(1, Unit::Degree),
+            Quantity::new(0, Unit::Meter),
         ),
         Err(GeometryRefusal::IncompatibleUnit)
     );
 
     let overflow_point = point2_value(
         "robot/base",
-        Quantity::new(i64::MAX, QuantityUnit::Millimeter),
-        Quantity::new(0, QuantityUnit::Millimeter),
+        Quantity::new(i64::MAX, Unit::Millimeter),
+        Quantity::new(0, Unit::Millimeter),
     )
     .unwrap();
     let overflow = transform2_value(
         "robot/base",
         "map",
-        Quantity::new(1, QuantityUnit::Millimeter),
-        Quantity::new(0, QuantityUnit::Millimeter),
+        Quantity::new(1, Unit::Millimeter),
+        Quantity::new(0, Unit::Millimeter),
     )
     .unwrap();
     assert_eq!(
@@ -161,8 +161,8 @@ fn path_operations_have_a_reviewed_hard_bound() {
         .map(|x| {
             point2_value(
                 "robot/base",
-                Quantity::new(x, QuantityUnit::Millimeter),
-                Quantity::new(0, QuantityUnit::Millimeter),
+                Quantity::new(x, Unit::Millimeter),
+                Quantity::new(0, Unit::Millimeter),
             )
             .unwrap()
         })
@@ -171,8 +171,8 @@ fn path_operations_have_a_reviewed_hard_bound() {
     let transform = transform2_value(
         "robot/base",
         "map",
-        Quantity::new(10, QuantityUnit::Millimeter),
-        Quantity::new(20, QuantityUnit::Millimeter),
+        Quantity::new(10, Unit::Millimeter),
+        Quantity::new(20, Unit::Millimeter),
     )
     .unwrap();
     let moved = apply_transform2_to_path(&path, &transform).unwrap();
@@ -269,7 +269,10 @@ fn point_quantities(value: &StructuredInfoValue) -> (i64, i64) {
         let StructuredInfoValueShape::Leaf(bytes) = record_value(value, name).shape() else {
             panic!("coordinate must be a quantity")
         };
-        Quantity::decode(bytes).unwrap().value()
+        {
+            let quantity = Quantity::decode(bytes).unwrap();
+            quantity.to_i64(quantity.unit()).unwrap()
+        }
     };
     (decode("x"), decode("y"))
 }

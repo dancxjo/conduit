@@ -1,8 +1,8 @@
 use conduit_core::{
     process_owned_line_offer_with_limits, ArtifactId, BaseImplementationId, BootId,
     BoundedResourceRef, CapabilityId, ExecutionProfileId, HostAdvertisement, HostId, HostProfileId,
-    ImplementationId, LinkLimits, OfferGeneration, Quantity, QuantityUnit, StructuredInfoType,
-    StructuredInfoTypeShape, StructuredInfoValue, StructuredInfoValueShape, PROTOCOL_VERSION,
+    ImplementationId, LinkLimits, OfferGeneration, Quantity, StructuredInfoType,
+    StructuredInfoTypeShape, StructuredInfoValue, StructuredInfoValueShape, Unit, PROTOCOL_VERSION,
 };
 use conduit_planner::{
     plan_expanded_canonical_with_options, PlacementChoice, PlacementChoices, PlanningOptions,
@@ -458,15 +458,15 @@ fn regions_and_landmarks_reuse_nominal_geometry_types() {
 #[test]
 fn confidence_and_pixel_storage_refuse_semantic_shortcuts() {
     assert_eq!(
-        validate_confidence(Quantity::new(1, QuantityUnit::Meter)),
+        validate_confidence(Quantity::new(1, Unit::Meter)),
         Err(VisionRefusal::NonRatioConfidence)
     );
     assert_eq!(
-        validate_confidence(Quantity::new(101, QuantityUnit::Percent)),
+        validate_confidence(Quantity::new(101, Unit::Percent)),
         Err(VisionRefusal::ConfidenceOutOfRange)
     );
     assert_eq!(
-        validate_confidence(Quantity::new(875_000, QuantityUnit::Millionth)),
+        validate_confidence(Quantity::new(875_000, Unit::Millionth)),
         Ok(())
     );
 

@@ -244,7 +244,7 @@ fn retained_duration_derives_exact_state_plan_truth() {
         temporal: conduit_core::PortTemporal::Current,
         abnormal_kind: None,
     }];
-    let initial = conduit_core::Quantity::new(3, conduit_core::QuantityUnit::Meter);
+    let initial = conduit_core::Quantity::new(3, conduit_core::Unit::Meter);
     placement.configuration = vec![
         conduit_core::ConfigurationEntry {
             key: "retained-duration".into(),
@@ -256,7 +256,9 @@ fn retained_duration_derives_exact_state_plan_truth() {
         },
         conduit_core::ConfigurationEntry {
             key: "initial".into(),
-            value: conduit_core::ConfigurationValue::Quantity(initial),
+            value: conduit_core::ConfigurationValue::Quantity(
+                conduit_core::QuantityConfigurationValue::from_value(initial).unwrap(),
+            ),
         },
     ];
     let state = planned_keep_state(&placement).unwrap().unwrap();

@@ -33,9 +33,9 @@ pub fn validate_confidence(confidence: Quantity) -> Result<(), VisionRefusal> {
         return Err(VisionRefusal::NonRatioConfidence);
     }
     let normalized = confidence
-        .convert(conduit_core::QuantityUnit::Millionth)
+        .to_i64(conduit_core::Unit::Millionth)
         .map_err(|_| VisionRefusal::ConfidenceOutOfRange)?;
-    if !(0..=1_000_000).contains(&normalized.value()) {
+    if !(0..=1_000_000).contains(&normalized) {
         return Err(VisionRefusal::ConfidenceOutOfRange);
     }
     Ok(())

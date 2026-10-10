@@ -1,4 +1,4 @@
-use conduit_core::{ExactDecimalQuantity as Exact, EXACT_DECIMAL_QUANTITY_INFO_ID};
+use conduit_core::{Quantity as Exact, QUANTITY_INFO_ID};
 use conduit_plot::{
     check_expression, parse_syntax_document, BackStatement, CheckedExpressionType, CordStage,
     ExpressionTypeContext, PortableExpressionProgram, PreparedPortableExpressionEvaluator,
@@ -34,8 +34,8 @@ unsafe impl GlobalAlloc for Allocator {
 static ALLOCATOR: Allocator = Allocator;
 
 #[test]
-fn prepared_exact_transport_admits_twenty_bytes_and_never_grows_during_evaluation() {
-    let source="plot transport (\n >> input: ExactQuantity\n output: ExactQuantity >>\n) {\n input >> (.) >> output\n}\n";
+fn prepared_exact_transport_admits_canonical_bytes_and_never_grows_during_evaluation() {
+    let source="plot transport (\n >> input: Quantity\n output: Quantity >>\n) {\n input >> (.) >> output\n}\n";
     let parsed = parse_syntax_document(source);
     assert!(parsed.diagnostics.is_empty(), "{:?}", parsed.diagnostics);
     let BackStatement::Cord(cord) = &parsed.plots[0].back[0] else {
@@ -44,7 +44,7 @@ fn prepared_exact_transport_admits_twenty_bytes_and_never_grows_during_evaluatio
     let CordStage::PureExpression(expression) = &cord.stages[1] else {
         panic!("expression");
     };
-    let input = CheckedExpressionType::semantic(EXACT_DECIMAL_QUANTITY_INFO_ID);
+    let input = CheckedExpressionType::semantic(QUANTITY_INFO_ID);
     let context = ExpressionTypeContext {
         input: &input,
         immutable_values: &BTreeMap::new(),
@@ -55,8 +55,14 @@ fn prepared_exact_transport_admits_twenty_bytes_and_never_grows_during_evaluatio
     };
     let checked = check_expression(&expression.syntax, &context).unwrap();
     let program = PortableExpressionProgram::from_checked(&checked).unwrap();
-    assert_eq!(program.maximum_prepared_input_bytes(), Ok(20));
-    assert_eq!(program.maximum_prepared_output_bytes(), Ok(20));
+    assert_eq!(
+        program.maximum_prepared_input_bytes(),
+        Ok(conduit_core::QUANTITY_ENCODED_LEN as u32)
+    );
+    assert_eq!(
+        program.maximum_prepared_output_bytes(),
+        Ok(conduit_core::QUANTITY_ENCODED_LEN as u32)
+    );
     let mut evaluator = PreparedPortableExpressionEvaluator::new(&program).unwrap();
     let encoded = Exact::parse_plot_literal("1Qm³").unwrap().encode();
     let mut forged = encoded;

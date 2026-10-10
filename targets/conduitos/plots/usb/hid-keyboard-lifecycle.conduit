@@ -22,11 +22,11 @@ type UsbKeyboardWork =
     | finished UsbKeyboardState
 
 plot usb-hid-keyboard-initialize (
-    begin: Unit...| >> state: UsbKeyboardState...|
-) = ({ terminal: false, busy: false, previous: { modifiers: 0, keys: [0, 0, 0, 0, 0, 0] }, changes: { slots: [unchanged(unit), unchanged(unit), unchanged(unit), unchanged(unit), unchanged(unit), unchanged(unit), unchanged(unit), unchanged(unit), unchanged(unit), unchanged(unit), unchanged(unit), unchanged(unit), unchanged(unit), unchanged(unit), unchanged(unit), unchanged(unit), unchanged(unit), unchanged(unit), unchanged(unit), unchanged(unit)] }, cursor: 0 })
+    begin: Empty...| >> state: UsbKeyboardState...|
+) = ({ terminal: false, busy: false, previous: { modifiers: 0, keys: [0, 0, 0, 0, 0, 0] }, changes: { slots: [unchanged(empty), unchanged(empty), unchanged(empty), unchanged(empty), unchanged(empty), unchanged(empty), unchanged(empty), unchanged(empty), unchanged(empty), unchanged(empty), unchanged(empty), unchanged(empty), unchanged(empty), unchanged(empty), unchanged(empty), unchanged(empty), unchanged(empty), unchanged(empty), unchanged(empty), unchanged(empty)] }, cursor: 0 })
 plot usb-hid-keyboard-route (
     state: UsbKeyboardState...| >> route: UsbKeyboardRoute...|
-) = (.terminal ? stopped(unit) : (.busy ? emitting(.) : waiting(.)))
+) = (.terminal ? stopped(empty) : (.busy ? emitting(.) : waiting(.)))
 plot usb-hid-keyboard-command (
     pair: UsbKeyboardCommandPair...| >> work: UsbKeyboardWork...|
 ) = (.1 is report ? receive({ previous: .0.previous, current: .1.report }) : finished({ terminal: true, busy: false, previous: .0.previous, changes: .0.changes, cursor: 0 }))
@@ -54,7 +54,7 @@ plot usb-hid-keyboard-emitting (
 }
 
 plot usb-hid-keyboard-lifecycle (
-    >> begin: Unit...|
+    >> begin: Empty...|
     >> command: UsbKeyboardCommand...| <= 4096B
     transition: UsbKeyboardTransition...| >>
 ) {
@@ -89,15 +89,15 @@ plot usb-hid-keyboard-report-command (
 ) = (report(.))
 
 plot usb-hid-keyboard-finish-command (
-    begin: Unit...| >> command: UsbKeyboardCommand...|
-) = (finish(unit))
+    begin: Empty...| >> command: UsbKeyboardCommand...|
+) = (finish(empty))
 
 # Received octets enter the reviewed decoder and normalization before state.
 # Malformed/error reports are observed and never replace the previous report.
 # Ordered concatenation appends finish only after every decoded report and
 # normal frame EOF. Cancellation remains a separate kernel outcome.
 plot usb-hid-keyboard-received (
-    >> begin: Unit...|
+    >> begin: Empty...|
     >> frame: UsbHidReportFrame...|
     observed: UsbBootKeyboardResult...| >>
     transition: UsbKeyboardTransition...| >>

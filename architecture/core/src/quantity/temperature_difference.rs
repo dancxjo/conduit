@@ -4,45 +4,61 @@
 //! the point codec is not a standalone difference encoding.
 
 use super::{
-    ExactDecimalQuantity, ExactDecimalQuantityRefusal, ExactQuantityConversionRequestRefusal,
-    QuantityConversionRefusal, QuantityDimension, QuantityUnit,
+    ExactQuantityConversionRequestRefusal, Quantity, QuantityConversionRefusal, QuantityDimension,
+    QuantityRefusal, Unit,
 };
 use crate::ResolvedQuantitySuffix;
 use core::cmp::Ordering;
 
 pub const EXACT_TEMPERATURE_DIFFERENCE_INFO_ID: &str = "quantity/exact-temperature-difference@1";
 
+/// Ordinary difference values retain a record wrapper so their coordinate
+/// cannot be admitted as an absolute temperature point. The schema identity
+/// and shape-derived executable profile identity are deliberately distinct.
+pub fn exact_temperature_difference_type() -> crate::StructuredInfoType {
+    crate::StructuredInfoType::record(
+        crate::kind_id(EXACT_TEMPERATURE_DIFFERENCE_INFO_ID),
+        alloc::vec![crate::StructuredFieldType::new(
+            "coordinate",
+            crate::StructuredInfoType::leaf(crate::kind_id(super::QUANTITY_INFO_ID))
+                .expect("reviewed quantity leaf"),
+        )
+        .expect("reviewed coordinate field")],
+    )
+    .expect("bounded temperature difference record")
+}
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum ExactTemperatureDifferenceRefusal {
-    Coordinate(ExactDecimalQuantityRefusal),
+    Coordinate(QuantityRefusal),
     NotTemperature,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct ExactTemperatureDifference {
-    coordinate: ExactDecimalQuantity,
+    coordinate: Quantity,
 }
 
 impl ExactTemperatureDifference {
     pub fn new(
         coefficient: i128,
         exponent: i16,
-        unit: QuantityUnit,
+        unit: Unit,
     ) -> Result<Self, ExactTemperatureDifferenceRefusal> {
         Self::admit(
-            ExactDecimalQuantity::new(coefficient, exponent, unit)
+            Quantity::from_decimal(coefficient, exponent, unit)
                 .map_err(ExactTemperatureDifferenceRefusal::Coordinate)?,
         )
     }
 
     pub fn parse_plot_literal(literal: &str) -> Result<Self, ExactTemperatureDifferenceRefusal> {
         Self::admit(
-            ExactDecimalQuantity::parse_plot_literal(literal)
+            Quantity::parse_plot_literal(literal)
                 .map_err(ExactTemperatureDifferenceRefusal::Coordinate)?,
         )
     }
 
-    fn admit(coordinate: ExactDecimalQuantity) -> Result<Self, ExactTemperatureDifferenceRefusal> {
+    fn admit(coordinate: Quantity) -> Result<Self, ExactTemperatureDifferenceRefusal> {
         if coordinate.dimension() != QuantityDimension::Temperature {
             return Err(ExactTemperatureDifferenceRefusal::NotTemperature);
         }
@@ -51,7 +67,7 @@ impl ExactTemperatureDifference {
 
     /// Raw storage coordinates require the owning difference Type. This is
     /// not a projection of a difference into an absolute temperature point.
-    pub const fn storage_coordinate(self) -> ExactDecimalQuantity {
+    pub const fn storage_coordinate(self) -> Quantity {
         self.coordinate
     }
 
@@ -64,6 +80,18 @@ impl ExactTemperatureDifference {
 
     pub fn compare(self, other: Self) -> Result<Ordering, QuantityConversionRefusal> {
         super::wide_conversion::compare_differences(self.coordinate, other.coordinate)
+    }
+
+    pub fn convert_to_unit(
+        self,
+        target: crate::Unit,
+    ) -> Result<(i128, i16), QuantityConversionRefusal> {
+        if target.dimension() != QuantityDimension::Temperature {
+            return Err(QuantityConversionRefusal::IncompatibleDimensions);
+        }
+        let coordinate =
+            super::wide_conversion::difference_to_target_decimal(self.coordinate, target, 0)?;
+        Ok((coordinate.coefficient(), coordinate.exponent()))
     }
 
     pub fn convert_to_target<'a>(
@@ -118,6 +146,40 @@ pub struct ExactTemperatureDifferenceConversionReceipt<'a> {
 }
 
 impl<'a> ExactTemperatureDifferenceConversionReceipt<'a> {
+    pub fn from_checked(
+        source: ExactTemperatureDifference,
+        target_unit: crate::Unit,
+        original: &'a str,
+        target_source: &'a str,
+    ) -> Result<Self, ExactQuantityConversionRequestRefusal> {
+        let evidence_source = ExactTemperatureDifference::parse_plot_literal(original)
+            .map_err(ExactQuantityConversionRequestRefusal::TemperatureDifferenceSource)?;
+        if evidence_source != source {
+            return Err(ExactQuantityConversionRequestRefusal::SourceEvidenceMismatch);
+        }
+        let (source_suffix, target) =
+            super::receipt::resolve_conversion_suffixes(original, target_source)?;
+        if crate::Unit::from_resolved(target) != target_unit {
+            return Err(ExactQuantityConversionRequestRefusal::TargetEvidenceMismatch);
+        }
+        let result = source
+            .convert_to_unit(target_unit)
+            .map(
+                |(coefficient, exponent)| ExactTemperatureDifferenceTargetCoordinate {
+                    target,
+                    coefficient,
+                    exponent,
+                },
+            );
+        Ok(Self {
+            original,
+            source,
+            source_suffix,
+            target,
+            result,
+        })
+    }
+
     pub fn check(
         original: &'a str,
         target: &'a str,

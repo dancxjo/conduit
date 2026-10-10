@@ -20,7 +20,7 @@ type UsbDescriptorAdvance =
 
 plot usb-descriptor-advance (
     cursor: UsbDescriptorCursor >> result: UsbDescriptorAdvance
-) = (.available > 256 ? oversized(unit) : (.offset > .available ? malformed(unit) : (.offset == .available ? end(unit) : (.available - .offset < 2 ? short(unit) : (.length < 2 || .length > 255 || .descriptor_type > 255 ? malformed(unit) : (.length > .available - .offset ? short(unit) : descriptor({ next: .offset + .length, length: .length, descriptor_type: .descriptor_type })))))))
+) = (.available > 256 ? oversized(empty) : (.offset > .available ? malformed(empty) : (.offset == .available ? end(empty) : (.available - .offset < 2 ? short(empty) : (.length < 2 || .length > 255 || .descriptor_type > 255 ? malformed(empty) : (.length > .available - .offset ? short(empty) : descriptor({ next: .offset + .length, length: .length, descriptor_type: .descriptor_type })))))))
 
 # Device descriptor prefix, from a transfer into fixed reusable storage.
 # The actual count is independent of the eighteen storage octets.
@@ -51,4 +51,4 @@ type UsbDeviceDescriptorResult =
 # preserves it exactly rather than treating a SuperSpeed exponent as bytes.
 plot usb-device-descriptor (
     frame: UsbDeviceDescriptorFrame...| >> result: UsbDeviceDescriptorResult...|
-) = (.actual > 18 ? malformed(unit) : (.actual < 2 ? short(unit) : (.wire.0 != 18 || .wire.1 != 1 ? malformed(unit) : (.actual < 18 ? short(unit) : device({ usb_version: value/u64(.wire.2) + value/u64(.wire.3) * 256, device_class: .wire.4, device_subclass: .wire.5, device_protocol: .wire.6, ep0_packet_field: .wire.7, vendor_id: value/u64(.wire.8) + value/u64(.wire.9) * 256, product_id: value/u64(.wire.10) + value/u64(.wire.11) * 256, device_version: value/u64(.wire.12) + value/u64(.wire.13) * 256, manufacturer_index: .wire.14, product_index: .wire.15, serial_index: .wire.16, configurations: .wire.17 })))))
+) = (.actual > 18 ? malformed(empty) : (.actual < 2 ? short(empty) : (.wire.0 != 18 || .wire.1 != 1 ? malformed(empty) : (.actual < 18 ? short(empty) : device({ usb_version: value/u64(.wire.2) + value/u64(.wire.3) * 256, device_class: .wire.4, device_subclass: .wire.5, device_protocol: .wire.6, ep0_packet_field: .wire.7, vendor_id: value/u64(.wire.8) + value/u64(.wire.9) * 256, product_id: value/u64(.wire.10) + value/u64(.wire.11) * 256, device_version: value/u64(.wire.12) + value/u64(.wire.13) * 256, manufacturer_index: .wire.14, product_index: .wire.15, serial_index: .wire.16, configurations: .wire.17 })))))

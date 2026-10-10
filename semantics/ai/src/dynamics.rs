@@ -1,7 +1,7 @@
 //! Provider-neutral, bounded continuous-state evolution semantics.
 
 use alloc::{boxed::Box, string::String, vec::Vec};
-use conduit_core::{PlannedStateBoundary, QuantityUnit, StateContinuation};
+use conduit_core::{PlannedStateBoundary, StateContinuation, Unit};
 use conduit_data::{
     tensor_content_digest, SampledSignal, SignalCadence, SignalStart, TensorBacking, TensorElement,
     TensorValue,
@@ -28,7 +28,7 @@ pub enum DynamicsProfile {
 pub struct IntegrationInterval {
     pub start: i64,
     pub end: i64,
-    pub unit: QuantityUnit,
+    pub unit: Unit,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -400,13 +400,10 @@ impl SolverRealization {
     }
 }
 
-fn time_unit(unit: QuantityUnit) -> bool {
+fn time_unit(unit: Unit) -> bool {
     matches!(
         unit,
-        QuantityUnit::Second
-            | QuantityUnit::Millisecond
-            | QuantityUnit::Microsecond
-            | QuantityUnit::Nanosecond
+        Unit::Second | Unit::Millisecond | Unit::Microsecond | Unit::Nanosecond
     )
 }
 

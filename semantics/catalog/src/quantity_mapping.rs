@@ -9,7 +9,7 @@ use alloc::{vec, vec::Vec};
 use conduit_core::QuantityDimension;
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, ConfigurationValue, Kind, PortDescriptor, PortDirection,
-    PortTemporal, Quantity, QuantityUnit, Scalar, DISTANCE_INFO_ID, FREQUENCY_INFO_ID,
+    PortTemporal, Quantity, Scalar, Unit, DISTANCE_INFO_ID, FREQUENCY_INFO_ID,
     QUANTITY_ENCODED_LEN, QUANTITY_INFO_ID, SCALAR_INFO_ID,
 };
 pub use conduit_data::{QuantityMappingRefusal, QuantizationPolicy, RangePolicy};
@@ -32,7 +32,7 @@ pub struct QuantityMapping {
     pub target_minimum: i64,
     pub target_maximum: i64,
     pub target_granularity: i64,
-    pub target_unit: QuantityUnit,
+    pub target_unit: Unit,
     pub range_policy: RangePolicy,
     pub quantization: QuantizationPolicy,
 }
@@ -119,7 +119,7 @@ pub fn quantity_map_contract() -> StandardKindContract {
         hosted_implementation_required: true,
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,
-        example: "map: math/map-quantity(source-minimum = 0, source-maximum = 1000000, target-minimum = 20, target-maximum = 20000, target-granularity = 1, unit = \"Hz\", range-policy = \"clamp\", quantization = \"nearest\")".into(),
+        example: "map: math/map-quantity(source-minimum = 0, source-maximum = 1000000, target-minimum = 20, target-maximum = 20000, target-granularity = 1, unit = Hz, range-policy = \"clamp\", quantization = \"nearest\")".into(),
     }
 }
 
@@ -160,7 +160,7 @@ pub fn normalized_distance_map_contract() -> StandardKindContract {
     contract.summary = "Map one normalized scalar into one exact bounded Distance.".into();
     contract.outputs[0].value_kind = kind_id(DISTANCE_INFO_ID);
     contract.outputs[0].temporal = PortTemporal::Flow { closes: true };
-    contract.example = "map: math/map-normalized-distance(source-minimum = 0, source-maximum = 1000000, target-minimum = 0, target-maximum = 30, target-granularity = 1, unit = \"cm\", range-policy = \"clamp\", quantization = \"nearest\")".into();
+    contract.example = "map: math/map-normalized-distance(source-minimum = 0, source-maximum = 1000000, target-minimum = 0, target-maximum = 30, target-granularity = 1, unit = cm, range-policy = \"clamp\", quantization = \"nearest\")".into();
     contract
 }
 
@@ -220,7 +220,8 @@ fn install_mapping_contract(
                 value_type: match &field.default_value {
                     ConfigurationValue::I64(_) => "Scalar",
                     ConfigurationValue::Text(_) => "Text",
-                    ConfigurationValue::Quantity(quantity) => match quantity.dimension() {
+                    ConfigurationValue::Unit(_) => "Unit",
+                    ConfigurationValue::Quantity(quantity) => match quantity.value().dimension() {
                         QuantityDimension::Length => "Distance",
                         QuantityDimension::Frequency => "Frequency",
                         _ => "Quantity",
@@ -231,9 +232,8 @@ fn install_mapping_contract(
                 default: Some(match &field.default_value {
                     ConfigurationValue::I64(value) => value.to_string(),
                     ConfigurationValue::Text(value) => format!("\"{value}\""),
-                    ConfigurationValue::Quantity(value) => {
-                        format!("{}{}", value.value(), value.unit().plot_suffix())
-                    }
+                    ConfigurationValue::Unit(value) => value.source().into(),
+                    ConfigurationValue::Quantity(value) => value.source().into(),
                     _ => unreachable!("quantity mapping startup uses scalar, text, or quantity"),
                 }),
             })
@@ -246,10 +246,13 @@ fn install_mapping_contract(
 
 fn distance_frequency_configuration_fields() -> Vec<KindConfigurationField> {
     let quantity =
-        |key: &str, value: Quantity, minimum: i64, maximum: i64, canonical_unit: QuantityUnit| {
+        |key: &str, value: Quantity, minimum: i64, maximum: i64, canonical_unit: Unit| {
             KindConfigurationField {
                 key: key.into(),
-                default_value: ConfigurationValue::Quantity(value),
+                default_value: ConfigurationValue::Quantity(
+                    conduit_core::QuantityConfigurationValue::from_value(value)
+                        .expect("bounded quantity configuration"),
+                ),
                 rule: KindConfigurationRule::QuantityRange {
                     minimum,
                     maximum,
@@ -260,31 +263,31 @@ fn distance_frequency_configuration_fields() -> Vec<KindConfigurationField> {
     vec![
         quantity(
             "source-minimum",
-            Quantity::new(0, QuantityUnit::Centimeter),
+            Quantity::new(0, Unit::Centimeter),
             0,
             10_000,
-            QuantityUnit::Centimeter,
+            Unit::Centimeter,
         ),
         quantity(
             "source-maximum",
-            Quantity::new(30, QuantityUnit::Centimeter),
+            Quantity::new(30, Unit::Centimeter),
             0,
             10_000,
-            QuantityUnit::Centimeter,
+            Unit::Centimeter,
         ),
         quantity(
             "target-minimum",
-            Quantity::new(220, QuantityUnit::Hertz),
+            Quantity::new(220, Unit::Hertz),
             1,
             20_000,
-            QuantityUnit::Hertz,
+            Unit::Hertz,
         ),
         quantity(
             "target-maximum",
-            Quantity::new(880, QuantityUnit::Hertz),
+            Quantity::new(880, Unit::Hertz),
             1,
             20_000,
-            QuantityUnit::Hertz,
+            Unit::Hertz,
         ),
     ]
 }
@@ -311,14 +314,13 @@ fn configuration_fields() -> Vec<KindConfigurationField> {
         number("target-minimum", 0),
         number("target-maximum", 100),
         number("target-granularity", 1),
-        choice(
-            "unit",
-            "Hz",
-            &[
-                "ns", "us", "ms", "s", "mHz", "Hz", "uV", "mV", "V", "um", "mm", "cm", "m", "udeg",
-                "mdeg", "deg", "ppm", "permille", "%", "one", "B", "KiB", "MiB",
-            ],
-        ),
+        KindConfigurationField {
+            key: "unit".into(),
+            default_value: ConfigurationValue::Unit(
+                conduit_core::UnitConfigurationValue::parse("Hz").expect("reviewed unit"),
+            ),
+            rule: KindConfigurationRule::Unit,
+        },
         choice("range-policy", "refuse", &["refuse", "clamp"]),
         choice("quantization", "exact", &["exact", "nearest"]),
     ]
@@ -345,7 +347,7 @@ mod tests {
             target_minimum: 20,
             target_maximum: 20_000,
             target_granularity: 10,
-            target_unit: QuantityUnit::Hertz,
+            target_unit: Unit::Hertz,
             range_policy: policy,
             quantization,
         }
@@ -354,21 +356,18 @@ mod tests {
     #[test]
     fn boundaries_units_and_nearest_quantization_are_exact() {
         let value = mapping(RangePolicy::Clamp, QuantizationPolicy::Nearest);
-        assert_eq!(
-            value.map(Scalar::ZERO),
-            Ok(Quantity::new(20, QuantityUnit::Hertz))
-        );
+        assert_eq!(value.map(Scalar::ZERO), Ok(Quantity::new(20, Unit::Hertz)));
         assert_eq!(
             value.map(Scalar::ONE),
-            Ok(Quantity::new(20_000, QuantityUnit::Hertz))
+            Ok(Quantity::new(20_000, Unit::Hertz))
         );
         assert_eq!(
             value.map(Scalar::from_raw_microunits(500_000)),
-            Ok(Quantity::new(10_010, QuantityUnit::Hertz))
+            Ok(Quantity::new(10_010, Unit::Hertz))
         );
         assert_eq!(
             value.map(Scalar::from_raw_microunits(2_000_000)),
-            Ok(Quantity::new(20_000, QuantityUnit::Hertz))
+            Ok(Quantity::new(20_000, Unit::Hertz))
         );
     }
 
@@ -399,13 +398,13 @@ mod tests {
         assert_eq!(contract.outputs[0].value_kind.as_str(), FREQUENCY_INFO_ID);
         assert!(matches!(
             contract.configuration[0].default_value,
-            ConfigurationValue::Quantity(value)
-                if value.dimension() == QuantityDimension::Length
+            ConfigurationValue::Quantity(ref value)
+                if value.value().dimension() == QuantityDimension::Length
         ));
         assert!(matches!(
             contract.configuration[2].default_value,
-            ConfigurationValue::Quantity(value)
-                if value.dimension() == QuantityDimension::Frequency
+            ConfigurationValue::Quantity(ref value)
+                if value.value().dimension() == QuantityDimension::Frequency
         ));
     }
 

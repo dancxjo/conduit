@@ -1,6 +1,6 @@
 use conduit_core::{
-    kind_id, BoundedResourceRef, QuantityUnit, ResourceClassId, ResourceExtent, ResourceLifetime,
-    ResourceSemanticIdentity, ResourceVersionIdentity,
+    kind_id, BoundedResourceRef, ResourceClassId, ResourceExtent, ResourceLifetime,
+    ResourceSemanticIdentity, ResourceVersionIdentity, Unit,
 };
 use conduit_data::*;
 use conduit_plot::rust_binding::{BoundedBytes, BoundedSequence};
@@ -14,12 +14,12 @@ fn axes() -> Vec<TensorAxis> {
         TensorAxis {
             role: TensorAxisRole::Time,
             identity: Some("speech-frame".into()),
-            unit: Some(QuantityUnit::Millisecond),
+            unit: Some(Unit::Millisecond),
         },
         TensorAxis {
             role: TensorAxisRole::SpatialCoordinate,
             identity: Some("articulatory-coordinate".into()),
-            unit: Some(QuantityUnit::Millimeter),
+            unit: Some(Unit::Millimeter),
         },
     ]
 }

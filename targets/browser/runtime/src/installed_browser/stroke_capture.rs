@@ -249,7 +249,7 @@ fn failure(detail: u16) -> Failure {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use conduit_core::{OfferGeneration, Quantity, QuantityUnit};
+    use conduit_core::{OfferGeneration, Quantity, Unit};
 
     #[test]
     fn browser_stroke_capture_preserves_semantics_and_narrows_capacity() {
@@ -301,8 +301,8 @@ mod tests {
     fn point(frame: &str, x: i64) -> Vec<u8> {
         conduit_presentation::point2_value(
             frame,
-            Quantity::new(x, QuantityUnit::Millimeter),
-            Quantity::new(0, QuantityUnit::Millimeter),
+            Quantity::new(x, Unit::Millimeter),
+            Quantity::new(0, Unit::Millimeter),
         )
         .unwrap()
         .canonical_bytes()

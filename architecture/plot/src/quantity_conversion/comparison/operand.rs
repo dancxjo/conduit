@@ -2,7 +2,7 @@
 use super::*;
 
 enum Coordinate {
-    Quantity(ExactDecimalQuantity),
+    Quantity(Quantity),
     Difference(ExactTemperatureDifference),
 }
 pub(super) struct Operand<'a> {
@@ -37,19 +37,19 @@ pub(super) fn value_type(profile: ConversionProfile) -> StructuredInfoType {
     .expect("finite operand")
 }
 impl<'a> Operand<'a> {
-    pub(super) fn parse(
+    pub(super) fn from_checked(
         profile: ConversionProfile,
-        original: &'a str,
+        value: &'a ConfigurationValue,
     ) -> Result<Self, ExactQuantityConversionRequestRefusal> {
-        let coordinate = match profile {
-            ConversionProfile::Quantity => Coordinate::Quantity(
-                ExactDecimalQuantity::parse_plot_literal(original)
-                    .map_err(ExactQuantityConversionRequestRefusal::Source)?,
-            ),
-            ConversionProfile::TemperatureDifference => Coordinate::Difference(
-                ExactTemperatureDifference::parse_plot_literal(original)
-                    .map_err(ExactQuantityConversionRequestRefusal::TemperatureDifferenceSource)?,
-            ),
+        let (original, coordinate) = match (profile, value) {
+            (ConversionProfile::Quantity, ConfigurationValue::Quantity(value)) => {
+                (value.source(), Coordinate::Quantity(value.value()))
+            }
+            (
+                ConversionProfile::TemperatureDifference,
+                ConfigurationValue::TemperatureDifference(value),
+            ) => (value.source(), Coordinate::Difference(value.value())),
+            _ => return Err(ExactQuantityConversionRequestRefusal::SourceEvidenceMismatch),
         };
         let start = original
             .char_indices()
@@ -96,16 +96,7 @@ impl<'a> Operand<'a> {
                     profile.source_value(coordinate).map_err(R::Receipt)?,
                 ),
                 ("suffix", text(self.suffix.source())?),
-                (
-                    "base",
-                    text(
-                        self.suffix
-                            .base()
-                            .map(|base| base.unit())
-                            .unwrap_or(coordinate.unit())
-                            .plot_suffix(),
-                    )?,
-                ),
+                ("base", text(self.suffix.unit().base_unit().plot_suffix())?),
                 (
                     "prefix",
                     text(self.suffix.prefix().map_or("", |prefix| prefix.symbol()))?,
@@ -147,5 +138,47 @@ impl<'a> Operand<'a> {
             .map_err(R::Receipt)?,
         )
         .map_err(R::Receipt)
+    }
+}
+
+pub(super) fn from_receipt(
+    profile: ConversionProfile,
+    receipt: &StructuredInfoValue,
+    name: &str,
+    original: &str,
+) -> Result<ConfigurationValue, QuantityConversionPreparationRefusal> {
+    use QuantityConversionPreparationRefusal as R;
+    let StructuredInfoValueShape::Record(fields) = receipt.shape() else {
+        return Err(R::ForgedReceipt);
+    };
+    let operand = fields
+        .iter()
+        .find(|f| f.name() == name)
+        .ok_or(R::ForgedReceipt)?
+        .value();
+    let StructuredInfoValueShape::Record(fields) = operand.shape() else {
+        return Err(R::ForgedReceipt);
+    };
+    let coordinate = fields
+        .iter()
+        .find(|f| f.name() == "coordinate")
+        .ok_or(R::ForgedReceipt)?
+        .value();
+    match profile {
+        ConversionProfile::Quantity => {
+            let StructuredInfoValueShape::Leaf(bytes) = coordinate.shape() else {
+                return Err(R::ForgedReceipt);
+            };
+            let value = Quantity::decode(bytes).map_err(|_| R::ForgedReceipt)?;
+            QuantityConfigurationValue::new(value, original.into())
+                .map(ConfigurationValue::Quantity)
+                .ok_or(R::ForgedReceipt)
+        }
+        ConversionProfile::TemperatureDifference => {
+            let value = temperature_difference::validate_source_value(coordinate)?;
+            ExactTemperatureDifferenceConfigurationValue::new(value, original.into())
+                .map(ConfigurationValue::TemperatureDifference)
+                .ok_or(R::ForgedReceipt)
+        }
     }
 }

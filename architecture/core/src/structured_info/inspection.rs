@@ -2,7 +2,7 @@ use alloc::string::String;
 use alloc::vec::Vec;
 
 use crate::{
-    KindId, Observation, ObservationKind, Quantity, QuantityDecodeRefusal, SignId, QUANTITY_INFO_ID,
+    KindId, Observation, ObservationKind, Quantity, QuantityRefusal, SignId, QUANTITY_INFO_ID,
 };
 
 use super::{
@@ -78,7 +78,7 @@ pub enum StructuredInfoInspectionRefusal {
     ProfileMismatch,
     InvalidStructuredValue(StructuredInfoRefusal),
     NodeCountOverflow,
-    InvalidQuantity(QuantityDecodeRefusal),
+    InvalidQuantity(QuantityRefusal),
 }
 
 impl StructuredInfoInspection {

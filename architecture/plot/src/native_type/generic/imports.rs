@@ -125,7 +125,7 @@ fn definition(
         Definition::Variant(cases) => {
             for case in cases {
                 match &mut case.payload {
-                    Payload::Unit => {}
+                    Payload::Empty => {}
                     Payload::Type(value) => expression(value, names, parameters),
                     Payload::Record(fields) => {
                         for field in fields {
