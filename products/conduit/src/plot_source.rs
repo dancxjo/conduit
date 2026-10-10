@@ -22,7 +22,7 @@ pub(crate) fn parse(source: &str) -> Result<CanonicalSource, String> {
     let (startup, profiles) = standard_catalogs()?;
     Ok(CanonicalSource {
         source: source.into(),
-        syntax: conduit_plot::parse_syntax_document(source),
+        syntax: conduit_plot::parse_syntax_document_with_glyph_notations(source, &startup),
         startup,
         profiles,
     })
@@ -40,7 +40,7 @@ fn load_with_catalogs(
         ));
     }
     let source = fs::read_to_string(path).map_err(|error| error.to_string())?;
-    let syntax = conduit_plot::parse_syntax_document(&source);
+    let syntax = conduit_plot::parse_syntax_document_with_glyph_notations(&source, &startup);
     Ok(CanonicalSource {
         source,
         syntax,
@@ -72,8 +72,12 @@ impl CanonicalSource {
         if let Some(diagnostic) = self.syntax.diagnostics.first() {
             return Err(format!("{}: {}", diagnostic.code, diagnostic.message));
         }
-        let checked = conduit_plot::check_syntax_document(&self.syntax, &self.startup)
-            .map_err(|diagnostic| format!("{}: {}", diagnostic.code, diagnostic.message))?;
+        let checked = conduit_plot::check_syntax_document_with_literal_constructors(
+            &self.syntax,
+            &self.startup,
+            &self.profiles,
+        )
+        .map_err(|diagnostic| format!("{}: {}", diagnostic.code, diagnostic.message))?;
         conduit_speech::ipa_constructors::validate_source(&self.syntax, &checked)
             .map_err(|diagnostic| diagnostic.to_string())?;
         conduit_plot::quantity_conversion::validate_source(&self.syntax, &checked).map_err(
@@ -148,6 +152,7 @@ fn prepare_standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), Strin
     conduit_speech::kernel::install(&mut startup, &mut profiles)?;
     conduit_speech::authoring::install(&mut startup)?;
     conduit_speech::ipa_constructors::install(&mut startup, &mut profiles)?;
+    conduit_speech::ipa_constructors::install_notation(&mut startup, &profiles)?;
     conduit_plot::quantity_conversion::install(&mut startup, &mut profiles)?;
     conduit_text::install_morse_catalogs(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_indicator_presentation_catalog(&mut startup, &mut profiles)?;

@@ -108,3 +108,93 @@ fn reusable_basis_refusal_locates_the_declared_revision_in_both_renderers() {
     assert!(human.contains(diagnostic["summary"].as_str().unwrap()));
     fs::remove_file(path).unwrap();
 }
+
+#[test]
+fn shipped_glyphs_enter_public_check_and_missing_ipa_context_refuses() {
+    let pattern = plot_path(
+        "pattern-glyph",
+        "with text/pattern/notation as r\nplot example {\n value = r/[A-Z]+/i\n}\n",
+    );
+    let output = diagnose(&pattern, true);
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let diagnostics: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(diagnostics, serde_json::json!([]));
+    fs::remove_file(pattern).unwrap();
+
+    let ipa = plot_path(
+        "ipa-context-missing",
+        "with speech/ipa/notation as ph\nplot example {\n value = ph/a/\n}\n",
+    );
+    let output = diagnose(&ipa, true);
+    assert!(!output.status.success());
+    let diagnostics: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(diagnostics[0]["code"], "CND-GLY-003");
+    assert!(diagnostics[0]["primary_span"]["end"].as_u64().unwrap() > 0);
+    fs::remove_file(ipa).unwrap();
+}
+
+#[test]
+fn authored_ipa_context_passes_public_check_for_both_branches() {
+    use conduit_plot::{Argument, BackStatement, ExpressionSyntax};
+    for (quoted, spelling) in [
+        (
+            include_str!("../../../semantics/speech/examples/ipa/quoted-transcriptions.conduit"),
+            "ph[ˈt͡ʃãː.n̩]",
+        ),
+        (
+            include_str!("../../../semantics/speech/examples/ipa/quoted-phonemic.conduit"),
+            "ph/ˈt͡ʃaː/",
+        ),
+    ] {
+        let original = conduit_plot::parse_syntax_document(quoted);
+        let BackStatement::NamedGear(gear) = &original.plots[0].back[0] else {
+            panic!()
+        };
+        let mut selections = Vec::new();
+        let mut declarations = String::new();
+        for argument in &gear.invocation.arguments {
+            let Argument::Named { name, value, .. } = argument else {
+                panic!()
+            };
+            let (key, span) = if name.text == "request" {
+                let ExpressionSyntax::Record { fields, .. } = &value.syntax else {
+                    panic!()
+                };
+                (
+                    "provenance",
+                    fields
+                        .iter()
+                        .find(|field| field.name.text == "provenance")
+                        .unwrap()
+                        .value
+                        .span(),
+                )
+            } else {
+                (name.text.as_str(), value.span)
+            };
+            selections.push(format!("{key}: chosen-{key}"));
+            declarations.push_str(&format!(
+                "chosen-{key} = {}\n",
+                &quoted[span.start..span.end]
+            ));
+        }
+        let source = format!("with speech/ipa/notation as ph using {{{}}}\nplot example {{\n{declarations}value = {spelling}\n}}\n", selections.join(", "));
+        let path = plot_path("ipa-authored-context", &source);
+        let output = diagnose(&path, true);
+        assert!(
+            output.status.success(),
+            "stdout={} stderr={}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert_eq!(
+            serde_json::from_slice::<Value>(&output.stdout).unwrap(),
+            serde_json::json!([])
+        );
+        fs::remove_file(path).unwrap();
+    }
+}

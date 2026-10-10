@@ -221,7 +221,7 @@ pub fn install_text_catalogs(
     use alloc::string::ToString;
     use conduit_plot::{KindSignature, StartupParameterSignature};
 
-    install_portable_pattern_type(startup)?;
+    install_pattern_notation(startup, profile)?;
 
     startup.insert_value_kind_alias("AddressSet", kind_id(ADDRESS_SET_VALUE_KIND))?;
     startup.insert_value_kind_alias("AddressDetection", kind_id(ADDRESS_DETECTION_VALUE_KIND))?;
