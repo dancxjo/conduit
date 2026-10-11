@@ -85,8 +85,8 @@
   "verification_tools": {
     "decoder": "08a63abbbb0afa88ed4990253bad9315bcdeb8e4f8020c91dfcd1fc7f67e4bd9",
     "decode.rs": "3637506e5feb6174531ba7b506a09ec2bd41759dbb36a08411ed3c92e21bd5cc",
-    "check_wire.py": "b3e652cefd66399d1e96039a11da9af25e32524ea5112e1ccc08ce3c7859afec",
-    "run_aarch64.py": "2d24d793272a58d43ba2351af13616e6c50efb318c8b1ad293a2aee24278f625"
+    "check_wire.py": "0d5bf8d505e35c527698fb3adbb2892a90d574fbd06a9cc8e8f4b309f42b2559",
+    "run_aarch64.py": "26a5d3ec59c7a382ec9c05f8abc64c1352968ee121e0efdd756cefed203fdc12"
   },
   "wire_revalidation": {
     "result": {
