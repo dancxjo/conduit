@@ -426,7 +426,10 @@ impl XhciReady {
                         .checked_add(1)
                         .ok_or(XhciError::UnexpectedCompletion)?;
                 }
-                33 if event.pointer == pointer && event.completion_code == 1 => {
+                33 if event.pointer == pointer
+                    && event.completion_code == 1
+                    && event.slot == slot =>
+                {
                     unsafe {
                         write_volatile(core::ptr::addr_of_mut!(DMA.dcbaa[usize::from(slot)]), 0)
                     };
@@ -488,3 +491,50 @@ unsafe fn write64(address: usize, value: u64) {
 #[cfg(test)]
 #[path = "xhci_mechanism/tests.rs"]
 mod tests;
+
+/// Serialized synthetic controller memory. Exercises production ring consumption
+/// and Disable Slot publication; it does not emulate a hardware controller.
+#[cfg(test)]
+pub(crate) fn with_synthetic_stop_controller(
+    event_slot: u8,
+    completion_code: u8,
+    pointer_delta: u64,
+    test: impl FnOnce(XhciReady),
+) {
+    static LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+    let _guard = LOCK.lock().unwrap();
+    let mut registers = [0_u64; 32];
+    // SAFETY: every field is an integer; zero is valid. The fixture owns the
+    // synthetic registers and serializes the sole global controller DMA.
+    let mut controller: XhciReady = unsafe { core::mem::zeroed() };
+    controller.operational = registers.as_mut_ptr() as usize;
+    controller.runtime_interrupter = controller.operational;
+    controller.doorbell = controller.operational + 128;
+    controller.dma_physical = 0x1000;
+    controller.command_cycle = 1;
+    controller.event_cycle = 1;
+    controller.maximum_ports = 1;
+    controller.admitted_slots = 3;
+    let pointer = controller.dma_physical
+        + core::mem::offset_of!(DmaStorage, command_ring) as u64
+        + pointer_delta;
+    // SAFETY: fixture lock excludes other synthetic global DMA users.
+    unsafe {
+        DMA.event_ring = [[0; 4]; EVENT_TRBS];
+        DMA.command_ring = [[0; 4]; COMMAND_TRBS];
+        DMA.dcbaa[1] = 0xfeed0000;
+        DMA.event_ring[0] = [
+            pointer as u32,
+            (pointer >> 32) as u32,
+            u32::from(completion_code) << 24,
+            (33 << 10) | (u32::from(event_slot) << 24) | 1,
+        ];
+    }
+    test(controller);
+}
+
+#[cfg(test)]
+pub(crate) unsafe fn synthetic_stop_dcbaa() -> u64 {
+    // SAFETY: caller holds with_synthetic_stop_controller's fixture lock.
+    unsafe { read_volatile(core::ptr::addr_of!(DMA.dcbaa[1])) }
+}
