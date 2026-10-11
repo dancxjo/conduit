@@ -356,3 +356,105 @@ mod advertisement;
 mod execution;
 #[path = "usb_bot_storage/kernel.rs"]
 mod kernel;
+
+#[test]
+fn short_data_emits_only_after_matching_unique_tag_residue_and_success_status() {
+    use conduitos::usb_base::{
+        endpoint_read_contract::EndpointReadContract,
+        endpoint_read_result::PreparedEndpointReadResultEncoder,
+    };
+    let source = PreparedProtocolSource::prepare(package()).unwrap();
+    let read = EndpointReadContract::prepare().unwrap();
+    let mut encoder = PreparedEndpointReadResultEncoder::new(&read).unwrap();
+    let data = StructuredInfoValue::from_canonical_bytes(
+        encoder.completed(0, 512, 17, &[0x80; 17]).unwrap(),
+    )
+    .unwrap();
+    let pair_type = &source
+        .checked
+        .native_types
+        .iter()
+        .find(|ty| ty.name == "BotStoragePair")
+        .unwrap()
+        .value_type;
+    let state_type = fields(pair_type)[0].value_type();
+    let event_type = fields(pair_type)[1].value_type();
+    let state = record(state_type, |field| match field.name() {
+        "bank" => StructuredInfoValue::leaf(field.value_type().clone(), vec![0; 496]).unwrap(),
+        "command" => record(field.value_type(), |wire| {
+            StructuredInfoValue::leaf(wire.value_type().clone(), vec![0; 31]).unwrap()
+        }),
+        "request" => record(field.value_type(), |part| {
+            scalar(
+                part.value_type(),
+                match part.name() {
+                    "block_size" => 512,
+                    "count" => 1,
+                    _ => 0,
+                },
+            )
+        }),
+        "data" => data.clone(),
+        "phase" => scalar(field.value_type(), 5),
+        "terminal" => StructuredInfoValue::leaf(field.value_type().clone(), vec![0]).unwrap(),
+        _ => scalar(field.value_type(), 0),
+    });
+    let observe = program(&source, "bot-storage-read-event");
+    let accept = program(&source, "bot-storage-accept");
+    let emission = program(&source, "bot-storage-emission");
+    for (tag, residue, status) in [
+        (1u8, 495u32, 0u8),
+        (2, 495, 0),
+        (1, 494, 0),
+        (1, 495, 1),
+        (1, 495, 2),
+    ] {
+        let mut csw = b"USBS\0\0\0\0\0\0\0\0\0".to_vec();
+        csw[4] = tag;
+        csw[8..12].copy_from_slice(&residue.to_le_bytes());
+        csw[12] = status;
+        let observed = observe
+            .evaluate(encoder.completed(1, 13, 13, &csw).unwrap())
+            .unwrap();
+        let observation = StructuredInfoValue::from_canonical_bytes(&observed).unwrap();
+        let event = variant(event_type, "observation", |_| observation.clone());
+        let pair = record(pair_type, |field| {
+            if field.name() == "0" {
+                state.clone()
+            } else {
+                event.clone()
+            }
+        });
+        let transition = accept.evaluate(&pair.canonical_bytes().unwrap()).unwrap();
+        let result = emission.evaluate(&transition).unwrap();
+        let result = validate_canonical_structured_value(&result)
+            .unwrap()
+            .variant_payload("emit")
+            .unwrap()
+            .unwrap();
+        if tag == 1 && residue == 495 && status == 0 {
+            assert_eq!(result.variant_tag().unwrap(), "incomplete");
+            let payload = result.variant_payload("incomplete").unwrap().unwrap();
+            assert_eq!(
+                payload
+                    .record_field("actual")
+                    .unwrap()
+                    .unwrap()
+                    .primitive_bytes("value/u64")
+                    .unwrap(),
+                &17u64.to_le_bytes()
+            );
+            assert_eq!(
+                payload
+                    .record_field("residue")
+                    .unwrap()
+                    .unwrap()
+                    .primitive_bytes("value/u64")
+                    .unwrap(),
+                &495u64.to_le_bytes()
+            );
+        } else {
+            assert_eq!(result.variant_tag().unwrap(), "command-failed");
+        }
+    }
+}

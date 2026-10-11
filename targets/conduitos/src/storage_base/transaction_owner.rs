@@ -50,6 +50,9 @@ impl StorageCancellationReceipt {
     }
 }
 impl StorageSettlementReceipt {
+    pub(crate) fn into_submission(self) -> StorageAuthorizationSubmission {
+        self.0
+    }
     /// # Safety
     /// The original preparation-owned exclusive association must have verified
     /// native continuity and zero physical pending DMA/leases/uncertainty AND
