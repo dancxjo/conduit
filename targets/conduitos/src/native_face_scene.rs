@@ -83,6 +83,7 @@ impl FaceFrame<'_> {
 pub struct NativeFaceScene {
     face: Presentation,
     screen: LayoutRect,
+    text_scale_percent: u16,
     primary: Vec<layout::Row>,
     details: Vec<layout::Row>,
     page: usize,
@@ -121,6 +122,7 @@ impl NativeFaceScene {
             details: layout::admit(details, screen)?,
             face,
             screen,
+            text_scale_percent: 100,
             page: 0,
             focus: None,
             showing_details: false,
@@ -129,6 +131,87 @@ impl NativeFaceScene {
             interaction_admitted,
             local_notice: None,
         })
+    }
+
+    /// Realize source-owned structural geometry and the admitted visual facet
+    /// over this exact Face. Layout retains all original control references.
+    pub fn prepare_configured(
+        face: Presentation,
+        width: u16,
+        height: u16,
+        interaction_admitted: bool,
+        recipe: &conduit_presentation::PreparedComponentRecipe,
+        expression: &conduit_presentation::AdmittedVisualExpression,
+    ) -> Result<Self, FaceSceneError> {
+        if recipe.reading.source_face_identity != face.identity.as_str()
+            || recipe.reading.source_face_revision != face.revision
+        {
+            return Err(FaceSceneError::StaleFace);
+        }
+        let geometry = recipe
+            .geometry_for_width(width)
+            .map_err(|_| FaceSceneError::InvalidExtent)?;
+        let mut scene = Self::prepare_with_input(face, width, height, interaction_admitted)?;
+        let (mut primary, details) = document::prepare(&scene.face, interaction_admitted)?;
+        for item in &mut primary {
+            item.region = item
+                .subject_index
+                .and_then(|subject| recipe.subject_regions.get(subject).copied().flatten())
+                .and_then(|region| recipe.recipe.regions().as_slice().get(region))
+                .map(|region| *region.group());
+        }
+        let scale = expression.expression.text_scale_percent;
+        let padding = match expression.expression.density {
+            conduit_presentation::VisualDensity::Compact => SPACE_SM,
+            conduit_presentation::VisualDensity::Spacious => SPACE_SM * 2,
+        };
+        scene.primary = layout::admit_with_expression(
+            primary,
+            scene.screen,
+            geometry.gutter,
+            geometry.columns,
+            scale,
+            padding,
+        )?;
+        scene.details = layout::admit_with_expression(
+            details,
+            scene.screen,
+            geometry.gutter,
+            geometry.columns,
+            scale,
+            padding,
+        )?;
+        scene.text_scale_percent = scale;
+        Ok(scene)
+    }
+
+    /// Generic semantic projection when configured structural capacity is unavailable.
+    /// User text requirements still use the same measured and rasterized scale.
+    pub fn prepare_visual_fallback(
+        face: Presentation,
+        width: u16,
+        height: u16,
+        interaction_admitted: bool,
+        expression: &conduit_presentation::AdmittedVisualExpression,
+    ) -> Result<Self, FaceSceneError> {
+        let mut scene = Self::prepare_with_input(face, width, height, interaction_admitted)?;
+        let (primary, details) = document::prepare(&scene.face, interaction_admitted)?;
+        let scale = expression.expression.text_scale_percent;
+        let padding = match expression.expression.density {
+            conduit_presentation::VisualDensity::Compact => SPACE_SM,
+            conduit_presentation::VisualDensity::Spacious => SPACE_SM * 2,
+        };
+        scene.primary =
+            layout::admit_with_expression(primary, scene.screen, SPACE_XL, 1, scale, padding)?;
+        scene.details =
+            layout::admit_with_expression(details, scene.screen, SPACE_XL, 1, scale, padding)?;
+        scene.text_scale_percent = scale;
+        Ok(scene)
+    }
+
+    /// The selected renderer must use this same scale for rasterization.
+    pub fn text_scale_percent(&self) -> u16 {
+        self.text_scale_percent
     }
 
     pub fn presentation(&self) -> &Presentation {

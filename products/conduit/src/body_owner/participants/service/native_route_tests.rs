@@ -146,6 +146,15 @@ fn remote_native_mask_accepts_only_the_offered_scoped_present_binding() {
         .seal_native_mask_route(&receipt, &face_line, &return_line, expires)
         .unwrap();
     assert_eq!(selected, seal);
+    let mut forged_receipt = receipt.clone();
+    forged_receipt.host_advertisement = wrong_offer;
+    assert_eq!(
+        owner
+            .seal_native_mask_route(&forged_receipt, &face_line, &return_line, expires)
+            .unwrap_err(),
+        "native-mask-part-unavailable"
+    );
+
     let plan_id = owner
         .presentation_wardrobe
         .as_ref()

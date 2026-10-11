@@ -2,6 +2,7 @@
 
 use super::*;
 
+const MAX_PRESENTATION_REFRESHES: u8 = 4;
 const REFRESH_SCHEMA: &str = "conduit.body/native-owner-return-refresh@1";
 const REFRESH_RESPONSE_SCHEMA: &str = "conduit.body/native-owner-return-refresh-response@1";
 
@@ -11,6 +12,17 @@ struct Refresh {
     token: [u8; 32],
     sequence: u8,
     request: OwnerFaceSnapshotRequest,
+}
+
+#[derive(Serialize)]
+struct ComponentSelection<'a> {
+    schema: &'static str,
+    token: [u8; 32],
+    sequence: u8,
+    request: OwnerFaceSnapshotRequest,
+    show: &'a MaskShow,
+    look: &'static str,
+    recipe: &'static str,
 }
 
 #[derive(Deserialize)]
@@ -29,7 +41,37 @@ impl NativeOwnerReturnRoute {
         identities: BootIdentities,
         prior: &NativeGuestFace,
     ) -> Result<NativeGuestFace, &'static str> {
-        if !self.available() || self.acknowledged_show.is_some() || self.refreshes >= 2 {
+        self.refresh_with_selection(identities, prior, None)
+    }
+
+    /// Replace appearance through the owner while preserving the exact Face.
+    /// The returned Face has no local Show acknowledgement yet.
+    pub fn select_component(
+        &mut self,
+        identities: BootIdentities,
+        prior: &NativeGuestFace,
+        show: &MaskShow,
+        look: conduit_presentation::ComponentMaskLook,
+        recipe: conduit_presentation::TodoComponentRecipe,
+    ) -> Result<NativeGuestFace, &'static str> {
+        self.refresh_with_selection(identities, prior, Some((show, look, recipe)))
+    }
+
+    fn refresh_with_selection(
+        &mut self,
+        identities: BootIdentities,
+        prior: &NativeGuestFace,
+        selection: Option<(
+            &MaskShow,
+            conduit_presentation::ComponentMaskLook,
+            conduit_presentation::TodoComponentRecipe,
+        )>,
+    ) -> Result<NativeGuestFace, &'static str> {
+        let show_valid = match selection {
+            Some((show, _, _)) => self.acknowledged_show.as_ref() == Some(show),
+            None => self.acknowledged_show.is_none(),
+        };
+        if !self.available() || !show_valid || self.refreshes >= MAX_PRESENTATION_REFRESHES {
             return Err("native-owner-refresh-unavailable");
         }
         self.active = false;
@@ -52,15 +94,38 @@ impl NativeOwnerReturnRoute {
         let mut request = owner_request(&self.receipt);
         request.last_seen_revision = Some(prior.presentation().revision);
         request.last_seen_identity = Some(prior.presentation().identity.clone());
-        let length = serde_json_core::to_slice(
-            &Refresh {
-                schema: REFRESH_SCHEMA,
-                token: self.grant.token,
-                sequence: 0,
-                request,
-            },
-            &mut self.action_storage,
-        )
+        let length = if let Some((show, look, recipe)) = selection {
+            let look = match look {
+                conduit_presentation::ComponentMaskLook::Compact => "compact",
+                conduit_presentation::ComponentMaskLook::Spacious => "spacious",
+            };
+            let recipe = match recipe {
+                conduit_presentation::TodoComponentRecipe::Flat => "flat",
+                conduit_presentation::TodoComponentRecipe::Grouped => "grouped",
+            };
+            serde_json_core::to_slice(
+                &ComponentSelection {
+                    schema: "conduit.body/native-owner-component-selection@1",
+                    token: self.grant.token,
+                    sequence: 0,
+                    request,
+                    show,
+                    look,
+                    recipe,
+                },
+                &mut self.action_storage,
+            )
+        } else {
+            serde_json_core::to_slice(
+                &Refresh {
+                    schema: REFRESH_SCHEMA,
+                    token: self.grant.token,
+                    sequence: 0,
+                    request,
+                },
+                &mut self.action_storage,
+            )
+        }
         .map_err(|_| "native-owner-refresh-pressure")?;
         if length == 0 || length > MAX_RETURN_ACTION_BYTES {
             return Err("native-owner-refresh-pressure");
@@ -85,8 +150,17 @@ impl NativeOwnerReturnRoute {
         )
         .map_err(|_| "native-owner-refresh-outcome-unknown")?;
         self.device = Some(device);
-        let fresh = validated_refresh(&self.receipt, prior, response)?;
+        let fresh = if let Some((_, look, recipe)) = selection {
+            validated_component_selection(&self.receipt, prior, response, look, recipe)?
+        } else {
+            validated_refresh(&self.receipt, prior, response)?
+        };
+        if fresh.1.token == self.grant.token {
+            return Err("native-owner-refresh-bearer-not-replaced");
+        }
+        self.acknowledged_show = None;
         self.grant = fresh.1;
+        self.next_sequence = 1;
         self.lifetime = CandidateDeadline::admit(self.grant.remaining_millis)
             .ok_or("native-owner-refresh-clock-unavailable")?;
         self.active = true;
@@ -139,12 +213,43 @@ fn validated_refresh(
     Ok((face, grant))
 }
 
+fn validated_component_selection(
+    receipt: &PortableAdmissionReceipt,
+    prior: &NativeGuestFace,
+    response: RefreshResponse,
+    look: conduit_presentation::ComponentMaskLook,
+    recipe: conduit_presentation::TodoComponentRecipe,
+) -> Result<(NativeGuestFace, NativeOwnerReturnGrant), &'static str> {
+    if response.schema != REFRESH_RESPONSE_SCHEMA {
+        return Err("native-owner-refresh-schema-invalid");
+    }
+    let grant = response.grant.ok_or("native-owner-refresh-grant-absent")?;
+    if !grant.matches_receipt(receipt) {
+        return Err("native-owner-refresh-grant-invalid");
+    }
+    let face = NativeGuestFace::from_owner_response(receipt, response.face)
+        .map_err(|_| "native-owner-refresh-face-invalid")?;
+    let (expected, _) = conduit_conduitos_mask_offer::prepare_component_stage_from_offer(
+        &receipt.host_advertisement,
+        look,
+        recipe,
+    )
+    .map_err(|_| "native-owner-component-plan-invalid")?;
+    if !face.interactions_admitted()
+        || face.presentation() != prior.presentation()
+        || face.route().map(|route| &route.planned_mask) != Some(&expected.planned_mask)
+    {
+        return Err("native-owner-component-face-or-plan-changed");
+    }
+    Ok((face, grant))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use alloc::boxed::Box;
     use conduit_body::{Body, MembershipCredential, SPAWN_ADMISSION_RECEIPT_SCHEMA};
-    use conduit_core::{OfferGeneration, PROTOCOL_VERSION, SignId};
+    use conduit_core::{OfferGeneration, SignId, PROTOCOL_VERSION};
     use conduit_presentation::{Face, FaceContext, FaceFocus, OWNER_FACE_RESPONSE_SCHEMA};
 
     #[test]

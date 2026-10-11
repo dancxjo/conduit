@@ -13,6 +13,38 @@ const MAX_OWNER_WARDROBE_RESPONSE_BYTES = MAX_OWNER_WARDROBE_REPORT_BYTES + 1024
 const MAX_U64 = 18_446_744_073_709_551_615n;
 const wardrobeEncoder = new TextEncoder();
 
+export function checkedComponentMaskResponse(frame, pending, byteLength) {
+  if (!pending || frame?.kind !== 'face-component-mask-response' || frame.protocol !== 1
+      || frame.request_id !== pending.requestId || !Number.isSafeInteger(byteLength)
+      || byteLength < 1 || byteLength > 4096 || typeof frame.accepted !== 'boolean'
+      || typeof frame.code !== 'string' || frame.code.length > 128
+      || (frame.accepted ? frame.code !== '' : frame.code === '')) {
+    throw new Error('invalid or mismatched component Mask response');
+  }
+  if (!frame.accepted) {
+    const error = new Error(`component Mask selection refused: ${frame.code}`);
+    error.code = frame.code;
+    throw error;
+  }
+}
+
+// Embed the actual WASM Show receipt without rounding its canonical integers.
+export function checkedComponentMaskRequestFrame({ requestId, request, showBytes, look, recipe }) {
+  if (typeof requestId !== 'string' || !/^browser-component:[1-9][0-9]{0,15}$/.test(requestId)
+      || !['compact', 'spacious'].includes(look) || !['flat', 'grouped'].includes(recipe)
+      || !(showBytes instanceof Uint8Array) || showBytes.length < 1 || showBytes.length > 64 * 1024) {
+    throw new Error('component Mask selection exceeds its declared finite fields');
+  }
+  const show = new TextDecoder('utf-8', { fatal: true }).decode(showBytes);
+  if (!show.startsWith('{') || !show.endsWith('}')) throw new Error('invalid current Mask Show receipt');
+  const prefix = JSON.stringify({ kind: 'face-component-mask-request', protocol: 1,
+    request_id: requestId, request, look, recipe });
+  const bytes = wardrobeEncoder.encode(`${prefix.slice(0, -1)},"show":${show}}`);
+  if (bytes.length > 193 * 1024) throw new Error('component Mask request exceeds its carrier bound');
+  return bytes;
+}
+
+
 export function checkedOwnerWardrobeResponse(frame, pending, frameLength) {
   if (!pending || frame?.kind !== "face-wardrobe-response" || frame.protocol !== 1 ||
       frame.request_id !== pending.requestId || !Number.isSafeInteger(frameLength) ||
@@ -229,6 +261,8 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
   let pendingFaceInteraction = null;
   let pendingWardrobe = null;
   let wardrobeSequence = 0;
+  let componentSequence = 0;
+  let pendingComponent = null;
   let pendingSelectedSpeech = null;
   let selectedSpeechSequence = 0;
   let pageLifecycle = document.visibilityState === "hidden" ? "hidden" : "visible";
@@ -391,6 +425,15 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
       pendingWardrobe = null;
       try { pending.resolve(checkedOwnerWardrobeResponse(frame, pending, frameBytes.length)); }
       catch (error) { pending.reject(error); }
+    } else if (frame.kind === "face-component-mask-response" && frame.protocol === 1) {
+      const pending = pendingComponent;
+      if (!pending || frame.request_id !== pending.requestId) throw new Error("unsolicited component Mask response");
+      clearTimeout(pending.timeout);
+      pendingComponent = null;
+      try {
+        checkedComponentMaskResponse(frame, pending, frameBytes.length);
+        pending.resolve();
+      } catch (error) { pending.reject(error); }
     } else if (frame.kind === "selected-speech-response" && frame.protocol === 1) {
       const pending = pendingSelectedSpeech;
       if (!pending || frame.request_id !== pending.requestId) throw new Error("unsolicited or mismatched selected speech response");
@@ -631,6 +674,11 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
         pendingMediaPlan.reject(new Error("media use planning Line closed"));
         pendingMediaPlan = null;
       }
+      if (pendingComponent) {
+        clearTimeout(pendingComponent.timeout);
+        pendingComponent.reject(new Error("component selection Line closed; outcome unknown"));
+        pendingComponent = null;
+      }
       if (pendingFaceSnapshot) {
         clearTimeout(pendingFaceSnapshot.timeout);
         pendingFaceSnapshot.reject(new Error("owner Face Line closed"));
@@ -804,6 +852,31 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
       pendingFaceInteraction = { resolve, reject, timeout };
     });
   }
+  function selectComponentMask({ showBytes, look, recipe }) {
+    if (!credential || presenceState !== "available" || socket?.readyState !== WebSocket.OPEN) {
+      return Promise.reject(new Error("current browser presence is required for component selection"));
+    }
+    if (pendingComponent) return Promise.reject(new Error("one component selection is already pending"));
+    const requestId = `browser-component:${++componentSequence}`;
+    const request = { schema: OWNER_FACE_REQUEST_SCHEMA, credential_id: credential.credential_id,
+      body_id: credential.body_id, part_id: credential.part_id, host_id: credential.host_id,
+      boot_id: credential.boot_id, last_seen_revision: null, last_seen_identity: null };
+    let bytes;
+    try { bytes = checkedComponentMaskRequestFrame({ requestId, request, showBytes, look, recipe }); }
+    catch (error) { return Promise.reject(error); }
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        if (pendingComponent?.requestId === requestId) {
+          pendingComponent = null;
+          socket.close(1000, "Component selection outcome unknown");
+          reject(new Error("component selection deadline; outcome unknown"));
+        }
+      }, MEDIA_PLAN_TIMEOUT_MILLIS);
+      pendingComponent = { requestId, resolve, reject, timeout };
+      try { socket.send(bytes); }
+      catch (error) { clearTimeout(timeout); pendingComponent = null; reject(error); }
+    });
+  }
   function ownerWardrobe({ action = null, ownerPlanId = null, basisRevision = "0" } = {}) {
     if (!credential || presenceState !== "available" || socket?.readyState !== WebSocket.OPEN) {
       return Promise.reject(new Error("current browser presence is required for owner wardrobe"));
@@ -948,6 +1021,7 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
     replanWebRtc: () => webRtcSessions.replan(),
     advertisement: Object.freeze(advertisement),
     submitFaceInteraction,
+    selectComponentMask,
     publishMediaResource,
     close: () => {
       clearTimeout(renewalTimer);

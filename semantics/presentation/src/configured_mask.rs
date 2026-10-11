@@ -8,12 +8,12 @@ use conduit_core::{
     PlannedGear, SourceDocumentId, StructuredConfigurationValue,
 };
 use conduit_planner::{
-    plan_expanded_authoring_with_options, ConnectionQueueLimits, ForeBoundaryKey, PlacementChoices,
-    PlanningOptions,
+    ConnectionQueueLimits, ForeBoundaryKey, PlacementChoices, PlanningOptions,
+    plan_expanded_authoring_with_options,
 };
 use conduit_plot::{
-    expand_canonical_plot_for_authoring_with_backs, CanonicalBackCatalog, CanonicalStartupValue,
-    CheckedSyntaxDocument, ExpandedAuthoringPlot, ExpandedGearProvenance, ProfileCatalog,
+    CanonicalBackCatalog, CanonicalStartupValue, CheckedSyntaxDocument, ExpandedAuthoringPlot,
+    ExpandedGearProvenance, ProfileCatalog, expand_canonical_plot_for_authoring_with_backs,
 };
 use serde::Serialize;
 
@@ -283,4 +283,35 @@ fn bind_source_recipe(
         return Err(ConfiguredMaskRefusal::RecipeNotSourceLiteral);
     }
     component.ok_or(ConfiguredMaskRefusal::RecipeNotSourceLiteral)
+}
+
+/// Owned source/placement evidence retained by the renderer preparation join.
+/// Canonical values belong to the actual selected gear, not the Show boundary.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub struct ConfiguredMaskConfiguration {
+    pub component: ConfiguredComponentSource,
+    pub invocation_path: Vec<String>,
+    pub placement_id: conduit_core::PlacementId,
+    pub host_id: conduit_core::HostId,
+    pub boot_id: conduit_core::BootId,
+    pub execution_profile_id: conduit_core::ExecutionProfileId,
+    pub implementation_id: conduit_core::ImplementationId,
+    pub recipe: StructuredConfigurationValue,
+    pub expression: StructuredConfigurationValue,
+}
+
+impl PreparedConfiguredMask<'_> {
+    pub fn configuration(&self) -> ConfiguredMaskConfiguration {
+        ConfiguredMaskConfiguration {
+            component: self.component.clone(),
+            invocation_path: self.component_invocation_path.clone(),
+            placement_id: self.renderer.placement_id.clone(),
+            host_id: self.renderer.host_id.clone(),
+            boot_id: self.renderer.boot_id.clone(),
+            execution_profile_id: self.renderer.execution_profile_id.clone(),
+            implementation_id: self.renderer.implementation_id.clone(),
+            recipe: self.recipe.clone(),
+            expression: self.expression.clone(),
+        }
+    }
 }

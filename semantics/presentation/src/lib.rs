@@ -30,10 +30,11 @@ mod generated {
 pub use generated::{
     AdmittedNavigationDestination, ApplicationAction, ApplicationComponent,
     ApplicationComponentForm, ApplicationEventKind, ApplicationEventKindForm, ApplicationNodeState,
-    ApplicationNodeStateForm, ApplicationViewRefusal, ChoiceMultiplicity, CompositionItemKind,
-    CompositionItemKindForm, CompositionRole, CompositionRoleForm, EvidenceDisposition, Extent2,
-    FaceContributionRole, FaceContributionRoleForm, FaceUtteranceClauseKind,
-    FaceUtteranceProvenance, FaceUtteranceProvenanceAction, FaceUtteranceProvenanceActionArgument,
+    ApplicationNodeStateForm, ApplicationViewRefusal, ChoiceMultiplicity, ComponentRecipeInfo,
+    ComponentRegionInfo, ComponentSubjectSelector, CompositionItemKind, CompositionItemKindForm,
+    CompositionRole, CompositionRoleForm, EvidenceDisposition, Extent2, FaceContributionRole,
+    FaceContributionRoleForm, FaceUtteranceClauseKind, FaceUtteranceProvenance,
+    FaceUtteranceProvenanceAction, FaceUtteranceProvenanceActionArgument,
     FaceUtteranceProvenanceComposition, FaceUtteranceProvenanceDisclosure,
     FaceUtteranceProvenanceProperty, FaceUtteranceProvenanceRelationship,
     FaceUtteranceProvenanceSubject, FaceUtteranceProvenanceTemporalFact,
@@ -203,3 +204,5 @@ mod configured_mask;
 pub use configured_mask::*;
 mod visual_expression_info;
 pub use visual_expression_info::*;
+mod component_recipe;
+pub use component_recipe::*;

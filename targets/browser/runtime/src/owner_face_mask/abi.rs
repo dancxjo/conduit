@@ -302,6 +302,7 @@ mod tests {
             body_id: body.body_id.clone(),
             host_id: HostId::from("host/canonical-observation"),
             boot_id: BootId::from("boot/canonical-observation"),
+            visual_constraints: None,
         }, face.clone(), 1, false).unwrap();
         let prepared = mask.view();
         CURRENT.with(|current| *current.borrow_mut() = Some(mask));

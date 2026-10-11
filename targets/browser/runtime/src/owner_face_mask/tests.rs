@@ -3,8 +3,8 @@
 use super::*;
 use conduit_body::Body;
 use conduit_core::{
-    kind_id, process_owned_line_offer_with_limits, BaseImplementationId, CheckedPlotId,
-    CheckedValueContract, LineOffer, LinkLimits, SignId, SourceDocumentId, ValueConstraint,
+    BaseImplementationId, CheckedPlotId, CheckedValueContract, LineOffer, LinkLimits, SignId,
+    SourceDocumentId, ValueConstraint, kind_id, process_owned_line_offer_with_limits,
 };
 use conduit_presentation::{
     Face, FaceActionArgument, FaceContext, FaceFocus, PresentationAction,
@@ -32,6 +32,7 @@ fn exact_owner_face_runs_the_browser_mask_and_acknowledges_its_show() {
     .unwrap()
     .presentation;
     let basis = HostBasis {
+        visual_constraints: None,
         body_id: body.body_id.clone(),
         host_id: HostId::from("host/browser-owner-face"),
         boot_id: BootId::from("boot/browser-owner-face"),
@@ -41,21 +42,23 @@ fn exact_owner_face_runs_the_browser_mask_and_acknowledges_its_show() {
     assert_eq!(prepared.face_revision, revision.to_string());
     assert_eq!(prepared.show_state, "prepared");
     assert!(!prepared.interactions_admitted);
-    assert!(mask
-        .acknowledge(Acknowledgement {
+    assert!(
+        mask.acknowledge(Acknowledgement {
             show_id: prepared.show_id.clone(),
             face_id: prepared.face_id.clone(),
             face_revision: prepared.face_revision.clone(),
         })
-        .is_ok());
+        .is_ok()
+    );
     assert_eq!(mask.view().show_state, "available");
-    assert!(mask
-        .acknowledge(Acknowledgement {
+    assert!(
+        mask.acknowledge(Acknowledgement {
             show_id: prepared.show_id,
             face_id: prepared.face_id,
             face_revision: prepared.face_revision,
         })
-        .is_err());
+        .is_err()
+    );
 }
 
 #[test]
@@ -78,6 +81,7 @@ fn selected_carrier_lines_survive_browser_lowering_and_bound_show() {
     .unwrap()
     .presentation;
     let basis = HostBasis {
+        visual_constraints: None,
         body_id: body.body_id,
         host_id: HostId::from("host/selected-browser"),
         boot_id: BootId::from("boot/selected-browser"),
@@ -122,20 +126,23 @@ fn selected_carrier_lines_survive_browser_lowering_and_bound_show() {
         "browser-graphical",
     )
     .unwrap();
-    assert!(OwnerBrowserMask::prepare_planned(
-        HostBasis {
-            body_id: basis.body_id.clone(),
-            host_id: basis.host_id.clone(),
-            boot_id: basis.boot_id.clone(),
-        },
-        face.clone(),
-        planned.clone(),
-        None,
-        Some((return_line.admitted_line(), face_line.admitted_line(), None)),
-        1,
-        false,
-    )
-    .is_err());
+    assert!(
+        OwnerBrowserMask::prepare_planned(
+            HostBasis {
+                visual_constraints: None,
+                body_id: basis.body_id.clone(),
+                host_id: basis.host_id.clone(),
+                boot_id: basis.boot_id.clone(),
+            },
+            face.clone(),
+            planned.clone(),
+            None,
+            Some((return_line.admitted_line(), face_line.admitted_line(), None)),
+            1,
+            false,
+        )
+        .is_err()
+    );
     let interaction_line = line("interaction/selected", &browser, &owner);
     let full_plan = conduit_browser_mask_offer::planned_owner_face_show_interaction_mask(
         &browser,
@@ -148,22 +155,26 @@ fn selected_carrier_lines_survive_browser_lowering_and_bound_show() {
     )
     .unwrap();
     let full_basis = HostBasis {
+        visual_constraints: None,
         body_id: basis.body_id.clone(),
         host_id: basis.host_id.clone(),
         boot_id: basis.boot_id.clone(),
     };
-    assert!(OwnerBrowserMask::prepare_planned(
-        full_basis,
-        face.clone(),
-        full_plan.clone(),
-        None,
-        Some((face_line.admitted_line(), return_line.admitted_line(), None)),
-        1,
-        false,
-    )
-    .is_err());
+    assert!(
+        OwnerBrowserMask::prepare_planned(
+            full_basis,
+            face.clone(),
+            full_plan.clone(),
+            None,
+            Some((face_line.admitted_line(), return_line.admitted_line(), None)),
+            1,
+            false,
+        )
+        .is_err()
+    );
     OwnerBrowserMask::prepare_planned(
         HostBasis {
+            visual_constraints: None,
             body_id: basis.body_id.clone(),
             host_id: basis.host_id.clone(),
             boot_id: basis.boot_id.clone(),
@@ -260,6 +271,7 @@ fn current_browser_mask_emits_one_exact_typed_clock_interaction() {
     )
     .unwrap();
     let basis = HostBasis {
+        visual_constraints: None,
         body_id: body.body_id,
         host_id: HostId::from("host/browser-owner-action"),
         boot_id: BootId::from("boot/browser-owner-action"),
@@ -291,9 +303,10 @@ fn current_browser_mask_emits_one_exact_typed_clock_interaction() {
         sequence: 1,
     };
     assert!(mask.interact(proposed("9007199254740992", "500")).is_err());
-    assert!(mask
-        .interact(proposed(&prepared.face_revision, "3000"))
-        .is_err());
+    assert!(
+        mask.interact(proposed(&prepared.face_revision, "3000"))
+            .is_err()
+    );
     let mut wrong_argument = proposed(&prepared.face_revision, "500");
     wrong_argument.arguments[0].name = "clock/other".into();
     assert!(mask.interact(wrong_argument).is_err());
@@ -303,7 +316,8 @@ fn current_browser_mask_emits_one_exact_typed_clock_interaction() {
     assert_eq!(emitted.interaction.face_revision, revision);
     assert_eq!(emitted.interaction.arguments[0].value, b"500");
     assert_eq!(emitted.show.show_id.as_str(), prepared.show_id);
-    assert!(mask
-        .interact(proposed(&prepared.face_revision, "250"))
-        .is_err());
+    assert!(
+        mask.interact(proposed(&prepared.face_revision, "250"))
+            .is_err()
+    );
 }
