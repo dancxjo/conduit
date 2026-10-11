@@ -14,7 +14,7 @@ use super::{
     control_owner::{UsbControlHostCall, UsbControlSelection},
     device_dma_pointer,
 };
-use crate::arch::x86_64::{serial::early_write, xhci::XhciReady};
+use crate::arch::{early_write, XhciReady};
 use crate::usb_base::{
     control_contract::{CONTROL_CALL, CONTROL_MAXIMUM_BYTES, ControlContract},
     control_factory::*,
