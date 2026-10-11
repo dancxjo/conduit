@@ -280,6 +280,9 @@ pub fn run(
                                     current_owner_face = Some(fresh);
                                 }
                                 Err(reason) => {
+                                    arch::early_write(b"CONDUIT_NATIVE_COMPONENT_SELECTION {\"status\":\"refused\",\"code\":\"");
+                                    arch::early_write(reason.as_bytes());
+                                    arch::early_write(b"\"}\n");
                                     owner_route = None;
                                     face_arrival.retire_owner_route(display)?;
                                     face_arrival

@@ -78,11 +78,7 @@ impl NativeOwnerReturnRoute {
         self.refreshes += 1;
         let deadline = CandidateDeadline::admit(MAX_ACTION_MILLIS)
             .ok_or("native-owner-refresh-clock-unavailable")?;
-        let mut endpoint = self.endpoint;
-        endpoint.local_port = endpoint
-            .local_port
-            .checked_add(9 + u16::from(self.refreshes))
-            .ok_or("native-owner-refresh-port-bound")?;
+        let endpoint = next_return_endpoint(&mut self.endpoint)?;
         let seeds = crate::native_boot_join::fresh_seeds()?;
         let device = self
             .device
