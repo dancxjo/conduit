@@ -1,0 +1,101 @@
+{
+  "schema": "conduit.usb/cdc-control-observation@1",
+  "proof_class": "freestanding-emulator",
+  "scope": "selected serial/duplex-bytes CDC Back; acceptance requires decoded serial results and independent USB wire evidence",
+  "outcome": "play-retired",
+  "image_sha256": "ba8ccfdc58b78e622cdebfca081adfd1996a7103a4b60985aac9f3f5aa74fb10",
+  "qemu_arguments": [
+    "/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-aarch64-tools/root/usr/bin/qemu-system-aarch64",
+    "-M",
+    "virt-10.2,highmem=off,gic-version=2,iommu=none",
+    "-cpu",
+    "neoverse-n2",
+    "-m",
+    "512M",
+    "-smp",
+    "1",
+    "-display",
+    "none",
+    "-monitor",
+    "none",
+    "-serial",
+    "file:/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-serial-product-proof/aarch64/run-validated/serial.log",
+    "-no-reboot",
+    "-net",
+    "none",
+    "-bios",
+    "/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-aarch64-tools/root/usr/share/qemu-efi-aarch64/QEMU_EFI.fd",
+    "-cdrom",
+    "/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-serial-product-proof/aarch64/media/conduitos.iso",
+    "-boot",
+    "d",
+    "-device",
+    "qemu-xhci,id=protocol-usb,p2=1,p3=0",
+    "-chardev",
+    "socket,id=cdc,path=/tmp/cdc-product-ll3aywmp/device.sock",
+    "-device",
+    "usb-redir,chardev=cdc,bus=protocol-usb.0,port=1,msos-desc=off,streams=off,debug=4"
+  ],
+  "serial_sha256": "af421964c1a8bbfd049ecded9dabbac976589ea5618cb67b12b64b7ad33f95d8",
+  "physical_compatibility": "unverified",
+  "architecture": "aarch64",
+  "protocol_image_receipt": {
+    "architecture": "aarch64",
+    "checked_plot_id": "e694a736890697d81574c149a7db2b769b96bb12b9779386027f01e572c41edc",
+    "expanded_plot_id": "3449161b561b9d71bf0d092dfdee2cc3ba75fb0246da236ed3ade530f6bfd380",
+    "image_sha256": "ba8ccfdc58b78e622cdebfca081adfd1996a7103a4b60985aac9f3f5aa74fb10",
+    "kernel_sha256": "a906327aa4d9a2e6a9567844d61809a7c5f174c2459d23c68b89773030242987",
+    "native_execution": "not-yet-observed",
+    "proof_class": "source-check-and-image-packaging",
+    "root_kind": "usb",
+    "root_module_command": "conduit.protocol/usb-root-request@1",
+    "root_request_schema": "conduit.conduitos/usb-protocol-root-request@1",
+    "root_request_sha256": "8b8f8f470492d70d7cfa955952f3a7f206be7c1908213ea2d4fdbdb1f94c43d8",
+    "schema": "conduit.conduitos/protocol-image-receipt@1",
+    "source_artifact_id": "conduitos/protocol-source/sha256/d1621050418b243909457672c65c587246b6b526b104b5b23c1674622839da38",
+    "source_document_id": "e39dabef5d8d1403f96a93710aa2b3561da202631601033bb838c734950022f1"
+  },
+  "product_commit": "53b0baa1ced0ce52bae39513e0caf91df3f3c394",
+  "build_record": {
+    "schema": "conduit.conduitos.build/v2",
+    "artifact_role": "product-host",
+    "base_commit": "53b0baa1ced0ce52bae39513e0caf91df3f3c394",
+    "architecture": "aarch64",
+    "rust_target": "aarch64-unknown-none",
+    "limine_crate": "0.5.0",
+    "elf_sha256": "a906327aa4d9a2e6a9567844d61809a7c5f174c2459d23c68b89773030242987"
+  },
+  "firmware_sha256": "e264b5d66d05ad3abad9ec0b63dcf0c956007a3af9345dd03f79c5246ffcb392",
+  "emulator_sha256": "c232f67cee378d22414d869b36fd9bcbaa5009630e12fbfb50fa5c9449593da5",
+  "validation": "passed",
+  "decoded_serial": {
+    "serial_results": 32,
+    "transmitted": 16,
+    "received": 16,
+    "ordered": true,
+    "retired": true
+  },
+  "independent_wire": {
+    "source_controls": 5,
+    "actual_transmit": 16,
+    "actual_receive": 16,
+    "status_success": true,
+    "exact_octets": true
+  },
+  "verification_tools": {
+    "decoder": "08a63abbbb0afa88ed4990253bad9315bcdeb8e4f8020c91dfcd1fc7f67e4bd9",
+    "decode.rs": "3637506e5feb6174531ba7b506a09ec2bd41759dbb36a08411ed3c92e21bd5cc",
+    "check_wire.py": "b3e652cefd66399d1e96039a11da9af25e32524ea5112e1ccc08ce3c7859afec",
+    "run_aarch64.py": "2d24d793272a58d43ba2351af13616e6c50efb318c8b1ad293a2aee24278f625"
+  },
+  "wire_revalidation": {
+    "result": {
+      "source_controls": 5,
+      "actual_transmit": 16,
+      "actual_receive": 16,
+      "status_success": true,
+      "exact_octets": true
+    },
+    "verifier_sha256": "b3e652cefd66399d1e96039a11da9af25e32524ea5112e1ccc08ce3c7859afec"
+  }
+}
