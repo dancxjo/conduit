@@ -55,3 +55,5 @@ pub mod workspace;
 pub mod native_speech;
 
 pub mod model_authoring;
+
+pub mod runtime_performance;
