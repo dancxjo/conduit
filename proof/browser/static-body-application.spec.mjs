@@ -343,7 +343,7 @@ test("malformed packaged Handbook Plot leaves an editable recovery route into a 
     await expect(chooser).toBeEnabled();
     await expect(page.getByRole("button", { name: "Try in my Handbook", exact: true })).toBeEnabled();
     await expect(editor).toHaveValue(/source = "1kHz"/);
-    await expect(chooser.locator("option")).toHaveCount(11);
+    await expect(chooser.locator("option")).toHaveCount(13); // Two resident Plots plus eleven lessons.
     const repaired = (await editor.inputValue()).replace('source = "1kHz"', "source = 1kHz");
     await editor.fill(repaired);
     await page.getByRole("button", { name: "Try in my Handbook", exact: true }).click();
