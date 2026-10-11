@@ -28,7 +28,7 @@ pub fn select_realization_with_characteristics(
     observations: &[ResourceObservation],
     policy: &RealizationPolicy,
 ) -> Result<PlacementChoice, PlannerError> {
-    select_realization_with_characteristics_and_signs(
+    crate::select_realization_with_characteristics_and_signs(
         gear,
         hosts,
         advertisements,
@@ -39,14 +39,14 @@ pub fn select_realization_with_characteristics(
     .map(|selection| selection.choice)
 }
 
-pub fn select_realization_with_characteristics_and_signs(
+pub fn select_realization_with_characteristics_account(
     gear: &CheckedGear,
     hosts: &[HostAdvertisement],
     advertisements: &[RealizationAdvertisement],
     requirements: &HardRealizationRequirements,
     observations: &[ResourceObservation],
     policy: &RealizationPolicy,
-) -> Result<RealizationSelection, PlannerError> {
+) -> Result<RealizationSelection, crate::RealizationSelectionRefusal> {
     validate_requirement_identities(requirements)?;
     validate_policy(policy)?;
     validate_resource_observations(hosts, observations)?;
@@ -58,13 +58,11 @@ pub fn select_realization_with_characteristics_and_signs(
         .flat_map(|host| host.capabilities.iter().map(move |offer| (host, offer)))
         .filter(|(_, offer)| gear.accepts_realization(offer))
         .collect::<Vec<_>>();
-    if let Some(error) = crate::language_coverage::no_eligible_error(gear, hosts)? {
-        return Err(error);
-    }
+    let coverage_error = crate::language_coverage::no_eligible_error(gear, hosts)?;
     if front_candidates.is_empty() {
-        return Err(PlannerError::UnknownCapability(
-            gear.kind_id.as_str().to_string(),
-        ));
+        return Err(coverage_error
+            .unwrap_or_else(|| PlannerError::UnknownCapability(gear.kind_id.as_str().to_string()))
+            .into());
     }
     if front_candidates.len() > MAXIMUM_REALIZATION_DECISION_RECORDS {
         return Err(PlannerError::PlannerLimitExceeded(format!(
@@ -72,7 +70,8 @@ pub fn select_realization_with_characteristics_and_signs(
             gear.gear_id.as_str(),
             front_candidates.len(),
             MAXIMUM_REALIZATION_DECISION_RECORDS
-        )));
+        ))
+        .into());
     }
     let mut signs = Vec::with_capacity(front_candidates.len());
     let mut hard_admitted = Vec::with_capacity(front_candidates.len());
@@ -116,12 +115,15 @@ pub fn select_realization_with_characteristics_and_signs(
         ));
     }
     if hard_admitted.is_empty() {
-        return Err(PlannerError::HardRealizationRequirementUnsatisfied(
-            format!(
-                "gear '{}' has no hard-admissible realization",
-                gear.gear_id.as_str()
-            ),
-        ));
+        return Err(crate::RealizationSelectionRefusal {
+            reason: coverage_error.unwrap_or_else(|| {
+                PlannerError::HardRealizationRequirementUnsatisfied(format!(
+                    "gear '{}' has no hard-admissible realization",
+                    gear.gear_id.as_str()
+                ))
+            }),
+            signs,
+        });
     }
     let mut observed_admitted = Vec::with_capacity(hard_admitted.len());
     for (host, offer) in hard_admitted {
@@ -136,12 +138,13 @@ pub fn select_realization_with_characteristics_and_signs(
         }
     }
     if observed_admitted.is_empty() {
-        return Err(PlannerError::CurrentResourceObservationUnavailable(
-            format!(
+        return Err(crate::RealizationSelectionRefusal {
+            reason: PlannerError::CurrentResourceObservationUnavailable(format!(
                 "gear '{}' has no realization with current observed resources",
                 gear.gear_id.as_str()
-            ),
-        ));
+            )),
+            signs,
+        });
     }
     crate::generic_selection::validate_preferences(
         &observed_admitted,
