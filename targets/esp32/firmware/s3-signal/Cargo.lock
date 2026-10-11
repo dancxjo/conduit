@@ -422,6 +422,7 @@ dependencies = [
  "conduit-body",
  "conduit-core",
  "conduit-human",
+ "conduit-planner",
  "conduit-plot",
  "conduit-time",
  "serde",
