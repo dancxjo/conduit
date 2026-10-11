@@ -619,7 +619,7 @@ fn playback_envelope_value(
             ..
         } => V::sequence(
             ty.clone(),
-            (0..*maximum_items)
+            (0..maximum_items)
                 .map(|_| {
                     playback_envelope_value(
                         element,
