@@ -11,6 +11,7 @@ use crate::{
             EndpointReadAttachment, EndpointReadCallOwner, EndpointReadOwnerRefusal,
             NativeEndpointReadObservation, NativeEndpointReadSubmission,
         },
+        endpoint_read_result::EndpointReadDisposition,
         endpoint_ring::{EndpointRingCursor, EndpointRingRefusal, EndpointRingReservation},
     },
 };
@@ -255,6 +256,34 @@ impl<'a> EndpointReadTransfer<'a> {
         .map_err(EndpointNativeRefusal::Ownership)
     }
 
+    /// # Safety
+    /// The sole original controller has acknowledged stop for this exact slot.
+    /// A stall event or disconnected-port observation alone grants no retirement.
+    pub(in crate::arch::usb_xhci) unsafe fn finish_fault_quiesced(
+        &mut self,
+        device: &UsbDevice,
+        disposition: EndpointReadDisposition,
+    ) -> Result<&[u8], EndpointNativeRefusal> {
+        self.validate_device(device)?;
+        let (submission, reservation) = self
+            .pending
+            .as_ref()
+            .ok_or(EndpointNativeRefusal::Pending)?;
+        // Preserve the exact admitted lease until its typed terminal settles.
+        fence(Ordering::Acquire);
+        unsafe { self.dma.cursor.complete_quiesced(reservation) }
+            .map_err(EndpointNativeRefusal::Ring)?;
+        let bytes = unsafe {
+            self.owner.finish_quiesced(
+                submission,
+                NativeEndpointReadObservation::Disposition(disposition),
+            )
+        }
+        .map_err(EndpointNativeRefusal::Ownership)?;
+        self.pending = None;
+        Ok(bytes)
+    }
+
     pub(in crate::arch::usb_xhci) fn revoke(
         &mut self,
         node: NodeId,
@@ -310,6 +339,42 @@ pub(super) fn validated_residual(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn foreign_stall_events_cannot_authorize_fault_retirement() {
+        let exact = Event {
+            event_type: 32,
+            completion_code: 6,
+            slot: 2,
+            endpoint: 3,
+            residual: 0,
+            pointer: 0x4010,
+        };
+        assert!(matches!(
+            validated_residual(exact, 2, exact.endpoint, 0x4010),
+            Err(EndpointNativeRefusal::Completion(6))
+        ));
+        for event in [
+            Event {
+                event_type: 34,
+                ..exact
+            },
+            Event { slot: 3, ..exact },
+            Event {
+                endpoint: 4,
+                ..exact
+            },
+            Event {
+                pointer: 0x4020,
+                ..exact
+            },
+        ] {
+            assert!(matches!(
+                validated_residual(event, 2, exact.endpoint, 0x4010),
+                Err(EndpointNativeRefusal::ForeignCompletion)
+            ));
+        }
+    }
+
     #[test]
     fn only_the_exact_native_transfer_event_can_supply_a_received_extent() {
         let event = Event {

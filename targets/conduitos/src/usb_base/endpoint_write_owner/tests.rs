@@ -213,3 +213,5 @@ fn selected_native_identity_and_resource_generation_are_exact() {
         assert_eq!(owner.err(), Some(EndpointWriteOwnerRefusal::WrongBinding));
     }
 }
+
+mod native_fault;
