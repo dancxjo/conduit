@@ -26,6 +26,12 @@ pub const BROWSER_CHECK_STEPS: &[Step] = &[
         &["--test", "proof/browser/physical-host-workflow.test.mjs"],
     ),
     Step::new(
+        "check.browser.look-replacement-evidence",
+        "Check Look replacement evidence comparisons and mutation refusals",
+        "node",
+        &["--test", "proof/browser/look-replacement-evidence.test.mjs"],
+    ),
+    Step::new(
         "check.browser.sdk-contracts",
         "Prove the public Browser SDK, events, Plots, and exact package closure",
         "node",
