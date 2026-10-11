@@ -92,6 +92,7 @@ fn call(state_dir: &Path, request: impl FnOnce(Vec<u8>) -> Request) -> Result<Re
         | Request::BodyBrowserOffer { token, .. }
         | Request::BodyBrowserMaskRoute { token, .. }
         | Request::BodyBrowserShow { token, .. }
+        | Request::BodyBrowserComponentMask { token, .. }
         | Request::BodyBrowserWardrobe { token, .. }
         | Request::BodyBrowserAbort { token, .. }
         | Request::BodyBrowserLeave { token, .. }
