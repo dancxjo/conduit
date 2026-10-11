@@ -30,8 +30,19 @@ pub(super) fn prepared(
     append(text.as_bytes())?;
     append(b"CONDUIT_USB_PREFLIGHT_PACKAGE sha256=\n")?;
     hex(&discovery.package_digest)?;
-    append(b"CONDUIT_USB_PREFLIGHT_ROOT sha256=\n")?;
-    hex(&discovery.root_digest)?;
+    let mut text = crate::sign_format::FixedText::new();
+    write!(
+        text,
+        "CONDUIT_USB_PREFLIGHT_ROOT bytes={} sha256=",
+        discovery.root_bytes.len()
+    )
+    .map_err(|_| "protocol-usb-preflight-diagnostic-envelope")?;
+    for byte in &discovery.root_digest {
+        write!(text, "{byte:02x}").map_err(|_| "protocol-usb-preflight-diagnostic-envelope")?;
+    }
+    writeln!(text).map_err(|_| "protocol-usb-preflight-diagnostic-envelope")?;
+    append(text.as_bytes())?;
+    hex(&discovery.root_bytes)?;
     let facts = discovery.snapshot.facts();
     let mut text = crate::sign_format::FixedText::new();
     writeln!(text, "CONDUIT_USB_PREFLIGHT_ATTACHMENT segment={} bus={} device={} function={} vendor={} device_id={} bar={} port={} slot={} dma_slot={} epoch={} requested={} actual={}",

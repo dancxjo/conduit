@@ -6,12 +6,15 @@ use conduit_core::*;
 use sha2::{Digest, Sha256};
 const MAXIMUM_CARRIER_BYTES: usize = 4096;
 
-pub(super) fn request_digest(request: &UsbProtocolBootRequest) -> Result<[u8; 32], &'static str> {
+pub(super) fn request_bytes(request: &UsbProtocolBootRequest) -> Result<Vec<u8>, &'static str> {
     let bytes = serde_json::to_vec(request).map_err(|_| "protocol-usb-preflight-root-encoding")?;
     if bytes.len() > super::super::MAXIMUM_REQUEST_BYTES {
         return Err("protocol-usb-preflight-root-bound");
     }
-    Ok(Sha256::digest(bytes).into())
+    Ok(bytes)
+}
+pub(super) fn request_digest(request: &UsbProtocolBootRequest) -> Result<[u8; 32], &'static str> {
+    Ok(Sha256::digest(request_bytes(request)?).into())
 }
 fn fields<'a>(
     schema: &'a StructuredInfoType,
