@@ -7,7 +7,7 @@ function evidence() {
   const before = {
     canonicalFace: { identity: 'face', revision: 1,
       actions: [{ identity: 'complete', arguments: [], availability: 'Available' }],
-      basis: { body_id: 'body' }, properties: [], text: [],
+      basis: { body_id: 'body', source_document_id: 'source', plan_id: 'owner-plan', active_play_id: 'owner-play' }, properties: [], text: [],
       subjects: [{ identity: 'item', name: 'Task' }], relationships: [], disclosures: [] },
     owner: { sourceDocumentId: 'source', bodyId: 'body', hostId: 'host', bootId: 'boot',
       planId: 'owner-plan', playId: 'owner-play' },
@@ -93,6 +93,17 @@ for (const field of ['subjects', 'actions', 'disclosures', 'text']) {
     }
     assertLookReplacement(value);
     value.after.canonicalFace[field].reverse();
+    assert.throws(() => assertLookReplacement(value));
+  });
+}
+
+for (const field of ['sourceDocumentId', 'bodyId', 'planId', 'playId']) {
+  test(`comparison refuses stable owner ${field} unrelated to the Face basis`, () => {
+    const value = evidence();
+    for (const owner of [value.before.owner, value.after.owner,
+      value.retirement.ownerBefore, value.retirement.ownerAfter]) {
+      owner[field] = 'unrelated-stable-identity';
+    }
     assert.throws(() => assertLookReplacement(value));
   });
 }
