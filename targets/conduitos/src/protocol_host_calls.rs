@@ -288,6 +288,7 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
                     gear.implementation_id.as_str(),
                     expression_host_call::IMPLEMENTATION
                         | crate::offer::TEXT_LITERAL_IMPLEMENTATION
+                        | crate::bytes_literal::IMPLEMENTATION
                         | crate::flow_singleton::IMPLEMENTATION
                         | structured_selector_host_call::IMPLEMENTATION
                         | crate::flow_zip::IMPLEMENTATION
