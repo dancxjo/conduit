@@ -37,7 +37,7 @@ class NetworkBackend:
 
     def pump(self):
         if self.process.poll() is not None:
-            raise EOFError('owned network backend exited')
+            raise ValueError('owned network backend exited')
         readable, writable, _ = select.select([self.peer],
                                               [self.peer] if self.outgoing else [], [], 0)
         if writable:
@@ -46,7 +46,7 @@ class NetworkBackend:
         if readable:
             data = self.peer.recv(self.MAX_FRAME + 4 - len(self.incoming))
             if not data:
-                raise EOFError('owned network backend closed')
+                raise ValueError('owned network backend closed')
             self.incoming.extend(data)
         if len(self.incoming) < 4:
             return None

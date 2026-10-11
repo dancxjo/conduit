@@ -257,6 +257,7 @@ class Device:
             self.configuration = self.packet_filter = self.alternate = 0
             self.notification = False
             self.rx.clear()
+            self.frames.clear()
             self.partial_tx = bytearray()
         elif kind == 21 and not body:
             if self.pending_in is not None and self.pending_in[0] == packet_id:
