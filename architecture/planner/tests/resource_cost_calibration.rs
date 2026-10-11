@@ -308,6 +308,18 @@ fn measured_misprediction_changes_selection_and_expired_calibration_cannot_be_re
     assert_eq!(samples[0].forecast().upper_seconds(), rational(5, 1000));
     assert_eq!(samples[0].upper_seconds(), rational(102, 1000));
     assert_eq!(samples[0].calibration().unwrap().source().sign(), &signs[2]);
+    let current_sign = SignId::from("condition/current");
+    let current_source = CostEvidenceSource::bind(
+        &hosts[0],
+        &hosts[0].capabilities[0],
+        None,
+        &current_sign,
+        revisions[0],
+        window(&hosts[0], 200, 2000),
+    )
+    .unwrap();
+    let current_execution =
+        [CostExecutionObservation::admit(&current_source, CostExecutionCondition::Cold).unwrap()];
     let observations = common::resource_observations(&hosts);
     let timed = observations
         .iter()
@@ -335,6 +347,11 @@ fn measured_misprediction_changes_selection_and_expired_calibration_cannot_be_re
             .map(|(host, now)| CostEvaluationContext {
                 host,
                 calibrations: &revisions,
+                execution_observations: if host.host_id == hosts[0].host_id {
+                    &current_execution
+                } else {
+                    &[]
+                },
                 now,
             })
             .collect::<Vec<_>>();

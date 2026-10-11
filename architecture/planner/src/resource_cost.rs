@@ -4,6 +4,7 @@ mod attribution;
 mod calibration;
 mod demand;
 mod duration;
+mod execution_observation;
 mod forecast;
 mod freshness;
 mod input_codec;
@@ -18,6 +19,7 @@ pub use demand::{
     CostDemand, CostInput, CostedForecast, MAXIMUM_COST_INPUTS, MAXIMUM_COST_INPUT_BYTES,
 };
 pub use duration::CostDuration;
+pub use execution_observation::CostExecutionObservation;
 pub use forecast::{CostDurationRange, CostForecastStages, FulfillmentCostForecast};
 pub use freshness::CostObservationWindow;
 pub use input_codec::CostInputCodec;
@@ -53,6 +55,7 @@ pub enum CostEvidenceRefusal {
     CalibrationUpdateTooSoon,
     DuplicateCompletion,
     ExecutionConditionChanged,
+    MissingExecutionObservation,
     InvalidIdentity,
     UnadvertisedSubject,
     Scope(CostScopeChange),
