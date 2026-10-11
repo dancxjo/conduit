@@ -552,3 +552,7 @@ pub(crate) use endpoint_setup::{
 pub use isochronous_out::IsochronousOutRefusal;
 
 pub(crate) use native_host::UsbNativeHost as NativeUsbIsochronousHost;
+
+#[path = "usb_xhci/usb_configuration_snapshot.rs"]
+mod configuration_snapshot;
+pub use configuration_snapshot::{UsbConfigurationSnapshot, discover_configuration};

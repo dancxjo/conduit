@@ -10,6 +10,9 @@ pub const REQUEST_SCHEMA: &str = "conduit.conduitos/usb-protocol-root-request@1"
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct UsbProtocolBootRequest {
+    /// Exact packaged pure discovery entry; no authored descriptor or verdict.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub preflight: Option<UsbPreflightBootRequest>,
     pub schema: String,
     pub entry: String,
     pub package_sha256: String,
@@ -43,6 +46,14 @@ pub struct UsbEndpointBootRequest {
     pub interval: u8,
     pub endpoint_epoch: u32,
     pub maximum_operations: u32,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct UsbPreflightBootRequest {
+    pub entry: String,
+    pub maximum_discovery_operations: u8,
+    pub maximum_steps: u32,
 }
 
 fn is_zero(value: &u16) -> bool {
@@ -81,7 +92,14 @@ impl UsbProtocolBootRequest {
         {
             return Err(Error::Approval);
         }
-        if request.entry.is_empty()
+        if request.preflight.as_ref().is_some_and(|preflight| {
+            preflight.entry.is_empty()
+                || preflight.entry.len() > 128
+                || preflight.entry == request.entry
+                || preflight.maximum_discovery_operations != 2
+                || preflight.maximum_steps == 0
+                || preflight.maximum_steps > 4096
+        }) || request.entry.is_empty()
             || request.entry.len() > 128
             || request.package_sha256.len() != 64
             || !request

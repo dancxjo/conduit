@@ -54,3 +54,10 @@ mod usb_owners;
     not(feature = "aarch64-orange-pi-5")
 ))]
 pub use usb_bootstrap::run_if_selected;
+
+#[cfg(any(
+    target_arch = "x86_64",
+    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+))]
+#[path = "protocol_boot/usb_preflight.rs"]
+mod usb_preflight;

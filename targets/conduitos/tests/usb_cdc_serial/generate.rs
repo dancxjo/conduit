@@ -20,6 +20,7 @@ fn emit_exact_selected_back_product_inputs_when_requested() {
     let root = serde_json::json!({
     "schema":"conduit.conduitos/usb-protocol-root-request@1", "entry":"cdc-serial-duplex-demonstration", "package_sha256":hash,
     "administrator_approval":true,"firmware_handoff":true,"electrical_attachment_approved":true,
+    "preflight":{"entry":"cdc-serial-profile-preflight","maximum_discovery_operations":2,"maximum_steps":4096},
     "root_port":1,"attachment_epoch":1,"maximum_control_operations":5,"maximum_steps":1000000,
     "inputs":[{"port":"seed","canonical_bytes":input}],
     "endpoint_read":{"address":129,"transfer_type":2,"maximum_packet":64,"interval":0,"endpoint_epoch":1,"maximum_operations":16},

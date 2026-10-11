@@ -46,7 +46,14 @@ pub(super) unsafe fn admit(
     host: &HostId,
     boot_id: &BootId,
     artifact: &str,
-) -> Result<NativeUsbOwners, &'static str> {
+    package: &[u8],
+) -> Result<
+    (
+        NativeUsbOwners,
+        Option<super::usb_preflight::AdmittedUsbDiscovery>,
+    ),
+    &'static str,
+> {
     if request.endpoint_write.is_some() && request.endpoint_read.is_none() {
         return Err("protocol-usb-write-requires-read");
     }
@@ -67,7 +74,7 @@ pub(super) unsafe fn admit(
             request.attachment_epoch,
         )
     })?;
-    let device = arch::address_selected_root_port_at_epoch(
+    let mut device = arch::address_selected_root_port_at_epoch(
         &mut controller,
         boot::executable_physical_address,
         request.root_port,
@@ -84,6 +91,29 @@ pub(super) unsafe fn admit(
     if device.root_port != request.root_port {
         return Err("protocol-usb-attachment-mismatch");
     }
+    // No class Ready, offer, grant or endpoint configuration exists until this
+    // exact packaged pure predicate accepts the Root-observed attachment.
+    let discovery = if let Some(preflight) = request.preflight.as_ref() {
+        let snapshot = arch::discover_configuration(
+            &mut controller,
+            &mut device,
+            boot::executable_physical_address,
+        )
+        .map_err(|error| {
+            native_refusal(
+                "discovery",
+                error.as_str(),
+                device.root_port,
+                device.attachment_epoch,
+            )
+        })?;
+        let admitted =
+            super::usb_preflight::accept(package, request, preflight, snapshot, host, boot_id)?;
+        admitted.validate_attachment(&controller, &device)?;
+        Some(admitted)
+    } else {
+        None
+    };
     let generation = u64::from(device.attachment_epoch);
     let prefix = format!(
         "conduitos/protocol/{}/usb/{}/{}/{}",
@@ -243,12 +273,15 @@ pub(super) unsafe fn admit(
             let write_issuer =
                 unsafe { NativeProtocolIssuer::admit(write_capability, &mut entropy) }
                     .map_err(|_| "protocol-usb-write-issuance-refused")?;
-            return Ok(NativeUsbOwners::Duplex {
-                ready: Box::new(ready),
-                control_issuer: Box::new(control_issuer),
-                read_issuer: Box::new(read_issuer),
-                write_issuer: Box::new(write_issuer),
-            });
+            return Ok((
+                NativeUsbOwners::Duplex {
+                    ready: Box::new(ready),
+                    control_issuer: Box::new(control_issuer),
+                    read_issuer: Box::new(read_issuer),
+                    write_issuer: Box::new(write_issuer),
+                },
+                discovery,
+            ));
         }
         // SAFETY: both identities name the actual original ownership and bounded
         // controller-configured endpoint; Source created neither permission.
@@ -274,11 +307,14 @@ pub(super) unsafe fn admit(
         let endpoint_issuer =
             unsafe { NativeProtocolIssuer::admit(endpoint_capability, &mut entropy) }
                 .map_err(|_| "protocol-usb-endpoint-issuance-refused")?;
-        Ok(NativeUsbOwners::Protocol {
-            ready: Box::new(ready),
-            control_issuer: Box::new(control_issuer),
-            endpoint_issuer: Box::new(endpoint_issuer),
-        })
+        Ok((
+            NativeUsbOwners::Protocol {
+                ready: Box::new(ready),
+                control_issuer: Box::new(control_issuer),
+                endpoint_issuer: Box::new(endpoint_issuer),
+            },
+            discovery,
+        ))
     } else {
         // SAFETY: actual controller/attachment are retained exclusively under
         // the exact control identity; mapping is checked by the constructor.
@@ -297,10 +333,13 @@ pub(super) unsafe fn admit(
         // SAFETY: retained native facts bind this exact finite control authority.
         let issuer = unsafe { NativeProtocolIssuer::admit(capability, &mut entropy) }
             .map_err(|_| "protocol-usb-issuance-refused")?;
-        Ok(NativeUsbOwners::Control {
-            ready: Box::new(ready),
-            issuer: Box::new(issuer),
-        })
+        Ok((
+            NativeUsbOwners::Control {
+                ready: Box::new(ready),
+                issuer: Box::new(issuer),
+            },
+            discovery,
+        ))
     }
 }
 
