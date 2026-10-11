@@ -89,6 +89,14 @@ pub(crate) struct UsbDuplexAdmission {
 #[derive(Clone, Copy)]
 enum PhysicalMode {
     I2c,
+    #[cfg(all(
+        feature = "native-owner-network",
+        any(
+            target_arch = "x86_64",
+            all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+        )
+    ))]
+    UsbEthernet,
     #[cfg(any(
         target_arch = "x86_64",
         all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
@@ -279,6 +287,19 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
             .install(ExpressionOperationFactory::default())
             .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
         match mode {
+            #[cfg(all(
+                feature = "native-owner-network",
+                any(
+                    target_arch = "x86_64",
+                    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+                )
+            ))]
+            PhysicalMode::UsbEthernet => {
+                registry.install(crate::usb_base::control_factory::ControlOperationFactory::prepare_contract().map_err(|_| ProtocolCallRefusal::InvalidPlan)?).map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
+                registry.install(crate::usb_base::endpoint_read_factory::EndpointReadOperationFactory::prepare_contract().map_err(|_| ProtocolCallRefusal::InvalidPlan)?).map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
+                registry.install(crate::usb_base::endpoint_write_factory::EndpointWriteOperationFactory::prepare_contract().map_err(|_| ProtocolCallRefusal::InvalidPlan)?).map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
+                registry.install(crate::ethernet_frame::factory::EthernetFrameOperationFactory::prepare_contract().map_err(|_| ProtocolCallRefusal::InvalidPlan)?).map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
+            }
             PhysicalMode::I2c => {
                 registry
                     .install(
