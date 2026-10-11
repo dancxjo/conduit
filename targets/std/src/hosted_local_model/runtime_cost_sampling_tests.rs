@@ -82,6 +82,7 @@ fn capability(host: &StdHost) -> conduit_core::CapabilityId {
 fn actual_owner_source_binds_clock_sign_and_reported_memory_without_inventing_warm_epoch() {
     let host = host(LocalModelRuntimeState {
         residency: ModelResidencyState::ResidentWithoutEpoch,
+        runtime_version: None,
         resident_bytes: Some(4096),
         vram_bytes: None,
         context_length: Some(2048),

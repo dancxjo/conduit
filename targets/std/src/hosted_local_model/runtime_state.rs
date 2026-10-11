@@ -9,6 +9,8 @@ pub enum ModelResidencyState {
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 pub struct LocalModelRuntimeState {
     pub residency: ModelResidencyState,
+    /// Independently queried provider version; not a Boot or residency epoch.
+    pub runtime_version: Option<String>,
     pub resident_bytes: Option<u64>,
     pub vram_bytes: Option<u64>,
     pub context_length: Option<u64>,
@@ -19,6 +21,7 @@ impl LocalModelRuntimeState {
     pub fn unknown() -> Self {
         Self {
             residency: ModelResidencyState::Unknown,
+            runtime_version: None,
             resident_bytes: None,
             vram_bytes: None,
             context_length: None,
