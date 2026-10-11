@@ -20,6 +20,8 @@ pub struct CostDemand<'a> {
     class: CostWorkClass<'a>,
     inputs: &'a [CostInput<'a>],
     bytes: usize,
+    codec_basis:
+        [Option<(&'a conduit_core::KindId, &'a conduit_core::ArtifactId)>; MAXIMUM_COST_INPUTS],
 }
 impl<'a> CostDemand<'a> {
     pub fn admit(gear: &'a CheckedGear, inputs: &'a [CostInput<'a>]) -> Result<Self, Refusal> {
@@ -32,8 +34,31 @@ impl<'a> CostDemand<'a> {
         inputs: &'a [CostInput<'a>],
         schemas: &[super::CostStructuredInputSchema],
     ) -> Result<Self, Refusal> {
-        if schemas.len() > MAXIMUM_COST_INPUTS {
+        Self::admit_with_catalog(gear, inputs, schemas, &[])
+    }
+    /// Codec entries come from the admitted semantic catalogue, independently
+    /// of request data. Owner decoding occurs outside Play and never replaces
+    /// hard requirements or the Gear's exact Fore refinements.
+    pub fn admit_with_catalog(
+        gear: &'a CheckedGear,
+        inputs: &'a [CostInput<'a>],
+        schemas: &[super::CostStructuredInputSchema],
+        codecs: &[super::CostInputCodec<'a>],
+    ) -> Result<Self, Refusal> {
+        if schemas.len() > MAXIMUM_COST_INPUTS
+            || codecs.len() > MAXIMUM_COST_INPUTS
+            || schemas.len() + codecs.len() > MAXIMUM_COST_INPUTS
+        {
             return Err(Refusal::InputLimit);
+        }
+        for (index, codec) in codecs.iter().enumerate() {
+            if codecs[..index]
+                .iter()
+                .any(|previous| previous.kind() == codec.kind())
+                || schemas.iter().any(|schema| schema.kind() == codec.kind())
+            {
+                return Err(Refusal::AmbiguousEvidence);
+            }
         }
         for (index, schema) in schemas.iter().enumerate() {
             if schemas[..index]
@@ -55,7 +80,8 @@ impl<'a> CostDemand<'a> {
         if bytes > MAXIMUM_COST_INPUT_BYTES {
             return Err(Refusal::InputLimit);
         }
-        for input in inputs {
+        let mut codec_basis = [None; MAXIMUM_COST_INPUTS];
+        for (index, input) in inputs.iter().enumerate() {
             let port = gear
                 .inputs
                 .iter()
@@ -67,8 +93,12 @@ impl<'a> CostDemand<'a> {
             let schema = schemas
                 .iter()
                 .find(|schema| schema.kind() == &port.value_kind);
+            let codec = codecs.iter().find(|codec| codec.kind() == &port.value_kind);
             if let Some(schema) = schema {
                 schema.validate(input.value)?;
+            } else if let Some(codec) = codec {
+                codec.validate(input.value)?;
+                codec_basis[index] = Some((codec.kind(), codec.revision()));
             } else if !super::structured_input::known_leaf(port.value_kind.as_str()) {
                 return Err(Refusal::InvalidWorkInput);
             }
@@ -82,8 +112,8 @@ impl<'a> CostDemand<'a> {
             let valid = if let Some(contract) = contract {
                 contract.contract.value_kind == input.value.value_kind
                     && contract.contract.validate(&input.value.encoded).is_ok()
-            } else if schema.is_some() {
-                true // exact checked structured envelope was validated above
+            } else if schema.is_some() || codec.is_some() {
+                true // structured/owner canonical validation completed above
             } else {
                 conduit_core::validate_primitive_info(
                     input.value.value_kind.as_str(),
@@ -112,6 +142,7 @@ impl<'a> CostDemand<'a> {
             class: CostWorkClass::from_checked_gear(gear),
             inputs,
             bytes,
+            codec_basis,
         })
     }
     pub const fn class(self) -> CostWorkClass<'a> {
@@ -125,6 +156,9 @@ impl<'a> CostDemand<'a> {
     }
     pub fn validate_match(self, demand: Self) -> Result<(), Refusal> {
         self.class.validate_demand(demand.class.gear())?;
+        if self.codec_basis != demand.codec_basis {
+            return Err(Refusal::InputCodecChanged);
+        }
         if self.inputs != demand.inputs {
             return Err(Refusal::WorkExtentChanged);
         }
