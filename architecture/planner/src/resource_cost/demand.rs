@@ -20,6 +20,7 @@ pub struct CostDemand<'a> {
     class: CostWorkClass<'a>,
     inputs: &'a [CostInput<'a>],
     bytes: usize,
+    work_estimate: Option<super::CostWorkEstimate<'a>>,
     codec_basis:
         [Option<(&'a conduit_core::KindId, &'a conduit_core::ArtifactId)>; MAXIMUM_COST_INPUTS],
 }
@@ -142,6 +143,7 @@ impl<'a> CostDemand<'a> {
             class: CostWorkClass::from_checked_gear(gear),
             inputs,
             bytes,
+            work_estimate: None,
             codec_basis,
         })
     }
@@ -154,10 +156,27 @@ impl<'a> CostDemand<'a> {
     pub const fn input_bytes(self) -> usize {
         self.bytes
     }
+    /// Catalogue-owned work derivation is admitted once, independently of a
+    /// request's preferred class or implementation. Forecast reuse fences it.
+    pub fn with_work_metric(mut self, metric: &super::CostWorkMetric<'a>) -> Result<Self, Refusal> {
+        if self.work_estimate.is_some() {
+            return Err(Refusal::AmbiguousEvidence);
+        }
+        self.work_estimate = Some(metric.measure(self)?);
+        Ok(self)
+    }
+    pub const fn work_estimate(self) -> Option<super::CostWorkEstimate<'a>> {
+        self.work_estimate
+    }
     pub fn validate_match(self, demand: Self) -> Result<(), Refusal> {
         self.class.validate_demand(demand.class.gear())?;
         if self.codec_basis != demand.codec_basis {
             return Err(Refusal::InputCodecChanged);
+        }
+        match (self.work_estimate, demand.work_estimate) {
+            (Some(left), Some(right)) => left.validate_match(right)?,
+            (None, None) => {}
+            _ => return Err(Refusal::WorkMetricChanged),
         }
         if self.inputs != demand.inputs {
             return Err(Refusal::WorkExtentChanged);
@@ -172,6 +191,7 @@ pub struct CostedForecast<'a> {
     demand: CostDemand<'a>,
     forecast: &'a FulfillmentCostForecast,
     calibration: Option<&'a super::CostCalibrationEstimate<'a>>,
+    service_basis: Option<super::CostDurationRange>,
 }
 // Evidence diagnostics expose size and scope, not prompt/input contents or a
 // repeated copy of the complete advertised inventory.
@@ -182,6 +202,7 @@ impl core::fmt::Debug for CostDemand<'_> {
             .field("contract", &self.class.gear().kind_contract_revision)
             .field("input_count", &self.inputs.len())
             .field("input_bytes", &self.bytes)
+            .field("work_estimate", &self.work_estimate)
             .finish()
     }
 }
@@ -197,6 +218,7 @@ impl core::fmt::Debug for CostedForecast<'_> {
             .field("lower_seconds", &self.lower_seconds())
             .field("upper_seconds", &self.upper_seconds())
             .field("calibrated_estimate", &self.calibration)
+            .field("service_per_work_unit", &self.service_basis)
             .finish()
     }
 }
@@ -212,7 +234,15 @@ impl<'a> CostedForecast<'a> {
             demand,
             forecast,
             calibration: None,
+            service_basis: None,
         })
+    }
+    pub(super) fn with_service_basis(mut self, basis: super::CostDurationRange) -> Self {
+        self.service_basis = Some(basis);
+        self
+    }
+    pub const fn service_basis(&self) -> Option<super::CostDurationRange> {
+        self.service_basis
     }
     pub fn source(&self) -> &'a CostEvidenceSource<'a> {
         self.source
