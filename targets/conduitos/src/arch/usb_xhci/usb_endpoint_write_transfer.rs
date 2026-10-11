@@ -223,6 +223,24 @@ impl<'a> EndpointWriteTransfer<'a> {
         Ok(())
     }
 
+    /// Describe only the exact live reservation for the sole native event router.
+    /// This key conveys no authority and never retires DMA.
+    pub(in crate::arch::usb_xhci) fn pending_event_key(
+        &self,
+        device: &UsbDevice,
+    ) -> Result<(u8, u8, u64), EndpointWriteNativeRefusal> {
+        self.validate_device(device)?;
+        let (_, reservation) = self
+            .pending
+            .as_ref()
+            .ok_or(EndpointWriteNativeRefusal::Pending)?;
+        Ok((
+            self.attachment.slot,
+            self.endpoint_dci,
+            self.dma.ring_physical + (reservation.slot * 16) as u64,
+        ))
+    }
+
     /// Validate the exact completion before retiring its DMA reservation.
     pub(in crate::arch::usb_xhci) fn complete(
         &mut self,

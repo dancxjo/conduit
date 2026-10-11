@@ -11,6 +11,52 @@ use conduit_composite::{
 use conduit_kernel::{FailureCode, HostCallDisposition, HostCallId, HostCallOutcome};
 
 impl<P: I2cProvider> PreparedProtocolCalls<P> {
+    pub fn can_dispatch(
+        &self,
+        kernel: &KernelCompositeHost,
+        request: &KernelCompositeHostRequest,
+    ) -> Result<bool, ProtocolCallRefusal> {
+        let node = kernel
+            .host_request_view(request)
+            .map_err(ProtocolCallRefusal::Kernel)?
+            .request
+            .node;
+        let binding = self
+            .bindings
+            .iter()
+            .find(|binding| binding.node == node)
+            .ok_or(ProtocolCallRefusal::Unsupported)?;
+        #[cfg(any(
+            target_arch = "x86_64",
+            all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+        ))]
+        {
+            if self.pending_usb.is_some() || self.pending_usb_failed {
+                return Ok(false);
+            }
+            let available = match binding.owner {
+                Owner::UsbDuplexRead => self.pending_duplex[0].is_none(),
+                Owner::UsbDuplexWrite => self.pending_duplex[1].is_none(),
+                Owner::UsbDuplexControl
+                | Owner::UsbControl(_)
+                | Owner::UsbProtocolControl
+                | Owner::UsbProtocolEndpoint
+                | Owner::UsbIsochronousControl
+                | Owner::UsbIsochronousOut => self.pending_duplex.iter().all(Option::is_none),
+                _ => true,
+            };
+            return Ok(available);
+        }
+        #[cfg(not(any(
+            target_arch = "x86_64",
+            all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+        )))]
+        {
+            let _ = binding;
+            Ok(true)
+        }
+    }
+
     /// Service exactly one surfaced token. No request creation, retry or private stepping loop.
     pub fn dispatch(
         &mut self,
@@ -26,6 +72,9 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
             all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
         ))]
         if self.pending_usb.is_some() {
+            return Err(Refusal::Unsupported);
+        }
+        if !self.can_dispatch(kernel, request)? {
             return Err(Refusal::Unsupported);
         }
         let view = kernel.host_request_view(request).map_err(Refusal::Kernel)?;
@@ -148,8 +197,16 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
             let result = result.map_err(Refusal::UsbProtocol);
             match result {
                 Ok(()) => {
-                    self.pending_usb_kind = kind;
-                    self.pending_usb = Some(admitted);
+                    if matches!(
+                        kind,
+                        PendingUsbKind::DuplexRead | PendingUsbKind::DuplexWrite
+                    ) {
+                        let direction = usize::from(matches!(kind, PendingUsbKind::DuplexWrite));
+                        self.pending_duplex[direction] = Some((node, admitted));
+                    } else {
+                        self.pending_usb_kind = kind;
+                        self.pending_usb = Some(admitted);
+                    }
                     return Ok(());
                 }
                 Err(error) => {
@@ -280,6 +337,50 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
     ) -> Result<bool, ProtocolCallRefusal> {
         if kernel.definition().internal_plan.plan_id != self.plan_id {
             return Err(ProtocolCallRefusal::InvalidPlan);
+        }
+        #[cfg(any(
+            target_arch = "x86_64",
+            all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+        ))]
+        if self.pending_duplex.iter().any(Option::is_some) {
+            if self.pending_usb_failed {
+                return Err(ProtocolCallRefusal::Unsupported);
+            }
+            let result = self
+                .usb_duplex
+                .as_mut()
+                .ok_or(ProtocolCallRefusal::InvalidPlan)?
+                .poll()
+                .map_err(ProtocolCallRefusal::UsbProtocol);
+            match result {
+                Ok(Some((node, bytes))) => {
+                    let direction = self
+                        .pending_duplex
+                        .iter()
+                        .position(|pending| {
+                            pending
+                                .as_ref()
+                                .is_some_and(|(expected, _)| *expected == node)
+                        })
+                        .ok_or(ProtocolCallRefusal::InvalidPlan)?;
+                    let (_, admitted) =
+                        self.pending_duplex[direction].ok_or(ProtocolCallRefusal::InvalidPlan)?;
+                    kernel
+                        .complete_host_call_bytes(&admitted, bytes)
+                        .map_err(ProtocolCallRefusal::Kernel)?;
+                    self.pending_duplex[direction] = None;
+                }
+                Ok(None) => {}
+                Err(error) => {
+                    self.pending_usb_failed = true;
+                    for (_, admitted) in self.pending_duplex.iter().flatten() {
+                        Self::complete_failure(kernel, admitted, &error)?;
+                    }
+                    return Err(error);
+                }
+            }
+            // A pending IN must not block ordinary pure/queue calls or one OUT.
+            return Ok(false);
         }
         #[cfg(any(
             target_arch = "x86_64",

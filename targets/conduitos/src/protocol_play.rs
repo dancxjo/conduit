@@ -114,6 +114,7 @@ enum PhysicalMode {
 /// Preparation owns the admitted kernel and the actual native owners together.
 /// The caller supplies the selected Plan and opaque possession; no grant is minted here.
 pub struct PreparedProtocolPlay<P> {
+    deferred_host_request: Option<conduit_composite::KernelCompositeHostRequest>,
     kernel: KernelCompositeHost,
     calls: PreparedProtocolCalls<P>,
 }
@@ -334,7 +335,11 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
         }
         let kernel = KernelCompositeHost::prepare_with_sign_storage(definition, &registry, storage)
             .map_err(ProtocolCallRefusal::Kernel)?;
-        Ok(Self { kernel, calls })
+        Ok(Self {
+            kernel,
+            calls,
+            deferred_host_request: None,
+        })
     }
 
     pub fn start(&mut self) -> Result<(), ProtocolCallRefusal> {
@@ -392,8 +397,16 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
         if self.calls.poll_pending(&mut self.kernel)? {
             return Ok(status);
         }
-        if let Some(request) = self.kernel.next_host_request() {
-            self.calls.dispatch(&mut self.kernel, &request)?;
+        let request = self
+            .deferred_host_request
+            .take()
+            .or_else(|| self.kernel.next_host_request());
+        if let Some(request) = request {
+            if self.calls.can_dispatch(&self.kernel, &request)? {
+                self.calls.dispatch(&mut self.kernel, &request)?;
+            } else {
+                self.deferred_host_request = Some(request);
+            }
         }
         Ok(status)
     }

@@ -207,6 +207,7 @@ impl UsbNativeHost<'_> {
             (*dma).owner_slot = 0;
         }
         self.pending_endpoint = None;
+        self.pending_write = None;
         self.uncertain_control = false;
         self.stopped = true;
         Ok(())

@@ -1,0 +1,236 @@
+//! One independently admitted IN and OUT transfer under the original event owner.
+use super::event_routing::{PendingEventKey, route_event};
+use super::*;
+
+pub(super) struct BulkTerminal {
+    pub(super) index: Option<UsbNativeCallIndex>,
+    bytes: [u8; crate::usb_base::endpoint_read_contract::ENDPOINT_READ_MAXIMUM_BYTES as usize],
+    length: usize,
+}
+impl BulkTerminal {
+    pub(super) fn empty() -> Self {
+        Self {
+            index: None,
+            bytes: [0; crate::usb_base::endpoint_read_contract::ENDPOINT_READ_MAXIMUM_BYTES
+                as usize],
+            length: 0,
+        }
+    }
+}
+
+impl UsbNativeHost<'_> {
+    fn admit_independent(&self, direction: usize) -> Result<(), UsbNativeHostRefusal> {
+        if self.stop_acknowledged || self.stopped || self.cancellation_requested {
+            return Err(UsbNativeHostRefusal::NotReady);
+        }
+        if self.uncertain_control
+            || self.isochronous_started
+            || self.bulk_terminals.iter().any(|slot| slot.index.is_some())
+            || [self.pending_endpoint, self.pending_write][direction].is_some()
+        {
+            return Err(UsbNativeHostRefusal::Pending);
+        }
+        // A legacy write occupies pending_endpoint; never mix its serial API
+        // with independently routed transport.
+        if let Some(index) = self.pending_endpoint
+            && !matches!(self.calls[index].transfer, Transfer::Endpoint(_))
+        {
+            return Err(UsbNativeHostRefusal::Pending);
+        }
+        Ok(())
+    }
+
+    pub fn begin_independent_read(
+        &mut self,
+        index: UsbNativeCallIndex,
+        request: RequestId,
+        input: &[u8],
+    ) -> Result<(), UsbNativeHostRefusal> {
+        self.admit_independent(0)?;
+        let bound = self
+            .calls
+            .get_mut(index.0)
+            .ok_or(UsbNativeHostRefusal::Binding)?;
+        let Transfer::Endpoint(transfer) = &mut bound.transfer else {
+            return Err(UsbNativeHostRefusal::Binding);
+        };
+        self.playing = true;
+        self.pending_endpoint = Some(index.0);
+        transfer
+            .begin(&self.device, bound.node, bound.call, request, input)
+            .map_err(UsbNativeHostRefusal::Endpoint)?;
+        self.controller
+            .ring_endpoint(self.device.slot, transfer.endpoint_dci);
+        Ok(())
+    }
+
+    pub fn begin_independent_write(
+        &mut self,
+        index: UsbNativeCallIndex,
+        request: RequestId,
+        input: &[u8],
+    ) -> Result<(), UsbNativeHostRefusal> {
+        self.admit_independent(1)?;
+        let bound = self
+            .calls
+            .get_mut(index.0)
+            .ok_or(UsbNativeHostRefusal::Binding)?;
+        let Transfer::Write(transfer) = &mut bound.transfer else {
+            return Err(UsbNativeHostRefusal::Binding);
+        };
+        self.playing = true;
+        self.pending_write = Some(index.0);
+        transfer
+            .begin(&self.device, bound.node, bound.call, request, input)
+            .map_err(UsbNativeHostRefusal::Write)?;
+        self.controller
+            .ring_endpoint(self.device.slot, transfer.endpoint_dci);
+        Ok(())
+    }
+
+    fn independent_keys(&self) -> Result<[Option<PendingEventKey>; 2], UsbNativeHostRefusal> {
+        let mut keys = [None, None];
+        for (direction, index) in [self.pending_endpoint, self.pending_write]
+            .into_iter()
+            .enumerate()
+        {
+            let Some(index) = index else {
+                continue;
+            };
+            let key = match &self.calls[index].transfer {
+                Transfer::Endpoint(transfer) if direction == 0 => transfer
+                    .pending_event_key(&self.device)
+                    .map_err(UsbNativeHostRefusal::Endpoint)?,
+                Transfer::Write(transfer) if direction == 1 => transfer
+                    .pending_event_key(&self.device)
+                    .map_err(UsbNativeHostRefusal::Write)?,
+                _ => return Err(UsbNativeHostRefusal::Binding),
+            };
+            keys[direction] = Some(PendingEventKey {
+                index: UsbNativeCallIndex(index),
+                slot: key.0,
+                endpoint: key.1,
+                pointer: key.2,
+            });
+        }
+        Ok(keys)
+    }
+
+    /// At most one event consumption and one exact completed call publication.
+    /// No transfer is retired by matching metadata alone.
+    pub fn poll_independent(
+        &mut self,
+    ) -> Result<Option<(UsbNativeCallIndex, &[u8])>, UsbNativeHostRefusal> {
+        if let Some(position) = self
+            .bulk_terminals
+            .iter()
+            .position(|slot| slot.index.is_some())
+        {
+            if !self.bulk_terminals_ready {
+                return Err(UsbNativeHostRefusal::NotReady);
+            }
+            let slot = &mut self.bulk_terminals[position];
+            let index = slot.index.take().ok_or(UsbNativeHostRefusal::Binding)?;
+            return Ok(Some((index, &slot.bytes[..slot.length])));
+        }
+        if self.stopped || self.stop_acknowledged || self.cancellation_requested {
+            return Err(UsbNativeHostRefusal::NotReady);
+        }
+        let keys = self.independent_keys()?;
+        if keys.iter().all(Option::is_none) {
+            return Ok(None);
+        }
+        if self.controller.port_status(self.device.root_port) & 1 == 0 {
+            self.finish_independent_fault(None)?;
+            return self.poll_independent();
+        }
+        let Some(event) = self.controller.poll_event() else {
+            return Ok(None);
+        };
+        let index = route_event(event, keys).map_err(|_| UsbNativeHostRefusal::Binding)?;
+        let result = match &mut self.calls[index.0].transfer {
+            Transfer::Endpoint(transfer) => transfer
+                .complete(&self.device, event)
+                .map_err(UsbNativeHostRefusal::Endpoint),
+            Transfer::Write(transfer) => transfer
+                .complete(&self.device, event)
+                .map_err(UsbNativeHostRefusal::Write),
+            _ => return Err(UsbNativeHostRefusal::Binding),
+        };
+        match result {
+            Ok(bytes) => {
+                self.control_output[..bytes.len()].copy_from_slice(bytes);
+                self.control_output_length = bytes.len();
+                if self.pending_endpoint == Some(index.0) {
+                    self.pending_endpoint = None;
+                }
+                if self.pending_write == Some(index.0) {
+                    self.pending_write = None;
+                }
+                Ok(Some((
+                    index,
+                    &self.control_output[..self.control_output_length],
+                )))
+            }
+            Err(UsbNativeHostRefusal::Endpoint(EndpointNativeRefusal::Completion(6)))
+            | Err(UsbNativeHostRefusal::Write(EndpointWriteNativeRefusal::Completion(6))) => {
+                self.finish_independent_fault(Some(index))?;
+                self.poll_independent()
+            }
+            Err(error) => Err(error),
+        }
+    }
+
+    fn finish_independent_fault(
+        &mut self,
+        stalled: Option<UsbNativeCallIndex>,
+    ) -> Result<(), UsbNativeHostRefusal> {
+        // Exact event routing/validated original attachment precedes physical stop.
+        // A failed acknowledgement leaves both original leases and DMA rooted.
+        self.controller
+            .disable_removed_slot(self.device.slot)
+            .map_err(|error| UsbNativeHostRefusal::Native(error.into()))?;
+        self.stop_acknowledged = true;
+        for (direction, index) in [self.pending_endpoint, self.pending_write]
+            .into_iter()
+            .enumerate()
+        {
+            let Some(index) = index else {
+                continue;
+            };
+            let bytes = match &mut self.calls[index].transfer {
+                Transfer::Endpoint(transfer) if direction == 0 => unsafe {
+                    transfer.finish_fault_quiesced(
+                        &self.device,
+                        if stalled == Some(UsbNativeCallIndex(index)) {
+                            EndpointReadDisposition::Stalled
+                        } else {
+                            EndpointReadDisposition::ProviderLost
+                        },
+                    )
+                }
+                .map_err(UsbNativeHostRefusal::Endpoint)?,
+                Transfer::Write(transfer) if direction == 1 => unsafe {
+                    transfer.finish_fault_quiesced(
+                        &self.device,
+                        if stalled == Some(UsbNativeCallIndex(index)) {
+                            EndpointWriteDisposition::Stalled
+                        } else {
+                            EndpointWriteDisposition::ProviderLost
+                        },
+                    )
+                }
+                .map_err(UsbNativeHostRefusal::Write)?,
+                _ => return Err(UsbNativeHostRefusal::Binding),
+            };
+            let slot = &mut self.bulk_terminals[direction];
+            slot.bytes[..bytes.len()].copy_from_slice(bytes);
+            slot.length = bytes.len();
+            slot.index = Some(UsbNativeCallIndex(index));
+        }
+        // No terminal publication until every transfer/software possession settles.
+        self.cancel()?;
+        self.bulk_terminals_ready = true;
+        Ok(())
+    }
+}

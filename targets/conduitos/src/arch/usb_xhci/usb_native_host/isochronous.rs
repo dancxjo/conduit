@@ -112,6 +112,8 @@ impl<'a> UsbNativeHost<'a> {
             || self.cancellation_requested
             || self.stop_acknowledged
             || self.pending_endpoint.is_some()
+            || self.pending_write.is_some()
+            || self.bulk_terminals.iter().any(|slot| slot.index.is_some())
             || self.uncertain_control
         {
             return Err(UsbNativeHostRefusal::NotReady);

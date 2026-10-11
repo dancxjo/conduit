@@ -154,6 +154,11 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
                 all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
             ))]
             pending_usb_failed: false,
+            #[cfg(any(
+                target_arch = "x86_64",
+                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+            ))]
+            pending_duplex: [None, None],
         })
     }
 
@@ -265,6 +270,11 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
                 all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
             ))]
             pending_usb_failed: false,
+            #[cfg(any(
+                target_arch = "x86_64",
+                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+            ))]
+            pending_duplex: [None, None],
         })
     }
 
@@ -394,6 +404,11 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
                 all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
             ))]
             pending_usb_failed: false,
+            #[cfg(any(
+                target_arch = "x86_64",
+                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+            ))]
+            pending_duplex: [None, None],
         })
     }
 }
