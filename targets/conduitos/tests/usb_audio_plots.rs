@@ -502,6 +502,11 @@ fn playback_package() -> conduitos::protocol_source::ProtocolSourcePackage {
             include_str!("../plots/usb/audio-playback-back.conduit"),
             pcm,
             cadence,
+            &include_str!("../plots/usb/isochronous-out-types.conduit")[..include_str!(
+                "../plots/usb/isochronous-out-types.conduit"
+            )
+            .find("type UsbIsochronousOutRequest")
+            .unwrap()],
             include_str!("../plots/usb/audio-playback-types.conduit"),
             include_str!("../plots/usb/audio-playback-policy.conduit"),
         ]
@@ -570,7 +575,10 @@ fn playback_authored_pcm_canonical_envelope_measures_lawful_and_declared_maximum
 fn prepared_playback_program(entry: &str) -> PortableExpressionProgram {
     let source =
         conduitos::protocol_source::PreparedProtocolSource::prepare(playback_package()).unwrap();
-    let expanded = source.expand(entry).unwrap().expanded;
+    let expanded = source
+        .expand(entry)
+        .unwrap_or_else(|error| panic!("{entry}: {error:?}"))
+        .expanded;
     assert_eq!(expanded.gears.len(), 1);
     let ConfigurationValue::Text(encoded) = &expanded.gears[0].configuration[0].value else {
         panic!("pure checked playback program")
@@ -617,22 +625,53 @@ fn playback_envelope_value(
             element,
             maximum_items,
             ..
-        } => V::sequence(
-            ty.clone(),
-            (0..maximum_items)
-                .map(|_| {
-                    playback_envelope_value(
-                        element,
-                        path,
-                        wire_length,
-                        phase,
-                        event_kind,
-                        event_status,
-                    )
-                })
-                .collect(),
-        )
-        .unwrap(),
+        } => {
+            if path == "/1" {
+                let status = match event_status {
+                    "running" => 0,
+                    "completed" => 1,
+                    "underrun" => 10,
+                    "unsupported-control" => 5,
+                    other => panic!("event {other}"),
+                };
+                let words: [u64; 8] = [
+                    event_kind,
+                    15,
+                    2047,
+                    status,
+                    8,
+                    1536,
+                    u64::from(event_kind == 3 || event_status == "underrun"),
+                    1,
+                ];
+                assert_eq!(maximum_items, 8);
+                V::sequence(
+                    ty.clone(),
+                    words
+                        .into_iter()
+                        .map(|word| V::leaf(element.clone(), word.to_le_bytes().to_vec()).unwrap())
+                        .collect(),
+                )
+                .unwrap()
+            } else {
+                V::sequence(
+                    ty.clone(),
+                    (0..maximum_items)
+                        .map(|_| {
+                            playback_envelope_value(
+                                element,
+                                path,
+                                wire_length,
+                                phase,
+                                event_kind,
+                                event_status,
+                            )
+                        })
+                        .collect(),
+                )
+                .unwrap()
+            }
+        }
         S::Variant { cases, .. } => {
             let tag = if path.starts_with("/1/") {
                 event_status
@@ -659,6 +698,19 @@ fn playback_envelope_value(
                 )],
                 "value/u64" => {
                     let value = match field {
+                        "status" => {
+                            if path.starts_with("/1/") {
+                                match event_status {
+                                    "running" => 0,
+                                    "completed" => 1,
+                                    "underrun" => 10,
+                                    "unsupported-control" => 5,
+                                    other => panic!("event status {other}"),
+                                }
+                            } else {
+                                5
+                            }
+                        }
                         "phase" => phase,
                         "phase-kind" => event_kind,
                         "first-frame" => 2047,
@@ -680,10 +732,8 @@ fn playback_envelope_value(
 fn playback_retained_feedback_output_and_drain_canonical_envelopes_are_bounded() {
     let advance = prepared_playback_program("usb-audio-play-advance");
     let report = prepared_playback_program("usb-audio-play-report");
-    let request = prepared_playback_program("usb-audio-play-iso-request");
     let mut advance_evaluator = PreparedPortableExpressionEvaluator::new(&advance).unwrap();
     let mut report_evaluator = PreparedPortableExpressionEvaluator::new(&report).unwrap();
-    let mut request_evaluator = PreparedPortableExpressionEvaluator::new(&request).unwrap();
     for wire_length in [192, 256] {
         for (phase, kind, status) in [
             (5, 1, "running"),
@@ -710,6 +760,8 @@ fn playback_retained_feedback_output_and_drain_canonical_envelopes_are_bounded()
             let report = report_evaluator.evaluate(&output).unwrap();
             println!("playback report canonical={}", report.len());
             assert!(report.len() <= 4096);
+            let request = prepared_playback_program("usb-audio-play-iso-request");
+            let mut request_evaluator = PreparedPortableExpressionEvaluator::new(&request).unwrap();
             let drain_state =
                 playback_envelope_value(&request.input_type, "", wire_length, 7, 3, status)
                     .canonical_bytes()

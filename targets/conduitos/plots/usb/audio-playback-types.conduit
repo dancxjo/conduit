@@ -23,12 +23,14 @@ type UsbAudioPlaybackStatus =
     | underrun
     | provider-lost
 
+# Internal finite Source state/event status codes are decoded to the complete
+# typed outward status in usb-audio-play-report; native outcomes stay distinct.
 type UsbAudioPlaybackState = {
     header: PcmFrameHeader
     segments: sequence UsbAudioPcmSegment <= 8
     phase: U64
     first-frame: U64
-    status: UsbAudioPlaybackStatus
+    status: U64
     completed-packets: U64
     actual-bytes: U64
     terminal: Boolean
@@ -42,19 +44,10 @@ type UsbAudioPlaybackActive =
     running UsbAudioPlaybackState
     | stopped
 
-type UsbAudioPlaybackEvent = {
-    phase-kind: U64
-    descriptor: Boolean
-    zero-ack: Boolean
-    set-ack: Boolean
-    get-ack: Boolean
-    supported: Boolean
-    first-frame: U64
-    status: UsbAudioPlaybackStatus
-    completed-packets: U64
-    actual-bytes: U64
-    native-stopped: Boolean
-}
+# Exactly eight Source event words: kind, phase ack mask, first USB frame,
+# status code, completed packet count, actual bytes, acknowledged stop, support.
+# Ack bits 1/2/4/8 preserve descriptor/zero/SET/GET observations separately.
+type UsbAudioPlaybackEvent = sequence U64 <= 8
 type UsbAudioPlaybackReport = {
     header: PcmFrameHeader
     first-frame: U64
