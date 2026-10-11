@@ -142,6 +142,13 @@ impl CanonicalBackCatalog {
         Ok(())
     }
 
+    /// Borrow the exact checked definition admitted for this Kind. Presentation
+    /// preparation uses this custody record to follow a selected invocation;
+    /// it does not replace compiler expansion or planner applicability checks.
+    pub fn checked_definition(&self, kind: &KindId) -> Option<&CanonicalBackDefinition> {
+        self.backs.get(kind)
+    }
+
     pub(crate) fn get(&self, kind: &KindId) -> Option<&CanonicalBackDefinition> {
         self.backs.get(kind)
     }

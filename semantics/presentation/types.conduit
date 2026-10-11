@@ -649,3 +649,26 @@ type ApplicationViewRefusal =
     | stale_revision
     | event_too_large
     | queue_pressure
+
+# Initial finite visual Look facet. Semantic selectors and topology are absent.
+# These canonical values are startup configuration, not a common multimodal Look.
+type VisualDensityPreference =
+    compact
+    | spacious
+
+type VisualPalettePreference =
+    phosphor
+    | editorial
+
+type VisualMotionPreference =
+    none
+    | restrained
+
+type VisualExpressionInfo = {
+    density: VisualDensityPreference
+    identity: Text <= 128B not in [""]
+    motion: VisualMotionPreference
+    palette: VisualPalettePreference
+    text_scale_percent: U16 in 100..=200
+    version: U16 in 1..=1
+}
