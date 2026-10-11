@@ -30,6 +30,8 @@ pub(super) fn prepared(
     append(text.as_bytes())?;
     append(b"CONDUIT_USB_PREFLIGHT_PACKAGE sha256=\n")?;
     hex(&discovery.package_digest)?;
+    append(b"CONDUIT_USB_PREFLIGHT_ROOT sha256=\n")?;
+    hex(&discovery.root_digest)?;
     let facts = discovery.snapshot.facts();
     let mut text = crate::sign_format::FixedText::new();
     writeln!(text, "CONDUIT_USB_PREFLIGHT_ATTACHMENT segment={} bus={} device={} function={} vendor={} device_id={} bar={} port={} slot={} dma_slot={} epoch={} requested={} actual={}",

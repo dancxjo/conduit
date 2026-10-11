@@ -14,9 +14,10 @@ fn package() -> ProtocolSourcePackage {
     };
     let mut package = ProtocolSourcePackage::compile(
         format!(
-            "{header}\n{}\n{}\n{}\n{body}\n{}",
+            "{header}\n{}\n{}\n{}\n{}\n{body}\n{}",
             include_str!("../../../semantics/serial/duplex-bytes-types.conduit"),
             include_str!("../plots/usb/cdc-serial-types.conduit"),
+            include_str!("../plots/usb/discovery-types.conduit"),
             include_str!("../plots/usb/cdc-serial-profile.conduit"),
             include_str!("../plots/usb/cdc-serial-producer.conduit")
         ),

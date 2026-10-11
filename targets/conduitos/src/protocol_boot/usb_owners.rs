@@ -116,6 +116,7 @@ pub(super) unsafe fn admit(
         })?;
         let admitted =
             super::usb_preflight::accept(package, request, preflight, snapshot, host, boot_id)?;
+        admitted.validate_request(request)?;
         admitted.validate_attachment(&controller, &device)?;
         if !admitted.supported() {
             // One permanently claimed Boot Root retains the rejected pure
