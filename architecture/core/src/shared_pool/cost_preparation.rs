@@ -312,12 +312,21 @@ pub(super) fn validate_window(
     expires: &MonotonicInstant,
     now: &MonotonicInstant,
 ) -> Result<(), PoolCostPreparationRefusal> {
+    validate_window_source(&host.host_id, &host.boot_id, observed, expires, now)
+}
+pub(super) fn validate_window_source(
+    host: &crate::HostId,
+    boot: &crate::BootId,
+    observed: &MonotonicInstant,
+    expires: &MonotonicInstant,
+    now: &MonotonicInstant,
+) -> Result<(), PoolCostPreparationRefusal> {
     use PoolCostPreparationRefusal as R;
     if observed.validate().is_err()
         || expires.validate().is_err()
         || now.validate().is_err()
-        || observed.clock().host_id() != &host.host_id
-        || observed.clock().boot_id() != &host.boot_id
+        || observed.clock().host_id() != host
+        || observed.clock().boot_id() != boot
         || observed.clock() != expires.clock()
         || observed.clock() != now.clock()
     {

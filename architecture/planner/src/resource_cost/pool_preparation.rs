@@ -167,12 +167,15 @@ pub fn prepare_pool_cost_forecast<'a>(
                     e.condition(),
                 )
             }),
-            current_execution: input.current_execution.map(|e| {
-                (
-                    CostSourceAttribution::from_source(e.source()),
-                    e.condition(),
-                )
-            }),
+            current_execution: input
+                .current_execution
+                .filter(|_| forecast.expected_execution_condition().is_some())
+                .map(|e| {
+                    (
+                        CostSourceAttribution::from_source(e.source()),
+                        e.condition(),
+                    )
+                }),
             stages: forecast.forecast().stages(),
             lower_seconds: forecast.lower_seconds(),
             upper_seconds: forecast.upper_seconds(),

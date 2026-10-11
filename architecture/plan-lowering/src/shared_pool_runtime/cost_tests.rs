@@ -166,7 +166,10 @@ fn sealed_completion_policy_selects_faster_member_and_released_capacity_without_
         _ => panic!("expected selected member"),
     };
     assert_eq!(member.placement.realization, 1);
-    assert_eq!(first.sources[1].duration.upper_nanoseconds(), 10_000_000);
+    assert_eq!(
+        first.account.sources[1].duration.upper_nanoseconds(),
+        10_000_000
+    );
     pool.trigger(member).unwrap();
     let operation = PoolOperationId::from("cost/request-2");
     let prepared = costs(&plan, &hosts, &operation);
@@ -185,8 +188,8 @@ fn sealed_completion_policy_selects_faster_member_and_released_capacity_without_
         matches!(second.admission, SharedPoolAdmissionOutcome::Selected { member, .. } if member.placement.realization == 0)
     );
     assert_eq!(
-        second.decisions[1].admission,
-        conduit_kernel::shared_pool::PoolCostAdmission::Full
+        second.account.candidates[1].admission,
+        PoolCostHardDisposition::Full
     );
     pool.release(member).unwrap();
     let operation = PoolOperationId::from("cost/request-3");
@@ -207,7 +210,7 @@ fn sealed_completion_policy_selects_faster_member_and_released_capacity_without_
     );
 }
 #[test]
-fn stale_cross_operation_and_foreign_source_refuse_before_occupation() {
+fn unusable_sources_are_retained_but_operation_rebinding_refuses() {
     let plan = plan();
     let hosts = hosts(&plan);
     let operation = PoolOperationId::from("cost/request-1");
@@ -235,20 +238,31 @@ fn stale_cross_operation_and_foreign_source_refuse_before_occupation() {
         1,
     )
     .unwrap();
-    assert!(matches!(
-        pool.admit_new_operation_with_costs(
+    let stale = pool
+        .admit_new_operation_with_costs(
             operation.clone(),
             key(1),
             &[],
             "select/stale".into(),
             [9; 32],
             &prepared,
-            &evaluations
-        ),
-        Err(SharedPoolRuntimeError::Cost(
-            PoolCostLoweringError::Prepared(PoolCostPreparationRefusal::Stale)
-        ))
+            &evaluations,
+        )
+        .unwrap();
+    assert!(matches!(
+        stale.admission,
+        SharedPoolAdmissionOutcome::Refused(_)
     ));
+    assert!(stale.account.sources.iter().all(|s| s.availability
+        == PoolCostSourceAvailability::Unavailable(PoolCostUnavailable::Prepared(
+            PoolCostPreparationRefusal::Stale
+        ))));
+    assert!(stale
+        .account
+        .candidates
+        .iter()
+        .all(|c| c.cost == PoolCostDisposition::NotCompared));
+    assert_eq!(stale.account.validate(&plan), Ok(()));
     assert_eq!(pool.population(), 0);
     assert!(matches!(
         pool.admit_new_operation_with_costs(
@@ -281,20 +295,28 @@ fn stale_cross_operation_and_foreign_source_refuse_before_occupation() {
             executions: &[],
         })
         .collect::<Vec<_>>();
-    assert!(matches!(
-        pool.admit_new_operation_with_costs(
+    let foreign = pool
+        .admit_new_operation_with_costs(
             operation,
             key(1),
             &[],
             "select/changed".into(),
             [9; 32],
             &prepared,
-            &evaluations
-        ),
-        Err(SharedPoolRuntimeError::Cost(
-            PoolCostLoweringError::Prepared(PoolCostPreparationRefusal::SourceChanged)
-        ))
+            &evaluations,
+        )
+        .unwrap();
+    assert!(matches!(
+        foreign.admission,
+        SharedPoolAdmissionOutcome::Refused(_)
     ));
+    assert_eq!(
+        foreign.account.sources[0].availability,
+        PoolCostSourceAvailability::Unavailable(PoolCostUnavailable::Prepared(
+            PoolCostPreparationRefusal::SourceChanged
+        ))
+    );
+    assert_eq!(foreign.account.validate(&plan), Ok(()));
     assert_eq!(pool.population(), 0);
 }
 #[test]
@@ -346,11 +368,12 @@ fn empty_costs_explicitly_use_capacity_reference_and_policy_is_in_plan_identity(
     assert!(
         matches!(selected.admission, SharedPoolAdmissionOutcome::Selected { member, .. } if member.placement.realization == 0)
     );
-    assert!(selected.sources.is_empty());
+    assert!(selected.account.sources.is_empty());
     assert!(selected
-        .decisions
+        .account
+        .candidates
         .iter()
-        .all(|d| d.cost == conduit_kernel::shared_pool::PoolCostAvailability::Missing));
+        .all(|d| d.cost == PoolCostDisposition::Missing));
     let mut ordinary = HostedSharedPool::<2, 32, 4>::new(
         &old,
         0,
