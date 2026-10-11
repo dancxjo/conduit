@@ -68,12 +68,20 @@ fn unsupported_observations_have_no_admitted_class_handoff() {
     let mut wrong = CONFIG.to_vec();
     wrong[11] = 2;
     wrong[35] = 2;
-    for observed in [wrong, CONFIG[..66].to_vec(), alloc::vec![0;67]] {
+    for observed in [
+        wrong,
+        CONFIG[..66].to_vec(),
+        alloc::vec![0;67],
+        alloc::vec![0;256],
+    ] {
         let result = accept(
             &bytes,
             &request,
             request.preflight.as_ref().unwrap(),
-            UsbConfigurationSnapshot::fixture(&observed, 67),
+            UsbConfigurationSnapshot::fixture(
+                &observed,
+                if observed.len() == 256 { 256 } else { 67 },
+            ),
             &"fixture/host".into(),
             &"fixture/boot".into(),
         );
