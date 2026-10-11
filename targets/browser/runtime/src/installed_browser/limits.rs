@@ -27,7 +27,9 @@ pub(crate) const BROWSER_VALUE_ITEMS: u16 = 272;
 // pointer values; reserve the next 128 KiB tier before Play. This value arena
 // remains inside the browser profile's 8 MiB heap allowance.
 pub(crate) const BROWSER_TOTAL_VALUE_BYTES: u32 = 2_176 * 1_024;
-pub(crate) const BROWSER_SIGN_ITEMS: u16 = 256;
+// Covers every kernel Fore/scan commit for the admitted 256-command Play.
+// The complete fixed Sign table is reserved before Body start.
+pub(crate) const BROWSER_SIGN_ITEMS: u16 = 4096;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub(crate) struct BrowserEnvelopeLimits {

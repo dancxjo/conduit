@@ -264,8 +264,17 @@ pub(crate) fn inventory_application_subjects(
                 })
                 .ok_or("resident application subject is absent from the reviewed inventory")?;
             let (_, profile) = catalogs.get(entry.presentation)?;
-            let expanded = conduit_plot::expand_canonical_plot(&entry.checked, &plot.name, profile)
-                .map_err(|error| format!("expand resident application subject: {error:?}"))?;
+            let expanded = if plot.name == "thermostat/main" {
+                conduit_plot::expand_canonical_plot_for_authoring(
+                    &entry.checked,
+                    &plot.name,
+                    profile,
+                )
+                .map(|authored| authored.expanded)
+            } else {
+                conduit_plot::expand_canonical_plot(&entry.checked, &plot.name, profile)
+            }
+            .map_err(|error| format!("expand resident application subject: {error:?}"))?;
             let title = entry
                 .entry_title
                 .clone()
@@ -399,6 +408,43 @@ pub(super) fn reviewed_browser_host_with_inventory(
                         &authored.expanded,
                     )?,
                 );
+            }
+        }
+        if entry
+            .checked
+            .plots
+            .iter()
+            .any(|plot| plot.name == "thermostat/main")
+        {
+            let authored = conduit_plot::expand_canonical_plot_for_authoring(
+                &entry.checked,
+                "thermostat/main",
+                &profile,
+            )
+            .map_err(|error| format!("browser thermostat offer expansion: {error:?}"))?;
+            for activation in &authored.expanded.activations {
+                if activation.input.value_kind.as_str() != conduit_thermostat_plot::COMMAND_KIND {
+                    continue;
+                }
+                let conduit_plot::ActivationSyntax::Scan { maximum_items, .. } = activation.mode
+                else {
+                    continue;
+                };
+                let initial = conduit_thermostat_plot::ThermostatState::decode(
+                    activation
+                        .initial_accumulator_bytes
+                        .as_deref()
+                        .ok_or("thermostat scan seed is absent")?,
+                )
+                .map_err(|error| format!("thermostat scan seed: {error:?}"))?;
+                let offered =
+                    crate::installed_browser::thermostat_scan_offer::thermostat_scan_offer(
+                        &initial,
+                        maximum_items,
+                    )?;
+                host.capabilities
+                    .retain(|current| current.capability_id != offered.capability_id);
+                offers.push(offered);
             }
         }
         for offer in offers {

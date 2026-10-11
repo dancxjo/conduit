@@ -4,6 +4,8 @@
 mod attempt;
 #[path = "engine_completions.rs"]
 mod completions;
+#[path = "engine_thermostat.rs"]
+pub(super) mod thermostat;
 pub(super) use completions::{complete_host_effect, complete_host_effect_with_output};
 #[path = "engine_preparation.rs"]
 pub(super) mod preparation;
@@ -118,6 +120,7 @@ pub(super) struct TourScheduler {
     stroke_captures:
         Vec<Option<Box<crate::installed_browser::stroke_capture::PreparedStrokeCapture>>>,
     applications: Vec<Option<Box<super::application_state::PreparedApplication>>>,
+    thermostat: Option<thermostat::ThermostatFore>,
 }
 
 impl core::ops::Deref for TourScheduler {
@@ -235,6 +238,7 @@ fn drive_with_boundary<'a>(
     remote_egress: &[(conduit_kernel::RemoteEndpointId, CordId)],
 ) -> Result<DriveStatus, String> {
     loop {
+        thermostat::capture_output(scheduler)?;
         for &(endpoint, cord) in remote_egress {
             if scheduler
                 .remote_egress_offer(endpoint, cord)
@@ -442,7 +446,9 @@ fn drive_with_boundary<'a>(
                     pending_effects: scheduler.pending_host_call_count(),
                 });
             }
-            SchedulerStatus::Idle if allow_remote_wait => return Ok(DriveStatus::Quiescent),
+            SchedulerStatus::Idle if allow_remote_wait || scheduler.thermostat.is_some() => {
+                return Ok(DriveStatus::Quiescent)
+            }
             SchedulerStatus::Idle => return Err("Tour Play became idle".into()),
             SchedulerStatus::Cancelled => return Err("Tour Play was cancelled".into()),
         }

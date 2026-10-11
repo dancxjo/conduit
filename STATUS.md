@@ -334,6 +334,18 @@ Their presence is not an additional physical or release acceptance claim:
   records profiles, refusals and proof classes. Local implementation and test
   evidence must be distinguished from hosted candidate and stable acceptance.
 
+- **Browser-local Thermostat (#5399):** the static Handbook packages the original
+  `thermostat/main` and checks, plans and executes it in its own browser Body.
+  The installed browser scan shares the production kernel Back with std and
+  uses the same portable Thermostat transition. Canonical Face actions cross
+  an acknowledged browser Mask Show into the current typed command Fore;
+  settings are session-local and reset on a new Play. Pinned Chromium proves
+  exact Celsius values, settings, refusals, accessibility, lifecycle and
+  independent profiles with only static asset requests. Sensor and equipment
+  operation remain unconfirmed. The Linux-owned participation route remains
+  distinct. This local development proof does not establish Candidate,
+  Integration or public Pages acceptance.
+
 The current `cargo xtask make conduitos std-gap` report also identifies missing
 ConduitOS Host Calls for `math/map-quantity` and
 `structured-info/wrap-quantity`, alongside the missing storage base for
