@@ -71,12 +71,37 @@ pub enum CostAvailability<'a> {
     Missing,
     Unusable(Refusal),
 }
-#[derive(Debug)]
 pub struct CostCandidateEvidence<'a> {
     pub host_id: &'a HostId,
     pub capability_id: &'a CapabilityId,
     pub availability: CostAvailability<'a>,
+    /// Retain attribution even when freshness/profile validation refuses use.
+    /// This is historical custody, not proof that the sample remains usable.
+    pub submitted_source: Option<&'a super::CostEvidenceSource<'a>>,
+    pub submitted_calibration_source: Option<&'a super::CostEvidenceSource<'a>>,
+    pub evaluated_at: &'a MonotonicInstant,
     pub selected: bool,
+}
+impl core::fmt::Debug for CostCandidateEvidence<'_> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("CostCandidateEvidence")
+            .field("host", &self.host_id)
+            .field("capability", &self.capability_id)
+            .field("availability", &self.availability)
+            .field(
+                "submitted_sign",
+                &self.submitted_source.map(|source| source.sign()),
+            )
+            .field(
+                "submitted_calibration_sign",
+                &self
+                    .submitted_calibration_source
+                    .map(|source| source.sign()),
+            )
+            .field("evaluated_at", &self.evaluated_at)
+            .field("selected", &self.selected)
+            .finish()
+    }
 }
 #[derive(Debug)]
 pub struct CostRealizationSelection<'a> {
@@ -95,6 +120,9 @@ pub struct UnavailableCostEvidence {
     pub capability_id: CapabilityId,
     /// None denotes missing evidence, not a numeric zero.
     pub reason: Option<Refusal>,
+    pub submitted: Option<super::CostSourceAttribution>,
+    pub submitted_calibration: Option<super::CostSourceAttribution>,
+    pub evaluated_at: MonotonicInstant,
 }
 #[derive(Debug)]
 pub enum CostSelectionError {
@@ -239,10 +267,11 @@ pub fn select_realization_with_costs<'a>(
             .iter()
             .find(|offer| offer.capability_id == record.capability_id)
             .expect("record names admitted offer");
-        let availability = if let Some(forecast) = inputs.forecasts.iter().find(|forecast| {
+        let submitted = inputs.forecasts.iter().find(|forecast| {
             forecast.source().host().host_id == record.host_id
                 && forecast.source().offer().capability_id == record.capability_id
-        }) {
+        });
+        let availability = if let Some(forecast) = submitted {
             let validation = forecast.demand().validate_match(demand).and_then(|()| {
                 let calibration = context
                     .calibrations
@@ -264,6 +293,10 @@ pub fn select_realization_with_costs<'a>(
             host_id: &context.host.host_id,
             capability_id: &offer.capability_id,
             availability,
+            submitted_source: submitted.map(|sample| sample.source()),
+            submitted_calibration_source: submitted
+                .and_then(|sample| sample.calibration().map(|estimate| estimate.source())),
+            evaluated_at: context.now,
             selected: false,
         });
     }
@@ -306,6 +339,13 @@ pub fn select_realization_with_costs<'a>(
             .map(|item| UnavailableCostEvidence {
                 host_id: item.host_id.clone(),
                 capability_id: item.capability_id.clone(),
+                submitted: item
+                    .submitted_source
+                    .map(super::CostSourceAttribution::from_source),
+                submitted_calibration: item
+                    .submitted_calibration_source
+                    .map(super::CostSourceAttribution::from_source),
+                evaluated_at: item.evaluated_at.clone(),
                 reason: match item.availability {
                     CostAvailability::Missing => None,
                     CostAvailability::Unusable(reason) => Some(reason),
