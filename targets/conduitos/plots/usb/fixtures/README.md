@@ -27,7 +27,7 @@ coalesced frame reconstruction and VLAN/jumbo frames are unsupported.
 `cdc-ecm-profile.json` describes ordinary Source specializations and bounded
 operation counts. Assemble imports from service/frames once, followed by
 `cdc-ecm-types.conduit`, `cdc-ecm-profile.conduit`, then the two bodies. The start
-record supplies a typed USB write request containing empty bytes because Source
+Value supplies a typed USB write request containing empty bytes because Source
 has no byte literal constructor; the Source checks its length is zero before
 any effect. This input contains no host addresses or authority.
 
@@ -54,3 +54,13 @@ constructs TCP packets or returns a fixed reply in this mode. Backend exit,
 queue exhaustion, malformed frames and deadline expiry refuse the run. The
 owned process is reaped at exit. This mode alone still proves neither a guest
 network exchange nor #5255 acceptance.
+
+The entry takes one bounded Value seed through the existing typed singleton.
+The terminal flow uses the existing typed finite concat; a stopped state routes
+to stopped again, so its write selection closes the concat’s right side empty.
+These adapters advertise the exact external contracts instead of projecting a
+bounded Fore directly onto a pure-expression Back without that outer contract.
+The terminal envelope is 512 bytes: the checked canonical encodings of all
+terminal variants reach 416 bytes, so the earlier 256-byte annotation was too
+small. The seed envelope remains 4096 bytes. Neither adapter admits USB or
+network authority.

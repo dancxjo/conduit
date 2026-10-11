@@ -1,6 +1,11 @@
 {
   "profile": "bounded-external-cdc-ecm-device@1",
-  "device": {"speed": "full", "vendor": 65535, "product": 61720, "ep0_packet_bytes": 8},
+  "device": {
+    "speed": "full",
+    "vendor": 65535,
+    "product": 61720,
+    "ep0_packet_bytes": 8
+  },
   "configuration": 1,
   "communication_interface": 0,
   "data_interface": 1,
@@ -20,8 +25,44 @@
   "start_type": "CdcEcmStart",
   "start_terminator_bytes": 0,
   "specializations": [
-    {"kind": "seeded-until", "value": {"type_name": "CdcEcmState", "maximum_bytes": 4096}},
-    {"kind": "feedback-zip", "left": {"type_name": "CdcEcmState", "maximum_bytes": 4096}, "right": {"type_name": "CdcEcmEvent", "maximum_bytes": 4096}},
-    {"kind": "merge", "value": {"type_name": "CdcEcmEvent", "maximum_bytes": 4096}}
+    {
+      "kind": "singleton",
+      "value": {
+        "type_name": "CdcEcmStart",
+        "maximum_bytes": 4096
+      }
+    },
+    {
+      "kind": "concat",
+      "value": {
+        "type_name": "CdcEcmOutcome",
+        "maximum_bytes": 512
+      }
+    },
+    {
+      "kind": "seeded-until",
+      "value": {
+        "type_name": "CdcEcmState",
+        "maximum_bytes": 4096
+      }
+    },
+    {
+      "kind": "feedback-zip",
+      "left": {
+        "type_name": "CdcEcmState",
+        "maximum_bytes": 4096
+      },
+      "right": {
+        "type_name": "CdcEcmEvent",
+        "maximum_bytes": 4096
+      }
+    },
+    {
+      "kind": "merge",
+      "value": {
+        "type_name": "CdcEcmEvent",
+        "maximum_bytes": 4096
+      }
+    }
   ]
 }

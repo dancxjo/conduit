@@ -33,6 +33,15 @@ fn source() -> PreparedProtocolSource {
                 body(service)
             ),
             &[
+                ProtocolSpecializationRequest::Singleton {
+                    value: value("CdcEcmStart"),
+                },
+                ProtocolSpecializationRequest::Concat {
+                    value: ProtocolValueReference {
+                        type_name: "CdcEcmOutcome".into(),
+                        maximum_bytes: 512,
+                    },
+                },
                 ProtocolSpecializationRequest::SeededUntil {
                     value: value("CdcEcmState"),
                 },
@@ -464,3 +473,6 @@ fn exact_descriptor_mac_and_ack_flags_refuse_every_changed_byte_and_truncation()
 }
 #[path = "usb_ecm_class_source/reuse.rs"]
 mod reuse;
+
+#[path = "usb_ecm_class_source/admission.rs"]
+mod admission;

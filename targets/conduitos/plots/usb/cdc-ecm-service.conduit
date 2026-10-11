@@ -69,10 +69,12 @@ plot cdc-ecm-outcome (
 # the frame), followed by one checked RX and one independently admitted enqueue.
 # Pressure/fault ends this finite profile; no private polling/retry or fake ack.
 plot cdc-ecm-frame-service (
-    >> start: CdcEcmStart...| <= 4096B
+    >> start: CdcEcmStart <= 4096B
     observed: CdcEcmEvent...| <= 4096B >>
-    ended: CdcEcmOutcome...| <= 256B >>
+    ended: CdcEcmOutcome...| <= 512B >>
 ) {
+    seed: flow/singleton
+    terminal: flow/concat/finite
     cell: state/seeded/flow/until
     route: cdc-ecm-route()
     join: flow/zip/feedback
@@ -83,14 +85,18 @@ plot cdc-ecm-frame-service (
     first: flow/merge/finite
     second: flow/merge/finite
     events: flow/merge/finite
-    start >> cdc-ecm-start() >> cell.seed
+    start >> seed.value
+    seed.flow >> cdc-ecm-start() >> cell.seed
     cell.current >> route
     route >> cdc-ecm-pending() >> select(CdcEcmPending.running, unmatched=drop) >> join.left
     route >> select(CdcEcmRoute.control, unmatched=drop) >> cdc-ecm-control-request() >> controls.request
     route >> select(CdcEcmRoute.frame, unmatched=drop) >> cdc-ecm-queue-request() >> frames.request
     route >> select(CdcEcmRoute.write, unmatched=drop) >> cdc-ecm-write-request() >> writes.request
     route >> select(CdcEcmRoute.read, unmatched=drop) >> cdc-ecm-read-request() >> reads.request
-    route >> select(CdcEcmRoute.stopped, unmatched=drop) >> cdc-ecm-outcome() >> ended
+    route >> select(CdcEcmRoute.stopped, unmatched=drop) >> cdc-ecm-outcome() >> terminal.left
+    route >> select(CdcEcmRoute.stopped, unmatched=drop) >> cdc-ecm-route() >> select(CdcEcmRoute.write, unmatched=drop) >> cdc-ecm-outcome() >> terminal.right
+    # A stopped state routes to stopped again; the write selection closes empty.
+    terminal.concatenated >> ended
     controls.result >> cdc-ecm-control-event() >> first.left
     frames.result >> cdc-ecm-frame-event() >> first.right
     writes.result >> cdc-ecm-write-event() >> second.left

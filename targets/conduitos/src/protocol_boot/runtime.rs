@@ -303,16 +303,19 @@ fn execute_workload(
                 value_kind: port.value_kind.clone(),
                 encoded: input.canonical_bytes.clone(),
             },
+            matches!(port.temporal, PortTemporal::Flow { closes: true }),
         ));
     }
     play.start().map_err(|_| "protocol-start-refused")?;
     let result = (|| {
         report_play(play)?;
-        for (port, value) in &inputs {
+        for (port, value, closes) in &inputs {
             play.admit_input(port, 0, value)
                 .map_err(|_| "protocol-input-refused")?;
-            play.close_input(port)
-                .map_err(|_| "protocol-input-close-refused")?;
+            if *closes {
+                play.close_input(port)
+                    .map_err(|_| "protocol-input-close-refused")?;
+            }
         }
         for _ in 0..maximum_steps {
             #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
