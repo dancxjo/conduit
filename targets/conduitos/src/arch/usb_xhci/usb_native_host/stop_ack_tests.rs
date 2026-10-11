@@ -1,7 +1,9 @@
 //! Aggregate Host tests against synthetic MMIO and actual native event-ring code.
 //! No QEMU/device execution or installed capability-table coverage is claimed.
 use super::*;
-use crate::arch::xhci_mechanism::{synthetic_stop_dcbaa, with_synthetic_stop_controller};
+use crate::arch::xhci_mechanism::{
+    synthetic_late_original_stop_ack, synthetic_stop_dcbaa, with_synthetic_stop_controller,
+};
 
 fn identity(address: u64) -> Option<u64> {
     Some(address)
@@ -60,6 +62,18 @@ fn check_stop(slot: u8, code: u8, pointer_delta: u64, accepted: bool) {
         // Repeated successful cancellation consumes no duplicate completion.
         if accepted {
             assert!(host.cancel().is_ok());
+        }
+        if !accepted {
+            // A delayed acknowledgement for the original command must never be
+            // accepted as acknowledgement of a different retry command.
+            unsafe { synthetic_late_original_stop_ack(&host.controller) };
+            assert!(host.cancel().is_err());
+            assert!(!host.stop_acknowledged);
+            assert!(!host.stopped);
+            unsafe {
+                assert_eq!((*dma).owner_slot, 1);
+                assert_eq!(synthetic_stop_dcbaa(), 0xfeed0000);
+            }
         }
         // Explicitly tear down test memory, without claiming failed hardware stop.
         unsafe { (*dma).owner_slot = 0 };
