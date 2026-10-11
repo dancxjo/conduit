@@ -2,10 +2,11 @@
 """Check external UAC PCM and decoded native ISO evidence; never manufacture it."""
 import argparse
 import json
+import hashlib
 from pathlib import Path
 import struct
 
-def check(transcript, receipt):
+def check(transcript, receipt, authored, authored_sha256):
     packets, controls = [], []
     for entry in transcript:
         raw = bytes.fromhex(entry['wire_hex'])
@@ -36,7 +37,22 @@ def check(transcript, receipt):
         raise ValueError('selected topology mismatch')
     if receipt['clock_id'] <= 0 or receipt['start_frame'] < 0:
         raise ValueError('missing original PCM clock/start')
-    expected = bytes.fromhex(receipt['original_pcm_hex'])
+    if receipt['authored_input_sha256'] != authored_sha256:
+        raise ValueError('authored input digest mismatch')
+    for field in ['clock_id', 'start_frame', 'sample_rate_hz', 'channels', 'representation']:
+        if receipt[field] != authored[field]:
+            raise ValueError('original PCM metadata differs from authored input')
+    expected = bytes.fromhex(authored['original_pcm_hex'])
+    samples = authored['original_samples']
+    if len(samples) != len(packets)*48 or any(len(pair) != 2 or any(not isinstance(sample, int) or not -32768 <= sample <= 32767 for sample in pair) for pair in samples):
+        raise ValueError('original signed16 stereo sample extent mismatch')
+    if b''.join(struct.pack('<hh', *pair) for pair in samples) != expected:
+        raise ValueError('source PCM little endian byte order mismatch')
+    if bytes.fromhex(receipt['original_pcm_hex']) != expected:
+        raise ValueError('receipt substituted original PCM')
+    segments = [bytes.fromhex(segment['wire_hex']) for block in authored['authored_blocks'] for segment in block['segments']]
+    if any(len(segment) != 192 for segment in segments) or b''.join(segments) != expected:
+        raise ValueError('authored PCM projections omit duplicate or alter original bytes')
     if len(expected) != len(packets)*192 or b''.join(packets) != expected or not any(expected):
         raise ValueError('external bytes differ from original nontrivial PCM projection')
     batches=receipt['native_batches']
@@ -63,8 +79,13 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--transcript',required=True)
     parser.add_argument('--receipt',required=True)
+    parser.add_argument('--authored-input',required=True)
     args=parser.parse_args()
+    for name, maximum in [(args.transcript, 1048576), (args.receipt, 262144), (args.authored_input, 262144)]:
+        if Path(name).stat().st_size > maximum:
+            raise ValueError('finite evidence file extent exceeded')
+    authored_bytes = Path(args.authored_input).read_bytes()
     entries=[json.loads(line) for line in Path(args.transcript).read_text().splitlines() if line]
-    print(json.dumps(check(entries,json.loads(Path(args.receipt).read_text())),sort_keys=True))
+    print(json.dumps(check(entries,json.loads(Path(args.receipt).read_text()),json.loads(authored_bytes),hashlib.sha256(authored_bytes).hexdigest()),sort_keys=True))
 
 if __name__=='__main__':main()
