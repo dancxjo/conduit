@@ -101,7 +101,7 @@ fn count_pressure_and_foreign_schema_preserve_previous_value() {
 #[test]
 fn exact_collection_refuses_wrong_count_and_byte_extent_before_mutation() {
     let (element, encoded) = record("test/sequence-item");
-    let ty = StructuredInfoType::collection(element.clone(), 1).unwrap();
+    let ty = StructuredInfoType::collection(element.clone(), Some(1)).unwrap();
     let mut exact = PreparedStructuredComposer::new(&ty, 4096).unwrap();
     let child = validate_canonical_structured_value(&encoded).unwrap();
     assert_eq!(
