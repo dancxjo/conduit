@@ -90,6 +90,12 @@ impl<const M: usize, const S: usize, const O: usize> HostedSharedPool<M, S, O> {
         if self.waiting.is_some() {
             return Err(PoolWaitingError::AlreadyEnabled);
         }
+        if [self.plan.plan_id.as_str(), self.pool_id.as_str()]
+            .iter()
+            .any(|id| id.is_empty() || id.len() > 256)
+        {
+            return Err(PoolWaitingError::InvalidIdentity);
+        }
         if limits.operations == 0
             || limits.operations > MAXIMUM_POOL_WAITING_OPERATIONS
             || limits.per_requester == 0

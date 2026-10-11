@@ -45,6 +45,11 @@ fn finite_waiting_refuses_scope_duplicates_requester_and_byte_pressure_without_o
     let hosts = hosts(&plan);
     let now = instant(&hosts[0], 15);
     let mut pool = waiting(&plan, now.clone());
+    let oversized = queued(&plan, &hosts[0], 99, &"x".repeat(257));
+    assert_eq!(
+        pool.queue_operation(oversized, &now),
+        Err(PoolWaitingError::InvalidIdentity)
+    );
     let a = queued(&plan, &hosts[0], 1, "a");
     pool.queue_operation(a.clone(), &now).unwrap();
     assert_eq!(
