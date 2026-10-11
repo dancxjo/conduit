@@ -48,6 +48,13 @@ export function assertLookReplacement({ before, after, retirement }) {
     for (const field of ['sourceDocumentId', 'bodyId', 'hostId', 'bootId', 'planId', 'playId']) {
       requiredIdentity(snapshot.owner?.[field], `owner.${field}`);
     }
+    for (const [ownerField, basisField] of [
+      ['sourceDocumentId', 'source_document_id'], ['bodyId', 'body_id'],
+      ['planId', 'plan_id'], ['playId', 'active_play_id'],
+    ]) {
+      assert.equal(snapshot.owner[ownerField], snapshot.canonicalFace.basis[basisField],
+        `owner.${ownerField} must come from the original Face basis`);
+    }
     for (const field of ['sourceDocumentId', 'checkedPlotId', 'foreId']) {
       requiredIdentity(snapshot.component?.[field], `component.${field}`);
     }
