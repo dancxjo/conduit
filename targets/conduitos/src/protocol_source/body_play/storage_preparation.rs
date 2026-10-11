@@ -1,13 +1,28 @@
 //! Pin actual preparation provenance before the resident artifact is consumed.
 use super::{PreparedProtocolArtifact, ProtocolBodyRefusal};
 use conduit_body::{BodyPlan, BodyPlayIdentity};
+use conduit_core::PlanId;
 use sha2::{Digest, Sha256};
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct StorageBodyPreparation {
+    digest: [u8; 32],
+    plan: PlanId,
+}
+impl StorageBodyPreparation {
+    pub(crate) fn digest(&self) -> &[u8; 32] {
+        &self.digest
+    }
+    pub(crate) fn plan(&self) -> &PlanId {
+        &self.plan
+    }
+}
 
 pub(in crate::protocol_source) fn commitment(
     artifact: &PreparedProtocolArtifact,
     body: &BodyPlan,
     play: &BodyPlayIdentity,
-) -> Result<Option<[u8; 32]>, ProtocolBodyRefusal> {
+) -> Result<Option<StorageBodyPreparation>, ProtocolBodyRefusal> {
     let Some(package) = artifact.package_digest() else {
         return Ok(None);
     };
@@ -45,7 +60,15 @@ pub(in crate::protocol_source) fn commitment(
     // The verified immutable Plan seal commits every selected provider/resource
     // and exact Plot Back invocation path, not just the packaging artifact.
     hash.update(play.play_sequence.to_le_bytes());
-    Ok(Some(hash.finalize().into()))
+    Ok(Some(StorageBodyPreparation {
+        digest: hash.finalize().into(),
+        plan: artifact
+            .artifact()
+            .definition()
+            .internal_plan
+            .plan_id
+            .clone(),
+    }))
 }
 
 fn frame(hash: &mut Sha256, bytes: &[u8]) {

@@ -39,13 +39,22 @@ pub(crate) use ethernet_preparation::EthernetFrameAdmission;
     target_arch = "x86_64",
     all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
 ))]
-mod usb_preparation;
+mod storage;
+#[cfg(any(
+    target_arch = "x86_64",
+    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+))]
+mod storage_preparation;
 #[cfg(any(
     target_arch = "x86_64",
     all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
 ))]
 mod subordinate;
-
+#[cfg(any(
+    target_arch = "x86_64",
+    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+))]
+mod usb_preparation;
 
 enum Owner<P> {
     Pure(PureProtocolOwner),
@@ -86,6 +95,16 @@ enum Owner<P> {
         target_arch = "x86_64",
         all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
     ))]
+    StorageAuthorize,
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    StorageSettle,
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
     UsbIsochronousControl,
     #[cfg(any(
         target_arch = "x86_64",
@@ -113,6 +132,11 @@ struct Binding<P> {
 /// Admitted native owners and exact dispatch bindings prepared before Play.
 pub struct PreparedProtocolCalls<P> {
     plan_id: PlanId,
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    storage: Option<storage::StorageAssociation>,
     identity: PreparationHostIdentity,
     bindings: Vec<Binding<P>>,
     #[cfg(any(
@@ -337,6 +361,11 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
         });
         Ok(Self {
             plan_id: plan.plan_id.clone(),
+            #[cfg(any(
+                target_arch = "x86_64",
+                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+            ))]
+            storage: None,
             identity: PreparationHostIdentity {
                 host_id: fragment.host_id.clone(),
                 boot_id: fragment.boot_id.clone(),
@@ -387,6 +416,14 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
         if kernel.definition().internal_plan.plan_id != self.plan_id {
             return Err(Refusal::InvalidPlan);
         }
+        #[cfg(any(
+            target_arch = "x86_64",
+            all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+        ))]
+        if let Some(storage) = &mut self.storage {
+            storage.request_cancel()?;
+        }
+
         #[cfg(any(
             target_arch = "x86_64",
             all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
@@ -443,6 +480,38 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
                 owner.cancel(binding.node, HostCallId(0))?;
             }
         }
-        cancelled
+        cancelled?;
+        #[cfg(any(
+            target_arch = "x86_64",
+            all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+        ))]
+        if self.storage.is_some() {
+            let storage = self.storage.as_mut().ok_or(Refusal::InvalidPlan)?;
+            let usb_nodes = self
+                .usb_duplex
+                .as_ref()
+                .ok_or(Refusal::InvalidPlan)?
+                .subordinate_nodes();
+            let nodes = [
+                usb_nodes[0],
+                usb_nodes[1],
+                usb_nodes[2],
+                storage.owner.authorize_node(),
+                storage.owner.settle_node(),
+            ];
+            if kernel
+                .has_retained_host_call_for_nodes(&self.identity.host_id, &nodes)
+                .map_err(Refusal::Kernel)?
+            {
+                return Err(Refusal::Unsupported);
+            }
+            let host = self.usb_duplex.as_mut().ok_or(Refusal::InvalidPlan)?;
+            host.discard_cancelled_terminals()
+                .map_err(Refusal::UsbProtocol)?;
+            host.validate_cancelled_settlement()
+                .map_err(Refusal::UsbProtocol)?;
+            storage.retire_cancelled()?;
+        }
+        Ok(())
     }
 }

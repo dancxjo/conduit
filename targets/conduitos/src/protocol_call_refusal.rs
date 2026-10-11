@@ -25,6 +25,7 @@ pub enum ProtocolCallRefusal {
     UsbIsochronous(crate::arch::UsbIsochronousCallRefusal),
     #[cfg(feature = "native-owner-network")]
     EthernetFrame(crate::ethernet_frame::installation::EthernetFrameNativeRefusal),
+    Storage(crate::storage_base::transaction_owner::StorageTransactionRefusal),
     InvalidPlan,
     Unsupported,
     Kernel(KernelCompositeError),
@@ -52,6 +53,17 @@ impl ProtocolCallRefusal {
                     E::Canonical(_) => (FailureCode::InvalidInput, 1212),
                     E::Network(_) => (FailureCode::HostCallFailed, 1213),
                 }
+            }
+            Self::Storage(error) => {
+                use crate::storage_base::transaction_owner::StorageTransactionRefusal as S;
+                let code = match error {
+                    S::Binding | S::Stale | S::Terminal => FailureCode::InvalidLifecycle,
+                    S::Possession => FailureCode::HostCallDenied,
+                    S::Pressure => FailureCode::StorageExhausted,
+                    S::Candidate | S::Canonical(_) | S::Request(_) => FailureCode::InvalidInput,
+                    S::Capability(_) => FailureCode::HostCallFailed,
+                };
+                (code, 1097)
             }
 
             #[cfg(any(
