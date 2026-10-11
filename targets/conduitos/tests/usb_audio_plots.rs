@@ -401,9 +401,8 @@ fn whole_pcm_header_refuses_clock_phase_discontinuity_and_extent_changes() {
         let encoded = block_value_with(&p.input_type, "", 0, Some((field, value)))
             .canonical_bytes()
             .unwrap();
-        match evaluator.evaluate(&encoded) {
-            Ok(output) => assert_eq!(output, [0], "{field}"),
-            Err(_) => {}
+        if let Ok(output) = evaluator.evaluate(&encoded) {
+            assert_eq!(output, [0], "{field}");
         }
     }
 }
