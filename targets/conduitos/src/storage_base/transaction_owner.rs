@@ -81,6 +81,7 @@ pub(crate) struct BlockReadTransactionOwner {
     numbers: [PreparedStructuredComposer; 4],
     pending: Option<(BaseOperationLease, BlockReadRequest, u32)>,
     next: u32,
+    next_settle_request: u32,
     preparation: [u8; 32],
     terminal: bool,
 }
@@ -156,6 +157,7 @@ impl BlockReadTransactionOwner {
             ],
             pending: None,
             next: 0,
+            next_settle_request: 0,
             preparation,
             terminal: false,
         })
@@ -265,9 +267,12 @@ impl BlockReadTransactionOwner {
             use StorageTransactionRefusal as E;
             if node != self.settle.node
                 || call != HostCallId(0)
-                || request_id != RequestId(receipt.0.ordinal)
+                || request_id != RequestId(self.next_settle_request)
             {
                 return Err(E::Binding);
+            }
+            if self.terminal {
+                return Err(E::Terminal);
             }
             let Some((lease, request, ordinal)) = &self.pending else {
                 return Err(E::Stale);
@@ -300,6 +305,7 @@ impl BlockReadTransactionOwner {
                 .table
                 .complete(&mut self.settle.handle, lease, candidate.len() as u32)
         {
+            self.terminal = true;
             return Err((StorageTransactionRefusal::Capability(error), receipt));
         }
         if let Err(error) = self.authorize.table.complete(
@@ -307,9 +313,14 @@ impl BlockReadTransactionOwner {
             receipt.0.lease.clone(),
             candidate.len() as u32,
         ) {
+            self.terminal = true;
             return Err((StorageTransactionRefusal::Capability(error), receipt));
         }
         self.pending = None;
+        self.next_settle_request = self
+            .next_settle_request
+            .checked_add(1)
+            .expect("bounded issued operation count");
         let value = validate_canonical_structured_value(candidate).expect("validated candidate");
         self.terminal = !matches!(
             value.variant_tag().expect("validated variant"),
