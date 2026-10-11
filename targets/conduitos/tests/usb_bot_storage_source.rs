@@ -330,3 +330,10 @@ fn unsupported_geometry_and_lba_select_terminal_before_any_usb_route() {
         }
     }
 }
+
+#[path = "usb_bot_storage/advertisement.rs"]
+mod advertisement;
+#[path = "usb_bot_storage/execution.rs"]
+mod execution;
+#[path = "usb_bot_storage/kernel.rs"]
+mod kernel;
