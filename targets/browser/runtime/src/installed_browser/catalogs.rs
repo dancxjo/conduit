@@ -44,6 +44,7 @@ fn build_catalogs_for_presentation(
     let mut startup = conduit_plot::StartupCatalog::new();
     let mut profile = conduit_plot::ProfileCatalog::new();
     conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile)?;
+    conduit_thermostat_plot::install_catalogs(&mut startup, &mut profile)?;
     conduit_text::install_morse_catalogs(&mut startup, &mut profile)?;
     conduit_speech::authoring::install(&mut startup)?;
     conduit_speech::ipa_constructors::install(&mut startup, &mut profile)?;

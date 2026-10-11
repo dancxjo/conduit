@@ -21,7 +21,7 @@ mod abi;
 #[path = "owner_face_mask/interaction.rs"]
 mod interaction;
 #[path = "owner_face_mask/view.rs"]
-mod view;
+pub(crate) mod view;
 
 use crate::installed_browser::dom_mask::MASK_BYTES;
 
@@ -131,7 +131,7 @@ struct ArgumentView {
 }
 
 #[derive(Serialize)]
-struct FaceView {
+pub(crate) struct FaceView {
     schema: &'static str,
     body_id: String,
     face_id: String,

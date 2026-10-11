@@ -24,6 +24,7 @@ pub(super) fn key_pair(
 /// QMP acceptance acknowledges the host command, not guest consumption.
 /// Hold the planning key until its complete semantic record is observed;
 /// release is still attempted on a refused observation, without replay.
+/// The journey owner retains a failed guest for diagnostics and then reaps it.
 pub(super) fn key_until_status(
     qmp: &mut UnixStream,
     reader: &mut qmp::Reader,
@@ -34,7 +35,7 @@ pub(super) fn key_until_status(
 ) -> Result<(), ConduitosError> {
     held_key(
         |down| hid_qmp::send_named_keys(qmp, reader, &[key], down, "journey-lifecycle"),
-        || wait_status(serial, child, status),
+        || wait_status_retaining_guest(serial, child, status),
     )
 }
 fn held_key(
@@ -109,11 +110,30 @@ pub(super) fn wait_status(
     child: &mut Child,
     status: &str,
 ) -> Result<(), ConduitosError> {
-    wait_for_record(
+    wait_status_inner(serial, child, status, true)
+}
+
+/// Leave the guest available for the journey owner’s failure capture and cleanup.
+pub(super) fn wait_status_retaining_guest(
+    serial: &Path,
+    child: &mut Child,
+    status: &str,
+) -> Result<(), ConduitosError> {
+    wait_status_inner(serial, child, status, false)
+}
+
+fn wait_status_inner(
+    serial: &Path,
+    child: &mut Child,
+    status: &str,
+    stop_on_timeout: bool,
+) -> Result<(), ConduitosError> {
+    wait_for_record_inner(
         serial,
         child,
         "product-journey-stage-timeout",
         status,
+        stop_on_timeout,
         |text| {
             journey_records::decode(text).map(|records| {
                 records
@@ -129,6 +149,17 @@ pub(super) fn wait_for_record(
     child: &mut Child,
     reason: &'static str,
     status: &str,
+    observed: impl FnMut(&str) -> Result<bool, ConduitosError>,
+) -> Result<(), ConduitosError> {
+    wait_for_record_inner(serial, child, reason, status, true, observed)
+}
+
+fn wait_for_record_inner(
+    serial: &Path,
+    child: &mut Child,
+    reason: &'static str,
+    status: &str,
+    stop_on_timeout: bool,
     mut observed: impl FnMut(&str) -> Result<bool, ConduitosError>,
 ) -> Result<(), ConduitosError> {
     let deadline = std::time::Instant::now() + RECORD_WAIT_TIMEOUT;
@@ -140,6 +171,12 @@ pub(super) fn wait_for_record(
             return Ok(());
         }
         if std::time::Instant::now() >= deadline {
+            if !stop_on_timeout {
+                return Err(ConduitosError::refusal(
+                    reason,
+                    format!("no complete guest record for {status}"),
+                ));
+            }
             return hid_qmp::stop(
                 child,
                 reason,
@@ -189,6 +226,27 @@ mod tests {
         assert!(complete_records(b"READY\n\xff\n").is_err());
         assert_eq!(complete_records(b"READY\npartial").unwrap(), "READY\n");
         assert_eq!(complete_records(b"READY").unwrap(), "");
+    }
+
+    #[test]
+    fn failed_journey_keeps_guest_available_until_owner_cleanup() {
+        let serial = std::env::temp_dir().join(format!(
+            "conduit-journey-timeout-test-{}.log",
+            std::process::id()
+        ));
+        fs::write(&serial, b"").unwrap();
+        let mut guest = std::process::Command::new("sleep")
+            .arg("60")
+            .spawn()
+            .unwrap();
+        let result = wait_status_retaining_guest(&serial, &mut guest, "planned");
+        let guest_state = guest.try_wait();
+        let _ = guest.kill();
+        let reaped = guest.wait();
+        let _ = fs::remove_file(serial);
+        assert_eq!(result.unwrap_err().reason, "product-journey-stage-timeout");
+        assert!(guest_state.unwrap().is_none());
+        assert!(reaped.is_ok());
     }
 
     fn acknowledged(action: impl FnOnce(&mut UnixStream, &mut qmp::Reader)) -> Value {

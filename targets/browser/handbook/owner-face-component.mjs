@@ -13,6 +13,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
   #surface;
   #invoke;
   #projectCollections;
+  #supportsAction = () => true;
   #disabled = true;
   constructor() {
     super();
@@ -32,11 +33,14 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
   }
   #ready(view, action) {
     return !this.#disabled && view.show_state === 'available'
-      && view.interactions_admitted === true && action.availability === 'available';
+      && view.interactions_admitted === true && action.availability === 'available'
+      && this.#supportsAction(action);
   }
-  show(view, { invoke, projectCollections = () => ({ collections: [], placed: new Set() }) } = {}) {
+  show(view, { invoke, projectCollections = () => ({ collections: [], placed: new Set() }),
+    supportsAction = () => true } = {}) {
     this.#invoke = invoke;
     this.#projectCollections = projectCollections;
+    this.#supportsAction = supportsAction;
     this.#disabled = view.show_state !== 'available' || view.interactions_admitted !== true;
 
     const names = new Map(view.subjects.map(subject => [subject.identity, subject.name]));
@@ -92,9 +96,11 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
       button.setAttribute('part', 'button');
       button.type = 'submit';
       button.disabled = !actionReady(action) || !supported || inputs.length !== action.arguments.length;
-      button.dataset.unavailable = String(action.availability !== 'available' || !supported || inputs.length !== action.arguments.length);
+      button.dataset.unavailable = String(action.availability !== 'available' || !this.#supportsAction(action)
+        || !supported || inputs.length !== action.arguments.length);
       control.append(button);
-      if (button.disabled) control.append(faceNode('p', action.explanation ??
+      if (button.disabled) control.append(faceNode('p', !this.#supportsAction(action)
+        ? 'This action is unavailable in this view.' : action.explanation ??
         (supported ? 'This owner action is unavailable.' : 'This input has no supported browser form.')));
       control.addEventListener('submit', async event => {
         event.preventDefault();
@@ -210,7 +216,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
         input.value = option.identity;
         input.checked = option.flags.find(flag => flag.name === 'selected').value;
         input.disabled = !actionReady(action);
-        input.dataset.unavailable = String(action.availability !== 'available');
+        input.dataset.unavailable = String(action.availability !== 'available' || !this.#supportsAction(action));
         label.dataset.ownerAction = action.identity;
         renderedActions.add(action.identity);
         label.append(input, faceNode('span', option.name));
