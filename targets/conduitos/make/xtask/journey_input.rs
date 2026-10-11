@@ -238,27 +238,55 @@ mod tests {
     #[test]
     fn planning_release_follows_guest_record_not_qmp_acceptance() {
         let events = std::cell::RefCell::new(Vec::new());
-        held_key(|down| { events.borrow_mut().push(if down { "down" } else { "up" }); Ok(()) },
-            || { assert_eq!(*events.borrow(), ["down"]); events.borrow_mut().push("guest-planned"); Ok(()) }).unwrap();
+        held_key(
+            |down| {
+                events.borrow_mut().push(if down { "down" } else { "up" });
+                Ok(())
+            },
+            || {
+                assert_eq!(*events.borrow(), ["down"]);
+                events.borrow_mut().push("guest-planned");
+                Ok(())
+            },
+        )
+        .unwrap();
         assert_eq!(*events.borrow(), ["down", "guest-planned", "up"]);
     }
     #[test]
     fn refused_guest_record_releases_once_and_preserves_original_failure() {
         let events = std::cell::RefCell::new(Vec::new());
-        let error = held_key(|down| {
-            events.borrow_mut().push(down);
-            if down { Ok(()) } else { Err(ConduitosError::refusal("release-failed", "QMP stopped")) }
-        }, || Err(ConduitosError::refusal("product-journey-stage-timeout", "no planned record"))).unwrap_err();
+        let error = held_key(
+            |down| {
+                events.borrow_mut().push(down);
+                if down {
+                    Ok(())
+                } else {
+                    Err(ConduitosError::refusal("release-failed", "QMP stopped"))
+                }
+            },
+            || {
+                Err(ConduitosError::refusal(
+                    "product-journey-stage-timeout",
+                    "no planned record",
+                ))
+            },
+        )
+        .unwrap_err();
         assert_eq!(error.reason, "product-journey-stage-timeout");
         assert_eq!(*events.borrow(), [true, false]);
     }
     #[test]
     fn failed_press_never_waits_for_an_unissued_action() {
         let observed = std::cell::Cell::new(false);
-        let error = held_key(|_| Err(ConduitosError::refusal("press-failed", "QMP unavailable")),
-            || { observed.set(true); Ok(()) }).unwrap_err();
+        let error = held_key(
+            |_| Err(ConduitosError::refusal("press-failed", "QMP unavailable")),
+            || {
+                observed.set(true);
+                Ok(())
+            },
+        )
+        .unwrap_err();
         assert_eq!(error.reason, "press-failed");
         assert!(!observed.get());
     }
-
 }

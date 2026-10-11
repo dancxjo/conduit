@@ -127,7 +127,14 @@ pub(super) fn execute_supplied(
             ("f6", "quiescent-awaiting-input", "body-playing"),
         ] {
             if key == "f5" {
-                journey_input::key_until_status(&mut qmp, &mut reader, &serial_path, &mut child, key, status)?;
+                journey_input::key_until_status(
+                    &mut qmp,
+                    &mut reader,
+                    &serial_path,
+                    &mut child,
+                    key,
+                    status,
+                )?;
             } else {
                 journey_input::key_pair(&mut qmp, &mut reader, key, "journey-lifecycle")?;
                 journey_input::wait_status(&serial_path, &mut child, status)?;
