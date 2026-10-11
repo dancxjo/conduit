@@ -19,6 +19,9 @@ use super::{
 const PREFIX: &str = "CONDUIT_IA32_PRODUCT ";
 const OBSERVATORY_PREFIX: &str = "CONDUIT_OBSERVATORY_SNAPSHOT ";
 
+mod clock;
+pub(super) use clock::GuestClock;
+
 #[derive(Clone, Copy)]
 enum FirmwareMode {
     Uefi32,
@@ -46,6 +49,7 @@ pub(super) fn boot_legacy_bios(
     expected_profile_id: &str,
     expected_build_id: &str,
     expected_image_binding: &str,
+    clock: GuestClock,
     opts: &GlobalOpts,
 ) -> Result<(), ConduitosError> {
     let (product, observatory) = boot_once(
@@ -55,7 +59,7 @@ pub(super) fn boot_legacy_bios(
         expected_image_binding,
         opts,
         "legacy-bios-only",
-        FirmwareMode::LegacyBios,
+        (FirmwareMode::LegacyBios, clock),
     )?;
     let paths = Paths::new(ConduitosArch::Ia32)?;
     let proof = serde_json::json!({
@@ -70,6 +74,7 @@ pub(super) fn boot_legacy_bios(
         "observatory": observatory,
         "physical_machine_booted": false,
         "legacy_bios_vga_text_receipt": true,
+        "guest_clock": clock.label(),
         "stopped_by_harness": true
     });
     fs::write(
@@ -96,7 +101,7 @@ pub(super) fn boot_twice(
         expected_image_binding,
         opts,
         "first",
-        FirmwareMode::Uefi32,
+        (FirmwareMode::Uefi32, GuestClock::Host),
     )?;
     let (second, second_observatory) = boot_once(
         image,
@@ -105,7 +110,7 @@ pub(super) fn boot_twice(
         expected_image_binding,
         opts,
         "second",
-        FirmwareMode::Uefi32,
+        (FirmwareMode::Uefi32, GuestClock::Host),
     )?;
     let (legacy_bios, legacy_bios_observatory) = boot_once(
         image,
@@ -114,7 +119,7 @@ pub(super) fn boot_twice(
         expected_image_binding,
         opts,
         "legacy-bios",
-        FirmwareMode::LegacyBios,
+        (FirmwareMode::LegacyBios, GuestClock::Host),
     )?;
     if first["host_id"] == second["host_id"]
         || first["boot_id"] == second["boot_id"]
@@ -205,7 +210,7 @@ fn boot_once(
     expected_image_binding: &str,
     opts: &GlobalOpts,
     run: &str,
-    firmware_mode: FirmwareMode,
+    (firmware_mode, clock): (FirmwareMode, GuestClock),
 ) -> Result<(serde_json::Value, serde_json::Value), ConduitosError> {
     let paths = Paths::new(ConduitosArch::Ia32)?;
     let transcript_path = paths.target.join(format!("ia32-product-{run}.log"));
@@ -244,6 +249,7 @@ fn boot_once(
         ])
         .arg(format!("file:{}", transcript_path.display()))
         .args(["-global", "isa-debugcon.iobase=0xe9"]);
+    clock.configure(&mut child);
     if matches!(firmware_mode, FirmwareMode::LegacyBios) {
         child
             .arg("-monitor")

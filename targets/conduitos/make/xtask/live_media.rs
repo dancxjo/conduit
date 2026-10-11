@@ -162,6 +162,7 @@ pub(super) fn prove_ia32_legacy_bios(opts: &GlobalOpts) -> Result<(), ConduitosE
         &manifest.profile_id,
         &manifest.build_id,
         &manifest.resolved_description_binding,
+        super::ia32_product_boot::GuestClock::Host,
         opts,
     )
 }
