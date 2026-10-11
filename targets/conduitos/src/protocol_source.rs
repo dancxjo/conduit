@@ -112,6 +112,7 @@ impl PreparedProtocolSource {
         let i2c = crate::i2c_base::contract::I2cContract::prepare().map_err(Error::Contract)?;
         let (mut startup, mut profile) = i2c.catalogs();
         install_clock(&mut startup, &mut profile)?;
+        install_literal(&mut startup, &mut profile)?;
         usb_catalog::install(&mut startup, &mut profile)?;
         let mut operations = ProtocolOperations::default();
         let mut capabilities = Vec::new();
@@ -376,3 +377,23 @@ pub(crate) use native_usb_preparation::prepare_native_usb_protocol_with_sign_sto
 pub(crate) use native_usb_preparation::{
     prepare_native_usb_duplex_protocol, prepare_native_usb_endpoint_protocol,
 };
+
+// A checked literal is inert Source configuration, not native I/O authority.
+fn install_literal(
+    startup: &mut StartupCatalog,
+    profile: &mut ProfileCatalog,
+) -> Result<(), ProtocolSourceRefusal> {
+    startup
+        .insert(conduit_plot::KindSignature {
+            kind: conduit_text::TEXT_LITERAL_KIND.into(),
+            startup_parameters: vec![conduit_plot::StartupParameterSignature {
+                name: "value".into(),
+                value_type: "Text".into(),
+                default: None,
+            }],
+        })
+        .map_err(ProtocolSourceRefusal::Catalog)?;
+    profile
+        .insert_kind(conduit_text::text_literal_semantics().into_semantic_contract())
+        .map_err(|error| ProtocolSourceRefusal::Catalog(alloc::format!("{error:?}")))
+}

@@ -78,6 +78,10 @@ impl PreparedProtocolSource {
             retain(offer.clone())?;
         }
         for gear in &expanded.expanded.gears {
+            if gear.kind_id.as_str() == conduit_text::TEXT_LITERAL_KIND {
+                retain(crate::functional_offers::text_literal_offer())?;
+                continue;
+            }
             if gear.configuration.is_empty() {
                 continue;
             }

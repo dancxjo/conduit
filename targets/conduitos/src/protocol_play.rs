@@ -243,6 +243,9 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
         let calls = prepare_calls(&definition.internal_plan, &zip, &states)?;
         let mut registry = KernelOperationRegistry::new();
         registry
+            .install(crate::text_literal::TextLiteralOperationFactory::default())
+            .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
+        registry
             .install(ExpressionOperationFactory::default())
             .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
         match mode {
