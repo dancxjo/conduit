@@ -63,6 +63,10 @@ pub(super) unsafe fn admit(
     ),
     &'static str,
 > {
+    #[cfg(not(feature = "native-owner-network"))]
+    if request.ethernet_network.is_some() {
+        return Err("protocol-usb-network-unsupported");
+    }
     if request.endpoint_write.is_some() && request.endpoint_read.is_none() {
         return Err("protocol-usb-write-requires-read");
     }
