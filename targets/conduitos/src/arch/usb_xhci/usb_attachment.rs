@@ -62,15 +62,6 @@ pub(super) fn attached_root_port(controller: &XhciReady) -> Result<u8, UsbError>
 pub(super) fn reset_port(controller: &XhciReady, port: u8) -> Result<(), UsbError> {
     controller.write_port_status(port, controller.port_status(port) | (1 << 4));
     for _ in 0..PORT_POLL_STEPS {
-        super::device_dma_pointer(device)?;
-        let port = device.root_port;
-        if port == 0
-            || port > controller.maximum_ports()
-            || device.slot == 0
-            || device.attachment_epoch == 0
-        {
-            return Err(UsbError::StaleDeviceInstance);
-        }
         let status = controller.port_status(port);
         if let Some(result) = classify_port_reset(status) {
             return result;
