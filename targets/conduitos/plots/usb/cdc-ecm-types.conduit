@@ -17,7 +17,9 @@ type CdcEcmControl = {
     ack: Boolean
 }
 type CdcEcmRead = {
-    result: UsbEndpointReadResult
+    ordinal: U64
+    actual: U64
+    short: Boolean
     gate: CdcEcmReceiveGate
 }
 type CdcEcmEvent =

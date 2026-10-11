@@ -33,7 +33,7 @@ fn sixteen_actual_source_cycles_keep_bytes_ordinals_and_terminal_fence_exact() {
     let s = source();
     let mut state = phase(&start(&s, &[]), 6);
     for ordinal in 0..16 {
-        let tx = frame(if ordinal == 0 { 64 } else { 14 });
+        let tx = frame(if ordinal == 0 { 64 } else { 1514 });
         let rx = frame(1514 - ordinal as usize);
         state = step(&s, &state, &transmit(&s, ordinal, &tx));
         let req = eval(&program(&s, "cdc-ecm-write-request"), &state);
@@ -95,4 +95,47 @@ fn handshake_ack_does_not_block_the_next_queued_transmit_on_an_unrequested_recei
     state = step(&s, &state, &queue(&s, "accepted"));
     assert_eq!(number(member(&state, "transmitted")), 2);
     assert_eq!(number(member(&state, "cycles")), 1);
+}
+
+#[test]
+fn full_mtu_read_event_fits_admitted_bound_and_preserves_metadata_and_wire() {
+    let s = source();
+    let wire = frame(1514);
+    let event = received(&s, 15, &wire);
+    let encoded = event.canonical_bytes().unwrap();
+    assert!(
+        encoded.len() <= 4096,
+        "read event requires {} bytes",
+        encoded.len()
+    );
+    let StructuredInfoValueShape::Variant { tag, payload } = event.shape() else {
+        panic!("read event")
+    };
+    assert_eq!(tag, "read");
+    assert_eq!(number(member(payload, "ordinal")), 15);
+    assert_eq!(number(member(payload, "actual")), 1514);
+    assert_eq!(
+        member(payload, "short"),
+        &leaf(field(payload.value_type(), "short"), &[0])
+    );
+    let StructuredInfoValueShape::Variant {
+        payload: request, ..
+    } = member(payload, "gate").shape()
+    else {
+        panic!("receive gate")
+    };
+    let StructuredInfoValueShape::Variant {
+        payload: delivered, ..
+    } = request.shape()
+    else {
+        panic!("receive request")
+    };
+    assert_eq!(
+        member(delivered, "wire"),
+        &leaf(field(delivered.value_type(), "wire"), &wire)
+    );
+    assert_eq!(
+        StructuredInfoValue::from_canonical_bytes(&encoded).unwrap(),
+        event
+    );
 }

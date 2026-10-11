@@ -198,7 +198,18 @@ fn step(
         &accept.input_type,
         vec![(fs[0].name(), state.clone()), (fs[1].name(), event.clone())],
     );
-    eval(&program(s, "cdc-ecm-advance"), &eval(&accept, &pair))
+    let transition = eval(&accept, &pair);
+    let advanced = eval(&program(s, "cdc-ecm-advance"), &transition);
+    for (name, value) in [
+        ("pair", &pair),
+        ("transition", &transition),
+        ("state", &advanced),
+    ] {
+        let size = value.canonical_bytes().unwrap().len();
+        let bound = if name == "state" { 4096 } else { 8192 };
+        assert!(size <= bound, "{name} requires {size} bytes, bound {bound}");
+    }
+    advanced
 }
 fn frame(length: usize) -> Vec<u8> {
     let mut wire = vec![0x55; length];
