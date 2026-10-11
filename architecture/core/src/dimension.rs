@@ -33,6 +33,9 @@ impl Dimension {
     pub fn quotient(self, other: Self) -> Result<Self, PhysicalDefinitionRefusal> {
         self.0.quotient(other.0).map(Self)
     }
+    pub fn power(self, power: i8) -> Result<Self, PhysicalDefinitionRefusal> {
+        self.0.power(power).map(Self)
+    }
     pub fn semantic_digest(self) -> [u8; 32] {
         crate::semantic_digest(DIMENSION_INFO_ID, &self.0.encode())
     }

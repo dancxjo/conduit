@@ -17,6 +17,12 @@ pub(crate) fn projected_startup_parameter(
             (_, ConfigurationValue::U64(_)) => "Count",
             (_, ConfigurationValue::I64(_)) => "Scalar",
             (_, ConfigurationValue::Text(_)) => "Text",
+            (_, ConfigurationValue::Structured(_))
+                if field.default_value.semantic_kind().as_str()
+                    == conduit_core::DIMENSION_INFO_ID =>
+            {
+                "Dimension"
+            }
             (_, ConfigurationValue::Structured(value)) => value.profile().as_str(),
             (_, ConfigurationValue::Quantity(_)) => "Quantity",
             (_, ConfigurationValue::Unit(_)) => "Unit",

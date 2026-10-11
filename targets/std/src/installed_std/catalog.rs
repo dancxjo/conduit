@@ -213,6 +213,8 @@ const FACTORIES: &[&BackFactory] = &[
     &super::ipa_constructor_back::PHONEME,
     &super::ipa_constructor_back::PHONEMIC,
     &super::quantity_conversion_back::FACTORY,
+    &super::quantity_conversion_back::DIMENSION_FACTORY,
+    &super::quantity_conversion_back::QUANTITY_DIMENSION_FACTORY,
     &super::quantity_conversion_back::CONVERTED_EQUALS_FACTORY,
     &super::quantity_conversion_back::DIFFERENCE_FACTORY,
     &super::quantity_conversion_back::COMPARISON_FACTORY,

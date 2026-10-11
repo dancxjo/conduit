@@ -372,6 +372,8 @@ fn placement_in_fragments(
 #[cfg(test)]
 mod clock_tests;
 #[cfg(test)]
+mod dimension_tests;
+#[cfg(test)]
 mod exact_quantity_tests;
 #[cfg(test)]
 mod firefly_choir_tests;

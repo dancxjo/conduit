@@ -4,8 +4,8 @@ use super::*;
 use crate::prelude::*;
 use alloc::collections::{BTreeMap, BTreeSet};
 use conduit_core::{
-    DefinitionScalar, DimensionDefinition, DimensionTerm, KindId, PrefixPolicy,
-    QuantityFamilyDefinition, QuantityRole, QuantityRoles, UnitDefinition,
+    DefinitionScalar, DimensionDefinition, KindId, PrefixPolicy, QuantityFamilyDefinition,
+    QuantityRole, QuantityRoles, UnitDefinition,
 };
 
 const MAXIMUM_RESOLVED_UNITS: usize = 1024;
@@ -21,7 +21,7 @@ pub(crate) struct CheckedQuantityRole {
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub(crate) struct CheckedPhysicalCatalogue {
-    pub dimensions: BTreeMap<String, [u8; 32]>,
+    pub dimensions: BTreeMap<String, DimensionDefinition>,
     pub quantities: BTreeMap<String, CheckedQuantityRole>,
     pub units: BTreeMap<String, UnitDefinition>,
     /// Accepted source spellings map to immutable canonical capsule spellings.
@@ -76,20 +76,12 @@ pub(crate) fn check_physical_declarations(
     let prefix_groups = admit_prefix_declarations(prefixes)?;
     let mut result = CheckedPhysicalCatalogue::default();
     let mut names = BTreeSet::new();
-    for dimension in dimensions {
-        if !names.insert(dimension.name.text.as_str()) {
-            return Err(refusal(dimension.span, "duplicate physical dimension"));
-        }
-        result.dimensions.insert(
-            dimension.name.text.clone(),
-            DimensionDefinition::anchor(&dimension.name.text).map_err(|reason| {
-                refusal(
-                    dimension.span,
-                    alloc::format!("invalid dimension: {reason:?}"),
-                )
-            })?,
-        );
-    }
+    result.dimensions = super::dimension::check_dimensions(dimensions)?;
+    names.extend(
+        dimensions
+            .iter()
+            .map(|dimension| dimension.name.text.as_str()),
+    );
     let mut linear_dimensions = BTreeMap::new();
     let mut paired = BTreeMap::new();
     for (name, quantity) in quantities {
@@ -97,32 +89,7 @@ pub(crate) fn check_physical_declarations(
             return Err(refusal(name.span, "duplicate physical Type"));
         }
         if let QuantityDefinitionSyntax::Linear { dimensions, .. } = quantity {
-            let mut terms = Vec::new();
-            for term in dimensions {
-                let anchor = result
-                    .dimensions
-                    .get(&term.dimension.text)
-                    .ok_or_else(|| refusal(term.dimension.span, "unknown physical dimension"))?;
-                let power = check_exact_scalar(&term.power)?
-                    .integer()
-                    .and_then(|power| i8::try_from(power).ok())
-                    .ok_or_else(|| {
-                        refusal(
-                            term.power.span(),
-                            "dimension power must be a bounded integer",
-                        )
-                    })?;
-                terms.push(DimensionTerm {
-                    anchor: *anchor,
-                    power,
-                });
-            }
-            let dimension = DimensionDefinition::new(&terms).map_err(|reason| {
-                refusal(
-                    name.span,
-                    alloc::format!("invalid dimension law: {reason:?}"),
-                )
-            })?;
+            let dimension = super::dimension::quantity_dimension(dimensions, &result.dimensions)?;
             linear_dimensions.insert(name.text.as_str(), dimension);
         }
     }
@@ -266,6 +233,16 @@ pub(crate) fn check_physical_declarations(
             let canonical = &prefixes[prefix_groups.canonical_prefixes[prefix_index]];
             let symbol = alloc::format!("{}{}", prefix.symbol.text, unit.symbol.text);
             let canonical_symbol = alloc::format!("{}{}", canonical.symbol.text, unit.symbol.text);
+            if resolver.result.dimensions.contains_key(&symbol)
+                || resolver.result.quantities.contains_key(&symbol)
+            {
+                return Err(refusal(
+                    prefix.span,
+                    alloc::format!(
+                        "synthesized prefix unit '{symbol}' conflicts with a physical declaration"
+                    ),
+                ));
+            }
             let value = prefixed(definition, &symbol, canonical)?;
             if resolver
                 .result

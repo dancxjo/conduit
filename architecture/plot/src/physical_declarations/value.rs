@@ -8,10 +8,27 @@ pub(crate) fn parse_value(
     expected: Option<&StructuredInfoType>,
     catalog: &StartupCatalog,
 ) -> Result<Option<V>, SyntaxCheckError> {
+    let text = source.trim();
+    if let Some(definition) = catalog.physical.dimensions.get(text) {
+        let ty = StructuredInfoType::leaf(kind_id(DIMENSION_INFO_ID))
+            .expect("canonical Dimension profile");
+        if expected.is_some_and(|expected| *expected != ty) {
+            return Err(SyntaxCheckError::QuantityLiteral(
+                "Dimension cannot satisfy a Unit, Quantity or another checked Type".into(),
+            ));
+        }
+        let value = StructuredInfoValue::leaf(
+            ty,
+            Dimension::from_definition(*definition).encode().to_vec(),
+        )
+        .expect("source-admitted bounded Dimension");
+        return Ok(Some(V::Structured(
+            crate::CanonicalStructuredStartupValue::from_checked_value(&value),
+        )));
+    }
     if expected.is_some_and(|ty| crate::authored_quantity::expected_role(ty).is_none()) {
         return Ok(None);
     }
-    let text = source.trim();
     let physical = &catalog.physical;
     let invalid = |reason: String| SyntaxCheckError::QuantityLiteral(reason);
     let value = if let Some(definition) = physical.units.get(text) {

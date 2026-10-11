@@ -23,6 +23,7 @@ pub(super) fn equal(
                 | conduit_core::F64_INFO_ID
                 | conduit_core::EMPTY_INFO_ID
                 | conduit_core::UNIT_INFO_ID
+                | conduit_core::DIMENSION_INFO_ID
         ) {
             Ok(left.encoded == right.encoded)
         } else {
@@ -56,6 +57,7 @@ fn equal_structured(
                     | conduit_core::F64_INFO_ID
                     | conduit_core::EMPTY_INFO_ID
                     | conduit_core::UNIT_INFO_ID
+                    | conduit_core::DIMENSION_INFO_ID
             ) {
                 Ok(a == b)
             } else {

@@ -13,6 +13,9 @@ pub(crate) fn expected_role(ty: &StructuredInfoType) -> Option<&'static str> {
             Some("quantity")
         }
         StructuredInfoTypeShape::Leaf(kind) if kind.as_str() == UNIT_INFO_ID => Some("unit"),
+        StructuredInfoTypeShape::Leaf(kind) if kind.as_str() == DIMENSION_INFO_ID => {
+            Some("dimension")
+        }
         StructuredInfoTypeShape::Record { schema, .. }
             if schema.as_str() == EXACT_TEMPERATURE_DIFFERENCE_INFO_ID =>
         {
@@ -52,6 +55,17 @@ pub(crate) fn bytes(value: &V, expected: &StructuredInfoType) -> Option<Vec<u8>>
             Some(bytes)
         }
         ("unit", V::Unit(value)) => Some(value.value().encode().to_vec()),
+        ("dimension", V::Structured(value)) => {
+            let concrete = value.try_concrete()?;
+            if concrete.value_type() != expected {
+                return None;
+            }
+            let StructuredInfoValueShape::Leaf(bytes) = concrete.shape() else {
+                return None;
+            };
+            Dimension::decode(bytes).ok()?;
+            Some(bytes.to_vec())
+        }
         _ => None,
     }
 }
@@ -59,6 +73,9 @@ pub(crate) fn value_kind(value: &V) -> Option<KindId> {
     match value {
         V::Quantity(_) => Some(kind_id(QUANTITY_INFO_ID)),
         V::Unit(_) => Some(kind_id(UNIT_INFO_ID)),
+        V::Structured(value) if matches!(value.value_type().shape(), StructuredInfoTypeShape::Leaf(kind) if kind.as_str() == DIMENSION_INFO_ID) => {
+            Some(kind_id(DIMENSION_INFO_ID))
+        }
         V::TemperatureDifference(_) => {
             crate::quantity_conversion::temperature_difference::source_type()
                 .profile()

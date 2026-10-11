@@ -128,17 +128,52 @@ does not introduce a runtime numeric-constructor Gear.
 
 ## Development acceptance boundary
 
-The current declaration system admits normalized dimension definitions and pins
-those definitions inside Unit and Quantity capsules. A dimension definition is
-inspectable through the Rust Unit API. This does not yet provide an independent
-Conduitese `Dimension` value through startup parameters, structured fields and
-runtime ports. That three-way transport contract remains open under #5390;
-Unit/Quantity transport in #5391 must not be used to close it.
+`Dimension` is a standalone checked value with a versioned finite encoding,
+independent of Unit coordinates and nominal quantity families. A basis name
+denotes its named anchor; a composed declaration denotes normalized dimensional
+algebra. Named Angle retains its own anchor instead of becoming dimensionless.
 
-The remaining vertical must admit a basis and a composed Dimension as checked
-values, expose a Unit's Dimension through an ordinary typed operation, preserve
-normalized algebra and source custody across each value boundary, and reject
-forged metadata or definition rebinding. Nominal quantity families and
-point/difference roles remain separate from dimension algebra. Exact symbolic
+```conduit
+dimension travel
+dimension clock
+dimension velocity = travel / clock
+dimension velocity2 = { travel: 1, clock: -1 }
+
+type Motion = quantity { dimension: velocity }
+unit stepper : Motion = { reference: origin, scale: 1 }
+unit doublestep : Motion = { reference: stepper, scale: 2 }
+
+plot transport (
+    >> input: Dimension
+    output: Dimension >>
+) = (.)
+```
+
+`velocity` and `velocity2` have equal normalized values and content digests.
+Declaration names and source spans remain separate evidence. Dimensions can be
+startup arguments, structured fields, generic Type parameters and runtime port
+values. The canonical leaf is `value/dimension@1`; its Rust binding is
+`conduit_core::Dimension`. Unit and Quantity values cannot satisfy that Type.
+Decoding checks the version, canonical sorted vector, exponent/term bounds and
+content digest. The digest checks consistency; checked declaration custody and
+consumer compatibility supply authority. It is not a grant to rebind an
+existing definition.
+
+Composition admits at most eight surviving basis terms and exponents in
+−16..16. Declaration resolution admits depth 32 and 65,536 work steps; unknown
+references, cycles, duplicate declarations and physical symbol collisions
+refuse at their source spans. Every intermediate composition must fit its
+admitted bounds. A new catalogue snapshot cannot reinterpret the checked
+constants retained in an existing expression program.
+
+`units/dimension(source: Unit)` and `units/quantity-dimension(source: Quantity)`
+extract the pinned Dimension from an immutable typed startup value and emit it
+on their `dimension: Dimension` runtime port. Preparation consumes the checked
+capsule; it does not parse a unit string or consult a mutable catalogue.
+
+The remaining #5390 acceptance includes checked Quantity multiplication/division,
+Angle-consuming trigonometry, full integration and the required stable proof.
+Nominal quantity families and point/difference roles remain separate from
+dimension algebra. Exact symbolic
 constants, including the turn/radian relationship, and planner-selected numeric
 precision belong to the separate #5392 implementation.

@@ -62,6 +62,23 @@ impl DimensionDefinition {
     pub fn quotient(self, other: Self) -> Result<Self, PhysicalDefinitionRefusal> {
         self.compose(other, -1)
     }
+    pub fn power(self, power: i8) -> Result<Self, PhysicalDefinitionRefusal> {
+        if !(-16..=16).contains(&power) {
+            return Err(PhysicalDefinitionRefusal::InvalidDimensionPower);
+        }
+        if power == 0 {
+            return Ok(Self::DIMENSIONLESS);
+        }
+        let mut result = self;
+        for term in &mut result.terms[..result.length as usize] {
+            let combined = i16::from(term.power) * i16::from(power);
+            if !(-16..=16).contains(&combined) {
+                return Err(PhysicalDefinitionRefusal::InvalidDimensionPower);
+            }
+            term.power = combined as i8;
+        }
+        Ok(result)
+    }
     fn compose(self, other: Self, sign: i16) -> Result<Self, PhysicalDefinitionRefusal> {
         let mut result = Self::DIMENSIONLESS;
         let (mut left, mut right) = (0, 0);
