@@ -46,8 +46,14 @@ pub(super) fn validate_metadata(
         &claim.resource_generation_id.0,
         claim.envelope_id.as_str(),
     ];
+    // Root's arena uses 32-byte allocation units. Length does not bound
+    // String capacity: charge original issuer, scope, claim and Vec allocations.
+    let metadata_bytes = table
+        .retained_storage_bytes(32)
+        .and_then(|bytes| bytes.checked_add(claim.retained_storage_bytes(32)?));
     if strings.iter().any(|text| text.len() > 256)
         || strings.iter().map(|text| text.len()).sum::<usize>() > 4096
+        || metadata_bytes.is_none_or(|bytes| bytes > 16384)
     {
         return Err(read_binding());
     }
@@ -132,6 +138,41 @@ mod tests {
             );
         }
     }
+    #[test]
+    fn short_claim_and_issuer_names_cannot_hide_large_allocations() {
+        let scope = read_fixture::scope();
+        let mut table = BaseCapabilityTable::new(
+            scope.host_id,
+            scope.boot_id,
+            scope.base_instance_id,
+            4,
+            [77; 32],
+            1,
+        )
+        .unwrap();
+        table.issue(read_fixture::request()).unwrap();
+        let mut claim = read_fixture::claim();
+        assert!(validate_metadata(&table, &claim).is_ok());
+        let original = claim.host_id.clone();
+        claim.host_id.0.reserve(65536);
+        assert_eq!(claim.host_id, original);
+        assert!(validate_metadata(&table, &claim).is_err());
+
+        let mut scope = read_fixture::scope();
+        scope.host_id.0.reserve(65536);
+        let mut oversized = BaseCapabilityTable::new(
+            scope.host_id,
+            scope.boot_id,
+            scope.base_instance_id,
+            4,
+            [77; 32],
+            1,
+        )
+        .unwrap();
+        oversized.issue(read_fixture::request()).unwrap();
+        assert!(validate_metadata(&oversized, &read_fixture::claim()).is_err());
+    }
+
     #[test]
     fn charge_contains_inline_host_and_actual_heap_terminals_without_double_counting() {
         let terminals = 2 * (minimum_endpoint_resource_bytes() as usize - 3072);
