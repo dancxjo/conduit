@@ -3,7 +3,7 @@
 #![allow(dead_code)] // Ordinary Root installation is pending; the native proof uses this owner.
 use super::super::{UsbDevice, dma::device_dma_pointer, endpoint_setup::ConfiguredInboundEndpoint};
 use super::{EndpointNativeRefusal, transfer::validated_residual};
-use crate::arch::x86_64::{hid_transfer_ring::publish, xhci::Event};
+use crate::arch::xhci_mechanism::{Event, publish_transfer};
 use crate::machine_membrane::selected_operation::SelectedOperationPlan;
 use crate::usb_base::{
     endpoint_read_contract::EndpointReadContract,
@@ -21,6 +21,7 @@ use core::{
     ptr::write_volatile,
     sync::atomic::{Ordering, fence},
 };
+use publish_transfer as publish;
 
 pub(crate) struct EndpointReadWindowDma<'a, const N: usize> {
     pub ring: &'a mut [[u32; 4]; 64],
@@ -49,7 +50,7 @@ struct Pending {
     reservation: EndpointRingReservation,
 }
 
-pub(in crate::arch::x86_64::usb) struct WindowCompletion<'a> {
+pub(in crate::arch::usb_xhci) struct WindowCompletion<'a> {
     pub node: NodeId,
     pub request: RequestId,
     pub ordinal: u64,
@@ -224,7 +225,7 @@ impl<'a, const N: usize> EndpointReadWindow<'a, N> {
 
     /// Accept only the exact oldest completed TRB. Foreign, out-of-order or
     /// malformed events retain the entire capture window and its DMA.
-    pub(in crate::arch::x86_64::usb) fn complete(
+    pub(in crate::arch::usb_xhci) fn complete(
         &mut self,
         event: Event,
     ) -> Result<WindowCompletion<'_>, EndpointNativeRefusal> {
@@ -310,7 +311,7 @@ impl<'a, const N: usize> EndpointReadWindow<'a, N> {
     }
 }
 
-pub(in crate::arch::x86_64::usb) fn validate_geometry<const N: usize>(
+pub(in crate::arch::usb_xhci) fn validate_geometry<const N: usize>(
     ring: u64,
     buffers: u64,
 ) -> Result<(), EndpointNativeRefusal> {

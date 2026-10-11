@@ -2,7 +2,7 @@
 #[cfg(test)]
 use super::UsbError;
 use super::{UsbDevice, device_dma_pointer};
-use crate::arch::x86_64::xhci::XhciReady;
+use crate::arch::xhci_mechanism::XhciReady;
 use conduit_core::{BaseCapabilityHandle, BaseCapabilityTable, BaseOperationClaim};
 use conduit_kernel::{HostCallId, NodeId, RequestId};
 

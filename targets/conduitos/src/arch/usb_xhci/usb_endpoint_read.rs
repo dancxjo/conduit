@@ -2,7 +2,7 @@
 //! Root must configure the endpoint and retain coherent DMA before binding.
 #![allow(dead_code)] // Not installed or advertised by the native Root yet.
 use super::UsbDevice;
-use crate::arch::x86_64::xhci::XhciReady;
+use crate::arch::xhci_mechanism::XhciReady;
 use crate::{
     machine_membrane::selected_operation::SelectedOperationPlan,
     usb_base::{

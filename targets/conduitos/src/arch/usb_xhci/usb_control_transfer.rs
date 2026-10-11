@@ -12,7 +12,7 @@ use super::super::{
     control::{ControlRing, control_raw},
     device_dma_pointer,
 };
-use crate::arch::x86_64::xhci::XhciReady;
+use crate::arch::xhci_mechanism::XhciReady;
 use crate::machine_membrane::selected_operation::SelectedOperationPlan;
 use crate::usb_base::{
     control_contract::ControlContract,
@@ -40,7 +40,7 @@ pub enum UsbControlCallRefusal {
 
 /// One selected endpoint; requests cannot substitute its slot, port or DMA.
 /// Dropping this value does not acknowledge hardware stop or free static DMA.
-pub(in crate::arch::x86_64::usb) struct UsbControlTransfer {
+pub(in crate::arch::usb_xhci) struct UsbControlTransfer {
     attachment: NativeAttachment,
     ring: ControlRing,
     owner: ControlCallOwner,

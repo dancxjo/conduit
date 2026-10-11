@@ -3,7 +3,7 @@
 //! uses coherent RAM and Device-nGnRnE registers with full-system barriers.
 
 #[inline]
-pub(super) fn publish_dma() {
+pub(crate) fn publish_dma() {
     #[cfg(target_arch = "aarch64")]
     unsafe {
         core::arch::asm!("dsb sy", options(nostack, preserves_flags));

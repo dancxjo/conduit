@@ -2,7 +2,7 @@
 //! The controller owner supplies only acknowledged events and native stop.
 #![allow(dead_code)] // Not installed or advertised by the native Root yet.
 use super::UsbDevice;
-use crate::arch::x86_64::{hid_transfer_ring::publish, xhci::Event};
+use crate::arch::xhci_mechanism::{Event, publish_transfer};
 use crate::{
     machine_membrane::selected_operation::SelectedOperationPlan,
     usb_base::{
@@ -23,6 +23,7 @@ use core::{
     ptr::write_volatile,
     sync::atomic::{Ordering, fence},
 };
+use publish_transfer as publish;
 
 #[derive(Debug)]
 pub enum EndpointWriteNativeRefusal {
@@ -54,9 +55,9 @@ struct AttachmentIdentity {
     dma_slot: u8,
 }
 
-pub(in crate::arch::x86_64::usb) struct EndpointWriteTransfer<'a> {
+pub(in crate::arch::usb_xhci) struct EndpointWriteTransfer<'a> {
     attachment: AttachmentIdentity,
-    pub(in crate::arch::x86_64::usb) endpoint_dci: u8,
+    pub(in crate::arch::usb_xhci) endpoint_dci: u8,
     dma: EndpointTransmitDma<'a>,
     owner: EndpointWriteCallOwner,
     pending: Option<(NativeEndpointWriteSubmission, EndpointRingReservation)>,
@@ -147,7 +148,7 @@ impl<'a> EndpointWriteTransfer<'a> {
     }
 
     /// Copied attachment facts are validation data, never a second native owner.
-    pub(in crate::arch::x86_64::usb) fn validate_device(
+    pub(in crate::arch::usb_xhci) fn validate_device(
         &self,
         device: &UsbDevice,
     ) -> Result<(), EndpointWriteNativeRefusal> {
@@ -162,7 +163,7 @@ impl<'a> EndpointWriteTransfer<'a> {
         Ok(())
     }
 
-    pub(in crate::arch::x86_64::usb) fn ensure_pending(
+    pub(in crate::arch::usb_xhci) fn ensure_pending(
         &self,
     ) -> Result<(), EndpointWriteNativeRefusal> {
         self.pending
@@ -222,7 +223,7 @@ impl<'a> EndpointWriteTransfer<'a> {
     }
 
     /// Validate the exact completion before retiring its DMA reservation.
-    pub(in crate::arch::x86_64::usb) fn complete(
+    pub(in crate::arch::usb_xhci) fn complete(
         &mut self,
         device: &UsbDevice,
         event: Event,
@@ -253,7 +254,7 @@ impl<'a> EndpointWriteTransfer<'a> {
         .map_err(EndpointWriteNativeRefusal::Ownership)
     }
 
-    pub(in crate::arch::x86_64::usb) fn revoke(
+    pub(in crate::arch::usb_xhci) fn revoke(
         &mut self,
         node: NodeId,
         call: HostCallId,
@@ -265,7 +266,7 @@ impl<'a> EndpointWriteTransfer<'a> {
 
     /// Root must acknowledge native stop before this retirement step. The Host
     /// clears attachment ownership only after every transfer has retired.
-    pub(in crate::arch::x86_64::usb) unsafe fn release_stopped(
+    pub(in crate::arch::usb_xhci) unsafe fn release_stopped(
         &mut self,
         device: &UsbDevice,
     ) -> Result<(), EndpointWriteNativeRefusal> {

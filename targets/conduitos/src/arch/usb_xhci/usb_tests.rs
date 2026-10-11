@@ -1,5 +1,5 @@
 use super::*;
-use crate::arch::x86_64::xhci::{Event, XhciError};
+use crate::arch::xhci_mechanism::{Event, XhciError};
 
 #[test]
 fn setup_stage_distinguishes_no_data_out_and_in() {
