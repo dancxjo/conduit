@@ -140,13 +140,18 @@ pub(super) fn execute(args: RunArgs, opts: &GlobalOpts) -> Result<(), ConduitosE
             .unwrap_or(Path::new(default_emulator)),
     );
     command.args(machine_args);
+    let cpu = if architecture == "aarch64" {
+        "neoverse-n2"
+    } else {
+        "max"
+    };
     if let Some(firmware) = &args.aarch64_firmware {
         command.arg("-bios").arg(firmware);
     }
     command
         .args([
             "-cpu",
-            "max",
+            cpu,
             "-m",
             "512M",
             "-smp",

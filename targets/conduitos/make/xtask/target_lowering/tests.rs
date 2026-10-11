@@ -32,10 +32,11 @@ fn manifest(source: &str) -> BuildManifest {
 }
 
 #[test]
-fn compiled_usb_transport_is_present_only_in_x86_product_lowering() {
+fn compiled_usb_transport_is_present_only_in_supported_product_lowering() {
     for source in [
         include_str!("../../../profiles/conduitos-protocol-source.host.conduit"),
         include_str!("../../../profiles/conduitos-x86_64-pc.host.conduit"),
+        include_str!("../../../profiles/conduitos-aarch64-virt.host.conduit"),
     ] {
         assert_ne!(
             lower(&manifest(source)).unwrap().implementations & conduitos::make::IMPL_USB_TRANSPORT,
@@ -44,7 +45,6 @@ fn compiled_usb_transport_is_present_only_in_x86_product_lowering() {
     }
     for source in [
         include_str!("../../../profiles/conduitos-ia32-pc.host.conduit"),
-        include_str!("../../../profiles/conduitos-aarch64-virt.host.conduit"),
         include_str!("../../../profiles/conduitos-riscv64-virt.host.conduit"),
         include_str!("../../../profiles/conduitos-loongarch64-virt.host.conduit"),
     ] {
