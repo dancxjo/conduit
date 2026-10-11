@@ -40,6 +40,12 @@ pub(crate) use ethernet_preparation::EthernetFrameAdmission;
     all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
 ))]
 mod usb_preparation;
+#[cfg(any(
+    target_arch = "x86_64",
+    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+))]
+mod subordinate;
+
 
 enum Owner<P> {
     Pure(PureProtocolOwner),

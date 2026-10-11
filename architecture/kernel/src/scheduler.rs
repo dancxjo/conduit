@@ -24,6 +24,7 @@ mod debug_control;
 mod derived_value;
 mod remote_fanout;
 mod retirement;
+mod host_call_settlement;
 use active_capacity::validate_active_capacity;
 use debug_control::DebugControlState;
 pub use derived_value::CanonicalValue;
