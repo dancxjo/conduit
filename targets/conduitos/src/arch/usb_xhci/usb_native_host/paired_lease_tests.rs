@@ -3,6 +3,8 @@
 //! simulated; the original controller executes its real acknowledged-stop path.
 use super::event_routing::PendingEventKey;
 use super::*;
+#[path = "paired_kernel.rs"]
+mod paired_kernel;
 use crate::usb_base::{
     endpoint_read_owner::tests::fixture as read, endpoint_ring::EndpointRingCursor,
     endpoint_write_owner::tests::fixture as write,
@@ -23,6 +25,20 @@ fn issued(
     } else {
         write::request()
     };
+    let (implementation, authority) = if read_direction {
+        (
+            crate::usb_base::endpoint_read_factory::ENDPOINT_READ_IMPLEMENTATION,
+            crate::usb_base::endpoint_read_factory::ENDPOINT_READ_AUTHORITY,
+        )
+    } else {
+        (
+            crate::usb_base::endpoint_write_factory::ENDPOINT_WRITE_IMPLEMENTATION,
+            crate::usb_base::endpoint_write_factory::ENDPOINT_WRITE_AUTHORITY,
+        )
+    };
+    request.scope.implementation_id = implementation.into();
+    request.scope.authority_contract_id = authority.into();
+    request.authority.grant.contract_id = authority.into();
     request.scope.plan_id = active.plan_id.clone();
     request.scope.active_play_id = active.active_play_id.clone();
     let scope = &request.scope;
@@ -41,6 +57,7 @@ fn issued(
     } else {
         write::claim()
     };
+    claim.implementation_id = implementation.into();
     claim.plan_id = active.plan_id.clone();
     claim.active_play_id = active.active_play_id.clone();
     (table, handle, claim)
@@ -74,6 +91,34 @@ fn paired(stop_code: u8, stalled: bool) {
         let (write_fragment, _, _, write_placement) = write::selected();
         fragment.placements.extend(write_fragment.placements);
         fragment.startup_order.push(write_placement.clone());
+        for gear in &mut fragment.placements {
+            let (implementation, profile, base, attachment, authority) =
+                if gear.placement_id == read_placement {
+                    use crate::usb_base::endpoint_read_factory::*;
+                    (
+                        ENDPOINT_READ_IMPLEMENTATION,
+                        ENDPOINT_READ_PROFILE,
+                        ENDPOINT_READ_BASE,
+                        ENDPOINT_READ_ATTACHMENT,
+                        ENDPOINT_READ_AUTHORITY,
+                    )
+                } else {
+                    use crate::usb_base::endpoint_write_factory::*;
+                    (
+                        ENDPOINT_WRITE_IMPLEMENTATION,
+                        ENDPOINT_WRITE_PROFILE,
+                        ENDPOINT_WRITE_BASE,
+                        ENDPOINT_WRITE_ATTACHMENT,
+                        ENDPOINT_WRITE_AUTHORITY,
+                    )
+                };
+            gear.implementation_id = implementation.into();
+            gear.execution_profile_id = profile.into();
+            gear.base.as_mut().unwrap().implementation_id = base.into();
+            gear.base.as_mut().unwrap().mechanism_family = attachment.into();
+            gear.resources[0].class_id = attachment.into();
+            gear.authority[0].contract_id = authority.into();
+        }
         fragment
             .expected_sign
             .extend(write_fragment.expected_sign.into_iter().filter(|sign| {
@@ -90,9 +135,9 @@ fn paired(stop_code: u8, stalled: bool) {
             checked_plot_id: fragment.checked_plot_id.clone(),
             expanded_plot_id: fragment.expanded_plot_id.clone(),
         };
-        let fragment = seal_plan(identity, alloc::vec![fragment])
-            .fragments
-            .remove(0);
+        let plan = seal_plan(identity, alloc::vec![fragment]);
+        let fragment = plan.fragments[0].clone();
+        let mut kernel = paired_kernel::prepare(plan);
         let lowered = lower_plan_fragment(&fragment).unwrap();
         let active = bind_active_play(&fragment.plan_id, &fragment.host_id, &fragment.boot_id, 0);
         let mut read_ring = [[0; 4]; 64];
@@ -187,14 +232,34 @@ fn paired(stop_code: u8, stalled: bool) {
         }
         .unwrap();
         host.prepare_independent().unwrap();
-        host.begin_independent_read(read_index, RequestId(11), &read::input_length(8))
-            .unwrap();
-        host.begin_independent_write(
-            write_index,
-            RequestId(12),
-            &write::input_wire(&[1, 2, 3, 4]),
-        )
-        .unwrap();
+        let tokens = paired_kernel::admit_pair(
+            &mut kernel,
+            [
+                conduit_core::ValuePayload {
+                    value_kind: fragment.placements[0].inputs[0].value_kind.clone(),
+                    encoded: read::input_length(8),
+                },
+                conduit_core::ValuePayload {
+                    value_kind: fragment.placements[1].inputs[0].value_kind.clone(),
+                    encoded: write::input_wire(&[1, 2, 3, 4]),
+                },
+            ],
+        );
+        for (direction, index) in [read_index, write_index].into_iter().enumerate() {
+            let call = *kernel
+                .admitted_host_request_view(&tokens[direction])
+                .unwrap()
+                .request;
+            assert_eq!(call.node, host.calls[index.0].node);
+            let input = kernel.host_request_input(&tokens[direction]).unwrap();
+            if direction == 0 {
+                host.begin_independent_read(index, call.request, input)
+                    .unwrap();
+            } else {
+                host.begin_independent_write(index, call.request, input)
+                    .unwrap();
+            }
+        }
         let keys = host.independent_keys().unwrap();
         assert_eq!(keys[0].unwrap().index, read_index);
         assert_eq!(keys[1].unwrap().index, write_index);
@@ -206,17 +271,24 @@ fn paired(stop_code: u8, stalled: bool) {
             .complete_independent_event(event(keys[1].unwrap(), if stalled { 6 } else { 1 }), keys);
         if stalled && stop_code != 1 {
             assert!(completion.is_err());
+            assert!(kernel.host_request_input(&tokens[0]).is_ok());
+            assert!(kernel.host_request_input(&tokens[1]).is_ok());
             assert_eq!(host.pending_endpoint, Some(read_index.0));
             assert_eq!(host.pending_write, Some(write_index.0));
             assert_eq!(host.independent_keys().unwrap(), keys);
             assert!(!host.stop_acknowledged);
             assert!(host.poll_independent().is_err());
         } else if stalled {
-            let (first, _) = completion.unwrap().unwrap();
+            let (first, bytes) = completion.unwrap().unwrap();
             assert_eq!(first, read_index);
+            kernel.complete_host_call_bytes(&tokens[0], bytes).unwrap();
+            assert!(kernel.complete_host_call_bytes(&tokens[0], bytes).is_err());
+            assert!(kernel.host_request_input(&tokens[1]).is_ok());
             assert!(host.stopped && host.stop_acknowledged);
             let (second, bytes) = host.poll_independent().unwrap().unwrap();
             assert_eq!(second, write_index);
+            kernel.complete_host_call_bytes(&tokens[1], bytes).unwrap();
+            assert!(kernel.host_request_input(&tokens[1]).is_err());
             assert_eq!(
                 conduit_core::validate_canonical_structured_value(bytes)
                     .unwrap()
@@ -226,16 +298,21 @@ fn paired(stop_code: u8, stalled: bool) {
             );
             assert!(host.poll_independent().is_err());
         } else {
-            let (completed, _) = completion.unwrap().unwrap();
+            let (completed, bytes) = completion.unwrap().unwrap();
             assert_eq!(completed, write_index);
+            kernel.complete_host_call_bytes(&tokens[1], bytes).unwrap();
+            assert!(kernel.complete_host_call_bytes(&tokens[1], bytes).is_err());
+            assert!(kernel.host_request_input(&tokens[0]).is_ok());
             assert_eq!(host.pending_endpoint, Some(read_index.0));
             assert!(host.pending_write.is_none());
             let remaining = host.independent_keys().unwrap();
-            let (completed, _) = host
+            let (completed, bytes) = host
                 .complete_independent_event(event(remaining[0].unwrap(), 1), remaining)
                 .unwrap()
                 .unwrap();
             assert_eq!(completed, read_index);
+            kernel.complete_host_call_bytes(&tokens[0], bytes).unwrap();
+            assert!(kernel.host_request_input(&tokens[0]).is_err());
             assert_eq!(host.independent_keys().unwrap(), [None, None]);
             assert!(
                 host.complete_independent_event(event(keys[1].unwrap(), 1), [None, None])
