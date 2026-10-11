@@ -15,6 +15,10 @@ use smoltcp::{
 
 use crate::arch::{VirtioNetError, VirtioNetReady};
 
+mod exchange;
+pub(crate) mod session;
+pub use exchange::{TcpExchange, TcpExchangeOptions};
+
 pub(crate) const ETHERNET_FRAME_BYTES: usize = 1514;
 pub(crate) const SOCKET_BUFFER_BYTES: usize = 1024;
 
@@ -45,6 +49,8 @@ pub enum VirtioTcpError {
     ReceiveRefused,
     RemoteClosed,
     Timeout,
+    Cancelled,
+    ClockRegressed,
     Device(VirtioNetError),
 }
 
@@ -59,6 +65,8 @@ impl VirtioTcpError {
             Self::ReceiveRefused => "virtio-tcp-receive-refused",
             Self::RemoteClosed => "virtio-tcp-remote-closed",
             Self::Timeout => "virtio-tcp-timeout",
+            Self::Cancelled => "tcp-exchange-cancelled",
+            Self::ClockRegressed => "tcp-exchange-clock-regressed",
             Self::Device(error) => error.as_str(),
         }
     }
@@ -82,97 +90,32 @@ pub fn exchange(
     )?;
     let mac = device.identity().mac;
     let mut adapter = VirtioDevice::new(device);
-    let mut config = Config::new(HardwareAddress::Ethernet(EthernetAddress(mac)));
-    config.random_seed = random_seed;
-    let mut interface = Interface::new(config, &mut adapter, Instant::ZERO);
-    let mut address_admitted = false;
-    interface.update_ip_addrs(|addresses| {
-        address_admitted = addresses
-            .push(IpCidr::new(
-                IpAddress::Ipv4(ipv4(endpoint.guest_address)),
-                endpoint.prefix_length,
-            ))
-            .is_ok();
-    });
-    if !address_admitted {
-        return Err(VirtioTcpError::InvalidEndpoint);
-    }
-    interface
-        .routes_mut()
-        .add_default_ipv4_route(ipv4(endpoint.gateway))
-        .map_err(|_| VirtioTcpError::InvalidEndpoint)?;
-
     let mut receive_storage = [0; SOCKET_BUFFER_BYTES];
     let mut transmit_storage = [0; SOCKET_BUFFER_BYTES];
-    let socket = tcp::Socket::new(
-        tcp::SocketBuffer::new(&mut receive_storage[..]),
-        tcp::SocketBuffer::new(&mut transmit_storage[..]),
-    );
     let mut socket_storage = [SocketStorage::EMPTY];
-    let mut sockets = SocketSet::new(&mut socket_storage[..]);
-    let handle = sockets.add(socket);
-    sockets
-        .get_mut::<tcp::Socket>(handle)
-        .connect(
-            interface.context(),
-            (
-                IpAddress::Ipv4(ipv4(endpoint.remote_address)),
-                endpoint.remote_port,
-            ),
-            endpoint.local_port,
-        )
-        .map_err(|_| VirtioTcpError::ConnectRefused)?;
-
-    let mut connected = false;
-    let mut request_sent = false;
-    let mut received = 0usize;
-    let mut closing = false;
+    let mut exchange = TcpExchange::prepare(
+        &mut adapter,
+        TcpExchangeOptions {
+            random_seed,
+            mac,
+            endpoint,
+            maximum_polls,
+            timestamp: Instant::ZERO,
+        },
+        request,
+        response,
+        expected_response_bytes,
+        &mut receive_storage,
+        &mut transmit_storage,
+        &mut socket_storage,
+    )?;
     for poll in 1..=maximum_polls {
-        let timestamp = Instant::from_millis(i64::from(poll));
-        interface.poll(timestamp, &mut adapter, &mut sockets);
+        let result = exchange.poll_legacy(&mut adapter, Instant::from_millis(i64::from(poll)));
         if let Some(error) = adapter.take_error() {
             return Err(VirtioTcpError::Device(error));
         }
-        let socket = sockets.get_mut::<tcp::Socket>(handle);
-        connected |= socket.state() == tcp::State::Established;
-        if connected && !request_sent && socket.can_send() {
-            if socket
-                .send_slice(request)
-                .map_err(|_| VirtioTcpError::SendRefused)?
-                != request.len()
-            {
-                return Err(VirtioTcpError::SendRefused);
-            }
-            request_sent = true;
-        }
-        if socket.can_recv() && received < expected_response_bytes {
-            let count = socket
-                .recv_slice(&mut response[received..expected_response_bytes])
-                .map_err(|_| VirtioTcpError::ReceiveRefused)?;
-            received += count;
-        }
-        if received == expected_response_bytes && !closing {
-            socket.close();
-            closing = true;
-        }
-        // Completion owns only the local finite session. FinWait2 proves the
-        // peer acknowledged our FIN; waiting indefinitely for an optional
-        // peer FIN would turn remote behavior into hidden unbounded work.
-        if closing
-            && matches!(
-                socket.state(),
-                tcp::State::Closed | tcp::State::FinWait2 | tcp::State::TimeWait
-            )
-        {
-            socket.abort();
-            return Ok(VirtioTcpReceipt {
-                polls: poll,
-                transmitted_bytes: request.len() as u16,
-                received_bytes: received as u16,
-            });
-        }
-        if !socket.is_active() && !closing {
-            return Err(VirtioTcpError::RemoteClosed);
+        if let Some(receipt) = result? {
+            return Ok(receipt);
         }
     }
     Err(VirtioTcpError::Timeout)
