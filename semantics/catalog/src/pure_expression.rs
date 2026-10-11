@@ -27,9 +27,9 @@ pub fn pure_expression_contract(
         configuration: definition.configuration,
         semantic_laws: conduit_plot::pure_expression_semantic_laws(),
         limits: CapabilityLimits {
-            // Bounded unrolled protocol walks may repeat one checked expression
-            // sixteen times. Each instance still has separately admitted storage.
-            max_active_instances: 16,
+            // The hosted profile can repeat one checked expression thirty-two
+            // times; each Back narrows this ceiling to its admitted storage.
+            max_active_instances: 32,
             max_queue_items: 4,
             max_queue_bytes: (MAXIMUM_STRUCTURED_CANONICAL_BYTES * 4) as u32,
         },
