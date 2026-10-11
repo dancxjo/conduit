@@ -1,0 +1,31 @@
+# Ordered class-neutral transport: an actual completed control result enables
+# one bounded read on the independently Root-selected inbound endpoint.
+with machine/usb/control/request as UsbControlRequest
+with machine/usb/control/result as UsbControlResult
+with machine/usb/endpoint-read/request as UsbEndpointReadRequest
+with machine/usb/endpoint-read/result as UsbEndpointReadResult
+
+type UsbControlEndpointGate =
+    ready UsbEndpointReadRequest
+    | refused
+
+# Completion is transport truth, not descriptor interpretation or class policy.
+# Every other disposition closes this branch without submitting endpoint DMA.
+plot usb-control-completed-endpoint-request (
+    control: UsbControlResult...| <= 4096B >> gate: UsbControlEndpointGate...| <= 4096B
+) = (. is completed ? ready({ length: 8 }) : refused(empty))
+
+plot usb-control-endpoint-read (
+    >> request: UsbControlRequest...| <= 4096B
+    control: UsbControlResult...| <= 4096B >>
+    received: UsbEndpointReadResult...| <= 4096B >>
+) {
+    setup: machine/usb/control
+    gate: usb-control-completed-endpoint-request()
+    read: machine/usb/endpoint-read
+    request >> setup.request
+    setup.result >> control
+    setup.result >> gate
+    gate >> select(UsbControlEndpointGate.ready, unmatched=drop) >> read.request
+    read.result >> received
+}

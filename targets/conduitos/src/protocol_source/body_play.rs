@@ -50,7 +50,7 @@ impl<P: I2cProvider, C: MonotonicDeadlineProvider> PreparedProtocolBodyPlay<P, C
         Self::prepare_with(artifact, session, play_sequence, |artifact| {
             artifact
                 .prepare_timed(bus, clock)
-                .map(ProtocolKernel::WithClock)
+                .map(|kernel| ProtocolKernel::WithClock(Box::new(kernel)))
         })
     }
 
@@ -65,7 +65,21 @@ impl<P: I2cProvider, C: MonotonicDeadlineProvider> PreparedProtocolBodyPlay<P, C
         Self::prepare_with(artifact, session, play_sequence, |artifact| {
             artifact
                 .prepare_usb::<P>(usb)
-                .map(ProtocolKernel::WithoutClock)
+                .map(|kernel| ProtocolKernel::WithoutClock(Box::new(kernel)))
+        })
+    }
+
+    #[cfg(target_arch = "x86_64")]
+    pub(crate) fn prepare_usb_protocol(
+        artifact: PreparedProtocolArtifact,
+        session: BodyLifecycleSession,
+        play_sequence: u64,
+        usb: crate::protocol_play::UsbProtocolAdmission,
+    ) -> Result<Self, Box<ProtocolBodyPreparationRefusal>> {
+        Self::prepare_with(artifact, session, play_sequence, |artifact| {
+            artifact
+                .prepare_usb_protocol::<P>(usb)
+                .map(|kernel| ProtocolKernel::WithoutClock(Box::new(kernel)))
         })
     }
 

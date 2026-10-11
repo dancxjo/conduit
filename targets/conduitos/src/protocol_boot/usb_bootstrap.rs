@@ -50,6 +50,9 @@ pub unsafe fn run_if_selected(record: &boot::BootRecord) -> Result<(), &'static 
     {
         return Err("protocol-operation-envelope-exceeded");
     }
+    if !crate::make::EMBEDDED_MAKE.includes(crate::make::IMPL_USB_TRANSPORT) {
+        return Err("protocol-usb-implementation-not-compiled");
+    }
     arch::initialize_machine(record, boot::executable_physical_address);
     let identities = crate::identity::derive(
         arch::boot_entropy(record.timestamp, record.image_physical_start),

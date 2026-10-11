@@ -1,7 +1,7 @@
 //! Selected control possession joined to exclusively retained native machinery.
-use super::UsbDevice;
 #[cfg(test)]
 use super::UsbError;
+use super::{UsbDevice, device_dma_pointer};
 use crate::arch::x86_64::xhci::XhciReady;
 use conduit_core::{BaseCapabilityHandle, BaseCapabilityTable, BaseOperationClaim};
 use conduit_kernel::{HostCallId, NodeId, RequestId};
@@ -19,6 +19,7 @@ pub use transfer::{UsbControlCallRefusal, UsbControlSelection};
 pub struct UsbControlHostCall<'a> {
     controller: &'a mut XhciReady,
     transfer: UsbControlTransfer,
+    device: UsbDevice,
 }
 
 impl<'a> UsbControlHostCall<'a> {
@@ -40,12 +41,13 @@ impl<'a> UsbControlHostCall<'a> {
     ) -> Result<Self, UsbControlCallRefusal> {
         let transfer = unsafe {
             UsbControlTransfer::bind_selected(
-                controller, device, mapping, table, handle, claim, selection,
+                controller, &device, mapping, table, handle, claim, selection,
             )
         }?;
         Ok(Self {
             controller,
             transfer,
+            device,
         })
     }
 
@@ -59,13 +61,25 @@ impl<'a> UsbControlHostCall<'a> {
         // SAFETY: this adapter retains the original exclusive controller borrow.
         unsafe {
             self.transfer
-                .execute(self.controller, node, call, request, input)
+                .execute(self.controller, &self.device, node, call, request, input)
         }
     }
 
     pub fn cancel(&mut self, node: NodeId, call: HostCallId) -> Result<(), UsbControlCallRefusal> {
-        // SAFETY: this adapter retains the original exclusive controller borrow.
-        unsafe { self.transfer.cancel(self.controller, node, call) }
+        self.transfer.revoke(node, call)?;
+        let dma = device_dma_pointer(&self.device).map_err(UsbControlCallRefusal::Native)?;
+        self.controller
+            .disable_removed_slot(self.device.slot)
+            .map_err(|error| UsbControlCallRefusal::Native(error.into()))?;
+        // SAFETY: the original exclusive controller acknowledged all slot DMA
+        // stop; retain its marker until the transfer's lease release completes.
+        unsafe {
+            self.transfer.release_quiesced(&self.device)?;
+        }
+        unsafe {
+            (*dma).owner_slot = 0;
+        }
+        Ok(())
     }
 
     pub fn release_completed(
@@ -73,7 +87,8 @@ impl<'a> UsbControlHostCall<'a> {
         node: NodeId,
         call: HostCallId,
     ) -> Result<UsbDevice, UsbControlCallRefusal> {
-        self.transfer.release_completed(node, call)
+        self.transfer.release_completed(&self.device, node, call)?;
+        Ok(self.device)
     }
 }
 

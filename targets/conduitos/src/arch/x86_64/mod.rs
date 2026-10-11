@@ -90,9 +90,9 @@ pub use reboot::{RebootBase, RebootError, local_reboot_base};
 pub use serial::{append_boot_diagnostic, early_write};
 pub use usb::{
     NativeUsbControlCall, ReadyUsbControlBase, UsbControlCallRefusal, UsbControlHostCall,
-    UsbControlSelection, UsbDevice, enumerate_attached_at_epochs, enumerate_one as enumerate_usb,
-    enumerate_one_at_epoch, enumerate_selected_root_port_at_epoch, retire_removed_device,
-    wait_for_attachment_state,
+    UsbControlSelection, UsbDevice, address_selected_root_port_at_epoch,
+    enumerate_attached_at_epochs, enumerate_one as enumerate_usb, enumerate_one_at_epoch,
+    enumerate_selected_root_port_at_epoch, retire_removed_device, wait_for_attachment_state,
 };
 #[cfg(feature = "scripted-keyboard-proof")]
 pub use usb::{
@@ -113,3 +113,10 @@ extern "C" fn conduitos_exception_handler(vector: u64) -> ! {
 
 #[cfg(feature = "usb-endpoint-read-proof")]
 pub use usb::run_usb_endpoint_read_proof;
+
+pub use usb::{EndpointNativeRefusal, UsbNativeHostRefusal, UsbNativeProtocolRefusal};
+pub(crate) use usb::{NativeUsbProtocolHost, ReadyUsbProtocolHost};
+pub(crate) use usb::{
+    UsbConfiguredInboundEndpoint, UsbEndpointReceiveDma, UsbInboundEndpointParameters,
+    configure_usb_inbound,
+};

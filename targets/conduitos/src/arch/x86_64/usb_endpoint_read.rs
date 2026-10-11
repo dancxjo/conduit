@@ -16,11 +16,13 @@ use conduit_kernel::{HostCallId, NodeId, RequestId};
 mod transfer;
 #[path = "usb_endpoint_read_window.rs"]
 pub(super) mod window;
-use transfer::EndpointReadTransfer;
-pub(crate) use transfer::{EndpointNativeRefusal, EndpointReceiveDma};
+pub use transfer::EndpointNativeRefusal;
+pub(super) use transfer::EndpointReadTransfer;
+pub(crate) use transfer::EndpointReceiveDma;
 
 pub(crate) struct UsbEndpointReadHostCall<'a> {
     controller: &'a mut XhciReady,
+    device: UsbDevice,
     transfer: EndpointReadTransfer<'a>,
 }
 
@@ -49,7 +51,7 @@ impl<'a> UsbEndpointReadHostCall<'a> {
         let transfer = unsafe {
             EndpointReadTransfer::bind_selected(
                 controller.maximum_ports(),
-                device,
+                &device,
                 attachment,
                 configured,
                 dma,
@@ -62,6 +64,7 @@ impl<'a> UsbEndpointReadHostCall<'a> {
         }?;
         Ok(Self {
             controller,
+            device,
             transfer,
         })
     }
@@ -78,17 +81,19 @@ impl<'a> UsbEndpointReadHostCall<'a> {
         request: RequestId,
         input: &[u8],
     ) -> Result<(), EndpointNativeRefusal> {
-        self.transfer.begin(node, call, request, input)?;
+        self.transfer
+            .begin(&self.device, node, call, request, input)?;
         self.controller
-            .ring_endpoint(self.transfer.device.slot, self.transfer.endpoint_dci);
+            .ring_endpoint(self.device.slot, self.transfer.endpoint_dci);
         Ok(())
     }
 
     /// Examine at most one controller event. Absence retains the exact pending
     /// transfer. Wrong events/loss/error retain DMA until explicit native stop.
     pub fn poll(&mut self) -> Result<Option<&[u8]>, EndpointNativeRefusal> {
+        self.transfer.validate_device(&self.device)?;
         self.transfer.ensure_pending()?;
-        if self.controller.port_status(self.transfer.device.root_port) & 1 == 0 {
+        if self.controller.port_status(self.device.root_port) & 1 == 0 {
             return Err(EndpointNativeRefusal::ProviderLost);
         }
         let Some(event) = self.controller.poll_event() else {
@@ -96,23 +101,30 @@ impl<'a> UsbEndpointReadHostCall<'a> {
         };
         if event.event_type == 34 {
             return Err(
-                if self.controller.port_status(self.transfer.device.root_port) & 1 == 0 {
+                if self.controller.port_status(self.device.root_port) & 1 == 0 {
                     EndpointNativeRefusal::ProviderLost
                 } else {
                     EndpointNativeRefusal::ForeignCompletion
                 },
             );
         }
-        self.transfer.complete(event).map(Some)
+        self.transfer.complete(&self.device, event).map(Some)
     }
 
     /// Revoke first; failed hardware stop retains the pending reservation and
     /// DMA. Disable Slot is the bounded existing controller retirement path.
     pub fn cancel(&mut self, node: NodeId, call: HostCallId) -> Result<(), EndpointNativeRefusal> {
         self.transfer.revoke(node, call)?;
+        self.transfer.validate_device(&self.device)?;
         self.controller
-            .disable_removed_slot(self.transfer.device.slot)
+            .disable_removed_slot(self.device.slot)
             .map_err(|_| EndpointNativeRefusal::Stop)?;
-        unsafe { self.transfer.release_stopped() }
+        unsafe { self.transfer.release_stopped(&self.device) }?;
+        // The sole Host clears the attachment marker after all transfer state
+        // has acknowledged stop. Failed stop or retirement leaves it retained.
+        let dma = super::dma::device_dma_pointer(&self.device)
+            .map_err(|_| EndpointNativeRefusal::Mapping)?;
+        unsafe { (*dma).owner_slot = 0 };
+        Ok(())
     }
 }

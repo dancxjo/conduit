@@ -1,6 +1,9 @@
 //! Product control installation retains one exclusive native event consumer.
 use super::{UsbControlCallRefusal, UsbControlSelection};
-use super::{UsbDevice, UsbDma, control_owner::UsbControlTransfer, device_dma_pointer};
+use super::{
+    UsbDevice, UsbDma, device_dma_pointer,
+    native_host::{UsbNativeCallIndex, UsbNativeHost, UsbNativeHostRefusal},
+};
 use crate::arch::x86_64::xhci::XhciReady;
 use crate::usb_base::{
     control_contract::ControlContract,
@@ -70,6 +73,12 @@ impl ReadyUsbControlBase {
         })
     }
 
+    pub(super) fn device(&self) -> &UsbDevice {
+        &self.device
+    }
+    pub(super) fn into_native_parts(self) -> (XhciReady, UsbDevice, fn(u64) -> Option<u64>) {
+        (self.controller, self.device, self.mapping)
+    }
     pub fn identity(&self) -> &UsbNativeIdentity {
         &self.identity
     }
@@ -96,22 +105,28 @@ impl ReadyUsbControlBase {
         selection: UsbControlSelection<'_>,
     ) -> Result<NativeUsbControlCall, UsbControlCallRefusal> {
         validate_selection(&self.identity, &claim, &selection)?;
+        let node = selection
+            .lowered
+            .nodes
+            .iter()
+            .find(|node| &node.placement_id == selection.placement)
+            .ok_or(UsbControlCallRefusal::Ownership(
+                ControlOwnerRefusal::WrongBinding,
+            ))?
+            .node;
         // SAFETY: construction retained the exact owner; validation preserves its
         // native identity across ordinary selection and separate Root issuance.
-        let transfer = unsafe {
-            UsbControlTransfer::bind_selected(
-                &self.controller,
-                self.device,
-                self.mapping,
-                table,
-                handle,
-                claim,
-                selection,
-            )
-        }?;
+        let mut host = unsafe { UsbNativeHost::new(self.controller, self.device, self.mapping) }
+            .map_err(control_refusal)?;
+        // SAFETY: exact identity above binds this selected claim to the actual
+        // original provider, resource generation and envelope retained by Host.
+        let index = unsafe { host.add_control(table, handle, claim, selection) }
+            .map_err(control_refusal)?;
         Ok(NativeUsbControlCall {
-            controller: self.controller,
-            transfer,
+            host,
+            index,
+            node,
+            call: HostCallId(0),
         })
     }
 }
@@ -135,7 +150,7 @@ fn validate_attachment_identity(
     Ok(())
 }
 
-fn validate_selection(
+pub(super) fn validate_selection(
     identity: &UsbNativeIdentity,
     claim: &BaseOperationClaim,
     selection: &UsbControlSelection<'_>,
@@ -162,10 +177,12 @@ fn validate_selection(
     Ok(())
 }
 
-/// Selected operation owns the original exclusive controller, without a borrow.
+/// Selected operation delegates to the sole native attachment/event owner.
 pub struct NativeUsbControlCall {
-    controller: XhciReady,
-    transfer: UsbControlTransfer,
+    host: UsbNativeHost<'static>,
+    index: UsbNativeCallIndex,
+    node: NodeId,
+    call: HostCallId,
 }
 impl NativeUsbControlCall {
     pub fn invoke(
@@ -175,15 +192,38 @@ impl NativeUsbControlCall {
         request: RequestId,
         input: &[u8],
     ) -> Result<&[u8], UsbControlCallRefusal> {
-        // SAFETY: original exclusive controller and mapping remain retained.
-        unsafe {
-            self.transfer
-                .execute(&mut self.controller, node, call, request, input)
-        }
+        self.check_binding(node, call)?;
+        self.host
+            .control_invoke(self.index, request, input)
+            .map_err(control_refusal)
     }
     pub fn revoke(&mut self, node: NodeId, call: HostCallId) -> Result<(), UsbControlCallRefusal> {
-        // SAFETY: cancellation acknowledges physical stop on the original owner.
-        unsafe { self.transfer.cancel(&mut self.controller, node, call) }
+        self.check_binding(node, call)?;
+        self.host.cancel().map_err(control_refusal)
+    }
+    fn check_binding(&self, node: NodeId, call: HostCallId) -> Result<(), UsbControlCallRefusal> {
+        if node != self.node || call != self.call {
+            return Err(UsbControlCallRefusal::Ownership(
+                ControlOwnerRefusal::WrongBinding,
+            ));
+        }
+        Ok(())
+    }
+}
+
+fn control_refusal(error: UsbNativeHostRefusal) -> UsbControlCallRefusal {
+    match error {
+        UsbNativeHostRefusal::Control(error) => error,
+        UsbNativeHostRefusal::Native(error) => UsbControlCallRefusal::Native(error),
+        UsbNativeHostRefusal::Pending | UsbNativeHostRefusal::Capacity => {
+            UsbControlCallRefusal::Ownership(ControlOwnerRefusal::Pressure)
+        }
+        UsbNativeHostRefusal::NotReady => {
+            UsbControlCallRefusal::Ownership(ControlOwnerRefusal::Possession)
+        }
+        UsbNativeHostRefusal::Binding | UsbNativeHostRefusal::Endpoint(_) => {
+            UsbControlCallRefusal::Ownership(ControlOwnerRefusal::WrongBinding)
+        }
     }
 }
 

@@ -29,6 +29,26 @@ pub struct UsbControlAdmission {
     pub claim: BaseOperationClaim,
 }
 
+#[cfg(target_arch = "x86_64")]
+pub(crate) struct UsbProtocolAdmission {
+    pub ready: crate::arch::ReadyUsbProtocolHost,
+    pub control_table: BaseCapabilityTable,
+    pub control_handle: BaseCapabilityHandle,
+    pub control_claim: BaseOperationClaim,
+    pub endpoint_table: BaseCapabilityTable,
+    pub endpoint_handle: BaseCapabilityHandle,
+    pub endpoint_claim: BaseOperationClaim,
+}
+
+#[derive(Clone, Copy)]
+enum PhysicalMode {
+    I2c,
+    #[cfg(target_arch = "x86_64")]
+    UsbControl,
+    #[cfg(target_arch = "x86_64")]
+    UsbProtocol,
+}
+
 /// Preparation owns the admitted kernel and the actual native owners together.
 /// The caller supplies the selected Plan and opaque possession; no grant is minted here.
 pub struct PreparedProtocolPlay<P> {
@@ -125,7 +145,7 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
             definition,
             operations,
             allow_clock,
-            false,
+            PhysicalMode::I2c,
             |plan, zip, states| {
                 PreparedProtocolCalls::prepare_with_operations(
                     plan, ready, table, handle, claim, zip, states,
@@ -143,16 +163,51 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
         claim: BaseOperationClaim,
         operations: crate::protocol_operations::ProtocolOperations,
     ) -> Result<Self, ProtocolCallRefusal> {
-        Self::prepare_selected(definition, operations, false, true, |plan, zip, states| {
-            PreparedProtocolCalls::prepare_usb(plan, ready, table, handle, claim, zip, states)
-        })
+        Self::prepare_selected(
+            definition,
+            operations,
+            false,
+            PhysicalMode::UsbControl,
+            |plan, zip, states| {
+                PreparedProtocolCalls::prepare_usb(plan, ready, table, handle, claim, zip, states)
+            },
+        )
+    }
+
+    /// Both exact native operations retain one controller and ordinary kernel.
+    #[cfg(target_arch = "x86_64")]
+    pub(crate) fn prepare_usb_protocol(
+        definition: KernelCompositeDefinition,
+        admission: UsbProtocolAdmission,
+        operations: crate::protocol_operations::ProtocolOperations,
+    ) -> Result<Self, ProtocolCallRefusal> {
+        Self::prepare_selected(
+            definition,
+            operations,
+            false,
+            PhysicalMode::UsbProtocol,
+            |plan, zip, states| {
+                PreparedProtocolCalls::prepare_usb_protocol(
+                    plan,
+                    admission.ready,
+                    admission.control_table,
+                    admission.control_handle,
+                    admission.control_claim,
+                    admission.endpoint_table,
+                    admission.endpoint_handle,
+                    admission.endpoint_claim,
+                    zip,
+                    states,
+                )
+            },
+        )
     }
 
     fn prepare_selected(
         definition: KernelCompositeDefinition,
         operations: crate::protocol_operations::ProtocolOperations,
         allow_clock: bool,
-        usb: bool,
+        mode: PhysicalMode,
         prepare_calls: impl FnOnce(
             &Plan,
             &crate::flow_zip::FlowZipOperationFactory,
@@ -195,20 +250,22 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
         registry
             .install(ExpressionOperationFactory::default())
             .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
-        if usb {
-            registry
-                .install(
-                    crate::usb_base::control_factory::ControlOperationFactory::prepare_contract()
-                        .map_err(|_| ProtocolCallRefusal::InvalidPlan)?,
-                )
-                .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
-        } else {
-            registry
-                .install(
-                    I2cOperationFactory::prepare_contract()
-                        .map_err(|_| ProtocolCallRefusal::InvalidPlan)?,
-                )
-                .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
+        match mode {
+            PhysicalMode::I2c => {
+                registry
+                    .install(
+                        I2cOperationFactory::prepare_contract()
+                            .map_err(|_| ProtocolCallRefusal::InvalidPlan)?,
+                    )
+                    .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
+            }
+            #[cfg(target_arch = "x86_64")]
+            PhysicalMode::UsbControl | PhysicalMode::UsbProtocol => {
+                registry.install(crate::usb_base::control_factory::ControlOperationFactory::prepare_contract().map_err(|_| ProtocolCallRefusal::InvalidPlan)?).map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
+                if matches!(mode, PhysicalMode::UsbProtocol) {
+                    registry.install(crate::usb_base::endpoint_read_factory::EndpointReadOperationFactory::prepare_contract().map_err(|_| ProtocolCallRefusal::InvalidPlan)?).map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
+                }
+            }
         }
         registry
             .install(SelectorOperationFactory::default())
@@ -293,6 +350,9 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
     /// Advance the sole kernel once and service at most one surfaced Host Call.
     pub fn step(&mut self) -> Result<KernelCompositeStatus, ProtocolCallRefusal> {
         let status = self.kernel.step().map_err(ProtocolCallRefusal::Kernel)?;
+        if self.calls.poll_pending(&mut self.kernel)? {
+            return Ok(status);
+        }
         if let Some(request) = self.kernel.next_host_request() {
             self.calls.dispatch(&mut self.kernel, &request)?;
         }

@@ -113,3 +113,48 @@ fn duplicate_empty_oversized_and_excess_inputs_refuse() {
         ));
     }
 }
+
+#[test]
+fn endpoint_configuration_is_explicit_bounded_inbound_and_optional() {
+    assert!(decode(&request()).unwrap().endpoint_read.is_none());
+    let endpoint = serde_json::json!({
+        "address":129, "transfer_type":3, "maximum_packet":8, "interval":10,
+        "endpoint_epoch":2, "maximum_operations":32
+    });
+    let mut value = request();
+    value["endpoint_read"] = endpoint.clone();
+    let configured = decode(&value).unwrap().endpoint_read.unwrap();
+    assert_eq!(configured.address, 129);
+    assert_eq!(configured.maximum_operations, 32);
+    for (field, invalid) in [
+        ("address", 1),
+        ("address", 128),
+        ("address", 145),
+        ("transfer_type", 0),
+        ("transfer_type", 1),
+        ("maximum_packet", 0),
+        ("maximum_packet", 1025),
+        ("interval", 0),
+        ("endpoint_epoch", 0),
+        ("maximum_operations", 0),
+        ("maximum_operations", 4097),
+    ] {
+        let mut invalid_request = value.clone();
+        invalid_request["endpoint_read"][field] = invalid.into();
+        assert!(
+            matches!(
+                decode(&invalid_request),
+                Err(ProtocolBootRequestRefusal::Bounds)
+            ),
+            "{field}={invalid}"
+        );
+    }
+    value["endpoint_read"]["transfer_type"] = 2.into();
+    value["endpoint_read"]["interval"] = 0.into();
+    assert!(decode(&value).is_ok());
+    value["endpoint_read"]["class_driver"] = "hidden".into();
+    assert!(matches!(
+        decode(&value),
+        Err(ProtocolBootRequestRefusal::Encoding)
+    ));
+}

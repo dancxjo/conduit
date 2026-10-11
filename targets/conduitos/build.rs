@@ -48,6 +48,13 @@ fn main() {
             )
             .expect("write Orange Pi 5 make record");
         } else {
+            // Class-neutral control/read machinery is compiled only on x86_64.
+            // A fallback record must not advertise it for another CPU.
+            let usb_transport = if env::var("CARGO_CFG_TARGET_ARCH").as_deref() == Ok("x86_64") {
+                "IMPL_USB_TRANSPORT"
+            } else {
+                "0"
+            };
             let proof_instrumentation =
                 u16::from(env::var_os("CARGO_FEATURE_HOTPLUG_PROOF").is_some())
                     | (u16::from(env::var_os("CARGO_FEATURE_SCRIPTED_KEYBOARD_PROOF").is_some())
@@ -55,7 +62,7 @@ fn main() {
             fs::write(
                 output,
                 format!(
-                    "pub const EMBEDDED_MAKE: MakeRecord = MakeRecord {{ schema: MAKE_SCHEMA, profile_id: \"profile:proof-appliance\", build_id: {build_id:?}, image_binding: {image_binding:?}, target: \"conduitos/x86_64/pc\", implementations: ALL_KNOWN_IMPLEMENTATIONS & !IMPL_LINEAR_PRESENTER & !IMPL_HTTP_CLIENT, facilities: FACILITY_NATIVE_COMPOSITOR, resources: RESOURCE_PRESENTATION_SURFACE, bases: BASE_DISPLAY_SCANOUT, drivers: DRIVER_LINEAR_FRAMEBUFFER, presenters: PRESENTER_NATIVE_GRAPHICAL, proof_instrumentation: {proof_instrumentation}, presentation_surface_slots: 4, presentation_surface_bytes: 8388608, runtime_arena_ceiling: 16777216, operation_slot_ceiling: 64, timer_slot_ceiling: 32, evidence_item_ceiling: 1024 }};\n"
+                    "pub const EMBEDDED_MAKE: MakeRecord = MakeRecord {{ schema: MAKE_SCHEMA, profile_id: \"profile:proof-appliance\", build_id: {build_id:?}, image_binding: {image_binding:?}, target: \"conduitos/x86_64/pc\", implementations: (ALL_KNOWN_IMPLEMENTATIONS & !IMPL_LINEAR_PRESENTER & !IMPL_HTTP_CLIENT & !IMPL_USB_TRANSPORT) | {usb_transport}, facilities: FACILITY_NATIVE_COMPOSITOR, resources: RESOURCE_PRESENTATION_SURFACE, bases: BASE_DISPLAY_SCANOUT, drivers: DRIVER_LINEAR_FRAMEBUFFER, presenters: PRESENTER_NATIVE_GRAPHICAL, proof_instrumentation: {proof_instrumentation}, presentation_surface_slots: 4, presentation_surface_bytes: 8388608, runtime_arena_ceiling: 16777216, operation_slot_ceiling: 64, timer_slot_ceiling: 32, evidence_item_ceiling: 1024 }};\n"
                 ),
             )
             .expect("write fallback make record");
