@@ -37,6 +37,13 @@ struct CanonicalStructuredStartupField {
 }
 
 impl CanonicalStructuredStartupValue {
+    /// Exact checked startup parameter reference, if this value forwards one.
+    /// Composite expressions and concrete literals do not masquerade as a
+    /// direct caller binding. This exposes provenance without reparsing IDs.
+    pub fn parameter_reference(&self) -> Option<&str> {
+        self.parameter_name()
+    }
+
     pub(crate) fn parameter_name(&self) -> Option<&str> {
         match &self.node {
             CanonicalStructuredStartupNode::Parameter(name) => Some(name),
@@ -478,5 +485,28 @@ mod tests {
         assert!(parse_scalar_literal("1.0000001").is_none());
         assert!(parse_scalar_literal("9223372036854.775808").is_none());
         assert!(parse_scalar_literal("-9223372036854.775809").is_none());
+    }
+}
+
+#[cfg(test)]
+mod provenance_tests {
+    use super::*;
+    #[test]
+    fn direct_parameter_reference_does_not_claim_literal_or_composite_authority() {
+        let value_type = StructuredInfoType::leaf(conduit_core::kind_id("value/text")).unwrap();
+        let parameter = CanonicalStructuredStartupValue {
+            value_type: value_type.clone(),
+            node: CanonicalStructuredStartupNode::Parameter("expression".into()),
+        };
+        assert_eq!(parameter.parameter_reference(), Some("expression"));
+        let literal = CanonicalStructuredStartupValue::from_checked_value(
+            &StructuredInfoValue::leaf(value_type.clone(), b"look".to_vec()).unwrap(),
+        );
+        assert_eq!(literal.parameter_reference(), None);
+        let composite = CanonicalStructuredStartupValue {
+            value_type,
+            node: CanonicalStructuredStartupNode::Collection(vec![parameter]),
+        };
+        assert_eq!(composite.parameter_reference(), None);
     }
 }
