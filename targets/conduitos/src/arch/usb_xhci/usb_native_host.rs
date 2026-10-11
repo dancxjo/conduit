@@ -38,7 +38,7 @@ pub enum UsbNativeHostRefusal {
     Control(UsbControlCallRefusal),
     Endpoint(EndpointNativeRefusal),
     Write(EndpointWriteNativeRefusal),
-    Isochronous(super::isochronous_out::IsochronousOutRefusal),
+    Isochronous(super::IsochronousOutRefusal),
     Capacity,
     Binding,
     Pending,

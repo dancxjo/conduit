@@ -58,6 +58,7 @@ impl ProtocolCallRefusal {
                     Usb::Host(Host::Binding | Host::NotReady) => {
                         (FailureCode::InvalidLifecycle, 1090)
                     }
+                    Usb::Host(Host::Isochronous(_)) => (FailureCode::HostCallFailed, 1093),
                     Usb::Host(Host::Capacity) => (FailureCode::IdentityCapacityExhausted, 1091),
                     Usb::Host(Host::Pending | Host::Native(_)) => {
                         (FailureCode::HostCallFailed, 1092)

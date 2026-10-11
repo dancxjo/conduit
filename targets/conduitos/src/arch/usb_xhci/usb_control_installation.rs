@@ -223,7 +223,8 @@ fn control_refusal(error: UsbNativeHostRefusal) -> UsbControlCallRefusal {
         }
         UsbNativeHostRefusal::Binding
         | UsbNativeHostRefusal::Endpoint(_)
-        | UsbNativeHostRefusal::Write(_) => {
+        | UsbNativeHostRefusal::Write(_)
+        | UsbNativeHostRefusal::Isochronous(_) => {
             UsbControlCallRefusal::Ownership(ControlOwnerRefusal::WrongBinding)
         }
     }
