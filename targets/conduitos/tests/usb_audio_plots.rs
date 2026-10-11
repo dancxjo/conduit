@@ -441,3 +441,37 @@ fn setup_observation_preserves_each_exact_phase_ack_without_pairing_raw_result()
         }
     }
 }
+
+#[test]
+fn ordinary_protocol_source_prepares_setup_once_with_exact_small_feedback_event() {
+    use conduitos::protocol_source::{
+        PreparedProtocolSource, ProtocolSourcePackage, ProtocolSpecializationRequest,
+        ProtocolValueReference,
+    };
+    let value = |name: &str| ProtocolValueReference {
+        type_name: name.into(),
+        maximum_bytes: 4096,
+    };
+    let package = ProtocolSourcePackage::compile(
+        include_str!("../plots/usb/audio-negotiation-back.conduit").into(),
+        &[
+            ProtocolSpecializationRequest::SeededUntil {
+                value: value("UsbAudioSetupState"),
+            },
+            ProtocolSpecializationRequest::FeedbackZip {
+                left: value("UsbAudioSetupState"),
+                right: value("UsbAudioSetupEvent"),
+            },
+        ],
+    )
+    .unwrap();
+    let source = PreparedProtocolSource::prepare(package).unwrap();
+    let expanded = source.expand("usb-audio-negotiate").unwrap();
+    assert!(
+        expanded
+            .expanded
+            .gears
+            .iter()
+            .any(|gear| gear.kind_id.as_str() == "machine/usb/control")
+    );
+}
