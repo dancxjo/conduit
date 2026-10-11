@@ -137,7 +137,16 @@ fn source_cbw_is_fixed_and_verified_before_class_effects() {
         .next()
         .unwrap();
     let wire = conduit_data::bytes_literal::decode_hex(hex).unwrap();
-    assert_eq!(wire.len(), 31);
+    assert_eq!(wire.len(), 16 * 31);
+    for (ordinal, command) in wire.chunks_exact(31).enumerate() {
+        assert_eq!(&command[..4], b"USBC");
+        assert_eq!(
+            u32::from_le_bytes(command[4..8].try_into().unwrap()),
+            ordinal as u32 + 1
+        );
+        assert_eq!(&command[8..], &wire[8..31]);
+    }
+    let wire = wire[..31].to_vec();
     for altered in [false, true] {
         let mut wire = wire.clone();
         if altered {
@@ -226,6 +235,16 @@ fn unsupported_geometry_and_lba_select_terminal_before_any_usb_route() {
         })
     };
     let state = record(state_type, |field| match field.name() {
+        "bank" => {
+            let bank: Vec<_> = (1u8..=16)
+                .flat_map(|tag| {
+                    let mut command = cbw.clone();
+                    command[4] = tag;
+                    command
+                })
+                .collect();
+            StructuredInfoValue::leaf(field.value_type().clone(), bank).unwrap()
+        }
         "command" => record(field.value_type(), |wire| {
             StructuredInfoValue::leaf(wire.value_type().clone(), cbw.clone()).unwrap()
         }),

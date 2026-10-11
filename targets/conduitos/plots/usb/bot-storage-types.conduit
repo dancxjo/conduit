@@ -3,13 +3,25 @@ type BotStorageControl = {
     result: UsbControlResult
     facts: BotControlFacts
 }
+type BotStorageReadFacts = {
+    result: UsbEndpointReadResult
+    data: Boolean
+    status: Boolean
+    tag: U64
+    residue: U64
+    status_code: U64
+}
+type BotStorageObservation =
+    write UsbEndpointWriteResult
+    | read BotStorageReadFacts
 type BotStorageEvent =
     startup Bytes <= 2048B
     | closed
     | command BlockReadRequest
     | control BotStorageControl
-    | observation BotEvent
+    | observation BotStorageObservation
 type BotStorageState = {
+    bank: Bytes <= 2048B
     command: UsbEndpointWriteRequest
     request: BlockReadRequest
     data: UsbEndpointReadResult
