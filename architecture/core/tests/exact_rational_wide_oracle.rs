@@ -24,9 +24,10 @@ fn rational(pair: &[String; 2]) -> ExactRational {
         .unwrap()
 }
 fn check(value: ExactRational, expected: &str) {
-    let bytes: Vec<u8> = expected
-        .as_bytes()
-        .chunks_exact(2)
+    let (pairs, remainder) = expected.as_bytes().as_chunks::<2>();
+    assert!(remainder.is_empty());
+    let bytes: Vec<u8> = pairs
+        .iter()
         .map(|pair| u8::from_str_radix(core::str::from_utf8(pair).unwrap(), 16).unwrap())
         .collect();
     let mut actual = [0; EXACT_RATIONAL_MAX_ENCODED_BYTES];
