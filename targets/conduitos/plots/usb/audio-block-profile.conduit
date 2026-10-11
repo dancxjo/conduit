@@ -1,7 +1,7 @@
 # All original PCM laws are preserved. This is a narrower UAC realization.
 plot usb-audio-block-header-supported (
     pcm: UsbAudioPcmBlock...| >> supported: Boolean...|
-) = (.header.representation is signed16-little-endian && .header.sample-rate-hz == 48000 && .header.layout is stereo-left-right && .header.frame-count == 384 && .header.payload-bytes == 1536 && !.header.discontinuity && .header.start-frame <= 18446744073709551231 && .cadence.sample_rate == 48000 && .cadence.channels == 2 && .cadence.sample_bytes == 2 && .cadence.phase == (.header.start-frame / 48) % 1000 && sequence/length(.packets) == 8)
+) = (.header.representation is signed16-little-endian && .header.sample-rate-hz == 48000 && .header.layout is stereo-left-right && .header.frame-count == 384 && .header.clock-id > 0 && .header.payload-bytes == 1536 && !.header.discontinuity && .header.start-frame <= 18446744073709551231 && .cadence.sample_rate == 48000 && .cadence.channels == 2 && .cadence.sample_bytes == 2 && .cadence.phase == (.header.start-frame / 48) % 1000 && sequence/length(.packets) == 8)
 plot usb-audio-block-clock-supported (
     input: UsbAudioBlockSchedulingInput...| >> supported: Boolean...|
 ) = (.clock.current-microframe < 16384 && .clock.scheduling-threshold <= 248 && .clock.service-interval-microframes == 8 && .clock.maximum-packet-bytes == 192 && .clock.pending-packets == 0 && .clock.maximum-pending-packets == 8 && .clock.dma-resource-bytes == 3072)

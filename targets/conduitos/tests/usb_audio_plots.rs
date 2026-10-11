@@ -218,6 +218,14 @@ fn block_value(
     path: &str,
     packet: usize,
 ) -> conduit_core::StructuredInfoValue {
+    block_value_with(ty, path, packet, None)
+}
+fn block_value_with(
+    ty: &conduit_core::StructuredInfoType,
+    path: &str,
+    packet: usize,
+    replacement: Option<(&str, u64)>,
+) -> conduit_core::StructuredInfoValue {
     use conduit_core::{
         StructuredFieldValue, StructuredInfoTypeShape as Shape, StructuredInfoValue as V,
     };
@@ -230,7 +238,7 @@ fn block_value(
                     let next = format!("{path}/{}", field.name());
                     StructuredFieldValue::new(
                         field.name(),
-                        block_value(field.value_type(), &next, packet),
+                        block_value_with(field.value_type(), &next, packet, replacement),
                     )
                     .unwrap()
                 })
@@ -254,7 +262,7 @@ fn block_value(
         Shape::Sequence { element, .. } => V::sequence(
             ty.clone(),
             (0..8)
-                .map(|index| block_value(element, path, index))
+                .map(|index| block_value_with(element, path, index, replacement))
                 .collect(),
         )
         .unwrap(),
@@ -269,6 +277,9 @@ fn block_value(
                 "start-frame" | "discontinuity" | "phase" | "wire" => 0,
                 other => panic!("unknown fixture field {other}"),
             };
+            let value = replacement
+                .filter(|(target, _)| *target == path)
+                .map_or(value, |(_, replacement)| replacement);
             let width = match kind.as_str() {
                 "value/u64" => 8,
                 "value/u32" => 4,
@@ -359,5 +370,31 @@ fn whole_pcm_block_packet_and_adjacent_laws_prepare_and_execute() {
                 .unwrap(),
             [1]
         );
+    }
+}
+
+#[test]
+fn whole_pcm_header_refuses_clock_phase_discontinuity_and_extent_changes() {
+    let p = program("usb-audio-block-header-supported");
+    let mut evaluator = PreparedPortableExpressionEvaluator::new(&p).unwrap();
+    for (field, value) in [
+        ("/header/sample-rate-hz", 44100),
+        ("/header/frame-count", 383),
+        ("/header/clock-id", 0),
+        ("/header/payload-bytes", 1535),
+        ("/header/discontinuity", 1),
+        ("/header/start-frame", u64::MAX),
+        ("/cadence/sample_rate", 44100),
+        ("/cadence/phase", 1),
+        ("/cadence/channels", 1),
+        ("/cadence/sample_bytes", 1),
+    ] {
+        let encoded = block_value_with(&p.input_type, "", 0, Some((field, value)))
+            .canonical_bytes()
+            .unwrap();
+        match evaluator.evaluate(&encoded) {
+            Ok(output) => assert_eq!(output, [0], "{field}"),
+            Err(_) => {}
+        }
     }
 }
