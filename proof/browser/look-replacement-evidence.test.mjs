@@ -76,3 +76,23 @@ for (const [label, mutate] of mutations) {
     assert.throws(() => assertLookReplacement(value));
   });
 }
+
+for (const field of ['subjects', 'actions', 'disclosures', 'text']) {
+  test(`comparison refuses a Look that reorders original ${field}`, () => {
+    const value = evidence();
+    const records = {
+      subjects: [{ identity: 'first', name: 'First' }, { identity: 'second', name: 'Second' }],
+      actions: [{ identity: 'first', arguments: [], availability: 'Available' },
+        { identity: 'second', arguments: [], availability: 'Unavailable' }],
+      disclosures: [{ subject: 'first', level: 'Primary' }, { subject: 'second', level: 'Detail' }],
+      text: [{ subject: 'first', text: 'First meaning' }, { subject: 'second', text: 'Second meaning' }],
+    }[field];
+    for (const face of [value.before.canonicalFace, value.after.canonicalFace,
+      value.retirement.faceBefore, value.retirement.faceAfter]) {
+      face[field] = structuredClone(records);
+    }
+    assertLookReplacement(value);
+    value.after.canonicalFace[field].reverse();
+    assert.throws(() => assertLookReplacement(value));
+  });
+}
