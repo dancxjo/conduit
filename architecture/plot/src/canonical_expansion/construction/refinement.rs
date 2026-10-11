@@ -4,6 +4,7 @@ use super::ByteFacts;
 use super::*;
 use crate::PortableExpressionProjection;
 use alloc::string::String;
+mod sequence_contract_path;
 
 pub(super) fn proves(
     node: &PortableExpressionNode,
@@ -94,7 +95,11 @@ fn proves_at(
     if facts.proves(value, remaining, required) {
         return true;
     }
-    let Some(mut path) = input_path(value) else {
+    let Some(mut path) = input_path(value).or_else(|| {
+        // Element-wide declaration metadata is separate from branch-local
+        // projection facts: a guard on one index must never narrow another.
+        sequence_contract_path::bytes_path(value, required)
+    }) else {
         return false;
     };
     path.push_str(remaining);
@@ -116,6 +121,17 @@ fn retained_contract(
             .any(|contract| contract.representation_path == path && &contract.contract == required)
     }) {
         return true;
+    }
+    if let Some(rest) = path.strip_prefix("[]") {
+        if required.value_kind.as_str() != "value/bytes" {
+            return false;
+        }
+        let element = match input.shape() {
+            StructuredInfoTypeShape::Collection { element, .. }
+            | StructuredInfoTypeShape::Sequence { element, .. } => element,
+            _ => return false,
+        };
+        return retained_contract(element, rest, required, types);
     }
     let Some(rest) = path.strip_prefix('.') else {
         return false;
