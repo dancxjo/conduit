@@ -5,6 +5,7 @@ mod demand;
 mod duration;
 mod forecast;
 mod freshness;
+mod input_codec;
 mod selection;
 mod source;
 mod structured_input;
@@ -16,6 +17,7 @@ pub use demand::{
 pub use duration::CostDuration;
 pub use forecast::{CostDurationRange, CostForecastStages, FulfillmentCostForecast};
 pub use freshness::CostObservationWindow;
+pub use input_codec::CostInputCodec;
 pub use selection::*;
 pub use source::{
     CostCalibrationRevision, CostEvidenceSource, CostScopeChange, MAXIMUM_COST_ID_BYTES,
@@ -33,6 +35,7 @@ pub enum CostEvidenceRefusal {
     WorkClassChanged,
     IncompatibleRealization,
     InvalidWorkInput,
+    InputCodecChanged,
     Structured(conduit_core::StructuredInfoRefusal),
     WorkExtentChanged,
     InputLimit,
