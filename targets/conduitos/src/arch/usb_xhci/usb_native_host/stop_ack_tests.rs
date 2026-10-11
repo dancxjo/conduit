@@ -34,6 +34,20 @@ fn check_stop(slot: u8, code: u8, pointer_delta: u64, accepted: bool) {
             host.idle_transport(),
             Err(UsbNativeHostRefusal::NotReady)
         ));
+        assert!(matches!(
+            host.preparing(NodeId(0)),
+            Err(UsbNativeHostRefusal::NotReady)
+        ));
+        // SAFETY: fixture owns this Host. Cancellation must reject before
+        // attempting to resolve any endpoint, authority or DMA binding.
+        let iso_begin = unsafe {
+            host.begin_isochronous(
+                1,
+                crate::usb_base::isochronous_schedule::IsochronousFrame::new(1).unwrap(),
+                &[0],
+            )
+        };
+        assert!(matches!(iso_begin, Err(UsbNativeHostRefusal::NotReady)));
         // SAFETY: the fixture still owns both global DMA regions.
         unsafe {
             assert_eq!((*dma).owner_slot, if accepted { 0 } else { 1 });
