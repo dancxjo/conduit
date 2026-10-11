@@ -3,6 +3,8 @@ import json,struct,sys
 pending={}; controls=[]; tx=[]; rx=[]; bulk_order=[]; configurations=[]
 preflight = sys.argv[3] if len(sys.argv)>3 else None
 assert preflight in (None, 'supported', 'unsupported')
+receive=bytes.fromhex(sys.argv[4]) if len(sys.argv)>4 else b'cdc-device-reply\n'
+assert len(receive)<64
 for line in open(sys.argv[1]):
  event=json.loads(line)
  if event['type'] not in (6,8,100,101):continue
@@ -45,7 +47,7 @@ for line in open(sys.argv[1]):
    assert request[10:]==b'cdc-plot-tx\n' and requested==12 and actual==12
    tx.append(actual)
   elif ep==129:
-   assert requested==64 and actual==17 and body[10:]==b'cdc-device-reply\n'
+   assert requested==64 and actual==len(receive) and body[10:]==receive
    rx.append(actual)
   else:raise AssertionError('unexpected bulk endpoint')
 assert not pending

@@ -32,6 +32,14 @@ truncated bytes, duplicate observations and a wrong primitive Type were refused.
 acceptance must compare its descriptor bytes to the independent wire validator's
 `discovery_configuration_hex`, and its endpoint geometry/epoch to the media Root.
 
+`decode_serial.rs SERIAL observation [RECEIVE_HEX]` validates all 32 ordered serial
+results through Core, with exact 12-byte transmissions and expected short receive
+octets for each 64-byte request. The wire validator accepts the same optional
+receive hex after its verdict argument. The default retains the original 17-byte
+reply; `ff0080` prepares a separate three-byte binary short-transfer proof. Both
+decoders compiled, and the serial decoder revalidated the retained original native
+serial logs; no new short-transfer run is claimed by adding this parameter.
+
 Checker development revalidated the two retained serial transcripts and used
 explicitly synthetic phase fixtures: supported and unsupported sequences were
 accepted; missing/extra controls and corrupted discovery records were refused.
