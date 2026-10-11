@@ -61,6 +61,7 @@ fn leaf(kind: &str) -> usize {
         PrimitiveInfoKind::Count => 8,
         PrimitiveInfoKind::Scalar => 16,
         PrimitiveInfoKind::Unit => conduit_core::UNIT_ENCODED_LEN,
+        PrimitiveInfoKind::Dimension => conduit_core::DIMENSION_ENCODED_LEN,
         PrimitiveInfoKind::Quantity => conduit_core::QUANTITY_ENCODED_LEN,
         PrimitiveInfoKind::F32 => 4,
         PrimitiveInfoKind::F64 => 8,

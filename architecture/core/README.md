@@ -53,6 +53,7 @@ depends on semantic, application, target, or proof packages.
 | `info.rs` | generic value mechanism | Minimal bool/scalar envelopes, decode refusal, and semantic digest used by unrelated domains. |
 | `primitive_info.rs` | generic value mechanism | Closed canonical primitive identity registry plus allocation-free validation and count encoding. |
 | `value_constraint.rs` | generic value mechanism | Exact finite reusable value contracts, deterministic refusal, and portable bounded text-pattern automata shared by checking, planning, Faces, and Hosts. |
+| `exact_numeric.rs` and children | generic value mechanism | Fixed-extent rational denotation and optional rational Quantity coordinates with canonical codecs, explicit bounded limb work and type-safe integer projections; physical Unit conversion and numerical realization remain separate. |
 | `fixed_integer.rs` | generic value mechanism | Exact fixed-width signed and unsigned integer values, encoding, and checked arithmetic. |
 | `ieee_float.rs` | generic value mechanism | Exact IEEE-754 binary32/binary64 bit identity, canonical little-endian encoding, finite classification, and total ordering without target-native equality drift. |
 | `kind_effects.rs` | universal architecture | Reviewed semantic effect facts used to admit pure Kind calls without inferring behavior from names. |
@@ -61,6 +62,7 @@ depends on semantic, application, target, or proof packages.
 | `physical_definition.rs` and children | generic value mechanism | Self-contained immutable family, dimension, role and Unit capsules admitted from authoritative Conduitese definitions; bounded exact scalar and explicit prefix policies. |
 | `quantity_suffix.rs` | generic value mechanism | Borrowed source evidence checked against the embedded Unit descriptor, with generated built-in convenience resolution. |
 | `unit.rs` | generic value mechanism | Standalone bounded physical Unit codec carrying complete declaration identity, reference anchor, exact affine law and admitted spelling. |
+| `dimension.rs` | generic value mechanism | Standalone versioned normalized Dimension codec and finite composition, independent of Unit coordinates and nominal quantity families. |
 | `quantity_configuration.rs` | generic value mechanism | Checked exact Quantity, physical Unit and temperature-difference startup values with separate bounded source evidence. |
 | `structured_info.rs` and children | generic value mechanism | Finite canonical structured type/value, selection, inspection, transport, and profile machinery. |
 | `temporal.rs` | generic value mechanism | Exact finite temporal identity, instant, relation, and offset-only civil primitives without clocks or timezone databases. |

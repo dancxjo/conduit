@@ -115,14 +115,30 @@ pub(crate) fn parse_dimension_declaration(
             )
         })?
         .trim();
-    if !crate::surface_lex::is_name(value) {
+    let (name, definition) = if let Some((name, law)) = value.split_once('=') {
+        let name = name.trim();
+        let law = law.trim();
+        let law_start = start + text.len() - law.len();
+        let expression =
+            crate::pure_expression::parse(source, law, law_start).map_err(|reason| {
+                refusal(
+                    span(source, law_start, start + text.len()),
+                    alloc::format!("invalid dimension law: {reason:?}"),
+                )
+            })?;
+        (name, Some(expression))
+    } else {
+        (value, None)
+    };
+    if !crate::surface_lex::is_name(name) {
         return Err(refusal(
             span(source, start, start + text.len()),
-            "dimension requires one name",
+            "dimension requires a name and an optional exact composition law",
         ));
     }
     Ok(DimensionDeclarationSyntax {
-        name: named(source, value, start + text.find(value).unwrap()),
+        name: named(source, name, start + text.find(name).unwrap()),
+        definition,
         span: span(source, start, start + text.len()),
     })
 }

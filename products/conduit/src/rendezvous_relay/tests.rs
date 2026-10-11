@@ -28,18 +28,31 @@ fn options(bind: &str, authorize_network: bool) -> ServeOptions {
 
 #[test]
 fn network_listening_requires_explicit_non_loopback_authority() {
-    assert_eq!(
-        serve(options("192.0.2.10:7443", false)),
-        Err("relay network listening requires --authorize-network".into())
-    );
-    assert_eq!(
-        serve(options("127.0.0.1:7443", true)),
-        Err("relay --bind must be one explicit non-loopback socket".into())
-    );
-    assert_eq!(
-        serve(options("192.0.2.10:0", true)),
-        Err("relay --bind must be one explicit non-loopback socket".into())
-    );
+    let ready = std::cell::Cell::new(false);
+    for (bind, authorized, refusal) in [
+        (
+            "192.0.2.10:7443",
+            false,
+            "relay network listening requires --authorize-network",
+        ),
+        (
+            "127.0.0.1:7443",
+            true,
+            "relay --bind must be one explicit non-loopback socket",
+        ),
+        (
+            "192.0.2.10:0",
+            true,
+            "relay --bind must be one explicit non-loopback socket",
+        ),
+    ] {
+        assert_eq!(serve(options(bind, authorized)), Err(refusal.into()));
+        assert_eq!(
+            serve_with_ready(options(bind, authorized), |_| ready.set(true)),
+            Err(refusal.into())
+        );
+        assert!(!ready.get(), "refused listeners cannot announce readiness");
+    }
 }
 
 #[test]
@@ -114,18 +127,27 @@ fn remote_execution_session_frames_cross_two_outbound_protected_relay_clients() 
     let bind = SocketAddrV4::new(Ipv4Addr::UNSPECIFIED, port).to_string();
     let public_url = format!("wss://localhost:{port}/conduit");
     let server_url = public_url.clone();
+    let (ready_tx, ready_rx) = mpsc::sync_channel(1);
     let server = thread::spawn(move || {
-        serve(ServeOptions {
-            bind,
-            public_url: server_url,
-            tls_cert: certificate_path,
-            tls_key: private_key_path,
-            slot: slot_path,
-            accept_timeout_seconds: 5,
-            authorize_network: true,
-        })
+        serve_with_ready(
+            ServeOptions {
+                bind,
+                public_url: server_url,
+                tls_cert: certificate_path,
+                tls_key: private_key_path,
+                slot: slot_path,
+                accept_timeout_seconds: 5,
+                authorize_network: true,
+            },
+            |address| ready_tx.send(address).expect("relay readiness receiver"),
+        )
     });
-    thread::sleep(Duration::from_millis(100));
+    assert_eq!(
+        ready_rx
+            .recv_timeout(Duration::from_secs(5))
+            .expect("authorized relay listener readiness"),
+        SocketAddrV4::new(Ipv4Addr::UNSPECIFIED, port).into()
+    );
 
     let binding = SessionBinding {
         initiator: EndpointBinding {

@@ -4,10 +4,12 @@
 use super::{BrowserBack, BrowserInstallation, MAXIMUM_BROWSER_VALUE_BYTES};
 use conduit_core::*;
 use conduit_kernel::{HostedValueStore, ValueStorage};
-use conduit_plot::quantity_conversion as conversion;
+use conduit_plot::{dimension_operation as dimension, quantity_conversion as conversion};
 use std::fmt::Write;
 
 const CONVERTED_EQUALS_ID: &str = "browser/converted-equals@1";
+const DIMENSION_ID: &str = "browser/unit-dimension@1";
+const QUANTITY_DIMENSION_ID: &str = "browser/quantity-dimension@1";
 const PROFILE: &str = "browser/prepared-quantity-receipt@1";
 const COMPARATOR_PROFILE: &str = "browser/checked-receipt-comparator@1";
 const CONVERT_ID: &str = "browser/exact-quantity-conversion@1";
@@ -15,6 +17,24 @@ const DIFFERENCE_ID: &str = "browser/exact-temperature-difference-conversion@1";
 const COMPARE_ID: &str = "browser/exact-quantity-comparison@1";
 const COMPARE_DIFFERENCE_ID: &str = "browser/exact-temperature-difference-comparison@1";
 
+pub(super) static DIMENSION: BrowserInstallation = BrowserInstallation {
+    implementation_id: DIMENSION_ID,
+    offer: dimension_offer,
+    prepare,
+    perform: None,
+};
+pub(super) static QUANTITY_DIMENSION: BrowserInstallation = BrowserInstallation {
+    implementation_id: QUANTITY_DIMENSION_ID,
+    offer: quantity_dimension_offer,
+    prepare,
+    perform: None,
+};
+fn dimension_offer() -> CapabilityOffer {
+    offer_for(dimension::UNIT_KIND).expect("reviewed Unit dimension")
+}
+fn quantity_dimension_offer() -> CapabilityOffer {
+    offer_for(dimension::QUANTITY_KIND).expect("reviewed Quantity dimension")
+}
 pub(super) static CONVERTED_EQUALS: BrowserInstallation = BrowserInstallation {
     implementation_id: CONVERTED_EQUALS_ID,
     offer: converted_equals_offer,
@@ -68,12 +88,16 @@ fn offer_for(kind: &str) -> Option<CapabilityOffer> {
         conversion::temperature_difference::KIND => DIFFERENCE_ID,
         conversion::comparison::KIND => COMPARE_ID,
         conversion::comparison::DIFFERENCE_KIND => COMPARE_DIFFERENCE_ID,
+        dimension::UNIT_KIND => DIMENSION_ID,
+        dimension::QUANTITY_KIND => QUANTITY_DIMENSION_ID,
         _ => return None,
     };
     let digest = semantic_digest(
         "quantity/compiled-browser-back@1",
         concat!(
             include_str!("quantity_conversion.rs"),
+            include_str!("../../../../../architecture/plot/src/dimension_operation.rs"),
+            include_str!("../../../../../architecture/core/src/dimension.rs"),
             include_str!("../../../../../semantics/catalog/src/converted_equals_back.rs"),
             include_str!("../../../../../architecture/plot/src/quantity_conversion/converted_equals.rs"),
             include_str!("../../../../../architecture/plot/src/quantity_conversion/converted_equals/validation.rs"),
@@ -128,7 +152,10 @@ fn offer_for(kind: &str) -> Option<CapabilityOffer> {
     .build();
     // The portable receipt Type allows 8 KiB. This installed browser profile
     // admits the existing 4 KiB Cord limit and refuses larger actual receipts.
-    offer.limits.max_queue_bytes = MAXIMUM_BROWSER_VALUE_BYTES as u32;
+    offer.limits.max_queue_bytes = offer
+        .limits
+        .max_queue_bytes
+        .min(MAXIMUM_BROWSER_VALUE_BYTES as u32);
     Some(offer)
 }
 fn prepare(placement: &PlannedGear, values: &mut HostedValueStore) -> Result<BrowserBack, String> {
@@ -146,7 +173,18 @@ fn prepare(placement: &PlannedGear, values: &mut HostedValueStore) -> Result<Bro
         || !placement.pool_references.is_empty()
         || !placement.terminal_transductions.is_empty()
     {
-        return Err("quantity operation differs from its exact browser offer".into());
+        return Err(format!(
+            "quantity operation differs from its exact browser offer: capability={} limits={} semantics={} resources={} authority={} base={} characteristics={} pools={} transductions={}",
+            placement.capability_id != expected.capability_id,
+            placement.limits != expected.limits,
+            placement.semantic_contract != contract.semantic_contract(),
+            !placement.resources.is_empty(),
+            !placement.authority.is_empty(),
+            placement.base.is_some(),
+            !placement.realization_characteristics.is_empty(),
+            !placement.pool_references.is_empty(),
+            !placement.terminal_transductions.is_empty(),
+        ));
     }
     if placement.configuration.len() != contract.configuration.len() {
         return Err("quantity configuration differs".into());
@@ -194,6 +232,22 @@ fn prepare(placement: &PlannedGear, values: &mut HostedValueStore) -> Result<Bro
         &placement.configuration,
     )
     .map_err(|error| format!("quantity preparation: {error:?}"))?;
+    if matches!(
+        placement.kind_id.as_str(),
+        dimension::UNIT_KIND | dimension::QUANTITY_KIND
+    ) {
+        if placement.outputs[0].value_kind.as_str() != DIMENSION_INFO_ID {
+            return Err("Dimension output Type differs".into());
+        }
+        let StructuredInfoValueShape::Leaf(bytes) = receipt.shape() else {
+            return Err("Dimension output must be a checked leaf".into());
+        };
+        Dimension::decode(bytes).map_err(|error| format!("Dimension preparation: {error:?}"))?;
+        let value = values
+            .store(bytes)
+            .map_err(|error| format!("store Dimension: {error:?}"))?;
+        return Ok(BrowserBack::source(value));
+    }
     if receipt
         .value_type()
         .profile()

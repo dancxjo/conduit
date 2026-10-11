@@ -4,6 +4,8 @@ use crate::{ExpressionSyntax, Span, SpannedText};
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DimensionDeclarationSyntax {
     pub name: SpannedText,
+    /// None declares a named basis; a law composes already checked dimensions.
+    pub definition: Option<ExpressionSyntax>,
     pub span: Span,
 }
 

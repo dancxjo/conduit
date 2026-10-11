@@ -51,7 +51,14 @@ fn sparse_speech_pipeline_retains_host_inputs_for_entire_long_stream() {
     }
     let escaped: String = wav.iter().map(|byte| format!("\\{byte:03o}")).collect();
     let executable = files.0.join("fixture-espeak");
-    fs::write(&executable, format!("#!/bin/sh\nprintf '{escaped}'\n")).unwrap();
+    // Read the exact request before returning its fixture audio. A provider
+    // that ignores stdin can exit between the Host's status check and write,
+    // making the pipe fail instead of exercising retained-input budgeting.
+    fs::write(
+        &executable,
+        format!("#!/bin/sh\nIFS= read -r text\n[ \"$text\" = 'Hello.' ] || exit 21\nprintf '{escaped}'\n"),
+    )
+    .unwrap();
     fs::set_permissions(&executable, fs::Permissions::from_mode(0o700)).unwrap();
     let discovery = crate::hosted_speech_synthesis::EspeakDiscovery::inspect(
         &executable,

@@ -208,7 +208,7 @@ these examples do not promise that every integer realization can store it.
 | ronto `r` | `1rm` | 10⁻²⁷ |
 | quecto `q` | `1qm` | 10⁻³⁰ |
 
-The [authored prefix policies](../architecture/core/definitions/physical.conduit)
+The [authored prefix policies](https://github.com/dancxjo/conduit/blob/dev/architecture/core/definitions/physical.conduit)
 includes seconds, hertz, volts, amperes, kelvin, grams, metres, square/cubic
 metres, litres, radians, bytes, newtons, joules, watts, pascals, metres per
 second, metres per second squared, and ampere-hours. Prefixes are case-sensitive:
@@ -222,7 +222,7 @@ distinct from decimal `kB`/`MB`/`GB`.
 
 Quantity families, dimensions, Unit reference laws, affine Point/Delta associations,
 and prefix policies are authored in Conduitese. The checked
-[`physical.conduit`](../architecture/core/definitions/physical.conduit) library is
+[`physical.conduit`](https://github.com/dancxjo/conduit/blob/dev/architecture/core/definitions/physical.conduit) library is
 the builtin authority; a document can add `unit smoot : Distance = { reference: m,
 scale: 1.7018 }` without changing Rust. Prefixes are disabled unless the declaration
 explicitly opts into source-defined groups. Unit capsules occupy 768 bytes and

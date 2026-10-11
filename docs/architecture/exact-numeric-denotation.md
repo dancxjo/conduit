@@ -1,9 +1,11 @@
 # Exact numeric denotation and bounded realization
 
-This is the specification and gap-audit slice of [#5392](https://github.com/dancxjo/conduit/issues/5392).
-It proposes the next implementation contracts. It does not implement a new
-numeric Type, symbolic evaluator, precision selector, or public syntax. The
-[canon](../conduit-canon.md) remains the description of current implementation.
+This records the specification, gap audit and development progress for
+[#5392](https://github.com/dancxjo/conduit/issues/5392). The bounded rational
+foundation below is implemented in Rust. Checked authored numeric Types,
+Quantity migration, symbolic evaluation and precision selection remain open.
+The [canon](../conduit-canon.md) owns architectural intent; current proof scope
+is recorded separately from this proposed implementation direction.
 
 ## Meaning and realization
 
@@ -136,3 +138,69 @@ silently folded into ordinary exact mathematical equality.
 
 All gates above remain open. This document starts #5392 in a separate reviewable
 slice; it neither expands #5391 nor closes #5392.
+
+## Bounded rational foundation in development
+
+[`ExactRational`](../../architecture/core/src/exact_numeric/rational.rs) retains
+an exact signed integer or reduced rational with a positive denominator and one
+canonical zero. Numerator, denominator and arithmetic intermediates each have a
+4096-bit extent. Decimal parsing is exact and bounded; it performs no float
+conversion. The versioned codec uses minimal little-endian magnitudes and
+rejects unreduced fractions, negative zero, padding, malformed lengths and
+unsupported versions. Semantic digests commit to that canonical reduced value;
+author spelling and source custody remain separate evidence.
+
+Addition, subtraction, cross-cancelled multiplication, division and
+continued-fraction comparison use fixed storage and an explicit
+`ExactNumericWork` budget. Extent or work exhaustion refuses the selected
+profile; it does not assert that the mathematical expression is invalid.
+Work charges are deterministic algorithmic admission units, independently of
+#5395's required wall/CPU measurements. Existing fixed-width hot paths keep their
+existing representations; this foundation does not require every operation to
+materialize a rational or symbolic graph.
+
+`ExactIntegerProjectionRequest` selects an explicit signed/unsigned fixed-width
+integer Type. It refuses fractional coordinates, out-of-range values, negative
+unsigned results and unsupported targets. The exact projection domain adapts
+the existing general projection report, rechecks the result and target Type,
+and rejects omitted obligations or fabricated transformation laws. Floats need
+an admitted algorithm/error witness; Count keeps its separate cardinality law.
+This API does not implicitly treat either as an integer target.
+
+Current regression proof covers exact thirds and tenths, `10^1000 + 1`, bounded
+work and extent refusals, canonical decoding, a small independent arithmetic
+oracle and exact fixed-width projection fidelity. These are core Rust proofs,
+not checked source/Plan/Play numerical realization acceptance. Next, connect the
+rational denotation to ordinary checked transport, canonical Quantity conversion
+and offered numerical realization. Reliable bounded arithmetic and type-safe
+projection are the scheduling prerequisite; the remaining symbolic features do
+not block performance baselines, cost observations, dispatch or placement.
+
+[`RationalQuantity`](../../architecture/core/src/exact_numeric/quantity.rs)
+adds an optional bounded rational coordinate representation using the existing
+complete Unit capsule. It shares physical conversion eligibility and checked
+source correlation with the decimal path: Dimension, nominal family, affine
+role and reference anchor must all agree. Rational affine conversion applies
+the point offset once; differences receive only the scale. A conversion such
+as `1m` into a source-admitted Unit of three meters retains the exact coordinate
+`1/3`, while the existing decimal representation still truthfully refuses it.
+Receipts keep the checked original Quantity, authored evidence and target Unit
+spelling even when work admission refuses the result.
+
+Its separate integer projection retains the precise Unit and role alongside
+the machine coordinate. The generic projection report verifies the exact
+coordinate, target integer Type and physical contract. A Unit-conversion law
+cannot stand in for a numerical-representation law. Tests cover independent
+Unit and integer projections, fractional projection refusal, affine points and
+deltas, binary/decimal prefixes, incompatible dimensions/families/anchors,
+source mismatch and hostile codec data. Integer powers use bounded squaring;
+zero power is the multiplicative identity, and a negative power of zero refuses.
+The independent Python Fraction corpus also checks all 972 affine conversion
+vectors and 798 physical comparison vectors, including cases whose rational
+coordinate could not fit the existing finite-decimal profile.
+
+These are core representation and fidelity proofs. They do not yet register an
+authored rational Quantity Type, replace the decimal `Quantity` codec, select a
+numerical Back or prove ordinary Plan/Play precision admission. Checked transport
+and offered realization remain the next integration requirements; symbolic π,
+roots and general symbolic reasoning remain separate open work.

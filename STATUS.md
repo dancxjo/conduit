@@ -13,7 +13,8 @@ preserves older proof receipts and limitations.
 for the ordered actions, captured screens, and exact emulator evidence.
 
 Protection-domain work for [#5113](https://github.com/dancxjo/conduit/issues/5113)
-is in progress: local x86_64 emulator proofs exercise checked text Source and
+provides ordinary execution-region isolation on five reviewed native emulator
+profiles. Local x86_64 proofs exercise checked text Source and
 the ordinary graphical Keyboard canvas in CPL3 with capability-gated serial
 presentation. The keyboard domain binds the actual Body Plan and Play; Stop
 revokes it. Eighteen hostile entries, malformed capability requests and
@@ -49,8 +50,9 @@ presentation operations. Local x86_64, IA-32, AArch64, RISC-V64 and LoongArch64
 proofs passed the physical 120 ms product, terminal replay refusal and complete
 zeroization. Each used eleven domain entries, four Base gates and 313 runtime
 bytes copied. Broader ordinary implementation coverage remains unfinished.
-DMA/driver isolation remain false; this is not accepted-release evidence.
-See the [exact per-target boundary](docs/architecture/conduitos-protection-domains.md#ordinary-execution-work-in-progress-5113).
+These are freestanding-emulator boundary proofs; DMA/driver isolation remain
+false. Exact release and native acceptance are tracked in the owning issue.
+See the [exact per-target boundary](docs/architecture/conduitos-protection-domains.md#ordinary-protected-execution-5113).
 
 ## What exists
 

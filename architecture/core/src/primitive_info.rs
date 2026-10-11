@@ -30,6 +30,7 @@ pub enum PrimitiveInfoKind {
     Bytes,
     Quantity,
     Unit,
+    Dimension,
     Distance,
     Frequency,
     Duration,
@@ -69,6 +70,7 @@ pub enum PrimitiveInfoRefusal {
     },
     Quantity(QuantityRefusal),
     Unit(crate::UnitRefusal),
+    Dimension(crate::PhysicalDefinitionRefusal),
     Terminal(TerminalInfoDecodeRefusal),
     WrongQuantityDimension {
         /// Full fingerprint of the ordered expected/actual dimension descriptors.
@@ -113,6 +115,7 @@ pub fn primitive_info_kind(identity: &str) -> Option<PrimitiveInfoKind> {
         b"value/bytes" => Some(PrimitiveInfoKind::Bytes),
         b"value/quantity@1" => Some(PrimitiveInfoKind::Quantity),
         b"value/unit@1" => Some(PrimitiveInfoKind::Unit),
+        b"value/dimension@1" => Some(PrimitiveInfoKind::Dimension),
         b"value/u8" => Some(PrimitiveInfoKind::U8),
         b"value/u16" => Some(PrimitiveInfoKind::U16),
         b"value/u32" => Some(PrimitiveInfoKind::U32),
@@ -183,6 +186,9 @@ pub fn validate_primitive_info(identity: &str, encoded: &[u8]) -> Result<(), Pri
         Some(PrimitiveInfoKind::Unit) => crate::Unit::decode(encoded)
             .map(|_| ())
             .map_err(PrimitiveInfoRefusal::Unit),
+        Some(PrimitiveInfoKind::Dimension) => crate::Dimension::decode(encoded)
+            .map(|_| ())
+            .map_err(PrimitiveInfoRefusal::Dimension),
         Some(
             PrimitiveInfoKind::Distance
             | PrimitiveInfoKind::Frequency

@@ -7,7 +7,7 @@ use super::{
 };
 use conduit_core::*;
 use conduit_kernel::{HostedValueStore, ValueStorage};
-use conduit_plot::quantity_conversion as conversion;
+use conduit_plot::{dimension_operation as dimension, quantity_conversion as conversion};
 use std::fmt::Write;
 
 pub(super) const IMPLEMENTATION: &str = "conduit.std/exact-quantity-conversion@1";
@@ -16,6 +16,8 @@ const COMPARISON_IMPLEMENTATION: &str = "conduit.std/exact-quantity-comparison@1
 const DIFFERENCE_COMPARISON_IMPLEMENTATION: &str =
     "conduit.std/exact-temperature-difference-comparison@1";
 const CONVERTED_EQUALS_IMPLEMENTATION: &str = "conduit.std/converted-equals@1";
+const DIMENSION_IMPLEMENTATION: &str = "conduit.std/unit-dimension@1";
+const QUANTITY_DIMENSION_IMPLEMENTATION: &str = "conduit.std/quantity-dimension@1";
 const PROFILE: &str = "conduit.std/prepared-quantity-receipt@1";
 const COMPARATOR_PROFILE: &str = "conduit.std/checked-receipt-comparator@1";
 pub(super) static FACTORY: BackFactory = BackFactory {
@@ -44,9 +46,21 @@ pub(super) static CONVERTED_EQUALS_FACTORY: BackFactory = BackFactory {
     budget,
     prepare,
 };
-pub(crate) fn offers() -> [CapabilityOffer; 5] {
+pub(super) static DIMENSION_FACTORY: BackFactory = BackFactory {
+    implementation_id: DIMENSION_IMPLEMENTATION,
+    budget,
+    prepare,
+};
+pub(super) static QUANTITY_DIMENSION_FACTORY: BackFactory = BackFactory {
+    implementation_id: QUANTITY_DIMENSION_IMPLEMENTATION,
+    budget,
+    prepare,
+};
+pub(crate) fn offers() -> [CapabilityOffer; 7] {
     [
         offer(),
+        offer_for(dimension::UNIT_KIND).expect("reviewed Unit dimension Kind"),
+        offer_for(dimension::QUANTITY_KIND).expect("reviewed Quantity dimension Kind"),
         offer_for(conversion::converted_equals::KIND).expect("reviewed receipt comparator Kind"),
         offer_for(conversion::temperature_difference::KIND).expect("reviewed difference Kind"),
         offer_for(conversion::comparison::KIND).expect("reviewed comparison Kind"),
@@ -65,6 +79,8 @@ fn offer_for(kind: &str) -> Option<CapabilityOffer> {
         conversion::temperature_difference::KIND => DIFFERENCE_IMPLEMENTATION,
         conversion::comparison::KIND => COMPARISON_IMPLEMENTATION,
         conversion::comparison::DIFFERENCE_KIND => DIFFERENCE_COMPARISON_IMPLEMENTATION,
+        dimension::UNIT_KIND => DIMENSION_IMPLEMENTATION,
+        dimension::QUANTITY_KIND => QUANTITY_DIMENSION_IMPLEMENTATION,
         _ => return None,
     };
     // The installed Back, codec, resolver, reviewed transforms and receipt
@@ -74,6 +90,8 @@ fn offer_for(kind: &str) -> Option<CapabilityOffer> {
         "quantity/compiled-conversion-back@1",
         concat!(
             include_str!("quantity_conversion_back.rs"),
+            include_str!("../../../../architecture/plot/src/dimension_operation.rs"),
+            include_str!("../../../../architecture/core/src/dimension.rs"),
             include_str!("../../../../semantics/catalog/src/converted_equals_back.rs"),
             include_str!(
                 "../../../../architecture/plot/src/quantity_conversion/converted_equals.rs"
@@ -192,6 +210,19 @@ fn admitted(placement: &PlannedGear) -> Result<Vec<u8>, String> {
         &placement.configuration,
     )
     .map_err(|error| format!("quantity conversion preparation: {error:?}"))?;
+    if matches!(
+        placement.kind_id.as_str(),
+        dimension::UNIT_KIND | dimension::QUANTITY_KIND
+    ) {
+        if placement.outputs[0].value_kind.as_str() != DIMENSION_INFO_ID {
+            return Err("Dimension output Type differs".into());
+        }
+        let StructuredInfoValueShape::Leaf(bytes) = receipt.shape() else {
+            return Err("Dimension output must be a checked leaf".into());
+        };
+        Dimension::decode(bytes).map_err(|error| format!("Dimension preparation: {error:?}"))?;
+        return Ok(bytes.to_vec());
+    }
     if receipt
         .value_type()
         .profile()

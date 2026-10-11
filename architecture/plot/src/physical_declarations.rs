@@ -4,6 +4,7 @@
 pub(crate) mod context;
 pub use context::PhysicalUnitSourceOrigin;
 mod admission;
+mod dimension;
 mod parse;
 mod registry;
 mod scalar;
