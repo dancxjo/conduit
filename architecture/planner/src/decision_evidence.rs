@@ -63,3 +63,39 @@ pub struct RealizationSelection {
     pub choice: PlacementChoice,
     pub signs: Vec<RealizationDecisionRecord>,
 }
+
+/// A failed ordinary selection with its bounded candidate account, when hard
+/// admission reached candidate evaluation. Invalid inputs have no such account.
+#[derive(Debug)]
+pub struct RealizationSelectionRefusal {
+    pub reason: crate::PlannerError,
+    pub signs: Vec<RealizationDecisionRecord>,
+}
+impl From<crate::PlannerError> for RealizationSelectionRefusal {
+    fn from(reason: crate::PlannerError) -> Self {
+        Self {
+            reason,
+            signs: Vec::new(),
+        }
+    }
+}
+
+/// Compatibility entry retaining the ordinary error contract.
+pub fn select_realization_with_characteristics_and_signs(
+    gear: &conduit_plot::CheckedGear,
+    hosts: &[conduit_core::HostAdvertisement],
+    advertisements: &[conduit_core::RealizationAdvertisement],
+    requirements: &crate::HardRealizationRequirements,
+    observations: &[conduit_core::ResourceObservation],
+    policy: &crate::RealizationPolicy,
+) -> Result<RealizationSelection, crate::PlannerError> {
+    crate::select_realization_with_characteristics_account(
+        gear,
+        hosts,
+        advertisements,
+        requirements,
+        observations,
+        policy,
+    )
+    .map_err(|refusal| refusal.reason)
+}

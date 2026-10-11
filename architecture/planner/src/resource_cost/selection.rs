@@ -128,6 +128,7 @@ pub struct UnavailableCostEvidence {
 pub enum CostSelectionError {
     Planner(PlannerError),
     Evidence(Refusal),
+    HardAdmission(crate::RealizationSelectionRefusal),
     NoUsableForecast {
         realization: RealizationSelection,
         costs: Vec<UnavailableCostEvidence>,
@@ -229,14 +230,15 @@ pub fn select_realization_with_costs<'a>(
         // a payload larger than its queue's entire byte extent.
         requirements.minimum_queue_bytes = requirements.minimum_queue_bytes.max(largest as u32);
     }
-    let mut realization = crate::select_realization_with_characteristics_and_signs(
+    let mut realization = crate::select_realization_with_characteristics_account(
         demand.class().gear(),
         inputs.hosts,
         inputs.advertisements,
         &requirements,
         &observations,
         inputs.tie_policy,
-    )?;
+    )
+    .map_err(CostSelectionError::HardAdmission)?;
     if inputs.intent == PerformanceIntent::BoundedResponse {
         return Err(Refusal::UnsupportedIntent.into());
     }

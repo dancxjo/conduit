@@ -145,7 +145,7 @@ pub use characteristics::{
     plan_selected_realizations_with_characteristics,
     plan_selected_realizations_with_characteristics_and_authority,
     plan_selected_realizations_with_characteristics_and_options,
-    select_realization_with_characteristics, select_realization_with_characteristics_and_signs,
+    select_realization_with_characteristics, select_realization_with_characteristics_account,
     SelectedRealizationPlanning, MAXIMUM_PLANNER_POLICY_CLAUSES,
 };
 pub use contract::{
@@ -153,8 +153,9 @@ pub use contract::{
     PlacementChoices, PlannerError, PlanningOptions,
 };
 pub use decision_evidence::{
-    RealizationDecisionDisposition, RealizationDecisionRecord, RealizationRejection,
-    RealizationSelection, MAXIMUM_REALIZATION_DECISION_RECORDS,
+    select_realization_with_characteristics_and_signs, RealizationDecisionDisposition,
+    RealizationDecisionRecord, RealizationRejection, RealizationSelection,
+    RealizationSelectionRefusal, MAXIMUM_REALIZATION_DECISION_RECORDS,
 };
 pub use degradation::{
     assess_scoped_degradation, DegradationAssessment, DegradationExplanation, DegradationFragment,
