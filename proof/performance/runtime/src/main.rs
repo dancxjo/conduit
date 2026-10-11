@@ -102,6 +102,23 @@ fn run() -> Result<(), Box<dyn Error>> {
     #[cfg(feature = "hosted-pipeline")]
     if config.hosted_pipeline {
         pipeline::run(&config, &mut raw, &mut summaries)?;
+        for candidates in [1, 8, 32] {
+            let fixture = typed_cost::Fixture::with_std_inventory(candidates)?;
+            let id = format!("typed-cost-selection-{candidates}-hosts-std-owner-inventory");
+            artifact::json(
+                &config.output.join("sources").join(format!("{id}.json")),
+                &fixture.artifact(),
+            )?;
+            for repetition in 0..config.repetitions {
+                let run = typed_cost::run(&fixture, &config)?;
+                summaries.push(json!({"case":id,"mode":"production-typed-cost-selection-isolation","repetition":repetition,
+                    "inventory":run.inventory,"offers_per_host":run.offers_per_host,"decisions":run.decisions,
+                    "selection_wall_ns":run.summed_selection_wall_ns,"latency_distribution":run.latency_distribution,
+                    "arithmetic_work_spent":run.arithmetic_work_spent}));
+                raw.row(&json!({"case":id,"phase":"typed-cost-selection","repetition":repetition,"run":run}))?;
+                eprintln!("validated {id} repetition {}", repetition + 1);
+            }
+        }
     }
     raw.finish()?;
     artifact::json(

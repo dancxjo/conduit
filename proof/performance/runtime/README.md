@@ -123,3 +123,12 @@ The exact fixture and every latency sample are retained. No live provider
 residency or service measurement, dispatcher cost policy, global placement,
 per-decision CPU counters, or zero-allocation planning claim follows from this
 isolation baseline.
+
+The hosted profile also measures typed cost decisions over 1/8/32 complete
+production-owner reference std inventories, alongside the single-pulse-Offer
+cases. Retain every published Offer and the original profile/resources; record
+Offer counts separately from compatible candidate counts. Current timer-capacity,
+clock, execution-condition and forecast facts remain controlled fixture evidence.
+These timings measure the production Planner, including full inventory scans;
+they do not measure physical model service, actual machine load, or distributed
+execution. The same `--hosted-pipeline true` entrance enables these cases.

@@ -2,8 +2,6 @@
 //! Forecast coordinates and execution states are controlled fixture evidence;
 //! their durations are not measurements of physical producer performance.
 mod fixture;
-#[cfg(test)]
-static TEST_MEASUREMENT: std::sync::Mutex<()> = std::sync::Mutex::new(());
 use crate::{
     config::Config,
     timing::{self, Metrics},
@@ -17,6 +15,8 @@ use std::{hint::black_box, time::Instant};
 pub struct Run {
     pub decisions: u32,
     pub candidates: usize,
+    pub inventory: &'static str,
+    pub offers_per_host: Vec<usize>,
     pub fixture_preparation: Metrics,
     pub evidence_binding_wall_ns: u64,
     pub summed_selection_wall_ns: u64,
@@ -90,7 +90,8 @@ pub fn run(fixture: &Fixture, config: &Config) -> Result<Run, String> {
         });
         result?;
         Ok(Run {
-            decisions: config.decisions, candidates: fixture.hosts.len(),
+            decisions: config.decisions, candidates: fixture.hosts.len(), inventory: fixture.inventory,
+            offers_per_host: fixture.hosts.iter().map(|host| host.capabilities.len()).collect(),
             fixture_preparation: fixture.preparation.as_ref().expect("measured fixture").clone(),
             evidence_binding_wall_ns, summed_selection_wall_ns,
             latency_distribution: timing::distribution(&latency_ns), latency_ns,
@@ -107,9 +108,51 @@ pub fn run(fixture: &Fixture, config: &Config) -> Result<Run, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[cfg(feature = "hosted-pipeline")]
+    #[test]
+    fn complete_owner_std_inventories_remain_in_measured_decisions() {
+        let _measurement = crate::allocation::TEST_MEASUREMENT.lock().unwrap();
+        let config = Config {
+            output: std::path::PathBuf::new(),
+            values: 1_000_000,
+            repetitions: 3,
+            decisions: 4,
+            samples: 1000,
+            hosted_pipeline: true,
+        };
+        for count in [1, 8, 32] {
+            let fixture = Fixture::with_std_inventory(count).unwrap();
+            assert!(fixture
+                .hosts
+                .iter()
+                .all(|host| host.capabilities.len() > MAXIMUM_COST_CANDIDATES));
+            let actual: Vec<_> = (0..count)
+                .map(|index| {
+                    conduit_std_host::reference_advertisement(conduit_std_host::StdHostConfig {
+                        host_id: format!("cost-baseline/host-{index:02}").into(),
+                        boot_id: format!("cost-baseline/boot-{index:02}").into(),
+                        offer_generation: OfferGeneration(1),
+                    })
+                })
+                .collect();
+            assert_eq!(fixture.hosts, actual);
+            let run = run(&fixture, &config).unwrap();
+            assert_eq!(run.inventory, "production-owner-std-reference-inventory");
+            assert_eq!(
+                run.offers_per_host,
+                actual
+                    .iter()
+                    .map(|host| host.capabilities.len())
+                    .collect::<Vec<_>>()
+            );
+            assert_eq!(run.validated_candidate_records, 4 * count as u64);
+            assert_eq!(run.validated_source_signs, 8 * count as u64);
+            assert_eq!(run.latency_ns.len(), 4);
+        }
+    }
     #[test]
     fn every_measured_decision_retains_exact_sources_and_known_fulfillment() {
-        let _measurement = TEST_MEASUREMENT.lock().unwrap();
+        let _measurement = crate::allocation::TEST_MEASUREMENT.lock().unwrap();
         let config = Config {
             output: std::path::PathBuf::new(),
             values: 1_000_000,
