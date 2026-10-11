@@ -16,8 +16,10 @@ use crate::{
     machine_membrane::selected_operation::SelectedOperationPlan,
     usb_base::{
         endpoint_read_contract::EndpointReadContract, endpoint_read_owner::EndpointReadAttachment,
+        endpoint_read_result::EndpointReadDisposition,
         endpoint_write_contract::EndpointWriteContract,
         endpoint_write_owner::EndpointWriteAttachment,
+        endpoint_write_result::EndpointWriteDisposition,
     },
 };
 use alloc::vec::Vec;
@@ -327,20 +329,34 @@ impl<'a> UsbNativeHost<'a> {
             .ensure_pending()
             .map_err(UsbNativeHostRefusal::Endpoint)?;
         if self.controller.port_status(self.device.root_port) & 1 == 0 {
-            return Err(UsbNativeHostRefusal::Endpoint(
-                EndpointNativeRefusal::ProviderLost,
-            ));
+            return self
+                .finish_read_fault(index, EndpointReadDisposition::ProviderLost)
+                .map(Some);
         }
         let Some(event) = self.controller.poll_event() else {
             return Ok(None);
         };
         let result = transfer
             .complete(&self.device, event)
+            .map(|bytes| {
+                self.control_output[..bytes.len()].copy_from_slice(bytes);
+                self.control_output_length = bytes.len();
+            })
             .map_err(UsbNativeHostRefusal::Endpoint);
+        if matches!(
+            result,
+            Err(UsbNativeHostRefusal::Endpoint(
+                EndpointNativeRefusal::Completion(6)
+            ))
+        ) {
+            return self
+                .finish_read_fault(index, EndpointReadDisposition::Stalled)
+                .map(Some);
+        }
         if result.is_ok() {
             self.pending_endpoint = None;
         }
-        result.map(Some)
+        result.map(|()| Some(&self.control_output[..self.control_output_length]))
     }
 
     pub fn begin_write(
@@ -394,20 +410,34 @@ impl<'a> UsbNativeHost<'a> {
             .ensure_pending()
             .map_err(UsbNativeHostRefusal::Write)?;
         if self.controller.port_status(self.device.root_port) & 1 == 0 {
-            return Err(UsbNativeHostRefusal::Write(
-                EndpointWriteNativeRefusal::ProviderLost,
-            ));
+            return self
+                .finish_write_fault(index, EndpointWriteDisposition::ProviderLost)
+                .map(Some);
         }
         let Some(event) = self.controller.poll_event() else {
             return Ok(None);
         };
         let result = transfer
             .complete(&self.device, event)
+            .map(|bytes| {
+                self.control_output[..bytes.len()].copy_from_slice(bytes);
+                self.control_output_length = bytes.len();
+            })
             .map_err(UsbNativeHostRefusal::Write);
+        if matches!(
+            result,
+            Err(UsbNativeHostRefusal::Write(
+                EndpointWriteNativeRefusal::Completion(6)
+            ))
+        ) {
+            return self
+                .finish_write_fault(index, EndpointWriteDisposition::Stalled)
+                .map(Some);
+        }
         if result.is_ok() {
             self.pending_endpoint = None;
         }
-        result.map(Some)
+        result.map(|()| Some(&self.control_output[..self.control_output_length]))
     }
 }
 
