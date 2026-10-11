@@ -292,6 +292,7 @@ fn native_admission_sized_binary_message_fits_the_finite_frame() {
     let mut websocket =
         BoundedWebSocket::connect(&mut stream, rng, "owner", "/conduit").expect("upgrade succeeds");
     assert!(websocket.send_binary(&[7; 5288]).is_ok());
+    assert!(websocket.send_binary(&[7; MAXIMUM_BINARY_MESSAGE_BYTES]).is_ok());
     assert_eq!(
         websocket.send_binary(&[7; MAXIMUM_BINARY_MESSAGE_BYTES + 1]),
         Err(WebSocketError::RequestTooLarge)
