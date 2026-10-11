@@ -198,7 +198,10 @@ impl Read for VirtioTcpStream<'_> {
             return Ok(0);
         }
         for _ in 0..self.maximum_polls {
-            self.poll_io()?;
+            self.poll_io().map_err(|error| {
+                report_read_refusal(error.0.as_str());
+                error
+            })?;
             let socket = self.sockets.get_mut::<tcp::Socket>(self.handle);
             if socket.can_recv() {
                 return socket
@@ -206,11 +209,19 @@ impl Read for VirtioTcpStream<'_> {
                     .map_err(|_| VirtioTcpIoError(VirtioTcpError::ReceiveRefused));
             }
             if !socket.may_recv() || !socket.is_active() {
+                report_read_refusal("tcp-peer-closed");
                 return Ok(0);
             }
         }
+        report_read_refusal("tcp-read-poll-bound");
         Err(VirtioTcpIoError(VirtioTcpError::Timeout))
     }
+}
+
+fn report_read_refusal(code: &str) {
+    crate::arch::early_write(b"CONDUIT_NATIVE_TCP_READ {\"code\":\"");
+    crate::arch::early_write(code.as_bytes());
+    crate::arch::early_write(b"\"}\n");
 }
 
 impl Write for VirtioTcpStream<'_> {
