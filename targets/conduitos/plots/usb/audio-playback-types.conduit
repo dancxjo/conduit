@@ -1,13 +1,13 @@
 # The caller authors these eight ordered48-frame PCM payload projections.
 # The header owns their original1536-byte extent; transport deadlines are later
 # computed by checked Source from an actual controller clock observation.
-type UsbAudioPcmSegment = {
+type PcmSegment = {
     wire: Bytes <= 256B
 }
 type UsbAudioAuthoredPcm = {
     header: PcmFrameHeader
     cadence: UsbPcmCadence
-    segments: sequence UsbAudioPcmSegment <= 8
+    segments: sequence PcmSegment <= 8
 }
 type UsbAudioPlaybackStatus =
     running
@@ -25,30 +25,37 @@ type UsbAudioPlaybackStatus =
 
 # Internal finite Source state/event status codes are decoded to the complete
 # typed outward status in usb-audio-play-report; native outcomes stay distinct.
-type UsbAudioPlaybackState = {
-    header: PcmFrameHeader
-    segments: sequence UsbAudioPcmSegment <= 8
-    phase: U64
-    first-frame: U64
-    status: U64
-    completed-packets: U64
-    actual-bytes: U64
+type AudioState = {
+    h: PcmFrameHeader
+    p: sequence PcmSegment <= 8
+    q: U64
+    f: U64
+    s: U64
+    n: U64
+    b: U64
     terminal: Boolean
 }
 type UsbAudioPlaybackRoute =
-    control UsbAudioPlaybackState
-    | iso UsbAudioPlaybackState
-    | stopped UsbAudioPlaybackState
+    control AudioState
+    | iso AudioState
+    | stopped AudioState
 
 type UsbAudioPlaybackActive =
-    running UsbAudioPlaybackState
+    running AudioState
     | stopped
 
 # Exactly eight Source event words: kind, phase ack mask, first USB frame,
 # status code, completed packet count, actual bytes, acknowledged stop, support.
 # Ack bits 1/2/4/8 preserve descriptor/zero/SET/GET observations separately.
-type UsbAudioPlaybackEvent = {
-    words: sequence U64 <= 8
+type AudioEvent = {
+    k: U64
+    a: U64
+    f: U64
+    s: U64
+    n: U64
+    b: U64
+    t: U64
+    p: U64
 }
 type UsbAudioPlaybackReport = {
     header: PcmFrameHeader

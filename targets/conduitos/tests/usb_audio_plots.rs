@@ -513,14 +513,14 @@ fn playback_package() -> conduitos::protocol_source::ProtocolSourcePackage {
         .join("\n"),
         &[
             S::SeededUntil {
-                value: reference("UsbAudioPlaybackState"),
+                value: reference("AudioState"),
             },
             S::FeedbackZip {
-                left: reference("UsbAudioPlaybackState"),
-                right: reference("UsbAudioPlaybackEvent"),
+                left: reference("AudioState"),
+                right: reference("AudioEvent"),
             },
             S::Merge {
-                value: reference("UsbAudioPlaybackEvent"),
+                value: reference("AudioEvent"),
             },
         ],
     )
@@ -530,6 +530,19 @@ fn playback_package() -> conduitos::protocol_source::ProtocolSourcePackage {
 fn checked_playback_source_prepares_control_clock_batch_and_explicit_drain() {
     use conduitos::protocol_source::PreparedProtocolSource;
     let source = PreparedProtocolSource::prepare(playback_package()).unwrap();
+    for entry in [
+        "usb-audio-play-start",
+        "usb-audio-play-route",
+        "usb-audio-play-control-request",
+        "usb-audio-play-iso-request",
+        "usb-audio-play-control-event",
+        "usb-audio-play-iso-event",
+        "usb-audio-play-active",
+    ] {
+        source
+            .expand(entry)
+            .unwrap_or_else(|error| panic!("{entry}: {error:?}"));
+    }
     let expanded = source.expand("usb-audio-playback").unwrap();
     for expected in ["machine/usb/control", "machine/usb/isochronous-out"] {
         assert!(
@@ -604,8 +617,8 @@ fn playback_envelope_value(
                 .iter()
                 .map(|field| {
                     let next = format!("{path}/{}", field.name());
-                    let value = if field.name() == "header" {
-                        block_value(field.value_type(), &next, 0)
+                    let value = if field.name() == "header" || field.name() == "h" {
+                        block_value(field.value_type(), "/header", 0)
                     } else {
                         playback_envelope_value(
                             field.value_type(),
@@ -688,6 +701,18 @@ fn playback_envelope_value(
         }
         S::Leaf(kind) => {
             let field = path.rsplit('/').next().unwrap();
+            let field = match field {
+                "q" => "phase",
+                "f" => "first-frame",
+                "s" => "status",
+                "n" => "completed-packets",
+                "b" => "actual-bytes",
+                "t" => "native-stopped",
+                "k" => "phase-kind",
+                "a" => "ack-mask",
+                "p" => "supported",
+                other => other,
+            };
             let bytes = match kind.as_str() {
                 "value/bytes" => vec![0x73; wire_length],
                 "value/bool" => vec![u8::from(
@@ -711,8 +736,13 @@ fn playback_envelope_value(
                                 5
                             }
                         }
-                        "phase" => phase,
+                        "supported" => 1,
+                        "native-stopped" => {
+                            u64::from(event_kind == 3 || event_status == "underrun")
+                        }
+                        "ack-mask" => 15,
                         "phase-kind" => event_kind,
+                        "phase" => phase,
                         "first-frame" => 2047,
                         "completed-packets" => 8,
                         "actual-bytes" => 1536,
