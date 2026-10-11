@@ -1,0 +1,26 @@
+# Pin the complete 67-byte first-profile descriptor, including CDC Header,
+# Call Management, ACM and Union records, comm0/data1 and bulk81/02 max64.
+# Notification83 is recognized but unconsumed: unsolicited notification policy
+# is unsupported by this first control+bulk profile; no IRQ provider is selected.
+plot cdc-acm-topology-supported (
+    completion: UsbControlResult...| >> supported: Boolean...|
+) = (!(. is completed) ? false : (.completed.transferred != 67 || .completed.short || sequence/length(.completed.input) != 67 ? false : (((((((sequence/at(.completed.input, 0) == 9 && sequence/at(.completed.input, 1) == 2) && (sequence/at(.completed.input, 2) == 67 && sequence/at(.completed.input, 3) == 0)) && ((sequence/at(.completed.input, 4) == 2 && sequence/at(.completed.input, 5) == 1) && (sequence/at(.completed.input, 6) == 0 && sequence/at(.completed.input, 7) == 128))) && (((sequence/at(.completed.input, 8) == 50 && sequence/at(.completed.input, 9) == 9) && (sequence/at(.completed.input, 10) == 4 && sequence/at(.completed.input, 11) == 0)) && ((sequence/at(.completed.input, 12) == 0 && sequence/at(.completed.input, 13) == 1) && (sequence/at(.completed.input, 14) == 2 && sequence/at(.completed.input, 15) == 2)))) && ((((sequence/at(.completed.input, 16) == 1 && sequence/at(.completed.input, 17) == 0) && (sequence/at(.completed.input, 18) == 5 && sequence/at(.completed.input, 19) == 36)) && ((sequence/at(.completed.input, 20) == 0 && sequence/at(.completed.input, 21) == 16) && (sequence/at(.completed.input, 22) == 1 && sequence/at(.completed.input, 23) == 5))) && (((sequence/at(.completed.input, 24) == 36 && sequence/at(.completed.input, 25) == 1) && (sequence/at(.completed.input, 26) == 0 && sequence/at(.completed.input, 27) == 1)) && ((sequence/at(.completed.input, 28) == 4 && sequence/at(.completed.input, 29) == 36) && (sequence/at(.completed.input, 30) == 2 && (sequence/at(.completed.input, 31) == 2 && sequence/at(.completed.input, 32) == 5)))))) && (((((sequence/at(.completed.input, 33) == 36 && sequence/at(.completed.input, 34) == 6) && (sequence/at(.completed.input, 35) == 0 && sequence/at(.completed.input, 36) == 1)) && ((sequence/at(.completed.input, 37) == 7 && sequence/at(.completed.input, 38) == 5) && (sequence/at(.completed.input, 39) == 131 && sequence/at(.completed.input, 40) == 3))) && (((sequence/at(.completed.input, 41) == 16 && sequence/at(.completed.input, 42) == 0) && (sequence/at(.completed.input, 43) == 16 && sequence/at(.completed.input, 44) == 9)) && ((sequence/at(.completed.input, 45) == 4 && sequence/at(.completed.input, 46) == 1) && (sequence/at(.completed.input, 47) == 0 && (sequence/at(.completed.input, 48) == 2 && sequence/at(.completed.input, 49) == 10))))) && ((((sequence/at(.completed.input, 50) == 0 && sequence/at(.completed.input, 51) == 0) && (sequence/at(.completed.input, 52) == 0 && sequence/at(.completed.input, 53) == 7)) && ((sequence/at(.completed.input, 54) == 5 && sequence/at(.completed.input, 55) == 129) && (sequence/at(.completed.input, 56) == 2 && sequence/at(.completed.input, 57) == 64))) && (((sequence/at(.completed.input, 58) == 0 && sequence/at(.completed.input, 59) == 0) && (sequence/at(.completed.input, 60) == 7 && sequence/at(.completed.input, 61) == 5)) && ((sequence/at(.completed.input, 62) == 2 && sequence/at(.completed.input, 63) == 2) && (sequence/at(.completed.input, 64) == 64 && (sequence/at(.completed.input, 65) == 0 && sequence/at(.completed.input, 66) == 0))))))))))
+
+plot cdc-acm-no-data-ack (
+    completion: UsbControlResult...| >> supported: Boolean...|
+) = (!(. is completed) ? false : (.completed.transferred == 0 && !.completed.short && sequence/length(.completed.input) == 0))
+
+plot cdc-acm-line-coding-ack (
+    completion: UsbControlResult...| >> supported: Boolean...|
+) = (!(. is completed) ? false : (.completed.transferred != 7 || .completed.short || sequence/length(.completed.input) != 7 ? false : (sequence/at(.completed.input, 0) == 0 && sequence/at(.completed.input, 1) == 194 && sequence/at(.completed.input, 2) == 1 && sequence/at(.completed.input, 3) == 0 && sequence/at(.completed.input, 4) == 0 && sequence/at(.completed.input, 5) == 0 && sequence/at(.completed.input, 6) == 8)))
+
+plot cdc-acm-control-request (
+    state: CdcAcmState...| >> request: UsbControlRequest...|
+) = (.phase == 0 ? { setup: 0x0043000002000680, output: [] } : (.phase == 1 ? { setup: 0x0000000000010900, output: [] } : (.phase == 2 ? { setup: 0x0007000000002021, output: [0, 194, 1, 0, 0, 0, 8] } : (.phase == 3 ? { setup: 0x00070000000021a1, output: [] } : { setup: 0x0000000000032221, output: [] }))))
+
+plot cdc-acm-write-request (
+    state: CdcAcmState...| >> request: UsbEndpointWriteRequest...|
+) = (.transmit)
+plot cdc-acm-read-request (
+    state: CdcAcmState...| >> request: UsbEndpointReadRequest...|
+) = ({ length: 64 })

@@ -1,0 +1,32 @@
+# First finite CDC-ACM profile uses bounded raw Bytes; no Unicode, framing,
+# filesystem/network policy or implicit conversion into presentation/text.
+type CdcAcmControlFacts = {
+    set-coding: Boolean
+    descriptor: Boolean
+    coding: Boolean
+    ack: Boolean
+}
+type CdcAcmEvent =
+    control CdcAcmControlFacts
+    | read UsbEndpointReadResult
+    | write UsbEndpointWriteResult
+type CdcAcmState = {
+    transmit: UsbEndpointWriteRequest
+    phase: U64
+    received: U64
+    terminal: Boolean
+    refused: Boolean
+}
+type CdcAcmRoute =
+    control CdcAcmState
+    | write CdcAcmState
+    | read CdcAcmState
+    | stopped CdcAcmState
+
+type CdcAcmPending =
+    running CdcAcmState
+    | stopped
+
+type CdcAcmDescriptorSupported = {
+    supported: Boolean
+}

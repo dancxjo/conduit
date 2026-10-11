@@ -1,0 +1,104 @@
+with machine/usb/control/request as UsbControlRequest
+with machine/usb/control/result as UsbControlResult
+with machine/usb/endpoint-read/request as UsbEndpointReadRequest
+with machine/usb/endpoint-read/result as UsbEndpointReadResult
+with machine/usb/endpoint-write/request as UsbEndpointWriteRequest
+with machine/usb/endpoint-write/result as UsbEndpointWriteResult
+with flow/zip/feedback/paired as CdcAcmPair
+with flow/zip/finite/paired as CdcAcmControlPair
+
+type CdcAcmTransition = {
+    previous: CdcAcmState
+    accepted: Boolean
+}
+type CdcAcmReceive =
+    received CdcAcmEvent
+    | absent
+
+plot cdc-acm-initialize (
+    transmit: UsbEndpointWriteRequest...| <= 4096B >> state: CdcAcmState...|
+) = ({ transmit: ., phase: 0, received: 0, terminal: bytes/length(.wire) == 0 || bytes/length(.wire) > 64, refused: bytes/length(.wire) == 0 || bytes/length(.wire) > 64 })
+plot cdc-acm-route (
+    state: CdcAcmState...| >> route: CdcAcmRoute...|
+) = (.terminal || .phase > 6 || .received >= 16 ? stopped(.) : (.phase <= 4 ? control(.) : (.phase == 5 ? write(.) : read(.))))
+plot cdc-acm-pending (
+    route: CdcAcmRoute...| >> pending: CdcAcmPending...|
+) = (. is control ? running(.control) : (. is write ? running(.write) : (. is read ? running(.read) : stopped(empty))))
+
+plot cdc-acm-descriptor-flag (
+    supported: Boolean...| >> flag: CdcAcmDescriptorSupported...| <= 256B
+) = ({ supported: . })
+plot cdc-acm-control-event (
+    pair: CdcAcmControlPair...| <= 16384B >> event: CdcAcmEvent...|
+) = (control({ set-coding: (.0 is completed ? .0.completed.transferred == 7 && !.0.completed.short && sequence/length(.0.completed.input) == 0 : false), descriptor: .1.supported, coding: !(.0 is completed) ? false : (.0.completed.transferred != 7 || .0.completed.short || sequence/length(.0.completed.input) != 7 ? false : (((sequence/at(.0.completed.input, 0) == 0 && (sequence/at(.0.completed.input, 1) == 194 && sequence/at(.0.completed.input, 2) == 1)) && ((sequence/at(.0.completed.input, 3) == 0 && sequence/at(.0.completed.input, 4) == 0) && (sequence/at(.0.completed.input, 5) == 0 && sequence/at(.0.completed.input, 6) == 8))))), ack: !(.0 is completed) ? false : (.0.completed.transferred == 0 && !.0.completed.short && sequence/length(.0.completed.input) == 0) }))
+plot cdc-acm-observe-control (
+    >> result: UsbControlResult...| <= 4096B
+    event: CdcAcmEvent...| <= 4096B >>
+) {
+    pair: flow/zip/finite
+    result >> pair.left
+    result >> cdc-acm-topology-supported() >> cdc-acm-descriptor-flag() >> pair.right
+    pair.paired >> cdc-acm-control-event() >> event
+}
+plot cdc-acm-write-event (
+    result: UsbEndpointWriteResult...| >> event: CdcAcmEvent...|
+) = (write(.))
+plot cdc-acm-read-event (
+    result: UsbEndpointReadResult...| >> event: CdcAcmEvent...|
+) = (read(.))
+plot cdc-acm-received-bytes (
+    pair: CdcAcmPair...| <= 16384B >> receive: CdcAcmReceive...|
+) = (.0.terminal || .0.phase != 6 || .0.received >= 16 ? absent(empty) : (.1 is read ? (.1.read is completed ? (.1.read.completed.ordinal == .0.received && .1.read.completed.actual <= 64 && .1.read.completed.actual == bytes/length(.1.read.completed.wire) && .1.read.completed.short == (.1.read.completed.actual < 64) ? received(.1) : absent(empty)) : absent(empty)) : absent(empty)))
+
+# Exact observations remain visible even when malformed, partial or terminal.
+# No non-completed disposition selects another request, and partial OUT does
+# not retry an uncertain suffix. Short IN retains actual/short/ordinal unchanged.
+plot cdc-acm-received-wire (
+    received: CdcAcmEvent...| >> wire: Bytes...| <= 2048B
+) = (.read.completed.wire)
+
+plot cdc-acm-accept (
+    pair: CdcAcmPair...| <= 16384B >> transition: CdcAcmTransition...|
+) = ({ previous: .0, accepted: (.0.terminal || .0.phase > 6 || .0.received >= 16 ? false : (.0.phase <= 4 ? (.1 is control ? (.0.phase == 0 ? .1.control.descriptor : (.0.phase == 3 ? .1.control.coding : (.0.phase == 2 ? .1.control.set-coding : .1.control.ack))) : false) : (.0.phase == 5 ? (.1 is write ? (.1.write is completed ? .1.write.completed.actual == bytes/length(.0.transmit.wire) : false) : false) : (.1 is read ? (.1.read is completed ? (.1.read.completed.ordinal == .0.received && .1.read.completed.actual <= 64 && .1.read.completed.actual == bytes/length(.1.read.completed.wire) && .1.read.completed.short == (.1.read.completed.actual < 64)) : false) : false)))) })
+
+plot cdc-acm-advance (
+    transition: CdcAcmTransition...| >> next: CdcAcmState...|
+) = ({ transmit: .previous.transmit, phase: !.accepted ? .previous.phase : (.previous.phase < 6 ? .previous.phase + 1 : (.previous.received < 15 ? 5 : 7)), received: .accepted && .previous.phase == 6 && .previous.received < 16 ? .previous.received + 1 : .previous.received, terminal: !.accepted || (.previous.phase == 6 && .previous.received == 15), refused: .previous.refused || !.accepted })
+
+# One physical placement per transport operation, reused 16 times. The one
+# bounded TX Fore value is retransmitted as 16 explicit requested buffers.
+# Initial class setup uses five control exchanges before any serial data.
+plot cdc-acm-serial (
+    >> transmit: UsbEndpointWriteRequest...| <= 4096B
+    observations: CdcAcmEvent...| <= 4096B >>
+    control-observations: UsbControlResult...| <= 4096B >>
+    received: Bytes...| <= 2048B >>
+    ended: CdcAcmState...| <= 4096B >>
+) {
+    cell: state/seeded/flow/until
+    route: cdc-acm-route()
+    join: flow/zip/feedback
+    events: flow/merge/finite
+    data-events: flow/merge/finite
+    control: machine/usb/control
+    observe-control: cdc-acm-observe-control
+    read: machine/usb/endpoint-read
+    write: machine/usb/endpoint-write
+    transmit >> cdc-acm-initialize() >> cell.seed
+    cell.current >> route
+    route >> cdc-acm-pending() >> select(CdcAcmPending.running, unmatched=drop) >> join.left
+    route >> select(CdcAcmRoute.control, unmatched=drop) >> cdc-acm-control-request() >> control.request
+    route >> select(CdcAcmRoute.write, unmatched=drop) >> cdc-acm-write-request() >> write.request
+    route >> select(CdcAcmRoute.read, unmatched=drop) >> cdc-acm-read-request() >> read.request
+    control.result >> control-observations
+    control.result >> observe-control.result
+    observe-control.event >> events.left
+    write.result >> cdc-acm-write-event() >> data-events.left
+    read.result >> cdc-acm-read-event() >> data-events.right
+    data-events.merged >> events.right
+    events.merged >> observations
+    events.merged >> join.right
+    join.paired >> cdc-acm-accept() >> cdc-acm-advance() >> cell.next
+    join.paired >> cdc-acm-received-bytes() >> select(CdcAcmReceive.received, unmatched=drop) >> cdc-acm-received-wire() >> received
+    route >> select(CdcAcmRoute.stopped, unmatched=drop) >> ended
+}
