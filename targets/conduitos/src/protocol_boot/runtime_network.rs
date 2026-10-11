@@ -32,7 +32,7 @@ impl RuntimeNetwork {
             .ok_or("protocol-network-clock-expired")?;
         if let Some(receipt) = play
             .poll_ethernet_network(smoltcp::time::Instant::from_millis(millis))
-            .map_err(|_| "protocol-network-poll-refused")?
+            .map_err(report_refusal)?
             && !self.complete
         {
             report(receipt)?;
@@ -52,4 +52,13 @@ fn report(receipt: crate::virtio_tcp::VirtioTcpReceipt) -> Result<(), &'static s
     .map_err(|_| "protocol-network-receipt-bound")?;
     arch::append_boot_diagnostic(report.as_bytes())
         .map_err(|_| "protocol-network-receipt-retention-refused")
+}
+
+fn report_refusal(reason: impl core::fmt::Debug) -> &'static str {
+    use core::fmt::Write;
+    let mut report = crate::sign_format::FixedText::new();
+    if writeln!(report, "CONDUIT_USB_NETWORK_REFUSAL {reason:?}").is_ok() {
+        let _ = arch::append_boot_diagnostic(report.as_bytes());
+    }
+    "protocol-network-poll-refused"
 }
