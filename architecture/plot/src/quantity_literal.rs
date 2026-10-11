@@ -8,6 +8,19 @@ pub(crate) fn startup_quantity(
 ) -> Result<Option<conduit_core::QuantityConfigurationValue>, SyntaxCheckError> {
     match conduit_core::QuantityConfigurationValue::parse(text) {
         Ok(value) => Ok(Some(value)),
+        Err(_)
+            if text.strip_suffix('C').is_some_and(|number| {
+                !number.is_empty()
+                    && conduit_core::QuantityConfigurationValue::parse(&alloc::format!(
+                        "{number}°C"
+                    ))
+                    .is_ok()
+            }) =>
+        {
+            Err(SyntaxCheckError::QuantityLiteral(alloc::format!(
+                "non-canonical quantity unit in '{text}'; use '°C'"
+            )))
+        }
         Err(_) => Ok(None),
     }
 }
