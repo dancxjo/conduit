@@ -186,7 +186,10 @@ pub(super) fn prepare_usb(
             request.additional_remote_sign_items,
         ),
     }
-    .map_err(|_| "protocol-usb-plan-admission-refused")?;
+    .map_err(|refusal| {
+        report_preparation_refusal(&refusal.reason);
+        "protocol-usb-plan-admission-refused"
+    })?;
     prepare_outputs(play, &request.inputs)
 }
 
@@ -482,3 +485,11 @@ fn output_close_refusal(error: &crate::protocol_source::ProtocolBodyRefusal) -> 
 
 #[cfg(test)]
 mod reuse_tests;
+
+fn report_preparation_refusal(reason: &impl core::fmt::Debug) {
+    use core::fmt::Write;
+    let mut report = crate::sign_format::FixedText::new();
+    if writeln!(report, "CONDUIT_PROTOCOL_PREPARATION_REFUSAL {reason:?}").is_ok() {
+        let _ = arch::append_boot_diagnostic(report.as_bytes());
+    }
+}
