@@ -43,7 +43,7 @@ plot usb-audio-setup-completed (
     state: UsbAudioSetupState...| >> accepted: Boolean...|
 ) = (.terminal && .phase == 5)
 plot usb-audio-negotiate (
-    >> accepted: Boolean...|
+    accepted: Boolean...| >>
 ) {
     seed: flow/singleton
     state: state/seeded/flow/until
