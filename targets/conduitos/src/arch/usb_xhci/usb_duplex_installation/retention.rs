@@ -7,7 +7,11 @@ pub(super) fn validate_metadata(
 ) -> Result<(), UsbNativeProtocolRefusal> {
     let mut entries = table.inspections();
     let entry = entries.next().ok_or(read_binding())?;
-    if entries.next().is_some() || entry.scope.maximum_in_flight != 1 {
+    if entries.next().is_some()
+        || entry.scope.maximum_in_flight != 1
+        || table.maximum_capabilities() != 1
+        || table.reserved_capability_slots() != 1
+    {
         return Err(read_binding());
     }
     let scope = &entry.scope;

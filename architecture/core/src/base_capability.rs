@@ -4,6 +4,8 @@
 //! this table is [`BaseCapabilityHandle`], whose bearer bytes have no public
 //! constructor and are derived from issuer-private key material.
 
+mod capacity;
+
 use crate::{
     ActivePlayId, AuthorityContractId, AuthorityGrant, AuthorityGrantId, BaseInstanceId, BootId,
     CapabilityEnvelopeId, CapabilityId, CapabilityPossessionId, HostCallContractId, HostId,
