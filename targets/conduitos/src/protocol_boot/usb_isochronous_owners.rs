@@ -63,8 +63,10 @@ pub(super) unsafe fn configure(
     if storage.cursor.is_some() {
         return Err("protocol-usb-iso-endpoint-already-owned");
     }
-    storage.cursor =
-        Some(EndpointRingCursor::new(64).map_err(|_| "protocol-usb-iso-endpoint-ring")?);
+    storage.cursor = Some(
+        EndpointRingCursor::with_maximum_pending(64, 8)
+            .map_err(|_| "protocol-usb-iso-endpoint-ring")?,
+    );
     let mut dma = arch::UsbEndpointTransmitDma {
         ring: &mut storage.ring,
         buffer: &mut storage.buffer,
@@ -113,6 +115,12 @@ mod tests {
     use super::*;
     #[test]
     fn product_endpoint_storage_is_separate_and_fits_native_dma_boundaries() {
+        assert_eq!(
+            EndpointRingCursor::with_maximum_pending(64, 8)
+                .unwrap()
+                .maximum_pending(),
+            8
+        );
         assert_eq!(core::mem::align_of::<EndpointDma>(), 4096);
         assert_eq!(core::mem::offset_of!(EndpointDma, ring), 0);
         assert_eq!(core::mem::offset_of!(EndpointDma, buffer), 2048);
