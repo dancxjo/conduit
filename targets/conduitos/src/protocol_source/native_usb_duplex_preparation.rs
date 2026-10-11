@@ -66,6 +66,11 @@ pub(crate) fn prepare_native_usb_duplex_with_network<
         entry
             .publish_pure_backs(&mut advertisement)
             .map_err(Reason::Source)?;
+        // Independently projected owners need one canonical combined pool order.
+        // Sorting retains duplicate identities for the planner to reject.
+        advertisement
+            .resources
+            .sort_by(|left, right| left.pool_id.cmp(&right.pool_id));
         let grants = vec![
             issuer.grant().clone(),
             endpoint_issuer.grant().clone(),
