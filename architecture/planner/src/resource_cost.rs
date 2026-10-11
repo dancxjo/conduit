@@ -1,5 +1,6 @@
 //! Typed, bounded preparation of resource-cost evidence outside Play.
 //! These primitives do not themselves select a realization or certify a forecast.
+mod calibration;
 mod demand;
 mod duration;
 mod forecast;
@@ -7,6 +8,7 @@ mod freshness;
 mod selection;
 mod source;
 mod work_class;
+pub use calibration::*;
 pub use demand::{
     CostDemand, CostInput, CostedForecast, MAXIMUM_COST_INPUTS, MAXIMUM_COST_INPUT_BYTES,
 };
@@ -33,6 +35,11 @@ pub enum CostEvidenceRefusal {
     InputLimit,
     AmbiguousEvidence,
     UnsupportedIntent,
+    InvalidCalibrationPolicy,
+    CalibrationUpdateLimit,
+    CalibrationUpdateTooSoon,
+    DuplicateCompletion,
+    ExecutionConditionChanged,
     InvalidIdentity,
     UnadvertisedSubject,
     Scope(CostScopeChange),
