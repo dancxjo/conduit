@@ -196,7 +196,7 @@ impl ReadyUsbIsochronousHost {
         selection: SelectedOperationPlan<'_>,
     ) -> Result<NativeUsbIsochronousHost, UsbIsochronousCallRefusal> {
         validate_selection(self.control.identity(), &control_claim, &control)
-            .map_err(|error| UsbNativeProtocolRefusal::Control(error))?;
+            .map_err(UsbNativeProtocolRefusal::Control)?;
         let gear = selection
             .fragment
             .placements
@@ -370,7 +370,7 @@ impl NativeUsbIsochronousHost {
                 }
                 batch
                     .validate_schedule(snapshot.current_microframe, snapshot.scheduling_threshold)
-                    .map_err(|error| IsochronousOwnerRefusal::Decode(error))?;
+                    .map_err(IsochronousOwnerRefusal::Decode)?;
                 for index in 0..batch.count() {
                     let (frame, wire) = batch
                         .packet(index)
