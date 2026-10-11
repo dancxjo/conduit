@@ -1,0 +1,4 @@
+CDC_DEVICE_LISTENING /tmp/cdc-product-rmlc7xpj/device.sock
+CDC_DEVICE_CONNECTED full-speed ffff:f117 IN81 OUT02 IRQ83
+FAULT_APPLIED wrong-coding
+CDC_DEVICE_PEER_CLOSED
