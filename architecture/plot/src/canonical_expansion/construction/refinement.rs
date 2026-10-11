@@ -1,5 +1,6 @@
-//! Conservative construction proof: exact forwarded refinements or constants.
+//! Conservative proof: exact forwarded laws, constants or scoped byte guards.
 //! Arithmetic and cross-field laws still require a separate admitted validator.
+use super::ByteFacts;
 use super::*;
 use crate::PortableExpressionProjection;
 use alloc::string::String;
@@ -9,6 +10,7 @@ pub(super) fn proves(
     input: &conduit_core::StructuredInfoType,
     native: &CheckedNativeType,
     types: &[CheckedNativeType],
+    facts: &ByteFacts,
 ) -> bool {
     if node.value_type != native.value_type || !native.invariants.is_empty() {
         return false;
@@ -20,6 +22,7 @@ pub(super) fn proves(
             &required.contract,
             input,
             types,
+            facts,
         )
     })
 }
@@ -30,6 +33,7 @@ fn proves_at(
     required: &conduit_core::CheckedValueContract,
     input: &conduit_core::StructuredInfoType,
     types: &[CheckedNativeType],
+    facts: &ByteFacts,
 ) -> bool {
     let Ok(selected) = constructed_member(node, path) else {
         return false;
@@ -41,17 +45,30 @@ fn proves_at(
         if let Op::Collection(values) = &value.operation {
             return values
                 .iter()
-                .all(|item| proves_at(item, rest, required, input, types));
+                .all(|item| proves_at(item, rest, required, input, types, facts));
         }
     }
     if let Op::Conditional {
+        condition,
         when_true,
         when_false,
-        ..
     } = &value.operation
     {
-        return proves_at(when_true, remaining, required, input, types)
-            && proves_at(when_false, remaining, required, input, types);
+        return proves_at(
+            when_true,
+            remaining,
+            required,
+            input,
+            types,
+            &facts.branch(condition, true),
+        ) && proves_at(
+            when_false,
+            remaining,
+            required,
+            input,
+            types,
+            &facts.branch(condition, false),
+        );
     }
     if remaining.is_empty() && matches!(value.operation, Op::Literal(_)) {
         let constant = PortableExpressionProgram {
@@ -73,6 +90,9 @@ fn proves_at(
                 required.validate(bytes).is_ok()
             })
         });
+    }
+    if facts.proves(value, remaining, required) {
+        return true;
     }
     let Some(mut path) = input_path(value) else {
         return false;
@@ -146,7 +166,7 @@ fn constructed_member<'a>(
     constructed_member(value, remaining)
 }
 
-fn input_path(node: &PortableExpressionNode) -> Option<String> {
+pub(super) fn input_path(node: &PortableExpressionNode) -> Option<String> {
     match &node.operation {
         Op::Input => Some(String::new()),
         Op::Projection {

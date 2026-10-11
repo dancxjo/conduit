@@ -6,7 +6,9 @@ use crate::{
     PortableExpressionProgram,
 };
 use conduit_core::StructuredInfoTypeShape;
+mod byte_facts;
 mod refinement;
+use byte_facts::ByteFacts;
 
 pub(super) fn validate(
     gears: &[CheckedGear],
@@ -26,7 +28,12 @@ pub(super) fn validate(
         };
         let program =
             PortableExpressionProgram::from_canonical_hex(encoded).map_err(|_| refusal())?;
-        validate_node(&program.root, &program.input_type, types)?;
+        validate_node(
+            &program.root,
+            &program.input_type,
+            types,
+            &ByteFacts::default(),
+        )?;
     }
     Ok(())
 }
@@ -35,6 +42,7 @@ fn validate_node(
     node: &PortableExpressionNode,
     input_type: &conduit_core::StructuredInfoType,
     types: &[CheckedNativeType],
+    facts: &ByteFacts,
 ) -> Result<(), CanonicalExpansionDiagnostic> {
     if matches!(
         node.operation,
@@ -64,7 +72,8 @@ fn validate_node(
         // Passing their existing values is legal; constructing one must refuse.
         if (native.is_some_and(|ty| !ty.invariants.is_empty() || !ty.value_contracts.is_empty())
             || (is_native && native.is_none()))
-            && !native.is_some_and(|native| refinement::proves(node, input_type, native, types))
+            && !native
+                .is_some_and(|native| refinement::proves(node, input_type, native, types, facts))
         {
             let mut admitted_closed = false;
             if closed(node) {
@@ -102,24 +111,29 @@ fn validate_node(
     }
     match &node.operation {
         Op::Projection { value, .. } | Op::Unary { operand: value, .. } => {
-            validate_node(value, input_type, types)?
+            validate_node(value, input_type, types, facts)?
         }
         Op::Binary { left, right, .. } => {
-            validate_node(left, input_type, types)?;
-            validate_node(right, input_type, types)?;
+            validate_node(left, input_type, types, facts)?;
+            validate_node(right, input_type, types, facts)?;
         }
         Op::Conditional {
             condition,
             when_true,
             when_false,
         } => {
-            validate_node(condition, input_type, types)?;
-            validate_node(when_true, input_type, types)?;
-            validate_node(when_false, input_type, types)?;
+            validate_node(condition, input_type, types, facts)?;
+            validate_node(when_true, input_type, types, &facts.branch(condition, true))?;
+            validate_node(
+                when_false,
+                input_type,
+                types,
+                &facts.branch(condition, false),
+            )?;
         }
         Op::Record(fields) => {
             for (_, value) in fields {
-                validate_node(value, input_type, types)?;
+                validate_node(value, input_type, types, facts)?;
             }
         }
         Op::Tuple(values)
@@ -128,10 +142,10 @@ fn validate_node(
             arguments: values, ..
         } => {
             for value in values {
-                validate_node(value, input_type, types)?;
+                validate_node(value, input_type, types, facts)?;
             }
         }
-        Op::Variant { payload, .. } => validate_node(payload, input_type, types)?,
+        Op::Variant { payload, .. } => validate_node(payload, input_type, types, facts)?,
         Op::Input | Op::Literal(_) | Op::CanonicalLiteral(_) | Op::Constant(_) => {}
     }
     Ok(())
