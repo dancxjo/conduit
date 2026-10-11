@@ -6,6 +6,8 @@ mod causal_explanation;
 mod clock_quality;
 mod cost_comparison_explanation;
 mod cost_explanation;
+mod cost_plan_explanation;
+pub use cost_plan_explanation::{render_cost_planned_realizations, render_cost_planning_refusal};
 mod cost_policy_explanation;
 mod evidence_lineage;
 mod execution_artifact;
@@ -44,3 +46,6 @@ mod cost_explanation_tests;
 mod cost_hard_refusal_tests;
 #[cfg(test)]
 mod cost_work_estimate_tests;
+
+#[cfg(test)]
+mod cost_plan_explanation_tests;
