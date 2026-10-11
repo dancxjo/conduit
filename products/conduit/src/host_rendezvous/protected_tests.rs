@@ -298,18 +298,27 @@ fn ordinary_rendezvous_session_crosses_the_real_user_operated_relay() {
     .unwrap();
     let public_url = format!("wss://localhost:{port}/conduit");
     let server_url = public_url.clone();
+    let (ready_tx, ready_rx) = mpsc::sync_channel(1);
     let relay_server = thread::spawn(move || {
-        crate::rendezvous_relay::serve(crate::rendezvous_relay::ServeOptions {
-            bind: SocketAddrV4::new(Ipv4Addr::UNSPECIFIED, port).to_string(),
-            public_url: server_url,
-            tls_cert: certificate_path,
-            tls_key: private_key_path,
-            slot: slot_path,
-            accept_timeout_seconds: 5,
-            authorize_network: true,
-        })
+        crate::rendezvous_relay::serve_with_ready(
+            crate::rendezvous_relay::ServeOptions {
+                bind: SocketAddrV4::new(Ipv4Addr::UNSPECIFIED, port).to_string(),
+                public_url: server_url,
+                tls_cert: certificate_path,
+                tls_key: private_key_path,
+                slot: slot_path,
+                accept_timeout_seconds: 5,
+                authorize_network: true,
+            },
+            |address| ready_tx.send(address).expect("relay readiness receiver"),
+        )
     });
-    thread::sleep(Duration::from_millis(100));
+    assert_eq!(
+        ready_rx
+            .recv_timeout(Duration::from_secs(5))
+            .expect("authorized relay listener readiness"),
+        SocketAddrV4::new(Ipv4Addr::UNSPECIFIED, port).into()
+    );
     let address = SocketAddrV4::new(Ipv4Addr::LOCALHOST, port).into();
     let server_binding = binding();
     let server_url = public_url.clone();
