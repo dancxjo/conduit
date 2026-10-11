@@ -51,6 +51,30 @@ impl<const MEMBER_SLOTS: usize, const POOL_SIGNS: usize, const OBSERVATION_SIGNS
         prepared: &[PreparedPoolCost<'_>],
         evaluations: &[PoolCostEvaluation<'_>],
     ) -> Result<CostAwareSharedPoolAdmissionOutcome, SharedPoolRuntimeError> {
+        if self.waiting.is_some() {
+            return Err(SharedPoolRuntimeError::WaitingAdmissionRequired);
+        }
+        self.admit_operation_with_costs(
+            operation_id,
+            key,
+            current,
+            selection_sign_id,
+            demand,
+            prepared,
+            evaluations,
+        )
+    }
+    #[allow(clippy::too_many_arguments)]
+    pub(super) fn admit_operation_with_costs(
+        &mut self,
+        operation_id: PoolOperationId,
+        key: MemberKey,
+        current: &[PoolRealizationObservation],
+        selection_sign_id: SignId,
+        demand: [u8; 32],
+        prepared: &[PreparedPoolCost<'_>],
+        evaluations: &[PoolCostEvaluation<'_>],
+    ) -> Result<CostAwareSharedPoolAdmissionOutcome, SharedPoolRuntimeError> {
         use PoolCostLoweringError as E;
         if [operation_id.as_str(), selection_sign_id.as_str()]
             .iter()

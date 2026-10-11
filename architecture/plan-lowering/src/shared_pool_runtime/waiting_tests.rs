@@ -2,7 +2,7 @@ use super::cost_tests::{costs_with_condition, hosts, instant, plan as cost_plan,
 use super::*;
 use crate::shared_pool_runtime::*;
 
-fn queued(
+pub(super) fn queued(
     plan: &Plan,
     host: &conduit_core::HostAdvertisement,
     index: u8,
@@ -13,6 +13,7 @@ fn queued(
         pool: plan.fragments[0].shared_pools[0].pool_id.clone(),
         operation: format!("waiting/{index}").as_str().into(),
         requester: requester.into(),
+        class: PoolWaitingClass::Batch,
         key: key(index),
         demand: [9; 32],
         admitted_bytes: 4,
