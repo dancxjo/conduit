@@ -8,6 +8,7 @@ use conduit_plot::{
     BackStatement, CheckedExpressionType, CordStage, ExpressionTypeContext,
     PortableExpressionProgram, PreparedPortableExpressionEvaluator,
 };
+use sha2::{Digest, Sha256};
 use std::{
     collections::{BTreeMap, BTreeSet},
     hint::black_box,
@@ -203,8 +204,10 @@ pub fn cold(workload: Workload) -> Result<(PortableExpressionProgram, Cold), Str
 pub struct Warm {
     pub mode: &'static str,
     pub values: u32,
-    pub arithmetic_operations: u64,
+    pub primitive_operations: u64,
     pub validation_sum: String,
+    pub validation_sha256: String,
+    pub output_validation: Metrics,
     pub metrics: Metrics,
     pub latency_ns: Vec<u64>,
     pub latency_distribution: timing::Distribution,
@@ -253,10 +256,25 @@ pub fn warm(
         latency_ns.push(timing::ns(start.elapsed()));
     }
     let latency_distribution = timing::distribution(&latency_ns);
+    // This separately measured pass checks every output against the native law
+    // and hashes the ordered normalized u64 coordinates. It is outside both
+    // bulk throughput and latency clocks, never hidden inside their metrics.
+    let (validation, output_validation) = timing::measure(|| -> Result<_, String> {
+        let mut digest = Sha256::new();
+        for index in 0..config.values {
+            let value = evaluate(index)?;
+            if Some(value) != workload.native(workload.input(index)) {
+                return Err(format!("wrong output at input {index}"));
+            }
+            digest.update(value.to_le_bytes());
+        }
+        Ok(digest.finalize())
+    });
+    let validation_sha256 = format!("{:x}", validation?);
     Ok(Warm { mode: if prepared { "prepared-reference" } else { "native-optimized" },
-        values: config.values, arithmetic_operations: u64::from(config.values) * workload.operations(),
-        validation_sum: sum.to_string(), metrics, latency_ns, latency_distribution,
-        sampling: "bulk has no per-item timer; separate warm uniform-stride latency pass; clocks not subtracted" })
+        values: config.values, primitive_operations: u64::from(config.values) * workload.operations(),
+        validation_sum: sum.to_string(), validation_sha256, output_validation, metrics, latency_ns, latency_distribution,
+        sampling: "bulk has no per-item timer; separate warm uniform-stride latency pass and separately measured full output-law/digest validation pass; clocks not subtracted" })
 }
 
 #[cfg(test)]
