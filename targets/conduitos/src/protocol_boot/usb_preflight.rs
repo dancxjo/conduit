@@ -19,6 +19,7 @@ pub(super) struct RetiredUsbDiscovery {
     snapshot: UsbConfigurationSnapshot,
     package_digest: [u8; 32],
     root_digest: [u8; 32],
+    root_bytes: Vec<u8>,
     class_resident: conduit_body::ResidentPlot,
     // Retain the exact pure Plan/Play and complete Sign, not just a verdict.
     _play: crate::pure_protocol_play::PreparedPureProtocolPlay,
@@ -90,7 +91,9 @@ pub(super) fn accept(
     let schema = entry
         .input_schema(&input.port_id)
         .ok_or("protocol-usb-preflight-fore")?;
-    let root_digest = carrier::request_digest(request)?;
+    let root_bytes = carrier::request_bytes(request)?;
+    use sha2::{Digest, Sha256};
+    let root_digest = Sha256::digest(&root_bytes).into();
     let value = ValuePayload {
         value_kind: input.value_kind.clone(),
         encoded: carrier::encode(&schema, &snapshot, request, &contract)?,
@@ -142,6 +145,7 @@ pub(super) fn accept(
         snapshot,
         package_digest,
         root_digest,
+        root_bytes,
         class_resident,
         verdict: DiscoveryVerdict::Unsupported,
         _play: play,
