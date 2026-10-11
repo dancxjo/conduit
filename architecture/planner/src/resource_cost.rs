@@ -1,5 +1,6 @@
 //! Typed, bounded preparation of resource-cost evidence outside Play.
 //! These primitives do not themselves select a realization or certify a forecast.
+mod attribution;
 mod calibration;
 mod demand;
 mod duration;
@@ -10,6 +11,7 @@ mod selection;
 mod source;
 mod structured_input;
 mod work_class;
+pub use attribution::CostSourceAttribution;
 pub use calibration::*;
 pub use demand::{
     CostDemand, CostInput, CostedForecast, MAXIMUM_COST_INPUTS, MAXIMUM_COST_INPUT_BYTES,
