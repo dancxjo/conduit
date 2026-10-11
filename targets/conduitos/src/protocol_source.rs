@@ -404,7 +404,8 @@ pub use issuer::{NativeProtocolIssueRefusal, NativeProtocolIssuer, NativeProtoco
 
 pub(crate) mod body_play;
 pub use body_play::{
-    AcknowledgedProtocolCancellation, PreparedProtocolBodyPlay, ProtocolBodyPreparationRefusal,
+    AcknowledgedProtocolCancellation, CancellationStage, PendingRetirementCall,
+    PreparedProtocolBodyPlay, ProtocolBodyPreparationRefusal,
     ProtocolBodyRefusal, ProtocolCancellationRefusal,
 };
 

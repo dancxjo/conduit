@@ -13,7 +13,10 @@ use conduit_body::{BodyLifecycleSession, BodyLifecycleSessionError, BodyPlayIden
 use conduit_composite::KernelCompositeStatus;
 use conduit_core::{BootId, HostId, PortId, ValuePayload, bind_sign};
 use kernel::ProtocolKernel;
-pub use retirement::{AcknowledgedProtocolCancellation, ProtocolCancellationRefusal};
+pub use retirement::{
+    AcknowledgedProtocolCancellation, CancellationStage, PendingRetirementCall,
+    ProtocolCancellationRefusal,
+};
 
 #[derive(Debug)]
 pub enum ProtocolBodyRefusal {
