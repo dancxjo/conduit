@@ -76,6 +76,7 @@ pub(super) static INSTALLATIONS: &[&BrowserInstallation] = &[
     &crate::installed_browser::math::DEADBAND,
     &crate::installed_browser::quantity::MAP,
     &crate::installed_browser::quantity_conversion::CONVERT,
+    &crate::installed_browser::quantity_conversion::CONVERTED_EQUALS,
     &crate::installed_browser::quantity_conversion::DIFFERENCE,
     &crate::installed_browser::quantity_conversion::COMPARE,
     &crate::installed_browser::quantity_conversion::COMPARE_DIFFERENCE,

@@ -1,8 +1,6 @@
 //! Finite inline semantic values shared by graphical and spoken Masks.
 use alloc::{format, string::String};
-use conduit_core::{
-    CheckedValueContract, ExactDecimalQuantity, QuantityUnit, EXACT_DECIMAL_QUANTITY_INFO_ID,
-};
+use conduit_core::{primitive_info_kind, CheckedValueContract, PrimitiveInfoKind, Quantity, Unit};
 
 pub const MAX_FACE_VALUE_BYTES: u32 = 1024;
 
@@ -28,15 +26,33 @@ fn wording(contract: &CheckedValueContract, bytes: &[u8], spoken: bool) -> Strin
     if validate(contract, bytes).is_err() {
         return "Invalid typed value".into();
     }
-    if contract.value_kind.as_str() == EXACT_DECIMAL_QUANTITY_INFO_ID {
-        let quantity = ExactDecimalQuantity::decode(bytes).expect("validated canonical quantity");
+    let primitive = primitive_info_kind(contract.value_kind.as_str());
+    if primitive == Some(PrimitiveInfoKind::Unit) {
+        let unit = Unit::decode(bytes).expect("validated canonical unit");
+        return unit.canonical_symbol();
+    }
+    if matches!(
+        primitive,
+        Some(
+            PrimitiveInfoKind::Quantity
+                | PrimitiveInfoKind::Distance
+                | PrimitiveInfoKind::Frequency
+                | PrimitiveInfoKind::Duration
+                | PrimitiveInfoKind::Voltage
+                | PrimitiveInfoKind::Temperature
+                | PrimitiveInfoKind::Angle
+                | PrimitiveInfoKind::Ratio
+                | PrimitiveInfoKind::PixelCount
+        )
+    ) {
+        let quantity = Quantity::decode(bytes).expect("validated canonical quantity");
         let number = decimal(quantity);
         let unit = match (quantity.unit(), spoken) {
-            (QuantityUnit::Celsius, false) => "°C",
-            (QuantityUnit::Celsius, true) => "degrees Celsius",
-            (QuantityUnit::Fahrenheit, false) => "°F",
-            (QuantityUnit::Fahrenheit, true) => "degrees Fahrenheit",
-            (unit, _) => unit.semantic_id(),
+            (Unit::Celsius, false) => "°C".into(),
+            (Unit::Celsius, true) => "degrees Celsius".into(),
+            (Unit::Fahrenheit, false) => "°F".into(),
+            (Unit::Fahrenheit, true) => "degrees Fahrenheit".into(),
+            (unit, _) => unit.canonical_symbol(),
         };
         return format!("{number} {unit}");
     }
@@ -46,10 +62,13 @@ fn wording(contract: &CheckedValueContract, bytes: &[u8], spoken: bool) -> Strin
         bytes.len()
     )
 }
-fn decimal(quantity: ExactDecimalQuantity) -> String {
+fn decimal(quantity: Quantity) -> String {
     let coefficient = quantity.coefficient();
     let mut digits = coefficient.unsigned_abs().to_string();
     let exponent = quantity.exponent();
+    if exponent.unsigned_abs() > 256 {
+        return format!("{coefficient}e{exponent}");
+    }
     if exponent >= 0 {
         digits.extend(core::iter::repeat_n('0', exponent as usize));
     } else {

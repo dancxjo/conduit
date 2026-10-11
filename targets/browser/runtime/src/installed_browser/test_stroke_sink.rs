@@ -44,7 +44,7 @@ pub(crate) fn offer() -> CapabilityOffer {
             contract_id: "conduit-test/stroke-output".into(),
             target_kind: Some(KIND.into()),
             maximum_in_flight: 1,
-            maximum_input_bytes: super::MAXIMUM_BROWSER_VALUE_BYTES as u32,
+            maximum_input_bytes: super::MAXIMUM_BROWSER_STORED_VALUE_BYTES as u32,
             maximum_output_bytes: 0,
         }],
         resource_requirements: Vec::new(),
@@ -52,7 +52,7 @@ pub(crate) fn offer() -> CapabilityOffer {
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: 4,
-            max_queue_bytes: super::MAXIMUM_BROWSER_VALUE_BYTES as u32,
+            max_queue_bytes: super::MAXIMUM_BROWSER_STORED_VALUE_BYTES as u32,
         },
     }
 }
@@ -60,7 +60,7 @@ pub(crate) fn offer() -> CapabilityOffer {
 fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserBack, String> {
     super::factory::validate_placement(placement, &offer())?;
     Ok(BrowserBack::presentation(
-        super::MAXIMUM_BROWSER_VALUE_BYTES as u32,
+        super::MAXIMUM_BROWSER_STORED_VALUE_BYTES as u32,
         1,
     ))
 }

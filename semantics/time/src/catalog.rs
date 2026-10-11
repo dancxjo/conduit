@@ -2,7 +2,7 @@ use alloc::string::{String, ToString};
 use alloc::vec;
 use conduit_core::{
     kind_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter, Kind, KindIdentity,
-    Quantity, QuantityUnit,
+    Quantity, Unit,
 };
 use conduit_plot::{
     KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature, ProfileCatalog,
@@ -54,14 +54,17 @@ pub fn time_every_kind_projection() -> KindProjection {
         outputs: time_every_outputs(),
         configuration: vec![KindConfigurationField {
             key: "freq".to_string(),
-            default_value: ConfigurationValue::Quantity(Quantity::new(
-                1_000,
-                QuantityUnit::Millisecond,
-            )),
+            default_value: ConfigurationValue::Quantity(
+                conduit_core::QuantityConfigurationValue::from_value(Quantity::new(
+                    1_000,
+                    Unit::Millisecond,
+                ))
+                .expect("bounded quantity configuration"),
+            ),
             rule: KindConfigurationRule::QuantityRange {
                 minimum: 0,
                 maximum: i64::MAX,
-                canonical_unit: QuantityUnit::Millisecond,
+                canonical_unit: Unit::Millisecond.into(),
             },
         }],
     }

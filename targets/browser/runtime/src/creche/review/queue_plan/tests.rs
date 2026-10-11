@@ -131,6 +131,13 @@ fn spoken_conversation_requires_explicit_audio_authority_and_a_joined_line() {
     .unwrap();
 
     assert_eq!(planned.fragments.len(), 2);
+    // Generous offered maxima are eligibility ceilings, not mandatory allocations.
+    assert!(planned
+        .fragments
+        .iter()
+        .flat_map(|fragment| &fragment.connections)
+        .all(|connection| connection.byte_capacity
+            <= crate::installed_browser::MAXIMUM_BROWSER_VALUE_BYTES as u32));
     assert!(planned.fragments.iter().any(|fragment| fragment
         .connections
         .iter()

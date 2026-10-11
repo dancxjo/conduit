@@ -1,7 +1,7 @@
 //! Deterministic reference finance fixtures and structured exact-money operations.
 
 use alloc::string::ToString;
-use conduit_core::{Quantity, QuantityUnit, StructuredInfoValue};
+use conduit_core::{Quantity, StructuredInfoValue, Unit};
 use conduit_plot::rust_binding::NativeRustBinding;
 use core::cmp::Ordering;
 
@@ -92,7 +92,7 @@ fn deterministic_quote() -> Result<StructuredInfoValue, FinanceRefusal> {
     Ok(FinanceQuote::new(
         Money::new(FixedDecimal::new(108_270, 5)?, Currency::Usd)?,
         Money::new(FixedDecimal::new(108_250, 5)?, Currency::Usd)?,
-        FinanceQuoteFreshness::stale(Quantity::new(120, QuantityUnit::Second), reference)?,
+        FinanceQuoteFreshness::stale(Quantity::new(120, Unit::Second), reference)?,
         FinanceCurrencyPair::new(Currency::Eur, Currency::Usd)?,
         observed,
         FinanceQuoteSource::new("fixture/eur-usd".to_string())?,

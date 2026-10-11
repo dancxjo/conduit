@@ -2,9 +2,9 @@
 
 use super::factory::{validate_placement, BrowserInstallation};
 use super::BrowserBack;
-use conduit_core::{ConfigurationValue, PlannedGear, Quantity, QuantityUnit};
+use conduit_core::{ConfigurationValue, PlannedGear, Quantity, Unit};
 use conduit_kernel::scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome};
-use conduit_kernel::{CanonicalValue, Failure, FailureCode, PortId};
+use conduit_kernel::{Failure, FailureCode, PortId};
 
 const IMPLEMENTATION: &str = "browser/kernel-map-distance-frequency@1";
 
@@ -37,18 +37,17 @@ struct DistanceFrequencyBack {
     target_minimum_mhz: i64,
     target_maximum_mhz: i64,
     closed: bool,
+    output: Box<[u8]>,
 }
 
 impl DistanceFrequencyBack {
     fn map(&self, distance: Quantity) -> Result<Quantity, u16> {
-        let distance = distance
-            .convert(QuantityUnit::Micrometer)
-            .map_err(|_| 3_u16)?;
-        if !(self.source_minimum_um..=self.source_maximum_um).contains(&distance.value()) {
+        let distance = distance.to_i64(Unit::Micrometer).map_err(|_| 3_u16)?;
+        if !(self.source_minimum_um..=self.source_maximum_um).contains(&distance) {
             return Err(4);
         }
         let source_span = i128::from(self.source_maximum_um - self.source_minimum_um);
-        let source_offset = i128::from(distance.value() - self.source_minimum_um);
+        let source_offset = i128::from(distance - self.source_minimum_um);
         let target_span = i128::from(self.target_maximum_mhz - self.target_minimum_mhz);
         let numerator = source_offset * target_span;
         let offset = if numerator >= 0 {
@@ -58,7 +57,7 @@ impl DistanceFrequencyBack {
         };
         let value =
             i64::try_from(i128::from(self.target_minimum_mhz) + offset).map_err(|_| 5_u16)?;
-        Ok(Quantity::new(value, QuantityUnit::Millihertz))
+        Ok(Quantity::new(value, Unit::Millihertz))
     }
 }
 
@@ -79,11 +78,9 @@ impl<const PORTS: usize> StepBack<PORTS> for DistanceFrequencyBack {
                 Err(detail) => return fail(detail),
             };
             io.consume(PortId(0)).expect("present Distance");
-            io.send_canonical(
-                PortId(0),
-                CanonicalValue::new(&frequency.encode()).expect("Frequency is fixed and bounded"),
-            )
-            .expect("ready Frequency output");
+            self.output.copy_from_slice(&frequency.encode());
+            io.send_prepared(PortId(0), self.output.len() as u32)
+                .expect("ready Frequency output");
             return StepOutcome::Progress;
         }
         if !self.closed && io.input_closed(PortId(0)) {
@@ -95,12 +92,16 @@ impl<const PORTS: usize> StepBack<PORTS> for DistanceFrequencyBack {
         StepOutcome::Await
     }
 
+    fn prepared_output(&self, port: PortId) -> Option<&[u8]> {
+        (port == PortId(0)).then_some(self.output.as_ref())
+    }
+
     fn cancel(&mut self) {
         self.closed = true;
     }
 }
 
-fn configured(placement: &PlannedGear, key: &str, unit: QuantityUnit) -> Result<i64, String> {
+fn configured(placement: &PlannedGear, key: &str, unit: Unit) -> Result<i64, String> {
     let value = placement
         .configuration
         .iter()
@@ -112,8 +113,8 @@ fn configured(placement: &PlannedGear, key: &str, unit: QuantityUnit) -> Result<
         ));
     };
     value
-        .convert(unit)
-        .map(Quantity::value)
+        .value()
+        .to_i64(unit)
         .map_err(|error| format!("distance-frequency mapping '{key}': {error:?}"))
 }
 
@@ -126,11 +127,12 @@ fn prepare(
         return Err("distance-frequency mapping requires exactly four configuration fields".into());
     }
     let back = DistanceFrequencyBack {
-        source_minimum_um: configured(placement, "source-minimum", QuantityUnit::Micrometer)?,
-        source_maximum_um: configured(placement, "source-maximum", QuantityUnit::Micrometer)?,
-        target_minimum_mhz: configured(placement, "target-minimum", QuantityUnit::Millihertz)?,
-        target_maximum_mhz: configured(placement, "target-maximum", QuantityUnit::Millihertz)?,
+        source_minimum_um: configured(placement, "source-minimum", Unit::Micrometer)?,
+        source_maximum_um: configured(placement, "source-maximum", Unit::Micrometer)?,
+        target_minimum_mhz: configured(placement, "target-minimum", Unit::Millihertz)?,
+        target_maximum_mhz: configured(placement, "target-maximum", Unit::Millihertz)?,
         closed: false,
+        output: vec![0; conduit_core::QUANTITY_ENCODED_LEN].into_boxed_slice(),
     };
     if back.source_minimum_um >= back.source_maximum_um {
         return Err("distance-frequency mapping bounds are reversed".into());
@@ -157,14 +159,15 @@ mod tests {
             target_minimum_mhz: 1_760_000,
             target_maximum_mhz: 110_000,
             closed: false,
+            output: vec![0; conduit_core::QUANTITY_ENCODED_LEN].into_boxed_slice(),
         };
         assert_eq!(
-            mapping.map(Quantity::new(0, QuantityUnit::Centimeter)),
-            Ok(Quantity::new(1_760_000, QuantityUnit::Millihertz))
+            mapping.map(Quantity::new(0, Unit::Centimeter)),
+            Ok(Quantity::new(1_760_000, Unit::Millihertz))
         );
         assert_eq!(
-            mapping.map(Quantity::new(30, QuantityUnit::Centimeter)),
-            Ok(Quantity::new(110_000, QuantityUnit::Millihertz))
+            mapping.map(Quantity::new(30, Unit::Centimeter)),
+            Ok(Quantity::new(110_000, Unit::Millihertz))
         );
     }
 }

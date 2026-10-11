@@ -17,7 +17,7 @@ pub(super) struct StateExecutionBinding {
 
 /// Private owned cell, never a cloneable serialized checkpoint.
 pub struct RetainedTypedState {
-    cell: StateDelay<100>,
+    cell: StateDelay<{ conduit_std_offers::STATE_VALUE_STD_MAXIMUM_BYTES as usize }>,
     provenance: RetainedStateProvenance,
     initial_value: Option<Vec<u8>>,
 }
@@ -124,25 +124,28 @@ impl TypedStateBack {
             Ok(admitted) => admitted,
             Err(reason) => return Err(Box::new(StateContinuityFailure { reason, source })),
         };
-        let (cell, _) = match source
-            .cell
-            .try_transfer::<100>(state.slot, state.contract.maximum_value_bytes as usize)
-        {
-            Ok(transferred) => transferred,
-            Err(refused) => {
-                return Err(Box::new(StateContinuityFailure {
-                    reason: format!("retained State storage: {:?}", refused.reason),
-                    source: RetainedTypedState {
-                        cell: refused.source,
-                        provenance: source.provenance,
-                        initial_value: source.initial_value,
-                    },
-                }));
-            }
-        };
+        let (cell, _) =
+            match source
+                .cell
+                .try_transfer::<{ conduit_std_offers::STATE_VALUE_STD_MAXIMUM_BYTES as usize }>(
+                    state.slot,
+                    state.contract.maximum_value_bytes as usize,
+                ) {
+                Ok(transferred) => transferred,
+                Err(refused) => {
+                    return Err(Box::new(StateContinuityFailure {
+                        reason: format!("retained State storage: {:?}", refused.reason),
+                        source: RetainedTypedState {
+                            cell: refused.source,
+                            provenance: source.provenance,
+                            initial_value: source.initial_value,
+                        },
+                    }));
+                }
+            };
         Ok(Self {
             binding: Some(binding),
-            back: StateBack::new(cell, state.next, state.current)
+            back: StateBack::new_prepared(cell, state.next, state.current)
                 .expect("validated std State capacity fits the kernel envelope"),
             validator,
         })

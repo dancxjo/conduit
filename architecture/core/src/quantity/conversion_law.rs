@@ -1,13 +1,10 @@
-//! Shared exact rational quantity law, specialized by the selected finite
-//! arithmetic profile. Legacy quantities keep their existing small profile;
-//! the extended profile admits wider fixed storage explicitly.
+//! Shared exact rational quantity law with fixed admitted arithmetic storage.
 
-use super::{Quantity, QuantityConversionRefusal, QuantityUnit};
+use super::QuantityConversionRefusal;
 use core::cmp::Ordering;
 
 pub(super) trait Arithmetic {
     type Number: Copy;
-    fn integer(value: i128) -> Self::Number;
     fn add(left: Self::Number, right: Self::Number) -> Option<Self::Number>;
     fn multiply(left: Self::Number, right: Self::Number) -> Option<Self::Number>;
     fn negate(value: Self::Number) -> Option<Self::Number>;
@@ -35,63 +32,41 @@ impl<A: Arithmetic> Fraction<A> {
         (self.numerator, self.denominator)
     }
 
-    pub(super) fn rational(
-        numerator: i128,
-        denominator: i128,
-    ) -> Result<Self, QuantityConversionRefusal> {
-        if denominator <= 0 {
-            return Err(QuantityConversionRefusal::Inexact);
-        }
-        Ok(Self::new(A::integer(numerator), A::integer(denominator)))
-    }
-
-    pub(super) fn into_canonical(
-        self,
-        source: QuantityUnit,
-    ) -> Result<Self, QuantityConversionRefusal> {
-        self.with_source_transform(source.canonical_transform())
-    }
-
-    pub(super) fn with_source_transform(
-        self,
-        (scale, offset, denominator): (i128, i128, i128),
-    ) -> Result<Self, QuantityConversionRefusal> {
-        let scaled = A::multiply(self.numerator, A::integer(scale))
-            .ok_or(QuantityConversionRefusal::Overflow)?;
-        let offset = A::multiply(A::integer(offset), self.denominator)
-            .ok_or(QuantityConversionRefusal::Overflow)?;
+    pub(super) fn multiply(self, other: Self) -> Result<Self, QuantityConversionRefusal> {
         Ok(Self::new(
-            A::add(scaled, offset).ok_or(QuantityConversionRefusal::Overflow)?,
-            A::multiply(self.denominator, A::integer(denominator))
+            A::multiply(self.numerator, other.numerator)
+                .ok_or(QuantityConversionRefusal::Overflow)?,
+            A::multiply(self.denominator, other.denominator)
                 .ok_or(QuantityConversionRefusal::Overflow)?,
         ))
     }
-
-    pub(super) fn in_target(self, target: QuantityUnit) -> Result<Self, QuantityConversionRefusal> {
-        self.with_target_transform(target.canonical_transform())
-    }
-
-    pub(super) fn with_target_transform(
-        self,
-        (scale, offset, denominator): (i128, i128, i128),
-    ) -> Result<Self, QuantityConversionRefusal> {
-        let scaled = A::multiply(self.numerator, A::integer(denominator))
-            .ok_or(QuantityConversionRefusal::Overflow)?;
-        let offset = A::multiply(A::integer(offset), self.denominator)
-            .and_then(A::negate)
-            .ok_or(QuantityConversionRefusal::Overflow)?;
+    pub(super) fn divide(self, other: Self) -> Result<Self, QuantityConversionRefusal> {
         Ok(Self::new(
-            A::add(scaled, offset).ok_or(QuantityConversionRefusal::Overflow)?,
-            A::multiply(self.denominator, A::integer(scale))
+            A::multiply(self.numerator, other.denominator)
+                .ok_or(QuantityConversionRefusal::Overflow)?,
+            A::multiply(self.denominator, other.numerator)
                 .ok_or(QuantityConversionRefusal::Overflow)?,
         ))
     }
-
-    pub(super) fn legacy_integer(
-        self,
-        target: QuantityUnit,
-    ) -> Result<Quantity, QuantityConversionRefusal> {
-        A::exact_i64(self.numerator, self.denominator).map(|value| Quantity::new(value, target))
+    pub(super) fn add(self, other: Self) -> Result<Self, QuantityConversionRefusal> {
+        let a = A::multiply(self.numerator, other.denominator)
+            .ok_or(QuantityConversionRefusal::Overflow)?;
+        let b = A::multiply(other.numerator, self.denominator)
+            .ok_or(QuantityConversionRefusal::Overflow)?;
+        Ok(Self::new(
+            A::add(a, b).ok_or(QuantityConversionRefusal::Overflow)?,
+            A::multiply(self.denominator, other.denominator)
+                .ok_or(QuantityConversionRefusal::Overflow)?,
+        ))
+    }
+    pub(super) fn negate(self) -> Result<Self, QuantityConversionRefusal> {
+        Ok(Self::new(
+            A::negate(self.numerator).ok_or(QuantityConversionRefusal::Overflow)?,
+            self.denominator,
+        ))
+    }
+    pub(super) fn integer(self) -> Result<i64, QuantityConversionRefusal> {
+        A::exact_i64(self.numerator, self.denominator)
     }
 
     pub(super) fn compare(self, other: Self) -> Result<Ordering, QuantityConversionRefusal> {

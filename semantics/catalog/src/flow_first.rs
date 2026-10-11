@@ -250,7 +250,7 @@ mod tests {
                 }],
                 outputs: vec![PortDescriptor {
                     port_id: port_id("recovered"),
-                    value_kind: kind_id(conduit_core::UNIT_INFO_ID),
+                    value_kind: kind_id(conduit_core::EMPTY_INFO_ID),
                     direction: PortDirection::Output,
                     temporal: PortTemporal::Value,
                     abnormal_kind: None,

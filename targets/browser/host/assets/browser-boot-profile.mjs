@@ -241,7 +241,7 @@ async function verifyImage(bytes, expectedImageId, expectedProfileId) {
 }
 
 async function verifyBootArtifacts(image, runtimeBytes, bootModuleDigest) {
-  if (!(runtimeBytes instanceof Uint8Array) || runtimeBytes.byteLength < 1 || runtimeBytes.byteLength > 16 * 1024 * 1024) {
+  if (!(runtimeBytes instanceof Uint8Array) || runtimeBytes.byteLength < 1 || runtimeBytes.byteLength > 20 * 1024 * 1024) {
     refuse("RuntimeArtifactBound", "browser runtime violates its finite IMAGE bound");
   }
   const runtime = image.files.find((item) => item.path === "runtime.wasm");

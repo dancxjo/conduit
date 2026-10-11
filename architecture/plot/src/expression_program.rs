@@ -29,6 +29,8 @@ pub struct PortableExpressionNode {
 pub enum PortableExpressionOperation {
     Input,
     Literal(String),
+    /// Checked self-contained physical capsule; never reparsed using ambient names.
+    CanonicalLiteral(Vec<u8>),
     /// Already admitted ordinary constructor result; no runtime parsing.
     Constant(conduit_core::StructuredInfoValue),
     Projection {
@@ -213,6 +215,11 @@ fn node(
                     return Err(PortableExpressionProgramRefusal::MalformedEncoding);
                 }
                 PortableExpressionOperation::Constant(constant.clone())
+            } else if let Some(bytes) = checked
+                .canonical_literals
+                .get(&(value.span.start, value.span.end))
+            {
+                PortableExpressionOperation::CanonicalLiteral(bytes.clone())
             } else {
                 PortableExpressionOperation::Literal(value.text.clone())
             }
@@ -340,6 +347,12 @@ fn push_node(
         PortableExpressionOperation::Literal(value) => {
             encoded.push(1);
             push_text(encoded, value);
+        }
+        PortableExpressionOperation::CanonicalLiteral(value) => {
+            validate_capsule_literal(&node.value_type, value)?;
+            encoded.push(12);
+            push_len(encoded, value.len());
+            encoded.extend_from_slice(value);
         }
         PortableExpressionOperation::Projection { value, member } => {
             encoded.push(2);
@@ -470,4 +483,19 @@ const fn binary_tag(operator: BinaryOperator) -> u8 {
         BinaryOperator::BooleanAnd => 16,
         BinaryOperator::BooleanOr => 17,
     }
+}
+
+pub(crate) fn validate_capsule_literal(
+    ty: &StructuredInfoType,
+    bytes: &[u8],
+) -> Result<(), PortableExpressionProgramRefusal> {
+    let conduit_core::StructuredInfoTypeShape::Leaf(kind) = ty.shape() else {
+        return Err(PortableExpressionProgramRefusal::MalformedEncoding);
+    };
+    if crate::authored_quantity::expected_role(ty).is_none()
+        || conduit_core::validate_primitive_info(kind.as_str(), bytes).is_err()
+    {
+        return Err(PortableExpressionProgramRefusal::MalformedEncoding);
+    }
+    Ok(())
 }

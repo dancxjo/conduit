@@ -773,7 +773,7 @@ mod terminal_tests {
 
     #[test]
     fn remote_abnormal_truth_must_inhabit_the_exact_planned_kind_and_bound() {
-        let unit = conduit_core::kind_id(conduit_core::UNIT_INFO_ID);
+        let unit = conduit_core::kind_id(conduit_core::EMPTY_INFO_ID);
         assert_eq!(validate_remote_abnormal(Some(&unit), 1, &[]), Ok(()));
         assert!(validate_remote_abnormal(Some(&unit), 1, &[0]).is_err());
         assert!(validate_remote_abnormal(Some(&unit), 0, &[0]).is_err());

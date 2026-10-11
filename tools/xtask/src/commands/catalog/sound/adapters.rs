@@ -230,15 +230,7 @@ fn capability(catalog: &ProfileCatalog, kind: &str) -> Result<CapabilityOffer, C
             .iter()
             .map(|field| conduit_core::FrontStartupParameter {
                 name: field.key.clone(),
-                value_type: match field.default_value {
-                    ConfigurationValue::Bool(_) => "value/bool",
-                    ConfigurationValue::U64(_) => "value/count",
-                    ConfigurationValue::I64(_) => "value/scalar",
-                    ConfigurationValue::Text(_) => "value/text",
-                    ConfigurationValue::Structured(ref value) => value.profile().as_str(),
-                    ConfigurationValue::Quantity(_) => conduit_core::QUANTITY_INFO_ID,
-                }
-                .into(),
+                value_type: field.default_value.semantic_kind(),
                 has_default: true,
             })
             .collect(),

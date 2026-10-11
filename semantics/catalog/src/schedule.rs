@@ -41,7 +41,7 @@ pub fn assess_workflow_timing(
         WorkflowLifecycle::Expired => return Ok(WorkflowTimingOutcome::Expired),
         WorkflowLifecycle::Pending | WorkflowLifecycle::Running | WorkflowLifecycle::Completed => {}
     }
-    if position == ScheduleWindowPosition::Indeterminate || uncertainty.value() > 0 {
+    if position == ScheduleWindowPosition::Indeterminate || uncertainty.coefficient() > 0 {
         return WorkflowTimingOutcome::clock_uncertain(uncertainty)
             .map_err(|_| ScheduleRefusal::NonTemporalQuantity);
     }
@@ -78,7 +78,7 @@ fn validate_duration(value: Quantity) -> Result<(), ScheduleRefusal> {
     if value.dimension() != QuantityDimension::Time {
         return Err(ScheduleRefusal::NonTemporalQuantity);
     }
-    if value.value() < 0 {
+    if value.coefficient() < 0 {
         return Err(ScheduleRefusal::NegativeQuantity);
     }
     Ok(())

@@ -345,3 +345,15 @@ test("closing a failed dispatcher preserves its original rejection and returns a
   await assert.rejects(completion, error => error === original);
   assert.equal(owner.close(), closed);
 });
+
+test("runtime memory bindings admit the finite pool and refuse aggregate excess", () => {
+  const f = fixture();
+  const placement = f.proposal.plan.plots[0].plan.fragments[0].placements[0];
+  placement.resources.push({ pool_id: "browser/runtime-memory", class_id: "conduit.resource/runtime-memory@1", units: 1024 });
+  const owner = acquireBrowserBodyHost(f);
+  const memory = owner.observations().find(item => item.class_id === "conduit.resource/runtime-memory@1");
+  assert.equal(memory.unreserved_units, 8 * 1024 * 1024);
+  owner.close();
+  placement.resources.at(-1).units = 8 * 1024 * 1024 + 1;
+  assert.throws(() => acquireBrowserBodyHost(f), /resource demand exceeds local bounds/);
+});

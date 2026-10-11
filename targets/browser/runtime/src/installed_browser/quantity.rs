@@ -2,7 +2,7 @@
 
 use super::factory::{validate_placement, BrowserInstallation};
 use super::BrowserBack;
-use conduit_core::{ConfigurationValue, PlannedGear, QuantityUnit, Scalar};
+use conduit_core::{ConfigurationValue, PlannedGear, Scalar};
 use conduit_kernel::{
     scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
@@ -98,8 +98,18 @@ pub(crate) fn configuration(placement: &PlannedGear) -> Result<QuantityMapping, 
         target_minimum: number("target-minimum")?,
         target_maximum: number("target-maximum")?,
         target_granularity: number("target-granularity")?,
-        target_unit: QuantityUnit::from_plot_suffix(text("unit")?)
-            .map_err(|error| format!("quantity unit: {error:?}"))?,
+        target_unit: placement
+            .configuration
+            .iter()
+            .find_map(|field| {
+                if field.key == "unit" {
+                    if let ConfigurationValue::Unit(value) = &field.value {
+                        return Some(value.value());
+                    }
+                }
+                None
+            })
+            .ok_or_else(|| "quantity mapping requires checked Unit 'unit'".to_string())?,
         range_policy: match text("range-policy")? {
             "refuse" => RangePolicy::Refuse,
             "clamp" => RangePolicy::Clamp,
@@ -248,8 +258,13 @@ mod tests {
         operation: &mut QuantityBack,
         outcome: HostCallOutcome,
     ) -> (StepOutcome, StepIo<1>) {
-        let mut io =
-            StepIo::test_frame([None], [false], [Some(9)], Some((RequestId(0), outcome)), 4);
+        let mut io = StepIo::test_frame(
+            [None],
+            [false],
+            [Some(conduit_core::QUANTITY_ENCODED_LEN as u32)],
+            Some((RequestId(0), outcome)),
+            4,
+        );
         let result = operation.step(&mut io, &StepInputBytes::test_frame([None], None));
         (result, io)
     }
@@ -266,7 +281,13 @@ mod tests {
             generation: 1,
             byte_len: 8,
         };
-        let mut io = StepIo::test_frame([Some(input)], [false], [Some(9)], None, 4);
+        let mut io = StepIo::test_frame(
+            [Some(input)],
+            [false],
+            [Some(conduit_core::QUANTITY_ENCODED_LEN as u32)],
+            None,
+            4,
+        );
         assert_eq!(
             operation.step(&mut io, &StepInputBytes::test_frame([None], None)),
             StepOutcome::Progress
@@ -278,13 +299,16 @@ mod tests {
         let output = ValueRef {
             slot: 1,
             generation: 1,
-            byte_len: 9,
+            byte_len: conduit_core::QUANTITY_ENCODED_LEN as u32,
         };
         let (result, io) = completion(
             &mut operation,
             HostCallOutcome {
                 disposition: HostCallDisposition::Completed,
-                output: Some(BoundedValueRef::new(output, 9).unwrap()),
+                output: Some(
+                    BoundedValueRef::new(output, conduit_core::QUANTITY_ENCODED_LEN as u32)
+                        .unwrap(),
+                ),
                 failure: None,
             },
         );
@@ -331,9 +355,9 @@ mod tests {
                             ValueRef {
                                 slot: 0,
                                 generation: 1,
-                                byte_len: 9
+                                byte_len: conduit_core::QUANTITY_ENCODED_LEN as u32
                             },
-                            9
+                            conduit_core::QUANTITY_ENCODED_LEN as u32
                         )
                         .unwrap()
                     ),

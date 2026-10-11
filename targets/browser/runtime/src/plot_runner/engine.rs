@@ -17,12 +17,14 @@ use preparation::{prepare_scheduler, validate_envelope};
 #[path = "quantity_tests.rs"]
 mod quantity_tests;
 
+#[cfg(test)]
+use crate::installed_browser::BROWSER_TOTAL_VALUE_BYTES;
 use crate::installed_browser::{
     factory, BrowserBack, BrowserManifestation, BROWSER_HOST_CALLS_PER_GEAR,
     BROWSER_HOST_CALL_BINDINGS, BROWSER_PENDING_REQUESTS, BROWSER_PORTS_PER_GEAR,
     BROWSER_QUEUE_SLOTS, BROWSER_ROUTE_SLOTS, BROWSER_ROUTE_TARGETS, BROWSER_SIGN_ITEMS,
-    BROWSER_TOTAL_VALUE_BYTES, BROWSER_VALUE_ITEMS, MAXIMUM_BROWSER_CORDS, MAXIMUM_BROWSER_GEARS,
-    MAXIMUM_BROWSER_PLOT_CORDS, MAXIMUM_BROWSER_PLOT_GEARS, MAXIMUM_BROWSER_VALUE_BYTES,
+    BROWSER_VALUE_ITEMS, MAXIMUM_BROWSER_CORDS, MAXIMUM_BROWSER_GEARS, MAXIMUM_BROWSER_PLOT_CORDS,
+    MAXIMUM_BROWSER_PLOT_GEARS, MAXIMUM_BROWSER_VALUE_BYTES,
 };
 use conduit_core::PlanFragment;
 use conduit_kernel::scheduler::{
@@ -48,6 +50,38 @@ type BrowserKernel = FixedScheduler<
     BROWSER_PENDING_REQUESTS,
 >;
 
+/// Exact Plan-bound storage receipt prepared before any kernel step.
+#[derive(Debug)]
+pub(super) struct PreparedStorageWitness {
+    pub(super) identities: Vec<(conduit_core::PlanId, conduit_core::FragmentId)>,
+    pub(super) slot_capacities: Vec<u32>,
+    pub(super) reserved_storage_bytes: usize,
+    pub(super) live_byte_quota: u32,
+    pub(super) data_memory_reservation: u64,
+}
+
+impl PreparedStorageWitness {
+    pub(super) fn matches(&self, partitions: &[(&PlanFragment, &LoweredPlanFragment)]) -> bool {
+        self.identities.len() == partitions.len()
+            && self
+                .identities
+                .iter()
+                .zip(partitions)
+                .all(|((plan, fragment), (selected, _))| {
+                    plan == &selected.plan_id && fragment == &selected.fragment_id
+                })
+            && self
+                .slot_capacities
+                .iter()
+                .map(|capacity| u64::from(*capacity))
+                .sum::<u64>()
+                == u64::from(self.live_byte_quota)
+            && self.slot_capacities.len() <= usize::from(BROWSER_VALUE_ITEMS)
+            && self.reserved_storage_bytes as u64 + self.data_memory_reservation
+                <= u64::from(crate::installed_browser::measurement_limits::MEMORY_POOL_BYTES)
+    }
+}
+
 /// Host-prepared state accompanies, but never replaces, the production kernel.
 pub(super) struct TourScheduler {
     pub(super) failure: Option<conduit_kernel::Failure>,
@@ -55,6 +89,7 @@ pub(super) struct TourScheduler {
     // one stable allocation avoids copying its bounded tables through native
     // and Wasm ABI session transitions. Play itself performs no allocation.
     kernel: Box<BrowserKernel>,
+    pub(super) _prepared_storage: PreparedStorageWitness,
     snapshots: Vec<Option<Box<resource_effect::SnapshotState>>>,
     selectors: Vec<Option<crate::installed_browser::pointer_selector::PreparedSelector>>,
     mappings: Vec<Option<conduit_semantic_catalog::QuantityMapping>>,
@@ -304,9 +339,9 @@ fn drive_with_boundary<'a>(
             if operation.contract_id.as_str() == crate::installed_browser::pitch_tone::HOST_CALL {
                 let quantity = conduit_core::Quantity::decode(&input)
                     .map_err(|error| format!("pitch tone quantity: {error:?}"))?
-                    .convert(conduit_core::QuantityUnit::Hertz)
+                    .to_i64(conduit_core::Unit::Hertz)
                     .map_err(|error| format!("pitch tone frequency: {error:?}"))?;
-                let hertz = u32::try_from(quantity.value())
+                let hertz = u32::try_from(quantity)
                     .map_err(|_| "pitch tone frequency must be positive".to_string())?;
                 if !(20..=20_000).contains(&hertz) {
                     return Err("pitch tone frequency must be between 20 Hz and 20000 Hz".into());

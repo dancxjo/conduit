@@ -3,7 +3,7 @@
 use super::*;
 
 pub const KIND: &str = "units/convert-temperature-difference";
-pub const REVISION: &str = "quantity/exact-temperature-difference-conversion@1";
+pub const REVISION: &str = "quantity/exact-temperature-difference-conversion@2";
 pub const RECEIPT_NAME: &str = "ExactTemperatureDifferenceConversionReceipt";
 
 pub fn receipt_type() -> StructuredInfoType {
@@ -26,7 +26,7 @@ pub fn validate_receipt(
     validate_for(ConversionProfile::TemperatureDifference, receipt)
 }
 
-/// Admit the distinct source record before a consumer uses its coordinate.
+/// Admit the intrinsically checked delta-role leaf before using its coordinate.
 /// Shape alone cannot authorize a non-temperature coordinate as a difference.
 pub fn validate_source_value(
     value: &StructuredInfoValue,
@@ -35,28 +35,17 @@ pub fn validate_source_value(
     if value.value_type() != &source_type() {
         return Err(R::ForgedReceipt);
     }
-    let StructuredInfoValueShape::Record(fields) = value.shape() else {
+    let StructuredInfoValueShape::Leaf(bytes) = value.shape() else {
         return Err(R::ForgedReceipt);
     };
-    let Some(field) = fields.iter().find(|field| field.name() == "coordinate") else {
-        return Err(R::ForgedReceipt);
-    };
-    let StructuredInfoValueShape::Leaf(bytes) = field.value().shape() else {
-        return Err(R::ForgedReceipt);
-    };
-    let coordinate = ExactDecimalQuantity::decode(bytes).map_err(|error| {
+    let coordinate = Quantity::decode(bytes).map_err(|error| {
         R::Request(
             ExactQuantityConversionRequestRefusal::TemperatureDifferenceSource(
                 ExactTemperatureDifferenceRefusal::Coordinate(error),
             ),
         )
     })?;
-    ExactTemperatureDifference::new(
-        coordinate.coefficient(),
-        coordinate.exponent(),
-        coordinate.unit(),
-    )
-    .map_err(|error| {
+    ExactTemperatureDifference::from_quantity(coordinate).map_err(|error| {
         R::Request(ExactQuantityConversionRequestRefusal::TemperatureDifferenceSource(error))
     })
 }

@@ -7,6 +7,7 @@ const MAXIMUM_RESOURCES = 96;
 const MAXIMUM_DEPENDENCIES = 16;
 const MAXIMUM_HOST_IMPLEMENTATIONS = 16;
 const MAXIMUM_RESOURCE_BYTES = 16 * 1024 * 1024;
+const MAXIMUM_RUNTIME_BYTES = 20 * 1024 * 1024;
 const MAXIMUM_TOTAL_RESOURCE_BYTES = 32 * 1024 * 1024;
 const RESOURCE_KINDS = new Set(["module", "classic-script", "style", "content", "wasm"]);
 const DIGEST_PATTERN = /^sha256:[0-9a-f]{64}$/;
@@ -94,7 +95,7 @@ function admitManifest(document, manifestUrl) {
     const url = packageUrl(resource.path, packageRoot, "application resource path");
     if (seenUrls.has(url.href)) throw new Error("application resource path is duplicated");
     seenUrls.add(url.href);
-    if (!Number.isSafeInteger(resource.maximum_bytes) || resource.maximum_bytes < 1 || resource.maximum_bytes > MAXIMUM_RESOURCE_BYTES) {
+    if (!Number.isSafeInteger(resource.maximum_bytes) || resource.maximum_bytes < 1 || resource.maximum_bytes > (role === "runtime" ? MAXIMUM_RUNTIME_BYTES : MAXIMUM_RESOURCE_BYTES)) {
       throw new Error("application resource byte bound is invalid");
     }
     if (!DIGEST_PATTERN.test(resource.sha256 ?? "")) throw new Error("application resource digest is invalid");

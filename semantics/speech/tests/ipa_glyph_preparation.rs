@@ -155,7 +155,7 @@ fn shipped_speech_family_elaborates_both_delimiters_through_ordinary_admission()
         let structures = std::collections::BTreeMap::new();
         let kinds = std::collections::BTreeMap::new();
         let numeric = std::collections::BTreeSet::new();
-        let input = conduit_plot::CheckedExpressionType::semantic(conduit_core::UNIT_INFO_ID);
+        let input = conduit_plot::CheckedExpressionType::semantic(conduit_core::EMPTY_INFO_ID);
         let type_context = conduit_plot::ExpressionTypeContext {
             glyph_values: Some(&admitted),
             input: &input,
@@ -383,7 +383,7 @@ fn glyph_source_expression_expands_to_the_same_portable_constructor_value() {
             "SpeechPhonemicTranscription",
         ),
     ] {
-        let source = format!("with {NOTATION_EXPORT_PATH} as ph\nplot typed (\n >> input: Unit\n value: {result_type} <= 262144B >>\n) {{\n input >> ({glyph}) >> value\n}}\n");
+        let source = format!("with {NOTATION_EXPORT_PATH} as ph\nplot typed (\n >> input: Empty\n value: {result_type} <= 262144B >>\n) {{\n input >> ({glyph}) >> value\n}}\n");
         let document = parse_syntax_document_with_glyph_notations(&source, &startup);
         assert!(
             document.diagnostics.is_empty(),

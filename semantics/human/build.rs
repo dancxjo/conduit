@@ -23,6 +23,8 @@ fn main() {
         &checked.type_forms,
         &RustBindingOptions {
             derive_serde_for_variants: true,
+            // Fixed admitted input slots retain inline payloads during Play.
+            inline_variant_types: ["InputAxisSlot".into(), "TouchContactSlot".into()].into(),
             serde_record_types: ["InputSurfacePoint".into()].into(),
             serde_variant_exclusions: [
                 "ChordInfo".into(),

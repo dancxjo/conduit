@@ -49,10 +49,14 @@ fn malformed_input_preserves_committed_state_and_is_not_completion() {
         back.step(&mut initial_io, &StepInputBytes::test_frame([None], None)),
         StepOutcome::Progress
     );
-    assert!(initial_io.test_canonical_output().is_some());
+    assert_eq!(initial_io.test_prepared_output(), Some((PortId(0), 1)));
+    assert_eq!(
+        StepBack::<1>::prepared_output(&back, PortId(0)),
+        Some(InfoBool::new(true).encode().as_slice())
+    );
     // A leaf State carries the exact primitive payload Kind on its runtime
     // cord. The structured envelope remains admission/configuration truth.
-    let next = InfoBool::new(true).encode().to_vec();
+    let next = InfoBool::new(false).encode().to_vec();
     let reference = ValueRef {
         slot: 0,
         generation: 0,

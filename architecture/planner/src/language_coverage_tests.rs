@@ -45,11 +45,11 @@ fn fixture(request: LanguageRequest) -> (CheckedPlot, HostAdvertisement) {
                 v.language().get()
             )
         })
-        .unwrap_or_else(|| "none(\"\")".into());
+        .unwrap_or_else(|| "none(empty)".into());
     let policy_source = if *request.variety_policy() == LanguageVarietyPolicy::ExactVariety {
-        "exact_variety(\"\")"
+        "exact_variety(empty)"
     } else {
-        "language_sufficient(\"\")"
+        "language_sufficient(empty)"
     };
     let request_source = format!(
         "{{ language: {:?}, variety: {}, variety_policy: {} }}",

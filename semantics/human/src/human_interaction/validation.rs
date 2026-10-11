@@ -28,7 +28,9 @@ pub(super) fn validate_family(family: &InteractionFamily) -> Result<(), Interact
             Ok(())
         }
         InteractionFamily::RelativeAdjustment(value)
-            if value.minimum_delta() <= value.maximum_delta() && *value.granularity() > 0 =>
+            if value.minimum_delta() <= value.maximum_delta()
+                && *value.granularity() > 0
+                && value.unit().declared_role() != conduit_core::QuantityRole::Point =>
         {
             Ok(())
         }
@@ -259,15 +261,17 @@ fn validate_quantity(
     if quantity.unit() != unit {
         return Err(InteractionRefusal::WrongValueKind);
     }
-    let below = quantity.value() < minimum
-        || (quantity.value() == minimum && minimum_bound == BoundKind::Exclusive);
-    let above = quantity.value() > maximum
-        || (quantity.value() == maximum && maximum_bound == BoundKind::Exclusive);
+    let quantity = quantity
+        .to_i64(unit)
+        .map_err(|_| InteractionRefusal::UnsupportedGranularity)?;
+    let below =
+        quantity < minimum || (quantity == minimum && minimum_bound == BoundKind::Exclusive);
+    let above =
+        quantity > maximum || (quantity == maximum && maximum_bound == BoundKind::Exclusive);
     if below || above {
         return Err(InteractionRefusal::OutOfRange);
     }
-    if (i128::from(quantity.value()) - i128::from(minimum)).rem_euclid(i128::from(granularity)) != 0
-    {
+    if (i128::from(quantity) - i128::from(minimum)).rem_euclid(i128::from(granularity)) != 0 {
         return Err(InteractionRefusal::UnsupportedGranularity);
     }
     Ok(())

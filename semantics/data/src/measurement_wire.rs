@@ -9,9 +9,12 @@ use crate::{
     MAXIMUM_MEASUREMENT_PLOT_POINTS, MAXIMUM_MEASUREMENT_WINDOW_SAMPLES,
 };
 
-pub const MAXIMUM_MEASUREMENT_WINDOW_BYTES: usize = 32_768;
+pub const MAXIMUM_MEASUREMENT_WINDOW_BYTES: usize = MAXIMUM_MEASUREMENT_WINDOW_SAMPLES
+    * (2 * conduit_core::QUANTITY_ENCODED_LEN + 256)
+    + 2 * conduit_core::QUANTITY_ENCODED_LEN
+    + 256;
 pub const MAXIMUM_MEASUREMENT_PLOT_SERIES_BYTES: usize = 1_024;
-pub const MAXIMUM_MEASUREMENT_SUMMARY_BYTES: usize = 1_024;
+pub const MAXIMUM_MEASUREMENT_SUMMARY_BYTES: usize = 4 * conduit_core::QUANTITY_ENCODED_LEN + 1_024;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum MeasurementWireRefusal {
@@ -198,6 +201,44 @@ pub fn decode_measurement_summary(
 fn validate_summary(summary: &MeasurementSummary) -> Result<(), MeasurementWireRefusal> {
     use conduit_core::TemporalRelation;
     let unit = summary.minimum.unit();
+    if summary.minimum.role() == conduit_core::QuantityRole::Point {
+        return Err(MeasurementWireRefusal::Malformed);
+    }
+    let difference = |left: conduit_core::Quantity,
+                      right: conduit_core::Quantity|
+     -> Result<conduit_core::Quantity, MeasurementWireRefusal> {
+        let exponent = if left.coefficient() == 0 {
+            right.exponent()
+        } else if right.coefficient() == 0 {
+            left.exponent()
+        } else {
+            left.exponent().min(right.exponent())
+        };
+        let align = |value: conduit_core::Quantity| -> Result<i128, MeasurementWireRefusal> {
+            if value.coefficient() == 0 {
+                return Ok(0);
+            }
+            let power = u32::try_from(i32::from(value.exponent()) - i32::from(exponent))
+                .map_err(|_| MeasurementWireRefusal::Malformed)?;
+            value
+                .coefficient()
+                .checked_mul(
+                    10_i128
+                        .checked_pow(power)
+                        .ok_or(MeasurementWireRefusal::Malformed)?,
+                )
+                .ok_or(MeasurementWireRefusal::Malformed)
+        };
+        conduit_core::Quantity::from_decimal_role(
+            align(left)?
+                .checked_sub(align(right)?)
+                .ok_or(MeasurementWireRefusal::Malformed)?,
+            exponent,
+            unit,
+            left.role(),
+        )
+        .map_err(|_| MeasurementWireRefusal::Malformed)
+    };
     if summary.sample_count == 0
         || [
             summary.minimum,
@@ -207,11 +248,22 @@ fn validate_summary(summary: &MeasurementSummary) -> Result<(), MeasurementWireR
         ]
         .iter()
         .any(|quantity| quantity.unit() != unit)
-        || summary.minimum.value() > summary.maximum.value()
-        || summary.mean.value() < summary.minimum.value()
-        || summary.mean.value() > summary.maximum.value()
-        || summary.maximum.value().checked_sub(summary.minimum.value())
-            != Some(summary.range.value())
+        || summary
+            .minimum
+            .compare(summary.maximum)
+            .map_err(|_| MeasurementWireRefusal::Malformed)?
+            == core::cmp::Ordering::Greater
+        || summary
+            .mean
+            .compare(summary.minimum)
+            .map_err(|_| MeasurementWireRefusal::Malformed)?
+            == core::cmp::Ordering::Less
+        || summary
+            .mean
+            .compare(summary.maximum)
+            .map_err(|_| MeasurementWireRefusal::Malformed)?
+            == core::cmp::Ordering::Greater
+        || difference(summary.maximum, summary.minimum)? != summary.range
     {
         return Err(MeasurementWireRefusal::Malformed);
     }
@@ -359,7 +411,7 @@ mod tests {
 
     fn sample(value: i64, ticks: u64) -> MeasurementSample {
         MeasurementSample {
-            value: Quantity::new(value, conduit_core::QuantityUnit::Millivolt),
+            value: Quantity::new(value, conduit_core::Unit::Millivolt),
             observed_at: TemporalInstant {
                 ticks,
                 scale: TemporalScale::Milliseconds,
@@ -369,7 +421,7 @@ mod tests {
             }
             .try_into()
             .unwrap(),
-            uncertainty: Some(Quantity::new(1, conduit_core::QuantityUnit::Millivolt)),
+            uncertainty: Some(Quantity::new(1, conduit_core::Unit::Millivolt)),
         }
     }
 
@@ -378,8 +430,8 @@ mod tests {
         let mut window = BoundedMeasurementWindow::new(MeasurementWindowProfile {
             capacity: 2,
             range: MeasurementRange {
-                minimum: Quantity::new(-100, conduit_core::QuantityUnit::Millivolt),
-                maximum: Quantity::new(100, conduit_core::QuantityUnit::Millivolt),
+                minimum: Quantity::new(-100, conduit_core::Unit::Millivolt),
+                maximum: Quantity::new(100, conduit_core::Unit::Millivolt),
             },
             clock_basis: "wire-clock".into(),
             full_policy: FullWindowPolicy::DropOldest,
@@ -411,8 +463,8 @@ mod tests {
         let mut window = BoundedMeasurementWindow::new(MeasurementWindowProfile {
             capacity: 1,
             range: MeasurementRange {
-                minimum: Quantity::new(0, conduit_core::QuantityUnit::Millivolt),
-                maximum: Quantity::new(100, conduit_core::QuantityUnit::Millivolt),
+                minimum: Quantity::new(0, conduit_core::Unit::Millivolt),
+                maximum: Quantity::new(100, conduit_core::Unit::Millivolt),
             },
             clock_basis: "wire-clock".into(),
             full_policy: FullWindowPolicy::Reject,
@@ -444,17 +496,17 @@ mod tests {
             sample_count: 3,
             first_observed_at: instant(1).try_into().unwrap(),
             last_observed_at: instant(3).try_into().unwrap(),
-            minimum: Quantity::new(0, conduit_core::QuantityUnit::Millivolt),
-            maximum: Quantity::new(100, conduit_core::QuantityUnit::Millivolt),
-            range: Quantity::new(100, conduit_core::QuantityUnit::Millivolt),
-            mean: Quantity::new(50, conduit_core::QuantityUnit::Millivolt),
+            minimum: Quantity::new(0, conduit_core::Unit::Millivolt),
+            maximum: Quantity::new(100, conduit_core::Unit::Millivolt),
+            range: Quantity::new(100, conduit_core::Unit::Millivolt),
+            mean: Quantity::new(50, conduit_core::Unit::Millivolt),
         };
         assert_eq!(
             decode_measurement_summary(&encode_measurement_summary(&summary).unwrap()),
             Ok(summary.clone())
         );
         let mut invalid = summary;
-        invalid.range = Quantity::new(99, conduit_core::QuantityUnit::Millivolt);
+        invalid.range = Quantity::new(99, conduit_core::Unit::Millivolt);
         assert_eq!(
             encode_measurement_summary(&invalid),
             Err(MeasurementWireRefusal::Malformed)

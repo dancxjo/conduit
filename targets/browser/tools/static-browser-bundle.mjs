@@ -17,7 +17,7 @@ export async function prepareStaticBrowserBundle(source, destination, implementa
       || file.path.split('/').some(part => !part || part === '.' || part === '..')) throw new Error('Reviewed distribution path is unsafe');
     const name = path.join(source, file.path);
     const stat = await lstat(name);
-    if (!stat.isFile() || stat.isSymbolicLink() || stat.size !== file.bytes || stat.size > 16 * 1024 * 1024) throw new Error('Reviewed distribution file changed size');
+    if (!stat.isFile() || stat.isSymbolicLink() || stat.size !== file.bytes || stat.size > (file.path === 'runtime.wasm' ? 20 : 16) * 1024 * 1024) throw new Error('Reviewed distribution file changed size');
     const bytes = new Uint8Array(await readFile(name));
     if (`sha256:${createHash('sha256').update(bytes).digest('hex')}` !== file.sha256) throw new Error('Reviewed distribution file changed digest');
     payloads.push({ ...file, bytes });

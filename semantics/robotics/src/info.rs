@@ -3,7 +3,7 @@
 //! Units and reference frames are part of each Info identity. These values do
 //! not imply a sensor, Host, Base, implementation, or physical observation.
 
-use conduit_core::{semantic_digest, InfoDecodeError, Quantity, QuantityUnit};
+use conduit_core::{semantic_digest, InfoDecodeError, Quantity, Unit};
 use core::{cmp::Ordering, hash::Hash};
 
 use crate::{BatteryObservation, OdometryObservation, OrientationObservation, RangeObservation};
@@ -26,27 +26,18 @@ pub const MAXIMUM_BATTERY_MILLIVOLTS: u16 = 60_000;
 
 impl RangeObservation {
     pub fn from_quantities(distance: Quantity, age: Quantity) -> Result<Self, InfoDecodeError> {
-        let distance_mm = quantity_u32(
-            "distance-mm",
-            distance,
-            QuantityUnit::Millimeter,
-            MAXIMUM_RANGE_MM,
-        )?;
-        let age_ms = quantity_u32(
-            "age-ms",
-            age,
-            QuantityUnit::Millisecond,
-            MAXIMUM_OBSERVATION_AGE_MS,
-        )?;
+        let distance_mm =
+            quantity_u32("distance-mm", distance, Unit::Millimeter, MAXIMUM_RANGE_MM)?;
+        let age_ms = quantity_u32("age-ms", age, Unit::Millisecond, MAXIMUM_OBSERVATION_AGE_MS)?;
         Ok(Self::new(distance_mm, age_ms).expect("quantity bounds match generated contracts"))
     }
 
     pub fn distance(self) -> Quantity {
-        Quantity::new(i64::from(self.distance_mm()), QuantityUnit::Millimeter)
+        Quantity::new(i64::from(self.distance_mm()), Unit::Millimeter)
     }
 
     pub fn age(self) -> Quantity {
-        Quantity::new(i64::from(self.age_ms()), QuantityUnit::Millisecond)
+        Quantity::new(i64::from(self.age_ms()), Unit::Millisecond)
     }
 
     pub fn encode(self) -> [u8; ROBOTICS_RANGE_ENCODED_LEN] {
@@ -154,12 +145,11 @@ impl Hash for OdometryObservation {
 
 impl BatteryObservation {
     pub fn from_quantities(charge: Quantity, voltage: Quantity) -> Result<Self, InfoDecodeError> {
-        let charge_permille =
-            quantity_u16("charge-permille", charge, QuantityUnit::Permille, 1_000)?;
+        let charge_permille = quantity_u16("charge-permille", charge, Unit::Permille, 1_000)?;
         let millivolts = quantity_u16(
             "millivolts",
             voltage,
-            QuantityUnit::Millivolt,
+            Unit::Millivolt,
             MAXIMUM_BATTERY_MILLIVOLTS,
         )?;
         Ok(Self::new(charge_permille, millivolts)
@@ -167,11 +157,11 @@ impl BatteryObservation {
     }
 
     pub const fn charge(self) -> Quantity {
-        Quantity::new(self.charge_permille() as i64, QuantityUnit::Permille)
+        Quantity::new(self.charge_permille() as i64, Unit::Permille)
     }
 
     pub const fn voltage(self) -> Quantity {
-        Quantity::new(self.millivolts() as i64, QuantityUnit::Millivolt)
+        Quantity::new(self.millivolts() as i64, Unit::Millivolt)
     }
 
     pub const fn encode(self) -> [u8; ROBOTICS_BATTERY_ENCODED_LEN] {
@@ -247,17 +237,17 @@ fn exact_len(encoded: &[u8], expected: usize) -> Result<(), InfoDecodeError> {
 fn quantity_u32(
     field: &'static str,
     quantity: Quantity,
-    unit: QuantityUnit,
+    unit: Unit,
     maximum: u32,
 ) -> Result<u32, InfoDecodeError> {
     let converted = quantity
-        .convert(unit)
+        .to_i64(unit)
         .map_err(InfoDecodeError::QuantityConversion)?;
-    let value = u32::try_from(converted.value()).map_err(|_| InfoDecodeError::OutOfRange {
+    let value = u32::try_from(converted).map_err(|_| InfoDecodeError::OutOfRange {
         field,
         minimum: 0,
         maximum: i64::from(maximum),
-        actual: converted.value(),
+        actual: converted,
     })?;
     bounded_u32(field, value, maximum)?;
     Ok(value)
@@ -266,17 +256,17 @@ fn quantity_u32(
 fn quantity_u16(
     field: &'static str,
     quantity: Quantity,
-    unit: QuantityUnit,
+    unit: Unit,
     maximum: u16,
 ) -> Result<u16, InfoDecodeError> {
     let converted = quantity
-        .convert(unit)
+        .to_i64(unit)
         .map_err(InfoDecodeError::QuantityConversion)?;
-    let value = u16::try_from(converted.value()).map_err(|_| InfoDecodeError::OutOfRange {
+    let value = u16::try_from(converted).map_err(|_| InfoDecodeError::OutOfRange {
         field,
         minimum: 0,
         maximum: i64::from(maximum),
-        actual: converted.value(),
+        actual: converted,
     })?;
     bounded_i64(field, i64::from(value), 0, i64::from(maximum))?;
     Ok(value)

@@ -135,7 +135,7 @@ fn civil_rule_type() -> StructuredInfoType {
                         kind_id("time/civil-date-exception-slot@1"),
                         vec![
                             case("exclude", leaf("time/local-date@1")),
-                            case("unused", leaf("value/unit")),
+                            case("unused", leaf("value/empty")),
                         ],
                     )
                     .unwrap(),
@@ -180,7 +180,7 @@ pub fn recurrence_until_type() -> StructuredInfoType {
         vec![
             case("civil_date", leaf("time/local-date@1")),
             case("monotonic", recurrence_monotonic_type()),
-            case("none", leaf("value/unit")),
+            case("none", leaf("value/empty")),
             case("wall", recurrence_instant_type()),
         ],
     )
@@ -244,7 +244,7 @@ pub fn recurrence_resolution_type() -> StructuredInfoType {
                 "unique",
                 resolution_payload_type("time/unique-civil-resolution@1", &["instant"]),
             ),
-            case("unused", leaf("value/unit")),
+            case("unused", leaf("value/empty")),
         ],
     )
     .unwrap()
@@ -255,7 +255,7 @@ pub fn recurrence_request_type() -> StructuredInfoType {
         kind_id("time/ordinal-exception-slot@1"),
         vec![
             case("exclude", leaf("value/count")),
-            case("unused", leaf("value/unit")),
+            case("unused", leaf("value/empty")),
         ],
     )
     .unwrap();
@@ -322,7 +322,7 @@ pub fn recurrence_result_type() -> StructuredInfoType {
         kind_id("time/recurrence-occurrence-slot@1"),
         vec![
             case("occurrence", recurrence_occurrence_type()),
-            case("unused", leaf("value/unit")),
+            case("unused", leaf("value/empty")),
         ],
     )
     .unwrap();
@@ -359,7 +359,7 @@ pub fn install_recurrence_catalogs(
 }
 
 fn default_recurrence_request() -> Result<StructuredInfoValue, String> {
-    let unit = || leaf_value("value/unit", "");
+    let unit = || leaf_value("value/empty", "");
     let instant = instant_value(0)?;
     let rule_type = recurrence_rule_type();
     let one_shot_type = variant_payload_type(&rule_type, "one_shot")?;
@@ -423,8 +423,12 @@ fn instant_value(ticks: u64) -> Result<StructuredInfoValue, String> {
 fn unused_slots(slot_type: StructuredInfoType, length: u16) -> Result<StructuredInfoValue, String> {
     let values = (0..length)
         .map(|_| {
-            StructuredInfoValue::variant(slot_type.clone(), "unused", leaf_value("value/unit", "")?)
-                .map_err(value_error)
+            StructuredInfoValue::variant(
+                slot_type.clone(),
+                "unused",
+                leaf_value("value/empty", "")?,
+            )
+            .map_err(value_error)
         })
         .collect::<Result<Vec<_>, String>>()?;
     StructuredInfoValue::collection(

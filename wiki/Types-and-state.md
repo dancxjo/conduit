@@ -328,7 +328,7 @@ type Result =
 
 plot guarded (
     value: Request >> result: Result
-) = (.index < sequence/length(.bytes) ? octet(sequence/at(.bytes, .index)) : short(unit))
+) = (.index < sequence/length(.bytes) ? octet(sequence/at(.bytes, .index)) : short(empty))
 ```
 
 Only the selected ternary branch evaluates, so a short sequence returns

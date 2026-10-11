@@ -22,7 +22,9 @@ pub struct KindSignature {
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum CanonicalStartupValue {
     Literal(String),
-    Quantity(conduit_core::Quantity),
+    Quantity(conduit_core::QuantityConfigurationValue),
+    Unit(conduit_core::UnitConfigurationValue),
+    TemperatureDifference(conduit_core::ExactTemperatureDifferenceConfigurationValue),
     PlotParameter(String),
     PoolReference(conduit_core::SharedPoolId),
     Structured(crate::CanonicalStructuredStartupValue),
@@ -166,6 +168,7 @@ pub struct CheckedCanonicalPlot {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CheckedSyntaxDocument {
+    pub(crate) physical: crate::physical_declarations::CheckedPhysicalCatalogue,
     /// All sealed literal results, including glyphs in Native Type refinements.
     pub glyph_values: crate::AdmittedGlyphValues,
     pub source_document_id: SourceDocumentId,
@@ -413,7 +416,6 @@ pub(crate) enum SyntaxCheckError {
     DuplicateGear(String),
     UnsupportedExpression(String),
     QuantityLiteral(String),
-    QuantityEligibility(String, Option<Span>),
     InvalidIntegerLiteral(String),
     AmbiguousFrontName(String),
     StructuredExpression(String, Option<Span>),
@@ -478,7 +480,6 @@ impl SyntaxCheckError {
                 None,
             ),
             Self::QuantityLiteral(detail) => ("CND-FRM-055", detail, None),
-            Self::QuantityEligibility(detail, owned_span) => ("CND-FRM-055", detail, owned_span),
             Self::InvalidIntegerLiteral(detail) => ("CND-FRM-055", detail, None),
             Self::AmbiguousFrontName(name) => (
                 "CND-FRM-050",

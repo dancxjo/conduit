@@ -4,8 +4,8 @@ plot durable-note (
     current: $Text <= 4KiB >>
     saved: &Text... >>
     loaded: Text >>
-    save-failed: data/save-text-terminal@2e710b62054501d8eb8210a36d4e0f635c5b2ac4a057d37454babcaed109f85a >>
-    load-failed: data/load-text-terminal@6c99fbff6f4b3cb49c2594b9ec9c31cbb605617d2f327483af17a51dd8eae236 >>
+    save-failed: data/save-text-terminal@c9caf46f9958aa5b274309038c97d1bfb003fa64b48e043cf71cfcc57364994d >>
+    load-failed: data/load-text-terminal@ff523b61dc5d92d3547903df737494fa74567db1a70581be1b70b9ea7048bb6e >>
 ) {
     note: keep Text("") <= 4KiB for life
     save: data/save/text

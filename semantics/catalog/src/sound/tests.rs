@@ -31,7 +31,8 @@ fn audio_tone_is_exactly_typed_bounded_and_cancellable() {
     );
     assert_eq!(contract.inputs[0].temporal, PortTemporal::Current);
     assert_eq!(contract.limits.max_queue_items, 1);
-    assert_eq!(contract.limits.max_queue_bytes, AUDIO_TONE_PCM_BLOCK_BYTES);
+    assert_eq!(contract.limits.max_queue_bytes, AUDIO_TONE_QUEUE_BYTES);
+    assert!(contract.limits.max_queue_bytes >= conduit_core::QUANTITY_ENCODED_LEN as u32);
     assert_eq!(contract.outputs[0].value_kind.as_str(), AUDIO_PCM_INFO_ID);
     assert_eq!(
         contract.outputs[0].abnormal_kind.as_ref().unwrap().as_str(),

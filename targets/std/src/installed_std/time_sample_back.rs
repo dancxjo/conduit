@@ -2,7 +2,6 @@
 
 use super::back::{BackBudget, BackFactory, InstalledBack};
 use conduit_core::{CheckedValueContract, FrontValueLocation, PlannedGear};
-use conduit_kernel::CanonicalValue;
 
 pub(super) static FACTORY: BackFactory = BackFactory {
     implementation_id: conduit_std_offers::TIME_SAMPLE_IMPLEMENTATION,
@@ -36,7 +35,6 @@ fn validate(placement: &PlannedGear) -> Result<&CheckedValueContract, String> {
     let expected =
         conduit_semantic_catalog::time_sample_semantic_contract(value).map_err(str::to_string)?;
     if value.maximum_bytes > conduit_std_offers::TIME_SAMPLE_MAXIMUM_VALUE_BYTES
-        || value.maximum_bytes as usize > CanonicalValue::MAXIMUM_BYTES
         || placement.kind_id.as_str() != conduit_semantic_catalog::TIME_SAMPLE_KIND
         || placement.kind_contract_revision.as_str()
             != conduit_semantic_catalog::TIME_SAMPLE_CONTRACT_REVISION

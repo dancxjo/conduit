@@ -1,6 +1,6 @@
 use conduit_core::{
     kind_id, port_id, ConfigurationValue, InfoBool, KindIdentity, PortDescriptor, PortDirection,
-    PortTemporal, Quantity, QuantityUnit, BOOL_INFO_ID, TEMPERATURE_INFO_ID,
+    PortTemporal, Quantity, Unit, BOOL_INFO_ID, TEMPERATURE_INFO_ID,
 };
 use conduit_plot::{
     check_syntax_document, expand_canonical_plot, parse_syntax_document, KindProjection,
@@ -59,7 +59,7 @@ fn immutable_quantity_local_is_captured_by_the_lowered_expression() {
     let program = PortableExpressionProgram::from_canonical_hex(program).unwrap();
     assert_eq!(
         program
-            .evaluate(&Quantity::new(31, QuantityUnit::Celsius).encode())
+            .evaluate(&Quantity::new(31, Unit::Celsius).encode())
             .unwrap(),
         InfoBool::TRUE.encode()
     );

@@ -1,6 +1,4 @@
-use conduit_core::{
-    ExactDecimalQuantity as Exact, StructuredInfoValueShape, EXACT_DECIMAL_QUANTITY_INFO_ID,
-};
+use conduit_core::{Quantity as Exact, QUANTITY_ENCODED_LEN, QUANTITY_INFO_ID};
 use conduit_plot::{
     check_syntax_document, parse_syntax_document, CanonicalStartupValue, KindSignature,
     StartupCatalog, StartupParameterSignature,
@@ -13,7 +11,7 @@ fn catalog() -> StartupCatalog {
             kind: "test/exact-consumer".into(),
             startup_parameters: vec![StartupParameterSignature {
                 name: "value".into(),
-                value_type: "ExactQuantity".into(),
+                value_type: "Quantity".into(),
                 default: None,
             }],
         })
@@ -24,47 +22,37 @@ fn catalog() -> StartupCatalog {
 #[test]
 fn explicit_exact_type_admits_extreme_prefixes_as_checked_canonical_startup_values() {
     for literal in [
-        "1Qm", "1qm", "1Qm³", "1qm³", "-1qm", "1um2", "1uW", "273.15K",
+        "1Qm", "1qm", "1Qm³", "1qm³", "-1qm", "1um²", "1uW", "273.15K",
     ] {
         let source = format!("plot sample {{\n sink: test/exact-consumer({literal})\n}}\n");
         let parsed = parse_syntax_document(&source);
         assert_eq!(parsed.round_trip(), source);
         let checked = check_syntax_document(&parsed, &catalog()).unwrap();
         let binding = &checked.plots[0].gears[0].startup_bindings[0];
-        let CanonicalStartupValue::Structured(value) = &binding.value else {
-            panic!("explicit checked profile");
+        let CanonicalStartupValue::Quantity(value) = &binding.value else {
+            panic!("checked Quantity");
         };
-        let concrete = value.try_concrete().unwrap();
-        let StructuredInfoValueShape::Leaf(bytes) = concrete.shape() else {
-            panic!("exact leaf");
-        };
-        assert!(
-            matches!(concrete.value_type().shape(), conduit_core::StructuredInfoTypeShape::Leaf(kind)
-            if kind.as_str() == EXACT_DECIMAL_QUANTITY_INFO_ID)
-        );
-        assert_eq!(
-            Exact::decode(bytes),
-            Exact::parse_plot_literal(literal),
-            "{literal}"
-        );
-        assert_eq!(bytes.len(), 20);
+        assert_eq!(value.value(), Exact::parse_plot_literal(literal).unwrap());
+        assert_eq!(value.value().encode().len(), QUANTITY_ENCODED_LEN);
     }
 }
 
 #[test]
-fn exact_startup_defaults_are_explicit_and_legacy_defaults_still_refuse_extreme_scales() {
-    let source = "plot exact (\n extent: ExactQuantity = 1Qm\n) {\n}\n";
+fn canonical_quantity_and_dimension_defaults_admit_extreme_scales() {
+    let source = "plot exact (\n extent: Quantity = 1Qm\n) {\n}\n";
     let checked =
         check_syntax_document(&parse_syntax_document(source), &StartupCatalog::new()).unwrap();
     assert!(matches!(
         checked.plots[0].startup_parameters[0].default,
-        Some(CanonicalStartupValue::Structured(_))
+        Some(CanonicalStartupValue::Quantity(_))
     ));
-    let source = source.replace("ExactQuantity", "Distance");
-    let diagnostic =
-        check_syntax_document(&parse_syntax_document(&source), &StartupCatalog::new()).unwrap_err();
-    assert!(diagnostic.message.contains("RepresentationIneligible"));
-    assert_eq!(&source[diagnostic.span.start..diagnostic.span.end], "1Qm");
+    let source = source.replace("Quantity", "Distance");
+    let checked =
+        check_syntax_document(&parse_syntax_document(&source), &StartupCatalog::new()).unwrap();
+    assert!(matches!(
+        checked.plots[0].startup_parameters[0].default,
+        Some(CanonicalStartupValue::Quantity(_))
+    ));
 }
 
 #[test]
@@ -80,18 +68,14 @@ fn complete_reviewed_prefix_matrix_enters_the_ordinary_authored_exact_profile() 
         let parsed = parse_syntax_document(&source);
         let checked =
             check_syntax_document(&parsed, &catalog).unwrap_or_else(|e| panic!("{literal}: {e:?}"));
-        let CanonicalStartupValue::Structured(value) =
+        let CanonicalStartupValue::Quantity(value) =
             &checked.plots[0].gears[0].startup_bindings[0].value
         else {
-            panic!("{literal}: checked exact leaf");
-        };
-        let concrete = value.try_concrete().unwrap();
-        let StructuredInfoValueShape::Leaf(bytes) = concrete.shape() else {
-            panic!("{literal}: leaf");
+            panic!("{literal}: Quantity");
         };
         assert_eq!(
-            Exact::decode(bytes),
-            Exact::parse_plot_literal(literal),
+            value.value(),
+            Exact::parse_plot_literal(literal).unwrap(),
             "{literal}"
         );
         assert_eq!(parsed.round_trip(), source);
@@ -99,18 +83,21 @@ fn complete_reviewed_prefix_matrix_enters_the_ordinary_authored_exact_profile() 
 }
 
 #[test]
-fn exact_native_carrier_keeps_type_codec_and_identity_separate_from_legacy() {
-    use conduit_core::{kind_id, Quantity, QuantityUnit, StructuredInfoType};
+fn native_quantity_has_one_canonical_codec() {
+    use conduit_core::{kind_id, Quantity, StructuredInfoType, Unit};
     use conduit_plot::rust_binding::{primitive_from_structured, primitive_into_structured};
-    let ty = StructuredInfoType::leaf(kind_id(EXACT_DECIMAL_QUANTITY_INFO_ID)).unwrap();
+    let ty = StructuredInfoType::leaf(kind_id(QUANTITY_INFO_ID)).unwrap();
     let exact = Exact::parse_plot_literal("1Qm").unwrap();
     let structured = primitive_into_structured(ty.clone(), &exact).unwrap();
     assert_eq!(
         primitive_from_structured::<Exact>(&structured).unwrap(),
         exact
     );
-    assert!(primitive_from_structured::<Quantity>(&structured).is_err());
-    assert!(primitive_into_structured(ty, &Quantity::new(1, QuantityUnit::Meter)).is_err());
+    assert_eq!(
+        primitive_from_structured::<Quantity>(&structured).unwrap(),
+        exact
+    );
+    assert!(primitive_into_structured(ty, &Quantity::new(1, Unit::Meter)).is_ok());
 }
 
 #[test]

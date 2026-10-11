@@ -1,5 +1,5 @@
 use conduit_core::{
-    ConfigurationValue, PortTemporal, Quantity, QuantityDimension, QuantityUnit, DISTANCE_INFO_ID,
+    ConfigurationValue, PortTemporal, Quantity, QuantityDimension, Unit, DISTANCE_INFO_ID,
     FREQUENCY_INFO_ID,
 };
 use conduit_plot::{
@@ -122,8 +122,9 @@ fn dimension_and_range_mistakes_refuse_on_the_production_path() {
     let (startup, _) = theremin_catalogs();
     let syntax = parse_syntax_document(&wrong_dimension);
     let error = check_syntax_document(&syntax, &startup).unwrap_err();
-    assert_eq!(error.code, "CND-FRM-055");
-    assert!(error.message.contains("Distance"));
+    assert_eq!(error.code, "CND-FRM-051");
+    assert!(error.message.contains("declared quantity family and role"));
+    assert_eq!(&wrong_dimension[error.span.start..error.span.end], "30Hz");
 
     let outside_range = source.replacen("source-maximum = 30cm", "source-maximum = 10001cm", 1);
     let error = expand_theremin(&outside_range).unwrap_err();
@@ -135,13 +136,14 @@ fn dimension_and_range_mistakes_refuse_on_the_production_path() {
     let syntax = parse_syntax_document(&wrong_keep);
     let error = check_syntax_document(&syntax, &startup).unwrap_err();
     assert_eq!(error.code, "CND-FRM-051");
-    assert!(error.message.contains("wrong exact dimension"));
+    assert!(error.message.contains("quantity family"), "{error:?}");
+    assert!(wrong_keep[error.span.start..error.span.end].contains("440cm"));
 }
 
 #[test]
 fn dimensioned_primitive_ids_share_quantity_bytes_without_erasing_meaning() {
-    let distance = Quantity::new(30, QuantityUnit::Centimeter);
-    let frequency = Quantity::new(440, QuantityUnit::Hertz);
+    let distance = Quantity::new(30, Unit::Centimeter);
+    let frequency = Quantity::new(440, Unit::Hertz);
     assert_eq!(distance.dimension(), QuantityDimension::Length);
     assert_eq!(frequency.dimension(), QuantityDimension::Frequency);
     assert_eq!(

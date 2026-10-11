@@ -353,7 +353,7 @@ fn keep_duration_requires_exact_back_support_before_planning() {
             &placements,
             &[BaseImplementationId::from(LOCAL_BASE_IMPLEMENTATION_ID)],
             1,
-            100,
+            conduit_std_offers::STATE_VALUE_STD_MAXIMUM_BYTES,
         );
         (plot, hosts, result)
     };
@@ -591,7 +591,7 @@ fn optional_keep_plans_runs_and_retains_canonical_some_value() {
         &placements,
         &[BaseImplementationId::from(LOCAL_BASE_IMPLEMENTATION_ID)],
         1,
-        100,
+        conduit_std_offers::STATE_VALUE_STD_MAXIMUM_BYTES,
     )
     .unwrap();
     let [state] = plan.fragments[0].states.as_slice() else {
@@ -624,7 +624,7 @@ fn optional_keep_continuity_preserves_exact_variant_and_generation() {
             &placements,
             &[BaseImplementationId::from(LOCAL_BASE_IMPLEMENTATION_ID)],
             1,
-            100,
+            conduit_std_offers::STATE_VALUE_STD_MAXIMUM_BYTES,
         )
         .unwrap()
     };

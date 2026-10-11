@@ -23,10 +23,9 @@ pub(crate) fn canonical_value_kind(source_type: &str) -> KindId {
         "Boolean" => kind_id("value/bool"),
         "Scalar" => kind_id("value/scalar"),
         "Bytes" => kind_id("value/bytes"),
-        "Unit" => kind_id("value/unit"),
-        "Quantity" => kind_id("value/quantity"),
-        "ExactQuantity" => kind_id(conduit_core::EXACT_DECIMAL_QUANTITY_INFO_ID),
-        "QuantityUnit" => kind_id(conduit_core::QUANTITY_UNIT_INFO_ID),
+        "Empty" => kind_id("value/empty"),
+        "Quantity" => kind_id(conduit_core::QUANTITY_INFO_ID),
+        "Unit" => kind_id(conduit_core::UNIT_INFO_ID),
         "U8" => kind_id("value/u8"),
         "U16" => kind_id("value/u16"),
         "U32" => kind_id("value/u32"),
@@ -70,6 +69,11 @@ pub(crate) fn checked_value_kind(
     catalog
         .structured_type(source_type)
         .map(|value_type| {
+            if let conduit_core::StructuredInfoTypeShape::Leaf(kind) = value_type.shape() {
+                if crate::authored_quantity::expected_role(value_type).is_some() {
+                    return Ok(kind.clone());
+                }
+            }
             value_type
                 .profile()
                 .map(|profile| profile.value_kind().clone())

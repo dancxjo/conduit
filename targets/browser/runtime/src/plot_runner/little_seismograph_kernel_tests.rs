@@ -4,7 +4,7 @@ use super::*;
 use conduit_core::{
     process_owned_line_offer_with_limits, BaseImplementationId, CapabilityLimits, CapabilityOffer,
     ImplementationOffer, LinkLimits, PortDescriptor, PortDirection, PortTemporal, Quantity,
-    QuantityUnit, StructuredInfoType, StructuredInfoValue, TemporalInstant, TemporalScale,
+    StructuredInfoType, StructuredInfoValue, TemporalInstant, TemporalScale, Unit,
 };
 use conduit_data::{
     FullWindowPolicy, MeasurementHysteresisProfile, MeasurementRange, MeasurementSample,
@@ -236,7 +236,7 @@ fn sample(value: i64, ticks: u64) -> Vec<u8> {
     leaf(
         conduit_data::measurement_sample_type(),
         conduit_data::encode_measurement_sample(&MeasurementSample {
-            value: Quantity::new(value, QuantityUnit::Millivolt),
+            value: Quantity::new(value, Unit::Millivolt),
             observed_at: TemporalInstant {
                 ticks,
                 scale: TemporalScale::Milliseconds,
@@ -302,8 +302,8 @@ fn canonical_processing_runs_window_summary_hysteresis_and_plot_in_one_play() {
         conduit_data::encode_measurement_window_profile(&MeasurementWindowProfile {
             capacity: 2,
             range: MeasurementRange {
-                minimum: Quantity::new(0, QuantityUnit::Millivolt),
-                maximum: Quantity::new(100, QuantityUnit::Millivolt),
+                minimum: Quantity::new(0, Unit::Millivolt),
+                maximum: Quantity::new(100, Unit::Millivolt),
             },
             clock_basis: "fixture-clock".into(),
             full_policy: FullWindowPolicy::DropOldest,
@@ -320,8 +320,8 @@ fn canonical_processing_runs_window_summary_hysteresis_and_plot_in_one_play() {
         conduit_data::measurement_hysteresis_profile_type(),
         conduit_data::encode_measurement_hysteresis_profile(MeasurementHysteresisProfile {
             policy: MeasurementThresholdPolicy::new(
-                Quantity::new(40, QuantityUnit::Millivolt),
-                Quantity::new(60, QuantityUnit::Millivolt),
+                Quantity::new(40, Unit::Millivolt),
+                Quantity::new(60, Unit::Millivolt),
             )
             .unwrap(),
             initial_state: MeasurementThresholdState::Below,

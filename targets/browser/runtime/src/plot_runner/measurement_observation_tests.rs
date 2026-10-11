@@ -4,8 +4,12 @@ use super::engine::{
     complete_host_effect, complete_host_effect_with_output, drive, prepare, BrowserHostEffect,
     DriveStatus,
 };
-use conduit_core::{Quantity, QuantityUnit, StructuredInfoValueShape, TemporalScale};
-use conduit_planner::{default_expanded_placements, plan_expanded_canonical_with_options};
+use crate::installed_browser::MAXIMUM_BROWSER_VALUE_BYTES;
+use crate::plot_runner::finite_connection_limits;
+use conduit_core::{Quantity, StructuredInfoValueShape, TemporalScale, Unit};
+use conduit_planner::{
+    default_expanded_placements, plan_expanded_canonical_with_connection_limits,
+};
 use conduit_plot::{KindProjection, KindSignature};
 use std::collections::BTreeMap;
 
@@ -67,7 +71,7 @@ fn fragment() -> conduit_core::PlanFragment {
         .iter()
         .any(|offer| { offer.kind_id.as_str() == conduit_data::MEASUREMENT_OBSERVATION_KIND }));
     let placements = default_expanded_placements(&expanded, &[host.clone()]).unwrap();
-    plan_expanded_canonical_with_options(
+    plan_expanded_canonical_with_connection_limits(
         &expanded,
         &[host],
         &placements,
@@ -81,6 +85,7 @@ fn fragment() -> conduit_core::PlanFragment {
             protected_resource_grants: &[],
             line_offers: &[],
         },
+        &finite_connection_limits(&expanded, MAXIMUM_BROWSER_VALUE_BYTES as u32),
     )
     .unwrap()
     .fragments
@@ -140,7 +145,7 @@ fn interactive_fragment() -> conduit_core::PlanFragment {
     host.capabilities
         .sort_by(|left, right| left.capability_id.cmp(&right.capability_id));
     let placements = default_expanded_placements(&expanded, &[host.clone()]).unwrap();
-    plan_expanded_canonical_with_options(
+    plan_expanded_canonical_with_connection_limits(
         &expanded,
         &[host],
         &placements,
@@ -154,6 +159,7 @@ fn interactive_fragment() -> conduit_core::PlanFragment {
             protected_resource_grants: &[],
             line_offers: &[],
         },
+        &finite_connection_limits(&expanded, MAXIMUM_BROWSER_VALUE_BYTES as u32),
     )
     .unwrap()
     .fragments
@@ -178,7 +184,7 @@ fn deterministic_control_runs_the_authored_measurement_plot_in_the_production_ke
         panic!("measurement proof requested an unexpected Host effect")
     };
     let sample = decode_sample(&manifestation.canonical_value);
-    assert_eq!(sample.value, Quantity::new(25, QuantityUnit::Millivolt));
+    assert_eq!(sample.value, Quantity::new(25, Unit::Millivolt));
     assert_eq!(sample.observed_at.ticks, 1);
     assert_eq!(sample.observed_at.scale, TemporalScale::Milliseconds.into());
     assert_eq!(sample.observed_at.clock_basis, "control-occurrence");
@@ -232,7 +238,7 @@ fn browser_pointer_and_deterministic_control_share_the_exact_measurement_plot() 
         panic!("interactive measurement requested an unexpected Host effect")
     };
     let sample = decode_sample(&manifestation.canonical_value);
-    assert_eq!(sample.value, Quantity::new(25, QuantityUnit::Millivolt));
+    assert_eq!(sample.value, Quantity::new(25, Unit::Millivolt));
     assert_eq!(sample.observed_at.clock_basis, "control-occurrence");
     assert!(scheduler
         .signs()

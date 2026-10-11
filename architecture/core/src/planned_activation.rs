@@ -334,7 +334,7 @@ fn verify_fold(
         && activation.accumulator_input.abnormal_kind == activation.item_input.abnormal_kind
         && activation.accumulator_input.abnormal_kind == activation.output.abnormal_kind
         && (!activation.initial_accumulator.is_empty()
-            || activation.accumulator_input.value_kind.as_str() == crate::UNIT_INFO_ID)
+            || activation.accumulator_input.value_kind.as_str() == crate::EMPTY_INFO_ID)
         && activation.initial_accumulator.len() <= activation.retained_accumulator_bytes as usize
         && activation.retained_accumulator_bytes > 0
         && activation.retained_item_bytes > 0

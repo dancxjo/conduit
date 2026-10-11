@@ -8,13 +8,21 @@ The `cargo xtask make host release --platform browser` recipe builds the entire
 WASM dependency graph with size optimization
 (`opt-level = z`), fat LTO and one codegen unit. On source `5b344df52`, with the
 scoped glyph and checked IPA authoring consumers, the recipe produced
-16,515,525 bytes; the thin-LTO comparison produced 17,429,951 bytes. The workspace application template reserves 16 MiB
-for its runtime, matching the existing native-server, SDK and browser-bootstrap
-download bound. This download bound is separate from the unchanged 8 MiB page-profile
+16,515,525 bytes; the thin-LTO comparison produced 17,429,951 bytes. The combined scoped-glyph and physical-unit candidate `199f35a0a` produced
+17,231,460 bytes with the same recipe. The workspace application template
+reserves 20 MiB for its runtime, matching the native server, SDK, static
+application runtime resource envelope and browser bootstrap download bound. This download bound is separate from the unchanged 8 MiB page-profile
 heap allowance. Body Play reserves a finite 2,176 KiB value arena before
 execution: the reviewed resident Theremin workload requires 2,150,400 bytes
 under the current native structured contracts. Larger workloads still fail
 ordinary capacity admission.
+
+The installed product and canonical std Plot editor prepare their compiled
+semantic catalogs once per process, including the checked builtin physical
+source custody. Each source/editor receives its own catalog copy; authored
+local types, Host observations, offers and planning remain independently
+admitted. This avoids repeating physical and IPA catalog preparation while
+opening the installed Crèche inventory under the finite control deadline.
 
 Workspace preparation and each Plot library render retain one immutable installed catalog pair while
 checking consecutive documents with the same presentation profile. A profile

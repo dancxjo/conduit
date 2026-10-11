@@ -533,9 +533,15 @@ Fan-out is an explicit planned property. One emission is admitted atomically to 
 
 Authored and runtime numeric meaning uses four distinct layers. `Count` is a
 nonnegative cardinality, index, or finite whole-number count. `Scalar` is a
-dimensionless signed fixed-point value. `Quantity` is an exact integer paired
-with a reviewed physical or dimensional unit; startup configuration retains
-that value and unit through checking, planning, and realization. A domain Info
+dimensionless signed fixed-point value. `Quantity` is a bounded exact decimal paired
+with a source-defined physical or dimensional `Unit`. Quantity families, exact
+unit relationships, point/delta roles, and prefix policies are authoritative
+Conduitese declarations admitted into an immutable catalogue. Startup
+configuration retains the complete checked value through planning and
+realization. Family-and-role leaf identities validate its self-contained capsule
+at runtime, including records and ports. Bare temperature literals are points;
+differences use an explicit constructor such as `TemperatureDelta(21, °C)`.
+A domain Info
 record supplies the surrounding context—such as frame, source, freshness, or
 provenance—and may contain or expose Quantities without collapsing into one.
 Targets refuse incompatible or inexact conversion rather than reconstructing a
@@ -545,7 +551,7 @@ unit from a parameter name.
 offer characteristics and preserves the ownership and stability law of those
 offers. Count-like domains such as tokens, frames, items, and identifiers may
 remain there. It is not a second author-facing physical-unit catalog and must
-not grow new physical dimensions that belong to `QuantityUnit`.
+not grow new physical dimensions that belong to `Unit`.
 
 ### Bounded before play start
 

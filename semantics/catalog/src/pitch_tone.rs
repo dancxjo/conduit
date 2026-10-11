@@ -61,7 +61,7 @@ pub fn install_pitch_tone_catalog(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use conduit_core::{PortDirection, PortTemporal, QuantityUnit, QUANTITY_INFO_ID};
+    use conduit_core::{PortDirection, PortTemporal, Unit, QUANTITY_INFO_ID};
 
     #[test]
     fn pitch_tone_is_an_exact_bounded_frequency_sink_without_platform_facts() {
@@ -80,7 +80,7 @@ mod tests {
             assert!(!contract.summary.contains(forbidden));
         }
         assert_eq!(
-            QuantityUnit::Hertz.dimension(),
+            Unit::Hertz.dimension(),
             conduit_core::QuantityDimension::Frequency
         );
     }

@@ -38,21 +38,23 @@ pub(super) fn expand_when_filter(
             ));
         }
     }
-    let expression = substitute_immutable_values(expression, source_plot, environment)?;
+    let mut expression = substitute_immutable_values(expression, source_plot, environment)?;
+    let (literal_types, canonical_literals) =
+        physical_literals::bind(&mut expression, source_plot, environment, catalog)?;
     let semantic_kinds = catalog
         .canonical_kinds()
         .values()
         .cloned()
         .map(|kind| (kind.kind_id.as_str().to_string(), kind))
         .collect::<BTreeMap<_, _>>();
-    let checked = crate::check_expression(
+    let mut checked = crate::check_expression(
         &expression,
         &crate::ExpressionTypeContext {
             glyph_values: Some(&source_plot.glyph_values),
             input: &crate::CheckedExpressionType::Semantic(input_kind),
             immutable_values: &BTreeMap::new(),
             structured_types,
-            literal_types: &BTreeMap::new(),
+            literal_types: &literal_types,
             numeric_types: &BTreeSet::new(),
             semantic_kinds: &semantic_kinds,
         },
@@ -63,6 +65,7 @@ pub(super) fn expand_when_filter(
             &format!("when predicate is not well typed: {}", error.message),
         )
     })?;
+    checked.canonical_literals = canonical_literals;
     let definition = crate::pure_filter_definition(&checked, temporal).map_err(|_| {
         diagnostic(
             source_span,

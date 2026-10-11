@@ -52,7 +52,15 @@ impl Parser<'_> {
             .collect::<Result<Vec<_>, (PlotError, Span)>>()?;
         let declaration_start = start;
 
-        let (definition, invariants) = if body == "{" {
+        let (definition, invariants) = if body.starts_with("quantity ") {
+            if !parameters.is_empty() {
+                return Err(self.invalid_statement(header, start));
+            }
+            (
+                TypeDefinitionSyntax::Quantity(self.parse_physical_quantity(body, header, start)?),
+                Vec::new(),
+            )
+        } else if body == "{" {
             self.index += 1;
             let (fields, invariants) = self.parse_type_fields(true)?;
             (TypeDefinitionSyntax::Record(fields), invariants)
@@ -194,7 +202,7 @@ impl Parser<'_> {
             } else if let Some(payload) = payload_source {
                 TypeVariantPayloadSyntax::Type(self.parse_type_expression(payload, text, start)?)
             } else {
-                TypeVariantPayloadSyntax::Unit
+                TypeVariantPayloadSyntax::Empty
             };
             let end = self.lines[self.index.saturating_sub(1)];
             cases.push(TypeVariantCaseSyntax {

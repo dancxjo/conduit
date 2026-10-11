@@ -78,7 +78,7 @@ fn eight_live_endpoint_calls_complete_out_of_order_and_drain_without_growth() {
         })
         .collect();
     let unit = ValuePayload {
-        value_kind: kind_id("value/unit"),
+        value_kind: kind_id("value/empty"),
         encoded: vec![],
     };
     let mut encoder = PreparedEndpointReadResultEncoder::new(&contract).unwrap();

@@ -39,6 +39,13 @@ pub const AUDIO_GAIN_REVISION: &str = "conduit.std/audio-apply-gain@1";
 // keep browser playback continuous while retaining one finite block in flight.
 pub const AUDIO_TONE_PCM_FRAMES: u16 = 16;
 pub const AUDIO_TONE_PCM_BLOCK_BYTES: u32 = PCM_FRAME_HEADER_ENCODED_LEN as u32 + 32;
+// One queue profile admits the exact Frequency input and one finite PCM output.
+pub const AUDIO_TONE_QUEUE_BYTES: u32 =
+    if AUDIO_TONE_PCM_BLOCK_BYTES > conduit_core::QUANTITY_ENCODED_LEN as u32 {
+        AUDIO_TONE_PCM_BLOCK_BYTES
+    } else {
+        conduit_core::QUANTITY_ENCODED_LEN as u32
+    };
 pub const AUDIO_CONTINUOUS_TONE_PCM_FRAMES: u16 = 2_000;
 pub const AUDIO_CONTINUOUS_TONE_PCM_BLOCK_BYTES: u32 = PCM_FRAME_HEADER_ENCODED_LEN as u32 + 4_000;
 pub const AUDIO_CAPTURE_PUSH_TO_TALK_KIND: &str = "audio/capture-push-to-talk";
@@ -252,7 +259,7 @@ pub fn audio_tone_contract() -> StandardKindContract {
         limits: CapabilityLimits {
             max_active_instances: 8,
             max_queue_items: 1,
-            max_queue_bytes: AUDIO_TONE_PCM_BLOCK_BYTES,
+            max_queue_bytes: AUDIO_TONE_QUEUE_BYTES,
         },
         terminal_behavior: KindTerminalBehavior::CompletesWhenInputsClose,
         hosted_implementation_required: true,
@@ -418,7 +425,7 @@ pub fn stream_semantics(kind: &str) -> Option<StreamSemantics> {
         ),
         AUDIO_TONE_KIND => (
             1,
-            AUDIO_TONE_PCM_BLOCK_BYTES,
+            AUDIO_TONE_QUEUE_BYTES,
             1,
             CancellationDisposition::CancelAndReleaseFiniteState,
             SoundTerminalBehavior::CompletesWhenInputsClose,

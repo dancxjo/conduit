@@ -73,7 +73,7 @@ fn validate_node(
                     // It must not disable the existing proof of input arithmetic.
                     let constant = PortableExpressionProgram {
                         input_type: conduit_core::StructuredInfoType::leaf(conduit_core::kind_id(
-                            conduit_core::UNIT_INFO_ID,
+                            conduit_core::EMPTY_INFO_ID,
                         ))
                         .map_err(|_| refusal())?,
                         output_type: node.value_type.clone(),
@@ -132,7 +132,7 @@ fn validate_node(
             }
         }
         Op::Variant { payload, .. } => validate_node(payload, input_type, types)?,
-        Op::Input | Op::Literal(_) | Op::Constant(_) => {}
+        Op::Input | Op::Literal(_) | Op::CanonicalLiteral(_) | Op::Constant(_) => {}
     }
     Ok(())
 }
@@ -141,7 +141,7 @@ fn validate_node(
 // time. An input-dependent expression cannot use this route to evade proof.
 fn closed(node: &PortableExpressionNode) -> bool {
     match &node.operation {
-        Op::Literal(_) => true,
+        Op::Literal(_) | Op::CanonicalLiteral(_) => true,
         Op::Record(fields) => fields.iter().all(|(_, value)| closed(value)),
         Op::Tuple(values) | Op::Collection(values) => values.iter().all(closed),
         Op::Variant { payload, .. } => closed(payload),

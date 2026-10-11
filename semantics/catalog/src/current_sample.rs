@@ -7,7 +7,7 @@ use conduit_core::{
     kind_id, port_id, AbnormalTerminalTransduction, CancellationTransduction, CapabilityLimits,
     CheckedValueContract, FrontValueContract, FrontValueLocation, Kind, KindIdentity,
     KindSemanticLaw, NormalCloseTransduction, PortDescriptor, PortDirection, PortTemporal,
-    TerminalTransductionProfile, TERMINAL_INFO_ENCODED_LEN, TERMINAL_INFO_ID, UNIT_INFO_ID,
+    TerminalTransductionProfile, EMPTY_INFO_ID, TERMINAL_INFO_ENCODED_LEN, TERMINAL_INFO_ID,
 };
 
 pub const CURRENT_SAMPLE_KIND: &str = "current/sample";
@@ -23,7 +23,7 @@ pub fn current_sample_semantic_contract(
     value: &CheckedValueContract,
     trigger: &CheckedValueContract,
 ) -> Result<Kind, &'static str> {
-    if value.maximum_bytes == 0 && value.value_kind.as_str() != UNIT_INFO_ID {
+    if value.maximum_bytes == 0 && value.value_kind.as_str() != EMPTY_INFO_ID {
         return Err("current/sample requires one finite canonical value envelope");
     }
     let value_port = |name: &str, direction, temporal| PortDescriptor {

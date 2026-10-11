@@ -498,7 +498,10 @@ fn planned_keep_state(
         .iter()
         .find(|entry| entry.key == "initial")
         .map(|entry| match &entry.value {
-            conduit_core::ConfigurationValue::Quantity(value) => Ok(value.encode().to_vec()),
+            conduit_core::ConfigurationValue::Quantity(value) => {
+                Ok(value.canonical_value().to_vec())
+            }
+            conduit_core::ConfigurationValue::Unit(value) => Ok(value.canonical_value().to_vec()),
             conduit_core::ConfigurationValue::Structured(value) => {
                 let structured = conduit_core::StructuredInfoValue::from_canonical_bytes(
                     value.canonical_value(),

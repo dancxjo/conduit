@@ -18,7 +18,7 @@ fn borrowed_sequence_and_case_views_preserve_nominal_identity_and_actual_length(
             StructuredVariantCase::new("ready", packet.clone()).unwrap(),
             StructuredVariantCase::new(
                 "lost",
-                StructuredInfoType::leaf(kind_id("value/unit")).unwrap(),
+                StructuredInfoType::leaf(kind_id("value/empty")).unwrap(),
             )
             .unwrap(),
         ],

@@ -2,6 +2,6 @@
 plot quoted-phonetic (
     value: SpeechPhoneticTranscription <= 262144B >>
 ) {
-    parsed: speech/phonetic-from-ipa(request = {original: "ˈt͡ʃãː.n̩", provenance: {method: "quoted transcription fixture", source: manual(""), version: none("")}})
+    parsed: speech/phonetic-from-ipa(request = {original: "ˈt͡ʃãː.n̩", provenance: {method: "quoted transcription fixture", source: manual(empty), version: none(empty)}})
     parsed.value >> value
 }.

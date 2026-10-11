@@ -122,7 +122,7 @@ pub fn flow_scan_semantic_contract(
 }
 
 fn require_finite(value: &CheckedValueContract, role: &'static str) -> Result<(), &'static str> {
-    if value.maximum_bytes == 0 && value.value_kind.as_str() != conduit_core::UNIT_INFO_ID {
+    if value.maximum_bytes == 0 && value.value_kind.as_str() != conduit_core::EMPTY_INFO_ID {
         return Err(match role {
             "item" => "flow/scan requires a finite canonical item envelope",
             "accumulator" => "flow/scan requires a finite canonical accumulator envelope",

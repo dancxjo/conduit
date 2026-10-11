@@ -8,8 +8,8 @@ use alloc::{
 };
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter, Kind, KindId,
-    KindIdentity, PortDescriptor, PortDirection, PortTemporal, Quantity, QuantityUnit,
-    StructuredConfigurationValue, StructuredInfoType, StructuredInfoValue,
+    KindIdentity, PortDescriptor, PortDirection, PortTemporal, Quantity,
+    StructuredConfigurationValue, StructuredInfoType, StructuredInfoValue, Unit,
 };
 use conduit_plot::{
     KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
@@ -277,8 +277,8 @@ fn flow_geometry_port(
 fn default_point2() -> Result<StructuredInfoValue, String> {
     point2_value(
         "geometry/example",
-        Quantity::new(0, QuantityUnit::Millimeter),
-        Quantity::new(0, QuantityUnit::Millimeter),
+        Quantity::new(0, Unit::Millimeter),
+        Quantity::new(0, Unit::Millimeter),
     )
     .map_err(|error| format!("{error:?}"))
 }
@@ -287,8 +287,8 @@ fn default_transform2() -> Result<StructuredInfoValue, String> {
     transform2_value(
         "geometry/example",
         "geometry/example",
-        Quantity::new(0, QuantityUnit::Millimeter),
-        Quantity::new(0, QuantityUnit::Millimeter),
+        Quantity::new(0, Unit::Millimeter),
+        Quantity::new(0, Unit::Millimeter),
     )
     .map_err(|error| format!("{error:?}"))
 }

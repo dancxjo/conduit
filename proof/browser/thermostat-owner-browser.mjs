@@ -167,7 +167,7 @@ try {
     }), 'canonical foreground contribution must retain this live Body Plan/Play provenance');
     for (const field of ['mask_plot_id', 'mask_plan_id', 'mask_play_id', 'show_id', 'face_id']) assert.ok(view[field]);
     const target = view.subjects.find(subject => subject.name === 'Target temperature');
-    assert.ok(target.values.some(value => value.kind === 'value/exact-decimal-quantity@1'));
+    assert.ok(target.values.some(value => value.kind === 'value/quantity@1'));
     const observation = { label, observed_at_unix_ms: Date.now(), view, owner: canonical,
       retained_body_execution: { body_id: status.biography.body_id, ...runBasis } };
     revisions.push(observation);
@@ -176,7 +176,7 @@ try {
   const targetWording = async expected => {
     const view = await currentView();
     const target = view.subjects.find(subject => subject.name === 'Target temperature');
-    assert.equal(target.values.find(value => value.kind === 'value/exact-decimal-quantity@1').text, expected);
+    assert.equal(target.values.find(value => value.kind === 'value/quantity@1').text, expected);
     assert.equal(await page.locator('[data-face-role="Info"] .owner-face-value').filter({ hasText: expected }).count(), 1);
   };
   const action = async (control, label, keyboard = false) => {

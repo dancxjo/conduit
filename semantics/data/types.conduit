@@ -34,6 +34,7 @@ type MeasurementWindowRefusal =
     | invalid_timestamp
     | unit_mismatch
     | uncertainty_unit_mismatch
+    | point_difference_required
     | negative_uncertainty
     | clock_mismatch
     | timestamp_regression
@@ -54,6 +55,7 @@ type MeasurementSummaryRefusal =
     | unit_mismatch
     | arithmetic_overflow
     | inexact_mean
+    | point_difference_required
 
 type MeasurementThresholdRefusal =
     policy_unit_mismatch
@@ -142,7 +144,7 @@ type TensorAxisRole =
 type TensorAxis = {
     role: TensorAxisRole
     identity: Text <= 64B not in [""]?
-    unit: QuantityUnit?
+    unit: Unit?
 }
 
 type TensorBacking =
@@ -300,7 +302,7 @@ type CoordinateAxisName = Text <= 128B not in [""]
 type CoordinateFrame = {
     identity: Text <= 128B not in [""]
     axes: sequence CoordinateAxisName in 1..=4
-    unit: QuantityUnit
+    unit: Unit
 }
 
 type CalibrationTransform = {

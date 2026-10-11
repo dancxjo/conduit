@@ -5,8 +5,8 @@ use conduit_body::{
 };
 use conduit_core::{
     bind_sign, encode_count, kind_id, CheckedPlotId, CheckedValueContract, ExpandedPlotId,
-    IntervalEndpoint, OfferGeneration, PlanId, Quantity, QuantityUnit, SourceDocumentId,
-    ValueConstraint, COUNT_ENCODED_LEN, COUNT_INFO_ID, DISTANCE_INFO_ID, QUANTITY_ENCODED_LEN,
+    IntervalEndpoint, OfferGeneration, PlanId, Quantity, SourceDocumentId, Unit, ValueConstraint,
+    COUNT_ENCODED_LEN, COUNT_INFO_ID, DISTANCE_INFO_ID, QUANTITY_ENCODED_LEN,
 };
 use conduit_plot::TextPatternExpression;
 use conduit_presentation::{
@@ -156,8 +156,8 @@ fn presentation() -> Presentation {
                         DISTANCE_INFO_ID.into(),
                         QUANTITY_ENCODED_LEN as u32,
                         vec![ValueConstraint::QuantityRange {
-                            minimum: Some(Quantity::new(1, QuantityUnit::Meter)),
-                            maximum: Some(Quantity::new(2, QuantityUnit::Meter)),
+                            minimum: Some(Quantity::new(1, Unit::Meter).into()),
+                            maximum: Some(Quantity::new(2, Unit::Meter).into()),
                             minimum_endpoint: IntervalEndpoint::Inclusive,
                             maximum_endpoint: IntervalEndpoint::Inclusive,
                         }],
@@ -207,9 +207,7 @@ fn interaction(effect: &BrowserMaskEffect) -> BrowserMaskInteraction {
             FaceInteractionArgument {
                 name: "input/distance".into(),
                 value_kind: DISTANCE_INFO_ID.into(),
-                value: Quantity::new(150, QuantityUnit::Centimeter)
-                    .encode()
-                    .to_vec(),
+                value: Quantity::new(150, Unit::Centimeter).encode().to_vec(),
             },
             FaceInteractionArgument {
                 name: "input/mode".into(),
@@ -546,8 +544,7 @@ fn show_becomes_available_only_after_exact_browser_acknowledgement() {
         "browser Mask interaction refused: ViolatedConstraint"
     );
     let mut invalid_interaction = interaction(&effect);
-    invalid_interaction.arguments[2].value =
-        Quantity::new(3, QuantityUnit::Meter).encode().to_vec();
+    invalid_interaction.arguments[2].value = Quantity::new(3, Unit::Meter).encode().to_vec();
     assert_eq!(
         runtime.interact(&invalid_interaction).unwrap_err(),
         "browser Mask interaction refused: ViolatedConstraint"

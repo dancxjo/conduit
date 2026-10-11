@@ -243,7 +243,7 @@ fn run_register(wrapping: Wrapping) {
             .unwrap()
         } else if dropped {
             let unit = StructuredInfoValue::leaf(
-                StructuredInfoType::leaf(kind_id("value/unit")).unwrap(),
+                StructuredInfoType::leaf(kind_id("value/empty")).unwrap(),
                 vec![],
             )
             .unwrap();

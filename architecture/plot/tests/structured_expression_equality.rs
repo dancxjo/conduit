@@ -198,7 +198,7 @@ fn malformed_structured_input_refuses_without_allocation() {
 
 #[test]
 fn nested_quantity_equality_keeps_exact_unit_conversion_law() {
-    use conduit_core::{Quantity, QuantityUnit};
+    use conduit_core::{Quantity, Unit};
     let source = "type Pair = {\n left: collection Quantity = 1\n right: collection Quantity = 1\n}\nplot equal (\n >> input: Pair\n result: Boolean >>\n) = (.left == .right)";
     let checked =
         check_syntax_document(&parse_syntax_document(source), &StartupCatalog::new()).unwrap();
@@ -222,13 +222,13 @@ fn nested_quantity_equality_keeps_exact_unit_conversion_law() {
     };
     assert!(evaluate(
         &p,
-        value(Quantity::new(1, QuantityUnit::Second)),
-        value(Quantity::new(1000, QuantityUnit::Millisecond))
+        value(Quantity::new(1, Unit::Second)),
+        value(Quantity::new(1000, Unit::Millisecond))
     ));
     assert!(!evaluate(
         &p,
-        value(Quantity::new(1, QuantityUnit::Second)),
-        value(Quantity::new(999, QuantityUnit::Millisecond))
+        value(Quantity::new(1, Unit::Second)),
+        value(Quantity::new(999, Unit::Millisecond))
     ));
 }
 

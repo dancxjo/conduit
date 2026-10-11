@@ -129,7 +129,7 @@ fn text(value: &str) -> StructuredInfoValue {
 
 fn unit() -> Result<StructuredInfoValue, MessagingInfoRefusal> {
     Ok(StructuredInfoValue::leaf(
-        StructuredInfoType::leaf(kind_id("value/unit"))?,
+        StructuredInfoType::leaf(kind_id("value/empty"))?,
         Vec::new(),
     )?)
 }

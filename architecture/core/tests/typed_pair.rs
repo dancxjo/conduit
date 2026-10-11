@@ -28,7 +28,7 @@ fn structured_and_empty_primitive_members_retain_exact_nested_views() {
     let mut encoder = PreparedTypedTuplePairEncoder::new(
         ty.clone(),
         bytes.len() as u32,
-        StructuredInfoType::leaf(kind_id(UNIT_INFO_ID)).unwrap(),
+        StructuredInfoType::leaf(kind_id(EMPTY_INFO_ID)).unwrap(),
         0,
     )
     .unwrap();
@@ -51,7 +51,7 @@ fn structured_and_empty_primitive_members_retain_exact_nested_views() {
             .record_field("item-00001")
             .unwrap()
             .unwrap()
-            .primitive_bytes(UNIT_INFO_ID)
+            .primitive_bytes(EMPTY_INFO_ID)
             .unwrap()
             .is_empty());
     }
@@ -121,7 +121,7 @@ fn declared_envelopes_refuse_oversize_and_keep_nominal_identity() {
 
 #[test]
 fn combined_traversal_is_admitted_before_accepting_individually_valid_members() {
-    let unit = StructuredInfoType::leaf(kind_id(UNIT_INFO_ID)).unwrap();
+    let unit = StructuredInfoType::leaf(kind_id(EMPTY_INFO_ID)).unwrap();
     let page = StructuredInfoType::collection(unit, Some(1024)).unwrap();
     let packet = StructuredInfoType::record(
         kind_id("type/Paged@1"),

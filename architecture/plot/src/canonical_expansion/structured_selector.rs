@@ -6,6 +6,7 @@ use conduit_core::{
 };
 
 mod call_structure;
+mod physical_literals;
 mod semantic_call;
 mod substitution;
 mod temporal;
@@ -287,7 +288,7 @@ fn expand_expression(
     }
 
     let input_type = crate::CheckedExpressionType::Semantic(input_kind);
-    let expression = substitute_immutable_values(expression, source_plot, environment)?;
+    let mut expression = substitute_immutable_values(expression, source_plot, environment)?;
     let constants = substitution::structured_constants(&expression, source_plot, environment)?;
     let immutable_values = constants
         .iter()
@@ -322,7 +323,8 @@ fn expand_expression(
         }
         structured_types.insert(kind, ty.clone());
     }
-    let literal_types = BTreeMap::new();
+    let (literal_types, canonical_literals) =
+        physical_literals::bind(&mut expression, source_plot, environment, catalog)?;
     let numeric_types = BTreeSet::new();
     let semantic_kinds = catalog
         .canonical_kinds()
@@ -360,6 +362,7 @@ fn expand_expression(
             ),
         )
     })?;
+    checked.canonical_literals = canonical_literals;
     checked.immutable_constants = constants;
     if let Some(invariants) = catalog.type_invariants(
         checked

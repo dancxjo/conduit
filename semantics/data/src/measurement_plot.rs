@@ -55,8 +55,33 @@ impl MeasurementPlotSeries {
         {
             return Err(MeasurementPlotRefusal::Full);
         }
-        let minimum = window.profile().range.minimum.value();
-        let maximum = window.profile().range.maximum.value();
+        let lower = window.profile().range.minimum;
+        let upper = window.profile().range.maximum;
+        let exponent = samples
+            .iter()
+            .map(|sample| sample.value)
+            .chain([lower, upper])
+            .filter(|value| value.coefficient() != 0)
+            .map(|value| value.exponent())
+            .min()
+            .unwrap_or(0);
+        let align = |value: conduit_core::Quantity| -> Result<i128, MeasurementPlotRefusal> {
+            if value.coefficient() == 0 {
+                return Ok(0);
+            }
+            let power = u32::try_from(i32::from(value.exponent()) - i32::from(exponent))
+                .map_err(|_| MeasurementPlotRefusal::ArithmeticOverflow)?;
+            value
+                .coefficient()
+                .checked_mul(
+                    10_i128
+                        .checked_pow(power)
+                        .ok_or(MeasurementPlotRefusal::ArithmeticOverflow)?,
+                )
+                .ok_or(MeasurementPlotRefusal::ArithmeticOverflow)
+        };
+        let minimum = align(lower)?;
+        let maximum = align(upper)?;
         let span = maximum
             .checked_sub(minimum)
             .ok_or(MeasurementPlotRefusal::ArithmeticOverflow)?;
@@ -68,16 +93,14 @@ impl MeasurementPlotSeries {
         let mut points = Vec::with_capacity(point_capacity);
         for output_index in 0..retained {
             let source_index = selected_index(output_index, retained, samples.len());
-            let value_offset = samples[source_index]
-                .value
-                .value()
+            let value_offset = align(samples[source_index].value)?
                 .checked_sub(minimum)
                 .ok_or(MeasurementPlotRefusal::ArithmeticOverflow)?;
             let value_millionths = scaled(value_offset, span)?;
             let time_millionths = if samples.len() == 1 {
                 0
             } else {
-                scaled(source_index as i64, (samples.len() - 1) as i64)?
+                scaled(source_index as i128, (samples.len() - 1) as i128)?
             };
             points.push(
                 MeasurementPlotPoint::new(source_index as u64, time_millionths, value_millionths)
@@ -114,10 +137,10 @@ fn selected_index(output_index: usize, retained: usize, source: usize) -> usize 
     }
 }
 
-fn scaled(numerator: i64, denominator: i64) -> Result<i64, MeasurementPlotRefusal> {
-    let value = i128::from(numerator)
+fn scaled(numerator: i128, denominator: i128) -> Result<i64, MeasurementPlotRefusal> {
+    let value = numerator
         .checked_mul(i128::from(PLOT_AXIS_MILLIONTHS))
         .ok_or(MeasurementPlotRefusal::ArithmeticOverflow)?
-        / i128::from(denominator);
+        / denominator;
     i64::try_from(value).map_err(|_| MeasurementPlotRefusal::ArithmeticOverflow)
 }

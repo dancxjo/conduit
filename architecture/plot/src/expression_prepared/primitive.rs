@@ -102,10 +102,21 @@ pub(super) fn evaluate_binary(
         };
         return PrimitiveValue::new(expected, &InfoBool::new(value).encode());
     }
-    if left.kind == PrimitiveInfoKind::F32
-        && matches!(operator, BinaryOperator::Equal | BinaryOperator::NotEqual)
+    if matches!(
+        left.kind,
+        PrimitiveInfoKind::F32 | PrimitiveInfoKind::Unit | PrimitiveInfoKind::Empty
+    ) && matches!(operator, BinaryOperator::Equal | BinaryOperator::NotEqual)
     {
-        let equal = left.as_slice() == right.as_slice();
+        let equal = if left.kind == PrimitiveInfoKind::Unit {
+            conduit_core::Unit::decode(left.as_slice())
+                .map_err(|_| Refusal::InvalidProgram)?
+                .same_physical_definition(
+                    conduit_core::Unit::decode(right.as_slice())
+                        .map_err(|_| Refusal::InvalidProgram)?,
+                )
+        } else {
+            left.as_slice() == right.as_slice()
+        };
         return PrimitiveValue::new(
             expected,
             &InfoBool::new(if matches!(operator, BinaryOperator::Equal) {
@@ -275,6 +286,16 @@ pub(super) fn evaluate_widen(
     PrimitiveValue::new(expected, &bytes[..length])
 }
 
+pub(super) fn leaf_info_kind(
+    value_type: &conduit_core::StructuredInfoType,
+) -> Result<&str, Refusal> {
+    match value_type.shape() {
+        StructuredInfoTypeShape::Leaf(kind) => Ok(kind.as_str()),
+        StructuredInfoTypeShape::Nominal { representation, .. } => leaf_info_kind(representation),
+        _ => Err(Refusal::InvalidProgram),
+    }
+}
+
 pub(super) fn leaf_kind(
     value_type: &conduit_core::StructuredInfoType,
 ) -> Result<PrimitiveInfoKind, Refusal> {
@@ -332,7 +353,7 @@ pub(super) const fn quantity_kind(kind: PrimitiveInfoKind) -> bool {
 
 pub(super) const fn kind_name(kind: PrimitiveInfoKind) -> &'static str {
     match kind {
-        PrimitiveInfoKind::Unit => conduit_core::UNIT_INFO_ID,
+        PrimitiveInfoKind::Empty => conduit_core::EMPTY_INFO_ID,
         PrimitiveInfoKind::Bool => BOOL_INFO_ID,
         PrimitiveInfoKind::Text => conduit_core::TEXT_INFO_ID,
         PrimitiveInfoKind::F32 => conduit_core::F32_INFO_ID,
@@ -348,8 +369,8 @@ pub(super) const fn kind_name(kind: PrimitiveInfoKind) -> &'static str {
         PrimitiveInfoKind::I32 => "value/i32",
         PrimitiveInfoKind::I64 => "value/i64",
         PrimitiveInfoKind::I128 => "value/i128",
+        PrimitiveInfoKind::Unit => conduit_core::UNIT_INFO_ID,
         PrimitiveInfoKind::Quantity => conduit_core::QUANTITY_INFO_ID,
-        PrimitiveInfoKind::ExactDecimalQuantity => conduit_core::EXACT_DECIMAL_QUANTITY_INFO_ID,
         PrimitiveInfoKind::Distance => conduit_core::DISTANCE_INFO_ID,
         PrimitiveInfoKind::Frequency => conduit_core::FREQUENCY_INFO_ID,
         PrimitiveInfoKind::Duration => conduit_core::DURATION_INFO_ID,

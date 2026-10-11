@@ -23,7 +23,7 @@ type UsbConfigurationPrefixResult =
     | oversized
 plot usb-configuration-prefix (
     frame: UsbNineOctetDescriptorFrame...| >> result: UsbConfigurationPrefixResult...|
-) = (.actual > 256 ? oversized(unit) : (.actual < 2 ? short(unit) : (.wire.0 != 9 || .wire.1 != 2 ? malformed(unit) : (.actual < 9 ? short(unit) : (value/u64(.wire.2) + value/u64(.wire.3) * 256 < 9 ? malformed(unit) : (value/u64(.wire.2) + value/u64(.wire.3) * 256 > 256 ? oversized(unit) : configuration({ total_length: value/u64(.wire.2) + value/u64(.wire.3) * 256, interfaces: .wire.4, configuration_value: .wire.5, string_index: .wire.6, attributes: .wire.7, maximum_power_field: .wire.8 })))))))
+) = (.actual > 256 ? oversized(empty) : (.actual < 2 ? short(empty) : (.wire.0 != 9 || .wire.1 != 2 ? malformed(empty) : (.actual < 9 ? short(empty) : (value/u64(.wire.2) + value/u64(.wire.3) * 256 < 9 ? malformed(empty) : (value/u64(.wire.2) + value/u64(.wire.3) * 256 > 256 ? oversized(empty) : configuration({ total_length: value/u64(.wire.2) + value/u64(.wire.3) * 256, interfaces: .wire.4, configuration_value: .wire.5, string_index: .wire.6, attributes: .wire.7, maximum_power_field: .wire.8 })))))))
 
 type UsbInterfacePrefix = {
     descriptor_length: U8
@@ -42,7 +42,7 @@ type UsbInterfacePrefixResult =
     | oversized
 plot usb-interface-prefix (
     frame: UsbNineOctetDescriptorFrame...| >> result: UsbInterfacePrefixResult...|
-) = (.actual > 256 ? oversized(unit) : (.actual < 2 ? short(unit) : (.wire.0 < 9 || .wire.1 != 4 ? malformed(unit) : (.actual < value/u64(.wire.0) ? short(unit) : interface({ descriptor_length: .wire.0, number: .wire.2, alternate_setting: .wire.3, endpoints: .wire.4, class: .wire.5, subclass: .wire.6, protocol: .wire.7, string_index: .wire.8 })))))
+) = (.actual > 256 ? oversized(empty) : (.actual < 2 ? short(empty) : (.wire.0 < 9 || .wire.1 != 4 ? malformed(empty) : (.actual < value/u64(.wire.0) ? short(empty) : interface({ descriptor_length: .wire.0, number: .wire.2, alternate_setting: .wire.3, endpoints: .wire.4, class: .wire.5, subclass: .wire.6, protocol: .wire.7, string_index: .wire.8 })))))
 
 type UsbEndpointPrefix = {
     descriptor_length: U8
@@ -64,4 +64,4 @@ type UsbEndpointPrefixResult =
 # Extended class descriptors must be fully received before their prefix is used.
 plot usb-endpoint-prefix (
     frame: UsbSevenOctetDescriptorFrame...| >> result: UsbEndpointPrefixResult...|
-) = (.actual > 256 ? oversized(unit) : (.actual < 2 ? short(unit) : (.wire.0 < 7 || .wire.1 != 5 ? malformed(unit) : (.actual < value/u64(.wire.0) ? short(unit) : endpoint({ descriptor_length: .wire.0, address: .wire.2, direction_in: (.wire.2 & 128) != 0, attributes: .wire.3, transfer_type: value/u64(.wire.3) & 3, packet_field: value/u64(.wire.4) + value/u64(.wire.5) * 256, maximum_packet_size: (value/u64(.wire.4) + value/u64(.wire.5) * 256) & 2047, additional_transactions_field: ((value/u64(.wire.4) + value/u64(.wire.5) * 256) / 2048) & 3, interval_field: .wire.6 })))))
+) = (.actual > 256 ? oversized(empty) : (.actual < 2 ? short(empty) : (.wire.0 < 7 || .wire.1 != 5 ? malformed(empty) : (.actual < value/u64(.wire.0) ? short(empty) : endpoint({ descriptor_length: .wire.0, address: .wire.2, direction_in: (.wire.2 & 128) != 0, attributes: .wire.3, transfer_type: value/u64(.wire.3) & 3, packet_field: value/u64(.wire.4) + value/u64(.wire.5) * 256, maximum_packet_size: (value/u64(.wire.4) + value/u64(.wire.5) * 256) & 2047, additional_transactions_field: ((value/u64(.wire.4) + value/u64(.wire.5) * 256) / 2048) & 3, interval_field: .wire.6 })))))

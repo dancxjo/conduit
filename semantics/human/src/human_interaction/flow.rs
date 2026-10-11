@@ -9,7 +9,7 @@ use crate::{
     ScalarQuantization,
 };
 use alloc::{string::String, vec::Vec};
-use conduit_core::{KindId, Quantity, QuantityUnit, QUANTITY_INFO_ID};
+use conduit_core::{KindId, Quantity, Unit, QUANTITY_INFO_ID};
 
 pub const MAXIMUM_INTERACTION_COMBINATION_RULES: usize = 32;
 
@@ -112,7 +112,7 @@ pub struct ScalarRealizationMapping {
     pub source_granularity: i64,
     pub range_policy: RealizationRangePolicy,
     pub quantization: ScalarQuantization,
-    semantic_unit: QuantityUnit,
+    semantic_unit: Unit,
     semantic_minimum: i64,
     semantic_maximum: i64,
     semantic_granularity: i64,

@@ -73,7 +73,13 @@ fn ordinary_robotics_plot_retains_typed_distance_quantity() {
         .expect("distance configuration exists");
     assert_eq!(
         distance.value,
-        ConfigurationValue::Quantity(Quantity::new(500, QuantityUnit::Millimeter))
+        ConfigurationValue::Quantity(
+            conduit_core::QuantityConfigurationValue::from_value(Quantity::new(
+                500,
+                Unit::Millimeter
+            ))
+            .expect("bounded quantity configuration")
+        )
     );
 }
 

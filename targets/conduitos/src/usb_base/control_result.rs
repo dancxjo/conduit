@@ -47,7 +47,7 @@ impl PreparedControlResultEncoder {
             .ok_or(StructuredInfoRefusal::UnknownVariantTag)?
             .payload_type();
         let primitive = |identity| StructuredInfoType::leaf(kind_id(identity));
-        let mut unit = PreparedStructuredComposer::new(&primitive("value/unit")?, 64)?;
+        let mut unit = PreparedStructuredComposer::new(&primitive("value/empty")?, 64)?;
         let unit = unit.leaf(&[])?.to_vec(); // preparation only
         Ok(Self {
             result: PreparedStructuredComposer::new(
