@@ -35,3 +35,26 @@ test("BrowserHost cannot be made outside the admitted Conduit entrance", async (
   assert.throws(() => new BrowserHost(), /come from Conduit\.browser/);
   assert.throws(() => new BrowserPlay(), /admitted runtime start/);
 });
+
+test("external Body executor accepts the Thermostat registry within its exact finite envelope", async () => {
+  const { checkedBrowserExecutionCapabilities } = await import("./browser-sdk.mjs");
+  const installed = Array.from({ length: 115 }, (_, index) => `capability/installed-${index}`);
+  installed.push("browser-thermostat-combine-v1", "browser/thermostat-scan@1");
+  const disclosure = { schema: "conduit.browser/body-capabilities@1", capability_ids: installed };
+  const accepted = checkedBrowserExecutionCapabilities(disclosure);
+  assert.deepEqual(accepted, installed);
+  assert(Object.isFrozen(accepted));
+  assert.notEqual(accepted, installed);
+  assert.equal(checkedBrowserExecutionCapabilities({ ...disclosure,
+    capability_ids: [...installed, "capability/final-admitted-slot"] }).length, 118);
+  for (const invalid of [
+    { ...disclosure, capability_ids: [...installed, "capability/118", "capability/119"] },
+    { ...disclosure, schema: "wrong" },
+    { ...disclosure, capability_ids: {} },
+    ...[null, "", "x".repeat(257)].map(identity => ({ ...disclosure,
+      capability_ids: [...installed.slice(0, -1), identity] })),
+  ]) {
+    assert.throws(() => checkedBrowserExecutionCapabilities(invalid),
+      /invalid external Body execution capabilities/);
+  }
+});
