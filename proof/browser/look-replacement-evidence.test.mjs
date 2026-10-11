@@ -31,6 +31,26 @@ test('comparison accepts a different acknowledged Look with unchanged owner and 
   assertLookReplacement(evidence());
 });
 
+test('comparison preserves explicit absent workload identities without borrowing Mask identities', () => {
+  const value = evidence();
+  for (const owner of [value.before.owner, value.after.owner,
+    value.retirement.ownerBefore, value.retirement.ownerAfter]) {
+    owner.sourceDocumentId = owner.planId = owner.playId = null;
+  }
+  for (const face of [value.before.canonicalFace, value.after.canonicalFace,
+    value.retirement.faceBefore, value.retirement.faceAfter]) {
+    face.basis.source_document_id = face.basis.plan_id = face.basis.active_play_id = null;
+  }
+  assertLookReplacement(value);
+  const missing = structuredClone(value);
+  delete missing.before.owner.playId;
+  assert.throws(() => assertLookReplacement(missing));
+  const invented = structuredClone(value);
+  invented.after.owner.playId = invented.after.realization.playId;
+  invented.after.canonicalFace.basis.active_play_id = invented.after.realization.playId;
+  assert.throws(() => assertLookReplacement(invented));
+});
+
 test('comparison preserves the exact maximum u64 revision as decimal text', () => {
   const value = evidence();
   for (const face of [value.before.canonicalFace, value.after.canonicalFace,
