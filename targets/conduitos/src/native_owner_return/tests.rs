@@ -125,10 +125,11 @@ fn exact_checked_show_and_interaction_survive_bounded_action_envelope() {
         .flat_map(|chunk| chunk[CHUNK_HEADER_BYTES..].iter().copied())
         .collect();
     assert_eq!(reassembled, storage[..length]);
-    assert!(line
-        .0
-        .iter()
-        .all(|chunk| chunk.len() <= MAXIMUM_BINARY_MESSAGE_BYTES));
+    assert!(
+        line.0
+            .iter()
+            .all(|chunk| chunk.len() <= MAXIMUM_BINARY_MESSAGE_BYTES)
+    );
     assert_eq!(decoded.schema, ACTION_SCHEMA);
     assert_eq!(decoded.token, [7; 32]);
     assert_eq!(decoded.sequence, 1);

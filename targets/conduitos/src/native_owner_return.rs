@@ -5,8 +5,8 @@
 use alloc::{string::String, vec, vec::Vec};
 use conduit_body::PortableAdmissionReceipt;
 use conduit_presentation::{
-    FaceInteraction, MaskShow, OwnerFaceSnapshotRequest, OwnerFaceSnapshotResponse,
-    OWNER_FACE_REQUEST_SCHEMA,
+    FaceInteraction, MaskShow, OWNER_FACE_REQUEST_SCHEMA, OwnerFaceSnapshotRequest,
+    OwnerFaceSnapshotResponse,
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};

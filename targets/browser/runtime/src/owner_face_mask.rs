@@ -6,13 +6,13 @@
 
 use crate::workspace_mask::execution;
 use conduit_body::BodyId;
-use conduit_core::{BootId, HostId, PortDirection, SignId, ValueConstraint, bind_active_play};
+use conduit_core::{bind_active_play, BootId, HostId, PortDirection, SignId, ValueConstraint};
 use conduit_kernel::scheduler::{RemoteIngressOutcome, SchedulerStatus};
 use conduit_kernel::{BoundedValueRef, HostCallDisposition, HostCallOutcome};
 use conduit_plan_lowering::lowering::lower_plan_fragment;
 use conduit_presentation::{
     FaceInteraction, FaceInteractionArgument, ManifestationLifecycle, MaskShow,
-    OWNER_FACE_RESPONSE_SCHEMA, OwnerFaceSnapshotResponse, Presentation, RemoteOwnerMaskRouteSeal,
+    OwnerFaceSnapshotResponse, Presentation, RemoteOwnerMaskRouteSeal, OWNER_FACE_RESPONSE_SCHEMA,
 };
 use serde::{Deserialize, Serialize};
 
