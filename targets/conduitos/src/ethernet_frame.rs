@@ -6,6 +6,10 @@ pub mod contract;
 #[cfg(feature = "native-owner-network")]
 pub mod device;
 pub mod factory;
+#[cfg(feature = "native-owner-network")]
+pub mod installation;
+#[cfg(feature = "native-owner-network")]
+pub mod network_session;
 pub mod offer;
 pub(crate) mod owner;
 pub mod queues;
