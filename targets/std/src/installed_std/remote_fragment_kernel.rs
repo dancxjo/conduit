@@ -53,7 +53,7 @@ pub struct RemoteHostWork {
 }
 
 pub struct InstalledRemoteFragment {
-    scheduler: InstalledScheduler,
+    scheduler: Box<InstalledScheduler>,
     body_time_required: bool,
     lowered: LoweredPlanFragment,
     placements: Vec<conduit_core::PlannedGear>,
