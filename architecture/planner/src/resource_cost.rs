@@ -8,6 +8,7 @@ mod forecast;
 mod freshness;
 mod input_codec;
 mod selection;
+mod service_model;
 mod source;
 mod structured_input;
 mod work_class;
@@ -21,6 +22,7 @@ pub use forecast::{CostDurationRange, CostForecastStages, FulfillmentCostForecas
 pub use freshness::CostObservationWindow;
 pub use input_codec::CostInputCodec;
 pub use selection::*;
+pub use service_model::*;
 pub use source::{
     CostCalibrationRevision, CostEvidenceSource, CostScopeChange, MAXIMUM_COST_ID_BYTES,
 };
@@ -40,6 +42,9 @@ pub enum CostEvidenceRefusal {
     InputCodecChanged,
     Structured(conduit_core::StructuredInfoRefusal),
     WorkExtentChanged,
+    WorkMetricChanged,
+    MissingWorkEstimate,
+    WorkLimit,
     InputLimit,
     AmbiguousEvidence,
     UnsupportedIntent,
