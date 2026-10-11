@@ -1,6 +1,7 @@
 //! Browser-owned offer, factory, and Host Call installation catalog.
 
 mod installations;
+mod queue_limits;
 
 use super::{input, quantity_output};
 use conduit_core::{
@@ -357,22 +358,7 @@ pub(crate) fn advertisement_for_machinery(
             .filter(|entry| machinery.admits(entry))
             .map(|entry| {
                 let mut offer = (entry.offer)();
-                offer.limits.max_queue_bytes = super::measurement_limits::queue_bound(
-                    offer.kind_id.as_str(),
-                )
-                .unwrap_or(match entry.implementation_id {
-                    "browser/unit-dimension@1" | "browser/quantity-dimension@1" => {
-                        conduit_core::DIMENSION_ENCODED_LEN as u32
-                    }
-                    "browser/bounded-stroke-capture@1" => {
-                        super::stroke_capture::MAXIMUM_PATH_BYTES as u32
-                    }
-                    "browser/plot-pointer-source@1"
-                    | "browser/select-pointer-position@1"
-                    | "browser/select-point-x@1"
-                    | "browser/select-point-y@1" => super::NORMALIZED_POINTER_VALUE_BYTES as u32,
-                    _ => super::MAXIMUM_BROWSER_VALUE_BYTES as u32,
-                });
+                queue_limits::apply(&mut offer, entry.implementation_id);
                 offer
             })
             .collect(),
