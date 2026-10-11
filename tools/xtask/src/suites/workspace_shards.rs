@@ -80,7 +80,10 @@ package_test_shard!(
         "patchbay-application",
         "patchbay-svg-mask",
     ],
-    ["--features", "conduit-speech/semantic-bindings"]
+    [
+        "--features",
+        "conduit-speech/semantic-bindings,conduit-runtime-performance/hosted-pipeline"
+    ]
 );
 
 // Host tests launch real local providers and device-discovery subprocesses.
