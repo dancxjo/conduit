@@ -45,4 +45,11 @@ class Evidence(unittest.TestCase):
             else: receipt['original_stop_acknowledged']=False
             with self.assertRaises(ValueError): check(entries, receipt, authored, digest)
 
+    def test_original_header_clock_extent_and_cadence_cannot_be_reconstructed_from_wire(self):
+        for field in ['clock-id', 'start-frame', 'payload-bytes', 'discontinuity']:
+            entries, receipt, authored, digest = fixture()
+            authored['authored_blocks'][1]['header'][field] = 1
+            with self.assertRaises(ValueError):
+                check(entries, receipt, authored, digest)
+
 if __name__=='__main__': unittest.main()

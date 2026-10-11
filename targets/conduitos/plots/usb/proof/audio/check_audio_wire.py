@@ -50,7 +50,22 @@ def check(transcript, receipt, authored, authored_sha256):
         raise ValueError('source PCM little endian byte order mismatch')
     if bytes.fromhex(receipt['original_pcm_hex']) != expected:
         raise ValueError('receipt substituted original PCM')
-    segments = [bytes.fromhex(segment['wire_hex']) for block in authored['authored_blocks'] for segment in block['segments']]
+    blocks = authored['authored_blocks']
+    if not 9 <= len(blocks) <= 16 or len(blocks)*8 != len(packets):
+        raise ValueError('finite original block extent mismatch')
+    for position, block in enumerate(blocks):
+        first = authored['start_frame'] + position*384
+        if not 0 <= first <= (1 << 64)-1-384:
+            raise ValueError('original PCM frame overflow')
+        header = {'representation': 'signed16-little-endian', 'sample-rate-hz': 48000,
+                  'layout': 'stereo-left-right', 'frame-count': 384,
+                  'clock-id': authored['clock_id'], 'start-frame': first,
+                  'discontinuity': False, 'payload-bytes': 1536}
+        cadence = {'phase': (first//48) % 1000, 'sample_rate': 48000,
+                   'channels': 2, 'sample_bytes': 2}
+        if block['header'] != header or block['cadence'] != cadence or len(block['segments']) != 8:
+            raise ValueError('original PCM header cadence or contiguous coverage mismatch')
+    segments = [bytes.fromhex(segment['wire_hex']) for block in blocks for segment in block['segments']]
     if any(len(segment) != 192 for segment in segments) or b''.join(segments) != expected:
         raise ValueError('authored PCM projections omit duplicate or alter original bytes')
     if len(expected) != len(packets)*192 or b''.join(packets) != expected or not any(expected):
