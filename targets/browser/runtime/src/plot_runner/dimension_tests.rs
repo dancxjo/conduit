@@ -34,7 +34,7 @@ fn browser_dimension_introspection_preserves_the_triad_across_record_ports() {
 
 #[test]
 fn browser_dimension_advertisement_preserves_the_codec_queue_bound() {
-    let host = crate::installed_browser::factory::advertisement(
+    let host = crate::installed_browser::advertisement(
         conduit_core::HostId::from("dimension-host"),
         conduit_core::BootId::from("dimension-boot"),
     );
