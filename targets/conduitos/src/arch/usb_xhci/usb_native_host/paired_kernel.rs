@@ -3,6 +3,49 @@ use conduit_composite::*;
 use conduit_core::*;
 use conduit_plot::CompositeFrontTerminal;
 
+pub(super) fn admit_fore(fragment: &mut PlanFragment) {
+    for (index, gear) in fragment.placements.iter().enumerate() {
+        for (direction, descriptor, name) in [
+            (
+                PortDirection::Input,
+                &gear.inputs[0],
+                if index == 0 { "read" } else { "write" },
+            ),
+            (
+                PortDirection::Output,
+                &gear.outputs[0],
+                if index == 0 { "received" } else { "written" },
+            ),
+        ] {
+            let location = match direction {
+                PortDirection::Input => FrontValueLocation::Input(descriptor.port_id.clone()),
+                PortDirection::Output => FrontValueLocation::Output(descriptor.port_id.clone()),
+            };
+            let value_contract = gear
+                .semantic_contract
+                .value_contracts()
+                .iter()
+                .find(|value| value.location == location)
+                .map(|value| value.contract.clone());
+            fragment.fore_ports.push(PlannedForePort {
+                front_port_id: port_id(name),
+                direction,
+                placement_id: gear.placement_id.clone(),
+                gear_port_id: descriptor.port_id.clone(),
+                value_kind: descriptor.value_kind.clone(),
+                value_contract,
+                abnormal_kind: descriptor.abnormal_kind.clone(),
+                track: ConnectionTrack::Payload,
+                temporal: descriptor.temporal,
+                pressure_policy: DeliveryPressurePolicy::PreserveOrder,
+                item_capacity: 1,
+                byte_capacity: 4096,
+                selected_line: None,
+            });
+        }
+    }
+}
+
 pub(super) fn prepare(plan: Plan) -> KernelCompositeHost {
     let fragment = &plan.fragments[0];
     let mut inputs = alloc::vec::Vec::new();

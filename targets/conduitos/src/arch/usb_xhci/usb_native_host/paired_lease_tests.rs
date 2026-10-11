@@ -134,6 +134,7 @@ fn paired(stop_code: u8, stalled: bool, cancelled: bool) {
             }));
         fragment.sign_storage_budget =
             conduit_core::mandatory_sign_storage_requirement(&fragment.expected_sign).unwrap();
+        paired_kernel::admit_fore(&mut fragment);
         let identity = PlotIdentity {
             source_document_id: fragment.source_document_id.clone(),
             checked_plot_id: fragment.checked_plot_id.clone(),
