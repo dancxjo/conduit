@@ -2417,7 +2417,10 @@ version = "0.1.0"
 dependencies = [
  "conduit-core",
  "conduit-kernel",
+ "conduit-planner",
  "conduit-plot",
+ "conduit-std-host",
+ "conduit-std-offers",
  "libc",
  "serde",
  "serde_json",

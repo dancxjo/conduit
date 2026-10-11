@@ -3,6 +3,8 @@ mod allocation;
 mod artifact;
 mod config;
 mod expression;
+#[cfg(feature = "hosted-pipeline")]
+mod pipeline;
 mod pool;
 mod timing;
 #[global_allocator]
@@ -16,6 +18,9 @@ fn run() -> Result<(), Box<dyn Error>> {
         return Err("runtime-performance measurements require the xtask release worker".into());
     }
     let config = config::Config::parse(&std::env::args().skip(1).collect::<Vec<_>>())?;
+    if config.hosted_pipeline && !cfg!(feature = "hosted-pipeline") {
+        return Err("hosted pipeline requires its admitted worker feature".into());
+    }
     let metadata = artifact::metadata()?;
     artifact::json(&config.output.join("metadata.json"), &metadata)?;
     fs::create_dir(config.output.join("sources"))?;
@@ -79,15 +84,24 @@ fn run() -> Result<(), Box<dyn Error>> {
             }
         }
     }
+    #[cfg(feature = "hosted-pipeline")]
+    if config.hosted_pipeline {
+        pipeline::run(&config, &mut raw, &mut summaries)?;
+    }
     raw.finish()?;
     artifact::json(
         &config.output.join("report.json"),
         &json!({
-            "schema":"conduit.runtime-performance-report@1", "status":"measured-isolation-baseline", "regression_gate":"report-only",
+            "schema":"conduit.runtime-performance-report@1",
+            "status":if config.hosted_pipeline { "measured-isolation-and-finite-hosted-baseline" } else { "measured-isolation-baseline" }, "regression_gate":"report-only",
             "config":config,"metadata":"metadata.json","raw":"raw.jsonl","raw_records":raw.records,"runs":summaries,
             "process_resident_high_water":artifact::resident_high_water(),
             "confidence":"raw repeated batches and per-event percentiles; no certified independent-run confidence interval or speedup claim; repeatability gate remains open",
-            "scope":"production prepared expression evaluator and production shared-pool selection isolation; full ordinary Plan/Play/DSP/pressure/browser matrix remains required by #5395"
+            "scope":if config.hosted_pipeline {
+                "production evaluator/selection isolation plus 64-item ordinary checked Plot/Plan/std Back/kernel 1/8/32-Gear trials; separate cold Back/Play phases, continuous streams, DSP/pressure/fairness and browser matrix remain required by #5395"
+            } else {
+                "production prepared expression evaluator and production shared-pool selection isolation; full ordinary Plan/Play/DSP/pressure/browser matrix remains required by #5395"
+            }
         }),
     )?;
     Ok(())
