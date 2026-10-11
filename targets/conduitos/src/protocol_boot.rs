@@ -17,3 +17,10 @@ mod runtime;
 mod bootstrap;
 #[cfg(target_arch = "x86_64")]
 pub use bootstrap::run_if_selected;
+
+mod usb_request;
+pub use usb_request::UsbProtocolBootRequest;
+#[cfg(target_arch = "x86_64")]
+mod usb_bootstrap;
+#[cfg(target_arch = "x86_64")]
+mod usb_owners;

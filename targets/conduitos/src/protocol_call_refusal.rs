@@ -8,6 +8,8 @@ use conduit_kernel::{Failure, FailureCode};
 
 #[derive(Debug)]
 pub enum ProtocolCallRefusal {
+    #[cfg(target_arch = "x86_64")]
+    Usb(crate::arch::UsbControlCallRefusal),
     InvalidPlan,
     Unsupported,
     Kernel(KernelCompositeError),
@@ -24,6 +26,28 @@ impl ProtocolCallRefusal {
         use I2cCallRefusal as I2c;
         use SelectorCallRefusal as Selector;
         let (code, detail) = match self {
+            #[cfg(target_arch = "x86_64")]
+            Self::Usb(error) => {
+                use crate::arch::UsbControlCallRefusal as Usb;
+                use crate::usb_base::control_owner::ControlOwnerRefusal as Owner;
+                match error {
+                    Usb::Ownership(Owner::WrongBinding | Owner::StaleTransfer) => {
+                        (FailureCode::InvalidLifecycle, 1070)
+                    }
+                    Usb::Ownership(Owner::Possession | Owner::Capability(_)) => {
+                        (FailureCode::HostCallDenied, 1071)
+                    }
+                    Usb::Ownership(Owner::Pressure) => (FailureCode::HostCallFailed, 1072),
+                    Usb::Ownership(Owner::SequenceExhausted) => {
+                        (FailureCode::IdentityCapacityExhausted, 1073)
+                    }
+                    Usb::Ownership(Owner::Decode(_)) => (FailureCode::InvalidInput, 1074),
+                    Usb::Ownership(Owner::Result(_) | Owner::Canonical(_)) => {
+                        (FailureCode::HostCallFailed, 1075)
+                    }
+                    Usb::Native(_) => (FailureCode::HostCallFailed, 1076),
+                }
+            }
             Self::InvalidPlan => (FailureCode::InvalidLifecycle, 1020),
             Self::Unsupported => (FailureCode::HostCallDenied, 1021),
             Self::Kernel(_) => (FailureCode::HostCallFailed, 1022),

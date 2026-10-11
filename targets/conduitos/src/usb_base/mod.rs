@@ -36,3 +36,5 @@ pub mod hid_source_kernel;
 pub mod hid_source_plan;
 
 pub mod hid_endpoint_proof_kernel;
+
+pub mod installation;

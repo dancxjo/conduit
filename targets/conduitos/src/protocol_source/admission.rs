@@ -140,6 +140,22 @@ impl PreparedProtocolArtifact {
         }
     }
 
+    /// Consume the same admitted artifact with independently issued USB possession.
+    #[cfg(target_arch = "x86_64")]
+    pub fn prepare_usb<P: crate::i2c_base::I2cProvider>(
+        self,
+        usb: crate::protocol_play::UsbControlAdmission,
+    ) -> Result<crate::protocol_play::PreparedProtocolPlay<P>, ProtocolCallRefusal> {
+        crate::protocol_play::PreparedProtocolPlay::prepare_usb(
+            self.artifact.into_definition(),
+            usb.ready,
+            usb.table,
+            usb.handle,
+            usb.claim,
+            self.operations,
+        )
+    }
+
     /// Consume the retained package owners together with actual native possession.
     pub fn prepare_timed<P, C>(
         self,

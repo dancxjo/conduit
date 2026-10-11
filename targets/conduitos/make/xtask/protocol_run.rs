@@ -23,6 +23,10 @@ pub(super) struct RunArgs {
     output_dir: PathBuf,
     #[arg(long, default_value_t = 120, value_parser = clap::value_parser!(u64).range(1..=120))]
     seconds: u64,
+    /// Attach an isolated emulated mouse to xHCI for class-neutral control proof.
+    /// This supplies hardware only; the checked Plot and Root still admit effects.
+    #[arg(long)]
+    usb_control_mouse: bool,
 }
 
 pub(super) fn execute(args: RunArgs, opts: &GlobalOpts) -> Result<(), ConduitosError> {
@@ -79,6 +83,7 @@ pub(super) fn execute(args: RunArgs, opts: &GlobalOpts) -> Result<(), ConduitosE
         ])
         .arg(&image)
         .args(["-boot", "d"])
+        .args(usb_devices(args.usb_control_mouse))
         .stdin(Stdio::null())
         .stdout(Stdio::null())
         .stderr(
@@ -134,6 +139,7 @@ pub(super) fn execute(args: RunArgs, opts: &GlobalOpts) -> Result<(), ConduitosE
         "serial_sha256": sha256_file(&serial)?,
         "qemu_profile": "q35-single-cpu-512m-headless",
         "physical_compatibility": "unverified",
+        "usb_devices": usb_devices(args.usb_control_mouse),
     });
     fs::write(
         args.output_dir.join("receipt.json"),
@@ -143,6 +149,19 @@ pub(super) fn execute(args: RunArgs, opts: &GlobalOpts) -> Result<(), ConduitosE
     .map_err(|error| refusal("protocol-run-output-refused", error))?;
     println!("Observed protocol outcome: {outcome}");
     Ok(())
+}
+
+fn usb_devices(mouse: bool) -> &'static [&'static str] {
+    if mouse {
+        &[
+            "-device",
+            "qemu-xhci,id=protocol-usb",
+            "-device",
+            "usb-mouse,bus=protocol-usb.0,port=1",
+        ]
+    } else {
+        &[]
+    }
 }
 
 fn terminal(bytes: &[u8]) -> Result<Option<String>, ConduitosError> {

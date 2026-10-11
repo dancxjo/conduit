@@ -21,6 +21,14 @@ pub struct I2cAdmission<P> {
     pub claim: BaseOperationClaim,
 }
 
+#[cfg(target_arch = "x86_64")]
+pub struct UsbControlAdmission {
+    pub ready: crate::arch::ReadyUsbControlBase,
+    pub table: BaseCapabilityTable,
+    pub handle: BaseCapabilityHandle,
+    pub claim: BaseOperationClaim,
+}
+
 /// Preparation owns the admitted kernel and the actual native owners together.
 /// The caller supplies the selected Plan and opaque possession; no grant is minted here.
 pub struct PreparedProtocolPlay<P> {
@@ -113,6 +121,44 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
         operations: crate::protocol_operations::ProtocolOperations,
         allow_clock: bool,
     ) -> Result<Self, ProtocolCallRefusal> {
+        Self::prepare_selected(
+            definition,
+            operations,
+            allow_clock,
+            false,
+            |plan, zip, states| {
+                PreparedProtocolCalls::prepare_with_operations(
+                    plan, ready, table, handle, claim, zip, states,
+                )
+            },
+        )
+    }
+
+    #[cfg(target_arch = "x86_64")]
+    pub fn prepare_usb(
+        definition: KernelCompositeDefinition,
+        ready: crate::arch::ReadyUsbControlBase,
+        table: BaseCapabilityTable,
+        handle: BaseCapabilityHandle,
+        claim: BaseOperationClaim,
+        operations: crate::protocol_operations::ProtocolOperations,
+    ) -> Result<Self, ProtocolCallRefusal> {
+        Self::prepare_selected(definition, operations, false, true, |plan, zip, states| {
+            PreparedProtocolCalls::prepare_usb(plan, ready, table, handle, claim, zip, states)
+        })
+    }
+
+    fn prepare_selected(
+        definition: KernelCompositeDefinition,
+        operations: crate::protocol_operations::ProtocolOperations,
+        allow_clock: bool,
+        usb: bool,
+        prepare_calls: impl FnOnce(
+            &Plan,
+            &crate::flow_zip::FlowZipOperationFactory,
+            &crate::seeded_state::SeededStateOperationFactory,
+        ) -> Result<PreparedProtocolCalls<P>, ProtocolCallRefusal>,
+    ) -> Result<Self, ProtocolCallRefusal> {
         if !allow_clock
             && definition
                 .internal_plan
@@ -144,25 +190,26 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
         merges
             .validate_plan(&definition.internal_plan)
             .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
-        let calls = PreparedProtocolCalls::prepare_with_operations(
-            &definition.internal_plan,
-            ready,
-            table,
-            handle,
-            claim,
-            &zip,
-            &states,
-        )?;
+        let calls = prepare_calls(&definition.internal_plan, &zip, &states)?;
         let mut registry = KernelOperationRegistry::new();
         registry
             .install(ExpressionOperationFactory::default())
             .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
-        registry
-            .install(
-                I2cOperationFactory::prepare_contract()
-                    .map_err(|_| ProtocolCallRefusal::InvalidPlan)?,
-            )
-            .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
+        if usb {
+            registry
+                .install(
+                    crate::usb_base::control_factory::ControlOperationFactory::prepare_contract()
+                        .map_err(|_| ProtocolCallRefusal::InvalidPlan)?,
+                )
+                .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
+        } else {
+            registry
+                .install(
+                    I2cOperationFactory::prepare_contract()
+                        .map_err(|_| ProtocolCallRefusal::InvalidPlan)?,
+                )
+                .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
+        }
         registry
             .install(SelectorOperationFactory::default())
             .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;

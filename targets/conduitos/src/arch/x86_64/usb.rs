@@ -37,8 +37,11 @@ use descriptor::{
 pub use dma::USB_DEVICE_DMA_SLOTS;
 use dma::{UsbDma, UsbDmaSlot, device_dma_pointer, dma_pointer};
 pub use error::UsbError;
+#[path = "usb_control_installation.rs"]
+mod control_installation;
 #[path = "usb_control_owner.rs"]
 mod control_owner;
+pub use control_installation::{NativeUsbControlCall, ReadyUsbControlBase};
 #[path = "usb_endpoint_read.rs"]
 pub(super) mod endpoint_read;
 #[cfg(any(test, feature = "scripted-keyboard-proof"))]
@@ -91,6 +94,23 @@ pub fn enumerate_one_at_epoch(
     enumerate_root_port_at_epoch(
         controller,
         image_virtual_to_physical,
+        root_port,
+        UsbDmaSlot::PRIMARY,
+        attachment_epoch,
+    )
+}
+
+/// Enumerate only the independently selected root port in the primary fixed DMA slot.
+/// This does not confer electrical or controller authority on its caller.
+pub fn enumerate_selected_root_port_at_epoch(
+    controller: &mut XhciReady,
+    mapping: fn(u64) -> Option<u64>,
+    root_port: u8,
+    attachment_epoch: u32,
+) -> Result<UsbDevice, UsbError> {
+    enumerate_root_port_at_epoch(
+        controller,
+        mapping,
         root_port,
         UsbDmaSlot::PRIMARY,
         attachment_epoch,

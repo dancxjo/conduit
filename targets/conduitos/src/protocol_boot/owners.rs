@@ -15,7 +15,7 @@ use alloc::format;
 use conduit_core::*;
 use core::sync::atomic::{AtomicBool, Ordering};
 
-static CLAIMED: AtomicBool = AtomicBool::new(false);
+pub(super) static CLAIMED: AtomicBool = AtomicBool::new(false);
 pub type NativeOwners =
     NativeProtocolOwners<I801Controller<arch::I801PortWindow>, arch::NativeMonotonicDeadlineClock>;
 
@@ -146,19 +146,19 @@ pub unsafe fn admit(
     })
 }
 
-struct OperationAuthority<'a> {
-    contract: &'a str,
-    call: &'a str,
-    kind: &'a str,
-    capability: &'a str,
-    bytes: u32,
-    work: u64,
-    operations: u32,
+pub(super) struct OperationAuthority<'a> {
+    pub(super) contract: &'a str,
+    pub(super) call: &'a str,
+    pub(super) kind: &'a str,
+    pub(super) capability: &'a str,
+    pub(super) bytes: u32,
+    pub(super) work: u64,
+    pub(super) operations: u32,
 }
 
 // All facts here originate in the independently retained native owners, before
 // Source planning. No selected placement or authored metadata is consulted.
-fn authority(
+pub(super) fn authority(
     host: &HostId,
     boot: &BootId,
     name: &str,

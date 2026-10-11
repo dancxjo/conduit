@@ -14,6 +14,8 @@ use conduit_core::{BootId, HostId};
 /// once a protocol module is selected, preventing a second startup from replacing
 /// the retained Body or reusing its native reservations.
 pub unsafe fn run_if_selected(record: &boot::BootRecord) -> Result<(), &'static str> {
+    // USB selects this same standalone Root before any graphical controller user.
+    unsafe { super::usb_bootstrap::run_if_selected(record) }?;
     let request = boot::named_module(ROOT_MODULE_COMMAND, MAXIMUM_REQUEST_BYTES)
         .map_err(|_| "protocol-root-module-refused")?;
     let package = boot::named_module(

@@ -21,6 +21,8 @@ pub use crate::protocol_call_refusal::ProtocolCallRefusal;
 enum Owner<P> {
     Pure(PureProtocolOwner),
     I2c(Box<I2cHostCall<P>>),
+    #[cfg(target_arch = "x86_64")]
+    UsbControl(Box<crate::arch::NativeUsbControlCall>),
 }
 struct Binding<P> {
     node: NodeId,
@@ -80,6 +82,82 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
         zip: &crate::flow_zip::FlowZipOperationFactory,
         states: &crate::seeded_state::SeededStateOperationFactory,
     ) -> Result<Self, ProtocolCallRefusal> {
+        Self::prepare_selected(
+            plan,
+            I2C_IMPLEMENTATION,
+            zip,
+            states,
+            |fragment, lowered, active, placement| {
+                let contract =
+                    I2cContract::prepare().map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
+                ready
+                    .bind_selected(
+                        table,
+                        handle,
+                        claim,
+                        I2cCallSelection {
+                            contract: &contract,
+                            fragment,
+                            lowered,
+                            active,
+                            placement,
+                        },
+                    )
+                    .map(|owner| Owner::I2c(Box::new(owner)))
+                    .map_err(ProtocolCallRefusal::I2c)
+            },
+        )
+    }
+
+    #[cfg(target_arch = "x86_64")]
+    pub(crate) fn prepare_usb(
+        plan: &Plan,
+        ready: crate::arch::ReadyUsbControlBase,
+        table: BaseCapabilityTable,
+        handle: BaseCapabilityHandle,
+        claim: BaseOperationClaim,
+        zip: &crate::flow_zip::FlowZipOperationFactory,
+        states: &crate::seeded_state::SeededStateOperationFactory,
+    ) -> Result<Self, ProtocolCallRefusal> {
+        Self::prepare_selected(
+            plan,
+            crate::usb_base::control_factory::CONTROL_IMPLEMENTATION,
+            zip,
+            states,
+            |fragment, lowered, active, placement| {
+                let contract = crate::usb_base::control_contract::ControlContract::prepare()
+                    .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
+                ready
+                    .bind_selected(
+                        table,
+                        handle,
+                        claim,
+                        crate::arch::UsbControlSelection {
+                            contract: &contract,
+                            fragment,
+                            lowered,
+                            active,
+                            placement,
+                        },
+                    )
+                    .map(|owner| Owner::UsbControl(Box::new(owner)))
+                    .map_err(ProtocolCallRefusal::Usb)
+            },
+        )
+    }
+
+    fn prepare_selected(
+        plan: &Plan,
+        implementation: &str,
+        zip: &crate::flow_zip::FlowZipOperationFactory,
+        states: &crate::seeded_state::SeededStateOperationFactory,
+        bind: impl FnOnce(
+            &PlanFragment,
+            &conduit_plan_lowering::lowering::LoweredPlanFragment,
+            &ActivePlayIdentity,
+            &PlacementId,
+        ) -> Result<Owner<P>, ProtocolCallRefusal>,
+    ) -> Result<Self, ProtocolCallRefusal> {
         use ProtocolCallRefusal as Refusal;
         if !verify_plan(plan) || plan.fragments.len() != 1 {
             return Err(Refusal::InvalidPlan);
@@ -93,22 +171,22 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
         let mut physical = fragment
             .placements
             .iter()
-            .filter(|gear| gear.implementation_id.as_str() == I2C_IMPLEMENTATION);
+            .filter(|gear| gear.implementation_id.as_str() == implementation);
         let i2c = physical.next().ok_or(Refusal::Unsupported)?;
         if physical.next().is_some()
             || fragment.placements.iter().any(|gear| {
-                !matches!(
-                    gear.implementation_id.as_str(),
-                    I2C_IMPLEMENTATION
-                        | expression_host_call::IMPLEMENTATION
-                        | structured_selector_host_call::IMPLEMENTATION
-                        | crate::flow_zip::IMPLEMENTATION
-                        | crate::flow_concat_finite::IMPLEMENTATION
-                        | crate::flow_merge_finite::IMPLEMENTATION
-                        | crate::seeded_state::IMPLEMENTATION
-                        | crate::current_sample::IMPLEMENTATION
-                        | crate::monotonic_clock::installation::CLOCK_IMPLEMENTATION
-                )
+                gear.implementation_id.as_str() != implementation
+                    && !matches!(
+                        gear.implementation_id.as_str(),
+                        expression_host_call::IMPLEMENTATION
+                            | structured_selector_host_call::IMPLEMENTATION
+                            | crate::flow_zip::IMPLEMENTATION
+                            | crate::flow_concat_finite::IMPLEMENTATION
+                            | crate::flow_merge_finite::IMPLEMENTATION
+                            | crate::seeded_state::IMPLEMENTATION
+                            | crate::current_sample::IMPLEMENTATION
+                            | crate::monotonic_clock::installation::CLOCK_IMPLEMENTATION
+                    )
             })
         {
             return Err(Refusal::Unsupported);
@@ -138,21 +216,7 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
                 owner: Owner::Pure(owner),
             });
         }
-        let contract = I2cContract::prepare().map_err(|_| Refusal::InvalidPlan)?;
-        let owner = ready
-            .bind_selected(
-                table,
-                handle,
-                claim,
-                I2cCallSelection {
-                    contract: &contract,
-                    fragment,
-                    lowered: &lowered,
-                    active: &active,
-                    placement: &i2c.placement_id,
-                },
-            )
-            .map_err(Refusal::I2c)?;
+        let owner = bind(fragment, &lowered, &active, &i2c.placement_id)?;
         bindings.push(Binding {
             node: lowered
                 .identity
@@ -160,7 +224,7 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
                 .ok_or(Refusal::InvalidPlan)?,
             resources: i2c.resources.clone(),
             authorities: i2c.authority.clone(),
-            owner: Owner::I2c(Box::new(owner)),
+            owner,
         });
         Ok(Self {
             plan_id: plan.plan_id.clone(),
@@ -199,6 +263,8 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
         let expected = match binding.owner {
             Owner::Pure(ref owner) => owner.contract(),
             Owner::I2c(_) => I2C_CALL,
+            #[cfg(target_arch = "x86_64")]
+            Owner::UsbControl(_) => crate::usb_base::control_contract::CONTROL_CALL,
         };
         if required.requirement.contract_id.as_str() != expected {
             return Err(Refusal::InvalidPlan);
@@ -219,6 +285,11 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
             .host_request_input(&admitted)
             .map_err(Refusal::Kernel)?;
         let result = match &mut binding.owner {
+            #[cfg(target_arch = "x86_64")]
+            Owner::UsbControl(owner) => owner
+                .invoke(node, call.call, call.request, input)
+                .map(Some)
+                .map_err(Refusal::Usb),
             Owner::Pure(owner) => owner.invoke(node, call.call, call.request, input),
             Owner::I2c(owner) => owner
                 .invoke(node, call.call, call.request, input)
@@ -268,6 +339,12 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
         }
         // Revoke the physics-facing owner first, even if kernel cancellation later refuses.
         for binding in &mut self.bindings {
+            #[cfg(target_arch = "x86_64")]
+            if let Owner::UsbControl(owner) = &mut binding.owner {
+                owner
+                    .revoke(binding.node, HostCallId(0))
+                    .map_err(Refusal::Usb)?;
+            }
             if let Owner::I2c(owner) = &mut binding.owner {
                 owner
                     .revoke(binding.node, HostCallId(0))
