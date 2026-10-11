@@ -53,6 +53,11 @@ pub(super) fn execute_supplied(
     let serial_path = paths.target.join("journey-serial.log");
     let _ = fs::remove_file(&monitor_socket);
     let _ = fs::remove_file(&serial_path);
+    match fs::remove_file(paths.target.join("journey-failure-registers.json")) {
+        Ok(()) => {}
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+        Err(error) => return Err(io_error(error)),
+    }
     let mut command = Command::new("qemu-system-x86_64");
     command
         .args([
@@ -119,7 +124,7 @@ pub(super) fn execute_supplied(
         artifacts.capture(&mut qmp, &mut reader, "front-door-ready", false)?;
 
         journey_input::birth_from_creche(&mut qmp, &mut reader)?;
-        journey_input::wait_status(&serial_path, &mut child, "born-lulled")?;
+        journey_input::wait_status_retaining_guest(&serial_path, &mut child, "born-lulled")?;
         artifacts.capture(&mut qmp, &mut reader, "body-born", true)?;
         for (key, status, frame) in [
             ("f4", "awake", "body-woken"),
@@ -127,7 +132,7 @@ pub(super) fn execute_supplied(
             ("f6", "quiescent-awaiting-input", "body-playing"),
         ] {
             journey_input::key_pair(&mut qmp, &mut reader, key, "journey-lifecycle")?;
-            journey_input::wait_status(&serial_path, &mut child, status)?;
+            journey_input::wait_status_retaining_guest(&serial_path, &mut child, status)?;
             artifacts.capture(&mut qmp, &mut reader, frame, true)?;
         }
 
@@ -185,7 +190,7 @@ pub(super) fn execute_supplied(
         artifacts.capture(&mut qmp, &mut reader, "patchbay-diagram", true)?;
 
         journey_input::key_pair(&mut qmp, &mut reader, "f8", "journey-stop-through-face")?;
-        journey_input::wait_status(&serial_path, &mut child, "stopped")?;
+        journey_input::wait_status_retaining_guest(&serial_path, &mut child, "stopped")?;
         artifacts.capture(&mut qmp, &mut reader, "body-stopped", true)?;
         let serial = fs::read_to_string(&serial_path).map_err(io_error)?;
         let records = journey_records::decode(&serial)?;
@@ -231,6 +236,26 @@ pub(super) fn execute_supplied(
     })();
     if result.is_err() {
         if let Ok((mut qmp, mut reader)) = hid_qmp::connect(&monitor_socket, &mut child) {
+            let registers = super::qmp::request_value(
+                &mut qmp,
+                &mut reader,
+                br#"{"execute":"human-monitor-command","arguments":{"command-line":"info registers"}}"#,
+                "journey-failure-registers",
+            );
+            match registers {
+                Ok(value) => {
+                    let retained = serde_json::to_vec_pretty(&value)
+                        .map_err(|error| refusal(error.to_string()))
+                        .and_then(|bytes| {
+                            fs::write(paths.target.join("journey-failure-registers.json"), bytes)
+                                .map_err(io_error)
+                        });
+                    if let Err(error) = retained {
+                        artifacts.diagnostic_failure(&error);
+                    }
+                }
+                Err(error) => artifacts.diagnostic_failure(&error),
+            }
             if let Err(error) = artifacts.capture(&mut qmp, &mut reader, "failure", false) {
                 artifacts.diagnostic_failure(&error);
             }
