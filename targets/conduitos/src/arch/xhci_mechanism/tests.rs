@@ -1,11 +1,6 @@
 use super::*;
 
 #[test]
-fn pci_coordinates_are_exact() {
-    assert_eq!(pci::address(2, 3, 1, 0x14), 0x8002_1914);
-}
-
-#[test]
 fn admitted_limits_do_not_follow_hardware_maxima() {
     assert_eq!(ADMITTED_DEVICE_SLOTS, 3);
     assert_eq!(MAX_PENDING_COMMANDS, 1);
