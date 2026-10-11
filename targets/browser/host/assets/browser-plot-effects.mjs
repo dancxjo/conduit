@@ -78,7 +78,7 @@ export function createPitchTonePerformer(window) {
 // Shared page-Host dispatch for effects requested by the one WASM kernel.
 // It does not plan work or schedule semantic operations.
 export async function drainBrowserEffects({ api, initialProgress, readOutput, perform,
-  isCurrent = () => true, onWaiting = () => {}, bridge = null, signal }) {
+  isCurrent = () => true, onWaiting = () => {}, bridge = null, signal, admittedInput = null }) {
   if (!bridge) throw new Error("browser runtime bridge is required");
   const effects = new Map();
   let wake = null;
@@ -91,6 +91,7 @@ export async function drainBrowserEffects({ api, initialProgress, readOutput, pe
   };
   signal?.addEventListener("abort", retire, { once: true });
   const capacity = api.conduit_browser_plot_pending_capacity();
+  const unsubscribeInput = admittedInput?.subscribe(() => { wake?.(); wake = null; });
   try {
     while (current()) {
       while (progress.effect_kind) {
@@ -134,17 +135,22 @@ export async function drainBrowserEffects({ api, initialProgress, readOutput, pe
         }
         progress = readOutput();
       }
-      if (progress.disposition !== "waiting") {
+      const inputWaiting = progress.disposition === 'externally_admitted_input';
+      if (progress.disposition !== "waiting" && !inputWaiting) {
         if (effects.size) throw new Error("Play completed with platform effects pending");
         break;
       }
-      if (!effects.size) throw new Error("Play awaits an absent platform effect");
+      const supplied = admittedInput?.take();
+      if (supplied) { progress = supplied; continue; }
+      if (!effects.size && !(inputWaiting && admittedInput)) throw new Error("Play awaits an absent platform effect");
       let completed = [...effects.values()].find((effect) => effect.ready);
       if (!completed) {
         onWaiting([...effects.values()].map(({ effect }) => effect));
         if (!current()) return;
         await new Promise((resolve) => { wake = resolve; });
         if (!current()) return;
+        const supplied = admittedInput?.take();
+        if (supplied) { progress = supplied; continue; }
         completed = [...effects.values()].find((effect) => effect.ready);
       }
       if (!current()) return;
@@ -174,6 +180,7 @@ export async function drainBrowserEffects({ api, initialProgress, readOutput, pe
     }
     return current() ? progress : undefined;
   } finally {
+    unsubscribeInput?.();
     signal?.removeEventListener("abort", retire);
     retire();
     effects.clear();

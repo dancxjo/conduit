@@ -428,6 +428,32 @@ export class BrowserPlay {
   get plan() { return Object.freeze({ planId: this.#started.play.plan_id, wakeId: this.#started.play.wake_id, bodyId: this.#started.play.body_id }); }
   get state() { return this.#terminal ? "terminal" : this.#failure ? "failed" : "playing"; }
   get receipts() { return Object.freeze(this.#terminal ? [this.#terminal] : []); }
+  /** Read the contributed Face of this Play's admitted Thermostat scan. */
+  thermostatFace() {
+    if (this.state !== 'playing') throw new Error('Thermostat Play is unavailable');
+    return this.#adapter.thermostatFace();
+  }
+  acknowledgeThermostatFace(effect) {
+    if (this.state !== 'playing') throw new Error('Thermostat Play is unavailable');
+    return this.#adapter.acknowledgeThermostatFace({
+      show_id: effect.show_id, manifestation_id: effect.manifestation_id,
+      mask_plan_id: effect.mask_plan_id, active_play_id: effect.mask_play.active_play_id,
+      placement_id: effect.placement_id, presentation_id: effect.presentation_id,
+      presentation_revision: effect.presentation_revision,
+    });
+  }
+  submitThermostatInteraction({ view, actionId, target, arguments: actionArguments = [], sequence }) {
+    if (this.state !== 'playing') throw new Error('Thermostat Play is unavailable');
+    if (view?.body_id !== this.#started.play.body_id || view.show_state !== 'available'
+        || view.interactions_admitted !== true) throw new Error('Current local Body Show is required for interaction');
+    if (!Number.isSafeInteger(sequence) || sequence < 1) throw new RangeError('Face action sequence is invalid');
+    const checked = checkedOwnerFaceArguments(view, actionId, target, actionArguments);
+    return this.#adapter.submitThermostatInteraction({
+      show_id: view.show_id, presentation_id: view.face_id,
+      presentation_revision: Number(view.face_revision), action_id: actionId,
+      target, arguments: checked, sequence,
+    });
+  }
   dispatch() {
     if (!this.#completion) this.#completion = this.#adapter.run().then(receipt => {
       this.#terminal = receipt;

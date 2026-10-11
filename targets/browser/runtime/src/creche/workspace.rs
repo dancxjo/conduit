@@ -3,7 +3,7 @@ use super::{JoinedLineObservation, PlanningAuthority};
 use conduit_body::{BodyBiographyEvidence, BodyPlotPlan};
 use conduit_core::{BootId, HostAdvertisement, HostId};
 use sha2::{Digest, Sha256};
-use std::cell::RefCell;
+use std::{cell::RefCell, collections::BTreeMap};
 
 // One immutable instance-local admission result. Source definitions and every
 // dynamic planning fact are bound; workset, query and view revision remain live.
@@ -253,6 +253,35 @@ fn catalog_plot_plan(
     } else {
         std::borrow::Cow::Borrowed(installed_backs)
     };
+    if plot.name == "thermostat/main" {
+        let authoring = conduit_plot::expand_canonical_plot_for_authoring_with_backs(
+            &document, &plot.name, &profile, &backs,
+        )
+        .map_err(|error| format!("Workspace thermostat expansion refused: {error:?}"))?;
+        let placements = conduit_planner::default_expanded_placements(&authoring.expanded, &hosts)
+            .map_err(|error| error.to_string())?;
+        conduit_planner::plan_expanded_authoring_with_activations(
+            &document,
+            &authoring,
+            &profile,
+            &backs,
+            &hosts,
+            &placements,
+            &crate::installed_browser::local_bases(),
+            conduit_planner::PlanningOptions {
+                connection_bases: &BTreeMap::new(),
+                line_candidates: &BTreeMap::new(),
+                connection_item_capacity: 1,
+                connection_byte_capacity: 32,
+                authority_grants: &[],
+                protected_resource_grants: &[],
+                line_offers: &[],
+            },
+            &crate::installed_browser::thermostat_scan_offer::fore_bounds(),
+        )
+        .map_err(|error| error.to_string())?;
+        return Ok(());
+    }
     let expanded =
         conduit_plot::expand_canonical_plot_with_backs(&document, &plot.name, &profile, &backs)
             .map_err(|error| format!("Workspace expansion refused: {error:?}"))?;
@@ -326,6 +355,40 @@ pub(crate) fn plan_workspace_plots(
             &mut profile,
         )?;
         let backs = crate::installed_browser::backs(startup, &profile)?;
+        if plot.name == "thermostat/main" {
+            let authoring = conduit_plot::expand_canonical_plot_for_authoring_with_backs(
+                document, &plot.name, &profile, &backs,
+            )
+            .map_err(|error| format!("Workspace thermostat expansion refused: {error:?}"))?;
+            let placements =
+                conduit_planner::default_expanded_placements(&authoring.expanded, &hosts)
+                    .map_err(|error| error.to_string())?;
+            let plan = conduit_planner::plan_expanded_authoring_with_activations(
+                document,
+                &authoring,
+                &profile,
+                &backs,
+                &hosts,
+                &placements,
+                &bases,
+                conduit_planner::PlanningOptions {
+                    connection_bases: &BTreeMap::new(),
+                    line_candidates: &BTreeMap::new(),
+                    connection_item_capacity: 1,
+                    connection_byte_capacity: 32,
+                    authority_grants: &[],
+                    protected_resource_grants: &[],
+                    line_offers: &[],
+                },
+                &crate::installed_browser::thermostat_scan_offer::fore_bounds(),
+            )
+            .map_err(|error| format!("Workspace thermostat Plan refused: {error:?}"))?;
+            plans.push(BodyPlotPlan {
+                plot: resident.clone(),
+                plan,
+            });
+            continue;
+        }
         let expanded =
             conduit_plot::expand_canonical_plot_with_backs(document, &plot.name, &profile, &backs)
                 .map_err(|error| format!("Workspace expansion refused: {error:?}"))?;
