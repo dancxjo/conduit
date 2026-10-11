@@ -1,13 +1,19 @@
 //! Typed, bounded preparation of resource-cost evidence outside Play.
 //! These primitives do not themselves select a realization or certify a forecast.
+mod demand;
 mod duration;
 mod forecast;
 mod freshness;
+mod selection;
 mod source;
 mod work_class;
+pub use demand::{
+    CostDemand, CostInput, CostedForecast, MAXIMUM_COST_INPUTS, MAXIMUM_COST_INPUT_BYTES,
+};
 pub use duration::CostDuration;
 pub use forecast::{CostDurationRange, CostForecastStages, FulfillmentCostForecast};
 pub use freshness::CostObservationWindow;
+pub use selection::*;
 pub use source::{
     CostCalibrationRevision, CostEvidenceSource, CostScopeChange, MAXIMUM_COST_ID_BYTES,
 };
@@ -22,6 +28,11 @@ pub enum CostEvidenceRefusal {
     MissingForecastStage,
     WorkClassChanged,
     IncompatibleRealization,
+    InvalidWorkInput,
+    WorkExtentChanged,
+    InputLimit,
+    AmbiguousEvidence,
+    UnsupportedIntent,
     InvalidIdentity,
     UnadvertisedSubject,
     Scope(CostScopeChange),
