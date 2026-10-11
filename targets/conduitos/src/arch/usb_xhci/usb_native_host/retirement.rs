@@ -197,6 +197,10 @@ impl UsbNativeHost<'_> {
                 }
             }
         }
+        if let Some(transfer) = &mut self.isochronous {
+            // SAFETY: original controller acknowledged stop before any ISO lease retires.
+            unsafe { transfer.release_stopped() }.map_err(UsbNativeHostRefusal::Isochronous)?;
+        }
         unsafe {
             (*dma).owner_slot = 0;
         }

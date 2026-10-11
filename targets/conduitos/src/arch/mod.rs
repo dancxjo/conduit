@@ -236,3 +236,13 @@ pub(crate) use x86_64::{
     UsbEndpointTransmitDma, UsbInboundEndpointParameters, UsbOutboundEndpointParameters,
     configure_usb_inbound, configure_usb_outbound,
 };
+
+#[cfg(any(
+    target_arch = "x86_64",
+    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+))]
+#[allow(unused_imports)] // ISO admission adapter is owned by the integration branch.
+pub(crate) use usb_xhci::{
+    NativeUsbIsochronousHost, UsbConfiguredIsochronousOutboundEndpoint,
+    configure_usb_isochronous_outbound,
+};

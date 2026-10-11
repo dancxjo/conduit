@@ -30,7 +30,7 @@ const MAXIMUM_CALLS: usize = 8;
 
 /// Opaque Host-local ordinal; it neither describes a device nor grants possession.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(super) struct UsbNativeCallIndex(usize);
+pub(crate) struct UsbNativeCallIndex(usize);
 
 #[derive(Debug)]
 pub enum UsbNativeHostRefusal {
@@ -38,6 +38,7 @@ pub enum UsbNativeHostRefusal {
     Control(UsbControlCallRefusal),
     Endpoint(EndpointNativeRefusal),
     Write(EndpointWriteNativeRefusal),
+    Isochronous(super::isochronous_out::IsochronousOutRefusal),
     Capacity,
     Binding,
     Pending,
@@ -58,12 +59,14 @@ enum Transfer<'a> {
 
 /// Root retains the original move-only native attachment, every DMA owner and
 /// the only controller event consumer until all submissions acknowledge stop.
-pub(super) struct UsbNativeHost<'a> {
+pub(crate) struct UsbNativeHost<'a> {
     controller: XhciReady,
     device: UsbDevice,
     mapping: fn(u64) -> Option<u64>,
     calls: Vec<BoundCall<'a>>,
     pending_endpoint: Option<usize>,
+    isochronous: Option<super::isochronous_out::IsochronousOutTransfer<'a>>,
+    isochronous_started: bool,
     uncertain_control: bool,
     playing: bool,
     stop_acknowledged: bool,
@@ -98,6 +101,8 @@ impl<'a> UsbNativeHost<'a> {
             mapping,
             calls: Vec::with_capacity(MAXIMUM_CALLS),
             pending_endpoint: None,
+            isochronous: None,
+            isochronous_started: false,
             uncertain_control: false,
             playing: false,
             stop_acknowledged: false,
@@ -272,7 +277,7 @@ impl<'a> UsbNativeHost<'a> {
         if self.stop_acknowledged || self.stopped {
             return Err(UsbNativeHostRefusal::NotReady);
         }
-        if self.pending_endpoint.is_some() || self.uncertain_control {
+        if self.pending_endpoint.is_some() || self.uncertain_control || self.isochronous_started {
             return Err(UsbNativeHostRefusal::Pending);
         }
         Ok(())
@@ -443,3 +448,6 @@ impl<'a> UsbNativeHost<'a> {
 
 #[path = "usb_native_host/retirement.rs"]
 mod retirement;
+
+#[path = "usb_native_host/isochronous.rs"]
+mod isochronous;

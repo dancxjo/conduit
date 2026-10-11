@@ -45,3 +45,5 @@ pub mod endpoint_write_offer;
 pub mod endpoint_write_owner;
 pub mod endpoint_write_request;
 pub mod endpoint_write_result;
+
+pub mod isochronous_schedule;

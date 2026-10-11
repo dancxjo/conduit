@@ -542,3 +542,13 @@ pub use protocol_installation::UsbNativeProtocolRefusal;
 #[path = "usb_xhci/usb_duplex_installation.rs"]
 mod duplex_installation;
 pub(crate) use duplex_installation::{NativeUsbDuplexHost, ReadyUsbDuplexHost};
+
+#[path = "usb_xhci/usb_isochronous_out.rs"]
+mod isochronous_out;
+pub(crate) use endpoint_setup::{
+    ConfiguredIsochronousOutboundEndpoint as UsbConfiguredIsochronousOutboundEndpoint,
+    configure_isochronous_outbound as configure_usb_isochronous_outbound,
+};
+pub use isochronous_out::IsochronousOutRefusal;
+
+pub(crate) use native_host::UsbNativeHost as NativeUsbIsochronousHost;
