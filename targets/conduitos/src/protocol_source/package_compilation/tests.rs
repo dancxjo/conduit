@@ -84,3 +84,5 @@ fn usb_duplex_plot_reuses_one_boolean_request_zip_specialization() {
     .unwrap();
     assert!(entry.expanded().expanded.gears.len() >= 5);
 }
+
+mod usb_reuse;

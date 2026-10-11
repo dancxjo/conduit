@@ -12,6 +12,8 @@ use conduit_composite::{
 use conduit_core::*;
 
 mod timed;
+#[cfg(target_arch = "x86_64")]
+mod usb;
 pub use timed::{ClockAdmission, PreparedTimedProtocolPlay};
 
 pub struct I2cAdmission<P> {
@@ -23,6 +25,7 @@ pub struct I2cAdmission<P> {
 
 #[cfg(target_arch = "x86_64")]
 pub struct UsbControlAdmission {
+    pub additional_remote_sign_items: u16,
     pub ready: crate::arch::ReadyUsbControlBase,
     pub table: BaseCapabilityTable,
     pub handle: BaseCapabilityHandle,
@@ -31,6 +34,7 @@ pub struct UsbControlAdmission {
 
 #[cfg(target_arch = "x86_64")]
 pub(crate) struct UsbProtocolAdmission {
+    pub additional_remote_sign_items: u16,
     pub ready: crate::arch::ReadyUsbProtocolHost,
     pub control_table: BaseCapabilityTable,
     pub control_handle: BaseCapabilityHandle,
@@ -42,6 +46,7 @@ pub(crate) struct UsbProtocolAdmission {
 
 #[cfg(target_arch = "x86_64")]
 pub(crate) struct UsbDuplexAdmission {
+    pub additional_remote_sign_items: u16,
     pub ready: crate::arch::ReadyUsbDuplexHost,
     pub control_table: BaseCapabilityTable,
     pub control_handle: BaseCapabilityHandle,
@@ -162,76 +167,11 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
             operations,
             allow_clock,
             PhysicalMode::I2c,
+            conduit_composite::KernelCompositeSignStorage::default(),
             |plan, zip, states| {
                 PreparedProtocolCalls::prepare_with_operations(
                     plan, ready, table, handle, claim, zip, states,
                 )
-            },
-        )
-    }
-
-    #[cfg(target_arch = "x86_64")]
-    pub fn prepare_usb(
-        definition: KernelCompositeDefinition,
-        ready: crate::arch::ReadyUsbControlBase,
-        table: BaseCapabilityTable,
-        handle: BaseCapabilityHandle,
-        claim: BaseOperationClaim,
-        operations: crate::protocol_operations::ProtocolOperations,
-    ) -> Result<Self, ProtocolCallRefusal> {
-        Self::prepare_selected(
-            definition,
-            operations,
-            false,
-            PhysicalMode::UsbControl,
-            |plan, zip, states| {
-                PreparedProtocolCalls::prepare_usb(plan, ready, table, handle, claim, zip, states)
-            },
-        )
-    }
-
-    /// Both exact native operations retain one controller and ordinary kernel.
-    #[cfg(target_arch = "x86_64")]
-    pub(crate) fn prepare_usb_protocol(
-        definition: KernelCompositeDefinition,
-        admission: UsbProtocolAdmission,
-        operations: crate::protocol_operations::ProtocolOperations,
-    ) -> Result<Self, ProtocolCallRefusal> {
-        Self::prepare_selected(
-            definition,
-            operations,
-            false,
-            PhysicalMode::UsbProtocol,
-            |plan, zip, states| {
-                PreparedProtocolCalls::prepare_usb_protocol(
-                    plan,
-                    admission.ready,
-                    admission.control_table,
-                    admission.control_handle,
-                    admission.control_claim,
-                    admission.endpoint_table,
-                    admission.endpoint_handle,
-                    admission.endpoint_claim,
-                    zip,
-                    states,
-                )
-            },
-        )
-    }
-
-    #[cfg(target_arch = "x86_64")]
-    pub(crate) fn prepare_usb_duplex(
-        definition: KernelCompositeDefinition,
-        admission: UsbDuplexAdmission,
-        operations: crate::protocol_operations::ProtocolOperations,
-    ) -> Result<Self, ProtocolCallRefusal> {
-        Self::prepare_selected(
-            definition,
-            operations,
-            false,
-            PhysicalMode::UsbDuplex,
-            |plan, zip, states| {
-                PreparedProtocolCalls::prepare_usb_duplex(plan, admission, zip, states)
             },
         )
     }
@@ -241,6 +181,7 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
         operations: crate::protocol_operations::ProtocolOperations,
         allow_clock: bool,
         mode: PhysicalMode,
+        storage: conduit_composite::KernelCompositeSignStorage,
         prepare_calls: impl FnOnce(
             &Plan,
             &crate::flow_zip::FlowZipOperationFactory,
@@ -329,7 +270,7 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
                 )
                 .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
         }
-        let kernel = KernelCompositeHost::prepare(definition, &registry)
+        let kernel = KernelCompositeHost::prepare_with_sign_storage(definition, &registry, storage)
             .map_err(ProtocolCallRefusal::Kernel)?;
         Ok(Self { kernel, calls })
     }

@@ -15,11 +15,37 @@ use conduit_planner::PlanningOptions;
 pub fn prepare_native_usb_protocol<P: I2cProvider, C: MonotonicDeadlineProvider>(
     entry: PreparedProtocolEntry,
     session: BodyLifecycleSession,
+    advertisement: HostAdvertisement,
+    ready: crate::arch::ReadyUsbControlBase,
+    issuer: NativeProtocolIssuer,
+    body_play_sequence: u64,
+    work_units: u64,
+) -> Result<PreparedProtocolBodyPlay<P, C>, Box<NativeProtocolPreparationRefusal>> {
+    prepare_native_usb_protocol_with_sign_storage(
+        entry,
+        session,
+        advertisement,
+        ready,
+        issuer,
+        body_play_sequence,
+        work_units,
+        0,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn prepare_native_usb_protocol_with_sign_storage<
+    P: I2cProvider,
+    C: MonotonicDeadlineProvider,
+>(
+    entry: PreparedProtocolEntry,
+    session: BodyLifecycleSession,
     mut advertisement: HostAdvertisement,
     ready: crate::arch::ReadyUsbControlBase,
     issuer: NativeProtocolIssuer,
     body_play_sequence: u64,
     work_units: u64,
+    additional_remote_sign_items: u16,
 ) -> Result<PreparedProtocolBodyPlay<P, C>, Box<NativeProtocolPreparationRefusal>> {
     use NativeProtocolPreparationReason as Reason;
     let mut retained_session = Some(session);
@@ -78,6 +104,7 @@ pub fn prepare_native_usb_protocol<P: I2cProvider, C: MonotonicDeadlineProvider>
             retained_session.take().expect("retained body"),
             body_play_sequence,
             crate::protocol_play::UsbControlAdmission {
+                additional_remote_sign_items,
                 ready,
                 table: possession.table,
                 handle: possession.handle,
@@ -110,6 +137,7 @@ pub(crate) fn prepare_native_usb_endpoint_protocol<P: I2cProvider, C: MonotonicD
     endpoint_issuer: NativeProtocolIssuer,
     body_play_sequence: u64,
     work_units: u64,
+    additional_remote_sign_items: u16,
 ) -> Result<PreparedProtocolBodyPlay<P, C>, Box<NativeProtocolPreparationRefusal>> {
     use NativeProtocolPreparationReason as Reason;
     let mut retained_session = Some(session);
@@ -185,6 +213,7 @@ pub(crate) fn prepare_native_usb_endpoint_protocol<P: I2cProvider, C: MonotonicD
             retained_session.take().expect("retained body"),
             body_play_sequence,
             crate::protocol_play::UsbProtocolAdmission {
+                additional_remote_sign_items,
                 ready,
                 control_table: possession.table,
                 control_handle: possession.handle,
@@ -221,6 +250,7 @@ pub(crate) fn prepare_native_usb_duplex_protocol<P: I2cProvider, C: MonotonicDea
     write_issuer: NativeProtocolIssuer,
     body_play_sequence: u64,
     work_units: u64,
+    additional_remote_sign_items: u16,
 ) -> Result<PreparedProtocolBodyPlay<P, C>, Box<NativeProtocolPreparationRefusal>> {
     use NativeProtocolPreparationReason as Reason;
     let mut retained_session = Some(session);
@@ -318,6 +348,7 @@ pub(crate) fn prepare_native_usb_duplex_protocol<P: I2cProvider, C: MonotonicDea
             retained_session.take().expect("retained body"),
             body_play_sequence,
             crate::protocol_play::UsbDuplexAdmission {
+                additional_remote_sign_items,
                 ready,
                 control_table: possession.table,
                 control_handle: possession.handle,

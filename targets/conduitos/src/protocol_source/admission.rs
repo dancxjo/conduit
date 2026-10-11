@@ -146,13 +146,14 @@ impl PreparedProtocolArtifact {
         self,
         usb: crate::protocol_play::UsbControlAdmission,
     ) -> Result<crate::protocol_play::PreparedProtocolPlay<P>, ProtocolCallRefusal> {
-        crate::protocol_play::PreparedProtocolPlay::prepare_usb(
+        crate::protocol_play::PreparedProtocolPlay::prepare_usb_with_sign_storage(
             self.artifact.into_definition(),
             usb.ready,
             usb.table,
             usb.handle,
             usb.claim,
             self.operations,
+            usb.additional_remote_sign_items,
         )
     }
 

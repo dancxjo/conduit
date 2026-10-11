@@ -211,3 +211,31 @@ fn duplex_endpoint_requests_validate_each_direction_and_budget_independently() {
         Err(ProtocolBootRequestRefusal::Bounds)
     ));
 }
+
+#[test]
+fn remote_sign_storage_is_explicit_optional_and_bounded() {
+    assert_eq!(decode(&request()).unwrap().additional_remote_sign_items, 0);
+    for count in [0, 199, u16::MAX] {
+        let mut value = request();
+        value["additional_remote_sign_items"] = count.into();
+        let parsed = decode(&value).unwrap();
+        assert_eq!(parsed.additional_remote_sign_items, count);
+        let encoded = serde_json::to_value(parsed).unwrap();
+        assert_eq!(
+            encoded.get("additional_remote_sign_items").is_none(),
+            count == 0
+        );
+    }
+    for invalid in [
+        serde_json::json!(-1),
+        serde_json::json!(65536),
+        serde_json::json!(1.5),
+    ] {
+        let mut value = request();
+        value["additional_remote_sign_items"] = invalid;
+        assert!(matches!(
+            decode(&value),
+            Err(ProtocolBootRequestRefusal::Encoding)
+        ));
+    }
+}

@@ -90,9 +90,10 @@ pub(super) fn prepare_usb(
             *write_issuer,
             0,
             1,
+            request.additional_remote_sign_items,
         ),
         super::usb_owners::NativeUsbOwners::Control { ready, issuer } => {
-            crate::protocol_source::prepare_native_usb_protocol(
+            crate::protocol_source::prepare_native_usb_protocol_with_sign_storage(
                 entry,
                 session,
                 advertisement,
@@ -100,6 +101,7 @@ pub(super) fn prepare_usb(
                 *issuer,
                 0,
                 1,
+                request.additional_remote_sign_items,
             )
         }
         super::usb_owners::NativeUsbOwners::Protocol {
@@ -115,6 +117,7 @@ pub(super) fn prepare_usb(
             *endpoint_issuer,
             0,
             1,
+            request.additional_remote_sign_items,
         ),
     }
     .map_err(|_| "protocol-usb-plan-admission-refused")?;
@@ -234,7 +237,7 @@ fn execute_workload(
                     // does not reinterpret device data or manufacture a Face.
                     report_output(&output.port, &output.value)?;
                     play.complete_output(&output.port, sequence)
-                        .map_err(|_| "protocol-output-close-refused")?;
+                        .map_err(|error| output_close_refusal(&error))?;
                 }
             }
             if status == KernelCompositeStatus::Complete {
@@ -342,3 +345,29 @@ fn report_play(play: &NativePlay) -> Result<(), &'static str> {
     arch::append_boot_diagnostic(text.as_bytes()).map_err(|_| "protocol-diagnostic-unavailable")?;
     Ok(())
 }
+
+// Keep the exact finite-storage refusal observable without allocating in Play.
+fn output_close_refusal(error: &crate::protocol_source::ProtocolBodyRefusal) -> &'static str {
+    use conduit_composite::{ChildExecutionError, KernelCompositeError};
+    use conduit_kernel::{SignError, scheduler::SchedulerError};
+    let crate::protocol_source::ProtocolBodyRefusal::Call(
+        crate::protocol_host_calls::ProtocolCallRefusal::Kernel(KernelCompositeError::Execution {
+            reason: ChildExecutionError::Scheduler(SchedulerError::Sign(reason)),
+            ..
+        }),
+    ) = error
+    else {
+        return "protocol-output-close-refused";
+    };
+    match reason {
+        SignError::InvalidBudget => "protocol-output-sign-invalid-budget",
+        SignError::ItemCapacityExceeded => "protocol-output-sign-items-exhausted",
+        SignError::ByteCapacityExceeded => "protocol-output-sign-bytes-exhausted",
+        SignError::RemoteItemCapacityExceeded => "protocol-output-sign-remote-items-exhausted",
+        SignError::RemoteByteCapacityExceeded => "protocol-output-sign-remote-bytes-exhausted",
+        SignError::SequenceOverflow => "protocol-output-sign-sequence-overflow",
+    }
+}
+
+#[cfg(test)]
+mod reuse_tests;

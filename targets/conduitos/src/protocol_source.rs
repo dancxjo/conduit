@@ -357,6 +357,8 @@ pub use package_compilation::{ProtocolSpecializationRequest, ProtocolValueRefere
 mod native_usb_preparation;
 #[cfg(target_arch = "x86_64")]
 pub use native_usb_preparation::prepare_native_usb_protocol;
+#[cfg(target_arch = "x86_64")]
+pub(crate) use native_usb_preparation::prepare_native_usb_protocol_with_sign_storage;
 
 #[cfg(target_arch = "x86_64")]
 pub(crate) use native_usb_preparation::{

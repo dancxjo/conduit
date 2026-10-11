@@ -25,6 +25,10 @@ pub struct UsbProtocolBootRequest {
     pub endpoint_read: Option<UsbEndpointBootRequest>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub endpoint_write: Option<UsbEndpointBootRequest>,
+    /// Root reserves retained remote lifecycle history before Play. This is
+    /// storage admission, not additional device authority or operation fuel.
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub additional_remote_sign_items: u16,
     pub maximum_steps: u32,
     pub inputs: Vec<ProtocolBootInput>,
 }
@@ -39,6 +43,10 @@ pub struct UsbEndpointBootRequest {
     pub interval: u8,
     pub endpoint_epoch: u32,
     pub maximum_operations: u32,
+}
+
+fn is_zero(value: &u16) -> bool {
+    *value == 0
 }
 
 impl UsbEndpointBootRequest {
