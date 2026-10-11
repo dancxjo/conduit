@@ -52,6 +52,21 @@ export class IncompatibleRuntimeAbiError extends ConduitSdkError {
 
 setBrowserSdkErrors({ PlanRefusalError, ResourceLossError, InvalidLifecycleError, PermissionDeniedError, IncompatibleRuntimeAbiError });
 
+/** Validate the finite installed-executor disclosure without acquiring a Body. */
+export function checkedBrowserExecutionCapabilities(value) {
+  // Includes two Dimension projections and two Thermostat installations;
+  // distinct from the membership advertisement envelope.
+  const maximumExecutionCapabilities = 120;
+  if (value?.schema !== "conduit.browser/body-capabilities@1"
+      || !Array.isArray(value.capability_ids)
+      || value.capability_ids.length > maximumExecutionCapabilities
+      || value.capability_ids.some(identity => typeof identity !== "string"
+        || identity.length < 1 || identity.length > 256)) {
+    throw new Error("invalid external Body execution capabilities");
+  }
+  return Object.freeze([...value.capability_ids]);
+}
+
 /** Exact Host + Boot incarnation. Its mutable projection is refreshed from Boot evidence. */
 export class BrowserHost {
   #state;
@@ -320,15 +335,7 @@ export class BrowserBodyParticipation {
       throw new Error("external Body execution capabilities unavailable");
     }
     const value = this.#state.host.bridge.browserPlotReadOutputJson();
-    // The installed executor includes exact quantity receipts and two
-    // checked Dimension projections. Keep this bound tied to that profile.
-    if (value?.schema !== "conduit.browser/body-capabilities@1"
-        || !Array.isArray(value.capability_ids) || value.capability_ids.length > 118
-        || value.capability_ids.some(identity => typeof identity !== "string"
-          || identity.length < 1 || identity.length > 256)) {
-      throw new Error("invalid external Body execution capabilities");
-    }
-    return Object.freeze([...value.capability_ids]);
+    return checkedBrowserExecutionCapabilities(value);
   }
 
   /** Acquire this page's exact resources for an authority-owned external Body proposal. */
