@@ -13,6 +13,7 @@ pub struct UsbEthernetNetworkRequest {
     pub remote_port: u16,
     pub local_port: u16,
     pub maximum_polls: u32,
+    pub maximum_duration_millis: u32,
     pub maximum_operations: u32,
     pub request: Vec<u8>,
     pub maximum_response_bytes: u16,
@@ -33,6 +34,7 @@ impl UsbEthernetNetworkRequest {
             || self.remote_port == 0
             || self.local_port == 0
             || !(1..=1_000_000).contains(&self.maximum_polls)
+            || !(1..=60_000).contains(&self.maximum_duration_millis)
             || !(1..=4096).contains(&self.maximum_operations)
             || self.request.is_empty()
             || self.request.len() > 1024
@@ -60,6 +62,7 @@ mod tests {
             remote_port: 8000,
             local_port: 49152,
             maximum_polls: 4096,
+            maximum_duration_millis: 30_000,
             maximum_operations: 64,
             request: alloc::vec![1],
             maximum_response_bytes: 1024,
@@ -93,6 +96,7 @@ mod tests {
             "remote_port",
             "local_port",
             "maximum_polls",
+            "maximum_duration_millis",
             "maximum_operations",
             "request",
             "maximum_response_bytes",
@@ -117,6 +121,9 @@ mod tests {
         assert_eq!(request.validate(), Err(ProtocolBootRequestRefusal::Bounds));
         request = scope();
         request.maximum_polls = 1_000_001;
+        assert_eq!(request.validate(), Err(ProtocolBootRequestRefusal::Bounds));
+        request = scope();
+        request.maximum_duration_millis = 60_001;
         assert_eq!(request.validate(), Err(ProtocolBootRequestRefusal::Bounds));
         request = scope();
         request.maximum_operations = 4097;
