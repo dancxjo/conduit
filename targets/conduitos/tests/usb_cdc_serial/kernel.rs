@@ -19,10 +19,18 @@ const CONFIG: &[u8] = &[
 #[test]
 fn whole_selected_back_kernel_closes_zero_one_or_thirty_two_with_pending_completion_and_pressure() {
     for count in [0usize, 1, 32] {
-        execute(count);
+        execute(count, None);
     }
 }
-fn execute(count: usize) {
+#[test]
+fn selected_back_drains_short_or_wrong_coding_after_one_terminal_result() {
+    for mode in ["short", "wrong"] {
+        for count in [1usize, 32] {
+            execute(count, Some(mode));
+        }
+    }
+}
+fn execute(count: usize, coding_fault: Option<&str>) {
     let mut run = Execution::prepare(package());
     let kernel = &mut run.kernel;
     let input = kernel.definition().external_capability.inputs[0].clone();
@@ -127,6 +135,8 @@ fn execute(count: usize) {
                     let request = decoded.request(256).unwrap();
                     let data: &[u8] = match controls {
                         0 => CONFIG,
+                        3 if coding_fault == Some("short") => &[0, 194, 1, 0, 0, 0],
+                        3 if coding_fault == Some("wrong") => &[128, 37, 0, 0, 0, 0, 8],
                         3 => &[0, 194, 1, 0, 0, 0, 8],
                         _ => &[],
                     };
@@ -163,7 +173,7 @@ fn execute(count: usize) {
                 }
                 other => panic!("unexpected effect {other}"),
             };
-            if controls == 5 && !held {
+            if controls == (if coding_fault.is_some() { 4 } else { 5 }) && !held {
                 held = true;
                 pending = Some((call, result, 8));
             } else {
@@ -182,19 +192,24 @@ fn execute(count: usize) {
             let StructuredInfoValueShape::Variant { tag, payload } = value.shape() else {
                 panic!()
             };
-            assert_eq!(
-                tag,
-                if seen % 2 == 0 {
-                    "transmitted"
-                } else {
-                    "received"
-                }
-            );
-            assert_eq!(
-                scalar(member(payload, "ordinal")),
-                (seen as u64).to_le_bytes()
-            );
-            assert_eq!(scalar(member(payload, "actual")), 3u64.to_le_bytes());
+            if coding_fault.is_some() {
+                assert_eq!(tag, "unsupported");
+                assert_eq!(seen, 0, "one terminal result, no duplicate publication");
+            } else {
+                assert_eq!(
+                    tag,
+                    if seen % 2 == 0 {
+                        "transmitted"
+                    } else {
+                        "received"
+                    }
+                );
+                assert_eq!(
+                    scalar(member(payload, "ordinal")),
+                    (seen as u64).to_le_bytes()
+                );
+                assert_eq!(scalar(member(payload, "actual")), 3u64.to_le_bytes());
+            }
             seen += 1;
             run.kernel
                 .complete_output(&output.port_id, sequence)
@@ -211,8 +226,12 @@ fn execute(count: usize) {
         run.kernel.signs()
     );
     assert!(pending.is_none());
-    assert_eq!(seen, count);
-    assert_eq!(controls, if count == 0 { 0 } else { 5 });
-    assert_eq!(writes, count.div_ceil(2));
-    assert_eq!(reads, count / 2);
+    if coding_fault.is_some() {
+        assert_eq!((seen, controls, writes, reads), (1, 4, 0, 0));
+    } else {
+        assert_eq!(seen, count);
+        assert_eq!(controls, if count == 0 { 0 } else { 5 });
+        assert_eq!(writes, count.div_ceil(2));
+        assert_eq!(reads, count / 2);
+    }
 }
