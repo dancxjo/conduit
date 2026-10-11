@@ -7,6 +7,8 @@ mod receipt;
 mod target;
 mod temperature_difference;
 mod wide_conversion;
+pub(crate) use receipt::checked_conversion_evidence;
+pub(crate) use wide_conversion::compatible_units;
 
 pub use exact::*;
 pub use receipt::*;

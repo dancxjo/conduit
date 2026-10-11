@@ -33,15 +33,8 @@ impl<'a> ExactQuantityConversionReceipt<'a> {
         original: &'a str,
         target_source: &'a str,
     ) -> Result<Self, ExactQuantityConversionRequestRefusal> {
-        if target_source.len() > crate::UNIT_MAX_SOURCE_BYTES {
-            return Err(ExactQuantityConversionRequestRefusal::TargetTooLong);
-        }
-        if !source.matches_literal_evidence(original) {
-            return Err(ExactQuantityConversionRequestRefusal::SourceEvidenceMismatch);
-        }
-        let source_suffix = source_suffix_from_evidence(original, source)?;
-        let target = ResolvedQuantitySuffix::from_unit(target_source, target_unit)
-            .map_err(|_| ExactQuantityConversionRequestRefusal::TargetEvidenceMismatch)?;
+        let (source_suffix, target) =
+            checked_conversion_evidence(source, target_unit, original, target_source)?;
         let result = source
             .convert_to_unit(target_unit)
             .map(|(coefficient, exponent)| {
@@ -88,6 +81,29 @@ impl<'a> ExactQuantityConversionReceipt<'a> {
     ) -> Result<ExactQuantityTargetCoordinate<'a>, QuantityConversionRefusal> {
         self.result
     }
+}
+
+/// Establish source correlation and target spelling without selecting a numeric
+/// representation or attempting a finite-decimal conversion.
+pub(crate) fn checked_conversion_evidence<'a>(
+    source: Quantity,
+    target_unit: Unit,
+    original: &'a str,
+    target_source: &'a str,
+) -> Result<
+    (ResolvedQuantitySuffix<'a>, ResolvedQuantitySuffix<'a>),
+    ExactQuantityConversionRequestRefusal,
+> {
+    if target_source.len() > crate::UNIT_MAX_SOURCE_BYTES {
+        return Err(ExactQuantityConversionRequestRefusal::TargetTooLong);
+    }
+    if !source.matches_literal_evidence(original) {
+        return Err(ExactQuantityConversionRequestRefusal::SourceEvidenceMismatch);
+    }
+    let source_suffix = source_suffix_from_evidence(original, source)?;
+    let target = ResolvedQuantitySuffix::from_unit(target_source, target_unit)
+        .map_err(|_| ExactQuantityConversionRequestRefusal::TargetEvidenceMismatch)?;
+    Ok((source_suffix, target))
 }
 
 pub(super) fn source_suffix_from_evidence<'a>(

@@ -53,7 +53,7 @@ depends on semantic, application, target, or proof packages.
 | `info.rs` | generic value mechanism | Minimal bool/scalar envelopes, decode refusal, and semantic digest used by unrelated domains. |
 | `primitive_info.rs` | generic value mechanism | Closed canonical primitive identity registry plus allocation-free validation and count encoding. |
 | `value_constraint.rs` | generic value mechanism | Exact finite reusable value contracts, deterministic refusal, and portable bounded text-pattern automata shared by checking, planning, Faces, and Hosts. |
-| `exact_numeric.rs` and children | generic value mechanism | Fixed-extent exact rational denotation and canonical codec with explicit bounded limb work; numerical realization remains separate. |
+| `exact_numeric.rs` and children | generic value mechanism | Fixed-extent rational denotation and optional rational Quantity coordinates with canonical codecs, explicit bounded limb work and type-safe integer projections; physical Unit conversion and numerical realization remain separate. |
 | `fixed_integer.rs` | generic value mechanism | Exact fixed-width signed and unsigned integer values, encoding, and checked arithmetic. |
 | `ieee_float.rs` | generic value mechanism | Exact IEEE-754 binary32/binary64 bit identity, canonical little-endian encoding, finite classification, and total ordering without target-native equality drift. |
 | `kind_effects.rs` | universal architecture | Reviewed semantic effect facts used to admit pure Kind calls without inferring behavior from names. |
