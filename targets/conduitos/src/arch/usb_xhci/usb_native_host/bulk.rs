@@ -36,7 +36,7 @@ impl UsbNativeHost<'_> {
         if self.stopped || self.stop_acknowledged {
             return Err(UsbNativeHostRefusal::NotReady);
         }
-        if self.pending_endpoint != Some(index.0) {
+        if self.pending_write.is_some() || self.pending_endpoint != Some(index.0) {
             return Err(UsbNativeHostRefusal::Pending);
         }
         let bound = self
@@ -117,7 +117,7 @@ impl UsbNativeHost<'_> {
         if self.stopped || self.stop_acknowledged {
             return Err(UsbNativeHostRefusal::NotReady);
         }
-        if self.pending_endpoint != Some(index.0) {
+        if self.pending_write.is_some() || self.pending_endpoint != Some(index.0) {
             return Err(UsbNativeHostRefusal::Pending);
         }
         let bound = self
