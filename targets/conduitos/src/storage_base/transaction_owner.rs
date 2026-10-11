@@ -162,6 +162,15 @@ impl BlockReadTransactionOwner {
             terminal: false,
         })
     }
+    pub(crate) fn authorize_claim(&self) -> &BaseOperationClaim {
+        &self.authorize.claim
+    }
+    pub(crate) fn settle_claim(&self) -> &BaseOperationClaim {
+        &self.settle.claim
+    }
+    pub(crate) fn preparation(&self) -> &[u8; 32] {
+        &self.preparation
+    }
     pub(crate) fn authorize_node(&self) -> NodeId {
         self.authorize.node
     }
