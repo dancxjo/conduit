@@ -35,6 +35,7 @@ pub mod domain_timer_scope;
 pub mod dual_region_composition;
 pub mod dual_region_kernel;
 pub mod dual_region_plan;
+pub mod ethernet_frame;
 mod execution_region;
 pub mod expression_host_call;
 pub mod flow_singleton;
