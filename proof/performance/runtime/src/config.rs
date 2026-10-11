@@ -7,6 +7,7 @@ pub struct Config {
     pub repetitions: u16,
     pub decisions: u32,
     pub samples: u32,
+    pub hosted_pipeline: bool,
 }
 impl Config {
     pub fn parse(arguments: &[String]) -> Result<Self, String> {
@@ -16,6 +17,7 @@ impl Config {
             repetitions: 5,
             decisions: 10_000,
             samples: 2_000,
+            hosted_pipeline: false,
         };
         let mut seen = std::collections::BTreeSet::new();
         let mut arguments = arguments.iter();
@@ -28,6 +30,11 @@ impl Config {
                 .ok_or_else(|| format!("missing value for {name}"))?;
             match name.as_str() {
                 "--output" => config.output = value.into(),
+                "--hosted-pipeline" => {
+                    config.hosted_pipeline = value
+                        .parse()
+                        .map_err(|_| "--hosted-pipeline requires true or false")?
+                }
                 "--values" => config.values = value.parse().map_err(|_| "invalid --values")?,
                 "--repetitions" => {
                     config.repetitions = value.parse().map_err(|_| "invalid --repetitions")?
