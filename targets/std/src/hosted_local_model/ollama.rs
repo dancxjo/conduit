@@ -59,11 +59,18 @@ impl HostedLocalModelAdapter for OllamaLocalModelAdapter {
     }
 
     fn current_runtime_state(&self) -> Result<super::LocalModelRuntimeState, String> {
-        sample_ollama_runtime(
+        let state = sample_ollama_runtime(
             &self.endpoint,
             &self.offer.identity.model_name,
             &self.offer.identity.model_content_identity,
-        )
+        )?;
+        if !runtime_state::version_profile_matches(
+            &self.offer.identity.runtime_version,
+            state.runtime_version.as_deref(),
+        ) {
+            return Err("current provider version differs from initialized model profile".into());
+        }
+        Ok(state)
     }
 
     fn execute(
