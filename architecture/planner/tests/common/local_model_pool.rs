@@ -66,8 +66,13 @@ pub(super) fn catalogs() -> (StartupCatalog, ProfileCatalog) {
 }
 
 pub(super) fn expanded() -> conduit_plot::ExpandedCanonicalPlot {
+    expanded_with_maximum(2)
+}
+
+pub(super) fn expanded_with_maximum(maximum: u16) -> conduit_plot::ExpandedCanonicalPlot {
     let (startup, profile) = catalogs();
-    let checked = check_syntax_document(&parse_syntax_document(SOURCE), &startup).unwrap();
+    let source = SOURCE.replace("size = 2", &format!("size = {maximum}"));
+    let checked = check_syntax_document(&parse_syntax_document(&source), &startup).unwrap();
     expand_canonical_plot(&checked, "model-service", &profile).unwrap()
 }
 
@@ -167,6 +172,37 @@ pub(super) fn build_plan(hosts: &[HostAdvertisement]) -> conduit_core::Plan {
             line_offers: &[],
         },
         &requirement(),
+    )
+    .unwrap()
+}
+
+pub(super) fn build_plan_with_policy(
+    hosts: &[HostAdvertisement],
+    policy: conduit_core::SharedPoolSelectionPolicy,
+) -> conduit_core::Plan {
+    let plot = expanded();
+    let placements = default_expanded_placements(&plot, hosts).unwrap();
+    conduit_planner::plan_expanded_canonical_with_shared_pool_policies(
+        &plot,
+        hosts,
+        &placements,
+        &[conduit_core::BaseImplementationId::from(
+            "conduit.base/local@1",
+        )],
+        PlanningOptions {
+            connection_bases: &BTreeMap::new(),
+            line_candidates: &BTreeMap::new(),
+            connection_item_capacity: 1,
+            connection_byte_capacity: 1,
+            authority_grants: &[],
+            protected_resource_grants: &[],
+            line_offers: &[],
+        },
+        &requirement(),
+        &[conduit_planner::SharedPoolPolicySelection {
+            pool_id: &plot.shared_pools[0].pool_id,
+            policy,
+        }],
     )
     .unwrap()
 }

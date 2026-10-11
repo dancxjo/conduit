@@ -80,27 +80,11 @@ fn workload_forecast_and_independent_current_state_reach_atomic_pool_selection()
         providers[0].advertisement.clone(),
         providers[1].advertisement.clone(),
     ];
-    let original = pool_fixture::build_plan(&hosts);
-    assert!(original.activations.is_empty());
-    let mut fragments = original.fragments.clone();
-    fragments
-        .iter_mut()
-        .flat_map(|f| &mut f.shared_pools)
-        .for_each(|p| {
-            p.selection_policy = SharedPoolSelectionPolicy::MinimumPredictedCompletionThenCapacity
-        });
-    // The fixture selects the new policy before sealing its new Plan. Ordinary
-    // configurable pool policy construction remains a separate product task.
-    let plan = seal_plan_with_realization_backs_and_completion(
-        PlotIdentity {
-            source_document_id: original.source_document_id.clone(),
-            checked_plot_id: original.checked_plot_id.clone(),
-            expanded_plot_id: original.expanded_plot_id.clone(),
-        },
-        original.completion_policy,
-        original.realization_backs.clone(),
-        fragments,
+    let plan = pool_fixture::build_plan_with_policy(
+        &hosts,
+        SharedPoolSelectionPolicy::MinimumPredictedCompletionThenCapacity,
     );
+    assert!(plan.activations.is_empty());
     assert!(verify_plan(&plan));
     let pool_id = plan.fragments[0].shared_pools[0].pool_id.clone();
     let members = &plan.fragments[0].shared_pools[0].realization_envelope;
