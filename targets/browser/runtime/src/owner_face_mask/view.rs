@@ -20,7 +20,7 @@ impl OwnerBrowserMask {
                 mask_boot_id: route.mask_boot_id.clone(),
             }),
         );
-        view.component = self.component.as_ref().map(|component| component.clone());
+        view.component = self.component.clone();
         view
     }
 }
