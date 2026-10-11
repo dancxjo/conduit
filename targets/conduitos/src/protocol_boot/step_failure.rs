@@ -49,8 +49,8 @@ mod tests {
     fn original_stale_and_loss_failures_keep_distinct_codes_and_exact_play() {
         let play = BodyPlayIdentity {
             active_play_id: "body-play/sha256:original-play".into(),
-            body_id: "original-body".into(),
-            wake_id: "original-wake".into(),
+            body_id: serde_json::from_str("\"original-body\"").unwrap(),
+            wake_id: serde_json::from_str("\"original-wake\"").unwrap(),
             plan_id: "body-plan/sha256:original-plan".into(),
             play_sequence: 7,
         };
@@ -92,8 +92,8 @@ mod tests {
     fn native_dispatch_refusal_keeps_classifier_before_kernel_step() {
         let play = BodyPlayIdentity {
             active_play_id: "original-play".into(),
-            body_id: "original-body".into(),
-            wake_id: "original-wake".into(),
+            body_id: serde_json::from_str("\"original-body\"").unwrap(),
+            wake_id: serde_json::from_str("\"original-wake\"").unwrap(),
             plan_id: "original-plan".into(),
             play_sequence: 0,
         };
