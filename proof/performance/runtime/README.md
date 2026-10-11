@@ -28,7 +28,9 @@ on an idle host before treating differences as repeatable.
 ## Timed boundaries
 
 The frozen expressions perform 1/3/8/32 checked additions, a conditional, or a
-comparison over U64 and the existing signed, six-decimal-place Scalar. The native
+comparison over U64 and the existing signed, six-decimal-place Scalar. Addition
+trees balance the constant terms to fit the ordinary portable depth profile;
+the checked program retains the declared number of additions. The native
 loop uses the same checked arithmetic and branches. Semantic tests include
 branch boundaries, overflow refusals, the signed minimum, and malformed frames.
 Both modes retain and compare the sum of all outputs for every repetition.
@@ -40,7 +42,8 @@ The native implementation uses registers; the prepared evaluator consumes
 canonical eight-byte frames. That framing difference is disclosed, not removed.
 
 Cold expression timings separate parsing, expression checking, portable-program
-construction, evaluator preparation, validated first output, and teardown.
+construction, canonical codec roundtrip, evaluator preparation, validated first
+output, and teardown.
 They exclude canonical Plot expansion and Plan construction. Warm bulk timings
 exclude preparation and 10,000 warm-up values, and contain no per-value clock
 calls. A separate uniform-stride pass retains event latency samples. Native and
