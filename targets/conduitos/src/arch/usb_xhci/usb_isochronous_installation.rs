@@ -1,5 +1,4 @@
 //! Root-retained control + ISO provider; no USB class or PCM interpretation.
-#![allow(dead_code)] // Source catalog/product dispatch is integrated independently.
 use super::{
     UsbControlCallRefusal, UsbControlSelection, UsbDevice, UsbDma,
     control_installation::{ReadyUsbControlBase, validate_selection},
@@ -255,6 +254,12 @@ impl ReadyUsbIsochronousHost {
             .find(|node| &node.placement_id == selection.placement_id)
             .ok_or(UsbIsochronousCallRefusal::Binding)?
             .node;
+        validate_preissued_metadata(&table, &claim)?;
+        validate_preissued_metadata(&control_table, &control_claim)?;
+        // Sole boot Root owns this allocator during preparation. Its live-byte
+        // delta includes actual 32-byte allocation-unit rounding, not just Vec lengths.
+        let arena = &crate::allocation::BOOT_ARENA;
+        let before = arena.live_bytes();
         let owner = unsafe {
             IsochronousOutCallOwner::bind_admitted(
                 table,
@@ -272,6 +277,11 @@ impl ReadyUsbIsochronousHost {
             unsafe { host.add_control(control_table, control_handle, control_claim, control) }
                 .map_err(native_refusal)?;
         unsafe { host.add_isochronous(self.configured, self.dma) }.map_err(native_refusal)?;
+        let newly_retained = arena.live_bytes().saturating_sub(before);
+        if arena.capacity() != 0 {
+            // No TD was published. A refusal leaves static configured storage quarantined.
+            admit_retained_resource(newly_retained, self.attachment.resource_bytes)?;
+        }
         Ok(NativeUsbIsochronousHost {
             host,
             owner,
@@ -467,3 +477,72 @@ impl NativeUsbIsochronousHost {
         Ok(())
     }
 }
+
+// Two preissued single-entry tables + claims have bounded identifier text.
+// 16KiB each covers table entry/active-sequence storage, scope/claim strings and
+// allocator rounding; both original tables are created with capacity one by Root.
+fn validate_preissued_metadata(
+    table: &BaseCapabilityTable,
+    claim: &BaseOperationClaim,
+) -> Result<(), UsbIsochronousCallRefusal> {
+    let mut entries = table.inspections();
+    let entry = entries.next().ok_or(UsbIsochronousCallRefusal::Binding)?;
+    if entries.next().is_some() || entry.scope.maximum_in_flight != 1 {
+        return Err(UsbIsochronousCallRefusal::Binding);
+    }
+    let scope = &entry.scope;
+    let strings = [
+        scope.host_id.as_str(),
+        scope.boot_id.as_str(),
+        scope.base_instance_id.as_str(),
+        scope.plan_id.as_str(),
+        scope.active_play_id.as_str(),
+        scope.authority_grant_id.as_str(),
+        scope.authority_contract_id.as_str(),
+        scope.capability_id.as_str(),
+        scope.implementation_id.as_str(),
+        scope.operation_contract_id.as_str(),
+        scope.subject_kind.as_str(),
+        scope.resource_pool_id.as_str(),
+        &scope.resource_generation_id.0,
+        scope.envelope_id.as_str(),
+        claim.host_id.as_str(),
+        claim.boot_id.as_str(),
+        claim.base_instance_id.as_str(),
+        claim.plan_id.as_str(),
+        claim.active_play_id.as_str(),
+        claim.implementation_id.as_str(),
+        claim.operation_contract_id.as_str(),
+        claim.subject_kind.as_str(),
+        claim.resource_pool_id.as_str(),
+        &claim.resource_generation_id.0,
+        claim.envelope_id.as_str(),
+    ];
+    if strings.iter().any(|text| text.len() > 256)
+        || strings.iter().map(|text| text.len()).sum::<usize>() > 4096
+    {
+        return Err(UsbIsochronousCallRefusal::Binding);
+    }
+    Ok(())
+}
+fn admit_retained_resource(
+    newly_retained: usize,
+    admitted: u64,
+) -> Result<usize, UsbIsochronousCallRefusal> {
+    let charged =
+        retained_resource_bytes(newly_retained).ok_or(UsbIsochronousCallRefusal::Binding)?;
+    if charged as u64 > admitted {
+        return Err(UsbIsochronousCallRefusal::Binding);
+    }
+    Ok(charged)
+}
+fn retained_resource_bytes(newly_retained: usize) -> Option<usize> {
+    newly_retained
+        .checked_add(2 * 16384)? // preissued tables and their claims
+        .checked_add(core::mem::size_of::<NativeUsbIsochronousHost>())?
+        .checked_add(8192)? // rooted ring, packet buffers, input context and page padding
+        .checked_add(4 * 4096) // ISO Flow budget, independently prepared in the kernel
+}
+#[cfg(test)]
+#[path = "usb_isochronous_installation/tests.rs"]
+mod tests;
