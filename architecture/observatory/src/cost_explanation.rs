@@ -25,6 +25,9 @@ pub enum CostExplanationRefusal {
 pub fn render_cost_selection_refusal(
     error: &CostSelectionError,
 ) -> Result<String, CostExplanationRefusal> {
+    if let CostSelectionError::Comparison(refusal) = error {
+        return super::cost_comparison_explanation::render(refusal);
+    }
     if let CostSelectionError::HardAdmission(refusal) = error {
         if refusal.signs.is_empty() {
             return Err(CostExplanationRefusal::NoRetainedDecision);
@@ -375,7 +378,7 @@ fn stage_range(name: &str, range: Option<CostDurationRange>, out: &mut impl Writ
 /// Display exact fractions, using decimal magnitudes that fit u128 and hex for
 /// larger magnitudes. This formats codec components without projecting a Time
 /// quantity into a scalar, rounding, or performing big-number base conversion.
-fn exact(value: ExactRational, out: &mut impl Write) -> fmt::Result {
+pub(super) fn exact(value: ExactRational, out: &mut impl Write) -> fmt::Result {
     let mut encoded = [0u8; EXACT_RATIONAL_MAX_ENCODED_BYTES];
     let length = value.encode(&mut encoded).map_err(|_| fmt::Error)?;
     let numerator_length = u16::from_le_bytes([encoded[2], encoded[3]]) as usize;
@@ -406,7 +409,7 @@ fn exact(value: ExactRational, out: &mut impl Write) -> fmt::Result {
     Ok(())
 }
 
-struct BoundedText(String);
+pub(super) struct BoundedText(pub(super) String);
 impl Write for BoundedText {
     fn write_str(&mut self, value: &str) -> fmt::Result {
         if value.len() > MAXIMUM_COST_EXPLANATION_BYTES - self.0.len() {

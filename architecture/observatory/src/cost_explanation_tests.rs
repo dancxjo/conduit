@@ -65,6 +65,14 @@ fn exercise(
     calibration_mode: CalibrationMode,
     inspect: impl FnOnce(Result<CostRealizationSelection<'_>, CostSelectionError>),
 ) {
+    exercise_with_budget(require_known, calibration_mode, None, inspect)
+}
+fn exercise_with_budget(
+    require_known: bool,
+    calibration_mode: CalibrationMode,
+    comparison_budget: Option<u64>,
+    inspect: impl FnOnce(Result<CostRealizationSelection<'_>, CostSelectionError>),
+) {
     let calibrated = !matches!(calibration_mode, CalibrationMode::None);
     let expired_calibration = matches!(calibration_mode, CalibrationMode::Expired);
     let gear = gear();
@@ -118,7 +126,7 @@ fn exercise(
                 revisions[0],
                 window(
                     host,
-                    if index == 1 || require_known {
+                    if (index == 1 || require_known) && comparison_budget.is_none() {
                         149
                     } else {
                         200
@@ -290,6 +298,9 @@ fn exercise(
             now,
         })
         .collect::<Vec<_>>();
+    if let Some(budget) = comparison_budget {
+        work = ExactNumericWork::new(budget);
+    }
     inspect(select_realization_with_costs(
         demand,
         CostSelectionInputs {
@@ -477,3 +488,6 @@ fn known_calibration_without_its_current_state_cannot_be_presented_as_valid() {
         );
     });
 }
+
+#[path = "cost_comparison_refusal_tests.rs"]
+mod comparison_refusal;
