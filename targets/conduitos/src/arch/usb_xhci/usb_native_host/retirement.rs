@@ -64,6 +64,84 @@ impl UsbNativeHost<'_> {
         Ok(&self.control_output[..self.control_output_length])
     }
 
+    // Only the original controller's acknowledged Disable Slot can settle an
+    // uncertain endpoint transfer. Keep pending state and DMA intact on failure.
+    fn stop_for_endpoint_fault(&mut self) -> Result<(), UsbNativeHostRefusal> {
+        self.controller
+            .disable_removed_slot(self.device.slot)
+            .map_err(|error| UsbNativeHostRefusal::Native(error.into()))?;
+        self.stop_acknowledged = true;
+        Ok(())
+    }
+
+    pub(super) fn finish_read_fault(
+        &mut self,
+        index: UsbNativeCallIndex,
+        disposition: EndpointReadDisposition,
+    ) -> Result<&[u8], UsbNativeHostRefusal> {
+        if self.pending_endpoint != Some(index.0) {
+            return Err(UsbNativeHostRefusal::Pending);
+        }
+        let Some(BoundCall {
+            transfer: Transfer::Endpoint(transfer),
+            ..
+        }) = self.calls.get(index.0)
+        else {
+            return Err(UsbNativeHostRefusal::Binding);
+        };
+        transfer
+            .validate_device(&self.device)
+            .map_err(UsbNativeHostRefusal::Endpoint)?;
+        self.stop_for_endpoint_fault()?;
+        let Transfer::Endpoint(transfer) = &mut self.calls[index.0].transfer else {
+            return Err(UsbNativeHostRefusal::Binding);
+        };
+        // SAFETY: sole original controller acknowledged slot stop, marker and
+        // exact attachment remain live, and this faulting lease was not revoked.
+        let bytes = unsafe { transfer.finish_fault_quiesced(&self.device, disposition) }
+            .map_err(UsbNativeHostRefusal::Endpoint)?;
+        self.control_output[..bytes.len()].copy_from_slice(bytes);
+        self.control_output_length = bytes.len();
+        // Retire all remaining software possession before terminal publication.
+        // No subsequent effect may run on the stopped controller attachment.
+        self.cancel()?;
+        Ok(&self.control_output[..self.control_output_length])
+    }
+
+    pub(super) fn finish_write_fault(
+        &mut self,
+        index: UsbNativeCallIndex,
+        disposition: EndpointWriteDisposition,
+    ) -> Result<&[u8], UsbNativeHostRefusal> {
+        if self.pending_endpoint != Some(index.0) {
+            return Err(UsbNativeHostRefusal::Pending);
+        }
+        let Some(BoundCall {
+            transfer: Transfer::Write(transfer),
+            ..
+        }) = self.calls.get(index.0)
+        else {
+            return Err(UsbNativeHostRefusal::Binding);
+        };
+        transfer
+            .validate_device(&self.device)
+            .map_err(UsbNativeHostRefusal::Write)?;
+        self.stop_for_endpoint_fault()?;
+        let Transfer::Write(transfer) = &mut self.calls[index.0].transfer else {
+            return Err(UsbNativeHostRefusal::Binding);
+        };
+        // SAFETY: sole original controller acknowledged slot stop, marker and
+        // exact attachment remain live, and this faulting lease was not revoked.
+        let bytes = unsafe { transfer.finish_fault_quiesced(&self.device, disposition) }
+            .map_err(UsbNativeHostRefusal::Write)?;
+        self.control_output[..bytes.len()].copy_from_slice(bytes);
+        self.control_output_length = bytes.len();
+        // Retire all remaining software possession before terminal publication.
+        // No subsequent effect may run on the stopped controller attachment.
+        self.cancel()?;
+        Ok(&self.control_output[..self.control_output_length])
+    }
+
     /// Revoke every selected call first; acknowledged slot stop covers all DMA.
     /// Failed stop or retirement retains ownership markers and outstanding state.
     pub fn cancel(&mut self) -> Result<(), UsbNativeHostRefusal> {

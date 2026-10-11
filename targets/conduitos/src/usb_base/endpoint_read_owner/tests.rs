@@ -6,3 +6,5 @@ mod execution;
 mod fixture;
 mod possession;
 mod retirement;
+
+mod native_fault;
