@@ -112,6 +112,10 @@ pub(super) enum HostCommand {
         /// Exact loopback Ollama origin.
         #[arg(long, default_value = conduit_std_host::hosted_local_model::DEFAULT_OLLAMA_ENDPOINT)]
         ollama_endpoint: String,
+        /// Also sample current provider residency without loading the model.
+        /// This raw report is not a Host-scoped scheduling observation.
+        #[arg(long)]
+        runtime_state: bool,
     },
     /// Initialize and warm one already-local Ollama model under finite Host limits.
     ProveLocalModel {
