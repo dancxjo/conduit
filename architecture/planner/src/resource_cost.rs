@@ -7,6 +7,7 @@ mod forecast;
 mod freshness;
 mod selection;
 mod source;
+mod structured_input;
 mod work_class;
 pub use calibration::*;
 pub use demand::{
@@ -19,6 +20,7 @@ pub use selection::*;
 pub use source::{
     CostCalibrationRevision, CostEvidenceSource, CostScopeChange, MAXIMUM_COST_ID_BYTES,
 };
+pub use structured_input::CostStructuredInputSchema;
 pub use work_class::CostWorkClass;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -31,6 +33,7 @@ pub enum CostEvidenceRefusal {
     WorkClassChanged,
     IncompatibleRealization,
     InvalidWorkInput,
+    Structured(conduit_core::StructuredInfoRefusal),
     WorkExtentChanged,
     InputLimit,
     AmbiguousEvidence,
