@@ -4,7 +4,7 @@ use alloc::vec;
 use conduit_core::*;
 use conduit_plan_lowering::lowering::LoweredPlanFragment;
 
-pub(super) fn scope() -> BaseCapabilityScope {
+pub(crate) fn scope() -> BaseCapabilityScope {
     BaseCapabilityScope {
         host_id: HostId::from("host/one"),
         boot_id: BootId::from("boot/one"),
@@ -54,7 +54,7 @@ fn authority() -> BaseCapabilityAuthority {
     }
 }
 
-pub(super) fn request() -> CapabilityIssueRequest {
+pub(crate) fn request() -> CapabilityIssueRequest {
     CapabilityIssueRequest {
         scope: scope(),
         authority: authority(),
@@ -73,7 +73,7 @@ pub(super) fn table(key: u8) -> BaseCapabilityTable {
     .unwrap()
 }
 
-pub(super) fn claim() -> BaseOperationClaim {
+pub(crate) fn claim() -> BaseOperationClaim {
     let scope = scope();
     BaseOperationClaim {
         host_id: scope.host_id,

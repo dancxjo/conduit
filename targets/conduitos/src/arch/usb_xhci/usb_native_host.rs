@@ -311,7 +311,7 @@ mod isochronous;
 
 #[cfg(test)]
 #[path = "usb_native_host/stop_ack_tests.rs"]
-mod stop_ack_tests;
+pub(in crate::arch::usb_xhci) mod stop_ack_tests;
 
 #[path = "usb_native_host/bulk.rs"]
 mod bulk;

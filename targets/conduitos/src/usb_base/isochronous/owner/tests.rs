@@ -3,7 +3,7 @@ use super::*;
 use alloc::{vec, vec::Vec};
 use conduit_core::*;
 #[path = "tests/fixture.rs"]
-mod fixture;
+pub(crate) mod fixture;
 use conduit_kernel::HostCallId;
 fn case_type(ty: &StructuredInfoType, tag: &str) -> StructuredInfoType {
     let StructuredInfoTypeShape::Variant { cases, .. } = ty.shape() else {

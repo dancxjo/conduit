@@ -3,11 +3,7 @@ use super::*;
 use core::fmt::Write;
 
 #[cfg(test)]
-use crate::usb_base::{endpoint_read_contract::*, endpoint_read_owner::EndpointReadCallOwner};
-#[cfg(test)]
-#[allow(dead_code)]
-#[path = "../../../usb_base/endpoint_read_owner/tests/fixture.rs"]
-mod read_fixture;
+use crate::usb_base::endpoint_read_owner::tests::fixture as read_fixture;
 
 pub(super) fn validate_metadata(
     table: &BaseCapabilityTable,
