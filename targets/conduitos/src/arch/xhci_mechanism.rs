@@ -503,7 +503,8 @@ pub(crate) fn with_synthetic_stop_controller(
 ) {
     static LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
     let _guard = LOCK.lock().unwrap();
-    let mut registers = [0_u64; 32];
+    let mut registers = [0_u64; 256];
+    registers[0x400 / 8] = 1;
     // SAFETY: every field is an integer; zero is valid. The fixture owns the
     // synthetic registers and serializes the sole global controller DMA.
     let mut controller: XhciReady = unsafe { core::mem::zeroed() };
@@ -541,6 +542,11 @@ pub(crate) unsafe fn synthetic_stop_dcbaa() -> u64 {
 
 #[cfg(test)]
 pub(crate) unsafe fn synthetic_late_original_stop_ack(controller: &XhciReady) {
+    unsafe { synthetic_stop_ack_event(controller, 1, 1) };
+}
+
+#[cfg(test)]
+pub(crate) unsafe fn synthetic_stop_ack_event(controller: &XhciReady, slot: u8, code: u8) {
     let pointer = controller.dma_physical + core::mem::offset_of!(DmaStorage, command_ring) as u64;
     // SAFETY: caller holds the serialized fixture lock, and the first event
     // has been consumed. This completion names the original command, not retry.
@@ -548,8 +554,8 @@ pub(crate) unsafe fn synthetic_late_original_stop_ack(controller: &XhciReady) {
         DMA.event_ring[controller.event_dequeue] = [
             pointer as u32,
             (pointer >> 32) as u32,
-            1 << 24,
-            (33 << 10) | (1 << 24) | controller.event_cycle,
+            u32::from(code) << 24,
+            (33 << 10) | (u32::from(slot) << 24) | controller.event_cycle,
         ];
     }
 }
