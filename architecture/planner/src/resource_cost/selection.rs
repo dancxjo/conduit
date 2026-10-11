@@ -1,11 +1,12 @@
 //! Cost preference over the ordinary Planner's admitted candidate records.
+use super::selection_account::*;
 use super::{
     CostCalibrationRevision, CostDemand, CostEvidenceRefusal as Refusal, CostObservationWindow,
     CostScopeChange, CostedForecast,
 };
 use crate::{
-    HardRealizationRequirements, PerformanceIntent, PlannerError, RealizationDecisionDisposition,
-    RealizationPolicy, RealizationSelection,
+    HardRealizationRequirements, PerformanceIntent, RealizationDecisionDisposition,
+    RealizationPolicy,
 };
 use alloc::vec::Vec;
 use conduit_core::{
@@ -66,92 +67,6 @@ pub struct CostSelectionInputs<'a> {
     pub intent: PerformanceIntent,
     pub unavailable: UnavailableCostPolicy,
 }
-#[derive(Debug)]
-pub enum CostAvailability<'a> {
-    Known(&'a CostedForecast<'a>),
-    Missing,
-    Unusable(Refusal),
-}
-pub struct CostCandidateEvidence<'a> {
-    pub host_id: &'a HostId,
-    pub capability_id: &'a CapabilityId,
-    pub availability: CostAvailability<'a>,
-    /// Retain attribution even when freshness/profile validation refuses use.
-    /// This is historical custody, not proof that the sample remains usable.
-    pub submitted_source: Option<&'a super::CostEvidenceSource<'a>>,
-    pub submitted_calibration_source: Option<&'a super::CostEvidenceSource<'a>>,
-    pub evaluated_at: &'a MonotonicInstant,
-    pub current_execution: Option<&'a super::CostExecutionObservation<'a>>,
-    pub submitted_execution_assumption: Option<&'a super::CostEvidenceSource<'a>>,
-    pub expected_execution_condition: Option<super::CostExecutionCondition>,
-    pub selected: bool,
-}
-impl core::fmt::Debug for CostCandidateEvidence<'_> {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.debug_struct("CostCandidateEvidence")
-            .field("host", &self.host_id)
-            .field("capability", &self.capability_id)
-            .field("availability", &self.availability)
-            .field(
-                "submitted_sign",
-                &self.submitted_source.map(|source| source.sign()),
-            )
-            .field(
-                "submitted_calibration_sign",
-                &self
-                    .submitted_calibration_source
-                    .map(|source| source.sign()),
-            )
-            .field("evaluated_at", &self.evaluated_at)
-            .field("selected", &self.selected)
-            .finish()
-    }
-}
-#[derive(Debug)]
-pub struct CostRealizationSelection<'a> {
-    /// All original hard refusals are retained. Exactly one admitted record is
-    /// selected after cost preference; costs never change a rejected record.
-    pub realization: RealizationSelection,
-    pub intent: PerformanceIntent,
-    pub costs: Vec<CostCandidateEvidence<'a>>,
-    pub used_cost_preference: bool,
-    /// Conservative admitted limb work, not empirical scheduling wall time.
-    pub arithmetic_work_spent: u64,
-}
-#[derive(Debug)]
-pub struct UnavailableCostEvidence {
-    pub host_id: HostId,
-    pub capability_id: CapabilityId,
-    /// None denotes missing evidence, not a numeric zero.
-    pub reason: Option<Refusal>,
-    pub submitted: Option<super::CostSourceAttribution>,
-    pub submitted_calibration: Option<super::CostSourceAttribution>,
-    pub current_execution: Option<(super::CostSourceAttribution, super::CostExecutionCondition)>,
-    pub submitted_execution_assumption: Option<super::CostSourceAttribution>,
-    pub expected_execution_condition: Option<super::CostExecutionCondition>,
-    pub evaluated_at: MonotonicInstant,
-}
-#[derive(Debug)]
-pub enum CostSelectionError {
-    Planner(PlannerError),
-    Evidence(Refusal),
-    HardAdmission(crate::RealizationSelectionRefusal),
-    NoUsableForecast {
-        realization: RealizationSelection,
-        costs: Vec<UnavailableCostEvidence>,
-    },
-}
-impl From<PlannerError> for CostSelectionError {
-    fn from(value: PlannerError) -> Self {
-        Self::Planner(value)
-    }
-}
-impl From<Refusal> for CostSelectionError {
-    fn from(value: Refusal) -> Self {
-        Self::Evidence(value)
-    }
-}
-
 /// Finite operation fulfillment preference for the existing PerformanceIntent.
 /// Interactive, streaming-prefix, batch and background compare the upper model
 /// estimate for this exact demand. BoundedResponse requires certified evidence
@@ -162,6 +77,7 @@ pub fn select_realization_with_costs<'a>(
     work: &mut ExactNumericWork,
 ) -> Result<CostRealizationSelection<'a>, CostSelectionError> {
     let initial_work = work.spent();
+    let initial_budget = work.remaining();
     if inputs.contexts.is_empty()
         || inputs.contexts.len() > MAXIMUM_COST_CANDIDATES
         || inputs.contexts.len() != inputs.hosts.len()
@@ -360,10 +276,31 @@ pub fn select_realization_with_costs<'a>(
                 else {
                     unreachable!()
                 };
-                let order = forecast
+                let order = match forecast
                     .upper_seconds()
                     .checked_compare(previous_forecast.upper_seconds(), work)
-                    .map_err(Refusal::from)?;
+                {
+                    Ok(order) => order,
+                    Err(reason) => {
+                        return Err(CostSelectionError::Comparison(alloc::boxed::Box::new(
+                            CostComparisonRefusal {
+                                operands: [
+                                    CostComparisonOperand::retain(candidate, forecast),
+                                    CostComparisonOperand::retain(
+                                        &costs[previous],
+                                        previous_forecast,
+                                    ),
+                                ],
+                                realization,
+                                reason: Refusal::from(reason),
+                                intent: inputs.intent,
+                                arithmetic_work_limit: initial_budget,
+                                arithmetic_work_spent: work.spent() - initial_work,
+                                arithmetic_work_remaining: work.remaining(),
+                            },
+                        )))
+                    }
+                };
                 order == Ordering::Less
                     || (order == Ordering::Equal
                         && tie_order(candidate, &costs[previous], &inputs, &observations)

@@ -9,6 +9,7 @@ mod forecast;
 mod freshness;
 mod input_codec;
 mod selection;
+mod selection_account;
 mod service_model;
 mod source;
 mod structured_input;
@@ -24,6 +25,7 @@ pub use forecast::{CostDurationRange, CostForecastStages, FulfillmentCostForecas
 pub use freshness::CostObservationWindow;
 pub use input_codec::CostInputCodec;
 pub use selection::*;
+pub use selection_account::*;
 pub use service_model::*;
 pub use source::{
     CostCalibrationRevision, CostEvidenceSource, CostScopeChange, MAXIMUM_COST_ID_BYTES,

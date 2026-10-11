@@ -376,6 +376,12 @@ fn expired_hard_truth_work_exhaustion_and_uncertified_deadlines_refuse() {
     ] {
         exercise(case, |result| match result {
             Err(CostSelectionError::Evidence(error)) => assert_eq!(error, expected),
+            Err(CostSelectionError::Comparison(account)) => {
+                assert_eq!(account.reason, expected);
+                assert_eq!(account.arithmetic_work_limit, 0);
+                assert_eq!(account.arithmetic_work_spent, 0);
+                assert_eq!(account.operands.len(), 2);
+            }
             other => panic!("unexpected result: {other:?}"),
         });
     }
@@ -440,6 +446,29 @@ fn every_current_resource_refusal_is_retained_before_cost_comparison() {
                 == RealizationDecisionDisposition::Rejected(
                     RealizationRejection::CurrentResourceObservation
                 )));
+        },
+    );
+}
+
+#[test]
+fn exhausted_comparison_retains_sources_with_no_cost_winner() {
+    exercise(
+        Case {
+            budget: 0,
+            ..Default::default()
+        },
+        |result| {
+            let error = result.unwrap_err();
+            let account = format!("{error:?}");
+            assert!(
+                account.contains("sign/cost/a"),
+                "comparison lost first forecast source: {account}"
+            );
+            assert!(
+                account.contains("sign/cost/b"),
+                "comparison lost second forecast source: {account}"
+            );
+            assert!(account.contains("host-a-efficient") && account.contains("host-b-capable"));
         },
     );
 }
