@@ -168,6 +168,18 @@ impl PreparedProtocolArtifact {
         )
     }
 
+    #[cfg(target_arch = "x86_64")]
+    pub(crate) fn prepare_usb_duplex<P: crate::i2c_base::I2cProvider>(
+        self,
+        usb: crate::protocol_play::UsbDuplexAdmission,
+    ) -> Result<crate::protocol_play::PreparedProtocolPlay<P>, ProtocolCallRefusal> {
+        crate::protocol_play::PreparedProtocolPlay::prepare_usb_duplex(
+            self.artifact.into_definition(),
+            usb,
+            self.operations,
+        )
+    }
+
     /// Consume the retained package owners together with actual native possession.
     pub fn prepare_timed<P, C>(
         self,

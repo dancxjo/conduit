@@ -158,3 +158,56 @@ fn endpoint_configuration_is_explicit_bounded_inbound_and_optional() {
         Err(ProtocolBootRequestRefusal::Encoding)
     ));
 }
+
+#[test]
+fn duplex_endpoint_requests_validate_each_direction_and_budget_independently() {
+    let mut value = request();
+    value["endpoint_read"] = serde_json::json!({"address":129,"transfer_type":2,
+        "maximum_packet":64,"interval":0,"endpoint_epoch":2,"maximum_operations":17});
+    value["endpoint_write"] = serde_json::json!({"address":2,"transfer_type":2,
+        "maximum_packet":512,"interval":0,"endpoint_epoch":9,"maximum_operations":23});
+    let decoded = decode(&value).unwrap();
+    assert_eq!(decoded.endpoint_read.unwrap().maximum_operations, 17);
+    let write = decoded.endpoint_write.unwrap();
+    assert_eq!(
+        (
+            write.address,
+            write.endpoint_epoch,
+            write.maximum_operations
+        ),
+        (2, 9, 23)
+    );
+    for (field, invalid) in [
+        ("address", 0),
+        ("address", 130),
+        ("address", 18),
+        ("transfer_type", 1),
+        ("maximum_packet", 0),
+        ("maximum_packet", 1025),
+        ("endpoint_epoch", 0),
+        ("maximum_operations", 0),
+        ("maximum_operations", 4097),
+    ] {
+        let mut invalid_request = value.clone();
+        invalid_request["endpoint_write"][field] = invalid.into();
+        assert!(
+            matches!(
+                decode(&invalid_request),
+                Err(ProtocolBootRequestRefusal::Bounds)
+            ),
+            "{field}"
+        );
+    }
+    value["endpoint_write"]["transfer_type"] = 3.into();
+    assert!(matches!(
+        decode(&value),
+        Err(ProtocolBootRequestRefusal::Bounds)
+    ));
+    value["endpoint_write"]["interval"] = 1.into();
+    assert!(decode(&value).is_ok());
+    value.as_object_mut().unwrap().remove("endpoint_read");
+    assert!(matches!(
+        decode(&value),
+        Err(ProtocolBootRequestRefusal::Bounds)
+    ));
+}

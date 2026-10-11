@@ -17,6 +17,8 @@ pub(crate) struct InboundEndpointParameters {
     pub packet_field: u16,
     pub interval: u8,
 }
+/// OUT uses the same advisory descriptor fields, without inbound-only policy.
+pub(crate) type OutboundEndpointParameters = InboundEndpointParameters;
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) enum EndpointSetupRefusal {
     Parameters,
@@ -36,19 +38,36 @@ pub(crate) struct ConfiguredInboundEndpoint {
     pub(super) ring_physical: u64,
 }
 
+/// Move-only receipt for an acknowledged outbound endpoint configuration.
+pub(crate) struct ConfiguredOutboundEndpoint {
+    pub(super) slot: u8,
+    pub(super) device_epoch: u32,
+    pub(super) endpoint_epoch: u64,
+    pub(super) dci: u8,
+    pub(super) ring_physical: u64,
+}
+
 // Interval basis: https://github.com/torvalds/linux/blob/master/drivers/usb/host/xhci-mem.c
 // Full/low-speed frame intervals are realized as powers of two microframes.
+#[cfg(test)]
 fn context_words(
     parameters: InboundEndpointParameters,
     speed: u8,
     ring: u64,
 ) -> Result<(u8, [u32; 5]), EndpointSetupRefusal> {
+    if parameters.address & 0x80 == 0 {
+        return Err(EndpointSetupRefusal::Parameters);
+    }
+    context_words_transport(parameters, speed, ring)
+}
+
+fn context_words_transport(
+    parameters: InboundEndpointParameters,
+    speed: u8,
+    ring: u64,
+) -> Result<(u8, [u32; 5]), EndpointSetupRefusal> {
     use EndpointSetupRefusal as Error;
-    if parameters.address & 0x80 == 0
-        || parameters.address & 0x70 != 0
-        || parameters.address & 15 == 0
-        || ring == 0
-        || ring & 63 != 0
+    if parameters.address & 0x70 != 0 || parameters.address & 15 == 0 || ring == 0 || ring & 63 != 0
     {
         return Err(Error::Parameters);
     }
@@ -68,7 +87,11 @@ fn context_words(
                 1..=3 => return Err(Error::Parameters),
                 _ => return Err(Error::Unsupported),
             };
-            (7, interval, packet)
+            (
+                if parameters.address & 0x80 != 0 { 7 } else { 3 },
+                interval,
+                packet,
+            )
         }
         2 => {
             match speed {
@@ -82,11 +105,15 @@ fn context_words(
             } else {
                 0
             };
-            (6, interval, 0)
+            (
+                if parameters.address & 0x80 != 0 { 6 } else { 2 },
+                interval,
+                0,
+            )
         }
         _ => return Err(Error::Unsupported),
     };
-    let dci = ((parameters.address & 15) << 1) | 1;
+    let dci = ((parameters.address & 15) << 1) | u8::from(parameters.address & 0x80 != 0);
     Ok((
         dci,
         [
@@ -97,6 +124,13 @@ fn context_words(
             u32::from(packet) | (u32::from(payload) << 16),
         ],
     ))
+}
+
+// The actual output Slot Context may already include a higher DCI. Adding a
+// lower OUT endpoint must not shrink Context Entries and hide a configured IN.
+fn slot_with_added_endpoint(slot: u32, dci: u8) -> u32 {
+    let entries = ((slot >> 27) & 31).max(u32::from(dci));
+    (slot & !(31 << 27)) | (entries << 27)
 }
 
 fn validate_dma_regions(input: u64, ring: u64, buffer: u64) -> Result<(), EndpointSetupRefusal> {
@@ -143,6 +177,74 @@ pub(crate) unsafe fn configure_inbound(
     input_physical: u64,
     dma: &mut EndpointReceiveDma<'_>,
 ) -> Result<ConfiguredInboundEndpoint, EndpointSetupRefusal> {
+    if parameters.address & 0x80 == 0 {
+        return Err(EndpointSetupRefusal::Parameters);
+    }
+    unsafe {
+        configure_transport(
+            controller,
+            device,
+            parameters,
+            endpoint_epoch,
+            input,
+            input_physical,
+            dma,
+        )
+    }
+}
+
+/// # Safety
+/// Root retains exclusively owned coherent OUT DMA until acknowledged stop.
+#[allow(clippy::too_many_arguments)]
+pub(crate) unsafe fn configure_outbound(
+    controller: &mut XhciReady,
+    device: &UsbDevice,
+    parameters: OutboundEndpointParameters,
+    endpoint_epoch: u64,
+    input: &mut [u8; 2112],
+    input_physical: u64,
+    dma: &mut super::endpoint_write_transfer::EndpointTransmitDma<'_>,
+) -> Result<ConfiguredOutboundEndpoint, EndpointSetupRefusal> {
+    if parameters.address & 0x80 != 0 || parameters.transfer_type != 2 {
+        return Err(EndpointSetupRefusal::Parameters);
+    }
+    let mut transport = EndpointReceiveDma {
+        ring: &mut *dma.ring,
+        buffer: &mut *dma.buffer,
+        cursor: &mut *dma.cursor,
+        ring_physical: dma.ring_physical,
+        buffer_physical: dma.buffer_physical,
+    };
+    let configured = unsafe {
+        configure_transport(
+            controller,
+            device,
+            parameters,
+            endpoint_epoch,
+            input,
+            input_physical,
+            &mut transport,
+        )
+    }?;
+    Ok(ConfiguredOutboundEndpoint {
+        slot: configured.slot,
+        device_epoch: configured.device_epoch,
+        endpoint_epoch: configured.endpoint_epoch,
+        dci: configured.dci,
+        ring_physical: configured.ring_physical,
+    })
+}
+
+#[allow(clippy::too_many_arguments)]
+unsafe fn configure_transport(
+    controller: &mut XhciReady,
+    device: &UsbDevice,
+    parameters: InboundEndpointParameters,
+    endpoint_epoch: u64,
+    input: &mut [u8; 2112],
+    input_physical: u64,
+    dma: &mut EndpointReceiveDma<'_>,
+) -> Result<ConfiguredInboundEndpoint, EndpointSetupRefusal> {
     use EndpointSetupRefusal as Error;
     if input.as_ptr() as usize & 63 != 0
         || endpoint_epoch == 0
@@ -167,7 +269,7 @@ pub(crate) unsafe fn configure_inbound(
     let slot =
         unsafe { read_volatile(core::ptr::addr_of!((*native).device_context).cast::<u32>()) };
     let speed = ((slot >> 20) & 15) as u8;
-    let (dci, words) = context_words(parameters, speed, dma.ring_physical)?;
+    let (dci, words) = context_words_transport(parameters, speed, dma.ring_physical)?;
     let endpoint_offset = usize::from(dci) * context;
     let endpoint_state = unsafe {
         read_volatile(
@@ -201,8 +303,7 @@ pub(crate) unsafe fn configure_inbound(
         };
         write(input, context + offset, value);
     }
-    let entries = ((slot >> 27) & 31).max(u32::from(dci));
-    write(input, context, (slot & !(31 << 27)) | (entries << 27));
+    write(input, context, slot_with_added_endpoint(slot, dci));
     for (word, value) in words.into_iter().enumerate() {
         write(input, context * (usize::from(dci) + 1) + word * 4, value);
     }
@@ -234,3 +335,35 @@ pub(crate) unsafe fn configure_inbound(
 #[cfg(test)]
 #[path = "usb_endpoint_setup/tests.rs"]
 mod tests;
+
+#[cfg(test)]
+mod outbound_tests {
+    use super::*;
+    #[test]
+    fn adding_either_direction_preserves_existing_slot_context_entries() {
+        let other_fields = (3 << 20) | (1 << 26) | 0x1234;
+        for (existing, next, expected) in [(3, 2, 3), (2, 3, 3), (7, 2, 7), (1, 30, 30)] {
+            let slot = other_fields | (existing << 27);
+            let updated = slot_with_added_endpoint(slot, next);
+            assert_eq!((updated >> 27) & 31, expected);
+            assert_eq!(updated & !(31 << 27), other_fields);
+        }
+    }
+
+    #[test]
+    fn bulk_out_configuration_has_even_dci_and_output_endpoint_type() {
+        for (speed, packet) in [(1, 8), (1, 64), (3, 512)] {
+            let parameters = InboundEndpointParameters {
+                address: 0x02,
+                transfer_type: 2,
+                packet_field: packet,
+                interval: 0,
+            };
+            let (dci, words) = context_words_transport(parameters, speed, 0x4000).unwrap();
+            assert_eq!(dci, 4);
+            assert_eq!((words[1] >> 3) & 7, 2);
+            assert_eq!(words[1] >> 16, u32::from(packet));
+            assert!(context_words(parameters, speed, 0x4000).is_err());
+        }
+    }
+}

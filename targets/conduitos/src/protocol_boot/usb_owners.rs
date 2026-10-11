@@ -15,8 +15,16 @@ use core::sync::atomic::Ordering;
 
 #[path = "usb_endpoint_owners.rs"]
 mod endpoint;
+#[path = "usb_endpoint_write_owners.rs"]
+mod outbound;
 
 pub(super) enum NativeUsbOwners {
+    Duplex {
+        ready: Box<arch::ReadyUsbDuplexHost>,
+        control_issuer: Box<NativeProtocolIssuer>,
+        read_issuer: Box<NativeProtocolIssuer>,
+        write_issuer: Box<NativeProtocolIssuer>,
+    },
     Control {
         ready: Box<arch::ReadyUsbControlBase>,
         issuer: Box<NativeProtocolIssuer>,
@@ -39,6 +47,9 @@ pub(super) unsafe fn admit(
     boot_id: &BootId,
     artifact: &str,
 ) -> Result<NativeUsbOwners, &'static str> {
+    if request.endpoint_write.is_some() && request.endpoint_read.is_none() {
+        return Err("protocol-usb-write-requires-read");
+    }
     CLAIMED
         .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
         .map_err(|_| "protocol-resources-already-reserved")?;
@@ -155,6 +166,87 @@ pub(super) unsafe fn admit(
             },
         );
         endpoint_capability.base_provider_generation = generation;
+        if let Some(write_request) = request.endpoint_write.as_ref() {
+            use crate::usb_base::{endpoint_write_contract::*, endpoint_write_factory::*};
+            // SAFETY: the same reserved controller configures separate rooted OUT
+            // storage using only the exact independently approved parameters.
+            let write = unsafe { outbound::configure(&mut controller, &device, write_request) }?;
+            let write_identity = UsbNativeIdentity {
+                host_id: host.clone(),
+                boot_id: boot_id.clone(),
+                base_id: format!("{prefix}/write-controller").into(),
+                provider_instance_id: format!("{prefix}/write-provider").into(),
+                provider_generation: generation,
+                resource_pool_id: format!("{prefix}/write-dma/{}", write_request.endpoint_epoch)
+                    .into(),
+                resource_generation_id: ResourceGenerationId(format!(
+                    "{prefix}/write-dma/{generation}/{}",
+                    write_request.endpoint_epoch
+                )),
+                envelope_id: format!("{prefix}/write-envelope/{}", write_request.endpoint_epoch)
+                    .into(),
+                artifact_id: artifact.into(),
+            };
+            let mut write_capability = authority(
+                host,
+                boot_id,
+                "usb-endpoint-write",
+                (
+                    &write_identity.provider_instance_id,
+                    &write_identity.resource_pool_id,
+                    &write_identity.resource_generation_id,
+                    &write_identity.envelope_id,
+                ),
+                OperationAuthority {
+                    contract: ENDPOINT_WRITE_AUTHORITY,
+                    call: ENDPOINT_WRITE_CALL,
+                    kind: ENDPOINT_WRITE_KIND,
+                    capability: ENDPOINT_WRITE_IMPLEMENTATION,
+                    bytes: ENDPOINT_WRITE_MAXIMUM_BYTES,
+                    work: 1,
+                    operations: write_request.maximum_operations,
+                },
+            );
+            write_capability.base_provider_generation = generation;
+            // SAFETY: the original attachment plus both real configured receipts
+            // and disjoint rooted DMA are consumed by one sole native Host.
+            let ready = unsafe {
+                arch::ReadyUsbDuplexHost::new(
+                    identity,
+                    endpoint_identity,
+                    write_identity,
+                    controller,
+                    device,
+                    boot::executable_physical_address,
+                    endpoint.configured,
+                    endpoint.dma,
+                    endpoint.attachment,
+                    write.configured,
+                    write.dma,
+                    write.attachment,
+                )
+            }
+            .map_err(|_| "protocol-usb-duplex-identity-invalid")?;
+            let source =
+                arch::RdrandEntropy::detect(1).map_err(|_| "protocol-entropy-unavailable")?;
+            let mut entropy = CryptographicEntropyBase::<_, 3>::admit(source)
+                .map_err(|_| "protocol-entropy-refused")?;
+            // SAFETY: each issuer receives its independent bounded Root authority.
+            let control_issuer = unsafe { NativeProtocolIssuer::admit(capability, &mut entropy) }
+                .map_err(|_| "protocol-usb-issuance-refused")?;
+            let read_issuer =
+                unsafe { NativeProtocolIssuer::admit(endpoint_capability, &mut entropy) }
+                    .map_err(|_| "protocol-usb-endpoint-issuance-refused")?;
+            let write_issuer =
+                unsafe { NativeProtocolIssuer::admit(write_capability, &mut entropy) }
+                    .map_err(|_| "protocol-usb-write-issuance-refused")?;
+            return Ok(NativeUsbOwners::Duplex {
+                ready: Box::new(ready),
+                control_issuer: Box::new(control_issuer),
+                read_issuer: Box::new(read_issuer),
+                write_issuer: Box::new(write_issuer),
+            });
+        }
         // SAFETY: both identities name the actual original ownership and bounded
         // controller-configured endpoint; Source created neither permission.
         let ready = unsafe {

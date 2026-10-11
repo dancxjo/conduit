@@ -359,4 +359,6 @@ mod native_usb_preparation;
 pub use native_usb_preparation::prepare_native_usb_protocol;
 
 #[cfg(target_arch = "x86_64")]
-pub(crate) use native_usb_preparation::prepare_native_usb_endpoint_protocol;
+pub(crate) use native_usb_preparation::{
+    prepare_native_usb_duplex_protocol, prepare_native_usb_endpoint_protocol,
+};

@@ -47,6 +47,8 @@ pub(super) mod endpoint_read;
 #[cfg(any(test, feature = "scripted-keyboard-proof"))]
 #[path = "usb_endpoint_read_proof.rs"]
 mod endpoint_read_proof;
+#[path = "usb_endpoint_write_transfer.rs"]
+pub(super) mod endpoint_write_transfer;
 #[cfg(feature = "usb-endpoint-read-proof")]
 pub use endpoint_read_proof::run_appliance as run_usb_endpoint_read_proof;
 #[path = "usb_endpoint_offer.rs"]
@@ -525,10 +527,18 @@ pub use endpoint_read::EndpointNativeRefusal;
 pub(crate) use endpoint_read::EndpointReceiveDma as UsbEndpointReceiveDma;
 pub(crate) use endpoint_setup::{
     ConfiguredInboundEndpoint as UsbConfiguredInboundEndpoint,
+    ConfiguredOutboundEndpoint as UsbConfiguredOutboundEndpoint,
     InboundEndpointParameters as UsbInboundEndpointParameters,
-    configure_inbound as configure_usb_inbound,
+    OutboundEndpointParameters as UsbOutboundEndpointParameters,
+    configure_inbound as configure_usb_inbound, configure_outbound as configure_usb_outbound,
 };
+pub(crate) use endpoint_write_transfer::EndpointTransmitDma as UsbEndpointTransmitDma;
+pub use endpoint_write_transfer::EndpointWriteNativeRefusal;
 pub use native_host::UsbNativeHostRefusal;
 pub(crate) use protocol_installation::{NativeUsbProtocolHost, ReadyUsbProtocolHost};
 
 pub use protocol_installation::UsbNativeProtocolRefusal;
+
+#[path = "usb_duplex_installation.rs"]
+mod duplex_installation;
+pub(crate) use duplex_installation::{NativeUsbDuplexHost, ReadyUsbDuplexHost};

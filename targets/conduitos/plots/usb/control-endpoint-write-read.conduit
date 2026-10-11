@@ -1,0 +1,75 @@
+# One ordinary input supplies only bounded wire requests. Root retains all
+# attachment, endpoint, DMA and authority choices outside this checked Plot.
+with machine/usb/control/request as UsbControlRequest
+with machine/usb/control/result as UsbControlResult
+with machine/usb/endpoint-write/request as UsbEndpointWriteRequest
+with machine/usb/endpoint-write/result as UsbEndpointWriteResult
+with machine/usb/endpoint-read/request as UsbEndpointReadRequest
+with machine/usb/endpoint-read/result as UsbEndpointReadResult
+with flow/zip/finite/paired as UsbTransferRequestPair
+
+type UsbControlWriteReadRequest = {
+    control: UsbControlRequest
+    write: UsbEndpointWriteRequest
+    read: UsbEndpointReadRequest
+}
+type UsbWriteReadRequests = {
+    write: UsbEndpointWriteRequest
+    read: UsbEndpointReadRequest
+}
+type UsbTransferCompleted = {
+    completed: Boolean
+}
+type UsbControlWriteGate =
+    ready UsbEndpointWriteRequest
+    | refused
+type UsbWriteReadGate =
+    ready UsbEndpointReadRequest
+    | refused
+
+plot usb-control-write-read-control (
+    request: UsbControlWriteReadRequest...| <= 8192B >> control: UsbControlRequest...| <= 4096B
+) = (.control)
+plot usb-control-write-read-requests (
+    request: UsbControlWriteReadRequest...| <= 8192B >> requests: UsbWriteReadRequests...| <= 4096B
+) = ({ write: .write, read: .read })
+plot usb-control-write-read-control-completed (
+    result: UsbControlResult...| <= 4096B >> completed: UsbTransferCompleted...| <= 256B
+) = ({ completed: . is completed })
+plot usb-control-write-read-write-completed (
+    result: UsbEndpointWriteResult...| <= 4096B >> completed: UsbTransferCompleted...| <= 256B
+) = ({ completed: . is completed })
+
+# Zip retains the request until the preceding actual transfer result arrives.
+# Every non-completed disposition drops the next submission branch.
+plot usb-control-write-completed (
+    pair: UsbTransferRequestPair...| <= 16384B >> gate: UsbControlWriteGate...| <= 4096B
+) = (.0.completed ? ready(.1.write) : refused(empty))
+plot usb-write-read-completed (
+    pair: UsbTransferRequestPair...| <= 16384B >> gate: UsbWriteReadGate...| <= 4096B
+) = (.0.completed ? ready(.1.read) : refused(empty))
+
+plot usb-control-endpoint-write-read (
+    >> request: UsbControlWriteReadRequest...| <= 8192B
+    control: UsbControlResult...| <= 4096B >>
+    written: UsbEndpointWriteResult...| <= 4096B >>
+    received: UsbEndpointReadResult...| <= 4096B >>
+) {
+    setup: machine/usb/control
+    write: machine/usb/endpoint-write
+    read: machine/usb/endpoint-read
+    after-control: flow/zip/finite
+    after-write: flow/zip/finite
+    pending: usb-control-write-read-requests()
+    request >> usb-control-write-read-control() >> setup.request
+    request >> pending
+    pending >> after-control.right
+    pending >> after-write.right
+    setup.result >> control
+    setup.result >> usb-control-write-read-control-completed() >> after-control.left
+    after-control.paired >> usb-control-write-completed() >> select(UsbControlWriteGate.ready, unmatched=drop) >> write.request
+    write.result >> written
+    write.result >> usb-control-write-read-write-completed() >> after-write.left
+    after-write.paired >> usb-write-read-completed() >> select(UsbWriteReadGate.ready, unmatched=drop) >> read.request
+    read.result >> received
+}

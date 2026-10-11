@@ -93,3 +93,30 @@ fn foreign_events_and_real_endpoint_failures_stay_distinct() {
         assert!(matches!(pending(true).observe(observed), Err(reason) if reason == expected));
     }
 }
+
+#[test]
+fn stall_code_requires_exact_original_slot_endpoint_and_td_pointer() {
+    assert!(matches!(
+        pending(true).observe(event(16, 6, 0)),
+        Err(UsbError::ControlStall)
+    ));
+    for (foreign, expected) in [
+        (
+            Event {
+                slot: 2,
+                ..event(16, 6, 0)
+            },
+            UsbError::WrongSlot,
+        ),
+        (
+            Event {
+                endpoint: 2,
+                ..event(16, 6, 0)
+            },
+            UsbError::WrongEndpoint,
+        ),
+        (event(64, 6, 0), UsbError::WrongController),
+    ] {
+        assert!(matches!(pending(true).observe(foreign), Err(error) if error == expected));
+    }
+}

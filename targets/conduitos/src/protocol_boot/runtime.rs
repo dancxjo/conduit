@@ -75,6 +75,22 @@ pub(super) fn prepare_usb(
         planner_capabilities: vec![],
     };
     let play = match owners {
+        super::usb_owners::NativeUsbOwners::Duplex {
+            ready,
+            control_issuer,
+            read_issuer,
+            write_issuer,
+        } => crate::protocol_source::prepare_native_usb_duplex_protocol(
+            entry,
+            session,
+            advertisement,
+            *ready,
+            *control_issuer,
+            *read_issuer,
+            *write_issuer,
+            0,
+            1,
+        ),
         super::usb_owners::NativeUsbOwners::Control { ready, issuer } => {
             crate::protocol_source::prepare_native_usb_protocol(
                 entry,

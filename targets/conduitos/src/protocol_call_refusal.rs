@@ -42,6 +42,7 @@ impl ProtocolCallRefusal {
                     Usb::Endpoint(error) | Usb::Host(Host::Endpoint(error)) => {
                         endpoint_failure(error)
                     }
+                    Usb::Write(error) | Usb::Host(Host::Write(error)) => write_failure(error),
                     Usb::Host(Host::Binding | Host::NotReady) => {
                         (FailureCode::InvalidLifecycle, 1090)
                     }
@@ -143,6 +144,33 @@ fn endpoint_failure(error: &crate::arch::EndpointNativeRefusal) -> (FailureCode,
     }
 }
 
+#[cfg(target_arch = "x86_64")]
+fn write_failure(error: &crate::arch::EndpointWriteNativeRefusal) -> (FailureCode, u16) {
+    use crate::arch::EndpointWriteNativeRefusal as Endpoint;
+    use crate::usb_base::endpoint_write_owner::EndpointWriteOwnerRefusal as Owner;
+    match error {
+        Endpoint::Ownership(Owner::WrongBinding | Owner::StaleTransfer) => {
+            (FailureCode::InvalidLifecycle, 1183)
+        }
+        Endpoint::Ownership(Owner::Possession | Owner::Capability(_)) => {
+            (FailureCode::HostCallDenied, 1184)
+        }
+        Endpoint::Ownership(Owner::SequenceExhausted) => {
+            (FailureCode::IdentityCapacityExhausted, 1185)
+        }
+        Endpoint::Ownership(Owner::Decode(_)) => (FailureCode::InvalidInput, 1186),
+        Endpoint::Ownership(Owner::Result(_) | Owner::Canonical(_) | Owner::Pressure) => {
+            (FailureCode::HostCallFailed, 1187)
+        }
+        Endpoint::Mapping | Endpoint::ForeignCompletion => (FailureCode::InvalidLifecycle, 1188),
+        Endpoint::Ring(_)
+        | Endpoint::Pending
+        | Endpoint::Completion(_)
+        | Endpoint::ProviderLost
+        | Endpoint::Stop => (FailureCode::HostCallFailed, 1189),
+    }
+}
+
 #[cfg(all(test, target_arch = "x86_64"))]
 mod tests {
     use super::*;
@@ -204,6 +232,33 @@ mod tests {
             assert_eq!(direct.code, expected);
             assert_eq!(
                 ProtocolCallRefusal::UsbProtocol(Usb::Host(Host::Endpoint(error()))).failure(),
+                direct
+            );
+        }
+    }
+    #[test]
+    fn write_refusal_categories_survive_native_host_nesting() {
+        use crate::arch::EndpointWriteNativeRefusal as Write;
+        use crate::usb_base::{
+            endpoint_write_owner::EndpointWriteOwnerRefusal as Owner,
+            endpoint_write_request::EndpointWriteRequestRefusal as Request,
+        };
+        for (category, expected) in [
+            (0, FailureCode::InvalidLifecycle),
+            (1, FailureCode::HostCallDenied),
+            (2, FailureCode::InvalidInput),
+        ] {
+            let error = || {
+                Write::Ownership(match category {
+                    0 => Owner::WrongBinding,
+                    1 => Owner::Possession,
+                    _ => Owner::Decode(Request::Length),
+                })
+            };
+            let direct = ProtocolCallRefusal::UsbProtocol(Usb::Write(error())).failure();
+            assert_eq!(direct.code, expected);
+            assert_eq!(
+                ProtocolCallRefusal::UsbProtocol(Usb::Host(Host::Write(error()))).failure(),
                 direct
             );
         }

@@ -21,6 +21,7 @@ use crate::usb_base::{
         ControlAttachment, ControlCallOwner, ControlOwnerRefusal, NativeControlObservation,
         NativeControlSubmission,
     },
+    control_result::ControlTransferDisposition,
 };
 
 pub struct UsbControlSelection<'a> {
@@ -44,6 +45,7 @@ pub(in crate::arch::x86_64::usb) struct UsbControlTransfer {
     ring: ControlRing,
     owner: ControlCallOwner,
     pending: Option<NativeControlSubmission>,
+    stalled: bool,
 }
 
 /// Private structural snapshot checked against the Root-retained move-only device
@@ -137,6 +139,7 @@ impl UsbControlTransfer {
             ring,
             owner,
             pending: None,
+            stalled: false,
         })
     }
 
@@ -169,8 +172,15 @@ impl UsbControlTransfer {
             ))
         })?;
         let is_input = request.input();
-        let actual = control_raw(controller, &mut self.ring, self.attachment.slot, request)
-            .map_err(UsbControlCallRefusal::Native)?;
+        let actual = match control_raw(controller, &mut self.ring, self.attachment.slot, request) {
+            Ok(actual) => actual,
+            Err(error) => {
+                // Only the exact correlated native STALL can become a typed
+                // stalled observation. Every refusal retains the submission.
+                self.stalled = is_terminal_stall(error);
+                return Err(UsbControlCallRefusal::Native(error));
+            }
+        };
         let submission = self.pending.take().expect("completed submission retained");
         let input = if is_input {
             // The exact final status completed; fixed DMA remains exclusively owned.
@@ -185,6 +195,34 @@ impl UsbControlTransfer {
                     actual: actual as u16,
                     input,
                 },
+            )
+        }
+        .map_err(UsbControlCallRefusal::Ownership)
+    }
+
+    /// Complete an exact retained STALL only after original native stop.
+    /// # Safety
+    /// The sole Host acknowledged Disable Slot for this original attachment;
+    /// all DMA is quiescent, its ownership marker is still live, and this
+    /// submission's software lease has not been revoked.
+    pub unsafe fn finish_stalled_quiesced(
+        &mut self,
+        device: &UsbDevice,
+    ) -> Result<&[u8], UsbControlCallRefusal> {
+        self.check_attachment(device)?;
+        if !self.stalled {
+            return Err(UsbControlCallRefusal::Ownership(
+                ControlOwnerRefusal::WrongBinding,
+            ));
+        }
+        let submission = self.pending.take().ok_or(UsbControlCallRefusal::Ownership(
+            ControlOwnerRefusal::WrongBinding,
+        ))?;
+        self.stalled = false;
+        unsafe {
+            self.owner.finish_quiesced(
+                &submission,
+                NativeControlObservation::Disposition(ControlTransferDisposition::Stalled),
             )
         }
         .map_err(UsbControlCallRefusal::Ownership)
@@ -280,4 +318,30 @@ pub(super) fn mapped_dma_physical(
         }
     }
     Ok(physical)
+}
+
+fn is_terminal_stall(error: UsbError) -> bool {
+    error == UsbError::ControlStall
+}
+
+#[cfg(test)]
+mod terminal_tests {
+    use super::*;
+    #[test]
+    fn only_exact_native_stall_can_become_a_typed_stalled_observation() {
+        assert!(is_terminal_stall(UsbError::ControlStall));
+        for error in [
+            UsbError::ControlTimeout,
+            UsbError::DeviceVanished,
+            UsbError::WrongController,
+            UsbError::WrongSlot,
+            UsbError::WrongEndpoint,
+            UsbError::MalformedCompletion,
+            UsbError::ControlError,
+            UsbError::TransferRingUncertain,
+            UsbError::StaleDeviceInstance,
+        ] {
+            assert!(!is_terminal_stall(error));
+        }
+    }
 }

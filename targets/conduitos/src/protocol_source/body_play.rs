@@ -83,6 +83,20 @@ impl<P: I2cProvider, C: MonotonicDeadlineProvider> PreparedProtocolBodyPlay<P, C
         })
     }
 
+    #[cfg(target_arch = "x86_64")]
+    pub(crate) fn prepare_usb_duplex(
+        artifact: PreparedProtocolArtifact,
+        session: BodyLifecycleSession,
+        play_sequence: u64,
+        usb: crate::protocol_play::UsbDuplexAdmission,
+    ) -> Result<Self, Box<ProtocolBodyPreparationRefusal>> {
+        Self::prepare_with(artifact, session, play_sequence, |artifact| {
+            artifact
+                .prepare_usb_duplex::<P>(usb)
+                .map(|kernel| ProtocolKernel::WithoutClock(Box::new(kernel)))
+        })
+    }
+
     fn prepare_with(
         artifact: PreparedProtocolArtifact,
         session: BodyLifecycleSession,
