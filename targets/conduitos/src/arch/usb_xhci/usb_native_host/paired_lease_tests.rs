@@ -269,6 +269,13 @@ fn paired(stop_code: u8, stalled: bool, cancelled: bool) {
             host.validate_settlement_idle(),
             Err(UsbNativeHostRefusal::Pending)
         ));
+        // Fault injection: empty dispatcher/native index flags are insufficient
+        // while original per-transfer leases and DMA reservations remain live.
+        let original_read = host.pending_endpoint.take();
+        let original_write = host.pending_write.take();
+        assert!(host.validate_settlement_idle().is_err());
+        host.pending_endpoint = original_read;
+        host.pending_write = original_write;
         let nodes = [
             host.calls[read_index.0].node,
             host.calls[write_index.0].node,
