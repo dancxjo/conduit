@@ -68,7 +68,7 @@ fn zero(ty: &StructuredInfoType) -> StructuredInfoValue {
 }
 fn run(
     storage: KernelCompositeSignStorage,
-) -> Result<(usize, usize, bool), (usize, KernelCompositeError)> {
+) -> Result<(usize, usize, bool), (usize, Box<KernelCompositeError>)> {
     let reference = |name: &str| ProtocolValueReference {
         type_name: name.into(),
         maximum_bytes: 4096,
@@ -209,22 +209,29 @@ fn run(
     .canonical_bytes()
     .unwrap();
     let mut kernel = KernelCompositeHost::prepare_with_sign_storage(definition, &registry, storage)
-        .map_err(|error| (0, error))?;
+        .map_err(|error| (0, Box::new(error)))?;
     let mut results = 0;
     let mut ended = 0;
     let mut complete = false;
     let mut outcome = None;
+    let mut play_error = None;
     let allocations = crate::test_allocations::allocations(|| {
         outcome = Some((|| {
             kernel.start().unwrap();
             kernel.admit_input(&seed_port, 0, &seed).unwrap();
             kernel.close_input(&seed_port).unwrap();
             for _ in 0..10000 {
-                let status = kernel.step().map_err(|error| (results, error))?;
+                let status = kernel.step().map_err(|error| {
+                    play_error = Some(error);
+                    results
+                })?;
                 if let Some(request) = kernel.next_host_request() {
                     let admitted = kernel
                         .admit_host_request(&request, &identity, &[], &[])
-                        .map_err(|error| (results, error))?;
+                        .map_err(|error| {
+                            play_error = Some(error);
+                            results
+                        })?;
                     let call = *kernel
                         .admitted_host_request_view(&admitted)
                         .unwrap()
@@ -232,7 +239,10 @@ fn run(
                     if call.node == physical_node {
                         kernel
                             .complete_host_call_bytes(&admitted, &result)
-                            .map_err(|error| (results, error))?;
+                            .map_err(|error| {
+                                play_error = Some(error);
+                                results
+                            })?;
                     } else {
                         let (_, owner) = owners
                             .iter_mut()
@@ -245,7 +255,10 @@ fn run(
                         {
                             Some(bytes) => kernel
                                 .complete_host_call_bytes(&admitted, bytes)
-                                .map_err(|error| (results, error))?,
+                                .map_err(|error| {
+                                    play_error = Some(error);
+                                    results
+                                })?,
                             None => kernel
                                 .complete_host_call(
                                     &admitted,
@@ -255,23 +268,27 @@ fn run(
                                         failure: None,
                                     },
                                 )
-                                .map_err(|error| (results, error))?,
+                                .map_err(|error| {
+                                    play_error = Some(error);
+                                    results
+                                })?,
                         }
                     }
                 }
                 for (port, output) in &mut outputs {
-                    if let Some(sequence) = kernel
-                        .output_into(port, output)
-                        .map_err(|error| (results, error))?
-                    {
+                    if let Some(sequence) = kernel.output_into(port, output).map_err(|error| {
+                        play_error = Some(error);
+                        results
+                    })? {
                         if port.as_str() == "result" {
                             results += 1;
                         } else {
                             ended += 1;
                         }
-                        kernel
-                            .complete_output(port, sequence)
-                            .map_err(|error| (results, error))?;
+                        kernel.complete_output(port, sequence).map_err(|error| {
+                            play_error = Some(error);
+                            results
+                        })?;
                     }
                 }
                 if status == KernelCompositeStatus::Complete {
@@ -283,7 +300,12 @@ fn run(
         })());
     });
     assert_eq!(allocations, 0, "all Play storage is reserved before start");
-    let outcome = outcome.unwrap();
+    let outcome = outcome.unwrap().map_err(|results| {
+        (
+            results,
+            Box::new(play_error.expect("retained exact Play refusal")),
+        )
+    });
     if outcome.as_ref().is_ok_and(|(_, _, complete)| *complete) {
         use conduit_kernel::KernelEventKind as Event;
         let remote_items = kernel
@@ -333,7 +355,7 @@ fn run(
 fn default_sign_storage_reports_exact_refusal_and_finite_extra_storage_closes_64_cycles() {
     let (results, error) = run(KernelCompositeSignStorage::default()).unwrap_err();
     let wrapped = crate::protocol_source::ProtocolBodyRefusal::Call(
-        crate::protocol_host_calls::ProtocolCallRefusal::Kernel(error),
+        crate::protocol_host_calls::ProtocolCallRefusal::Kernel(*error),
     );
     assert_eq!(results, 37);
     assert_eq!(
@@ -406,7 +428,7 @@ fn remote_sign_admission_overflow_refuses_before_play() {
     .unwrap_err();
     assert_eq!(results, 0);
     assert!(
-        matches!(error, KernelCompositeError::ChildRefused { reason, .. }
+        matches!(*error, KernelCompositeError::ChildRefused { reason, .. }
         if reason == "kernel composite remote Sign bound overflow")
     );
 }
