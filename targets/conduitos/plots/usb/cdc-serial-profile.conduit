@@ -23,9 +23,7 @@ plot cdc-acm-line-coding-ack (
 # Descriptive geometry is checked here; it creates no native authority.
 plot cdc-serial-root-topology-observation (
     discovery: UsbProtocolDiscovery...| >> observation: CdcAcmTopologyObservation...|
-) = ({ completion: .configuration, selections: (.attachment == 0 || !(.read is selected) || !(.write is selected) ? false :
-    ((.read.selected.address == 129 && .read.selected.transfer == 2 && .read.selected.packet == 64 && .read.selected.interval == 0 && .read.selected.epoch > 0) &&
-     (.write.selected.address == 2 && .write.selected.transfer == 2 && .write.selected.packet == 64 && .write.selected.interval == 0 && .write.selected.epoch > 0))) })
+) = ({ completion: .configuration, selections: (.attachment == 0 || !(.read is selected) || !(.write is selected) ? false : ((.read.selected.address == 129 && .read.selected.transfer == 2 && .read.selected.packet == 64 && .read.selected.interval == 0 && .read.selected.epoch > 0) && (.write.selected.address == 2 && .write.selected.transfer == 2 && .write.selected.packet == 64 && .write.selected.interval == 0 && .write.selected.epoch > 0))) })
 # The certified class path consumes an already accepted Root handoff. Native
 # class completion remains untouched; this is a pure policy observation.
 plot cdc-serial-class-topology-observation (
