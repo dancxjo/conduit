@@ -139,6 +139,39 @@ fn full_eight_packet_canonical_envelope_is_validated_without_restricting_batch()
             .unwrap(),
         &256_u64.to_le_bytes()
     );
+    let input_bytes = input.len();
+    let mut maximum_result = result.len();
+    for outcome in [
+        IsochronousOutcome::Short(IsochronousCompletion {
+            frame: 1032,
+            requested: 256,
+            actual: 255,
+        }),
+        IsochronousOutcome::MissedService { frame: 1032 },
+        IsochronousOutcome::Underrun,
+        IsochronousOutcome::ProviderLost,
+        IsochronousOutcome::Drained,
+        IsochronousOutcome::Snapshot(
+            crate::usb_base::isochronous_schedule::IsochronousOutSnapshot {
+                current_microframe: 0x3fff,
+                scheduling_threshold: 15,
+                service_interval_microframes: 8,
+                maximum_packet_bytes: 256,
+                pending_packets: 8,
+                maximum_pending_packets: 8,
+                dma_resource_bytes: 3072,
+            },
+        ),
+    ] {
+        let encoded = encoder.encode(&actual, outcome).unwrap();
+        maximum_result = maximum_result.max(encoded.len());
+        validate_canonical_structured_value(encoded).unwrap();
+    }
+    assert!(maximum_result <= ISOCHRONOUS_OUT_MAXIMUM_BYTES as usize);
+    std::println!(
+        "ISO canonical envelopes: eight256 request={input_bytes}, maximum checked result={maximum_result}, admitted={}",
+        ISOCHRONOUS_OUT_MAXIMUM_BYTES
+    );
 }
 #[test]
 fn batch_begin_retains_one_lease_until_all_exact_completions() {
