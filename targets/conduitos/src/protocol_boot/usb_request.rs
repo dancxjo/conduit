@@ -11,6 +11,7 @@ pub const REQUEST_SCHEMA: &str = "conduit.conduitos/usb-protocol-root-request@1"
 #[serde(deny_unknown_fields)]
 pub struct UsbProtocolBootRequest {
     /// Exact packaged pure discovery entry; no authored descriptor or verdict.
+    /// Generic requests without this handoff are not a certified CDC profile.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub preflight: Option<UsbPreflightBootRequest>,
     pub schema: String,
