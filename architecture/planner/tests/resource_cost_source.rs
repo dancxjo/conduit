@@ -55,6 +55,19 @@ fn source_fences_full_offer_resource_boot_generation_and_calibration_snapshots()
     assert_eq!(source.sign(), &sign);
     assert_eq!(source.offer(), offer);
     assert_eq!(source.resource(), Some(resource));
+    let realization_sample =
+        CostEvidenceSource::bind(&host, offer, None, &sign, revision, window(&host)).unwrap();
+    let mut changed_resource = host.clone();
+    changed_resource
+        .resources
+        .iter_mut()
+        .find(|pool| pool.pool_id == resource.pool_id)
+        .unwrap()
+        .capacity_units += 1;
+    assert_eq!(
+        realization_sample.validate_at(&changed_resource, revision, &now),
+        Err(CostEvidenceRefusal::Scope(CostScopeChange::Resource))
+    );
     for (mutation, expected) in [
         (0, CostScopeChange::Host),
         (1, CostScopeChange::Boot),
