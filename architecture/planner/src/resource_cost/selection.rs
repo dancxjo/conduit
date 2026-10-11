@@ -21,6 +21,7 @@ pub struct CostEvaluationContext<'a> {
     pub host: &'a HostAdvertisement,
     pub calibrations: &'a [CostCalibrationRevision<'a>],
     pub now: &'a MonotonicInstant,
+    pub execution_observations: &'a [super::CostExecutionObservation<'a>],
 }
 pub struct TimedResourceObservation<'a> {
     observation: &'a ResourceObservation,
@@ -80,6 +81,9 @@ pub struct CostCandidateEvidence<'a> {
     pub submitted_source: Option<&'a super::CostEvidenceSource<'a>>,
     pub submitted_calibration_source: Option<&'a super::CostEvidenceSource<'a>>,
     pub evaluated_at: &'a MonotonicInstant,
+    pub current_execution: Option<&'a super::CostExecutionObservation<'a>>,
+    pub submitted_execution_assumption: Option<&'a super::CostEvidenceSource<'a>>,
+    pub expected_execution_condition: Option<super::CostExecutionCondition>,
     pub selected: bool,
 }
 impl core::fmt::Debug for CostCandidateEvidence<'_> {
@@ -122,6 +126,9 @@ pub struct UnavailableCostEvidence {
     pub reason: Option<Refusal>,
     pub submitted: Option<super::CostSourceAttribution>,
     pub submitted_calibration: Option<super::CostSourceAttribution>,
+    pub current_execution: Option<(super::CostSourceAttribution, super::CostExecutionCondition)>,
+    pub submitted_execution_assumption: Option<super::CostSourceAttribution>,
+    pub expected_execution_condition: Option<super::CostExecutionCondition>,
     pub evaluated_at: MonotonicInstant,
 }
 #[derive(Debug)]
@@ -188,6 +195,23 @@ pub fn select_realization_with_costs<'a>(
             || context.calibrations.len() > MAXIMUM_COST_CANDIDATES
         {
             return Err(Refusal::AmbiguousEvidence.into());
+        }
+        if context.execution_observations.len() > MAXIMUM_COST_CANDIDATES {
+            return Err(Refusal::InputLimit.into());
+        }
+        for (position, observation) in context.execution_observations.iter().enumerate() {
+            if observation.source().host().host_id != context.host.host_id {
+                return Err(Refusal::UnadvertisedSubject.into());
+            }
+            if context.execution_observations[..position]
+                .iter()
+                .any(|other| {
+                    other.source().offer().capability_id
+                        == observation.source().offer().capability_id
+                })
+            {
+                return Err(Refusal::AmbiguousEvidence.into());
+            }
         }
         context.now.validate().map_err(Refusal::InvalidClock)?;
         if context.now.clock().host_id() != &context.host.host_id
@@ -273,6 +297,10 @@ pub fn select_realization_with_costs<'a>(
             forecast.source().host().host_id == record.host_id
                 && forecast.source().offer().capability_id == record.capability_id
         });
+        let current_execution = context
+            .execution_observations
+            .iter()
+            .find(|observation| observation.source().offer().capability_id == record.capability_id);
         let availability = if let Some(forecast) = submitted {
             let validation = forecast.demand().validate_match(demand).and_then(|()| {
                 let calibration = context
@@ -282,7 +310,12 @@ pub fn select_realization_with_costs<'a>(
                         revision.identity() == forecast.source().calibration().identity()
                     })
                     .ok_or(Refusal::Scope(CostScopeChange::Calibration))?;
-                forecast.validate_at(context.host, *calibration, context.now)
+                forecast.validate_for_execution(
+                    context.host,
+                    *calibration,
+                    context.now,
+                    current_execution,
+                )
             });
             match validation {
                 Ok(()) => CostAvailability::Known(forecast),
@@ -299,6 +332,14 @@ pub fn select_realization_with_costs<'a>(
             submitted_calibration_source: submitted
                 .and_then(|sample| sample.calibration().map(|estimate| estimate.source())),
             evaluated_at: context.now,
+            current_execution,
+            submitted_execution_assumption: submitted.and_then(|sample| {
+                sample
+                    .execution_assumption()
+                    .map(|observation| observation.source())
+            }),
+            expected_execution_condition: submitted
+                .and_then(|sample| sample.expected_execution_condition()),
             selected: false,
         });
     }
@@ -347,6 +388,16 @@ pub fn select_realization_with_costs<'a>(
                 submitted_calibration: item
                     .submitted_calibration_source
                     .map(super::CostSourceAttribution::from_source),
+                current_execution: item.current_execution.map(|observation| {
+                    (
+                        super::CostSourceAttribution::from_source(observation.source()),
+                        observation.condition(),
+                    )
+                }),
+                submitted_execution_assumption: item
+                    .submitted_execution_assumption
+                    .map(super::CostSourceAttribution::from_source),
+                expected_execution_condition: item.expected_execution_condition,
                 evaluated_at: item.evaluated_at.clone(),
                 reason: match item.availability {
                     CostAvailability::Missing => None,

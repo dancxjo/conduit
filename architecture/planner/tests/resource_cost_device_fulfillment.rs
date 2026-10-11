@@ -217,6 +217,7 @@ fn exercise(
         .map(|(host, now)| CostEvaluationContext {
             host,
             calibrations: &revisions,
+            execution_observations: &[],
             now,
         })
         .collect::<Vec<_>>();

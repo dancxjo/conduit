@@ -199,15 +199,6 @@ fn exercise(
             .unwrap()
         })
         .collect::<Vec<_>>();
-    let contexts = hosts
-        .iter()
-        .zip(&now)
-        .map(|(host, now)| CostEvaluationContext {
-            host,
-            calibrations: &revisions,
-            now,
-        })
-        .collect::<Vec<_>>();
     let completion_sign = SignId::from("completion/measured");
     let clock = sources[2].window().observed().clock().clone();
     let completed = CostEvidenceSource::bind(
@@ -273,6 +264,32 @@ fn exercise(
         .collect::<Vec<_>>();
     let requirements = HardRealizationRequirements::default();
     let policy = RealizationPolicy::default();
+    let current_sign = SignId::from("condition/current");
+    let current_source = CostEvidenceSource::bind(
+        &hosts[2],
+        &hosts[2].capabilities[0],
+        None,
+        &current_sign,
+        revisions[0],
+        window(&hosts[2], 200),
+    )
+    .unwrap();
+    let current_execution =
+        [CostExecutionObservation::admit(&current_source, CostExecutionCondition::Cold).unwrap()];
+    let contexts = hosts
+        .iter()
+        .zip(&now)
+        .map(|(host, now)| CostEvaluationContext {
+            host,
+            calibrations: &revisions,
+            execution_observations: if calibrated && host.host_id == hosts[2].host_id {
+                &current_execution
+            } else {
+                &[]
+            },
+            now,
+        })
+        .collect::<Vec<_>>();
     inspect(select_realization_with_costs(
         demand,
         CostSelectionInputs {
@@ -404,6 +421,8 @@ fn calibrated_projection_keeps_original_stages_measurement_and_signed_errors() {
             "sign=forecast/fresh",
             "sign=completion/measured",
             "updates=1 condition=Cold",
+            "current_execution sign=condition/current",
+            "current_execution_condition=Cold",
             "stage service=1/3 ms",
             "stage measured=",
             "measured_elapsed=",
@@ -441,5 +460,20 @@ fn unusable_calibration_preserves_its_distinct_completion_sign_and_window() {
         assert!(output.contains("submitted_calibration sign=completion/measured"));
         assert!(output.contains("cost=unusable reason=Stale"));
         assert!(!output.contains("REQUEST_CANARY"));
+    });
+}
+
+#[test]
+fn known_calibration_without_its_current_state_cannot_be_presented_as_valid() {
+    exercise(false, CalibrationMode::Fresh, |result| {
+        let mut result = result.unwrap();
+        let calibrated = result.costs.iter_mut().find(|cost| matches!(
+            &cost.availability, CostAvailability::Known(sample) if sample.calibration().is_some()
+        )).unwrap();
+        calibrated.current_execution = None;
+        assert_eq!(
+            render_cost_selection_explanation(&result),
+            Err(CostExplanationRefusal::InconsistentSelection)
+        );
     });
 }
