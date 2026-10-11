@@ -62,6 +62,15 @@ pub(super) fn attached_root_port(controller: &XhciReady) -> Result<u8, UsbError>
 pub(super) fn reset_port(controller: &XhciReady, port: u8) -> Result<(), UsbError> {
     controller.write_port_status(port, controller.port_status(port) | (1 << 4));
     for _ in 0..PORT_POLL_STEPS {
+        super::device_dma_pointer(device)?;
+        let port = device.root_port;
+        if port == 0
+            || port > controller.maximum_ports()
+            || device.slot == 0
+            || device.attachment_epoch == 0
+        {
+            return Err(UsbError::StaleDeviceInstance);
+        }
         let status = controller.port_status(port);
         if let Some(result) = classify_port_reset(status) {
             return result;
@@ -93,24 +102,76 @@ const PORT_ORDINARY_RW: u32 = (1 << 9) | (3 << 14) | (7 << 25);
 
 /// A baseline established by the exclusive Root after addressing its device.
 /// This token records continuity checking, never device possession.
-pub struct AttachmentBaseline;
+pub struct AttachmentBaseline {
+    controller: [u64; 7],
+    attachment: [u64; 4],
+}
 impl AttachmentBaseline {
-    pub(crate) fn establish(controller: &XhciReady, port: u8) -> Result<Self, UsbError> {
+    pub(crate) fn establish(controller: &XhciReady, device: &UsbDevice) -> Result<Self, UsbError> {
+        super::device_dma_pointer(device)?;
+        let port = device.root_port;
+        if port == 0
+            || port > controller.maximum_ports()
+            || device.slot == 0
+            || device.attachment_epoch == 0
+        {
+            return Err(UsbError::StaleDeviceInstance);
+        }
         let status = controller.port_status(port);
         if status & 1 == 0 {
             return Err(UsbError::DeviceVanished);
         }
         controller.write_port_status(port, baseline_acknowledgement(status));
         validate_attachment_continuity(controller.port_status(port))?;
-        Ok(Self)
+        Ok(Self {
+            controller: controller_facts(controller),
+            attachment: device_facts(device),
+        })
+    }
+    pub(crate) fn validate_native(
+        &self,
+        controller: &XhciReady,
+        device: &UsbDevice,
+    ) -> Result<(), UsbError> {
+        // Foreign controller/device facts are refused before any DMA or MMIO.
+        if !self.matches(controller_facts(controller), device_facts(device)) {
+            return Err(UsbError::StaleDeviceInstance);
+        }
+        super::device_dma_pointer(device)?;
+        self.validate(controller.port_status(device.root_port))
+    }
+    fn matches(&self, controller: [u64; 7], attachment: [u64; 4]) -> bool {
+        self.controller == controller && self.attachment == attachment
     }
     pub(crate) fn validate(&self, status: u32) -> Result<(), UsbError> {
         validate_attachment_continuity(status)
     }
     #[cfg(test)]
     pub(super) fn fixture() -> Self {
-        Self
+        Self {
+            controller: [0; 7],
+            attachment: [0; 4],
+        }
     }
+}
+fn controller_facts(controller: &XhciReady) -> [u64; 7] {
+    [
+        u64::from(controller.segment),
+        u64::from(controller.bus),
+        u64::from(controller.device),
+        u64::from(controller.function),
+        u64::from(controller.vendor),
+        u64::from(controller.device_id),
+        controller.bar_physical,
+    ]
+}
+fn device_facts(device: &UsbDevice) -> [u64; 4] {
+    [
+        u64::from(device.root_port),
+        u64::from(device.slot),
+        u64::from(device.dma_slot),
+        u64::from(device.attachment_epoch),
+    ]
 }
 fn baseline_acknowledgement(status: u32) -> u32 {
     (status & PORT_ORDINARY_RW) | CONNECT_STATUS_CHANGE
@@ -140,6 +201,24 @@ mod continuity_tests {
             validate_attachment_continuity(1 | CONNECT_STATUS_CHANGE),
             Err(UsbError::StaleDeviceInstance)
         );
+    }
+    #[test]
+    fn foreign_controller_or_attachment_is_refused_without_access() {
+        let baseline = AttachmentBaseline {
+            controller: [1; 7],
+            attachment: [2; 4],
+        };
+        assert!(baseline.matches([1; 7], [2; 4]));
+        for field in 0..7 {
+            let mut wrong = [1; 7];
+            wrong[field] += 1;
+            assert!(!baseline.matches(wrong, [2; 4]));
+        }
+        for field in 0..4 {
+            let mut wrong = [2; 4];
+            wrong[field] += 1;
+            assert!(!baseline.matches([1; 7], wrong));
+        }
     }
     #[test]
     fn repeated_disconnect_cannot_restore_the_baseline_through_current_connected_status() {

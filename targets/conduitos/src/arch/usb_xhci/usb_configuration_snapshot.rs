@@ -127,6 +127,7 @@ pub fn discover_configuration(
     mapping: fn(u64) -> Option<u64>,
     baseline: AttachmentBaseline,
 ) -> Result<UsbConfigurationSnapshot, UsbError> {
+    baseline.validate_native(controller, device)?;
     let dma = device_dma_pointer(device)?;
     let physical = super::control_owner::transfer::mapped_dma_physical(dma as u64, mapping)?;
     let mut ring = ControlRing {
