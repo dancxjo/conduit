@@ -1,0 +1,43 @@
+# Sixteen serialized read-only READ(10), LUN0, LBA0, one 512-byte block each.
+# Tag1 is reused only after matching CSW acceptance; no overlapping CBWs.
+type BotControlFacts = {
+    descriptor: Boolean
+    ack: Boolean
+}
+type BotReadFacts = {
+    result: UsbEndpointReadResult
+    data: Boolean
+    status: Boolean
+}
+type BotEvent =
+    control BotControlFacts
+    | write UsbEndpointWriteResult
+    | read BotReadFacts
+type BotState = {
+    command: UsbEndpointWriteRequest
+    phase: U64
+    transaction: U64
+    terminal: Boolean
+    refused: Boolean
+}
+type BotRoute =
+    control BotState
+    | write BotState
+    | read BotState
+    | stopped BotState
+type BotPending =
+    running BotState
+    | stopped
+type BotTransition = {
+    previous: BotState
+    accepted: Boolean
+}
+type BotOutcome =
+    accepted
+    | refused
+type BotDataCandidate =
+    ready BotEvent
+    | absent
+type BotAcceptedState =
+    ready BotState
+    | refused

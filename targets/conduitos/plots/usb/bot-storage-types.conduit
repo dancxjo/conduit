@@ -1,0 +1,36 @@
+# Request-driven first-profile read-only BOT realization; no media write API.
+type BotStorageControl = {
+    result: UsbControlResult
+    facts: BotControlFacts
+}
+type BotStorageEvent =
+    startup Bytes <= 2048B
+    | closed
+    | command BlockReadRequest
+    | control BotStorageControl
+    | observation BotEvent
+type BotStorageState = {
+    command: UsbEndpointWriteRequest
+    request: BlockReadRequest
+    data: UsbEndpointReadResult
+    phase: U64
+    operations: U64
+    terminal: Boolean
+}
+type BotStorageRoute =
+    ready BotStorageState
+    | control BotStorageState
+    | write BotStorageState
+    | read BotStorageState
+    | stopped BotStorageState
+type BotStoragePending =
+    running BotStorageState
+    | stopped
+type BotStorageTransition = {
+    previous: BotStorageState
+    event: BotStorageEvent
+    accepted: Boolean
+}
+type BotStorageEmission =
+    emit BlockReadResult
+    | absent

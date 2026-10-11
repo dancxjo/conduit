@@ -1,0 +1,117 @@
+with storage/block-read/request as BlockReadRequest
+with storage/block-read/result as BlockReadResult
+with machine/usb/control/request as UsbControlRequest
+with machine/usb/control/result as UsbControlResult
+with machine/usb/endpoint-read/request as UsbEndpointReadRequest
+with machine/usb/endpoint-read/result as UsbEndpointReadResult
+with machine/usb/endpoint-write/request as UsbEndpointWriteRequest
+with machine/usb/endpoint-write/result as UsbEndpointWriteResult
+with flow/zip/feedback/paired as BotStoragePair
+with flow/zip/finite/paired as BotStorageControlPair
+
+plot bot-storage-bootstrap (
+    wire: Bytes <= 2048B >> event: BotStorageEvent
+) = (startup(.))
+plot bot-storage-bootstrap-request (
+    bootstrap: BotStorageEvent...| >> command: UsbEndpointWriteRequest...|
+) = ({ wire: .startup })
+plot bot-storage-start (
+    initialized: BotState...| >> state: BotStorageState...|
+) = ({ command: .command, request: { block_size: 512, count: 1, lba: 0 }, data: unsupported(empty), phase: 0, operations: 0, terminal: .terminal })
+plot bot-storage-closed (
+    bootstrap: BotStorageEvent...| >> event: BotStorageEvent...|
+) = (closed(empty))
+plot bot-storage-command (
+    request: BlockReadRequest...| >> event: BotStorageEvent...|
+) = (command(.))
+plot bot-storage-command-event (
+    pair: BotStoragePair...| >> event: BotStorageEvent...|
+) = (.1)
+plot bot-storage-route (
+    state: BotStorageState...| >> route: BotStorageRoute...|
+) = (.terminal || .operations > 16 || .phase > 6 ? stopped(.) : (.phase == 0 || .phase == 6 ? ready(.) : (.phase <= 2 ? control(.) : (.phase == 3 ? write(.) : read(.)))))
+plot bot-storage-pending (
+    route: BotStorageRoute...| >> pending: BotStoragePending...|
+) = (. is stopped ? stopped(empty) : (. is ready ? running(.ready) : (. is control ? running(.control) : (. is write ? running(.write) : running(.read)))))
+plot bot-storage-control-request (
+    state: BotStorageState...| >> request: UsbControlRequest...|
+) = (.phase == 1 ? { setup: 0x0020000002000680, output: [] } : { setup: 0x0000000000010900, output: [] })
+plot bot-storage-write-request (
+    state: BotStorageState...| >> request: UsbEndpointWriteRequest...|
+) = (.command)
+plot bot-storage-read-request (
+    state: BotStorageState...| >> request: UsbEndpointReadRequest...|
+) = (.phase == 4 ? { length: 512 } : { length: 13 })
+plot bot-storage-control-observation (
+    pair: BotStorageControlPair...| >> event: BotStorageEvent...|
+) = (control({ result: .0, facts: .1.control }))
+plot bot-storage-observe-control (
+    >> result: UsbControlResult...| <= 4096B
+    event: BotStorageEvent...| <= 4096B >>
+) {
+    pair: flow/zip/finite
+    result >> pair.left
+    result >> bot-control-event() >> pair.right
+    pair.paired >> bot-storage-control-observation() >> event
+}
+plot bot-storage-observation (
+    observation: BotEvent...| >> event: BotStorageEvent...|
+) = (observation(.))
+plot bot-storage-write-observation (
+    result: UsbEndpointWriteResult...| >> event: BotStorageEvent...|
+) = (observation(write(.)))
+plot bot-storage-accept (
+    pair: BotStoragePair...| >> transition: BotStorageTransition...|
+) = ({ previous: .0, event: .1, accepted: (.0.terminal || .0.operations > 16 || .0.phase > 6 ? false : (.0.phase == 0 || .0.phase == 6 ? (.1 is closed ? true : (.1 is command && .0.operations < 16 ? (.1.command.block_size == 512 && .1.command.count == 1 && .1.command.lba == 0) : false)) : (.0.phase <= 2 ? (.1 is control ? (.0.phase == 1 ? .1.control.facts.descriptor : .1.control.facts.ack) : false) : (.1 is observation ? (.0.phase == 3 ? (.1.observation is write ? (.1.observation.write is completed ? .1.observation.write.completed.actual == 31 : false) : false) : (.1.observation is read ? (.0.phase == 4 ? (.1.observation.read.data ? .1.observation.read.result.completed.ordinal == .0.operations + .0.operations : false) : (.1.observation.read.status ? .1.observation.read.result.completed.ordinal == .0.operations + .0.operations + 1 : false)) : false)) : false)))) })
+
+plot bot-storage-advance (
+    transition: BotStorageTransition...| >> state: BotStorageState...|
+) = ({ command: .previous.command, request: (.accepted && .event is command ? .event.command : .previous.request), data: (.accepted && .previous.phase == 4 ? .event.observation.read.result : .previous.data), phase: (!.accepted || .event is closed ? 7 : (.previous.phase == 0 ? 1 : (.previous.phase == 6 ? 3 : .previous.phase + 1))), operations: (.accepted && .previous.phase == 5 && .previous.operations < 16 ? .previous.operations + 1 : .previous.operations), terminal: (!.accepted || .event is closed) })
+plot bot-storage-emission (
+    transition: BotStorageTransition...| >> emission: BotStorageEmission...|
+) = (.accepted ? (.previous.phase == 5 && .previous.data is completed && .previous.data.completed.actual == 512 && bytes/length(.previous.data.completed.wire) == 512 ? emit(completed({ actual: 512, block_size: .previous.request.block_size, bytes: .previous.data.completed.wire, count: .previous.request.count, lba: .previous.request.lba, ordinal: .previous.operations, residue: 0, short: false })) : absent(empty)) : emit((.event is command ? unsupported({ block_size: (.event is command ? .event.command.block_size : .previous.request.block_size), count: (.event is command ? .event.command.count : .previous.request.count), lba: (.event is command ? .event.command.lba : .previous.request.lba), ordinal: .previous.operations }) : (.event is control ? (.event.control.result is stalled ? stalled({ block_size: (.event is command ? .event.command.block_size : .previous.request.block_size), count: (.event is command ? .event.command.count : .previous.request.count), lba: (.event is command ? .event.command.lba : .previous.request.lba), ordinal: .previous.operations }) : (.event.control.result is provider-lost ? provider-lost({ block_size: (.event is command ? .event.command.block_size : .previous.request.block_size), count: (.event is command ? .event.command.count : .previous.request.count), lba: (.event is command ? .event.command.lba : .previous.request.lba), ordinal: .previous.operations }) : (.event is observation ? (.event.observation is read ? (.event.observation.read.result is stalled ? stalled({ block_size: (.event is command ? .event.command.block_size : .previous.request.block_size), count: (.event is command ? .event.command.count : .previous.request.count), lba: (.event is command ? .event.command.lba : .previous.request.lba), ordinal: .previous.operations }) : (.event.observation.read.result is provider-lost ? provider-lost({ block_size: (.event is command ? .event.command.block_size : .previous.request.block_size), count: (.event is command ? .event.command.count : .previous.request.count), lba: (.event is command ? .event.command.lba : .previous.request.lba), ordinal: .previous.operations }) : (.event.observation.read.result is timeout ? timeout({ block_size: (.event is command ? .event.command.block_size : .previous.request.block_size), count: (.event is command ? .event.command.count : .previous.request.count), lba: (.event is command ? .event.command.lba : .previous.request.lba), ordinal: .previous.operations }) : command-failed({ block_size: (.event is command ? .event.command.block_size : .previous.request.block_size), count: (.event is command ? .event.command.count : .previous.request.count), lba: (.event is command ? .event.command.lba : .previous.request.lba), ordinal: .previous.operations })))) : (.event.observation is write ? (.event.observation.write is stalled ? stalled({ block_size: (.event is command ? .event.command.block_size : .previous.request.block_size), count: (.event is command ? .event.command.count : .previous.request.count), lba: (.event is command ? .event.command.lba : .previous.request.lba), ordinal: .previous.operations }) : (.event.observation.write is provider-lost ? provider-lost({ block_size: (.event is command ? .event.command.block_size : .previous.request.block_size), count: (.event is command ? .event.command.count : .previous.request.count), lba: (.event is command ? .event.command.lba : .previous.request.lba), ordinal: .previous.operations }) : command-failed({ block_size: (.event is command ? .event.command.block_size : .previous.request.block_size), count: (.event is command ? .event.command.count : .previous.request.count), lba: (.event is command ? .event.command.lba : .previous.request.lba), ordinal: .previous.operations }))) : command-failed({ block_size: (.event is command ? .event.command.block_size : .previous.request.block_size), count: (.event is command ? .event.command.count : .previous.request.count), lba: (.event is command ? .event.command.lba : .previous.request.lba), ordinal: .previous.operations }))) : command-failed({ block_size: (.event is command ? .event.command.block_size : .previous.request.block_size), count: (.event is command ? .event.command.count : .previous.request.count), lba: (.event is command ? .event.command.lba : .previous.request.lba), ordinal: .previous.operations })))) : (.event is observation ? (.event.observation is read ? (.event.observation.read.result is stalled ? stalled({ block_size: (.event is command ? .event.command.block_size : .previous.request.block_size), count: (.event is command ? .event.command.count : .previous.request.count), lba: (.event is command ? .event.command.lba : .previous.request.lba), ordinal: .previous.operations }) : (.event.observation.read.result is provider-lost ? provider-lost({ block_size: (.event is command ? .event.command.block_size : .previous.request.block_size), count: (.event is command ? .event.command.count : .previous.request.count), lba: (.event is command ? .event.command.lba : .previous.request.lba), ordinal: .previous.operations }) : (.event.observation.read.result is timeout ? timeout({ block_size: (.event is command ? .event.command.block_size : .previous.request.block_size), count: (.event is command ? .event.command.count : .previous.request.count), lba: (.event is command ? .event.command.lba : .previous.request.lba), ordinal: .previous.operations }) : command-failed({ block_size: (.event is command ? .event.command.block_size : .previous.request.block_size), count: (.event is command ? .event.command.count : .previous.request.count), lba: (.event is command ? .event.command.lba : .previous.request.lba), ordinal: .previous.operations })))) : (.event.observation is write ? (.event.observation.write is stalled ? stalled({ block_size: (.event is command ? .event.command.block_size : .previous.request.block_size), count: (.event is command ? .event.command.count : .previous.request.count), lba: (.event is command ? .event.command.lba : .previous.request.lba), ordinal: .previous.operations }) : (.event.observation.write is provider-lost ? provider-lost({ block_size: (.event is command ? .event.command.block_size : .previous.request.block_size), count: (.event is command ? .event.command.count : .previous.request.count), lba: (.event is command ? .event.command.lba : .previous.request.lba), ordinal: .previous.operations }) : command-failed({ block_size: (.event is command ? .event.command.block_size : .previous.request.block_size), count: (.event is command ? .event.command.count : .previous.request.count), lba: (.event is command ? .event.command.lba : .previous.request.lba), ordinal: .previous.operations }))) : command-failed({ block_size: (.event is command ? .event.command.block_size : .previous.request.block_size), count: (.event is command ? .event.command.count : .previous.request.count), lba: (.event is command ? .event.command.lba : .previous.request.lba), ordinal: .previous.operations }))) : command-failed({ block_size: (.event is command ? .event.command.block_size : .previous.request.block_size), count: (.event is command ? .event.command.count : .previous.request.count), lba: (.event is command ? .event.command.lba : .previous.request.lba), ordinal: .previous.operations }))))))
+
+
+# The CBW is authored immutable Source configuration, not an extra semantic
+# input and not a Rust class constructor. Only LBA0/count1/512 is supported.
+# Root must separately admit storage ownership AND the original USB subordinate
+# calls; this selected Back never derives storage authority from enumeration.
+plot bot-storage-provider (
+    request: BlockReadRequest...| <= 4096B >> result: BlockReadResult...| <= 4096B
+) {
+    literal: bytes/literal("55534243010000000002000080000a28000000000000000100000000000000")
+    singleton: flow/singleton
+    cell: state/seeded/flow/until
+    route: bot-storage-route()
+    join: flow/zip/feedback
+    commands: flow/zip/feedback
+    requests: flow/concat/finite
+    events: flow/merge/finite
+    transport-events: flow/merge/finite
+    bulk-events: flow/merge/finite
+    control: machine/usb/control
+    observe-control: bot-storage-observe-control
+    write: machine/usb/endpoint-write
+    read: machine/usb/endpoint-read
+    literal >> bot-storage-bootstrap() >> singleton.value
+    singleton.flow >> bot-storage-bootstrap-request() >> bot-initialize() >> bot-storage-start() >> cell.seed
+    singleton.flow >> bot-storage-closed() >> requests.right
+    request >> bot-storage-command() >> requests.left
+    requests.concatenated >> commands.right
+    cell.current >> route
+    route >> bot-storage-pending() >> select(BotStoragePending.running, unmatched=drop) >> join.left
+    route >> select(BotStorageRoute.ready, unmatched=drop) >> commands.left
+    commands.paired >> bot-storage-command-event() >> events.left
+    route >> select(BotStorageRoute.control, unmatched=drop) >> bot-storage-control-request() >> control.request
+    route >> select(BotStorageRoute.write, unmatched=drop) >> bot-storage-write-request() >> write.request
+    route >> select(BotStorageRoute.read, unmatched=drop) >> bot-storage-read-request() >> read.request
+    control.result >> observe-control.result
+    observe-control.event >> transport-events.left
+    write.result >> bot-storage-write-observation() >> bulk-events.left
+    read.result >> bot-read-event() >> bot-storage-observation() >> bulk-events.right
+    bulk-events.merged >> transport-events.right
+    transport-events.merged >> events.right
+    events.merged >> join.right
+    join.paired >> bot-storage-accept() >> bot-storage-advance() >> cell.next
+    join.paired >> bot-storage-accept() >> bot-storage-emission() >> select(BotStorageEmission.emit, unmatched=drop) >> result
+}
