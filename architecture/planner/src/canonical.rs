@@ -261,4 +261,8 @@ fn attach_source_spans(plot: &ExpandedCanonicalPlot, plan: &mut Plan) -> Result<
 }
 
 mod shared_pools;
-pub use shared_pools::{plan_expanded_canonical_with_shared_pools, SharedPoolPlanningRequirement};
+pub use shared_pools::{
+    plan_expanded_canonical_with_shared_pool_policies, plan_expanded_canonical_with_shared_pools,
+    SharedPoolPlanningRequirement, SharedPoolPolicyPlanningError, SharedPoolPolicySelection,
+    MAXIMUM_SHARED_POOL_POLICY_SELECTIONS,
+};

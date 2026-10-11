@@ -6,6 +6,11 @@ use conduit_core::{
 };
 mod admission;
 use admission::{pool_member_lines, validate_pool_authority};
+mod policy;
+pub use policy::{
+    plan_expanded_canonical_with_shared_pool_policies, SharedPoolPolicyPlanningError,
+    SharedPoolPolicySelection, MAXIMUM_SHARED_POOL_POLICY_SELECTIONS,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SharedPoolPlanningRequirement {
@@ -21,6 +26,19 @@ pub fn plan_expanded_canonical_with_shared_pools(
     bases: &[BaseImplementationId],
     options: PlanningOptions<'_>,
     requirements: &BTreeMap<SharedPoolId, SharedPoolPlanningRequirement>,
+) -> Result<Plan, PlannerError> {
+    plan_shared_pools_inner(plot, hosts, placements, bases, options, requirements, &[])
+}
+
+#[allow(clippy::too_many_arguments)]
+fn plan_shared_pools_inner(
+    plot: &ExpandedCanonicalPlot,
+    hosts: &[HostAdvertisement],
+    placements: &PlacementChoices,
+    bases: &[BaseImplementationId],
+    options: PlanningOptions<'_>,
+    requirements: &BTreeMap<SharedPoolId, SharedPoolPlanningRequirement>,
+    policies: &[SharedPoolPolicySelection<'_>],
 ) -> Result<Plan, PlannerError> {
     let mut plan = plan_expanded_canonical_with_options(plot, hosts, placements, bases, options)?;
     if plot.shared_pools.len() != requirements.len() {
@@ -261,8 +279,10 @@ pub fn plan_expanded_canonical_with_shared_pools(
             member_limits: requirement.member_limits,
             member_sessions_required: requirement.member_sessions_required,
             realization_envelope,
-            selection_policy:
+            selection_policy: policies.iter().find(|p| p.pool_id == &pool.pool_id).map_or(
                 SharedPoolSelectionPolicy::MoreUnreservedThenLessUtilizedThenPlanOrder,
+                |p| p.policy,
+            ),
             admission_authority: requirement.admission_authority.grant_id.clone(),
             consumers,
         };
