@@ -125,8 +125,10 @@ pub(crate) struct BrowserWindow {
     deadline: Instant,
     state: WindowState,
     // Source-root selection belongs to this participating Mask, not Body state.
-    component_mask_selection: Option<(conduit_presentation::ComponentMaskLook,
-        conduit_presentation::TodoComponentRecipe)>,
+    component_mask_selection: Option<(
+        conduit_presentation::ComponentMaskLook,
+        conduit_presentation::TodoComponentRecipe,
+    )>,
 }
 
 enum WindowState {

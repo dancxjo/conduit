@@ -220,13 +220,23 @@ pub(crate) fn acknowledge_show(
 }
 
 pub(crate) fn component_mask(
-    state_dir: &Path, window_id: &str, binding: LinkBindingId,
-    request: OwnerFaceSnapshotRequest, show: Box<MaskShow>,
+    state_dir: &Path,
+    window_id: &str,
+    binding: LinkBindingId,
+    request: OwnerFaceSnapshotRequest,
+    show: Box<MaskShow>,
     look: conduit_std_host::browser_admission::BrowserComponentLook,
     recipe: conduit_std_host::browser_admission::BrowserComponentRecipe,
 ) -> Result<(), String> {
     match call(state_dir, |token| Request::BodyBrowserComponentMask {
-        protocol: PROTOCOL, token, window_id: window_id.into(), binding, request, show, look, recipe,
+        protocol: PROTOCOL,
+        token,
+        window_id: window_id.into(),
+        binding,
+        request,
+        show,
+        look,
+        recipe,
     })? {
         Response::BodyBrowserComponentMaskAccepted { protocol: PROTOCOL } => Ok(()),
         Response::Refused { code, .. } => Err(code),

@@ -1,8 +1,8 @@
 //! Realization configuration from the exact current planned renderer placement.
 use super::*;
 use conduit_presentation::{
-    AdmittedVisualExpression, ConfiguredMaskConfiguration, VisualUserConstraints,
     admit_visual_expression, prepare_component_recipe, visual_expression_from_info,
+    AdmittedVisualExpression, ConfiguredMaskConfiguration, VisualUserConstraints,
 };
 
 #[derive(Default, Deserialize)]

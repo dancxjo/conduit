@@ -294,28 +294,55 @@ mod tests {
         let body = Body::born(
             SourceDocumentId::from("source/canonical-observation"),
             CheckedPlotId::from("checked/canonical-observation"),
-            1, SignId::from("sign/canonical-observation"),
-        ).unwrap();
-        let face = Face::project(&body, None, u64::MAX,
-            FaceContext::Overview, FaceFocus::Body, vec![]).unwrap().presentation;
-        let mask = OwnerBrowserMask::prepare_component_fixture(HostBasis {
-            body_id: body.body_id.clone(),
-            host_id: HostId::from("host/canonical-observation"),
-            boot_id: BootId::from("boot/canonical-observation"),
-            visual_constraints: None,
-        }, face.clone(), 1, false).unwrap();
+            1,
+            SignId::from("sign/canonical-observation"),
+        )
+        .unwrap();
+        let face = Face::project(
+            &body,
+            None,
+            u64::MAX,
+            FaceContext::Overview,
+            FaceFocus::Body,
+            vec![],
+        )
+        .unwrap()
+        .presentation;
+        let mask = OwnerBrowserMask::prepare_component_fixture(
+            HostBasis {
+                body_id: body.body_id.clone(),
+                host_id: HostId::from("host/canonical-observation"),
+                boot_id: BootId::from("boot/canonical-observation"),
+                visual_constraints: None,
+            },
+            face.clone(),
+            1,
+            false,
+        )
+        .unwrap();
         let prepared = mask.view();
         CURRENT.with(|current| *current.borrow_mut() = Some(mask));
         assert_eq!(conduit_browser_owner_face_canonical_snapshot(), -5);
-        CURRENT.with(|current| current.borrow_mut().as_mut().unwrap().acknowledge(Acknowledgement {
-            show_id: prepared.show_id.clone(), face_id: prepared.face_id,
-            face_revision: prepared.face_revision,
-        }).unwrap());
+        CURRENT.with(|current| {
+            current
+                .borrow_mut()
+                .as_mut()
+                .unwrap()
+                .acknowledge(Acknowledgement {
+                    show_id: prepared.show_id.clone(),
+                    face_id: prepared.face_id,
+                    face_revision: prepared.face_revision,
+                })
+                .unwrap()
+        });
         assert_eq!(conduit_browser_owner_face_canonical_snapshot(), 0);
         let bytes = OUTPUT.with(|output| output.borrow().clone());
-        assert!(std::str::from_utf8(&bytes).unwrap().contains("18446744073709551615"));
+        assert!(std::str::from_utf8(&bytes)
+            .unwrap()
+            .contains("18446744073709551615"));
         let observed: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
-        let retained: Presentation = serde_json::from_value(observed["presentation"].clone()).unwrap();
+        let retained: Presentation =
+            serde_json::from_value(observed["presentation"].clone()).unwrap();
         assert_eq!(retained, face);
         assert_eq!(observed["show_id"], prepared.show_id);
         assert_eq!(conduit_browser_owner_face_canonical_snapshot(), 0);

@@ -8,12 +8,12 @@ use conduit_core::{
     PlannedGear, SourceDocumentId, StructuredConfigurationValue,
 };
 use conduit_planner::{
-    ConnectionQueueLimits, ForeBoundaryKey, PlacementChoices, PlanningOptions,
-    plan_expanded_authoring_with_options,
+    plan_expanded_authoring_with_options, ConnectionQueueLimits, ForeBoundaryKey, PlacementChoices,
+    PlanningOptions,
 };
 use conduit_plot::{
-    CanonicalBackCatalog, CanonicalStartupValue, CheckedSyntaxDocument, ExpandedAuthoringPlot,
-    ExpandedGearProvenance, ProfileCatalog, expand_canonical_plot_for_authoring_with_backs,
+    expand_canonical_plot_for_authoring_with_backs, CanonicalBackCatalog, CanonicalStartupValue,
+    CheckedSyntaxDocument, ExpandedAuthoringPlot, ExpandedGearProvenance, ProfileCatalog,
 };
 use serde::Serialize;
 

@@ -1,20 +1,20 @@
 //! Reviewed Back and ordinary Plot Plan for the browser's bounded DOM Mask.
 
 use conduit_plot::{
-    KindSignature, ProfileCatalog, StartupCatalog, check_syntax_document,
-    expand_canonical_plot_for_authoring, parse_syntax_document,
+    check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
+    KindSignature, ProfileCatalog, StartupCatalog,
 };
 use std::{collections::BTreeMap, string::String};
 
 use conduit_core::{
-    ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityLimits, ExecutionProfileId,
-    HostAdvertisement, HostCallContractId, HostCallRequirement, ImplementationId, Kind,
-    KindIdentity, PRESENTATION_RESOURCE_CLASS, PortDescriptor, PortDirection, PortTemporal,
-    kind_id, port_id, resource_requirement,
+    kind_id, port_id, resource_requirement, ArtifactId, Back, BackOfferBuilder, CapabilityId,
+    CapabilityLimits, ExecutionProfileId, HostAdvertisement, HostCallContractId,
+    HostCallRequirement, ImplementationId, Kind, KindIdentity, PortDescriptor, PortDirection,
+    PortTemporal, PRESENTATION_RESOURCE_CLASS,
 };
 use conduit_presentation::{
-    FACE_INTERACTION_VALUE_KIND, MaskPlot, PRESENTATION_VALUE_KIND, PlannedMaskPlot,
-    SHOW_VALUE_KIND, install_mask_plot_value_aliases,
+    install_mask_plot_value_aliases, MaskPlot, PlannedMaskPlot, FACE_INTERACTION_VALUE_KIND,
+    PRESENTATION_VALUE_KIND, SHOW_VALUE_KIND,
 };
 
 mod remote;

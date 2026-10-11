@@ -9,14 +9,14 @@ use conduit_body::{BodyId, BodyLifecycleSession, BodyState};
 use conduit_core::{
     AdmittedLine, BootId, HostAdvertisement, HostId, LineAvailability, LineOffer, LineOrdering,
     LineReliability, LineScope, LineTrafficShape, LinkAuthorityReference, LinkCredentialReference,
-    OfferGeneration, PROTOCOL_VERSION, PlanId,
+    OfferGeneration, PlanId, PROTOCOL_VERSION,
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 use crate::{
-    LocalOwnerMaskRouteError, ManifestationLifecycle, MaskShow, PlannedMaskPlot, Presentation,
-    PresentationBasis, PresentationContentId, owner_mask_route::validate_single_host_mask,
+    owner_mask_route::validate_single_host_mask, LocalOwnerMaskRouteError, ManifestationLifecycle,
+    MaskShow, PlannedMaskPlot, Presentation, PresentationBasis, PresentationContentId,
 };
 
 // Configured component Plans plus a real Todo Face basis and authenticated

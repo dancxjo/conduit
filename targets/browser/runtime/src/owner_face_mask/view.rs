@@ -58,12 +58,7 @@ fn project_view(
         face_id: face.identity.as_str().into(),
         face_revision: face.revision.to_string(),
         mask_plot_id: planned.mask.plot_identity.checked_plot_id.as_str().into(),
-        mask_expanded_plot_id: planned
-            .mask
-            .plot_identity
-            .expanded_plot_id
-            .as_str()
-            .into(),
+        mask_expanded_plot_id: planned.mask.plot_identity.expanded_plot_id.as_str().into(),
         mask_plan_id: planned.plan.plan_id.as_str().into(),
         mask_play_id: play.active_play_id.as_str().into(),
         route,

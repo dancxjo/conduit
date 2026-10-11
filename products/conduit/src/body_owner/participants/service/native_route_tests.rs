@@ -28,12 +28,10 @@ fn remote_native_mask_accepts_only_the_offered_scoped_present_binding() {
     )
     .unwrap()
     .planned_mask;
-    assert!(
-        planned.plan.fragments[0]
-            .placements
-            .iter()
-            .any(|placement| !placement.authority.is_empty())
-    );
+    assert!(planned.plan.fragments[0]
+        .placements
+        .iter()
+        .any(|placement| !placement.authority.is_empty()));
 
     let authorized = owner
         .browser_authorize_window(host_id.as_str(), Some(BROWSER_KEY), 10_000)
@@ -266,18 +264,16 @@ fn remote_native_mask_accepts_only_the_offered_scoped_present_binding() {
     // The native participant's admission credential alone does not grant
     // wardrobe control. This direct owner call models a separately
     // authenticated owner instruction; the browser carrier is tested below.
-    assert!(
-        owner
-            .browser_wardrobe_report(
-                &authorized.window_id,
-                &LinkBindingId::from("line/test/native-mask"),
-                &request,
-                None,
-                0,
-                None,
-            )
-            .is_err()
-    );
+    assert!(owner
+        .browser_wardrobe_report(
+            &authorized.window_id,
+            &LinkBindingId::from("line/test/native-mask"),
+            &request,
+            None,
+            0,
+            None,
+        )
+        .is_err());
     let inspected = owner.owner_wardrobe_report(None, 0, None).unwrap();
     assert_eq!(inspected["owner_plan_id"], serde_json::json!(plan_id));
     assert_eq!(inspected["wardrobe_revision_decimal"], "0");
@@ -285,17 +281,15 @@ fn remote_native_mask_accepts_only_the_offered_scoped_present_binding() {
         inspected["route_descriptions"][0]["mask_name"],
         "native-graphical"
     );
-    assert!(
-        owner
-            .owner_wardrobe_report(
-                Some(&conduit_core::PlanId::from("plan/stale")),
-                0,
-                Some(conduit_presentation::MaskWardrobeAction::Doff(
-                    native_mask.clone()
-                )),
-            )
-            .is_err()
-    );
+    assert!(owner
+        .owner_wardrobe_report(
+            Some(&conduit_core::PlanId::from("plan/stale")),
+            0,
+            Some(conduit_presentation::MaskWardrobeAction::Doff(
+                native_mask.clone()
+            )),
+        )
+        .is_err());
     owner
         .owner_wardrobe_report(
             Some(&plan_id),
@@ -306,17 +300,15 @@ fn remote_native_mask_accepts_only_the_offered_scoped_present_binding() {
         )
         .unwrap();
     assert!(owner.acknowledge_native_mask_show(&request, &show).is_err());
-    assert!(
-        owner
-            .owner_wardrobe_report(
-                Some(&plan_id),
-                0,
-                Some(conduit_presentation::MaskWardrobeAction::Wear(
-                    native_mask.clone()
-                )),
-            )
-            .is_err()
-    );
+    assert!(owner
+        .owner_wardrobe_report(
+            Some(&plan_id),
+            0,
+            Some(conduit_presentation::MaskWardrobeAction::Wear(
+                native_mask.clone()
+            )),
+        )
+        .is_err());
     owner
         .owner_wardrobe_report(
             Some(&plan_id),
@@ -520,11 +512,9 @@ fn remote_native_mask_accepts_only_the_offered_scoped_present_binding() {
         conduit_core::SignId::from("sign/test/native-joint-available"),
     )
     .unwrap();
-    assert!(
-        owner
-            .acknowledge_native_mask_show(&request, &native_show)
-            .is_err()
-    );
+    assert!(owner
+        .acknowledge_native_mask_show(&request, &native_show)
+        .is_err());
     apply(
         &mut owner,
         revision + 3,

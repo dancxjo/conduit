@@ -245,7 +245,7 @@ mod tests {
     use super::*;
     use alloc::boxed::Box;
     use conduit_body::{Body, MembershipCredential, SPAWN_ADMISSION_RECEIPT_SCHEMA};
-    use conduit_core::{OfferGeneration, SignId, PROTOCOL_VERSION};
+    use conduit_core::{OfferGeneration, PROTOCOL_VERSION, SignId};
     use conduit_presentation::{Face, FaceContext, FaceFocus, OWNER_FACE_RESPONSE_SCHEMA};
 
     #[test]
