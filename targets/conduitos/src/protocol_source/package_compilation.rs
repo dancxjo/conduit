@@ -113,6 +113,7 @@ impl ProtocolSourcePackage {
         }
         Ok(Self {
             schema: PACKAGE_SCHEMA.into(),
+            backs: vec![],
             source,
             specializations,
         })
