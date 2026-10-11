@@ -455,6 +455,9 @@ fn ordinary_protocol_source_prepares_setup_once_with_exact_small_feedback_event(
     let package = ProtocolSourcePackage::compile(
         include_str!("../plots/usb/audio-negotiation-back.conduit").into(),
         &[
+            ProtocolSpecializationRequest::Singleton {
+                value: value("UsbAudioSetupState"),
+            },
             ProtocolSpecializationRequest::SeededUntil {
                 value: value("UsbAudioSetupState"),
             },

@@ -22,7 +22,7 @@ type UsbAudioSetupTransition = {
     accepted: Boolean
 }
 plot usb-audio-setup-start (
-    start: Text...| >> state: UsbAudioSetupState...|
+    start: Text >> state: UsbAudioSetupState
 ) = ({ phase: 0, terminal: false })
 plot usb-audio-setup-route (
     state: UsbAudioSetupState...| >> route: UsbAudioSetupRoute...|
@@ -45,12 +45,14 @@ plot usb-audio-setup-completed (
 plot usb-audio-negotiate (
     >> accepted: Boolean...|
 ) {
+    seed: flow/singleton
     state: state/seeded/flow/until
     route: usb-audio-setup-route()
     join: flow/zip/feedback
     control: machine/usb/control
     observation: usb-audio-setup-observation()
-    "start" >> usb-audio-setup-start() >> state.seed
+    "start" >> usb-audio-setup-start() >> seed.value
+    seed.flow >> state.seed
     state.current >> route
     route >> select(UsbAudioSetupRoute.control, unmatched=drop) >> join.left
     route >> select(UsbAudioSetupRoute.control, unmatched=drop) >> usb-audio-setup-request() >> control.request
