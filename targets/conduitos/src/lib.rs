@@ -59,6 +59,7 @@ pub mod hotplug_guest;
 pub mod http;
 pub mod i2c_base;
 pub mod serial_base;
+pub mod storage_base;
 pub mod identity;
 #[cfg(test)]
 pub mod kernel_profile;
