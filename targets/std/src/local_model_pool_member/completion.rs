@@ -22,8 +22,15 @@ pub enum LocalModelMeasurementRefusal {
 /// Borrows the actual sealed selection and placement; callers cannot substitute
 /// another model, Host, Boot, offer generation, operation or realization.
 ///
+/// ```
+/// use conduit_std_host::LocalModelCompletedWork;
+/// fn read(receipt: &LocalModelCompletedWork<'_>) -> [u8; 32] {
+///     receipt.input_digest()
+/// }
+/// ```
+///
 /// ```compile_fail
-/// use conduit_std_host::local_model_pool_member::LocalModelCompletedWork;
+/// use conduit_std_host::LocalModelCompletedWork;
 /// fn forge(receipt: &mut LocalModelCompletedWork<'_>) {
 ///     receipt.input_digest = [0; 32];
 /// }
