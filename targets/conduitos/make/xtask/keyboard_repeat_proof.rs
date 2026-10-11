@@ -87,7 +87,7 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
             &mut child,
             Some(&paths.target.join("keyboard-repeat-qmp.log")),
         )?;
-        hid_qmp::wait_for_stage(
+        hid_qmp::wait_for_product_arrival(
             &serial,
             &mut child,
             "CONDUIT_BOOT_STAGE front-door-ready",

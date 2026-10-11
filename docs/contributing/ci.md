@@ -197,6 +197,11 @@ LoongArch uses Ubuntu 26.04 for QEMU 10 or newer; the verifier refuses older
 emulators before boot because their large-page translation can corrupt the
 bootloader's module handoff.
 
+The foundation unit shard has a 60-minute job bound for cold compilation, tests,
+doc-tests, and its remaining allocation/continuity checks. The integrated source
+passed its reported assertions before the prior 40-minute bound stopped doc-tests.
+Host shards retain their separate 70-minute bound.
+
 The x86_64 lane exercises the Face journey against the same retained product
 image: zero-Body Crèche arrival, Birth into rest, Wake, Plan, Play, Home,
 Patchbay, Face inspection, a live graph diagram, and Stop. The command
@@ -204,7 +209,12 @@ Patchbay, Face inspection, a live graph diagram, and Stop. The command
 QMP-driven keyboard session and correlates the guest's source, profile, build,
 image, Boot, and Body identities. It does not rebuild a demonstration image.
 The lane retains ten actual screen captures, their manifest, and the journey
-receipt with the product. This emulator journey does not establish physical
+receipt with the product. Cold product arrival has a bounded 20-second preparation
+budget for source-catalog admission and native Mask planning. Subsequent HID
+response checks retain their separate bounds. The prior five-second input-response
+budget left little margin for cold preparation: a local integrated native boot
+reached Crèche at 3.6 seconds, while the hosted proof stopped after identity
+admission at its five-second cutoff. This emulator journey does not establish physical
 hardware operation, screen-free use, or human enactment.
 
 ## Publication
