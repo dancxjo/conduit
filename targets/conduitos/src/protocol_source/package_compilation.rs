@@ -56,6 +56,10 @@ impl ProtocolSourcePackage {
         install_clock(&mut startup, &mut profile)?;
         install_literal(&mut startup, &mut profile)?;
         usb_catalog::install(&mut startup, &mut profile)?;
+        crate::serial_base::contract::SerialDuplexContract::prepare()
+            .map_err(Error::Contract)?
+            .install_catalogs(&mut startup, &mut profile)
+            .map_err(Error::Catalog)?;
         // The first pass checks only declarations. Generic kind Fore contracts
         // depend on these schemas; the full Source is checked after installing
         // the resulting specializations by PreparedProtocolEntry::prepare.
