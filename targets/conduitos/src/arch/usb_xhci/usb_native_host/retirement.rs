@@ -148,6 +148,8 @@ impl UsbNativeHost<'_> {
         if self.stopped {
             return Ok(());
         }
+        // Cancellation closes admission before revocation or hardware stop can fail.
+        self.cancellation_requested = true;
         if !self.possessions_revoked {
             let mut refusal = None;
             for bound in &mut self.calls {

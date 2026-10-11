@@ -71,6 +71,7 @@ pub(crate) struct UsbNativeHost<'a> {
     playing: bool,
     stop_acknowledged: bool,
     possessions_revoked: bool,
+    cancellation_requested: bool,
     control_output: [u8; crate::usb_base::control_contract::CONTROL_MAXIMUM_BYTES as usize],
     control_output_length: usize,
     stopped: bool,
@@ -107,6 +108,7 @@ impl<'a> UsbNativeHost<'a> {
             playing: false,
             stop_acknowledged: false,
             possessions_revoked: false,
+            cancellation_requested: false,
             control_output: [0; crate::usb_base::control_contract::CONTROL_MAXIMUM_BYTES as usize],
             control_output_length: 0,
             stopped: false,
@@ -114,7 +116,7 @@ impl<'a> UsbNativeHost<'a> {
     }
 
     fn preparing(&self, node: NodeId) -> Result<(), UsbNativeHostRefusal> {
-        if self.playing || self.stop_acknowledged || self.stopped {
+        if self.playing || self.stop_acknowledged || self.stopped || self.cancellation_requested {
             return Err(UsbNativeHostRefusal::NotReady);
         }
         if self.calls.len() == MAXIMUM_CALLS {
@@ -274,7 +276,7 @@ impl<'a> UsbNativeHost<'a> {
     }
 
     fn idle_transport(&self) -> Result<(), UsbNativeHostRefusal> {
-        if self.stop_acknowledged || self.stopped {
+        if self.stop_acknowledged || self.stopped || self.cancellation_requested {
             return Err(UsbNativeHostRefusal::NotReady);
         }
         if self.pending_endpoint.is_some() || self.uncertain_control || self.isochronous_started {
@@ -451,3 +453,7 @@ mod retirement;
 
 #[path = "usb_native_host/isochronous.rs"]
 mod isochronous;
+
+#[cfg(test)]
+#[path = "usb_native_host/stop_ack_tests.rs"]
+mod stop_ack_tests;

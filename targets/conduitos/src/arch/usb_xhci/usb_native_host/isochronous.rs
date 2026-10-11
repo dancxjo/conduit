@@ -72,7 +72,12 @@ impl<'a> UsbNativeHost<'a> {
         configured: super::super::endpoint_setup::ConfiguredIsochronousOutboundEndpoint,
         dma: EndpointTransmitDma<'a>,
     ) -> Result<(), UsbNativeHostRefusal> {
-        if self.playing || self.stopped || self.stop_acknowledged || self.isochronous.is_some() {
+        if self.playing
+            || self.stopped
+            || self.stop_acknowledged
+            || self.cancellation_requested
+            || self.isochronous.is_some()
+        {
             return Err(UsbNativeHostRefusal::NotReady);
         }
         // ISO is a separate reserved resource, never another view of an existing
@@ -100,6 +105,7 @@ impl<'a> UsbNativeHost<'a> {
         input: &[u8],
     ) -> Result<(), UsbNativeHostRefusal> {
         if self.stopped
+            || self.cancellation_requested
             || self.stop_acknowledged
             || self.pending_endpoint.is_some()
             || self.uncertain_control
@@ -179,6 +185,7 @@ impl<'a> UsbNativeHost<'a> {
         endpoint_epoch: u64,
     ) -> Result<IsochronousOutObservation, UsbNativeHostRefusal> {
         if self.stopped
+            || self.cancellation_requested
             || self.stop_acknowledged
             || self.uncertain_control
             || !self.isochronous_started
