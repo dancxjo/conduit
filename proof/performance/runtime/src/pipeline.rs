@@ -64,7 +64,7 @@ struct Prepared {
     phases: Vec<(&'static str, timing::Metrics)>,
 }
 fn source(gears: usize) -> String {
-    let expression = format!(".{}", " + 1".repeat(ADDS / gears));
+    let expression = crate::expression::addition_source(ADDS / gears);
     format!(
         "plot baseline (\n >> input: U64...|\n output: U64...| >>\n) {{\n input{} >> output\n}}\n",
         format!(" >> ({expression})").repeat(gears)
