@@ -7,7 +7,7 @@ use conduit_planner::{
         CostAvailability, CostDurationRange, CostEvidenceSource, CostRealizationSelection,
         CostSelectionError, MAXIMUM_COST_CANDIDATES,
     },
-    RealizationDecisionDisposition,
+    RealizationDecisionDisposition, MAXIMUM_REALIZATION_DECISION_RECORDS,
 };
 use core::fmt::{self, Write};
 
@@ -25,6 +25,9 @@ pub enum CostExplanationRefusal {
 pub fn render_cost_selection_refusal(
     error: &CostSelectionError,
 ) -> Result<String, CostExplanationRefusal> {
+    if let CostSelectionError::Policy(refusal) = error {
+        return super::cost_policy_explanation::render(refusal);
+    }
     if let CostSelectionError::Comparison(refusal) = error {
         return super::cost_comparison_explanation::render(refusal);
     }
@@ -32,7 +35,7 @@ pub fn render_cost_selection_refusal(
         if refusal.signs.is_empty() {
             return Err(CostExplanationRefusal::NoRetainedDecision);
         }
-        if refusal.signs.len() > MAXIMUM_COST_CANDIDATES {
+        if refusal.signs.len() > MAXIMUM_REALIZATION_DECISION_RECORDS {
             return Err(CostExplanationRefusal::Extent);
         }
         if refusal.signs.iter().any(|record| {
@@ -60,7 +63,9 @@ pub fn render_cost_selection_refusal(
     let CostSelectionError::NoUsableForecast { realization, costs } = error else {
         return Err(CostExplanationRefusal::NoRetainedDecision);
     };
-    if realization.signs.len() > MAXIMUM_COST_CANDIDATES || costs.len() > MAXIMUM_COST_CANDIDATES {
+    if realization.signs.len() > MAXIMUM_REALIZATION_DECISION_RECORDS
+        || costs.len() > MAXIMUM_COST_CANDIDATES
+    {
         return Err(CostExplanationRefusal::Extent);
     }
     let mut out = BoundedText(String::new());
@@ -122,7 +127,9 @@ pub fn render_cost_selection_explanation(
 
 fn validate_shape(selection: &CostRealizationSelection<'_>) -> Result<(), CostExplanationRefusal> {
     let records = &selection.realization.signs;
-    if records.len() > MAXIMUM_COST_CANDIDATES || selection.costs.len() > MAXIMUM_COST_CANDIDATES {
+    if records.len() > MAXIMUM_REALIZATION_DECISION_RECORDS
+        || selection.costs.len() > MAXIMUM_COST_CANDIDATES
+    {
         return Err(CostExplanationRefusal::Extent);
     }
     let choice = &selection.realization.choice;

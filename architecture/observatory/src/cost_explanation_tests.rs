@@ -411,7 +411,9 @@ fn inconsistent_or_overextent_public_decisions_are_refused() {
             render_cost_selection_explanation(&result),
             Err(CostExplanationRefusal::InconsistentSelection)
         );
-        while result.realization.signs.len() <= MAXIMUM_COST_CANDIDATES {
+        while result.realization.signs.len()
+            <= conduit_planner::MAXIMUM_REALIZATION_DECISION_RECORDS
+        {
             result
                 .realization
                 .signs

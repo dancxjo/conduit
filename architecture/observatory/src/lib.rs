@@ -6,6 +6,7 @@ mod causal_explanation;
 mod clock_quality;
 mod cost_comparison_explanation;
 mod cost_explanation;
+mod cost_policy_explanation;
 mod evidence_lineage;
 mod execution_artifact;
 mod model;
