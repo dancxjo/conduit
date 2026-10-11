@@ -5,8 +5,8 @@ use super::{
 use crate::{StdHost, StdHostConfig};
 use conduit_core::{
     BaseImplementationId, BootId, CapabilityId, GearId, HostId, OfferGeneration,
-    ProtectedResourceAccess, ProtectedResourceCommitPolicy, Quantity, QuantityUnit,
-    ResourceBindingRoleId, ResourceHandleId, StructuredInfoValueShape,
+    ProtectedResourceAccess, ProtectedResourceCommitPolicy, Quantity, ResourceBindingRoleId,
+    ResourceHandleId, StructuredInfoValueShape, Unit,
 };
 use conduit_planner::{default_placements, plan_with_options, PlanningOptions};
 use std::collections::BTreeMap;
@@ -217,8 +217,11 @@ fn assert_success_presentation(receipt: &super::CopyRunReceipt, expected_bytes: 
         panic!("successful copy carries a quantity");
     };
     let quantity = Quantity::decode(encoded).expect("presented byte quantity is canonical");
-    assert_eq!(quantity.value(), i64::try_from(expected_bytes).unwrap());
-    assert_eq!(quantity.unit(), QuantityUnit::Byte);
+    assert_eq!(
+        quantity.to_i64(quantity.unit()).unwrap(),
+        i64::try_from(expected_bytes).unwrap()
+    );
+    assert_eq!(quantity.unit(), Unit::Byte);
 }
 
 #[test]

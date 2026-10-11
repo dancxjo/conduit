@@ -35,7 +35,7 @@ fn every_pcm_representation_maps_losslessly_to_the_generic_clock_contract() {
         assert_eq!(
             signal.cadence,
             SignalCadence::regular(
-                conduit_core::Quantity::new(1, conduit_core::QuantityUnit::Second),
+                conduit_core::Quantity::new(1, conduit_core::Unit::Second),
                 48_000,
             )
             .unwrap()

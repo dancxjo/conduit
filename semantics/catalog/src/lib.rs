@@ -496,3 +496,8 @@ pub use pure_expression::{pure_expression_contract, pure_filter_contract};
 mod pure_expression_back;
 #[cfg(feature = "kernel-step")]
 pub use pure_expression_back::PureExpressionBack;
+
+#[cfg(feature = "kernel-step")]
+mod converted_equals_back;
+#[cfg(feature = "kernel-step")]
+pub use converted_equals_back::ConvertedEqualsBack;

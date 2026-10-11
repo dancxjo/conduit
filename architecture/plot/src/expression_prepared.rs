@@ -4,7 +4,7 @@ use crate::{
     BinaryOperator, PortableExpressionEvaluationRefusal as Refusal, PortableExpressionNode,
     PortableExpressionOperation, PortableExpressionProgram, UnaryOperator,
 };
-use alloc::{boxed::Box, vec::Vec};
+use alloc::{boxed::Box, string::String, vec::Vec};
 use conduit_core::{PrimitiveInfoKind, StructuredInfoTypeShape};
 
 mod byte_observation;
@@ -22,7 +22,8 @@ mod structured;
 mod structured_contract;
 mod text_material;
 use primitive::{
-    decode_bool, evaluate_binary, evaluate_unary, kind_name, leaf_kind, PrimitiveValue,
+    decode_bool, evaluate_binary, evaluate_unary, kind_name, leaf_info_kind, leaf_kind,
+    PrimitiveValue,
 };
 use structured::PreparedStructuredExpression;
 
@@ -38,6 +39,7 @@ pub struct PreparedPortableExpressionEvaluator {
 enum PreparedInput {
     Primitive {
         kind: PrimitiveInfoKind,
+        info_kind: String,
         nominal_type: Option<SharedBytes>,
     },
     Structured(SharedBytes),
@@ -60,6 +62,7 @@ enum PreparedRoot {
 
 struct PreparedNode {
     kind: PrimitiveInfoKind,
+    info_kind: String,
     operation: PreparedOperation,
 }
 
@@ -114,6 +117,7 @@ impl PreparedPortableExpressionEvaluator {
         let input = match program.input_type.shape() {
             StructuredInfoTypeShape::Leaf(_) => PreparedInput::Primitive {
                 kind: leaf_kind(&program.input_type)?,
+                info_kind: leaf_info_kind(&program.input_type)?.into(),
                 nominal_type: None,
             },
             StructuredInfoTypeShape::Nominal { representation, .. }
@@ -121,6 +125,7 @@ impl PreparedPortableExpressionEvaluator {
             {
                 PreparedInput::Primitive {
                     kind: leaf_kind(&program.input_type)?,
+                    info_kind: leaf_info_kind(&program.input_type)?.into(),
                     nominal_type: Some(
                         program
                             .input_type
@@ -184,11 +189,15 @@ impl PreparedPortableExpressionEvaluator {
     pub fn evaluate(&mut self, input: &[u8]) -> Result<&[u8], Refusal> {
         let mut primitive_bytes = input;
         let primitive_input = match &self.input {
-            PreparedInput::Primitive { kind, nominal_type } => {
+            PreparedInput::Primitive {
+                kind,
+                info_kind,
+                nominal_type,
+            } => {
                 if let Some(expected) = nominal_type {
                     primitive_bytes = nominal::input_payload(input, expected)?;
                 }
-                conduit_core::validate_primitive_info(kind_name(*kind), primitive_bytes)
+                conduit_core::validate_primitive_info(info_kind, primitive_bytes)
                     .map_err(|_| Refusal::InvalidInput)?;
                 Some(*kind)
             }
@@ -244,6 +253,11 @@ fn prepare_node(
         PortableExpressionOperation::Literal(literal) => PreparedOperation::Literal(
             crate::expression_evaluate::literal_primitive_bytes(&node.value_type, literal)?,
         ),
+        PortableExpressionOperation::CanonicalLiteral(encoded) => {
+            crate::expression_program::validate_capsule_literal(&node.value_type, encoded)
+                .map_err(|_| Refusal::InvalidProgram)?;
+            PreparedOperation::Literal(encoded.clone())
+        }
         PortableExpressionOperation::Unary { operator, operand } => PreparedOperation::Unary {
             operator: *operator,
             operand: Box::new(prepare_node(operand, input_type, prepared_input)?),
@@ -354,7 +368,11 @@ fn prepare_node(
             ))
         }
     };
-    Ok(PreparedNode { kind, operation })
+    Ok(PreparedNode {
+        kind,
+        info_kind: leaf_info_kind(&node.value_type)?.into(),
+        operation,
+    })
 }
 
 fn evaluate_node<'a>(
@@ -414,6 +432,8 @@ fn evaluate_node<'a>(
         }
     };
     if value.kind == expected {
+        conduit_core::validate_primitive_info(&node.info_kind, value.as_slice())
+            .map_err(|_| Refusal::InvalidProgram)?;
         Ok(value)
     } else {
         Err(Refusal::InvalidProgram)

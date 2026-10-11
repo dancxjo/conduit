@@ -1,4 +1,4 @@
-use conduit_core::{InfoDecodeError, Quantity, QuantityUnit};
+use conduit_core::{InfoDecodeError, Quantity, Unit};
 use conduit_robotics::{
     BatteryObservation, MAXIMUM_BATTERY_MILLIVOLTS, ROBOTICS_BATTERY_ENCODED_LEN,
     ROBOTICS_BATTERY_INFO_ID,
@@ -9,11 +9,8 @@ fn native_battery_value_preserves_bounds_projection_and_wire() {
     let value = BatteryObservation::new(750, 12_000).unwrap();
     assert_eq!(value.charge_permille(), 750);
     assert_eq!(value.millivolts(), 12_000);
-    assert_eq!(value.charge(), Quantity::new(750, QuantityUnit::Permille));
-    assert_eq!(
-        value.voltage(),
-        Quantity::new(12_000, QuantityUnit::Millivolt)
-    );
+    assert_eq!(value.charge(), Quantity::new(750, Unit::Permille));
+    assert_eq!(value.voltage(), Quantity::new(12_000, Unit::Millivolt));
     assert_eq!(value.encode(), [0xee, 0x02, 0xe0, 0x2e]);
     assert_eq!(BatteryObservation::decode(&value.encode()), Ok(value));
     assert_eq!(

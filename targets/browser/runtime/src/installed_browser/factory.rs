@@ -1,6 +1,7 @@
 //! Browser-owned offer, factory, and Host Call installation catalog.
 
 mod installations;
+mod queue_limits;
 
 use super::{input, quantity_output};
 use conduit_core::{
@@ -281,7 +282,11 @@ pub(crate) fn advertisement_for_machinery(
     boot_id: BootId,
     machinery: BrowserMachinery,
 ) -> HostAdvertisement {
-    let mut resources = Vec::new();
+    let mut resources = vec![resource_offer(
+        "browser/runtime-memory",
+        conduit_core::RUNTIME_MEMORY_RESOURCE_CLASS,
+        super::measurement_limits::MEMORY_POOL_BYTES,
+    )];
     if machinery.audio {
         resources.push(resource_offer(
             super::startup_chime::POOL,
@@ -353,7 +358,7 @@ pub(crate) fn advertisement_for_machinery(
             .filter(|entry| machinery.admits(entry))
             .map(|entry| {
                 let mut offer = (entry.offer)();
-                offer.limits.max_queue_bytes = super::MAXIMUM_BROWSER_VALUE_BYTES as u32;
+                queue_limits::apply(&mut offer, entry.implementation_id);
                 offer
             })
             .collect(),

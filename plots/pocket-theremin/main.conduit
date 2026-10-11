@@ -24,7 +24,7 @@ plot phone-two-axis-controller {
     controller: input/pointer-source
     x-normalize: math/normalized-ratio-scalar
     y-normalize: math/normalized-ratio-scalar
-    pitch-distance: math/map-normalized-distance(source-minimum = 0, source-maximum = 1000000, target-minimum = 0, target-maximum = 30, target-granularity = 1, unit = "cm", range-policy = "clamp", quantization = "nearest")
+    pitch-distance: math/map-normalized-distance(source-minimum = 0, source-maximum = 1000000, target-minimum = 0, target-maximum = 30, target-granularity = 1, unit = cm, range-policy = "clamp", quantization = "nearest")
     cadence: time/every(freq = 40ms)
     instrument: pocket-theremin
     play: audio/play

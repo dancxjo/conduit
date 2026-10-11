@@ -14,12 +14,17 @@ const INPUT = "conduit.resource/browser-window-input@1";
 const TIMER = "conduit.resource/timer-slot@1";
 const TEMPLATE = "conduit.resource/named-pattern-storage-slot@1";
 const CLOCK = "conduit.resource/monotonic-millisecond-timer-slot@1";
+const MEMORY = "conduit.resource/runtime-memory@1";
+// The Rust scheduler prepares and checks this finite backing/scratch pool
+// before start; the page owns its admission observation, not a second allocation.
+const MEMORY_CAPACITY = 8 * 1024 * 1024;
 const SNAPSHOT = "resource/snapshot@1";
 const SNAPSHOT_PUBLISH = "conduit.host/resource-snapshot-publish@1";
 const SNAPSHOT_READ = "conduit.host/resource-snapshot-read@1";
 const pools = new Map([
   [AUDIO_CUE_RESOURCE, AUDIO_CUE_POOL],
   [PCM_CAPTURE_RESOURCE, PCM_CAPTURE_POOL], [PCM_PLAY_RESOURCE, PCM_PLAY_POOL],
+  [MEMORY, "browser/runtime-memory"],
   [PRESENTATION, "browser/presentation"], [INPUT, "browser/window-input"],
   [TEMPLATE, "browser/named-pattern-storage"], [TIMER, "browser/timer"], [CLOCK, "browser/monotonic-millisecond-timer"],
 ]);
@@ -145,7 +150,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
   }
   for (const [kind, units] of demand) {
     const capacity = [PRESENTATION, INPUT, AUDIO_CUE_RESOURCE].includes(kind) ? 16
-      : kind === TIMER ? maximumPlacements : 1;
+      : kind === MEMORY ? MEMORY_CAPACITY : kind === TIMER ? maximumPlacements : 1;
     if (units > capacity) throw new Error("browser Body resource demand exceeds local bounds");
   }
   const boot = { host_id: hostId, boot_id: bootId, offer_generation: 1, implementation_registry: machinery.implementations };
@@ -269,8 +274,9 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
     const ordinary = [...demand.keys()].map(class_id => ({
       host_id: hostId, boot_id: bootId, offer_generation: 1,
       pool_id: pools.get(class_id), class_id, health: "Ready",
-      // Counts come from acquired adapter state, not advertised capacities.
-      unreserved_units: class_id === AUDIO_CUE_RESOURCE ? audio.capacity : class_id === PCM_CAPTURE_RESOURCE ? pcmAudio.capacity.capture : class_id === PCM_PLAY_RESOURCE ? pcmAudio.capacity.playback : class_id === PRESENTATION ? slots.size : class_id === INPUT ? demand.get(INPUT) : class_id === TEMPLATE ? templateSlots.size : class_id === TIMER ? timerSlots.length : Number(clock),
+      // Adapter counts come from acquired state; memory names the finite
+      // runtime pool whose exact prepared demand is checked at start.
+      unreserved_units: class_id === MEMORY ? MEMORY_CAPACITY : class_id === AUDIO_CUE_RESOURCE ? audio.capacity : class_id === PCM_CAPTURE_RESOURCE ? pcmAudio.capacity.capture : class_id === PCM_PLAY_RESOURCE ? pcmAudio.capacity.playback : class_id === PRESENTATION ? slots.size : class_id === INPUT ? demand.get(INPUT) : class_id === TEMPLATE ? templateSlots.size : class_id === TIMER ? timerSlots.length : Number(clock),
       utilized_units: 0, sign_id: `browser-resource/${bootId}/${window.crypto.randomUUID()}`,
     }));
     const snapshotPools = new Map();

@@ -3,7 +3,7 @@ use conduit_core::*;
 #[test]
 fn primitive_registry_is_exact_and_has_no_boolean_alias() {
     let registered = [
-        (UNIT_INFO_ID, PrimitiveInfoKind::Unit),
+        (EMPTY_INFO_ID, PrimitiveInfoKind::Empty),
         (TERMINAL_INFO_ID, PrimitiveInfoKind::Terminal),
         (BOOL_INFO_ID, PrimitiveInfoKind::Bool),
         (COUNT_INFO_ID, PrimitiveInfoKind::Count),
@@ -11,7 +11,7 @@ fn primitive_registry_is_exact_and_has_no_boolean_alias() {
         (TEXT_INFO_ID, PrimitiveInfoKind::Text),
         (BYTES_INFO_ID, PrimitiveInfoKind::Bytes),
         (QUANTITY_INFO_ID, PrimitiveInfoKind::Quantity),
-        (QUANTITY_UNIT_INFO_ID, PrimitiveInfoKind::QuantityUnit),
+        (UNIT_INFO_ID, PrimitiveInfoKind::Unit),
         (DISTANCE_INFO_ID, PrimitiveInfoKind::Distance),
         (FREQUENCY_INFO_ID, PrimitiveInfoKind::Frequency),
         ("value/u8", PrimitiveInfoKind::U8),
@@ -66,8 +66,8 @@ fn fixed_width_integer_info_requires_its_exact_portable_encoding_width() {
 
 #[test]
 fn every_primitive_has_one_canonical_leaf_contract() {
-    assert_eq!(validate_primitive_info(UNIT_INFO_ID, &[]), Ok(()));
-    assert!(validate_primitive_info(UNIT_INFO_ID, &[0]).is_err());
+    assert_eq!(validate_primitive_info(EMPTY_INFO_ID, &[]), Ok(()));
+    assert!(validate_primitive_info(EMPTY_INFO_ID, &[0]).is_err());
 
     for value in [InfoBool::FALSE, InfoBool::TRUE] {
         assert_eq!(
@@ -96,39 +96,33 @@ fn every_primitive_has_one_canonical_leaf_contract() {
     assert_eq!(
         validate_primitive_info(
             QUANTITY_INFO_ID,
-            &Quantity::new(-17, QuantityUnit::Millivolt).encode(),
+            &Quantity::new(-17, Unit::Millivolt).encode(),
         ),
         Ok(())
     );
     assert_eq!(
-        validate_primitive_info(QUANTITY_UNIT_INFO_ID, &QuantityUnit::Millimeter.encode(),),
+        validate_primitive_info(UNIT_INFO_ID, &Unit::Millimeter.encode(),),
         Ok(())
     );
-    assert!(validate_primitive_info(QUANTITY_UNIT_INFO_ID, &[]).is_err());
-    assert!(validate_primitive_info(QUANTITY_UNIT_INFO_ID, &[u8::MAX]).is_err());
+    assert!(validate_primitive_info(UNIT_INFO_ID, &[]).is_err());
+    assert!(validate_primitive_info(UNIT_INFO_ID, &[u8::MAX]).is_err());
     assert_eq!(
         validate_primitive_info(
             DISTANCE_INFO_ID,
-            &Quantity::new(30, QuantityUnit::Centimeter).encode(),
+            &Quantity::new(30, Unit::Centimeter).encode(),
         ),
+        Ok(())
+    );
+    assert_eq!(
+        validate_primitive_info(FREQUENCY_INFO_ID, &Quantity::new(440, Unit::Hertz).encode(),),
         Ok(())
     );
     assert_eq!(
         validate_primitive_info(
             FREQUENCY_INFO_ID,
-            &Quantity::new(440, QuantityUnit::Hertz).encode(),
+            &Quantity::new(30, Unit::Centimeter).encode(),
         ),
-        Ok(())
-    );
-    assert_eq!(
-        validate_primitive_info(
-            FREQUENCY_INFO_ID,
-            &Quantity::new(30, QuantityUnit::Centimeter).encode(),
-        ),
-        Err(PrimitiveInfoRefusal::WrongQuantityDimension {
-            expected: QuantityDimension::Frequency,
-            actual: QuantityDimension::Length,
-        })
+        Err(PrimitiveInfoRefusal::WrongQuantityFamily)
     );
     assert_eq!(validate_primitive_info("domain/leaf@1", b"owned"), Ok(()));
 }
@@ -142,7 +136,7 @@ fn nested_primitive_record_is_rejected_when_a_leaf_is_not_canonical() {
         (
             "quantity",
             leaf(QUANTITY_INFO_ID),
-            Quantity::new(2, QuantityUnit::Second).encode().to_vec(),
+            Quantity::new(2, Unit::Second).encode().to_vec(),
         ),
         (
             "scalar",
@@ -150,7 +144,7 @@ fn nested_primitive_record_is_rejected_when_a_leaf_is_not_canonical() {
             Scalar::ONE.encode().to_vec(),
         ),
         ("text", leaf(TEXT_INFO_ID), b"seven".to_vec()),
-        ("unit", leaf(UNIT_INFO_ID), Vec::new()),
+        ("unit", leaf(EMPTY_INFO_ID), Vec::new()),
     ];
     let ty = StructuredInfoType::record(
         kind_id("test/primitive-record@1"),
@@ -182,5 +176,5 @@ fn nested_primitive_record_is_rejected_when_a_leaf_is_not_canonical() {
         .unwrap();
 
     assert!(StructuredInfoValue::leaf(leaf(COUNT_INFO_ID), b"7".to_vec()).is_err());
-    assert!(StructuredInfoValue::leaf(leaf(UNIT_INFO_ID), vec![0]).is_err());
+    assert!(StructuredInfoValue::leaf(leaf(EMPTY_INFO_ID), vec![0]).is_err());
 }

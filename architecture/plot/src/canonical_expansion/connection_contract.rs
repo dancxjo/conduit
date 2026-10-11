@@ -31,12 +31,12 @@ pub fn validate_connection_contract(
         ConnectionTrack::NormalClose => {
             matches!(source.temporal, PortTemporal::Flow { closes: true })
                 && sink.temporal == PortTemporal::Value
-                && sink.value_kind.as_str() == conduit_core::UNIT_INFO_ID
+                && sink.value_kind.as_str() == conduit_core::EMPTY_INFO_ID
         }
         ConnectionTrack::Quiescence => {
             matches!(source.temporal, PortTemporal::Flow { .. })
                 && sink.temporal == PortTemporal::Value
-                && sink.value_kind.as_str() == conduit_core::UNIT_INFO_ID
+                && sink.value_kind.as_str() == conduit_core::EMPTY_INFO_ID
         }
         ConnectionTrack::AbnormalTerminal => {
             sink.temporal == PortTemporal::Value

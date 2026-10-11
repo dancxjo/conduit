@@ -1,9 +1,8 @@
 //! Canonical typed values retain exact meaning across Face identity and two Masks.
 use conduit_core::{
-    kind_id, BoundedResourceRef, CheckedValueContract, ExactDecimalQuantity, Quantity,
-    QuantityUnit, ResourceClassId, ResourceExtent, ResourceLifetime, ResourceSemanticIdentity,
-    ResourceVersionIdentity, ValueConstraint, EXACT_DECIMAL_QUANTITY_ENCODED_LEN,
-    EXACT_DECIMAL_QUANTITY_INFO_ID, QUANTITY_INFO_ID, TEMPERATURE_INFO_ID,
+    kind_id, BoundedResourceRef, CheckedValueContract, Quantity, ResourceClassId, ResourceExtent,
+    ResourceLifetime, ResourceSemanticIdentity, ResourceVersionIdentity, Unit, ValueConstraint,
+    QUANTITY_ENCODED_LEN, QUANTITY_INFO_ID, TEMPERATURE_INFO_ID,
 };
 use conduit_presentation::{
     display_typed_value, plan_face_utterances, render_linear_presentation, spoken_typed_value,
@@ -15,11 +14,8 @@ fn contract(kind: &str, maximum: u32) -> CheckedValueContract {
 }
 fn quantity(coefficient: i128, exponent: i16) -> PresentationPropertyValue {
     PresentationPropertyValue::TypedValue {
-        contract: contract(
-            EXACT_DECIMAL_QUANTITY_INFO_ID,
-            EXACT_DECIMAL_QUANTITY_ENCODED_LEN as u32,
-        ),
-        bytes: ExactDecimalQuantity::new(coefficient, exponent, QuantityUnit::Celsius)
+        contract: contract(QUANTITY_INFO_ID, QUANTITY_ENCODED_LEN as u32),
+        bytes: Quantity::from_decimal(coefficient, exponent, Unit::Celsius)
             .unwrap()
             .encode()
             .to_vec(),
@@ -56,27 +52,27 @@ fn face(value: PresentationPropertyValue) -> Result<Presentation, PresentationEr
 }
 #[test]
 fn inline_values_admit_only_finite_contracts_and_matching_canonical_bytes() {
-    let encoded = ExactDecimalQuantity::new(225, -1, QuantityUnit::Celsius)
+    let encoded = Quantity::from_decimal(225, -1, Unit::Celsius)
         .unwrap()
         .encode()
         .to_vec();
     for maximum in [0, MAX_FACE_VALUE_BYTES + 1] {
         assert_eq!(
             face(PresentationPropertyValue::TypedValue {
-                contract: contract(EXACT_DECIMAL_QUANTITY_INFO_ID, maximum),
+                contract: contract(QUANTITY_INFO_ID, maximum),
                 bytes: encoded.clone()
             }),
             Err(PresentationError::InvalidContent)
         );
     }
     assert!(face(PresentationPropertyValue::TypedValue {
-        contract: contract(EXACT_DECIMAL_QUANTITY_INFO_ID, MAX_FACE_VALUE_BYTES),
+        contract: contract(QUANTITY_INFO_ID, MAX_FACE_VALUE_BYTES),
         bytes: encoded.clone()
     })
     .is_ok());
     assert_eq!(
         face(PresentationPropertyValue::TypedValue {
-            contract: contract(EXACT_DECIMAL_QUANTITY_INFO_ID, 19),
+            contract: contract(QUANTITY_INFO_ID, QUANTITY_ENCODED_LEN as u32 - 1),
             bytes: encoded.clone()
         }),
         Err(PresentationError::InvalidContent)
@@ -85,7 +81,7 @@ fn inline_values_admit_only_finite_contracts_and_matching_canonical_bytes() {
     trailing.push(0);
     assert_eq!(
         face(PresentationPropertyValue::TypedValue {
-            contract: contract(EXACT_DECIMAL_QUANTITY_INFO_ID, 21),
+            contract: contract(QUANTITY_INFO_ID, QUANTITY_ENCODED_LEN as u32 + 1),
             bytes: trailing
         }),
         Err(PresentationError::InvalidContent)
@@ -94,7 +90,7 @@ fn inline_values_admit_only_finite_contracts_and_matching_canonical_bytes() {
     malformed[0] = 255;
     assert_eq!(
         face(PresentationPropertyValue::TypedValue {
-            contract: contract(EXACT_DECIMAL_QUANTITY_INFO_ID, 20),
+            contract: contract(QUANTITY_INFO_ID, QUANTITY_ENCODED_LEN as u32),
             bytes: malformed
         }),
         Err(PresentationError::InvalidContent)
@@ -102,11 +98,11 @@ fn inline_values_admit_only_finite_contracts_and_matching_canonical_bytes() {
     // An exact value may fit the primitive codec and byte ceiling while still
     // violating its declared application contract: this must fail Face admission.
     let constrained = CheckedValueContract::new(
-        kind_id(EXACT_DECIMAL_QUANTITY_INFO_ID),
-        20,
+        kind_id(QUANTITY_INFO_ID),
+        QUANTITY_ENCODED_LEN as u32,
         vec![ValueConstraint::CanonicalMembership {
             negated: false,
-            members: vec![ExactDecimalQuantity::new(21, 0, QuantityUnit::Celsius)
+            members: vec![Quantity::from_decimal(21, 0, Unit::Celsius)
                 .unwrap()
                 .encode()
                 .to_vec()],
@@ -116,7 +112,7 @@ fn inline_values_admit_only_finite_contracts_and_matching_canonical_bytes() {
     assert_eq!(
         face(PresentationPropertyValue::TypedValue {
             contract: constrained,
-            bytes: ExactDecimalQuantity::new(225, -1, QuantityUnit::Celsius)
+            bytes: Quantity::from_decimal(225, -1, Unit::Celsius)
                 .unwrap()
                 .encode()
                 .to_vec()
@@ -128,7 +124,7 @@ fn inline_values_admit_only_finite_contracts_and_matching_canonical_bytes() {
 fn inline_quantity_and_resource_reference_are_distinct_semantic_contracts() {
     let reference = BoundedResourceRef {
         identity: ResourceSemanticIdentity::from_digest([3; 32]),
-        content_profile: kind_id(EXACT_DECIMAL_QUANTITY_INFO_ID),
+        content_profile: kind_id(QUANTITY_INFO_ID),
         access_class: ResourceClassId::from("content/public@1"),
         extent: ResourceExtent {
             bytes: 20,
@@ -144,12 +140,12 @@ fn inline_quantity_and_resource_reference_are_distinct_semantic_contracts() {
     assert!(face(PresentationPropertyValue::Content(reference.clone())).is_ok());
     assert_eq!(
         face(PresentationPropertyValue::TypedValue {
-            contract: contract(EXACT_DECIMAL_QUANTITY_INFO_ID, MAX_FACE_VALUE_BYTES),
+            contract: contract(QUANTITY_INFO_ID, MAX_FACE_VALUE_BYTES),
             bytes: reference
         }),
         Err(PresentationError::InvalidContent)
     );
-    let bytes = ExactDecimalQuantity::new(21, 0, QuantityUnit::Celsius)
+    let bytes = Quantity::from_decimal(21, 0, Unit::Celsius)
         .unwrap()
         .encode()
         .to_vec();
@@ -172,14 +168,14 @@ fn face_identity_binds_the_value_kind_contract_and_exact_coordinate() {
     };
     changed_contract.maximum_bytes += 1;
     assert_ne!(baseline.identity, face(changed).unwrap().identity);
-    let bytes = Quantity::new(21, QuantityUnit::Celsius).encode().to_vec();
+    let bytes = Quantity::new(21, Unit::Celsius).encode().to_vec();
     let unqualified = face(PresentationPropertyValue::TypedValue {
-        contract: contract(QUANTITY_INFO_ID, 9),
+        contract: contract(QUANTITY_INFO_ID, QUANTITY_ENCODED_LEN as u32),
         bytes: bytes.clone(),
     })
     .unwrap();
     let temperature = face(PresentationPropertyValue::TypedValue {
-        contract: contract(TEMPERATURE_INFO_ID, 9),
+        contract: contract(TEMPERATURE_INFO_ID, QUANTITY_ENCODED_LEN as u32),
         bytes,
     })
     .unwrap();
@@ -189,7 +185,7 @@ fn face_identity_binds_the_value_kind_contract_and_exact_coordinate() {
 fn serde_and_postcard_preserve_the_new_value_and_existing_reference_variants() {
     let reference = BoundedResourceRef {
         identity: ResourceSemanticIdentity::from_digest([3; 32]),
-        content_profile: kind_id(EXACT_DECIMAL_QUANTITY_INFO_ID),
+        content_profile: kind_id(QUANTITY_INFO_ID),
         access_class: ResourceClassId::from("content/public@1"),
         extent: ResourceExtent {
             bytes: 20,
@@ -260,4 +256,26 @@ fn graphical_and_spoken_wording_keep_exact_negative_and_extreme_decimals() {
         assert_eq!(spoken.source_face_identity, face.identity.as_str());
         assert_eq!(spoken.source_face_revision, 7);
     }
+}
+
+#[test]
+fn physical_units_and_dimension_specific_quantities_have_semantic_wording() {
+    let unit_contract = contract(
+        conduit_core::UNIT_INFO_ID,
+        conduit_core::UNIT_ENCODED_LEN as u32,
+    );
+    for symbol in ["kHz", "°C"] {
+        let bytes = Unit::resolve(symbol).unwrap().encode();
+        assert_eq!(display_typed_value(&unit_contract, &bytes), symbol);
+    }
+    let frequency_contract = contract(conduit_core::FREQUENCY_INFO_ID, QUANTITY_ENCODED_LEN as u32);
+    let frequency = Quantity::parse_plot_literal("1kHz").unwrap();
+    assert_eq!(
+        display_typed_value(&frequency_contract, &frequency.encode()),
+        "1 kHz"
+    );
+    assert_eq!(
+        display_typed_value(&frequency_contract, &Quantity::new(1, Unit::Meter).encode()),
+        "Invalid typed value"
+    );
 }

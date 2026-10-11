@@ -1,4 +1,4 @@
-use conduit_core::{Quantity, QuantityUnit, TemporalInstant, TemporalScale};
+use conduit_core::{Quantity, TemporalInstant, TemporalScale, Unit};
 use conduit_data::{
     install_measurement_plot_catalog, install_measurement_summary_catalog,
     install_measurement_threshold_catalog, install_measurement_window_catalog,
@@ -85,7 +85,7 @@ fn canonical_processing_meaning_is_host_and_mechanism_neutral() {
 
 fn sample(value: i64, ticks: u64) -> MeasurementSample {
     MeasurementSample {
-        value: Quantity::new(value, QuantityUnit::Millivolt),
+        value: Quantity::new(value, Unit::Millivolt),
         observed_at: TemporalInstant {
             ticks,
             scale: TemporalScale::Milliseconds,
@@ -95,7 +95,7 @@ fn sample(value: i64, ticks: u64) -> MeasurementSample {
         }
         .try_into()
         .unwrap(),
-        uncertainty: Some(Quantity::new(1, QuantityUnit::Millivolt)),
+        uncertainty: Some(Quantity::new(1, Unit::Millivolt)),
     }
 }
 
@@ -104,8 +104,8 @@ fn deterministic_source_runs_the_exact_processing_pipeline() {
     let mut window = BoundedMeasurementWindow::new(MeasurementWindowProfile {
         capacity: 4,
         range: MeasurementRange {
-            minimum: Quantity::new(-100, QuantityUnit::Millivolt),
-            maximum: Quantity::new(100, QuantityUnit::Millivolt),
+            minimum: Quantity::new(-100, Unit::Millivolt),
+            maximum: Quantity::new(100, Unit::Millivolt),
         },
         clock_basis: "deterministic-source-clock".into(),
         full_policy: FullWindowPolicy::DropOldest,
@@ -119,21 +119,21 @@ fn deterministic_source_runs_the_exact_processing_pipeline() {
         window
             .samples()
             .iter()
-            .map(|entry| entry.value.value())
+            .map(|entry| entry.value.to_i64(Unit::Millivolt).unwrap())
             .collect::<Vec<_>>(),
         [-50, 0, 50, 100]
     );
 
     let summary = summarize_measurement_window(&window).unwrap();
-    assert_eq!(summary.mean, Quantity::new(25, QuantityUnit::Millivolt));
-    assert_eq!(summary.minimum, Quantity::new(-50, QuantityUnit::Millivolt));
-    assert_eq!(summary.maximum, Quantity::new(100, QuantityUnit::Millivolt));
-    assert_eq!(summary.range, Quantity::new(150, QuantityUnit::Millivolt));
+    assert_eq!(summary.mean, Quantity::new(25, Unit::Millivolt));
+    assert_eq!(summary.minimum, Quantity::new(-50, Unit::Millivolt));
+    assert_eq!(summary.maximum, Quantity::new(100, Unit::Millivolt));
+    assert_eq!(summary.range, Quantity::new(150, Unit::Millivolt));
 
     let mut threshold = MeasurementHysteresis::new(
         MeasurementThresholdPolicy::new(
-            Quantity::new(10, QuantityUnit::Millivolt),
-            Quantity::new(20, QuantityUnit::Millivolt),
+            Quantity::new(10, Unit::Millivolt),
+            Quantity::new(20, Unit::Millivolt),
         )
         .unwrap(),
         MeasurementThresholdState::Below,

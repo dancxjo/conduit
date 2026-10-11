@@ -22,6 +22,7 @@ pub(crate) use document::{glyph_scope_for_source_header, parse_surface, parse_su
 pub(crate) mod front;
 mod glyph_notation;
 mod pack;
+mod physical_declaration;
 mod shared_pool;
 mod type_declaration;
 pub(crate) use type_declaration::parse_integer_spanned;
@@ -1006,7 +1007,7 @@ fn top_level_assignment(text: &str, scope: Option<&crate::GlyphNotationScope>) -
                 .chars()
                 .next_back()
                 .is_some_and(|character| matches!(character, '<' | '>' | '!' | '='))
-                && !text[*position + 1..].starts_with('=')
+                && !text[*position + 1..].starts_with(['=', '?'])
         })
 }
 

@@ -2,7 +2,7 @@ plot linguistic-annotations (
     label: LinguisticLabel >>
 ) {
     tokenize: language/tokenize-four(material = { identity: "text/linguistic-specimen", language: "language/english", revision: "source/1", text: "Bright stars shine." })
-    annotate: language/annotate-four(language-request = { language: "language/english", variety: none(""), variety_policy: language_sufficient("") })
+    annotate: language/annotate-four(language-request = { language: "language/english", variety: none(empty), variety_policy: language_sufficient(empty) })
     tokenize.tokens >> annotate.tokens
     annotate.annotations >> project(AnnotationBundleFour.annotations) >> index(LinguisticAnnotationsFour[0]) >> project(LinguisticAnnotation.label) >> label
 }

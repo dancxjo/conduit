@@ -45,7 +45,7 @@ fn quantity_type() -> StructuredInfoType {
 }
 
 fn unit_type() -> StructuredInfoType {
-    leaf("value/unit")
+    leaf("value/empty")
 }
 
 fn field(name: &str, value_type: StructuredInfoType) -> StructuredFieldType {

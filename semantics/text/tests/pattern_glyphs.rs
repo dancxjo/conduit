@@ -407,7 +407,7 @@ fn multiline_pattern_source_survives_formatting_and_checked_admission() {
 }
 
 #[test]
-fn notation_import_preserves_native_quantity_values_and_celsius_refusal() {
+fn notation_import_preserves_native_quantities_and_source_owned_celsius_refusal() {
     let (startup, profile) = catalogs();
     let values = " tone = 440Hz\n delay = 250ms\n temperature = 21°C\n distance = 3.2m\n angle = 90°\n voltage = 12V\n width = 640px\n";
     let ordinary = format!("plot quantities {{\n{values}}}\n");
@@ -428,8 +428,25 @@ fn notation_import_preserves_native_quantity_values_and_celsius_refusal() {
         .collect();
     assert_eq!(baseline.plots[0].local_values, scoped_values);
     for source in [ordinary, imported] {
-        let refused = check(&source.replace("21°C", "21C")).unwrap_err();
+        let near_miss = source.replace("21°C", "21C");
+        let refused = check(&near_miss).unwrap_err();
         assert_eq!(refused.code, "CND-FRM-055");
         assert!(refused.message.contains("use '°C'"));
+        // Authored units take precedence over the builtin-only near-miss rule.
+        let declared = near_miss.replacen(
+            "plot quantities {",
+            "unit C : Temperature = { reference: K, scale: 1, delta: { quantity: TemperatureDelta, reference: K, scale: 1 } }\nplot quantities {",
+            1,
+        );
+        let checked = check(&declared).unwrap();
+        let (_, CanonicalStartupValue::Quantity(value)) = checked.plots[0]
+            .local_values
+            .iter()
+            .find(|(name, _)| name == "temperature")
+            .unwrap()
+        else {
+            panic!("checked authored Unit")
+        };
+        assert_eq!(value.value().unit().symbol(), "C");
     }
 }

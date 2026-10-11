@@ -139,8 +139,8 @@ fn configuration_source(value: &ConfigurationValue) -> String {
             value.profile().as_str(),
             value.canonical_value().len()
         ),
-        ConfigurationValue::Quantity(value) => {
-            format!("{}{}", value.value(), value.unit().plot_suffix())
-        }
+        ConfigurationValue::Quantity(value) => value.source().into(),
+        ConfigurationValue::Unit(value) => value.source().into(),
+        ConfigurationValue::TemperatureDifference(value) => value.source().into(),
     }
 }

@@ -201,7 +201,7 @@ fn compact_observation_preserves_motion_buttons_and_every_invalid_disposition_wi
     }
     for disposition in ["short", "malformed", "reserved", "invalid-motion"] {
         let unit = StructuredInfoValue::leaf(
-            StructuredInfoType::leaf(kind_id("value/unit")).unwrap(),
+            StructuredInfoType::leaf(kind_id("value/empty")).unwrap(),
             vec![],
         )
         .unwrap();

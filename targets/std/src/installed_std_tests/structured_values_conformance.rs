@@ -1,7 +1,7 @@
 use super::{host, installed_std, RecordingTimer};
 use conduit_core::{
-    BaseImplementationId, ObservationKind, Quantity, QuantityUnit, StructuredFieldType,
-    StructuredFieldValue, StructuredInfoType, StructuredInfoValue,
+    BaseImplementationId, ObservationKind, Quantity, StructuredFieldType, StructuredFieldValue,
+    StructuredInfoType, StructuredInfoValue, Unit,
 };
 use conduit_plot::{
     check_syntax_document, expand_canonical_plot, parse_syntax_document, ProfileCatalog,
@@ -28,9 +28,7 @@ fn quantity_record() -> (StructuredInfoType, StructuredInfoValue) {
                 "elapsed",
                 StructuredInfoValue::leaf(
                     quantity.clone(),
-                    Quantity::new(17, QuantityUnit::Millisecond)
-                        .encode()
-                        .to_vec(),
+                    Quantity::new(17, Unit::Millisecond).encode().to_vec(),
                 )
                 .unwrap(),
             )
@@ -39,7 +37,7 @@ fn quantity_record() -> (StructuredInfoType, StructuredInfoValue) {
                 "frequency",
                 StructuredInfoValue::leaf(
                     quantity,
-                    Quantity::new(440, QuantityUnit::Hertz).encode().to_vec(),
+                    Quantity::new(440, Unit::Hertz).encode().to_vec(),
                 )
                 .unwrap(),
             )
@@ -146,11 +144,15 @@ fn authored_quantities_survive_plan_play_sign_and_typed_presentation() {
         .expect("typed Presentation inspects the runtime Sign");
     assert!(artifact.presentation.properties.iter().any(|property| {
         property.name == "quantity-unit"
-            && property.value == PresentationPropertyValue::Identity("time/millisecond".into())
+            && property.value
+                == PresentationPropertyValue::Identity(
+                    conduit_core::Unit::Millisecond.semantic_id(),
+                )
     }));
     assert!(artifact.presentation.properties.iter().any(|property| {
         property.name == "quantity-unit"
-            && property.value == PresentationPropertyValue::Identity("frequency/hertz".into())
+            && property.value
+                == PresentationPropertyValue::Identity(conduit_core::Unit::Hertz.semantic_id())
     }));
     assert!(artifact.presentation.text.is_empty());
     let kernel = report.kernel.expect("kernel evidence exists");

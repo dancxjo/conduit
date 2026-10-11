@@ -27,6 +27,7 @@ pub(super) fn capture(
             &manifest.profile_id,
             &manifest.build_id,
             &manifest.resolved_description_binding,
+            ia32_product_boot::GuestClock::Host,
             opts,
         )?;
         let receipt_path = paths.target.join("ia32-legacy-bios-product-proof.json");

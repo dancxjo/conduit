@@ -3,7 +3,7 @@ use conduit_core::{
     CancellationTransduction, CapabilityLimits, CheckedValueContract, FrontValueContract,
     FrontValueLocation, HostAdvertisement, HostId, HostProfileId, Kind, KindSemanticLaw,
     NormalCloseTransduction, OfferGeneration, PortDescriptor, PortDirection, PortTemporal,
-    TerminalTransductionProfile, PROTOCOL_VERSION, TERMINAL_INFO_ID, UNIT_INFO_ID,
+    TerminalTransductionProfile, EMPTY_INFO_ID, PROTOCOL_VERSION, TERMINAL_INFO_ID,
 };
 
 fn endpoint(
@@ -63,7 +63,7 @@ fn recovery(kind: &str) -> Kind {
     };
     let recovered = PortDescriptor {
         port_id: port_id("recovered"),
-        value_kind: kind_id(UNIT_INFO_ID),
+        value_kind: kind_id(EMPTY_INFO_ID),
         direction: PortDirection::Output,
         temporal: PortTemporal::Value,
         abnormal_kind: None,
@@ -89,7 +89,7 @@ fn recovery(kind: &str) -> Kind {
                 },
                 FrontValueContract {
                     location: FrontValueLocation::Output(recovered.port_id.clone()),
-                    contract: CheckedValueContract::new(kind_id(UNIT_INFO_ID), 0, vec![]).unwrap(),
+                    contract: CheckedValueContract::new(kind_id(EMPTY_INFO_ID), 0, vec![]).unwrap(),
                 },
             ]),
             KindSemanticLaw::TerminalTransduction(TerminalTransductionProfile {

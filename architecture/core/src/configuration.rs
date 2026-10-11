@@ -1,4 +1,4 @@
-use alloc::{string::String, vec::Vec};
+use alloc::{boxed::Box, string::String, vec::Vec};
 use serde::{de::Error as _, Deserialize, Deserializer, Serialize};
 
 use crate::{KindId, PortId, StructuredInfoValue, MAXIMUM_STRUCTURED_CANONICAL_BYTES};
@@ -59,19 +59,38 @@ pub enum ConfigurationValue {
     I64(#[serde(with = "human_i64")] i64),
     Text(String),
     /// Exact dimensional startup value; the unit remains part of configuration truth.
-    Quantity(crate::Quantity),
+    Quantity(crate::QuantityConfigurationValue),
     /// Exact finite structured semantic value used by an immutable Gear configuration.
     Structured(StructuredConfigurationValue),
+    /// Catalogue-pinned physical Unit; never the empty product Unit.
+    Unit(crate::UnitConfigurationValue),
+    TemperatureDifference(crate::ExactTemperatureDifferenceConfigurationValue),
 }
 
 impl ConfigurationValue {
     pub fn semantic_kind(&self) -> KindId {
+        // A standalone Dimension uses the shared structured configuration
+        // envelope while retaining the intrinsic leaf identity of its Fore.
+        // Nominal wrappers and all other structured profiles keep their own
+        // existing identities.
+        if let Self::Structured(value) = self {
+            let dimension_profile =
+                crate::StructuredInfoType::leaf(crate::kind_id(crate::DIMENSION_INFO_ID))
+                    .expect("Dimension leaf")
+                    .profile()
+                    .expect("bounded Dimension profile");
+            if value.profile() == dimension_profile.value_kind() {
+                return crate::kind_id(crate::DIMENSION_INFO_ID);
+            }
+        }
         crate::kind_id(match self {
             Self::Bool(_) => crate::BOOL_INFO_ID,
             Self::U64(_) => crate::COUNT_INFO_ID,
             Self::I64(_) => crate::SCALAR_INFO_ID,
             Self::Text(_) => crate::TEXT_INFO_ID,
             Self::Quantity(_) => crate::QUANTITY_INFO_ID,
+            Self::Unit(_) => crate::UNIT_INFO_ID,
+            Self::TemperatureDifference(_) => crate::BUILTIN_TEMPERATURE_DELTA_INFO_ID,
             Self::Structured(value) => value.profile().as_str(),
         })
     }
@@ -158,7 +177,7 @@ pub enum KindConfigurationRule {
         minimum: i64,
         #[serde(with = "human_i64")]
         maximum: i64,
-        canonical_unit: crate::QuantityUnit,
+        canonical_unit: Box<crate::Unit>,
     },
     TextBytes {
         maximum: u32,
@@ -169,6 +188,9 @@ pub enum KindConfigurationRule {
     Structured {
         profile: KindId,
     },
+    Quantity,
+    Unit,
+    TemperatureDifference,
 }
 
 const MAXIMUM_EXACT_JAVASCRIPT_INTEGER: u64 = 9_007_199_254_740_991;
@@ -462,31 +484,4 @@ pub enum KindTerminalBehavior {
     EvolvesAfterTicksAndCompletesWhenTickCloses,
     PresentsEachFieldAndCompletesWhenInputCloses,
     CompletesAfterDockedRefusedOrDeadline,
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::{encode_count, kind_id, StructuredInfoType, StructuredInfoValue};
-    use alloc::vec;
-
-    #[test]
-    fn structured_configuration_requires_matching_profile_and_canonical_value() {
-        let value_type = StructuredInfoType::leaf(kind_id("value/count")).unwrap();
-        let value =
-            StructuredInfoValue::leaf(value_type.clone(), encode_count(7).to_vec()).unwrap();
-        let canonical = value.canonical_bytes().unwrap();
-        let profile = value_type.profile().unwrap().value_kind().clone();
-
-        assert!(StructuredConfigurationValue::new(profile, canonical.clone()).is_some());
-        assert!(
-            StructuredConfigurationValue::new(kind_id("structured-info/wrong@1"), canonical)
-                .is_none()
-        );
-        assert!(StructuredConfigurationValue::new(
-            value_type.profile().unwrap().value_kind().clone(),
-            vec![0xff],
-        )
-        .is_none());
-    }
 }

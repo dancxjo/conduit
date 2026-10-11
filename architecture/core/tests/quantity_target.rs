@@ -1,6 +1,5 @@
 use conduit_core::{
-    ExactDecimalQuantity as Exact, QuantityConversionRefusal as Refusal, QuantityUnit,
-    ResolvedQuantitySuffix,
+    Quantity as Exact, QuantityConversionRefusal as Refusal, ResolvedQuantitySuffix, Unit,
 };
 
 #[test]
@@ -66,7 +65,7 @@ fn target_projection_checks_affine_law_precision_range_and_dimension() {
             Err(refusal)
         );
     }
-    let high = Exact::new(1, 128, QuantityUnit::Meter).unwrap();
+    let high = Exact::from_decimal(1, 128, Unit::Meter).unwrap();
     assert!(high
         .convert_to_target(ResolvedQuantitySuffix::resolve("Qm").unwrap())
         .is_ok());
@@ -77,7 +76,7 @@ fn target_projection_checks_affine_law_precision_range_and_dimension() {
         (padded.coefficient(), padded.exponent()),
         (10_i128.pow(30), 128)
     );
-    let largest = Exact::new(10_i128.pow(38) - 1, 128, QuantityUnit::Meter).unwrap();
+    let largest = Exact::from_decimal(10_i128.pow(38) - 1, 128, Unit::Meter).unwrap();
     assert_eq!(
         largest.convert_to_target(ResolvedQuantitySuffix::resolve("qm").unwrap()),
         Err(Refusal::Overflow)

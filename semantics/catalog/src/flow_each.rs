@@ -127,7 +127,7 @@ fn require_finite_envelope(
     contract: &CheckedValueContract,
     role: &'static str,
 ) -> Result<(), &'static str> {
-    if contract.maximum_bytes == 0 && contract.value_kind.as_str() != conduit_core::UNIT_INFO_ID {
+    if contract.maximum_bytes == 0 && contract.value_kind.as_str() != conduit_core::EMPTY_INFO_ID {
         return Err(match role {
             "input" => "flow/each requires a finite canonical input envelope",
             "output" => "flow/each requires a finite canonical output envelope",

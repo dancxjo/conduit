@@ -1,6 +1,6 @@
 //! Exact interop between monotonic durations and typed time quantities.
 
-use crate::{MonotonicDuration, Quantity, QuantityConversionRefusal, QuantityUnit, TemporalScale};
+use crate::{MonotonicDuration, Quantity, QuantityConversionRefusal, TemporalScale, Unit};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum TemporalQuantityRefusal {
@@ -10,12 +10,12 @@ pub enum TemporalQuantityRefusal {
 }
 
 impl TemporalScale {
-    pub const fn quantity_unit(self) -> QuantityUnit {
+    pub const fn quantity_unit(self) -> Unit {
         match self {
-            Self::Seconds => QuantityUnit::Second,
-            Self::Milliseconds => QuantityUnit::Millisecond,
-            Self::Microseconds => QuantityUnit::Microsecond,
-            Self::Nanoseconds => QuantityUnit::Nanosecond,
+            Self::Seconds => Unit::Second,
+            Self::Milliseconds => Unit::Millisecond,
+            Self::Microseconds => Unit::Microsecond,
+            Self::Nanoseconds => Unit::Nanosecond,
         }
     }
 }
@@ -25,17 +25,18 @@ impl MonotonicDuration {
         quantity: Quantity,
         scale: TemporalScale,
     ) -> Result<Self, TemporalQuantityRefusal> {
-        let converted = quantity
-            .convert(scale.quantity_unit())
+        if quantity.coefficient() < 0 {
+            return Err(TemporalQuantityRefusal::NegativeQuantity);
+        }
+        let ticks = quantity
+            .convert_to_u64(scale.quantity_unit())
             .map_err(TemporalQuantityRefusal::QuantityConversion)?;
-        let ticks = u64::try_from(converted.value())
-            .map_err(|_| TemporalQuantityRefusal::NegativeQuantity)?;
         Ok(Self::new(ticks, scale))
     }
 
     pub fn quantity(self) -> Result<Quantity, TemporalQuantityRefusal> {
-        let value = i64::try_from(self.ticks()).map_err(|_| TemporalQuantityRefusal::Overflow)?;
-        Ok(Quantity::new(value, self.scale().quantity_unit()))
+        Quantity::from_decimal(i128::from(self.ticks()), 0, self.scale().quantity_unit())
+            .map_err(|_| TemporalQuantityRefusal::Overflow)
     }
 }
 
@@ -47,10 +48,10 @@ mod tests {
     #[test]
     fn temporal_scales_map_to_time_quantity_units() {
         for (scale, unit) in [
-            (TemporalScale::Seconds, QuantityUnit::Second),
-            (TemporalScale::Milliseconds, QuantityUnit::Millisecond),
-            (TemporalScale::Microseconds, QuantityUnit::Microsecond),
-            (TemporalScale::Nanoseconds, QuantityUnit::Nanosecond),
+            (TemporalScale::Seconds, Unit::Second),
+            (TemporalScale::Milliseconds, Unit::Millisecond),
+            (TemporalScale::Microseconds, Unit::Microsecond),
+            (TemporalScale::Nanoseconds, Unit::Nanosecond),
         ] {
             assert_eq!(scale.quantity_unit(), unit);
             assert_eq!(unit.dimension(), QuantityDimension::Time);
@@ -61,14 +62,14 @@ mod tests {
     fn duration_construction_converts_exact_time_quantities() {
         assert_eq!(
             MonotonicDuration::from_quantity(
-                Quantity::new(2, QuantityUnit::Second),
+                Quantity::new(2, Unit::Second),
                 TemporalScale::Milliseconds,
             ),
             Ok(MonotonicDuration::new(2_000, TemporalScale::Milliseconds))
         );
         assert_eq!(
             MonotonicDuration::from_quantity(
-                Quantity::new(2_000, QuantityUnit::Millisecond),
+                Quantity::new(2_000, Unit::Millisecond),
                 TemporalScale::Seconds,
             ),
             Ok(MonotonicDuration::new(2, TemporalScale::Seconds))
@@ -79,7 +80,7 @@ mod tests {
     fn duration_construction_refuses_loss_and_wrong_dimensions() {
         assert_eq!(
             MonotonicDuration::from_quantity(
-                Quantity::new(1, QuantityUnit::Nanosecond),
+                Quantity::new(1, Unit::Nanosecond),
                 TemporalScale::Microseconds,
             ),
             Err(TemporalQuantityRefusal::QuantityConversion(
@@ -87,10 +88,7 @@ mod tests {
             ))
         );
         assert_eq!(
-            MonotonicDuration::from_quantity(
-                Quantity::new(1, QuantityUnit::Hertz),
-                TemporalScale::Seconds,
-            ),
+            MonotonicDuration::from_quantity(Quantity::new(1, Unit::Hertz), TemporalScale::Seconds,),
             Err(TemporalQuantityRefusal::QuantityConversion(
                 QuantityConversionRefusal::IncompatibleDimensions
             ))
@@ -101,7 +99,7 @@ mod tests {
     fn duration_construction_refuses_negative_quantity() {
         assert_eq!(
             MonotonicDuration::from_quantity(
-                Quantity::new(-1, QuantityUnit::Second),
+                Quantity::new(-1, Unit::Second),
                 TemporalScale::Seconds,
             ),
             Err(TemporalQuantityRefusal::NegativeQuantity)
@@ -109,14 +107,15 @@ mod tests {
     }
 
     #[test]
-    fn duration_exports_exact_quantity_or_refuses_range_loss() {
+    fn duration_exports_the_full_unsigned_coordinate_exactly() {
         assert_eq!(
             MonotonicDuration::new(42, TemporalScale::Microseconds).quantity(),
-            Ok(Quantity::new(42, QuantityUnit::Microsecond))
+            Ok(Quantity::new(42, Unit::Microsecond))
         );
         assert_eq!(
             MonotonicDuration::new(u64::MAX, TemporalScale::Nanoseconds).quantity(),
-            Err(TemporalQuantityRefusal::Overflow)
+            Quantity::from_decimal(i128::from(u64::MAX), 0, Unit::Nanosecond)
+                .map_err(|_| TemporalQuantityRefusal::Overflow)
         );
     }
 }

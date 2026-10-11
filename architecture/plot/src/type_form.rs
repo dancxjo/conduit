@@ -73,7 +73,7 @@ pub(crate) fn check_type_forms(
                 ));
             }
         }
-        let unit = kind_id("value/unit");
+        let unit = kind_id("value/empty");
         for case in cases {
             if !matches!(case.payload_type().shape(), StructuredInfoTypeShape::Leaf(kind) if kind == &unit)
             {

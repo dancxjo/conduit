@@ -1804,6 +1804,7 @@ dependencies = [
  "conduit-kernel",
  "conduit-patchbay-workbench",
  "conduit-plan-lowering",
+ "conduit-plot",
  "conduit-presentation",
  "conduit-semantic-catalog",
  "conduit-std-host",

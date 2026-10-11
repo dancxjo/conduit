@@ -116,6 +116,8 @@ async function openExternalBody(page, { friendlyName, titles, plots }) {
     for (const identity of [
       "browser/exact-quantity-conversion@1", "browser/exact-temperature-difference-conversion@1",
       "browser/exact-quantity-comparison@1", "browser/exact-temperature-difference-comparison@1",
+      "browser/converted-equals@1",
+      "browser/unit-dimension@1", "browser/quantity-dimension@1",
     ]) expect(executable).toContain(identity);
     const selection = await page.evaluate(kindIds => {
       const sdk = globalThis.__conduitSdkParticipation;

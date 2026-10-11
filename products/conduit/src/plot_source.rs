@@ -141,7 +141,11 @@ fn standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), String> {
 }
 
 fn prepare_standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), String> {
-    let mut startup = conduit_signal::primary_signal_startup_catalog();
+    let mut startup = conduit_plot::checked_physical_catalog_for_document(
+        &conduit_plot::parse_syntax_document(""),
+        &conduit_signal::primary_signal_startup_catalog(),
+    )
+    .map_err(|error| format!("installed physical catalogue refused: {error:?}"))?;
     let mut profiles = conduit_signal::primary_signal_profile_catalog();
     // This first Todo vertical has one exact authored initial Form and a leaf
     // combine Kind. Retained source uses the same catalog after owner restart.

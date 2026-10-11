@@ -51,7 +51,7 @@ impl ExternalForeOutputAdapter for Collector {
         Ok(())
     }
 }
-const ENGLISH_REQUEST: &str = r#"{ language: "language/english", variety: some({ identity: "pronunciation/native-english@2", language: "language/english" }), variety_policy: exact_variety("") }"#;
+const ENGLISH_REQUEST: &str = r#"{ language: "language/english", variety: some({ identity: "pronunciation/native-english@2", language: "language/english" }), variety_policy: exact_variety(empty) }"#;
 
 fn source(request: &str) -> String {
     r#"plot native-voice (
@@ -222,17 +222,17 @@ fn installed_native_voice_refuses_other_languages_and_pronunciation_varieties_be
     let hosts = [host.advertisement().clone()];
     for (request, language, expected) in [
         (
-            r#"{ language: "language/french", variety: none(""), variety_policy: language_sufficient("") }"#,
+            r#"{ language: "language/french", variety: none(empty), variety_policy: language_sufficient(empty) }"#,
             "language/french",
             LanguageCoverageRefusal::Language,
         ),
         (
-            r#"{ language: "language/english", variety: some({ identity: "pronunciation/other-english", language: "language/english" }), variety_policy: exact_variety("") }"#,
+            r#"{ language: "language/english", variety: some({ identity: "pronunciation/other-english", language: "language/english" }), variety_policy: exact_variety(empty) }"#,
             "language/english",
             LanguageCoverageRefusal::Variety,
         ),
         (
-            r#"{ language: "language/english", variety: none(""), variety_policy: language_sufficient("") }"#,
+            r#"{ language: "language/english", variety: none(empty), variety_policy: language_sufficient(empty) }"#,
             "language/english",
             LanguageCoverageRefusal::MissingVariety,
         ),

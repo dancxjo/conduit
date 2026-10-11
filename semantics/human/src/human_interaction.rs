@@ -12,7 +12,7 @@ use crate::{
     InteractionValueKind, InteractionValues, OptionAvailability,
 };
 use alloc::{collections::VecDeque, string::String, vec::Vec};
-use conduit_core::{KindId, QuantityUnit, StructuredInfoValue};
+use conduit_core::{KindId, StructuredInfoValue, Unit};
 
 #[path = "human_interaction/canonical.rs"]
 mod canonical;
@@ -60,7 +60,7 @@ impl InteractionFamily {
     }
 
     pub fn scalar_range(
-        unit: QuantityUnit,
+        unit: Unit,
         minimum: i64,
         minimum_bound: BoundKind,
         maximum: i64,
@@ -79,7 +79,7 @@ impl InteractionFamily {
     }
 
     pub fn relative_range(
-        unit: QuantityUnit,
+        unit: Unit,
         minimum_delta: i64,
         maximum_delta: i64,
         granularity: i64,

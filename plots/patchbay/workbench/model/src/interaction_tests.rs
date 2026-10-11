@@ -417,10 +417,13 @@ fn quantity_edit_round_trips_without_erasing_its_unit() {
         .unwrap(),
         subject_identity: "gear/count-demo/clock".into(),
         key: "freq".into(),
-        value: ConfigurationValue::Quantity(conduit_core::Quantity::new(
-            250,
-            conduit_core::QuantityUnit::Millisecond,
-        )),
+        value: ConfigurationValue::Quantity(
+            conduit_core::QuantityConfigurationValue::from_value(conduit_core::Quantity::new(
+                250,
+                conduit_core::Unit::Millisecond,
+            ))
+            .unwrap(),
+        ),
     };
     let mut interaction = interaction();
     let request = PatchbayInteractionRequest::edit(
@@ -469,4 +472,47 @@ fn structured_configuration_is_inspectable_but_not_silently_scalar_edited() {
         ),
         Err(crate::InteractionError::UnsupportedConfiguration)
     );
+}
+
+#[test]
+fn physical_configuration_edits_preserve_canonical_bytes_and_source_spelling() {
+    let graph = count_graph();
+    let values = [
+        ConfigurationValue::Quantity(
+            conduit_core::QuantityConfigurationValue::parse("1Qm").unwrap(),
+        ),
+        ConfigurationValue::Unit(conduit_core::UnitConfigurationValue::parse("°C").unwrap()),
+        ConfigurationValue::TemperatureDifference(
+            conduit_core::ExactTemperatureDifferenceConfigurationValue::parse(
+                "TemperatureDelta(9, °F)",
+            )
+            .unwrap(),
+        ),
+    ];
+    for (index, value) in values.into_iter().enumerate() {
+        let edit = PatchbayEdit::ConfigureGear {
+            basis: PatchbayEditBasis::new(
+                graph.source_document_id.clone(),
+                7,
+                graph.expanded_plot_id.clone(),
+            )
+            .unwrap(),
+            subject_identity: "gear/count-demo/clock".into(),
+            key: "freq".into(),
+            value,
+        };
+        let request = PatchbayInteractionRequest::edit(
+            crate::interaction::PatchbayInteractionRequestId::new(format!("typed-{index}"))
+                .unwrap(),
+            edit,
+        )
+        .unwrap();
+        let mut interaction = interaction();
+        let receipt = interaction
+            .execute(Some(&graph), request.clone(), |_| {
+                PatchbayInvocationOutcome::Succeeded
+            })
+            .unwrap();
+        assert_eq!(receipt.request, request);
+    }
 }

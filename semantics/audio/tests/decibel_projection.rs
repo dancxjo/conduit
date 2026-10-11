@@ -1,5 +1,5 @@
 use conduit_audio::*;
-use conduit_core::QuantityUnit;
+use conduit_core::Unit;
 use conduit_plot::rust_binding::NativeRustBinding;
 fn basis(power: bool) -> AudioDecibelBasis {
     let provenance = AudioTrajectoryProvenance::new(
@@ -18,7 +18,7 @@ fn basis(power: bool) -> AudioDecibelBasis {
         } else {
             AudioDecibelReferenceRole::AmplitudeMagnitude
         },
-        QuantityUnit::Second,
+        Unit::Second,
     )
     .unwrap();
     AudioDecibelBasis::new(

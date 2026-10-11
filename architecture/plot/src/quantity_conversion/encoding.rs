@@ -1,74 +1,47 @@
-//! Both semantic roles use the same bounded receipt encoding. Difference
-//! admission supplies distinct source and result Types and zero offsets.
+//! Checked physical values are the authority; source spelling remains evidence.
 use super::*;
-
-struct Facts<'a> {
-    original: &'a str,
-    source: ExactDecimalQuantity,
-    source_suffix: ResolvedQuantitySuffix<'a>,
-    target: ResolvedQuantitySuffix<'a>,
-    source_transform: (i128, i128, i128),
-    target_transform: (i128, i128, i128),
-    result: Result<(i128, i16), QuantityConversionRefusal>,
-}
 
 pub(super) fn prepare(
     profile: ConversionProfile,
-    original: &str,
-    target: &str,
+    source: &ConfigurationValue,
+    target: &ConfigurationValue,
 ) -> Result<StructuredInfoValue, QuantityConversionPreparationRefusal> {
     use QuantityConversionPreparationRefusal as R;
-    let receipt = match profile {
-        ConversionProfile::Quantity => {
-            let receipt =
-                ExactQuantityConversionReceipt::check(original, target).map_err(R::Request)?;
-            Facts {
-                original,
-                source: receipt.source(),
-                source_suffix: receipt.source_suffix(),
-                target: receipt.target(),
-                source_transform: receipt.source_transform(),
-                target_transform: receipt.target_transform(),
-                result: receipt
-                    .result()
-                    .map(|value| (value.coefficient(), value.exponent())),
-            }
-        }
-        ConversionProfile::TemperatureDifference => {
-            let receipt = ExactTemperatureDifferenceConversionReceipt::check(original, target)
-                .map_err(R::Request)?;
-            Facts {
-                original,
-                source: receipt.source().storage_coordinate(),
-                source_suffix: receipt.source_suffix(),
-                target: receipt.target(),
-                source_transform: receipt.source_transform(),
-                target_transform: receipt.target_transform(),
-                result: receipt
-                    .result()
-                    .map(|value| (value.coefficient(), value.exponent())),
-            }
-        }
+    let ConfigurationValue::Unit(target) = target else {
+        return Err(R::Configuration);
     };
-    let (ss, so, sd) = receipt.source_transform;
-    let (ts, to, td) = receipt.target_transform;
+    let (original, coordinate) = match (profile, source) {
+        (ConversionProfile::Quantity, ConfigurationValue::Quantity(source)) => {
+            (source.source(), source.value())
+        }
+        (
+            ConversionProfile::TemperatureDifference,
+            ConfigurationValue::TemperatureDifference(source),
+        ) => (source.source(), source.value().storage_coordinate()),
+        _ => return Err(R::Configuration),
+    };
+    if !coordinate.matches_literal_evidence(original)
+        || !target.value().matches_source_evidence(target.source())
+    {
+        return Err(R::SourceCorrelation);
+    }
     let value = |identity: &str, bytes: Vec<u8>| {
         StructuredInfoValue::leaf(leaf(identity), bytes).map_err(R::Receipt)
     };
     let text = |text: &str| value(TEXT_INFO_ID, text.as_bytes().to_vec());
-    let result = match receipt.result {
-        Ok(coordinate) => {
+    let result = match coordinate.convert_to_unit(target.value()) {
+        Ok((coefficient, exponent)) => {
             let coordinate = StructuredInfoValue::record(
                 coordinate_type(profile),
                 vec![
                     StructuredFieldValue::new(
                         "coefficient",
-                        value("value/i128", coordinate.0.to_le_bytes().to_vec())?,
+                        value("value/i128", coefficient.to_le_bytes().to_vec())?,
                     )
                     .map_err(R::Receipt)?,
                     StructuredFieldValue::new(
                         "exponent",
-                        value("value/i16", coordinate.1.to_le_bytes().to_vec())?,
+                        value("value/i16", exponent.to_le_bytes().to_vec())?,
                     )
                     .map_err(R::Receipt)?,
                 ],
@@ -80,104 +53,30 @@ pub(super) fn prepare(
         Err(refusal) => StructuredInfoValue::variant(
             result_type(profile),
             "refused",
-            text(match refusal {
-                QuantityConversionRefusal::IncompatibleDimensions => "incompatible-dimensions",
-                QuantityConversionRefusal::Inexact => "inexact",
-                QuantityConversionRefusal::Overflow => "overflow",
-            })?,
+            text(refusal_reason(refusal))?,
         )
         .map_err(R::Receipt)?,
     };
-    let mut fields = vec![
-        ("original", text(receipt.original)?),
-        (
-            "source",
-            profile.source_value(receipt.source).map_err(R::Receipt)?,
-        ),
-        ("source-suffix", text(receipt.source_suffix.source())?),
-        (
-            "source-base",
-            text(
-                receipt
-                    .source_suffix
-                    .base()
-                    .map(|base| base.unit())
-                    .unwrap_or(receipt.source.unit())
-                    .plot_suffix(),
-            )?,
-        ),
-        (
-            "source-prefix",
-            text(
-                receipt
-                    .source_suffix
-                    .prefix()
-                    .map_or("", |prefix| prefix.symbol()),
-            )?,
-        ),
-        (
-            "source-prefix-exponent",
-            value(
-                "value/i16",
-                i16::from(
-                    receipt
-                        .source_suffix
-                        .prefix()
-                        .map_or(0, |prefix| prefix.exponent()),
-                )
-                .to_le_bytes()
-                .to_vec(),
-            )?,
-        ),
-        (
-            "source-dimension",
-            text(dimension_name(receipt.source.dimension()))?,
-        ),
-        (
-            "target-dimension",
-            text(dimension_name(
-                receipt
-                    .target
-                    .base()
-                    .map(|base| base.unit())
-                    .unwrap_or_else(|| receipt.target.legacy_unit().unwrap())
-                    .dimension(),
-            ))?,
-        ),
-        ("target", text(receipt.target.source())?),
-        ("profile", text(profile.source_id())?),
-        ("catalogue", text(QUANTITY_PREFIX_CATALOG_ID)?),
-        (
-            "target-exponent",
-            value(
-                "value/i16",
-                receipt
-                    .target
-                    .decimal_exponent()
-                    .unwrap_or(0)
-                    .to_le_bytes()
-                    .to_vec(),
-            )?,
-        ),
-        ("result", result),
-    ];
-    for (name, number) in [
-        ("source-scale", ss),
-        ("source-offset", so),
-        ("source-denominator", sd),
-        ("target-scale", ts),
-        ("target-offset", to),
-        ("target-denominator", td),
-    ] {
-        fields.push((name, value("value/i128", number.to_le_bytes().to_vec())?));
-    }
     let receipt = StructuredInfoValue::record(
         receipt_type_for(profile),
-        fields
-            .into_iter()
-            .map(|(name, value)| StructuredFieldValue::new(name, value))
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(R::Receipt)?,
+        [
+            ("original", text(original)?),
+            (
+                "source",
+                profile.source_value(coordinate).map_err(R::Receipt)?,
+            ),
+            ("target", text(target.source())?),
+            (
+                "target-unit",
+                value(UNIT_INFO_ID, target.value().encode().to_vec())?,
+            ),
+            ("profile", text(&profile.source_id())?),
+            ("result", result),
+        ]
+        .into_iter()
+        .map(|(name, value)| StructuredFieldValue::new(name, value))
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(R::Receipt)?,
     )
     .map_err(R::Receipt)?;
     if receipt.canonical_bytes().map_err(R::Receipt)?.len() > MAXIMUM_RECEIPT_BYTES as usize {

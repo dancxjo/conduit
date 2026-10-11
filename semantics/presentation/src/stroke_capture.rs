@@ -94,13 +94,13 @@ fn point_frame(point: &StructuredInfoValue) -> Result<String, StrokeCaptureRefus
 #[cfg(test)]
 mod tests {
     use super::*;
-    use conduit_core::{Quantity, QuantityUnit};
+    use conduit_core::{Quantity, Unit};
 
     fn point(frame: &str, x: i64) -> StructuredInfoValue {
         crate::point2_value(
             frame,
-            Quantity::new(x, QuantityUnit::Millimeter),
-            Quantity::new(0, QuantityUnit::Millimeter),
+            Quantity::new(x, Unit::Millimeter),
+            Quantity::new(0, Unit::Millimeter),
         )
         .unwrap()
     }

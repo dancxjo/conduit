@@ -48,16 +48,16 @@ type UsbMouseOrderDrain =
 
 plot usb-hid-mouse-compact-observation (
     input: UsbMouseReceivedObservation...| >> observation: UsbMouseOrderedObservation...|
-) = ({ ordinal: .ordinal, observed: (.observed is mouse ? mouse({ buttons: .observed.mouse.buttons, x: .observed.mouse.x, y: .observed.mouse.y }) : (.observed is short ? short(unit) : (.observed is malformed ? malformed(unit) : (.observed is reserved ? reserved(unit) : invalid-motion(unit))))) })
+) = ({ ordinal: .ordinal, observed: (.observed is mouse ? mouse({ buttons: .observed.mouse.buttons, x: .observed.mouse.x, y: .observed.mouse.y }) : (.observed is short ? short(empty) : (.observed is malformed ? malformed(empty) : (.observed is reserved ? reserved(empty) : invalid-motion(empty))))) })
 
 plot usb-hid-mouse-order-initialize (
-    begin: Unit...| >> state: UsbMouseOrderState...|
-) = ({ expected: 0, slots: [vacant(unit), vacant(unit)] })
+    begin: Empty...| >> state: UsbMouseOrderState...|
+) = ({ expected: 0, slots: [vacant(empty), vacant(empty)] })
 
 plot usb-hid-mouse-order-insert (
     input: UsbMouseOrderInsertion...| >> admitted: UsbMouseOrderAdmission...|
-) = (.observation.ordinal < .state.expected ? stale(unit) : (.observation.ordinal == 18446744073709551615 || .observation.ordinal - .state.expected >= 2 ? outside-window(unit) : ((.state.slots.0 is held ? .state.slots.0.held.ordinal == .observation.ordinal : false) || (.state.slots.1 is held ? .state.slots.1.held.ordinal == .observation.ordinal : false) ? duplicate(unit) : (.state.slots.0 is vacant ? accepted({ expected: .state.expected, slots: [held(.observation), .state.slots.1] }) : (.state.slots.1 is vacant ? accepted({ expected: .state.expected, slots: [.state.slots.0, held(.observation)] }) : pressure(unit))))))
+) = (.observation.ordinal < .state.expected ? stale(empty) : (.observation.ordinal == 18446744073709551615 || .observation.ordinal - .state.expected >= 2 ? outside-window(empty) : ((.state.slots.0 is held ? .state.slots.0.held.ordinal == .observation.ordinal : false) || (.state.slots.1 is held ? .state.slots.1.held.ordinal == .observation.ordinal : false) ? duplicate(empty) : (.state.slots.0 is vacant ? accepted({ expected: .state.expected, slots: [held(.observation), .state.slots.1] }) : (.state.slots.1 is vacant ? accepted({ expected: .state.expected, slots: [.state.slots.0, held(.observation)] }) : pressure(empty))))))
 
 plot usb-hid-mouse-order-drain (
     state: UsbMouseOrderState...| >> next: UsbMouseOrderDrain...|
-) = ((.slots.0 is held ? .slots.0.held.ordinal == .expected : false) ? (.slots.0 is held ? ready({ state: { expected: .expected + 1, slots: [vacant(unit), .slots.1] }, observation: .slots.0.held }) : waiting(.)) : ((.slots.1 is held ? .slots.1.held.ordinal == .expected : false) ? (.slots.1 is held ? ready({ state: { expected: .expected + 1, slots: [.slots.0, vacant(unit)] }, observation: .slots.1.held }) : waiting(.)) : waiting(.)))
+) = ((.slots.0 is held ? .slots.0.held.ordinal == .expected : false) ? (.slots.0 is held ? ready({ state: { expected: .expected + 1, slots: [vacant(empty), .slots.1] }, observation: .slots.0.held }) : waiting(.)) : ((.slots.1 is held ? .slots.1.held.ordinal == .expected : false) ? (.slots.1 is held ? ready({ state: { expected: .expected + 1, slots: [.slots.0, vacant(empty)] }, observation: .slots.1.held }) : waiting(.)) : waiting(.)))

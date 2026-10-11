@@ -2,8 +2,8 @@
 
 use alloc::{string::String, string::ToString, vec};
 use conduit_core::{
-    Quantity, QuantityDimension, QuantityUnit, StructuredInfoRefusal, StructuredInfoType,
-    StructuredInfoValue,
+    Quantity, QuantityDimension, StructuredInfoRefusal, StructuredInfoType, StructuredInfoValue,
+    Unit,
 };
 
 use crate::{
@@ -61,47 +61,47 @@ pub fn deterministic_robotics_structured_fixture(
     let pose = pose_sample_value(
         "sim/robot-base",
         42,
-        Quantity::new(420, QuantityUnit::Millisecond),
+        Quantity::new(420, Unit::Millisecond),
         "map",
-        Quantity::new(1_250, QuantityUnit::Millimeter),
-        Quantity::new(-500, QuantityUnit::Millimeter),
-        Quantity::new(90, QuantityUnit::Degree),
-        Quantity::new(10, QuantityUnit::Millimeter),
-        Quantity::new(1, QuantityUnit::Degree),
+        Quantity::new(1_250, Unit::Millimeter),
+        Quantity::new(-500, Unit::Millimeter),
+        Quantity::new(90, Unit::Degree),
+        Quantity::new(10, Unit::Millimeter),
+        Quantity::new(1, Unit::Degree),
     )?;
     let range = range_sample_value(
         "sim/front-range",
         43,
-        Quantity::new(430, QuantityUnit::Millisecond),
+        Quantity::new(430, Unit::Millisecond),
         "sensor/front",
-        Quantity::new(420, QuantityUnit::Millimeter),
-        Quantity::new(5, QuantityUnit::Millimeter),
+        Quantity::new(420, Unit::Millimeter),
+        Quantity::new(5, Unit::Millimeter),
     )?;
     let contact = contact_event_value(
         "sim/create-bumper",
         44,
-        Quantity::new(440, QuantityUnit::Millisecond),
+        Quantity::new(440, Unit::Millisecond),
         "contact/bumper-left",
         "began",
     )?;
     let power = power_telemetry_value(
         "sim/create-power",
         45,
-        Quantity::new(450, QuantityUnit::Millisecond),
-        Quantity::new(750, QuantityUnit::Permille),
-        Quantity::new(14_500, QuantityUnit::Millivolt),
-        Quantity::new(50, QuantityUnit::Millivolt),
+        Quantity::new(450, Unit::Millisecond),
+        Quantity::new(750, Unit::Permille),
+        Quantity::new(14_500, Unit::Millivolt),
+        Quantity::new(50, Unit::Millivolt),
     )?;
     let twist = twist_interval_value(
         ROBOTICS_BODY_FRAME,
-        Quantity::new(100, QuantityUnit::Millisecond),
-        Quantity::new(20, QuantityUnit::Millimeter),
-        Quantity::new(0, QuantityUnit::Millimeter),
-        Quantity::new(2, QuantityUnit::Degree),
+        Quantity::new(100, Unit::Millisecond),
+        Quantity::new(20, Unit::Millimeter),
+        Quantity::new(0, Unit::Millimeter),
+        Quantity::new(2, Unit::Degree),
     )?;
     let motion_request = motion_request_value(
         "request/sim-forward",
-        Quantity::new(250, QuantityUnit::Millisecond),
+        Quantity::new(250, Unit::Millisecond),
         twist,
     )?;
     Ok(RoboticsStructuredFixture {
@@ -129,19 +129,19 @@ pub fn pose_sample_value(
     require_exact(
         heading,
         QuantityDimension::Angle,
-        QuantityUnit::Microdegree,
+        Unit::Microdegree,
         "heading",
     )?;
     require_uncertainty(
         position_uncertainty,
         QuantityDimension::Length,
-        QuantityUnit::Micrometer,
+        Unit::Micrometer,
         "position_uncertainty",
     )?;
     require_uncertainty(
         heading_uncertainty,
         QuantityDimension::Angle,
-        QuantityUnit::Microdegree,
+        Unit::Microdegree,
         "heading_uncertainty",
     )?;
     let position = point2_value(frame, x, y)?;
@@ -181,7 +181,7 @@ pub fn range_sample_value(
     let distance_mm = require_exact(
         distance,
         QuantityDimension::Length,
-        QuantityUnit::Millimeter,
+        Unit::Millimeter,
         "distance",
     )?;
     if !(0..=1_000_000).contains(&distance_mm) {
@@ -190,7 +190,7 @@ pub fn range_sample_value(
     require_uncertainty(
         uncertainty,
         QuantityDimension::Length,
-        QuantityUnit::Millimeter,
+        Unit::Millimeter,
         "uncertainty",
     )?;
     let measurement = record_value(
@@ -219,8 +219,7 @@ pub fn robotics_range_sample_example() -> StructuredInfoValue {
         vec![
             (
                 "distance",
-                quantity_value(Quantity::new(850, QuantityUnit::Millimeter))
-                    .expect("reviewed distance"),
+                quantity_value(Quantity::new(850, Unit::Millimeter)).expect("reviewed distance"),
             ),
             (
                 "frame",
@@ -228,8 +227,7 @@ pub fn robotics_range_sample_example() -> StructuredInfoValue {
             ),
             (
                 "uncertainty",
-                quantity_value(Quantity::new(5, QuantityUnit::Millimeter))
-                    .expect("reviewed uncertainty"),
+                quantity_value(Quantity::new(5, Unit::Millimeter)).expect("reviewed uncertainty"),
             ),
         ],
     )
@@ -264,16 +262,10 @@ pub fn power_telemetry_value(
     voltage: Quantity,
     voltage_uncertainty: Quantity,
 ) -> Result<StructuredInfoValue, RoboticsStructuredRefusal> {
-    require_nonnegative(
-        charge,
-        QuantityDimension::Ratio,
-        QuantityUnit::Millionth,
-        "charge",
-    )?;
+    require_nonnegative(charge, QuantityDimension::Ratio, Unit::Millionth, "charge")?;
     if charge
-        .convert(QuantityUnit::Millionth)
+        .to_i64(Unit::Millionth)
         .map_err(|_| RoboticsStructuredRefusal::InexactPrecision { field: "charge" })?
-        .value()
         > 1_000_000
     {
         return Err(RoboticsStructuredRefusal::OutsideRange { field: "charge" });
@@ -281,13 +273,13 @@ pub fn power_telemetry_value(
     require_nonnegative(
         voltage,
         QuantityDimension::Voltage,
-        QuantityUnit::Microvolt,
+        Unit::Microvolt,
         "voltage",
     )?;
     require_uncertainty(
         voltage_uncertainty,
         QuantityDimension::Voltage,
-        QuantityUnit::Microvolt,
+        Unit::Microvolt,
         "voltage_uncertainty",
     )?;
     record_value(
@@ -320,7 +312,7 @@ pub fn twist_interval_value(
     let converted = require_exact(
         interval,
         QuantityDimension::Time,
-        QuantityUnit::Millisecond,
+        Unit::Millisecond,
         "interval",
     )?;
     if converted <= 0 {
@@ -332,7 +324,7 @@ pub fn twist_interval_value(
     require_exact(
         angular_delta,
         QuantityDimension::Angle,
-        QuantityUnit::Microdegree,
+        Unit::Microdegree,
         "angular_delta",
     )?;
     let linear_delta = coordinate_value(vector2_type(), frame, linear_x, linear_y)?;
@@ -356,7 +348,7 @@ pub fn motion_request_value(
     let converted = require_exact(
         expires_after,
         QuantityDimension::Time,
-        QuantityUnit::Millisecond,
+        Unit::Millisecond,
         "expires_after",
     )?;
     if converted <= 0 {
@@ -386,7 +378,7 @@ fn sample_context_value(
     require_nonnegative(
         sample_time_since_boot,
         QuantityDimension::Time,
-        QuantityUnit::Millisecond,
+        Unit::Millisecond,
         "sample_time_since_boot",
     )?;
     record_value(
@@ -408,18 +400,8 @@ fn coordinate_value(
     x: Quantity,
     y: Quantity,
 ) -> Result<StructuredInfoValue, RoboticsStructuredRefusal> {
-    require_exact(
-        x,
-        QuantityDimension::Length,
-        QuantityUnit::Micrometer,
-        "linear_x",
-    )?;
-    require_exact(
-        y,
-        QuantityDimension::Length,
-        QuantityUnit::Micrometer,
-        "linear_y",
-    )?;
+    require_exact(x, QuantityDimension::Length, Unit::Micrometer, "linear_x")?;
+    require_exact(y, QuantityDimension::Length, Unit::Micrometer, "linear_y")?;
     record_value(
         value_type,
         vec![

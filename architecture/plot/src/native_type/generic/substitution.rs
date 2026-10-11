@@ -15,6 +15,9 @@ impl Context<'_> {
         arguments: &Bindings,
     ) -> Result<TypeDefinitionSyntax, SyntaxCheckDiagnostic> {
         Ok(match definition {
+            TypeDefinitionSyntax::Quantity(definition) => {
+                TypeDefinitionSyntax::Quantity(definition.clone())
+            }
             TypeDefinitionSyntax::Scalar(expression) => {
                 TypeDefinitionSyntax::Scalar(self.expression(expression, arguments)?)
             }
@@ -31,7 +34,7 @@ impl Context<'_> {
                         Ok(TypeVariantCaseSyntax {
                             tag: case.tag.clone(),
                             payload: match &case.payload {
-                                TypeVariantPayloadSyntax::Unit => TypeVariantPayloadSyntax::Unit,
+                                TypeVariantPayloadSyntax::Empty => TypeVariantPayloadSyntax::Empty,
                                 TypeVariantPayloadSyntax::Type(value) => {
                                     TypeVariantPayloadSyntax::Type(
                                         self.expression(value, arguments)?,

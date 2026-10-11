@@ -127,10 +127,26 @@ impl PatchbayHtmlServer {
                     .as_deref()
                     .ok_or(ServerError::InvalidRequest)?,
             ),
-            "edit" => PatchbayInteractionRequest::edit(
-                request_id,
-                parse_html_edit(input.edit.ok_or(ServerError::InvalidRequest)?)?,
-            ),
+            "edit" => {
+                let edit = input.edit.ok_or(ServerError::InvalidRequest)?;
+                let catalog = if let Some(session) = self
+                    .zero_body_front_door
+                    .as_ref()
+                    .filter(|_| edit.operation == "configure-gear")
+                {
+                    session
+                        .lock()
+                        .map_err(|_| ServerError::InvalidRequest)?
+                        .opened_plot_editor()
+                        .map(|editor| editor.checked_physical_catalog())
+                        .transpose()
+                        .map_err(|_| ServerError::InvalidRequest)?
+                        .unwrap_or_default()
+                } else {
+                    conduit_plot::StartupCatalog::new()
+                };
+                PatchbayInteractionRequest::edit(request_id, parse_html_edit(edit, &catalog)?)
+            }
             _ => return Err(ServerError::InvalidRequest),
         }
         .map_err(|error| ServerError::Interaction(format!("{error:?}")))?;
@@ -399,10 +415,13 @@ struct HtmlEditInput {
     primary: String,
     secondary: Option<String>,
     key: Option<String>,
-    value: Option<conduit_core::ConfigurationValue>,
+    value: Option<super::configuration_input::ConfigurationInput>,
 }
 
-fn parse_html_edit(input: HtmlEditInput) -> Result<PatchbayEdit, ServerError> {
+fn parse_html_edit(
+    input: HtmlEditInput,
+    catalog: &conduit_plot::StartupCatalog,
+) -> Result<PatchbayEdit, ServerError> {
     let basis = PatchbayEditBasis::new(
         conduit_core::SourceDocumentId::from(input.source_document_id),
         input.source_revision,
@@ -440,7 +459,11 @@ fn parse_html_edit(input: HtmlEditInput) -> Result<PatchbayEdit, ServerError> {
             basis,
             subject_identity: input.primary,
             key: input.key.ok_or(ServerError::InvalidRequest)?,
-            value: input.value.ok_or(ServerError::InvalidRequest)?,
+            value: input
+                .value
+                .ok_or(ServerError::InvalidRequest)?
+                .checked_with_catalog(catalog)
+                .map_err(|_| ServerError::InvalidRequest)?,
         }),
         _ => Err(ServerError::InvalidRequest),
     }

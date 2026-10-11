@@ -23,7 +23,7 @@ pub(super) fn encode_batch(occurrences: &[RecurrenceOccurrence]) -> Result<Vec<u
         .collect::<Result<Vec<_>, String>>()?;
     while slots.len() < usize::from(conduit_semantic_catalog::RECURRENCE_MAXIMUM_RESULTS) {
         slots.push(
-            StructuredInfoValue::variant(slot_type.clone(), "unused", leaf("value/unit", "")?)
+            StructuredInfoValue::variant(slot_type.clone(), "unused", leaf("value/empty", "")?)
                 .map_err(structured)?,
         );
     }

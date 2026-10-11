@@ -24,7 +24,7 @@ plot read (
 ) = (sequence/at(.bytes, .index))
 plot guarded (
  value: Request >> result: Result
-) = (.index < sequence/length(.bytes) ? octet(sequence/at(.bytes, .index)) : short(unit))
+) = (.index < sequence/length(.bytes) ? octet(sequence/at(.bytes, .index)) : short(empty))
 plot computed (
  value: Request >> result: U8
 ) = (sequence/at(.index == 0 ? .bytes : .bytes, .index))

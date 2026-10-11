@@ -1,7 +1,7 @@
 //! Canonical tensor wire encoding, separate from validation and meaning.
 
 use alloc::{string::ToString, vec, vec::Vec};
-use conduit_core::{semantic_digest, BoundedResourceRef, QuantityUnit};
+use conduit_core::{semantic_digest, BoundedResourceRef, Unit};
 use conduit_plot::rust_binding::{BoundedBytes, BoundedSequence};
 
 use crate::{
@@ -158,7 +158,7 @@ fn encode_axis(output: &mut Vec<u8>, axis: &TensorAxis) -> Result<(), TensorRefu
         None => output.push(0),
         Some(unit) => {
             output.push(1);
-            output.push(unit_tag(unit));
+            output.extend_from_slice(&unit.encode());
         }
     }
     Ok(())
@@ -183,7 +183,10 @@ fn decode_axis(cursor: &mut Cursor<'_>) -> Result<TensorAxis, TensorRefusal> {
     };
     let unit = match cursor.u8()? {
         0 => None,
-        1 => Some(decode_unit(cursor.u8()?)?),
+        1 => Some(
+            Unit::decode(cursor.take(conduit_core::UNIT_ENCODED_LEN)?)
+                .map_err(|_| TensorRefusal::UnsupportedUnit)?,
+        ),
         _ => return Err(TensorRefusal::MalformedEncoding),
     };
     Ok(TensorAxis {
@@ -207,13 +210,6 @@ fn push_text(output: &mut Vec<u8>, value: &str) -> Result<(), TensorRefusal> {
     output.push(value.len() as u8);
     output.extend_from_slice(value.as_bytes());
     Ok(())
-}
-
-fn unit_tag(unit: QuantityUnit) -> u8 {
-    unit.encode()[0]
-}
-fn decode_unit(tag: u8) -> Result<QuantityUnit, TensorRefusal> {
-    QuantityUnit::decode(&[tag]).map_err(|_| TensorRefusal::UnsupportedUnit)
 }
 
 struct Cursor<'a> {

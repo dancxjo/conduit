@@ -94,9 +94,20 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
                     push_u32(&mut canonical, value.canonical_value().len() as u32);
                     canonical.extend_from_slice(value.canonical_value());
                 }
-                ConfigurationValue::Quantity(value) => {
-                    canonical.push(5);
-                    canonical.extend_from_slice(&value.encode());
+                ConfigurationValue::Quantity(ref value) => {
+                    canonical.push(6);
+                    canonical.extend_from_slice(value.canonical_value());
+                    push_string(&mut canonical, value.source());
+                }
+                ConfigurationValue::TemperatureDifference(ref value) => {
+                    canonical.push(8);
+                    canonical.extend_from_slice(value.canonical_value());
+                    push_string(&mut canonical, value.source());
+                }
+                ConfigurationValue::Unit(ref value) => {
+                    canonical.push(7);
+                    canonical.extend_from_slice(value.canonical_value());
+                    push_string(&mut canonical, value.source());
                 }
             }
         }
@@ -420,6 +431,9 @@ fn push_semantic_contract(canonical: &mut Vec<u8>, contract: &crate::KindSemanti
         push_configuration_value(canonical, &field.default_value);
         match &field.rule {
             Rule::Any => canonical.push(0),
+            Rule::Quantity => canonical.push(8),
+            Rule::Unit => canonical.push(9),
+            Rule::TemperatureDifference => canonical.push(10),
             Rule::U64Range { minimum, maximum } => {
                 canonical.push(1);
                 push_u64(canonical, *minimum);
@@ -443,7 +457,7 @@ fn push_semantic_contract(canonical: &mut Vec<u8>, contract: &crate::KindSemanti
                 canonical.push(4);
                 canonical.extend_from_slice(&minimum.to_le_bytes());
                 canonical.extend_from_slice(&maximum.to_le_bytes());
-                push_string(canonical, canonical_unit.semantic_id());
+                push_string(canonical, &canonical_unit.semantic_id());
             }
             Rule::TextBytes { maximum } => {
                 canonical.push(5);
@@ -732,8 +746,19 @@ fn push_configuration_value(canonical: &mut Vec<u8>, value: &ConfigurationValue)
             canonical.extend_from_slice(value.canonical_value());
         }
         ConfigurationValue::Quantity(value) => {
-            canonical.push(5);
-            canonical.extend_from_slice(&value.encode());
+            canonical.push(6);
+            canonical.extend_from_slice(value.canonical_value());
+            push_string(canonical, value.source());
+        }
+        ConfigurationValue::TemperatureDifference(value) => {
+            canonical.push(8);
+            canonical.extend_from_slice(value.canonical_value());
+            push_string(canonical, value.source());
+        }
+        ConfigurationValue::Unit(value) => {
+            canonical.push(7);
+            canonical.extend_from_slice(value.canonical_value());
+            push_string(canonical, value.source());
         }
     }
 }

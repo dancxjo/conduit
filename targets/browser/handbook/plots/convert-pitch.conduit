@@ -1,5 +1,5 @@
 plot convert-pitch-demo {
-    operation: units/convert(source = "1kHz", to = "Hz")
+    operation: units/convert(source = 1kHz, to = Hz)
     show: presentation/text
     operation.receipt >> ((variant/is(.result, "converted") ? (.result.converted.coefficient == 1 ? .result.converted.exponent == 3 : false) : false) ? "Exactly 1000 Hz" : "The result is not exactly 1000 Hz") >> show.text
 }.

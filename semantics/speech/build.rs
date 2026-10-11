@@ -281,7 +281,7 @@ fn main() {
             ));
         }
         if let StructuredInfoTypeShape::Variant { cases, .. } = native.value_type.shape() {
-            generated.push_str(&format!("#[allow(non_camel_case_types)]\n#[derive(Clone, Copy, Debug, PartialEq, Eq)]\n#[repr(u8)]\npub enum {} {{ {} }}\n", native.name, cases.iter().map(|case| if matches!(case.payload_type().shape(), StructuredInfoTypeShape::Leaf(kind) if kind.as_str() == conduit_core::UNIT_INFO_ID) { format!("r#{}", case.tag()) } else { format!("r#{}({})", case.tag(), lower::ty(case.payload_type(), &types).expect("variant payload lowering")) }).collect::<Vec<_>>().join(",")));
+            generated.push_str(&format!("#[allow(non_camel_case_types)]\n#[derive(Clone, Copy, Debug, PartialEq, Eq)]\n#[repr(u8)]\npub enum {} {{ {} }}\n", native.name, cases.iter().map(|case| if matches!(case.payload_type().shape(), StructuredInfoTypeShape::Leaf(kind) if kind.as_str() == conduit_core::EMPTY_INFO_ID) { format!("r#{}", case.tag()) } else { format!("r#{}({})", case.tag(), lower::ty(case.payload_type(), &types).expect("variant payload lowering")) }).collect::<Vec<_>>().join(",")));
         }
     }
     let phones = checked

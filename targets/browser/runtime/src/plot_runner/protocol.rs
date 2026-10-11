@@ -377,15 +377,7 @@ pub(super) fn decode_manifestation(
             if value.value_type() == &conduit_semantic_catalog::wrapped_quantity_type() {
                 let quantity =
                     crate::installed_browser::decode_quantity_leaf(&manifestation.canonical_value)?;
-                return Ok((
-                    0,
-                    Vec::new(),
-                    Some(format!(
-                        "{} {}",
-                        quantity.value(),
-                        quantity.unit().plot_suffix()
-                    )),
-                ));
+                return Ok((0, Vec::new(), Some(quantity_text(quantity))));
             }
             if value.value_type() != &conduit_language::annotation_bundle_four_type() {
                 return Err("structured manifestation has the wrong exact type".into());
@@ -402,15 +394,7 @@ pub(super) fn decode_manifestation(
         conduit_semantic_catalog::QUANTITY_PRESENTATION_KIND => {
             let quantity =
                 crate::installed_browser::decode_quantity_leaf(&manifestation.canonical_value)?;
-            Ok((
-                0,
-                Vec::new(),
-                Some(format!(
-                    "{} {}",
-                    quantity.value(),
-                    quantity.unit().plot_suffix()
-                )),
-            ))
+            Ok((0, Vec::new(), Some(quantity_text(quantity))))
         }
         conduit_semantic_catalog::SCALAR_VALUE_PRESENTATION_KIND => {
             let scalar = conduit_core::Scalar::decode(&manifestation.canonical_value)
@@ -543,4 +527,12 @@ pub(super) struct SnapshotEffect {
     pub record: Option<Vec<u8>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub source_interaction: Option<SourceInteractionEvidence>,
+}
+
+fn quantity_text(quantity: conduit_core::Quantity) -> String {
+    let magnitude = quantity
+        .to_i64(quantity.unit())
+        .map(|value| value.to_string())
+        .unwrap_or_else(|_| format!("{}e{}", quantity.coefficient(), quantity.exponent()));
+    format!("{magnitude} {}", quantity.unit().plot_suffix())
 }

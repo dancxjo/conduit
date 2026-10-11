@@ -11,8 +11,32 @@ use conduit_plot::{
 fn configuration(source: &str, target: &str) -> [ConfigurationEntry; 2] {
     [("source", source), ("to", target)].map(|(key, value)| ConfigurationEntry {
         key: key.into(),
-        value: ConfigurationValue::Text(value.into()),
+        value: if key == "to" {
+            ConfigurationValue::Unit(conduit_core::UnitConfigurationValue::parse(value).unwrap())
+        } else {
+            ConfigurationValue::TemperatureDifference(
+                conduit_core::ExactTemperatureDifferenceConfigurationValue::new(
+                    conduit_core::ExactTemperatureDifference::parse_plot_literal(&delta_source(
+                        value,
+                    ))
+                    .unwrap(),
+                    delta_source(value),
+                )
+                .unwrap(),
+            )
+        },
     })
+}
+fn delta_source(literal: &str) -> String {
+    let start = literal
+        .char_indices()
+        .find_map(|(i, c)| (!(c.is_ascii_digit() || c == '.' || (i == 0 && c == '-'))).then_some(i))
+        .unwrap();
+    format!(
+        "TemperatureDelta({}, {})",
+        &literal[..start],
+        &literal[start..]
+    )
 }
 fn field<'a>(record: &'a StructuredInfoValue, name: &str) -> &'a StructuredInfoValue {
     let StructuredInfoValueShape::Record(fields) = record.shape() else {
@@ -42,7 +66,8 @@ fn authored_difference_conversion_has_distinct_types_zero_offsets_and_preserved_
         ("9m°F", "mK", 5, 0),
         ("1QK", "qK", 1, 60),
     ] {
-        let source = format!("# µ before original source\nplot difference (\n receipt: ExactTemperatureDifferenceConversionReceipt <= 8192B >>\n) {{\n converted: units/convert-temperature-difference(source = \"{original}\", to = \"{target}\")\n converted.receipt >> receipt\n}}.\n");
+        let authored = delta_source(original);
+        let source = format!("# µ before original source\nplot difference (\n receipt: ExactTemperatureDifferenceConversionReceipt <= 8192B >>\n) {{\n converted: units/convert-temperature-difference(source = {authored}, to = {target})\n converted.receipt >> receipt\n}}.\n");
         let syntax = parse_syntax_document(&source);
         assert!(syntax.diagnostics.is_empty());
         assert_eq!(syntax.round_trip(), source);
@@ -60,17 +85,23 @@ fn authored_difference_conversion_has_distinct_types_zero_offsets_and_preserved_
             &difference::source_type()
         );
         assert!(difference::validate_source_value(field(&receipt, "source")).is_ok());
-        assert_eq!(bytes(field(&receipt, "original")), original.as_bytes());
+        assert_eq!(bytes(field(&receipt, "original")), authored.as_bytes());
         assert_eq!(
             bytes(field(&receipt, "profile")),
-            conduit_core::EXACT_TEMPERATURE_DIFFERENCE_INFO_ID.as_bytes()
+            conduit_core::temperature_delta_info_id().as_bytes()
         );
-        for name in ["source-offset", "target-offset"] {
-            assert_eq!(
-                i128::from_le_bytes(bytes(field(&receipt, name)).try_into().unwrap()),
-                0
-            );
-        }
+        let delta = conduit_core::Quantity::decode(bytes(field(&receipt, "source"))).unwrap();
+        assert_eq!(delta.role(), conduit_core::QuantityRole::Delta);
+        let target_unit =
+            conduit_core::Unit::decode(bytes(field(&receipt, "target-unit"))).unwrap();
+        assert_eq!(
+            target_unit
+                .definition()
+                .exact_offset(delta.role())
+                .unwrap()
+                .numerator,
+            0
+        );
         let StructuredInfoValueShape::Variant { tag, payload } = field(&receipt, "result").shape()
         else {
             panic!("result")
@@ -88,10 +119,12 @@ fn authored_difference_conversion_has_distinct_types_zero_offsets_and_preserved_
             gear.outputs[0].value_kind,
             *receipt.value_type().profile().unwrap().value_kind()
         );
-        let point = quantity_conversion::prepare_configuration(&gear.configuration).unwrap();
+        let point =
+            quantity_conversion::prepare_configuration(&point_configuration(original, target))
+                .unwrap();
         assert!(difference::validate_receipt(&point).is_err());
     }
-    let source = "plot bad (\n receipt: ExactQuantityConversionReceipt <= 8192B >>\n) {\n converted: units/convert-temperature-difference(source = \"9°F\", to = \"K\")\n converted.receipt >> receipt\n}.\n";
+    let source = "plot bad (\n receipt: ExactQuantityConversionReceipt <= 8192B >>\n) {\n converted: units/convert-temperature-difference(source = TemperatureDelta(9, °F), to = K)\n converted.receipt >> receipt\n}.\n";
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
     // Kind signatures own startup values; canonical expansion checks exact port Types.
     let error = expand_canonical_plot_for_authoring(&checked, "bad", &profile).unwrap_err();
@@ -118,38 +151,42 @@ fn difference_refusals_keep_precision_and_original_diagnostic_spans() {
     quantity_conversion::install(&mut startup, &mut ProfileCatalog::new()).unwrap();
     for (original, target, offending) in [
         ("1Hz", "K", "1Hz"),
-        ("1°C", "mkg", "mkg"),
+        ("TemperatureDelta(1, °C)", "mkg", "mkg"),
         ("21C", "K", "21C"),
     ] {
-        let source = format!("# µ original\nplot invalid {{\n original = \"{original}\"\n alias = original\n converted: units/convert-temperature-difference(source = alias, to = \"{target}\")\n}}\n");
+        let source = format!("# µ original\nplot invalid {{\n converted: units/convert-temperature-difference(source = {original}, to = {target})\n}}\n");
         let syntax = parse_syntax_document(&source);
-        let checked = check_syntax_document(&syntax, &startup).unwrap();
-        let error = quantity_conversion::validate_source(&syntax, &checked).unwrap_err();
+        let error = check_syntax_document(&syntax, &startup).unwrap_err();
         assert_eq!(&source[error.span.start..error.span.end], offending);
     }
 }
 
 #[test]
-fn difference_receipt_readmission_rejects_forged_affine_offset_and_point_source_type() {
+fn difference_receipt_readmission_rejects_changed_target_definition_and_point_source_type() {
     let receipt = difference::prepare_configuration(&configuration("9°F", "°F")).unwrap();
-    let point = quantity_conversion::prepare_configuration(&configuration("9°F", "°F")).unwrap();
+    let point =
+        quantity_conversion::prepare_configuration(&point_configuration("9°F", "°F")).unwrap();
     let StructuredInfoValueShape::Record(fields) = receipt.shape() else {
         panic!("record")
     };
-    for name in ["source-offset", "target-offset"] {
-        let fields = fields
-            .iter()
-            .map(|entry| {
-                if entry.name() == name {
-                    StructuredFieldValue::new(name, field(&point, name).clone()).unwrap()
-                } else {
-                    entry.clone()
-                }
-            })
-            .collect();
-        let forged = StructuredInfoValue::record(difference::receipt_type(), fields).unwrap();
-        assert!(difference::validate_receipt(&forged).is_err());
-    }
+    let wrong_target = conduit_core::StructuredInfoValue::leaf(
+        conduit_core::StructuredInfoType::leaf(conduit_core::kind_id(conduit_core::UNIT_INFO_ID))
+            .unwrap(),
+        conduit_core::Unit::Celsius.encode().to_vec(),
+    )
+    .unwrap();
+    let forged_fields = fields
+        .iter()
+        .map(|entry| {
+            if entry.name() == "target-unit" {
+                StructuredFieldValue::new("target-unit", wrong_target.clone()).unwrap()
+            } else {
+                entry.clone()
+            }
+        })
+        .collect();
+    let forged = StructuredInfoValue::record(difference::receipt_type(), forged_fields).unwrap();
+    assert!(difference::validate_receipt(&forged).is_err());
     let fields = fields
         .iter()
         .map(|entry| {
@@ -161,38 +198,37 @@ fn difference_receipt_readmission_rejects_forged_affine_offset_and_point_source_
         })
         .collect();
     assert!(StructuredInfoValue::record(difference::receipt_type(), fields).is_err());
-    let invalid_coordinate = conduit_core::ExactDecimalQuantity::parse_plot_literal("1Hz").unwrap();
-    let invalid_source = StructuredInfoValue::record(
+    let invalid_coordinate = conduit_core::Quantity::parse_plot_literal("1Hz").unwrap();
+    assert!(StructuredInfoValue::leaf(
         difference::source_type(),
-        vec![StructuredFieldValue::new(
-            "coordinate",
-            StructuredInfoValue::leaf(
-                conduit_core::StructuredInfoType::leaf(conduit_core::kind_id(
-                    conduit_core::EXACT_DECIMAL_QUANTITY_INFO_ID,
-                ))
-                .unwrap(),
-                invalid_coordinate.encode().to_vec(),
-            )
-            .unwrap(),
-        )
-        .unwrap()],
+        invalid_coordinate.encode().to_vec(),
     )
-    .unwrap();
-    assert!(difference::validate_source_value(&invalid_source).is_err());
-    let fields = match receipt.shape() {
-        StructuredInfoValueShape::Record(fields) => fields,
-        _ => unreachable!(),
-    };
-    let fields = fields
-        .iter()
-        .map(|entry| {
-            if entry.name() == "source" {
-                StructuredFieldValue::new("source", invalid_source.clone()).unwrap()
-            } else {
-                entry.clone()
-            }
-        })
-        .collect();
-    let forged = StructuredInfoValue::record(difference::receipt_type(), fields).unwrap();
-    assert!(difference::validate_receipt(&forged).is_err());
+    .is_err());
+}
+
+#[test]
+fn expected_delta_type_never_reinterprets_a_bare_temperature_point() {
+    let mut startup = StartupCatalog::new();
+    quantity_conversion::install(&mut startup, &mut ProfileCatalog::new()).unwrap();
+    for literal in ["9°F", "1°C", "1K"] {
+        let source = format!("plot wrong {{\n converted: units/convert-temperature-difference(source = {literal}, to = K)\n}}\n");
+        assert!(check_syntax_document(&parse_syntax_document(&source), &startup).is_err());
+    }
+}
+
+fn point_configuration(source: &str, target: &str) -> [ConfigurationEntry; 2] {
+    [
+        ConfigurationEntry {
+            key: "source".into(),
+            value: ConfigurationValue::Quantity(
+                conduit_core::QuantityConfigurationValue::parse(source).unwrap(),
+            ),
+        },
+        ConfigurationEntry {
+            key: "to".into(),
+            value: ConfigurationValue::Unit(
+                conduit_core::UnitConfigurationValue::parse(target).unwrap(),
+            ),
+        },
+    ]
 }

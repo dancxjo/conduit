@@ -27,9 +27,9 @@ use crate::installed_browser::{backs, local_bases};
 use conduit_core::{
     bind_active_play, bind_presentation, bind_sign, Plan, PlanFragment, PresentationIdentity,
 };
-use conduit_planner::{
-    default_expanded_placements, plan_expanded_canonical_with_options, PlanningOptions,
-};
+#[cfg(test)]
+use conduit_planner::plan_expanded_canonical_with_options;
+use conduit_planner::{default_expanded_placements, PlanningOptions};
 pub(super) use protocol::refusal;
 use protocol::{
     decode_manifestation, receipt, TourBackEvidence, TourButtonTransitionEffect, TourEffect,
@@ -182,8 +182,9 @@ impl TourSession {
         } else {
             crate::installed_browser::MAXIMUM_BROWSER_VALUE_BYTES as u32
         };
+        let connection_limits = finite_connection_limits(&plot, connection_byte_capacity);
         let bases = local_bases();
-        let plan = plan_expanded_canonical_with_options(
+        let plan = conduit_planner::plan_expanded_canonical_with_connection_limits(
             &plot,
             &hosts,
             &placements,
@@ -197,6 +198,7 @@ impl TourSession {
                 protected_resource_grants: &[],
                 line_offers: &[],
             },
+            &connection_limits,
         )
         .map_err(|error| format!("plan executable-tour Plot: {error:?}"))?;
         let realization_backs = plan
@@ -370,6 +372,8 @@ fn placement_in_fragments(
 #[cfg(test)]
 mod clock_tests;
 #[cfg(test)]
+mod dimension_tests;
+#[cfg(test)]
 mod exact_quantity_tests;
 #[cfg(test)]
 mod firefly_choir_tests;
@@ -394,5 +398,7 @@ mod startup_chime_tests;
 #[cfg(test)]
 mod continuous_lifecycle_tests;
 
+mod queue_limits;
+pub(crate) use queue_limits::finite_connection_limits;
 #[cfg(test)]
 mod glyph_literal_tests;

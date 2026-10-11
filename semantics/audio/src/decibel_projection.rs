@@ -255,7 +255,7 @@ mod tests {
             1,
             provenance,
             AudioDecibelReferenceRole::Power,
-            conduit_core::QuantityUnit::Second,
+            conduit_core::Unit::Second,
         )
         .unwrap();
         let basis =

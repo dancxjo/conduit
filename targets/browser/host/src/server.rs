@@ -31,7 +31,7 @@ const INITIAL_BODY_PLOTS: &str = concat!(
     include_str!("../../../../plots/button-across-room/main.conduit"),
 );
 // Artifact download admission is separate from the finite Play heap profile.
-const MAX_RUNTIME_BYTES: usize = 16 * 1024 * 1024;
+const MAX_RUNTIME_BYTES: usize = 20 * 1024 * 1024;
 const MAX_REQUEST_BYTES: usize = 4096;
 const MAX_REQUESTS: usize = 1024;
 

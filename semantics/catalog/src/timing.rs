@@ -10,8 +10,8 @@ use conduit_core::{
     CheckedValueContract, ConfigurationValue, FiniteTerminalEmission, FrontValueContract,
     FrontValueLocation, Kind, KindSemanticLaw, NormalCloseTransduction, PortDescriptor,
     PortDirection, PortTemporal, PreparedLeafSequenceEncoder, TerminalTransductionProfile,
-    BOOL_INFO_ID, CANCELLATION_REQUEST_INFO_ID, TERMINAL_INFO_ENCODED_LEN, TERMINAL_INFO_ID,
-    UNIT_INFO_ID,
+    BOOL_INFO_ID, CANCELLATION_REQUEST_INFO_ID, EMPTY_INFO_ID, TERMINAL_INFO_ENCODED_LEN,
+    TERMINAL_INFO_ID,
 };
 
 pub const TIME_DEBOUNCE_KIND: &str = "time/debounce";
@@ -163,7 +163,7 @@ pub fn time_deadline_contract() -> StandardKindContract {
             .to_string(),
         inputs: vec![port(
             "arm",
-            UNIT_INFO_ID,
+            EMPTY_INFO_ID,
             PortDirection::Input,
             PortTemporal::Flow { closes: true },
         )],
@@ -274,7 +274,7 @@ pub fn time_window_semantic_contract(
     value: &CheckedValueContract,
     maximum_items: u16,
 ) -> Result<Kind, &'static str> {
-    if value.maximum_bytes == 0 && value.value_kind.as_str() != UNIT_INFO_ID {
+    if value.maximum_bytes == 0 && value.value_kind.as_str() != EMPTY_INFO_ID {
         return Err("time/window requires one finite canonical value envelope");
     }
     let encoder = PreparedLeafSequenceEncoder::new(
@@ -487,14 +487,17 @@ fn port(
 fn duration_field() -> KindConfigurationField {
     KindConfigurationField {
         key: "duration-ms".to_string(),
-        default_value: ConfigurationValue::Quantity(conduit_core::Quantity::new(
-            100,
-            conduit_core::QuantityUnit::Millisecond,
-        )),
+        default_value: ConfigurationValue::Quantity(
+            conduit_core::QuantityConfigurationValue::from_value(conduit_core::Quantity::new(
+                100,
+                conduit_core::Unit::Millisecond,
+            ))
+            .expect("bounded quantity configuration"),
+        ),
         rule: KindConfigurationRule::QuantityRange {
             minimum: 0,
             maximum: TIME_MAXIMUM_DURATION_MS as i64,
-            canonical_unit: conduit_core::QuantityUnit::Millisecond,
+            canonical_unit: conduit_core::Unit::Millisecond.into(),
         },
     }
 }
@@ -521,9 +524,9 @@ fn limits() -> CapabilityLimits {
 #[cfg(feature = "plot-catalog")]
 fn configuration_source(field: &KindConfigurationField) -> alloc::string::String {
     match (&*field.key, &field.default_value) {
-        (_, ConfigurationValue::Quantity(value)) => {
-            alloc::format!("{}{}", value.value(), value.unit().plot_suffix())
-        }
+        (_, ConfigurationValue::Quantity(value)) => value.source().into(),
+        (_, ConfigurationValue::Unit(value)) => value.source().into(),
+        (_, ConfigurationValue::TemperatureDifference(value)) => value.source().into(),
         (_, ConfigurationValue::U64(value)) => value.to_string(),
         (_, ConfigurationValue::Text(value)) => alloc::format!("\"{value}\""),
         _ => unreachable!("timing contracts use only bounded Quantity, Count, and Text values"),
@@ -703,12 +706,12 @@ mod tests {
             time_deadline_contract(),
         ] {
             assert!(matches!(
-                contract.configuration[0].rule,
+                &contract.configuration[0].rule,
                 KindConfigurationRule::QuantityRange {
                     minimum: 0,
                     maximum,
-                    canonical_unit: conduit_core::QuantityUnit::Millisecond,
-                } if maximum == TIME_MAXIMUM_DURATION_MS as i64
+                    canonical_unit,
+                } if *maximum == TIME_MAXIMUM_DURATION_MS as i64 && **canonical_unit == conduit_core::Unit::Millisecond
             ));
         }
     }

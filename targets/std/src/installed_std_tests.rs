@@ -192,7 +192,7 @@ fn current_frequency_drives_bounded_pcm_through_one_ordinary_play() {
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),
             connection_item_capacity: 1,
-            connection_byte_capacity: conduit_semantic_catalog::AUDIO_TONE_PCM_BLOCK_BYTES,
+            connection_byte_capacity: conduit_semantic_catalog::AUDIO_TONE_QUEUE_BYTES,
             authority_grants: &[],
             protected_resource_grants: &[],
             line_offers: &[],
@@ -250,7 +250,7 @@ fn theremin_pitch_distance_maps_near_high_and_far_low() {
     .unwrap();
     let frequency_initial = conduit_core::StructuredInfoValue::leaf(
         frequency_type.clone(),
-        conduit_core::Quantity::new(440, conduit_core::QuantityUnit::Hertz)
+        conduit_core::Quantity::new(440, conduit_core::Unit::Hertz)
             .encode()
             .to_vec(),
     )
@@ -270,7 +270,7 @@ fn theremin_pitch_distance_maps_near_high_and_far_low() {
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),
             connection_item_capacity: 1,
-            connection_byte_capacity: conduit_semantic_catalog::AUDIO_TONE_PCM_BLOCK_BYTES,
+            connection_byte_capacity: conduit_semantic_catalog::AUDIO_TONE_QUEUE_BYTES,
             authority_grants: &[],
             protected_resource_grants: &[],
             line_offers: &[],
@@ -287,15 +287,20 @@ fn theremin_pitch_distance_maps_near_high_and_far_low() {
     for (key, expected) in [
         (
             "target-minimum",
-            conduit_core::Quantity::new(1760, conduit_core::QuantityUnit::Hertz),
+            conduit_core::Quantity::new(1760, conduit_core::Unit::Hertz),
         ),
         (
             "target-maximum",
-            conduit_core::Quantity::new(110, conduit_core::QuantityUnit::Hertz),
+            conduit_core::Quantity::new(110, conduit_core::Unit::Hertz),
         ),
     ] {
         assert!(mapping.configuration.iter().any(|entry| {
-            entry.key == key && entry.value == conduit_core::ConfigurationValue::Quantity(expected)
+            entry.key == key
+                && entry.value
+                    == conduit_core::ConfigurationValue::Quantity(
+                        conduit_core::QuantityConfigurationValue::from_value(expected)
+                            .expect("bounded quantity configuration"),
+                    )
         }));
     }
     let report = host
@@ -335,7 +340,7 @@ fn authored_tone_cancellation_routes_exact_observed_terminal_truth() {
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),
             connection_item_capacity: 1,
-            connection_byte_capacity: conduit_semantic_catalog::AUDIO_TONE_PCM_BLOCK_BYTES,
+            connection_byte_capacity: conduit_semantic_catalog::AUDIO_TONE_QUEUE_BYTES,
             authority_grants: &[],
             protected_resource_grants: &[],
             line_offers: &[],

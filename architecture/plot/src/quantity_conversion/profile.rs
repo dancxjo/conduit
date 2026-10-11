@@ -1,5 +1,4 @@
-//! The semantic role is selected by the exact Kind, not a mutable flag in a
-//! quantity value. Both contracts share finite representation machinery.
+//! Source-role contracts use the single self-contained Quantity carrier.
 use super::*;
 
 #[derive(Clone, Copy)]
@@ -8,6 +7,12 @@ pub(super) enum ConversionProfile {
     TemperatureDifference,
 }
 impl ConversionProfile {
+    pub(super) fn configuration_rule(self) -> KindConfigurationRule {
+        match self {
+            Self::Quantity => KindConfigurationRule::Quantity,
+            Self::TemperatureDifference => KindConfigurationRule::TemperatureDifference,
+        }
+    }
     pub(super) fn kind(self) -> &'static str {
         match self {
             Self::Quantity => KIND,
@@ -50,36 +55,22 @@ impl ConversionProfile {
             }
         }
     }
-    pub(super) fn source_id(self) -> &'static str {
+    pub(super) fn source_id(self) -> String {
         match self {
-            Self::Quantity => EXACT_DECIMAL_QUANTITY_INFO_ID,
-            Self::TemperatureDifference => EXACT_TEMPERATURE_DIFFERENCE_INFO_ID,
+            Self::Quantity => QUANTITY_INFO_ID.into(),
+            Self::TemperatureDifference => temperature_delta_info_id(),
         }
     }
     pub(super) fn source_type(self) -> StructuredInfoType {
         match self {
-            Self::Quantity => leaf(EXACT_DECIMAL_QUANTITY_INFO_ID),
-            Self::TemperatureDifference => StructuredInfoType::record(
-                kind_id(EXACT_TEMPERATURE_DIFFERENCE_INFO_ID),
-                vec![field("coordinate", leaf(EXACT_DECIMAL_QUANTITY_INFO_ID))],
-            )
-            .expect("bounded difference"),
+            Self::Quantity => leaf(QUANTITY_INFO_ID),
+            Self::TemperatureDifference => exact_temperature_difference_type(),
         }
     }
     pub(super) fn source_value(
         self,
-        coordinate: ExactDecimalQuantity,
+        coordinate: Quantity,
     ) -> Result<StructuredInfoValue, StructuredInfoRefusal> {
-        let coordinate = StructuredInfoValue::leaf(
-            leaf(EXACT_DECIMAL_QUANTITY_INFO_ID),
-            coordinate.encode().to_vec(),
-        )?;
-        match self {
-            Self::Quantity => Ok(coordinate),
-            Self::TemperatureDifference => StructuredInfoValue::record(
-                self.source_type(),
-                vec![StructuredFieldValue::new("coordinate", coordinate)?],
-            ),
-        }
+        StructuredInfoValue::leaf(self.source_type(), coordinate.encode().to_vec())
     }
 }

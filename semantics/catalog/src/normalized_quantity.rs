@@ -1,7 +1,7 @@
 //! Exact selected Millionth Quantity leaf to normalized Scalar conversion.
 
 use alloc::vec::Vec;
-use conduit_core::{Kind, Quantity, QuantityUnit, Scalar, QUANTITY_ENCODED_LEN};
+use conduit_core::{Kind, Quantity, Scalar, Unit, QUANTITY_ENCODED_LEN};
 pub use conduit_data::NormalizedQuantityRefusal;
 
 pub const NORMALIZED_QUANTITY_KIND: &str = "math/normalized-quantity-scalar";
@@ -97,7 +97,7 @@ impl PreparedNormalizedQuantity {
     }
 
     pub fn ratio() -> Self {
-        let quantity = Quantity::new(0, QuantityUnit::Millionth).encode();
+        let quantity = Quantity::new(0, Unit::Millionth).encode();
         let mut prefix = conduit_core::StructuredInfoValue::leaf(
             conduit_core::StructuredInfoType::leaf(conduit_core::kind_id(
                 conduit_core::RATIO_INFO_ID,
@@ -123,13 +123,16 @@ impl PreparedNormalizedQuantity {
         }
         let quantity = Quantity::decode(&input[self.prefix.len()..])
             .map_err(|_| NormalizedQuantityRefusal::MalformedOrWrongType)?;
-        if quantity.unit() != QuantityUnit::Millionth {
+        if quantity.unit() != Unit::Millionth {
             return Err(NormalizedQuantityRefusal::IncompatibleUnit);
         }
-        if !(0..=1_000_000).contains(&quantity.value()) {
+        let coordinate = quantity
+            .to_i64(Unit::Millionth)
+            .map_err(|_| NormalizedQuantityRefusal::OutOfDomain)?;
+        if !(0..=1_000_000).contains(&coordinate) {
             return Err(NormalizedQuantityRefusal::OutOfDomain);
         }
-        Ok(Scalar::from_raw_microunits(quantity.value()))
+        Ok(Scalar::from_raw_microunits(coordinate))
     }
 }
 
@@ -138,7 +141,7 @@ mod tests {
     use super::*;
     use conduit_core::StructuredInfoValue;
 
-    fn leaf(value: i64, unit: QuantityUnit) -> Vec<u8> {
+    fn leaf(value: i64, unit: Unit) -> Vec<u8> {
         StructuredInfoValue::leaf(
             crate::wrapped_quantity_type(),
             Quantity::new(value, unit).encode().to_vec(),
@@ -165,29 +168,29 @@ mod tests {
         };
         for value in [0, 1, 250_000, 999_999, 1_000_000] {
             assert_eq!(
-                converter.convert(&ratio(value, QuantityUnit::Millionth)),
+                converter.convert(&ratio(value, Unit::Millionth)),
                 Ok(Scalar::from_raw_microunits(value))
             );
         }
         for value in [-1, 1_000_001] {
             assert_eq!(
-                converter.convert(&ratio(value, QuantityUnit::Millionth)),
+                converter.convert(&ratio(value, Unit::Millionth)),
                 Err(NormalizedQuantityRefusal::OutOfDomain)
             );
         }
         assert_eq!(
-            converter.convert(&ratio(1, QuantityUnit::Percent)),
+            converter.convert(&ratio(1, Unit::Percent)),
             Err(NormalizedQuantityRefusal::IncompatibleUnit)
         );
         assert_eq!(
-            converter.convert(&leaf(250_000, QuantityUnit::Millionth)),
+            converter.convert(&leaf(250_000, Unit::Millionth)),
             Err(NormalizedQuantityRefusal::MalformedOrWrongType)
         );
         assert_eq!(
-            PreparedNormalizedQuantity::new().convert(&ratio(250_000, QuantityUnit::Millionth)),
+            PreparedNormalizedQuantity::new().convert(&ratio(250_000, Unit::Millionth)),
             Err(NormalizedQuantityRefusal::MalformedOrWrongType)
         );
-        let bytes = ratio(250_000, QuantityUnit::Millionth);
+        let bytes = ratio(250_000, Unit::Millionth);
         for length in 0..bytes.len() {
             assert_eq!(
                 converter.convert(&bytes[..length]),
@@ -201,7 +204,7 @@ mod tests {
         let converter = PreparedNormalizedQuantity::new();
         for value in [0, 1, 250_000, 500_000, 999_999, 1_000_000] {
             assert_eq!(
-                converter.convert(&leaf(value, QuantityUnit::Millionth)),
+                converter.convert(&leaf(value, Unit::Millionth)),
                 Ok(Scalar::from_raw_microunits(value))
             );
         }
@@ -212,21 +215,17 @@ mod tests {
         let converter = PreparedNormalizedQuantity::new();
         for value in [i64::MIN, -1, 1_000_001, i64::MAX] {
             assert_eq!(
-                converter.convert(&leaf(value, QuantityUnit::Millionth)),
+                converter.convert(&leaf(value, Unit::Millionth)),
                 Err(NormalizedQuantityRefusal::OutOfDomain)
             );
         }
-        for unit in [
-            QuantityUnit::One,
-            QuantityUnit::Percent,
-            QuantityUnit::Hertz,
-        ] {
+        for unit in [Unit::One, Unit::Percent, Unit::Hertz] {
             assert_eq!(
                 converter.convert(&leaf(0, unit)),
                 Err(NormalizedQuantityRefusal::IncompatibleUnit)
             );
         }
-        let valid = leaf(500_000, QuantityUnit::Millionth);
+        let valid = leaf(500_000, Unit::Millionth);
         for length in 0..valid.len() {
             assert_eq!(
                 converter.convert(&valid[..length]),
@@ -238,7 +237,7 @@ mod tests {
         assert!(converter.convert(&extra).is_err());
         // Raw Quantity bytes are not the selector's structured leaf output.
         assert!(converter
-            .convert(&Quantity::new(0, QuantityUnit::Millionth).encode())
+            .convert(&Quantity::new(0, Unit::Millionth).encode())
             .is_err());
         for index in 0..converter.prefix.len() {
             let mut altered = valid.clone();

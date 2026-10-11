@@ -181,6 +181,7 @@ fn encode_hex(bytes: &[u8]) -> String {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CheckedExpression {
+    pub(crate) canonical_literals: BTreeMap<(usize, usize), Vec<u8>>,
     pub syntax: ExpressionSyntax,
     pub input_type: CheckedExpressionType,
     pub value_type: CheckedExpressionType,
@@ -292,6 +293,7 @@ pub(crate) fn check_expression_as(
         .map(|(kind, value_type)| (kind.clone(), value_type.clone()))
         .collect();
     Ok(CheckedExpression {
+        canonical_literals: BTreeMap::new(),
         syntax: syntax.clone(),
         input_type: context.input.clone(),
         value_type,

@@ -1,6 +1,6 @@
 use conduit_core::{
-    KindId, Quantity, QuantityUnit, StructuredFieldType, StructuredInfoType,
-    StructuredInfoValueShape, StructuredVariantCase,
+    KindId, Quantity, StructuredFieldType, StructuredInfoType, StructuredInfoValueShape,
+    StructuredVariantCase, Unit,
 };
 use conduit_plot::{
     check_syntax_document, parse_syntax_document, CanonicalStartupValue, KindSignature,
@@ -303,7 +303,6 @@ fn malformed_structured_literals_keep_lossless_source_and_deterministic_diagnost
         "[1, 2,]",
         "note_on()",
         "note_on({ pitches: [60, 62, 64], velocity: 96, })",
-        "note_on({})",
     ] {
         let source = format!("plot bad {{\n value = {expression}\n}}\n");
         let parsed = parse_syntax_document(&source);
@@ -316,6 +315,15 @@ fn malformed_structured_literals_keep_lossless_source_and_deterministic_diagnost
         assert_eq!(parsed.round_trip(), source);
         assert!(!parsed.tokens.is_empty());
     }
+}
+
+#[test]
+fn empty_record_payload_parses_but_refuses_required_fields() {
+    let source = "plot bad {\n sink: test/consume-event(note_on({}))\n}\n";
+    let parsed = parse_syntax_document(source);
+    assert!(parsed.diagnostics.is_empty());
+    assert_eq!(parsed.round_trip(), source);
+    assert!(check_syntax_document(&parsed, &structured_catalog()).is_err());
 }
 
 #[test]
@@ -394,21 +402,24 @@ fn quantity_literals_become_exact_canonical_leaf_bytes_during_plot_checking() {
     };
     assert_eq!(
         Quantity::decode(elapsed),
-        Ok(Quantity::new(-17, QuantityUnit::Millisecond))
+        Ok(Quantity::new(-17, Unit::Millisecond))
     );
     assert_eq!(
         Quantity::decode(frequency),
-        Ok(Quantity::new(440, QuantityUnit::Hertz))
+        Ok(Quantity::new(440, Unit::Hertz))
     );
 }
 
 #[test]
 fn malformed_quantity_literals_refuse_at_the_owned_source_span() {
     for (literal, refusal) in [
-        ("17", "MissingUnit"),
-        ("17unknownunit", "UnknownUnit"),
-        ("0.1ps", "Inexact"),
-        ("9223372036854775808ms", "InvalidValue"),
+        ("17", "requires a Unit suffix"),
+        ("17unknownunit", "undeclared Unit suffix"),
+        ("1e3ms", "InvalidNumber"),
+        (
+            "123456789012345678901234567890123456789ms",
+            "SignificantDigitsExceeded",
+        ),
     ] {
         let source = format!(
             "plot bad {{\n sink: test/consume-quantity-sample({{ elapsed: {literal}, frequency: 440Hz }})\n}}\n"

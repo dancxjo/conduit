@@ -1,5 +1,5 @@
 plot bounded-schedule {
-    expand: time/expand-recurrence({ excluded_ordinals: [unused(""), unused(""), unused(""), unused("")], fold_policy: "refuse", gap_policy: "refuse", identity: "recurrence/report", maximum_occurrences: 1, maximum_results: 1, resolutions: [unused(""), unused(""), unused(""), unused(""), unused(""), unused(""), unused(""), unused("")], rule: one_shot({ at: { basis: "unix/utc@1", resolution_ticks: 1, scale: "seconds", ticks: 100 } }), until: none(""), window: wall({ end: { basis: "unix/utc@1", resolution_ticks: 1, scale: "seconds", ticks: 100 }, start: { basis: "unix/utc@1", resolution_ticks: 1, scale: "seconds", ticks: 100 } }) })
+    expand: time/expand-recurrence({ excluded_ordinals: [unused(empty), unused(empty), unused(empty), unused(empty)], fold_policy: "refuse", gap_policy: "refuse", identity: "recurrence/report", maximum_occurrences: 1, maximum_results: 1, resolutions: [unused(empty), unused(empty), unused(empty), unused(empty), unused(empty), unused(empty), unused(empty), unused(empty)], rule: one_shot({ at: { basis: "unix/utc@1", resolution_ticks: 1, scale: "seconds", ticks: 100 } }), until: none(empty), window: wall({ end: { basis: "unix/utc@1", resolution_ticks: 1, scale: "seconds", ticks: 100 }, start: { basis: "unix/utc@1", resolution_ticks: 1, scale: "seconds", ticks: 100 } }) })
 }
 
 plot workflow-state (

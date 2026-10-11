@@ -521,14 +521,7 @@ fn offer(kind: &str, capability: &str, resource_units: u32) -> CapabilityOffer {
         .iter()
         .map(|field| conduit_core::FrontStartupParameter {
             name: field.key.clone(),
-            value_type: conduit_core::kind_id(match field.default_value {
-                ConfigurationValue::Bool(_) => "value/bool",
-                ConfigurationValue::I64(_) => "value/scalar",
-                ConfigurationValue::U64(_) => "value/count",
-                ConfigurationValue::Text(_) => "value/text",
-                ConfigurationValue::Structured(ref value) => value.profile().as_str(),
-                ConfigurationValue::Quantity(_) => conduit_core::QUANTITY_INFO_ID,
-            }),
+            value_type: field.default_value.semantic_kind(),
             has_default: true,
         })
         .collect();
@@ -1188,7 +1181,9 @@ fn configuration_u64(configuration: &[ConfigurationEntry], key: &str) -> Result<
             ConfigurationValue::I64(_) => None,
             ConfigurationValue::Text(_) => None,
             ConfigurationValue::Structured(_) => None,
-            ConfigurationValue::Quantity(_) => None,
+            ConfigurationValue::Quantity(_)
+            | ConfigurationValue::Unit(_)
+            | ConfigurationValue::TemperatureDifference(_) => None,
         })
         .ok_or_else(|| format!("missing u64 configuration '{key}'"))
 }

@@ -515,11 +515,13 @@ fn validate_boxed_variant_payloads(
             .iter()
             .find(|case| case.tag() == case_name)
             .ok_or(RustBindingGenerationError::InvalidSemanticType)?;
-        let StructuredInfoTypeShape::Record { schema, .. } = case.payload_type().shape() else {
-            return Err(RustBindingGenerationError::InvalidSemanticType);
-        };
-        if external_names.contains_key(schema.as_str()) {
-            return Err(RustBindingGenerationError::InvalidSemanticType);
+        match case.payload_type().shape() {
+            StructuredInfoTypeShape::Record { schema, .. }
+                if !external_names.contains_key(schema.as_str()) => {}
+            StructuredInfoTypeShape::Leaf(kind) if !unit_type(case.payload_type()) => {
+                primitive_rust_type(kind.as_str())?;
+            }
+            _ => return Err(RustBindingGenerationError::InvalidSemanticType),
         }
     }
     Ok(())
@@ -621,7 +623,7 @@ fn hash_type(value_type: &StructuredInfoType) -> bool {
         StructuredInfoTypeShape::Leaf(kind) => matches!(
             conduit_core::primitive_info_kind(kind.as_str()),
             Some(
-                PrimitiveInfoKind::Unit
+                PrimitiveInfoKind::Empty
                     | PrimitiveInfoKind::CancellationRequest
                     | PrimitiveInfoKind::Bool
                     | PrimitiveInfoKind::Count
@@ -701,66 +703,5 @@ pub(super) fn rust_type(
     }
 }
 
-pub(super) fn primitive_rust_type(identity: &str) -> Result<String, RustBindingGenerationError> {
-    let value = match conduit_core::primitive_info_kind(identity) {
-        Some(PrimitiveInfoKind::Unit | PrimitiveInfoKind::CancellationRequest) => "()",
-        Some(PrimitiveInfoKind::Bool) => "bool",
-        Some(PrimitiveInfoKind::Count) => "u64",
-        Some(PrimitiveInfoKind::Scalar) => "conduit_core::Scalar",
-        Some(PrimitiveInfoKind::Text) => "String",
-        Some(PrimitiveInfoKind::Bytes) | None
-            if identity.starts_with("data/generation-reference<") =>
-        {
-            "conduit_data::DataReference"
-        }
-        None if identity == conduit_core::RESOURCE_REFERENCE_INFO_ID => {
-            "conduit_core::BoundedResourceRef"
-        }
-        // A generated primitive carrier must be able to retain every byte
-        // value admitted by the checked semantic contract. Per-field and
-        // nominal limits are still enforced by generated value contracts;
-        // this binding capacity is the structured substrate's finite ceiling,
-        // not an additional 4 KiB semantic restriction.
-        Some(PrimitiveInfoKind::Bytes) => "BoundedBytes<65536>",
-        Some(
-            PrimitiveInfoKind::Quantity
-            | PrimitiveInfoKind::Distance
-            | PrimitiveInfoKind::Frequency
-            | PrimitiveInfoKind::Duration
-            | PrimitiveInfoKind::Voltage
-            | PrimitiveInfoKind::Temperature
-            | PrimitiveInfoKind::Angle
-            | PrimitiveInfoKind::Ratio
-            | PrimitiveInfoKind::PixelCount,
-        ) => "conduit_core::Quantity",
-        Some(PrimitiveInfoKind::QuantityUnit) => "conduit_core::QuantityUnit",
-        Some(PrimitiveInfoKind::ExactDecimalQuantity) => "conduit_core::ExactDecimalQuantity",
-        Some(PrimitiveInfoKind::U8) => "u8",
-        Some(PrimitiveInfoKind::U16) => "u16",
-        Some(PrimitiveInfoKind::U32) => "u32",
-        Some(PrimitiveInfoKind::U64) => "u64",
-        Some(PrimitiveInfoKind::U128) => "u128",
-        Some(PrimitiveInfoKind::I8) => "i8",
-        Some(PrimitiveInfoKind::I16) => "i16",
-        Some(PrimitiveInfoKind::I32) => "i32",
-        Some(PrimitiveInfoKind::I64) => "i64",
-        Some(PrimitiveInfoKind::I128) => "i128",
-        Some(PrimitiveInfoKind::F32) => "conduit_core::IeeeF32",
-        Some(PrimitiveInfoKind::F64) => "conduit_core::IeeeF64",
-        Some(PrimitiveInfoKind::Terminal) | None => {
-            return Err(RustBindingGenerationError::UnsupportedLeaf(identity.into()));
-        }
-    };
-    Ok(value.into())
-}
-
-pub(super) fn data_reference_content_kind(identity: &str) -> Option<&str> {
-    identity
-        .strip_prefix("data/generation-reference<")
-        .and_then(|identity| identity.strip_suffix('>'))
-        .filter(|identity| !identity.is_empty())
-}
-
-pub(super) fn unit_type(value_type: &StructuredInfoType) -> bool {
-    matches!(value_type.shape(), StructuredInfoTypeShape::Leaf(kind) if kind.as_str() == conduit_core::UNIT_INFO_ID)
-}
+mod primitive;
+pub(super) use primitive::{data_reference_content_kind, primitive_rust_type, unit_type};

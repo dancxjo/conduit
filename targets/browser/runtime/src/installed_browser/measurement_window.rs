@@ -1,7 +1,8 @@
 //! Browser production realization of an explicitly profiled finite measurement window.
 
 use super::factory::{validate_placement, BrowserInstallation};
-use super::{BrowserBack, MAXIMUM_BROWSER_VALUE_BYTES};
+use super::measurement_limits;
+use super::BrowserBack;
 use conduit_core::{
     ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
     HostCallRequirement, ImplementationId, PlannedGear,
@@ -72,7 +73,7 @@ impl PreparedWindow {
                     )
                     .map_err(|_| failure(22))?;
                     let bytes = value.canonical_bytes().map_err(|_| failure(22))?;
-                    if bytes.len() > MAXIMUM_BROWSER_VALUE_BYTES {
+                    if bytes.len() > measurement_limits::WINDOW {
                         return Err(Failure {
                             code: FailureCode::StorageExhausted,
                             detail: 23,
@@ -99,6 +100,7 @@ impl PreparedWindow {
                         OutOfRange => 19,
                         Full => 20,
                         DiscardCountOverflow => 21,
+                        PointDifferenceRequired => 22,
                     })
                 })?;
                 Ok(None)
@@ -111,34 +113,36 @@ impl PreparedWindow {
 fn offer() -> CapabilityOffer {
     let contract = conduit_data::measurement_window_semantic_contract();
     let kind = contract.kind_id.clone();
-    BackOfferBuilder::new(
-        contract,
-        Back {
-            capability_id: CapabilityId::from(IMPLEMENTATION),
-            execution_profile_id: ExecutionProfileId::from(IMPLEMENTATION),
-            implementation_id: ImplementationId::from(IMPLEMENTATION),
-            artifact_id: ArtifactId::from("conduit-browser-runtime/measurement-window@2"),
-            host_calls: vec![
-                HostCallRequirement {
-                    contract_id: OPERATIONS[0].into(),
-                    target_kind: Some(kind.clone()),
-                    maximum_in_flight: 1,
-                    maximum_input_bytes: MAXIMUM_BROWSER_VALUE_BYTES as u32,
-                    maximum_output_bytes: 0,
-                },
-                HostCallRequirement {
-                    contract_id: OPERATIONS[1].into(),
-                    target_kind: Some(kind),
-                    maximum_in_flight: 1,
-                    maximum_input_bytes: MAXIMUM_BROWSER_VALUE_BYTES as u32,
-                    maximum_output_bytes: MAXIMUM_BROWSER_VALUE_BYTES as u32,
-                },
-            ],
-            resource_requirements: Vec::new(),
-            authority_requirements: Vec::new(),
-        },
+    super::measurement_limits::finish_offer(
+        BackOfferBuilder::new(
+            contract,
+            Back {
+                capability_id: CapabilityId::from(IMPLEMENTATION),
+                execution_profile_id: ExecutionProfileId::from(IMPLEMENTATION),
+                implementation_id: ImplementationId::from(IMPLEMENTATION),
+                artifact_id: ArtifactId::from("conduit-browser-runtime/measurement-window@2"),
+                host_calls: vec![
+                    HostCallRequirement {
+                        contract_id: OPERATIONS[0].into(),
+                        target_kind: Some(kind.clone()),
+                        maximum_in_flight: 1,
+                        maximum_input_bytes: measurement_limits::PROFILE as u32,
+                        maximum_output_bytes: 0,
+                    },
+                    HostCallRequirement {
+                        contract_id: OPERATIONS[1].into(),
+                        target_kind: Some(kind),
+                        maximum_in_flight: 1,
+                        maximum_input_bytes: measurement_limits::SAMPLE as u32,
+                        maximum_output_bytes: measurement_limits::WINDOW as u32,
+                    },
+                ],
+                resource_requirements: Vec::new(),
+                authority_requirements: Vec::new(),
+            },
+        )
+        .build(),
     )
-    .build()
 }
 
 fn prepare(placement: &PlannedGear, values: &mut HostedValueStore) -> Result<BrowserBack, String> {
@@ -229,7 +233,7 @@ impl<const PORTS: usize> StepBack<PORTS> for WindowBack {
             if self.profile_ready || self.pending.is_some() {
                 return StepOutcome::Fail(failure(34));
             }
-            let input = match BoundedValueRef::new(value, MAXIMUM_BROWSER_VALUE_BYTES as u32) {
+            let input = match BoundedValueRef::new(value, measurement_limits::PROFILE as u32) {
                 Ok(input) => input,
                 Err(_) => return StepOutcome::Fail(failure(31)),
             };
@@ -248,7 +252,7 @@ impl<const PORTS: usize> StepBack<PORTS> for WindowBack {
             {
                 return StepOutcome::Fail(failure(34));
             }
-            let input = match BoundedValueRef::new(value, MAXIMUM_BROWSER_VALUE_BYTES as u32) {
+            let input = match BoundedValueRef::new(value, measurement_limits::SAMPLE as u32) {
                 Ok(input) => input,
                 Err(_) => return StepOutcome::Fail(failure(32)),
             };
@@ -276,7 +280,7 @@ impl<const PORTS: usize> StepBack<PORTS> for WindowBack {
             let Some(value) = self.finalize.take() else {
                 return StepOutcome::Fail(failure(33));
             };
-            let input = match BoundedValueRef::new(value, MAXIMUM_BROWSER_VALUE_BYTES as u32) {
+            let input = match BoundedValueRef::new(value, measurement_limits::SAMPLE as u32) {
                 Ok(input) => input,
                 Err(_) => return StepOutcome::Fail(failure(33)),
             };
@@ -321,8 +325,8 @@ fn failure(detail: u16) -> Failure {
 mod tests {
     use super::*;
     use conduit_core::{
-        ConfigurationEntry, OfferGeneration, Quantity, QuantityUnit, StructuredInfoValue,
-        TemporalInstant, TemporalScale,
+        ConfigurationEntry, OfferGeneration, Quantity, StructuredInfoValue, TemporalInstant,
+        TemporalScale, Unit,
     };
     use conduit_data::{
         FullWindowPolicy, MeasurementRange, MeasurementSample, MeasurementWindowProfile,
@@ -361,8 +365,8 @@ mod tests {
         MeasurementWindowProfile {
             capacity: 2,
             range: MeasurementRange {
-                minimum: Quantity::new(0, QuantityUnit::Millivolt),
-                maximum: Quantity::new(100, QuantityUnit::Millivolt),
+                minimum: Quantity::new(0, Unit::Millivolt),
+                maximum: Quantity::new(100, Unit::Millivolt),
             },
             clock_basis: "browser-window-clock".into(),
             full_policy: FullWindowPolicy::DropOldest,
@@ -378,7 +382,7 @@ mod tests {
 
     fn sample(value: i64, ticks: u64) -> MeasurementSample {
         MeasurementSample {
-            value: Quantity::new(value, QuantityUnit::Millivolt),
+            value: Quantity::new(value, Unit::Millivolt),
             observed_at: TemporalInstant {
                 ticks,
                 scale: TemporalScale::Milliseconds,
@@ -393,6 +397,56 @@ mod tests {
     }
 
     #[test]
+    fn maximum_window_with_uncertainty_fits_selected_browser_profile() {
+        let mut prepared = PreparedWindow::for_placement(&placement())
+            .unwrap()
+            .unwrap();
+        let mut full = profile();
+        full.range.minimum =
+            Quantity::from_decimal_role(0, 0, Unit::Hertz, conduit_core::QuantityRole::Linear)
+                .unwrap();
+        full.range.maximum =
+            Quantity::from_decimal_role(100, 0, Unit::Hertz, conduit_core::QuantityRole::Linear)
+                .unwrap();
+        full.capacity = conduit_data::MAXIMUM_MEASUREMENT_WINDOW_SAMPLES as u8;
+        let bytes = leaf(
+            conduit_data::measurement_window_profile_type(),
+            conduit_data::encode_measurement_window_profile(&full).unwrap(),
+        );
+        prepared.execute(OPERATIONS[0], &bytes).unwrap();
+        for ticks in 0..conduit_data::MAXIMUM_MEASUREMENT_WINDOW_SAMPLES {
+            let mut value = sample(50, ticks as u64 + 1);
+            value.value =
+                Quantity::from_decimal_role(50, 0, Unit::Hertz, conduit_core::QuantityRole::Linear)
+                    .unwrap();
+            value.uncertainty = Some(
+                Quantity::from_decimal_role(1, 0, Unit::Hertz, conduit_core::QuantityRole::Linear)
+                    .unwrap(),
+            );
+            let bytes = leaf(
+                conduit_data::measurement_sample_type(),
+                conduit_data::encode_measurement_sample(&value).unwrap(),
+            );
+            prepared.execute(OPERATIONS[1], &bytes).unwrap();
+        }
+        let output = prepared
+            .execute(OPERATIONS[1], FINALIZE_INPUT)
+            .unwrap()
+            .unwrap();
+        assert!(output.len() > 8192);
+        assert!(output.len() <= offer().host_calls[1].maximum_output_bytes as usize);
+        let decoded = conduit_data::decode_measurement_window(
+            exact_leaf(&output, &conduit_data::measurement_window_type()).unwrap(),
+        )
+        .unwrap();
+        assert_eq!(
+            decoded.samples().len(),
+            conduit_data::MAXIMUM_MEASUREMENT_WINDOW_SAMPLES
+        );
+        assert!(super::super::measurement_summary::execute(&output).is_ok());
+    }
+
+    #[test]
     fn prepared_window_requires_profile_then_preserves_bounded_drop_evidence() {
         let offer = offer();
         let semantic = conduit_data::measurement_window_semantic_contract();
@@ -404,7 +458,12 @@ mod tests {
         );
         assert_eq!(offer.inputs, semantic.inputs);
         assert_eq!(offer.outputs, semantic.outputs);
-        assert_eq!(offer.limits, semantic.limits);
+        assert!(offer.limits.max_queue_items <= semantic.limits.max_queue_items);
+        assert!(offer.limits.max_queue_bytes <= semantic.limits.max_queue_bytes);
+        assert!(offer
+            .resource_requirements
+            .iter()
+            .any(|item| item.class_id.as_str() == conduit_core::RUNTIME_MEMORY_RESOURCE_CLASS));
         let mut prepared = PreparedWindow::for_placement(&placement())
             .unwrap()
             .unwrap();
@@ -431,7 +490,7 @@ mod tests {
             window
                 .samples()
                 .iter()
-                .map(|sample| sample.value.value())
+                .map(|sample| sample.value.to_i64(sample.value.unit()).unwrap())
                 .collect::<Vec<_>>(),
             [50, 100]
         );
@@ -450,7 +509,7 @@ mod tests {
         );
         prepared.execute(OPERATIONS[0], &profile).unwrap();
         let wrong_unit = MeasurementSample {
-            value: Quantity::new(1, QuantityUnit::Volt),
+            value: Quantity::new(1, Unit::Volt),
             ..sample(1, 1)
         };
         let wrong_unit = leaf(

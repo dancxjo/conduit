@@ -8,28 +8,29 @@ pub(super) fn canonical_leaf_literal(
     literal: &str,
     span: Span,
 ) -> Result<Vec<u8>, SyntaxCheckDiagnostic> {
-    if kind == conduit_core::EXACT_DECIMAL_QUANTITY_INFO_ID {
-        return conduit_core::ExactDecimalQuantity::parse_plot_literal(literal)
-            .map(|quantity| quantity.encode().to_vec())
+    if kind == conduit_core::UNIT_INFO_ID {
+        return conduit_core::Unit::resolve(literal)
+            .map(|unit| unit.encode().to_vec())
+            .map_err(|refusal| {
+                structured_diagnostic(span, &format!("invalid Unit '{literal}': {refusal:?}"))
+            });
+    }
+    if kind == conduit_core::QUANTITY_INFO_ID
+        || conduit_core::quantity_info_dimension(kind).is_some()
+    {
+        return conduit_core::Quantity::parse_plot_literal(literal)
+            .and_then(|quantity| {
+                let bytes = quantity.encode().to_vec();
+                if conduit_core::validate_primitive_info(kind, &bytes).is_err() {
+                    return Err(conduit_core::QuantityRefusal::InvalidNumber);
+                }
+                Ok(bytes)
+            })
             .map_err(|refusal| structured_diagnostic(span,
                 &format!("literal '{literal}' is incompatible with selected exact profile '{kind}': {refusal:?}")));
     }
-    if kind == conduit_core::QUANTITY_INFO_ID {
-        return conduit_core::Quantity::parse_plot_literal(literal)
-            .map(|quantity| quantity.encode().to_vec())
-            .map_err(|refusal| {
-                structured_diagnostic(
-                    span,
-                    &format!(
-                        "literal '{literal}' is incompatible with exact leaf kind '{kind}': {refusal:?}"
-                    ),
-                )
-            });
-    }
     let canonical = match kind {
-        "value/unit" if crate::text_value::parse_quoted_text(literal).as_deref() == Some("") => {
-            Some(Vec::new())
-        }
+        "value/empty" if literal == "empty" => Some(Vec::new()),
         "value/text" => crate::text_value::parse_quoted_text(literal).map(|text| text.into_bytes()),
         "value/count" => literal
             .parse::<u64>()
@@ -79,7 +80,7 @@ pub(super) fn canonical_leaf_literal(
         }
         _ if !matches!(
             kind,
-            "value/unit" | "value/text" | "value/count" | "value/bool" | "value/scalar"
+            "value/empty" | "value/text" | "value/count" | "value/bool" | "value/scalar"
         ) =>
         {
             Some(literal.as_bytes().to_vec())

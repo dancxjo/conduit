@@ -51,3 +51,21 @@ Open the Handbook, choose **A ticker you can stop** or **Turn keystrokes into te
 Reload and chapter navigation recover your retained Body under a fresh Boot. A second browser profile gets its own Body. Open **Your body and browser** to inspect evidence, **Release this tab** for another tab, or **Start my Handbook over**. Starting over clears the application's Body and state while preserving the browser Host identity.
 
 The template names reviewed resources; `birth.json` names initial resident Plots and lesson sources. Prose remains in `wiki/`. The application module orchestrates public SDK operations, while Rust owns checking, lifecycle, workset and planning. See [Static Body applications](../../../docs/contributing/static-body-applications.md) for packaging, identity isolation, resource boundaries and required acceptance evidence.
+
+## Typed units lessons
+
+The reviewed quantity plots use ordinary checked values:
+`units/convert(source = 1kHz, to = Hz)`. `source` is `Quantity`, and `to` is
+`Unit`; quotation marks would select Text and fail the Fore. Native quantities
+and Units need no notation imports. The pitch lesson uses
+`units/converted-equals(expected = 1000Hz)` to turn its validated runtime receipt
+into a Boolean decision. False covers different magnitudes, incompatible
+expected dimensions and valid refusals; invalid receipts fail admission.
+The retained receipt remains the source of exact conversion/refusal evidence.
+
+The temperature-change lesson uses the distinct temperature-difference Fore,
+which scales the change without adding an absolute temperature origin.
+See [Units and quantities](../../../wiki/Units-and-quantities.md) and the
+[first-class values design](../../../docs/design/first-class-units.md).
+Source changes and component checks do not establish a deployed public
+Handbook or browser execution; those require their own build/execution receipts.

@@ -124,7 +124,7 @@ fn quantity_range_and_quantization_refusals_reach_the_production_kernel() {
         let source = format!(
             r#"plot quantity_refusal {{
  source: conduit-test/scalar-literal
- map: math/map-quantity(source-minimum = {minimum}, source-maximum = {maximum}, target-minimum = 0, target-maximum = 100, target-granularity = 1, unit = "%", range-policy = "refuse", quantization = "exact")
+ map: math/map-quantity(source-minimum = {minimum}, source-maximum = {maximum}, target-minimum = 0, target-maximum = 100, target-granularity = 1, unit = %, range-policy = "refuse", quantization = "exact")
  source.value >> map.in
 }}
 "#
@@ -142,7 +142,10 @@ fn quantity_range_and_quantization_refusals_reach_the_production_kernel() {
             conduit_std_offers::QUANTITY_MAP_IMPLEMENTATION
         );
         assert_eq!(mapping.host_calls[0].maximum_input_bytes, 8);
-        assert_eq!(mapping.host_calls[0].maximum_output_bytes, 9);
+        assert_eq!(
+            mapping.host_calls[0].maximum_output_bytes,
+            conduit_core::QUANTITY_ENCODED_LEN as u32
+        );
         let mut output = Vec::new();
         let mut timer = RecordingTimer { waits: Vec::new() };
         let report = host
@@ -222,7 +225,7 @@ fn run_presented_quantity(source: &str, entry: &str) -> (conduit_core::Plan, cra
             let bytes = if cord.value_kind.as_str() == conduit_core::SCALAR_INFO_ID {
                 8
             } else if cord.value_kind.as_str() == conduit_core::QUANTITY_INFO_ID {
-                9
+                conduit_core::QUANTITY_ENCODED_LEN as u32
             } else {
                 conduit_semantic_catalog::QUANTITY_INFO_MAXIMUM_BYTES as u32
             };
@@ -261,7 +264,7 @@ fn run_presented_quantity(source: &str, entry: &str) -> (conduit_core::Plan, cra
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),
             connection_item_capacity: 1,
-            connection_byte_capacity: conduit_semantic_catalog::QUANTITY_INFO_MAXIMUM_BYTES as u32,
+            connection_byte_capacity: SCALAR_ENCODED_LEN as u32,
             authority_grants: &[],
             protected_resource_grants: &[],
             line_offers: &[],
@@ -300,7 +303,7 @@ fn run_presented_quantity(source: &str, entry: &str) -> (conduit_core::Plan, cra
 fn canonical_quantity_presentation_completes_through_the_installed_back() {
     let source = r#"plot quantity_presentation {
  source: scalar/literal(value = -1)
- map: math/map-quantity(source-minimum = -2, source-maximum = 0, target-maximum = 100, unit = "%")
+ map: math/map-quantity(source-minimum = -2, source-maximum = 0, target-maximum = 100, unit = %)
  wrap: structured-info/wrap-quantity
  show: presentation/quantity
  source.value >> map.in
@@ -312,7 +315,7 @@ fn canonical_quantity_presentation_completes_through_the_installed_back() {
     assert_quantity_presented(
         &plan,
         &report,
-        conduit_core::Quantity::new(50, conduit_core::QuantityUnit::Percent),
+        conduit_core::Quantity::new(50, conduit_core::Unit::Percent),
     );
     let show = plan.fragments[0]
         .placements
@@ -354,7 +357,7 @@ fn canonical_quantity_presentation_completes_through_the_installed_back() {
 fn quantity_mapping_completes_one_admitted_kernel_request() {
     let source = r#"plot quantity_success {
  source: conduit-test/scalar-literal
- map: math/map-quantity(source-minimum = -2, source-maximum = 0, target-maximum = 100, unit = "%")
+ map: math/map-quantity(source-minimum = -2, source-maximum = 0, target-maximum = 100, unit = %)
  wrap: structured-info/wrap-quantity
  show: presentation/structured-info
  source.value >> map.in
@@ -366,7 +369,7 @@ fn quantity_mapping_completes_one_admitted_kernel_request() {
     assert_quantity_presented(
         &plan,
         &report,
-        conduit_core::Quantity::new(50, conduit_core::QuantityUnit::Percent),
+        conduit_core::Quantity::new(50, conduit_core::Unit::Percent),
     );
     assert_eq!(
         report
@@ -438,7 +441,7 @@ fn quantity_refusals_do_not_make_a_connected_presentation() {
         let source = format!(
             r#"plot quantity_refusal {{
  source: conduit-test/scalar-literal
- map: math/map-quantity(source-minimum = {minimum}, source-maximum = {maximum}, target-maximum = 100, unit = "%", range-policy = "refuse", quantization = "exact")
+ map: math/map-quantity(source-minimum = {minimum}, source-maximum = {maximum}, target-maximum = 100, unit = %, range-policy = "refuse", quantization = "exact")
  wrap: structured-info/wrap-quantity
  show: presentation/structured-info
  source.value >> map.in
@@ -483,19 +486,19 @@ fn quantity_refusals_do_not_make_a_connected_presentation() {
 
 #[test]
 fn authored_quantity_plots_execute_and_present_through_the_production_kernel() {
-    use conduit_core::{Quantity, QuantityUnit};
+    use conduit_core::{Quantity, Unit};
     for (authored, name, output, expected) in [
         (
             include_str!("../../../../plots/quantity-range-map/main.conduit"),
             "quantity-range-map",
             "quantity",
-            Quantity::new(10010, QuantityUnit::Hertz),
+            Quantity::new(10010, Unit::Hertz),
         ),
         (
             include_str!("../../../../plots/normalized-light-intensity/main.conduit"),
             "normalized-light-intensity",
             "intensity",
-            Quantity::new(50, QuantityUnit::Percent),
+            Quantity::new(50, Unit::Percent),
         ),
     ] {
         let source = format!(

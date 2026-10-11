@@ -152,7 +152,7 @@ try {
   }
   for (const resource of template.resources) {
     if (resource.dependencies?.length > 16 || !Number.isSafeInteger(resource.maximum_bytes) || resource.maximum_bytes < 1
-      || resource.maximum_bytes > 16 * 1024 * 1024) throw new Error('Application resource exceeds existing bounds');
+      || resource.maximum_bytes > (resource.role === 'runtime' ? 20 : 16) * 1024 * 1024) throw new Error('Application resource exceeds existing bounds');
   }
   for (const name of ['browser-application-loader.mjs', 'browser-application-sdk.mjs', 'browser-application-storage.mjs', 'application-presentation.mjs', 'application-graph-canvas.mjs', 'application-theme.mjs']) {
     await mkdir(path.join(staging, 'host/assets'), { recursive: true });

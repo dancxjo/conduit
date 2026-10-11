@@ -158,7 +158,7 @@ impl ExpandedCanonicalPlot {
                     matches!(
                         port.temporal,
                         conduit_core::PortTemporal::Flow { closes: true }
-                    ) && connection.value_kind.as_str() == conduit_core::UNIT_INFO_ID
+                    ) && connection.value_kind.as_str() == conduit_core::EMPTY_INFO_ID
                         && connection.temporal == conduit_core::PortTemporal::Value
                 }
                 conduit_core::ConnectionTrack::AbnormalTerminal => {
@@ -167,7 +167,7 @@ impl ExpandedCanonicalPlot {
                 }
                 conduit_core::ConnectionTrack::Quiescence => {
                     matches!(port.temporal, conduit_core::PortTemporal::Flow { .. })
-                        && connection.value_kind.as_str() == conduit_core::UNIT_INFO_ID
+                        && connection.value_kind.as_str() == conduit_core::EMPTY_INFO_ID
                         && connection.temporal == conduit_core::PortTemporal::Value
                 }
             });
@@ -321,9 +321,20 @@ pub(super) fn expanded_identity(
                     push(&mut canonical, value.profile().as_str());
                     push(&mut canonical, &hex(value.canonical_value()));
                 }
-                conduit_core::ConfigurationValue::Quantity(value) => {
-                    push(&mut canonical, "quantity");
-                    push(&mut canonical, &hex(&value.encode()));
+                conduit_core::ConfigurationValue::Quantity(ref value) => {
+                    push(&mut canonical, "exact-quantity");
+                    push(&mut canonical, &hex(value.canonical_value()));
+                    push(&mut canonical, value.source());
+                }
+                conduit_core::ConfigurationValue::Unit(ref value) => {
+                    push(&mut canonical, "physical-unit");
+                    push(&mut canonical, &hex(value.canonical_value()));
+                    push(&mut canonical, value.source());
+                }
+                conduit_core::ConfigurationValue::TemperatureDifference(ref value) => {
+                    push(&mut canonical, "temperature-difference");
+                    push(&mut canonical, &hex(value.canonical_value()));
+                    push(&mut canonical, value.source());
                 }
             }
         }

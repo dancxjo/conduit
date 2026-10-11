@@ -1,4 +1,4 @@
-use conduit_core::{ConfigurationValue, Quantity, QuantityUnit};
+use conduit_core::{ConfigurationValue, Quantity, Unit};
 
 use crate::{FaceControlKind, PatchbayGraph, PlotEditor, PlotEditorError};
 
@@ -14,14 +14,20 @@ fn front_controls_project_actual_values_and_visible_contracts() {
     assert_eq!(controls.len(), 1);
     assert_eq!(
         controls[0].value,
-        ConfigurationValue::Quantity(Quantity::new(25, QuantityUnit::Millisecond))
+        ConfigurationValue::Quantity(
+            conduit_core::QuantityConfigurationValue::from_value(Quantity::new(
+                25,
+                Unit::Millisecond
+            ))
+            .unwrap()
+        )
     );
     assert!(matches!(
         controls[0].kind,
         FaceControlKind::Number {
-            unit: Some("ms"),
+            unit: Some(ref unit),
             ..
-        }
+        } if unit == "ms"
     ));
 }
 
@@ -38,8 +44,8 @@ fn timing_controls_expose_bounded_duration_policy_and_capacity() {
         FaceControlKind::Number {
             minimum: 0,
             maximum: conduit_semantic_catalog::TIME_MAXIMUM_DURATION_MS,
-            unit: Some("ms")
-        }
+            unit: Some(ref unit)
+        } if unit == "ms"
     ));
     assert!(matches!(
         controls[1].kind,
@@ -273,7 +279,13 @@ fn front_edit_preserves_gear_identity_and_reseals_all_plot_identities() {
             &before.expanded_plot_id,
             "clock",
             "freq",
-            ConfigurationValue::Quantity(Quantity::new(26, QuantityUnit::Millisecond)),
+            ConfigurationValue::Quantity(
+                conduit_core::QuantityConfigurationValue::from_value(Quantity::new(
+                    26,
+                    Unit::Millisecond,
+                ))
+                .unwrap(),
+            ),
         )
         .unwrap();
     let after = editor.expand_plot("controls").unwrap();
@@ -314,10 +326,13 @@ fn default_value_becomes_an_authored_named_argument() {
             &before.expanded_plot_id,
             "stable",
             "duration-ms",
-            ConfigurationValue::Quantity(conduit_core::Quantity::new(
-                3,
-                conduit_core::QuantityUnit::Millisecond,
-            )),
+            ConfigurationValue::Quantity(
+                conduit_core::QuantityConfigurationValue::from_value(conduit_core::Quantity::new(
+                    3,
+                    conduit_core::Unit::Millisecond,
+                ))
+                .unwrap(),
+            ),
         )
         .unwrap();
     assert!(editor
@@ -400,4 +415,41 @@ fn finite_text_contract_projects_an_exact_choice_and_rejects_invented_values() {
         Err(PlotEditorError::InvalidConfiguration(message)) if message.contains("CND-FRM-040")
     ));
     assert_eq!(editor.view().source, source);
+}
+
+#[test]
+fn physical_unit_control_keeps_typed_source_when_edited() {
+    let mut editor = editor("plot controls {\n    map: math/map-quantity(unit = Hz)\n}\n");
+    let before = editor.expand_plot("controls").unwrap();
+    let graph = PatchbayGraph::from_expanded(&before).unwrap();
+    let control = graph.gears[0]
+        .controls
+        .iter()
+        .find(|control| control.key == "unit")
+        .unwrap();
+    assert!(matches!(
+        control.kind,
+        FaceControlKind::PhysicalSource { .. }
+    ));
+    assert!(matches!(control.value, ConfigurationValue::Unit(_)));
+    editor
+        .set_gear_configuration(
+            0,
+            &before.expanded_plot_id,
+            "map",
+            "unit",
+            ConfigurationValue::Unit(conduit_core::UnitConfigurationValue::parse("kHz").unwrap()),
+        )
+        .unwrap();
+    assert!(editor.view().source.contains("unit = kHz"));
+    let after = editor.expand_plot("controls").unwrap();
+    let graph = PatchbayGraph::from_expanded(&after).unwrap();
+    let control = graph.gears[0]
+        .controls
+        .iter()
+        .find(|control| control.key == "unit")
+        .unwrap();
+    assert!(
+        matches!(&control.value, ConfigurationValue::Unit(value) if value.value() == conduit_core::Unit::resolve("kHz").unwrap())
+    );
 }

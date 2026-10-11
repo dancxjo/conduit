@@ -40,7 +40,7 @@ fn pointer_history_preserves_normalized_motion_bounds_invalid_reports_and_sequen
                 observed_type.clone(),
                 "short",
                 StructuredInfoValue::leaf(
-                    StructuredInfoType::leaf(kind_id("value/unit")).unwrap(),
+                    StructuredInfoType::leaf(kind_id("value/empty")).unwrap(),
                     vec![],
                 )
                 .unwrap(),

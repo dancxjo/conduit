@@ -101,7 +101,7 @@ impl PatchbayGraph {
                 }
                 conduit_core::ConnectionTrack::NormalClose
                 | conduit_core::ConnectionTrack::Quiescence => {
-                    Some(conduit_core::kind_id(conduit_core::UNIT_INFO_ID))
+                    Some(conduit_core::kind_id(conduit_core::EMPTY_INFO_ID))
                 }
                 conduit_core::ConnectionTrack::AbnormalTerminal => {
                     source_port.descriptor.abnormal_kind.clone()

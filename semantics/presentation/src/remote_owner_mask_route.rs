@@ -20,7 +20,10 @@ use crate::{
 };
 
 const MAX_REMOTE_ROUTE_SEAL_BYTES: usize = 32 * 1024;
-const MAX_HOST_OFFER_BYTES: usize = 512 * 1024;
+// Preparation hashes the full local inventory but transmits only its digest.
+// Allow the reference Host plus attached providers within the same finite 1 MiB
+// inventory envelope as local Mask sealing; the remote seal remains 32 KiB.
+const MAX_HOST_OFFER_BYTES: usize = 1024 * 1024;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -465,6 +468,8 @@ impl RemoteOwnerMaskRouteSeal {
     }
 }
 
+#[cfg(test)]
+mod host_basis_tests;
 mod validation;
 use validation::{
     hex, validate_admitted_line, validate_hosts, validate_line, validate_mask_basis,

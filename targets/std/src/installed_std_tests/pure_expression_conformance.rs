@@ -1,5 +1,5 @@
 use super::{host, installed_std, RecordingTimer};
-use conduit_core::{BaseImplementationId, KindIdentity, Quantity, QuantityUnit};
+use conduit_core::{BaseImplementationId, KindIdentity, Quantity, Unit};
 use conduit_plot::{
     check_expression, check_syntax_document, expand_canonical_plot, parse_syntax_document,
     BackStatement, CheckedExpressionType, CordStage, ExpressionTypeContext, KindConfigurationField,
@@ -16,7 +16,7 @@ fn fixed_integer_expression_plans_and_plays_through_the_std_host() {
 #[test]
 fn scientific_quantity_comparison_plans_and_plays_through_the_std_host() {
     assert_expression_plans_and_plays(
-        &Quantity::new(31, QuantityUnit::Celsius).encode(),
+        &Quantity::new(31, Unit::Celsius).encode(),
         &conduit_core::InfoBool::TRUE.encode(),
         conduit_core::TEMPERATURE_INFO_ID,
         conduit_core::BOOL_INFO_ID,

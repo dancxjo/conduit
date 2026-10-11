@@ -9,7 +9,7 @@ plot usb-hid-keyboard-batch-observation (
 ) = (.1)
 
 plot usb-hid-keyboard-batch-lifecycle (
-    >> begin: Unit...|
+    >> begin: Empty...|
     >> command: UsbKeyboardCommand...| <= 4096B
     changes: UsbKeyboardTransitionBatch...| >>
 ) {
@@ -35,7 +35,7 @@ plot usb-hid-keyboard-batch-lifecycle (
 }
 
 plot usb-hid-keyboard-received-batches (
-    >> begin: Unit...|
+    >> begin: Empty...|
     >> frame: UsbHidReportFrame...|
     observed: UsbBootKeyboardResult...| >>
     changes: UsbKeyboardTransitionBatch...| >>
@@ -53,8 +53,8 @@ plot usb-hid-keyboard-received-batches (
 }
 
 plot usb-hid-keyboard-batch-endpoint (
-    >> begin: Unit...|
-    >> read: Unit...|
+    >> begin: Empty...|
+    >> read: Empty...|
     received: UsbHidTransferFrame...| >>
     observed: UsbBootKeyboardResult...| >>
     changes: UsbKeyboardTransitionBatch...| >>

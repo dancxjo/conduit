@@ -5,8 +5,7 @@ use super::{BrowserBack, BROWSER_TIMER_MAXIMUM_MILLIS};
 use conduit_core::{
     encode_monotonic_duration, resource_requirement, ArtifactId, Back, BackOfferBuilder,
     CapabilityId, CapabilityOffer, CheckedValueContract, ConfigurationValue, ExecutionProfileId,
-    FrontValueLocation, ImplementationId, KindSemanticLaw, KindTerminalBehavior, PlannedGear,
-    QuantityUnit,
+    FrontValueLocation, ImplementationId, KindSemanticLaw, KindTerminalBehavior, PlannedGear, Unit,
 };
 use conduit_kernel::ValueStorage;
 
@@ -128,11 +127,9 @@ fn configured_duration(placement: &PlannedGear) -> Result<u64, String> {
         return Err("time/window duration-ms configuration is malformed".into());
     };
     value
-        .convert(QuantityUnit::Millisecond)
-        .map_err(|_| "time/window duration must be an exact time quantity".to_string())?
         .value()
-        .try_into()
-        .map_err(|_| "time/window duration must be nonnegative".to_string())
+        .convert_to_u64(Unit::Millisecond)
+        .map_err(|_| "time/window duration must be exact nonnegative milliseconds".to_string())
 }
 
 fn unreachable_offer() -> CapabilityOffer {
@@ -169,10 +166,10 @@ mod tests {
             execution_profile_id: offered.implementation.execution_profile_id,
             configuration: vec![conduit_core::ConfigurationEntry {
                 key: "duration-ms".into(),
-                value: ConfigurationValue::Quantity(conduit_core::Quantity::new(
+                value: ConfigurationValue::Quantity(conduit_core::QuantityConfigurationValue::from_value(conduit_core::Quantity::new(
                     5,
-                    QuantityUnit::Millisecond,
-                )),
+                    Unit::Millisecond,
+                )).expect("bounded quantity configuration")),
             }],
             host_id: "browser/window".into(),
             boot_id: "browser-window-boot".into(),
@@ -277,10 +274,10 @@ mod tests {
             resource_ports: Vec::new(),
             configuration: vec![conduit_core::ConfigurationEntry {
                 key: "duration-ms".into(),
-                value: ConfigurationValue::Quantity(conduit_core::Quantity::new(
+                value: ConfigurationValue::Quantity(conduit_core::QuantityConfigurationValue::from_value(conduit_core::Quantity::new(
                     5,
-                    QuantityUnit::Millisecond,
-                )),
+                    Unit::Millisecond,
+                )).expect("bounded quantity configuration")),
             }],
             pool_references: Vec::new(),
         };

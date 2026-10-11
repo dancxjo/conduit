@@ -52,7 +52,7 @@ impl PreparedStructuredExpression {
             PortableExpressionOperation::Literal(_) | PortableExpressionOperation::Constant(_) => {
                 let constant = PortableExpressionProgram {
                     input_type: StructuredInfoType::leaf(conduit_core::kind_id(
-                        conduit_core::UNIT_INFO_ID,
+                        conduit_core::EMPTY_INFO_ID,
                     ))
                     .map_err(|_| Refusal::InvalidProgram)?,
                     output_type: program.output_type.clone(),

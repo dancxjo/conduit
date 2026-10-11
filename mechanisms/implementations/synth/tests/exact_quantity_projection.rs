@@ -1,17 +1,17 @@
 mod common;
 
 use conduit_audio::{Gate, MusicalNoteEvent, MusicalPitch, NoteOccurrenceId};
-use conduit_core::ExactDecimalQuantity;
+use conduit_core::Quantity;
 
-fn quantity(source: &str) -> ExactDecimalQuantity {
-    ExactDecimalQuantity::parse_plot_literal(source).unwrap()
+fn quantity(source: &str) -> Quantity {
+    Quantity::parse_plot_literal(source).unwrap()
 }
 
 #[test]
 fn exact_prefixed_pitch_and_time_feed_existing_bounded_synth_unchanged() {
     let expected_pitch = MusicalPitch::new(440_127, 440_000, 0).unwrap();
     let projected_pitch =
-        MusicalPitch::from_exact_quantities(quantity("0.440127kHz"), quantity("440000000µHz"), 0)
+        MusicalPitch::from_quantities(quantity("0.440127kHz"), quantity("440000000µHz"), 0)
             .unwrap();
     let mut expected = common::synth();
     let mut projected = common::synth();

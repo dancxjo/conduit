@@ -288,6 +288,7 @@ fn acknowledged_browser_show(
             Some(&fixture_carrier_evidence(&snapshot)),
         )
         .unwrap();
+    assert!(serde_json::to_vec(&route).unwrap().len() <= 32 * 1024);
     let face = owner.local_face_snapshot().unwrap();
     let placement = route.planned_mask.show_placement();
     let play = conduit_core::bind_active_play(

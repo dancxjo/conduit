@@ -7,8 +7,8 @@ use conduit_core::{
     kind_id, port_id, AbnormalTerminalTransduction, CancellationTransduction, CapabilityLimits,
     CheckedValueContract, FiniteTerminalEmission, FrontValueContract, FrontValueLocation, Kind,
     KindIdentity, KindSemanticLaw, NormalCloseTransduction, PortDescriptor, PortDirection,
-    PortTemporal, PreparedTuplePairEncoder, TerminalTransductionProfile, TERMINAL_INFO_ENCODED_LEN,
-    TERMINAL_INFO_ID, UNIT_INFO_ID,
+    PortTemporal, PreparedTuplePairEncoder, TerminalTransductionProfile, EMPTY_INFO_ID,
+    TERMINAL_INFO_ENCODED_LEN, TERMINAL_INFO_ID,
 };
 
 pub const COMBINE_LATEST_KIND: &str = "state/combine-latest";
@@ -23,8 +23,8 @@ pub fn combine_latest_semantic_contract(
     left: &CheckedValueContract,
     right: &CheckedValueContract,
 ) -> Result<Kind, &'static str> {
-    if (left.maximum_bytes == 0 && left.value_kind.as_str() != UNIT_INFO_ID)
-        || (right.maximum_bytes == 0 && right.value_kind.as_str() != UNIT_INFO_ID)
+    if (left.maximum_bytes == 0 && left.value_kind.as_str() != EMPTY_INFO_ID)
+        || (right.maximum_bytes == 0 && right.value_kind.as_str() != EMPTY_INFO_ID)
     {
         return Err("state/combine-latest requires finite canonical input envelopes");
     }

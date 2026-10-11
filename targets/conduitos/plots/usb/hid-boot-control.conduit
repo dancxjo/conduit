@@ -15,7 +15,7 @@ plot usb-hid-boot-request (
 # and no shortness. A successful transport tag alone does not establish ready.
 plot usb-hid-boot-result (
     result: UsbControlResult...| >> selection: UsbHidBootSelection...|
-) = (. is completed ? (.completed.transferred == 0 && !.completed.short && sequence/length(.completed.input) == 0 ? ready(unit) : malformed(unit)) : (. is stalled ? stalled(unit) : (. is provider-lost ? provider-lost(unit) : unsupported(unit))))
+) = (. is completed ? (.completed.transferred == 0 && !.completed.short && sequence/length(.completed.input) == 0 ? ready(empty) : malformed(empty)) : (. is stalled ? stalled(empty) : (. is provider-lost ? provider-lost(empty) : unsupported(empty))))
 
 plot usb-hid-select-boot (
     interface: U8...| >> selection: UsbHidBootSelection...|

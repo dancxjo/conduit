@@ -43,7 +43,7 @@ impl PreparedEndpointReadResultEncoder {
             .ok_or(StructuredInfoRefusal::UnknownVariantTag)?
             .payload_type();
         let primitive = |name| StructuredInfoType::leaf(kind_id(name));
-        let mut unit = PreparedStructuredComposer::new(&primitive("value/unit")?, 64)?;
+        let mut unit = PreparedStructuredComposer::new(&primitive("value/empty")?, 64)?;
         let unit = unit.leaf(&[])?.to_vec();
         Ok(Self {
             result: PreparedStructuredComposer::new(

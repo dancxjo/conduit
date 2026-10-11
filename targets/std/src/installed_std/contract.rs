@@ -1,4 +1,4 @@
-use conduit_core::{CapabilityOffer, ConfigurationEntry, ConfigurationValue, QuantityUnit};
+use conduit_core::{CapabilityOffer, ConfigurationEntry, ConfigurationValue, Unit};
 
 #[cfg(test)]
 pub(crate) use conduit_semantic_catalog::{
@@ -35,10 +35,9 @@ pub(super) fn parse_every_configuration(
     let period_ms = entries
         .iter()
         .find_map(|entry| match (entry.key.as_str(), &entry.value) {
-            ("freq", ConfigurationValue::Quantity(value)) => value
-                .convert(QuantityUnit::Millisecond)
-                .ok()
-                .and_then(|value| u64::try_from(value.value()).ok()),
+            ("freq", ConfigurationValue::Quantity(value)) => {
+                value.value().convert_to_u64(Unit::Millisecond).ok()
+            }
             _ => None,
         })
         .ok_or_else(|| "missing or invalid time/every configuration 'freq'".to_string())?;

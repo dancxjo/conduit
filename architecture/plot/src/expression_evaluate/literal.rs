@@ -7,7 +7,7 @@ pub(super) fn literal_value(
 ) -> Result<Value, PortableExpressionEvaluationRefusal> {
     if matches!(value_type.shape(), StructuredInfoTypeShape::Variant { .. }) {
         let unit = StructuredInfoValue::leaf(
-            StructuredInfoType::leaf(conduit_core::kind_id(conduit_core::UNIT_INFO_ID))
+            StructuredInfoType::leaf(conduit_core::kind_id(conduit_core::EMPTY_INFO_ID))
                 .map_err(|_| PortableExpressionEvaluationRefusal::InvalidLiteral)?,
             Vec::new(),
         )
@@ -19,7 +19,7 @@ pub(super) fn literal_value(
     }
     let kind = leaf_kind(value_type)?;
     let encoded = match primitive_info_kind(kind) {
-        Some(PrimitiveInfoKind::Unit) if literal == "unit" => Vec::new(),
+        Some(PrimitiveInfoKind::Empty) if literal == "empty" => Vec::new(),
         Some(PrimitiveInfoKind::Bool) => match literal {
             "true" => InfoBool::TRUE.encode().to_vec(),
             "false" => InfoBool::FALSE.encode().to_vec(),
@@ -41,12 +41,14 @@ pub(super) fn literal_value(
             .ok_or(PortableExpressionEvaluationRefusal::InvalidLiteral)?
             .encode()
             .to_vec(),
-        Some(PrimitiveInfoKind::ExactDecimalQuantity) => {
-            conduit_core::ExactDecimalQuantity::parse_plot_literal(literal)
-                .map_err(|_| PortableExpressionEvaluationRefusal::InvalidLiteral)?
-                .encode()
-                .to_vec()
-        }
+        Some(PrimitiveInfoKind::Unit) => conduit_core::Unit::resolve(literal)
+            .map_err(|_| PortableExpressionEvaluationRefusal::InvalidLiteral)?
+            .encode()
+            .to_vec(),
+        Some(PrimitiveInfoKind::Quantity) => conduit_core::Quantity::parse_plot_literal(literal)
+            .map_err(|_| PortableExpressionEvaluationRefusal::InvalidLiteral)?
+            .encode()
+            .to_vec(),
         Some(kind) if quantity_kind(kind) => {
             let quantity = Quantity::parse_plot_literal(literal)
                 .map_err(|_| PortableExpressionEvaluationRefusal::InvalidLiteral)?;

@@ -100,7 +100,7 @@ fn boot_once(
         .stderr(Stdio::piped())
         .spawn()
         .map_err(|error| ConduitosError::refusal("missing-qemu", error.to_string()))?;
-    hid_qmp::wait_for_stage(
+    hid_qmp::wait_for_product_arrival(
         &serial_path,
         &mut child,
         "CONDUIT_CRECHE_CHECKPOINT ready",

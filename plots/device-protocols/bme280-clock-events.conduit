@@ -25,7 +25,7 @@ type BmeOptionalClockContext =
 
 plot bme280-clock-action-context (
     action: BmeProtocolAction...| >> context: BmeOptionalClockContext...|
-) = (. is waiting ? available(waiting(.waiting)) : absent(unit))
+) = (. is waiting ? available(waiting(.waiting)) : absent(empty))
 
 plot bme280-clock-request (
     context: BmeClockContext...| >> request: ClockRequest...|

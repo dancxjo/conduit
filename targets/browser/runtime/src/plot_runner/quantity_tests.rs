@@ -7,7 +7,7 @@ fn fragment(minimum: i64, maximum: i64) -> PlanFragment {
     let source = format!(
         r#"plot quantity-test {{
  input: scalar/literal(value = -1)
- map: math/map-quantity(source-minimum = {minimum}, source-maximum = {maximum}, target-minimum = 0, target-maximum = 100, target-granularity = 1, unit = "%", range-policy = "refuse", quantization = "exact")
+ map: math/map-quantity(source-minimum = {minimum}, source-maximum = {maximum}, target-minimum = 0, target-maximum = 100, target-granularity = 1, unit = %, range-policy = "refuse", quantization = "exact")
  input.value >> map.in
 }}"#
     );
@@ -66,7 +66,10 @@ fn browser_quantity_realization_preserves_canonical_value_and_refuses_identity_d
         .find(|gear| gear.kind_id.as_str() == conduit_semantic_catalog::QUANTITY_MAP_KIND)
         .unwrap();
     assert_eq!(placement.host_calls[0].maximum_input_bytes, 8);
-    assert_eq!(placement.host_calls[0].maximum_output_bytes, 9);
+    assert_eq!(
+        placement.host_calls[0].maximum_output_bytes,
+        conduit_core::QUANTITY_ENCODED_LEN as u32
+    );
     let value = crate::installed_browser::transform_quantity(
         crate::installed_browser::prepare_quantity_mapping(placement).unwrap(),
         &conduit_core::Scalar::from_raw_microunits(-1).encode(),
@@ -75,12 +78,17 @@ fn browser_quantity_realization_preserves_canonical_value_and_refuses_identity_d
     .unwrap();
     assert_eq!(
         conduit_core::Quantity::decode(&value).unwrap(),
-        conduit_core::Quantity::new(50, conduit_core::QuantityUnit::Percent)
+        conduit_core::Quantity::new(50, conduit_core::Unit::Percent)
     );
     let installation = factory(&placement.implementation_id).unwrap();
     let mut altered = placement.clone();
     altered.artifact_id = "wrong/browser-quantity".into();
-    let mut values = HostedValueStore::new(4, 9, 36).unwrap();
+    let mut values = HostedValueStore::new(
+        4,
+        conduit_core::QUANTITY_ENCODED_LEN as u32,
+        (conduit_core::QUANTITY_ENCODED_LEN * 4) as u32,
+    )
+    .unwrap();
     assert!((installation.prepare)(&altered, &mut values).is_err());
 }
 
@@ -88,7 +96,7 @@ fn browser_quantity_realization_preserves_canonical_value_and_refuses_identity_d
 fn browser_normalized_distance_mapping_is_prepared_before_play() {
     let source = r#"plot normalized-distance-test {
  input: scalar/literal(value = 250000)
- map: math/map-normalized-distance(source-minimum = 0, source-maximum = 1000000, target-minimum = 0, target-maximum = 30, target-granularity = 1, unit = "cm", range-policy = "clamp", quantization = "nearest")
+ map: math/map-normalized-distance(source-minimum = 0, source-maximum = 1000000, target-minimum = 0, target-maximum = 30, target-granularity = 1, unit = cm, range-policy = "clamp", quantization = "nearest")
  input.value >> map.in
 }"#;
     let (_, catalog) = crate::installed_browser::catalogs().unwrap();

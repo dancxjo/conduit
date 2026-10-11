@@ -2,7 +2,7 @@ use conduit_audio::{
     AudioRenderDemand, Gate, ModulationDestination, MusicalControl, MusicalControlEvent,
     MusicalNoteEvent, MusicalPitch, NoteOccurrenceId, SoundInfoError, ToneIntent,
 };
-use conduit_core::{Quantity, QuantityConversionRefusal, QuantityUnit};
+use conduit_core::{Quantity, QuantityConversionRefusal, Unit};
 
 #[test]
 fn render_demand_round_trips_one_exact_nonempty_clock_interval() {
@@ -99,21 +99,18 @@ fn microtonal_pitch_and_explicit_tuning_are_not_midi_numbers() {
 fn pitch_consumes_typed_frequency_without_changing_canonical_identity() {
     let legacy = MusicalPitch::new(440_000, 440_000, 0).unwrap();
     let typed = MusicalPitch::from_quantities(
-        Quantity::new(440, QuantityUnit::Hertz),
-        Quantity::new(440_000, QuantityUnit::Millihertz),
+        Quantity::new(440, Unit::Hertz),
+        Quantity::new(440_000, Unit::Millihertz),
         0,
     )
     .unwrap();
     assert_eq!(typed, legacy);
     assert_eq!(typed.encode(), legacy.encode());
-    assert_eq!(
-        typed.frequency(),
-        Quantity::new(440_000, QuantityUnit::Millihertz)
-    );
+    assert_eq!(typed.frequency(), Quantity::new(440_000, Unit::Millihertz));
     assert_eq!(
         MusicalPitch::from_quantities(
-            Quantity::new(1, QuantityUnit::Millisecond),
-            Quantity::new(440, QuantityUnit::Hertz),
+            Quantity::new(1, Unit::Millisecond),
+            Quantity::new(440, Unit::Hertz),
             0,
         ),
         Err(SoundInfoError::QuantityConversion(

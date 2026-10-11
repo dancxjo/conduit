@@ -44,6 +44,11 @@ fn exact_value(
 }
 
 fn offer(value: &CheckedValueContract) -> Result<CapabilityOffer, String> {
+    if value.maximum_bytes > super::MAXIMUM_BROWSER_VALUE_BYTES as u32 {
+        return Err(
+            "browser time/sample specialization exceeds the prepared-value byte bound".into(),
+        );
+    }
     let contract =
         conduit_semantic_catalog::time_sample_semantic_contract(value).map_err(str::to_string)?;
     let target = contract.kind_id.clone();

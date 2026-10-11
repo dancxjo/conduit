@@ -51,7 +51,14 @@ fn sparse_speech_pipeline_retains_host_inputs_for_entire_long_stream() {
     }
     let escaped: String = wav.iter().map(|byte| format!("\\{byte:03o}")).collect();
     let executable = files.0.join("fixture-espeak");
-    fs::write(&executable, format!("#!/bin/sh\nprintf '{escaped}'\n")).unwrap();
+    // Read the exact request before returning its fixture audio. A provider
+    // that ignores stdin can exit between the Host's status check and write,
+    // making the pipe fail instead of exercising retained-input budgeting.
+    fs::write(
+        &executable,
+        format!("#!/bin/sh\nIFS= read -r text\n[ \"$text\" = 'Hello.' ] || exit 21\nprintf '{escaped}'\n"),
+    )
+    .unwrap();
     fs::set_permissions(&executable, fs::Permissions::from_mode(0o700)).unwrap();
     let discovery = crate::hosted_speech_synthesis::EspeakDiscovery::inspect(
         &executable,
@@ -90,7 +97,7 @@ fn sparse_speech_pipeline_retains_host_inputs_for_entire_long_stream() {
     let mut host = StdHost::new_with_composition(config, StdHostComposition::minimal().with_text());
     host.attach_espeak_speech_and_wav_artifact(adapter, artifact)
         .unwrap();
-    let source = "plot bounded_speech {\n voice: speech/synthesize(language-request = { language: \"language/english\", variety: none(\"\"), variety_policy: language_sufficient(\"\") }, maximum-output-bytes = 131072)\n convert: audio/convert-pcm-profile(output-sample-rate-hz = 48000, output-channel-layout = \"stereo-left-right\")\n artifact: audio/play\n \"Hello.\" >> voice.text\n voice.audio >> convert.audio\n convert.converted >> artifact.audio\n}.\n";
+    let source = "plot bounded_speech {\n voice: speech/synthesize(language-request = { language: \"language/english\", variety: none(empty), variety_policy: language_sufficient(empty) }, maximum-output-bytes = 131072)\n convert: audio/convert-pcm-profile(output-sample-rate-hz = 48000, output-channel-layout = \"stereo-left-right\")\n artifact: audio/play\n \"Hello.\" >> voice.text\n voice.audio >> convert.audio\n convert.converted >> artifact.audio\n}.\n";
     let mut startup = StartupCatalog::new();
     let mut profiles = ProfileCatalog::new();
     conduit_text::install_text_catalogs(&mut startup, &mut profiles).unwrap();

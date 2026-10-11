@@ -274,6 +274,10 @@ impl StepBack<{ super::BROWSER_PORTS_PER_GEAR }> for BrowserBack {
         self.step.step(io, input_bytes)
     }
 
+    fn prepared_output(&self, port: PortId) -> Option<&[u8]> {
+        self.step.prepared_output(port)
+    }
+
     fn accepts_input_while_host_call_pending(&self) -> bool {
         self.step.accepts_input_while_host_call_pending()
     }

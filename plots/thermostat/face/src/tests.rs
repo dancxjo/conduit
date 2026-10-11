@@ -1,8 +1,5 @@
 use super::*;
-use conduit_core::{
-    ExactDecimalQuantity, QuantityUnit, EXACT_DECIMAL_QUANTITY_ENCODED_LEN,
-    EXACT_DECIMAL_QUANTITY_INFO_ID,
-};
+use conduit_core::{Quantity, Unit, QUANTITY_ENCODED_LEN, QUANTITY_INFO_ID};
 fn basis() -> PresentationContributionBasis {
     PresentationContributionBasis {
         checked_plot_id: "checked/thermostat".into(),
@@ -28,14 +25,11 @@ fn exact_celsius_content_retains_half_degrees_and_negative_observations() {
         let PresentationPropertyValue::TypedValue { contract, bytes } = &property.value else {
             panic!("temperature must be exact typed content")
         };
-        assert_eq!(contract.value_kind.as_str(), EXACT_DECIMAL_QUANTITY_INFO_ID);
-        assert_eq!(
-            contract.maximum_bytes,
-            EXACT_DECIMAL_QUANTITY_ENCODED_LEN as u32
-        );
+        assert_eq!(contract.value_kind.as_str(), QUANTITY_INFO_ID);
+        assert_eq!(contract.maximum_bytes, QUANTITY_ENCODED_LEN as u32);
         contract.validate(bytes).unwrap();
-        let quantity = ExactDecimalQuantity::decode(bytes).unwrap();
-        assert_eq!(quantity.unit(), QuantityUnit::Celsius);
+        let quantity = Quantity::decode(bytes).unwrap();
+        assert_eq!(quantity.unit(), Unit::Celsius);
         assert_eq!(
             (quantity.coefficient(), quantity.exponent()),
             (coordinate, -1)
@@ -118,6 +112,6 @@ fn temperature_content_keeps_exact_source_basis_and_canonical_whole_degrees() {
     let PresentationPropertyValue::TypedValue { bytes, .. } = &property.value else {
         panic!("typed temperature")
     };
-    let quantity = ExactDecimalQuantity::decode(bytes).unwrap();
+    let quantity = Quantity::decode(bytes).unwrap();
     assert_eq!((quantity.coefficient(), quantity.exponent()), (21, 0));
 }

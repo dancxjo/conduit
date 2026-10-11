@@ -1,3 +1,16 @@
+fn typed_operand(kind: &str, source: &str) -> ConfigurationValue {
+    if matches!(
+        kind,
+        conversion::temperature_difference::KIND | conversion::comparison::DIFFERENCE_KIND
+    ) {
+        ConfigurationValue::TemperatureDifference(
+            ExactTemperatureDifferenceConfigurationValue::parse(source).unwrap(),
+        )
+    } else {
+        ConfigurationValue::Quantity(QuantityConfigurationValue::parse(source).unwrap())
+    }
+}
+
 use super::*;
 use conduit_kernel::{
     scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
@@ -14,8 +27,8 @@ fn placement_for(kind: &str, source: &str, target: &str) -> PlannedGear {
         placement_id: PlacementId::from("quantity-placement"), gear_id: GearId::from("quantity"),
         kind_id: offer.kind_id, kind_contract_revision: offer.kind_contract_revision,
         execution_profile_id: offer.implementation.execution_profile_id,
-        configuration: vec![ConfigurationEntry { key: first, value: ConfigurationValue::Text(source.into()) },
-            ConfigurationEntry { key: second, value: ConfigurationValue::Text(target.into()) }],
+        configuration: vec![ConfigurationEntry { key: first, value: typed_operand(kind, source) },
+            ConfigurationEntry { key: second, value: if matches!(kind, conversion::comparison::KIND | conversion::comparison::DIFFERENCE_KIND) { typed_operand(kind, target) } else { ConfigurationValue::Unit(UnitConfigurationValue::parse(target).unwrap()) } }],
         host_id: HostId::from("quantity-host"), boot_id: BootId::from("quantity-boot"), offer_generation: OfferGeneration(1),
         capability_id: offer.capability_id, implementation_id: offer.implementation.implementation_id, artifact_id: offer.implementation.artifact_id,
         base: None, realization_characteristics: Vec::new(), limits: offer.limits,
@@ -27,9 +40,17 @@ fn placement_for(kind: &str, source: &str, target: &str) -> PlannedGear {
 fn placements() -> [PlannedGear; 4] {
     [
         placement_for(conversion::KIND, "1Qm", "qm"),
-        placement_for(conversion::temperature_difference::KIND, "9°F", "K"),
+        placement_for(
+            conversion::temperature_difference::KIND,
+            "TemperatureDelta(9, °F)",
+            "K",
+        ),
         placement_for(conversion::comparison::KIND, "1000mm", "0.001km"),
-        placement_for(conversion::comparison::DIFFERENCE_KIND, "9°F", "5K"),
+        placement_for(
+            conversion::comparison::DIFFERENCE_KIND,
+            "TemperatureDelta(9, °F)",
+            "TemperatureDelta(5, K)",
+        ),
     ]
 }
 
@@ -169,4 +190,64 @@ fn cancellation_of_a_pressured_receipt_prevents_delivery() {
     let mut ready = StepIo::test_frame([None; 1], [false; 1], [Some(8192)], None, 8);
     assert_eq!(back.step(&mut ready, &input), StepOutcome::Complete);
     assert!(ready.test_output(PortId(0)).is_none());
+}
+
+#[test]
+fn comparator_play_has_no_allocations_and_refuses_forged_receipts() {
+    let mut placement = placement_for(conversion::KIND, "1kHz", "Hz");
+    let offer = offer_for(conversion::converted_equals::KIND).unwrap();
+    placement.kind_id = offer.kind_id;
+    placement.kind_contract_revision = offer.kind_contract_revision;
+    placement.capability_id = offer.capability_id;
+    placement.execution_profile_id = offer.implementation.execution_profile_id;
+    placement.implementation_id = offer.implementation.implementation_id;
+    placement.artifact_id = offer.implementation.artifact_id;
+    placement.inputs = offer.inputs;
+    placement.outputs = offer.outputs;
+    placement.limits = offer.limits;
+    placement.semantic_contract = conversion::converted_equals::contract().semantic_contract();
+    placement.configuration = vec![ConfigurationEntry {
+        key: "expected".into(),
+        value: ConfigurationValue::Quantity(QuantityConfigurationValue::parse("1000Hz").unwrap()),
+    }];
+    let receipt = conversion::prepare_operation_configuration(
+        conversion::KIND,
+        &placement_for(conversion::KIND, "1kHz", "Hz").configuration,
+    )
+    .unwrap()
+    .canonical_bytes()
+    .unwrap();
+    for forged in [false, true] {
+        let mut bytes = receipt.clone();
+        if forged {
+            bytes[0] ^= 1;
+        }
+        let budget = budget(&placement).unwrap();
+        let mut values = HostedValueStore::new(
+            budget.value_items,
+            budget.maximum_value_bytes,
+            budget.value_bytes,
+        )
+        .unwrap();
+        let mut back = prepare(&placement, &mut values).unwrap();
+        let input = values.store(&bytes).unwrap();
+        let inputs = StepInputBytes::test_frame([Some(bytes.as_slice())], None);
+        let mut blocked = StepIo::test_frame([Some(input)], [false], [None], None, 8);
+        let mut ready = StepIo::test_frame([Some(input)], [false], [Some(1)], None, 8);
+        let allocations = crate::allocation_probe::begin();
+        let blocked_outcome = back.step(&mut blocked, &inputs);
+        let outcome = back.step(&mut ready, &inputs);
+        let allocations = allocations.finish();
+        assert_eq!(allocations, 0);
+        assert_eq!(blocked_outcome, StepOutcome::Await);
+        if forged {
+            assert!(matches!(outcome, StepOutcome::Fail(_)));
+        } else {
+            assert_eq!(outcome, StepOutcome::Complete);
+            assert_eq!(
+                values.get(ready.test_output(PortId(0)).unwrap()).unwrap(),
+                InfoBool::TRUE.encode()
+            );
+        }
+    }
 }

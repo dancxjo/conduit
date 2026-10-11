@@ -36,6 +36,7 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         &manifest.profile_id,
         &manifest.build_id,
         &manifest.resolved_description_binding,
+        ia32_product_boot::GuestClock::InstructionCount,
         opts,
     )?;
     let transcript = fs::read_to_string(paths.target.join("ia32-product-legacy-bios-only.log"))
@@ -65,10 +66,11 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     )
     .map_err(|error| ConduitosError::refusal("domain-proof-receipt-invalid", error.to_string()))?;
     let receipt = serde_json::json!({
-        "schema": "conduit.conduitos/ia32-ordinary-domain-proof@2",
+        "schema": "conduit.conduitos/ia32-ordinary-domain-proof@3",
         "base_commit": git_head(&paths.root)?,
         "architecture": "ia32", "privilege": "ring3",
         "proof_class": "freestanding-ia32-legacy-bios-emulator",
+        "boundary_guest_clock": ia32_product_boot::GuestClock::InstructionCount.label(),
         "image_sha256": sha256_file(&paths.iso)?,
         "ordinary_product_play": normal, "protected_tour_morse": morse, "protected_standing_timer": timer, "instrumented_product_play": product,
         "negative_entries": negatives,

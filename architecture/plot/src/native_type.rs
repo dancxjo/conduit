@@ -111,14 +111,16 @@ fn compile_named<'a>(
     }
     active.pop();
     let compiled = compile_definition(declaration, catalog)?;
-    catalog
-        .insert_native_type(
-            declaration.name.text.clone(),
-            compiled.value_type.clone(),
-            compiled.value_contracts.clone(),
-            compiled.invariants.clone(),
-        )
-        .map_err(|message| diagnostic(declaration.name.span, message))?;
+    if !matches!(declaration.definition, TypeDefinitionSyntax::Quantity(_)) {
+        catalog
+            .insert_native_type(
+                declaration.name.text.clone(),
+                compiled.value_type.clone(),
+                compiled.value_contracts.clone(),
+                compiled.invariants.clone(),
+            )
+            .map_err(|message| diagnostic(declaration.name.span, message))?;
+    }
     checked.insert(declaration.name.text.clone(), compiled);
     complete.insert(name);
     Ok(())
@@ -126,6 +128,7 @@ fn compile_named<'a>(
 
 fn definition_references<'a>(definition: &'a TypeDefinitionSyntax, out: &mut Vec<&'a str>) {
     match definition {
+        TypeDefinitionSyntax::Quantity(_) => {}
         TypeDefinitionSyntax::Scalar(expression) => expression_references(expression, out),
         TypeDefinitionSyntax::Record(fields) => {
             for field in fields {
@@ -135,7 +138,7 @@ fn definition_references<'a>(definition: &'a TypeDefinitionSyntax, out: &mut Vec
         TypeDefinitionSyntax::Variant(cases) => {
             for case in cases {
                 match &case.payload {
-                    TypeVariantPayloadSyntax::Unit => {}
+                    TypeVariantPayloadSyntax::Empty => {}
                     TypeVariantPayloadSyntax::Type(expression) => {
                         expression_references(expression, out);
                     }
@@ -175,11 +178,27 @@ fn compile_definition(
     declaration: &TypeSyntax,
     catalog: &StartupCatalog,
 ) -> Result<CheckedNativeType, SyntaxCheckDiagnostic> {
+    if matches!(declaration.definition, TypeDefinitionSyntax::Quantity(_)) {
+        let role = catalog
+            .physical
+            .quantities
+            .get(&declaration.name.text)
+            .ok_or_else(|| diagnostic(declaration.span, "physical Type was not admitted".into()))?;
+        return Ok(CheckedNativeType {
+            name: declaration.name.text.clone(),
+            identity: role.leaf_kind.clone(),
+            value_type: StructuredInfoType::leaf(role.leaf_kind.clone())
+                .map_err(|error| bounded(declaration.span, error))?,
+            value_contracts: Vec::new(),
+            invariants: Vec::new(),
+        });
+    }
     let semantic_name = declaration
         .semantic_name
         .as_deref()
         .unwrap_or(&declaration.name.text);
     let compiled = match &declaration.definition {
+        TypeDefinitionSyntax::Quantity(_) => unreachable!("physical declaration handled above"),
         TypeDefinitionSyntax::Scalar(expression) => compile_expression(expression, catalog)?,
         TypeDefinitionSyntax::Record(fields) => compile_record(
             semantic_name,
@@ -194,8 +213,8 @@ fn compile_definition(
             let mut contracts = Vec::new();
             for case in cases {
                 let payload = match &case.payload {
-                    TypeVariantPayloadSyntax::Unit => CompiledRepresentation {
-                        value_type: StructuredInfoType::leaf(kind_id("value/unit"))
+                    TypeVariantPayloadSyntax::Empty => CompiledRepresentation {
+                        value_type: StructuredInfoType::leaf(kind_id("value/empty"))
                             .map_err(|error| bounded(case.span, error))?,
                         contracts: Vec::new(),
                     },

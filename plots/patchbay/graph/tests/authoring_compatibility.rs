@@ -134,8 +134,8 @@ fn payload_matrix_has_exact_source_checker_parity() {
 #[test]
 fn projected_terminal_tracks_use_the_exact_checker_contract() {
     for (track, suffix, sink_kind) in [
-        (ConnectionTrack::NormalClose, "|", "value/unit"),
-        (ConnectionTrack::Quiescence, ";", "value/unit"),
+        (ConnectionTrack::NormalClose, "|", "value/empty"),
+        (ConnectionTrack::Quiescence, ";", "value/empty"),
         (ConnectionTrack::AbnormalTerminal, "!", "value/bool"),
     ] {
         let mut source = port(

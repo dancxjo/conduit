@@ -24,33 +24,68 @@ impl HostedValueStore {
         maximum_value_bytes: u32,
         byte_capacity: u32,
     ) -> Result<Self, StorageError> {
-        if item_capacity == 0
-            || maximum_value_bytes == 0
-            || byte_capacity == 0
-            || byte_capacity
-                > u32::from(item_capacity)
-                    .checked_mul(maximum_value_bytes)
-                    .ok_or(StorageError::InvalidBudget)?
-        {
+        Self::from_capacities(
+            (0..usize::from(item_capacity)).map(|_| maximum_value_bytes),
+            byte_capacity,
+        )
+    }
+
+    /// Prepare independently bounded slots. The live-byte quota may be smaller
+    /// than the backing storage reserved before Play.
+    pub fn new_with_slot_capacities(
+        capacities: &[u32],
+        byte_capacity: u32,
+    ) -> Result<Self, StorageError> {
+        Self::from_capacities(capacities.iter().copied(), byte_capacity)
+    }
+
+    fn from_capacities(
+        capacities: impl ExactSizeIterator<Item = u32> + Clone,
+        byte_capacity: u32,
+    ) -> Result<Self, StorageError> {
+        if capacities.len() == 0 || capacities.len() > usize::from(u16::MAX) || byte_capacity == 0 {
             return Err(StorageError::InvalidBudget);
         }
-        let maximum_value_bytes =
-            usize::try_from(maximum_value_bytes).map_err(|_| StorageError::InvalidBudget)?;
-        let mut slots = Vec::with_capacity(usize::from(item_capacity));
-        for _ in 0..item_capacity {
+        let mut reserved = 0_u32;
+        let mut maximum_value_bytes = 0_u32;
+        for capacity in capacities.clone() {
+            if capacity == 0 {
+                return Err(StorageError::InvalidBudget);
+            }
+            reserved = reserved
+                .checked_add(capacity)
+                .ok_or(StorageError::InvalidBudget)?;
+            maximum_value_bytes = maximum_value_bytes.max(capacity);
+        }
+        if byte_capacity > reserved {
+            return Err(StorageError::InvalidBudget);
+        }
+        let mut slots = Vec::with_capacity(capacities.len());
+        for capacity in capacities {
             slots.push(HostedValueSlot {
                 generation: 0,
                 references: 0,
-                bytes: Vec::with_capacity(maximum_value_bytes),
+                bytes: Vec::with_capacity(capacity as usize),
             });
         }
         Ok(Self {
             slots,
-            maximum_value_bytes,
+            maximum_value_bytes: maximum_value_bytes as usize,
             byte_capacity,
             used_items: 0,
             used_bytes: 0,
         })
+    }
+
+    /// Actual reserved backing storage, including slot metadata. This differs
+    /// from `byte_capacity`, which bounds live payload bytes.
+    pub fn reserved_storage_bytes(&self) -> usize {
+        self.slots.capacity() * core::mem::size_of::<HostedValueSlot>()
+            + self
+                .slots
+                .iter()
+                .map(|slot| slot.bytes.capacity())
+                .sum::<usize>()
     }
 
     pub fn allocation_capacities(&self) -> (usize, usize) {
@@ -123,7 +158,8 @@ impl ValueStorage for HostedValueStore {
             .slots
             .iter_mut()
             .enumerate()
-            .find(|(_, slot)| slot.references == 0)
+            .filter(|(_, slot)| slot.references == 0 && slot.bytes.capacity() >= bytes.len())
+            .min_by_key(|(_, slot)| slot.bytes.capacity())
             .ok_or(StorageError::ItemCapacityExceeded)?;
         slot.generation = slot.generation.wrapping_add(1);
         if slot.generation == 0 {
@@ -132,7 +168,7 @@ impl ValueStorage for HostedValueStore {
         slot.references = 1;
         slot.bytes.clear();
         slot.bytes.extend_from_slice(bytes);
-        debug_assert!(slot.bytes.capacity() >= self.maximum_value_bytes);
+        debug_assert!(slot.bytes.capacity() >= bytes.len());
         self.used_items += 1;
         self.used_bytes += byte_len;
         Ok(ValueRef {

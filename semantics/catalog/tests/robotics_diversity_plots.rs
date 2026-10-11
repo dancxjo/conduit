@@ -1,7 +1,7 @@
 use conduit_core::{
     BaseImplementationId, BootId, HostAdvertisement, HostId, HostProfileId, OfferGeneration,
-    Quantity, QuantityUnit, StructuredInfoValue, StructuredInfoValueShape, StructuredSelection,
-    StructuredSelector, PROTOCOL_VERSION,
+    Quantity, StructuredInfoValue, StructuredInfoValueShape, StructuredSelection,
+    StructuredSelector, Unit, PROTOCOL_VERSION,
 };
 use conduit_plot::{
     check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
@@ -68,7 +68,7 @@ fn geometry_quantity_sample_and_uncertainty_remain_individually_selectable() {
     };
     assert_eq!(
         Quantity::decode(bytes).unwrap(),
-        Quantity::new(1_250, QuantityUnit::Millimeter)
+        Quantity::new(1_250, Unit::Millimeter)
     );
 
     let sample = record_field(&fixture.range, "sample");
@@ -79,7 +79,7 @@ fn geometry_quantity_sample_and_uncertainty_remain_individually_selectable() {
     let measurement = record_field(&fixture.range, "measurement");
     assert_eq!(
         quantity(record_field(measurement, "uncertainty")),
-        Quantity::new(5, QuantityUnit::Millimeter)
+        Quantity::new(5, Unit::Millimeter)
     );
 }
 
@@ -88,10 +88,10 @@ fn unsupported_dimensions_precision_and_frames_refuse_explicitly() {
     assert!(matches!(
         twist_interval_value(
             "map",
-            Quantity::new(100, QuantityUnit::Millisecond),
-            Quantity::new(1, QuantityUnit::Millimeter),
-            Quantity::new(0, QuantityUnit::Millimeter),
-            Quantity::new(0, QuantityUnit::Degree),
+            Quantity::new(100, Unit::Millisecond),
+            Quantity::new(1, Unit::Millimeter),
+            Quantity::new(0, Unit::Millimeter),
+            Quantity::new(0, Unit::Degree),
         ),
         Err(RoboticsStructuredRefusal::UnsupportedFrame { expected, actual })
             if expected == ROBOTICS_BODY_FRAME && actual == "map"
@@ -99,30 +99,30 @@ fn unsupported_dimensions_precision_and_frames_refuse_explicitly() {
     assert_eq!(
         twist_interval_value(
             ROBOTICS_BODY_FRAME,
-            Quantity::new(0, QuantityUnit::Millisecond),
-            Quantity::new(1, QuantityUnit::Millimeter),
-            Quantity::new(0, QuantityUnit::Millimeter),
-            Quantity::new(0, QuantityUnit::Degree),
+            Quantity::new(0, Unit::Millisecond),
+            Quantity::new(1, Unit::Millimeter),
+            Quantity::new(0, Unit::Millimeter),
+            Quantity::new(0, Unit::Degree),
         ),
         Err(RoboticsStructuredRefusal::NonPositiveInterval)
     );
     assert!(matches!(
         twist_interval_value(
             ROBOTICS_BODY_FRAME,
-            Quantity::new(500, QuantityUnit::Microsecond),
-            Quantity::new(1, QuantityUnit::Millimeter),
-            Quantity::new(0, QuantityUnit::Millimeter),
-            Quantity::new(0, QuantityUnit::Degree),
+            Quantity::new(500, Unit::Microsecond),
+            Quantity::new(1, Unit::Millimeter),
+            Quantity::new(0, Unit::Millimeter),
+            Quantity::new(0, Unit::Degree),
         ),
         Err(RoboticsStructuredRefusal::InexactPrecision { field: "interval" })
     ));
     assert_eq!(
         twist_interval_value(
             ROBOTICS_BODY_FRAME,
-            Quantity::new(60_001, QuantityUnit::Millisecond),
-            Quantity::new(1, QuantityUnit::Millimeter),
-            Quantity::new(0, QuantityUnit::Millimeter),
-            Quantity::new(0, QuantityUnit::Degree),
+            Quantity::new(60_001, Unit::Millisecond),
+            Quantity::new(1, Unit::Millimeter),
+            Quantity::new(0, Unit::Millimeter),
+            Quantity::new(0, Unit::Degree),
         ),
         Err(RoboticsStructuredRefusal::OutsideRange { field: "interval" })
     );
@@ -130,13 +130,13 @@ fn unsupported_dimensions_precision_and_frames_refuse_explicitly() {
         pose_sample_value(
             "sim/pose",
             1,
-            Quantity::new(1, QuantityUnit::Millisecond),
+            Quantity::new(1, Unit::Millisecond),
             "map",
-            Quantity::new(0, QuantityUnit::Millimeter),
-            Quantity::new(0, QuantityUnit::Millimeter),
-            Quantity::new(0, QuantityUnit::Degree),
-            Quantity::new(-1, QuantityUnit::Millimeter),
-            Quantity::new(1, QuantityUnit::Degree),
+            Quantity::new(0, Unit::Millimeter),
+            Quantity::new(0, Unit::Millimeter),
+            Quantity::new(0, Unit::Degree),
+            Quantity::new(-1, Unit::Millimeter),
+            Quantity::new(1, Unit::Degree),
         ),
         Err(RoboticsStructuredRefusal::NegativeUncertainty {
             field: "position_uncertainty"
@@ -146,10 +146,10 @@ fn unsupported_dimensions_precision_and_frames_refuse_explicitly() {
         range_sample_value(
             "sim/range",
             2,
-            Quantity::new(2, QuantityUnit::Millisecond),
+            Quantity::new(2, Unit::Millisecond),
             "sensor/front",
-            Quantity::new(1_500, QuantityUnit::Micrometer),
-            Quantity::new(1, QuantityUnit::Millimeter),
+            Quantity::new(1_500, Unit::Micrometer),
+            Quantity::new(1, Unit::Millimeter),
         ),
         Err(RoboticsStructuredRefusal::InexactPrecision { field: "distance" })
     ));
@@ -157,10 +157,10 @@ fn unsupported_dimensions_precision_and_frames_refuse_explicitly() {
         range_sample_value(
             "sim/range",
             3,
-            Quantity::new(3, QuantityUnit::Millisecond),
+            Quantity::new(3, Unit::Millisecond),
             "sensor/front",
-            Quantity::new(1_000_001, QuantityUnit::Millimeter),
-            Quantity::new(1, QuantityUnit::Millimeter),
+            Quantity::new(1_000_001, Unit::Millimeter),
+            Quantity::new(1, Unit::Millimeter),
         ),
         Err(RoboticsStructuredRefusal::OutsideRange { field: "distance" })
     );

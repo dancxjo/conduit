@@ -360,7 +360,7 @@ fn optional_text(
 }
 
 fn unit_value() -> Result<StructuredInfoValue, MessagingInfoRefusal> {
-    leaf_value("value/unit", Vec::new())
+    leaf_value("value/empty", Vec::new())
 }
 
 fn text_value(value: &str) -> StructuredInfoValue {

@@ -1,6 +1,6 @@
 use std::{fs, path::Path};
 
-use conduit_core::{Quantity, QuantityUnit};
+use conduit_core::{Quantity, Unit};
 use conduit_plot::rust_binding::NativeRustBinding;
 use conduit_presentation::{Extent2, Path2Four, Point2, Rect2};
 
@@ -52,14 +52,14 @@ fn portable_geometry_identities_and_bounds_remain_exact() {
 fn static_geometry_round_trips_through_native_conduitese_types() {
     let point = Point2::new(
         "map".into(),
-        Quantity::new(1, QuantityUnit::Millimeter),
-        Quantity::new(2, QuantityUnit::Millimeter),
+        Quantity::new(1, Unit::Millimeter),
+        Quantity::new(2, Unit::Millimeter),
     )
     .unwrap();
     let rectangle = Rect2::new(
         Extent2::new(
-            Quantity::new(3, QuantityUnit::Millimeter),
-            Quantity::new(4, QuantityUnit::Millimeter),
+            Quantity::new(3, Unit::Millimeter),
+            Quantity::new(4, Unit::Millimeter),
         )
         .unwrap(),
         point.clone(),

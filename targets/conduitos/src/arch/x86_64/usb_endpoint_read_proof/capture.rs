@@ -67,7 +67,7 @@ pub(super) fn run(
         })
         .collect();
     let unit = ValuePayload {
-        value_kind: kind_id("value/unit"),
+        value_kind: kind_id("value/empty"),
         encoded: Vec::new(),
     };
     let device_hex = identity::hex(&capture.device_id);

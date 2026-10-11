@@ -36,7 +36,7 @@ Every accepted control updates the same Body Plan and Play. A stale Show refuses
 
 The Owner's mechanical spoken reader consumes the same Face and returns the same
 typed interactions. Exact temperature values are normalized
-`value/exact-decimal-quantity@1` data with the Celsius unit, not disguised Counts.
+`value/quantity@1` data with the Celsius unit, not disguised Counts.
 Generic graphical and spoken wording uses the value's checked kind and unit.
 Live sensor, device speech playback during this scan, and physical heating or
 cooling are not established by this slice. Selected speech equipment cannot be
@@ -100,3 +100,7 @@ already running installed Owner and a packaged Handbook. It uses the existing
 production SDK and browser WASM Mask, one pinned Chromium worker, and no retries.
 Its receipt distinguishes local development evidence from accepted releases,
 physical behavior, and attended human evidence.
+
+The [browser component audit](../../docs/architecture/browser-component-audit.md)
+records which parts of #5376 this shared component already satisfies and the
+remaining selected-Back, Look, fallback and accessibility acceptance.

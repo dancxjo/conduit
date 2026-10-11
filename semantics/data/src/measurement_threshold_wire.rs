@@ -9,8 +9,10 @@ use crate::{
     MeasurementWireRefusal,
 };
 
-pub const MAXIMUM_MEASUREMENT_HYSTERESIS_PROFILE_BYTES: usize = 256;
-pub const MAXIMUM_MEASUREMENT_THRESHOLD_DECISION_BYTES: usize = 1_024;
+pub const MAXIMUM_MEASUREMENT_HYSTERESIS_PROFILE_BYTES: usize =
+    2 * conduit_core::QUANTITY_ENCODED_LEN + 256;
+pub const MAXIMUM_MEASUREMENT_THRESHOLD_DECISION_BYTES: usize =
+    conduit_core::QUANTITY_ENCODED_LEN + 1_024;
 
 pub fn encode_measurement_hysteresis_profile(
     profile: MeasurementHysteresisProfile,

@@ -118,7 +118,7 @@ pub fn flow_select_semantic_contract(
 }
 
 fn require_finite(value: &CheckedValueContract, role: &'static str) -> Result<(), &'static str> {
-    if value.maximum_bytes == 0 && value.value_kind.as_str() != conduit_core::UNIT_INFO_ID {
+    if value.maximum_bytes == 0 && value.value_kind.as_str() != conduit_core::EMPTY_INFO_ID {
         return Err(if role == "item" {
             "flow/select requires a finite canonical item envelope"
         } else {

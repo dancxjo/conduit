@@ -110,7 +110,7 @@ pub(super) fn execute_supplied(
             &mut child,
             Some(&paths.target.join("journey-qmp.log")),
         )?;
-        hid_qmp::wait_for_stage(
+        hid_qmp::wait_for_product_arrival(
             &serial_path,
             &mut child,
             "CONDUIT_BOOT_STAGE front-door-ready",

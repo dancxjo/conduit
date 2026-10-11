@@ -309,7 +309,18 @@ fn encode_configuration_value(
         }
         ConfigurationValue::Quantity(value) => {
             output.push(6);
-            output.extend_from_slice(&value.encode());
+            push_blob(output, value.canonical_value())?;
+            push_field(output, value.source())?;
+        }
+        ConfigurationValue::Unit(value) => {
+            output.push(7);
+            push_blob(output, value.canonical_value())?;
+            push_field(output, value.source())?;
+        }
+        ConfigurationValue::TemperatureDifference(value) => {
+            output.push(8);
+            push_blob(output, value.canonical_value())?;
+            push_field(output, value.source())?;
         }
     }
     Ok(())
@@ -345,17 +356,24 @@ fn decode_configuration_value(
                 .map(ConfigurationValue::Structured)
                 .ok_or(InteractionError::MalformedValue)
         }
-        6 => {
-            let end = cursor
-                .checked_add(conduit_core::QUANTITY_ENCODED_LEN)
-                .ok_or(InteractionError::MalformedValue)?;
-            let encoded = input
-                .get(*cursor..end)
-                .ok_or(InteractionError::MalformedValue)?;
-            *cursor = end;
-            conduit_core::Quantity::decode(encoded)
-                .map(ConfigurationValue::Quantity)
-                .map_err(|_| InteractionError::MalformedValue)
+        6..=8 => {
+            let canonical = read_blob(input, cursor)?;
+            let source = read_field(input, cursor)?;
+            match tag {
+                6 => conduit_core::QuantityConfigurationValue::parse(&source)
+                    .ok()
+                    .filter(|v| v.canonical_value() == canonical)
+                    .map(ConfigurationValue::Quantity),
+                7 => conduit_core::UnitConfigurationValue::parse(&source)
+                    .ok()
+                    .filter(|v| v.canonical_value() == canonical)
+                    .map(ConfigurationValue::Unit),
+                _ => conduit_core::ExactTemperatureDifferenceConfigurationValue::parse(&source)
+                    .ok()
+                    .filter(|v| v.canonical_value() == canonical)
+                    .map(ConfigurationValue::TemperatureDifference),
+            }
+            .ok_or(InteractionError::MalformedValue)
         }
         _ => Err(InteractionError::MalformedValue),
     }

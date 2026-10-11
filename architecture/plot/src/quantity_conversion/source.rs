@@ -1,10 +1,10 @@
-//! Preparation diagnostics mapped to exact quoted source, including local aliases.
+//! Preparation diagnostics mapped to exact authored source, including local aliases.
 use super::{
     operation_contract, prepare_operation_configuration, QuantityConversionPreparationRefusal,
 };
 use crate::{
     prelude::*, Argument, BackStatement, CanonicalStartupValue, CheckedSyntaxDocument, CordStage,
-    ExpressionSyntax, Invocation, PlotSyntax, QuotedTextSourceMap, Span, SyntaxDocument,
+    ExpressionSyntax, Invocation, PlotSyntax, Span, SyntaxDocument,
 };
 use conduit_core::{ConfigurationEntry, ExactQuantityConversionRequestRefusal, SourceDocumentId};
 
@@ -16,7 +16,7 @@ pub struct QuantityConversionSourceDiagnostic {
 }
 
 /// Parameterized requests remain unresolved until concrete preparation. A
-/// foreign checked Source cannot authorize correlation with a quoted token.
+/// foreign checked Source cannot authorize correlation with an authored token.
 pub fn validate_source(
     syntax: &SyntaxDocument,
     checked: &CheckedSyntaxDocument,
@@ -102,7 +102,7 @@ pub fn validate_source(
     Ok(())
 }
 
-fn located(source: &str, call: &Invocation, plot: &PlotSyntax, name: &str) -> Option<Span> {
+fn located(_source: &str, call: &Invocation, plot: &PlotSyntax, name: &str) -> Option<Span> {
     let position = if matches!(name, "source" | "left") {
         0
     } else {
@@ -130,11 +130,7 @@ fn located(source: &str, call: &Invocation, plot: &PlotSyntax, name: &str) -> Op
             expression = &local.value.syntax;
             continue;
         }
-        return Some(
-            QuotedTextSourceMap::new(source, token, conduit_core::EXACT_DECIMAL_MAX_LITERAL_BYTES)
-                .and_then(|map| map.source_span(0..map.decoded().len()))
-                .unwrap_or(token.span),
-        );
+        return Some(token.span);
     }
     None
 }

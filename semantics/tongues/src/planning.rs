@@ -17,7 +17,7 @@ use conduit_plot::{
 use std::collections::BTreeMap;
 
 pub const SPEECH_FORM: &str = r#"plot tongues_text_to_speech {
-    tts: speech/synthesize(language-request = { language: "language/english", variety: none(""), variety_policy: language_sufficient("") })
+    tts: speech/synthesize(language-request = { language: "language/english", variety: none(empty), variety_policy: language_sufficient(empty) })
     output: audio/play
     "Hello from Tongues." >> tts >> output
 }

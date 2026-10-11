@@ -1,4 +1,4 @@
-use conduit_core::{KindId, Quantity, QuantityUnit, QUANTITY_INFO_ID};
+use conduit_core::{KindId, Quantity, Unit, QUANTITY_INFO_ID};
 use conduit_human::{
     BoundKind, HumanInteractionProposal, InteractionApplicationOutcome, InteractionContract,
     InteractionCurrentState, InteractionDomain, InteractionFamily, InteractionOption,
@@ -50,7 +50,7 @@ fn volume_contract() -> InteractionContract {
     InteractionContract::new(
         "interaction/volume",
         InteractionFamily::scalar_range(
-            QuantityUnit::Millionth,
+            Unit::Millionth,
             0,
             BoundKind::Inclusive,
             1_000_000,
@@ -174,12 +174,24 @@ fn realization_mapping_keeps_source_precision_policy_and_semantic_value_explicit
         ScalarQuantization::Nearest,
     )
     .unwrap();
-    assert_eq!(decode_quantity(&nearest.map(0).unwrap()).value(), 0);
     assert_eq!(
-        decode_quantity(&nearest.map(1_023).unwrap()).value(),
+        decode_quantity(&nearest.map(0).unwrap())
+            .to_i64(Unit::Millionth)
+            .unwrap(),
+        0
+    );
+    assert_eq!(
+        decode_quantity(&nearest.map(1_023).unwrap())
+            .to_i64(Unit::Millionth)
+            .unwrap(),
         1_000_000
     );
-    assert_eq!(decode_quantity(&nearest.map(512).unwrap()).value(), 500_000);
+    assert_eq!(
+        decode_quantity(&nearest.map(512).unwrap())
+            .to_i64(Unit::Millionth)
+            .unwrap(),
+        500_000
+    );
     assert_eq!(nearest.map(1_024), Err(InteractionRefusal::OutOfRange));
 
     let clamped = ScalarRealizationMapping::new(
@@ -193,7 +205,9 @@ fn realization_mapping_keeps_source_precision_policy_and_semantic_value_explicit
     )
     .unwrap();
     assert_eq!(
-        decode_quantity(&clamped.map(9_999).unwrap()).value(),
+        decode_quantity(&clamped.map(9_999).unwrap())
+            .to_i64(Unit::Millionth)
+            .unwrap(),
         1_000_000
     );
     assert_ne!(nearest.mapping_identity, clamped.mapping_identity);
@@ -212,7 +226,12 @@ fn exact_mapping_refuses_unrepresentable_precision_instead_of_coercing() {
         ScalarQuantization::Exact,
     )
     .unwrap();
-    assert_eq!(decode_quantity(&exact.map(337).unwrap()).value(), 337_000);
+    assert_eq!(
+        decode_quantity(&exact.map(337).unwrap())
+            .to_i64(Unit::Millionth)
+            .unwrap(),
+        337_000
+    );
 
     let inexact = ScalarRealizationMapping::new(
         &contract,
@@ -268,13 +287,13 @@ fn bounded_flow_preserves_stale_duplicate_pressure_and_cancellation() {
 fn relative_flow_keeps_delta_distinct_from_absolute_scalar() {
     let contract = InteractionContract::new(
         "interaction/transpose",
-        InteractionFamily::relative_range(QuantityUnit::One, -12, 12, 1),
+        InteractionFamily::relative_range(Unit::One, -12, 12, 1),
     )
     .unwrap();
     let state = InteractionCurrentState::new(&contract, 0, None, vec![]).unwrap();
     let delta = InteractionValue::new(
         KindId::from(QUANTITY_INFO_ID),
-        Quantity::new(-1, QuantityUnit::One).encode().to_vec(),
+        Quantity::new(-1, Unit::One).encode().to_vec(),
     )
     .unwrap();
     let proposal = HumanInteractionProposal::new(

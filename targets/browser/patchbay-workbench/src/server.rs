@@ -494,3 +494,5 @@ impl PatchbayHtmlServer {
 }
 
 use navigation::navigation_state;
+
+mod configuration_input;

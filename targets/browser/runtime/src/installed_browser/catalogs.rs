@@ -1,6 +1,13 @@
 //! Checked catalogs and recursive backs of the installed browser profile.
 use super::{linguistics, quantity_output};
 use conduit_core::{CapabilityOffer, PortTemporal};
+use std::cell::RefCell;
+type InstalledCatalogs = (conduit_plot::StartupCatalog, conduit_plot::ProfileCatalog);
+thread_local! {
+    // Exactly four immutable installed presentation profiles. Document-local
+    // declarations/selectors mutate only independent copies returned below.
+    static INSTALLED_CATALOGS: RefCell<Vec<(PresentationProfile, InstalledCatalogs)>> = const { RefCell::new(Vec::new()) };
+}
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub(crate) enum PresentationProfile {
     Annotation,
@@ -16,7 +23,24 @@ pub(crate) fn catalogs(
 
 pub(crate) fn catalogs_for_presentation(
     presentation: PresentationProfile,
-) -> Result<(conduit_plot::StartupCatalog, conduit_plot::ProfileCatalog), String> {
+) -> Result<InstalledCatalogs, String> {
+    if let Some(catalogs) = INSTALLED_CATALOGS.with(|cache| {
+        cache
+            .borrow()
+            .iter()
+            .find(|(profile, _)| *profile == presentation)
+            .map(|(_, catalogs)| catalogs.clone())
+    }) {
+        return Ok(catalogs);
+    }
+    let catalogs = build_catalogs_for_presentation(presentation)?;
+    INSTALLED_CATALOGS.with(|cache| cache.borrow_mut().push((presentation, catalogs.clone())));
+    Ok(catalogs)
+}
+
+fn build_catalogs_for_presentation(
+    presentation: PresentationProfile,
+) -> Result<InstalledCatalogs, String> {
     let mut startup = conduit_plot::StartupCatalog::new();
     let mut profile = conduit_plot::ProfileCatalog::new();
     conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile)?;
@@ -142,6 +166,11 @@ pub(crate) fn catalogs_for_presentation(
             conduit_core::kind_id(conduit_core::QUANTITY_INFO_ID),
         )?;
     }
+    let startup = conduit_plot::checked_physical_catalog_for_document(
+        &conduit_plot::parse_syntax_document(""),
+        &startup,
+    )
+    .map_err(|error| format!("installed physical catalogue refused: {error:?}"))?;
     Ok((startup, profile))
 }
 

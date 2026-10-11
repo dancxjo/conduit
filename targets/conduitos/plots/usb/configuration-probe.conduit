@@ -8,7 +8,7 @@ type UsbConfigurationTransferFrame =
     | unsupported
 
 plot usb-configuration-descriptor-request (
-    start: Unit...| >> request: UsbControlRequest...|
+    start: Empty...| >> request: UsbControlRequest...|
 ) = ({ setup: 0x0100000002000680, output: [] })
 
 # The received count and the class-neutral completion's short flag must agree
@@ -16,10 +16,10 @@ plot usb-configuration-descriptor-request (
 # configuration; the walker owns that distinction from its advertised total.
 plot usb-configuration-transfer-frame (
     result: UsbControlResult...| >> frame: UsbConfigurationTransferFrame...|
-) = (. is completed ? (value/u64(.completed.transferred) != sequence/length(.completed.input) || .completed.transferred > 256 ? malformed(unit) : ((.completed.transferred < 256) != .completed.short ? malformed(unit) : frame({ wire: .completed.input, actual: value/u64(.completed.transferred) }))) : (. is stalled ? stalled(unit) : (. is provider-lost ? provider-lost(unit) : unsupported(unit))))
+) = (. is completed ? (value/u64(.completed.transferred) != sequence/length(.completed.input) || .completed.transferred > 256 ? malformed(empty) : ((.completed.transferred < 256) != .completed.short ? malformed(empty) : frame({ wire: .completed.input, actual: value/u64(.completed.transferred) }))) : (. is stalled ? stalled(empty) : (. is provider-lost ? provider-lost(empty) : unsupported(empty))))
 
 plot usb-configuration-probe (
-    >> start: Unit...|
+    >> start: Empty...|
     decoded: UsbConfigurationTopologyResult...| >>
     observed: UsbConfigurationTransferFrame...| >>
 ) {

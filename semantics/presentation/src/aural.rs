@@ -559,8 +559,8 @@ fn constraint_clause(constraint: &ValueConstraint) -> String {
             maximum_endpoint,
         } => range_clause(
             "quantity",
-            minimum.as_ref().map(|value| format!("{} {}", value.value(), value.unit().semantic_id())).as_ref(),
-            maximum.as_ref().map(|value| format!("{} {}", value.value(), value.unit().semantic_id())).as_ref(),
+            minimum.as_ref().map(|value| format!("{}e{} {}", value.coefficient(), value.exponent(), value.unit().semantic_id())).as_ref(),
+            maximum.as_ref().map(|value| format!("{}e{} {}", value.coefficient(), value.exponent(), value.unit().semantic_id())).as_ref(),
             *minimum_endpoint,
             *maximum_endpoint,
         ),

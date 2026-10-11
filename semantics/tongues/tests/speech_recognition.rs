@@ -175,7 +175,7 @@ fn ordinary_plot_consumes_pcm_and_emits_only_committed_chat_messages_as_flows() 
 plot live-recognized-turn (
     audio: PcmFrames...| >> message: ChatMessage...|
 ) {
-    recognize: speech/recognize-stream(language-request = { language: "language/english", variety: none(""), variety_policy: language_sufficient("") })
+    recognize: speech/recognize-stream(language-request = { language: "language/english", variety: none(empty), variety_policy: language_sufficient(empty) })
     commit: speech/commit-recognized-turn
 
     audio >> recognize.audio

@@ -75,7 +75,7 @@ fn referenced_scope_refusals_locate_the_original_declaration_not_the_alias() {
 #[test]
 fn quoted_request_alias_chain_retains_escaped_spelling_and_source_identity() {
     let (startup, _) = catalogs();
-    let source = SOURCE.replace("    one: speech/phonemic-from-ipa( request = {original: \"ˈt͡ʃaː\", provenance: {method: \"reusable basis one\", source: manual(\"\"), version: none(\"\")}}", "    original-request = {original: \"t͡ʃ\\n\", provenance: {method: \"reusable basis one\", source: manual(\"\"), version: none(\"\")}}\n    request-alias = original-request\n    one: speech/phonemic-from-ipa( request = request-alias");
+    let source = SOURCE.replace("    one: speech/phonemic-from-ipa( request = {original: \"ˈt͡ʃaː\", provenance: {method: \"reusable basis one\", source: manual(empty), version: none(empty)}}", "    original-request = {original: \"t͡ʃ\\n\", provenance: {method: \"reusable basis one\", source: manual(empty), version: none(empty)}}\n    request-alias = original-request\n    one: speech/phonemic-from-ipa( request = request-alias");
     let syntax = parse_syntax_document(&source);
     let checked = check_syntax_document(&syntax, &startup).unwrap();
     let diagnostic = validate_source(&syntax, &checked).unwrap_err();
@@ -108,8 +108,8 @@ fn missing_conflicting_cyclic_and_substituted_scopes_refuse_in_the_shared_checke
 fn partial_and_conflicting_membership_refuse_before_value_preparation() {
     let (startup, _) = catalogs();
     for source in [
-        SOURCE.replace(", {phoneme: \"phoneme/long-a\", units: [\"unit/a\", \"unit/length\"], provenance: {method: \"declared contrast\", source: manual(\"\"), version: none(\"\")}}", ""),
-        SOURCE.replace("{phoneme: \"phoneme/long-a\", units: [\"unit/a\", \"unit/length\"], provenance: {method: \"declared contrast\", source: manual(\"\"), version: none(\"\")}}", "{phoneme: \"phoneme/foreign\", units: [\"unit/a\", \"unit/length\"], provenance: {method: \"declared contrast\", source: manual(\"\"), version: none(\"\")}}"),
+        SOURCE.replace(", {phoneme: \"phoneme/long-a\", units: [\"unit/a\", \"unit/length\"], provenance: {method: \"declared contrast\", source: manual(empty), version: none(empty)}}", ""),
+        SOURCE.replace("{phoneme: \"phoneme/long-a\", units: [\"unit/a\", \"unit/length\"], provenance: {method: \"declared contrast\", source: manual(empty), version: none(empty)}}", "{phoneme: \"phoneme/foreign\", units: [\"unit/a\", \"unit/length\"], provenance: {method: \"declared contrast\", source: manual(empty), version: none(empty)}}"),
         SOURCE.replace("notation: \"aː\"", "notation: \"t͡ʃ\"").replace("[\"unit/a\", \"unit/length\"]", "[\"unit/ch\"]"),
     ] {
         let syntax = parse_syntax_document(&source);
@@ -148,7 +148,7 @@ fn unchanged_alias_spelling_cannot_equate_distinct_reviewed_revisions() {
 #[test]
 fn oversized_original_inventory_refuses_even_when_requested_phoneme_is_present() {
     let (startup, _) = catalogs();
-    let definition = "{identity: \"phoneme/extra\", notation: \"a\", features: [], aliases: [], default_phone: none(\"\"), possible_phones: [], allophones: [], status: core(\"\")}";
+    let definition = "{identity: \"phoneme/extra\", notation: \"a\", features: [], aliases: [], default_phone: none(empty), possible_phones: [], allophones: [], status: core(empty)}";
     let source = SOURCE.replacen(
         "phonemes: [",
         &format!("phonemes: [{},", vec![definition; 65].join(",")),

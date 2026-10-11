@@ -21,10 +21,10 @@ impl PortableExpressionProgram {
 mod tests {
     use super::*;
     use crate::PreparedPortableExpressionEvaluator;
-    use conduit_core::{kind_id, StructuredInfoValueShape, TEXT_INFO_ID, UNIT_INFO_ID};
+    use conduit_core::{kind_id, StructuredInfoValueShape, EMPTY_INFO_ID, TEXT_INFO_ID};
 
-    fn unit() -> StructuredInfoType {
-        StructuredInfoType::leaf(kind_id(UNIT_INFO_ID)).unwrap()
+    fn empty() -> StructuredInfoType {
+        StructuredInfoType::leaf(kind_id(EMPTY_INFO_ID)).unwrap()
     }
     fn text() -> StructuredInfoValue {
         StructuredInfoValue::leaf(
@@ -34,7 +34,7 @@ mod tests {
         .unwrap()
     }
     fn round_trip(value: StructuredInfoValue) {
-        let program = PortableExpressionProgram::from_checked_value(unit(), &value);
+        let program = PortableExpressionProgram::from_checked_value(empty(), &value);
         let encoded = program.canonical_bytes().unwrap();
         let decoded = PortableExpressionProgram::from_canonical_bytes(&encoded).unwrap();
         assert_eq!(decoded, program);
@@ -82,7 +82,7 @@ mod tests {
     }
     #[test]
     fn constant_program_refuses_foreign_type_and_corrupt_or_excessive_encoding() {
-        let mut program = PortableExpressionProgram::from_checked_value(unit(), &text());
+        let mut program = PortableExpressionProgram::from_checked_value(empty(), &text());
         let encoded = program.canonical_bytes().unwrap();
         let mut corrupted = encoded.clone();
         *corrupted.last_mut().unwrap() = 0xff;
@@ -95,7 +95,7 @@ mod tests {
         excessive[operation_offset + 1..operation_offset + 9]
             .copy_from_slice(&u64::MAX.to_le_bytes());
         assert!(PortableExpressionProgram::from_canonical_bytes(&excessive).is_err());
-        program.root.value_type = unit();
+        program.root.value_type = empty();
         assert!(program.canonical_bytes().is_err());
         assert!(program.evaluate(&[]).is_err());
         assert!(PreparedPortableExpressionEvaluator::new(&program).is_err());

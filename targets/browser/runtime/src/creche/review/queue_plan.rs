@@ -15,6 +15,10 @@ pub(in crate::creche) fn plan(
     joined_lines: &[crate::creche::JoinedLineObservation],
     authority: crate::creche::PlanningAuthority,
 ) -> Result<conduit_core::Plan, String> {
+    let profile_limits = crate::plot_runner::finite_connection_limits(
+        plot,
+        crate::installed_browser::MAXIMUM_BROWSER_VALUE_BYTES as u32,
+    );
     let mut limits = BTreeMap::new();
     for cord in &plot.connections {
         let capability = |gear| {
@@ -34,23 +38,31 @@ pub(in crate::creche) fn plan(
         };
         let source = capability(&cord.source_gear_id)?;
         let sink = capability(&cord.sink_gear_id)?;
+        let endpoints = (
+            cord.source_gear_id.clone(),
+            cord.source_port_id.clone(),
+            cord.sink_gear_id.clone(),
+            cord.sink_port_id.clone(),
+        );
+        let required = profile_limits.get(&endpoints);
         limits.insert(
-            (
-                cord.source_gear_id.clone(),
-                cord.source_port_id.clone(),
-                cord.sink_gear_id.clone(),
-                cord.sink_port_id.clone(),
-            ),
+            endpoints,
             ConnectionQueueLimits {
                 item_capacity: source
                     .limits
                     .max_queue_items
                     .min(sink.limits.max_queue_items)
-                    .min(4),
-                byte_capacity: source
-                    .limits
-                    .max_queue_bytes
-                    .min(sink.limits.max_queue_bytes),
+                    .min(required.map_or(4, |limits| limits.item_capacity)),
+                byte_capacity: required.map_or_else(
+                    || {
+                        source
+                            .limits
+                            .max_queue_bytes
+                            .min(sink.limits.max_queue_bytes)
+                            .min(crate::installed_browser::MAXIMUM_BROWSER_VALUE_BYTES as u32)
+                    },
+                    |limits| limits.byte_capacity,
+                ),
             },
         );
     }

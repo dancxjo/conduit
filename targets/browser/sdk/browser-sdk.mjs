@@ -7,7 +7,7 @@ const DISTRIBUTION_SCHEMA = "conduit.browser/reviewed-distribution@1";
 const RELEASE_SCHEMA = "conduit.release/host-bundle@1";
 const IMAGE_PATH = "conduit-browser-image.json";
 const MAXIMUM_MANIFEST_BYTES = 128 * 1024;
-const MAXIMUM_RUNTIME_BYTES = 16 * 1024 * 1024;
+const MAXIMUM_RUNTIME_BYTES = 20 * 1024 * 1024;
 const MAXIMUM_MODULE_BYTES = 256 * 1024;
 const MAXIMUM_FILES = 16;
 const encoder = new TextEncoder();
@@ -320,9 +320,10 @@ export class BrowserBodyParticipation {
       throw new Error("external Body execution capabilities unavailable");
     }
     const value = this.#state.host.bridge.browserPlotReadOutputJson();
-    // The installed executor includes four exact quantity receipt operations.
+    // The installed executor includes exact quantity receipts and two
+    // checked Dimension projections. Keep this bound tied to that profile.
     if (value?.schema !== "conduit.browser/body-capabilities@1"
-        || !Array.isArray(value.capability_ids) || value.capability_ids.length > 116
+        || !Array.isArray(value.capability_ids) || value.capability_ids.length > 118
         || value.capability_ids.some(identity => typeof identity !== "string"
           || identity.length < 1 || identity.length > 256)) {
       throw new Error("invalid external Body execution capabilities");

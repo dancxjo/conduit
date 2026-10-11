@@ -52,7 +52,7 @@ pub fn install_language_request_type(startup: &mut StartupCatalog) -> Result<(),
 pub fn language_request_literal(request: &LanguageRequest) -> alloc::string::String {
     let quote = conduit_plot::text_startup_literal;
     let variety = request.variety().as_ref().map_or_else(
-        || "none(\"\")".into(),
+        || "none(empty)".into(),
         |variety| {
             alloc::format!(
                 "some({{ identity: {}, language: {} }})",
@@ -62,8 +62,8 @@ pub fn language_request_literal(request: &LanguageRequest) -> alloc::string::Str
         },
     );
     let policy = match request.variety_policy() {
-        crate::LanguageVarietyPolicy::LanguageSufficient => "language_sufficient(\"\")",
-        crate::LanguageVarietyPolicy::ExactVariety => "exact_variety(\"\")",
+        crate::LanguageVarietyPolicy::LanguageSufficient => "language_sufficient(empty)",
+        crate::LanguageVarietyPolicy::ExactVariety => "exact_variety(empty)",
     };
     alloc::format!(
         "{{ language: {}, variety: {variety}, variety_policy: {policy} }}",

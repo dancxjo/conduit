@@ -133,6 +133,8 @@ fn offer(definition: &KindProjection) -> CapabilityOffer {
                     ConfigurationValue::Text(_) => "value/text",
                     ConfigurationValue::Structured(ref value) => value.profile().as_str(),
                     ConfigurationValue::Quantity(_) => conduit_core::QUANTITY_INFO_ID,
+                    ConfigurationValue::Unit(_) => conduit_core::UNIT_INFO_ID,
+                    ConfigurationValue::TemperatureDifference(_) => conduit_core::EXACT_TEMPERATURE_DIFFERENCE_INFO_ID,
                 }),
                 has_default: true,
             })

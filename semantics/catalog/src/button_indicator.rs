@@ -224,7 +224,7 @@ pub fn button_transition_value(
     let phase = StructuredInfoValue::variant(
         super::input_button_phase_type(),
         if pressed { "pressed" } else { "released" },
-        leaf("value/unit", Vec::new())?,
+        leaf("value/empty", Vec::new())?,
     )?;
     StructuredInfoValue::record(
         input_button_transition_type(),

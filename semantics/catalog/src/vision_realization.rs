@@ -2,9 +2,9 @@
 
 use alloc::{string::ToString, vec::Vec};
 use conduit_core::{
-    BoundedResourceRef, KindId, Quantity, QuantityUnit, ResourceClassId, ResourceExtent,
-    ResourceLifetime, ResourceSemanticIdentity, ResourceVersionIdentity, StructuredInfoRefusal,
-    StructuredInfoValue,
+    BoundedResourceRef, KindId, Quantity, ResourceClassId, ResourceExtent, ResourceLifetime,
+    ResourceSemanticIdentity, ResourceVersionIdentity, StructuredInfoRefusal, StructuredInfoValue,
+    Unit,
 };
 use conduit_plot::rust_binding::{NativeBindingRefusal, NativeRustBinding};
 use conduit_presentation::{
@@ -117,7 +117,7 @@ fn detection_slot(
     landmarks: &[(char, i64, i64)],
     color: Option<(u64, u64, u64, i64, i64)>,
 ) -> Result<VisionDetectionSlot, VisionInfoRefusal> {
-    let confidence = Quantity::new(confidence, QuantityUnit::Millionth);
+    let confidence = Quantity::new(confidence, Unit::Millionth);
     validate_confidence(confidence).map_err(VisionInfoRefusal::InvalidConfidence)?;
     VisionDetectionSlot::detection(
         label.into(),
@@ -144,7 +144,7 @@ fn landmark_slots(landmarks: &[(char, i64, i64)]) -> Result<VisionLandmarks, Vis
         .iter()
         .map(|(name, x, y)| {
             VisionLandmarkSlot::keypoint(
-                Quantity::new(900_000, QuantityUnit::Millionth),
+                Quantity::new(900_000, Unit::Millionth),
                 name.to_string(),
                 point(*x, *y)?,
             )
@@ -176,8 +176,8 @@ fn color_sample(
 fn rect((x, y, width, height): (i64, i64, i64, i64)) -> Result<Rect2, VisionInfoRefusal> {
     Rect2::new(
         Extent2::new(
-            Quantity::new(height, QuantityUnit::Millionth),
-            Quantity::new(width, QuantityUnit::Millionth),
+            Quantity::new(height, Unit::Millionth),
+            Quantity::new(width, Unit::Millionth),
         )?,
         point(x, y)?,
     )
@@ -187,8 +187,8 @@ fn rect((x, y, width, height): (i64, i64, i64, i64)) -> Result<Rect2, VisionInfo
 fn point(x: i64, y: i64) -> Result<Point2, VisionInfoRefusal> {
     Point2::new(
         IMAGE_FRAME.into(),
-        Quantity::new(x, QuantityUnit::Millionth),
-        Quantity::new(y, QuantityUnit::Millionth),
+        Quantity::new(x, Unit::Millionth),
+        Quantity::new(y, Unit::Millionth),
     )
     .map_err(Into::into)
 }

@@ -102,7 +102,7 @@ impl NativePrimitive for Quantity {
     }
 }
 
-impl NativePrimitive for conduit_core::ExactDecimalQuantity {
+impl NativePrimitive for conduit_core::Unit {
     fn encode_primitive(&self) -> Vec<u8> {
         self.encode().to_vec()
     }
@@ -112,11 +112,10 @@ impl NativePrimitive for conduit_core::ExactDecimalQuantity {
     }
 }
 
-impl NativePrimitive for conduit_core::QuantityUnit {
+impl NativePrimitive for conduit_core::Dimension {
     fn encode_primitive(&self) -> Vec<u8> {
         self.encode().to_vec()
     }
-
     fn decode_primitive(canonical: &[u8]) -> Option<Self> {
         Self::decode(canonical).ok()
     }

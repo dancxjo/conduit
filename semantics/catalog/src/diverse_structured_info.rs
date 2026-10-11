@@ -5,8 +5,8 @@
 
 use alloc::vec;
 use conduit_core::{
-    kind_id, InfoBool, Quantity, QuantityUnit, StructuredFieldType, StructuredFieldValue,
-    StructuredInfoType, StructuredInfoValue, StructuredVariantCase,
+    kind_id, InfoBool, Quantity, StructuredFieldType, StructuredFieldValue, StructuredInfoType,
+    StructuredInfoValue, StructuredVariantCase, Unit,
 };
 
 pub const GEOMETRY_REGION_TYPE: &str = "GeometryRegion";
@@ -54,7 +54,7 @@ fn boolean(value: bool) -> StructuredInfoValue {
         .expect("Boolean encoding is bounded")
 }
 
-fn quantity(value: i64, unit: QuantityUnit) -> StructuredInfoValue {
+fn quantity(value: i64, unit: Unit) -> StructuredInfoValue {
     StructuredInfoValue::leaf(
         quantity_type(),
         Quantity::new(value, unit).encode().to_vec(),
@@ -81,10 +81,10 @@ pub fn geometry_region_example() -> StructuredInfoValue {
         geometry_region_type(),
         vec![
             value_field("frame", text("image/content")),
-            value_field("height", quantity(480, QuantityUnit::Millimeter)),
-            value_field("width", quantity(640, QuantityUnit::Millimeter)),
-            value_field("x", quantity(12, QuantityUnit::Millimeter)),
-            value_field("y", quantity(24, QuantityUnit::Millimeter)),
+            value_field("height", quantity(480, Unit::Millimeter)),
+            value_field("width", quantity(640, Unit::Millimeter)),
+            value_field("x", quantity(12, Unit::Millimeter)),
+            value_field("y", quantity(24, Unit::Millimeter)),
         ],
     )
     .expect("reviewed geometry specimen matches its schema")
@@ -190,7 +190,7 @@ pub fn education_feedback_example() -> StructuredInfoValue {
         vec![
             value_field("outcome", outcome),
             value_field("prompt_id", text("question/3")),
-            value_field("score", quantity(88, QuantityUnit::Percent)),
+            value_field("score", quantity(88, Unit::Percent)),
         ],
     )
     .expect("reviewed feedback specimen matches its schema")

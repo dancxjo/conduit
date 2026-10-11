@@ -17,7 +17,7 @@ plot pure-counter-initialize (
 ) = ({ terminal: false, value: . })
 plot pure-counter-advance (
     frame: PureCounterFrame...| >> next: PureNext...|
-) = (.terminal ? stopped(unit) : next({ terminal: .value >= 62, value: .value + 1 }))
+) = (.terminal ? stopped(empty) : next({ terminal: .value >= 62, value: .value + 1 }))
 plot pure-counter (
     >> begin: U64...|
     observed: PureCounterFrame...| <= 4096B >>
@@ -32,7 +32,7 @@ plot pure-overflow (
 ) = (. + 1)
 plot pure-choose (
     value: U64...| >> choice: PureChoice...|
-) = (. == 0 ? ignored(unit) : number({ value: . }))
+) = (. == 0 ? ignored(empty) : number({ value: . }))
 plot pure-selected (
     >> number: U64...|
     selected: PureNumber...| >>

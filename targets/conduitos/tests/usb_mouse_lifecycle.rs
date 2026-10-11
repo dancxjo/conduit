@@ -12,7 +12,7 @@ use conduitos::protocol_host_calls::ProtocolCallRefusal;
 fn command(ty: &StructuredInfoType, ordinal: Option<u64>, terminal: &str) -> Vec<u8> {
     let unit = || {
         StructuredInfoValue::leaf(
-            StructuredInfoType::leaf(kind_id("value/unit")).unwrap(),
+            StructuredInfoType::leaf(kind_id("value/empty")).unwrap(),
             vec![],
         )
         .unwrap()

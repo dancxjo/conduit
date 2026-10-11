@@ -369,7 +369,7 @@ fn source(fixture: &Fixture, expected_hex: &str) -> String {
 
 fn slots(mut active: Vec<String>, maximum: u16) -> String {
     while active.len() < usize::from(maximum) {
-        active.push("unused(\"\")".into());
+        active.push("unused(empty)".into());
     }
     active.join(", ")
 }

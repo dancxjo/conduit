@@ -35,7 +35,7 @@ fn insertion(ty: &StructuredInfoType, state: &[u8], ordinal: u64) -> Vec<u8> {
     let observation_type = field_type(ty, "observation");
     let result_type = field_type(&observation_type, "observed");
     let unit = StructuredInfoValue::leaf(
-        StructuredInfoType::leaf(kind_id("value/unit")).unwrap(),
+        StructuredInfoType::leaf(kind_id("value/empty")).unwrap(),
         vec![],
     )
     .unwrap();

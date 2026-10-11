@@ -125,6 +125,11 @@ fn standard_configuration(
             default_value: field.default_value,
             rule: match field.rule {
                 conduit_plot::KindConfigurationRule::Any => KindConfigurationRule::Any,
+                conduit_plot::KindConfigurationRule::Quantity => KindConfigurationRule::Quantity,
+                conduit_plot::KindConfigurationRule::Unit => KindConfigurationRule::Unit,
+                conduit_plot::KindConfigurationRule::TemperatureDifference => {
+                    KindConfigurationRule::TemperatureDifference
+                }
                 conduit_plot::KindConfigurationRule::U64Range { minimum, maximum } => {
                     KindConfigurationRule::U64Range { minimum, maximum }
                 }

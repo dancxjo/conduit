@@ -14,7 +14,7 @@ fn public_checker_accepts_native_speech_and_pcm_flow() {
         "conduit-native-voice-{}-{nonce}.conduit",
         std::process::id()
     ));
-    fs::write(&path, "plot voice (\n >> text: Text <= 512B\n audio: PcmFrames...| <= 285B >>\n) {\n speech: speech/utterance(clock=7, language-request = { language: \"language/english\", variety: some({ identity: \"pronunciation/native-english@2\", language: \"language/english\" }), variety_policy: exact_variety(\"\") })\n text >> speech.text\n speech.audio >> audio\n}.\n").unwrap();
+    fs::write(&path, "plot voice (\n >> text: Text <= 512B\n audio: PcmFrames...| <= 285B >>\n) {\n speech: speech/utterance(clock=7, language-request = { language: \"language/english\", variety: some({ identity: \"pronunciation/native-english@2\", language: \"language/english\" }), variety_policy: exact_variety(empty) })\n text >> speech.text\n speech.audio >> audio\n}.\n").unwrap();
     let result = Command::new(env!("CARGO_BIN_EXE_conduit"))
         .arg("check")
         .arg(&path)

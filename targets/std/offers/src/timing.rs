@@ -37,7 +37,7 @@ pub const TIME_DEADLINE_ARTIFACT: &str = "conduit-std-host/time-deadline-cancell
 pub const TIME_SAMPLE_EXECUTION_PROFILE: &str = "conduit.std/time-sample-kernel-hosted@1";
 pub const TIME_SAMPLE_IMPLEMENTATION: &str = "std/kernel-time-sample@1";
 pub const TIME_SAMPLE_ARTIFACT: &str = "conduit-std-host/time-sample@1";
-pub const TIME_SAMPLE_MAXIMUM_VALUE_BYTES: u32 = 100;
+pub const TIME_SAMPLE_MAXIMUM_VALUE_BYTES: u32 = 4096;
 pub const TIME_WINDOW_EXECUTION_PROFILE: &str = "conduit.std/time-window-kernel-hosted@1";
 pub const TIME_WINDOW_IMPLEMENTATION: &str = "std/kernel-time-window@1";
 pub const TIME_WINDOW_ARTIFACT: &str = "conduit-std-host/time-window@1";
@@ -137,7 +137,7 @@ pub fn time_sample_offer(
     value: &conduit_core::CheckedValueContract,
 ) -> Result<CapabilityOffer, &'static str> {
     if value.maximum_bytes > TIME_SAMPLE_MAXIMUM_VALUE_BYTES {
-        return Err("std time/sample specialization exceeds the derived-value byte bound");
+        return Err("std time/sample specialization exceeds the prepared-value byte bound");
     }
     Ok(offer(
         conduit_semantic_catalog::time_sample_semantic_contract(value)?,

@@ -9,7 +9,7 @@ fn command(ty: &StructuredInfoType, ordinal: Option<u64>, keyboard: bool) -> Vec
     };
     let unit = || {
         StructuredInfoValue::leaf(
-            StructuredInfoType::leaf(kind_id("value/unit")).unwrap(),
+            StructuredInfoType::leaf(kind_id("value/empty")).unwrap(),
             vec![],
         )
         .unwrap()

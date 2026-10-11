@@ -3,7 +3,7 @@
 use super::*;
 use conduit_core::{
     process_owned_line_offer_with_limits, BaseImplementationId, LinkLimits, PortDirection,
-    Quantity, QuantityUnit,
+    Quantity, Unit,
 };
 use conduit_planner::{PlacementChoice, PlacementChoices, PlanningOptions};
 use conduit_plot::{
@@ -104,7 +104,7 @@ fn fragment() -> PlanFragment {
             })
             .collect(),
     };
-    let maximum = MAXIMUM_BROWSER_VALUE_BYTES as u32;
+    let maximum = crate::installed_browser::stroke_capture::MAXIMUM_PATH_BYTES as u32;
     let line = process_owned_line_offer_with_limits(
         "fixture/stroke-line",
         "fixture/stroke-binding",
@@ -131,7 +131,7 @@ fn fragment() -> PlanFragment {
         ),
         vec![line.line_id.clone()],
     )]);
-    conduit_planner::plan_expanded_canonical_with_options(
+    conduit_planner::plan_expanded_canonical_with_connection_limits(
         &expanded,
         &hosts,
         &placements,
@@ -148,6 +148,7 @@ fn fragment() -> PlanFragment {
             protected_resource_grants: &[],
             line_offers: &[line],
         },
+        &BTreeMap::new(),
     )
     .unwrap()
     .fragments
@@ -159,8 +160,8 @@ fn fragment() -> PlanFragment {
 fn point(x: i64) -> Vec<u8> {
     conduit_presentation::point2_value(
         "controller/normalized",
-        Quantity::new(x, QuantityUnit::Millimeter),
-        Quantity::new(0, QuantityUnit::Millimeter),
+        Quantity::new(x, Unit::Millimeter),
+        Quantity::new(0, Unit::Millimeter),
     )
     .unwrap()
     .canonical_bytes()

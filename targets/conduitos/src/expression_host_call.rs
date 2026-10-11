@@ -26,6 +26,9 @@ pub fn offer(
     // The native one-value operation needs only its exact frame envelope.
     // Advertising the generic Kind ceiling would inflate every kernel slot.
     let mut limits = contract.limits.clone();
+    // The generic ceiling also serves the larger hosted profile. Preserve
+    // this native profile's admitted repeated-expression capacity.
+    limits.max_active_instances = limits.max_active_instances.min(16);
     limits.max_queue_bytes = limits
         .max_queue_bytes
         .min(input_bytes.max(output_bytes).max(1));

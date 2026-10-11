@@ -183,7 +183,7 @@ impl CheckedFront {
 fn default_maximum_bytes(kind_id: &KindId) -> Option<u64> {
     match kind_id.as_str() {
         "value/text" => Some(256),
-        "value/bytes" => Some(65_536),
+        "value/bytes" => Some(crate::MAXIMUM_BYTES_INFO_BYTES as u64),
         _ => None,
     }
 }

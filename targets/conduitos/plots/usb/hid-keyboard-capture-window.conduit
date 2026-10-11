@@ -4,19 +4,19 @@ with machine/usb/endpoint-read/request as UsbEndpointReadRequest
 # ordinals come from the selected Back; class state advances only in wire order.
 # Root admits a new read only after its prior ordered observation is delivered.
 plot usb-hid-keyboard-capture-request (
-    read: Unit...| >> request: UsbEndpointReadRequest...| <= 4096B
+    read: Empty...| >> request: UsbEndpointReadRequest...| <= 4096B
 ) = ({ length: 8 })
 
 plot usb-hid-keyboard-capture-window (
-    >> begin: Unit...|
-    >> read0: Unit...|
-    >> read1: Unit...|
-    >> read2: Unit...|
-    >> read3: Unit...|
-    >> read4: Unit...|
-    >> read5: Unit...|
-    >> read6: Unit...|
-    >> read7: Unit...|
+    >> begin: Empty...|
+    >> read0: Empty...|
+    >> read1: Empty...|
+    >> read2: Empty...|
+    >> read3: Empty...|
+    >> read4: Empty...|
+    >> read5: Empty...|
+    >> read6: Empty...|
+    >> read7: Empty...|
     observation: UsbKeyboardOrderedObservation...| >>
     changes: UsbKeyboardTransitionBatch...| >>
     ended: UsbKeyboardOrderEnd...| >>

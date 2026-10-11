@@ -1,7 +1,8 @@
 //! Read-only queries: neither catalog inspection nor layout admission edits a Plot.
 
+use super::configuration_input::ConfigurationInput;
 use super::{http::write_response, PatchbayHtmlServer, ServerError};
-use conduit_core::{ConfigurationValue, ExpandedPlotId};
+use conduit_core::ExpandedPlotId;
 use serde::Deserialize;
 use std::net::TcpStream;
 
@@ -18,7 +19,7 @@ enum AuthoringQuery {
         expanded_plot_id: ExpandedPlotId,
         gear: String,
         key: String,
-        value: ConfigurationValue,
+        value: ConfigurationInput,
     },
 }
 
@@ -100,7 +101,11 @@ impl PatchbayHtmlServer {
                     &expanded_plot_id,
                     &gear,
                     &key,
-                    value,
+                    value.checked_with_catalog(
+                        &editor
+                            .checked_physical_catalog()
+                            .map_err(|error| error.to_string())?,
+                    )?,
                 );
                 Ok(serde_json::json!({
                     "valid": result.is_ok(),

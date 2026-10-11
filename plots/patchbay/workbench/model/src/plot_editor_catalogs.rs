@@ -5,7 +5,20 @@ use conduit_plot::{ProfileCatalog, StartupCatalog};
 use crate::PlotEditorError;
 
 pub(crate) fn standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), PlotEditorError> {
-    let mut startup = StartupCatalog::new();
+    // Compiled semantic contracts are immutable. Each editor receives its own
+    // copy so source-local declarations never enter another editor's catalog.
+    static CATALOGS: std::sync::OnceLock<
+        Result<(StartupCatalog, ProfileCatalog), PlotEditorError>,
+    > = std::sync::OnceLock::new();
+    CATALOGS.get_or_init(prepare_standard_catalogs).clone()
+}
+
+fn prepare_standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), PlotEditorError> {
+    let mut startup = conduit_plot::checked_physical_catalog_for_document(
+        &conduit_plot::parse_syntax_document(""),
+        &StartupCatalog::new(),
+    )
+    .map_err(|error| PlotEditorError::Catalog(format!("{error:?}")))?;
     let mut profile = ProfileCatalog::new();
     conduit_todo_plot::install_todo_catalogs(&mut startup, &mut profile, "Groceries")
         .map_err(PlotEditorError::Catalog)?;
@@ -88,6 +101,30 @@ pub(crate) fn standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), Pl
 
 #[cfg(test)]
 mod tests {
+    use super::standard_catalogs;
+
+    #[test]
+    fn prepared_editor_catalog_keeps_source_local_types_private() {
+        let (mut first, _) = standard_catalogs().unwrap();
+        let (second, _) = standard_catalogs().unwrap();
+        let admitted = conduit_plot::checked_physical_catalog_for_document(
+            &conduit_plot::parse_syntax_document(""),
+            &second,
+        )
+        .unwrap();
+        assert_eq!(second, admitted);
+        let local = conduit_plot::check_syntax_document(
+            &conduit_plot::parse_syntax_document("type EditorLocal = Text <= 8B\n"),
+            &second,
+        )
+        .unwrap();
+        first
+            .insert_checked_native_type("EditorLocal", &local.native_types[0])
+            .unwrap();
+        assert_ne!(first, second);
+        assert_eq!(second, standard_catalogs().unwrap().0);
+    }
+
     #[test]
     fn standard_editor_catalog_checks_the_canonical_morse_network() {
         let source = include_str!("../../../../../plots/morse-network/main.conduit");

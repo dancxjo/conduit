@@ -1,6 +1,6 @@
 use conduit_core::{
-    semantic_digest, BoundedResourceRef, KindId, Quantity, QuantityUnit, ResourceClassId,
-    ResourceExtent, ResourceLifetime, ResourceSemanticIdentity, ResourceVersionIdentity,
+    semantic_digest, BoundedResourceRef, KindId, Quantity, ResourceClassId, ResourceExtent,
+    ResourceLifetime, ResourceSemanticIdentity, ResourceVersionIdentity, Unit,
 };
 use conduit_data::*;
 use conduit_plot::rust_binding::{BoundedBytes, BoundedSequence, NativeRustBinding};
@@ -77,7 +77,7 @@ fn f32_tensor(values: &[f32], dimensions: Vec<u64>, roles: Vec<TensorAxisRole>) 
         axes: BoundedSequence::try_from_iter(roles.into_iter().map(|role| TensorAxis {
             role,
             identity: None,
-            unit: Some(QuantityUnit::Millimeter),
+            unit: Some(Unit::Millimeter),
         }))
         .unwrap(),
         content_digest: tensor_content_digest(&bytes),
@@ -89,7 +89,7 @@ fn signal(clock: &str, channels: u64, value: f32) -> SampledSignal {
     SampledSignal {
         clock_identity: clock.into(),
         start: SignalStart::at_sample(0),
-        cadence: SignalCadence::regular(Quantity::new(1, QuantityUnit::Second), 100).unwrap(),
+        cadence: SignalCadence::regular(Quantity::new(1, Unit::Second), 100).unwrap(),
         sample_count: 2,
         continuity: SignalContinuity::Continuous,
         samples: f32_tensor(
@@ -171,7 +171,7 @@ fn frames() -> (CoordinateFrame, CoordinateFrame) {
                 CoordinateAxisName::new("inferior-superior".into()).unwrap(),
             ])
             .unwrap(),
-            unit: QuantityUnit::Millimeter,
+            unit: Unit::Millimeter,
         },
         CoordinateFrame {
             identity: "frame/head-normalized".into(),
@@ -180,7 +180,7 @@ fn frames() -> (CoordinateFrame, CoordinateFrame) {
                 CoordinateAxisName::new("y".into()).unwrap(),
             ])
             .unwrap(),
-            unit: QuantityUnit::Millimeter,
+            unit: Unit::Millimeter,
         },
     )
 }
@@ -221,7 +221,7 @@ fn paired_audio_and_ema_keep_source_clocks_then_derive_a_separate_aligned_view()
     assert_ne!(set.semantic_digest().unwrap(), [0; 32]);
     let relation = ClockRelation::new(
         "clock-relation/ema-to-audio@1".into(),
-        ClockRelationQuality::estimated(Quantity::new(1, QuantityUnit::Millisecond)).unwrap(),
+        ClockRelationQuality::estimated(Quantity::new(1, Unit::Millisecond)).unwrap(),
         0,
         "clock/ema".into(),
         1,
@@ -233,13 +233,13 @@ fn paired_audio_and_ema_keep_source_clocks_then_derive_a_separate_aligned_view()
     assert_eq!(
         relation.semantic_digest().unwrap(),
         [
-            61, 45, 81, 23, 186, 250, 231, 2, 242, 73, 243, 53, 36, 236, 170, 64, 119, 214, 197,
-            76, 189, 108, 35, 184, 84, 140, 153, 64, 156, 93, 182, 66,
+            57, 168, 71, 32, 127, 253, 109, 85, 96, 175, 39, 140, 127, 63, 165, 62, 220, 105, 145,
+            84, 120, 86, 161, 83, 130, 175, 9, 33, 104, 225, 47, 88,
         ]
     );
     let zero_error_relation = ClockRelation::new(
         relation.identity().clone(),
-        ClockRelationQuality::estimated(Quantity::new(0, QuantityUnit::Millisecond)).unwrap(),
+        ClockRelationQuality::estimated(Quantity::new(0, Unit::Millisecond)).unwrap(),
         *relation.source_anchor(),
         relation.source_clock().clone(),
         *relation.source_ticks(),
