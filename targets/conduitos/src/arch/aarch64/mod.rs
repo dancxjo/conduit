@@ -16,6 +16,11 @@ mod domain_transition;
 mod ordinary_domain;
 #[cfg(target_os = "none")]
 pub use ordinary_domain::TextDomain;
+// These native leaves are not yet a product USB offer; keep their compilation
+// separate from acceptance until ordinary Root/Plot execution is integrated.
+#[allow(dead_code)]
+mod xhci;
+pub use xhci::{VirtXhciRefusal, initialize_xhci};
 mod entropy;
 pub use entropy::RndrEntropy;
 

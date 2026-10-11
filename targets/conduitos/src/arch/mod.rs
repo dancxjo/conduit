@@ -3,10 +3,17 @@
 //! Shared ConduitOS code depends on this surface. Architecture facts never flow
 //! upward into authored meaning or semantic implementation identity.
 
-// Shared mechanism remains enabled only for the native provider whose DMA and
-// device-memory ordering contract currently has execution evidence.
-#[cfg(target_arch = "x86_64")]
+// Native controller mechanism compilation does not advertise a USB Host offer.
+#[cfg(any(
+    target_arch = "x86_64",
+    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+))]
+#[cfg_attr(target_arch = "aarch64", allow(dead_code))]
 mod xhci_mechanism;
+
+#[cfg(test)]
+#[path = "aarch64/xhci/pci.rs"]
+mod aarch64_pci_conformance;
 
 #[cfg(target_arch = "x86_64")]
 mod x86_64;
@@ -75,11 +82,14 @@ mod aarch64;
 
 #[cfg(all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5")))]
 pub use aarch64::{
-    Clock, Idle, InterruptFact, Interrupts, Serial, Timer, disable_interrupts, emergency_halt,
-    emergency_machine_profile, enable_fp_simd, enable_interrupts, initialize_machine,
-    install_low_mmio_map, interruptible_idle, mmio_table_addresses, pop_interrupt, present,
-    read_counter, timer_arm,
+    Clock, Idle, InterruptFact, Interrupts, Serial, Timer, VirtXhciRefusal, disable_interrupts,
+    emergency_halt, emergency_machine_profile, enable_fp_simd, enable_interrupts,
+    initialize_machine, initialize_xhci, install_low_mmio_map, interruptible_idle,
+    mmio_table_addresses, pop_interrupt, present, read_counter, timer_arm,
 };
+
+#[cfg(all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5")))]
+pub use xhci_mechanism::XhciReady;
 
 #[cfg(all(target_arch = "aarch64", feature = "aarch64-orange-pi-5"))]
 mod aarch64_orange_pi_5;
