@@ -538,3 +538,18 @@ pub(crate) unsafe fn synthetic_stop_dcbaa() -> u64 {
     // SAFETY: caller holds with_synthetic_stop_controller's fixture lock.
     unsafe { read_volatile(core::ptr::addr_of!(DMA.dcbaa[1])) }
 }
+
+#[cfg(test)]
+pub(crate) unsafe fn synthetic_late_original_stop_ack(controller: &XhciReady) {
+    let pointer = controller.dma_physical + core::mem::offset_of!(DmaStorage, command_ring) as u64;
+    // SAFETY: caller holds the serialized fixture lock, and the first event
+    // has been consumed. This completion names the original command, not retry.
+    unsafe {
+        DMA.event_ring[controller.event_dequeue] = [
+            pointer as u32,
+            (pointer >> 32) as u32,
+            1 << 24,
+            (33 << 10) | (1 << 24) | controller.event_cycle,
+        ];
+    }
+}
