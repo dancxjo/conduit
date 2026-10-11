@@ -1,4 +1,4 @@
-//! Prepared canonical composition of exact leaf, record and variant values.
+//! Prepared canonical composition of finite exact structured values.
 
 use alloc::{string::String, vec::Vec};
 
@@ -27,6 +27,11 @@ enum CompositionShape {
     Leaf(String),
     Record(Vec<Field>),
     Variant(Vec<Field>),
+    Collection {
+        element_type: Vec<u8>,
+        minimum_items: u16,
+        maximum_items: u16,
+    },
 }
 
 impl PreparedStructuredComposer {
@@ -59,6 +64,20 @@ impl PreparedStructuredComposer {
                     })
                     .collect::<Result<_, Refusal>>()?,
             ),
+            Shape::Collection { element, length } => CompositionShape::Collection {
+                element_type: element.canonical_bytes()?,
+                minimum_items: length,
+                maximum_items: length,
+            },
+            Shape::Sequence {
+                element,
+                minimum_items,
+                maximum_items,
+            } => CompositionShape::Collection {
+                element_type: element.canonical_bytes()?,
+                minimum_items,
+                maximum_items,
+            },
             _ => return Err(Refusal::WrongType),
         };
         Ok(Self {
@@ -140,6 +159,43 @@ impl PreparedStructuredComposer {
         self.output.push(3);
         push_bytes(tag.as_bytes(), &mut self.output);
         self.output.extend_from_slice(payload.value_node());
+        self.finish()
+    }
+
+    /// Compose a finite sequence or exact collection from validated children.
+    /// Count, child identity and total extent are checked before replacing the
+    /// previous output. Preparation reserves all schema and output storage.
+    pub fn collection(&mut self, values: &[Value<'_>]) -> Result<&[u8], Refusal> {
+        let CompositionShape::Collection {
+            element_type,
+            minimum_items,
+            maximum_items,
+        } = &self.shape
+        else {
+            return Err(Refusal::WrongType);
+        };
+        if values.len() < usize::from(*minimum_items) || values.len() > usize::from(*maximum_items)
+        {
+            return Err(Refusal::WrongCollectionLength);
+        }
+        let mut size = 5_usize;
+        for value in values {
+            if element_type.as_slice() != value.type_bytes() {
+                return Err(Refusal::WrongType);
+            }
+            size = size
+                .checked_add(value.value_node().len())
+                .ok_or(Refusal::CanonicalEncodingTooLarge)?;
+        }
+        self.admit_size(size)?;
+        self.output.clear();
+        self.output.extend_from_slice(&self.prefix);
+        self.output.push(1);
+        self.output
+            .extend_from_slice(&(values.len() as u32).to_le_bytes());
+        for value in values {
+            self.output.extend_from_slice(value.value_node());
+        }
         self.finish()
     }
 
