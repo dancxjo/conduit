@@ -213,9 +213,7 @@ use conduit_kernel::{
     BoundedValueRef, HostCallDisposition, HostCallOutcome, HostedSignLog, HostedValueStore,
     SignSink, ValueStorage,
 };
-use conduit_plan_lowering::lowering::{
-    KernelExecutionIdentityMap, FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
-};
+use conduit_plan_lowering::lowering::KernelExecutionIdentityMap;
 use std::io::Write;
 use std::time::Duration;
 
@@ -228,17 +226,12 @@ fn record_request(requests: &mut Vec<HostCallRequest>, request: HostCallRequest)
     }
 }
 
-const MAX_NODES: usize = 16;
-const MAX_CORDS: usize = 16;
-const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
-const MAX_QUEUE_SLOTS: usize = 64;
-const ROUTE_SLOTS: usize = MAX_NODES * PORTS;
-const ROUTE_TARGETS: usize = 64;
-
+mod storage_profile;
 pub(crate) use facade::*;
-const HOST_CALLS_PER_NODE: u16 = 4;
-const HOST_BINDING_SLOTS: usize = MAX_NODES * HOST_CALLS_PER_NODE as usize;
-const PENDING_REQUESTS: usize = MAX_NODES;
+use storage_profile::{
+    HOST_BINDING_SLOTS, HOST_CALLS_PER_NODE, MAX_CORDS, MAX_NODES, MAX_QUEUE_SLOTS,
+    PENDING_REQUESTS, PORTS, ROUTE_SLOTS, ROUTE_TARGETS,
+};
 const PROOF_PCM_CLIP_SOURCE_OPERATION: &str = "conduit.host/proof-recorded-pcm-clip@1";
 
 pub(in crate::installed_std) type InstalledScheduler = FixedScheduler<
@@ -295,8 +288,6 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         body_conversation_context,
     } = host;
     let lowered = preparation::lower_fragment_with_continuity(fragment, retained.is_some())?;
-    let whisper_languages =
-        whisper_language::WhisperLanguages::prepare(fragment, &lowered.identity)?;
     let active_nodes = lowered.nodes.len();
     let active_cords = lowered.cords.len();
     if !supports(fragment)
@@ -317,6 +308,8 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     {
         return Err("fragment exceeds the installed std kernel profile".to_string());
     }
+    let whisper_languages =
+        whisper_language::WhisperLanguages::prepare(fragment, &lowered.identity)?;
     let planned_inputs = lowered
         .fore_ports
         .iter()

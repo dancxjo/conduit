@@ -85,7 +85,7 @@ pub(crate) fn run_fragment<W: Write, T: TimerAdapter>(
 
 pub(super) fn finish(
     report: StdRunReport,
-    scheduler: InstalledScheduler,
+    scheduler: Box<InstalledScheduler>,
     state_count: usize,
 ) -> Result<RetainedStdRun, String> {
     let mut states = Vec::with_capacity(state_count);
