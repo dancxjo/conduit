@@ -33,6 +33,7 @@ fn all_hard_rejections_from_the_ordinary_selector_remain_explainable() {
     let contexts = [CostEvaluationContext {
         host: &hosts[0],
         calibrations: &[],
+        execution_observations: &[],
         now: &now,
     }];
     let requirements = HardRealizationRequirements {
