@@ -1,3 +1,8 @@
+mod cost_duration;
+mod cost_preparation;
+pub use cost_duration::*;
+pub use cost_preparation::*;
+
 mod evidence;
 pub use evidence::*;
 
@@ -158,6 +163,17 @@ pub struct PoolRealizationEnvelope {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SharedPoolSelectionPolicy {
     MoreUnreservedThenLessUtilizedThenPlanOrder,
+    /// Minimum prepared upper completion Time, then ordinary capacity and Plan
+    /// order. Missing costs use the explicitly reported capacity fallback.
+    MinimumPredictedCompletionThenCapacity,
+}
+impl SharedPoolSelectionPolicy {
+    pub(crate) const fn fingerprint_discriminant(self) -> u8 {
+        match self {
+            Self::MoreUnreservedThenLessUtilizedThenPlanOrder => 0,
+            Self::MinimumPredictedCompletionThenCapacity => 1,
+        }
+    }
 }
 
 /// Immutable Plan truth for one bounded shared dynamic population.
