@@ -213,6 +213,19 @@ fn render(selection: &CostRealizationSelection<'_>, out: &mut impl Write) -> fmt
                     demand.inputs().len(),
                     demand.input_bytes()
                 )?;
+                if let Some(estimate) = demand.work_estimate() {
+                    writeln!(
+                        out,
+                        "work metric={} revision={} units={} admitted_maximum_units={}",
+                        estimate.metric_identity().as_str().escape_default(),
+                        estimate.metric_revision(),
+                        estimate.units(),
+                        estimate.maximum_units()
+                    )?;
+                }
+                if let Some(basis) = sample.service_basis() {
+                    stage_range("service_per_work_unit", Some(basis), out)?;
+                }
                 let stages = sample.forecast().stages();
                 for (name, stage) in [
                     ("setup", stages.setup),

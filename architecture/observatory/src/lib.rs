@@ -37,3 +37,6 @@ mod usefulness_tests;
 
 #[cfg(test)]
 mod cost_explanation_tests;
+
+#[cfg(test)]
+mod cost_work_estimate_tests;
