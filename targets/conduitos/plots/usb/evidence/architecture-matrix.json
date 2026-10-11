@@ -56,8 +56,9 @@
       "classes": {
         "control": {
           "status": "incomplete",
-          "reason": "No actual product USB class execution evidence yet",
-          "proof_level": "compile-only"
+          "reason": "Actual ordinary CDC and BOT setup controls are retained; dedicated and full substrate acceptance remain pending",
+          "proof_level": "emulator-with-device",
+          "acceptance": "partial"
         },
         "hid": {
           "status": "incomplete",

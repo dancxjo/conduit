@@ -29,9 +29,10 @@ retain independent selected claims and DMA regions under the same native Host.
 `control-endpoint-write-read.conduit` orders one bounded request record through
 completed control, completed write and read. This finite proof topology requires
 cancellation after a failed transaction; it does not implement sustained class
-transactions. Bulk OUT product execution remains unproven until its exact built
-image completes a real transfer. Isochronous support and all successor class and
-cross-architecture acceptance remain open.
+transactions. Later retained CDC and BOT product observations exercise bulk OUT
+on x86_64 and AArch64; their exact proof limits are recorded in the
+[product transfer inventory](#product-transfer-inventory-52535258) below.
+Complete class and cross-architecture acceptance remain open.
 
 This USB slice does not absorb #4833's I2C/BME280 acceptance. Portable binary
 composition is shared with that completed code slice: checked integer
@@ -551,7 +552,7 @@ controller, attachment, capability generations and acknowledged retirement path.
 | Interrupt IN | Bounded endpoint receive ring | Focused x86_64 control/read mouse report proof; full HID acceptance pending |
 | Bulk IN | Bounded endpoint receive ring | Actual x86_64 and AArch64 CDC replies and BOT DATA/CSW |
 | Bulk OUT | Shared class-neutral bounded transmit ring | Actual x86_64 and AArch64 CDC bytes and BOT CBWs |
-| Isochronous OUT | Separate draft native mechanism | No installed checked product ISO offer or PCM execution proof in this tree |
+| Isochronous OUT | Bounded eight-TD native batch, finite checked offer and selected owner installed in this candidate | Checked preparation and focused native mechanics only; actual Source PCM playback and rolling reuse unproven |
 | Isochronous IN | Unsupported by current endpoint setup | No product offer or capture proof |
 
 The pinned AArch64 row is QEMU virt-10.2, GICv2, coherent low PCIe ECAM/BAR
@@ -559,8 +560,15 @@ mapping and neoverse-n2. It executes the exact unchanged checked BOT and CDC
 packages previously run on x86_64 q35. BOT has both one patterned block and
 sixteen serialized READ(10) transactions; CDC has five setup controls and sixteen
 actual transmit/receive pairs. These are emulator-with-device proofs, not physical
-compatibility or complete class acceptance. Semantic serial producer/consumer
-routing, the Ethernet stack seam, complete fault coverage and checked USB Audio
+compatibility or complete class acceptance. The later
+[selected Serial Back observation](evidence/selected-serial-53b0baa1c/README.md)
+executes the existing transport-neutral serial Fore and retains 32 ordered typed
+results on both architectures. Newer descriptor preflight and terminal-drain
+observations are retained in draft [#5435](https://github.com/dancxjo/conduit/pull/5435)
+and [#5438](https://github.com/dancxjo/conduit/pull/5438); their kernel and checked
+Source identities are separately bound. Those observations are not evidence for
+this newly combined development head. The Ethernet stack seam, independent
+storage admission, complete fault coverage and actual checked USB Audio playback
 remain incomplete.
 
 IA-32, ARMv6, RISC-V64, LoongArch64 and AArch64 Orange Pi 5 have no admitted
