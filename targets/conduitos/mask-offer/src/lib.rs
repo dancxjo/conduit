@@ -27,6 +27,9 @@ use conduit_presentation::{
     show_resource_source_offer,
 };
 
+mod configured;
+pub use configured::*;
+
 pub const MASK_BYTES: usize = 48 * 1024;
 
 #[derive(Clone)]
@@ -218,6 +221,7 @@ fn renderer_host(
     )];
     match adapter {
         Adapter::Native => {
+            capabilities.push(configured_resource_renderer_offer());
             capabilities.push(show_resource_source_offer(ShowResourceSourceOffer {
                 capability_id: CapabilityId::from("renderer-conduitos-resource-source"),
                 execution_profile_id: ExecutionProfileId::from("conduitos/bounded-mask@1"),

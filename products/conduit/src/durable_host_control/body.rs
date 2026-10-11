@@ -229,6 +229,25 @@ impl DurableHostRuntime {
         }
     }
 
+    pub(super) fn select_browser_component_mask(
+        &mut self,
+        window_id: &str,
+        binding: &LinkBindingId,
+        request: &OwnerFaceSnapshotRequest,
+        show: &MaskShow,
+        look: conduit_presentation::ComponentMaskLook,
+        recipe: conduit_presentation::TodoComponentRecipe,
+    ) -> Result<RemoteOwnerMaskRouteSeal, String> {
+        match &mut self.host {
+            HostSource::Body { owner, .. } => {
+                owner.select_browser_component_mask(window_id, binding, request, show, look, recipe)
+            }
+            HostSource::Bare(_) | HostSource::Transitioning => {
+                Err("installed Host does not own a live Body session".into())
+            }
+        }
+    }
+
     pub(super) fn browser_acknowledge_show(
         &mut self,
         window_id: &str,
@@ -447,6 +466,20 @@ impl DurableHostRuntime {
             return Err("installed Host does not own a live Body session".into());
         };
         owner.seal_native_mask_route(receipt, face_line, return_line, expires_at_millis)
+    }
+
+    pub(super) fn owned_body_native_component_mask(
+        &mut self,
+        request: &OwnerFaceSnapshotRequest,
+        show: &MaskShow,
+        receipt: &PortableAdmissionReceipt,
+        look: conduit_presentation::ComponentMaskLook,
+        recipe: conduit_presentation::TodoComponentRecipe,
+    ) -> Result<RemoteOwnerMaskRouteSeal, String> {
+        let HostSource::Body { owner, .. } = &mut self.host else {
+            return Err("installed Host does not own a live Body session".into());
+        };
+        owner.select_native_component_mask(request, show, receipt, look, recipe)
     }
 
     pub(super) fn owned_body_native_mask_show(
@@ -1002,3 +1035,61 @@ pub(crate) fn admit_owned_request(
 #[cfg(test)]
 #[path = "body/tests.rs"]
 mod tests;
+
+#[cfg(unix)]
+pub(crate) fn select_native_component_mask(
+    state_dir: &Path,
+    receipt: PortableAdmissionReceipt,
+    request: OwnerFaceSnapshotRequest,
+    show: MaskShow,
+    look: conduit_presentation::ComponentMaskLook,
+    recipe: conduit_presentation::TodoComponentRecipe,
+) -> Result<RemoteOwnerMaskRouteSeal, String> {
+    let look = match look {
+        conduit_presentation::ComponentMaskLook::Compact => {
+            conduit_std_host::browser_admission::BrowserComponentLook::Compact
+        }
+        conduit_presentation::ComponentMaskLook::Spacious => {
+            conduit_std_host::browser_admission::BrowserComponentLook::Spacious
+        }
+    };
+    let recipe = match recipe {
+        conduit_presentation::TodoComponentRecipe::Flat => {
+            conduit_std_host::browser_admission::BrowserComponentRecipe::Flat
+        }
+        conduit_presentation::TodoComponentRecipe::Grouped => {
+            conduit_std_host::browser_admission::BrowserComponentRecipe::Grouped
+        }
+    };
+    match call(
+        state_dir,
+        Request::BodyNativeComponentMask {
+            protocol: PROTOCOL,
+            token: token(state_dir)?,
+            receipt: Box::new(receipt),
+            request,
+            show: Box::new(show),
+            look,
+            recipe,
+        },
+    )? {
+        Response::BodyNativeMaskRoute {
+            protocol: PROTOCOL,
+            route,
+        } => Ok(*route),
+        Response::Refused { code, .. } => Err(code),
+        _ => Err("Body owner returned the wrong native component route response".into()),
+    }
+}
+
+#[cfg(not(unix))]
+pub(crate) fn select_native_component_mask(
+    _state_dir: &Path,
+    _receipt: PortableAdmissionReceipt,
+    _request: OwnerFaceSnapshotRequest,
+    _show: MaskShow,
+    _look: conduit_presentation::ComponentMaskLook,
+    _recipe: conduit_presentation::TodoComponentRecipe,
+) -> Result<RemoteOwnerMaskRouteSeal, String> {
+    Err("no reviewed local durable host control carrier exists on this platform".into())
+}

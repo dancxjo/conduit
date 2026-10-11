@@ -55,11 +55,7 @@ pub(super) fn serve(
     let mut next = if matches!(&face, OwnerFaceSnapshotResponse::Snapshot { presentation, .. }
         if crate::durable_host_control::has_native_return_route_intent(presentation))
     {
-        let mut grant = Grant::issue(&old.receipt)?;
-        // Refresh changes the Face and bearer, not the finite action budget.
-        grant.maximum_actions = old
-            .maximum_actions
-            .saturating_sub(next_sequence.saturating_sub(1));
+        let grant = old.replacement(next_sequence)?;
         Some(grant)
     } else {
         None

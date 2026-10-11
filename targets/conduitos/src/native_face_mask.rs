@@ -90,6 +90,10 @@ pub struct NativeFaceMask {
     publication: Option<FaceSnapshotReceipt>,
     surface_admitted: bool,
     interaction_admitted: bool,
+    component_configuration: Option<conduit_presentation::ConfiguredMaskConfiguration>,
+    visual_expression: Option<conduit_presentation::AdmittedVisualExpression>,
+    visual_constraints: conduit_presentation::VisualUserConstraints,
+    component_fallback: Option<String>,
 }
 
 impl NativeFaceMask {
@@ -133,6 +137,7 @@ impl NativeFaceMask {
             build_id,
         )
         .map_err(NativeFaceMaskError::Producer)?;
+        let mut component_configuration = None;
         let mask = if let Some(route) = route {
             let offer = crate::product_bases::native_mask_host_advertisement(
                 &host_id,
@@ -143,11 +148,37 @@ impl NativeFaceMask {
             route
                 .validate_mask_host_offer(&offer)
                 .map_err(|_| NativeFaceMaskError::Plan)?;
-            let local = conduit_conduitos_mask_offer::prepare_stage_from_offer(
-                conduit_conduitos_mask_offer::Adapter::Native,
-                &offer,
-            )
-            .map_err(|_| NativeFaceMaskError::Plan)?;
+            let mut selected = None;
+            for look in [
+                conduit_presentation::ComponentMaskLook::Compact,
+                conduit_presentation::ComponentMaskLook::Spacious,
+            ] {
+                for recipe in [
+                    conduit_presentation::TodoComponentRecipe::Flat,
+                    conduit_presentation::TodoComponentRecipe::Grouped,
+                ] {
+                    if route.planned_mask.mask.plot_name
+                        == conduit_presentation::todo_component_mask_root(look, recipe)
+                    {
+                        selected = Some((look, recipe));
+                    }
+                }
+            }
+            let local = if let Some((look, recipe)) = selected {
+                let (stage, configuration) =
+                    conduit_conduitos_mask_offer::prepare_component_stage_from_offer(
+                        &offer, look, recipe,
+                    )
+                    .map_err(|_| NativeFaceMaskError::Plan)?;
+                component_configuration = Some(configuration);
+                stage
+            } else {
+                conduit_conduitos_mask_offer::prepare_stage_from_offer(
+                    conduit_conduitos_mask_offer::Adapter::Native,
+                    &offer,
+                )
+                .map_err(|_| NativeFaceMaskError::Plan)?
+            };
             if route.planned_mask != local.planned_mask {
                 return Err(NativeFaceMaskError::Plan);
             }
@@ -188,7 +219,47 @@ impl NativeFaceMask {
             publication: None,
             surface_admitted: false,
             interaction_admitted: true,
+            component_configuration,
+            visual_expression: None,
+            visual_constraints: conduit_presentation::VisualUserConstraints {
+                forced_colors: false,
+                reduced_motion: true,
+                minimum_text_scale_percent: 100,
+                maximum_supported_text_scale_percent: 200,
+            },
+            component_fallback: None,
         })
+    }
+
+    /// Apply actual Host user preferences before the next render; Host capacity
+    /// remains fixed independently of the selected Look.
+    pub fn set_visual_user_constraints(
+        &mut self,
+        forced_colors: bool,
+        reduced_motion: bool,
+        minimum_text_scale_percent: u16,
+    ) -> Result<(), NativeFaceMaskError> {
+        if !(100..=200).contains(&minimum_text_scale_percent) {
+            return Err(NativeFaceMaskError::Face);
+        }
+        self.visual_constraints = conduit_presentation::VisualUserConstraints {
+            forced_colors,
+            reduced_motion,
+            minimum_text_scale_percent,
+            maximum_supported_text_scale_percent: 200,
+        };
+        Ok(())
+    }
+    pub fn component_configuration(
+        &self,
+    ) -> Option<&conduit_presentation::ConfiguredMaskConfiguration> {
+        self.component_configuration.as_ref()
+    }
+    pub fn visual_expression(&self) -> Option<&conduit_presentation::AdmittedVisualExpression> {
+        self.visual_expression.as_ref()
+    }
+    pub fn component_fallback(&self) -> Option<&str> {
+        self.component_fallback.as_deref()
     }
 
     pub fn birth_basis(&self, encounter_id: &str) -> BirthFaceBasis {
@@ -297,6 +368,62 @@ impl NativeFaceMask {
         self.present_with_input(face, observation_sequence, play_sequence, display, false)
     }
 
+    // Private shared preparation boundary: callers retain exact source/Plan custody.
+    // Tests use actual checked Host configuration, not a fabricated config record.
+    fn prepare_component_scene(
+        configuration: &conduit_presentation::ConfiguredMaskConfiguration,
+        face: &Presentation,
+        width: u16,
+        height: u16,
+        interaction_admitted: bool,
+        constraints: conduit_presentation::VisualUserConstraints,
+    ) -> Result<
+        (
+            NativeFaceScene,
+            conduit_presentation::AdmittedVisualExpression,
+            Option<String>,
+        ),
+        NativeFaceMaskError,
+    > {
+        let fallback;
+        let requested = conduit_core::StructuredInfoValue::from_canonical_bytes(
+            configuration.expression.canonical_value(),
+        )
+        .map_err(|_| conduit_presentation::VisualExpressionRefusal::Encoding)
+        .and_then(conduit_presentation::visual_expression_from_info);
+        let expression = conduit_presentation::admit_visual_expression(requested, constraints)
+            .map_err(|_| NativeFaceMaskError::Face)?;
+        let recipe = conduit_core::StructuredInfoValue::from_canonical_bytes(
+            configuration.recipe.canonical_value(),
+        )
+        .map_err(|_| NativeFaceMaskError::Plan)?;
+        let scene = match conduit_presentation::prepare_component_recipe(recipe, face) {
+            Ok(prepared) => {
+                fallback = None;
+                NativeFaceScene::prepare_configured(
+                    face.clone(),
+                    width,
+                    height,
+                    interaction_admitted,
+                    &prepared,
+                    &expression,
+                )
+            }
+            Err(error) => {
+                fallback = Some(alloc::format!("{error:?}"));
+                NativeFaceScene::prepare_visual_fallback(
+                    face.clone(),
+                    width,
+                    height,
+                    interaction_admitted,
+                    &expression,
+                )
+            }
+        }
+        .map_err(NativeFaceMaskError::Scene)?;
+        Ok((scene, expression, fallback))
+    }
+
     fn present_with_input(
         &mut self,
         face: Presentation,
@@ -312,9 +439,22 @@ impl NativeFaceMask {
         })?;
         let width = u16::try_from(format.width).map_err(|_| NativeFaceMaskError::Face)?;
         let height = u16::try_from(format.height).map_err(|_| NativeFaceMaskError::Face)?;
-        let scene =
+        let scene = if let Some(configuration) = &self.component_configuration {
+            let (scene, expression, fallback) = Self::prepare_component_scene(
+                configuration,
+                &face,
+                width,
+                height,
+                interaction_admitted,
+                self.visual_constraints,
+            )?;
+            self.visual_expression = Some(expression);
+            self.component_fallback = fallback;
+            scene
+        } else {
             NativeFaceScene::prepare_with_input(face.clone(), width, height, interaction_admitted)
-                .map_err(NativeFaceMaskError::Scene)?;
+                .map_err(NativeFaceMaskError::Scene)?
+        };
         let frame = scene.frame().map_err(NativeFaceMaskError::Scene)?;
         let front_subject = face
             .subjects
@@ -365,16 +505,24 @@ impl NativeFaceMask {
                 .place_surface(&self.surface_id, bounds, 0)
                 .map_err(NativeFaceMaskError::Compositor)?;
         }
-        let composition = self
-            .compositor
-            .update_pending_mask_surface(
+        let composition = if let Some(expression) = &self.visual_expression {
+            self.compositor.update_pending_configured_mask_surface(
+                request.presentation(),
+                request.prepared_show(),
+                request.display_base_id(),
+                &frame.scene,
+                expression,
+            )
+        } else {
+            self.compositor.update_pending_mask_surface(
                 request.presentation(),
                 request.prepared_show(),
                 request.display_base_id(),
                 &frame.scene,
             )
-            .map_err(NativeFaceMaskError::Compositor)?
-            .clone();
+        }
+        .map_err(NativeFaceMaskError::Compositor)?
+        .clone();
         self.compositor
             .compose_frame(display)
             .map_err(NativeFaceMaskError::Compositor)?;

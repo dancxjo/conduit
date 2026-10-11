@@ -29,6 +29,7 @@ struct AcknowledgedShow {
     show: MaskShow,
 }
 
+#[derive(Clone)]
 pub(crate) struct OwnerPresentationWardrobe {
     plan: OwnerPresentationPlan,
     control: MaskWardrobeControl,

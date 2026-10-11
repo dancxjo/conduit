@@ -64,6 +64,7 @@ pub struct CompositionReceipt {
     pub surface_id: String,
     /// Work used to render this revision into its retained offscreen buffer.
     pub display: DisplayReceipt,
+    pub visual_expression: Option<conduit_presentation::AdmittedVisualExpression>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -201,6 +202,7 @@ pub(super) struct CompositorSurface {
     z: u8,
     visible: bool,
     buffer: SurfaceBuffer,
+    visual_expression: Option<conduit_presentation::AdmittedVisualExpression>,
     binding: Option<SurfaceBinding>,
     receipt: Option<CompositionReceipt>,
     input_ready: bool,
@@ -296,6 +298,7 @@ impl NativeCompositor {
             z,
             visible: true,
             buffer,
+            visual_expression: None,
             binding: None,
             receipt: None,
             input_ready: false,

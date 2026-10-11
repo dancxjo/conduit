@@ -227,3 +227,146 @@ fn owner_body_face_keeps_exact_identity_and_has_read_only_mask_navigation() {
         Err(NativeFaceMaskError::InputUnavailable)
     ));
 }
+
+/// Shared production fallback preparation and actual graphics rows; this does
+/// not substitute for installed owner route/Show acknowledgement proof.
+#[test]
+fn valid_face_beyond_checked_recipe_capacity_keeps_generic_reading_and_controls() {
+    use conduit_presentation::*;
+    let mut subjects = vec![PresentationSubject {
+        identity: "list".into(),
+        role: PresentationRole::Collection,
+        name: "All required things".into(),
+    }];
+    let mut actions = vec![];
+    for number in 0..21 {
+        let identity = alloc::format!("item/{number}");
+        subjects.push(PresentationSubject {
+            identity: identity.clone(),
+            role: PresentationRole::Item,
+            name: alloc::format!("Required thing {number}"),
+        });
+        actions.push(PresentationAction {
+            identity: alloc::format!("action/{number}"),
+            intent: "test/inspect@1".into(),
+            target: identity,
+            name: alloc::format!("Inspect {number}"),
+            arguments: vec![],
+            disclosure: PresentationDisclosureLevel::CurrentAction,
+            availability: PresentationActionAvailability::Available,
+        });
+    }
+    subjects.push(PresentationSubject {
+        identity: "unknown".into(),
+        role: PresentationRole::Semantic(conduit_core::kind_id("biology/cell@1")),
+        name: "Unmatched meaning remains readable".into(),
+    });
+    let face = Presentation::new_with_semantics(
+        7,
+        crate::native_face_scene::tests::face(7).basis,
+        subjects,
+        vec![],
+        vec![PresentationProperty {
+            subject: "list".into(),
+            name: "required fact".into(),
+            value: PresentationPropertyValue::Text("Exact fact remains inspectable".into()),
+        }],
+        vec![],
+        actions,
+        vec![],
+    )
+    .unwrap();
+    face.validate().unwrap();
+    let provider = crate::product_bases::fixture_surface_provider();
+    let host = conduit_conduitos_mask_offer::native_host_advertisement(
+        &"host/native".into(),
+        &"boot/native".into(),
+        1,
+        &provider.entry,
+    );
+    let (_, configuration) = conduit_conduitos_mask_offer::prepare_component_stage_from_offer(
+        &host,
+        ComponentMaskLook::Spacious,
+        TodoComponentRecipe::Grouped,
+    )
+    .unwrap();
+    for input in [true, false] {
+        let (mut scene, expression, fallback) = NativeFaceMask::prepare_component_scene(
+            &configuration,
+            &face,
+            320,
+            240,
+            input,
+            VisualUserConstraints {
+                forced_colors: true,
+                reduced_motion: true,
+                minimum_text_scale_percent: 200,
+                maximum_supported_text_scale_percent: 200,
+            },
+        )
+        .unwrap();
+        assert!(fallback.unwrap().contains("SlotCapacity"));
+        assert_eq!(scene.presentation(), &face);
+        assert_eq!(scene.text_scale_percent(), 200);
+        assert!(expression.platform_forced_colors);
+        scene.show_details(true);
+        let mut inspected = alloc::string::String::new();
+        for page in 0..scene.pages() {
+            let frame = scene.frame().unwrap();
+            for command in frame.scene.commands() {
+                // Exclude repeating page header/footer chrome; concatenate every
+                // actual document text command across all continuation pages.
+                if command.kind == GraphicsCommandKind::Text
+                    && command.bounds.y >= 56
+                    && i32::from(command.bounds.y) + i32::from(command.bounds.height) <= 184
+                {
+                    inspected.push_str(command.payload());
+                }
+            }
+            if page + 1 < scene.pages() {
+                scene.turn_page(true);
+            }
+        }
+        let expected: alloc::string::String = plan_face_utterances(&face)
+            .unwrap()
+            .clauses
+            .iter()
+            .map(|clause| clause.text.as_str())
+            .collect();
+        assert_eq!(inspected, expected);
+        assert!(inspected.contains("Exact fact remains inspectable"));
+        assert!(inspected.contains("Unmatched meaning remains readable"));
+        for number in 0..21 {
+            assert!(inspected.contains(&alloc::format!("Required thing {number}")));
+        }
+        if input {
+            let mut reached = vec![];
+            for _ in 0..21 {
+                let control = scene.focus_next(true).unwrap();
+                assert!(!reached.contains(&control));
+                reached.push(control);
+                scene.frame().unwrap();
+            }
+            assert_eq!(reached.len(), 21);
+        } else {
+            assert_eq!(scene.focus_next(true), None);
+        }
+        assert_eq!(scene.presentation(), &face);
+    }
+    assert!(
+        NativeFaceMask::prepare_component_scene(
+            &configuration,
+            &face,
+            319,
+            240,
+            true,
+            VisualUserConstraints {
+                forced_colors: false,
+                reduced_motion: true,
+                minimum_text_scale_percent: 200,
+                maximum_supported_text_scale_percent: 200
+            }
+        )
+        .is_err()
+    );
+}
