@@ -163,6 +163,24 @@ impl<'a> CostEvidenceSource<'a> {
         if offers.next() != Some(self.offer) || offers.next().is_some() {
             return Err(Refusal::Scope(Change::Offer));
         }
+        // A realization-wide sample (resource=None) still depends on every
+        // required resource class. Fence their stable profiles and pool order,
+        // including device changes that wrongly retain the same generation.
+        let relevant = |pool: &&ResourceOffer| {
+            self.offer
+                .resource_requirements
+                .iter()
+                .any(|need| need.class_id == pool.class_id)
+        };
+        if !self
+            .host
+            .resources
+            .iter()
+            .filter(relevant)
+            .eq(current.resources.iter().filter(relevant))
+        {
+            return Err(Refusal::Scope(Change::Resource));
+        }
         if let Some(resource) = self.resource {
             let mut resources = current
                 .resources
