@@ -48,14 +48,13 @@ fn run() -> Result<(), Box<dyn Error>> {
                 let mut checksum = None;
                 for prepared in order {
                     let warm = expression::warm(workload, &program, &config, prepared)?;
-                    if checksum
-                        .as_ref()
-                        .is_some_and(|prior| prior != &warm.validation_sum)
-                    {
+                    if checksum.as_ref().is_some_and(|prior| {
+                        prior != &(warm.validation_sum.clone(), warm.validation_sha256.clone())
+                    }) {
                         return Err(format!("{id}: native/prepared outputs differ").into());
                     }
-                    checksum = Some(warm.validation_sum.clone());
-                    summaries.push(json!({"case":id,"mode":warm.mode,"repetition":repetition,"values":warm.values,"operations":warm.arithmetic_operations,"bulk_wall_ns":warm.metrics.wall_ns,"bulk_cpu_ns":warm.metrics.process_cpu_ns,"allocator":warm.metrics.allocator,"latency_distribution":warm.latency_distribution}));
+                    checksum = Some((warm.validation_sum.clone(), warm.validation_sha256.clone()));
+                    summaries.push(json!({"case":id,"mode":warm.mode,"repetition":repetition,"values":warm.values,"operations":warm.primitive_operations,"bulk_wall_ns":warm.metrics.wall_ns,"bulk_cpu_ns":warm.metrics.process_cpu_ns,"allocator":warm.metrics.allocator,"latency_distribution":warm.latency_distribution}));
                     raw.row(&json!({"case":id,"phase":"warm-expression","repetition":repetition,"source_sha256":artifact::digest(source.as_bytes()),"run":warm}))?;
                 }
                 eprintln!("validated {id} repetition {}", repetition + 1);

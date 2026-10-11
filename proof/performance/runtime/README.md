@@ -30,6 +30,10 @@ comparison over U64 and the existing signed, six-decimal-place Scalar. The nativ
 loop uses the same checked arithmetic and branches. Semantic tests include
 branch boundaries, overflow refusals, the signed minimum, and malformed frames.
 Both modes retain and compare the sum of all outputs for every repetition.
+A separately measured validation pass checks every output against the native
+law and retains an order-sensitive SHA-256 of normalized eight-byte coordinates.
+It is outside the bulk and event latency measurements. Primitive-operation
+counts include comparisons; the conditional executes one comparison and one addition.
 The native implementation uses registers; the prepared evaluator consumes
 canonical eight-byte frames. That framing difference is disclosed, not removed.
 
