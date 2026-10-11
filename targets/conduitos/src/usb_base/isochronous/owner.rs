@@ -307,7 +307,7 @@ impl IsochronousOutCallOwner {
                             batch.packet(completed.len()).ok_or(Error::Observation)?;
                         if packet.frame != frame.number()
                             || usize::from(packet.requested) != wire.len()
-                            || packet.actual >= packet.requested
+                            || packet.actual > packet.requested
                         {
                             return Err(Error::Observation);
                         }
