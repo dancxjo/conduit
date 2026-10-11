@@ -58,6 +58,11 @@ struct NativeAttachment {
 }
 
 impl UsbControlTransfer {
+    #[cfg(test)]
+    pub(in crate::arch::usb_xhci) fn retains_native_submission(&self) -> bool {
+        self.pending.is_some()
+    }
+
     /// Join actual native ownership to already admitted Plan/Play possession.
     ///
     /// # Safety
