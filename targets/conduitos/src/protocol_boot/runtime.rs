@@ -74,15 +74,33 @@ pub(super) fn prepare_usb(
         capabilities: vec![],
         planner_capabilities: vec![],
     };
-    let play = crate::protocol_source::prepare_native_usb_protocol(
-        entry,
-        session,
-        advertisement,
-        owners.ready,
-        owners.issuer,
-        0,
-        1,
-    )
+    let play = match owners {
+        super::usb_owners::NativeUsbOwners::Control { ready, issuer } => {
+            crate::protocol_source::prepare_native_usb_protocol(
+                entry,
+                session,
+                advertisement,
+                *ready,
+                *issuer,
+                0,
+                1,
+            )
+        }
+        super::usb_owners::NativeUsbOwners::Protocol {
+            ready,
+            control_issuer,
+            endpoint_issuer,
+        } => crate::protocol_source::prepare_native_usb_endpoint_protocol(
+            entry,
+            session,
+            advertisement,
+            *ready,
+            *control_issuer,
+            *endpoint_issuer,
+            0,
+            1,
+        ),
+    }
     .map_err(|_| "protocol-usb-plan-admission-refused")?;
     prepare_outputs(play, &request.inputs)
 }

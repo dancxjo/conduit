@@ -2,7 +2,7 @@
 #![cfg_attr(not(test), allow(dead_code))] // Native composition is not installed yet.
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(crate) enum EndpointRingRefusal {
+pub enum EndpointRingRefusal {
     Geometry,
     Uncertain,
     Pending,

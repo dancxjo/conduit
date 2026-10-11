@@ -6,6 +6,7 @@ use serde_json::{json, Value};
 use std::{
     fs,
     io::Read,
+    os::fd::AsRawFd,
     path::{Path, PathBuf},
     process::{Command, Stdio},
     thread,
@@ -27,6 +28,9 @@ pub(super) struct RunArgs {
     /// This supplies hardware only; the checked Plot and Root still admit effects.
     #[arg(long)]
     usb_control_mouse: bool,
+    /// Inject exactly one known mouse report after the guest begins product Play.
+    #[arg(long, requires = "usb_control_mouse")]
+    usb_mouse_report: bool,
 }
 
 pub(super) fn execute(args: RunArgs, opts: &GlobalOpts) -> Result<(), ConduitosError> {
@@ -55,8 +59,35 @@ pub(super) fn execute(args: RunArgs, opts: &GlobalOpts) -> Result<(), ConduitosE
         .map_err(|error| refusal("protocol-run-output-refused", error))?;
     let serial = args.output_dir.join("serial.log");
     let stderr = args.output_dir.join("qemu.log");
-    let serial_target = format!("file:{}", serial.display());
-    let mut child = Command::new("qemu-system-x86_64")
+    let output_handle = if args.usb_mouse_report {
+        Some(
+            fs::File::open(&args.output_dir)
+                .map_err(|error| refusal("protocol-run-output-refused", error))?,
+        )
+    } else {
+        None
+    };
+    let observer_socket = output_handle.as_ref().map(|directory| {
+        PathBuf::from(format!("/proc/self/fd/{}/qmp.sock", directory.as_raw_fd()))
+    });
+    let serial_target = if args.usb_mouse_report {
+        format!(
+            "file:{}",
+            fs::canonicalize(&args.output_dir)
+                .map_err(|error| refusal("protocol-run-output-refused", error))?
+                .join("serial.log")
+                .display()
+        )
+    } else {
+        format!("file:{}", serial.display())
+    };
+    let launch_image = if args.usb_mouse_report {
+        fs::canonicalize(&image).map_err(|error| refusal("protocol-run-image-refused", error))?
+    } else {
+        image
+    };
+    let mut command = Command::new("qemu-system-x86_64");
+    command
         .args([
             "-M",
             "q35",
@@ -81,7 +112,7 @@ pub(super) fn execute(args: RunArgs, opts: &GlobalOpts) -> Result<(), ConduitosE
             "isa-debug-exit,iobase=0xf4,iosize=0x04",
             "-cdrom",
         ])
-        .arg(&image)
+        .arg(&launch_image)
         .args(["-boot", "d"])
         .args(usb_devices(args.usb_control_mouse))
         .stdin(Stdio::null())
@@ -89,10 +120,17 @@ pub(super) fn execute(args: RunArgs, opts: &GlobalOpts) -> Result<(), ConduitosE
         .stderr(
             fs::File::create(&stderr)
                 .map_err(|error| refusal("protocol-run-output-refused", error))?,
-        )
+        );
+    if args.usb_mouse_report {
+        command
+            .current_dir(&args.output_dir)
+            .args(["-qmp", "unix:qmp.sock,server=on,wait=off"]);
+    }
+    let mut child = command
         .spawn()
         .map_err(|error| refusal("protocol-run-emulator-unavailable", error))?;
     let started = Instant::now();
+    let mut injected = false;
     let observed = (|| loop {
         let bytes = if serial.exists() {
             read(&serial, MAXIMUM_TRANSCRIPT)?
@@ -111,6 +149,32 @@ pub(super) fn execute(args: RunArgs, opts: &GlobalOpts) -> Result<(), ConduitosE
         }
         if let Some(outcome) = terminal(&bytes)? {
             return Ok(outcome);
+        }
+        if args.usb_mouse_report && !injected && play_observed(&bytes) {
+            // The shared QMP transport has finite 2-second connect/request bounds.
+            // Reserve those bounds inside this run's existing deadline; never
+            // restart the emulator or extend the admitted observation lifetime.
+            if Duration::from_secs(args.seconds).saturating_sub(started.elapsed())
+                < Duration::from_secs(8)
+            {
+                return Err(refusal(
+                    "protocol-run-input-deadline",
+                    "insufficient remaining QMP observation bound",
+                ));
+            }
+            let socket = observer_socket
+                .as_ref()
+                .ok_or_else(|| refusal("protocol-run-input-refused", "missing observer socket"))?;
+            let transcript = args.output_dir.join("qmp.jsonl");
+            let (mut stream, mut reader) =
+                super::qmp::connect_traced(socket, &mut child, Some(&transcript))?;
+            super::qmp::request(
+                &mut stream,
+                &mut reader,
+                mouse_report_command().to_string().as_bytes(),
+                "protocol-mouse-report",
+            )?;
+            injected = true;
         }
         if let Some(status) = child
             .try_wait()
@@ -140,6 +204,13 @@ pub(super) fn execute(args: RunArgs, opts: &GlobalOpts) -> Result<(), ConduitosE
         "qemu_profile": "q35-single-cpu-512m-headless",
         "physical_compatibility": "unverified",
         "usb_devices": usb_devices(args.usb_control_mouse),
+        "fixture_input": {
+            "requested": args.usb_mouse_report,
+            "injected": injected,
+            "command": if args.usb_mouse_report { mouse_report_command() } else { Value::Null },
+            "injection_gate": "CONDUIT_PROTOCOL_PLAY",
+            "maximum_reports": if args.usb_mouse_report { 1 } else { 0 },
+        },
     });
     fs::write(
         args.output_dir.join("receipt.json"),
@@ -149,6 +220,19 @@ pub(super) fn execute(args: RunArgs, opts: &GlobalOpts) -> Result<(), ConduitosE
     .map_err(|error| refusal("protocol-run-output-refused", error))?;
     println!("Observed protocol outcome: {outcome}");
     Ok(())
+}
+
+fn play_observed(bytes: &[u8]) -> bool {
+    String::from_utf8_lossy(bytes)
+        .split_inclusive('\n')
+        .any(|line| line.ends_with('\n') && line.starts_with("CONDUIT_PROTOCOL_PLAY "))
+}
+fn mouse_report_command() -> Value {
+    json!({"execute":"input-send-event","arguments":{"events":[
+        {"type":"btn","data":{"button":"left","down":true}},
+        {"type":"rel","data":{"axis":"x","value":1}},
+        {"type":"rel","data":{"axis":"y","value":2}}
+    ]}})
 }
 
 fn usb_devices(mouse: bool) -> &'static [&'static str] {
@@ -234,6 +318,20 @@ fn refusal(reason: &'static str, detail: impl std::fmt::Display) -> ConduitosErr
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn mouse_fixture_is_one_exact_report_after_complete_play_observation() {
+        assert!(!play_observed(b"CONDUIT_PROTOCOL_PLAN plan=p\n"));
+        assert!(!play_observed(b"CONDUIT_PROTOCOL_PLAY play=x"));
+        assert!(play_observed(b"CONDUIT_PROTOCOL_PLAY play=x\r\n"));
+        assert_eq!(
+            mouse_report_command(),
+            json!({"execute":"input-send-event","arguments":{"events":[
+                {"type":"btn","data":{"button":"left","down":true}},
+                {"type":"rel","data":{"axis":"x","value":1}},
+                {"type":"rel","data":{"axis":"y","value":2}}
+            ]}})
+        );
+    }
     #[test]
     fn refusal_and_retirement_are_distinct_and_retirement_requires_actual_play() {
         assert!(terminal(b"CONDUIT_PROTOCOL_RETIRED complete\n").is_err());

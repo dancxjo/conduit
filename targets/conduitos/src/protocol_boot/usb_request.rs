@@ -21,8 +21,35 @@ pub struct UsbProtocolBootRequest {
     pub root_port: u8,
     pub attachment_epoch: u32,
     pub maximum_control_operations: u32,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub endpoint_read: Option<UsbEndpointBootRequest>,
     pub maximum_steps: u32,
     pub inputs: Vec<ProtocolBootInput>,
+}
+
+/// An explicit administrator-selected transport configuration, not class policy.
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct UsbEndpointBootRequest {
+    pub address: u8,
+    pub transfer_type: u8,
+    pub maximum_packet: u16,
+    pub interval: u8,
+    pub endpoint_epoch: u32,
+    pub maximum_operations: u32,
+}
+
+impl UsbEndpointBootRequest {
+    fn valid(&self) -> bool {
+        self.address & 0x80 != 0
+            && self.address & 0x70 == 0
+            && self.address & 0x0f != 0
+            && matches!(self.transfer_type, 2 | 3)
+            && (1..=1024).contains(&self.maximum_packet)
+            && (self.transfer_type != 3 || self.interval != 0)
+            && self.endpoint_epoch != 0
+            && (1..=4096).contains(&self.maximum_operations)
+    }
 }
 
 impl UsbProtocolBootRequest {
@@ -57,6 +84,10 @@ impl UsbProtocolBootRequest {
             || request.maximum_control_operations > 4096
             || request.maximum_steps == 0
             || request.maximum_steps > 1000000
+            || request
+                .endpoint_read
+                .as_ref()
+                .is_some_and(|endpoint| !endpoint.valid())
             || request.inputs.len() > 16
             || request.inputs.iter().any(|input| {
                 input.port.is_empty()

@@ -40,10 +40,19 @@ pub enum UsbControlCallRefusal {
 /// One selected endpoint; requests cannot substitute its slot, port or DMA.
 /// Dropping this value does not acknowledge hardware stop or free static DMA.
 pub(in crate::arch::x86_64::usb) struct UsbControlTransfer {
-    device: UsbDevice,
+    attachment: NativeAttachment,
     ring: ControlRing,
     owner: ControlCallOwner,
     pending: Option<NativeControlSubmission>,
+}
+
+/// Private structural snapshot checked against the Root-retained move-only device
+/// and its live DMA owner. These facts alone never establish native ownership.
+struct NativeAttachment {
+    slot: u8,
+    root_port: u8,
+    dma_slot: u8,
+    epoch: u32,
 }
 
 impl UsbControlTransfer {
@@ -58,7 +67,7 @@ impl UsbControlTransfer {
     #[allow(clippy::too_many_arguments)] // Keep native ownership and selected possession explicit at one safety boundary.
     pub unsafe fn bind_selected(
         controller: &XhciReady,
-        device: UsbDevice,
+        device: &UsbDevice,
         mapping: fn(u64) -> Option<u64>,
         table: BaseCapabilityTable,
         handle: BaseCapabilityHandle,
@@ -80,7 +89,7 @@ impl UsbControlTransfer {
             .budget(gear)
             .map_err(|_| UsbControlCallRefusal::Ownership(ControlOwnerRefusal::WrongBinding))?;
         let native = |error| UsbControlCallRefusal::Native(error);
-        let dma = device_dma_pointer(&device).map_err(native)?;
+        let dma = device_dma_pointer(device).map_err(native)?;
         unsafe { (*dma).control_cursor.ensure_idle() }
             .map_err(|error| native(super::super::control::ring_refusal(error)))?;
         if device.root_port == 0 || device.root_port > controller.maximum_ports() {
@@ -119,7 +128,12 @@ impl UsbControlTransfer {
             dma,
         };
         Ok(Self {
-            device,
+            attachment: NativeAttachment {
+                slot: device.slot,
+                root_port: device.root_port,
+                dma_slot: device.dma_slot,
+                epoch: device.attachment_epoch,
+            },
             ring,
             owner,
             pending: None,
@@ -129,17 +143,20 @@ impl UsbControlTransfer {
     /// Dispatch one kernel request with finite native polling and no retries.
     /// On unacknowledged failure the submission and DMA remain retained.
     /// # Safety
-    /// Caller supplies the same exclusively owned controller used at binding,
-    /// with no concurrent event consumer. Its mapping and DMA remain retained.
+    /// Caller supplies the same exclusively owned controller and the original
+    /// Root-retained move-only device used at binding, with no concurrent event
+    /// consumer. Copied structural facts cannot establish this ownership. The
+    /// original mapping and DMA remain retained through acknowledged stop.
     pub unsafe fn execute(
         &mut self,
         controller: &mut XhciReady,
+        device: &UsbDevice,
         node: NodeId,
         call: HostCallId,
         request_id: RequestId,
         input: &[u8],
     ) -> Result<&[u8], UsbControlCallRefusal> {
-        let dma = device_dma_pointer(&self.device).map_err(UsbControlCallRefusal::Native)?;
+        let dma = self.check_attachment(device)?;
         let submission = self
             .owner
             .begin(node, call, request_id, input)
@@ -152,7 +169,7 @@ impl UsbControlTransfer {
             ))
         })?;
         let is_input = request.input();
-        let actual = control_raw(controller, &mut self.ring, self.device.slot, request)
+        let actual = control_raw(controller, &mut self.ring, self.attachment.slot, request)
             .map_err(UsbControlCallRefusal::Native)?;
         let submission = self.pending.take().expect("completed submission retained");
         let input = if is_input {
@@ -173,36 +190,51 @@ impl UsbControlTransfer {
         .map_err(UsbControlCallRefusal::Ownership)
     }
 
-    /// Revoke software authority, then acknowledge native slot stop before release.
-    /// A failed stop retains both the pending operation and static DMA ownership.
-    /// # Safety
-    /// Caller supplies the same exclusively owned controller used at binding.
-    /// Its DMA mapping remains retained through the acknowledged slot stop.
-    pub unsafe fn cancel(
-        &mut self,
-        controller: &mut XhciReady,
-        node: NodeId,
-        call: HostCallId,
-    ) -> Result<(), UsbControlCallRefusal> {
+    /// Revoke software possession without claiming native stop or releasing DMA.
+    pub fn revoke(&mut self, node: NodeId, call: HostCallId) -> Result<(), UsbControlCallRefusal> {
         self.owner
             .revoke(node, call)
-            .map_err(UsbControlCallRefusal::Ownership)?;
-        let dma = device_dma_pointer(&self.device).map_err(UsbControlCallRefusal::Native)?;
-        controller
-            .disable_removed_slot(self.device.slot)
-            .map_err(|error| UsbControlCallRefusal::Native(error.into()))?;
-        // Disable Slot acknowledges all endpoint DMA stop, even after timeout.
-        unsafe {
-            (*dma).owner_slot = 0;
-        }
-        if let Some(submission) = self.pending.take() {
-            match unsafe { self.owner.discard_quiesced(&submission) } {
+            .map_err(UsbControlCallRefusal::Ownership)
+    }
+
+    /// Release retained submissions only after the shared Root acknowledged stop.
+    /// This does not disable the slot or clear the shared native ownership marker.
+    ///
+    /// # Safety
+    /// Root must have acknowledged physical stop of this exact original device,
+    /// including all endpoint DMA, through the original exclusive controller.
+    /// It must retain the move-only attachment and mapping, with the live DMA
+    /// ownership marker intact until every shared transfer has released its lease.
+    /// A copied descriptor snapshot, timeout or software revoke is insufficient.
+    pub unsafe fn release_quiesced(
+        &mut self,
+        device: &UsbDevice,
+    ) -> Result<(), UsbControlCallRefusal> {
+        self.check_attachment(device)?;
+        if let Some(submission) = self.pending.as_ref() {
+            match unsafe { self.owner.discard_quiesced(submission) } {
                 Ok(())
                 | Err(ControlOwnerRefusal::Capability(BaseCapabilityRefusal::StaleCompletion)) => {}
                 Err(error) => return Err(UsbControlCallRefusal::Ownership(error)),
             }
+            self.pending = None;
         }
         Ok(())
+    }
+
+    fn check_attachment(&self, device: &UsbDevice) -> Result<*mut UsbDma, UsbControlCallRefusal> {
+        if device.slot != self.attachment.slot
+            || device.root_port != self.attachment.root_port
+            || device.dma_slot != self.attachment.dma_slot
+            || device.attachment_epoch != self.attachment.epoch
+        {
+            return Err(UsbControlCallRefusal::Native(UsbError::StaleDeviceInstance));
+        }
+        let dma = device_dma_pointer(device).map_err(UsbControlCallRefusal::Native)?;
+        if dma != self.ring.dma {
+            return Err(UsbControlCallRefusal::Native(UsbError::StaleDeviceInstance));
+        }
+        Ok(dma)
     }
 
     /// End software possession only when every submitted transfer is quiescent.
@@ -210,19 +242,20 @@ impl UsbControlTransfer {
     /// separately admitted use; this does not issue a new capability or reset DMA.
     pub fn release_completed(
         mut self,
+        device: &UsbDevice,
         node: NodeId,
         call: HostCallId,
-    ) -> Result<UsbDevice, UsbControlCallRefusal> {
+    ) -> Result<(), UsbControlCallRefusal> {
         if self.pending.is_some() {
             return Err(UsbControlCallRefusal::Native(
                 UsbError::TransferRingUncertain,
             ));
         }
-        device_dma_pointer(&self.device).map_err(UsbControlCallRefusal::Native)?;
+        self.check_attachment(device)?;
         self.owner
             .revoke(node, call)
             .map_err(UsbControlCallRefusal::Ownership)?;
-        Ok(self.device)
+        Ok(())
     }
 }
 

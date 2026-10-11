@@ -20,16 +20,17 @@ pub use x86_64::{
     NativeMonotonicDeadlineClock, NativeUsbControlCall, Opl2, PcSpeaker, Ps2Error, Ps2Input,
     Ps2Ready, RdrandEntropy, ReadyUsbControlBase, RebootBase, RebootError, Serial, Timer,
     UsbControlCallRefusal, UsbControlHostCall, UsbControlSelection, UsbDevice, VirtioNetError,
-    VirtioNetIdentity, VirtioNetReady, XhciReady, admitted_i801_block_read_ports,
-    admitted_i801_pci_ports, admitted_i801_ports, admitted_monotonic_deadline_clock,
-    append_boot_diagnostic, boot_entropy, deterministic_exit, early_write, emergency_halt,
-    emergency_machine_profile, enumerate_attached_at_epochs, enumerate_one_at_epoch,
-    enumerate_selected_root_port_at_epoch, enumerate_usb, feature_basis, finish_boot_keyboard,
-    initialize_machine, initialize_virtio_net, initialize_xhci, local_reboot_base,
-    pc_speaker_input_hz, prepare_boot_keyboard, prepare_boot_pointer, prepare_ftdi_line,
-    receive_boot_keyboard, receive_first_boot_keyboard_report, retire_removed_device,
-    run_boot_keyboard, space_protocol_clock_poll, start_boot_keyboard_session,
-    start_ftdi_line_session, start_pointer_session, wait_for_attachment_state,
+    VirtioNetIdentity, VirtioNetReady, XhciReady, address_selected_root_port_at_epoch,
+    admitted_i801_block_read_ports, admitted_i801_pci_ports, admitted_i801_ports,
+    admitted_monotonic_deadline_clock, append_boot_diagnostic, boot_entropy, deterministic_exit,
+    early_write, emergency_halt, emergency_machine_profile, enumerate_attached_at_epochs,
+    enumerate_one_at_epoch, enumerate_selected_root_port_at_epoch, enumerate_usb, feature_basis,
+    finish_boot_keyboard, initialize_machine, initialize_virtio_net, initialize_xhci,
+    local_reboot_base, pc_speaker_input_hz, prepare_boot_keyboard, prepare_boot_pointer,
+    prepare_ftdi_line, receive_boot_keyboard, receive_first_boot_keyboard_report,
+    retire_removed_device, run_boot_keyboard, space_protocol_clock_poll,
+    start_boot_keyboard_session, start_ftdi_line_session, start_pointer_session,
+    wait_for_attachment_state,
 };
 #[cfg(target_arch = "x86_64")]
 pub use x86_64::{I801PciObservation, I801PciRefusal, observe_i801_pci};
@@ -183,3 +184,13 @@ pub use loongarch64::start_pending_source_timer;
 pub use loongarch64::{FwCfgEntropy as DomainEntropy, early_write};
 #[cfg(all(target_arch = "loongarch64", feature = "loongarch64-product"))]
 pub use loongarch64::{TextDomain, initialize_domains};
+
+#[cfg(target_arch = "x86_64")]
+pub use x86_64::{EndpointNativeRefusal, UsbNativeHostRefusal, UsbNativeProtocolRefusal};
+#[cfg(target_arch = "x86_64")]
+pub(crate) use x86_64::{NativeUsbProtocolHost, ReadyUsbProtocolHost};
+#[cfg(target_arch = "x86_64")]
+pub(crate) use x86_64::{
+    UsbConfiguredInboundEndpoint, UsbEndpointReceiveDma, UsbInboundEndpointParameters,
+    configure_usb_inbound,
+};

@@ -504,3 +504,43 @@ two ring cycle transitions with matching class outputs and the arena sealed
 through normal closure and acknowledged stop. The same appliance limitations
 apply: legacy attachment setup, explicit fixture authority, and no ordinary
 class offer, physical compatibility or five-architecture acceptance.
+
+## Product transfer inventory (#5253–#5258)
+
+The current product candidate adds an explicit
+`conduit.protocol/usb-root-request@1` Boot module. Its bounded administrative
+request binds an exact Source package and root port; parsing does not grant
+controller ownership. Native admission retains the actual xHCI attachment and
+mapped DMA, publishes the shared control offer, and issues independently bounded
+possession from cryptographic entropy after ordinary planning. Product Root
+addressing initializes EP0 without interpreting configuration descriptors or
+sending `SET_CONFIGURATION`; those requests belong to checked Source. It reuses the
+Source, Body and composite-kernel path. An exact x86_64 product kernel at
+`c3368d1371f0d6d092dd1c7a2767d1185e4789db` completed an 18-byte device
+descriptor control request and acknowledged Play retirement under QEMU. The
+retained receipt records the emulator proof tier; physical compatibility remains
+unverified. The combined control/endpoint candidate still requires product execution
+evidence. Its optional `endpoint_read` Root input explicitly selects bounded
+endpoint address, geometry, lifetime and operation count; Source supplies every
+request and class meaning. `control-endpoint-read.conduit` orders an eight-byte
+read after a completed control result through the existing expression/selector route.
+
+| Transfer | x86_64 native mechanics | Ordinary product status |
+| --- | --- | --- |
+| Control IN/OUT | Bounded control ring and acknowledged stop | One exact emulated product control-IN proof; OUT/matrix coverage pending |
+| Interrupt IN | Bounded endpoint receive ring | Shared Host/Boot/dispatch candidate; product proof pending |
+| Bulk IN | Bounded endpoint receive ring | Shared Host/Boot/dispatch candidate; product proof pending |
+| Bulk OUT | Existing FTDI-specific mechanics require class-neutral extraction | Separately required by CDC and BOT; no product offer |
+| Isochronous OUT | Unsupported by current endpoint setup | Required by #5254; no PCM playback proof |
+| Isochronous IN | Unsupported by current endpoint setup | No product offer or capture proof |
+
+IA-32, AArch64, ARMv6, RISC-V64 and LoongArch64 have no admitted ordinary native
+USB transfer provider in this candidate. Portable checked schemas alone do not
+establish a supported executed row. #5258 owns exact architecture/transfer/device
+acceptance, including explicit unsupported combinations.
+
+The isolated `protocol-run --usb-control-mouse` emulator configuration supplies
+xHCI and an emulated mouse for generic descriptor control proof. It establishes
+neither HID class integration nor CDC, network, block, audio, physical-device or
+cross-architecture acceptance. All classes must consume the same offered
+transport; they cannot introduce another native controller consumer.

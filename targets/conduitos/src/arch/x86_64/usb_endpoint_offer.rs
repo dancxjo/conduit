@@ -20,6 +20,64 @@ pub(super) fn ready_entry(
     dma: &EndpointReceiveDma<'_>,
     contract: &EndpointReadContract,
 ) -> Result<BaseProviderEntry, &'static str> {
+    let pool = format!(
+        "usb-endpoint-read-dma/{}/{}/{}/{}/{}",
+        device.root_port,
+        device.slot,
+        device.attachment_epoch,
+        configured.dci,
+        configured.endpoint_epoch
+    );
+    prepare_entry(
+        controller_base_id,
+        device_instance_id,
+        &device,
+        configured,
+        dma,
+        contract,
+        &pool,
+        "conduitos/usb-endpoint-read-native@1".into(),
+    )
+}
+
+/// Product Root uses its retained exact native identity and actual build artifact.
+/// This projection creates descriptive readiness only, never possession.
+pub(super) fn ready_entry_for_identity(
+    identity: &crate::usb_base::installation::UsbNativeIdentity,
+    device: &UsbDevice,
+    configured: &ConfiguredInboundEndpoint,
+    dma: &EndpointReceiveDma<'_>,
+    contract: &EndpointReadContract,
+) -> Result<BaseProviderEntry, &'static str> {
+    identity
+        .validate()
+        .map_err(|_| "usb-endpoint-offer-identity")?;
+    if identity.provider_generation != u64::from(device.attachment_epoch) {
+        return Err("usb-endpoint-offer-generation");
+    }
+    prepare_entry(
+        identity.base_id.as_str(),
+        identity.provider_instance_id.as_str(),
+        device,
+        configured,
+        dma,
+        contract,
+        identity.resource_pool_id.as_str(),
+        identity.artifact_id.clone(),
+    )
+}
+
+#[allow(clippy::too_many_arguments)] // Exact native facts and offer identity stay explicit.
+fn prepare_entry(
+    controller_base_id: &str,
+    device_instance_id: &str,
+    device: &UsbDevice,
+    configured: &ConfiguredInboundEndpoint,
+    dma: &EndpointReceiveDma<'_>,
+    contract: &EndpointReadContract,
+    resource_pool_id: &str,
+    artifact: ArtifactId,
+) -> Result<BaseProviderEntry, &'static str> {
     if configured.slot != device.slot
         || configured.device_epoch != device.attachment_epoch
         || configured.endpoint_epoch == 0
@@ -35,7 +93,7 @@ pub(super) fn ready_entry(
     {
         return Err("usb-endpoint-offer-binding");
     }
-    device_dma_pointer(&device).map_err(|_| "usb-endpoint-offer-device")?;
+    device_dma_pointer(device).map_err(|_| "usb-endpoint-offer-device")?;
     dma.cursor
         .ensure_idle()
         .map_err(|_| "usb-endpoint-offer-active")?;
@@ -47,19 +105,9 @@ pub(super) fn ready_entry(
         mechanism_family: ENDPOINT_READ_ATTACHMENT.into(),
         enforcement_class: BaseEnforcementClass::Cooperative,
         lifecycle: BaseLifecycle::Ready,
-        capabilities: vec![endpoint_read_offer::offer(
-            contract,
-            "conduitos/usb-endpoint-read-native@1".into(),
-        )],
+        capabilities: vec![endpoint_read_offer::offer(contract, artifact)],
         resources: vec![resource_offer(
-            &format!(
-                "usb-endpoint-read-dma/{}/{}/{}/{}/{}",
-                device.root_port,
-                device.slot,
-                device.attachment_epoch,
-                configured.dci,
-                configured.endpoint_epoch
-            ),
+            resource_pool_id,
             ENDPOINT_READ_ATTACHMENT,
             1,
         )],

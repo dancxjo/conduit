@@ -16,7 +16,10 @@ pub const IMPL_HTTP_CLIENT: u16 = 1 << 10;
 pub const IMPL_POINTER: u16 = 1 << 11;
 pub const IMPL_I2C_TRANSACTION: u16 = 1 << 12;
 pub const IMPL_MONOTONIC_DEADLINE: u16 = 1 << 13;
-pub const ALL_KNOWN_IMPLEMENTATIONS: u16 = (1 << 14) - 1;
+/// Compiled class-neutral USB control and endpoint-read transport machinery.
+/// This inventory does not establish class, isochronous or physical acceptance.
+pub const IMPL_USB_TRANSPORT: u16 = 1 << 14;
+pub const ALL_KNOWN_IMPLEMENTATIONS: u16 = (1 << 15) - 1;
 pub const FACILITY_NATIVE_COMPOSITOR: u16 = 1;
 pub const FACILITY_HTTP_CLIENT: u16 = 1 << 1;
 pub const RESOURCE_PRESENTATION_SURFACE: u16 = 1;
@@ -141,6 +144,7 @@ impl MakeRecord {
         }
         if self.implementations == 0
             || self.implementations & !ALL_KNOWN_IMPLEMENTATIONS != 0
+            || (self.target != "conduitos/x86_64/pc" && self.includes(IMPL_USB_TRANSPORT))
             || self.facilities & !(FACILITY_NATIVE_COMPOSITOR | FACILITY_HTTP_CLIENT) != 0
             || self.resources & !(RESOURCE_PRESENTATION_SURFACE | RESOURCE_HTTP_CLIENT) != 0
             || self.bases & !(BASE_DISPLAY_SCANOUT | BASE_SERIAL_TEXT | BASE_HTTP_NETWORK) != 0
@@ -357,12 +361,43 @@ mod tests {
     }
 
     #[test]
+    fn usb_transport_inventory_is_native_x86_only_and_bit_fifteen_stays_unknown() {
+        let native = record();
+        assert!(native.includes(IMPL_USB_TRANSPORT));
+        assert_eq!(native.validate(1), Ok(()));
+        for target in [
+            "conduitos/ia32/pc",
+            "conduitos/aarch64/virt",
+            "conduitos/riscv64/virt",
+            "conduitos/loongarch64/virt",
+            "conduitos/aarch64/orange-pi-5-rk3588s",
+        ] {
+            assert_eq!(
+                MakeRecord { target, ..native }.validate(1),
+                Err(MakeError::UnknownInventory)
+            );
+        }
+        assert_eq!(
+            MakeRecord {
+                implementations: native.implementations | (1 << 15),
+                ..native
+            }
+            .validate(1),
+            Err(MakeError::UnknownInventory)
+        );
+    }
+
+    #[test]
     fn aarch64_requires_only_the_linear_serial_closure() {
         let x86 = record();
         let record = MakeRecord {
             target: "conduitos/aarch64/virt",
             implementations: (x86.implementations
-                & !(IMPL_NATIVE_PRESENTER | IMPL_KEYBOARD | IMPL_PC_SPEAKER | IMPL_OPL2))
+                & !(IMPL_NATIVE_PRESENTER
+                    | IMPL_KEYBOARD
+                    | IMPL_PC_SPEAKER
+                    | IMPL_OPL2
+                    | IMPL_USB_TRANSPORT))
                 | IMPL_LINEAR_PRESENTER,
             facilities: 0,
             resources: 0,

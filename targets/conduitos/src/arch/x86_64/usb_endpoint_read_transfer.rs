@@ -15,7 +15,9 @@ use crate::{
     },
 };
 use conduit_composite::KernelOperationFactory;
-use conduit_core::{BaseCapabilityHandle, BaseCapabilityTable, BaseOperationClaim};
+use conduit_core::{
+    BaseCapabilityHandle, BaseCapabilityRefusal, BaseCapabilityTable, BaseOperationClaim,
+};
 use conduit_kernel::{HostCallId, NodeId, RequestId};
 use core::{
     ptr::write_volatile,
@@ -23,7 +25,7 @@ use core::{
 };
 
 #[derive(Debug)]
-pub(crate) enum EndpointNativeRefusal {
+pub enum EndpointNativeRefusal {
     Ownership(EndpointReadOwnerRefusal),
     Ring(EndpointRingRefusal),
     Mapping,
@@ -44,9 +46,17 @@ pub(crate) struct EndpointReceiveDma<'a> {
     pub buffer_physical: u64,
 }
 
-pub(super) struct EndpointReadTransfer<'a> {
-    pub(super) device: UsbDevice,
-    pub(super) endpoint_dci: u8,
+#[derive(Clone, Copy)]
+struct AttachmentIdentity {
+    slot: u8,
+    root_port: u8,
+    attachment_epoch: u32,
+    dma_slot: u8,
+}
+
+pub(in crate::arch::x86_64::usb) struct EndpointReadTransfer<'a> {
+    attachment: AttachmentIdentity,
+    pub(in crate::arch::x86_64::usb) endpoint_dci: u8,
     dma: EndpointReceiveDma<'a>,
     owner: EndpointReadCallOwner,
     pending: Option<(NativeEndpointReadSubmission, EndpointRingReservation)>,
@@ -65,7 +75,7 @@ impl<'a> EndpointReadTransfer<'a> {
     #[allow(clippy::too_many_arguments)]
     pub unsafe fn bind_selected(
         maximum_ports: u8,
-        device: UsbDevice,
+        device: &UsbDevice,
         attachment: EndpointReadAttachment,
         configured: super::super::endpoint_setup::ConfiguredInboundEndpoint,
         dma: EndpointReceiveDma<'a>,
@@ -96,7 +106,7 @@ impl<'a> EndpointReadTransfer<'a> {
         {
             return Err(EndpointNativeRefusal::Mapping);
         }
-        super::super::dma::device_dma_pointer(&device)
+        super::super::dma::device_dma_pointer(device)
             .map_err(|_| EndpointNativeRefusal::Mapping)?;
         let gear = selected
             .fragment
@@ -123,7 +133,12 @@ impl<'a> EndpointReadTransfer<'a> {
         }
         .map_err(EndpointNativeRefusal::Ownership)?;
         Ok(Self {
-            device,
+            attachment: AttachmentIdentity {
+                slot: device.slot,
+                root_port: device.root_port,
+                attachment_epoch: device.attachment_epoch,
+                dma_slot: device.dma_slot,
+            },
             endpoint_dci: attachment.endpoint_dci,
             dma,
             owner,
@@ -131,7 +146,24 @@ impl<'a> EndpointReadTransfer<'a> {
         })
     }
 
-    pub(super) fn ensure_pending(&self) -> Result<(), EndpointNativeRefusal> {
+    /// Copied attachment facts are validation data, never a second native owner.
+    pub(in crate::arch::x86_64::usb) fn validate_device(
+        &self,
+        device: &UsbDevice,
+    ) -> Result<(), EndpointNativeRefusal> {
+        if self.attachment.slot != device.slot
+            || self.attachment.root_port != device.root_port
+            || self.attachment.attachment_epoch != device.attachment_epoch
+            || self.attachment.dma_slot != device.dma_slot
+        {
+            return Err(EndpointNativeRefusal::Mapping);
+        }
+        super::super::dma::device_dma_pointer(device)
+            .map_err(|_| EndpointNativeRefusal::Mapping)?;
+        Ok(())
+    }
+
+    pub(in crate::arch::x86_64::usb) fn ensure_pending(&self) -> Result<(), EndpointNativeRefusal> {
         self.pending
             .as_ref()
             .map(|_| ())
@@ -145,11 +177,13 @@ impl<'a> EndpointReadTransfer<'a> {
     /// Publish one already admitted transfer; no polling, class logic or retry.
     pub fn begin(
         &mut self,
+        device: &UsbDevice,
         node: NodeId,
         call: HostCallId,
         request: RequestId,
         input: &[u8],
     ) -> Result<(), EndpointNativeRefusal> {
+        self.validate_device(device)?;
         if self.pending.is_some() {
             return Err(EndpointNativeRefusal::Pending);
         }
@@ -185,13 +219,18 @@ impl<'a> EndpointReadTransfer<'a> {
     }
 
     /// Validate the exact completion before retiring its DMA reservation.
-    pub(super) fn complete(&mut self, event: Event) -> Result<&[u8], EndpointNativeRefusal> {
+    pub(in crate::arch::x86_64::usb) fn complete(
+        &mut self,
+        device: &UsbDevice,
+        event: Event,
+    ) -> Result<&[u8], EndpointNativeRefusal> {
+        self.validate_device(device)?;
         let (_, reservation) = self
             .pending
             .as_ref()
             .ok_or(EndpointNativeRefusal::Pending)?;
         let pointer = self.dma.ring_physical + (reservation.slot * 16) as u64;
-        let residual = validated_residual(event, self.device.slot, self.endpoint_dci, pointer)?;
+        let residual = validated_residual(event, self.attachment.slot, self.endpoint_dci, pointer)?;
         let actual = self
             .dma
             .cursor
@@ -215,7 +254,7 @@ impl<'a> EndpointReadTransfer<'a> {
         .map_err(EndpointNativeRefusal::Ownership)
     }
 
-    pub(super) fn revoke(
+    pub(in crate::arch::x86_64::usb) fn revoke(
         &mut self,
         node: NodeId,
         call: HostCallId,
@@ -225,18 +264,24 @@ impl<'a> EndpointReadTransfer<'a> {
             .map_err(EndpointNativeRefusal::Ownership)
     }
 
-    /// Root must acknowledge the native stop before this retirement step.
-    pub(super) unsafe fn release_stopped(&mut self) -> Result<(), EndpointNativeRefusal> {
-        let device_dma = super::super::dma::device_dma_pointer(&self.device)
-            .map_err(|_| EndpointNativeRefusal::Mapping)?;
-        unsafe {
-            (*device_dma).owner_slot = 0;
-        }
-        if let Some((submission, reservation)) = self.pending.take() {
-            unsafe { self.dma.cursor.complete_quiesced(&reservation) }
+    /// Root must acknowledge native stop before this retirement step. The Host
+    /// clears attachment ownership only after every transfer has retired.
+    pub(in crate::arch::x86_64::usb) unsafe fn release_stopped(
+        &mut self,
+        device: &UsbDevice,
+    ) -> Result<(), EndpointNativeRefusal> {
+        self.validate_device(device)?;
+        if let Some((submission, reservation)) = self.pending.as_ref() {
+            unsafe { self.dma.cursor.complete_quiesced(reservation) }
                 .map_err(EndpointNativeRefusal::Ring)?;
-            unsafe { self.owner.discard_quiesced(&submission) }
-                .map_err(EndpointNativeRefusal::Ownership)?;
+            match unsafe { self.owner.discard_quiesced(submission) } {
+                Ok(())
+                | Err(EndpointReadOwnerRefusal::Capability(
+                    BaseCapabilityRefusal::StaleCompletion,
+                )) => {}
+                Err(error) => return Err(EndpointNativeRefusal::Ownership(error)),
+            }
+            self.pending = None;
         }
         Ok(())
     }

@@ -5,13 +5,14 @@ use crate::{
     protocol_host_calls::ProtocolCallRefusal,
     protocol_play::{PreparedProtocolPlay, PreparedTimedProtocolPlay},
 };
+use alloc::boxed::Box;
 use conduit_composite::{KernelCompositeHost, KernelCompositeStatus};
 use conduit_core::{PortId, ValuePayload};
 use conduit_kernel::scheduler::RemoteIngressOutcome;
 
 pub(super) enum ProtocolKernel<P, C> {
-    WithClock(PreparedTimedProtocolPlay<P, C>),
-    WithoutClock(PreparedProtocolPlay<P>),
+    WithClock(Box<PreparedTimedProtocolPlay<P, C>>),
+    WithoutClock(Box<PreparedProtocolPlay<P>>),
 }
 
 impl<P: I2cProvider, C: MonotonicDeadlineProvider> ProtocolKernel<P, C> {

@@ -117,12 +117,49 @@ pub fn enumerate_selected_root_port_at_epoch(
     )
 }
 
+/// Address only the independently selected product attachment and initialize EP0.
+/// Configuration descriptors, class interpretation and SET_CONFIGURATION remain
+/// checked Source policy. Root must separately own the controller/electrical port.
+pub fn address_selected_root_port_at_epoch(
+    controller: &mut XhciReady,
+    mapping: fn(u64) -> Option<u64>,
+    root_port: u8,
+    attachment_epoch: u32,
+) -> Result<UsbDevice, UsbError> {
+    prepare_root_port_at_epoch(
+        controller,
+        mapping,
+        root_port,
+        UsbDmaSlot::PRIMARY,
+        attachment_epoch,
+        false,
+    )
+}
+
 fn enumerate_root_port_at_epoch(
     controller: &mut XhciReady,
     image_virtual_to_physical: fn(u64) -> Option<u64>,
     root_port: u8,
     dma_slot: UsbDmaSlot,
     attachment_epoch: u32,
+) -> Result<UsbDevice, UsbError> {
+    prepare_root_port_at_epoch(
+        controller,
+        image_virtual_to_physical,
+        root_port,
+        dma_slot,
+        attachment_epoch,
+        true,
+    )
+}
+
+fn prepare_root_port_at_epoch(
+    controller: &mut XhciReady,
+    image_virtual_to_physical: fn(u64) -> Option<u64>,
+    root_port: u8,
+    dma_slot: UsbDmaSlot,
+    attachment_epoch: u32,
+    configure_legacy: bool,
 ) -> Result<UsbDevice, UsbError> {
     if attachment_epoch == 0 {
         return Err(UsbError::StaleDeviceInstance);
@@ -260,6 +297,10 @@ fn enumerate_root_port_at_epoch(
     let mut result = device_from_descriptor(root_port, slot, device_address, ep0, device_bytes)?;
     result.attachment_epoch = attachment_epoch;
     result.dma_slot = dma_slot.index();
+    if !configure_legacy {
+        retain_transport_bounds(&mut result, &ring, 2);
+        return Ok(result);
+    }
     let header_length = control(
         controller,
         &mut ring,
@@ -314,7 +355,14 @@ fn enumerate_root_port_at_epoch(
             input: false,
         },
     )?;
-    result.control_transfers = MAX_CONTROL_TRANSFERS;
+    retain_transport_bounds(&mut result, &ring, MAX_CONTROL_TRANSFERS);
+    #[cfg(feature = "scripted-keyboard-proof")]
+    ring_proof::run(controller, &mut ring)?;
+    Ok(result)
+}
+
+fn retain_transport_bounds(result: &mut UsbDevice, ring: &ControlRing, transfers: u8) {
+    result.control_transfers = transfers;
     result.short_packets = ring.short_packets;
     result.outstanding_control_transfer_limit = MAX_OUTSTANDING_CONTROL_TRANSFERS;
     result.enumeration_retries = MAX_ENUMERATION_RETRIES;
@@ -323,9 +371,6 @@ fn enumerate_root_port_at_epoch(
     result.dma_bytes = core::mem::size_of::<UsbDma>() as u16;
     result.dma_alignment = core::mem::align_of::<UsbDma>() as u16;
     result.port_poll_steps = PORT_POLL_STEPS;
-    #[cfg(feature = "scripted-keyboard-proof")]
-    ring_proof::run(controller, &mut ring)?;
-    Ok(result)
 }
 
 /// Enumerates at most the three admitted root devices in ascending port order,
@@ -470,3 +515,20 @@ unsafe fn write_context_u32(dma: *mut UsbDma, offset: usize, value: u32) {
 #[cfg(test)]
 #[path = "usb_tests.rs"]
 mod tests;
+
+#[path = "usb_native_host.rs"]
+pub(super) mod native_host;
+
+#[path = "usb_protocol_installation.rs"]
+mod protocol_installation;
+pub use endpoint_read::EndpointNativeRefusal;
+pub(crate) use endpoint_read::EndpointReceiveDma as UsbEndpointReceiveDma;
+pub(crate) use endpoint_setup::{
+    ConfiguredInboundEndpoint as UsbConfiguredInboundEndpoint,
+    InboundEndpointParameters as UsbInboundEndpointParameters,
+    configure_inbound as configure_usb_inbound,
+};
+pub use native_host::UsbNativeHostRefusal;
+pub(crate) use protocol_installation::{NativeUsbProtocolHost, ReadyUsbProtocolHost};
+
+pub use protocol_installation::UsbNativeProtocolRefusal;
