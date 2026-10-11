@@ -72,7 +72,7 @@ impl<P: I2cProvider, C: MonotonicDeadlineProvider> PreparedTimedProtocolPlay<P, 
     pub(crate) fn pending_retirement_call(
         &self,
     ) -> Result<
-        Option<crate::protocol_source::body_play::retirement::PendingRetirementCall>,
+        [Option<crate::protocol_source::body_play::retirement::PendingRetirementCall>; 2],
         ProtocolCallRefusal,
     > {
         self.play.pending_retirement_call()

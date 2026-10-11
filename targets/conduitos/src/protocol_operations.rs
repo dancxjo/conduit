@@ -9,4 +9,4 @@ pub struct ProtocolOperations {
 }
 
 #[cfg(test)]
-mod tests;
+pub(crate) mod tests;

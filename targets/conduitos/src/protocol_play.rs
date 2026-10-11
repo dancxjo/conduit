@@ -401,7 +401,7 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
     pub(crate) fn pending_retirement_call(
         &self,
     ) -> Result<
-        Option<crate::protocol_source::body_play::retirement::PendingRetirementCall>,
+        [Option<crate::protocol_source::body_play::retirement::PendingRetirementCall>; 2],
         ProtocolCallRefusal,
     > {
         self.calls.pending_retirement_call(&self.kernel)

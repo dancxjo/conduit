@@ -2,7 +2,7 @@
 extern crate std;
 use super::*;
 use alloc::vec::Vec;
-pub(super) fn prepare<
+pub(crate) fn prepare<
     P: crate::i2c_base::I2cProvider,
     C: crate::monotonic_clock::owner::MonotonicDeadlineProvider,
 >(
@@ -398,7 +398,7 @@ pub(super) fn prepare_with_body_edit<
     )
 }
 
-pub(super) struct InertBus;
+pub(crate) struct InertBus;
 impl crate::i2c_base::I2cProvider for InertBus {
     fn transact(
         &mut self,
@@ -409,7 +409,7 @@ impl crate::i2c_base::I2cProvider for InertBus {
     }
     fn revoke(&mut self) {}
 }
-pub(super) struct InertClock;
+pub(crate) struct InertClock;
 impl crate::monotonic_clock::owner::MonotonicDeadlineProvider for InertClock {
     fn poll_until(
         &mut self,

@@ -91,3 +91,50 @@ fn protocol_profile_requires_the_exact_complete_current_proposal() {
         ))
     ));
 }
+
+#[test]
+fn acknowledged_cancellation_binds_original_body_and_artifact_and_is_one_shot() {
+    use crate::protocol_operations::tests::automatic_events::{InertBus, InertClock, prepare};
+    let (mut play, _, _) = prepare(InertBus, InertClock);
+    play.start().unwrap();
+    let original = play.retirement_identity.as_ref().unwrap().clone();
+    let receipt = play.cancel_acknowledged().unwrap();
+    assert_eq!(receipt.artifact(), &original.0);
+    assert_eq!(receipt.play(), &original.1);
+    assert!(receipt.pending().iter().all(Option::is_none));
+    assert!(play.kernel().is_none());
+    assert!(play.session().realization().is_none());
+    assert!(play.cancel_acknowledged().is_err());
+}
+
+#[test]
+fn stale_play_identity_refuses_before_owner_revoke_or_kernel_cancel() {
+    use crate::protocol_operations::tests::automatic_events::{InertBus, InertClock, prepare};
+    let (mut play, _, _) = prepare(InertBus, InertClock);
+    play.start().unwrap();
+    let original = play.retirement_identity.as_ref().unwrap().clone();
+    play.retirement_identity.as_mut().unwrap().1.active_play_id = "foreign/play".into();
+    let refused = play.cancel_acknowledged().unwrap_err();
+    assert_eq!(refused.stage, CancellationStage::Identity);
+    assert!(play.kernel().is_some());
+    assert!(play.session().realization().unwrap().play.is_some());
+    // Same actual owners remain usable for valid cancellation after the stale
+    // proposed identity is removed; no cancellation authority was consumed.
+    play.retirement_identity = Some(original);
+    assert!(play.cancel_acknowledged().is_ok());
+}
+
+#[test]
+fn lull_refusal_does_not_mint_or_discard_retained_cancelled_kernel() {
+    use crate::protocol_operations::tests::automatic_events::{InertBus, InertClock, prepare};
+    let (mut play, _, _) = prepare(InertBus, InertClock);
+    play.start().unwrap();
+    let original_host = play.host.clone();
+    play.host = "foreign/host".into();
+    let refused = play.cancel_acknowledged().unwrap_err();
+    assert_eq!(refused.stage, CancellationStage::BodyLull);
+    assert!(play.kernel().is_some());
+    assert!(play.retirement_identity.is_some());
+    play.host = original_host;
+    assert!(play.cancel_acknowledged().is_ok());
+}

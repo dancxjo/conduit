@@ -42,6 +42,7 @@ pub struct PreparedProtocolBodyPlay<P, C> {
     kernel: Option<ProtocolKernel<P, C>>,
     host: HostId,
     boot: BootId,
+    retirement_pending: Option<[Option<PendingRetirementCall>; 2]>,
     retirement_identity: Option<(
         crate::protocol_artifact::ProtocolArtifactIdentity,
         BodyPlayIdentity,
@@ -175,6 +176,7 @@ impl<P: I2cProvider, C: MonotonicDeadlineProvider> PreparedProtocolBodyPlay<P, C
                 host,
                 boot,
                 retirement_identity: Some(retirement_identity),
+                retirement_pending: None,
             }),
             Err(reason) => Err(Box::new(ProtocolBodyPreparationRefusal { session, reason })),
         }
@@ -248,6 +250,7 @@ impl<P: I2cProvider, C: MonotonicDeadlineProvider> PreparedProtocolBodyPlay<P, C
         self.kernel = None;
         self.start_session = None;
         self.retirement_identity = None;
+        self.retirement_pending = None;
         Ok(())
     }
 
@@ -272,12 +275,19 @@ impl<P: I2cProvider, C: MonotonicDeadlineProvider> PreparedProtocolBodyPlay<P, C
         let kernel = self.kernel.as_mut().ok_or_else(|| {
             Refusal::new(CancellationStage::Identity, ProtocolBodyRefusal::NotPlaying)
         })?;
-        let pending = kernel.pending_retirement_call().map_err(|error| {
-            Refusal::new(
-                CancellationStage::Identity,
-                ProtocolBodyRefusal::Call(error),
-            )
-        })?;
+        let pending = match self.retirement_pending {
+            Some(pending) => pending,
+            None => {
+                let pending = kernel.pending_retirement_call().map_err(|error| {
+                    Refusal::new(
+                        CancellationStage::Identity,
+                        ProtocolBodyRefusal::Call(error),
+                    )
+                })?;
+                self.retirement_pending = Some(pending);
+                pending
+            }
+        };
         kernel.cancel().map_err(Refusal::call)?;
         self.session
             .lull(&self.host, &self.boot, Some(&identity.1))
@@ -293,6 +303,7 @@ impl<P: I2cProvider, C: MonotonicDeadlineProvider> PreparedProtocolBodyPlay<P, C
             .retirement_identity
             .take()
             .expect("validated retained identity");
+        self.retirement_pending = None;
         Ok(AcknowledgedProtocolCancellation::new(
             artifact, play, pending,
         ))

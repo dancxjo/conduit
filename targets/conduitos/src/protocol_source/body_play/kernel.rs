@@ -36,7 +36,7 @@ impl<P: I2cProvider, C: MonotonicDeadlineProvider> ProtocolKernel<P, C> {
     }
     pub(super) fn pending_retirement_call(
         &self,
-    ) -> Result<Option<super::retirement::PendingRetirementCall>, ProtocolCallRefusal> {
+    ) -> Result<[Option<super::retirement::PendingRetirementCall>; 2], ProtocolCallRefusal> {
         match self {
             Self::WithClock(kernel) => kernel.pending_retirement_call(),
             Self::WithoutClock(kernel) => kernel.pending_retirement_call(),

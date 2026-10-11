@@ -351,7 +351,7 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
         &self,
         kernel: &KernelCompositeHost,
     ) -> Result<
-        Option<crate::protocol_source::body_play::retirement::PendingRetirementCall>,
+        [Option<crate::protocol_source::body_play::retirement::PendingRetirementCall>; 2],
         ProtocolCallRefusal,
     > {
         #[cfg(any(
@@ -362,18 +362,21 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
             let view = kernel
                 .admitted_host_request_view(&token)
                 .map_err(ProtocolCallRefusal::Kernel)?;
-            return Ok(Some(
-                crate::protocol_source::body_play::retirement::PendingRetirementCall::capture(
-                    token,
-                    *view.obligation_identity,
-                    view.request.node,
-                    view.request.call,
-                    view.request.request,
+            return Ok([
+                Some(
+                    crate::protocol_source::body_play::retirement::PendingRetirementCall::capture(
+                        token,
+                        *view.obligation_identity,
+                        view.request.node,
+                        view.request.call,
+                        view.request.request,
+                    ),
                 ),
-            ));
+                None,
+            ]);
         }
         let _ = kernel;
-        Ok(None)
+        Ok([None, None])
     }
 
     /// Revoke actual bus ownership as well as cancelling kernel and computation state.

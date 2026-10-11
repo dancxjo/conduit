@@ -54,13 +54,13 @@ impl PendingRetirementCall {
 pub struct AcknowledgedProtocolCancellation {
     artifact: ProtocolArtifactIdentity,
     play: BodyPlayIdentity,
-    pending: Option<PendingRetirementCall>,
+    pending: [Option<PendingRetirementCall>; 2],
 }
 impl AcknowledgedProtocolCancellation {
     pub(super) fn new(
         artifact: ProtocolArtifactIdentity,
         play: BodyPlayIdentity,
-        pending: Option<PendingRetirementCall>,
+        pending: [Option<PendingRetirementCall>; 2],
     ) -> Self {
         Self {
             artifact,
@@ -74,8 +74,8 @@ impl AcknowledgedProtocolCancellation {
     pub fn play(&self) -> &BodyPlayIdentity {
         &self.play
     }
-    pub fn pending(&self) -> Option<&PendingRetirementCall> {
-        self.pending.as_ref()
+    pub fn pending(&self) -> &[Option<PendingRetirementCall>; 2] {
+        &self.pending
     }
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
