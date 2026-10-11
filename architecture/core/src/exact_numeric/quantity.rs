@@ -7,8 +7,10 @@ use crate::{
 };
 use core::cmp::Ordering;
 
+mod enclosure;
 mod projection;
 mod receipt;
+pub use enclosure::*;
 pub use projection::*;
 pub use receipt::*;
 
