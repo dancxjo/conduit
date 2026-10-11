@@ -93,9 +93,9 @@ const PORT_ORDINARY_RW: u32 = (1 << 9) | (3 << 14) | (7 << 25);
 
 /// A baseline established by the exclusive Root after addressing its device.
 /// This token records continuity checking, never device possession.
-pub(super) struct AttachmentBaseline;
+pub struct AttachmentBaseline;
 impl AttachmentBaseline {
-    pub(super) fn establish(controller: &XhciReady, port: u8) -> Result<Self, UsbError> {
+    pub(crate) fn establish(controller: &XhciReady, port: u8) -> Result<Self, UsbError> {
         let status = controller.port_status(port);
         if status & 1 == 0 {
             return Err(UsbError::DeviceVanished);
@@ -104,7 +104,7 @@ impl AttachmentBaseline {
         validate_attachment_continuity(controller.port_status(port))?;
         Ok(Self)
     }
-    pub(super) fn validate(&self, status: u32) -> Result<(), UsbError> {
+    pub(crate) fn validate(&self, status: u32) -> Result<(), UsbError> {
         validate_attachment_continuity(status)
     }
     #[cfg(test)]
@@ -115,7 +115,9 @@ impl AttachmentBaseline {
 fn baseline_acknowledgement(status: u32) -> u32 {
     (status & PORT_ORDINARY_RW) | CONNECT_STATUS_CHANGE
 }
-fn validate_attachment_continuity(status: u32) -> Result<(), UsbError> {
+pub(in crate::arch::usb_xhci) fn validate_attachment_continuity(
+    status: u32,
+) -> Result<(), UsbError> {
     if status & 1 == 0 {
         Err(UsbError::DeviceVanished)
     } else if status & CONNECT_STATUS_CHANGE != 0 {
@@ -138,6 +140,21 @@ mod continuity_tests {
             validate_attachment_continuity(1 | CONNECT_STATUS_CHANGE),
             Err(UsbError::StaleDeviceInstance)
         );
+    }
+    #[test]
+    fn repeated_disconnect_cannot_restore_the_baseline_through_current_connected_status() {
+        let baseline = AttachmentBaseline::fixture();
+        assert_eq!(baseline.validate(1), Ok(()));
+        for status in [
+            CONNECT_STATUS_CHANGE,
+            1 | CONNECT_STATUS_CHANGE,
+            CONNECT_STATUS_CHANGE,
+            1 | CONNECT_STATUS_CHANGE,
+        ] {
+            assert!(baseline.validate(status).is_err());
+        }
+        // Validation is read-only; only the initial Root boundary acknowledges CSC.
+        assert_eq!(baseline_acknowledgement(1), CONNECT_STATUS_CHANGE);
     }
     #[test]
     fn acknowledgement_cannot_copy_commands_or_other_change_bits() {

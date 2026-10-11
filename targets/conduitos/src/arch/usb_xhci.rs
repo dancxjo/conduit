@@ -558,4 +558,5 @@ pub(crate) use isochronous_installation::{NativeUsbIsochronousHost, ReadyUsbIsoc
 
 #[path = "usb_xhci/usb_configuration_snapshot.rs"]
 mod configuration_snapshot;
+pub use attachment::AttachmentBaseline;
 pub use configuration_snapshot::{UsbConfigurationSnapshot, discover_configuration};
