@@ -129,6 +129,8 @@ impl BlockReadContract {
         for (path, name) in [
             ("storage/block-read/request", "BlockReadRequest"),
             ("storage/block-read/result", "BlockReadResult"),
+            ("storage/block-read/identity", "BlockReadIdentity"),
+            ("storage/block-read/observation", "BlockReadObservation"),
         ] {
             let ty = self
                 .checked_types
