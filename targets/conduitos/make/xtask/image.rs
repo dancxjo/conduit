@@ -173,8 +173,17 @@ pub(super) fn assemble_protocol_root(
     root: ProtocolRootKind,
     opts: &GlobalOpts,
 ) -> Result<ImageRecord, ConduitosError> {
+    assemble_protocol_root_for_arch(modules, root, ConduitosArch::X86_64, opts)
+}
+
+pub(super) fn assemble_protocol_root_for_arch(
+    modules: ProtocolModules<'_>,
+    root: ProtocolRootKind,
+    arch: ConduitosArch,
+    opts: &GlobalOpts,
+) -> Result<ImageRecord, ConduitosError> {
     assemble_with_role(
-        ConduitosArch::X86_64,
+        arch,
         None,
         ArtifactRole::ProductHost,
         Some(SelectedProtocolModules { modules, root }),

@@ -1,6 +1,6 @@
 //! One exclusively reserved native USB attachment; no class policy.
 use super::{
-    owners::{CLAIMED, OperationAuthority, authority},
+    authority::{CLAIMED, OperationAuthority, authority},
     usb_request::UsbProtocolBootRequest,
 };
 use crate::{
@@ -53,17 +53,20 @@ pub(super) unsafe fn admit(
     CLAIMED
         .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
         .map_err(|_| "protocol-resources-already-reserved")?;
-    let mut controller =
-        arch::initialize_xhci(record.hhdm_offset, boot::executable_physical_address).map_err(
-            |error| {
-                native_refusal(
-                    "controller",
-                    error.as_str(),
-                    request.root_port,
-                    request.attachment_epoch,
-                )
-            },
-        )?;
+    #[cfg(target_arch = "x86_64")]
+    let initialized = arch::initialize_xhci(record.hhdm_offset, boot::executable_physical_address);
+    #[cfg(target_arch = "aarch64")]
+    // SAFETY: the sole Root retained the mapped ECAM/BAR and coherent DMA domain.
+    let initialized =
+        unsafe { arch::initialize_xhci(record.hhdm_offset, boot::executable_physical_address) };
+    let mut controller = initialized.map_err(|error| {
+        native_refusal(
+            "controller",
+            error.as_str(),
+            request.root_port,
+            request.attachment_epoch,
+        )
+    })?;
     let device = arch::address_selected_root_port_at_epoch(
         &mut controller,
         boot::executable_physical_address,
@@ -228,7 +231,7 @@ pub(super) unsafe fn admit(
             }
             .map_err(|_| "protocol-usb-duplex-identity-invalid")?;
             let source =
-                arch::RdrandEntropy::detect(1).map_err(|_| "protocol-entropy-unavailable")?;
+                arch::DomainEntropy::detect(1).map_err(|_| "protocol-entropy-unavailable")?;
             let mut entropy = CryptographicEntropyBase::<_, 3>::admit(source)
                 .map_err(|_| "protocol-entropy-refused")?;
             // SAFETY: each issuer receives its independent bounded Root authority.
@@ -262,7 +265,7 @@ pub(super) unsafe fn admit(
             )
         }
         .map_err(|_| "protocol-usb-aggregate-identity-invalid")?;
-        let source = arch::RdrandEntropy::detect(1).map_err(|_| "protocol-entropy-unavailable")?;
+        let source = arch::DomainEntropy::detect(1).map_err(|_| "protocol-entropy-unavailable")?;
         let mut entropy = CryptographicEntropyBase::<_, 2>::admit(source)
             .map_err(|_| "protocol-entropy-refused")?;
         // SAFETY: Root retained independent exact native authority for both calls.
@@ -288,7 +291,7 @@ pub(super) unsafe fn admit(
             )
         }
         .map_err(|_| "protocol-usb-identity-invalid")?;
-        let source = arch::RdrandEntropy::detect(1).map_err(|_| "protocol-entropy-unavailable")?;
+        let source = arch::DomainEntropy::detect(1).map_err(|_| "protocol-entropy-unavailable")?;
         let mut entropy = CryptographicEntropyBase::<_, 1>::admit(source)
             .map_err(|_| "protocol-entropy-refused")?;
         // SAFETY: retained native facts bind this exact finite control authority.

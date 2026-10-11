@@ -1,26 +1,35 @@
 //! The containing machine owns the bounded loop around the admitted kernel.
+#[cfg(target_arch = "x86_64")]
 use super::{owners::NativeOwners, request::ProtocolBootRequest};
 use crate::{
     arch,
-    protocol_source::{
-        NativeProtocolPreparationLimits, PreparedProtocolBodyPlay, PreparedProtocolEntry,
-        prepare_native_protocol,
-    },
+    protocol_source::{PreparedProtocolBodyPlay, PreparedProtocolEntry},
 };
 use alloc::{vec, vec::Vec};
 use conduit_composite::KernelCompositeStatus;
 use conduit_core::*;
 
+#[cfg(target_arch = "x86_64")]
 type NativePlay = PreparedProtocolBodyPlay<
     crate::i2c_base::i801::I801Controller<arch::I801PortWindow>,
     arch::NativeMonotonicDeadlineClock,
 >;
+
+#[cfg(target_arch = "aarch64")]
+type NativePlay = PreparedProtocolBodyPlay<
+    super::absent_providers::AbsentI2c,
+    super::absent_providers::AbsentClock,
+>;
+
+#[cfg(target_arch = "x86_64")]
+use crate::protocol_source::{NativeProtocolPreparationLimits, prepare_native_protocol};
 
 pub(super) struct Output {
     port: PortId,
     value: ValuePayload,
 }
 
+#[cfg(target_arch = "x86_64")]
 pub(super) fn prepare(
     entry: PreparedProtocolEntry,
     request: &ProtocolBootRequest,
@@ -173,6 +182,7 @@ fn prepare_outputs(
     Ok((play, outputs))
 }
 
+#[cfg(target_arch = "x86_64")]
 pub(super) fn execute(
     play: &mut NativePlay,
     outputs: &mut [Output],

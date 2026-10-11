@@ -1,4 +1,8 @@
 //! Ordinary boot admission of one administratively approved protocol workload.
+#[cfg(any(target_arch = "x86_64", all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))))]
+mod authority;
+#[cfg(all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5")))]
+mod absent_providers;
 mod request;
 pub use request::{
     MAXIMUM_REQUEST_BYTES, ProtocolBootInput, ProtocolBootRequest, ProtocolBootRequestRefusal,
@@ -8,9 +12,9 @@ pub use request::{
 #[cfg(target_arch = "x86_64")]
 mod owners;
 
-#[cfg(target_arch = "x86_64")]
+#[cfg(any(target_arch = "x86_64", all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))))]
 mod body;
-#[cfg(target_arch = "x86_64")]
+#[cfg(any(target_arch = "x86_64", all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))))]
 mod runtime;
 
 #[cfg(target_arch = "x86_64")]
@@ -20,7 +24,10 @@ pub use bootstrap::run_if_selected;
 
 mod usb_request;
 pub use usb_request::UsbProtocolBootRequest;
-#[cfg(target_arch = "x86_64")]
+#[cfg(any(target_arch = "x86_64", all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))))]
 mod usb_bootstrap;
-#[cfg(target_arch = "x86_64")]
+#[cfg(any(target_arch = "x86_64", all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))))]
 mod usb_owners;
+
+#[cfg(all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5")))]
+pub use usb_bootstrap::run_if_selected;

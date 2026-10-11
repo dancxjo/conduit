@@ -6,7 +6,10 @@ use alloc::boxed::Box;
 use conduit_core::*;
 
 impl<P: I2cProvider> PreparedProtocolCalls<P> {
-    #[cfg(target_arch = "x86_64")]
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
     pub(crate) fn prepare_usb(
         plan: &Plan,
         ready: crate::arch::ReadyUsbControlBase,
@@ -43,7 +46,10 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
         )
     }
 
-    #[cfg(target_arch = "x86_64")]
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn prepare_usb_protocol(
         plan: &Plan,
@@ -132,16 +138,28 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
             bindings,
             usb_protocol: Some(host),
             usb_duplex: None,
-            #[cfg(target_arch = "x86_64")]
+            #[cfg(any(
+                target_arch = "x86_64",
+                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+            ))]
             pending_usb_kind: PendingUsbKind::ProtocolRead,
-            #[cfg(target_arch = "x86_64")]
+            #[cfg(any(
+                target_arch = "x86_64",
+                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+            ))]
             pending_usb: None,
-            #[cfg(target_arch = "x86_64")]
+            #[cfg(any(
+                target_arch = "x86_64",
+                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+            ))]
             pending_usb_failed: false,
         })
     }
 
-    #[cfg(target_arch = "x86_64")]
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
     pub(crate) fn prepare_usb_duplex(
         plan: &Plan,
         admission: crate::protocol_play::UsbDuplexAdmission,
@@ -248,11 +266,20 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
             bindings,
             usb_protocol: None,
             usb_duplex: Some(host),
-            #[cfg(target_arch = "x86_64")]
+            #[cfg(any(
+                target_arch = "x86_64",
+                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+            ))]
             pending_usb_kind: PendingUsbKind::ProtocolRead,
-            #[cfg(target_arch = "x86_64")]
+            #[cfg(any(
+                target_arch = "x86_64",
+                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+            ))]
             pending_usb: None,
-            #[cfg(target_arch = "x86_64")]
+            #[cfg(any(
+                target_arch = "x86_64",
+                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+            ))]
             pending_usb_failed: false,
         })
     }

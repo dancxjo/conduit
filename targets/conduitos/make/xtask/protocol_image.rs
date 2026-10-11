@@ -1,5 +1,5 @@
 //! Package an existing product kernel with exact, locally approved protocol input.
-use super::{image, report::sha256_file, ConduitosError};
+use super::{image, report::sha256_file, ConduitosArch, ConduitosError};
 use crate::cli::GlobalOpts;
 use clap::Args;
 use conduitos::{
@@ -16,7 +16,7 @@ use std::{
 
 #[derive(Args, Debug)]
 pub(super) struct ImageArgs {
-    /// Existing capable x86_64 product kernel; no target build occurs.
+    /// Existing capable x86_64 or AArch64 product kernel; no target build occurs.
     #[arg(long)]
     kernel: PathBuf,
     /// Product build record binding the exact existing kernel digest.
@@ -47,11 +47,18 @@ pub(super) fn execute(args: ImageArgs, opts: &GlobalOpts) -> Result<(), Conduito
     let record: Value = serde_json::from_slice(&read(&args.build_record, 16384)?)
         .map_err(|error| refusal("protocol-kernel-record-refused", error))?;
     check_kernel(&record, &sha256_file(&args.kernel)?)?;
+    let architecture = kernel_architecture(&record)?;
     let package = read(&args.package, MAXIMUM_PACKAGE_BYTES)?;
     let request_bytes = read(&args.root_request, MAXIMUM_REQUEST_BYTES)?;
     let request = SelectedRootRequest::decode(&request_bytes)?;
     request.bind_package(&package)?;
     let root_kind = request.kind();
+    if architecture != ConduitosArch::X86_64 && matches!(root_kind, image::ProtocolRootKind::I2c) {
+        return Err(refusal(
+            "protocol-root-architecture-refused",
+            "I2C protocol Root is supported only on x86_64",
+        ));
+    }
     let entry = PreparedProtocolEntry::prepare(&package, request.entry())
         .map_err(|error| refusal("protocol-source-preparation-refused", format!("{error:?}")))?;
     // Preserve existing media and evidence; the administrator supplies independent
@@ -65,7 +72,9 @@ pub(super) fn execute(args: ImageArgs, opts: &GlobalOpts) -> Result<(), Conduito
     };
     let image = match root_kind {
         image::ProtocolRootKind::I2c => image::assemble_protocol(modules, opts),
-        image::ProtocolRootKind::Usb => image::assemble_protocol_root(modules, root_kind, opts),
+        image::ProtocolRootKind::Usb => {
+            image::assemble_protocol_root_for_arch(modules, root_kind, architecture, opts)
+        }
     }?;
     check_kernel(
         &record,
@@ -76,6 +85,7 @@ pub(super) fn execute(args: ImageArgs, opts: &GlobalOpts) -> Result<(), Conduito
         "schema": "conduit.conduitos/protocol-image-receipt@1",
         "proof_class": "source-check-and-image-packaging",
         "kernel_sha256": record["elf_sha256"],
+        "architecture": architecture.as_str(),
         "image_sha256": image.iso_sha256,
         "source_artifact_id": entry.artifact_id().as_str(),
         "source_document_id": expanded.source_document_id.as_str(),
@@ -143,15 +153,26 @@ impl SelectedRootRequest {
     }
 }
 
+fn kernel_architecture(record: &Value) -> Result<ConduitosArch, ConduitosError> {
+    match record["architecture"].as_str() {
+        Some("x86_64") => Ok(ConduitosArch::X86_64),
+        Some("aarch64") => Ok(ConduitosArch::Aarch64),
+        _ => Err(refusal(
+            "protocol-kernel-architecture-refused",
+            "requires x86_64 or AArch64 product architecture",
+        )),
+    }
+}
+
 fn check_kernel(record: &Value, digest: &str) -> Result<(), ConduitosError> {
     if record["schema"] != "conduit.conduitos.build/v2"
         || record["artifact_role"] != "product-host"
-        || record["architecture"] != "x86_64"
+        || kernel_architecture(record).is_err()
         || record["elf_sha256"] != digest
     {
         return Err(refusal(
             "protocol-kernel-record-refused",
-            "requires the exact x86_64 product kernel and build record",
+            "requires the exact supported product kernel and build record",
         ));
     }
     Ok(())
@@ -217,10 +238,14 @@ mod tests {
         let record = json!({"schema":"conduit.conduitos.build/v2",
             "artifact_role":"product-host", "architecture":"x86_64", "elf_sha256":"abc"});
         check_kernel(&record, "abc").unwrap();
+        let mut arm = record.clone();
+        arm["architecture"] = "aarch64".into();
+        check_kernel(&arm, "abc").unwrap();
+        assert_eq!(kernel_architecture(&arm).unwrap(), ConduitosArch::Aarch64);
         assert!(check_kernel(&record, "changed").is_err());
         for (field, invalid) in [
             ("artifact_role", "architecture-proof-appliance"),
-            ("architecture", "aarch64"),
+            ("architecture", "riscv64"),
             ("schema", "unknown"),
         ] {
             let mut other = record.clone();

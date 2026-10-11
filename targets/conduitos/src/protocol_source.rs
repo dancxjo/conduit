@@ -353,14 +353,26 @@ pub use native_preparation::{
 mod package_compilation;
 pub use package_compilation::{ProtocolSpecializationRequest, ProtocolValueReference};
 
-#[cfg(target_arch = "x86_64")]
+#[cfg(any(
+    target_arch = "x86_64",
+    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+))]
 mod native_usb_preparation;
-#[cfg(target_arch = "x86_64")]
+#[cfg(any(
+    target_arch = "x86_64",
+    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+))]
 pub use native_usb_preparation::prepare_native_usb_protocol;
-#[cfg(target_arch = "x86_64")]
+#[cfg(any(
+    target_arch = "x86_64",
+    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+))]
 pub(crate) use native_usb_preparation::prepare_native_usb_protocol_with_sign_storage;
 
-#[cfg(target_arch = "x86_64")]
+#[cfg(any(
+    target_arch = "x86_64",
+    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+))]
 pub(crate) use native_usb_preparation::{
     prepare_native_usb_duplex_protocol, prepare_native_usb_endpoint_protocol,
 };

@@ -19,26 +19,50 @@ use conduit_plan_lowering::lowering::lower_plan_fragment;
 pub use crate::protocol_call_refusal::ProtocolCallRefusal;
 
 mod dispatch;
-#[cfg(target_arch = "x86_64")]
+#[cfg(any(
+    target_arch = "x86_64",
+    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+))]
 mod usb_preparation;
 
 enum Owner<P> {
     Pure(PureProtocolOwner),
     I2c(Box<I2cHostCall<P>>),
-    #[cfg(target_arch = "x86_64")]
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
     UsbControl(Box<crate::arch::NativeUsbControlCall>),
-    #[cfg(target_arch = "x86_64")]
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
     UsbProtocolControl,
-    #[cfg(target_arch = "x86_64")]
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
     UsbProtocolEndpoint,
-    #[cfg(target_arch = "x86_64")]
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
     UsbDuplexControl,
-    #[cfg(target_arch = "x86_64")]
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
     UsbDuplexRead,
-    #[cfg(target_arch = "x86_64")]
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
     UsbDuplexWrite,
 }
-#[cfg(target_arch = "x86_64")]
+#[cfg(any(
+    target_arch = "x86_64",
+    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+))]
 #[derive(Clone, Copy)]
 enum PendingUsbKind {
     ProtocolRead,
@@ -56,15 +80,30 @@ pub struct PreparedProtocolCalls<P> {
     plan_id: PlanId,
     identity: PreparationHostIdentity,
     bindings: Vec<Binding<P>>,
-    #[cfg(target_arch = "x86_64")]
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
     usb_protocol: Option<crate::arch::NativeUsbProtocolHost>,
-    #[cfg(target_arch = "x86_64")]
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
     usb_duplex: Option<crate::arch::NativeUsbDuplexHost>,
-    #[cfg(target_arch = "x86_64")]
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
     pending_usb_kind: PendingUsbKind,
-    #[cfg(target_arch = "x86_64")]
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
     pending_usb: Option<AdmittedKernelCompositeHostRequest>,
-    #[cfg(target_arch = "x86_64")]
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
     pending_usb_failed: bool,
 }
 impl<P: I2cProvider> PreparedProtocolCalls<P> {
@@ -257,15 +296,30 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
                 offer_generation: fragment.offer_generation,
             },
             bindings,
-            #[cfg(target_arch = "x86_64")]
+            #[cfg(any(
+                target_arch = "x86_64",
+                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+            ))]
             usb_protocol: None,
-            #[cfg(target_arch = "x86_64")]
+            #[cfg(any(
+                target_arch = "x86_64",
+                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+            ))]
             usb_duplex: None,
-            #[cfg(target_arch = "x86_64")]
+            #[cfg(any(
+                target_arch = "x86_64",
+                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+            ))]
             pending_usb_kind: PendingUsbKind::ProtocolRead,
-            #[cfg(target_arch = "x86_64")]
+            #[cfg(any(
+                target_arch = "x86_64",
+                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+            ))]
             pending_usb: None,
-            #[cfg(target_arch = "x86_64")]
+            #[cfg(any(
+                target_arch = "x86_64",
+                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+            ))]
             pending_usb_failed: false,
         })
     }
@@ -276,13 +330,19 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
         if kernel.definition().internal_plan.plan_id != self.plan_id {
             return Err(Refusal::InvalidPlan);
         }
-        #[cfg(target_arch = "x86_64")]
+        #[cfg(any(
+            target_arch = "x86_64",
+            all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+        ))]
         if let Some(host) = &mut self.usb_protocol {
             host.cancel().map_err(Refusal::UsbProtocol)?;
             self.pending_usb = None;
             self.pending_usb_failed = false;
         }
-        #[cfg(target_arch = "x86_64")]
+        #[cfg(any(
+            target_arch = "x86_64",
+            all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+        ))]
         if let Some(host) = &mut self.usb_duplex {
             host.cancel().map_err(Refusal::UsbProtocol)?;
             self.pending_usb = None;
@@ -290,7 +350,10 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
         }
         // Revoke the physics-facing owner first, even if kernel cancellation later refuses.
         for binding in &mut self.bindings {
-            #[cfg(target_arch = "x86_64")]
+            #[cfg(any(
+                target_arch = "x86_64",
+                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+            ))]
             if let Owner::UsbControl(owner) = &mut binding.owner {
                 owner
                     .revoke(binding.node, HostCallId(0))

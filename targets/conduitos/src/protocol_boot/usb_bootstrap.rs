@@ -53,9 +53,22 @@ pub unsafe fn run_if_selected(record: &boot::BootRecord) -> Result<(), &'static 
     if !crate::make::EMBEDDED_MAKE.includes(crate::make::IMPL_USB_TRANSPORT) {
         return Err("protocol-usb-implementation-not-compiled");
     }
+    #[cfg(target_arch = "x86_64")]
     arch::initialize_machine(record, boot::executable_physical_address);
+    #[cfg(target_arch = "x86_64")]
+    let identity_entropy = arch::boot_entropy(record.timestamp, record.image_physical_start);
+    #[cfg(target_arch = "aarch64")]
+    let identity_entropy = {
+        let counter = arch::read_counter();
+        [
+            counter,
+            counter.rotate_left(13),
+            counter.rotate_left(29),
+            counter.rotate_left(47),
+        ]
+    };
     let identities = crate::identity::derive(
-        arch::boot_entropy(record.timestamp, record.image_physical_start),
+        identity_entropy,
         record.timestamp,
         record.image_physical_start,
     );

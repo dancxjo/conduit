@@ -55,7 +55,10 @@ impl<P: I2cProvider, C: MonotonicDeadlineProvider> PreparedProtocolBodyPlay<P, C
     }
 
     /// USB uses the ordinary protocol kernel and the same Body biography.
-    #[cfg(target_arch = "x86_64")]
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
     pub fn prepare_usb(
         artifact: PreparedProtocolArtifact,
         session: BodyLifecycleSession,
@@ -69,7 +72,10 @@ impl<P: I2cProvider, C: MonotonicDeadlineProvider> PreparedProtocolBodyPlay<P, C
         })
     }
 
-    #[cfg(target_arch = "x86_64")]
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
     pub(crate) fn prepare_usb_protocol(
         artifact: PreparedProtocolArtifact,
         session: BodyLifecycleSession,
@@ -83,7 +89,10 @@ impl<P: I2cProvider, C: MonotonicDeadlineProvider> PreparedProtocolBodyPlay<P, C
         })
     }
 
-    #[cfg(target_arch = "x86_64")]
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
     pub(crate) fn prepare_usb_duplex(
         artifact: PreparedProtocolArtifact,
         session: BodyLifecycleSession,

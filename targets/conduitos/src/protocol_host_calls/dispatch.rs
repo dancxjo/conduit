@@ -1,5 +1,8 @@
 //! Exact kernel-token dispatch and cooperative native completion.
-#[cfg(target_arch = "x86_64")]
+#[cfg(any(
+    target_arch = "x86_64",
+    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+))]
 use super::PendingUsbKind;
 use super::{I2C_CALL, I2cProvider, Owner, PreparedProtocolCalls, ProtocolCallRefusal};
 use conduit_composite::{
@@ -18,7 +21,10 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
         if kernel.definition().internal_plan.plan_id != self.plan_id {
             return Err(Refusal::InvalidPlan);
         }
-        #[cfg(target_arch = "x86_64")]
+        #[cfg(any(
+            target_arch = "x86_64",
+            all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+        ))]
         if self.pending_usb.is_some() {
             return Err(Refusal::Unsupported);
         }
@@ -38,15 +44,24 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
         let expected = match binding.owner {
             Owner::Pure(ref owner) => owner.contract(),
             Owner::I2c(_) => I2C_CALL,
-            #[cfg(target_arch = "x86_64")]
+            #[cfg(any(
+                target_arch = "x86_64",
+                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+            ))]
             Owner::UsbControl(_) | Owner::UsbProtocolControl | Owner::UsbDuplexControl => {
                 crate::usb_base::control_contract::CONTROL_CALL
             }
-            #[cfg(target_arch = "x86_64")]
+            #[cfg(any(
+                target_arch = "x86_64",
+                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+            ))]
             Owner::UsbProtocolEndpoint | Owner::UsbDuplexRead => {
                 crate::usb_base::endpoint_read_contract::ENDPOINT_READ_CALL
             }
-            #[cfg(target_arch = "x86_64")]
+            #[cfg(any(
+                target_arch = "x86_64",
+                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+            ))]
             Owner::UsbDuplexWrite => crate::usb_base::endpoint_write_contract::ENDPOINT_WRITE_CALL,
         };
         if required.requirement.contract_id.as_str() != expected {
@@ -67,7 +82,10 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
         let input = kernel
             .host_request_input(&admitted)
             .map_err(Refusal::Kernel)?;
-        #[cfg(target_arch = "x86_64")]
+        #[cfg(any(
+            target_arch = "x86_64",
+            all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+        ))]
         if matches!(
             binding.owner,
             Owner::UsbProtocolEndpoint | Owner::UsbDuplexRead | Owner::UsbDuplexWrite
@@ -110,7 +128,10 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
             }
         }
         let result = match &mut binding.owner {
-            #[cfg(target_arch = "x86_64")]
+            #[cfg(any(
+                target_arch = "x86_64",
+                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+            ))]
             Owner::UsbProtocolControl => self
                 .usb_protocol
                 .as_mut()
@@ -118,11 +139,17 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
                 .control_invoke(node, call.call, call.request, input)
                 .map(Some)
                 .map_err(Refusal::UsbProtocol),
-            #[cfg(target_arch = "x86_64")]
+            #[cfg(any(
+                target_arch = "x86_64",
+                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+            ))]
             Owner::UsbProtocolEndpoint | Owner::UsbDuplexRead | Owner::UsbDuplexWrite => {
                 return Err(Refusal::InvalidPlan);
             }
-            #[cfg(target_arch = "x86_64")]
+            #[cfg(any(
+                target_arch = "x86_64",
+                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+            ))]
             Owner::UsbDuplexControl => self
                 .usb_duplex
                 .as_mut()
@@ -130,7 +157,10 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
                 .control_invoke(node, call.call, call.request, input)
                 .map(Some)
                 .map_err(Refusal::UsbProtocol),
-            #[cfg(target_arch = "x86_64")]
+            #[cfg(any(
+                target_arch = "x86_64",
+                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+            ))]
             Owner::UsbControl(owner) => owner
                 .invoke(node, call.call, call.request, input)
                 .map(Some)
@@ -206,7 +236,10 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
         if kernel.definition().internal_plan.plan_id != self.plan_id {
             return Err(ProtocolCallRefusal::InvalidPlan);
         }
-        #[cfg(target_arch = "x86_64")]
+        #[cfg(any(
+            target_arch = "x86_64",
+            all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+        ))]
         if let Some(admitted) = self.pending_usb {
             if self.pending_usb_failed {
                 return Err(ProtocolCallRefusal::Unsupported);

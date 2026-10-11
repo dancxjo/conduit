@@ -2,7 +2,10 @@
 use super::*;
 
 impl<P: I2cProvider> PreparedProtocolPlay<P> {
-    #[cfg(target_arch = "x86_64")]
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
     pub fn prepare_usb(
         definition: KernelCompositeDefinition,
         ready: crate::arch::ReadyUsbControlBase,
@@ -14,7 +17,10 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
         Self::prepare_usb_with_sign_storage(definition, ready, table, handle, claim, operations, 0)
     }
 
-    #[cfg(target_arch = "x86_64")]
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
     pub(crate) fn prepare_usb_with_sign_storage(
         definition: KernelCompositeDefinition,
         ready: crate::arch::ReadyUsbControlBase,
@@ -40,7 +46,10 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
     }
 
     /// Both exact native operations retain one controller and ordinary kernel.
-    #[cfg(target_arch = "x86_64")]
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
     pub(crate) fn prepare_usb_protocol(
         definition: KernelCompositeDefinition,
         admission: UsbProtocolAdmission,
@@ -72,7 +81,10 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
         )
     }
 
-    #[cfg(target_arch = "x86_64")]
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
     pub(crate) fn prepare_usb_duplex(
         definition: KernelCompositeDefinition,
         admission: UsbDuplexAdmission,

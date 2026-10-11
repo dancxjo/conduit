@@ -1,8 +1,8 @@
 //! Bounded emulator observation of an exact packaged protocol product image.
-use super::{report::sha256_file, ConduitosError};
+use super::{ConduitosError, report::sha256_file};
 use crate::cli::GlobalOpts;
 use clap::Args;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::{
     fs,
     io::Read,
@@ -31,6 +31,40 @@ pub(super) struct RunArgs {
     /// Inject exactly one known mouse report after the guest begins product Play.
     #[arg(long, requires = "usb_control_mouse")]
     usb_mouse_report: bool,
+    /// Optional local emulator executable for the receipt's exact architecture.
+    #[arg(long)]
+    emulator: Option<PathBuf>,
+    /// AArch64 UEFI firmware; required for the pinned virt product profile.
+    #[arg(long)]
+    aarch64_firmware: Option<PathBuf>,
+}
+
+fn emulator_profile(
+    architecture: &str,
+) -> Result<(&'static str, &'static str, Vec<&'static str>), ConduitosError> {
+    match architecture {
+        "x86_64" => Ok((
+            "qemu-system-x86_64",
+            "q35-single-cpu-512m-headless",
+            vec![
+                "-M",
+                "q35",
+                "-vga",
+                "std",
+                "-device",
+                "isa-debug-exit,iobase=0xf4,iosize=0x04",
+            ],
+        )),
+        "aarch64" => Ok((
+            "qemu-system-aarch64",
+            "virt-10.2-gic2-coherent-pcie-single-cpu-512m-headless",
+            vec!["-M", "virt-10.2,highmem=off,gic-version=2,iommu=none"],
+        )),
+        _ => Err(refusal(
+            "protocol-run-architecture-refused",
+            "no admitted emulator profile for this architecture",
+        )),
+    }
 }
 
 pub(super) fn execute(args: RunArgs, opts: &GlobalOpts) -> Result<(), ConduitosError> {
@@ -53,6 +87,20 @@ pub(super) fn execute(args: RunArgs, opts: &GlobalOpts) -> Result<(), ConduitosE
         return Err(refusal(
             "protocol-run-image-refused",
             "exact packaged image digest required",
+        ));
+    }
+    let architecture = receipt["architecture"].as_str().unwrap_or("x86_64");
+    let (default_emulator, profile, machine_args) = emulator_profile(architecture)?;
+    if architecture == "aarch64" && args.aarch64_firmware.is_none() {
+        return Err(refusal(
+            "protocol-run-firmware-required",
+            "AArch64 requires explicit UEFI firmware",
+        ));
+    }
+    if architecture != "aarch64" && args.aarch64_firmware.is_some() {
+        return Err(refusal(
+            "protocol-run-firmware-refused",
+            "AArch64 firmware cannot be used with another architecture",
         ));
     }
     fs::create_dir(&args.output_dir)
@@ -86,11 +134,17 @@ pub(super) fn execute(args: RunArgs, opts: &GlobalOpts) -> Result<(), ConduitosE
     } else {
         image
     };
-    let mut command = Command::new("qemu-system-x86_64");
+    let mut command = Command::new(
+        args.emulator
+            .as_deref()
+            .unwrap_or(Path::new(default_emulator)),
+    );
+    command.args(machine_args);
+    if let Some(firmware) = &args.aarch64_firmware {
+        command.arg("-bios").arg(firmware);
+    }
     command
         .args([
-            "-M",
-            "q35",
             "-cpu",
             "max",
             "-m",
@@ -99,8 +153,6 @@ pub(super) fn execute(args: RunArgs, opts: &GlobalOpts) -> Result<(), ConduitosE
             "1",
             "-display",
             "none",
-            "-vga",
-            "std",
             "-monitor",
             "none",
             "-serial",
@@ -108,8 +160,6 @@ pub(super) fn execute(args: RunArgs, opts: &GlobalOpts) -> Result<(), ConduitosE
             "-no-reboot",
             "-net",
             "none",
-            "-device",
-            "isa-debug-exit,iobase=0xf4,iosize=0x04",
             "-cdrom",
         ])
         .arg(&launch_image)
@@ -201,7 +251,10 @@ pub(super) fn execute(args: RunArgs, opts: &GlobalOpts) -> Result<(), ConduitosE
         "image_sha256": digest,
         "outcome": outcome,
         "serial_sha256": sha256_file(&serial)?,
-        "qemu_profile": "q35-single-cpu-512m-headless",
+        "qemu_profile": profile,
+        "architecture": architecture,
+        "emulator": args.emulator.as_deref().unwrap_or(Path::new(default_emulator)),
+        "aarch64_firmware_sha256": args.aarch64_firmware.as_deref().map(sha256_file).transpose()?,
         "physical_compatibility": "unverified",
         "usb_devices": usb_devices(args.usb_control_mouse),
         "fixture_input": {
@@ -346,5 +399,23 @@ mod tests {
         assert_eq!(terminal(b"CONDUIT_BOOT_SIGN {\"schema\":\"conduit.conduitos.boot-sign/v1\",\"status\":\"refused\",\"reason\":\"overlapping-artifacts\"}\n").unwrap().as_deref(), Some("boot-refused:overlapping-artifacts"));
         assert_eq!(terminal(b"CONDUIT_BOOT_STAGE ready\n").unwrap(), None);
         assert_eq!(terminal(b"CONDUIT_KERNEL_SIGN {\"schema\":").unwrap(), None);
+    }
+}
+
+#[cfg(test)]
+mod architecture_profile_tests {
+    use super::*;
+    #[test]
+    fn profiles_preserve_architecture_specific_hardware_and_refuse_other_rows() {
+        let (binary, _, args) = emulator_profile("aarch64").unwrap();
+        assert_eq!(binary, "qemu-system-aarch64");
+        assert_eq!(
+            args,
+            ["-M", "virt-10.2,highmem=off,gic-version=2,iommu=none"]
+        );
+        assert!(!args.iter().any(|arg| arg.contains("isa-debug-exit")));
+        assert_eq!(emulator_profile("x86_64").unwrap().0, "qemu-system-x86_64");
+        assert!(emulator_profile("riscv64").is_err());
+        assert!(emulator_profile("aarch64-orange-pi-5").is_err());
     }
 }

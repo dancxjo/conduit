@@ -12,7 +12,10 @@ use conduit_composite::{
 use conduit_core::*;
 
 mod timed;
-#[cfg(target_arch = "x86_64")]
+#[cfg(any(
+    target_arch = "x86_64",
+    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+))]
 mod usb;
 pub use timed::{ClockAdmission, PreparedTimedProtocolPlay};
 
@@ -23,7 +26,10 @@ pub struct I2cAdmission<P> {
     pub claim: BaseOperationClaim,
 }
 
-#[cfg(target_arch = "x86_64")]
+#[cfg(any(
+    target_arch = "x86_64",
+    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+))]
 pub struct UsbControlAdmission {
     pub additional_remote_sign_items: u16,
     pub ready: crate::arch::ReadyUsbControlBase,
@@ -32,7 +38,10 @@ pub struct UsbControlAdmission {
     pub claim: BaseOperationClaim,
 }
 
-#[cfg(target_arch = "x86_64")]
+#[cfg(any(
+    target_arch = "x86_64",
+    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+))]
 pub(crate) struct UsbProtocolAdmission {
     pub additional_remote_sign_items: u16,
     pub ready: crate::arch::ReadyUsbProtocolHost,
@@ -44,7 +53,10 @@ pub(crate) struct UsbProtocolAdmission {
     pub endpoint_claim: BaseOperationClaim,
 }
 
-#[cfg(target_arch = "x86_64")]
+#[cfg(any(
+    target_arch = "x86_64",
+    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+))]
 pub(crate) struct UsbDuplexAdmission {
     pub additional_remote_sign_items: u16,
     pub ready: crate::arch::ReadyUsbDuplexHost,
@@ -62,11 +74,20 @@ pub(crate) struct UsbDuplexAdmission {
 #[derive(Clone, Copy)]
 enum PhysicalMode {
     I2c,
-    #[cfg(target_arch = "x86_64")]
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
     UsbControl,
-    #[cfg(target_arch = "x86_64")]
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
     UsbProtocol,
-    #[cfg(target_arch = "x86_64")]
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
     UsbDuplex,
 }
 
@@ -233,7 +254,10 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
                     )
                     .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
             }
-            #[cfg(target_arch = "x86_64")]
+            #[cfg(any(
+                target_arch = "x86_64",
+                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+            ))]
             PhysicalMode::UsbControl | PhysicalMode::UsbProtocol | PhysicalMode::UsbDuplex => {
                 registry.install(crate::usb_base::control_factory::ControlOperationFactory::prepare_contract().map_err(|_| ProtocolCallRefusal::InvalidPlan)?).map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
                 if matches!(mode, PhysicalMode::UsbProtocol | PhysicalMode::UsbDuplex) {
