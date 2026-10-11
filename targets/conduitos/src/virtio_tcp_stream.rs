@@ -173,7 +173,17 @@ impl Read for VirtioTcpStream<'_> {
         if output.is_empty() {
             return Ok(0);
         }
-        for _ in 0..self.maximum_polls {
+        // An admitted wall-clock deadline bounds product response waiting.
+        // A tight CPU poll count can expire before a bounded owner action has
+        // completed, even though its response window remains open. Clockless
+        // proof streams retain the explicit poll limit. poll() also checks the
+        // cumulative u32 counter, so every path retains a finite work bound.
+        let read_poll_limit = if self.deadline.is_some() {
+            u32::MAX
+        } else {
+            self.maximum_polls
+        };
+        for _ in 0..read_poll_limit {
             self.poll_io().map_err(|error| {
                 report_read_refusal(error.0.as_str());
                 error
