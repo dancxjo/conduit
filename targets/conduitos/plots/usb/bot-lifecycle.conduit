@@ -8,10 +8,10 @@ with flow/zip/feedback/paired as BotPair
 
 plot bot-initialize (
     command: UsbEndpointWriteRequest...| >> state: BotState...|
-) = ({ command: ., phase: 0, terminal: (bytes/length(.wire) != 31 ? true : !((((bytes/at(.wire, 0) == 85 && (bytes/at(.wire, 1) == 83 && bytes/at(.wire, 2) == 66)) && ((bytes/at(.wire, 3) == 67 && bytes/at(.wire, 4) == 1) && (bytes/at(.wire, 5) == 0 && bytes/at(.wire, 6) == 0))) && (((bytes/at(.wire, 7) == 0 && bytes/at(.wire, 8) == 0) && (bytes/at(.wire, 9) == 2 && bytes/at(.wire, 10) == 0)) && ((bytes/at(.wire, 11) == 0 && bytes/at(.wire, 12) == 128) && (bytes/at(.wire, 13) == 0 && bytes/at(.wire, 14) == 10)))) && ((((bytes/at(.wire, 15) == 40 && bytes/at(.wire, 16) == 0) && (bytes/at(.wire, 17) == 0 && bytes/at(.wire, 18) == 0)) && ((bytes/at(.wire, 19) == 0 && bytes/at(.wire, 20) == 0) && (bytes/at(.wire, 21) == 0 && bytes/at(.wire, 22) == 0))) && (((bytes/at(.wire, 23) == 1 && bytes/at(.wire, 24) == 0) && (bytes/at(.wire, 25) == 0 && bytes/at(.wire, 26) == 0)) && ((bytes/at(.wire, 27) == 0 && bytes/at(.wire, 28) == 0) && (bytes/at(.wire, 29) == 0 && bytes/at(.wire, 30) == 0)))))), refused: (bytes/length(.wire) != 31 ? true : !((((bytes/at(.wire, 0) == 85 && (bytes/at(.wire, 1) == 83 && bytes/at(.wire, 2) == 66)) && ((bytes/at(.wire, 3) == 67 && bytes/at(.wire, 4) == 1) && (bytes/at(.wire, 5) == 0 && bytes/at(.wire, 6) == 0))) && (((bytes/at(.wire, 7) == 0 && bytes/at(.wire, 8) == 0) && (bytes/at(.wire, 9) == 2 && bytes/at(.wire, 10) == 0)) && ((bytes/at(.wire, 11) == 0 && bytes/at(.wire, 12) == 128) && (bytes/at(.wire, 13) == 0 && bytes/at(.wire, 14) == 10)))) && ((((bytes/at(.wire, 15) == 40 && bytes/at(.wire, 16) == 0) && (bytes/at(.wire, 17) == 0 && bytes/at(.wire, 18) == 0)) && ((bytes/at(.wire, 19) == 0 && bytes/at(.wire, 20) == 0) && (bytes/at(.wire, 21) == 0 && bytes/at(.wire, 22) == 0))) && (((bytes/at(.wire, 23) == 1 && bytes/at(.wire, 24) == 0) && (bytes/at(.wire, 25) == 0 && bytes/at(.wire, 26) == 0)) && ((bytes/at(.wire, 27) == 0 && bytes/at(.wire, 28) == 0) && (bytes/at(.wire, 29) == 0 && bytes/at(.wire, 30) == 0)))))) })
+) = ({ command: ., phase: 0, transaction: 0, terminal: (bytes/length(.wire) != 31 ? true : !((((bytes/at(.wire, 0) == 85 && (bytes/at(.wire, 1) == 83 && bytes/at(.wire, 2) == 66)) && ((bytes/at(.wire, 3) == 67 && bytes/at(.wire, 4) == 1) && (bytes/at(.wire, 5) == 0 && bytes/at(.wire, 6) == 0))) && (((bytes/at(.wire, 7) == 0 && bytes/at(.wire, 8) == 0) && (bytes/at(.wire, 9) == 2 && bytes/at(.wire, 10) == 0)) && ((bytes/at(.wire, 11) == 0 && bytes/at(.wire, 12) == 128) && (bytes/at(.wire, 13) == 0 && bytes/at(.wire, 14) == 10)))) && ((((bytes/at(.wire, 15) == 40 && bytes/at(.wire, 16) == 0) && (bytes/at(.wire, 17) == 0 && bytes/at(.wire, 18) == 0)) && ((bytes/at(.wire, 19) == 0 && bytes/at(.wire, 20) == 0) && (bytes/at(.wire, 21) == 0 && bytes/at(.wire, 22) == 0))) && (((bytes/at(.wire, 23) == 1 && bytes/at(.wire, 24) == 0) && (bytes/at(.wire, 25) == 0 && bytes/at(.wire, 26) == 0)) && ((bytes/at(.wire, 27) == 0 && bytes/at(.wire, 28) == 0) && (bytes/at(.wire, 29) == 0 && bytes/at(.wire, 30) == 0)))))), refused: (bytes/length(.wire) != 31 ? true : !((((bytes/at(.wire, 0) == 85 && (bytes/at(.wire, 1) == 83 && bytes/at(.wire, 2) == 66)) && ((bytes/at(.wire, 3) == 67 && bytes/at(.wire, 4) == 1) && (bytes/at(.wire, 5) == 0 && bytes/at(.wire, 6) == 0))) && (((bytes/at(.wire, 7) == 0 && bytes/at(.wire, 8) == 0) && (bytes/at(.wire, 9) == 2 && bytes/at(.wire, 10) == 0)) && ((bytes/at(.wire, 11) == 0 && bytes/at(.wire, 12) == 128) && (bytes/at(.wire, 13) == 0 && bytes/at(.wire, 14) == 10)))) && ((((bytes/at(.wire, 15) == 40 && bytes/at(.wire, 16) == 0) && (bytes/at(.wire, 17) == 0 && bytes/at(.wire, 18) == 0)) && ((bytes/at(.wire, 19) == 0 && bytes/at(.wire, 20) == 0) && (bytes/at(.wire, 21) == 0 && bytes/at(.wire, 22) == 0))) && (((bytes/at(.wire, 23) == 1 && bytes/at(.wire, 24) == 0) && (bytes/at(.wire, 25) == 0 && bytes/at(.wire, 26) == 0)) && ((bytes/at(.wire, 27) == 0 && bytes/at(.wire, 28) == 0) && (bytes/at(.wire, 29) == 0 && bytes/at(.wire, 30) == 0)))))) })
 plot bot-route (
     state: BotState...| >> route: BotRoute...|
-) = (.terminal || .phase > 4 ? stopped(.) : (.phase < 2 ? control(.) : (.phase == 2 ? write(.) : read(.))))
+) = (.terminal || .transaction >= 16 || .phase > 4 ? stopped(.) : (.phase < 2 ? control(.) : (.phase == 2 ? write(.) : read(.))))
 plot bot-pending (
     route: BotRoute...| >> pending: BotPending...|
 ) = (. is control ? running(.control) : (. is write ? running(.write) : (. is read ? running(.read) : stopped(empty))))
@@ -23,19 +23,19 @@ plot bot-write-event (
 ) = (write(.))
 plot bot-read-event (
     result: UsbEndpointReadResult...| >> event: BotEvent...|
-) = (read({ result: ., data: !(. is completed) ? false : (.completed.ordinal == 0 && .completed.actual == 512 && !.completed.short && bytes/length(.completed.wire) == 512), status: !(. is completed) ? false : (.completed.ordinal != 1 || .completed.actual != 13 || .completed.short || bytes/length(.completed.wire) != 13 ? false : (((bytes/at(.completed.wire, 0) == 85 && (bytes/at(.completed.wire, 1) == 83 && bytes/at(.completed.wire, 2) == 66)) && (bytes/at(.completed.wire, 3) == 83 && (bytes/at(.completed.wire, 4) == 1 && bytes/at(.completed.wire, 5) == 0))) && ((bytes/at(.completed.wire, 6) == 0 && (bytes/at(.completed.wire, 7) == 0 && bytes/at(.completed.wire, 8) == 0)) && ((bytes/at(.completed.wire, 9) == 0 && bytes/at(.completed.wire, 10) == 0) && (bytes/at(.completed.wire, 11) == 0 && bytes/at(.completed.wire, 12) == 0))))) }))
+) = (read({ result: ., data: !(. is completed) ? false : (.completed.actual == 512 && !.completed.short && bytes/length(.completed.wire) == 512), status: !(. is completed) ? false : (.completed.actual != 13 || .completed.short || bytes/length(.completed.wire) != 13 ? false : (((bytes/at(.completed.wire, 0) == 85 && (bytes/at(.completed.wire, 1) == 83 && bytes/at(.completed.wire, 2) == 66)) && (bytes/at(.completed.wire, 3) == 83 && (bytes/at(.completed.wire, 4) == 1 && bytes/at(.completed.wire, 5) == 0))) && ((bytes/at(.completed.wire, 6) == 0 && (bytes/at(.completed.wire, 7) == 0 && bytes/at(.completed.wire, 8) == 0)) && ((bytes/at(.completed.wire, 9) == 0 && bytes/at(.completed.wire, 10) == 0) && (bytes/at(.completed.wire, 11) == 0 && bytes/at(.completed.wire, 12) == 0))))) }))
 plot bot-accept (
     pair: BotPair...| <= 16384B >> transition: BotTransition...|
-) = ({ previous: .0, accepted: (.0.terminal || .0.phase > 4 ? false : (.0.phase < 2 ? (.1 is control ? (.0.phase == 0 ? .1.control.descriptor : .1.control.ack) : false) : (.0.phase == 2 ? (.1 is write ? (.1.write is completed ? .1.write.completed.actual == 31 : false) : false) : (.1 is read ? (.0.phase == 3 ? .1.read.data : .1.read.status) : false)))) })
+) = ({ previous: .0, accepted: (.0.terminal || .0.transaction >= 16 || .0.phase > 4 ? false : (.0.phase < 2 ? (.1 is control ? (.0.phase == 0 ? .1.control.descriptor : .1.control.ack) : false) : (.0.phase == 2 ? (.1 is write ? (.1.write is completed ? .1.write.completed.actual == 31 : false) : false) : (.1 is read ? (.0.phase == 3 ? (.1.read.data ? .1.read.result.completed.ordinal == .0.transaction + .0.transaction : false) : (.1.read.status ? .1.read.result.completed.ordinal == .0.transaction + .0.transaction + 1 : false)) : false)))) })
 plot bot-advance (
     transition: BotTransition...| >> next: BotState...|
-) = ({ command: .previous.command, phase: .accepted && .previous.phase < 5 ? .previous.phase + 1 : .previous.phase, terminal: !.accepted || .previous.phase >= 4, refused: .previous.refused || !.accepted })
+) = ({ command: .previous.command, phase: !.accepted ? .previous.phase : (.previous.phase == 4 ? (.previous.transaction == 15 ? 5 : 2) : .previous.phase + 1), transaction: .accepted && .previous.phase == 4 && .previous.transaction < 16 ? .previous.transaction + 1 : .previous.transaction, terminal: !.accepted || (.previous.phase == 4 && .previous.transaction == 15), refused: .previous.refused || !.accepted })
 plot bot-outcome (
     state: BotState...| >> outcome: BotOutcome...|
-) = (.terminal && !.refused && .phase == 5 ? accepted(empty) : refused(empty))
+) = (.terminal && !.refused && .phase == 5 && .transaction == 16 ? accepted(empty) : refused(empty))
 plot bot-accepted-state (
     state: BotState...| >> accepted: BotAcceptedState...|
-) = (.terminal && !.refused && .phase == 5 ? ready(.) : refused(empty))
+) = (! .refused && .transaction > 0 && .transaction <= 16 && (.phase == 2 || (.terminal && .phase == 5 && .transaction == 16)) ? ready(.) : refused(empty))
 plot bot-data-candidate (
     event: BotEvent...| >> candidate: BotDataCandidate...|
 ) = (!(. is read) ? absent(empty) : (.read.data ? ready(.) : absent(empty)))
@@ -44,7 +44,8 @@ plot bot-accepted-wire (
 ) = (.1.read.result.completed.wire)
 
 # One actual physical operation of each kind; DATA and CSW reuse the same IN
-# attachment with exact ordinal0/1. No terminal outcome selects another effect.
+# attachment with exact ordinals 2*transaction and 2*transaction+1.
+# Tag1 is reused only after matching CSW; no terminal selects another effect.
 plot bot-read-block (
     >> command: UsbEndpointWriteRequest...|
     observations: BotEvent...| <= 4096B >>
@@ -79,6 +80,6 @@ plot bot-read-block (
     join.paired >> bot-accept() >> bot-advance() >> cell.next
     route >> select(BotRoute.stopped, unmatched=drop) >> ended
     route >> select(BotRoute.stopped, unmatched=drop) >> bot-outcome() >> outcome
-    route >> select(BotRoute.stopped, unmatched=drop) >> bot-accepted-state() >> select(BotAcceptedState.ready, unmatched=drop) >> block-join.left
+    cell.current >> bot-accepted-state() >> select(BotAcceptedState.ready, unmatched=drop) >> block-join.left
     block-join.paired >> bot-accepted-wire() >> accepted-block
 }

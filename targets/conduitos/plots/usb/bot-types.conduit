@@ -1,4 +1,5 @@
-# One read-only READ(10), LUN0, LBA0, one 512-byte block. No filesystem meaning.
+# Sixteen serialized read-only READ(10), LUN0, LBA0, one 512-byte block each.
+# Tag1 is reused only after matching CSW acceptance; no overlapping CBWs.
 type BotControlFacts = {
     descriptor: Boolean
     ack: Boolean
@@ -15,6 +16,7 @@ type BotEvent =
 type BotState = {
     command: UsbEndpointWriteRequest
     phase: U64
+    transaction: U64
     terminal: Boolean
     refused: Boolean
 }

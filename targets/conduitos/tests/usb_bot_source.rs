@@ -242,13 +242,11 @@ fn bounded_bot_checks_with_one_transport_placement_and_two_distinct_feedback_ret
             .count(),
         2
     );
-    assert!(
-        !expanded
-            .expanded
-            .gears
-            .iter()
-            .any(|gear| gear.kind_id.as_str() == "flow/zip/finite")
-    );
+    assert!(!expanded
+        .expanded
+        .gears
+        .iter()
+        .any(|gear| gear.kind_id.as_str() == "flow/zip/finite"));
 }
 
 #[test]
@@ -439,58 +437,108 @@ fn transition(
 }
 
 #[test]
-fn lifecycle_accepts_only_after_data_and_matching_status_and_never_retries_partial_or_terminal() {
+fn sixteen_serial_transactions_publish_only_after_each_status_and_never_submit_seventeenth() {
     let source = prepared();
     let init = program(&source, "bot-initialize");
     let accept = program(&source, "bot-accept");
     let advance = program(&source, "bot-advance");
     let outcome = program(&source, "bot-outcome");
     let route = program(&source, "bot-route");
+    let accepted = program(&source, "bot-accepted-state");
     let control = program(&source, "bot-control-event");
     let write = program(&source, "bot-write-event");
     let read = program(&source, "bot-read-event");
-    let request = program(&source, "bot-read-request");
     let mut state = evaluate(&init, &write_request(&init.input_type, &CBW));
-    let events = [
-        evaluate(&control, &control_result(&control.input_type, &CONFIG)),
-        evaluate(&control, &control_result(&control.input_type, &[])),
-        evaluate(&write, &write_result(&write.input_type, 31)),
-        evaluate(
-            &read,
-            &read_result(&read.input_type, 0, 512, false, &[0; 512]),
-        ),
-        evaluate(&read, &read_result(&read.input_type, 1, 13, false, &CSW)),
-    ];
-    for (index, event) in events.iter().enumerate() {
-        assert_eq!(tag(&evaluate(&outcome, &state)), "refused");
-        if index == 3 || index == 4 {
-            assert_eq!(
-                scalar(member(&evaluate(&request, &state), "length")),
-                (if index == 3 { 512u64 } else { 13u64 }).to_le_bytes()
-            );
-        }
-        let before = state.clone();
-        // An out-of-order event never advances to another physical submission.
-        let foreign = evaluate(&read, &terminal(&read.input_type, "provider-lost"));
-        let fault = transition(&accept, &advance, &before, &foreign);
-        assert_eq!(phase(&fault), phase(&before));
-        assert_eq!(tag(&evaluate(&route, &fault)), "stopped");
-        if index == 2 {
-            let partial = evaluate(&write, &write_result(&write.input_type, 30));
-            let fault = transition(&accept, &advance, &before, &partial);
-            assert_eq!(phase(&fault), 2);
-            assert_eq!(tag(&evaluate(&route, &fault)), "stopped");
-        }
-        if index == 4 {
-            let duplicate_data = transition(&accept, &advance, &before, &events[3]);
-            assert_eq!(phase(&duplicate_data), 4);
-            assert_eq!(tag(&evaluate(&route, &duplicate_data)), "stopped");
-        }
-        state = transition(&accept, &advance, &state, event);
-        assert_eq!(phase(&state), index as u64 + 1);
-        assert_eq!(scalar(member(&state, "refused")), [0]);
+    for wire in [CONFIG.as_slice(), &[]] {
+        let event = evaluate(&control, &control_result(&control.input_type, wire));
+        state = transition(&accept, &advance, &state, &event);
+        assert_eq!(tag(&evaluate(&accepted, &state)), "refused");
     }
-    assert_eq!(tag(&evaluate(&outcome, &state)), "accepted");
+    for transaction in 0..16u64 {
+        assert_eq!(phase(&state), 2);
+        assert_eq!(tag(&evaluate(&route, &state)), "write");
+        // The first transaction has no previous accepted block; later states
+        // expose the previous block exactly at this post-CSW boundary.
+        assert_eq!(
+            tag(&evaluate(&accepted, &state)),
+            if transaction == 0 { "refused" } else { "ready" }
+        );
+        let partial = evaluate(&write, &write_result(&write.input_type, 30));
+        let fault = transition(&accept, &advance, &state, &partial);
+        assert_eq!(tag(&evaluate(&route, &fault)), "stopped");
+        assert_eq!(tag(&evaluate(&accepted, &fault)), "refused");
+        let written = evaluate(&write, &write_result(&write.input_type, 31));
+        state = transition(&accept, &advance, &state, &written);
+        assert_eq!(phase(&state), 3);
+        assert_eq!(tag(&evaluate(&accepted, &state)), "refused");
+        let data = evaluate(
+            &read,
+            &read_result(&read.input_type, 2 * transaction, 512, false, &[0x5a; 512]),
+        );
+        // Both a future result and an earlier transaction's result refuse.
+        for ordinal in [
+            2 * transaction + 2,
+            2 * transaction + 1,
+            (2 * transaction).saturating_sub(2),
+        ] {
+            if ordinal == 2 * transaction {
+                continue;
+            }
+            let foreign = evaluate(
+                &read,
+                &read_result(&read.input_type, ordinal, 512, false, &[0x5a; 512]),
+            );
+            let fault = transition(&accept, &advance, &state, &foreign);
+            assert_eq!(tag(&evaluate(&route, &fault)), "stopped");
+            assert_eq!(tag(&evaluate(&accepted, &fault)), "refused");
+        }
+        state = transition(&accept, &advance, &state, &data);
+        assert_eq!(phase(&state), 4);
+        assert_eq!(tag(&evaluate(&accepted, &state)), "refused");
+        let duplicate = transition(&accept, &advance, &state, &data);
+        assert_eq!(tag(&evaluate(&route, &duplicate)), "stopped");
+        let status = evaluate(
+            &read,
+            &read_result(&read.input_type, 2 * transaction + 1, 13, false, &CSW),
+        );
+        let stale = evaluate(
+            &read,
+            &read_result(&read.input_type, 2 * transaction + 3, 13, false, &CSW),
+        );
+        assert_eq!(
+            tag(&evaluate(
+                &route,
+                &transition(&accept, &advance, &state, &stale)
+            )),
+            "stopped"
+        );
+        for terminal_name in ["stalled", "provider-lost", "unsupported", "timeout"] {
+            let event = evaluate(&read, &terminal(&read.input_type, terminal_name));
+            let fault = transition(&accept, &advance, &state, &event);
+            assert_eq!(tag(&evaluate(&route, &fault)), "stopped");
+            assert_eq!(tag(&evaluate(&accepted, &fault)), "refused");
+        }
+        state = transition(&accept, &advance, &state, &status);
+        assert_eq!(
+            scalar(member(&state, "transaction")),
+            (transaction + 1).to_le_bytes()
+        );
+        assert_eq!(tag(&evaluate(&accepted, &state)), "ready");
+        assert_eq!(
+            tag(&evaluate(&outcome, &state)),
+            if transaction == 15 {
+                "accepted"
+            } else {
+                "refused"
+            }
+        );
+    }
+    assert_eq!(phase(&state), 5);
     assert_eq!(tag(&evaluate(&route, &state)), "stopped");
     assert_eq!(scalar(member(&state, "terminal")), [1]);
+    let extra = evaluate(&write, &write_result(&write.input_type, 31));
+    let refused = transition(&accept, &advance, &state, &extra);
+    assert_eq!(phase(&refused), 5);
+    assert_eq!(tag(&evaluate(&route, &refused)), "stopped");
+    assert_eq!(tag(&evaluate(&accepted, &refused)), "refused");
 }
