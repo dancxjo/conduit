@@ -361,6 +361,14 @@ cooperative mapping fixture. The following work remains under the owning issue:
 - architecture-specific mapping/coherence/interrupt leaves and real emulator
   execution of the same class plots on each supported product target.
 
+The control Back description is shared by product and proof roots; publishing it
+still creates no attachment possession or authority. The selected control
+transfer retains its lease, ring and pending submission separately from the
+controller borrow. The existing single-control adapter keeps its exclusive xHCI
+borrow and proof entrance. This seam allows the product dispatcher to own one
+controller/event consumer across control and endpoint transfers; installing that
+dispatcher and its independently admitted Boot resources remains #5253 work.
+
 The existing x86_64 Rust USB/HID stack remains the current product implementation
 until replacement plots earn execution proof. Sharing arithmetic is useful
 foundation; it does not establish driver parity.
