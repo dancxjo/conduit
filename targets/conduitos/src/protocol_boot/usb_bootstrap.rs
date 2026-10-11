@@ -88,6 +88,7 @@ pub unsafe fn run_if_selected(record: &boot::BootRecord) -> Result<(), &'static 
         )
     }?;
     if let Some(discovery) = discovery.as_ref() {
+        discovery.validate_request(&request)?;
         discovery.validate_class(&entry)?;
     }
     let (mut play, mut outputs) = super::runtime::prepare_usb(entry, &request, host, boot, owners)?;

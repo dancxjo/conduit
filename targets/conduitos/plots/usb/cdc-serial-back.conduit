@@ -46,7 +46,7 @@ plot cdc-serial-observe-control (
 ) {
     pair: flow/zip/finite
     result >> pair.left
-    result >> cdc-acm-topology-supported() >> cdc-serial-descriptor-flag() >> pair.right
+    result >> cdc-serial-class-topology-observation() >> cdc-acm-topology-supported() >> cdc-serial-descriptor-flag() >> pair.right
     pair.paired >> cdc-serial-control-event() >> event
 }
 plot cdc-serial-write-event (

@@ -18,6 +18,7 @@ pub(super) struct RetiredUsbDiscovery {
     verdict: DiscoveryVerdict,
     snapshot: UsbConfigurationSnapshot,
     package_digest: [u8; 32],
+    root_digest: [u8; 32],
     class_resident: conduit_body::ResidentPlot,
     // Retain the exact pure Plan/Play and complete Sign, not just a verdict.
     _play: crate::pure_protocol_play::PreparedPureProtocolPlay,
@@ -33,6 +34,15 @@ impl RetiredUsbDiscovery {
         if entry.package_digest() != &self.package_digest || entry.resident() != self.class_resident
         {
             return Err("protocol-usb-preflight-class-substitution");
+        }
+        Ok(())
+    }
+    pub(super) fn validate_request(
+        &self,
+        request: &UsbProtocolBootRequest,
+    ) -> Result<(), &'static str> {
+        if carrier::request_digest(request)? != self.root_digest {
+            return Err("protocol-usb-preflight-root-substitution");
         }
         Ok(())
     }
@@ -74,34 +84,16 @@ pub(super) fn accept(
     let output = fore.outputs()[0].clone();
     let contract = crate::usb_base::control_contract::ControlContract::prepare()
         .map_err(|_| "protocol-usb-preflight-contract")?;
-    if entry.input_schema(&input.port_id).as_ref() != Some(contract.result_type())
-        || output.value_kind != kind_id("value/bool")
-    {
+    if output.value_kind != kind_id("value/bool") {
         return Err("protocol-usb-preflight-fore");
     }
-    let raw = crate::usb_base::control_request::ControlTransferRequest::new(
-        [
-            0x80,
-            6,
-            0,
-            2,
-            0,
-            0,
-            snapshot.requested() as u8,
-            (snapshot.requested() >> 8) as u8,
-        ],
-        &[],
-        256,
-    )
-    .map_err(|_| "protocol-usb-preflight-observation")?;
-    let mut encoder = crate::usb_base::control_result::PreparedControlResultEncoder::new(&contract)
-        .map_err(|_| "protocol-usb-preflight-observation")?;
+    let schema = entry
+        .input_schema(&input.port_id)
+        .ok_or("protocol-usb-preflight-fore")?;
+    let root_digest = carrier::request_digest(request)?;
     let value = ValuePayload {
         value_kind: input.value_kind.clone(),
-        encoded: encoder
-            .completed(&raw, snapshot.bytes().len() as u16, snapshot.bytes())
-            .map_err(|_| "protocol-usb-preflight-observation")?
-            .to_vec(),
+        encoded: carrier::encode(&schema, &snapshot, request, &contract)?,
     };
     let mut advertisement = HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
@@ -149,6 +141,7 @@ pub(super) fn accept(
     let mut retained = Box::new(RetiredUsbDiscovery {
         snapshot,
         package_digest,
+        root_digest,
         class_resident,
         verdict: DiscoveryVerdict::Unsupported,
         _play: play,
@@ -213,3 +206,6 @@ mod tests;
 
 #[path = "usb_preflight/trace.rs"]
 mod trace;
+
+#[path = "usb_preflight/carrier.rs"]
+mod carrier;
