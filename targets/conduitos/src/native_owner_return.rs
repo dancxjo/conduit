@@ -323,8 +323,17 @@ fn exchange(
     frame: &mut [u8],
 ) -> Result<Response, &'static str> {
     send_chunks(line, encoded, frame)?;
-    native_owner_document::receive(line, MAX_RETURN_ACTION_BYTES)
-        .map_err(|_| "control-outcome-unknown")
+    native_owner_document::receive(line, MAX_RETURN_ACTION_BYTES).map_err(|error| {
+        let code = match error {
+            native_owner_document::DocumentRefusal::Receive(error) => error.as_str(),
+            native_owner_document::DocumentRefusal::Bound => "native-owner-return-document-bound",
+            native_owner_document::DocumentRefusal::Decode => "native-owner-return-document-decode",
+        };
+        crate::arch::early_write(b"CONDUIT_NATIVE_OWNER_RETURN_DOCUMENT {\"code\":\"");
+        crate::arch::early_write(code.as_bytes());
+        crate::arch::early_write(b"\"}\n");
+        "control-outcome-unknown"
+    })
 }
 
 fn send_chunks(
