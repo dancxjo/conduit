@@ -2,7 +2,9 @@
 use super::*;
 use alloc::{vec, vec::Vec};
 use conduit_core::*;
+#[path = "tests/fixture.rs"]
 mod fixture;
+use conduit_kernel::HostCallId;
 fn case_type(ty: &StructuredInfoType, tag: &str) -> StructuredInfoType {
     let StructuredInfoTypeShape::Variant { cases, .. } = ty.shape() else {
         panic!("variant");
@@ -102,6 +104,7 @@ fn full_eight_packet_canonical_envelope_is_validated_without_restricting_batch()
         assert_eq!(batch.packet(index).unwrap().1.len(), 256);
     }
     let mut encoder = PreparedIsochronousResultEncoder::new(&contract).unwrap();
+    println!("ISO prepared result storage={} decoder inline={} owner inline={}", encoder.prepared_storage_bytes(), core::mem::size_of::<super::super::request::PreparedIsochronousRequestDecoder>(), core::mem::size_of::<IsochronousOutCallOwner>());
     let actual = completions(8);
     let result = encoder
         .encode(&actual, IsochronousOutcome::Completed)

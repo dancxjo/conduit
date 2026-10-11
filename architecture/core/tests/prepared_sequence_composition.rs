@@ -130,3 +130,37 @@ fn malformed_children_cannot_be_supplied_as_validated_composition_input() {
     corrupted.push(0);
     assert!(validate_canonical_structured_value(&corrupted).is_err());
 }
+
+#[test]
+fn aggregate_node_refusal_clears_output_and_restart_allocates_nothing() {
+    let leaf = StructuredInfoType::leaf(kind_id("value/empty")).unwrap();
+    let mut fields = Vec::new();
+    let mut values = Vec::new();
+    for index in 0..16 {
+        let name = format!("f{index:02}");
+        fields.push(StructuredFieldType::new(&name, leaf.clone()).unwrap());
+        values.push(
+            StructuredFieldValue::new(
+                &name,
+                StructuredInfoValue::leaf(leaf.clone(), vec![]).unwrap(),
+            )
+            .unwrap(),
+        );
+    }
+    let element = StructuredInfoType::record(kind_id("test/many-nodes"), fields).unwrap();
+    let encoded = StructuredInfoValue::record(element.clone(), values)
+        .unwrap()
+        .canonical_bytes()
+        .unwrap();
+    let child = validate_canonical_structured_value(&encoded).unwrap();
+    let ty = StructuredInfoType::sequence(element, 1024).unwrap();
+    let mut prepared = PreparedStructuredComposer::new(&ty, 262144).unwrap();
+    prepared.collection(&[child]).unwrap();
+    let children = vec![child; 1024];
+    assert!(prepared.collection(&children).is_err());
+    assert!(prepared.encoded().is_empty());
+    ALLOCATIONS.with(|counter| counter.set(Some(0)));
+    assert!(prepared.collection(&[child]).is_ok());
+    assert_eq!(ALLOCATIONS.with(|counter| counter.replace(None)), Some(0));
+    assert!(validate_canonical_structured_value(prepared.encoded()).is_ok());
+}
