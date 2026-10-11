@@ -123,6 +123,7 @@ fn modeled_selection_explains_exact_work_measure_per_unit_time_and_total() {
     let contexts = [CostEvaluationContext {
         host,
         calibrations: &revisions,
+        execution_observations: &[],
         now: &now,
     }];
     let requirements = HardRealizationRequirements::default();

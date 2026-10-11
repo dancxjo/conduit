@@ -192,6 +192,7 @@ pub struct CostedForecast<'a> {
     forecast: &'a FulfillmentCostForecast,
     calibration: Option<&'a super::CostCalibrationEstimate<'a>>,
     service_basis: Option<super::CostDurationRange>,
+    execution_assumption: Option<&'a super::CostExecutionObservation<'a>>,
 }
 // Evidence diagnostics expose size and scope, not prompt/input contents or a
 // repeated copy of the complete advertised inventory.
@@ -235,6 +236,7 @@ impl<'a> CostedForecast<'a> {
             forecast,
             calibration: None,
             service_basis: None,
+            execution_assumption: None,
         })
     }
     pub(super) fn with_service_basis(mut self, basis: super::CostDurationRange) -> Self {
@@ -262,8 +264,63 @@ impl<'a> CostedForecast<'a> {
         now: &conduit_core::MonotonicInstant,
     ) -> Result<Self, Refusal> {
         estimate.validate_use(self.source, self.demand, condition, now)?;
+        if self
+            .execution_assumption
+            .is_some_and(|observation| observation.condition() != condition)
+        {
+            return Err(Refusal::ExecutionConditionChanged);
+        }
         self.calibration = Some(estimate);
         Ok(self)
+    }
+    /// Bind the producer's sampled execution assumption to this exact subject.
+    /// This retained sample is historical; actual use requires a separately
+    /// supplied current observation in the planning context.
+    pub fn with_execution_assumption(
+        mut self,
+        observation: &'a super::CostExecutionObservation<'a>,
+    ) -> Result<Self, Refusal> {
+        observation.matches_subject(self.source)?;
+        if self
+            .calibration
+            .is_some_and(|estimate| estimate.condition() != observation.condition())
+        {
+            return Err(Refusal::ExecutionConditionChanged);
+        }
+        self.execution_assumption = Some(observation);
+        Ok(self)
+    }
+    pub fn execution_assumption(&self) -> Option<&'a super::CostExecutionObservation<'a>> {
+        self.execution_assumption
+    }
+    pub fn expected_execution_condition(&self) -> Option<super::CostExecutionCondition> {
+        self.execution_assumption
+            .map(|sample| sample.condition())
+            .or_else(|| self.calibration.map(|estimate| estimate.condition()))
+    }
+    /// Recheck current execution state at selection, never using a request's
+    /// warm flag or the calibration's old completion as current residency.
+    pub fn validate_for_execution(
+        &self,
+        host: &conduit_core::HostAdvertisement,
+        revision: super::CostCalibrationRevision<'_>,
+        now: &conduit_core::MonotonicInstant,
+        current: Option<&super::CostExecutionObservation<'_>>,
+    ) -> Result<(), Refusal> {
+        self.validate_at(host, revision, now)?;
+        let expected = self.expected_execution_condition();
+        if let Some(expected) = expected {
+            let observation = current.ok_or(Refusal::MissingExecutionObservation)?;
+            observation.matches_subject(self.source)?;
+            observation.source().validate_at(host, revision, now)?;
+            if expected != observation.condition() {
+                return Err(Refusal::ExecutionConditionChanged);
+            }
+            if let Some(estimate) = self.calibration {
+                estimate.validate_use(self.source, self.demand, observation.condition(), now)?;
+            }
+        }
+        Ok(())
     }
     pub fn calibration(&self) -> Option<&'a super::CostCalibrationEstimate<'a>> {
         self.calibration

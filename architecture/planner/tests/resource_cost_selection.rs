@@ -145,6 +145,7 @@ fn exercise(
         .iter()
         .zip(&times)
         .map(|(host, now)| CostEvaluationContext {
+            execution_observations: &[],
             host,
             calibrations: &current,
             now,
