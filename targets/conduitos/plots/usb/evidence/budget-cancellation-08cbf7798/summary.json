@@ -1,0 +1,22 @@
+{
+  "schema": "conduit.usb/cdc-budget-cancellation-diagnostics@1",
+  "source_commit": "08cbf7798efd6fba531e8a5812a9117f3cfb7d4f",
+  "kernel_commit": "1f5a7297820d1de826b7d4e9bec6c2d80baacebf",
+  "architecture": "x86_64",
+  "cases": [
+    {
+      "mode": "hold-in",
+      "receipt_sha256": "502314f04f2e683d0908d59a930060ffa0a06b6027a30b5789dcde5c6cb00da1",
+      "outcome": "step-budget-refusal",
+      "acceptance": "diagnostic-only"
+    },
+    {
+      "mode": "late-after-cancel",
+      "receipt_sha256": "4558d2610d1ebc0b2547de65d196c2b1e6343186d72f451ba75331ff011bca02",
+      "outcome": "step-budget-refusal",
+      "acceptance": "diagnostic-only"
+    }
+  ],
+  "late_native_completion": "unverified",
+  "normal_completion": false
+}
