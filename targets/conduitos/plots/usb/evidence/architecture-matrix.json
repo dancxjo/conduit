@@ -1,0 +1,208 @@
+{
+  "schema": "conduit.usb/architecture-acceptance-matrix@1",
+  "status": "incomplete",
+  "issue": 5258,
+  "rows": [
+    {
+      "architecture": "x86_64",
+      "physical_evidence": "unverified",
+      "classes": {
+        "control": {
+          "status": "incomplete",
+          "reason": "Retained local emulator evidence; complete owning issue acceptance pending",
+          "proof_level": "emulator-with-device",
+          "acceptance": "partial"
+        },
+        "hid": {
+          "status": "incomplete",
+          "reason": "Owning class acceptance not complete"
+        },
+        "cdc-acm": {
+          "status": "incomplete",
+          "reason": "Retained local emulator evidence; complete owning issue acceptance pending",
+          "proof_level": "emulator-with-device",
+          "acceptance": "partial"
+        },
+        "cdc-ecm": {
+          "status": "incomplete",
+          "reason": "Owning class acceptance not complete"
+        },
+        "bot": {
+          "status": "incomplete",
+          "reason": "Owning class acceptance not complete",
+          "proof_level": "emulator-with-device",
+          "receipt": "usb-bot-pattern-block-product-proof.json",
+          "receipt_sha256": "fcf49403e8a4fe810fe93629ce3aeca9ae91bffa5fa1fc65c11451e1785da67d",
+          "acceptance": "partial"
+        },
+        "uac": {
+          "status": "incomplete",
+          "reason": "Owning class acceptance not complete"
+        }
+      },
+      "machine": "q35",
+      "controller": "QEMU xHCI",
+      "substrate": "bounded product control/bulk/interrupt mechanics; complete fault matrix pending"
+    },
+    {
+      "architecture": "aarch64",
+      "physical_evidence": "unverified",
+      "classes": {
+        "control": {
+          "status": "incomplete",
+          "reason": "No actual product USB class execution evidence yet",
+          "proof_level": "compile-only"
+        },
+        "hid": {
+          "status": "incomplete",
+          "reason": "No actual product USB class execution evidence yet",
+          "proof_level": "compile-only"
+        },
+        "cdc-acm": {
+          "status": "incomplete",
+          "reason": "No actual product USB class execution evidence yet",
+          "proof_level": "compile-only"
+        },
+        "cdc-ecm": {
+          "status": "incomplete",
+          "reason": "No actual product USB class execution evidence yet",
+          "proof_level": "compile-only"
+        },
+        "bot": {
+          "status": "incomplete",
+          "acceptance": "partial",
+          "proof_level": "emulator-with-device",
+          "receipt": "usb-bot-aarch64-pattern-block-product-proof.json",
+          "receipt_sha256": "4228c529808e028baec378a8a8cbf81f2f5c74b82c79f4618daea00fc802344b",
+          "reason": "Single read-only LUN0 LBA0 READ(10); complete class recovery/fault acceptance pending"
+        },
+        "uac": {
+          "status": "incomplete",
+          "reason": "No actual product USB class execution evidence yet",
+          "proof_level": "compile-only"
+        }
+      },
+      "machine": "virt-10.2,highmem=off,gic-version=2,iommu=none",
+      "cpu": "neoverse-n2",
+      "controller": "QEMU xHCI PCIe",
+      "substrate": "Actual product control/bulk IN/OUT execution on coherent PCIe xHCI; fault matrix pending",
+      "candidate_source": "20def19de53cede58c47a46f363309f3f798bbf5"
+    },
+    {
+      "architecture": "ia32",
+      "physical_evidence": "unverified",
+      "classes": {
+        "control": {
+          "status": "unsupported",
+          "reason": "No admitted ordinary native USB transfer provider in current product inventory",
+          "proof_level": "none"
+        },
+        "hid": {
+          "status": "unsupported",
+          "reason": "No admitted ordinary native USB transfer provider in current product inventory",
+          "proof_level": "none"
+        },
+        "cdc-acm": {
+          "status": "unsupported",
+          "reason": "No admitted ordinary native USB transfer provider in current product inventory",
+          "proof_level": "none"
+        },
+        "cdc-ecm": {
+          "status": "unsupported",
+          "reason": "No admitted ordinary native USB transfer provider in current product inventory",
+          "proof_level": "none"
+        },
+        "bot": {
+          "status": "unsupported",
+          "reason": "No admitted ordinary native USB transfer provider in current product inventory",
+          "proof_level": "none"
+        },
+        "uac": {
+          "status": "unsupported",
+          "reason": "No admitted ordinary native USB transfer provider in current product inventory",
+          "proof_level": "none"
+        }
+      },
+      "substrate": "unsupported",
+      "reason": "No admitted ordinary native USB transfer provider in current product inventory"
+    },
+    {
+      "architecture": "riscv64",
+      "physical_evidence": "unverified",
+      "classes": {
+        "control": {
+          "status": "unsupported",
+          "reason": "No admitted ordinary native USB transfer provider in current product inventory",
+          "proof_level": "none"
+        },
+        "hid": {
+          "status": "unsupported",
+          "reason": "No admitted ordinary native USB transfer provider in current product inventory",
+          "proof_level": "none"
+        },
+        "cdc-acm": {
+          "status": "unsupported",
+          "reason": "No admitted ordinary native USB transfer provider in current product inventory",
+          "proof_level": "none"
+        },
+        "cdc-ecm": {
+          "status": "unsupported",
+          "reason": "No admitted ordinary native USB transfer provider in current product inventory",
+          "proof_level": "none"
+        },
+        "bot": {
+          "status": "unsupported",
+          "reason": "No admitted ordinary native USB transfer provider in current product inventory",
+          "proof_level": "none"
+        },
+        "uac": {
+          "status": "unsupported",
+          "reason": "No admitted ordinary native USB transfer provider in current product inventory",
+          "proof_level": "none"
+        }
+      },
+      "substrate": "unsupported",
+      "reason": "No admitted ordinary native USB transfer provider in current product inventory"
+    },
+    {
+      "architecture": "loongarch64",
+      "physical_evidence": "unverified",
+      "classes": {
+        "control": {
+          "status": "unsupported",
+          "reason": "No admitted ordinary native USB transfer provider in current product inventory",
+          "proof_level": "none"
+        },
+        "hid": {
+          "status": "unsupported",
+          "reason": "No admitted ordinary native USB transfer provider in current product inventory",
+          "proof_level": "none"
+        },
+        "cdc-acm": {
+          "status": "unsupported",
+          "reason": "No admitted ordinary native USB transfer provider in current product inventory",
+          "proof_level": "none"
+        },
+        "cdc-ecm": {
+          "status": "unsupported",
+          "reason": "No admitted ordinary native USB transfer provider in current product inventory",
+          "proof_level": "none"
+        },
+        "bot": {
+          "status": "unsupported",
+          "reason": "No admitted ordinary native USB transfer provider in current product inventory",
+          "proof_level": "none"
+        },
+        "uac": {
+          "status": "unsupported",
+          "reason": "No admitted ordinary native USB transfer provider in current product inventory",
+          "proof_level": "none"
+        }
+      },
+      "substrate": "unsupported",
+      "reason": "No admitted ordinary native USB transfer provider in current product inventory"
+    }
+  ],
+  "scope": "Published supported-target evidence inventory; all six owning issue acceptances remain open",
+  "aarch64_bot_package_sha256": "e09a9f5aa14c599d85fb7a5ea247c91c0aab5d2d3045efca55bd3f08c003134d"
+}
