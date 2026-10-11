@@ -259,19 +259,18 @@ fn exact_source_and_selected_plan_bind_renderer_configuration() {
     }
 }
 
+type ConfiguredMaskEvidence = (
+    ConfiguredComponentSource,
+    Vec<u8>,
+    Vec<u8>,
+    PlanId,
+    ExpandedPlotId,
+);
+
 fn evidence(
     source: &str,
     root_name: &str,
-) -> Result<
-    (
-        ConfiguredComponentSource,
-        Vec<u8>,
-        Vec<u8>,
-        PlanId,
-        ExpandedPlotId,
-    ),
-    ConfiguredMaskRefusal,
-> {
+) -> Result<ConfiguredMaskEvidence, ConfiguredMaskRefusal> {
     let (checked, expanded, profiles, host) = fixture(source, root_name);
     let placements =
         default_expanded_placements(&expanded.expanded, std::slice::from_ref(&host)).unwrap();
