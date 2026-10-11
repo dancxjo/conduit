@@ -143,6 +143,10 @@ impl PreparedProtocolSource {
             .map_err(Error::Contract)?
             .install_catalogs(&mut startup, &mut profile)
             .map_err(Error::Catalog)?;
+        crate::ethernet_frame::contract::EthernetFrameContract::prepare()
+            .map_err(Error::Contract)?
+            .install_catalogs(&mut startup, &mut profile)
+            .map_err(Error::Catalog)?;
         let mut operations = ProtocolOperations::default();
         let mut capabilities = Vec::new();
         for specialization in &package.specializations {

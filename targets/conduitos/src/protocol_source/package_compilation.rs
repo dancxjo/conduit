@@ -60,6 +60,10 @@ impl ProtocolSourcePackage {
             .map_err(Error::Contract)?
             .install_catalogs(&mut startup, &mut profile)
             .map_err(Error::Catalog)?;
+        crate::ethernet_frame::contract::EthernetFrameContract::prepare()
+            .map_err(Error::Contract)?
+            .install_catalogs(&mut startup, &mut profile)
+            .map_err(Error::Catalog)?;
         // The first pass checks only declarations. Generic kind Fore contracts
         // depend on these schemas; the full Source is checked after installing
         // the resulting specializations by PreparedProtocolEntry::prepare.
