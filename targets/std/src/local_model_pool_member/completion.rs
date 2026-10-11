@@ -3,6 +3,9 @@
 //! This measures elapsed adapter-call time, including effects it waits for. It
 //! does not separately measure queue/transport/warmup, predict completion, assert
 //! residency, or grant authority to publish a cost observation.
+mod calibration;
+pub use calibration::{LocalModelCompletionCalibrationRefusal, LocalModelPreparedCalibration};
+
 use crate::{hosted_local_model::LocalModelAdapterTerminal, ThreadTimer, TimerAdapter};
 use conduit_core::{
     MonotonicClockIdentity, MonotonicDuration, MonotonicInstant, MonotonicTimeRefusal, PlannedGear,
@@ -22,8 +25,18 @@ pub enum LocalModelMeasurementRefusal {
 /// Borrows the actual sealed selection and placement; callers cannot substitute
 /// another model, Host, Boot, offer generation, operation or realization.
 ///
+/// ```
+/// use conduit_std_host::{LocalModelCompletedWork, LocalModelPreparedCalibration};
+/// fn read(receipt: &LocalModelCompletedWork<'_>) -> [u8; 32] {
+///     receipt.input_digest()
+/// }
+/// fn record<'a>(prepared: &LocalModelPreparedCalibration<'a>) {
+///     let _ = prepared.record().measured();
+/// }
+/// ```
+///
 /// ```compile_fail
-/// use conduit_std_host::local_model_pool_member::LocalModelCompletedWork;
+/// use conduit_std_host::LocalModelCompletedWork;
 /// fn forge(receipt: &mut LocalModelCompletedWork<'_>) {
 ///     receipt.input_digest = [0; 32];
 /// }
