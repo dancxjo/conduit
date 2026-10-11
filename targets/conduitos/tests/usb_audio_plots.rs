@@ -626,7 +626,7 @@ fn playback_envelope_value(
             maximum_items,
             ..
         } => {
-            if path == "/1" {
+            if path == "/1/words" {
                 let status = match event_status {
                     "running" => 0,
                     "completed" => 1,

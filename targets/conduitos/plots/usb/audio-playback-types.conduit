@@ -47,7 +47,9 @@ type UsbAudioPlaybackActive =
 # Exactly eight Source event words: kind, phase ack mask, first USB frame,
 # status code, completed packet count, actual bytes, acknowledged stop, support.
 # Ack bits 1/2/4/8 preserve descriptor/zero/SET/GET observations separately.
-type UsbAudioPlaybackEvent = sequence U64 <= 8
+type UsbAudioPlaybackEvent = {
+    words: sequence U64 <= 8
+}
 type UsbAudioPlaybackReport = {
     header: PcmFrameHeader
     first-frame: U64
