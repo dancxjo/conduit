@@ -54,6 +54,56 @@ impl DimensionDefinition {
     pub fn terms(&self) -> &[DimensionTerm] {
         &self.terms[..self.length as usize]
     }
+    /// Compose normalized dimensional algebra without heap allocation. Equal
+    /// anchors combine and cancelling powers disappear before extent admission.
+    pub fn product(self, other: Self) -> Result<Self, PhysicalDefinitionRefusal> {
+        self.compose(other, 1)
+    }
+    pub fn quotient(self, other: Self) -> Result<Self, PhysicalDefinitionRefusal> {
+        self.compose(other, -1)
+    }
+    fn compose(self, other: Self, sign: i16) -> Result<Self, PhysicalDefinitionRefusal> {
+        let mut result = Self::DIMENSIONLESS;
+        let (mut left, mut right) = (0, 0);
+        while left < self.terms().len() || right < other.terms().len() {
+            let a = self.terms().get(left);
+            let b = other.terms().get(right);
+            let (anchor, power) = match (a, b) {
+                (Some(a), Some(b)) if a.anchor == b.anchor => {
+                    left += 1;
+                    right += 1;
+                    (a.anchor, i16::from(a.power) + sign * i16::from(b.power))
+                }
+                (Some(a), Some(b)) if a.anchor > b.anchor => {
+                    right += 1;
+                    (b.anchor, sign * i16::from(b.power))
+                }
+                (Some(a), _) => {
+                    left += 1;
+                    (a.anchor, i16::from(a.power))
+                }
+                (_, Some(b)) => {
+                    right += 1;
+                    (b.anchor, sign * i16::from(b.power))
+                }
+                _ => unreachable!("a remaining dimension term"),
+            };
+            if !(-16..=16).contains(&power) {
+                return Err(PhysicalDefinitionRefusal::InvalidDimensionPower);
+            }
+            if power != 0 {
+                if result.length as usize == MAX_DIMENSION_TERMS {
+                    return Err(PhysicalDefinitionRefusal::TooManyDimensionTerms);
+                }
+                result.terms[result.length as usize] = DimensionTerm {
+                    anchor,
+                    power: power as i8,
+                };
+                result.length += 1;
+            }
+        }
+        Ok(result)
+    }
     pub fn anchor(name: &str) -> Result<[u8; 32], PhysicalDefinitionRefusal> {
         let name = DefinitionName::new(name)?;
         Ok(identity(

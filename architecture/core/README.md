@@ -61,6 +61,7 @@ depends on semantic, application, target, or proof packages.
 | `physical_definition.rs` and children | generic value mechanism | Self-contained immutable family, dimension, role and Unit capsules admitted from authoritative Conduitese definitions; bounded exact scalar and explicit prefix policies. |
 | `quantity_suffix.rs` | generic value mechanism | Borrowed source evidence checked against the embedded Unit descriptor, with generated built-in convenience resolution. |
 | `unit.rs` | generic value mechanism | Standalone bounded physical Unit codec carrying complete declaration identity, reference anchor, exact affine law and admitted spelling. |
+| `dimension.rs` | generic value mechanism | Standalone versioned normalized Dimension codec and finite composition, independent of Unit coordinates and nominal quantity families. |
 | `quantity_configuration.rs` | generic value mechanism | Checked exact Quantity, physical Unit and temperature-difference startup values with separate bounded source evidence. |
 | `structured_info.rs` and children | generic value mechanism | Finite canonical structured type/value, selection, inspection, transport, and profile machinery. |
 | `temporal.rs` | generic value mechanism | Exact finite temporal identity, instant, relation, and offset-only civil primitives without clocks or timezone databases. |

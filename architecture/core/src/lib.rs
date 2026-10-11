@@ -47,6 +47,7 @@ mod resource_content;
 mod resource_port;
 pub mod revision;
 mod unit;
+mod dimension;
 use resource_canonical::push_resource_binding;
 mod body_time;
 mod body_time_exchange;
@@ -144,6 +145,7 @@ pub use temporal_clock::*;
 pub use temporal_quantity::*;
 pub use terminal_info::*;
 pub use unit::*;
+pub use dimension::*;
 pub use value_constraint::*;
 
 pub const PROTOCOL_VERSION: u16 = 1;
