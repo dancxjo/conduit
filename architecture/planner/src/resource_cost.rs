@@ -2,14 +2,21 @@
 //! These primitives do not themselves select a realization or certify a forecast.
 mod duration;
 mod freshness;
+mod source;
 pub use duration::CostDuration;
 pub use freshness::CostObservationWindow;
+pub use source::{
+    CostCalibrationRevision, CostEvidenceSource, CostScopeChange, MAXIMUM_COST_ID_BYTES,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CostEvidenceRefusal {
     Numeric(conduit_core::ExactNumericRefusal),
     Physical(conduit_core::RationalQuantityRefusal),
     NegativeDuration,
+    InvalidIdentity,
+    UnadvertisedSubject,
+    Scope(CostScopeChange),
     InvalidClock(conduit_core::MonotonicTimeRefusal),
     ClockQualityChanged,
     InvalidWindow,
