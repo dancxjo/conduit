@@ -11,5 +11,7 @@ pub mod installation;
 #[cfg(feature = "native-owner-network")]
 pub mod network_session;
 pub mod offer;
+#[cfg(feature = "native-owner-network")]
+pub mod owned_installation;
 pub(crate) mod owner;
 pub mod queues;
