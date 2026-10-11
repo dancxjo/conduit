@@ -1,7 +1,7 @@
 //! Prepared exact-Type equality follows the ordinary structured equality law.
 use super::*;
 use conduit_core::{
-    StructuredInfoType, StructuredInfoTypeShape, validate_canonical_structured_value,
+    validate_canonical_structured_value, StructuredInfoType, StructuredInfoTypeShape,
 };
 
 pub(super) struct PreparedEquality {

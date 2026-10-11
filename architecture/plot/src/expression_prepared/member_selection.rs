@@ -1,5 +1,5 @@
 //! Borrow nested exact members; only a structured final result needs scratch.
-use super::{Refusal, storage_bound};
+use super::{storage_bound, Refusal};
 use crate::{PortableExpressionNode, PortableExpressionOperation, PortableExpressionProjection};
 use alloc::{string::String, vec::Vec};
 use conduit_core::{StructuredInfoType, StructuredInfoTypeShape};
