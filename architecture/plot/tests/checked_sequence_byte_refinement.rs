@@ -163,7 +163,8 @@ mod allocation;
 fn selected_record_projection_is_preallocated_and_rejects_forged_members() {
     use conduit_plot::{PortableExpressionOperation as Op, PortableExpressionProjection as Member};
     let program = expand("{wire:sequence/at(.packets,.index).wire}", "Output").unwrap();
-    let encoded = input(&program, &[&[0x5a; 256]; 8], 7);
+    let packet = [0x5a; 256];
+    let encoded = input(&program, &[packet.as_slice(); 8], 7);
     let mut prepared = PreparedPortableExpressionEvaluator::new(&program).unwrap();
     assert!(prepared.evaluate(&encoded).is_ok());
     let allocations = allocation::allocations(|| {
