@@ -6,6 +6,7 @@ use conduit_core::{
 };
 
 mod call_structure;
+mod input_bound;
 mod physical_literals;
 mod semantic_call;
 mod substitution;
@@ -362,6 +363,7 @@ fn expand_expression(
             ),
         )
     })?;
+    checked.input_maximum_bytes = input_bound::checked_bound(source, source_plot, gears)?;
     checked.canonical_literals = canonical_literals;
     checked.immutable_constants = constants;
     if let Some(invariants) = catalog.type_invariants(
@@ -399,6 +401,7 @@ fn expand_expression(
             "pure expression has no finite exact Port identity".into(),
         )
     })?;
+    let semantic_laws = input_bound::semantic_laws(&checked)?;
     drop(checked);
     let key = definition.kind_id.as_str().to_string();
     let count = anonymous_counts.entry(key.clone()).or_default();
@@ -437,7 +440,7 @@ fn expand_expression(
         outputs: vec![output.clone()],
         semantic_contract: conduit_core::KindSemanticContract {
             configuration: definition.configuration.clone(),
-            laws: crate::pure_expression_semantic_laws(),
+            laws: semantic_laws,
         },
         terminal_transductions: Vec::new(),
         resource_ports: Vec::new(),

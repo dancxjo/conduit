@@ -32,6 +32,7 @@ use structured::PreparedStructuredExpression;
 pub struct PreparedPortableExpressionEvaluator {
     root: PreparedRoot,
     input: PreparedInput,
+    input_maximum_bytes: Option<u32>,
     output: Vec<u8>,
 }
 
@@ -100,10 +101,20 @@ pub fn maximum_prepared_canonical_value_bytes(
     Ok(storage_bound::canonical(ty)? as u32)
 }
 
+pub(crate) fn maximum_input_type_bytes(
+    ty: &conduit_core::StructuredInfoType,
+) -> Result<u32, Refusal> {
+    Ok(storage_bound::output(ty)? as u32)
+}
+
 impl PortableExpressionProgram {
     /// Conservative canonical transport ceiling, computed before Play from the exact input Type.
     pub fn maximum_prepared_input_bytes(&self) -> Result<u32, Refusal> {
-        Ok(storage_bound::output(&self.input_type)? as u32)
+        self.validate_input_bound()
+            .map_err(|_| Refusal::InvalidProgram)?;
+        Ok(self
+            .input_maximum_bytes
+            .unwrap_or(maximum_input_type_bytes(&self.input_type)?))
     }
 
     /// Conservative canonical transport ceiling, computed before Play from the exact output Type.
@@ -143,14 +154,19 @@ impl PreparedPortableExpressionEvaluator {
                     .into(),
             ),
         };
-        Self::prepare(
+        program
+            .validate_input_bound()
+            .map_err(|_| Refusal::InvalidProgram)?;
+        let mut prepared = Self::prepare(
             ProgramView {
                 input_type: &program.input_type,
                 output_type: &program.output_type,
                 root: &program.root,
             },
             input,
-        )
+        )?;
+        prepared.input_maximum_bytes = program.input_maximum_bytes;
+        Ok(prepared)
     }
 
     fn prepare(program: ProgramView<'_>, input: PreparedInput) -> Result<Self, Refusal> {
@@ -182,11 +198,18 @@ impl PreparedPortableExpressionEvaluator {
         Ok(Self {
             root,
             input,
+            input_maximum_bytes: None,
             output: Vec::with_capacity(storage_bound::output(program.output_type)?),
         })
     }
 
     pub fn evaluate(&mut self, input: &[u8]) -> Result<&[u8], Refusal> {
+        if self
+            .input_maximum_bytes
+            .is_some_and(|maximum| input.len() > maximum as usize)
+        {
+            return Err(Refusal::InvalidInput);
+        }
         let mut primitive_bytes = input;
         let primitive_input = match &self.input {
             PreparedInput::Primitive {

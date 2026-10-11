@@ -183,7 +183,7 @@ fn expression_definition_from_encoding(
     })
 }
 
-fn expression_port_kind(
+pub(crate) fn expression_port_kind(
     value_type: &conduit_core::StructuredInfoType,
 ) -> Result<conduit_core::KindId, StructuredInfoRefusal> {
     match value_type.shape() {

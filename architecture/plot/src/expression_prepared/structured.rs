@@ -51,6 +51,7 @@ impl PreparedStructuredExpression {
             }
             PortableExpressionOperation::Literal(_) | PortableExpressionOperation::Constant(_) => {
                 let constant = PortableExpressionProgram {
+                    input_maximum_bytes: None,
                     input_type: StructuredInfoType::leaf(conduit_core::kind_id(
                         conduit_core::EMPTY_INFO_ID,
                     ))
