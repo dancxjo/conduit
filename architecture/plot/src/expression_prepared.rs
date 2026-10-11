@@ -360,7 +360,7 @@ fn prepare_node(
             )
         }
         PortableExpressionOperation::Projection { .. } => {
-            PreparedOperation::Projection(member_selection::prepare(node, input_type)?)
+            PreparedOperation::Projection(member_selection::prepare(node, input_type, prepared_input)?)
         }
         _ => {
             return Err(Refusal::UnsupportedType(
