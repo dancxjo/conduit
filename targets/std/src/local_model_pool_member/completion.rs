@@ -142,6 +142,11 @@ impl MeasurementSlot {
             conduit_core::semantic_digest("conduit.std/local-model-completed-input@1", input);
         self.started = ThreadTimer.monotonic_now_micros();
     }
+    pub(super) fn input_identity(&self) -> Option<(u32, [u8; 32])> {
+        self.refusal
+            .is_none()
+            .then_some((self.input_bytes, self.input_digest))
+    }
     pub(super) fn finish(&mut self, terminal: LocalModelAdapterTerminal, bytes: usize) {
         self.completed = ThreadTimer.monotonic_now_micros();
         self.terminal = Some(terminal);
