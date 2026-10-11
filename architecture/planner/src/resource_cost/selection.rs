@@ -59,13 +59,13 @@ pub enum UnavailableCostPolicy {
     IgnoreCostsIfIncomplete,
     RequireKnown,
 }
-pub struct CostSelectionInputs<'a> {
+pub struct CostSelectionInputs<'a, 'selection> {
     pub hosts: &'a [HostAdvertisement],
     pub contexts: &'a [CostEvaluationContext<'a>],
-    pub advertisements: &'a [RealizationAdvertisement],
-    pub requirements: &'a HardRealizationRequirements,
-    pub observations: &'a [TimedResourceObservation<'a>],
-    pub tie_policy: &'a RealizationPolicy,
+    pub advertisements: &'selection [RealizationAdvertisement],
+    pub requirements: &'selection HardRealizationRequirements,
+    pub observations: &'selection [TimedResourceObservation<'selection>],
+    pub tie_policy: &'selection RealizationPolicy,
     pub forecasts: &'a [CostedForecast<'a>],
     pub intent: PerformanceIntent,
     pub unavailable: UnavailableCostPolicy,
@@ -76,7 +76,7 @@ pub struct CostSelectionInputs<'a> {
 /// outside this estimated-cost API and is explicitly refused.
 pub fn select_realization_with_costs<'a>(
     demand: CostDemand<'a>,
-    inputs: CostSelectionInputs<'a>,
+    inputs: CostSelectionInputs<'a, '_>,
     work: &mut ExactNumericWork,
 ) -> Result<CostRealizationSelection<'a>, CostSelectionError> {
     let initial_work = work.spent();
@@ -407,7 +407,7 @@ pub fn select_realization_with_costs<'a>(
 fn tie_order(
     left: &CostCandidateEvidence<'_>,
     right: &CostCandidateEvidence<'_>,
-    inputs: &CostSelectionInputs<'_>,
+    inputs: &CostSelectionInputs<'_, '_>,
     observations: &[ResourceObservation],
 ) -> Ordering {
     let subject = |host_id: &HostId, capability_id: &CapabilityId| {
