@@ -9,23 +9,31 @@ pub(super) fn format(
     error: &ProtocolBodyRefusal,
     play: &BodyPlayIdentity,
 ) -> Result<Option<crate::sign_format::FixedText>, core::fmt::Error> {
-    let ProtocolBodyRefusal::Call(crate::protocol_host_calls::ProtocolCallRefusal::Kernel(
-        KernelCompositeError::Execution {
-            child,
-            reason: ChildExecutionError::Scheduler(SchedulerError::BackFailed(failure)),
-        },
-    )) = error
-    else {
-        return Ok(None);
+    let (child, failure) = match error {
+        ProtocolBodyRefusal::Call(crate::protocol_host_calls::ProtocolCallRefusal::Kernel(
+            KernelCompositeError::Execution {
+                child,
+                reason: ChildExecutionError::Scheduler(SchedulerError::BackFailed(failure)),
+            },
+        )) => (Some(*child), *failure),
+        ProtocolBodyRefusal::Call(error) => (None, error.failure()),
+        _ => return Ok(None),
     };
     let mut text = crate::sign_format::FixedText::new();
-    writeln!(
+    write!(
         text,
-        "CONDUIT_PROTOCOL_STEP_FAILURE body={} plan={} play={} child={} code={} detail={}",
+        "CONDUIT_PROTOCOL_STEP_FAILURE body={} plan={} play={} child=",
         play.body_id.as_str(),
         play.plan_id.as_str(),
-        play.active_play_id.as_str(),
-        child,
+        play.active_play_id.as_str()
+    )?;
+    match child {
+        Some(child) => write!(text, "{child} origin=kernel")?,
+        None => text.write_str("none origin=call_refusal")?,
+    }
+    writeln!(
+        text,
+        " code={} detail={}",
         failure.code.as_str(),
         failure.detail
     )?;
@@ -63,7 +71,7 @@ mod tests {
             assert_eq!(
                 core::str::from_utf8(report.as_bytes()).unwrap(),
                 alloc::format!(
-                    "CONDUIT_PROTOCOL_STEP_FAILURE body=original-body plan=body-plan/sha256:original-plan play=body-play/sha256:original-play child=3 code={} detail={}\n",
+                    "CONDUIT_PROTOCOL_STEP_FAILURE body=original-body plan=body-plan/sha256:original-plan play=body-play/sha256:original-play child=3 origin=kernel code={} detail={}\n",
                     code.as_str(),
                     detail
                 )
@@ -74,5 +82,42 @@ mod tests {
                 .unwrap()
                 .is_none()
         );
+    }
+
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    #[test]
+    fn native_dispatch_refusal_keeps_classifier_before_kernel_step() {
+        let play = BodyPlayIdentity {
+            active_play_id: "original-play".into(),
+            body_id: "original-body".into(),
+            wake_id: "original-wake".into(),
+            plan_id: "original-plan".into(),
+            play_sequence: 0,
+        };
+        for (native, expected) in [
+            (
+                crate::arch::usb_xhci::UsbError::StaleDeviceInstance,
+                "code=invalid_lifecycle detail=1095",
+            ),
+            (
+                crate::arch::usb_xhci::UsbError::DeviceVanished,
+                "code=host_call_failed detail=1096",
+            ),
+        ] {
+            let error = ProtocolBodyRefusal::Call(
+                crate::protocol_host_calls::ProtocolCallRefusal::UsbProtocol(
+                    crate::arch::UsbNativeProtocolRefusal::Host(
+                        crate::arch::UsbNativeHostRefusal::Native(native),
+                    ),
+                ),
+            );
+            let report = format(&error, &play).unwrap().unwrap();
+            let text = core::str::from_utf8(report.as_bytes()).unwrap();
+            assert!(text.contains("child=none origin=call_refusal"));
+            assert!(text.ends_with(&alloc::format!("{expected}\n")));
+        }
     }
 }
