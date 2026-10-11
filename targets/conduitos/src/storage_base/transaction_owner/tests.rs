@@ -171,3 +171,13 @@ fn cancellation_retains_physical_submission_until_exact_stop_receipt() {
         Err(StorageTransactionRefusal::Terminal)
     ));
 }
+
+#[test]
+fn original_claim_capacity_is_bounded_even_when_its_identity_bytes_match() {
+    let result = fixture::owner(|authorize, _| {
+        let mut oversized = alloc::string::String::with_capacity(32768);
+        oversized.push_str(authorize.claim.boot_id.as_str());
+        authorize.claim.boot_id = BootId(oversized);
+    });
+    assert!(matches!(result, Err(StorageTransactionRefusal::Retention)));
+}

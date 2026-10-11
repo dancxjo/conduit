@@ -57,7 +57,12 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
             .as_ref()
             .ok_or(ProtocolCallRefusal::InvalidPlan)?
             .subordinate_nodes();
-        calls.storage = Some(storage::StorageAssociation::prepare(owner, plan, nodes)?);
+        calls.storage = Some(storage::StorageAssociation::prepare(
+            owner,
+            plan,
+            nodes,
+            admission.maximum_retained_bytes,
+        )?);
         for (gear, owner) in [
             (authorize, Owner::StorageAuthorize),
             (settle, Owner::StorageSettle),

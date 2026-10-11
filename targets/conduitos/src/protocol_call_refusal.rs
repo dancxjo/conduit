@@ -59,7 +59,7 @@ impl ProtocolCallRefusal {
                 let code = match error {
                     S::Binding | S::Stale | S::Terminal => FailureCode::InvalidLifecycle,
                     S::Possession => FailureCode::HostCallDenied,
-                    S::Pressure => FailureCode::StorageExhausted,
+                    S::Pressure | S::Retention => FailureCode::StorageExhausted,
                     S::Candidate | S::Canonical(_) | S::Request(_) => FailureCode::InvalidInput,
                     S::Capability(_) => FailureCode::HostCallFailed,
                 };

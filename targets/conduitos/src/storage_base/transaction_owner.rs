@@ -5,6 +5,7 @@ use crate::machine_membrane::selected_operation::*;
 use conduit_core::*;
 use conduit_kernel::{HostCallId, NodeId, RequestId};
 use sha2::{Digest, Sha256};
+pub(crate) mod retention;
 
 pub(crate) struct StorageScopeAdmission<'a> {
     pub table: BaseCapabilityTable,
@@ -70,6 +71,7 @@ impl StorageSettlementReceipt {
 pub enum StorageTransactionRefusal {
     Binding,
     Possession,
+    Retention,
     Pressure,
     Stale,
     Terminal,
@@ -90,6 +92,7 @@ pub(crate) struct BlockReadTransactionOwner {
     next_settle_request: u32,
     preparation: [u8; 32],
     terminal: bool,
+    retained_bytes: usize,
 }
 impl BlockReadTransactionOwner {
     /// Bind two independently issued scopes, exact lowered placements and one
@@ -101,6 +104,10 @@ impl BlockReadTransactionOwner {
         settle: StorageScopeAdmission<'_>,
     ) -> Result<Self, StorageTransactionRefusal> {
         use StorageTransactionRefusal as E;
+        let metadata = retention::metadata(&authorize)?
+            .checked_add(retention::metadata(&settle)?)
+            .ok_or(E::Retention)?;
+        let before = crate::allocation::BOOT_ARENA.live_bytes();
         let a = &authorize.claim;
         let s = &settle.claim;
         if authorize.selected.fragment != settle.selected.fragment
@@ -140,7 +147,7 @@ impl BlockReadTransactionOwner {
         let integer = || {
             PreparedStructuredComposer::new(&StructuredInfoType::leaf(kind_id("value/u64"))?, 64)
         };
-        Ok(Self {
+        let mut owner = Self {
             authorize,
             settle,
             decoder: PreparedBlockReadRequestDecoder::new(contract.block())
@@ -166,7 +173,17 @@ impl BlockReadTransactionOwner {
             next_settle_request: 0,
             preparation,
             terminal: false,
-        })
+            retained_bytes: 0,
+        };
+        let allocated = crate::allocation::BOOT_ARENA
+            .live_bytes()
+            .checked_sub(before)
+            .ok_or(E::Retention)?;
+        owner.retained_bytes = metadata.checked_add(allocated).ok_or(E::Retention)?;
+        Ok(owner)
+    }
+    pub(crate) fn retained_bytes(&self) -> usize {
+        self.retained_bytes
     }
     pub(crate) fn authorize_claim(&self) -> &BaseOperationClaim {
         &self.authorize.claim

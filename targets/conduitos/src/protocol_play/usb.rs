@@ -191,6 +191,8 @@ pub(crate) struct StorageScopePossession {
     pub claim: BaseOperationClaim,
 }
 pub(crate) struct StorageUsbAdmission {
+    /// Independently Root-backed storage retention, separate from USB envelopes.
+    pub maximum_retained_bytes: u64,
     pub usb: UsbDuplexAdmission,
     pub authorize: StorageScopePossession,
     pub settle: StorageScopePossession,

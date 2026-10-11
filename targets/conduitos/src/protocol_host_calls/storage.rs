@@ -16,6 +16,7 @@ pub(super) struct StorageAssociation {
     receipt: Option<StorageSettlementReceipt>,
     cancelled: bool,
     revoked: bool,
+    maximum_retained_bytes: u64,
     output: [u8; 4096],
     output_length: usize,
 }
@@ -24,6 +25,7 @@ impl StorageAssociation {
         owner: BlockReadTransactionOwner,
         plan: &Plan,
         nodes: [NodeId; 3],
+        maximum_retained_bytes: u64,
     ) -> Result<Self, ProtocolCallRefusal> {
         let [fragment] = plan.fragments.as_slice() else {
             return Err(ProtocolCallRefusal::InvalidPlan);
@@ -50,6 +52,13 @@ impl StorageAssociation {
                 return Err(ProtocolCallRefusal::InvalidPlan);
             }
         }
+        crate::storage_base::transaction_owner::retention::charge(
+            owner.retained_bytes(),
+            core::mem::size_of::<Self>(),
+            0,
+            maximum_retained_bytes,
+        )
+        .map_err(ProtocolCallRefusal::Storage)?;
         Ok(Self {
             owner,
             usb_nodes: nodes,
@@ -59,6 +68,7 @@ impl StorageAssociation {
             receipt: None,
             cancelled: false,
             revoked: false,
+            maximum_retained_bytes,
             output: [0; 4096],
             output_length: 0,
         })
@@ -73,6 +83,13 @@ impl StorageAssociation {
         {
             return Err(ProtocolCallRefusal::InvalidPlan);
         }
+        crate::storage_base::transaction_owner::retention::charge(
+            self.owner.retained_bytes(),
+            core::mem::size_of::<Self>(),
+            pin.plan().0.capacity(),
+            self.maximum_retained_bytes,
+        )
+        .map_err(ProtocolCallRefusal::Storage)?;
         self.body = Some(pin);
         Ok(())
     }
