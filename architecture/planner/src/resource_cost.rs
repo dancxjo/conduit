@@ -4,12 +4,14 @@ mod duration;
 mod forecast;
 mod freshness;
 mod source;
+mod work_class;
 pub use duration::CostDuration;
 pub use forecast::{CostDurationRange, CostForecastStages, FulfillmentCostForecast};
 pub use freshness::CostObservationWindow;
 pub use source::{
     CostCalibrationRevision, CostEvidenceSource, CostScopeChange, MAXIMUM_COST_ID_BYTES,
 };
+pub use work_class::CostWorkClass;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CostEvidenceRefusal {
@@ -18,6 +20,8 @@ pub enum CostEvidenceRefusal {
     NegativeDuration,
     InvertedDurationRange,
     MissingForecastStage,
+    WorkClassChanged,
+    IncompatibleRealization,
     InvalidIdentity,
     UnadvertisedSubject,
     Scope(CostScopeChange),

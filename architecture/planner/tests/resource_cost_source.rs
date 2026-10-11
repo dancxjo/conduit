@@ -41,6 +41,17 @@ fn source_fences_full_offer_resource_boot_generation_and_calibration_snapshots()
             .unwrap();
     let now = MonotonicInstant::new(105, source.window().observed().clock().clone()).unwrap();
     assert_eq!(source.validate_at(&host, revision, &now), Ok(()));
+    let gear = common::pulse_gear();
+    assert_eq!(
+        CostWorkClass::from_checked_gear(&gear).validate_source(&source),
+        Ok(())
+    );
+    let mut unrelated = gear.clone();
+    unrelated.kind_id = "work/foreign".into();
+    assert_eq!(
+        CostWorkClass::from_checked_gear(&unrelated).validate_source(&source),
+        Err(CostEvidenceRefusal::IncompatibleRealization)
+    );
     assert_eq!(source.sign(), &sign);
     assert_eq!(source.offer(), offer);
     assert_eq!(source.resource(), Some(resource));
