@@ -18,6 +18,8 @@ fn source() -> String {
         include_str!("../plots/usb/control-types.conduit"),
         include_str!("../plots/usb/isochronous-out-types.conduit"),
         include_str!("../plots/usb/audio-types.conduit"),
+        include_str!("../plots/usb/audio-block-types.conduit"),
+        include_str!("../plots/usb/audio-block-profile.conduit"),
         include_str!("../plots/usb/audio-profile.conduit"),
     ]
     .join("\n")
@@ -209,4 +211,153 @@ fn repeated_checked_rate_observation_allocates_nothing() {
         }),
         0
     );
+}
+
+fn block_value(
+    ty: &conduit_core::StructuredInfoType,
+    path: &str,
+    packet: usize,
+) -> conduit_core::StructuredInfoValue {
+    use conduit_core::{
+        StructuredFieldValue, StructuredInfoTypeShape as Shape, StructuredInfoValue as V,
+    };
+    match ty.shape() {
+        Shape::Record { fields, .. } => V::record(
+            ty.clone(),
+            fields
+                .iter()
+                .map(|field| {
+                    let next = format!("{path}/{}", field.name());
+                    StructuredFieldValue::new(
+                        field.name(),
+                        block_value(field.value_type(), &next, packet),
+                    )
+                    .unwrap()
+                })
+                .collect(),
+        )
+        .unwrap(),
+        Shape::Variant { cases, .. } => {
+            let tag = if path.ends_with("representation") {
+                "signed16-little-endian"
+            } else {
+                "stereo-left-right"
+            };
+            let case = cases.iter().find(|case| case.tag() == tag).unwrap();
+            V::variant(
+                ty.clone(),
+                tag,
+                V::leaf(case.payload_type().clone(), vec![]).unwrap(),
+            )
+            .unwrap()
+        }
+        Shape::Sequence { element, .. } => V::sequence(
+            ty.clone(),
+            (0..8)
+                .map(|index| block_value(element, path, index))
+                .collect(),
+        )
+        .unwrap(),
+        Shape::Leaf(kind) => {
+            let value: u64 = match path.rsplit('/').next().unwrap() {
+                "sample-rate-hz" | "sample_rate" => 48000,
+                "frame-count" => 384,
+                "clock-id" => 1,
+                "payload-bytes" => 1536,
+                "channels" | "sample_bytes" => 2,
+                "frame" => 100 + packet as u64,
+                "start-frame" | "discontinuity" | "phase" | "wire" => 0,
+                other => panic!("unknown fixture field {other}"),
+            };
+            let width = match kind.as_str() {
+                "value/u64" => 8,
+                "value/u32" => 4,
+                "value/u16" => 2,
+                "value/u8" | "value/bool" => 1,
+                "value/bytes" => 0,
+                other => panic!("kind {other}"),
+            };
+            let bytes = if width == 0 {
+                (0..192)
+                    .map(|offset| ((packet * 192 + offset) % 251) as u8)
+                    .collect()
+            } else {
+                value.to_le_bytes()[..width].to_vec()
+            };
+            V::leaf(ty.clone(), bytes).unwrap()
+        }
+        _ => panic!("unsupported block shape"),
+    }
+}
+
+#[test]
+fn whole_pcm_block_has_measured_canonical_envelope_and_exact_transport_projection() {
+    let p = program("usb-audio-block-header-supported");
+    let bytes = block_value(&p.input_type, "", 0).canonical_bytes().unwrap();
+    println!("whole PCM block canonical bytes: {}", bytes.len());
+    assert!(bytes.len() <= 4096);
+    validate_canonical_structured_value(&bytes).unwrap();
+    let mut evaluator = PreparedPortableExpressionEvaluator::new(&p).unwrap();
+    assert_eq!(evaluator.evaluate(&bytes).unwrap(), [1]);
+    let request = program("usb-audio-block-request");
+    let mut encoder = PreparedPortableExpressionEvaluator::new(&request).unwrap();
+    let output = encoder.evaluate(&bytes).unwrap();
+    let original = validate_canonical_structured_value(&bytes).unwrap();
+    let submitted = validate_canonical_structured_value(output).unwrap();
+    let packets = original.record_field("packets").unwrap().unwrap();
+    let transported = submitted
+        .variant_payload("batch")
+        .unwrap()
+        .unwrap()
+        .record_field("packets")
+        .unwrap()
+        .unwrap();
+    assert_eq!(packets.collection_length().unwrap(), 8);
+    assert_eq!(transported.collection_length().unwrap(), 8);
+    for index in 0..8 {
+        let a = packets.collection_index(index).unwrap().unwrap();
+        let b = transported.collection_index(index).unwrap().unwrap();
+        for (field, kind) in [("frame", "value/u64"), ("wire", "value/bytes")] {
+            assert_eq!(
+                a.record_field(field)
+                    .unwrap()
+                    .unwrap()
+                    .primitive_bytes(kind)
+                    .unwrap(),
+                b.record_field(field)
+                    .unwrap()
+                    .unwrap()
+                    .primitive_bytes(kind)
+                    .unwrap()
+            );
+        }
+    }
+}
+
+#[test]
+fn whole_pcm_block_packet_and_adjacent_laws_prepare_and_execute() {
+    let header = program("usb-audio-block-header-supported");
+    let bytes = block_value(&header.input_type, "", 0)
+        .canonical_bytes()
+        .unwrap();
+    for index in 0..8 {
+        let p = program(&format!("usb-audio-block-packet-{index}-supported"));
+        assert_eq!(
+            PreparedPortableExpressionEvaluator::new(&p)
+                .unwrap()
+                .evaluate(&bytes)
+                .unwrap(),
+            [1]
+        );
+    }
+    for index in 0..7 {
+        let p = program(&format!("usb-audio-block-adjacent-{index}-supported"));
+        assert_eq!(
+            PreparedPortableExpressionEvaluator::new(&p)
+                .unwrap()
+                .evaluate(&bytes)
+                .unwrap(),
+            [1]
+        );
+    }
 }
