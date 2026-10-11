@@ -7,7 +7,7 @@ use conduit_core::*;
 use conduit_kernel::NodeId;
 
 #[test]
-fn changed_calibration_or_execution_refuses_before_atomic_occupation() {
+fn changed_dependencies_use_recorded_capacity_fallback() {
     let plan = plan();
     let hosts = hosts(&plan);
     let operation = PoolOperationId::from("cost/request-current");
@@ -82,11 +82,36 @@ fn changed_calibration_or_execution_refuses_before_atomic_occupation() {
                 executions: state,
             })
             .collect::<Vec<_>>();
-        assert!(
-            matches!(pool.admit_new_operation_with_costs(operation.clone(), key(1), &observations,
-            "select/dependency-refusal".into(), [9; 32], &prepared, &evaluations),
-            Err(SharedPoolRuntimeError::Cost(PoolCostLoweringError::Prepared(e))) if e == expected)
+        let result = pool
+            .admit_new_operation_with_costs(
+                operation.clone(),
+                key(1),
+                &observations,
+                "select/dependency-fallback".into(),
+                [9; 32],
+                &prepared,
+                &evaluations,
+            )
+            .unwrap();
+        assert_eq!(
+            result.account.choice,
+            Some(PoolCostChoiceBasis::CapacityReference)
         );
+        assert!(result
+            .account
+            .sources
+            .iter()
+            .all(|source| source.availability
+                == PoolCostSourceAvailability::Unavailable(PoolCostUnavailable::Prepared(
+                    expected
+                ))));
+        result.account.validate(&plan).unwrap();
+        let SharedPoolAdmissionOutcome::Selected { member, .. } = result.admission else {
+            panic!("fresh hard evidence must permit capacity fallback");
+        };
+        assert_eq!(pool.population(), 1);
+        pool.trigger(member).unwrap();
+        pool.release(member).unwrap();
         assert_eq!(pool.population(), 0);
     }
     // Reusing the same projection is legal when fresh independent sources match.
@@ -115,9 +140,13 @@ fn changed_calibration_or_execution_refuses_before_atomic_occupation() {
         matches!(&selected.admission, SharedPoolAdmissionOutcome::Selected { member, evidence }
         if member.placement.realization == 1 && evidence.observation_sign_ids.contains(&signs[1]))
     );
-    assert_eq!(selected.sources[1].calibration, calibrations[0]);
+    assert_eq!(selected.account.sources[1].calibration, calibrations[0]);
     assert_eq!(
-        selected.sources[1].current_execution.as_ref().unwrap().sign,
+        selected.account.sources[1]
+            .current_execution
+            .as_ref()
+            .unwrap()
+            .sign,
         signs[1]
     );
     assert_eq!(pool.population(), 1);
@@ -196,19 +225,193 @@ fn duplicate_catalogue_or_expired_execution_refuses_a_fresh_duration() {
             executions: &executions,
         })
         .collect::<Vec<_>>();
-    assert!(matches!(
-        pool.admit_new_operation_with_costs(
+    let result = pool
+        .admit_new_operation_with_costs(
             operation,
             key(1),
             &[],
             "select/expired-execution".into(),
             [9; 32],
             &prepared,
-            &expired
-        ),
-        Err(SharedPoolRuntimeError::Cost(
-            PoolCostLoweringError::Prepared(PoolCostPreparationRefusal::Stale)
-        ))
+            &expired,
+        )
+        .unwrap();
+    assert!(matches!(
+        result.admission,
+        SharedPoolAdmissionOutcome::Refused { .. }
     ));
+    assert!(result
+        .account
+        .sources
+        .iter()
+        .all(|source| source.availability
+            == PoolCostSourceAvailability::Unavailable(PoolCostUnavailable::Prepared(
+                PoolCostPreparationRefusal::Stale
+            ))));
+    result.account.validate(&plan).unwrap();
     assert_eq!(pool.population(), 0);
+}
+
+#[test]
+fn unavailable_cheap_source_cannot_displace_a_fresh_estimate() {
+    let plan = plan();
+    let hosts = hosts(&plan);
+    let operation = PoolOperationId::from("cost/request-mixed");
+    let prepared = costs_with_condition(&plan, &hosts, &operation, None);
+    let observations = (0..2)
+        .map(|i| observation(i, PoolRealizationHealth::Ready, 1))
+        .collect::<Vec<_>>();
+    let now = [instant(&hosts[0], 15), instant(&hosts[1], 20)];
+    let calibrations = [revision()];
+    let evaluations = hosts
+        .iter()
+        .zip(&now)
+        .map(|(host, now)| PoolCostEvaluation {
+            host,
+            now,
+            calibrations: &calibrations,
+            executions: &[],
+        })
+        .collect::<Vec<_>>();
+    let mut pool = HostedSharedPool::<2, 32, 4>::new(
+        &plan,
+        0,
+        plan.fragments[0].shared_pools[0].pool_id.clone(),
+        NodeId(10),
+        1,
+    )
+    .unwrap();
+    let result = pool
+        .admit_new_operation_with_costs(
+            operation,
+            key(1),
+            &observations,
+            "select/mixed".into(),
+            [9; 32],
+            &prepared,
+            &evaluations,
+        )
+        .unwrap();
+    assert_eq!(result.account.evidence.selected_realization, Some(0));
+    assert_eq!(
+        result.account.choice,
+        Some(PoolCostChoiceBasis::MinimumPredictedCompletion)
+    );
+    assert_eq!(
+        result.account.candidates[1].cost,
+        PoolCostDisposition::Unavailable(PoolCostUnavailable::Prepared(
+            PoolCostPreparationRefusal::Stale
+        ))
+    );
+    result.account.validate(&plan).unwrap();
+    let mut forged = result.account.clone();
+    forged.sources[0].boot = "foreign/boot".into();
+    assert_eq!(
+        forged.validate(&plan),
+        Err(PoolCostAccountRefusal::Correlation)
+    );
+    let mut forged = result.account.clone();
+    forged.candidates[0].cost = PoolCostDisposition::Known {
+        upper_nanoseconds: 0,
+        source: 0,
+    };
+    assert_eq!(
+        forged.validate(&plan),
+        Err(PoolCostAccountRefusal::InconsistentDecision)
+    );
+    let mut forged = result.account.clone();
+    forged.sources[0].evaluated_calibration = None;
+    assert_eq!(
+        forged.validate(&plan),
+        Err(PoolCostAccountRefusal::InvalidSource)
+    );
+    let mut forged = result.account.clone();
+    forged.sources[0].expected_execution = Some(CostExecutionCondition::Warm {
+        residency_revision: 0,
+    });
+    assert_eq!(
+        forged.validate(&plan),
+        Err(PoolCostAccountRefusal::InvalidSource)
+    );
+    let mut forged = result.account.clone();
+    forged
+        .evidence
+        .observation_sign_ids
+        .retain(|s| s != &forged.sources[0].sign);
+    assert_eq!(
+        forged.validate(&plan),
+        Err(PoolCostAccountRefusal::Correlation)
+    );
+}
+
+#[test]
+fn missing_context_is_recorded_without_inventing_a_zero_cost() {
+    let plan = plan();
+    let hosts = hosts(&plan);
+    let operation = PoolOperationId::from("cost/request-missing");
+    let prepared = costs_with_condition(&plan, &hosts, &operation, None);
+    let observations = (0..2)
+        .map(|i| observation(i, PoolRealizationHealth::Ready, 1))
+        .collect::<Vec<_>>();
+    let now = hosts.iter().map(|h| instant(h, 15)).collect::<Vec<_>>();
+    let calibration = [revision()];
+    for missing_host in [true, false] {
+        let evaluations = hosts
+            .iter()
+            .zip(&now)
+            .take(if missing_host { 1 } else { 2 })
+            .map(|(host, now)| PoolCostEvaluation {
+                host,
+                now,
+                calibrations: if missing_host { &calibration } else { &[] },
+                executions: &[],
+            })
+            .collect::<Vec<_>>();
+        let mut pool = HostedSharedPool::<2, 32, 4>::new(
+            &plan,
+            0,
+            plan.fragments[0].shared_pools[0].pool_id.clone(),
+            NodeId(10),
+            1,
+        )
+        .unwrap();
+        let result = pool
+            .admit_new_operation_with_costs(
+                operation.clone(),
+                key(1),
+                &observations,
+                "select/missing".into(),
+                [9; 32],
+                &prepared,
+                &evaluations,
+            )
+            .unwrap();
+        assert_eq!(result.account.evidence.selected_realization, Some(0));
+        assert_eq!(
+            result.account.choice,
+            Some(if missing_host {
+                PoolCostChoiceBasis::MinimumPredictedCompletion
+            } else {
+                PoolCostChoiceBasis::CapacityReference
+            })
+        );
+        let expected = if missing_host {
+            PoolCostUnavailable::MissingHost
+        } else {
+            PoolCostUnavailable::MissingCalibration
+        };
+        assert_eq!(
+            result.account.sources[1].availability,
+            PoolCostSourceAvailability::Unavailable(expected)
+        );
+        assert_eq!(
+            result.account.candidates[1].cost,
+            PoolCostDisposition::Unavailable(expected)
+        );
+        assert_eq!(
+            result.account.sources[1].duration.upper_nanoseconds(),
+            10_000_000
+        );
+        result.account.validate(&plan).unwrap();
+    }
 }

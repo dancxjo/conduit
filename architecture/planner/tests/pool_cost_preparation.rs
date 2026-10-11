@@ -218,6 +218,31 @@ fn workload_forecast_and_independent_current_state_reach_atomic_pool_selection()
             budget,
         )
     };
+    // An unconditional forecast must not attribute an unused execution sample.
+    let unconditional = predicted[0].bind().unwrap();
+    let independent = prepare_pool_cost_forecast(
+        PoolForecastPreparation {
+            plan: &plan,
+            fragment_index: 0,
+            pool: &pool_id,
+            operation: &operation,
+            demand_identity: [9; 32],
+            realization: members
+                .iter()
+                .position(|r| r.host_id == hosts[1].host_id)
+                .unwrap() as u16,
+            request,
+            forecast: &unconditional,
+            current_host: &hosts[1],
+            current_calibration: revision,
+            now: &now[0],
+            current_execution: Some(&current[1]),
+            tolerance: time(1, 1_000_000_000),
+        },
+        &mut work(),
+    )
+    .unwrap();
+    assert!(independent.account.current_execution.is_none());
     let prepared = (0..2)
         .map(|i| prepare(i, request, &mut work()).ok().unwrap())
         .collect::<Vec<_>>();
