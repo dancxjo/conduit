@@ -539,25 +539,37 @@ Source, Body and composite-kernel path. An exact x86_64 product kernel at
 `c3368d1371f0d6d092dd1c7a2767d1185e4789db` completed an 18-byte device
 descriptor control request and acknowledged Play retirement under QEMU. The
 retained receipt records the emulator proof tier; physical compatibility remains
-unverified. The combined control/endpoint candidate still requires product execution
-evidence. Its optional `endpoint_read` Root input explicitly selects bounded
+unverified. The class-neutral control/read/write product route now has actual x86_64
+and AArch64 emulator execution evidence. Root inputs explicitly select bounded
 endpoint address, geometry, lifetime and operation count; Source supplies every
-request and class meaning. `control-endpoint-read.conduit` orders an eight-byte
-read after a completed control result through the existing expression/selector route.
+request and class meaning. Control, read and write reuse the original admitted
+controller, attachment, capability generations and acknowledged retirement path.
 
-| Transfer | x86_64 native mechanics | Ordinary product status |
+| Transfer | Native mechanics | Ordinary product evidence |
 | --- | --- | --- |
-| Control IN/OUT | Bounded control ring and acknowledged stop | One exact emulated product control-IN proof; OUT/matrix coverage pending |
-| Interrupt IN | Bounded endpoint receive ring | Shared Host/Boot/dispatch candidate; product proof pending |
-| Bulk IN | Bounded endpoint receive ring | Shared Host/Boot/dispatch candidate; product proof pending |
-| Bulk OUT | Existing FTDI-specific mechanics require class-neutral extraction | Separately required by CDC and BOT; no product offer |
-| Isochronous OUT | Unsupported by current endpoint setup | Required by #5254; no PCM playback proof |
+| Control IN/OUT | Bounded control ring and acknowledged stop | Actual x86_64 and AArch64 CDC/BOT setup controls |
+| Interrupt IN | Bounded endpoint receive ring | Focused x86_64 control/read mouse report proof; full HID acceptance pending |
+| Bulk IN | Bounded endpoint receive ring | Actual x86_64 and AArch64 CDC replies and BOT DATA/CSW |
+| Bulk OUT | Shared class-neutral bounded transmit ring | Actual x86_64 and AArch64 CDC bytes and BOT CBWs |
+| Isochronous OUT | Separate draft native mechanism | No installed checked product ISO offer or PCM execution proof in this tree |
 | Isochronous IN | Unsupported by current endpoint setup | No product offer or capture proof |
 
-IA-32, AArch64, ARMv6, RISC-V64 and LoongArch64 have no admitted ordinary native
-USB transfer provider in this candidate. Portable checked schemas alone do not
-establish a supported executed row. #5258 owns exact architecture/transfer/device
-acceptance, including explicit unsupported combinations.
+The pinned AArch64 row is QEMU virt-10.2, GICv2, coherent low PCIe ECAM/BAR
+mapping and neoverse-n2. It executes the exact unchanged checked BOT and CDC
+packages previously run on x86_64 q35. BOT has both one patterned block and
+sixteen serialized READ(10) transactions; CDC has five setup controls and sixteen
+actual transmit/receive pairs. These are emulator-with-device proofs, not physical
+compatibility or complete class acceptance. Semantic serial producer/consumer
+routing, the Ethernet stack seam, complete fault coverage and checked USB Audio
+remain incomplete.
+
+IA-32, ARMv6, RISC-V64, LoongArch64 and AArch64 Orange Pi 5 have no admitted
+ordinary native USB provider in this tree. They refuse explicitly. Portable checked
+schemas and cross compilation alone never establish an executed row. The
+[evidence matrix](evidence/architecture-matrix.json) and
+[retained receipts](evidence/README.md) record exact architecture, kernel, Source,
+Boot/Plan/Play and class proof limits. #5258 remains open until its published
+supported-target acceptance matrix and CI gates are fully satisfied.
 
 The isolated `protocol-run --usb-control-mouse` emulator configuration supplies
 xHCI and an emulated mouse for generic descriptor control proof. It establishes
