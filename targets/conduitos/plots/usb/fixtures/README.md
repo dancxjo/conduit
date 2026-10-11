@@ -19,9 +19,13 @@ The Source consumes at most sixteen genuine frames from the independently
 admitted frame queue, sends their exact bytes, sends an actual ZLP when length
 is a multiple of64, acknowledges the exact queue ordinal only after full OUT,
 reads at most1514, validates metadata/header/bounds, and submits identical RX
-bytes to the independent queue. Pressure or any malformed/terminal observation
-ends the finite cycle; it does not retry, acknowledge a partial write, or emit a
-fabricated frame. One USB read is one frame in this pinned profile; split or
+bytes to the independent queue. TX and RX ordinals are independent. After
+acknowledgement it takes the next queued TX before waiting for RX. Pressure on
+that sequential take routes one RX; pressure on receive delivery and other
+malformed/terminal observations end the finite cycle. It does not retry an empty
+queue, acknowledge a partial write, or emit a fabricated frame. The containing
+Root stops and retires the admitted transfers when its separately approved
+bounded TCP exchange produces the actual completion receipt. One USB read is one frame in this pinned profile; split or
 coalesced frame reconstruction and VLAN/jumbo frames are unsupported.
 
 `cdc-ecm-profile.json` describes ordinary Source specializations and bounded

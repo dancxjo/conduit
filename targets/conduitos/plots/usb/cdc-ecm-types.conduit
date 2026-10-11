@@ -32,6 +32,7 @@ type CdcEcmState = {
     terminator: UsbEndpointWriteRequest
     phase: U64
     cycles: U64
+    transmitted: U64
     transmit: EthernetFrameResult
     receive: EthernetFrameRequest
     terminal: Boolean

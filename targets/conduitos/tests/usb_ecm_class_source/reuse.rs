@@ -46,6 +46,7 @@ fn sixteen_actual_source_cycles_keep_bytes_ordinals_and_terminal_fence_exact() {
             state = step(&s, &state, &written(&s, 0));
         }
         state = step(&s, &state, &queue(&s, "acknowledged"));
+        state = step(&s, &state, &queue(&s, "pressure"));
         state = step(&s, &state, &received(&s, ordinal, &rx));
         assert_eq!(number(member(&state, "phase")), 11);
         let req = eval(&program(&s, "cdc-ecm-queue-request"), &state);
@@ -74,4 +75,24 @@ fn read_wrong_ordinal_and_malformed_frame_terminate_before_network_delivery() {
             "stopped"
         );
     }
+}
+
+#[test]
+fn handshake_ack_does_not_block_the_next_queued_transmit_on_an_unrequested_receive() {
+    let s = source();
+    let mut state = phase(&start(&s, &[]), 6);
+    for ordinal in 0..2 {
+        state = step(&s, &state, &transmit(&s, ordinal, &frame(54)));
+        state = step(&s, &state, &written(&s, 54));
+        state = step(&s, &state, &queue(&s, "acknowledged"));
+        assert_eq!(number(member(&state, "phase")), 6);
+        assert_eq!(number(member(&state, "transmitted")), ordinal + 1);
+        assert_eq!(number(member(&state, "cycles")), 0);
+    }
+    state = step(&s, &state, &queue(&s, "pressure"));
+    assert_eq!(number(member(&state, "phase")), 10);
+    state = step(&s, &state, &received(&s, 0, &frame(60)));
+    state = step(&s, &state, &queue(&s, "accepted"));
+    assert_eq!(number(member(&state, "transmitted")), 2);
+    assert_eq!(number(member(&state, "cycles")), 1);
 }

@@ -327,6 +327,9 @@ fn aligned_transmit_needs_a_real_zlp_before_exact_queue_ack() {
     let req = eval(&program(&s, "cdc-ecm-queue-request"), &state);
     assert_eq!(tag(&req), "acknowledge-transmit");
     state = step(&s, &state, &queue(&s, "acknowledged"));
+    assert_eq!(number(member(&state, "phase")), 6);
+    assert_eq!(number(member(&state, "transmitted")), 1);
+    state = step(&s, &state, &queue(&s, "pressure"));
     assert_eq!(number(member(&state, "phase")), 10);
 }
 #[test]
@@ -339,7 +342,6 @@ fn short_write_stale_ordinal_and_queue_faults_terminate_without_retry_or_ack() {
     let short = step(&s, &written_state, &written(&s, 13));
     assert_eq!(tag(member(&short, "outcome")), "malformed");
     for fault in [
-        "pressure",
         "stale",
         "cancelled",
         "sequence-exhausted",

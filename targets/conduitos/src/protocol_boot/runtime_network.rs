@@ -25,7 +25,7 @@ impl RuntimeNetwork {
     pub(super) fn complete(&self) -> bool {
         self.complete
     }
-    pub(super) fn poll(&mut self, play: &mut NativePlay) -> Result<(), &'static str> {
+    pub(super) fn poll(&mut self, play: &mut NativePlay) -> Result<bool, &'static str> {
         let millis = self
             .deadline
             .elapsed_millis()
@@ -38,7 +38,7 @@ impl RuntimeNetwork {
             report(receipt)?;
             self.complete = true;
         }
-        Ok(())
+        Ok(self.complete)
     }
 }
 fn report(receipt: crate::virtio_tcp::VirtioTcpReceipt) -> Result<(), &'static str> {

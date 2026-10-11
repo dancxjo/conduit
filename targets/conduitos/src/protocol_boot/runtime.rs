@@ -319,8 +319,10 @@ fn execute_workload(
         }
         for _ in 0..maximum_steps {
             #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
-            if let Some(network) = network_deadline.as_mut() {
-                network.poll(play)?;
+            if let Some(network) = network_deadline.as_mut()
+                && network.poll(play)?
+            {
+                return Ok(());
             }
             let status = play.step().map_err(|error| {
                 if let Some(identity) = play.session().realization().and_then(|r| r.play.as_ref()) {
