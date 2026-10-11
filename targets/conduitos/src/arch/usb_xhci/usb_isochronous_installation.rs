@@ -140,21 +140,6 @@ impl ReadyUsbIsochronousHost {
             attachment,
         })
     }
-    pub fn control_identity(&self) -> &UsbNativeIdentity {
-        self.control.identity()
-    }
-    pub fn isochronous_identity(&self) -> &UsbNativeIdentity {
-        &self.identity
-    }
-    pub fn attachment_epoch(&self) -> u32 {
-        self.control.attachment_epoch()
-    }
-    pub fn control_resource_bytes(&self) -> u64 {
-        self.control.resource_bytes()
-    }
-    pub fn isochronous_resource_bytes(&self) -> u64 {
-        self.attachment.resource_bytes
-    }
     pub fn append_to_advertisement(
         &self,
         host: &mut HostAdvertisement,
