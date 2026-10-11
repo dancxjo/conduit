@@ -52,10 +52,22 @@ pub enum ProtocolSpecialization {
     },
 }
 
+/// Exact checked realization selected by inert package metadata.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ProtocolBackSelection {
+    pub kind_id: conduit_core::KindId,
+    pub plot_name: String,
+    pub source_document_id: conduit_core::SourceDocumentId,
+    pub checked_plot_id: conduit_core::CheckedPlotId,
+}
+
 /// Source owns protocol policy; metadata specializes only generic typed Backs.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ProtocolSourcePackage {
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub backs: Vec<ProtocolBackSelection>,
     pub schema: String,
     pub source: String,
     pub specializations: Vec<ProtocolSpecialization>,
@@ -93,6 +105,7 @@ impl ProtocolSourcePackage {
         if self.source.is_empty()
             || self.source.len() > MAXIMUM_SOURCE_BYTES
             || self.specializations.len() > MAXIMUM_SPECIALIZATIONS
+            || self.backs.len() > MAXIMUM_SPECIALIZATIONS
         {
             return Err(ProtocolSourceRefusal::Bounds);
         }
@@ -117,7 +130,7 @@ impl PreparedProtocolSource {
     /// Retain the reviewed checked realizations used for expansion and admission.
     pub fn prepare_with_backs(
         package: ProtocolSourcePackage,
-        backs: CanonicalBackCatalog,
+        mut backs: CanonicalBackCatalog,
     ) -> Result<Self, ProtocolSourceRefusal> {
         use ProtocolSourceRefusal as Error;
         package.validate_bounds()?;
@@ -237,6 +250,21 @@ impl PreparedProtocolSource {
         let checked = check_syntax_document(&parse_syntax_document(&package.source), &startup)
             .map_err(Error::Source)?;
         preparation_stage("checked");
+        for selection in &package.backs {
+            let kind = profile
+                .canonical_kind(&selection.kind_id)
+                .ok_or(Error::Offer)?;
+            backs
+                .insert_exact(
+                    kind,
+                    &kind.startup_parameters,
+                    &checked,
+                    &selection.plot_name,
+                    &selection.source_document_id,
+                    &selection.checked_plot_id,
+                )
+                .map_err(|error| Error::Catalog(alloc::format!("{error:?}")))?;
+        }
         let mut selectors = alloc::collections::BTreeSet::new();
         for stage in checked
             .plots

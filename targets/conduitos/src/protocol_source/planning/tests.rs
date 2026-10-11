@@ -5,6 +5,7 @@ use conduit_core::*;
 fn source_admission_refuses_substituted_fore_bindings() {
     let source = PreparedProtocolSource::prepare(ProtocolSourcePackage {
         schema: PACKAGE_SCHEMA.into(),
+        backs: vec![],
         source: "plot identity (\n >> input: Boolean...|\n output: Boolean...| >>\n) = (.)".into(),
         specializations: vec![],
     })
@@ -39,6 +40,7 @@ fn an_atomic_input_fanout_uses_the_smallest_selected_queue_envelope() {
             .maximum_bytes();
     let package = ProtocolSourcePackage {
         schema: PACKAGE_SCHEMA.into(),
+        backs: vec![],
         source: alloc::format!(
             "with flow/zip/finite/paired as Pair\nplot fanout (\n >> input: Boolean...| <= 1B\n >> other: Boolean...| <= 1B\n flag: Boolean...| <= 1B >>\n paired: Pair...| <= {paired_maximum}B >>\n) {{\n zip: flow/zip/finite\n merge: flow/merge/finite\n input >> zip.left\n other >> zip.right\n input >> merge.left\n other >> merge.right\n merge.merged >> flag\n zip.paired >> paired\n}}\n"
         ),
@@ -248,6 +250,7 @@ fn source_admission_requires_the_actual_retained_concat_owner() {
     };
     let package = ProtocolSourcePackage {
         schema: PACKAGE_SCHEMA.into(),
+            backs: vec![],
         source: "plot ordered (\n >> first: Boolean...| <= 1B\n >> last: Boolean...| <= 1B\n output: Boolean...| <= 1B >>\n) {\n join: flow/concat/finite\n first >> join.left\n last >> join.right\n join.concatenated >> output\n}\n".into(),
         specializations: vec![ProtocolSpecialization::Concat { value: boolean }],
     };
