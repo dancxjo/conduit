@@ -1,11 +1,16 @@
 //! Producer-prepared cost custody for one exact sealed pool operation.
 //! This boundary checks structure and numeric realization, not producer trust,
 //! resource possession or authorization. Ordinary hard admission remains required.
+use super::{
+    CostExecutionCondition, PoolCostCalibrationRevision, PoolCostExecutionEvaluation,
+    PoolCostExecutionReceipt,
+};
 use super::{PoolDurationPreparationRefusal, PoolOperationId, PreparedPoolDuration, SharedPoolId};
 use crate::{
     CapabilityOffer, ExactNumericWork, HostAdvertisement, MonotonicInstant, Plan, PlanId,
     RationalQuantity, ResourceOffer, SignId,
 };
+use alloc::vec::Vec;
 
 pub const MAXIMUM_PREPARED_POOL_COSTS: usize = 32;
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -21,6 +26,10 @@ pub enum PoolCostPreparationRefusal {
     InvalidWindow,
     Future,
     Stale,
+    CalibrationChanged,
+    MissingExecutionObservation,
+    AmbiguousExecutionObservation,
+    ExecutionConditionChanged,
     Duration(PoolDurationPreparationRefusal),
 }
 
@@ -37,7 +46,10 @@ pub struct PoolCostPreparation<'a, 'custody> {
     pub host: &'a HostAdvertisement,
     pub offer: &'a CapabilityOffer,
     pub resource: Option<&'a ResourceOffer>,
+    pub calibration: &'custody PoolCostCalibrationRevision,
+    pub expected_execution: Option<CostExecutionCondition>,
     pub sign: &'custody SignId,
+    pub supporting_signs: &'custody [SignId],
     pub observed: &'custody MonotonicInstant,
     pub expires: &'custody MonotonicInstant,
     pub evaluated_at: &'custody MonotonicInstant,
@@ -57,7 +69,10 @@ pub struct PreparedPoolCost<'a> {
     host: &'a HostAdvertisement,
     offer: &'a CapabilityOffer,
     resource: Option<&'a ResourceOffer>,
+    calibration: PoolCostCalibrationRevision,
+    expected_execution: Option<CostExecutionCondition>,
     sign: SignId,
+    supporting_signs: Vec<SignId>,
     observed: MonotonicInstant,
     expires: MonotonicInstant,
     duration: PreparedPoolDuration,
@@ -68,19 +83,45 @@ impl<'a> PreparedPoolCost<'a> {
         work: &mut ExactNumericWork,
     ) -> Result<Self, PoolCostPreparationRefusal> {
         use PoolCostPreparationRefusal as R;
+        if input.supporting_signs.len() > 4 {
+            return Err(R::InputLimit);
+        }
+        for (index, sign) in input.supporting_signs.iter().enumerate() {
+            if sign.as_str().is_empty() || sign.as_str().len() > 256 {
+                return Err(R::InvalidIdentity);
+            }
+            if sign == input.sign || input.supporting_signs[..index].contains(sign) {
+                return Err(R::InvalidIdentity);
+            }
+        }
         if !crate::verify_plan(input.plan) {
             return Err(R::InvalidPlan);
+        }
+        if let Some(condition) = input.expected_execution {
+            super::cost_dependencies::validate_condition(condition)?;
         }
         for id in [
             input.pool.as_str(),
             input.operation.as_str(),
             input.sign.as_str(),
+            input.host.host_id.as_str(),
+            input.host.boot_id.as_str(),
+            input.host.profile.as_str(),
+            input.offer.capability_id.as_str(),
+            input.offer.kind_id.as_str(),
+            input.offer.kind_contract_revision.as_str(),
+            input.offer.implementation.execution_profile_id.as_str(),
+            input.offer.implementation.implementation_id.as_str(),
+            input.offer.implementation.artifact_id.as_str(),
         ] {
             if id.is_empty() || id.len() > 256 {
                 return Err(R::InvalidIdentity);
             }
         }
-        if input.host.capabilities.len() > 256 {
+        if input.host.capabilities.len() > 256
+            || input.host.resources.len() > 256
+            || input.offer.resource_requirements.len() > 32
+        {
             return Err(R::InputLimit);
         }
         let fragment = input
@@ -124,6 +165,11 @@ impl<'a> PreparedPoolCost<'a> {
             return Err(R::IncompatibleFront);
         }
         if let Some(resource) = input.resource {
+            for id in [resource.pool_id.as_str(), resource.class_id.as_str()] {
+                if id.is_empty() || id.len() > 256 {
+                    return Err(R::InvalidIdentity);
+                }
+            }
             if !input.host.resources.contains(resource)
                 || !input
                     .offer
@@ -155,7 +201,10 @@ impl<'a> PreparedPoolCost<'a> {
             host: input.host,
             offer: input.offer,
             resource: input.resource,
+            calibration: input.calibration.clone(),
+            expected_execution: input.expected_execution,
             sign: input.sign.clone(),
+            supporting_signs: input.supporting_signs.to_vec(),
             observed: input.observed.clone(),
             expires: input.expires.clone(),
             duration,
@@ -200,8 +249,52 @@ impl<'a> PreparedPoolCost<'a> {
     pub fn resource(&self) -> Option<&'a ResourceOffer> {
         self.resource
     }
+    pub fn calibration(&self) -> &PoolCostCalibrationRevision {
+        &self.calibration
+    }
+    pub const fn expected_execution(&self) -> Option<CostExecutionCondition> {
+        self.expected_execution
+    }
+    /// Independent catalogue/state samples fence cached projections at admission.
+    pub fn validate_dependencies(
+        &self,
+        calibration: &PoolCostCalibrationRevision,
+        executions: &[PoolCostExecutionEvaluation<'_>],
+        now: &MonotonicInstant,
+    ) -> Result<Option<PoolCostExecutionReceipt>, PoolCostPreparationRefusal> {
+        use PoolCostPreparationRefusal as R;
+        if executions.len() > MAXIMUM_PREPARED_POOL_COSTS {
+            return Err(R::InputLimit);
+        }
+        if calibration != &self.calibration {
+            return Err(R::CalibrationChanged);
+        }
+        let Some(expected) = self.expected_execution else {
+            return Ok(None);
+        };
+        let mut matching = executions.iter().filter(|sample| {
+            sample.host.host_id == self.host.host_id
+                && sample.offer.capability_id == self.offer.capability_id
+                && sample.resource.map(|r| &r.pool_id) == self.resource.map(|r| &r.pool_id)
+        });
+        let current = matching.next().ok_or(R::MissingExecutionObservation)?;
+        if matching.next().is_some() {
+            return Err(R::AmbiguousExecutionObservation);
+        }
+        current.validate_for(self, expected, now)?;
+        Ok(Some(PoolCostExecutionReceipt {
+            sign: current.sign.clone(),
+            observed: current.observed.clone(),
+            expires: current.expires.clone(),
+            condition: current.condition,
+            calibration: current.calibration.clone(),
+        }))
+    }
     pub fn sign(&self) -> &SignId {
         &self.sign
+    }
+    pub fn supporting_signs(&self) -> &[SignId] {
+        &self.supporting_signs
     }
     pub fn observed(&self) -> &MonotonicInstant {
         &self.observed
@@ -213,7 +306,7 @@ impl<'a> PreparedPoolCost<'a> {
         self.duration
     }
 }
-fn validate_window(
+pub(super) fn validate_window(
     host: &HostAdvertisement,
     observed: &MonotonicInstant,
     expires: &MonotonicInstant,

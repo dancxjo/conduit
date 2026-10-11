@@ -9,6 +9,7 @@ mod forecast;
 mod freshness;
 mod input_codec;
 mod planning;
+mod pool_preparation;
 mod selection;
 mod selection_account;
 mod service_model;
@@ -26,6 +27,7 @@ pub use forecast::{CostDurationRange, CostForecastStages, FulfillmentCostForecas
 pub use freshness::CostObservationWindow;
 pub use input_codec::CostInputCodec;
 pub use planning::*;
+pub use pool_preparation::*;
 pub use selection::*;
 pub use selection_account::*;
 pub use service_model::*;

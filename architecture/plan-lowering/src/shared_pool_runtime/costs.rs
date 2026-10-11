@@ -3,6 +3,7 @@ use super::*;
 use alloc::vec;
 use conduit_core::{
     BootId, HostAdvertisement, HostId, MonotonicInstant, OfferGeneration,
+    PoolCostCalibrationRevision, PoolCostExecutionEvaluation, PoolCostExecutionReceipt,
     PoolCostPreparationRefusal, PreparedPoolCost, PreparedPoolDuration, SharedPoolSelectionPolicy,
 };
 use conduit_kernel::shared_pool::{
@@ -13,6 +14,8 @@ use conduit_kernel::shared_pool::{
 pub struct PoolCostEvaluation<'a> {
     pub host: &'a HostAdvertisement,
     pub now: &'a MonotonicInstant,
+    pub calibrations: &'a [PoolCostCalibrationRevision],
+    pub executions: &'a [PoolCostExecutionEvaluation<'a>],
 }
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum PoolCostLoweringError {
@@ -22,6 +25,8 @@ pub enum PoolCostLoweringError {
     DuplicateRealization,
     DuplicateHost,
     MissingHost,
+    MissingCalibration,
+    DuplicateCalibration,
     Prepared(PoolCostPreparationRefusal),
 }
 /// Prompt-free owned numeric/source custody for historical explanation.
@@ -32,10 +37,18 @@ pub struct PoolCostSourceReceipt {
     pub boot: BootId,
     pub generation: OfferGeneration,
     pub sign: SignId,
+    pub supporting_signs: Vec<SignId>,
+    pub capability: conduit_core::CapabilityId,
+    pub implementation: conduit_core::ImplementationId,
+    pub artifact: conduit_core::ArtifactId,
+    pub execution_profile: conduit_core::ExecutionProfileId,
+    pub resource: Option<(conduit_core::ResourcePoolId, conduit_core::ResourceClassId)>,
     pub observed: MonotonicInstant,
     pub expires: MonotonicInstant,
     pub evaluated_at: MonotonicInstant,
     pub duration: PreparedPoolDuration,
+    pub calibration: PoolCostCalibrationRevision,
+    pub current_execution: Option<PoolCostExecutionReceipt>,
 }
 #[derive(Debug)]
 pub struct CostAwareSharedPoolAdmissionOutcome {
@@ -62,6 +75,12 @@ impl<const MEMBER_SLOTS: usize, const POOL_SIGNS: usize, const OBSERVATION_SIGNS
         evaluations: &[PoolCostEvaluation<'_>],
     ) -> Result<CostAwareSharedPoolAdmissionOutcome, SharedPoolRuntimeError> {
         use PoolCostLoweringError as E;
+        if [operation_id.as_str(), selection_sign_id.as_str()]
+            .iter()
+            .any(|id| id.is_empty() || id.len() > 256)
+        {
+            return Err(SharedPoolRuntimeError::InvalidEvidence);
+        }
         if self.lowered.selection_policy
             != SharedPoolSelectionPolicy::MinimumPredictedCompletionThenCapacity
         {
@@ -93,6 +112,14 @@ impl<const MEMBER_SLOTS: usize, const POOL_SIGNS: usize, const OBSERVATION_SIGNS
             || observation_count
                 .is_none_or(|count| count > conduit_kernel::shared_pool::MAXIMUM_POOL_COST_FACTS)
             || evaluations.iter().any(|c| c.host.capabilities.len() > 256)
+            || evaluations
+                .iter()
+                .try_fold(0usize, |total, context| {
+                    total
+                        .checked_add(context.calibrations.len())?
+                        .checked_add(context.executions.len())
+                })
+                .is_none_or(|total| total > 256)
         {
             return Err(SharedPoolRuntimeError::Cost(E::InputLimit));
         }
@@ -102,6 +129,14 @@ impl<const MEMBER_SLOTS: usize, const POOL_SIGNS: usize, const OBSERVATION_SIGNS
                 .any(|prior| prior.host.host_id == context.host.host_id)
             {
                 return Err(SharedPoolRuntimeError::Cost(E::DuplicateHost));
+            }
+            for (index, revision) in context.calibrations.iter().enumerate() {
+                if context.calibrations[..index]
+                    .iter()
+                    .any(|old| old.identity() == revision.identity())
+                {
+                    return Err(SharedPoolRuntimeError::Cost(E::DuplicateCalibration));
+                }
             }
         }
         // Validate ordinary evidence identities before changing occupation.
@@ -139,6 +174,14 @@ impl<const MEMBER_SLOTS: usize, const POOL_SIGNS: usize, const OBSERVATION_SIGNS
                 .ok_or(SharedPoolRuntimeError::Cost(E::MissingHost))?;
             cost.validate_at(context.host, context.now)
                 .map_err(|e| SharedPoolRuntimeError::Cost(E::Prepared(e)))?;
+            let calibration = context
+                .calibrations
+                .iter()
+                .find(|c| c.identity() == cost.calibration().identity())
+                .ok_or(SharedPoolRuntimeError::Cost(E::MissingCalibration))?;
+            let execution = cost
+                .validate_dependencies(calibration, context.executions, context.now)
+                .map_err(|e| SharedPoolRuntimeError::Cost(E::Prepared(e)))?;
             let realization = *facts
                 .envelope
                 .get(usize::from(cost.realization()))
@@ -164,10 +207,20 @@ impl<const MEMBER_SLOTS: usize, const POOL_SIGNS: usize, const OBSERVATION_SIGNS
                 boot: cost.host().boot_id.clone(),
                 generation: cost.host().offer_generation,
                 sign: cost.sign().clone(),
+                supporting_signs: cost.supporting_signs().to_vec(),
+                capability: cost.offer().capability_id.clone(),
+                implementation: cost.offer().implementation.implementation_id.clone(),
+                artifact: cost.offer().implementation.artifact_id.clone(),
+                execution_profile: cost.offer().implementation.execution_profile_id.clone(),
+                resource: cost
+                    .resource()
+                    .map(|r| (r.pool_id.clone(), r.class_id.clone())),
                 observed: cost.observed().clone(),
                 expires: cost.expires().clone(),
                 evaluated_at: context.now.clone(),
                 duration: cost.duration(),
+                calibration: calibration.clone(),
+                current_execution: execution,
             });
         }
         let mut selected_signs = [0_u16; OBSERVATION_SIGNS];
@@ -188,6 +241,16 @@ impl<const MEMBER_SLOTS: usize, const POOL_SIGNS: usize, const OBSERVATION_SIGNS
         );
         let mut signs = facts.observation_sign_ids.clone();
         signs.extend(sources.iter().map(|source| source.sign.clone()));
+        signs.extend(
+            sources
+                .iter()
+                .flat_map(|source| source.supporting_signs.iter().cloned()),
+        );
+        signs.extend(
+            sources
+                .iter()
+                .filter_map(|source| source.current_execution.as_ref().map(|e| e.sign.clone())),
+        );
         let admission = match selected {
             Ok(selected) => SharedPoolAdmissionOutcome::Selected {
                 member: selected.member,

@@ -1,5 +1,7 @@
+mod cost_dependencies;
 mod cost_duration;
 mod cost_preparation;
+pub use cost_dependencies::*;
 pub use cost_duration::*;
 pub use cost_preparation::*;
 

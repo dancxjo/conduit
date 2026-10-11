@@ -157,7 +157,10 @@ fn prepared_cost_binds_one_plan_operation_and_full_owner_snapshot() {
             host: &host,
             offer: &host.capabilities[0],
             resource: None,
+            calibration: &PoolCostCalibrationRevision::new("test/calibration".into(), 1).unwrap(),
+            expected_execution: None,
             sign: &sign,
+            supporting_signs: &[],
             observed: &observed,
             expires: &expires,
             evaluated_at: &now,
@@ -212,5 +215,177 @@ fn prepared_cost_binds_one_plan_operation_and_full_owner_snapshot() {
     assert_eq!(
         prepared.validate_at(&host, &changed_quality),
         Err(PoolCostPreparationRefusal::ClockChanged)
+    );
+}
+
+fn prepared_for_condition<'a>(
+    plan: &Plan,
+    host: &'a HostAdvertisement,
+    condition: Option<CostExecutionCondition>,
+) -> PreparedPoolCost<'a> {
+    PreparedPoolCost::prepare(
+        PoolCostPreparation {
+            plan,
+            fragment_index: 0,
+            pool: &plan.fragments[0].shared_pools[0].pool_id,
+            operation: &"cost/current-dependencies".into(),
+            demand: [8; 32],
+            realization: 0,
+            host,
+            offer: &host.capabilities[0],
+            resource: None,
+            calibration: &PoolCostCalibrationRevision::new("test/calibration".into(), 1).unwrap(),
+            expected_execution: condition,
+            sign: &"cost/historical-forecast".into(),
+            supporting_signs: &[],
+            observed: &instant(host, 10),
+            expires: &instant(host, 30),
+            evaluated_at: &instant(host, 15),
+            duration: quantity(1, 1, "ms"),
+            tolerance: quantity(0, 1, "ms"),
+        },
+        &mut work(),
+    )
+    .ok()
+    .unwrap()
+}
+
+#[test]
+fn current_calibration_and_execution_are_independent_of_cached_projection() {
+    use PoolCostPreparationRefusal as R;
+    let (plan, host) = fixture();
+    let warm = CostExecutionCondition::Warm {
+        residency_revision: 7,
+    };
+    let prepared = prepared_for_condition(&plan, &host, Some(warm));
+    let revision = PoolCostCalibrationRevision::new("test/calibration".into(), 1).unwrap();
+    let changed = PoolCostCalibrationRevision::new("test/calibration".into(), 2).unwrap();
+    let sign = SignId::from("cost/current-execution");
+    let (observed, expires, now) = (instant(&host, 12), instant(&host, 20), instant(&host, 15));
+    let sample = |condition| PoolCostExecutionEvaluation {
+        host: &host,
+        offer: &host.capabilities[0],
+        resource: None,
+        calibration: &revision,
+        sign: &sign,
+        observed: &observed,
+        expires: &expires,
+        condition,
+    };
+    let current = [sample(warm)];
+    assert_eq!(prepared.validate_at(&host, &now), Ok(()));
+    assert_eq!(
+        prepared.validate_dependencies(&changed, &current, &now),
+        Err(R::CalibrationChanged)
+    );
+    assert_eq!(
+        prepared.validate_dependencies(&revision, &[], &now),
+        Err(R::MissingExecutionObservation)
+    );
+    let receipt = prepared
+        .validate_dependencies(&revision, &current, &now)
+        .unwrap()
+        .unwrap();
+    assert_eq!(receipt.sign, sign);
+    assert_eq!(receipt.condition, warm);
+    assert_ne!(&receipt.sign, prepared.sign());
+    assert_eq!(receipt.observed, observed);
+    assert_eq!(receipt.expires, expires);
+    for condition in [
+        CostExecutionCondition::Cold,
+        CostExecutionCondition::Unknown,
+        CostExecutionCondition::ResidentObserved,
+        CostExecutionCondition::Warm {
+            residency_revision: 8,
+        },
+    ] {
+        assert_eq!(
+            prepared.validate_dependencies(&revision, &[sample(condition)], &now),
+            Err(R::ExecutionConditionChanged)
+        );
+    }
+    assert_eq!(
+        prepared.validate_dependencies(&revision, &[sample(warm), sample(warm)], &now),
+        Err(R::AmbiguousExecutionObservation)
+    );
+    // The forecast is still fresh when the independent execution sample expires.
+    let end = instant(&host, 20);
+    assert_eq!(prepared.validate_at(&host, &end), Ok(()));
+    assert_eq!(
+        prepared.validate_dependencies(&revision, &current, &end),
+        Err(R::Stale)
+    );
+    let future = instant(&host, 11);
+    assert_eq!(
+        prepared.validate_dependencies(&revision, &current, &future),
+        Err(R::Future)
+    );
+    let mut foreign = host.clone();
+    foreign.boot_id = "foreign/boot".into();
+    let foreign_sample = PoolCostExecutionEvaluation {
+        host: &foreign,
+        ..sample(warm)
+    };
+    assert_eq!(
+        prepared.validate_dependencies(&revision, &[foreign_sample], &now),
+        Err(R::SourceChanged)
+    );
+    assert!(matches!(
+        PreparedPoolCost::prepare(
+            PoolCostPreparation {
+                plan: &plan,
+                fragment_index: 0,
+                pool: &plan.fragments[0].shared_pools[0].pool_id,
+                operation: &"cost/current-dependencies".into(),
+                demand: [8; 32],
+                realization: 0,
+                host: &host,
+                offer: &host.capabilities[0],
+                resource: None,
+                calibration: &revision,
+                expected_execution: Some(CostExecutionCondition::Warm {
+                    residency_revision: 0
+                }),
+                sign: &sign,
+                supporting_signs: &[],
+                observed: &observed,
+                expires: &expires,
+                evaluated_at: &now,
+                duration: quantity(1, 1, "ms"),
+                tolerance: quantity(0, 1, "ms"),
+            },
+            &mut work()
+        ),
+        Err(R::InvalidIdentity)
+    ));
+}
+
+#[test]
+fn observed_residency_cannot_be_promoted_to_epoch_warmth() {
+    let (plan, host) = fixture();
+    let prepared =
+        prepared_for_condition(&plan, &host, Some(CostExecutionCondition::ResidentObserved));
+    let revision = PoolCostCalibrationRevision::new("test/calibration".into(), 1).unwrap();
+    let (observed, expires, now) = (instant(&host, 12), instant(&host, 20), instant(&host, 15));
+    let sign = SignId::from("cost/observed-residency");
+    let current = PoolCostExecutionEvaluation {
+        host: &host,
+        offer: &host.capabilities[0],
+        resource: None,
+        calibration: &revision,
+        sign: &sign,
+        observed: &observed,
+        expires: &expires,
+        condition: CostExecutionCondition::ResidentObserved,
+    };
+    assert!(prepared
+        .validate_dependencies(&revision, &[current], &now)
+        .is_ok());
+    let plain = prepared_for_condition(&plan, &host, None);
+    assert_eq!(plain.validate_dependencies(&revision, &[], &now), Ok(None));
+    let changed = PoolCostCalibrationRevision::new("test/calibration".into(), 2).unwrap();
+    assert_eq!(
+        plain.validate_dependencies(&changed, &[], &now),
+        Err(PoolCostPreparationRefusal::CalibrationChanged)
     );
 }
