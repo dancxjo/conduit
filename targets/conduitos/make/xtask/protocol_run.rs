@@ -1,8 +1,8 @@
 //! Bounded emulator observation of an exact packaged protocol product image.
-use super::{report::sha256_file, ConduitosError};
+use super::{ConduitosError, report::sha256_file};
 use crate::cli::GlobalOpts;
 use clap::Args;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::{
     fs,
     io::Read,
@@ -13,6 +13,7 @@ use std::{
     time::{Duration, Instant},
 };
 const MAXIMUM_TRANSCRIPT: u64 = 262144;
+mod storage_fixture;
 
 #[derive(Args, Debug)]
 pub(super) struct RunArgs {
@@ -31,6 +32,9 @@ pub(super) struct RunArgs {
     /// Inject exactly one known mouse report after the guest begins product Play.
     #[arg(long, requires = "usb_control_mouse")]
     usb_mouse_report: bool,
+    /// Generate a new readonly 1 MiB USB storage emulator fixture in output-dir.
+    #[arg(long, conflicts_with_all = ["usb_control_mouse", "usb_mouse_report"])]
+    usb_storage_fixture: bool,
 }
 
 pub(super) fn execute(args: RunArgs, opts: &GlobalOpts) -> Result<(), ConduitosError> {
@@ -57,6 +61,10 @@ pub(super) fn execute(args: RunArgs, opts: &GlobalOpts) -> Result<(), ConduitosE
     }
     fs::create_dir(&args.output_dir)
         .map_err(|error| refusal("protocol-run-output-refused", error))?;
+    let storage = args
+        .usb_storage_fixture
+        .then(|| storage_fixture::StorageFixture::create(&args.output_dir))
+        .transpose()?;
     let serial = args.output_dir.join("serial.log");
     let stderr = args.output_dir.join("qemu.log");
     let output_handle = if args.usb_mouse_report {
@@ -121,6 +129,9 @@ pub(super) fn execute(args: RunArgs, opts: &GlobalOpts) -> Result<(), ConduitosE
             fs::File::create(&stderr)
                 .map_err(|error| refusal("protocol-run-output-refused", error))?,
         );
+    if let Some(fixture) = &storage {
+        command.args(&fixture.arguments);
+    }
     if args.usb_mouse_report {
         command
             .current_dir(&args.output_dir)
@@ -204,6 +215,7 @@ pub(super) fn execute(args: RunArgs, opts: &GlobalOpts) -> Result<(), ConduitosE
         "qemu_profile": "q35-single-cpu-512m-headless",
         "physical_compatibility": "unverified",
         "usb_devices": usb_devices(args.usb_control_mouse),
+        "usb_storage_fixture": storage.as_ref().map(|fixture| fixture.receipt()).transpose()?,
         "fixture_input": {
             "requested": args.usb_mouse_report,
             "injected": injected,
@@ -318,6 +330,27 @@ fn refusal(reason: &'static str, detail: impl std::fmt::Display) -> ConduitosErr
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn storage_fixture_cli_is_exclusive_with_both_mouse_options() {
+        use clap::Parser;
+        #[derive(Parser)]
+        struct Cli {
+            #[command(flatten)]
+            run: RunArgs,
+        }
+        let base = [
+            "run",
+            "--media",
+            "media",
+            "--output-dir",
+            "new",
+            "--usb-storage-fixture",
+        ];
+        assert!(Cli::try_parse_from(base).unwrap().run.usb_storage_fixture);
+        for flag in ["--usb-control-mouse", "--usb-mouse-report"] {
+            assert!(Cli::try_parse_from(base.into_iter().chain([flag])).is_err());
+        }
+    }
     #[test]
     fn mouse_fixture_is_one_exact_report_after_complete_play_observation() {
         assert!(!play_observed(b"CONDUIT_PROTOCOL_PLAN plan=p\n"));
