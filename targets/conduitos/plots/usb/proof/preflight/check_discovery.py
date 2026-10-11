@@ -6,7 +6,7 @@ import pathlib
 import re
 
 
-def check(serial, package, supported):
+def check(serial, package, supported, root=None):
     digest = hashlib.sha256(package).hexdigest()
     lines = serial.splitlines()
     def unique(prefix):
@@ -18,6 +18,22 @@ def check(serial, package, supported):
     assert set(identities) == {'source', 'checked', 'expanded', 'plan', 'class_source', 'class_checked'}
     package_index = unique('CONDUIT_USB_PREFLIGHT_PACKAGE sha256=')
     assert lines[package_index + 1] == digest
+    if root is not None:
+        root_index = unique('CONDUIT_USB_PREFLIGHT_ROOT ')
+        root_bytes = bytes.fromhex(lines[root_index + 1])
+        root_metadata = re.fullmatch(r'CONDUIT_USB_PREFLIGHT_ROOT bytes=(\d+) sha256=([0-9a-f]{64})', lines[root_index])
+        assert root_metadata and len(root_bytes) == int(root_metadata[1])
+        assert hashlib.sha256(root_bytes).hexdigest() == root_metadata[2]
+        def normalized(value):
+            value = dict(value)
+            for key in ('preflight', 'endpoint_read', 'endpoint_write'):
+                if value.get(key) is None:
+                    value.pop(key, None)
+            if value.get('additional_remote_sign_items', 0) == 0:
+                value.pop('additional_remote_sign_items', None)
+            return value
+        assert normalized(json.loads(root_bytes)) == normalized(json.loads(root))
+        assert package_index < root_index
     attachment = unique('CONDUIT_USB_PREFLIGHT_ATTACHMENT ')
     facts = {k: int(v) for k, v in re.findall(r'(\w+)=(\d+)', lines[attachment])}
     assert facts['port'] == 1 and facts['epoch'] == 1
@@ -49,5 +65,6 @@ if __name__ == '__main__':
     parser.add_argument('serial', type=pathlib.Path)
     parser.add_argument('package', type=pathlib.Path)
     parser.add_argument('verdict', choices=['supported', 'unsupported'])
+    parser.add_argument('--root', type=pathlib.Path)
     args = parser.parse_args()
-    print(json.dumps(check(args.serial.read_text(), args.package.read_bytes(), args.verdict == 'supported')))
+    print(json.dumps(check(args.serial.read_text(), args.package.read_bytes(), args.verdict == 'supported', args.root.read_bytes() if args.root else None)))
