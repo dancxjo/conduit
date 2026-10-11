@@ -157,7 +157,8 @@ fn cancellation_retains_physical_submission_until_exact_stop_receipt() {
         _ => panic!("forged preparation released lease"),
     };
     assert!(owner.pending.is_some());
-    drop(foreign);
+    assert_eq!(foreign.0.preparation, [0; 32]);
+    assert_eq!(foreign.0.ordinal, submission.ordinal);
     let receipt = unsafe { StorageCancellationReceipt::stopped(submission) };
     assert!(owner.retire_cancelled(receipt).is_ok());
     assert!(owner.pending.is_none());
