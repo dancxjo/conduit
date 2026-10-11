@@ -1,4 +1,5 @@
 //! Root-owned standard descriptor discovery; contains no class interpretation.
+use super::attachment::AttachmentBaseline;
 use super::{
     ControlRequest, ControlRing, UsbDevice, UsbDma, UsbError, control, device_dma_pointer,
 };
@@ -9,6 +10,7 @@ use alloc::vec::Vec;
 /// Private construction prevents callers from substituting authored bytes.
 pub struct UsbConfigurationSnapshot {
     controller: ControllerIdentity,
+    baseline: AttachmentBaseline,
     root_port: u8,
     slot: u8,
     dma_slot: u8,
@@ -74,10 +76,8 @@ impl UsbConfigurationSnapshot {
             return Err(UsbError::StaleDeviceInstance);
         }
         device_dma_pointer(device)?;
-        if controller.port_status(device.root_port) & 1 == 0 {
-            return Err(UsbError::DeviceVanished);
-        }
-        Ok(())
+        self.baseline
+            .validate(controller.port_status(device.root_port))
     }
     fn validate_controller(&self, controller: ControllerIdentity) -> Result<(), UsbError> {
         if controller != self.controller {
@@ -97,6 +97,7 @@ impl UsbConfigurationSnapshot {
                 device_id: 0x000d,
                 bar_physical: 0x1000,
             },
+            baseline: AttachmentBaseline::fixture(),
             root_port: 1,
             slot: 2,
             dma_slot: 0,
@@ -124,6 +125,7 @@ pub fn discover_configuration(
     mapping: fn(u64) -> Option<u64>,
 ) -> Result<UsbConfigurationSnapshot, UsbError> {
     let dma = device_dma_pointer(device)?;
+    let baseline = AttachmentBaseline::establish(controller, device.root_port)?;
     let physical = super::control_owner::transfer::mapped_dma_physical(dma as u64, mapping)?;
     let mut ring = ControlRing {
         physical: physical + core::mem::offset_of!(UsbDma, transfer_ring) as u64,
@@ -156,6 +158,7 @@ pub fn discover_configuration(
     let actual = control(controller, &mut ring, device.slot, request(total))?;
     let snapshot = UsbConfigurationSnapshot {
         controller: ControllerIdentity::from_native(controller),
+        baseline,
         root_port: device.root_port,
         slot: device.slot,
         dma_slot: device.dma_slot,
@@ -181,6 +184,7 @@ mod tests {
     fn exact_attachment_is_required_even_with_equal_descriptor_bytes() {
         let observed = UsbConfigurationSnapshot {
             controller: UsbConfigurationSnapshot::fixture(&[], 0).controller,
+            baseline: AttachmentBaseline::fixture(),
             root_port: 1,
             slot: 2,
             dma_slot: 0,

@@ -84,3 +84,70 @@ pub(super) fn classify_port_reset(status: u32) -> Option<Result<(), UsbError>> {
         None
     }
 }
+
+// xHCI 1.2 section 5.4.8: CSC is sticky RW1C. Preserve only ordinary
+// RW fields; copying PORTSC wholesale would acknowledge unrelated changes,
+// disable the port through PED, or trigger reset/link-state operations.
+const CONNECT_STATUS_CHANGE: u32 = 1 << 17;
+const PORT_ORDINARY_RW: u32 = (1 << 9) | (3 << 14) | (7 << 25);
+
+/// A baseline established by the exclusive Root after addressing its device.
+/// This token records continuity checking, never device possession.
+pub(super) struct AttachmentBaseline;
+impl AttachmentBaseline {
+    pub(super) fn establish(controller: &XhciReady, port: u8) -> Result<Self, UsbError> {
+        let status = controller.port_status(port);
+        if status & 1 == 0 {
+            return Err(UsbError::DeviceVanished);
+        }
+        controller.write_port_status(port, baseline_acknowledgement(status));
+        validate_attachment_continuity(controller.port_status(port))?;
+        Ok(Self)
+    }
+    pub(super) fn validate(&self, status: u32) -> Result<(), UsbError> {
+        validate_attachment_continuity(status)
+    }
+    #[cfg(test)]
+    pub(super) fn fixture() -> Self {
+        Self
+    }
+}
+fn baseline_acknowledgement(status: u32) -> u32 {
+    (status & PORT_ORDINARY_RW) | CONNECT_STATUS_CHANGE
+}
+fn validate_attachment_continuity(status: u32) -> Result<(), UsbError> {
+    if status & 1 == 0 {
+        Err(UsbError::DeviceVanished)
+    } else if status & CONNECT_STATUS_CHANGE != 0 {
+        Err(UsbError::StaleDeviceInstance)
+    } else {
+        Ok(())
+    }
+}
+#[cfg(test)]
+mod continuity_tests {
+    use super::*;
+    #[test]
+    fn connected_baseline_requires_clear_connect_change() {
+        assert_eq!(validate_attachment_continuity(1 | 2 | (1 << 9)), Ok(()));
+        assert_eq!(
+            validate_attachment_continuity(0),
+            Err(UsbError::DeviceVanished)
+        );
+        assert_eq!(
+            validate_attachment_continuity(1 | CONNECT_STATUS_CHANGE),
+            Err(UsbError::StaleDeviceInstance)
+        );
+    }
+    #[test]
+    fn acknowledgement_cannot_copy_commands_or_other_change_bits() {
+        assert_eq!(
+            baseline_acknowledgement(u32::MAX),
+            PORT_ORDINARY_RW | CONNECT_STATUS_CHANGE
+        );
+        assert_eq!(
+            baseline_acknowledgement(1 | 2 | (1 << 4) | (1 << 21)),
+            CONNECT_STATUS_CHANGE
+        );
+    }
+}
