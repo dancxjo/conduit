@@ -12,7 +12,7 @@ use super::{
     },
 };
 use crate::{
-    arch::x86_64::xhci::XhciReady,
+    arch::xhci_mechanism::XhciReady,
     machine_membrane::selected_operation::SelectedOperationPlan,
     usb_base::{
         endpoint_read_contract::EndpointReadContract, endpoint_read_owner::EndpointReadAttachment,

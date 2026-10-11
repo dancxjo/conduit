@@ -13,6 +13,10 @@ use core::{
 mod event;
 #[path = "xhci_mechanism/ordering.rs"]
 mod ordering;
+pub(crate) use ordering::publish_dma;
+#[path = "xhci_mechanism/transfer_publication.rs"]
+mod transfer_publication;
+pub(crate) use transfer_publication::publish_transfer;
 
 const COMMAND_TRBS: usize = 16;
 const EVENT_TRBS: usize = 16;
@@ -289,7 +293,7 @@ unsafe fn initialize_registers(mmio: usize, dma_physical: u64) -> Result<Registe
     }
 
     unsafe {
-        (*dma).command_ring[0] = [0, 0, 0, (23 << 10) | 1];
+        transfer_publication::write_command_slot(0, [0, 0, 0, (23 << 10) | 1]);
         write32(doorbell, 0);
     }
     for _ in 0..POLL_STEPS {
@@ -364,7 +368,7 @@ impl XhciReady {
         let pointer = self.dma_physical
             + core::mem::offset_of!(DmaStorage, command_ring) as u64
             + (index * 16) as u64;
-        unsafe { write_volatile(core::ptr::addr_of_mut!(DMA.command_ring[index]), trb) };
+        unsafe { transfer_publication::write_command_slot(index, trb) };
         self.command_enqueue += 1;
         unsafe { write32(self.doorbell, 0) };
         for _ in 0..EVENT_TRBS {
@@ -397,7 +401,7 @@ impl XhciReady {
             0,
             (10 << 10) | (u32::from(slot) << 24) | self.command_cycle,
         ];
-        unsafe { write_volatile(core::ptr::addr_of_mut!(DMA.command_ring[index]), command) };
+        unsafe { transfer_publication::write_command_slot(index, command) };
         self.command_enqueue += 1;
         unsafe { write32(self.doorbell, 0) };
         let mut stale_transfers = 0_u8;

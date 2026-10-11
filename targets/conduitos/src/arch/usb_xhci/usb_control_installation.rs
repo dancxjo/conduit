@@ -4,7 +4,7 @@ use super::{
     UsbDevice, UsbDma, device_dma_pointer,
     native_host::{UsbNativeCallIndex, UsbNativeHost, UsbNativeHostRefusal},
 };
-use crate::arch::x86_64::xhci::XhciReady;
+use crate::arch::xhci_mechanism::XhciReady;
 use crate::usb_base::{
     control_contract::ControlContract,
     control_factory::*,

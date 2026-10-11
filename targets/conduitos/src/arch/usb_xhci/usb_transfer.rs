@@ -1,7 +1,7 @@
 //! Exact xHCI completion correlation for USB control transfers.
 
 use super::UsbError;
-use crate::arch::x86_64::xhci::Event;
+use crate::arch::xhci_mechanism::Event;
 
 /// xHCI Setup Stage TRT (6.4.1.2.1): no data=0, OUT=2, IN=3.
 /// This encodes controller machinery, not a USB class request or its payload.

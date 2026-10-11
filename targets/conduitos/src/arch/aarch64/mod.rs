@@ -36,6 +36,10 @@ pub fn early_write(bytes: &[u8]) {
     present(bytes);
 }
 
+mod protocol_diagnostic;
+pub use protocol_diagnostic::append_boot_diagnostic;
+mod protocol_clock_spacing;
+pub use protocol_clock_spacing::space_protocol_clock_poll;
 mod providers;
 pub use providers::{Clock, Idle, Interrupts, Serial, Timer};
 

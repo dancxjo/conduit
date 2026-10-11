@@ -11,6 +11,13 @@
 #[cfg_attr(target_arch = "aarch64", allow(dead_code))]
 mod xhci_mechanism;
 
+#[cfg(any(
+    target_arch = "x86_64",
+    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+))]
+#[cfg_attr(target_arch = "aarch64", allow(dead_code))]
+pub(crate) mod usb_xhci;
+
 #[cfg(test)]
 #[path = "aarch64/xhci/pci.rs"]
 mod aarch64_pci_conformance;
@@ -82,12 +89,26 @@ mod aarch64;
 
 #[cfg(all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5")))]
 pub use aarch64::{
-    Clock, Idle, InterruptFact, Interrupts, Serial, Timer, VirtXhciRefusal, disable_interrupts,
-    emergency_halt, emergency_machine_profile, enable_fp_simd, enable_interrupts,
-    initialize_machine, initialize_xhci, install_low_mmio_map, interruptible_idle,
-    mmio_table_addresses, pop_interrupt, present, read_counter, timer_arm,
+    Clock, Idle, InterruptFact, Interrupts, Serial, Timer, VirtXhciRefusal, append_boot_diagnostic,
+    disable_interrupts, emergency_halt, emergency_machine_profile, enable_fp_simd,
+    enable_interrupts, initialize_machine, initialize_xhci, install_low_mmio_map,
+    interruptible_idle, mmio_table_addresses, pop_interrupt, present, read_counter,
+    space_protocol_clock_poll, timer_arm,
 };
 
+#[cfg(all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5")))]
+pub use usb_xhci::{
+    EndpointNativeRefusal, EndpointWriteNativeRefusal, NativeUsbControlCall, ReadyUsbControlBase,
+    UsbControlCallRefusal, UsbControlHostCall, UsbControlSelection, UsbDevice,
+    UsbNativeHostRefusal, UsbNativeProtocolRefusal, address_selected_root_port_at_epoch,
+};
+#[cfg(all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5")))]
+pub(crate) use usb_xhci::{
+    NativeUsbDuplexHost, NativeUsbProtocolHost, ReadyUsbDuplexHost, ReadyUsbProtocolHost,
+    UsbConfiguredInboundEndpoint, UsbConfiguredOutboundEndpoint, UsbEndpointReceiveDma,
+    UsbEndpointTransmitDma, UsbInboundEndpointParameters, UsbOutboundEndpointParameters,
+    configure_usb_inbound, configure_usb_outbound,
+};
 #[cfg(all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5")))]
 pub use xhci_mechanism::XhciReady;
 

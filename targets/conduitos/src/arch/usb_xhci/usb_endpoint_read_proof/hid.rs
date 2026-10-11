@@ -1,6 +1,6 @@
 //! Explicit native keyboard Source appliance over the existing endpoint owner.
 use super::*;
-use crate::arch::x86_64::usb::endpoint_setup::ConfiguredInboundEndpoint;
+use crate::arch::usb_xhci::endpoint_setup::ConfiguredInboundEndpoint;
 use crate::usb_base::{
     hid_endpoint_proof_kernel::PreparedHidEndpointProofKernel, hid_endpoint_proof_plan,
 };

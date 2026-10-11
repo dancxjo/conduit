@@ -2,7 +2,7 @@
 #![allow(dead_code)] // Root installation and controller proof remain pending.
 use super::endpoint_read::EndpointReceiveDma;
 use super::{UsbDevice, dma::device_dma_pointer};
-use crate::arch::x86_64::xhci::XhciReady;
+use crate::arch::xhci_mechanism::XhciReady;
 use core::{
     ptr::{read_volatile, write_volatile},
     sync::atomic::{Ordering, fence},

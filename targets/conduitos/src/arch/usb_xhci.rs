@@ -5,25 +5,25 @@
 
 use core::ptr::{read_volatile, write_volatile};
 
-use super::xhci::XhciReady;
+use crate::arch::xhci_mechanism::XhciReady;
 
-#[path = "usb_control.rs"]
+#[path = "usb_xhci/usb_control.rs"]
 mod control;
 use control::{ControlRequest, ControlRing, control};
 
-#[path = "usb_attachment.rs"]
+#[path = "usb_xhci/usb_attachment.rs"]
 mod attachment;
-#[path = "usb_descriptor.rs"]
+#[path = "usb_xhci/usb_descriptor.rs"]
 pub(super) mod descriptor;
-#[path = "usb_dma.rs"]
-pub(in crate::arch::x86_64) mod dma;
-#[path = "usb_error.rs"]
+#[path = "usb_xhci/usb_dma.rs"]
+pub(in crate::arch) mod dma;
+#[path = "usb_xhci/usb_error.rs"]
 mod error;
-#[path = "usb_transfer.rs"]
+#[path = "usb_xhci/usb_transfer.rs"]
 mod transfer;
 
-#[cfg(feature = "scripted-keyboard-proof")]
-#[path = "usb_ring_proof.rs"]
+#[cfg(all(target_arch = "x86_64", feature = "scripted-keyboard-proof"))]
+#[path = "usb_xhci/usb_ring_proof.rs"]
 mod ring_proof;
 
 #[cfg(test)]
@@ -37,37 +37,37 @@ use descriptor::{
 pub use dma::USB_DEVICE_DMA_SLOTS;
 use dma::{UsbDma, UsbDmaSlot, device_dma_pointer, dma_pointer};
 pub use error::UsbError;
-#[path = "usb_control_installation.rs"]
+#[path = "usb_xhci/usb_control_installation.rs"]
 mod control_installation;
-#[path = "usb_control_owner.rs"]
+#[path = "usb_xhci/usb_control_owner.rs"]
 mod control_owner;
 pub use control_installation::{NativeUsbControlCall, ReadyUsbControlBase};
-#[path = "usb_endpoint_read.rs"]
+#[path = "usb_xhci/usb_endpoint_read.rs"]
 pub(super) mod endpoint_read;
-#[cfg(any(test, feature = "scripted-keyboard-proof"))]
-#[path = "usb_endpoint_read_proof.rs"]
+#[cfg(all(target_arch = "x86_64", any(test, feature = "scripted-keyboard-proof")))]
+#[path = "usb_xhci/usb_endpoint_read_proof.rs"]
 mod endpoint_read_proof;
-#[path = "usb_endpoint_write_transfer.rs"]
+#[path = "usb_xhci/usb_endpoint_write_transfer.rs"]
 pub(super) mod endpoint_write_transfer;
-#[cfg(feature = "usb-endpoint-read-proof")]
+#[cfg(all(target_arch = "x86_64", feature = "usb-endpoint-read-proof"))]
 pub use endpoint_read_proof::run_appliance as run_usb_endpoint_read_proof;
-#[path = "usb_endpoint_offer.rs"]
+#[path = "usb_xhci/usb_endpoint_offer.rs"]
 mod endpoint_offer;
-#[path = "usb_endpoint_setup.rs"]
+#[path = "usb_xhci/usb_endpoint_setup.rs"]
 mod endpoint_setup;
 pub use control_owner::{UsbControlCallRefusal, UsbControlHostCall, UsbControlSelection};
-#[cfg(feature = "usb-endpoint-read-proof")]
-#[path = "usb_hid_boot_control_proof.rs"]
+#[cfg(all(target_arch = "x86_64", feature = "usb-endpoint-read-proof"))]
+#[path = "usb_xhci/usb_hid_boot_control_proof.rs"]
 mod hid_boot_control_proof;
-#[cfg(feature = "scripted-keyboard-proof")]
-#[path = "usb_control_kernel_proof.rs"]
+#[cfg(all(target_arch = "x86_64", feature = "scripted-keyboard-proof"))]
+#[path = "usb_xhci/usb_control_kernel_proof.rs"]
 mod kernel_proof;
-#[cfg(feature = "scripted-keyboard-proof")]
+#[cfg(all(target_arch = "x86_64", feature = "scripted-keyboard-proof"))]
 pub use kernel_proof::run as run_usb_control_kernel_proof;
-#[cfg(feature = "scripted-keyboard-proof")]
-#[path = "usb_device_probe_proof.rs"]
+#[cfg(all(target_arch = "x86_64", feature = "scripted-keyboard-proof"))]
+#[path = "usb_xhci/usb_device_probe_proof.rs"]
 mod device_probe_proof;
-#[cfg(feature = "scripted-keyboard-proof")]
+#[cfg(all(target_arch = "x86_64", feature = "scripted-keyboard-proof"))]
 pub use device_probe_proof::{
     run as run_usb_device_probe_proof, run_configuration as run_usb_configuration_probe_proof,
 };
@@ -358,7 +358,7 @@ fn prepare_root_port_at_epoch(
         },
     )?;
     retain_transport_bounds(&mut result, &ring, MAX_CONTROL_TRANSFERS);
-    #[cfg(feature = "scripted-keyboard-proof")]
+    #[cfg(all(target_arch = "x86_64", feature = "scripted-keyboard-proof"))]
     ring_proof::run(controller, &mut ring)?;
     Ok(result)
 }
@@ -515,13 +515,13 @@ unsafe fn write_context_u32(dma: *mut UsbDma, offset: usize, value: u32) {
 }
 
 #[cfg(test)]
-#[path = "usb_tests.rs"]
+#[path = "usb_xhci/usb_tests.rs"]
 mod tests;
 
-#[path = "usb_native_host.rs"]
+#[path = "usb_xhci/usb_native_host.rs"]
 pub(super) mod native_host;
 
-#[path = "usb_protocol_installation.rs"]
+#[path = "usb_xhci/usb_protocol_installation.rs"]
 mod protocol_installation;
 pub use endpoint_read::EndpointNativeRefusal;
 pub(crate) use endpoint_read::EndpointReceiveDma as UsbEndpointReceiveDma;
@@ -539,6 +539,6 @@ pub(crate) use protocol_installation::{NativeUsbProtocolHost, ReadyUsbProtocolHo
 
 pub use protocol_installation::UsbNativeProtocolRefusal;
 
-#[path = "usb_duplex_installation.rs"]
+#[path = "usb_xhci/usb_duplex_installation.rs"]
 mod duplex_installation;
 pub(crate) use duplex_installation::{NativeUsbDuplexHost, ReadyUsbDuplexHost};
