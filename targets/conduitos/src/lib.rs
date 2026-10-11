@@ -179,9 +179,9 @@ pub mod rendezvous_descriptor;
 #[cfg(feature = "native-owner-network")]
 pub mod secure_rendezvous_support;
 pub mod seeded_state;
+pub mod storage_base;
 pub mod structured_selector_host_call;
 pub mod usb_base;
-pub mod storage_base;
 #[cfg(any(test, target_arch = "x86_64"))]
 pub mod usb_line_offer;
 #[cfg(any(test, target_arch = "x86_64"))]

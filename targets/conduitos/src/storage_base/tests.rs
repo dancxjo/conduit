@@ -93,7 +93,6 @@ fn complete_and_incomplete_preserve_request_ordinal_and_storage_residue() {
                     .try_into()
                     .unwrap(),
             )
-            .unwrap()
         };
         assert_eq!(integer("actual"), length as u64);
         assert_eq!(integer("residue"), u64::from(residue));

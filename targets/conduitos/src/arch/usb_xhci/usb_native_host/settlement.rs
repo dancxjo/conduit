@@ -22,7 +22,9 @@ impl UsbNativeHost<'_> {
         Ok(())
     }
 
-    pub(super) fn discard_cancelled_terminals(&mut self) -> Result<(), UsbNativeHostRefusal> {
+    pub(in crate::arch::usb_xhci) fn discard_cancelled_terminals(
+        &mut self,
+    ) -> Result<(), UsbNativeHostRefusal> {
         self.validate_cancelled_transfers()?;
         // Caller has cancelled/retired every original kernel obligation before
         // discarding unpublished software outputs. Native stop alone is not enough.
@@ -36,7 +38,9 @@ impl UsbNativeHost<'_> {
         Ok(())
     }
 
-    pub(super) fn validate_cancelled_settlement(&self) -> Result<(), UsbNativeHostRefusal> {
+    pub(in crate::arch::usb_xhci) fn validate_cancelled_settlement(
+        &self,
+    ) -> Result<(), UsbNativeHostRefusal> {
         self.validate_cancelled_transfers()?;
         if self
             .bulk_terminals
@@ -49,7 +53,9 @@ impl UsbNativeHost<'_> {
     }
 
     /// This certifies only present native idle, never class protocol correctness.
-    pub(super) fn validate_settlement_idle(&self) -> Result<(), UsbNativeHostRefusal> {
+    pub(in crate::arch::usb_xhci) fn validate_settlement_idle(
+        &self,
+    ) -> Result<(), UsbNativeHostRefusal> {
         self.idle_transport()?;
         if self.possessions_revoked || self.isochronous.is_some() {
             return Err(UsbNativeHostRefusal::NotReady);

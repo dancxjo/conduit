@@ -3,18 +3,18 @@ use super::{FixedScheduler, StepBack};
 use crate::{NodeId, SignSink, ValueStorage};
 
 impl<
-    D,
-    S,
-    E,
-    const NODES: usize,
-    const CORDS: usize,
-    const PORTS: usize,
-    const QUEUE_SLOTS: usize,
-    const ROUTE_SLOTS: usize,
-    const ROUTE_TARGETS: usize,
-    const HOST_BINDING_SLOTS: usize,
-    const PENDING_REQUESTS: usize,
->
+        D,
+        S,
+        E,
+        const NODES: usize,
+        const CORDS: usize,
+        const PORTS: usize,
+        const QUEUE_SLOTS: usize,
+        const ROUTE_SLOTS: usize,
+        const ROUTE_TARGETS: usize,
+        const HOST_BINDING_SLOTS: usize,
+        const PENDING_REQUESTS: usize,
+    >
     FixedScheduler<
         D,
         S,

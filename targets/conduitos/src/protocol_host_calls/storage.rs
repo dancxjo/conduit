@@ -15,6 +15,7 @@ pub(super) struct StorageAssociation {
     identity: Option<(BlockReadRequest, u32, [u8; 32])>,
     receipt: Option<StorageSettlementReceipt>,
     cancelled: bool,
+    revoked: bool,
     output: [u8; 4096],
     output_length: usize,
 }
@@ -57,6 +58,7 @@ impl StorageAssociation {
             identity: None,
             receipt: None,
             cancelled: false,
+            revoked: false,
             output: [0; 4096],
             output_length: 0,
         })
@@ -170,15 +172,21 @@ impl StorageAssociation {
         Ok(&self.output[..self.output_length])
     }
     pub(super) fn request_cancel(&mut self) -> Result<(), ProtocolCallRefusal> {
-        if !self.cancelled {
-            self.cancelled = true;
+        self.cancelled = true;
+        if !self.revoked {
             self.owner
                 .request_cancel()
                 .map_err(ProtocolCallRefusal::Storage)?;
+            self.revoked = true;
         }
         Ok(())
     }
     pub(super) fn retire_cancelled(&mut self) -> Result<(), ProtocolCallRefusal> {
+        if !self.cancelled || !self.revoked {
+            return Err(ProtocolCallRefusal::Storage(
+                StorageTransactionRefusal::Terminal,
+            ));
+        }
         let submission = match self.receipt.take() {
             Some(receipt) => Some(receipt.into_submission()),
             None => self.submission.take(),
@@ -256,5 +264,42 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
         kernel
             .complete_host_call_bytes(admitted, bytes)
             .map_err(ProtocolCallRefusal::Kernel)
+    }
+}
+
+impl<P: I2cProvider> PreparedProtocolCalls<P> {
+    pub(super) fn retire_cancelled_storage(
+        &mut self,
+        kernel: &KernelCompositeHost,
+    ) -> Result<(), ProtocolCallRefusal> {
+        use ProtocolCallRefusal as Refusal;
+        if self.storage.is_some() {
+            let storage = self.storage.as_mut().ok_or(Refusal::InvalidPlan)?;
+            let usb_nodes = self
+                .usb_duplex
+                .as_ref()
+                .ok_or(Refusal::InvalidPlan)?
+                .subordinate_nodes();
+            let nodes = [
+                usb_nodes[0],
+                usb_nodes[1],
+                usb_nodes[2],
+                storage.owner.authorize_node(),
+                storage.owner.settle_node(),
+            ];
+            if kernel
+                .has_retained_host_call_for_nodes(&self.identity.host_id, &nodes)
+                .map_err(Refusal::Kernel)?
+            {
+                return Err(Refusal::Unsupported);
+            }
+            let host = self.usb_duplex.as_mut().ok_or(Refusal::InvalidPlan)?;
+            host.discard_cancelled_terminals()
+                .map_err(Refusal::UsbProtocol)?;
+            host.validate_cancelled_settlement()
+                .map_err(Refusal::UsbProtocol)?;
+            storage.retire_cancelled()?;
+        }
+        Ok(())
     }
 }

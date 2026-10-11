@@ -485,33 +485,7 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
             target_arch = "x86_64",
             all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
         ))]
-        if self.storage.is_some() {
-            let storage = self.storage.as_mut().ok_or(Refusal::InvalidPlan)?;
-            let usb_nodes = self
-                .usb_duplex
-                .as_ref()
-                .ok_or(Refusal::InvalidPlan)?
-                .subordinate_nodes();
-            let nodes = [
-                usb_nodes[0],
-                usb_nodes[1],
-                usb_nodes[2],
-                storage.owner.authorize_node(),
-                storage.owner.settle_node(),
-            ];
-            if kernel
-                .has_retained_host_call_for_nodes(&self.identity.host_id, &nodes)
-                .map_err(Refusal::Kernel)?
-            {
-                return Err(Refusal::Unsupported);
-            }
-            let host = self.usb_duplex.as_mut().ok_or(Refusal::InvalidPlan)?;
-            host.discard_cancelled_terminals()
-                .map_err(Refusal::UsbProtocol)?;
-            host.validate_cancelled_settlement()
-                .map_err(Refusal::UsbProtocol)?;
-            storage.retire_cancelled()?;
-        }
+        self.retire_cancelled_storage(kernel)?;
         Ok(())
     }
 }

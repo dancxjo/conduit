@@ -57,6 +57,7 @@ fn partial_extent_stays_incomplete_and_cannot_become_a_completed_block() {
     assert!(encoder.observed(request, 0, &[1; 17], 0).is_err());
 }
 
+#[path = "fixture.rs"]
 mod fixture;
 #[test]
 fn selected_dual_scopes_reject_exact_identity_substitution_before_authorization() {
