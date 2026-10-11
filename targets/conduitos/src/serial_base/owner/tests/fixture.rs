@@ -173,11 +173,13 @@ pub(super) fn input(tag: &str, bytes: &[u8]) -> alloc::vec::Vec<u8> {
     let field = &fields[0];
     let payload = StructuredInfoValue::record(
         payload_type.clone(),
-        vec![StructuredFieldValue::new(
-            field.name(),
-            StructuredInfoValue::leaf(field.value_type().clone(), bytes.to_vec()).unwrap(),
-        )
-        .unwrap()],
+        vec![
+            StructuredFieldValue::new(
+                field.name(),
+                StructuredInfoValue::leaf(field.value_type().clone(), bytes.to_vec()).unwrap(),
+            )
+            .unwrap(),
+        ],
     )
     .unwrap();
     StructuredInfoValue::variant(contract.request_type().clone(), tag, payload)

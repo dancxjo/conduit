@@ -79,16 +79,18 @@ fn one_duplex_lease_preserves_partial_extents_and_rejects_replay_and_wrong_direc
     let submission = owner
         .begin(node, HostCallId(0), RequestId(1), &receive)
         .unwrap();
-    assert!(unsafe {
-        owner.finish_acknowledged(
-            &submission,
-            SerialObservation::Received {
-                actual: 2,
-                bytes: &[0],
-            },
-        )
-    }
-    .is_err());
+    assert!(
+        unsafe {
+            owner.finish_acknowledged(
+                &submission,
+                SerialObservation::Received {
+                    actual: 2,
+                    bytes: &[0],
+                },
+            )
+        }
+        .is_err()
+    );
     assert!(owner.pending.is_some());
     let result = unsafe {
         owner.finish_acknowledged(
@@ -262,7 +264,9 @@ fn acknowledged_terminal_observation_prevents_any_next_effect() {
 fn catalog_contract_preserves_bounded_byte_refinements_without_offering_a_provider() {
     let contract = SerialDuplexContract::prepare().unwrap();
     let (startup, _profile) = contract.catalogs();
-    let syntax = conduit_plot::parse_syntax_document("with serial/duplex-bytes/request as SerialRequest\nplot identity (\n >> request: SerialRequest...|\n result: SerialRequest...| >>\n) = (.)");
+    let syntax = conduit_plot::parse_syntax_document(
+        "with serial/duplex-bytes/request as SerialRequest\nplot identity (\n >> request: SerialRequest...|\n result: SerialRequest...| >>\n) = (.)",
+    );
     assert!(syntax.diagnostics.is_empty());
     assert!(conduit_plot::check_syntax_document(&syntax, &startup).is_ok());
 }

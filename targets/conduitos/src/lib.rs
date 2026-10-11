@@ -38,9 +38,9 @@ pub mod dual_region_plan;
 pub mod ethernet_frame;
 mod execution_region;
 pub mod expression_host_call;
-pub mod flow_singleton;
 pub mod flow_concat_finite;
 pub mod flow_merge_finite;
+pub mod flow_singleton;
 pub mod flow_zip;
 #[cfg(any(
     test,
@@ -58,7 +58,6 @@ pub mod hotplug_guest;
 #[cfg(any(test, feature = "native-http-client"))]
 pub mod http;
 pub mod i2c_base;
-pub mod serial_base;
 pub mod identity;
 #[cfg(test)]
 pub mod kernel_profile;
@@ -166,6 +165,7 @@ pub mod protocol_host_calls;
 pub mod protocol_operations;
 mod pure_protocol_owner;
 pub mod pure_protocol_play;
+pub mod serial_base;
 #[cfg(target_arch = "x86_64")]
 pub mod source_keyboard_batch;
 pub mod source_pointer_sample;

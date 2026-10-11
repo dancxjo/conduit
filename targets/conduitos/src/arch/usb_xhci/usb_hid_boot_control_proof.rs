@@ -6,7 +6,7 @@ use super::{
     kernel_proof::possession,
 };
 use crate::{
-    arch::{early_write, XhciReady},
+    arch::{XhciReady, early_write},
     identity::{self, BootIdentities},
     sign_format::FixedText,
     usb_base::{

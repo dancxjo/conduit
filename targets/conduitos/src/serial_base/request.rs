@@ -1,7 +1,7 @@
 //! Checked requests borrow bounded storage; decoding allocates nothing in Play.
-use super::contract::{SerialDuplexContract, SERIAL_DUPLEX_DATA_BYTES};
+use super::contract::{SERIAL_DUPLEX_DATA_BYTES, SerialDuplexContract};
 use conduit_core::{
-    validate_canonical_structured_value, PreparedStructuredValueValidator, StructuredInfoRefusal,
+    PreparedStructuredValueValidator, StructuredInfoRefusal, validate_canonical_structured_value,
 };
 
 #[derive(Debug, PartialEq, Eq)]

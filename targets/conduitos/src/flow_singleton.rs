@@ -2,7 +2,7 @@
 use alloc::{boxed::Box, collections::BTreeMap, format, string::String, vec::Vec};
 use conduit_composite::{FlowSingletonBack, KernelOperationBudget, KernelOperationFactory};
 use conduit_core::*;
-use conduit_kernel::{scheduler::StepBack, HostedValueStore};
+use conduit_kernel::{HostedValueStore, scheduler::StepBack};
 use conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 pub const IMPLEMENTATION: &str = "conduitos/flow-singleton@1";
 pub const PROFILE: &str = "conduitos/flow-singleton-prepared@1";

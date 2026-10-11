@@ -2,7 +2,7 @@
 //! This scripts wire requests; it is not plotted enumeration/class acceptance.
 use super::{ControlRing, UsbError, control::control_raw};
 use crate::{
-    arch::{early_write, XhciReady},
+    arch::{XhciReady, early_write},
     sign_format::FixedText,
     usb_base::control_request::ControlTransferRequest,
 };

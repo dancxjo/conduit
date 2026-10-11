@@ -4,9 +4,9 @@ use conduit_core::{
     StructuredInfoValue, StructuredInfoValueShape,
 };
 use conduit_plot::{
+    check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
     CanonicalExpansionDiagnostic, ExpandedAuthoringPlot, PortableExpressionProgram,
-    PreparedPortableExpressionEvaluator, ProfileCatalog, StartupCatalog, check_syntax_document,
-    expand_canonical_plot_for_authoring, parse_syntax_document,
+    PreparedPortableExpressionEvaluator, ProfileCatalog, StartupCatalog,
 };
 const TYPES: &str = "
 type Wide = {

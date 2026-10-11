@@ -4,9 +4,9 @@ use conduit_core::{
     StructuredInfoValue as Value,
 };
 use conduit_plot::{
+    check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
     CanonicalExpansionDiagnostic, PortableExpressionProgram, PreparedPortableExpressionEvaluator,
-    ProfileCatalog, StartupCatalog, check_syntax_document, expand_canonical_plot_for_authoring,
-    parse_syntax_document,
+    ProfileCatalog, StartupCatalog,
 };
 const TYPES: &str = "
 type Packet = {
@@ -63,13 +63,11 @@ fn input(program: &PortableExpressionProgram, packets: &[&[u8]], index: u64) -> 
         .map(|bytes| {
             Value::record(
                 element.clone(),
-                vec![
-                    StructuredFieldValue::new(
-                        "wire",
-                        Value::leaf(field(element, "wire").clone(), bytes.to_vec()).unwrap(),
-                    )
-                    .unwrap(),
-                ],
+                vec![StructuredFieldValue::new(
+                    "wire",
+                    Value::leaf(field(element, "wire").clone(), bytes.to_vec()).unwrap(),
+                )
+                .unwrap()],
             )
             .unwrap()
         })

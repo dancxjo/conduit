@@ -1,6 +1,6 @@
 //! Branch-local proof of bounds on unchanged Bytes input projections.
 //! This proves only direct length comparisons, never arithmetic or where laws.
-use super::{Op, PortableExpressionNode, StructuredInfoTypeShape, refinement::input_path};
+use super::{refinement::input_path, Op, PortableExpressionNode, StructuredInfoTypeShape};
 use crate::{BinaryOperator as Binary, UnaryOperator};
 use alloc::{string::String, vec::Vec};
 use conduit_core::{CheckedValueContract, ValueConstraint};

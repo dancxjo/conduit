@@ -1,11 +1,11 @@
 //! Provider observations preserve exact byte extents and direction.
 use super::contract::{
-    SerialDuplexContract, SERIAL_DUPLEX_DATA_BYTES, SERIAL_DUPLEX_MAXIMUM_BYTES,
+    SERIAL_DUPLEX_DATA_BYTES, SERIAL_DUPLEX_MAXIMUM_BYTES, SerialDuplexContract,
 };
 use alloc::vec::Vec;
 use conduit_core::{
-    kind_id, validate_canonical_structured_value, PreparedStructuredComposer,
-    StructuredInfoRefusal, StructuredInfoType, StructuredInfoTypeShape,
+    PreparedStructuredComposer, StructuredInfoRefusal, StructuredInfoType, StructuredInfoTypeShape,
+    kind_id, validate_canonical_structured_value,
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]

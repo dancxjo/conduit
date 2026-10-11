@@ -2,12 +2,12 @@
 
 use alloc::{format, string::String, vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, CheckedValueContract, FrontValueContract,
-    FrontValueLocation, Kind, KindIdentity, KindSemanticLaw, PortDescriptor, PortDirection,
-    PortTemporal, PreparedStructuredValueValidator, StructuredInfoRefusal, StructuredInfoType,
+    CapabilityLimits, CheckedValueContract, FrontValueContract, FrontValueLocation, Kind,
+    KindIdentity, KindSemanticLaw, PortDescriptor, PortDirection, PortTemporal,
+    PreparedStructuredValueValidator, StructuredInfoRefusal, StructuredInfoType, kind_id, port_id,
 };
 use conduit_plot::{
-    check_syntax_document, parse_syntax_document, CheckedNativeType, ProfileCatalog, StartupCatalog,
+    CheckedNativeType, ProfileCatalog, StartupCatalog, check_syntax_document, parse_syntax_document,
 };
 
 pub const SERIAL_DUPLEX_KIND: &str = "serial/duplex-bytes";

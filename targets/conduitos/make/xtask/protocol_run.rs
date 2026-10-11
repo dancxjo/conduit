@@ -1,8 +1,8 @@
 //! Bounded emulator observation of an exact packaged protocol product image.
-use super::{ConduitosError, report::sha256_file};
+use super::{report::sha256_file, ConduitosError};
 use crate::cli::GlobalOpts;
 use clap::Args;
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use std::{
     fs,
     io::Read,

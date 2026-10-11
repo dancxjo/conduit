@@ -1,8 +1,8 @@
 //! Recover existing all-element Bytes metadata through a successful selection.
 //! This path is never a branch-fact identity and cannot establish a narrower law.
 use super::{
-    Op, PortableExpressionNode, PortableExpressionProjection, String, StructuredInfoTypeShape,
-    input_path,
+    input_path, Op, PortableExpressionNode, PortableExpressionProjection, String,
+    StructuredInfoTypeShape,
 };
 use conduit_core::{CheckedValueContract, ValueConstraint};
 

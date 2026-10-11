@@ -3,13 +3,13 @@
 #![cfg_attr(not(test), allow(dead_code))] // Root installation is a separate integration.
 use super::{
     contract::{
-        SerialDuplexContract, SERIAL_DUPLEX_CALL, SERIAL_DUPLEX_KIND, SERIAL_DUPLEX_MAXIMUM_BYTES,
+        SERIAL_DUPLEX_CALL, SERIAL_DUPLEX_KIND, SERIAL_DUPLEX_MAXIMUM_BYTES, SerialDuplexContract,
     },
     request::{PreparedSerialRequestDecoder, SerialRequest, SerialRequestRefusal},
     result::{PreparedSerialResultEncoder, SerialDisposition, SerialResultRefusal},
 };
 use crate::machine_membrane::selected_operation::{
-    bind_selected_operation, SelectedCallRefusal, SelectedOperationContract, SelectedOperationPlan,
+    SelectedCallRefusal, SelectedOperationContract, SelectedOperationPlan, bind_selected_operation,
 };
 use conduit_core::{
     BaseCapabilityHandle, BaseCapabilityRefusal, BaseCapabilityTable, BaseOperationClaim,
@@ -142,12 +142,12 @@ impl SerialDuplexCallOwner {
             CapabilityLifecycle::Revoked => {
                 return Err(SerialOwnerRefusal::Capability(
                     BaseCapabilityRefusal::Revoked,
-                ))
+                ));
             }
             CapabilityLifecycle::Exhausted => {
                 return Err(SerialOwnerRefusal::Capability(
                     BaseCapabilityRefusal::Exhausted,
-                ))
+                ));
             }
             CapabilityLifecycle::Issued => {}
         }
