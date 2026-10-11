@@ -329,3 +329,19 @@ pub(super) const fn independent_endpoint_resource_bytes() -> u64 {
 #[cfg(test)]
 #[path = "usb_native_host/independent_tests.rs"]
 mod independent_tests;
+
+impl UsbNativeHost<'_> {
+    fn validate_continuity(&mut self) -> Result<(), UsbNativeHostRefusal> {
+        self.validate_continuity_status(self.controller.port_status(self.device.root_port))
+    }
+
+    fn validate_continuity_status(&mut self, status: u32) -> Result<(), UsbNativeHostRefusal> {
+        if let Err(error) = super::attachment::validate_attachment_continuity(status) {
+            // Close every effect; original pending DMA survives until ack stop.
+            self.uncertain_bulk = true;
+            self.uncertain_control = true;
+            return Err(UsbNativeHostRefusal::Native(error));
+        }
+        Ok(())
+    }
+}

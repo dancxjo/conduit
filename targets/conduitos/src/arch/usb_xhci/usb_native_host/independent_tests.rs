@@ -130,3 +130,31 @@ fn refused_begin_closes_both_directions_until_acknowledged_cancellation() {
         ));
     });
 }
+
+#[test]
+fn sticky_attachment_fault_closes_both_directions_until_original_stop() {
+    for (status, stale) in [(0, false), (1 | (1 << 17), true)] {
+        with_host(6, |host| {
+            host.prepare_independent().unwrap();
+            let result = host.validate_continuity_status(status);
+            assert!(
+                matches!(result,
+                    Err(UsbNativeHostRefusal::Native(UsbError::StaleDeviceInstance)) if stale
+                ) || matches!(result,
+                    Err(UsbNativeHostRefusal::Native(UsbError::DeviceVanished)) if !stale
+                )
+            );
+            assert!(host.uncertain_bulk && host.uncertain_control);
+            assert!(host.admit_independent(0).is_err());
+            assert!(host.admit_independent(1).is_err());
+            assert!(host.poll_independent().is_err());
+            assert!(host.cancel().is_err());
+            assert!(host.uncertain_bulk && host.uncertain_control);
+            assert!(!host.stop_acknowledged);
+            let dma = super::super::dma::dma_pointer(super::super::dma::UsbDmaSlot::PRIMARY);
+            unsafe {
+                assert_eq!((*dma).owner_slot, 1);
+            }
+        });
+    }
+}

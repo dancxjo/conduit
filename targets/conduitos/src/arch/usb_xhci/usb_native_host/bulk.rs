@@ -9,6 +9,7 @@ impl UsbNativeHost<'_> {
         input: &[u8],
     ) -> Result<(), UsbNativeHostRefusal> {
         self.idle_transport()?;
+        self.validate_continuity()?;
         let bound = self
             .calls
             .get_mut(index.0)
@@ -39,6 +40,9 @@ impl UsbNativeHost<'_> {
         if self.pending_write.is_some() || self.pending_endpoint != Some(index.0) {
             return Err(UsbNativeHostRefusal::Pending);
         }
+        if self.controller.port_status(self.device.root_port) & 1 != 0 {
+            self.validate_continuity()?;
+        }
         let bound = self
             .calls
             .get_mut(index.0)
@@ -60,6 +64,13 @@ impl UsbNativeHost<'_> {
         let Some(event) = self.controller.poll_event() else {
             return Ok(None);
         };
+        if let Err(error) = super::super::attachment::validate_attachment_continuity(
+            self.controller.port_status(self.device.root_port),
+        ) {
+            self.uncertain_bulk = true;
+            self.uncertain_control = true;
+            return Err(UsbNativeHostRefusal::Native(error));
+        }
         let result = transfer
             .complete(&self.device, event)
             .map(|bytes| {
@@ -78,6 +89,7 @@ impl UsbNativeHost<'_> {
                 .map(Some);
         }
         if result.is_ok() {
+            self.validate_continuity()?;
             self.pending_endpoint = None;
         }
         result.map(|()| Some(&self.control_output[..self.control_output_length]))
@@ -90,6 +102,7 @@ impl UsbNativeHost<'_> {
         input: &[u8],
     ) -> Result<(), UsbNativeHostRefusal> {
         self.idle_transport()?;
+        self.validate_continuity()?;
         let bound = self
             .calls
             .get_mut(index.0)
@@ -120,6 +133,9 @@ impl UsbNativeHost<'_> {
         if self.pending_write.is_some() || self.pending_endpoint != Some(index.0) {
             return Err(UsbNativeHostRefusal::Pending);
         }
+        if self.controller.port_status(self.device.root_port) & 1 != 0 {
+            self.validate_continuity()?;
+        }
         let bound = self
             .calls
             .get_mut(index.0)
@@ -141,6 +157,13 @@ impl UsbNativeHost<'_> {
         let Some(event) = self.controller.poll_event() else {
             return Ok(None);
         };
+        if let Err(error) = super::super::attachment::validate_attachment_continuity(
+            self.controller.port_status(self.device.root_port),
+        ) {
+            self.uncertain_bulk = true;
+            self.uncertain_control = true;
+            return Err(UsbNativeHostRefusal::Native(error));
+        }
         let result = transfer
             .complete(&self.device, event)
             .map(|bytes| {
@@ -159,6 +182,7 @@ impl UsbNativeHost<'_> {
                 .map(Some);
         }
         if result.is_ok() {
+            self.validate_continuity()?;
             self.pending_endpoint = None;
         }
         result.map(|()| Some(&self.control_output[..self.control_output_length]))

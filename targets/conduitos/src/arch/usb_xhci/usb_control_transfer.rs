@@ -9,7 +9,7 @@ use conduit_plan_lowering::lowering::LoweredPlanFragment;
 
 use super::super::{
     UsbDevice, UsbDma, UsbError,
-    control::{ControlRing, control_raw},
+    control::{ControlRing, control_raw_continuous},
     device_dma_pointer,
 };
 use crate::arch::xhci_mechanism::XhciReady;
@@ -177,15 +177,19 @@ impl UsbControlTransfer {
             ))
         })?;
         let is_input = request.input();
-        let actual = match control_raw(controller, &mut self.ring, self.attachment.slot, request) {
-            Ok(actual) => actual,
-            Err(error) => {
-                // Only the exact correlated native STALL can become a typed
-                // stalled observation. Every refusal retains the submission.
-                self.stalled = is_terminal_stall(error);
-                return Err(UsbControlCallRefusal::Native(error));
-            }
-        };
+        let actual =
+            match control_raw_continuous(controller, &mut self.ring, self.attachment.slot, request)
+            {
+                Ok(actual) => actual,
+                Err(error) => {
+                    // Only the exact correlated native STALL can become a typed
+                    // stalled observation. Every refusal retains the submission.
+                    self.stalled = is_terminal_stall(error);
+                    return Err(UsbControlCallRefusal::Native(error));
+                }
+            };
+        super::attachment::validate_attachment_continuity(controller.port_status(device.root_port))
+            .map_err(UsbControlCallRefusal::Native)?;
         let submission = self.pending.take().expect("completed submission retained");
         let input = if is_input {
             // The exact final status completed; fixed DMA remains exclusively owned.

@@ -9,6 +9,7 @@ impl UsbNativeHost<'_> {
         input: &[u8],
     ) -> Result<&[u8], UsbNativeHostRefusal> {
         self.idle_transport()?;
+        self.validate_continuity()?;
         let bound = self
             .calls
             .get_mut(index.0)
@@ -39,6 +40,7 @@ impl UsbNativeHost<'_> {
             Err(error) => return Err(UsbNativeHostRefusal::Control(error)),
         };
         if !stalled {
+            self.validate_continuity()?;
             self.uncertain_control = false;
             return Ok(&self.control_output[..self.control_output_length]);
         }

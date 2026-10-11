@@ -79,6 +79,7 @@ impl UsbNativeHost<'_> {
         input: &[u8],
     ) -> Result<(), UsbNativeHostRefusal> {
         self.admit_independent(0)?;
+        self.validate_continuity()?;
         let bound = self
             .calls
             .get_mut(index.0)
@@ -105,6 +106,7 @@ impl UsbNativeHost<'_> {
         input: &[u8],
     ) -> Result<(), UsbNativeHostRefusal> {
         self.admit_independent(1)?;
+        self.validate_continuity()?;
         let bound = self
             .calls
             .get_mut(index.0)
@@ -187,9 +189,11 @@ impl UsbNativeHost<'_> {
             self.finish_independent_fault(None)?;
             return self.poll_independent();
         }
+        self.validate_continuity()?;
         let Some(event) = self.controller.poll_event() else {
             return Ok(None);
         };
+        self.validate_continuity()?;
         let index = match route_event(event, keys) {
             Ok(index) => index,
             Err(_) => {
@@ -210,6 +214,7 @@ impl UsbNativeHost<'_> {
             Ok(bytes) => {
                 self.control_output[..bytes.len()].copy_from_slice(bytes);
                 self.control_output_length = bytes.len();
+                self.validate_continuity()?;
                 if self.pending_endpoint == Some(index.0) {
                     self.pending_endpoint = None;
                 }
