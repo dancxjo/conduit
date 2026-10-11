@@ -45,8 +45,15 @@ export function assertLookReplacement({ before, after, retirement }) {
       assert.ok(Array.isArray(snapshot.canonicalFace[field]), `canonicalFace.${field} is missing`);
     }
     assert.ok(snapshot.canonicalFace.subjects.length > 0, 'canonical Face must contain its subjects');
-    for (const field of ['sourceDocumentId', 'bodyId', 'hostId', 'bootId', 'planId', 'playId']) {
+    for (const field of ['bodyId', 'hostId', 'bootId']) {
       requiredIdentity(snapshot.owner?.[field], `owner.${field}`);
+    }
+    // A lulled Body may have no current workload source/Plan/Play. Preserve
+    // its explicit absence; missing evidence and fabricated Mask IDs refuse.
+    for (const field of ['sourceDocumentId', 'planId', 'playId']) {
+      if (snapshot.owner?.[field] !== null) {
+        requiredIdentity(snapshot.owner?.[field], `owner.${field}`);
+      }
     }
     for (const [ownerField, basisField] of [
       ['sourceDocumentId', 'source_document_id'], ['bodyId', 'body_id'],
