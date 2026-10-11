@@ -143,7 +143,7 @@ impl PreparedStructuredExpression {
             _ => {
                 return Err(Refusal::UnsupportedType(
                     "structured expression runtime".into(),
-                ))
+                ));
             }
         };
         Ok(Self {
@@ -160,10 +160,10 @@ impl PreparedStructuredExpression {
             PreparedShape::Input => return append(output, input),
             PreparedShape::Constant(bytes) => return append(output, bytes),
             PreparedShape::SequenceSelected(selection) => {
-                return append(output, selection.evaluate(input)?)
+                return append(output, selection.evaluate(input)?);
             }
             PreparedShape::Selected(selection) => {
-                return append(output, selection.evaluate(input)?)
+                return append(output, selection.evaluate(input)?);
             }
             _ => (),
         }
