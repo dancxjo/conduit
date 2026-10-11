@@ -2,6 +2,14 @@
 use super::*;
 
 impl NativeUsbDuplexHost {
+    pub(crate) fn subordinate_nodes(&self) -> [NodeId; 3] {
+        [self.control_node, self.read_node, self.write_node]
+    }
+
+    pub(crate) fn validate_settlement_idle(&self) -> Result<(), UsbNativeProtocolRefusal> {
+        self.host.validate_settlement_idle().map_err(native_refusal)
+    }
+
     pub fn control_invoke(
         &mut self,
         node: NodeId,

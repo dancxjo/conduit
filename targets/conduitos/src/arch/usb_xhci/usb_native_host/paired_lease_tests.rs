@@ -265,6 +265,19 @@ fn paired(stop_code: u8, stalled: bool, cancelled: bool) {
                     .unwrap();
             }
         }
+        assert!(matches!(
+            host.validate_settlement_idle(),
+            Err(UsbNativeHostRefusal::Pending)
+        ));
+        let nodes = [
+            host.calls[read_index.0].node,
+            host.calls[write_index.0].node,
+        ];
+        assert!(
+            kernel
+                .has_retained_host_call_for_nodes(&fragment.host_id, &nodes)
+                .unwrap()
+        );
         let keys = host.independent_keys().unwrap();
         assert_eq!(keys[0].unwrap().index, read_index);
         assert_eq!(keys[1].unwrap().index, write_index);
@@ -343,6 +356,14 @@ fn paired(stop_code: u8, stalled: bool, cancelled: bool) {
             kernel.complete_host_call_bytes(&tokens[0], bytes).unwrap();
             assert!(kernel.host_request_input(&tokens[0]).is_err());
             assert_eq!(host.independent_keys().unwrap(), [None, None]);
+            host.validate_settlement_idle().unwrap();
+            // Native completion and dispatch-token retirement do not consume
+            // the original scheduler completion obligations.
+            assert!(
+                kernel
+                    .has_retained_host_call_for_nodes(&fragment.host_id, &nodes)
+                    .unwrap()
+            );
             assert!(
                 host.complete_independent_event(event(keys[1].unwrap(), 1), [None, None])
                     .is_err()

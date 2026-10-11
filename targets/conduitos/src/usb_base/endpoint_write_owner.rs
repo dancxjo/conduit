@@ -77,6 +77,11 @@ pub struct EndpointWriteCallOwner {
 }
 
 impl EndpointWriteCallOwner {
+    /// Inspect the original lease; revoking its table is not retirement.
+    pub(crate) fn has_pending_lease(&self) -> bool {
+        self.pending.is_some()
+    }
+
     /// Bind existing possession and an actual native attachment before Play.
     ///
     /// # Safety
