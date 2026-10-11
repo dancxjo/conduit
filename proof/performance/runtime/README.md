@@ -74,3 +74,26 @@ remain #5395 acceptance work. Browser/WASM follows hosted repeatability.
 Scheduling need not wait for a symbolic mathematics engine: existing fixed-width
 paths can be measured now; reliable bounded arithmetic and type-safe projections
 are the numeric integration gate.
+
+The same command also times the production Planner's typed fulfillment-cost
+selector for 1/8/32 Hosts. The fixture checks the std pulse Kind through its
+ordinary semantic catalogue and reuses the product std pulse Offer. Setup,
+queue, service and transfer are exact Time coordinates supplied by the fixture;
+they are not measured pulse performance. Hard resource observations, forecast
+sources, an expired historical execution assumption and a separate fresh
+current observation retain distinct producing Signs, Host/Boot/generation,
+profiles and same-Host clock windows. All candidates must have known cost;
+the deterministic winner follows the smallest exact fulfillment interval.
+
+Each repetition performs 1,000 untimed, validated selection warm-ups. The
+per-decision clock wraps `select_realization_with_costs`, including ordinary
+hard admission, evidence/clock/condition validation, bounded exact comparison,
+and construction of the returned candidate account. Receipt checks and account
+destruction follow the clock. Whole-loop wall/CPU/allocation counts include
+those operations. Once-per-fixture parse/forecast preparation and per-repetition
+evidence-binding wall time are separate. Arithmetic work is reported as admitted
+limb work alongside measured nanoseconds; the two are not interchangeable.
+The exact fixture and every latency sample are retained. No live provider
+residency or service measurement, dispatcher cost policy, global placement,
+per-decision CPU counters, or zero-allocation planning claim follows from this
+isolation baseline.
