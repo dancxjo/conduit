@@ -131,6 +131,7 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
             handle,
             claim,
             crate::protocol_operations::ProtocolOperations {
+                singletons: crate::flow_singleton::FlowSingletonOperationFactory::default(),
                 joins: zip,
                 states: crate::seeded_state::SeededStateOperationFactory::default(),
                 concats: crate::flow_concat_finite::FlowConcatFiniteOperationFactory::default(),
@@ -155,6 +156,7 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
             handle,
             claim,
             crate::protocol_operations::ProtocolOperations {
+                singletons: crate::flow_singleton::FlowSingletonOperationFactory::default(),
                 joins: crate::flow_zip::FlowZipOperationFactory::default(),
                 states,
                 concats: crate::flow_concat_finite::FlowConcatFiniteOperationFactory::default(),
@@ -223,6 +225,7 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
             return Err(ProtocolCallRefusal::Unsupported);
         }
         let crate::protocol_operations::ProtocolOperations {
+            singletons,
             joins: zip,
             states,
             merges,
@@ -241,7 +244,13 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
             .validate_plan(&definition.internal_plan)
             .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
         let calls = prepare_calls(&definition.internal_plan, &zip, &states)?;
+        singletons
+            .validate_plan(&definition.internal_plan)
+            .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
         let mut registry = KernelOperationRegistry::new();
+        registry
+            .install(singletons)
+            .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
         registry
             .install(crate::text_literal::TextLiteralOperationFactory::default())
             .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;

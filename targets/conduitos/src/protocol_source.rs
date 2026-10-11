@@ -27,6 +27,9 @@ pub struct ProtocolValue {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "kebab-case", deny_unknown_fields)]
 pub enum ProtocolSpecialization {
+    Singleton {
+        value: ProtocolValue,
+    },
     SeededFlow {
         value: ProtocolValue,
     },
@@ -118,6 +121,19 @@ impl PreparedProtocolSource {
         let mut capabilities = Vec::new();
         for specialization in &package.specializations {
             let offer = match specialization {
+                ProtocolSpecialization::Singleton { value } => {
+                    conduit_semantic_catalog::install_flow_singleton_kind(
+                        &value.contract,
+                        &value.schema,
+                        &mut startup,
+                        &mut profile,
+                    )
+                    .map_err(Error::Catalog)?;
+                    operations
+                        .singletons
+                        .install(&value.contract, &value.schema)
+                        .map_err(|_| Error::Specialization("singleton specialization refused"))
+                }
                 ProtocolSpecialization::SeededFlow { value } => {
                     conduit_semantic_catalog::install_seeded_state_flow_kind(
                         &value.contract,

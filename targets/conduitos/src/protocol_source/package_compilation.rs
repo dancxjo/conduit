@@ -11,6 +11,9 @@ pub struct ProtocolValueReference {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "kebab-case", deny_unknown_fields)]
 pub enum ProtocolSpecializationRequest {
+    Singleton {
+        value: ProtocolValueReference,
+    },
     SeededFlow {
         value: ProtocolValueReference,
     },
@@ -83,6 +86,9 @@ impl ProtocolSourcePackage {
         for request in requests {
             use ProtocolSpecializationRequest as Request;
             specializations.push(match request {
+                Request::Singleton { value: reference } => ProtocolSpecialization::Singleton {
+                    value: value(reference)?,
+                },
                 Request::SeededFlow { value: reference } => ProtocolSpecialization::SeededFlow {
                     value: value(reference)?,
                 },

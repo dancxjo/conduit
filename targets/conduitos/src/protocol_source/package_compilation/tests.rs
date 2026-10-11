@@ -140,3 +140,53 @@ fn ordinary_literal_is_retained_as_exact_inert_source_configuration() {
         conduit_core::ConfigurationValue::Text("start".into())
     );
 }
+
+#[test]
+fn explicit_singleton_bootstraps_one_checked_state_flow() {
+    let source = r#"type BootstrapState = {
+ phase: U64
+ terminal: Boolean
+}
+plot initialize (
+ start: Text >> state: BootstrapState
+) = ({ phase: 0, terminal: true })
+plot bootstrap (
+ ended: BootstrapState...| >>
+) {
+ lift: flow/singleton
+ cell: state/seeded/flow/until
+ "start" >> initialize() >> lift.value
+ lift.flow >> cell.seed
+ cell.current >> ended
+}
+"#;
+    let reference = || ProtocolValueReference {
+        type_name: "BootstrapState".into(),
+        maximum_bytes: 4096,
+    };
+    let package = ProtocolSourcePackage::compile(
+        source.into(),
+        &[
+            ProtocolSpecializationRequest::Singleton { value: reference() },
+            ProtocolSpecializationRequest::SeededUntil { value: reference() },
+        ],
+    )
+    .unwrap();
+    let entry = PreparedProtocolEntry::prepare(&serde_json::to_vec(&package).unwrap(), "bootstrap")
+        .unwrap();
+    let lift = entry
+        .expanded()
+        .expanded
+        .gears
+        .iter()
+        .find(|gear| gear.kind_id.as_str() == "flow/singleton")
+        .expect("explicit singleton placement");
+    assert_eq!(
+        lift.checked_front().inputs()[0].temporal,
+        conduit_core::PortTemporal::Value
+    );
+    assert_eq!(
+        lift.checked_front().outputs()[0].temporal,
+        conduit_core::PortTemporal::Flow { closes: true }
+    );
+}
