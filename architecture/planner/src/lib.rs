@@ -101,6 +101,7 @@ mod recursive_recovery_explanation;
 mod replanning;
 mod requirements;
 mod resource_binding;
+pub mod resource_cost;
 mod resource_port;
 mod retry;
 mod selected_plan_sealing;
