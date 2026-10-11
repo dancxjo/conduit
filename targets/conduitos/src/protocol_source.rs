@@ -461,6 +461,19 @@ fn install_literal(
         .map_err(ProtocolSourceRefusal::Catalog)?;
     profile
         .insert_kind(conduit_text::text_literal_semantics().into_semantic_contract())
+        .map_err(|error| ProtocolSourceRefusal::Catalog(alloc::format!("{error:?}")))?;
+    startup
+        .insert(conduit_plot::KindSignature {
+            kind: conduit_data::bytes_literal::BYTES_LITERAL_KIND.into(),
+            startup_parameters: vec![conduit_plot::StartupParameterSignature {
+                name: "hex".into(),
+                value_type: "Text".into(),
+                default: None,
+            }],
+        })
+        .map_err(ProtocolSourceRefusal::Catalog)?;
+    profile
+        .insert_kind(conduit_data::bytes_literal::definition())
         .map_err(|error| ProtocolSourceRefusal::Catalog(alloc::format!("{error:?}")))
 }
 

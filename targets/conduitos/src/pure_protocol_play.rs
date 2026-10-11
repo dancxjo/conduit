@@ -49,6 +49,7 @@ impl PreparedPureProtocolPlay {
                         gear.implementation_id.as_str(),
                         crate::expression_host_call::IMPLEMENTATION
                             | crate::offer::TEXT_LITERAL_IMPLEMENTATION
+                            | crate::bytes_literal::IMPLEMENTATION
                             | crate::flow_singleton::IMPLEMENTATION
                             | crate::structured_selector_host_call::IMPLEMENTATION
                             | crate::flow_zip::IMPLEMENTATION
@@ -103,6 +104,9 @@ impl PreparedPureProtocolPlay {
         let mut registry = KernelOperationRegistry::new();
         registry
             .install(operations.singletons)
+            .map_err(|_| Refusal::InvalidPlan)?;
+        registry
+            .install(crate::bytes_literal::BytesLiteralOperationFactory::default())
             .map_err(|_| Refusal::InvalidPlan)?;
         registry
             .install(crate::text_literal::TextLiteralOperationFactory::default())
