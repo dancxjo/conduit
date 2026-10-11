@@ -23,6 +23,26 @@ pub struct CostDemand<'a> {
 }
 impl<'a> CostDemand<'a> {
     pub fn admit(gear: &'a CheckedGear, inputs: &'a [CostInput<'a>]) -> Result<Self, Refusal> {
+        Self::admit_with_structured(gear, inputs, &[])
+    }
+    /// Catalogue schemas are prepared once outside Play. The demand retains
+    /// only canonical input custody, and existing Fore refinements still apply.
+    pub fn admit_with_structured(
+        gear: &'a CheckedGear,
+        inputs: &'a [CostInput<'a>],
+        schemas: &[super::CostStructuredInputSchema],
+    ) -> Result<Self, Refusal> {
+        if schemas.len() > MAXIMUM_COST_INPUTS {
+            return Err(Refusal::InputLimit);
+        }
+        for (index, schema) in schemas.iter().enumerate() {
+            if schemas[..index]
+                .iter()
+                .any(|previous| previous.kind() == schema.kind())
+            {
+                return Err(Refusal::AmbiguousEvidence);
+            }
+        }
         if inputs.len() > MAXIMUM_COST_INPUTS {
             return Err(Refusal::InputLimit);
         }
@@ -44,6 +64,14 @@ impl<'a> CostDemand<'a> {
             if port.value_kind != input.value.value_kind {
                 return Err(Refusal::InvalidWorkInput);
             }
+            let schema = schemas
+                .iter()
+                .find(|schema| schema.kind() == &port.value_kind);
+            if let Some(schema) = schema {
+                schema.validate(input.value)?;
+            } else if !super::structured_input::known_leaf(port.value_kind.as_str()) {
+                return Err(Refusal::InvalidWorkInput);
+            }
             let contract = gear
                 .semantic_contract
                 .value_contracts()
@@ -54,6 +82,8 @@ impl<'a> CostDemand<'a> {
             let valid = if let Some(contract) = contract {
                 contract.contract.value_kind == input.value.value_kind
                     && contract.contract.validate(&input.value.encoded).is_ok()
+            } else if schema.is_some() {
+                true // exact checked structured envelope was validated above
             } else {
                 conduit_core::validate_primitive_info(
                     input.value.value_kind.as_str(),

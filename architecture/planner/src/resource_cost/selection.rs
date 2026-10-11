@@ -187,11 +187,25 @@ pub fn select_realization_with_costs<'a>(
     }
     // This is the existing generic hard-admission/health/predicate evaluator,
     // including its original explanations, not an independent scheduler.
+    let mut requirements = inputs.requirements.clone();
+    if !demand.inputs().is_empty() {
+        requirements.minimum_queue_items = requirements.minimum_queue_items.max(1);
+        let largest = demand
+            .inputs()
+            .iter()
+            .map(|input| input.value.encoded.len())
+            .max()
+            .unwrap_or(0);
+        // The admitted aggregate input bound is below u32::MAX. A realization
+        // must at least hold one complete input; a cheap forecast cannot admit
+        // a payload larger than its queue's entire byte extent.
+        requirements.minimum_queue_bytes = requirements.minimum_queue_bytes.max(largest as u32);
+    }
     let mut realization = crate::select_realization_with_characteristics_and_signs(
         demand.class().gear(),
         inputs.hosts,
         inputs.advertisements,
-        inputs.requirements,
+        &requirements,
         &observations,
         inputs.tie_policy,
     )?;
