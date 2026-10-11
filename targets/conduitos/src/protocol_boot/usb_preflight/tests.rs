@@ -67,6 +67,12 @@ fn unsupported_observations_have_no_admitted_class_handoff() {
             &"fixture/host".into(),
             &"fixture/boot".into(),
         );
-        assert!(matches!(result, Err("protocol-usb-profile-unsupported")));
+        let retired = result.unwrap();
+        assert_eq!(retired.verdict, DiscoveryVerdict::Unsupported);
+        let class = PreparedProtocolEntry::prepare(&bytes, "class").unwrap();
+        assert_eq!(
+            retired.validate_class(&class),
+            Err("protocol-usb-profile-unsupported")
+        );
     }
 }

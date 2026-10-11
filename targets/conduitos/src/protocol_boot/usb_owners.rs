@@ -50,7 +50,7 @@ pub(super) unsafe fn admit(
 ) -> Result<
     (
         NativeUsbOwners,
-        Option<super::usb_preflight::AdmittedUsbDiscovery>,
+        Option<Box<super::usb_preflight::RetiredUsbDiscovery>>,
     ),
     &'static str,
 > {
@@ -110,6 +110,12 @@ pub(super) unsafe fn admit(
         let admitted =
             super::usb_preflight::accept(package, request, preflight, snapshot, host, boot_id)?;
         admitted.validate_attachment(&controller, &device)?;
+        if !admitted.supported() {
+            // One permanently claimed Boot Root retains the rejected pure
+            // biography. This Box was reserved before Play; no retry/regrant.
+            let _retained = Box::leak(admitted);
+            return Err("protocol-usb-profile-unsupported");
+        }
         Some(admitted)
     } else {
         None
