@@ -75,6 +75,32 @@ pub(super) fn admit(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::usb_base::{endpoint_read_contract::*, endpoint_read_owner::EndpointReadCallOwner};
+    #[allow(dead_code)]
+    #[path = "../../../usb_base/endpoint_read_owner/tests/fixture.rs"]
+    mod read_fixture;
+
+    #[test]
+    fn one_live_entry_does_not_hide_an_oversized_retained_table() {
+        for capacity in [1, 4] {
+            let scope = read_fixture::scope();
+            let mut table = BaseCapabilityTable::new(
+                scope.host_id,
+                scope.boot_id,
+                scope.base_instance_id,
+                4,
+                [77; 32],
+                capacity,
+            )
+            .unwrap();
+            table.issue(read_fixture::request()).unwrap();
+            assert_eq!(table.inspections().count(), 1);
+            assert_eq!(
+                validate_metadata(&table, &read_fixture::claim()).is_ok(),
+                capacity == 1
+            );
+        }
+    }
     #[test]
     fn charge_contains_inline_host_and_actual_heap_terminals_without_double_counting() {
         let terminals = 2 * (minimum_endpoint_resource_bytes() as usize - 3072);
