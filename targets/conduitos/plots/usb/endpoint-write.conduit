@@ -1,0 +1,9 @@
+with machine/usb/endpoint-write/request as UsbEndpointWriteRequest
+with machine/usb/endpoint-write/result as UsbEndpointWriteResult
+
+plot usb-endpoint-write-call (
+    requests: UsbEndpointWriteRequest...| <= 4096B >> results: UsbEndpointWriteResult...| <= 4096B
+) {
+    transfer: machine/usb/endpoint-write
+    requests >> transfer >> results
+}

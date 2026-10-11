@@ -1,0 +1,59 @@
+//! Consume an xHCI event only after the controller publishes its cycle bit.
+
+use core::sync::atomic::{Ordering, fence};
+
+use super::{DMA, DmaStorage, EVENT_TRBS, Event, XhciReady, write64};
+
+impl XhciReady {
+    /// Inspect the current event slot once without waiting for controller work.
+    pub(crate) fn poll_event(&mut self) -> Option<Event> {
+        let event = read_owned_event(self.event_cycle, |word| unsafe {
+            core::ptr::read_volatile(core::ptr::addr_of!(
+                DMA.event_ring[self.event_dequeue][word]
+            ))
+        })?;
+        self.event_dequeue += 1;
+        if self.event_dequeue == EVENT_TRBS {
+            self.event_dequeue = 0;
+            self.event_cycle ^= 1;
+        }
+        let event_phys = self.dma_physical
+            + core::mem::offset_of!(DmaStorage, event_ring) as u64
+            + (self.event_dequeue * 16) as u64;
+        unsafe { write64(self.runtime_interrupter + 0x18, event_phys | 8) };
+        Some(event)
+    }
+}
+
+/// The controller owns the payload until control's cycle matches the consumer.
+/// Read ownership first, then acquire the published payload. Reading the whole
+/// TRB before testing its cycle can mix an old pointer with a newly written
+/// control word when the controller reuses a ring slot.
+pub(super) fn read_owned_event(
+    cycle: u32,
+    mut read_word: impl FnMut(usize) -> u32,
+) -> Option<Event> {
+    let control = read_word(3);
+    if control & 1 != cycle {
+        return None;
+    }
+    // Hardware acquisition follows the observed cycle publication; the native
+    // provider separately guarantees coherent controller-addressable memory.
+    super::ordering::acquire_dma();
+    fence(Ordering::Acquire);
+    let low = read_word(0);
+    let high = read_word(1);
+    let status = read_word(2);
+    Some(Event {
+        event_type: ((control >> 10) & 0x3f) as u8,
+        completion_code: (status >> 24) as u8,
+        slot: (control >> 24) as u8,
+        endpoint: ((control >> 16) & 0x1f) as u8,
+        residual: status & 0x00ff_ffff,
+        pointer: u64::from(low) | (u64::from(high) << 32),
+    })
+}
+
+#[cfg(test)]
+#[path = "event_tests.rs"]
+mod tests;

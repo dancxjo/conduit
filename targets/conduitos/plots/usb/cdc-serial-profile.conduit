@@ -1,0 +1,37 @@
+# Pin the complete 67-byte first-profile descriptor, including CDC Header,
+# Call Management, ACM and Union records, comm0/data1 and bulk81/02 max64.
+# Notification83 is recognized but unconsumed: unsolicited notification policy
+# is unsupported by this first control+bulk profile; no IRQ provider is selected.
+type CdcAcmTopologyObservation = {
+    completion: UsbControlResult
+    selections: Boolean
+}
+plot cdc-acm-topology-supported (
+    observation: CdcAcmTopologyObservation...| >> supported: Boolean...|
+) = (!.selections ? false : !(.completion is completed) ? false : (.completion.completed.transferred != 67 || .completion.completed.short || sequence/length(.completion.completed.input) != 67 ? false : (((((((sequence/at(.completion.completed.input, 0) == 9 && sequence/at(.completion.completed.input, 1) == 2) && (sequence/at(.completion.completed.input, 2) == 67 && sequence/at(.completion.completed.input, 3) == 0)) && ((sequence/at(.completion.completed.input, 4) == 2 && sequence/at(.completion.completed.input, 5) == 1) && (sequence/at(.completion.completed.input, 6) == 0 && sequence/at(.completion.completed.input, 7) == 128))) && (((sequence/at(.completion.completed.input, 8) == 50 && sequence/at(.completion.completed.input, 9) == 9) && (sequence/at(.completion.completed.input, 10) == 4 && sequence/at(.completion.completed.input, 11) == 0)) && ((sequence/at(.completion.completed.input, 12) == 0 && sequence/at(.completion.completed.input, 13) == 1) && (sequence/at(.completion.completed.input, 14) == 2 && sequence/at(.completion.completed.input, 15) == 2)))) && ((((sequence/at(.completion.completed.input, 16) == 1 && sequence/at(.completion.completed.input, 17) == 0) && (sequence/at(.completion.completed.input, 18) == 5 && sequence/at(.completion.completed.input, 19) == 36)) && ((sequence/at(.completion.completed.input, 20) == 0 && sequence/at(.completion.completed.input, 21) == 16) && (sequence/at(.completion.completed.input, 22) == 1 && sequence/at(.completion.completed.input, 23) == 5))) && (((sequence/at(.completion.completed.input, 24) == 36 && sequence/at(.completion.completed.input, 25) == 1) && (sequence/at(.completion.completed.input, 26) == 0 && sequence/at(.completion.completed.input, 27) == 1)) && ((sequence/at(.completion.completed.input, 28) == 4 && sequence/at(.completion.completed.input, 29) == 36) && (sequence/at(.completion.completed.input, 30) == 2 && (sequence/at(.completion.completed.input, 31) == 2 && sequence/at(.completion.completed.input, 32) == 5)))))) && (((((sequence/at(.completion.completed.input, 33) == 36 && sequence/at(.completion.completed.input, 34) == 6) && (sequence/at(.completion.completed.input, 35) == 0 && sequence/at(.completion.completed.input, 36) == 1)) && ((sequence/at(.completion.completed.input, 37) == 7 && sequence/at(.completion.completed.input, 38) == 5) && (sequence/at(.completion.completed.input, 39) == 131 && sequence/at(.completion.completed.input, 40) == 3))) && (((sequence/at(.completion.completed.input, 41) == 16 && sequence/at(.completion.completed.input, 42) == 0) && (sequence/at(.completion.completed.input, 43) == 16 && sequence/at(.completion.completed.input, 44) == 9)) && ((sequence/at(.completion.completed.input, 45) == 4 && sequence/at(.completion.completed.input, 46) == 1) && (sequence/at(.completion.completed.input, 47) == 0 && (sequence/at(.completion.completed.input, 48) == 2 && sequence/at(.completion.completed.input, 49) == 10))))) && ((((sequence/at(.completion.completed.input, 50) == 0 && sequence/at(.completion.completed.input, 51) == 0) && (sequence/at(.completion.completed.input, 52) == 0 && sequence/at(.completion.completed.input, 53) == 7)) && ((sequence/at(.completion.completed.input, 54) == 5 && sequence/at(.completion.completed.input, 55) == 129) && (sequence/at(.completion.completed.input, 56) == 2 && sequence/at(.completion.completed.input, 57) == 64))) && (((sequence/at(.completion.completed.input, 58) == 0 && sequence/at(.completion.completed.input, 59) == 0) && (sequence/at(.completion.completed.input, 60) == 7 && sequence/at(.completion.completed.input, 61) == 5)) && ((sequence/at(.completion.completed.input, 62) == 2 && sequence/at(.completion.completed.input, 63) == 2) && (sequence/at(.completion.completed.input, 64) == 64 && (sequence/at(.completion.completed.input, 65) == 0 && sequence/at(.completion.completed.input, 66) == 0))))))))))
+
+plot cdc-acm-no-data-ack (
+    completion: UsbControlResult...| >> supported: Boolean...|
+) = (!(. is completed) ? false : (.completed.transferred == 0 && !.completed.short && sequence/length(.completed.input) == 0))
+
+plot cdc-acm-line-coding-ack (
+    completion: UsbControlResult...| >> supported: Boolean...|
+) = (!(. is completed) ? false : (.completed.transferred != 7 || .completed.short || sequence/length(.completed.input) != 7 ? false : (sequence/at(.completed.input, 0) == 0 && sequence/at(.completed.input, 1) == 194 && sequence/at(.completed.input, 2) == 1 && sequence/at(.completed.input, 3) == 0 && sequence/at(.completed.input, 4) == 0 && sequence/at(.completed.input, 5) == 0 && sequence/at(.completed.input, 6) == 8)))
+
+
+# Pure Root preflight and the class Back share the SAME checked topology law.
+# Descriptive geometry is checked here; it creates no native authority.
+plot cdc-serial-root-topology-observation (
+    discovery: UsbProtocolDiscovery...| >> observation: CdcAcmTopologyObservation...|
+) = ({ completion: .configuration, selections: (.attachment == 0 || !(.read is selected) || !(.write is selected) ? false : ((.read.selected.address == 129 && .read.selected.transfer == 2 && .read.selected.packet == 64 && .read.selected.interval == 0 && .read.selected.epoch > 0) && (.write.selected.address == 2 && .write.selected.transfer == 2 && .write.selected.packet == 64 && .write.selected.interval == 0 && .write.selected.epoch > 0))) })
+# The certified class path consumes an already accepted Root handoff. Native
+# class completion remains untouched; this is a pure policy observation.
+plot cdc-serial-class-topology-observation (
+    completion: UsbControlResult...| >> observation: CdcAcmTopologyObservation...|
+) = ({ completion: ., selections: true })
+plot cdc-serial-profile-preflight (
+    >> discovery: UsbProtocolDiscovery...|
+    supported: Boolean...| >>
+) {
+    discovery >> cdc-serial-root-topology-observation() >> cdc-acm-topology-supported() >> supported
+}

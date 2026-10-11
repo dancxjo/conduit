@@ -131,20 +131,71 @@ pub(super) struct ProtocolModules<'a> {
     pub request: &'a [u8],
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(super) enum ProtocolRootKind {
+    I2c,
+    Usb,
+}
+impl ProtocolRootKind {
+    pub(super) fn schema(self) -> &'static str {
+        match self {
+            Self::I2c => "conduit.conduitos/protocol-root-request@1",
+            Self::Usb => "conduit.conduitos/usb-protocol-root-request@1",
+        }
+    }
+    pub(super) fn command(self) -> &'static str {
+        match self {
+            Self::I2c => "conduit.protocol/root-request@1",
+            Self::Usb => "conduit.protocol/usb-root-request@1",
+        }
+    }
+    pub(super) fn name(self) -> &'static str {
+        match self {
+            Self::I2c => "i2c",
+            Self::Usb => "usb",
+        }
+    }
+}
+struct SelectedProtocolModules<'a> {
+    modules: ProtocolModules<'a>,
+    root: ProtocolRootKind,
+}
+
 pub(super) fn assemble_protocol(
     modules: ProtocolModules<'_>,
     opts: &GlobalOpts,
 ) -> Result<ImageRecord, ConduitosError> {
+    assemble_protocol_root(modules, ProtocolRootKind::I2c, opts)
+}
+
+pub(super) fn assemble_protocol_root(
+    modules: ProtocolModules<'_>,
+    root: ProtocolRootKind,
+    opts: &GlobalOpts,
+) -> Result<ImageRecord, ConduitosError> {
+    assemble_protocol_root_for_arch(modules, root, ConduitosArch::X86_64, opts)
+}
+
+pub(super) fn assemble_protocol_root_for_arch(
+    modules: ProtocolModules<'_>,
+    root: ProtocolRootKind,
+    arch: ConduitosArch,
+    opts: &GlobalOpts,
+) -> Result<ImageRecord, ConduitosError> {
     assemble_with_role(
-        ConduitosArch::X86_64,
+        arch,
         None,
         ArtifactRole::ProductHost,
-        Some(modules),
+        Some(SelectedProtocolModules { modules, root }),
         opts,
     )
 }
 
-fn stage_protocol(paths: &Paths, modules: ProtocolModules<'_>) -> Result<(), ConduitosError> {
+fn stage_protocol(
+    paths: &Paths,
+    selected: SelectedProtocolModules<'_>,
+) -> Result<(), ConduitosError> {
+    let modules = selected.modules;
     let boot = paths.iso_root.join("boot");
     fs::write(boot.join("conduit-protocol-source.json"), modules.source)
         .and_then(|()| fs::write(boot.join("conduit-protocol-root.json"), modules.request))
@@ -157,24 +208,31 @@ fn stage_protocol(paths: &Paths, modules: ProtocolModules<'_>) -> Result<(), Con
         .map_err(|error| {
             ConduitosError::refusal("protocol-image-staging-failed", error.to_string())
         })?;
-    config.write_all(b"    module_path: boot():/boot/conduit-protocol-source.json\n    module_string: conduit.protocol/source@1\n    module_path: boot():/boot/conduit-protocol-root.json\n    module_string: conduit.protocol/root-request@1\n")
-        .map_err(|error| ConduitosError::refusal("protocol-image-staging-failed", error.to_string()))
+    config
+        .write_all(protocol_module_config(selected.root).as_bytes())
+        .map_err(|error| {
+            ConduitosError::refusal("protocol-image-staging-failed", error.to_string())
+        })
+}
+
+fn protocol_module_config(root: ProtocolRootKind) -> String {
+    format!("    module_path: boot():/boot/conduit-protocol-source.json\n    module_string: conduit.protocol/source@1\n    module_path: boot():/boot/conduit-protocol-root.json\n    module_string: {}\n", root.command())
 }
 
 fn assemble_with_role(
     arch: ConduitosArch,
     build_description: Option<&[u8]>,
     artifact_role: ArtifactRole,
-    protocol: Option<ProtocolModules<'_>>,
+    protocol: Option<SelectedProtocolModules<'_>>,
     opts: &GlobalOpts,
 ) -> Result<ImageRecord, ConduitosError> {
     let mut paths = Paths::new(arch)?;
     let module_count = if protocol.is_some() { 2 } else { 0 };
     if let Some(modules) = &protocol {
-        paths.kernel = modules.kernel.to_owned();
-        paths.target = modules.output.to_owned();
-        paths.iso_root = modules.output.join("iso-root");
-        paths.iso = modules.output.join("conduitos.iso");
+        paths.kernel = modules.modules.kernel.to_owned();
+        paths.target = modules.modules.output.to_owned();
+        paths.iso_root = modules.modules.output.join("iso-root");
+        paths.iso = modules.modules.output.join("conduitos.iso");
     }
     if opts.dry_run {
         println!("fetch and verify pinned Limine {LIMINE_VERSION}");
@@ -415,4 +473,31 @@ fn count_files(root: &Path) -> Result<usize, ConduitosError> {
     visit(root, &mut count)
         .map_err(|error| ConduitosError::refusal("image-staging-failed", error.to_string()))?;
     Ok(count)
+}
+
+#[cfg(test)]
+mod protocol_tests {
+    use super::*;
+    #[test]
+    fn selected_root_command_is_exact_and_source_module_is_shared() {
+        for root in [ProtocolRootKind::I2c, ProtocolRootKind::Usb] {
+            let config = protocol_module_config(root);
+            let commands: Vec<_> = config
+                .lines()
+                .filter_map(|line| line.trim().strip_prefix("module_string: "))
+                .collect();
+            assert_eq!(commands, ["conduit.protocol/source@1", root.command()]);
+            assert_eq!(
+                config
+                    .lines()
+                    .filter(|line| line.trim().starts_with("module_path:"))
+                    .count(),
+                2
+            );
+        }
+        assert_ne!(
+            ProtocolRootKind::I2c.command(),
+            ProtocolRootKind::Usb.command()
+        );
+    }
 }

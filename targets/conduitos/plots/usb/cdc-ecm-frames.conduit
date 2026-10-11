@@ -1,0 +1,27 @@
+# Class-owned Ethernet II admission on completed bulk transport observations.
+# This pure adapter supplies no endpoint, network queue, address or authority.
+# The reviewed ECM descriptor/control profile and independent network Root
+# admission remain required before this adapter is installed in a class Plot.
+# RX forwards identical bytes only under a direct checked length guard;
+# metadata equality and Ethernet II header admission remain separate checks.
+with machine/usb/endpoint-read/result as UsbEndpointReadResult
+with machine/usb/endpoint-read/request as UsbEndpointReadRequest
+with network/ethernet-frame/request as EthernetFrameRequest
+
+type CdcEcmReceiveGate =
+    ready EthernetFrameRequest
+    | malformed
+    | stalled
+    | provider-lost
+    | unsupported
+    | timeout
+
+# This profile requests exactly1514 bytes; short metadata is interpreted
+# against that request, never a private Rust frame or class scheduler.
+plot cdc-ecm-frame-request (
+    seed: Empty...| <= 64B >> request: UsbEndpointReadRequest...| <= 4096B
+) = ({ length: 1514 })
+
+plot cdc-ecm-completed-frame (
+    observed: UsbEndpointReadResult...| <= 4096B >> gate: CdcEcmReceiveGate...| <= 4096B
+) = (. is completed ? (.completed.actual != bytes/length(.completed.wire) || bytes/length(.completed.wire) > 1514 || .completed.actual < 14 || (.completed.actual < 1514) != .completed.short ? malformed(empty) : ((bytes/at(.completed.wire, 6) & 1) != 0 || (bytes/at(.completed.wire, 6) == 0 && bytes/at(.completed.wire, 7) == 0 && bytes/at(.completed.wire, 8) == 0 && bytes/at(.completed.wire, 9) == 0 && bytes/at(.completed.wire, 10) == 0 && bytes/at(.completed.wire, 11) == 0) ? malformed(empty) : (value/u64(bytes/at(.completed.wire, 12)) * 256 + value/u64(bytes/at(.completed.wire, 13)) < 1536 || (bytes/at(.completed.wire, 12) == 129 && bytes/at(.completed.wire, 13) == 0) || (bytes/at(.completed.wire, 12) == 136 && bytes/at(.completed.wire, 13) == 168) ? malformed(empty) : ready(deliver-receive({ wire: .completed.wire }))))) : (. is stalled ? stalled(empty) : (. is provider-lost ? provider-lost(empty) : (. is timeout ? timeout(empty) : unsupported(empty)))))

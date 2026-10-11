@@ -4,8 +4,8 @@ use crate::protocol_operations::ProtocolOperations;
 use alloc::{string::String, vec, vec::Vec};
 use conduit_core::{CapabilityOffer, CheckedValueContract, StructuredInfoType};
 use conduit_plot::{
-    CheckedSyntaxDocument, ProfileCatalog, StartupCatalog, check_syntax_document,
-    parse_syntax_document,
+    CanonicalBackCatalog, CheckedSyntaxDocument, ProfileCatalog, StartupCatalog,
+    check_syntax_document, parse_syntax_document,
 };
 use serde::{Deserialize, Serialize};
 
@@ -27,6 +27,9 @@ pub struct ProtocolValue {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "kebab-case", deny_unknown_fields)]
 pub enum ProtocolSpecialization {
+    Singleton {
+        value: ProtocolValue,
+    },
     SeededFlow {
         value: ProtocolValue,
     },
@@ -49,10 +52,22 @@ pub enum ProtocolSpecialization {
     },
 }
 
+/// Exact checked realization selected by inert package metadata.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ProtocolBackSelection {
+    pub kind_id: conduit_core::KindId,
+    pub plot_name: String,
+    pub source_document_id: conduit_core::SourceDocumentId,
+    pub checked_plot_id: conduit_core::CheckedPlotId,
+}
+
 /// Source owns protocol policy; metadata specializes only generic typed Backs.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ProtocolSourcePackage {
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub backs: Vec<ProtocolBackSelection>,
     pub schema: String,
     pub source: String,
     pub specializations: Vec<ProtocolSpecialization>,
@@ -90,6 +105,7 @@ impl ProtocolSourcePackage {
         if self.source.is_empty()
             || self.source.len() > MAXIMUM_SOURCE_BYTES
             || self.specializations.len() > MAXIMUM_SPECIALIZATIONS
+            || self.backs.len() > MAXIMUM_SPECIALIZATIONS
         {
             return Err(ProtocolSourceRefusal::Bounds);
         }
@@ -98,6 +114,7 @@ impl ProtocolSourcePackage {
 }
 
 pub struct PreparedProtocolSource {
+    pub backs: CanonicalBackCatalog,
     pub checked: CheckedSyntaxDocument,
     pub profile: ProfileCatalog,
     pub operations: ProtocolOperations,
@@ -107,16 +124,46 @@ pub struct PreparedProtocolSource {
 impl PreparedProtocolSource {
     /// Prepare pure code before planning. Native bases are admitted separately.
     pub fn prepare(package: ProtocolSourcePackage) -> Result<Self, ProtocolSourceRefusal> {
+        Self::prepare_with_backs(package, CanonicalBackCatalog::new())
+    }
+
+    /// Retain the reviewed checked realizations used for expansion and admission.
+    pub fn prepare_with_backs(
+        package: ProtocolSourcePackage,
+        mut backs: CanonicalBackCatalog,
+    ) -> Result<Self, ProtocolSourceRefusal> {
         use ProtocolSourceRefusal as Error;
         package.validate_bounds()?;
         let i2c = crate::i2c_base::contract::I2cContract::prepare().map_err(Error::Contract)?;
         let (mut startup, mut profile) = i2c.catalogs();
         install_clock(&mut startup, &mut profile)?;
+        install_literal(&mut startup, &mut profile)?;
         usb_catalog::install(&mut startup, &mut profile)?;
+        crate::serial_base::contract::SerialDuplexContract::prepare()
+            .map_err(Error::Contract)?
+            .install_catalogs(&mut startup, &mut profile)
+            .map_err(Error::Catalog)?;
+        crate::ethernet_frame::contract::EthernetFrameContract::prepare()
+            .map_err(Error::Contract)?
+            .install_catalogs(&mut startup, &mut profile)
+            .map_err(Error::Catalog)?;
         let mut operations = ProtocolOperations::default();
         let mut capabilities = Vec::new();
         for specialization in &package.specializations {
             let offer = match specialization {
+                ProtocolSpecialization::Singleton { value } => {
+                    conduit_semantic_catalog::install_flow_singleton_kind(
+                        &value.contract,
+                        &value.schema,
+                        &mut startup,
+                        &mut profile,
+                    )
+                    .map_err(Error::Catalog)?;
+                    operations
+                        .singletons
+                        .install(&value.contract, &value.schema)
+                        .map_err(|_| Error::Specialization("singleton specialization refused"))
+                }
                 ProtocolSpecialization::SeededFlow { value } => {
                     conduit_semantic_catalog::install_seeded_state_flow_kind(
                         &value.contract,
@@ -211,6 +258,21 @@ impl PreparedProtocolSource {
         let checked = check_syntax_document(&parse_syntax_document(&package.source), &startup)
             .map_err(Error::Source)?;
         preparation_stage("checked");
+        for selection in &package.backs {
+            let kind = profile
+                .canonical_kind(&selection.kind_id)
+                .ok_or(Error::Offer)?;
+            backs
+                .insert_exact(
+                    kind,
+                    &kind.startup_parameters,
+                    &checked,
+                    &selection.plot_name,
+                    &selection.source_document_id,
+                    &selection.checked_plot_id,
+                )
+                .map_err(|error| Error::Catalog(alloc::format!("{error:?}")))?;
+        }
         let mut selectors = alloc::collections::BTreeSet::new();
         for stage in checked
             .plots
@@ -231,6 +293,7 @@ impl PreparedProtocolSource {
             }
         }
         Ok(Self {
+            backs,
             checked,
             profile,
             operations,
@@ -352,3 +415,58 @@ pub use native_preparation::{
 
 mod package_compilation;
 pub use package_compilation::{ProtocolSpecializationRequest, ProtocolValueReference};
+
+#[cfg(any(
+    target_arch = "x86_64",
+    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+))]
+mod native_usb_preparation;
+#[cfg(any(
+    target_arch = "x86_64",
+    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+))]
+pub use native_usb_preparation::prepare_native_usb_protocol;
+#[cfg(any(
+    target_arch = "x86_64",
+    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+))]
+pub(crate) use native_usb_preparation::prepare_native_usb_protocol_with_sign_storage;
+
+#[cfg(any(
+    target_arch = "x86_64",
+    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+))]
+pub(crate) use native_usb_preparation::{
+    prepare_native_usb_duplex_protocol, prepare_native_usb_endpoint_protocol,
+};
+
+// A checked literal is inert Source configuration, not native I/O authority.
+fn install_literal(
+    startup: &mut StartupCatalog,
+    profile: &mut ProfileCatalog,
+) -> Result<(), ProtocolSourceRefusal> {
+    startup
+        .insert(conduit_plot::KindSignature {
+            kind: conduit_text::TEXT_LITERAL_KIND.into(),
+            startup_parameters: vec![conduit_plot::StartupParameterSignature {
+                name: "value".into(),
+                value_type: "Text".into(),
+                default: None,
+            }],
+        })
+        .map_err(ProtocolSourceRefusal::Catalog)?;
+    profile
+        .insert_kind(conduit_text::text_literal_semantics().into_semantic_contract())
+        .map_err(|error| ProtocolSourceRefusal::Catalog(alloc::format!("{error:?}")))
+}
+
+#[cfg(any(
+    target_arch = "x86_64",
+    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+))]
+mod native_usb_isochronous_preparation;
+#[cfg(any(
+    target_arch = "x86_64",
+    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+))]
+pub(crate) use native_usb_isochronous_preparation::prepare_native_usb_isochronous_protocol;

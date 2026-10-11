@@ -35,8 +35,10 @@ pub mod domain_timer_scope;
 pub mod dual_region_composition;
 pub mod dual_region_kernel;
 pub mod dual_region_plan;
+pub mod ethernet_frame;
 mod execution_region;
 pub mod expression_host_call;
+pub mod flow_singleton;
 pub mod flow_concat_finite;
 pub mod flow_merge_finite;
 pub mod flow_zip;
@@ -56,6 +58,7 @@ pub mod hotplug_guest;
 #[cfg(any(test, feature = "native-http-client"))]
 pub mod http;
 pub mod i2c_base;
+pub mod serial_base;
 pub mod identity;
 #[cfg(test)]
 pub mod kernel_profile;
@@ -293,6 +296,7 @@ pub mod spore_provision;
 pub mod synth_nucleus;
 pub mod text_composition;
 mod text_kernel_backs;
+pub mod text_literal;
 mod text_offer;
 pub mod text_planned_kernel;
 #[cfg(conduitos_protected_execution)]

@@ -1,0 +1,4 @@
+CDC_DEVICE_LISTENING /tmp/cdc-product-u8efrhzk/device.sock
+CDC_DEVICE_CONNECTED full-speed ffff:f117 IN81 OUT02 IRQ83
+FAULT_RETAINED_FIRST_IN disconnect-in
+CDC_DEVICE_PEER_CLOSED

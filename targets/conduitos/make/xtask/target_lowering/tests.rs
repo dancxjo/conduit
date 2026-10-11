@@ -1,6 +1,6 @@
 use conduit_host_make::{
-    build_default_host_image, check_host_configuration, parse_host_configuration_conduit,
-    BuildInputs, HostProfile,
+    BuildInputs, HostProfile, build_default_host_image, check_host_configuration,
+    parse_host_configuration_conduit,
 };
 
 use super::*;
@@ -29,6 +29,30 @@ fn manifest(source: &str) -> BuildManifest {
     .unwrap()
     .0
     .manifest
+}
+
+#[test]
+fn compiled_usb_transport_is_present_only_in_supported_product_lowering() {
+    for source in [
+        include_str!("../../../profiles/conduitos-protocol-source.host.conduit"),
+        include_str!("../../../profiles/conduitos-x86_64-pc.host.conduit"),
+        include_str!("../../../profiles/conduitos-aarch64-virt.host.conduit"),
+    ] {
+        assert_ne!(
+            lower(&manifest(source)).unwrap().implementations & conduitos::make::IMPL_USB_TRANSPORT,
+            0
+        );
+    }
+    for source in [
+        include_str!("../../../profiles/conduitos-ia32-pc.host.conduit"),
+        include_str!("../../../profiles/conduitos-riscv64-virt.host.conduit"),
+        include_str!("../../../profiles/conduitos-loongarch64-virt.host.conduit"),
+    ] {
+        assert_eq!(
+            lower(&manifest(source)).unwrap().implementations & conduitos::make::IMPL_USB_TRANSPORT,
+            0
+        );
+    }
 }
 
 #[test]
@@ -156,10 +180,12 @@ fn http_lowering_rejects_each_missing_prerequisite_and_every_leak() {
             7 => incomplete.driver_selections.clear(),
             _ => unreachable!(),
         }
-        assert!(lower(&incomplete)
-            .unwrap_err()
-            .to_string()
-            .contains("http-profile-prerequisite-missing"));
+        assert!(
+            lower(&incomplete)
+                .unwrap_err()
+                .to_string()
+                .contains("http-profile-prerequisite-missing")
+        );
     }
 
     let headless = manifest(include_str!(
@@ -167,10 +193,12 @@ fn http_lowering_rejects_each_missing_prerequisite_and_every_leak() {
     ));
     let mut leaked = headless.clone();
     leaked.host_calls.push(http.host_calls[0].clone());
-    assert!(lower(&leaked)
-        .unwrap_err()
-        .to_string()
-        .contains("http-machinery-leaked"));
+    assert!(
+        lower(&leaked)
+            .unwrap_err()
+            .to_string()
+            .contains("http-machinery-leaked")
+    );
 }
 
 #[test]
@@ -188,10 +216,12 @@ fn lowering_rejects_missing_and_leaked_graphical_closure() {
             4 => incomplete.driver_selections.clear(),
             _ => unreachable!(),
         }
-        assert!(lower(&incomplete)
-            .unwrap_err()
-            .to_string()
-            .contains("profile-lowering-prerequisite-missing"));
+        assert!(
+            lower(&incomplete)
+                .unwrap_err()
+                .to_string()
+                .contains("profile-lowering-prerequisite-missing")
+        );
     }
 
     let headless = manifest(include_str!(
@@ -213,10 +243,12 @@ fn lowering_rejects_missing_and_leaked_graphical_closure() {
                 .push(native.driver_selections[0].clone()),
             _ => unreachable!(),
         }
-        assert!(lower(&leaked)
-            .unwrap_err()
-            .to_string()
-            .contains("headless-graphical-machinery-leaked"));
+        assert!(
+            lower(&leaked)
+                .unwrap_err()
+                .to_string()
+                .contains("headless-graphical-machinery-leaked")
+        );
     }
 }
 
@@ -230,10 +262,12 @@ fn unrelated_bounds_do_not_select_graphics_and_wrong_targets_fail_before_cargo()
     assert_eq!(lower(&headless).unwrap(), original);
 
     headless.target = "conduitos/aarch64/virt".into();
-    assert!(lower(&headless)
-        .unwrap_err()
-        .to_string()
-        .contains("aarch64-product-closure-mismatch"));
+    assert!(
+        lower(&headless)
+            .unwrap_err()
+            .to_string()
+            .contains("aarch64-product-closure-mismatch")
+    );
 }
 
 #[test]
@@ -244,10 +278,12 @@ fn duplicate_graphical_resource_ceiling_fails_before_codegen() {
     native
         .resource_budgets
         .push(native.resource_budgets[0].clone());
-    assert!(lower(&native)
-        .unwrap_err()
-        .to_string()
-        .contains("profile-lowering-resource-ambiguous"));
+    assert!(
+        lower(&native)
+            .unwrap_err()
+            .to_string()
+            .contains("profile-lowering-resource-ambiguous")
+    );
 }
 
 #[test]
@@ -301,10 +337,12 @@ fn proof_instrumentation_without_native_closure_refuses() {
     headless
         .profile_fragments
         .push(SCRIPTED_KEYBOARD_PROOF.into());
-    assert!(lower(&headless)
-        .unwrap_err()
-        .to_string()
-        .contains("proof-profile-prerequisite-missing"));
+    assert!(
+        lower(&headless)
+            .unwrap_err()
+            .to_string()
+            .contains("proof-profile-prerequisite-missing")
+    );
 }
 
 #[test]
@@ -341,26 +379,32 @@ fn aarch64_virt_rejects_x86_leaks_and_incomplete_serial_closure() {
 
     let mut x86_presenter = exact.clone();
     x86_presenter.presenters[0] = NATIVE_PRESENTER.into();
-    assert!(lower(&x86_presenter)
-        .unwrap_err()
-        .to_string()
-        .contains("aarch64-product-closure-mismatch"));
+    assert!(
+        lower(&x86_presenter)
+            .unwrap_err()
+            .to_string()
+            .contains("aarch64-product-closure-mismatch")
+    );
 
     let mut wrong_driver = exact.clone();
     wrong_driver.base_selections[0].driver = FRAMEBUFFER_DRIVER.into();
-    assert!(lower(&wrong_driver)
-        .unwrap_err()
-        .to_string()
-        .contains("aarch64-serial-driver-mismatch"));
+    assert!(
+        lower(&wrong_driver)
+            .unwrap_err()
+            .to_string()
+            .contains("aarch64-serial-driver-mismatch")
+    );
 
     let mut proof_leak = exact;
     proof_leak
         .profile_fragments
         .push(SCRIPTED_KEYBOARD_PROOF.into());
-    assert!(lower(&proof_leak)
-        .unwrap_err()
-        .to_string()
-        .contains("aarch64-product-closure-mismatch"));
+    assert!(
+        lower(&proof_leak)
+            .unwrap_err()
+            .to_string()
+            .contains("aarch64-product-closure-mismatch")
+    );
 }
 
 #[test]
@@ -389,10 +433,12 @@ fn usb_configuration_proof_owns_its_finite_profile_and_requires_keyboard_closure
         "../../../proof/profiles/conduitos-proof.profile.json"
     ));
     assert_eq!(ordinary.bounds.heap_arena_bytes, 16 * 1024 * 1024);
-    assert!(!lower(&ordinary)
-        .unwrap()
-        .cargo_features
-        .contains(&"usb-configuration-proof"));
+    assert!(
+        !lower(&ordinary)
+            .unwrap()
+            .cargo_features
+            .contains(&"usb-configuration-proof")
+    );
     let mut missing_keyboard = admitted;
     missing_keyboard
         .profile_fragments

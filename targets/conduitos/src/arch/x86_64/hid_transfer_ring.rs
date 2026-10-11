@@ -1,6 +1,6 @@
 //! Shared fixed xHCI interrupt-transfer ring positions and publication order.
 
-use core::sync::atomic::{Ordering, fence};
+pub(super) use crate::arch::xhci_mechanism::publish_transfer as publish;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(super) struct TransferPosition {
@@ -42,13 +42,4 @@ impl TransferPosition {
             (6 << 10) | (1 << 1) | self.cycle,
         ]
     }
-}
-
-/// Publish payload before granting controller ownership through the cycle bit.
-pub(super) fn publish(trb: [u32; 4], mut write: impl FnMut(usize, u32)) {
-    for (word, value) in trb[..3].iter().copied().enumerate() {
-        write(word, value);
-    }
-    fence(Ordering::Release);
-    write(3, trb[3]);
 }

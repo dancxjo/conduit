@@ -12,6 +12,11 @@ use conduit_composite::{
 use conduit_core::*;
 
 mod timed;
+#[cfg(any(
+    target_arch = "x86_64",
+    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+))]
+mod usb;
 pub use timed::{ClockAdmission, PreparedTimedProtocolPlay};
 
 pub struct I2cAdmission<P> {
@@ -21,9 +26,95 @@ pub struct I2cAdmission<P> {
     pub claim: BaseOperationClaim,
 }
 
+#[cfg(any(
+    target_arch = "x86_64",
+    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+))]
+pub struct UsbControlAdmission {
+    pub additional_remote_sign_items: u16,
+    pub ready: crate::arch::ReadyUsbControlBase,
+    pub table: BaseCapabilityTable,
+    pub handle: BaseCapabilityHandle,
+    pub claim: BaseOperationClaim,
+}
+
+#[cfg(any(
+    target_arch = "x86_64",
+    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+))]
+pub(crate) struct UsbProtocolAdmission {
+    pub additional_remote_sign_items: u16,
+    pub ready: crate::arch::ReadyUsbProtocolHost,
+    pub control_table: BaseCapabilityTable,
+    pub control_handle: BaseCapabilityHandle,
+    pub control_claim: BaseOperationClaim,
+    pub endpoint_table: BaseCapabilityTable,
+    pub endpoint_handle: BaseCapabilityHandle,
+    pub endpoint_claim: BaseOperationClaim,
+}
+
+#[cfg(any(
+    target_arch = "x86_64",
+    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+))]
+pub(crate) struct UsbIsochronousAdmission {
+    pub additional_remote_sign_items: u16,
+    pub ready: crate::arch::ReadyUsbIsochronousHost,
+    pub control_table: BaseCapabilityTable,
+    pub control_handle: BaseCapabilityHandle,
+    pub control_claim: BaseOperationClaim,
+    pub endpoint_table: BaseCapabilityTable,
+    pub endpoint_handle: BaseCapabilityHandle,
+    pub endpoint_claim: BaseOperationClaim,
+}
+
+#[cfg(any(
+    target_arch = "x86_64",
+    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+))]
+pub(crate) struct UsbDuplexAdmission {
+    pub additional_remote_sign_items: u16,
+    pub ready: crate::arch::ReadyUsbDuplexHost,
+    pub control_table: BaseCapabilityTable,
+    pub control_handle: BaseCapabilityHandle,
+    pub control_claim: BaseOperationClaim,
+    pub endpoint_table: BaseCapabilityTable,
+    pub endpoint_handle: BaseCapabilityHandle,
+    pub endpoint_claim: BaseOperationClaim,
+    pub write_table: BaseCapabilityTable,
+    pub write_handle: BaseCapabilityHandle,
+    pub write_claim: BaseOperationClaim,
+}
+
+#[derive(Clone, Copy)]
+enum PhysicalMode {
+    I2c,
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    UsbControl,
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    UsbProtocol,
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    UsbDuplex,
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    UsbIsochronous,
+}
+
 /// Preparation owns the admitted kernel and the actual native owners together.
 /// The caller supplies the selected Plan and opaque possession; no grant is minted here.
 pub struct PreparedProtocolPlay<P> {
+    deferred_host_request: Option<conduit_composite::KernelCompositeHostRequest>,
     kernel: KernelCompositeHost,
     calls: PreparedProtocolCalls<P>,
 }
@@ -61,6 +152,7 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
             handle,
             claim,
             crate::protocol_operations::ProtocolOperations {
+                singletons: crate::flow_singleton::FlowSingletonOperationFactory::default(),
                 joins: zip,
                 states: crate::seeded_state::SeededStateOperationFactory::default(),
                 concats: crate::flow_concat_finite::FlowConcatFiniteOperationFactory::default(),
@@ -85,6 +177,7 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
             handle,
             claim,
             crate::protocol_operations::ProtocolOperations {
+                singletons: crate::flow_singleton::FlowSingletonOperationFactory::default(),
                 joins: crate::flow_zip::FlowZipOperationFactory::default(),
                 states,
                 concats: crate::flow_concat_finite::FlowConcatFiniteOperationFactory::default(),
@@ -113,6 +206,32 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
         operations: crate::protocol_operations::ProtocolOperations,
         allow_clock: bool,
     ) -> Result<Self, ProtocolCallRefusal> {
+        Self::prepare_selected(
+            definition,
+            operations,
+            allow_clock,
+            PhysicalMode::I2c,
+            conduit_composite::KernelCompositeSignStorage::default(),
+            |plan, zip, states| {
+                PreparedProtocolCalls::prepare_with_operations(
+                    plan, ready, table, handle, claim, zip, states,
+                )
+            },
+        )
+    }
+
+    fn prepare_selected(
+        definition: KernelCompositeDefinition,
+        operations: crate::protocol_operations::ProtocolOperations,
+        allow_clock: bool,
+        mode: PhysicalMode,
+        storage: conduit_composite::KernelCompositeSignStorage,
+        prepare_calls: impl FnOnce(
+            &Plan,
+            &crate::flow_zip::FlowZipOperationFactory,
+            &crate::seeded_state::SeededStateOperationFactory,
+        ) -> Result<PreparedProtocolCalls<P>, ProtocolCallRefusal>,
+    ) -> Result<Self, ProtocolCallRefusal> {
         if !allow_clock
             && definition
                 .internal_plan
@@ -127,6 +246,7 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
             return Err(ProtocolCallRefusal::Unsupported);
         }
         let crate::protocol_operations::ProtocolOperations {
+            singletons,
             joins: zip,
             states,
             merges,
@@ -144,25 +264,49 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
         merges
             .validate_plan(&definition.internal_plan)
             .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
-        let calls = PreparedProtocolCalls::prepare_with_operations(
-            &definition.internal_plan,
-            ready,
-            table,
-            handle,
-            claim,
-            &zip,
-            &states,
-        )?;
+        let calls = prepare_calls(&definition.internal_plan, &zip, &states)?;
+        singletons
+            .validate_plan(&definition.internal_plan)
+            .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
         let mut registry = KernelOperationRegistry::new();
+        registry
+            .install(singletons)
+            .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
+        registry
+            .install(crate::text_literal::TextLiteralOperationFactory::default())
+            .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
         registry
             .install(ExpressionOperationFactory::default())
             .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
-        registry
-            .install(
-                I2cOperationFactory::prepare_contract()
-                    .map_err(|_| ProtocolCallRefusal::InvalidPlan)?,
-            )
-            .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
+        match mode {
+            PhysicalMode::I2c => {
+                registry
+                    .install(
+                        I2cOperationFactory::prepare_contract()
+                            .map_err(|_| ProtocolCallRefusal::InvalidPlan)?,
+                    )
+                    .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
+            }
+            #[cfg(any(
+                target_arch = "x86_64",
+                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+            ))]
+            PhysicalMode::UsbControl
+            | PhysicalMode::UsbProtocol
+            | PhysicalMode::UsbDuplex
+            | PhysicalMode::UsbIsochronous => {
+                registry.install(crate::usb_base::control_factory::ControlOperationFactory::prepare_contract().map_err(|_| ProtocolCallRefusal::InvalidPlan)?).map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
+                if matches!(mode, PhysicalMode::UsbProtocol | PhysicalMode::UsbDuplex) {
+                    registry.install(crate::usb_base::endpoint_read_factory::EndpointReadOperationFactory::prepare_contract().map_err(|_| ProtocolCallRefusal::InvalidPlan)?).map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
+                }
+                if matches!(mode, PhysicalMode::UsbIsochronous) {
+                    registry.install(crate::usb_base::isochronous::factory::IsochronousOutOperationFactory::prepare_contract().map_err(|_| ProtocolCallRefusal::InvalidPlan)?).map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
+                }
+                if matches!(mode, PhysicalMode::UsbDuplex) {
+                    registry.install(crate::usb_base::endpoint_write_factory::EndpointWriteOperationFactory::prepare_contract().map_err(|_| ProtocolCallRefusal::InvalidPlan)?).map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
+                }
+            }
+        }
         registry
             .install(SelectorOperationFactory::default())
             .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
@@ -189,9 +333,13 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
                 )
                 .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
         }
-        let kernel = KernelCompositeHost::prepare(definition, &registry)
+        let kernel = KernelCompositeHost::prepare_with_sign_storage(definition, &registry, storage)
             .map_err(ProtocolCallRefusal::Kernel)?;
-        Ok(Self { kernel, calls })
+        Ok(Self {
+            kernel,
+            calls,
+            deferred_host_request: None,
+        })
     }
 
     pub fn start(&mut self) -> Result<(), ProtocolCallRefusal> {
@@ -246,8 +394,19 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
     /// Advance the sole kernel once and service at most one surfaced Host Call.
     pub fn step(&mut self) -> Result<KernelCompositeStatus, ProtocolCallRefusal> {
         let status = self.kernel.step().map_err(ProtocolCallRefusal::Kernel)?;
-        if let Some(request) = self.kernel.next_host_request() {
-            self.calls.dispatch(&mut self.kernel, &request)?;
+        if self.calls.poll_pending(&mut self.kernel)? {
+            return Ok(status);
+        }
+        let request = self
+            .deferred_host_request
+            .take()
+            .or_else(|| self.kernel.next_host_request());
+        if let Some(request) = request {
+            if self.calls.can_dispatch(&self.kernel, &request)? {
+                self.calls.dispatch(&mut self.kernel, &request)?;
+            } else {
+                self.deferred_host_request = Some(request);
+            }
         }
         Ok(status)
     }

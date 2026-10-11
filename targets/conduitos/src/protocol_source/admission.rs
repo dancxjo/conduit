@@ -140,6 +140,71 @@ impl PreparedProtocolArtifact {
         }
     }
 
+    /// Consume the same admitted artifact with independently issued USB possession.
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    pub fn prepare_usb<P: crate::i2c_base::I2cProvider>(
+        self,
+        usb: crate::protocol_play::UsbControlAdmission,
+    ) -> Result<crate::protocol_play::PreparedProtocolPlay<P>, ProtocolCallRefusal> {
+        crate::protocol_play::PreparedProtocolPlay::prepare_usb_with_sign_storage(
+            self.artifact.into_definition(),
+            usb.ready,
+            usb.table,
+            usb.handle,
+            usb.claim,
+            self.operations,
+            usb.additional_remote_sign_items,
+        )
+    }
+
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    pub(crate) fn prepare_usb_protocol<P: crate::i2c_base::I2cProvider>(
+        self,
+        usb: crate::protocol_play::UsbProtocolAdmission,
+    ) -> Result<crate::protocol_play::PreparedProtocolPlay<P>, ProtocolCallRefusal> {
+        crate::protocol_play::PreparedProtocolPlay::prepare_usb_protocol(
+            self.artifact.into_definition(),
+            usb,
+            self.operations,
+        )
+    }
+
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    pub(crate) fn prepare_usb_isochronous<P: crate::i2c_base::I2cProvider>(
+        self,
+        usb: crate::protocol_play::UsbIsochronousAdmission,
+    ) -> Result<crate::protocol_play::PreparedProtocolPlay<P>, ProtocolCallRefusal> {
+        crate::protocol_play::PreparedProtocolPlay::prepare_usb_isochronous(
+            self.artifact.into_definition(),
+            usb,
+            self.operations,
+        )
+    }
+
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    pub(crate) fn prepare_usb_duplex<P: crate::i2c_base::I2cProvider>(
+        self,
+        usb: crate::protocol_play::UsbDuplexAdmission,
+    ) -> Result<crate::protocol_play::PreparedProtocolPlay<P>, ProtocolCallRefusal> {
+        crate::protocol_play::PreparedProtocolPlay::prepare_usb_duplex(
+            self.artifact.into_definition(),
+            usb,
+            self.operations,
+        )
+    }
+
     /// Consume the retained package owners together with actual native possession.
     pub fn prepare_timed<P, C>(
         self,

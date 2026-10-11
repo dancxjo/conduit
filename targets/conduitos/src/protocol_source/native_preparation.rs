@@ -38,6 +38,11 @@ pub struct NativeProtocolPreparationLimits {
 #[derive(Debug)]
 pub enum NativeProtocolPreparationReason {
     Contract(StructuredInfoRefusal),
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    Usb(crate::usb_base::installation::UsbInstallationRefusal),
     Source(ProtocolSourceRefusal),
     Bus(I2cInstallationRefusal),
     Clock(ClockInstallationRefusal),
