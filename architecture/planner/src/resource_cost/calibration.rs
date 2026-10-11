@@ -163,6 +163,12 @@ pub struct CostCalibrationEstimate<'a> {
     updates: usize,
 }
 impl<'a> CostCalibrationEstimate<'a> {
+    /// Retained measurement and signed residuals for historical explanation.
+    /// This does not change the estimate or admit a new observation.
+    pub fn completion_record(&self) -> &'a CostCalibrationRecord<'a> {
+        self.record
+    }
+
     pub fn source(&self) -> &'a CostEvidenceSource<'a> {
         self.record.completion
     }
