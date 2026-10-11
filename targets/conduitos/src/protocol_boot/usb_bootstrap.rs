@@ -77,15 +77,19 @@ pub unsafe fn run_if_selected(record: &boot::BootRecord) -> Result<(), &'static 
     // SAFETY: the caller independently established the documented native Root
     // prerequisites. Admission permanently claims actual resources for this Boot;
     // Source checking and planning neither confer nor broaden their authority.
-    let owners = unsafe {
+    let (owners, discovery) = unsafe {
         super::usb_owners::admit(
             record,
             &request,
             &host,
             &boot,
             crate::make::EMBEDDED_MAKE.build_id,
+            package,
         )
     }?;
+    if let Some(discovery) = discovery.as_ref() {
+        discovery.validate_class(&entry)?;
+    }
     let (mut play, mut outputs) = super::runtime::prepare_usb(entry, &request, host, boot, owners)?;
     match super::runtime::execute_usb(&mut play, &mut outputs, &request) {
         Ok(()) => {
@@ -100,7 +104,7 @@ pub unsafe fn run_if_selected(record: &boot::BootRecord) -> Result<(), &'static 
     // Keep the canonical session and quarantined owners alive. Completion of
     // this one Play does not invent an operator's conclusion or Body fulfillment.
     loop {
-        core::hint::black_box(&play);
+        core::hint::black_box((&play, &discovery));
         core::hint::spin_loop();
     }
 }

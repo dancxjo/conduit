@@ -302,7 +302,7 @@ impl UsbControlTransfer {
     }
 }
 
-pub(super) fn mapped_dma_physical(
+pub(in crate::arch::usb_xhci) fn mapped_dma_physical(
     start: u64,
     mapping: fn(u64) -> Option<u64>,
 ) -> Result<u64, UsbError> {

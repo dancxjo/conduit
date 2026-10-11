@@ -239,3 +239,29 @@ fn remote_sign_storage_is_explicit_optional_and_bounded() {
         ));
     }
 }
+
+#[test]
+fn discovery_budget_is_separate_exact_and_bounded() {
+    let mut value = request();
+    value["preflight"] = serde_json::json!({"entry":"profile-preflight", "maximum_discovery_operations":2,"maximum_steps":4096});
+    assert_eq!(decode(&value).unwrap().maximum_control_operations, 64);
+    for (field, bad) in [
+        ("maximum_discovery_operations", 0),
+        ("maximum_discovery_operations", 1),
+        ("maximum_discovery_operations", 3),
+        ("maximum_steps", 0),
+        ("maximum_steps", 4097),
+    ] {
+        let mut invalid = value.clone();
+        invalid["preflight"][field] = bad.into();
+        assert!(matches!(
+            decode(&invalid),
+            Err(ProtocolBootRequestRefusal::Bounds)
+        ));
+    }
+    value["preflight"]["entry"] = value["entry"].clone();
+    assert!(matches!(
+        decode(&value),
+        Err(ProtocolBootRequestRefusal::Bounds)
+    ));
+}

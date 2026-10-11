@@ -1,0 +1,197 @@
+//! Class admission consumes an exact frozen native observation through pure Source.
+use super::usb_request::{UsbPreflightBootRequest, UsbProtocolBootRequest};
+use crate::{arch::UsbConfigurationSnapshot, protocol_source::PreparedProtocolEntry};
+use alloc::{collections::BTreeMap, vec, vec::Vec};
+use conduit_composite::{
+    KernelCompositeSignStorage, KernelCompositeStatus, KernelCompositeTerminal,
+};
+use conduit_core::*;
+use conduit_planner::PlanningOptions;
+
+pub(super) struct AdmittedUsbDiscovery {
+    snapshot: UsbConfigurationSnapshot,
+    package_digest: [u8; 32],
+    class_resident: conduit_body::ResidentPlot,
+    // Retain the exact pure Plan/Play and complete Sign, not just a verdict.
+    _play: crate::pure_protocol_play::PreparedPureProtocolPlay,
+}
+impl AdmittedUsbDiscovery {
+    pub(super) fn validate_class(&self, entry: &PreparedProtocolEntry) -> Result<(), &'static str> {
+        if entry.package_digest() != &self.package_digest || entry.resident() != self.class_resident
+        {
+            return Err("protocol-usb-preflight-class-substitution");
+        }
+        Ok(())
+    }
+    pub(super) fn validate_attachment(
+        &self,
+        controller: &crate::arch::XhciReady,
+        device: &crate::arch::UsbDevice,
+    ) -> Result<(), &'static str> {
+        self.snapshot
+            .validate(controller, device)
+            .map_err(|_| "protocol-usb-discovery-stale")
+    }
+}
+
+pub(super) fn accept(
+    package: &[u8],
+    request: &UsbProtocolBootRequest,
+    selection: &UsbPreflightBootRequest,
+    snapshot: UsbConfigurationSnapshot,
+    host: &HostId,
+    boot: &BootId,
+) -> Result<AdmittedUsbDiscovery, &'static str> {
+    request
+        .bind_package(package)
+        .map_err(|_| "protocol-usb-preflight-package")?;
+    let class = PreparedProtocolEntry::prepare(package, &request.entry)
+        .map_err(|_| "protocol-usb-preflight-class-source")?;
+    let class_resident = class.resident();
+    let package_digest = *class.package_digest();
+    let entry = PreparedProtocolEntry::prepare(package, &selection.entry)
+        .map_err(|_| "protocol-usb-preflight-source")?;
+    // The immutable package digest binds both preflight and retained class entry.
+    // Source/check identities remain in the admitted artifact and its Sign.
+    let fore = &entry.expanded().front;
+    if fore.inputs().len() != 1 || fore.outputs().len() != 1 {
+        return Err("protocol-usb-preflight-fore");
+    }
+    let input = fore.inputs()[0].clone();
+    let output = fore.outputs()[0].clone();
+    let contract = crate::usb_base::control_contract::ControlContract::prepare()
+        .map_err(|_| "protocol-usb-preflight-contract")?;
+    if entry.input_schema(&input.port_id).as_ref() != Some(contract.result_type())
+        || output.value_kind != kind_id("value/bool")
+    {
+        return Err("protocol-usb-preflight-fore");
+    }
+    let raw = crate::usb_base::control_request::ControlTransferRequest::new(
+        [
+            0x80,
+            6,
+            0,
+            2,
+            0,
+            0,
+            snapshot.requested() as u8,
+            (snapshot.requested() >> 8) as u8,
+        ],
+        &[],
+        256,
+    )
+    .map_err(|_| "protocol-usb-preflight-observation")?;
+    let mut encoder = crate::usb_base::control_result::PreparedControlResultEncoder::new(&contract)
+        .map_err(|_| "protocol-usb-preflight-observation")?;
+    let value = ValuePayload {
+        value_kind: input.value_kind.clone(),
+        encoded: encoder
+            .completed(&raw, snapshot.bytes().len() as u16, snapshot.bytes())
+            .map_err(|_| "protocol-usb-preflight-observation")?
+            .to_vec(),
+    };
+    let mut advertisement = HostAdvertisement {
+        protocol_version: PROTOCOL_VERSION,
+        host_id: host.clone(),
+        boot_id: boot.clone(),
+        offer_generation: OfferGeneration(1),
+        profile: "conduitos/pure-discovery@1".into(),
+        bases: vec![],
+        resources: vec![],
+        capabilities: vec![],
+        planner_capabilities: vec![],
+    };
+    entry
+        .publish_pure_backs(&mut advertisement)
+        .map_err(|_| "protocol-usb-preflight-offers")?;
+    let hosts = [advertisement];
+    let placements = entry
+        .placements(&hosts)
+        .map_err(|_| "protocol-usb-preflight-placement")?;
+    let empty = BTreeMap::new();
+    let artifact = entry
+        .plan(
+            &hosts,
+            &placements,
+            &[BaseImplementationId::from("conduit.base/local@1")],
+            PlanningOptions {
+                connection_bases: &empty,
+                line_candidates: &BTreeMap::new(),
+                connection_item_capacity: 1,
+                connection_byte_capacity: 4096,
+                authority_grants: &[],
+                protected_resource_grants: &[],
+                line_offers: &[],
+            },
+        )
+        .map_err(|_| "protocol-usb-preflight-plan")?;
+    let mut play = artifact
+        .prepare_pure(KernelCompositeSignStorage::default())
+        .map_err(|_| "protocol-usb-preflight-prepare")?;
+    let mut composer = PreparedStructuredComposer::new(
+        &StructuredInfoType::leaf(kind_id("value/bool"))
+            .map_err(|_| "protocol-usb-preflight-verdict")?,
+        64,
+    )
+    .map_err(|_| "protocol-usb-preflight-verdict")?;
+    let accepted = composer
+        .leaf(&[1])
+        .map_err(|_| "protocol-usb-preflight-verdict")?
+        .to_vec();
+    let mut result = ValuePayload {
+        value_kind: output.value_kind.clone(),
+        encoded: Vec::with_capacity(64),
+    };
+    let mut verdict = false;
+    let mut closed = false;
+    play.start().map_err(|_| "protocol-usb-preflight-start")?;
+    if !matches!(
+        play.admit_input(&input.port_id, 0, &value)
+            .map_err(|_| "protocol-usb-preflight-input")?,
+        conduit_kernel::scheduler::RemoteIngressOutcome::Accepted { .. }
+    ) {
+        return Err("protocol-usb-preflight-input-pressure");
+    }
+    play.close_input(&input.port_id)
+        .map_err(|_| "protocol-usb-preflight-close")?;
+    for _ in 0..selection.maximum_steps {
+        let status = play.step().map_err(|_| "protocol-usb-preflight-step")?;
+        while let Some(sequence) = play
+            .output_into(&output.port_id, &mut result)
+            .map_err(|_| "protocol-usb-preflight-output")?
+        {
+            if verdict || result.encoded != accepted {
+                return Err("protocol-usb-profile-unsupported");
+            }
+            verdict = true;
+            play.complete_output(&output.port_id, sequence)
+                .map_err(|_| "protocol-usb-preflight-output")?;
+        }
+        if let Some(terminal) = play
+            .output_terminal_into(&output.port_id, &mut result)
+            .map_err(|_| "protocol-usb-preflight-terminal")?
+        {
+            if closed || terminal != KernelCompositeTerminal::Normal {
+                return Err("protocol-usb-preflight-terminal");
+            }
+            closed = true;
+        }
+        if status == KernelCompositeStatus::Complete && closed {
+            return if verdict {
+                Ok(AdmittedUsbDiscovery {
+                    snapshot,
+                    package_digest,
+                    class_resident,
+                    _play: play,
+                })
+            } else {
+                Err("protocol-usb-preflight-no-verdict")
+            };
+        }
+    }
+    Err("protocol-usb-preflight-budget")
+}
+
+#[cfg(test)]
+#[path = "usb_preflight/tests.rs"]
+mod tests;

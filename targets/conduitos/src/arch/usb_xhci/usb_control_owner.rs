@@ -7,7 +7,7 @@ use conduit_core::{BaseCapabilityHandle, BaseCapabilityTable, BaseOperationClaim
 use conduit_kernel::{HostCallId, NodeId, RequestId};
 
 #[path = "usb_control_transfer.rs"]
-mod transfer;
+pub(super) mod transfer;
 pub(super) use transfer::UsbControlTransfer;
 #[cfg(test)]
 use transfer::mapped_dma_physical;

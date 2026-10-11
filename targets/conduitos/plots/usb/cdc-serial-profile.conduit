@@ -14,3 +14,12 @@ plot cdc-acm-line-coding-ack (
     completion: UsbControlResult...| >> supported: Boolean...|
 ) = (!(. is completed) ? false : (.completed.transferred != 7 || .completed.short || sequence/length(.completed.input) != 7 ? false : (sequence/at(.completed.input, 0) == 0 && sequence/at(.completed.input, 1) == 194 && sequence/at(.completed.input, 2) == 1 && sequence/at(.completed.input, 3) == 0 && sequence/at(.completed.input, 4) == 0 && sequence/at(.completed.input, 5) == 0 && sequence/at(.completed.input, 6) == 8)))
 
+
+# Pure Root preflight and the class Back share the SAME checked topology law.
+# Root supplies a frozen actual standard-discovery completion, never authored bytes.
+plot cdc-serial-profile-preflight (
+    >> completion: UsbControlResult...|
+    supported: Boolean...| >>
+) {
+    completion >> cdc-acm-topology-supported() >> supported
+}
