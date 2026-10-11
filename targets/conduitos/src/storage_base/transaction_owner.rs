@@ -42,6 +42,9 @@ impl StorageAuthorizationSubmission {
 pub(crate) struct StorageSettlementReceipt(StorageAuthorizationSubmission);
 pub(crate) struct StorageCancellationReceipt(StorageAuthorizationSubmission);
 impl StorageCancellationReceipt {
+    pub(crate) fn into_submission(self) -> StorageAuthorizationSubmission {
+        self.0
+    }
     /// # Safety
     /// Original subordinate association must acknowledge physical stop and
     /// kernel retirement for this exact retained submission; idle is insufficient.
