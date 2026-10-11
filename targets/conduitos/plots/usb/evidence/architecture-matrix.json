@@ -66,8 +66,11 @@
         },
         "cdc-acm": {
           "status": "incomplete",
-          "reason": "No actual product USB class execution evidence yet",
-          "proof_level": "compile-only"
+          "acceptance": "partial",
+          "proof_level": "emulator-with-device",
+          "receipt": "usb-cdc-acm-aarch64-product-proof.json",
+          "receipt_sha256": "13f1e1f561e41df590e8cb1641eb1c1375082a99ef01ed5c416ebdb2b093e457",
+          "reason": "Same checked CDC Source as x86; actual5controls+16TX/RXpairs, retired; generic semantic serial routing/full failures/physical acceptance incomplete"
         },
         "cdc-ecm": {
           "status": "incomplete",
