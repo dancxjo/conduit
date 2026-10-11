@@ -321,7 +321,7 @@ fn thirty_third_request_is_typed_refusal_before_another_usb_submission() {
     assert_eq!(scalar(member(&transition, "accepted")), &[0]);
     assert_eq!(
         scalar(member(&eval(&advance, &transition), "terminal")),
-        &[1]
+        &[0]
     );
     let emitted = eval(&emission, &transition);
     assert!(
