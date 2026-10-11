@@ -13,6 +13,8 @@ use alloc::{boxed::Box, format};
 use conduit_core::*;
 use core::sync::atomic::Ordering;
 
+#[path = "usb_duplex_resources.rs"]
+mod duplex_resources;
 #[path = "usb_endpoint_owners.rs"]
 mod endpoint;
 #[path = "usb_isochronous_owners.rs"]
@@ -260,7 +262,8 @@ pub(super) unsafe fn admit(
     if let Some(endpoint_request) = request.endpoint_read.as_ref() {
         // SAFETY: the sole Root reservation and administrator parameters bind
         // this exact controller/attachment; static DMA remains quarantined.
-        let endpoint = unsafe { endpoint::configure(&mut controller, &device, endpoint_request) }?;
+        let mut endpoint =
+            unsafe { endpoint::configure(&mut controller, &device, endpoint_request) }?;
         let endpoint_identity = UsbNativeIdentity {
             host_id: host.clone(),
             boot_id: boot_id.clone(),
@@ -306,7 +309,18 @@ pub(super) unsafe fn admit(
             use crate::usb_base::{endpoint_write_contract::*, endpoint_write_factory::*};
             // SAFETY: the same reserved controller configures separate rooted OUT
             // storage using only the exact independently approved parameters.
-            let write = unsafe { outbound::configure(&mut controller, &device, write_request) }?;
+            let mut write =
+                unsafe { outbound::configure(&mut controller, &device, write_request) }?;
+            let capacities = duplex_resources::admit(
+                crate::allocation::BOOT_ARENA.capacity(),
+                crate::allocation::BOOT_ARENA.live_bytes(),
+                [
+                    endpoint.attachment.resource_bytes,
+                    write.attachment.resource_bytes,
+                ],
+            )?;
+            endpoint.attachment.resource_bytes = capacities[0];
+            write.attachment.resource_bytes = capacities[1];
             let write_identity = UsbNativeIdentity {
                 host_id: host.clone(),
                 boot_id: boot_id.clone(),

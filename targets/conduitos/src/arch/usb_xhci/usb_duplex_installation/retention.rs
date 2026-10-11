@@ -64,7 +64,7 @@ pub(super) fn retained_bytes(newly_retained: usize) -> Option<usize> {
     newly_retained
         .checked_add(3 * 16384)? // preissued tables/claims, metadata bounded below
         .checked_add(core::mem::size_of::<NativeUsbDuplexHost>())?
-        .checked_add(8192)? // both rooted DMA rings/buffers, context and page padding
+        .checked_add(16384)? // two complete page-rounded Root endpoint DMA/context allocations
         .checked_add(6 * 4096) // independently prepared control/read/write request/result Flows
 }
 
@@ -95,7 +95,7 @@ fn measurement_line(
         .ok_or_else(read_binding)?
         / 2;
     let mut line = crate::sign_format::FixedText::new();
-    writeln!(&mut line, "CONDUIT_USB_DUPLEX_PREPARE newly_retained={} inline_host={} preissued_tables=49152 dma_context=8192 flow_budget=24576 required_each={} read_admitted={} write_admitted={}", newly_retained, core::mem::size_of::<NativeUsbDuplexHost>(), each, admitted[0], admitted[1]).map_err(|_| read_binding())?;
+    writeln!(&mut line, "CONDUIT_USB_DUPLEX_PREPARE newly_retained={} inline_host={} preissued_tables=49152 dma_context=16384 flow_budget=24576 required_each={} read_admitted={} write_admitted={}", newly_retained, core::mem::size_of::<NativeUsbDuplexHost>(), each, admitted[0], admitted[1]).map_err(|_| read_binding())?;
     Ok(line)
 }
 
@@ -108,7 +108,7 @@ mod tests {
         let receipt = measurement_line(12345, [100001, 100002]).unwrap();
         let text = core::str::from_utf8(receipt.as_bytes()).unwrap();
         assert!(text.starts_with("CONDUIT_USB_DUPLEX_PREPARE newly_retained=12345 "));
-        assert!(text.contains("preissued_tables=49152 dma_context=8192 flow_budget=24576"));
+        assert!(text.contains("preissued_tables=49152 dma_context=16384 flow_budget=24576"));
         assert!(text.contains(&alloc::format!(
             "required_each={}",
             retained_bytes(12345).unwrap().div_ceil(2)
@@ -179,7 +179,7 @@ mod tests {
         let charge = retained_bytes(terminals).unwrap();
         assert_eq!(
             charge,
-            terminals + 3 * 16384 + core::mem::size_of::<NativeUsbDuplexHost>() + 8192 + 6 * 4096
+            terminals + 3 * 16384 + core::mem::size_of::<NativeUsbDuplexHost>() + 16384 + 6 * 4096
         );
         assert!(charge > terminals + core::mem::size_of::<NativeUsbDuplexHost>());
         assert_eq!(retained_bytes(usize::MAX), None);
