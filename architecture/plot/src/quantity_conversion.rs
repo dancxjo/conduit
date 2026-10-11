@@ -70,7 +70,8 @@ pub fn install(startup: &mut StartupCatalog, profile: &mut ProfileCatalog) -> Re
     install_for(ConversionProfile::TemperatureDifference, startup, profile)?;
     startup.ensure_structured_type("TemperatureDelta", temperature_difference::source_type())?;
     comparison::install(startup, profile)?;
-    converted_equals::install(startup, profile)
+    converted_equals::install(startup, profile)?;
+    crate::dimension_operation::install(startup, profile)
 }
 fn install_for(
     selected: ConversionProfile,
@@ -197,6 +198,7 @@ pub enum QuantityConversionPreparationRefusal {
     ComparisonRight(ExactQuantityConversionRequestRefusal),
     Receipt(StructuredInfoRefusal),
     ReceiptTooLarge,
+    Dimension(crate::dimension_operation::DimensionPreparationRefusal),
 }
 
 /// Execute after ordinary startup checking and canonical expansion. Every
@@ -222,7 +224,7 @@ pub fn operation_contract(kind: &str) -> Option<Kind> {
         temperature_difference::KIND => Some(temperature_difference::contract()),
         comparison::KIND => Some(comparison::contract()),
         comparison::DIFFERENCE_KIND => Some(comparison::difference_contract()),
-        _ => None,
+        _ => crate::dimension_operation::contract(kind),
     }
 }
 pub fn prepare_operation_configuration(
@@ -236,6 +238,12 @@ pub fn prepare_operation_configuration(
         }
         comparison::KIND => comparison::prepare_configuration(configuration),
         comparison::DIFFERENCE_KIND => comparison::prepare_difference_configuration(configuration),
+        crate::dimension_operation::UNIT_KIND | crate::dimension_operation::QUANTITY_KIND => {
+            let dimension = crate::dimension_operation::prepare(kind, configuration)
+                .map_err(QuantityConversionPreparationRefusal::Dimension)?;
+            StructuredInfoValue::leaf(leaf(DIMENSION_INFO_ID), dimension.encode().to_vec())
+                .map_err(QuantityConversionPreparationRefusal::Receipt)
+        }
         _ => Err(QuantityConversionPreparationRefusal::Configuration),
     }
 }

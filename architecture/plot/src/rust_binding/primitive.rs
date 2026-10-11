@@ -112,6 +112,15 @@ impl NativePrimitive for conduit_core::Unit {
     }
 }
 
+impl NativePrimitive for conduit_core::Dimension {
+    fn encode_primitive(&self) -> Vec<u8> {
+        self.encode().to_vec()
+    }
+    fn decode_primitive(canonical: &[u8]) -> Option<Self> {
+        Self::decode(canonical).ok()
+    }
+}
+
 impl NativePrimitive for String {
     fn encode_primitive(&self) -> Vec<u8> {
         self.as_bytes().to_vec()

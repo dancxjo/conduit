@@ -69,6 +69,20 @@ pub enum ConfigurationValue {
 
 impl ConfigurationValue {
     pub fn semantic_kind(&self) -> KindId {
+        // A standalone Dimension uses the shared structured configuration
+        // envelope while retaining the intrinsic leaf identity of its Fore.
+        // Nominal wrappers and all other structured profiles keep their own
+        // existing identities.
+        if let Self::Structured(value) = self {
+            let dimension_profile =
+                crate::StructuredInfoType::leaf(crate::kind_id(crate::DIMENSION_INFO_ID))
+                    .expect("Dimension leaf")
+                    .profile()
+                    .expect("bounded Dimension profile");
+            if value.profile() == dimension_profile.value_kind() {
+                return crate::kind_id(crate::DIMENSION_INFO_ID);
+            }
+        }
         crate::kind_id(match self {
             Self::Bool(_) => crate::BOOL_INFO_ID,
             Self::U64(_) => crate::COUNT_INFO_ID,

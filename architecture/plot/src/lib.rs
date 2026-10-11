@@ -60,6 +60,7 @@ mod pure_expression;
 pub mod quantity_conversion;
 mod quantity_literal;
 pub use physical_declarations::*;
+pub mod dimension_operation;
 mod quoted_text_source;
 pub use quoted_text_source::{source_span, QuotedTextSourceMap};
 pub mod rust_binding;

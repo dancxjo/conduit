@@ -26,6 +26,7 @@ pub(crate) fn canonical_value_kind(source_type: &str) -> KindId {
         "Empty" => kind_id("value/empty"),
         "Quantity" => kind_id(conduit_core::QUANTITY_INFO_ID),
         "Unit" => kind_id(conduit_core::UNIT_INFO_ID),
+        "Dimension" => kind_id(conduit_core::DIMENSION_INFO_ID),
         "U8" => kind_id("value/u8"),
         "U16" => kind_id("value/u16"),
         "U32" => kind_id("value/u32"),

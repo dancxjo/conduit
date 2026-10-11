@@ -93,7 +93,7 @@ fn walk(
     };
     let physical_bound = bound
         .as_ref()
-        .is_some_and(|v| matches!(v, V::Quantity(_) | V::Unit(_) | V::TemperatureDifference(_)));
+        .is_some_and(|v| crate::authored_quantity::value_kind(v).is_some());
     let constructor = if let E::SemanticCall {
         kind, arguments, ..
     } = value
@@ -185,6 +185,13 @@ fn walk(
                 conduit_core::UNIT_INFO_ID.into(),
                 value.value().encode().to_vec(),
             ),
+            V::Structured(value) => {
+                let concrete = value.try_concrete().expect("checked concrete Dimension");
+                let conduit_core::StructuredInfoValueShape::Leaf(bytes) = concrete.shape() else {
+                    unreachable!("Dimension is a checked leaf");
+                };
+                (conduit_core::DIMENSION_INFO_ID.into(), bytes.to_vec())
+            }
             V::TemperatureDifference(value) => {
                 let coordinate = value.value().storage_coordinate();
                 (

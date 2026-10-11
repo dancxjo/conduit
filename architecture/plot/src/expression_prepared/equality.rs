@@ -114,7 +114,10 @@ fn equal(ty: &StructuredInfoType, a: &mut Cursor<'_>, b: &mut Cursor<'_>) -> Res
             let kind = leaf_kind(ty)?;
             if matches!(
                 kind,
-                PrimitiveInfoKind::F32 | PrimitiveInfoKind::F64 | PrimitiveInfoKind::Unit
+                PrimitiveInfoKind::F32
+                    | PrimitiveInfoKind::F64
+                    | PrimitiveInfoKind::Unit
+                    | PrimitiveInfoKind::Dimension
             ) {
                 return Ok(left == right);
             }

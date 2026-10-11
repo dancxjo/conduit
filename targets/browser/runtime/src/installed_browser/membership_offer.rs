@@ -69,5 +69,27 @@ mod tests {
             bytes.len(),
             advertised.capabilities.len()
         );
+        let body = conduit_body::Body::born(
+            conduit_core::SourceDocumentId::from("source/membership-budget"),
+            conduit_core::CheckedPlotId::from("checked/membership-budget"),
+            1,
+            conduit_core::SignId::from("sign/membership-budget"),
+        )
+        .unwrap();
+        let mut inventory = conduit_body::CandidateInventory::new(body.body_id).unwrap();
+        let observation = conduit_body::CandidateObservation {
+            advertisement: advertised.clone(),
+            friendly_label: "Installed browser".into(),
+            observed_binding_id: conduit_core::LinkBindingId::from("line/membership-budget"),
+            observation_sign_id: conduit_core::SignId::from("sign/membership-observed"),
+            proof_id: conduit_body::DiscoveryProofId::bind("proof/membership-budget").unwrap(),
+            freshness_sequence: 1,
+            encoded_bytes: u32::try_from(bytes.len() + 1024).unwrap(),
+        };
+        inventory.observe(observation).unwrap();
+        assert_eq!(
+            inventory.candidates[0].observation.advertisement,
+            advertised
+        );
     }
 }

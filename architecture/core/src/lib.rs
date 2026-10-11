@@ -41,6 +41,7 @@ mod primitive_info;
 mod quantity;
 mod quantity_configuration;
 pub use physical_definition::*;
+mod dimension;
 mod quantity_suffix;
 mod resource;
 mod resource_canonical;
@@ -124,6 +125,7 @@ pub use primitive_info::*;
 pub use quantity::*;
 pub use quantity_configuration::*;
 
+pub use dimension::*;
 pub use quantity_suffix::*;
 pub use resource::*;
 pub use resource_acquisition::*;

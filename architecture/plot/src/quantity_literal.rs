@@ -36,7 +36,9 @@ pub(crate) fn selected_profile<'a>(
     let kind = crate::value_type::canonical_value_kind(source_type);
     if !matches!(
         kind.as_str(),
-        conduit_core::QUANTITY_INFO_ID | conduit_core::UNIT_INFO_ID
+        conduit_core::QUANTITY_INFO_ID
+            | conduit_core::UNIT_INFO_ID
+            | conduit_core::DIMENSION_INFO_ID
     ) && conduit_core::quantity_info_dimension(kind.as_str()).is_none()
     {
         return None;
