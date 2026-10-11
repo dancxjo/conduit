@@ -27,7 +27,9 @@ pub(super) const fn endpoint_resource_bytes() -> u64 {
 
 impl UsbNativeHost<'_> {
     /// Preparation only: the fixed records are absent in control/ISO hosts.
-    pub(super) fn prepare_independent(&mut self) -> Result<(), UsbNativeHostRefusal> {
+    pub(in crate::arch::usb_xhci) fn prepare_independent(
+        &mut self,
+    ) -> Result<(), UsbNativeHostRefusal> {
         if self.playing
             || self.stopped
             || self.cancellation_requested
@@ -50,6 +52,7 @@ impl UsbNativeHost<'_> {
             return Err(UsbNativeHostRefusal::NotReady);
         }
         if self.uncertain_control
+            || self.uncertain_bulk
             || self.isochronous_started
             || self
                 .bulk_terminals
@@ -85,11 +88,13 @@ impl UsbNativeHost<'_> {
         };
         self.playing = true;
         self.pending_endpoint = Some(index.0);
+        self.uncertain_bulk = true;
         transfer
             .begin(&self.device, bound.node, bound.call, request, input)
             .map_err(UsbNativeHostRefusal::Endpoint)?;
         self.controller
             .ring_endpoint(self.device.slot, transfer.endpoint_dci);
+        self.uncertain_bulk = false;
         Ok(())
     }
 
@@ -109,11 +114,13 @@ impl UsbNativeHost<'_> {
         };
         self.playing = true;
         self.pending_write = Some(index.0);
+        self.uncertain_bulk = true;
         transfer
             .begin(&self.device, bound.node, bound.call, request, input)
             .map_err(UsbNativeHostRefusal::Write)?;
         self.controller
             .ring_endpoint(self.device.slot, transfer.endpoint_dci);
+        self.uncertain_bulk = false;
         Ok(())
     }
 
@@ -179,7 +186,13 @@ impl UsbNativeHost<'_> {
         let Some(event) = self.controller.poll_event() else {
             return Ok(None);
         };
-        let index = route_event(event, keys).map_err(|_| UsbNativeHostRefusal::Binding)?;
+        let index = match route_event(event, keys) {
+            Ok(index) => index,
+            Err(_) => {
+                self.uncertain_bulk = true;
+                return Err(UsbNativeHostRefusal::Binding);
+            }
+        };
         let result = match &mut self.calls[index.0].transfer {
             Transfer::Endpoint(transfer) => transfer
                 .complete(&self.device, event)
@@ -209,7 +222,10 @@ impl UsbNativeHost<'_> {
                 self.finish_independent_fault(Some(index))?;
                 self.poll_independent()
             }
-            Err(error) => Err(error),
+            Err(error) => {
+                self.uncertain_bulk = true;
+                Err(error)
+            }
         }
     }
 
@@ -219,6 +235,7 @@ impl UsbNativeHost<'_> {
     ) -> Result<(), UsbNativeHostRefusal> {
         // Exact event routing/validated original attachment precedes physical stop.
         // A failed acknowledgement leaves both original leases and DMA rooted.
+        self.uncertain_bulk = true;
         self.controller
             .disable_removed_slot(self.device.slot)
             .map_err(|error| UsbNativeHostRefusal::Native(error.into()))?;

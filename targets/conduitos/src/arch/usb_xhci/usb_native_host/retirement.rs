@@ -209,6 +209,7 @@ impl UsbNativeHost<'_> {
         self.pending_endpoint = None;
         self.pending_write = None;
         self.uncertain_control = false;
+        self.uncertain_bulk = false;
         self.stopped = true;
         Ok(())
     }

@@ -71,6 +71,7 @@ pub(crate) struct UsbNativeHost<'a> {
     isochronous: Option<super::isochronous_out::IsochronousOutTransfer<'a>>,
     isochronous_started: bool,
     uncertain_control: bool,
+    uncertain_bulk: bool,
     playing: bool,
     stop_acknowledged: bool,
     possessions_revoked: bool,
@@ -111,6 +112,7 @@ impl<'a> UsbNativeHost<'a> {
             isochronous: None,
             isochronous_started: false,
             uncertain_control: false,
+            uncertain_bulk: false,
             playing: false,
             stop_acknowledged: false,
             possessions_revoked: false,
@@ -292,6 +294,7 @@ impl<'a> UsbNativeHost<'a> {
                 .as_ref()
                 .is_some_and(|slots| slots.iter().any(|slot| slot.index.is_some()))
             || self.uncertain_control
+            || self.uncertain_bulk
             || self.isochronous_started
         {
             return Err(UsbNativeHostRefusal::Pending);

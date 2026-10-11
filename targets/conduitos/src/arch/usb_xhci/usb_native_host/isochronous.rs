@@ -41,6 +41,7 @@ impl<'a> UsbNativeHost<'a> {
             || self.cancellation_requested
             || self.stop_acknowledged
             || self.uncertain_control
+            || self.uncertain_bulk
         {
             return Err(UsbNativeHostRefusal::NotReady);
         }
@@ -118,6 +119,7 @@ impl<'a> UsbNativeHost<'a> {
                 .as_ref()
                 .is_some_and(|slots| slots.iter().any(|slot| slot.index.is_some()))
             || self.uncertain_control
+            || self.uncertain_bulk
         {
             return Err(UsbNativeHostRefusal::NotReady);
         }
@@ -197,6 +199,7 @@ impl<'a> UsbNativeHost<'a> {
             || self.cancellation_requested
             || self.stop_acknowledged
             || self.uncertain_control
+            || self.uncertain_bulk
             || !self.isochronous_started
         {
             return Err(UsbNativeHostRefusal::NotReady);

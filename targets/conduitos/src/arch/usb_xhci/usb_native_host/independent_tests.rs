@@ -101,3 +101,32 @@ fn refused_original_stop_keeps_staged_pair_and_root_marker_quarantined() {
         }
     });
 }
+
+#[test]
+fn refused_begin_closes_both_directions_until_acknowledged_cancellation() {
+    with_host(1, |host| {
+        host.prepare_independent().unwrap();
+        // Simulate uncertainty after authority acceptance/publication refusal.
+        // No actual endpoint lease is manufactured by this boundary test.
+        host.uncertain_bulk = true;
+        assert!(matches!(
+            host.begin_independent_read(UsbNativeCallIndex(0), RequestId(0), &[]),
+            Err(UsbNativeHostRefusal::Pending)
+        ));
+        assert!(matches!(
+            host.begin_independent_write(UsbNativeCallIndex(0), RequestId(0), &[]),
+            Err(UsbNativeHostRefusal::Pending)
+        ));
+        assert!(matches!(
+            host.idle_transport(),
+            Err(UsbNativeHostRefusal::Pending)
+        ));
+        host.cancel().unwrap();
+        assert!(!host.uncertain_bulk);
+        assert!(host.stopped && host.stop_acknowledged);
+        assert!(matches!(
+            host.begin_independent_write(UsbNativeCallIndex(0), RequestId(0), &[]),
+            Err(UsbNativeHostRefusal::NotReady)
+        ));
+    });
+}
