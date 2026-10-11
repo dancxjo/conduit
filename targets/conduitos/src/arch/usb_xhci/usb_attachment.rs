@@ -3,7 +3,7 @@
 use core::hint::spin_loop;
 
 use super::{PORT_POLL_STEPS, UsbDevice, UsbError};
-use crate::arch::x86_64::xhci::XhciReady;
+use crate::arch::xhci_mechanism::XhciReady;
 
 pub fn wait_for_attachment_state(
     controller: &XhciReady,

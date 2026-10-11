@@ -76,7 +76,7 @@ fn actual_dma_publication_reuses_a_fixed_ring_across_ten_thousand_transfers() {
             dma.transfer_ring[consumer + reservation.count][3] & 1,
             cycle
         );
-        let event = crate::arch::x86_64::xhci::Event {
+        let event = crate::arch::xhci_mechanism::Event {
             event_type: 32,
             completion_code: 1,
             slot: 1,

@@ -1,7 +1,7 @@
 //! Explicit eight-capture appliance driven by the sole controller and shared kernel.
 use super::capture_preparation::{PreparedNativeCapture, prepare};
 use super::*;
-use crate::arch::x86_64::usb::{
+use crate::arch::usb_xhci::{
     endpoint_read::window::EndpointReadWindowDma, endpoint_setup::ConfiguredInboundEndpoint,
 };
 use conduit_composite::AdmittedKernelCompositeHostRequest;

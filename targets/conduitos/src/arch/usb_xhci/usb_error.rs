@@ -1,6 +1,6 @@
 //! Machine-readable failures for bounded USB enumeration.
 
-use super::super::xhci::XhciError;
+use crate::arch::xhci_mechanism::XhciError;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum UsbError {

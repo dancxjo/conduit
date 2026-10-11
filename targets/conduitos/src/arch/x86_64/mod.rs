@@ -40,7 +40,7 @@ mod providers;
 mod ps2;
 mod reboot;
 mod serial;
-mod usb;
+pub(crate) use super::usb_xhci as usb;
 mod virtio_net;
 mod virtio_net_pci;
 mod xhci;

@@ -1,6 +1,6 @@
 //! Explicit proof-root issuance; observation never creates a grant.
 use super::*;
-pub(in crate::arch::x86_64::usb) fn issue(
+pub(in crate::arch::usb_xhci) fn issue(
     plan: &Plan,
 ) -> Result<
     (
@@ -10,34 +10,55 @@ pub(in crate::arch::x86_64::usb) fn issue(
     ),
     &'static str,
 > {
-    issue_bounded(plan, u32::from(planning::CONTROL_PROOF_TRANSFERS))
-}
-
-pub(in crate::arch::x86_64::usb) fn issue_bounded(
-    plan: &Plan,
-    maximum_operations: u32,
-) -> Result<
-    (
-        BaseCapabilityTable,
-        BaseCapabilityHandle,
-        BaseOperationClaim,
-    ),
-    &'static str,
-> {
-    if maximum_operations == 0 || maximum_operations > u32::from(planning::CONTROL_PROOF_TRANSFERS)
-    {
-        return Err("usb-control-proof-operation-bound");
-    }
     let fragment = &plan.fragments[0];
     let mut selected = fragment
         .placements
         .iter()
-        .filter(|gear| gear.implementation_id.as_str() == CONTROL_IMPLEMENTATION);
-    let gear = selected.next().ok_or("usb-control-proof-possession")?;
+        .filter(|gear| gear.implementation_id.as_str() == ENDPOINT_READ_IMPLEMENTATION);
+    let gear = selected
+        .next()
+        .ok_or("usb-endpoint-read-proof-possession")?;
     if selected.next().is_some() {
-        return Err("usb-control-proof-possession");
+        return Err("usb-endpoint-read-proof-possession");
     }
-    let base = gear.base.as_ref().ok_or("usb-control-proof-possession")?;
+    issue_selected(plan, &gear.placement_id, [71; 32])
+}
+
+/// Explicit appliance issuance for one exact selected endpoint call. Root
+/// supplies an independently keyed table for each retained owner; matching
+/// descriptions alone never produce possession. This remains proof-only.
+pub(in crate::arch::usb_xhci) fn issue_selected(
+    plan: &Plan,
+    placement: &PlacementId,
+    key: [u8; 32],
+) -> Result<
+    (
+        BaseCapabilityTable,
+        BaseCapabilityHandle,
+        BaseOperationClaim,
+    ),
+    &'static str,
+> {
+    if !verify_plan(plan) || plan.fragments.len() != 1 {
+        return Err("usb-endpoint-read-proof-possession");
+    }
+    let fragment = &plan.fragments[0];
+    let gear = fragment
+        .placements
+        .iter()
+        .find(|gear| &gear.placement_id == placement)
+        .ok_or("usb-endpoint-read-proof-possession")?;
+    if gear.implementation_id.as_str() != ENDPOINT_READ_IMPLEMENTATION
+        || gear.authority.len() != 1
+        || gear.resources.len() != 1
+        || gear.host_calls.len() != 1
+    {
+        return Err("usb-endpoint-read-proof-possession");
+    }
+    let base = gear
+        .base
+        .as_ref()
+        .ok_or("usb-endpoint-read-proof-possession")?;
     let grant = &gear.authority[0];
     let active = bind_active_play(&plan.plan_id, &fragment.host_id, &fragment.boot_id, 0);
     let scope = BaseCapabilityScope {
@@ -51,16 +72,16 @@ pub(in crate::arch::x86_64::usb) fn issue_bounded(
         authority_contract_id: grant.contract_id.clone(),
         capability_id: gear.capability_id.clone(),
         implementation_id: gear.implementation_id.clone(),
-        operation_contract_id: CONTROL_CALL.into(),
+        operation_contract_id: ENDPOINT_READ_CALL.into(),
         subject_kind: gear.kind_id.clone(),
         resource_pool_id: gear.resources[0].pool_id.clone(),
         resource_generation_id: ResourceGenerationId("conduitos.proof/usb-dma-generation@1".into()),
         envelope_id: "conduitos.proof/usb-dma-envelope@1".into(),
-        maximum_parameter_bytes: CONTROL_MAXIMUM_BYTES,
-        maximum_result_bytes: CONTROL_MAXIMUM_BYTES,
+        maximum_parameter_bytes: ENDPOINT_READ_MAXIMUM_BYTES,
+        maximum_result_bytes: ENDPOINT_READ_MAXIMUM_BYTES,
         maximum_work_units: 1,
         maximum_in_flight: 1,
-        maximum_operations,
+        maximum_operations: u32::from(planning::ENDPOINT_READ_PROOF_TRANSFERS),
     };
     let authority = BaseCapabilityAuthority {
         grant: AuthorityGrant {
@@ -78,11 +99,11 @@ pub(in crate::arch::x86_64::usb) fn issue_bounded(
         resource_generation_id: scope.resource_generation_id.clone(),
         operation_contract_id: scope.operation_contract_id.clone(),
         envelope_id: scope.envelope_id.clone(),
-        maximum_parameter_bytes: CONTROL_MAXIMUM_BYTES,
-        maximum_result_bytes: CONTROL_MAXIMUM_BYTES,
+        maximum_parameter_bytes: ENDPOINT_READ_MAXIMUM_BYTES,
+        maximum_result_bytes: ENDPOINT_READ_MAXIMUM_BYTES,
         maximum_work_units: 1,
         maximum_in_flight: 1,
-        maximum_operations,
+        maximum_operations: u32::from(planning::ENDPOINT_READ_PROOF_TRANSFERS),
     };
     let claim = BaseOperationClaim {
         host_id: scope.host_id.clone(),
@@ -97,7 +118,7 @@ pub(in crate::arch::x86_64::usb) fn issue_bounded(
         resource_pool_id: scope.resource_pool_id.clone(),
         resource_generation_id: scope.resource_generation_id.clone(),
         envelope_id: scope.envelope_id.clone(),
-        parameter_bytes: CONTROL_MAXIMUM_BYTES,
+        parameter_bytes: ENDPOINT_READ_MAXIMUM_BYTES,
         work_units: 1,
     };
     let mut table = BaseCapabilityTable::new(
@@ -105,12 +126,16 @@ pub(in crate::arch::x86_64::usb) fn issue_bounded(
         scope.boot_id.clone(),
         scope.base_instance_id.clone(),
         scope.base_provider_generation,
-        [71; 32],
+        key,
         1,
     )
-    .map_err(|_| "usb-control-proof-possession")?;
+    .map_err(|_| "usb-endpoint-read-proof-possession")?;
     let handle = table
         .issue(CapabilityIssueRequest { scope, authority })
-        .map_err(|_| "usb-control-proof-possession")?;
+        .map_err(|_| "usb-endpoint-read-proof-possession")?;
     Ok((table, handle, claim))
 }
+
+#[cfg(test)]
+#[path = "possession_tests.rs"]
+mod tests;

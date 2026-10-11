@@ -1,7 +1,7 @@
 //! Native eight-capture binding for the explicitly selected proof appliance.
 //! Actual configuration establishes readiness; the proof Root issues possession.
 use super::*;
-use crate::arch::x86_64::usb::{
+use crate::arch::usb_xhci::{
     endpoint_offer::ready_window_entry,
     endpoint_read::window::{
         EndpointReadWindow, EndpointReadWindowDma, EndpointReadWindowSelection,

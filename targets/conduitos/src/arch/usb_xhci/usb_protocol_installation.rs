@@ -8,7 +8,7 @@ use super::{
     native_host::{UsbNativeCallIndex, UsbNativeHost, UsbNativeHostRefusal},
 };
 use crate::{
-    arch::x86_64::xhci::XhciReady,
+    arch::xhci_mechanism::XhciReady,
     machine_membrane::selected_operation::SelectedOperationPlan,
     usb_base::{
         control_contract::ControlContract,

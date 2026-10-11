@@ -11,7 +11,7 @@ use core::sync::atomic::{Ordering, fence};
 
 use super::transfer::{ControlCompletion, setup_transfer_type};
 use super::{MAX_CONFIGURATION_BYTES, TRANSFER_TRBS, UsbDma, UsbError};
-use crate::arch::x86_64::xhci::XhciReady;
+use crate::arch::xhci_mechanism::XhciReady;
 
 pub(super) struct ControlRing {
     pub(super) physical: u64,
@@ -208,8 +208,9 @@ fn put_transfer(dma: *mut UsbDma, index: usize, trb: [u32; 4]) {
 }
 
 fn publish_control(dma: *mut UsbDma, index: usize, control: u32) {
-    // x86 coherent DMA: release plus ordered stores publish payload before C.
+    // Retained coherent DMA: publish payload before controller cycle ownership.
     fence(Ordering::Release);
+    crate::arch::xhci_mechanism::publish_dma();
     unsafe {
         write_volatile(
             core::ptr::addr_of_mut!((*dma).transfer_ring[index][3]),

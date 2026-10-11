@@ -30,7 +30,7 @@ mod tests {
 
     #[test]
     fn eight_capture_storage_fits_every_aligned_physical_base() {
-        use crate::arch::x86_64::usb::endpoint_read::window::validate_geometry;
+        use crate::arch::usb_xhci::endpoint_read::window::validate_geometry;
         let ring = core::mem::offset_of!(ProofDma, ring) as u64;
         let buffers = core::mem::offset_of!(ProofDma, buffers) as u64;
         let input = core::mem::offset_of!(ProofDma, input) as u64;

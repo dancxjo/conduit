@@ -6,8 +6,8 @@ use crate::usb_base::control_ring::ControlRingCursor;
 pub const USB_DEVICE_DMA_SLOTS: u8 = 3;
 
 #[repr(C, align(4096))]
-pub(in crate::arch::x86_64) struct UsbDma {
-    pub(in crate::arch::x86_64) device_context: [u8; 2048],
+pub(in crate::arch) struct UsbDma {
+    pub(in crate::arch) device_context: [u8; 2048],
     pub(super) input_context: [u8; 2112],
     pub(super) transfer_ring: [[u32; 4]; TRANSFER_TRBS],
     pub(super) descriptor: [u8; MAX_CONFIGURATION_BYTES],
@@ -62,9 +62,7 @@ pub(super) fn dma_pointer(slot: UsbDmaSlot) -> *mut UsbDma {
     }
 }
 
-pub(in crate::arch::x86_64) fn device_dma_pointer(
-    device: &UsbDevice,
-) -> Result<*mut UsbDma, UsbError> {
+pub(in crate::arch) fn device_dma_pointer(device: &UsbDevice) -> Result<*mut UsbDma, UsbError> {
     let dma = dma_pointer(UsbDmaSlot::from_index(device.dma_slot)?);
     if !unsafe { (&*dma).matches_device(device) } {
         return Err(UsbError::StaleDeviceInstance);
