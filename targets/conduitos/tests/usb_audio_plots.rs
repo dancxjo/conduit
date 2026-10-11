@@ -477,3 +477,57 @@ fn ordinary_protocol_source_prepares_setup_once_with_exact_small_feedback_event(
             .any(|gear| gear.kind_id.as_str() == "machine/usb/control")
     );
 }
+
+fn playback_package() -> conduitos::protocol_source::ProtocolSourcePackage {
+    use conduitos::protocol_source::{
+        ProtocolSourcePackage, ProtocolSpecializationRequest as S, ProtocolValueReference,
+    };
+    let audio = include_str!("../../../semantics/audio/types.conduit");
+    let pcm = &audio[audio.find("type PcmSampleRepresentation").unwrap()
+        ..audio.find("type AudioRenderDemand").unwrap()];
+    let usb = include_str!("../plots/usb/protocol.conduit");
+    let cadence = &usb
+        [usb.find("type UsbPcmCadence").unwrap()..usb.find("# A stale DMA completion").unwrap()];
+    let reference = |name: &str| ProtocolValueReference {
+        type_name: name.into(),
+        maximum_bytes: 4096,
+    };
+    ProtocolSourcePackage::compile(
+        [
+            include_str!("../plots/usb/audio-playback-back.conduit"),
+            pcm,
+            cadence,
+            include_str!("../plots/usb/audio-playback-types.conduit"),
+            include_str!("../plots/usb/audio-playback-policy.conduit"),
+        ]
+        .join("\n"),
+        &[
+            S::SeededUntil {
+                value: reference("UsbAudioPlaybackState"),
+            },
+            S::FeedbackZip {
+                left: reference("UsbAudioPlaybackState"),
+                right: reference("UsbAudioPlaybackEvent"),
+            },
+            S::Merge {
+                value: reference("UsbAudioPlaybackEvent"),
+            },
+        ],
+    )
+    .unwrap()
+}
+#[test]
+fn checked_playback_source_prepares_control_clock_batch_and_explicit_drain() {
+    use conduitos::protocol_source::PreparedProtocolSource;
+    let source = PreparedProtocolSource::prepare(playback_package()).unwrap();
+    let expanded = source.expand("usb-audio-playback").unwrap();
+    for expected in ["machine/usb/control", "machine/usb/isochronous-out"] {
+        assert!(
+            expanded
+                .expanded
+                .gears
+                .iter()
+                .any(|gear| gear.kind_id.as_str() == expected)
+        );
+    }
+}

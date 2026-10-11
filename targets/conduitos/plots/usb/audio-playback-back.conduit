@@ -1,0 +1,35 @@
+# Exactly one authored PCM block follows setup once, clock observation, batch,
+# and explicit drain. This first mechanic does not promise continuous refill.
+with machine/usb/control/request as UsbControlRequest
+with machine/usb/control/result as UsbControlResult
+with machine/usb/isochronous-out/request as UsbIsochronousOutRequest
+with machine/usb/isochronous-out/result as UsbIsochronousOutResult
+with flow/zip/feedback/paired as UsbAudioPlaybackPair
+
+plot usb-audio-play-advance (
+ pair: UsbAudioPlaybackPair...| >> state: UsbAudioPlaybackState...|
+) = ({ header: .0.header, segments: .0.segments, phase: (.1.native-stopped ? .0.phase : (.0.phase < 5 ? (.1.phase-kind == 0 && (.0.phase == 0 ? .1.descriptor : (.0.phase == 1 || .0.phase == 2 ? .1.zero-ack : (.0.phase == 3 ? .1.set-ack : .1.get-ack))) ? .0.phase + 1 : 7) : (.0.phase == 5 ? ((.1.phase-kind == 1 && .1.supported) ? 6 : 7) : 7))), first-frame: (.0.phase == 5 && (.1.phase-kind == 1 && .1.supported) ? .1.first-frame : .0.first-frame), status: (.1.native-stopped ? .1.status : (.0.phase < 5 ? (.1.status is unsupported-control ? unsupported-control(empty) : (.1.phase-kind == 0 && (.0.phase == 0 ? .1.descriptor : (.0.phase == 1 || .0.phase == 2 ? .1.zero-ack : (.0.phase == 3 ? .1.set-ack : .1.get-ack))) ? running(empty) : setup-rejected(empty))) : (.0.phase == 5 ? ((.1.phase-kind == 1 && .1.supported) ? running(empty) : unsupported-clock(empty)) : (.0.phase == 6 ? ((.1.phase-kind == 2 && .1.supported && .1.first-frame == .0.first-frame) ? completed(empty) : invalid-completion(empty)) : (.1.phase-kind == 3 ? .0.status : invalid-completion(empty))))), completed-packets: (.0.phase == 6 ? .1.completed-packets : .0.completed-packets), actual-bytes: (.0.phase == 6 ? .1.actual-bytes : .0.actual-bytes), terminal: (.1.native-stopped || .0.phase == 7) })
+plot usb-audio-play-report (
+ state: UsbAudioPlaybackState...| >> report: UsbAudioPlaybackReport...|
+) = ({ header: .header, first-frame: .first-frame, status: .status, completed-packets: .completed-packets, actual-bytes: .actual-bytes })
+plot usb-audio-playback (
+ >> pcm: UsbAudioAuthoredPcm...|
+ report: UsbAudioPlaybackReport...| >>
+) {
+ state: state/seeded/flow/until
+ route: usb-audio-play-route()
+ join: flow/zip/feedback
+ events: flow/merge/finite
+ control: machine/usb/control
+ iso: machine/usb/isochronous-out
+ pcm >> usb-audio-play-start() >> state.seed
+ state.current >> route
+ state.current >> usb-audio-play-active() >> select(UsbAudioPlaybackActive.running, unmatched=drop) >> join.left
+ route >> select(UsbAudioPlaybackRoute.control, unmatched=drop) >> usb-audio-play-control-request() >> control.request
+ route >> select(UsbAudioPlaybackRoute.iso, unmatched=drop) >> usb-audio-play-iso-request() >> iso.request
+ control.result >> usb-audio-play-control-event() >> events.left
+ iso.result >> usb-audio-play-iso-event() >> events.right
+ events.merged >> join.right
+ join.paired >> usb-audio-play-advance() >> state.next
+ route >> select(UsbAudioPlaybackRoute.stopped, unmatched=drop) >> usb-audio-play-report() >> report
+}

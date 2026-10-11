@@ -1,0 +1,64 @@
+# The caller authors these eight ordered48-frame PCM payload projections.
+# The header owns their original1536-byte extent; transport deadlines are later
+# computed by checked Source from an actual controller clock observation.
+type UsbAudioPcmSegment = {
+    wire: Bytes <= 256B
+}
+type UsbAudioAuthoredPcm = {
+    header: PcmFrameHeader
+    cadence: UsbPcmCadence
+    segments: sequence UsbAudioPcmSegment <= 8
+}
+type UsbAudioPlaybackStatus =
+    running
+    | completed
+    | unsupported-pcm
+    | setup-rejected
+    | stalled
+    | unsupported-control
+    | unsupported-clock
+    | invalid-completion
+    | short
+    | missed-service
+    | underrun
+    | provider-lost
+
+type UsbAudioPlaybackState = {
+    header: PcmFrameHeader
+    segments: sequence UsbAudioPcmSegment <= 8
+    phase: U64
+    first-frame: U64
+    status: UsbAudioPlaybackStatus
+    completed-packets: U64
+    actual-bytes: U64
+    terminal: Boolean
+}
+type UsbAudioPlaybackRoute =
+    control UsbAudioPlaybackState
+    | iso UsbAudioPlaybackState
+    | stopped UsbAudioPlaybackState
+
+type UsbAudioPlaybackActive =
+    running UsbAudioPlaybackState
+    | stopped
+
+type UsbAudioPlaybackEvent = {
+    phase-kind: U64
+    descriptor: Boolean
+    zero-ack: Boolean
+    set-ack: Boolean
+    get-ack: Boolean
+    supported: Boolean
+    first-frame: U64
+    status: UsbAudioPlaybackStatus
+    completed-packets: U64
+    actual-bytes: U64
+    native-stopped: Boolean
+}
+type UsbAudioPlaybackReport = {
+    header: PcmFrameHeader
+    first-frame: U64
+    status: UsbAudioPlaybackStatus
+    completed-packets: U64
+    actual-bytes: U64
+}
