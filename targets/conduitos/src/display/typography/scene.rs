@@ -1,6 +1,6 @@
 //! Graphical retained-scene rendering; rescue scanout rendering stays separate.
 
-use super::{TextRole, render_text};
+use super::{TextRole, render_text_scaled};
 use crate::display::{DisplayError, DisplayReceipt, RetainedPixelTarget};
 use conduit_presentation::{GraphicsCommand, GraphicsCommandKind, GraphicsScene};
 
@@ -11,17 +11,27 @@ pub fn render_scene(
     scene: &GraphicsScene,
     role: impl Fn(usize, &GraphicsCommand) -> TextRole,
 ) -> Result<DisplayReceipt, DisplayError> {
+    render_scene_scaled(target, scene, role, 100)
+}
+pub fn render_scene_scaled(
+    target: &mut impl RetainedPixelTarget,
+    scene: &GraphicsScene,
+    role: impl Fn(usize, &GraphicsCommand) -> TextRole,
+    text_scale_percent: u16,
+) -> Result<DisplayReceipt, DisplayError> {
+    super::TextScale::new(text_scale_percent)?;
     let format = target.format().validate()?;
     let mut receipt = DisplayReceipt::default();
     for (index, command) in scene.commands().iter().enumerate() {
         if command.kind == GraphicsCommandKind::Text {
-            let text = render_text(
+            let text = render_text_scaled(
                 target,
                 command.payload(),
                 role(index, command),
                 command.bounds,
                 command.clip,
                 super::super::paint(format, command.paint),
+                text_scale_percent,
             )?;
             receipt.pixels_written = receipt
                 .pixels_written
