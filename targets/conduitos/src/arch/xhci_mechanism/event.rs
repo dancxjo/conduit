@@ -37,8 +37,9 @@ pub(super) fn read_owned_event(
     if control & 1 != cycle {
         return None;
     }
-    // The native provider must establish coherent DMA and device load ordering
-    // (currently x86). Acquire also keeps payload loads after ownership.
+    // Hardware acquisition follows the observed cycle publication; the native
+    // provider separately guarantees coherent controller-addressable memory.
+    super::ordering::acquire_dma();
     fence(Ordering::Acquire);
     let low = read_word(0);
     let high = read_word(1);

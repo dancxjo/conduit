@@ -11,6 +11,8 @@ use core::{
 
 #[path = "xhci_mechanism/event.rs"]
 mod event;
+#[path = "xhci_mechanism/ordering.rs"]
+mod ordering;
 
 const COMMAND_TRBS: usize = 16;
 const EVENT_TRBS: usize = 16;
@@ -139,8 +141,10 @@ pub(crate) struct ControllerLocation {
 /// `mmio` must map the whole register aperture as device memory; the supplied
 /// mapping must identify coherent, contiguous controller-addressable DMA.
 /// Register writes must order prior DMA publication and event payload loads
-/// must follow controller ownership publication. The current x86 provider
+/// must follow controller ownership publication. The x86 provider
 /// establishes these laws through coherent RAM and x86 device/load ordering.
+/// The pinned AArch64 virt leaf uses coherent emulated RAM, Device-nGnRnE
+/// registers and full-system DMA publication/acquisition barriers.
 /// A new architecture must supply and prove its equivalent ordering/cache
 /// leaves before enabling this mechanism; CPU compilation is insufficient.
 pub(crate) unsafe fn initialize_mapped(
@@ -291,6 +295,7 @@ unsafe fn initialize_registers(mmio: usize, dma_physical: u64) -> Result<Registe
     for _ in 0..POLL_STEPS {
         let control = unsafe { read_volatile(core::ptr::addr_of!((*dma).event_ring[0][3])) };
         if control & 1 != 0 {
+            ordering::acquire_dma();
             let event_type = (control >> 10) & 0x3f;
             let completion =
                 unsafe { read_volatile(core::ptr::addr_of!((*dma).event_ring[0][2])) } >> 24;
@@ -454,10 +459,14 @@ unsafe fn read32(address: usize) -> u32 {
     unsafe { read_volatile(address as *const u32) }
 }
 unsafe fn write32(address: usize, value: u32) {
-    unsafe { write_volatile(address as *mut u32, value) }
+    ordering::publish_dma();
+    unsafe { write_volatile(address as *mut u32, value) };
+    ordering::complete_device_write();
 }
 unsafe fn write64(address: usize, value: u64) {
-    unsafe { write_volatile(address as *mut u64, value) }
+    ordering::publish_dma();
+    unsafe { write_volatile(address as *mut u64, value) };
+    ordering::complete_device_write();
 }
 
 #[cfg(test)]
