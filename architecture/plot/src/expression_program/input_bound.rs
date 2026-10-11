@@ -29,6 +29,36 @@ impl PortableExpressionProgram {
         }
     }
 
+    /// Filters emit unchanged bytes for Flow. Value filters wrap the payload
+    /// in an optional value and retain the structural output ceiling.
+    pub fn filter_semantic_laws(
+        &self,
+        temporal: conduit_core::PortTemporal,
+    ) -> Result<Vec<KindSemanticLaw>, conduit_core::StructuredInfoRefusal> {
+        let mut laws = self.semantic_laws()?;
+        if matches!(temporal, conduit_core::PortTemporal::Flow { .. }) {
+            if let Some(maximum) = self.input_maximum_bytes {
+                let contracts = laws
+                    .iter_mut()
+                    .find_map(|law| match law {
+                        KindSemanticLaw::ValueContracts(contracts) => Some(contracts),
+                        _ => None,
+                    })
+                    .expect("bounded input has one ValueContracts law");
+                contracts.push(FrontValueContract {
+                    location: FrontValueLocation::Output(conduit_core::port_id("output")),
+                    contract: CheckedValueContract::new(
+                        crate::expression_definition::expression_port_kind(&self.input_type)?,
+                        maximum,
+                        vec![],
+                    )
+                    .map_err(|_| conduit_core::StructuredInfoRefusal::MalformedCanonicalEncoding)?,
+                });
+            }
+        }
+        Ok(laws)
+    }
+
     pub(crate) fn validate_input_bound(&self) -> Result<(), PortableExpressionProgramRefusal> {
         validate_bound(self.input_maximum_bytes)
     }

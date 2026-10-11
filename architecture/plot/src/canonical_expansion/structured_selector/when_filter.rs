@@ -66,12 +66,17 @@ pub(super) fn expand_when_filter(
         )
     })?;
     checked.canonical_literals = canonical_literals;
+    checked.input_maximum_bytes = input_bound::checked_bound(source, source_plot, gears)?;
     let definition = crate::pure_filter_definition(&checked, temporal).map_err(|_| {
         diagnostic(
             source_span,
             "when predicate must return exactly Boolean and have a finite portable program",
         )
     })?;
+    let semantic_laws = crate::PortableExpressionProgram::from_checked(&checked)
+        .map_err(|_| diagnostic(source_span, "when predicate has no finite program"))?
+        .filter_semantic_laws(temporal)
+        .map_err(|_| diagnostic(source_span, "when predicate has invalid input bound"))?;
     let key = definition.kind_id.as_str().to_string();
     let count = anonymous_counts.entry(key.clone()).or_default();
     let name = format!("filter-{}-{count}", &hash_string(&key)[..12]);
@@ -101,7 +106,7 @@ pub(super) fn expand_when_filter(
         outputs: vec![output.clone()],
         semantic_contract: conduit_core::KindSemanticContract {
             configuration: definition.configuration.clone(),
-            laws: crate::pure_expression_semantic_laws(),
+            laws: semantic_laws,
         },
         terminal_transductions: Vec::new(),
         resource_ports: Vec::new(),

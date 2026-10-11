@@ -380,6 +380,7 @@ fn expand_expression(
             input_type
                 .value_kind()
                 .expect("Cord input has one exact semantic Kind"),
+            source,
             expected_output
                 .as_ref()
                 .and_then(crate::CheckedExpressionType::value_kind),

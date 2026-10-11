@@ -128,3 +128,82 @@ fn a_coarse_fore_ceiling_never_broadens_the_structural_type() {
         .evaluate(&invalid)
         .is_err());
 }
+
+#[test]
+fn semantic_call_arguments_keep_the_source_ceiling() {
+    use conduit_core::{
+        kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection,
+        PortTemporal,
+    };
+    let port = |name, direction| PortDescriptor {
+        port_id: port_id(name),
+        value_kind: kind_id("value/u64"),
+        direction,
+        temporal: PortTemporal::Value,
+        abnormal_kind: None,
+    };
+    let mut catalog = ProfileCatalog::new();
+    catalog
+        .insert_kind(Kind {
+            kind_id: kind_id("test/count"),
+            kind_contract_revision: KindIdentity::from("test/count@1"),
+            startup_parameters: vec![],
+            shorthand: Some((port_id("input"), port_id("output"))),
+            inputs: vec![port("input", PortDirection::Input)],
+            outputs: vec![port("output", PortDirection::Output)],
+            configuration: vec![],
+            semantic_laws: pure_expression_semantic_laws(),
+            limits: CapabilityLimits {
+                max_active_instances: 1,
+                max_queue_items: 1,
+                max_queue_bytes: 8,
+            },
+        })
+        .unwrap();
+    for (expression, expected) in [
+        ("test/count(bytes/length(.))", vec![2048]),
+        ("test/count(test/count(bytes/length(.)) + 1)", vec![8, 2048]),
+    ] {
+        let syntax = parse_syntax_document(&format!(
+            "plot call (\n wire: Bytes <= 2048B >> result: U64\n) = ({expression})\n"
+        ));
+        assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);
+        let checked = check_syntax_document(&syntax, &StartupCatalog::new()).unwrap();
+        let expanded = expand_canonical_plot_for_authoring(&checked, "call", &catalog)
+            .unwrap()
+            .expanded;
+        let mut bounds = expanded
+            .gears
+            .iter()
+            .filter(|gear| gear.kind_contract_revision.as_str() == PURE_EXPRESSION_REVISION)
+            .map(|argument| {
+                let ConfigurationValue::Text(encoded) = &argument
+                    .configuration
+                    .iter()
+                    .find(|entry| entry.key == "program")
+                    .unwrap()
+                    .value
+                else {
+                    panic!("program")
+                };
+                let program = PortableExpressionProgram::from_canonical_hex(encoded).unwrap();
+                let maximum = program.maximum_prepared_input_bytes().unwrap();
+                if let Some(bound) = program.input_maximum_bytes {
+                    assert_eq!(bound, maximum);
+                    assert_eq!(
+                        argument.semantic_contract.value_contracts()[0]
+                            .contract
+                            .maximum_bytes,
+                        maximum
+                    );
+                } else {
+                    assert_eq!(maximum, 8);
+                    assert!(argument.semantic_contract.value_contracts().is_empty());
+                }
+                maximum
+            })
+            .collect::<Vec<_>>();
+        bounds.sort();
+        assert_eq!(bounds, expected);
+    }
+}

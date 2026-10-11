@@ -41,7 +41,7 @@ pub fn pure_filter_contract(
     temporal: PortTemporal,
 ) -> Result<Kind, conduit_core::StructuredInfoRefusal> {
     let mut kind = contract(conduit_plot::portable_filter_definition(program, temporal)?);
-    kind.semantic_laws = program.semantic_laws()?;
+    kind.semantic_laws = program.filter_semantic_laws(temporal)?;
     Ok(kind)
 }
 
