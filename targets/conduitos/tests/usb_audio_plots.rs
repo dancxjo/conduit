@@ -566,3 +566,158 @@ fn playback_authored_pcm_canonical_envelope_measures_lawful_and_declared_maximum
     // This measures the original author input; it does not assert that the
     // separately prepared feedback pair or native retained resources fit it.
 }
+
+fn prepared_playback_program(entry: &str) -> PortableExpressionProgram {
+    let source =
+        conduitos::protocol_source::PreparedProtocolSource::prepare(playback_package()).unwrap();
+    let expanded = source.expand(entry).unwrap().expanded;
+    assert_eq!(expanded.gears.len(), 1);
+    let ConfigurationValue::Text(encoded) = &expanded.gears[0].configuration[0].value else {
+        panic!("pure checked playback program")
+    };
+    PortableExpressionProgram::from_canonical_hex(encoded).unwrap()
+}
+
+fn playback_envelope_value(
+    ty: &conduit_core::StructuredInfoType,
+    path: &str,
+    wire_length: usize,
+    phase: u64,
+    event_kind: u64,
+    event_status: &str,
+) -> conduit_core::StructuredInfoValue {
+    use conduit_core::{
+        StructuredFieldValue, StructuredInfoTypeShape as S, StructuredInfoValue as V,
+    };
+    match ty.shape() {
+        S::Record { fields, .. } => V::record(
+            ty.clone(),
+            fields
+                .iter()
+                .map(|field| {
+                    let next = format!("{path}/{}", field.name());
+                    let value = if field.name() == "header" {
+                        block_value(field.value_type(), &next, 0)
+                    } else {
+                        playback_envelope_value(
+                            field.value_type(),
+                            &next,
+                            wire_length,
+                            phase,
+                            event_kind,
+                            event_status,
+                        )
+                    };
+                    StructuredFieldValue::new(field.name(), value).unwrap()
+                })
+                .collect(),
+        )
+        .unwrap(),
+        S::Sequence {
+            element,
+            maximum_items,
+            ..
+        } => V::sequence(
+            ty.clone(),
+            (0..*maximum_items)
+                .map(|_| {
+                    playback_envelope_value(
+                        element,
+                        path,
+                        wire_length,
+                        phase,
+                        event_kind,
+                        event_status,
+                    )
+                })
+                .collect(),
+        )
+        .unwrap(),
+        S::Variant { cases, .. } => {
+            let tag = if path.starts_with("/1/") {
+                event_status
+            } else {
+                "unsupported-control"
+            };
+            let case = cases.iter().find(|case| case.tag() == tag).unwrap();
+            V::variant(
+                ty.clone(),
+                tag,
+                V::leaf(case.payload_type().clone(), vec![]).unwrap(),
+            )
+            .unwrap()
+        }
+        S::Leaf(kind) => {
+            let field = path.rsplit('/').next().unwrap();
+            let bytes = match kind.as_str() {
+                "value/bytes" => vec![0x73; wire_length],
+                "value/bool" => vec![u8::from(
+                    field != "terminal"
+                        && (field != "native-stopped"
+                            || event_kind == 3
+                            || event_status == "underrun"),
+                )],
+                "value/u64" => {
+                    let value = match field {
+                        "phase" => phase,
+                        "phase-kind" => event_kind,
+                        "first-frame" => 2047,
+                        "completed-packets" => 8,
+                        "actual-bytes" => 1536,
+                        other => panic!("unaccounted playback field {other}"),
+                    };
+                    value.to_le_bytes().to_vec()
+                }
+                other => panic!("unaccounted playback kind {other}"),
+            };
+            V::leaf(ty.clone(), bytes).unwrap()
+        }
+        other => panic!("unaccounted playback shape {other:?}"),
+    }
+}
+
+#[test]
+fn playback_retained_feedback_output_and_drain_canonical_envelopes_are_bounded() {
+    let advance = prepared_playback_program("usb-audio-play-advance");
+    let report = prepared_playback_program("usb-audio-play-report");
+    let request = prepared_playback_program("usb-audio-play-iso-request");
+    let mut advance_evaluator = PreparedPortableExpressionEvaluator::new(&advance).unwrap();
+    let mut report_evaluator = PreparedPortableExpressionEvaluator::new(&report).unwrap();
+    let mut request_evaluator = PreparedPortableExpressionEvaluator::new(&request).unwrap();
+    for wire_length in [192, 256] {
+        for (phase, kind, status) in [
+            (5, 1, "running"),
+            (6, 2, "completed"),
+            (6, 4, "underrun"),
+            (7, 3, "unsupported-control"),
+        ] {
+            let input =
+                playback_envelope_value(&advance.input_type, "", wire_length, phase, kind, status)
+                    .canonical_bytes()
+                    .unwrap();
+            println!(
+                "playback feedback wire={wire_length} phase={phase} event={status} canonical={}",
+                input.len()
+            );
+            assert!(
+                input.len() <= 4096,
+                "feedback requires a reviewed separate envelope; original PCM is retained"
+            );
+            let output = advance_evaluator.evaluate(&input).unwrap().to_vec();
+            println!("playback retained state canonical={}", output.len());
+            assert!(output.len() <= 4096);
+            validate_canonical_structured_value(&output).unwrap();
+            let report = report_evaluator.evaluate(&output).unwrap();
+            println!("playback report canonical={}", report.len());
+            assert!(report.len() <= 4096);
+            let drain_state =
+                playback_envelope_value(&request.input_type, "", wire_length, 7, 3, status)
+                    .canonical_bytes()
+                    .unwrap();
+            let drain = request_evaluator.evaluate(&drain_state).unwrap();
+            assert!(drain.len() <= 4096);
+            let decoded = validate_canonical_structured_value(drain).unwrap();
+            assert!(decoded.variant_payload("drain").unwrap().is_some());
+        }
+    }
+}
