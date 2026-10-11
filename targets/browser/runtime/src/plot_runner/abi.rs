@@ -469,6 +469,9 @@ fn write_output_bytes(encoded: &[u8]) -> Result<(), ()> {
 }
 
 fn clear_output() {
+    // Initialize the fixed arena before any entry point can prepare or drive a
+    // Play, including a fresh caller that has not queried the output pointer.
+    OUTPUT.with(|output| output.borrow_mut()[0] = 0);
     OUTPUT_LEN.with(|length| *length.borrow_mut() = 0);
 }
 
