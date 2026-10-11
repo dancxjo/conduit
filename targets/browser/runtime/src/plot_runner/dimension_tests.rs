@@ -31,3 +31,25 @@ fn browser_dimension_introspection_preserves_the_triad_across_record_ports() {
         assert_eq!(session.scheduler.values().allocation_capacities(), capacity);
     }
 }
+
+#[test]
+fn browser_dimension_advertisement_preserves_the_codec_queue_bound() {
+    let host = crate::installed_browser::factory::advertisement(
+        conduit_core::HostId::from("dimension-host"),
+        conduit_core::BootId::from("dimension-boot"),
+    );
+    for kind in [
+        conduit_plot::dimension_operation::UNIT_KIND,
+        conduit_plot::dimension_operation::QUANTITY_KIND,
+    ] {
+        let offer = host
+            .capabilities
+            .iter()
+            .find(|offer| offer.kind_id.as_str() == kind)
+            .unwrap();
+        assert_eq!(
+            offer.limits.max_queue_bytes,
+            conduit_core::DIMENSION_ENCODED_LEN as u32
+        );
+    }
+}

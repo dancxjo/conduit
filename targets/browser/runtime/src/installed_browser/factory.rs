@@ -361,6 +361,9 @@ pub(crate) fn advertisement_for_machinery(
                     offer.kind_id.as_str(),
                 )
                 .unwrap_or(match entry.implementation_id {
+                    "browser/unit-dimension@1" | "browser/quantity-dimension@1" => {
+                        conduit_core::DIMENSION_ENCODED_LEN as u32
+                    }
                     "browser/bounded-stroke-capture@1" => {
                         super::stroke_capture::MAXIMUM_PATH_BYTES as u32
                     }

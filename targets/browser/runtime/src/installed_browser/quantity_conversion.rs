@@ -173,7 +173,18 @@ fn prepare(placement: &PlannedGear, values: &mut HostedValueStore) -> Result<Bro
         || !placement.pool_references.is_empty()
         || !placement.terminal_transductions.is_empty()
     {
-        return Err("quantity operation differs from its exact browser offer".into());
+        return Err(format!(
+            "quantity operation differs from its exact browser offer: capability={} limits={} semantics={} resources={} authority={} base={} characteristics={} pools={} transductions={}",
+            placement.capability_id != expected.capability_id,
+            placement.limits != expected.limits,
+            placement.semantic_contract != contract.semantic_contract(),
+            !placement.resources.is_empty(),
+            !placement.authority.is_empty(),
+            placement.base.is_some(),
+            !placement.realization_characteristics.is_empty(),
+            !placement.pool_references.is_empty(),
+            !placement.terminal_transductions.is_empty(),
+        ));
     }
     if placement.configuration.len() != contract.configuration.len() {
         return Err("quantity configuration differs".into());
