@@ -1,9 +1,11 @@
 //! Typed, bounded preparation of resource-cost evidence outside Play.
 //! These primitives do not themselves select a realization or certify a forecast.
 mod duration;
+mod forecast;
 mod freshness;
 mod source;
 pub use duration::CostDuration;
+pub use forecast::{CostDurationRange, CostForecastStages, FulfillmentCostForecast};
 pub use freshness::CostObservationWindow;
 pub use source::{
     CostCalibrationRevision, CostEvidenceSource, CostScopeChange, MAXIMUM_COST_ID_BYTES,
@@ -14,6 +16,8 @@ pub enum CostEvidenceRefusal {
     Numeric(conduit_core::ExactNumericRefusal),
     Physical(conduit_core::RationalQuantityRefusal),
     NegativeDuration,
+    InvertedDurationRange,
+    MissingForecastStage,
     InvalidIdentity,
     UnadvertisedSubject,
     Scope(CostScopeChange),
