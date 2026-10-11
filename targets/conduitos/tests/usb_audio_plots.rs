@@ -1,4 +1,5 @@
-//! Checked class policy tests, distinct from external-device/native evidence.
+#[path = "../../../architecture/plot/tests/prepared_structured_payload/allocation.rs"]
+mod allocation;
 use conduit_core::{ConfigurationValue, validate_canonical_structured_value};
 use conduit_plot::{
     PortableExpressionProgram, PreparedPortableExpressionEvaluator, ProfileCatalog, StartupCatalog,
@@ -42,7 +43,8 @@ fn every_audio_policy_plot_checks_and_expands() {
     assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);
     let checked = check_syntax_document(&syntax, &StartupCatalog::new()).unwrap();
     for plot in &checked.plots {
-        expand_canonical_plot_for_authoring(&checked, &plot.name, &ProfileCatalog::new()).unwrap_or_else(|error| panic!("{}: {error:?}", plot.name));
+        expand_canonical_plot_for_authoring(&checked, &plot.name, &ProfileCatalog::new())
+            .unwrap_or_else(|error| panic!("{}: {error:?}", plot.name));
     }
 }
 #[test]
@@ -83,4 +85,128 @@ fn class_control_words_are_exact_usb_wire_not_native_policy() {
             count
         );
     }
+}
+
+fn completed(
+    program: &PortableExpressionProgram,
+    bytes: &[u8],
+    transferred: u16,
+    short: bool,
+) -> Vec<u8> {
+    use conduit_core::{
+        StructuredFieldValue, StructuredInfoTypeShape as Shape, StructuredInfoValue as Value,
+    };
+    let Shape::Variant { cases, .. } = program.input_type.shape() else {
+        panic!("completion variant")
+    };
+    let payload = cases
+        .iter()
+        .find(|case| case.tag() == "completed")
+        .unwrap()
+        .payload_type();
+    let Shape::Record { fields, .. } = payload.shape() else {
+        panic!("completed record")
+    };
+    let values = fields
+        .iter()
+        .map(|field| {
+            let value = match field.name() {
+                "transferred" => Value::leaf(
+                    field.value_type().clone(),
+                    transferred.to_le_bytes().to_vec(),
+                )
+                .unwrap(),
+                "short" => Value::leaf(field.value_type().clone(), vec![u8::from(short)]).unwrap(),
+                "input" => {
+                    let Shape::Sequence { element, .. } = field.value_type().shape() else {
+                        panic!("bytes sequence")
+                    };
+                    Value::sequence(
+                        field.value_type().clone(),
+                        bytes
+                            .iter()
+                            .map(|byte| Value::leaf(element.clone(), vec![*byte]).unwrap())
+                            .collect(),
+                    )
+                    .unwrap()
+                }
+                _ => panic!("unknown completion field"),
+            };
+            StructuredFieldValue::new(field.name(), value).unwrap()
+        })
+        .collect();
+    let payload = Value::record(payload.clone(), values).unwrap();
+    Value::variant(program.input_type.clone(), "completed", payload)
+        .unwrap()
+        .canonical_bytes()
+        .unwrap()
+}
+#[test]
+fn class_rate_negotiation_refuses_rounding_short_and_extent_lies() {
+    let p = program("usb-audio-get-rate-ack");
+    let mut evaluator = PreparedPortableExpressionEvaluator::new(&p).unwrap();
+    for (bytes, transferred, short, accepted) in [
+        (&[128, 187, 0][..], 3, false, true),
+        (&[68, 172, 0][..], 3, false, false),
+        (&[128, 187][..], 2, true, false),
+        (&[128, 187, 0][..], 3, true, false),
+        (&[128, 187, 0][..], 2, false, false),
+    ] {
+        assert_eq!(
+            evaluator
+                .evaluate(&completed(&p, bytes, transferred, short))
+                .unwrap(),
+            [u8::from(accepted)]
+        );
+    }
+}
+#[test]
+fn descriptor_policy_rejects_changed_format_rate_alt_and_endpoint() {
+    // Exact external device fixture descriptor; this is a synthetic policy test.
+    let descriptor = bytes_from_hex(include_str!("../plots/usb/proof/audio/configuration.hex"));
+    let p = program("usb-audio-profile-supported");
+    let mut evaluator = PreparedPortableExpressionEvaluator::new(&p).unwrap();
+    assert_eq!(
+        evaluator
+            .evaluate(&completed(&p, &descriptor, 100, false))
+            .unwrap(),
+        [1]
+    );
+    for index in [4, 5, 12, 59, 62, 77, 78, 79, 81, 86, 87, 88, 90, 96] {
+        let mut changed = descriptor.clone();
+        changed[index] ^= 1;
+        assert_eq!(
+            evaluator
+                .evaluate(&completed(&p, &changed, 100, false))
+                .unwrap(),
+            [0],
+            "descriptor byte{index}"
+        );
+    }
+    assert_eq!(
+        evaluator
+            .evaluate(&completed(&p, &descriptor[..99], 99, true))
+            .unwrap(),
+        [0]
+    );
+}
+fn bytes_from_hex(text: &str) -> Vec<u8> {
+    text.split_whitespace()
+        .map(|byte| u8::from_str_radix(byte, 16).unwrap())
+        .collect()
+}
+
+#[test]
+fn repeated_checked_rate_observation_allocates_nothing() {
+    let p = program("usb-audio-get-rate-ack");
+    let mut evaluator = PreparedPortableExpressionEvaluator::new(&p).unwrap();
+    let input = completed(&p, &[128, 187, 0], 3, false);
+    assert_eq!(
+        allocation::allocations(|| {
+            for _ in 0..1024 {
+                assert_eq!(evaluator.evaluate(&input).unwrap(), [1]);
+            }
+        }),
+        0
+    );
 }

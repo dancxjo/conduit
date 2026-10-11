@@ -47,3 +47,13 @@ selected topology, exact negotiated format, actual native batch outcomes and
 original acknowledged stop/retired possessions. Underrun or a scheduling gap
 refuses the continuous-reuse acceptance check; this does not erase its evidence.
 No receipt is supplied by this candidate, since no guest Audio run occurred.
+
+The factored batch policy is `audio-batch-back.conduit`:24 small checked truths
+cover8 exact PCM blocks,8 byte/frame correspondences,7 adjacent clock/sample/
+USB-frame continuities and the transport shape.23 finite Boolean zip/and gears
+compose them. `audio-negotiation-back.conduit` is the ordinary setup-once control
+route for the exact descriptor, configuration, alternate, SET_CUR and GET_CUR.
+Both composition candidates still need exact generic pair/catalog preparation
+and ordinary kernel tests; passing the small pure policies does not prove these
+routes installed. The singlepacket clock projection is checked. Extending it
+through a sequence requires the separate conservative byte-contract proof fix.

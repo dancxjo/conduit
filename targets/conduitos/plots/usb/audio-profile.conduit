@@ -50,10 +50,106 @@ plot usb-audio-terminal (
 
 # One finite native batch; this projection never claims continuous playback.
 # Header continuity and explicit controller-frame continuity must both hold.
-plot usb-audio-eight-packet-supported (
+# Large policy is composed from bounded singlepacket and adjacentpair gears,
+# rather than one pure expression that exceeds canonical program node bounds.
+plot usb-audio-eight-packet-shape-supported (
     pcm: UsbAudioPcmBatch...| >> supported: Boolean...|
-) = (sequence/length(.packets) != 8 || !(.transfer is batch) ? false : (sequence/length(.transfer.batch.packets) != 8 || sequence/at(.packets, 0).header.start-frame > 18446744073709551231 ? false : ((((((((sequence/at(.packets, 0).header.representation is signed16-little-endian && sequence/at(.packets, 0).header.sample-rate-hz == 48000) && (sequence/at(.packets, 0).header.layout is stereo-left-right && sequence/at(.packets, 0).header.frame-count == 48)) && ((sequence/at(.packets, 0).header.payload-bytes == 192 && bytes/length(sequence/at(.packets, 0).wire) == 192) && (!sequence/at(.packets, 0).header.discontinuity && sequence/at(.packets, 0).cadence.sample_rate == 48000))) && (((sequence/at(.packets, 0).cadence.channels == 2 && sequence/at(.packets, 0).cadence.sample_bytes == 2) && (sequence/at(.packets, 0).cadence.phase == (sequence/at(.packets, 0).header.start-frame / 48) % 1000 && sequence/at(.transfer.batch.packets, 0).frame == sequence/at(.packets, 0).frame)) && ((sequence/at(.transfer.batch.packets, 0).wire == sequence/at(.packets, 0).wire && sequence/at(.packets, 1).header.representation is signed16-little-endian) && (sequence/at(.packets, 1).header.sample-rate-hz == 48000 && sequence/at(.packets, 1).header.layout is stereo-left-right)))) && ((((sequence/at(.packets, 1).header.frame-count == 48 && sequence/at(.packets, 1).header.payload-bytes == 192) && (bytes/length(sequence/at(.packets, 1).wire) == 192 && !sequence/at(.packets, 1).header.discontinuity)) && ((sequence/at(.packets, 1).cadence.sample_rate == 48000 && sequence/at(.packets, 1).cadence.channels == 2) && (sequence/at(.packets, 1).cadence.sample_bytes == 2 && sequence/at(.packets, 1).cadence.phase == (sequence/at(.packets, 1).header.start-frame / 48) % 1000))) && (((sequence/at(.transfer.batch.packets, 1).frame == sequence/at(.packets, 1).frame && sequence/at(.transfer.batch.packets, 1).wire == sequence/at(.packets, 1).wire) && (sequence/at(.packets, 1).header.clock-id == sequence/at(.packets, 0).header.clock-id && sequence/at(.packets, 1).header.start-frame == sequence/at(.packets, 0).header.start-frame + 48)) && ((sequence/at(.packets, 1).frame == (sequence/at(.packets, 0).frame + 1) % 2048 && sequence/at(.packets, 2).header.representation is signed16-little-endian) && (sequence/at(.packets, 2).header.sample-rate-hz == 48000 && sequence/at(.packets, 2).header.layout is stereo-left-right))))) && (((((sequence/at(.packets, 2).header.frame-count == 48 && sequence/at(.packets, 2).header.payload-bytes == 192) && (bytes/length(sequence/at(.packets, 2).wire) == 192 && !sequence/at(.packets, 2).header.discontinuity)) && ((sequence/at(.packets, 2).cadence.sample_rate == 48000 && sequence/at(.packets, 2).cadence.channels == 2) && (sequence/at(.packets, 2).cadence.sample_bytes == 2 && sequence/at(.packets, 2).cadence.phase == (sequence/at(.packets, 2).header.start-frame / 48) % 1000))) && (((sequence/at(.transfer.batch.packets, 2).frame == sequence/at(.packets, 2).frame && sequence/at(.transfer.batch.packets, 2).wire == sequence/at(.packets, 2).wire) && (sequence/at(.packets, 2).header.clock-id == sequence/at(.packets, 0).header.clock-id && sequence/at(.packets, 2).header.start-frame == sequence/at(.packets, 0).header.start-frame + 96)) && ((sequence/at(.packets, 2).frame == (sequence/at(.packets, 0).frame + 2) % 2048 && sequence/at(.packets, 3).header.representation is signed16-little-endian) && (sequence/at(.packets, 3).header.sample-rate-hz == 48000 && sequence/at(.packets, 3).header.layout is stereo-left-right)))) && ((((sequence/at(.packets, 3).header.frame-count == 48 && sequence/at(.packets, 3).header.payload-bytes == 192) && (bytes/length(sequence/at(.packets, 3).wire) == 192 && !sequence/at(.packets, 3).header.discontinuity)) && ((sequence/at(.packets, 3).cadence.sample_rate == 48000 && sequence/at(.packets, 3).cadence.channels == 2) && (sequence/at(.packets, 3).cadence.sample_bytes == 2 && sequence/at(.packets, 3).cadence.phase == (sequence/at(.packets, 3).header.start-frame / 48) % 1000))) && (((sequence/at(.transfer.batch.packets, 3).frame == sequence/at(.packets, 3).frame && sequence/at(.transfer.batch.packets, 3).wire == sequence/at(.packets, 3).wire) && (sequence/at(.packets, 3).header.clock-id == sequence/at(.packets, 0).header.clock-id && sequence/at(.packets, 3).header.start-frame == sequence/at(.packets, 0).header.start-frame + 144)) && ((sequence/at(.packets, 3).frame == (sequence/at(.packets, 0).frame + 3) % 2048 && sequence/at(.packets, 4).header.representation is signed16-little-endian) && (sequence/at(.packets, 4).header.sample-rate-hz == 48000 && sequence/at(.packets, 4).header.layout is stereo-left-right)))))) && ((((((sequence/at(.packets, 4).header.frame-count == 48 && sequence/at(.packets, 4).header.payload-bytes == 192) && (bytes/length(sequence/at(.packets, 4).wire) == 192 && !sequence/at(.packets, 4).header.discontinuity)) && ((sequence/at(.packets, 4).cadence.sample_rate == 48000 && sequence/at(.packets, 4).cadence.channels == 2) && (sequence/at(.packets, 4).cadence.sample_bytes == 2 && sequence/at(.packets, 4).cadence.phase == (sequence/at(.packets, 4).header.start-frame / 48) % 1000))) && (((sequence/at(.transfer.batch.packets, 4).frame == sequence/at(.packets, 4).frame && sequence/at(.transfer.batch.packets, 4).wire == sequence/at(.packets, 4).wire) && (sequence/at(.packets, 4).header.clock-id == sequence/at(.packets, 0).header.clock-id && sequence/at(.packets, 4).header.start-frame == sequence/at(.packets, 0).header.start-frame + 192)) && ((sequence/at(.packets, 4).frame == (sequence/at(.packets, 0).frame + 4) % 2048 && sequence/at(.packets, 5).header.representation is signed16-little-endian) && (sequence/at(.packets, 5).header.sample-rate-hz == 48000 && sequence/at(.packets, 5).header.layout is stereo-left-right)))) && ((((sequence/at(.packets, 5).header.frame-count == 48 && sequence/at(.packets, 5).header.payload-bytes == 192) && (bytes/length(sequence/at(.packets, 5).wire) == 192 && !sequence/at(.packets, 5).header.discontinuity)) && ((sequence/at(.packets, 5).cadence.sample_rate == 48000 && sequence/at(.packets, 5).cadence.channels == 2) && (sequence/at(.packets, 5).cadence.sample_bytes == 2 && sequence/at(.packets, 5).cadence.phase == (sequence/at(.packets, 5).header.start-frame / 48) % 1000))) && (((sequence/at(.transfer.batch.packets, 5).frame == sequence/at(.packets, 5).frame && sequence/at(.transfer.batch.packets, 5).wire == sequence/at(.packets, 5).wire) && (sequence/at(.packets, 5).header.clock-id == sequence/at(.packets, 0).header.clock-id && sequence/at(.packets, 5).header.start-frame == sequence/at(.packets, 0).header.start-frame + 240)) && ((sequence/at(.packets, 5).frame == (sequence/at(.packets, 0).frame + 5) % 2048 && sequence/at(.packets, 6).header.representation is signed16-little-endian) && (sequence/at(.packets, 6).header.sample-rate-hz == 48000 && sequence/at(.packets, 6).header.layout is stereo-left-right))))) && (((((sequence/at(.packets, 6).header.frame-count == 48 && sequence/at(.packets, 6).header.payload-bytes == 192) && (bytes/length(sequence/at(.packets, 6).wire) == 192 && !sequence/at(.packets, 6).header.discontinuity)) && ((sequence/at(.packets, 6).cadence.sample_rate == 48000 && sequence/at(.packets, 6).cadence.channels == 2) && (sequence/at(.packets, 6).cadence.sample_bytes == 2 && sequence/at(.packets, 6).cadence.phase == (sequence/at(.packets, 6).header.start-frame / 48) % 1000))) && (((sequence/at(.transfer.batch.packets, 6).frame == sequence/at(.packets, 6).frame && sequence/at(.transfer.batch.packets, 6).wire == sequence/at(.packets, 6).wire) && (sequence/at(.packets, 6).header.clock-id == sequence/at(.packets, 0).header.clock-id && sequence/at(.packets, 6).header.start-frame == sequence/at(.packets, 0).header.start-frame + 288)) && ((sequence/at(.packets, 6).frame == (sequence/at(.packets, 0).frame + 6) % 2048 && sequence/at(.packets, 7).header.representation is signed16-little-endian) && (sequence/at(.packets, 7).header.sample-rate-hz == 48000 && sequence/at(.packets, 7).header.layout is stereo-left-right)))) && ((((sequence/at(.packets, 7).header.frame-count == 48 && sequence/at(.packets, 7).header.payload-bytes == 192) && (bytes/length(sequence/at(.packets, 7).wire) == 192 && !sequence/at(.packets, 7).header.discontinuity)) && ((sequence/at(.packets, 7).cadence.sample_rate == 48000 && sequence/at(.packets, 7).cadence.channels == 2) && (sequence/at(.packets, 7).cadence.sample_bytes == 2 && sequence/at(.packets, 7).cadence.phase == (sequence/at(.packets, 7).header.start-frame / 48) % 1000))) && (((sequence/at(.transfer.batch.packets, 7).frame == sequence/at(.packets, 7).frame && sequence/at(.transfer.batch.packets, 7).wire == sequence/at(.packets, 7).wire) && (sequence/at(.packets, 7).header.clock-id == sequence/at(.packets, 0).header.clock-id && sequence/at(.packets, 7).header.start-frame == sequence/at(.packets, 0).header.start-frame + 336)) && sequence/at(.packets, 7).frame == (sequence/at(.packets, 0).frame + 7) % 2048))))) ? true : false)))
+) = (!(.transfer is batch) ? false : sequence/length(.transfer.batch.packets) == 8)
 
 plot usb-audio-eight-packet-request (
     pcm: UsbAudioPcmBatch...| >> request: UsbIsochronousOutRequest...|
 ) = (.transfer)
+
+plot usb-audio-packet-supported (
+    packet: UsbAudioPcmPacket...| >> supported: Boolean...|
+) = (.header.representation is signed16-little-endian && .header.sample-rate-hz == 48000 && .header.layout is stereo-left-right && .header.frame-count == 48 && .header.payload-bytes == 192 && bytes/length(.wire) == 192 && !.header.discontinuity && .cadence.sample_rate == 48000 && .cadence.channels == 2 && .cadence.sample_bytes == 2 && .cadence.phase == (.header.start-frame / 48) % 1000)
+plot usb-audio-adjacent-pcm-supported (
+    pair: UsbAudioPcmPair...| >> supported: Boolean...|
+) = (.previous.header.start-frame > 18446744073709551567 ? false : (.next.header.clock-id == .previous.header.clock-id && .next.header.start-frame == .previous.header.start-frame + 48 && .next.frame == (.previous.frame + 1) % 2048))
+
+plot usb-audio-packet-0 (
+    pcm: UsbAudioPcmBatch...| >> packet: UsbAudioPcmPacket...|
+) = (sequence/at(.packets, 0))
+plot usb-audio-wire-0-supported (
+    pcm: UsbAudioPcmBatch...| >> supported: Boolean...|
+) = (!(.transfer is batch) ? false : (sequence/length(.transfer.batch.packets) != 8 ? false : (sequence/at(.transfer.batch.packets, 0).frame == sequence/at(.packets, 0).frame && sequence/at(.transfer.batch.packets, 0).wire == sequence/at(.packets, 0).wire)))
+
+plot usb-audio-packet-1 (
+    pcm: UsbAudioPcmBatch...| >> packet: UsbAudioPcmPacket...|
+) = (sequence/at(.packets, 1))
+plot usb-audio-wire-1-supported (
+    pcm: UsbAudioPcmBatch...| >> supported: Boolean...|
+) = (!(.transfer is batch) ? false : (sequence/length(.transfer.batch.packets) != 8 ? false : (sequence/at(.transfer.batch.packets, 1).frame == sequence/at(.packets, 1).frame && sequence/at(.transfer.batch.packets, 1).wire == sequence/at(.packets, 1).wire)))
+
+plot usb-audio-packet-2 (
+    pcm: UsbAudioPcmBatch...| >> packet: UsbAudioPcmPacket...|
+) = (sequence/at(.packets, 2))
+plot usb-audio-wire-2-supported (
+    pcm: UsbAudioPcmBatch...| >> supported: Boolean...|
+) = (!(.transfer is batch) ? false : (sequence/length(.transfer.batch.packets) != 8 ? false : (sequence/at(.transfer.batch.packets, 2).frame == sequence/at(.packets, 2).frame && sequence/at(.transfer.batch.packets, 2).wire == sequence/at(.packets, 2).wire)))
+
+plot usb-audio-packet-3 (
+    pcm: UsbAudioPcmBatch...| >> packet: UsbAudioPcmPacket...|
+) = (sequence/at(.packets, 3))
+plot usb-audio-wire-3-supported (
+    pcm: UsbAudioPcmBatch...| >> supported: Boolean...|
+) = (!(.transfer is batch) ? false : (sequence/length(.transfer.batch.packets) != 8 ? false : (sequence/at(.transfer.batch.packets, 3).frame == sequence/at(.packets, 3).frame && sequence/at(.transfer.batch.packets, 3).wire == sequence/at(.packets, 3).wire)))
+
+plot usb-audio-packet-4 (
+    pcm: UsbAudioPcmBatch...| >> packet: UsbAudioPcmPacket...|
+) = (sequence/at(.packets, 4))
+plot usb-audio-wire-4-supported (
+    pcm: UsbAudioPcmBatch...| >> supported: Boolean...|
+) = (!(.transfer is batch) ? false : (sequence/length(.transfer.batch.packets) != 8 ? false : (sequence/at(.transfer.batch.packets, 4).frame == sequence/at(.packets, 4).frame && sequence/at(.transfer.batch.packets, 4).wire == sequence/at(.packets, 4).wire)))
+
+plot usb-audio-packet-5 (
+    pcm: UsbAudioPcmBatch...| >> packet: UsbAudioPcmPacket...|
+) = (sequence/at(.packets, 5))
+plot usb-audio-wire-5-supported (
+    pcm: UsbAudioPcmBatch...| >> supported: Boolean...|
+) = (!(.transfer is batch) ? false : (sequence/length(.transfer.batch.packets) != 8 ? false : (sequence/at(.transfer.batch.packets, 5).frame == sequence/at(.packets, 5).frame && sequence/at(.transfer.batch.packets, 5).wire == sequence/at(.packets, 5).wire)))
+
+plot usb-audio-packet-6 (
+    pcm: UsbAudioPcmBatch...| >> packet: UsbAudioPcmPacket...|
+) = (sequence/at(.packets, 6))
+plot usb-audio-wire-6-supported (
+    pcm: UsbAudioPcmBatch...| >> supported: Boolean...|
+) = (!(.transfer is batch) ? false : (sequence/length(.transfer.batch.packets) != 8 ? false : (sequence/at(.transfer.batch.packets, 6).frame == sequence/at(.packets, 6).frame && sequence/at(.transfer.batch.packets, 6).wire == sequence/at(.packets, 6).wire)))
+
+plot usb-audio-packet-7 (
+    pcm: UsbAudioPcmBatch...| >> packet: UsbAudioPcmPacket...|
+) = (sequence/at(.packets, 7))
+plot usb-audio-wire-7-supported (
+    pcm: UsbAudioPcmBatch...| >> supported: Boolean...|
+) = (!(.transfer is batch) ? false : (sequence/length(.transfer.batch.packets) != 8 ? false : (sequence/at(.transfer.batch.packets, 7).frame == sequence/at(.packets, 7).frame && sequence/at(.transfer.batch.packets, 7).wire == sequence/at(.packets, 7).wire)))
+plot usb-audio-adjacent-0-supported (
+    pcm: UsbAudioPcmBatch...| >> supported: Boolean...|
+) = (sequence/at(.packets, 0).header.start-frame > 18446744073709551567 ? false : (sequence/at(.packets, 1).header.clock-id == sequence/at(.packets, 0).header.clock-id && sequence/at(.packets, 1).header.start-frame == sequence/at(.packets, 0).header.start-frame + 48 && sequence/at(.packets, 1).frame == (sequence/at(.packets, 0).frame + 1) % 2048))
+plot usb-audio-adjacent-1-supported (
+    pcm: UsbAudioPcmBatch...| >> supported: Boolean...|
+) = (sequence/at(.packets, 1).header.start-frame > 18446744073709551567 ? false : (sequence/at(.packets, 2).header.clock-id == sequence/at(.packets, 1).header.clock-id && sequence/at(.packets, 2).header.start-frame == sequence/at(.packets, 1).header.start-frame + 48 && sequence/at(.packets, 2).frame == (sequence/at(.packets, 1).frame + 1) % 2048))
+plot usb-audio-adjacent-2-supported (
+    pcm: UsbAudioPcmBatch...| >> supported: Boolean...|
+) = (sequence/at(.packets, 2).header.start-frame > 18446744073709551567 ? false : (sequence/at(.packets, 3).header.clock-id == sequence/at(.packets, 2).header.clock-id && sequence/at(.packets, 3).header.start-frame == sequence/at(.packets, 2).header.start-frame + 48 && sequence/at(.packets, 3).frame == (sequence/at(.packets, 2).frame + 1) % 2048))
+plot usb-audio-adjacent-3-supported (
+    pcm: UsbAudioPcmBatch...| >> supported: Boolean...|
+) = (sequence/at(.packets, 3).header.start-frame > 18446744073709551567 ? false : (sequence/at(.packets, 4).header.clock-id == sequence/at(.packets, 3).header.clock-id && sequence/at(.packets, 4).header.start-frame == sequence/at(.packets, 3).header.start-frame + 48 && sequence/at(.packets, 4).frame == (sequence/at(.packets, 3).frame + 1) % 2048))
+plot usb-audio-adjacent-4-supported (
+    pcm: UsbAudioPcmBatch...| >> supported: Boolean...|
+) = (sequence/at(.packets, 4).header.start-frame > 18446744073709551567 ? false : (sequence/at(.packets, 5).header.clock-id == sequence/at(.packets, 4).header.clock-id && sequence/at(.packets, 5).header.start-frame == sequence/at(.packets, 4).header.start-frame + 48 && sequence/at(.packets, 5).frame == (sequence/at(.packets, 4).frame + 1) % 2048))
+plot usb-audio-adjacent-5-supported (
+    pcm: UsbAudioPcmBatch...| >> supported: Boolean...|
+) = (sequence/at(.packets, 5).header.start-frame > 18446744073709551567 ? false : (sequence/at(.packets, 6).header.clock-id == sequence/at(.packets, 5).header.clock-id && sequence/at(.packets, 6).header.start-frame == sequence/at(.packets, 5).header.start-frame + 48 && sequence/at(.packets, 6).frame == (sequence/at(.packets, 5).frame + 1) % 2048))
+plot usb-audio-adjacent-6-supported (
+    pcm: UsbAudioPcmBatch...| >> supported: Boolean...|
+) = (sequence/at(.packets, 6).header.start-frame > 18446744073709551567 ? false : (sequence/at(.packets, 7).header.clock-id == sequence/at(.packets, 6).header.clock-id && sequence/at(.packets, 7).header.start-frame == sequence/at(.packets, 6).header.start-frame + 48 && sequence/at(.packets, 7).frame == (sequence/at(.packets, 6).frame + 1) % 2048))
+
+plot usb-audio-descriptor-request (
+    start: Boolean...| >> request: UsbControlRequest...|
+) = ({ setup: 0x0064000002000680, output: [] })
+
+# Explicit Source clock-domain projection:32ms initial margin,1ms service,
+# all eight frames retained in the generic request. Native rechecks deadlines.
+plot usb-audio-schedule-packet (
+    input: UsbAudioSchedulingInput...| >> request: UsbIsochronousOutRequest...|
+) = (batch({ packets: [{ frame: ((.clock.current-microframe / 8) + 32) % 2048, wire: .packet.wire }] }))

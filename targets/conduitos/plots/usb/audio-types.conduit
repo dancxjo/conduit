@@ -33,3 +33,12 @@ type UsbAudioTerminal =
 type UsbAudioBatchDecision =
     accepted UsbIsochronousOutRequest
     | unsupported
+
+type UsbAudioPcmPair = {
+    previous: UsbAudioPcmPacket
+    next: UsbAudioPcmPacket
+}
+type UsbAudioSchedulingInput = {
+    packet: UsbAudioPcmPacket
+    clock: UsbIsochronousClock
+}
