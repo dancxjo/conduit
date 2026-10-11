@@ -199,15 +199,15 @@ fn variant(
 fn unsupported_geometry_and_lba_select_terminal_before_any_usb_route() {
     let package = package();
     let source = PreparedProtocolSource::prepare(package).unwrap();
-    let pair = &source
+    let pair_type = &source
         .checked
         .native_types
         .iter()
         .find(|ty| ty.name == "BotStoragePair")
         .unwrap()
         .value_type;
-    let state_type = fields(pair)[0].value_type();
-    let event_type = fields(pair)[1].value_type();
+    let state_type = fields(pair_type)[0].value_type();
+    let event_type = fields(pair_type)[1].value_type();
     let cbw = conduit_data::bytes_literal::decode_hex(
         "55534243010000000002000080000a28000000000000000100000000000000",
     )
@@ -242,7 +242,7 @@ fn unsupported_geometry_and_lba_select_terminal_before_any_usb_route() {
     let emit = program(&source, "bot-storage-emission");
     for (size, count, lba) in [(512, 1, 0), (512, 1, 1), (512, 2, 0), (1024, 1, 0)] {
         let event = variant(event_type, "command", |ty| request(ty, size, count, lba));
-        let pair = record(pair, |field| {
+        let pair = record(pair_type, |field| {
             if field.name() == "0" {
                 state.clone()
             } else {
@@ -280,7 +280,7 @@ fn unsupported_geometry_and_lba_select_terminal_before_any_usb_route() {
             // control/write/read route; only explicit closure terminates.
             for _ in 0..16 {
                 let retained = StructuredInfoValue::from_canonical_bytes(&draining).unwrap();
-                let paired = record(pair, |field| {
+                let paired = record(pair_type, |field| {
                     if field.name() == "0" {
                         retained.clone()
                     } else {
@@ -310,7 +310,7 @@ fn unsupported_geometry_and_lba_select_terminal_before_any_usb_route() {
             let closed = variant(event_type, "closed", |unit| {
                 StructuredInfoValue::leaf(unit.clone(), vec![]).unwrap()
             });
-            let paired = record(pair, |field| {
+            let paired = record(pair_type, |field| {
                 if field.name() == "0" {
                     retained.clone()
                 } else {
