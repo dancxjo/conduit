@@ -355,12 +355,17 @@ mod tests {
         let _measurement = super::super::TEST_MEASUREMENT.lock().unwrap();
         let mut fixture = Fixture::new(8).unwrap();
         check(&fixture, false, 0, |result| {
-            assert!(matches!(
-                result,
-                Err(CostSelectionError::Evidence(CostEvidenceRefusal::Numeric(
-                    ExactNumericRefusal::WorkLimit
-                )))
-            ))
+            let Err(CostSelectionError::Comparison(refusal)) = result else {
+                panic!("exhausted comparison must retain its decision account");
+            };
+            assert_eq!(
+                refusal.reason,
+                CostEvidenceRefusal::from(ExactNumericRefusal::WorkLimit)
+            );
+            assert_eq!(refusal.arithmetic_work_limit, 0);
+            assert_eq!(refusal.arithmetic_work_spent, 0);
+            assert_eq!(refusal.arithmetic_work_remaining, 0);
+            assert_eq!(refusal.realization.signs.len(), 8);
         });
         fixture.times[0] = MonotonicInstant::new(110, fixture.times[0].clock().clone()).unwrap();
         check(&fixture, false, WORK_LIMIT, |result| {
