@@ -38,6 +38,8 @@ pub struct NativeProtocolPreparationLimits {
 #[derive(Debug)]
 pub enum NativeProtocolPreparationReason {
     Contract(StructuredInfoRefusal),
+    #[cfg(target_arch = "x86_64")]
+    Usb(crate::usb_base::installation::UsbInstallationRefusal),
     Source(ProtocolSourceRefusal),
     Bus(I2cInstallationRefusal),
     Clock(ClockInstallationRefusal),

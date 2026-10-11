@@ -89,9 +89,10 @@ pub const fn pc_speaker_input_hz() -> u64 {
 pub use reboot::{RebootBase, RebootError, local_reboot_base};
 pub use serial::{append_boot_diagnostic, early_write};
 pub use usb::{
-    UsbControlCallRefusal, UsbControlHostCall, UsbControlSelection, UsbDevice,
-    enumerate_attached_at_epochs, enumerate_one as enumerate_usb, enumerate_one_at_epoch,
-    retire_removed_device, wait_for_attachment_state,
+    NativeUsbControlCall, ReadyUsbControlBase, UsbControlCallRefusal, UsbControlHostCall,
+    UsbControlSelection, UsbDevice, enumerate_attached_at_epochs, enumerate_one as enumerate_usb,
+    enumerate_one_at_epoch, enumerate_selected_root_port_at_epoch, retire_removed_device,
+    wait_for_attachment_state,
 };
 #[cfg(feature = "scripted-keyboard-proof")]
 pub use usb::{

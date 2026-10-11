@@ -52,12 +52,51 @@ pub(super) fn prepare(
         },
     )
     .map_err(|_| "protocol-plan-admission-refused")?;
+    prepare_outputs(play, &request.inputs)
+}
+
+pub(super) fn prepare_usb(
+    entry: PreparedProtocolEntry,
+    request: &super::usb_request::UsbProtocolBootRequest,
+    host: HostId,
+    boot: BootId,
+    owners: super::usb_owners::NativeUsbOwners,
+) -> Result<(NativePlay, Vec<Output>), &'static str> {
+    let session = super::body::admit(entry.resident(), &host, &boot)?;
+    let advertisement = HostAdvertisement {
+        protocol_version: PROTOCOL_VERSION,
+        host_id: host,
+        boot_id: boot,
+        offer_generation: OfferGeneration(1),
+        profile: "conduitos/native@1".into(),
+        bases: vec![],
+        resources: vec![],
+        capabilities: vec![],
+        planner_capabilities: vec![],
+    };
+    let play = crate::protocol_source::prepare_native_usb_protocol(
+        entry,
+        session,
+        advertisement,
+        owners.ready,
+        owners.issuer,
+        0,
+        1,
+    )
+    .map_err(|_| "protocol-usb-plan-admission-refused")?;
+    prepare_outputs(play, &request.inputs)
+}
+
+fn prepare_outputs(
+    play: NativePlay,
+    inputs: &[super::ProtocolBootInput],
+) -> Result<(NativePlay, Vec<Output>), &'static str> {
     let definition = play
         .kernel()
         .ok_or("protocol-kernel-unavailable")?
         .definition();
-    if request.inputs.len() != definition.external_capability.inputs.len()
-        || request.inputs.iter().any(|input| {
+    if inputs.len() != definition.external_capability.inputs.len()
+        || inputs.iter().any(|input| {
             !definition
                 .external_capability
                 .inputs
@@ -102,14 +141,31 @@ pub(super) fn execute(
     outputs: &mut [Output],
     request: &ProtocolBootRequest,
 ) -> Result<(), &'static str> {
+    execute_workload(play, outputs, &request.inputs, request.maximum_steps)
+}
+
+pub(super) fn execute_usb(
+    play: &mut NativePlay,
+    outputs: &mut [Output],
+    request: &super::usb_request::UsbProtocolBootRequest,
+) -> Result<(), &'static str> {
+    execute_workload(play, outputs, &request.inputs, request.maximum_steps)
+}
+
+fn execute_workload(
+    play: &mut NativePlay,
+    outputs: &mut [Output],
+    authored_inputs: &[super::ProtocolBootInput],
+    maximum_steps: u32,
+) -> Result<(), &'static str> {
     // All allocations and Fore shape checks precede start. Ingress does not
     // dispatch physical effects; refusal cancels before the first Step.
     let definition = play
         .kernel()
         .ok_or("protocol-kernel-unavailable")?
         .definition();
-    let mut inputs = Vec::with_capacity(request.inputs.len());
-    for input in &request.inputs {
+    let mut inputs = Vec::with_capacity(authored_inputs.len());
+    for input in authored_inputs {
         let port = definition
             .external_capability
             .inputs
@@ -133,7 +189,7 @@ pub(super) fn execute(
             play.close_input(port)
                 .map_err(|_| "protocol-input-close-refused")?;
         }
-        for _ in 0..request.maximum_steps {
+        for _ in 0..maximum_steps {
             let status = play.step().map_err(|_| "protocol-step-refused")?;
             for output in &mut *outputs {
                 if let Some(sequence) = play
@@ -198,6 +254,37 @@ fn report_plan(plan: &Plan) -> Result<(), &'static str> {
     )
     .map_err(|_| "protocol-plan-sign-envelope-exceeded")?;
     arch::append_boot_diagnostic(text.as_bytes()).map_err(|_| "protocol-diagnostic-unavailable")?;
+    for fragment in &plan.fragments {
+        for gear in &fragment.placements {
+            let Some(base) = &gear.base else {
+                continue;
+            };
+            let mut selected = crate::sign_format::FixedText::new();
+            writeln!(selected,
+                "CONDUIT_PROTOCOL_BASE plan={} placement={} host={} boot={} base={} provider={} generation={} artifact={}",
+                plan.plan_id.as_str(), gear.placement_id.as_str(), fragment.host_id.as_str(),
+                fragment.boot_id.as_str(), base.base_id.as_str(), base.provider_instance_id.as_str(),
+                base.provider_generation, gear.artifact_id.as_str())
+                .map_err(|_| "protocol-base-sign-envelope-exceeded")?;
+            arch::append_boot_diagnostic(selected.as_bytes())
+                .map_err(|_| "protocol-diagnostic-unavailable")?;
+            for resource in &gear.resources {
+                let mut selected = crate::sign_format::FixedText::new();
+                writeln!(
+                    selected,
+                    "CONDUIT_PROTOCOL_RESOURCE plan={} placement={} pool={} class={} units={}",
+                    plan.plan_id.as_str(),
+                    gear.placement_id.as_str(),
+                    resource.pool_id.as_str(),
+                    resource.class_id.as_str(),
+                    resource.units
+                )
+                .map_err(|_| "protocol-resource-sign-envelope-exceeded")?;
+                arch::append_boot_diagnostic(selected.as_bytes())
+                    .map_err(|_| "protocol-diagnostic-unavailable")?;
+            }
+        }
+    }
     Ok(())
 }
 

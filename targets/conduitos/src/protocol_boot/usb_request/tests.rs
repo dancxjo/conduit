@@ -1,0 +1,115 @@
+use super::*;
+fn request() -> serde_json::Value {
+    serde_json::json!({"schema": REQUEST_SCHEMA, "entry": "usb-control", "package_sha256": "0".repeat(64),
+        "administrator_approval": true, "firmware_handoff": true, "electrical_attachment_approved": true,
+        "root_port": 1, "attachment_epoch": 7, "maximum_control_operations": 64,
+        "maximum_steps": 10000, "inputs": [{"port":"request","canonical_bytes":[1]}]})
+}
+fn decode(value: &serde_json::Value) -> Result<UsbProtocolBootRequest, ProtocolBootRequestRefusal> {
+    UsbProtocolBootRequest::decode(&serde_json::to_vec(value).unwrap())
+}
+#[test]
+fn accepted_request_binds_exact_package_separately_from_flags() {
+    let mut value = request();
+    value["package_sha256"] = alloc::format!("{:X}", Sha256::digest(b"checked-source")).into();
+    let decoded = decode(&value).unwrap();
+    assert_eq!(decoded.root_port, 1);
+    assert_eq!(decoded.attachment_epoch, 7);
+    assert_eq!(decoded.maximum_control_operations, 64);
+    decoded.bind_package(b"checked-source").unwrap();
+    assert_eq!(
+        decoded.bind_package(b"checked-source\n"),
+        Err(ProtocolBootRequestRefusal::SourceBinding)
+    );
+    for flag in [
+        "administrator_approval",
+        "firmware_handoff",
+        "electrical_attachment_approved",
+    ] {
+        let mut invalid = value.clone();
+        invalid[flag] = false.into();
+        assert!(matches!(
+            decode(&invalid),
+            Err(ProtocolBootRequestRefusal::Approval)
+        ));
+    }
+}
+#[test]
+fn zero_and_excessive_work_or_attachment_bounds_refuse() {
+    for (field, invalid) in [
+        ("root_port", 0),
+        ("attachment_epoch", 0),
+        ("maximum_control_operations", 0),
+        ("maximum_control_operations", 4097),
+        ("maximum_steps", 0),
+        ("maximum_steps", 1000001),
+    ] {
+        let mut value = request();
+        value[field] = invalid.into();
+        assert!(
+            matches!(decode(&value), Err(ProtocolBootRequestRefusal::Bounds)),
+            "{field}"
+        );
+    }
+}
+#[test]
+fn malformed_schema_hash_and_unknown_fields_refuse() {
+    assert!(matches!(
+        UsbProtocolBootRequest::decode(b"{"),
+        Err(ProtocolBootRequestRefusal::Encoding)
+    ));
+    assert!(matches!(
+        UsbProtocolBootRequest::decode(&[]),
+        Err(ProtocolBootRequestRefusal::Bounds)
+    ));
+    assert!(matches!(
+        UsbProtocolBootRequest::decode(&alloc::vec![b' '; MAXIMUM_REQUEST_BYTES + 1]),
+        Err(ProtocolBootRequestRefusal::Bounds)
+    ));
+    let mut value = request();
+    value["schema"] = "conduit.conduitos/protocol-root-request@1".into();
+    assert!(matches!(
+        decode(&value),
+        Err(ProtocolBootRequestRefusal::Schema)
+    ));
+    for hash in ["0".repeat(63), "g".repeat(64)] {
+        let mut value = request();
+        value["package_sha256"] = hash.into();
+        assert!(matches!(
+            decode(&value),
+            Err(ProtocolBootRequestRefusal::Bounds)
+        ));
+    }
+    let mut value = request();
+    value["invented_grant"] = true.into();
+    assert!(matches!(
+        decode(&value),
+        Err(ProtocolBootRequestRefusal::Encoding)
+    ));
+}
+#[test]
+fn duplicate_empty_oversized_and_excess_inputs_refuse() {
+    let cases = [
+        serde_json::json!([{"port":"request","canonical_bytes":[1]}, {"port":"request","canonical_bytes":[2]}]),
+        serde_json::json!([{"port":"","canonical_bytes":[1]}]),
+        serde_json::json!([{"port":"request","canonical_bytes":[]}]),
+        serde_json::json!([{"port":"request","canonical_bytes":alloc::vec![0;crate::protocol_source::MAXIMUM_PROTOCOL_FORE_BYTES as usize + 1]}]),
+        serde_json::Value::Array((0..17).map(|n| serde_json::json!({"port":alloc::format!("input-{n}"),"canonical_bytes":[1]})).collect()),
+    ];
+    for inputs in cases {
+        let mut value = request();
+        value["inputs"] = inputs;
+        assert!(matches!(
+            decode(&value),
+            Err(ProtocolBootRequestRefusal::Bounds)
+        ));
+    }
+    for entry in ["".into(), "e".repeat(129)] {
+        let mut value = request();
+        value["entry"] = entry.into();
+        assert!(matches!(
+            decode(&value),
+            Err(ProtocolBootRequestRefusal::Bounds)
+        ));
+    }
+}
