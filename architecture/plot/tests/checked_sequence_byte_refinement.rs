@@ -156,3 +156,37 @@ fn wider_unknown_metadata_and_other_index_guard_never_establish_a_bound() {
         );
     }
 }
+
+#[path = "prepared_structured_payload/allocation.rs"]
+mod allocation;
+#[test]
+fn selected_record_projection_is_preallocated_and_rejects_forged_members() {
+    use conduit_plot::{PortableExpressionOperation as Op, PortableExpressionProjection as Member};
+    let program = expand("{wire:sequence/at(.packets,.index).wire}", "Output").unwrap();
+    let encoded = input(&program, &[&[0x5a; 256]; 8], 7);
+    let mut prepared = PreparedPortableExpressionEvaluator::new(&program).unwrap();
+    assert!(prepared.evaluate(&encoded).is_ok());
+    let allocations = allocation::allocations(|| {
+        for _ in 0..1024 {
+            assert!(prepared.evaluate(&encoded).is_ok());
+        }
+    });
+    assert_eq!(allocations, 0);
+    for wrong_type in [false, true] {
+        let mut forged = program.clone();
+        let Op::Record(fields) = &mut forged.root.operation else {
+            panic!("record constructor")
+        };
+        let projection = &mut fields[0].1;
+        if wrong_type {
+            projection.value_type =
+                StructuredInfoType::leaf(conduit_core::kind_id("value/u64")).unwrap();
+        } else {
+            let Op::Projection { member, .. } = &mut projection.operation else {
+                panic!("projection")
+            };
+            *member = Member::Field("absent".into());
+        }
+        assert!(PreparedPortableExpressionEvaluator::new(&forged).is_err());
+    }
+}
