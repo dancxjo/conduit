@@ -103,6 +103,7 @@ members = [
 	"proof/conformance/patchbay-workbench",
 	"proof/conformance/pete-workload",
 	"proof/conformance/signal",
+	"proof/performance/runtime",
 	"proof/fixtures/rp2040-pio-audio-extension",
 
 	# Repository-development tooling.
