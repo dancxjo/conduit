@@ -1,4 +1,5 @@
 //! Exact adapters for kernel-issued calls; protocol scheduling remains in the graph.
+use crate::protocol_play::preparation_diagnostic::invalid as invalid_plan;
 use crate::{
     expression_host_call,
     i2c_base::{
@@ -267,9 +268,10 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
         }
         states
             .validate_plan(plan)
-            .map_err(|_| Refusal::InvalidPlan)?;
+            .map_err(|error| invalid_plan("pure/preparation", error))?;
         let fragment = &plan.fragments[0];
-        let lowered = lower_plan_fragment(fragment).map_err(|_| Refusal::InvalidPlan)?;
+        let lowered =
+            lower_plan_fragment(fragment).map_err(|error| invalid_plan("pure/lowering", error))?;
         let active = bind_active_play(&plan.plan_id, &fragment.host_id, &fragment.boot_id, 0);
         for implementation in implementations {
             if fragment
@@ -302,13 +304,14 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
             return Err(Refusal::Unsupported);
         }
         // Validate pure typed storage before binding the physical owner.
-        zip.validate_plan(plan).map_err(|_| Refusal::InvalidPlan)?;
+        zip.validate_plan(plan)
+            .map_err(|error| invalid_plan("pure/preparation", error))?;
         for gear in &fragment.placements {
             if gear.implementation_id.as_str() == crate::current_sample::IMPLEMENTATION {
                 use conduit_composite::KernelOperationFactory;
                 crate::current_sample::CurrentSampleOperationFactory::default()
                     .budget(gear)
-                    .map_err(|_| Refusal::InvalidPlan)?;
+                    .map_err(|error| invalid_plan("pure/preparation", error))?;
             }
         }
         let mut bindings = Vec::with_capacity(fragment.placements.len());

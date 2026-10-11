@@ -30,7 +30,10 @@ impl StorageAssociation {
         dispatcher_retained_bytes: usize,
     ) -> Result<Self, ProtocolCallRefusal> {
         let [fragment] = plan.fragments.as_slice() else {
-            return Err(ProtocolCallRefusal::InvalidPlan);
+            return Err(crate::protocol_play::preparation_diagnostic::invalid(
+                "storage/identity",
+                (nodes, plan.plan_id.as_str()),
+            ));
         };
         let active = bind_active_play(&plan.plan_id, &fragment.host_id, &fragment.boot_id, 0);
         for claim in [owner.authorize_claim(), owner.settle_claim()] {
@@ -39,7 +42,10 @@ impl StorageAssociation {
                 || claim.boot_id != fragment.boot_id
                 || claim.active_play_id != active.active_play_id
             {
-                return Err(ProtocolCallRefusal::InvalidPlan);
+                return Err(crate::protocol_play::preparation_diagnostic::invalid(
+                    "storage/identity",
+                    (nodes, plan.plan_id.as_str()),
+                ));
             }
         }
         let all = [
@@ -51,7 +57,10 @@ impl StorageAssociation {
         ];
         for (index, node) in all.iter().enumerate() {
             if all[..index].contains(node) {
-                return Err(ProtocolCallRefusal::InvalidPlan);
+                return Err(crate::protocol_play::preparation_diagnostic::invalid(
+                    "storage/identity",
+                    (nodes, plan.plan_id.as_str()),
+                ));
             }
         }
         let preparation_retained_bytes = owner

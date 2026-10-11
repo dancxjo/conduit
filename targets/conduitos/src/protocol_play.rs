@@ -22,7 +22,7 @@ mod usb;
     all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
 ))]
 pub(crate) use usb::{StorageScopePossession, StorageUsbAdmission};
-mod preparation_diagnostic;
+pub(crate) mod preparation_diagnostic;
 mod registry;
 pub use timed::{ClockAdmission, PreparedTimedProtocolPlay};
 
