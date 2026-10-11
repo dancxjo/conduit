@@ -27,6 +27,8 @@ conduit-body = { path = "../../../architecture/body" }
 conduit-body-make = { path = "../../../make/body" }
 conduit-chat = { path = "../../../semantics/chat", features = ["plot-catalog"] }
 conduit-composite = { path = "../../../architecture/composite" }
+conduit-thermostat-plot = { path = "../../../plots/thermostat/model" }
+conduit-thermostat-face = { path = "../../../plots/thermostat/face" }
 conduit-ai = { path = "../../../semantics/ai", features = ["plot-catalog"] }
 conduit-tongues = { path = "../../../semantics/tongues" }
 conduit-plot = { path = "../../../architecture/plot" }

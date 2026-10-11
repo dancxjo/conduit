@@ -130,6 +130,19 @@ impl BrowserMaskRuntime {
         wake: Wake,
         base_plan: BodyPlan,
     ) -> Result<(Self, BrowserMaskEffect), String> {
+        Self::prepare_sequenced(body_id, host_id, boot_id, presentation, wake, base_plan, 1)
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn prepare_sequenced(
+        body_id: BodyId,
+        host_id: HostId,
+        boot_id: BootId,
+        presentation: Presentation,
+        wake: Wake,
+        base_plan: BodyPlan,
+        play_sequence: u64,
+    ) -> Result<(Self, BrowserMaskEffect), String> {
         Self::prepare_route(
             body_id,
             host_id,
@@ -138,6 +151,7 @@ impl BrowserMaskRuntime {
             wake,
             base_plan,
             false,
+            play_sequence,
         )
     }
 
@@ -150,6 +164,7 @@ impl BrowserMaskRuntime {
         wake: Wake,
         base_plan: BodyPlan,
         select_alternate: bool,
+        play_sequence: u64,
     ) -> Result<(Self, BrowserMaskEffect), String> {
         let host = crate::installed_browser::membership_advertisement(host_id, boot_id);
         let planned = plan::planned_mask(&host, plan::MASK_SOURCE, "browser-graphical")?;
@@ -210,7 +225,7 @@ impl BrowserMaskRuntime {
             &planned.plan.plan_id,
             &terminal.host_id,
             &terminal.boot_id,
-            1,
+            play_sequence,
         );
         let face_subject = presentation
             .subjects
@@ -489,6 +504,7 @@ impl BrowserMaskRuntime {
             self.wake.clone(),
             self.basis_plan.clone(),
             true,
+            1,
         )
     }
 
@@ -501,6 +517,7 @@ impl BrowserMaskRuntime {
             self.wake.clone(),
             self.body_plan.clone(),
             true,
+            1,
         )
     }
 
@@ -513,6 +530,7 @@ impl BrowserMaskRuntime {
             self.wake.clone(),
             self.basis_plan.clone(),
             false,
+            1,
         )
     }
 }

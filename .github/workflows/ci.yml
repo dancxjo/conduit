@@ -191,6 +191,7 @@ jobs:
             target/conduitos/**/*.log
             target/conduitos/**/*.json
             target/conduitos/**/*.png
+            target/conduitos/x86_64/conduitos
           if-no-files-found: ignore
           retention-days: 7
   complete:

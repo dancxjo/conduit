@@ -46,6 +46,21 @@ person heard the playback.
 
 Open the Handbook, choose **A ticker you can stop** or **Turn keystrokes into text**, and edit the Plot source. The ticker emits a repeating pulse; it does not tell the time of day. Live highlighting comes from the packaged Rust/WASM syntax projection. **Try in my Handbook** checks and installs the exact source in your local Body; an invalid edit reports its refusal. **Lull** ends execution, and **Wake** admits another run.
 
+Choose **Thermostat**, then **Try in my Handbook**, to run the original
+`thermostat/main` in this browser's own Body. Mode, fan, preset and half-degree
+target changes enter the bounded typed command Fore of the current scan Play.
+The contributed Face shows only its accepted settings. **Sensor unavailable**
+means there is no measured room temperature; equipment operation is unconfirmed.
+No owner window or backend is required for this local example.
+
+Thermostat settings are session-local. Lull/Wake and reload admit a fresh Play
+with the checked initial settings: Off, Auto fan, Comfort, 21°C. Retaining the
+browser's Body identity and source edits does not retain those settings.
+The reviewed browser Backs are `browser/kernel-thermostat-scan@1` and
+`browser/kernel-thermostat-combine@1`; the combine uses the same portable
+Thermostat reducer as the Linux owner. Its ordinary browser Mask requires a
+correlated Show acknowledgement before accepting a revision-bound action.
+
 **Open in Patchbay** opens the resident Patchbay application. Select the example from its list to inspect the actual checked Plot and execution projection. DOM/SVG is the browser Mask realization of this Show, not a second semantic graph store.
 
 Reload and chapter navigation recover your retained Body under a fresh Boot. A second browser profile gets its own Body. Open **Your body and browser** to inspect evidence, **Release this tab** for another tab, or **Start my Handbook over**. Starting over clears the application's Body and state while preserving the browser Host identity.

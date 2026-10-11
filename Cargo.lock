@@ -1860,6 +1860,8 @@ dependencies = [
  "conduit-std-offers",
  "conduit-synth",
  "conduit-text",
+ "conduit-thermostat-face",
+ "conduit-thermostat-plot",
  "conduit-time",
  "conduit-tongues",
  "conduit-tour-model",

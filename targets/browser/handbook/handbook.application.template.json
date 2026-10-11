@@ -162,6 +162,13 @@
       "kind": "content",
       "path": "plots/inexact-conversion.conduit",
       "maximum_bytes": 8192
+    },
+    {
+      "role": "thermostat-source",
+      "kind": "content",
+      "path": "plots/thermostat.conduit",
+      "maximum_bytes": 8192,
+      "source": "../../../plots/thermostat/main.conduit"
     }
   ]
 }

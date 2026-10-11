@@ -11,7 +11,7 @@ pub(super) struct PreparedBodyScan {
     pub partition: usize,
     pub owner: PlacementId,
     pub budget: BackBudget,
-    pub back: Option<BodyScanBack>,
+    pub back: Option<conduit_composite::KernelScanBack>,
 }
 
 pub(super) fn prepare(

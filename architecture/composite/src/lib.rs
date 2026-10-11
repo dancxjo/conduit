@@ -47,3 +47,6 @@ pub use kernel_executor::*;
 pub use operation::*;
 pub use planned_activation::*;
 pub use seeded_state::SeededStateBack;
+
+mod kernel_scan_back;
+pub use kernel_scan_back::KernelScanBack;
