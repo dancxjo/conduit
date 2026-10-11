@@ -19,9 +19,10 @@ pub const MAX_CANDIDATE_RESOURCES: usize = 32;
 /// Finite discovery envelope, including the portable application seam, tutorial Presenter,
 /// the browser's exact bounded two-axis audio realization, Ratio normalization,
 /// its separately admitted DOM Mask Back, and the four exact quantity conversion
-/// and comparison roles, plus standalone Unit/Quantity Dimension introspection.
+/// and comparison roles, standalone Unit/Quantity Dimension introspection,
+/// and the portable Thermostat transition and bounded scan.
 /// The encoded advertisement byte bound remains independent.
-pub const MAX_CANDIDATE_CAPABILITIES: usize = 132;
+pub const MAX_CANDIDATE_CAPABILITIES: usize = 134;
 pub const MAX_CANDIDATE_PLANNER_CAPABILITIES: usize = 8;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]

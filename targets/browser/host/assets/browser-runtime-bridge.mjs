@@ -7,6 +7,8 @@ const ABI = Object.freeze({
 
 const ABI_IDENTITY_BYTES = encoder.encode(ABI.identity);
 const OPERATION_OUTPUT_MAX = 256 * 1024;
+// Match the fixed Plot ABI arena, including a terminal 4096-item Sign receipt.
+const PLOT_OUTPUT_MAX = 1024 * 1024;
 // Workspace can retain one maximum-sized advertisement for every admitted Body
 // Part in addition to its ordinary state. Keep this fixed ceiling aligned with
 // the runtime's exported capacity instead of applying the smaller per-operation
@@ -96,13 +98,13 @@ function decodeJson(bytes, label) {
 
 function maybeReadPlotOutputJson(api, minimum = 0) {
   const length = readLength(api, "conduit_browser_plot_output_len", "browser Body output");
-  if (length < minimum || length > OPERATION_OUTPUT_MAX) throw new Error("browser Body output exceeds its bound");
+  if (length < minimum || length > PLOT_OUTPUT_MAX) throw new Error("browser Body output exceeds its bound");
   if (length === 0) return null;
   return readJson(api, {
     pointerExport: "conduit_browser_plot_output_ptr",
     lengthExport: "conduit_browser_plot_output_len",
     minimum,
-    maximum: OPERATION_OUTPUT_MAX,
+    maximum: PLOT_OUTPUT_MAX,
     label: "browser Body output",
   });
 }
@@ -147,10 +149,27 @@ export function bindBrowserRuntimeBridge(api, { context }) {
   requireAbiIdentity(api, context);
   requireAbiRevision(api, context);
   const call = (name, ...args) => exported(api, name, context).call(api, ...args);
+  const localThermostat = (name, message) => {
+    const invoke = length => {
+      const status = message === undefined ? call(name) : call(name, length);
+      const outputJson = maybeReadPlotOutputJson(api, 1);
+      if (status < 0) throw Object.assign(new Error(outputJson?.message ?? 'Thermostat request refused'), {
+        code: outputJson?.code ?? 'ThermostatRefused', evidence: outputJson,
+      });
+      return outputJson;
+    };
+    return message === undefined ? invoke() : withInput(api, encoder.encode(JSON.stringify(message)), {
+      pointerExport: 'conduit_tour_input_ptr', capacityExport: 'conduit_tour_input_capacity',
+      minimum: 1, label: 'local Thermostat Face input',
+    }, invoke, { retireInput: true });
+  };
   return Object.freeze({
     abi: ABI,
     encodeJson: (value) => encoder.encode(JSON.stringify(value)),
     decodeJson: (bytes) => JSON.parse(decoder.decode(bytes)),
+    thermostatFace: () => localThermostat('conduit_browser_thermostat_face'),
+    thermostatAcknowledge: message => localThermostat('conduit_browser_thermostat_acknowledge', message),
+    thermostatInteract: message => localThermostat('conduit_browser_thermostat_interact', message),
     workspaceRequest(message, { binary = false } = {}) {
       const input = encoder.encode(JSON.stringify(message));
       return withInput(api, input, {
@@ -405,7 +424,7 @@ export function bindBrowserRuntimeBridge(api, { context }) {
         pointerExport: "conduit_browser_plot_output_ptr",
         lengthExport: "conduit_browser_plot_output_len",
         minimum: 1,
-        maximum: OPERATION_OUTPUT_MAX,
+        maximum: PLOT_OUTPUT_MAX,
         label: "browser Body output",
       });
     },
@@ -414,7 +433,7 @@ export function bindBrowserRuntimeBridge(api, { context }) {
         pointerExport: "conduit_browser_plot_output_ptr",
         lengthExport: "conduit_browser_plot_output_len",
         minimum: 1,
-        maximum: OPERATION_OUTPUT_MAX,
+        maximum: PLOT_OUTPUT_MAX,
         label: "browser Body output",
       });
     },

@@ -67,13 +67,19 @@
       "role": "lesson-temperature-change-source",
       "name": "temperature-change-demo",
       "title": "Units: a temperature change",
-      "lesson": "Predict a change of 9 degrees Fahrenheit in kelvin. Try it: the change is 5 K, without an absolute-temperature offset. Compare with the units chapter, then change the source to 18°F and predict the new change."
+      "lesson": "Predict a change of 9 degrees Fahrenheit in kelvin. Try it: the change is 5 K, without an absolute-temperature offset. Compare with the units chapter, then change the source to 18\u00b0F and predict the new change."
     },
     {
       "role": "lesson-inexact-conversion-source",
       "name": "inexact-conversion-demo",
       "title": "Units: inspect an inexact refusal",
-      "lesson": "Try converting the absolute temperature 1°F to °C. The exact finite-decimal profile refuses silently rounded coordinates. Change 1°F to 32°F: the result is exactly 0°C, so the refusal check changes. A typed result refusal differs from invalid source syntax."
+      "lesson": "Try converting the absolute temperature 1\u00b0F to \u00b0C. The exact finite-decimal profile refuses silently rounded coordinates. Change 1\u00b0F to 32\u00b0F: the result is exactly 0\u00b0C, so the refusal check changes. A typed result refusal differs from invalid source syntax."
+    },
+    {
+      "role": "thermostat-source",
+      "name": "thermostat/main",
+      "title": "Thermostat",
+      "lesson": "Try Thermostat in your browser Body, then change mode, fan, preset or target. Sensor unavailable means no room temperature is measured and no equipment operation is confirmed. Settings last only for this Play: Lull/Wake or reload resets them to Off, Auto fan, Comfort and 21\u00b0C. Your Body identity and source edits are retained separately."
     }
   ]
 }

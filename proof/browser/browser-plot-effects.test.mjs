@@ -161,3 +161,32 @@ test("synchronous retirement at the waiting boundary cannot strand its wake prom
   }), undefined);
   assert.deepEqual(host.received, []);
 });
+
+test('admitted local Fore progress joins the same dispatcher and retires its wait', async () => {
+  const host = fixture([waiting], [{ disposition: 'completed' }]);
+  const controller = new AbortController();
+  let supplied = null, notify = null;
+  const admittedInput = {
+    take() { const value = supplied; supplied = null; return value; },
+    subscribe(callback) { notify = callback; return () => { notify = null; }; },
+  };
+  const running = drainBrowserEffects({ ...host,
+    initialProgress: { disposition: 'externally_admitted_input' },
+    signal: controller.signal, admittedInput,
+    perform: async () => Uint8Array.of(7),
+  });
+  supplied = effect('local-input-result');
+  notify();
+  assert.equal((await running).disposition, 'completed');
+  assert.equal(host.received[0].placement, 'local-input-result');
+  assert.equal(notify, null);
+
+  const waitingRun = drainBrowserEffects({ ...host,
+    initialProgress: { disposition: 'externally_admitted_input' },
+    signal: controller.signal, admittedInput,
+    perform: async () => { throw new Error('no synthetic effect is permitted'); },
+  });
+  controller.abort();
+  assert.equal(await waitingRun, undefined);
+  assert.equal(notify, null);
+});
