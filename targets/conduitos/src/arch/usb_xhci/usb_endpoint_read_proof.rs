@@ -7,7 +7,7 @@ use super::{
     endpoint_setup::{InboundEndpointParameters, configure_inbound},
 };
 use crate::{
-    arch::x86_64::{serial::early_write, xhci::XhciReady},
+    arch::{early_write, XhciReady},
     identity::{self, BootIdentities},
     machine_membrane::selected_operation::SelectedOperationPlan,
     sign_format::FixedText,
