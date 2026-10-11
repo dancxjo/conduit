@@ -15,10 +15,17 @@ use core::sync::atomic::Ordering;
 
 #[path = "usb_endpoint_owners.rs"]
 mod endpoint;
+#[path = "usb_isochronous_owners.rs"]
+mod isochronous;
 #[path = "usb_endpoint_write_owners.rs"]
 mod outbound;
 
 pub(super) enum NativeUsbOwners {
+    Isochronous {
+        ready: Box<arch::ReadyUsbIsochronousHost>,
+        control_issuer: Box<NativeProtocolIssuer>,
+        isochronous_issuer: Box<NativeProtocolIssuer>,
+    },
     Duplex {
         ready: Box<arch::ReadyUsbDuplexHost>,
         control_issuer: Box<NativeProtocolIssuer>,
@@ -124,6 +131,71 @@ pub(super) unsafe fn admit(
         },
     );
     capability.base_provider_generation = generation;
+    if let Some(iso_request) = request.isochronous_out.as_ref() {
+        use crate::usb_base::isochronous::{contract::*, factory::*};
+        let endpoint = unsafe { isochronous::configure(&mut controller, &device, iso_request) }?;
+        let iso_identity = UsbNativeIdentity {
+            host_id: host.clone(),
+            boot_id: boot_id.clone(),
+            base_id: format!("{prefix}/iso-controller").into(),
+            provider_instance_id: format!("{prefix}/iso-provider").into(),
+            provider_generation: generation,
+            resource_pool_id: format!("{prefix}/iso-dma/{}", iso_request.endpoint_epoch).into(),
+            resource_generation_id: ResourceGenerationId(format!(
+                "{prefix}/iso-dma/{generation}/{}",
+                iso_request.endpoint_epoch
+            )),
+            envelope_id: format!("{prefix}/iso-envelope/{}", iso_request.endpoint_epoch).into(),
+            artifact_id: artifact.into(),
+        };
+        let mut iso_capability = authority(
+            host,
+            boot_id,
+            "usb-isochronous-out",
+            (
+                &iso_identity.provider_instance_id,
+                &iso_identity.resource_pool_id,
+                &iso_identity.resource_generation_id,
+                &iso_identity.envelope_id,
+            ),
+            OperationAuthority {
+                contract: ISOCHRONOUS_OUT_AUTHORITY,
+                call: ISOCHRONOUS_OUT_CALL,
+                kind: ISOCHRONOUS_OUT_KIND,
+                capability: ISOCHRONOUS_OUT_IMPLEMENTATION,
+                bytes: ISOCHRONOUS_OUT_MAXIMUM_BYTES,
+                work: 8,
+                operations: iso_request.maximum_operations,
+            },
+        );
+        iso_capability.base_provider_generation = generation;
+        let ready = unsafe {
+            arch::ReadyUsbIsochronousHost::new(
+                identity,
+                iso_identity,
+                controller,
+                device,
+                boot::executable_physical_address,
+                endpoint.configured,
+                endpoint.dma,
+                endpoint.attachment,
+            )
+        }
+        .map_err(|_| "protocol-usb-iso-identity-invalid")?;
+        let source = arch::DomainEntropy::detect(1).map_err(|_| "protocol-entropy-unavailable")?;
+        let mut entropy = CryptographicEntropyBase::<_, 2>::admit(source)
+            .map_err(|_| "protocol-entropy-refused")?;
+        let control_issuer = unsafe { NativeProtocolIssuer::admit(capability, &mut entropy) }
+            .map_err(|_| "protocol-usb-issuance-refused")?;
+        let isochronous_issuer =
+            unsafe { NativeProtocolIssuer::admit(iso_capability, &mut entropy) }
+                .map_err(|_| "protocol-usb-iso-issuance-refused")?;
+        return Ok(NativeUsbOwners::Isochronous {
+            ready: Box::new(ready),
+            control_issuer: Box::new(control_issuer),
+            isochronous_issuer: Box::new(isochronous_issuer),
+        });
+    }
     if let Some(endpoint_request) = request.endpoint_read.as_ref() {
         // SAFETY: the sole Root reservation and administrator parameters bind
         // this exact controller/attachment; static DMA remains quarantined.

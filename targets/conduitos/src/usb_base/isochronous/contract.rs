@@ -13,6 +13,10 @@ use conduit_plot::{
 pub const ISOCHRONOUS_OUT_KIND: &str = "machine/usb/isochronous-out";
 pub const ISOCHRONOUS_OUT_CALL: &str = "conduit.host/usb-isochronous-out@1";
 pub const ISOCHRONOUS_OUT_MAXIMUM_BYTES: u32 = 4096;
+/// Root envelope: 64KiB prepared result storage, 32KiB schema/table/request
+/// metadata, 16KiB Flow storage and 16KiB native/input-context/alignment.
+/// Bind checks the actual encoder fits its 64KiB partition.
+pub const ISOCHRONOUS_OUT_RESOURCE_BYTES: u64 = 131072;
 pub const ISOCHRONOUS_OUT_PACKET_BYTES: u16 = 256;
 pub const ISOCHRONOUS_OUT_MAXIMUM_PACKETS: usize = 8;
 pub const ISOCHRONOUS_OUT_TYPES: &str =

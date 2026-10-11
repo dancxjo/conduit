@@ -48,9 +48,10 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
                 target_arch = "x86_64",
                 all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
             ))]
-            Owner::UsbControl(_) | Owner::UsbProtocolControl | Owner::UsbDuplexControl => {
-                crate::usb_base::control_contract::CONTROL_CALL
-            }
+            Owner::UsbControl(_)
+            | Owner::UsbProtocolControl
+            | Owner::UsbDuplexControl
+            | Owner::UsbIsochronousControl => crate::usb_base::control_contract::CONTROL_CALL,
             #[cfg(any(
                 target_arch = "x86_64",
                 all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
@@ -63,6 +64,13 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
                 all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
             ))]
             Owner::UsbDuplexWrite => crate::usb_base::endpoint_write_contract::ENDPOINT_WRITE_CALL,
+            #[cfg(any(
+                target_arch = "x86_64",
+                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+            ))]
+            Owner::UsbIsochronousOut => {
+                crate::usb_base::isochronous::contract::ISOCHRONOUS_OUT_CALL
+            }
         };
         if required.requirement.contract_id.as_str() != expected {
             return Err(Refusal::InvalidPlan);
@@ -82,6 +90,29 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
         let input = kernel
             .host_request_input(&admitted)
             .map_err(Refusal::Kernel)?;
+        #[cfg(any(
+            target_arch = "x86_64",
+            all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+        ))]
+        if matches!(binding.owner, Owner::UsbIsochronousOut) {
+            let result = self
+                .usb_isochronous
+                .as_mut()
+                .ok_or(Refusal::InvalidPlan)?
+                .isochronous_begin(node, call.call, call.request, input)
+                .map_err(Refusal::UsbIsochronous);
+            match result {
+                Ok(()) => {
+                    self.pending_usb_kind = PendingUsbKind::IsochronousOut;
+                    self.pending_usb = Some(admitted);
+                    return Ok(());
+                }
+                Err(error) => {
+                    Self::complete_failure(kernel, &admitted, &error)?;
+                    return Err(error);
+                }
+            }
+        }
         #[cfg(any(
             target_arch = "x86_64",
             all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
@@ -143,7 +174,10 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
                 target_arch = "x86_64",
                 all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
             ))]
-            Owner::UsbProtocolEndpoint | Owner::UsbDuplexRead | Owner::UsbDuplexWrite => {
+            Owner::UsbProtocolEndpoint
+            | Owner::UsbDuplexRead
+            | Owner::UsbDuplexWrite
+            | Owner::UsbIsochronousOut => {
                 return Err(Refusal::InvalidPlan);
             }
             #[cfg(any(
@@ -157,6 +191,17 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
                 .control_invoke(node, call.call, call.request, input)
                 .map(Some)
                 .map_err(Refusal::UsbProtocol),
+            #[cfg(any(
+                target_arch = "x86_64",
+                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+            ))]
+            Owner::UsbIsochronousControl => self
+                .usb_isochronous
+                .as_mut()
+                .ok_or(Refusal::InvalidPlan)?
+                .control_invoke(node, call.call, call.request, input)
+                .map(Some)
+                .map_err(Refusal::UsbIsochronous),
             #[cfg(any(
                 target_arch = "x86_64",
                 all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
@@ -249,19 +294,27 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
                     .usb_protocol
                     .as_mut()
                     .ok_or(ProtocolCallRefusal::InvalidPlan)?
-                    .endpoint_poll(),
+                    .endpoint_poll()
+                    .map_err(ProtocolCallRefusal::UsbProtocol),
                 PendingUsbKind::DuplexRead => self
                     .usb_duplex
                     .as_mut()
                     .ok_or(ProtocolCallRefusal::InvalidPlan)?
-                    .read_poll(),
+                    .read_poll()
+                    .map_err(ProtocolCallRefusal::UsbProtocol),
                 PendingUsbKind::DuplexWrite => self
                     .usb_duplex
                     .as_mut()
                     .ok_or(ProtocolCallRefusal::InvalidPlan)?
-                    .write_poll(),
-            }
-            .map_err(ProtocolCallRefusal::UsbProtocol);
+                    .write_poll()
+                    .map_err(ProtocolCallRefusal::UsbProtocol),
+                PendingUsbKind::IsochronousOut => self
+                    .usb_isochronous
+                    .as_mut()
+                    .ok_or(ProtocolCallRefusal::InvalidPlan)?
+                    .isochronous_poll()
+                    .map_err(ProtocolCallRefusal::UsbIsochronous),
+            };
             match result {
                 Ok(None) => {}
                 Ok(Some(bytes)) => {

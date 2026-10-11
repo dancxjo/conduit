@@ -81,6 +81,42 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
         )
     }
 
+    /// Both exact native operations retain one controller and ordinary kernel.
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    pub(crate) fn prepare_usb_isochronous(
+        definition: KernelCompositeDefinition,
+        admission: UsbIsochronousAdmission,
+        operations: crate::protocol_operations::ProtocolOperations,
+    ) -> Result<Self, ProtocolCallRefusal> {
+        Self::prepare_selected(
+            definition,
+            operations,
+            false,
+            PhysicalMode::UsbIsochronous,
+            conduit_composite::KernelCompositeSignStorage {
+                additional_local_items: 0,
+                additional_remote_items: admission.additional_remote_sign_items,
+            },
+            |plan, zip, states| {
+                PreparedProtocolCalls::prepare_usb_isochronous(
+                    plan,
+                    admission.ready,
+                    admission.control_table,
+                    admission.control_handle,
+                    admission.control_claim,
+                    admission.endpoint_table,
+                    admission.endpoint_handle,
+                    admission.endpoint_claim,
+                    zip,
+                    states,
+                )
+            },
+        )
+    }
+
     #[cfg(any(
         target_arch = "x86_64",
         all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
