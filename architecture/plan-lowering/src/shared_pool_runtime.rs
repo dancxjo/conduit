@@ -19,6 +19,9 @@ use conduit_kernel::{
     NodeId,
 };
 
+mod waiting;
+pub use waiting::*;
+
 mod costs;
 pub use costs::{
     CostAwareSharedPoolAdmissionOutcome, PoolCostEvaluation, PoolCostLoweringError,
@@ -63,6 +66,7 @@ pub struct HostedSharedPool<
     first_member_node: NodeId,
     play: u16,
     fragment_index: usize,
+    waiting: Option<waiting::BoundedPoolWaiting>,
 }
 
 impl<const MEMBER_SLOTS: usize, const POOL_SIGNS: usize, const OBSERVATION_SIGNS: usize>
@@ -112,6 +116,7 @@ impl<const MEMBER_SLOTS: usize, const POOL_SIGNS: usize, const OBSERVATION_SIGNS
             first_member_node,
             play,
             fragment_index,
+            waiting: None,
         })
     }
 

@@ -303,3 +303,6 @@ mod cost_tests;
 
 #[path = "cost_dependency_tests.rs"]
 mod cost_dependency_tests;
+
+#[path = "waiting_tests.rs"]
+mod waiting_tests;
