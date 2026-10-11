@@ -1,0 +1,248 @@
+qemu-system-aarch64: -device usb-redir,chardev=cdc,bus=protocol-usb.0,port=1,msos-desc=off,streams=off,debug=4: usb-redir: chardev open
+
+qemu-system-aarch64: -device usb-redir,chardev=cdc,bus=protocol-usb.0,port=1,msos-desc=off,streams=off,debug=4: usb-redir: removing 0 packet-ids from cancelled queue
+
+qemu-system-aarch64: -device usb-redir,chardev=cdc,bus=protocol-usb.0,port=1,msos-desc=off,streams=off,debug=4: usb-redir: removing 0 packet-ids from already-in-flight queue
+
+qemu-system-aarch64: -device usb-redir,chardev=cdc,bus=protocol-usb.0,port=1,msos-desc=off,streams=off,debug=4: usb-redir: creating usbredirparser
+
+qemu-system-aarch64: usbredirparser: Peer version: bounded-external-cdc-acm-device@1, using 64-bits ids
+qemu-system-aarch64: usb-redir: ep: 00 type: 0 interface: 0
+
+qemu-system-aarch64: usb-redir: ep: 02 type: 2 interface: 1
+
+qemu-system-aarch64: usb-redir: ep: 80 type: 0 interface: 0
+
+qemu-system-aarch64: usb-redir: ep: 81 type: 2 interface: 1
+
+qemu-system-aarch64: usb-redir: ep: 83 type: 3 interface: 0
+
+qemu-system-aarch64: usb-redir: attaching full speed device ffff:f117 version 1.0 class 02
+
+qemu-system-aarch64: usb-redir: reset device
+
+qemu-system-aarch64: usb-redir: reset device
+
+qemu-system-aarch64: usb-redir: set address 1
+
+qemu-system-aarch64: usb-redir: ctrl-out type 0x80 req 0x6 val 0x100 index 0 len 8 id 1591187136
+
+qemu-system-aarch64: usb-redir: ctrl-in status 0 len 8 id 1591187136
+
+qemu-system-aarch64: usb-redir: ctrl-out type 0x80 req 0x6 val 0x100 index 0 len 18 id 1591187184
+
+qemu-system-aarch64: usb-redir: ctrl-in status 0 len 18 id 1591187184
+
+qemu-system-aarch64: usb-redir: ctrl-out type 0x80 req 0x6 val 0x200 index 0 len 8 id 1591187232
+
+qemu-system-aarch64: usb-redir: ctrl-in status 0 len 8 id 1591187232
+
+qemu-system-aarch64: usb-redir: ctrl-out type 0x80 req 0x6 val 0x200 index 0 len 67 id 1591187280
+
+qemu-system-aarch64: usb-redir: ctrl-in status 0 len 67 id 1591187280
+
+qemu-system-aarch64: usb-redir: ctrl-out type 0x80 req 0x6 val 0x300 index 0 len 2 id 1591187328
+
+qemu-system-aarch64: usb-redir: ctrl-in status 0 len 2 id 1591187328
+
+qemu-system-aarch64: usb-redir: ctrl-out type 0x80 req 0x6 val 0x300 index 0 len 4 id 1591187376
+
+qemu-system-aarch64: usb-redir: ctrl-in status 0 len 4 id 1591187376
+
+qemu-system-aarch64: usb-redir: set config 1 id 1591187424
+
+qemu-system-aarch64: usb-redir: ep: 00 type: 0 interface: 0
+
+qemu-system-aarch64: usb-redir: ep: 02 type: 2 interface: 1
+
+qemu-system-aarch64: usb-redir: ep: 80 type: 0 interface: 0
+
+qemu-system-aarch64: usb-redir: ep: 81 type: 2 interface: 1
+
+qemu-system-aarch64: usb-redir: ep: 83 type: 3 interface: 0
+
+qemu-system-aarch64: usb-redir: set config status 0 config 1 id 1591187424
+
+qemu-system-aarch64: usb-redir: reset device
+
+qemu-system-aarch64: usb-redir: reset device
+
+qemu-system-aarch64: usb-redir: set address 1
+
+qemu-system-aarch64: usb-redir: ctrl-out type 0x80 req 0x6 val 0x100 index 0 len 8 id 1511084096
+
+qemu-system-aarch64: usb-redir: ctrl-in status 0 len 8 id 1511084096
+
+qemu-system-aarch64: usb-redir: ctrl-out type 0x80 req 0x6 val 0x100 index 0 len 64 id 1511084144
+
+qemu-system-aarch64: usb-redir: ctrl-in status 0 len 18 id 1511084144
+
+qemu-system-aarch64: usb-redir: ctrl-out type 0x80 req 0x6 val 0x200 index 0 len 9 id 1511084192
+
+qemu-system-aarch64: usb-redir: ctrl-in status 0 len 9 id 1511084192
+
+qemu-system-aarch64: usb-redir: ctrl-out type 0x80 req 0x6 val 0x200 index 0 len 67 id 1511084240
+
+qemu-system-aarch64: usb-redir: ctrl-in status 0 len 67 id 1511084240
+
+qemu-system-aarch64: usb-redir: ctrl-out type 0x80 req 0x6 val 0x200 index 0 len 67 id 1511084288
+
+qemu-system-aarch64: usb-redir: ctrl-in status 0 len 67 id 1511084288
+
+qemu-system-aarch64: usb-redir: set config 1 id 1511084336
+
+qemu-system-aarch64: usb-redir: ep: 00 type: 0 interface: 0
+
+qemu-system-aarch64: usb-redir: ep: 02 type: 2 interface: 1
+
+qemu-system-aarch64: usb-redir: ep: 80 type: 0 interface: 0
+
+qemu-system-aarch64: usb-redir: ep: 81 type: 2 interface: 1
+
+qemu-system-aarch64: usb-redir: ep: 83 type: 3 interface: 0
+
+qemu-system-aarch64: usb-redir: set config status 0 config 1 id 1511084336
+
+qemu-system-aarch64: usb-redir: ctrl-out type 0x21 req 0x20 val 0x0 index 0 len 7 id 1511084368
+
+qemu-system-aarch64: usb-redir: ctrl-in status 0 len 7 id 1511084368
+
+qemu-system-aarch64: usb-redir: ctrl-out type 0xa1 req 0x21 val 0x0 index 0 len 7 id 1511084416
+
+qemu-system-aarch64: usb-redir: ctrl-in status 0 len 7 id 1511084416
+
+qemu-system-aarch64: usb-redir: ctrl-out type 0x21 req 0x22 val 0x3 index 0 len 0 id 1511084464
+
+qemu-system-aarch64: usb-redir: ctrl-in status 0 len 0 id 1511084464
+
+qemu-system-aarch64: usb-redir: bulk-out ep 02 stream 0 len 12 id 1511071744
+
+qemu-system-aarch64: usb-redir: bulk-in status 0 ep 02 stream 0 len 12 id 1511071744
+
+qemu-system-aarch64: usb-redir: bulk-out ep 81 stream 0 len 64 id 1511063552
+
+qemu-system-aarch64: usb-redir: bulk-in status 0 ep 81 stream 0 len 17 id 1511063552
+
+qemu-system-aarch64: usb-redir: bulk-out ep 02 stream 0 len 12 id 1511071760
+
+qemu-system-aarch64: usb-redir: bulk-in status 0 ep 02 stream 0 len 12 id 1511071760
+
+qemu-system-aarch64: usb-redir: bulk-out ep 81 stream 0 len 64 id 1511063568
+
+qemu-system-aarch64: usb-redir: bulk-in status 0 ep 81 stream 0 len 17 id 1511063568
+
+qemu-system-aarch64: usb-redir: bulk-out ep 02 stream 0 len 12 id 1511071776
+
+qemu-system-aarch64: usb-redir: bulk-in status 0 ep 02 stream 0 len 12 id 1511071776
+
+qemu-system-aarch64: usb-redir: bulk-out ep 81 stream 0 len 64 id 1511063584
+
+qemu-system-aarch64: usb-redir: bulk-in status 0 ep 81 stream 0 len 17 id 1511063584
+
+qemu-system-aarch64: usb-redir: bulk-out ep 02 stream 0 len 12 id 1511071792
+
+qemu-system-aarch64: usb-redir: bulk-in status 0 ep 02 stream 0 len 12 id 1511071792
+
+qemu-system-aarch64: usb-redir: bulk-out ep 81 stream 0 len 64 id 1511063600
+
+qemu-system-aarch64: usb-redir: bulk-in status 0 ep 81 stream 0 len 17 id 1511063600
+
+qemu-system-aarch64: usb-redir: bulk-out ep 02 stream 0 len 12 id 1511071808
+
+qemu-system-aarch64: usb-redir: bulk-in status 0 ep 02 stream 0 len 12 id 1511071808
+
+qemu-system-aarch64: usb-redir: bulk-out ep 81 stream 0 len 64 id 1511063616
+
+qemu-system-aarch64: usb-redir: bulk-in status 0 ep 81 stream 0 len 17 id 1511063616
+
+qemu-system-aarch64: usb-redir: bulk-out ep 02 stream 0 len 12 id 1511071824
+
+qemu-system-aarch64: usb-redir: bulk-in status 0 ep 02 stream 0 len 12 id 1511071824
+
+qemu-system-aarch64: usb-redir: bulk-out ep 81 stream 0 len 64 id 1511063632
+
+qemu-system-aarch64: usb-redir: bulk-in status 0 ep 81 stream 0 len 17 id 1511063632
+
+qemu-system-aarch64: usb-redir: bulk-out ep 02 stream 0 len 12 id 1511071840
+
+qemu-system-aarch64: usb-redir: bulk-in status 0 ep 02 stream 0 len 12 id 1511071840
+
+qemu-system-aarch64: usb-redir: bulk-out ep 81 stream 0 len 64 id 1511063648
+
+qemu-system-aarch64: usb-redir: bulk-in status 0 ep 81 stream 0 len 17 id 1511063648
+
+qemu-system-aarch64: usb-redir: bulk-out ep 02 stream 0 len 12 id 1511071856
+
+qemu-system-aarch64: usb-redir: bulk-in status 0 ep 02 stream 0 len 12 id 1511071856
+
+qemu-system-aarch64: usb-redir: bulk-out ep 81 stream 0 len 64 id 1511063664
+
+qemu-system-aarch64: usb-redir: bulk-in status 0 ep 81 stream 0 len 17 id 1511063664
+
+qemu-system-aarch64: usb-redir: bulk-out ep 02 stream 0 len 12 id 1511071872
+
+qemu-system-aarch64: usb-redir: bulk-in status 0 ep 02 stream 0 len 12 id 1511071872
+
+qemu-system-aarch64: usb-redir: bulk-out ep 81 stream 0 len 64 id 1511063680
+
+qemu-system-aarch64: usb-redir: bulk-in status 0 ep 81 stream 0 len 17 id 1511063680
+
+qemu-system-aarch64: usb-redir: bulk-out ep 02 stream 0 len 12 id 1511071888
+
+qemu-system-aarch64: usb-redir: bulk-in status 0 ep 02 stream 0 len 12 id 1511071888
+
+qemu-system-aarch64: usb-redir: bulk-out ep 81 stream 0 len 64 id 1511063696
+
+qemu-system-aarch64: usb-redir: bulk-in status 0 ep 81 stream 0 len 17 id 1511063696
+
+qemu-system-aarch64: usb-redir: bulk-out ep 02 stream 0 len 12 id 1511071904
+
+qemu-system-aarch64: usb-redir: bulk-in status 0 ep 02 stream 0 len 12 id 1511071904
+
+qemu-system-aarch64: usb-redir: bulk-out ep 81 stream 0 len 64 id 1511063712
+
+qemu-system-aarch64: usb-redir: bulk-in status 0 ep 81 stream 0 len 17 id 1511063712
+
+qemu-system-aarch64: usb-redir: bulk-out ep 02 stream 0 len 12 id 1511071920
+
+qemu-system-aarch64: usb-redir: bulk-in status 0 ep 02 stream 0 len 12 id 1511071920
+
+qemu-system-aarch64: usb-redir: bulk-out ep 81 stream 0 len 64 id 1511063728
+
+qemu-system-aarch64: usb-redir: bulk-in status 0 ep 81 stream 0 len 17 id 1511063728
+
+qemu-system-aarch64: usb-redir: bulk-out ep 02 stream 0 len 12 id 1511071936
+
+qemu-system-aarch64: usb-redir: bulk-in status 0 ep 02 stream 0 len 12 id 1511071936
+
+qemu-system-aarch64: usb-redir: bulk-out ep 81 stream 0 len 64 id 1511063744
+
+qemu-system-aarch64: usb-redir: bulk-in status 0 ep 81 stream 0 len 17 id 1511063744
+
+qemu-system-aarch64: usb-redir: bulk-out ep 02 stream 0 len 12 id 1511071952
+
+qemu-system-aarch64: usb-redir: bulk-in status 0 ep 02 stream 0 len 12 id 1511071952
+
+qemu-system-aarch64: usb-redir: bulk-out ep 81 stream 0 len 64 id 1511063760
+
+qemu-system-aarch64: usb-redir: bulk-in status 0 ep 81 stream 0 len 17 id 1511063760
+
+qemu-system-aarch64: usb-redir: bulk-out ep 02 stream 0 len 12 id 1511071968
+
+qemu-system-aarch64: usb-redir: bulk-in status 0 ep 02 stream 0 len 12 id 1511071968
+
+qemu-system-aarch64: usb-redir: bulk-out ep 81 stream 0 len 64 id 1511063776
+
+qemu-system-aarch64: usb-redir: bulk-in status 0 ep 81 stream 0 len 17 id 1511063776
+
+qemu-system-aarch64: usb-redir: bulk-out ep 02 stream 0 len 12 id 1511071984
+
+qemu-system-aarch64: usb-redir: bulk-in status 0 ep 02 stream 0 len 12 id 1511071984
+
+qemu-system-aarch64: usb-redir: bulk-out ep 81 stream 0 len 64 id 1511063792
+
+qemu-system-aarch64: usb-redir: bulk-in status 0 ep 81 stream 0 len 17 id 1511063792
+
+qemu-system-aarch64: terminating on signal 15 from pid 375879 (python3)
+qemu-system-aarch64: usb-redir: chardev close
+

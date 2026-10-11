@@ -1,0 +1,3 @@
+CDC_DEVICE_LISTENING /tmp/cdc-product-v3mgcq3u/device.sock
+CDC_DEVICE_CONNECTED full-speed ffff:f117 IN81 OUT02 IRQ83
+CDC_DEVICE_PEER_CLOSED
