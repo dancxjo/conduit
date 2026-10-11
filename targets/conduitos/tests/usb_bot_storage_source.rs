@@ -268,13 +268,65 @@ fn unsupported_geometry_and_lba_select_terminal_before_any_usb_route() {
                 .unwrap()
                 .variant_tag()
                 .unwrap(),
-            if valid { "control" } else { "stopped" }
+            if valid { "control" } else { "ready" }
         );
         if !valid {
             let emission = emit.evaluate(&transition).unwrap();
             let value = validate_canonical_structured_value(&emission).unwrap();
             let result = value.variant_payload("emit").unwrap().unwrap();
             assert_eq!(result.variant_tag().unwrap(), "unsupported");
+            let mut draining = next;
+            // Queued requests remain consumable with no repeated failure or
+            // control/write/read route; only explicit closure terminates.
+            for _ in 0..16 {
+                let retained = StructuredInfoValue::from_canonical_bytes(&draining).unwrap();
+                let paired = record(pair, |field| {
+                    if field.name() == "0" {
+                        retained.clone()
+                    } else {
+                        event.clone()
+                    }
+                });
+                let transition = accept.evaluate(&paired.canonical_bytes().unwrap()).unwrap();
+                let emission = emit.evaluate(&transition).unwrap();
+                assert_eq!(
+                    validate_canonical_structured_value(&emission)
+                        .unwrap()
+                        .variant_tag()
+                        .unwrap(),
+                    "absent"
+                );
+                draining = advance.evaluate(&transition).unwrap();
+                let routed = route.evaluate(&draining).unwrap();
+                assert_eq!(
+                    validate_canonical_structured_value(&routed)
+                        .unwrap()
+                        .variant_tag()
+                        .unwrap(),
+                    "ready"
+                );
+            }
+            let retained = StructuredInfoValue::from_canonical_bytes(&draining).unwrap();
+            let closed = variant(event_type, "closed", |unit| {
+                StructuredInfoValue::leaf(unit.clone(), vec![]).unwrap()
+            });
+            let paired = record(pair, |field| {
+                if field.name() == "0" {
+                    retained.clone()
+                } else {
+                    closed.clone()
+                }
+            });
+            let transition = accept.evaluate(&paired.canonical_bytes().unwrap()).unwrap();
+            let ended = advance.evaluate(&transition).unwrap();
+            let routed = route.evaluate(&ended).unwrap();
+            assert_eq!(
+                validate_canonical_structured_value(&routed)
+                    .unwrap()
+                    .variant_tag()
+                    .unwrap(),
+                "stopped"
+            );
         }
     }
 }
