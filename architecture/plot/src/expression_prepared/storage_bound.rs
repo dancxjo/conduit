@@ -1,8 +1,8 @@
 //! Conservative encoded scratch bounds from the exact checked Type.
 use super::Refusal;
 use conduit_core::{
-    fixed_integer_bytes, primitive_info_kind, PrimitiveInfoKind, StructuredInfoType,
-    StructuredInfoTypeShape, MAXIMUM_STRUCTURED_CANONICAL_BYTES, MAXIMUM_STRUCTURED_LEAF_BYTES,
+    MAXIMUM_STRUCTURED_CANONICAL_BYTES, MAXIMUM_STRUCTURED_LEAF_BYTES, PrimitiveInfoKind,
+    StructuredInfoType, StructuredInfoTypeShape, fixed_integer_bytes, primitive_info_kind,
 };
 
 pub(super) fn output(ty: &StructuredInfoType) -> Result<usize, Refusal> {

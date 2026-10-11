@@ -22,8 +22,8 @@ mod structured;
 mod structured_contract;
 mod text_material;
 use primitive::{
-    decode_bool, evaluate_binary, evaluate_unary, kind_name, leaf_info_kind, leaf_kind,
-    PrimitiveValue,
+    PrimitiveValue, decode_bool, evaluate_binary, evaluate_unary, kind_name, leaf_info_kind,
+    leaf_kind,
 };
 use structured::PreparedStructuredExpression;
 
@@ -357,8 +357,10 @@ fn prepare_node(
         PortableExpressionOperation::SemanticCall {
             kind: call,
             arguments,
-        } if matches!(call.as_str(), "bytes/length" | "bytes/at") => {
-            let expected = if call == "bytes/at" {
+        } if matches!(call.as_str(), "bytes/length" | "bytes/at" | "bytes/window") => {
+            let expected = if call == "bytes/window" {
+                PrimitiveInfoKind::Bytes
+            } else if call == "bytes/at" {
                 PrimitiveInfoKind::U8
             } else {
                 PrimitiveInfoKind::U64
@@ -388,7 +390,7 @@ fn prepare_node(
         _ => {
             return Err(Refusal::UnsupportedType(
                 "structured expression runtime".into(),
-            ))
+            ));
         }
     };
     Ok(PreparedNode {
