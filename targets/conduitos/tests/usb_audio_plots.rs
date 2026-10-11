@@ -9,11 +9,20 @@ fn source() -> String {
     let audio = include_str!("../../../semantics/audio/types.conduit");
     let start = audio.find("type PcmSampleRepresentation").unwrap();
     let end = audio.find("type AudioRenderDemand").unwrap();
+    let negotiation = include_str!("../plots/usb/audio-negotiation-back.conduit");
+    let setup_types = &negotiation[negotiation.find("type UsbAudioSetupState").unwrap()
+        ..negotiation.find("plot usb-audio-setup-start").unwrap()];
+    let setup_observation = &negotiation[negotiation
+        .find("plot usb-audio-setup-observation")
+        .unwrap()
+        ..negotiation.find("plot usb-audio-setup-accept").unwrap()];
     let usb = include_str!("../plots/usb/protocol.conduit");
     let cadence_start = usb.find("type UsbPcmCadence").unwrap();
     let cadence_end = usb.find("# A stale DMA completion").unwrap();
     [
         &audio[start..end],
+        setup_types,
+        setup_observation,
         &usb[cadence_start..cadence_end],
         include_str!("../plots/usb/control-types.conduit"),
         include_str!("../plots/usb/isochronous-out-types.conduit"),
@@ -395,6 +404,40 @@ fn whole_pcm_header_refuses_clock_phase_discontinuity_and_extent_changes() {
         match evaluator.evaluate(&encoded) {
             Ok(output) => assert_eq!(output, [0], "{field}"),
             Err(_) => {}
+        }
+    }
+}
+
+#[test]
+fn setup_observation_preserves_each_exact_phase_ack_without_pairing_raw_result() {
+    let p = program("usb-audio-setup-observation");
+    let mut evaluator = PreparedPortableExpressionEvaluator::new(&p).unwrap();
+    let descriptor = bytes_from_hex(include_str!("../plots/usb/proof/audio/configuration.hex"));
+    for (bytes, count, short, expected) in [
+        (descriptor.as_slice(), 100, false, [1, 0, 0, 0]),
+        (&[][..], 0, false, [0, 1, 0, 0]),
+        (&[][..], 3, false, [0, 0, 1, 0]),
+        (&[128, 187, 0][..], 3, false, [0, 0, 0, 1]),
+        (&[68, 172, 0][..], 3, false, [0, 0, 0, 0]),
+        (&[128, 187, 0][..], 3, true, [0, 0, 0, 0]),
+    ] {
+        let input = completed(&p, bytes, count, short);
+        let output =
+            validate_canonical_structured_value(evaluator.evaluate(&input).unwrap()).unwrap();
+        for (field, expected) in ["descriptor", "zero-ack", "set-ack", "get-ack"]
+            .into_iter()
+            .zip(expected)
+        {
+            assert_eq!(
+                output
+                    .record_field(field)
+                    .unwrap()
+                    .unwrap()
+                    .primitive_bytes("value/bool")
+                    .unwrap(),
+                [expected],
+                "{field}"
+            );
         }
     }
 }
