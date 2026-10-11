@@ -1,0 +1,27 @@
+{
+  "validation": "passed-after-original-diagnostic",
+  "decoded_serial": {
+    "serial_results": 2,
+    "transmitted": 1,
+    "terminal": "provider-lost",
+    "retired": true
+  },
+  "independent_wire": {
+    "source_controls": 5,
+    "discovery_controls": 2,
+    "actual_transmit": 1,
+    "successful_receive": 0,
+    "cancelled_receive_responses": 1,
+    "cancelled_in": true,
+    "disconnect_observed": true,
+    "exact_octets": true,
+    "preflight": "supported",
+    "discovery_configuration_hex": "090243000201008032090400000102020100052400100105240100010424020205240600010705830310001009040100020a0000000705810240000007050202400000"
+  },
+  "original_receipt_sha256": "7d7dfaffce7c51972e45675d0c47b879a2e7f1a87309bd3f029037244f12aa20",
+  "validation_tools_sha256": {
+    "disconnect_decoder": "214dd152ca37469a0adfdda2211150f8ab7269cf4b52104d4a1780e4239040c5",
+    "decode_disconnect.rs": "a8e3da9ff09273c4604c401a57d2fea78a4a12f07bf4c43387f8b99118e95e69",
+    "check_disconnect_wire.py": "ccac872a285eda554bd4b18c072511a04c4c119d7a16936182bb7727908bfa65"
+  }
+}
