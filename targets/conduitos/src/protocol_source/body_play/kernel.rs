@@ -34,6 +34,14 @@ impl<P: I2cProvider, C: MonotonicDeadlineProvider> ProtocolKernel<P, C> {
             Self::WithoutClock(kernel) => kernel.step(),
         }
     }
+    pub(super) fn pending_retirement_call(
+        &self,
+    ) -> Result<Option<super::retirement::PendingRetirementCall>, ProtocolCallRefusal> {
+        match self {
+            Self::WithClock(kernel) => kernel.pending_retirement_call(),
+            Self::WithoutClock(kernel) => kernel.pending_retirement_call(),
+        }
+    }
     pub(super) fn cancel(&mut self) -> Result<(), ProtocolCallRefusal> {
         match self {
             Self::WithClock(kernel) => kernel.cancel(),

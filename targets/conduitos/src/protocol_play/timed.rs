@@ -69,6 +69,15 @@ impl<P: I2cProvider, C: MonotonicDeadlineProvider> PreparedTimedProtocolPlay<P, 
         self.clock.monotonic_observation(&self.play.kernel)
     }
 
+    pub(crate) fn pending_retirement_call(
+        &self,
+    ) -> Result<
+        Option<crate::protocol_source::body_play::retirement::PendingRetirementCall>,
+        ProtocolCallRefusal,
+    > {
+        self.play.pending_retirement_call()
+    }
+
     pub fn cancel(&mut self) -> Result<(), ProtocolCallRefusal> {
         self.clock.revoke(&self.play.kernel)?;
         self.play.cancel()

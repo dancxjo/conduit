@@ -7,11 +7,13 @@ use crate::{
     protocol_play::{ClockAdmission, I2cAdmission},
 };
 mod kernel;
+pub(crate) mod retirement;
 use alloc::boxed::Box;
 use conduit_body::{BodyLifecycleSession, BodyLifecycleSessionError, BodyPlayIdentity};
 use conduit_composite::KernelCompositeStatus;
 use conduit_core::{BootId, HostId, PortId, ValuePayload, bind_sign};
 use kernel::ProtocolKernel;
+pub use retirement::{AcknowledgedProtocolCancellation, ProtocolCancellationRefusal};
 
 #[derive(Debug)]
 pub enum ProtocolBodyRefusal {
@@ -37,6 +39,10 @@ pub struct PreparedProtocolBodyPlay<P, C> {
     kernel: Option<ProtocolKernel<P, C>>,
     host: HostId,
     boot: BootId,
+    retirement_identity: Option<(
+        crate::protocol_artifact::ProtocolArtifactIdentity,
+        BodyPlayIdentity,
+    )>,
 }
 
 impl<P: I2cProvider, C: MonotonicDeadlineProvider> PreparedProtocolBodyPlay<P, C> {
@@ -141,6 +147,7 @@ impl<P: I2cProvider, C: MonotonicDeadlineProvider> PreparedProtocolBodyPlay<P, C
             let host = fragment.host_id.clone();
             let boot = fragment.boot_id.clone();
             let play = BodyPlayIdentity::bind(&current.plan, play_sequence);
+            let retirement_identity = (artifact.artifact().identity().clone(), play.clone());
             let sign =
                 |sequence| bind_sign(&host, &boot, Some(&play.active_play_id), sequence).sign_id;
             let wake = current
@@ -155,15 +162,16 @@ impl<P: I2cProvider, C: MonotonicDeadlineProvider> PreparedProtocolBodyPlay<P, C
                 .started(&host, &boot, play, wake)
                 .map_err(ProtocolBodyRefusal::Lifecycle)?;
             let kernel = prepare_kernel(artifact).map_err(ProtocolBodyRefusal::Call)?;
-            Ok::<_, ProtocolBodyRefusal>((start_session, kernel, host, boot))
+            Ok::<_, ProtocolBodyRefusal>((start_session, kernel, host, boot, retirement_identity))
         })();
         match prepared {
-            Ok((start_session, kernel, host, boot)) => Ok(Self {
+            Ok((start_session, kernel, host, boot, retirement_identity)) => Ok(Self {
                 session,
                 start_session: Some(start_session),
                 kernel: Some(kernel),
                 host,
                 boot,
+                retirement_identity: Some(retirement_identity),
             }),
             Err(reason) => Err(Box::new(ProtocolBodyPreparationRefusal { session, reason })),
         }
@@ -236,7 +244,55 @@ impl<P: I2cProvider, C: MonotonicDeadlineProvider> PreparedProtocolBodyPlay<P, C
             .map_err(ProtocolBodyRefusal::Lifecycle)?;
         self.kernel = None;
         self.start_session = None;
+        self.retirement_identity = None;
         Ok(())
+    }
+
+    /// Successful cancellation evidence, not proof of an external transaction.
+    pub fn cancel_acknowledged(
+        &mut self,
+    ) -> Result<AcknowledgedProtocolCancellation, ProtocolCancellationRefusal> {
+        use retirement::{CancellationStage, ProtocolCancellationRefusal as Refusal};
+        let current = self
+            .session
+            .realization()
+            .and_then(|current| current.play.as_ref());
+        let identity = self.retirement_identity.as_ref().ok_or_else(|| {
+            Refusal::new(CancellationStage::Identity, ProtocolBodyRefusal::NotPlaying)
+        })?;
+        if current != Some(&identity.1) {
+            return Err(Refusal::new(
+                CancellationStage::Identity,
+                ProtocolBodyRefusal::NotPlaying,
+            ));
+        }
+        let kernel = self.kernel.as_mut().ok_or_else(|| {
+            Refusal::new(CancellationStage::Identity, ProtocolBodyRefusal::NotPlaying)
+        })?;
+        let pending = kernel.pending_retirement_call().map_err(|error| {
+            Refusal::new(
+                CancellationStage::Identity,
+                ProtocolBodyRefusal::Call(error),
+            )
+        })?;
+        kernel.cancel().map_err(Refusal::call)?;
+        self.session
+            .lull(&self.host, &self.boot, Some(&identity.1))
+            .map_err(|error| {
+                Refusal::new(
+                    CancellationStage::BodyLull,
+                    ProtocolBodyRefusal::Lifecycle(error),
+                )
+            })?;
+        self.kernel = None;
+        self.start_session = None;
+        let (artifact, play) = self
+            .retirement_identity
+            .take()
+            .expect("validated retained identity");
+        Ok(AcknowledgedProtocolCancellation::new(
+            artifact, play, pending,
+        ))
     }
 
     pub fn admit_input(

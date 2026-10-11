@@ -347,6 +347,35 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
         })
     }
 
+    pub(crate) fn pending_retirement_call(
+        &self,
+        kernel: &KernelCompositeHost,
+    ) -> Result<
+        Option<crate::protocol_source::body_play::retirement::PendingRetirementCall>,
+        ProtocolCallRefusal,
+    > {
+        #[cfg(any(
+            target_arch = "x86_64",
+            all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+        ))]
+        if let Some(token) = self.pending_usb {
+            let view = kernel
+                .admitted_host_request_view(&token)
+                .map_err(ProtocolCallRefusal::Kernel)?;
+            return Ok(Some(
+                crate::protocol_source::body_play::retirement::PendingRetirementCall::capture(
+                    token,
+                    *view.obligation_identity,
+                    view.request.node,
+                    view.request.call,
+                    view.request.request,
+                ),
+            ));
+        }
+        let _ = kernel;
+        Ok(None)
+    }
+
     /// Revoke actual bus ownership as well as cancelling kernel and computation state.
     pub fn cancel(&mut self, kernel: &mut KernelCompositeHost) -> Result<(), ProtocolCallRefusal> {
         use ProtocolCallRefusal as Refusal;
