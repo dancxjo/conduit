@@ -188,8 +188,10 @@ impl UsbControlTransfer {
                     return Err(UsbControlCallRefusal::Native(error));
                 }
             };
-        super::attachment::validate_attachment_continuity(controller.port_status(device.root_port))
-            .map_err(UsbControlCallRefusal::Native)?;
+        super::super::attachment::validate_attachment_continuity(
+            controller.port_status(device.root_port),
+        )
+        .map_err(UsbControlCallRefusal::Native)?;
         let submission = self.pending.take().expect("completed submission retained");
         let input = if is_input {
             // The exact final status completed; fixed DMA remains exclusively owned.
