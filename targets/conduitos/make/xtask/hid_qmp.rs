@@ -409,6 +409,17 @@ pub(super) fn wait_for_stage(
     wait_for_stage_with_budget(serial_path, child, stage, reason, Duration::from_secs(5))
 }
 
+/// Cold product arrival admits source catalogs, plans and the native Mask.
+/// It has a preparation budget distinct from subsequent HID response checks.
+pub(super) fn wait_for_product_arrival(
+    serial_path: &Path,
+    child: &mut Child,
+    stage: &str,
+    reason: &'static str,
+) -> Result<(), ConduitosError> {
+    wait_for_stage_with_budget(serial_path, child, stage, reason, Duration::from_secs(20))
+}
+
 fn wait_for_stage_with_budget(
     serial_path: &Path,
     child: &mut Child,
