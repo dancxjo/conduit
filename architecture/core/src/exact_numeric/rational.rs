@@ -34,6 +34,19 @@ impl ExactRational {
             denominator: Natural::ONE,
         }
     }
+    pub fn from_u128(value: u128) -> Self {
+        Self {
+            negative: false,
+            numerator: Natural::from_u128(value),
+            denominator: Natural::ONE,
+        }
+    }
+    pub(super) fn integer_magnitude(self, work: &mut Work) -> Result<(u128, bool), R> {
+        // Charge even short division paths; report inspection never repeats it.
+        work.charge((super::EXACT_NUMERIC_MAX_BITS / 32) as u64)?;
+        let (quotient, remainder) = self.numerator.divide(self.denominator, work)?;
+        Ok((quotient.to_u128()?, remainder != Natural::ZERO))
+    }
     pub fn ratio(numerator: i128, denominator: i128, work: &mut Work) -> Result<Self, R> {
         Self::normalized(
             numerator.is_negative() != denominator.is_negative(),

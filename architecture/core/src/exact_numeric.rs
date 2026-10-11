@@ -1,10 +1,12 @@
 //! Bounded exact mathematical integers and rationals. This is denotation, not a
 //! choice of machine realization. Multi-limb arithmetic spends explicit work;
 //! no operation allocates, rounds or changes existing Scalar/Quantity semantics.
+mod enclosure;
 mod natural;
 mod projection;
 mod quantity;
 mod rational;
+pub use enclosure::*;
 pub use projection::*;
 pub use quantity::*;
 pub use rational::*;

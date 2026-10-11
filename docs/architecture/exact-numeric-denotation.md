@@ -204,3 +204,29 @@ authored rational Quantity Type, replace the decimal `Quantity` codec, select a
 numerical Back or prove ordinary Plan/Play precision admission. Checked transport
 and offered realization remain the next integration requirements; symbolic π,
 roots and general symbolic reasoning remain separate open work.
+
+The optional outward integer-enclosure projector prepares `floor(value)` and
+`ceil(value)` in one selected signed or unsigned machine Type under the caller's
+explicit limb-work budget. Both endpoints must fit. It retains the exact source,
+actual outward error distances and admitted maximum coordinate error; insufficient
+precision, range or work refuses rather than rounding silently. Wide operands
+are divided before narrowing, so a large numerator does not by itself prevent a
+small quotient from being enclosed.
+
+Preparation seals the source/result/error correlation. The common projection
+report inspects that sealed evidence without repeating arithmetic or introducing
+an ambient work budget. Fractional source denotation has declared precision loss,
+and an exact-only consumer refuses it; a policy admitting the retained error
+requirement may consume the enclosure. Integral coordinates keep exact fidelity.
+This is an arithmetic containment guarantee, not a confidence interval or a
+promise about a future measured execution.
+
+The physical wrapper retains the complete original Unit and role. Its tolerance
+must use that exact Unit and a difference role (Delta for an affine Point);
+perform any Unit conversion explicitly through the existing physical conversion
+law first. For example, an admitted `1ms` coordinate-error requirement encloses
+`1/3ms` as `[0ms, 1ms]`, while neither a meter tolerance nor an affine temperature
+point is admitted as its error distance. This supplies a reviewed preparation
+boundary for future finite scheduling coordinates. It does not yet lower a cost
+forecast into dispatch, register a source numeric Type or select an ordinary
+Plan numerical Back; those integration requirements remain open.

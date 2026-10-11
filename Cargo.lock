@@ -2414,6 +2414,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-runtime-performance"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
+ "conduit-plot",
+ "libc",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+]
+
+[[package]]
 name = "conduit-semantic-catalog"
 version = "0.1.0"
 dependencies = [

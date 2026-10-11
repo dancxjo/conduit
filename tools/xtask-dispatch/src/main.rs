@@ -121,6 +121,8 @@ mod ci_dispatch;
 mod local_storage;
 #[path = "../../xtask/src/commands/model_authoring.rs"]
 mod model_authoring;
+#[path = "../../xtask/src/commands/runtime_performance.rs"]
+mod runtime_performance;
 mod tool_setup;
 
 fn main() {
@@ -129,6 +131,15 @@ fn main() {
         && arguments.get(1).map(String::as_str) == Some("model-authoring")
     {
         if let Err(error) = model_authoring::run(&arguments[2..]) {
+            eprintln!("xtask error: {error}");
+            std::process::exit(1);
+        }
+        return;
+    }
+    if arguments.first().map(String::as_str) == Some("prove")
+        && arguments.get(1).map(String::as_str) == Some("runtime-performance")
+    {
+        if let Err(error) = runtime_performance::run(&arguments[2..], false) {
             eprintln!("xtask error: {error}");
             std::process::exit(1);
         }

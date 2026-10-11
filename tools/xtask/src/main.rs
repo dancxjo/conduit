@@ -61,6 +61,9 @@ fn main() {
                     Err("a structured proof operation cannot be combined with a proof target, --list, --verify, or --run-obligation".into())
                 } else {
                     match command {
+                        ProveCommand::RuntimePerformance { arguments } => {
+                            commands::runtime_performance::run(&arguments, opts.dry_run)
+                        }
                         ProveCommand::ModelAuthoring {
                             output,
                             cuda,
