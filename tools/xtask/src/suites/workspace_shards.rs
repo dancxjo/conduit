@@ -45,6 +45,7 @@ package_test_shard!(
         "conduit-ssd1306",
         "conduit-embedded-build",
         "conduit-kernel",
+        "conduit-runtime-performance",
         "conduit-language",
         "conduit-plan-lowering",
         "conduit-plot",
