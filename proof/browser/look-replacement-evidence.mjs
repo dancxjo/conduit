@@ -23,7 +23,9 @@ export function assertLookReplacement({ before, after, retirement }) {
     requiredIdentity(snapshot.canonicalFace.identity, 'canonicalFace.identity');
     assert.ok((Number.isSafeInteger(snapshot.canonicalFace.revision) && snapshot.canonicalFace.revision >= 0)
       || (typeof snapshot.canonicalFace.revision === 'string'
-        && /^(0|[1-9][0-9]*)$/.test(snapshot.canonicalFace.revision)),
+        && snapshot.canonicalFace.revision.length <= 20
+        && /^(0|[1-9][0-9]*)$/.test(snapshot.canonicalFace.revision)
+        && BigInt(snapshot.canonicalFace.revision) <= 18446744073709551615n),
     'canonical Face revision must be exact; unsafe JSON numbers are not evidence');
     assert.ok(snapshot.canonicalFace.basis && typeof snapshot.canonicalFace.basis === 'object',
       'canonical Face needs its original source basis');
