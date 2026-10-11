@@ -75,21 +75,33 @@ fn event(key: PendingEventKey, code: u8) -> crate::arch::xhci_mechanism::Event {
 
 #[test]
 fn paired_original_endpoint_leases_route_out_before_in_without_double_completion() {
-    paired(1, false, false);
+    paired(1, false, false, None);
 }
 #[test]
 fn paired_stall_retires_both_original_leases_only_after_acknowledged_stop() {
-    paired(1, true, false);
+    paired(1, true, false, None);
 }
 #[test]
 fn paired_stall_failed_stop_retains_both_original_dma_reservations() {
-    paired(6, true, false);
+    paired(6, true, false, None);
 }
 #[test]
 fn paired_acknowledged_cancel_rejects_late_original_events_and_both_kernel_tokens() {
-    paired(1, false, true);
+    paired(1, false, true, None);
 }
-fn paired(stop_code: u8, stalled: bool, cancelled: bool) {
+#[test]
+fn paired_loss_after_live_checkpoint_settles_original_kernel_tokens_once() {
+    paired(1, false, false, Some(0));
+}
+#[test]
+fn paired_loss_after_live_checkpoint_failed_stop_retains_original_tokens_and_dma() {
+    paired(6, false, false, Some(0));
+}
+#[test]
+fn paired_connected_replacement_is_stale_and_does_not_publish_provider_loss() {
+    paired(1, false, false, Some(1 | (1 << 17)));
+}
+fn paired(stop_code: u8, stalled: bool, cancelled: bool, continuity: Option<u32>) {
     crate::arch::xhci_mechanism::with_synthetic_stop_controller(1, stop_code, 0, |controller| {
         let (mut fragment, _, _, read_placement) = read::selected();
         let (write_fragment, _, _, write_placement) = write::selected();
@@ -268,6 +280,60 @@ fn paired(stop_code: u8, stalled: bool, cancelled: bool) {
         let keys = host.independent_keys().unwrap();
         assert_eq!(keys[0].unwrap().index, read_index);
         assert_eq!(keys[1].unwrap().index, write_index);
+        if let Some(status) = continuity {
+            assert!(host.independent_continuity_status(1).unwrap());
+            let result = host.independent_continuity_status(status);
+            if status & 1 != 0 || stop_code != 1 {
+                if status & 1 != 0 {
+                    assert!(matches!(
+                        result,
+                        Err(UsbNativeHostRefusal::Native(UsbError::StaleDeviceInstance))
+                    ));
+                } else {
+                    assert!(result.is_err());
+                }
+                assert!(!host.stop_acknowledged && !host.stopped);
+                assert_eq!(host.independent_keys().unwrap(), keys);
+                assert!(host.poll_independent().is_err());
+                for token in &tokens {
+                    assert!(kernel.host_request_input(token).is_ok());
+                }
+                unsafe {
+                    assert_eq!((*dma).owner_slot, 1);
+                }
+            } else {
+                assert!(!result.unwrap());
+                assert!(host.stopped && host.stop_acknowledged);
+                for (direction, index) in [read_index, write_index].into_iter().enumerate() {
+                    let (actual, bytes) = host.poll_independent().unwrap().unwrap();
+                    assert_eq!(actual, index);
+                    assert_eq!(
+                        conduit_core::validate_canonical_structured_value(bytes)
+                            .unwrap()
+                            .variant_tag()
+                            .unwrap(),
+                        "provider-lost"
+                    );
+                    kernel
+                        .complete_host_call_bytes(&tokens[direction], bytes)
+                        .unwrap();
+                    assert!(
+                        kernel
+                            .complete_host_call_bytes(&tokens[direction], bytes)
+                            .is_err()
+                    );
+                }
+                assert!(host.poll_independent().is_err());
+                unsafe {
+                    assert_eq!((*dma).owner_slot, 0);
+                }
+            }
+            // Fixture teardown does not stand in for native retirement.
+            unsafe {
+                (*dma).owner_slot = 0;
+            }
+            return;
+        }
         if cancelled {
             host.cancel().unwrap();
             kernel.cancel().unwrap();

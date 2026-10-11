@@ -187,15 +187,15 @@ impl UsbNativeHost<'_> {
         if keys.iter().all(Option::is_none) {
             return Ok(None);
         }
-        if self.controller.port_status(self.device.root_port) & 1 == 0 {
-            self.finish_independent_fault(None)?;
+        if !self.independent_continuity()? {
             return self.poll_independent();
         }
-        self.validate_continuity()?;
         let Some(event) = self.controller.poll_event() else {
             return Ok(None);
         };
-        self.validate_continuity()?;
+        if !self.independent_continuity()? {
+            return self.poll_independent();
+        }
         self.complete_independent_event(event, keys)
     }
 
@@ -211,7 +211,9 @@ impl UsbNativeHost<'_> {
         {
             return Err(UsbNativeHostRefusal::NotReady);
         }
-        self.validate_continuity()?;
+        if !self.independent_continuity()? {
+            return self.poll_independent();
+        }
         let index = match route_event(event, keys) {
             Ok(index) => index,
             Err(_) => {
@@ -254,6 +256,26 @@ impl UsbNativeHost<'_> {
                 Err(error)
             }
         }
+    }
+
+    fn independent_continuity(&mut self) -> Result<bool, UsbNativeHostRefusal> {
+        self.independent_continuity_status(self.controller.port_status(self.device.root_port))
+    }
+
+    pub(super) fn independent_continuity_status(
+        &mut self,
+        status: u32,
+    ) -> Result<bool, UsbNativeHostRefusal> {
+        // Every pre-completion checkpoint uses one actual observation. Loss
+        // between event polls must settle the original admitted calls just as
+        // loss observed at the first checkpoint does. Connected replacement
+        // remains a stale-identity refusal, never a provider-lost completion.
+        if status & 1 == 0 {
+            self.finish_independent_fault(None)?;
+            return Ok(false);
+        }
+        self.validate_continuity_status(status)?;
+        Ok(true)
     }
 
     fn finish_independent_fault(
