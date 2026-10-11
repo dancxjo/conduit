@@ -14,6 +14,7 @@ use serde::Serialize;
 pub(super) fn inspect(
     model: &str,
     ollama_endpoint: &str,
+    runtime_state: bool,
     opts: &GlobalOpts,
 ) -> Result<(), Box<dyn std::error::Error>> {
     if opts.dry_run {
@@ -23,8 +24,26 @@ pub(super) fn inspect(
         return Ok(());
     }
     let discovery = OllamaDiscovery::discover_at(ollama_endpoint, model)?;
+    let runtime = runtime_state
+        .then(|| {
+            conduit_std_host::hosted_local_model::sample_ollama_runtime(
+                ollama_endpoint,
+                &discovery.model_name,
+                &discovery.model_content_identity,
+            )
+        })
+        .transpose()?;
     if opts.json {
-        println!("{}", serde_json::to_string(&discovery)?);
+        if let Some(runtime) = &runtime {
+            println!(
+                "{}",
+                serde_json::to_string(&serde_json::json!({
+                    "discovery": discovery, "provider_runtime": runtime,
+                }))?
+            );
+        } else {
+            println!("{}", serde_json::to_string(&discovery)?);
+        }
     } else if !opts.quiet {
         println!("LOCAL MODEL DISCOVERED (not initialized or advertised)");
         println!("runtime: {}", discovery.runtime_version);
@@ -39,6 +58,13 @@ pub(super) fn inspect(
             discovery.quantization,
             discovery.context_length
         );
+        if let Some(runtime) = runtime {
+            println!("provider residency: {:?}", runtime.residency);
+            println!(
+                "reported resident bytes: {:?}; VRAM bytes: {:?}",
+                runtime.resident_bytes, runtime.vram_bytes
+            );
+        }
     }
     Ok(())
 }

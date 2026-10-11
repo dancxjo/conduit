@@ -139,7 +139,7 @@ pub(super) fn bounded_command(
     String::from_utf8(bytes).map_err(|_| format!("{program} output is not UTF-8"))
 }
 
-fn bounded_child(
+pub(super) fn bounded_child(
     mut command: Command,
     input: Option<&[u8]>,
     maximum: usize,
