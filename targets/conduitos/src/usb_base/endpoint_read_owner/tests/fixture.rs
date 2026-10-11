@@ -93,7 +93,7 @@ pub(crate) fn claim() -> BaseOperationClaim {
     }
 }
 
-pub(super) fn selected() -> (
+pub(crate) fn selected() -> (
     PlanFragment,
     LoweredPlanFragment,
     ActivePlayIdentity,
@@ -169,7 +169,7 @@ pub(super) fn input() -> alloc::vec::Vec<u8> {
     input_length(8)
 }
 
-pub(super) fn input_length(length: u64) -> alloc::vec::Vec<u8> {
+pub(crate) fn input_length(length: u64) -> alloc::vec::Vec<u8> {
     let contract = EndpointReadContract::prepare().unwrap();
     let StructuredInfoTypeShape::Record { fields, .. } = contract.request_type().shape() else {
         panic!("record");

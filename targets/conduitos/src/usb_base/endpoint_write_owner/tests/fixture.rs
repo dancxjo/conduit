@@ -4,7 +4,7 @@ use alloc::vec;
 use conduit_core::*;
 use conduit_plan_lowering::lowering::LoweredPlanFragment;
 
-pub(super) fn scope() -> BaseCapabilityScope {
+pub(crate) fn scope() -> BaseCapabilityScope {
     BaseCapabilityScope {
         host_id: HostId::from("host/one"),
         boot_id: BootId::from("boot/one"),
@@ -54,7 +54,7 @@ fn authority() -> BaseCapabilityAuthority {
     }
 }
 
-pub(super) fn request() -> CapabilityIssueRequest {
+pub(crate) fn request() -> CapabilityIssueRequest {
     CapabilityIssueRequest {
         scope: scope(),
         authority: authority(),
@@ -73,7 +73,7 @@ pub(super) fn table(key: u8) -> BaseCapabilityTable {
     .unwrap()
 }
 
-pub(super) fn claim() -> BaseOperationClaim {
+pub(crate) fn claim() -> BaseOperationClaim {
     let scope = scope();
     BaseOperationClaim {
         host_id: scope.host_id,
@@ -93,7 +93,7 @@ pub(super) fn claim() -> BaseOperationClaim {
     }
 }
 
-pub(super) fn selected() -> (
+pub(crate) fn selected() -> (
     PlanFragment,
     LoweredPlanFragment,
     ActivePlayIdentity,
@@ -165,10 +165,10 @@ pub(super) fn bind(
     }
 }
 
-pub(super) fn input() -> alloc::vec::Vec<u8> {
+pub(crate) fn input() -> alloc::vec::Vec<u8> {
     input_wire(&[0x12; 8])
 }
-pub(super) fn input_wire(wire: &[u8]) -> alloc::vec::Vec<u8> {
+pub(crate) fn input_wire(wire: &[u8]) -> alloc::vec::Vec<u8> {
     let contract = EndpointWriteContract::prepare().unwrap();
     let StructuredInfoTypeShape::Record { fields, .. } = contract.request_type().shape() else {
         panic!("record");

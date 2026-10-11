@@ -126,7 +126,9 @@ impl UsbNativeHost<'_> {
         Ok(())
     }
 
-    fn independent_keys(&self) -> Result<[Option<PendingEventKey>; 2], UsbNativeHostRefusal> {
+    pub(super) fn independent_keys(
+        &self,
+    ) -> Result<[Option<PendingEventKey>; 2], UsbNativeHostRefusal> {
         let mut keys = [None, None];
         for (direction, index) in [self.pending_endpoint, self.pending_write]
             .into_iter()
@@ -193,6 +195,15 @@ impl UsbNativeHost<'_> {
         let Some(event) = self.controller.poll_event() else {
             return Ok(None);
         };
+        self.validate_continuity()?;
+        self.complete_independent_event(event, keys)
+    }
+
+    pub(super) fn complete_independent_event(
+        &mut self,
+        event: crate::arch::xhci_mechanism::Event,
+        keys: [Option<PendingEventKey>; 2],
+    ) -> Result<Option<(UsbNativeCallIndex, &[u8])>, UsbNativeHostRefusal> {
         self.validate_continuity()?;
         let index = match route_event(event, keys) {
             Ok(index) => index,

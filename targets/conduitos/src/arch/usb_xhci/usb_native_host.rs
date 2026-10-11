@@ -345,3 +345,7 @@ impl UsbNativeHost<'_> {
         Ok(())
     }
 }
+
+#[cfg(test)]
+#[path = "usb_native_host/paired_lease_tests.rs"]
+mod paired_lease_tests;
