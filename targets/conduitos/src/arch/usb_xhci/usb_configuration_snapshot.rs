@@ -8,12 +8,37 @@ use alloc::vec::Vec;
 /// Frozen observation of the original attachment, never native possession.
 /// Private construction prevents callers from substituting authored bytes.
 pub struct UsbConfigurationSnapshot {
+    controller: ControllerIdentity,
     root_port: u8,
     slot: u8,
     dma_slot: u8,
     epoch: u32,
     requested: u16,
     bytes: Vec<u8>,
+}
+// Structural facts validate original ownership; they cannot establish it.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct ControllerIdentity {
+    segment: u8,
+    bus: u8,
+    device: u8,
+    function: u8,
+    vendor: u16,
+    device_id: u16,
+    bar_physical: u64,
+}
+impl ControllerIdentity {
+    fn from_native(controller: &XhciReady) -> Self {
+        Self {
+            segment: controller.segment,
+            bus: controller.bus,
+            device: controller.device,
+            function: controller.function,
+            vendor: controller.vendor,
+            device_id: controller.device_id,
+            bar_physical: controller.bar_physical,
+        }
+    }
 }
 impl UsbConfigurationSnapshot {
     pub fn bytes(&self) -> &[u8] {
@@ -23,6 +48,8 @@ impl UsbConfigurationSnapshot {
         self.requested
     }
     pub fn validate(&self, controller: &XhciReady, device: &UsbDevice) -> Result<(), UsbError> {
+        // Inspect retained facts before consulting DMA or reading any MMIO.
+        self.validate_controller(ControllerIdentity::from_native(controller))?;
         if !self.matches(
             device.root_port,
             device.slot,
@@ -37,9 +64,24 @@ impl UsbConfigurationSnapshot {
         }
         Ok(())
     }
+    fn validate_controller(&self, controller: ControllerIdentity) -> Result<(), UsbError> {
+        if controller != self.controller {
+            return Err(UsbError::StaleDeviceInstance);
+        }
+        Ok(())
+    }
     #[cfg(test)]
     pub(crate) fn fixture(bytes: &[u8], requested: u16) -> Self {
         Self {
+            controller: ControllerIdentity {
+                segment: 0,
+                bus: 0,
+                device: 3,
+                function: 0,
+                vendor: 0x1b36,
+                device_id: 0x000d,
+                bar_physical: 0x1000,
+            },
             root_port: 1,
             slot: 2,
             dma_slot: 0,
@@ -98,6 +140,7 @@ pub fn discover_configuration(
     }
     let actual = control(controller, &mut ring, device.slot, request(total))?;
     let snapshot = UsbConfigurationSnapshot {
+        controller: ControllerIdentity::from_native(controller),
         root_port: device.root_port,
         slot: device.slot,
         dma_slot: device.dma_slot,
@@ -122,6 +165,7 @@ mod tests {
     #[test]
     fn exact_attachment_is_required_even_with_equal_descriptor_bytes() {
         let observed = UsbConfigurationSnapshot {
+            controller: UsbConfigurationSnapshot::fixture(&[], 0).controller,
             root_port: 1,
             slot: 2,
             dma_slot: 0,
@@ -139,5 +183,29 @@ mod tests {
         ] {
             assert!(!observed.matches(facts.0, facts.1, facts.2, facts.3));
         }
+    }
+    #[test]
+    fn foreign_controller_is_rejected_without_mmio_or_dma_access() {
+        let observed = UsbConfigurationSnapshot::fixture(&[9; 9], 9);
+        assert_eq!(observed.validate_controller(observed.controller), Ok(()));
+        let original = observed.controller;
+        let mut wrong = original;
+        wrong.bar_physical += 4096;
+        assert_eq!(
+            observed.validate_controller(wrong),
+            Err(UsbError::StaleDeviceInstance)
+        );
+        let mut wrong = original;
+        wrong.device += 1;
+        assert_eq!(
+            observed.validate_controller(wrong),
+            Err(UsbError::StaleDeviceInstance)
+        );
+        let mut wrong = original;
+        wrong.segment += 1;
+        assert_eq!(
+            observed.validate_controller(wrong),
+            Err(UsbError::StaleDeviceInstance)
+        );
     }
 }
