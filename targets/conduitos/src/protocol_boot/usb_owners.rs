@@ -226,11 +226,14 @@ pub(super) unsafe fn admit(
         let isochronous_issuer =
             unsafe { NativeProtocolIssuer::admit(iso_capability, &mut entropy) }
                 .map_err(|_| "protocol-usb-iso-issuance-refused")?;
-        return Ok(NativeUsbOwners::Isochronous {
-            ready: Box::new(ready),
-            control_issuer: Box::new(control_issuer),
-            isochronous_issuer: Box::new(isochronous_issuer),
-        });
+        return Ok((
+            NativeUsbOwners::Isochronous {
+                ready: Box::new(ready),
+                control_issuer: Box::new(control_issuer),
+                isochronous_issuer: Box::new(isochronous_issuer),
+            },
+            discovery,
+        ));
     }
     if let Some(endpoint_request) = request.endpoint_read.as_ref() {
         // SAFETY: the sole Root reservation and administrator parameters bind
