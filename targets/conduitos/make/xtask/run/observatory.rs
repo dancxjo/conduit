@@ -401,11 +401,32 @@ fn validate_protected_realization(
                 placement.resources.iter().any(|resource| {
                     resource.class_id.as_str() == "conduit.resource/runtime-memory@1"
                         && expected.is_some_and(|minimum| {
-                            // Preparation reserves a finite ceiling for the two
-                            // binding copies; the receipt measures their used bytes.
+                            // One offer admits a finite metadata ceiling shared
+                            // by text and Morse owners; a text receipt measures
+                            // only the current owner's used storage.
                             let bytes = u64::from(resource.units);
                             bytes >= minimum
-                                && bytes <= minimum + if minimum == 4096 { 0 } else { 640 }
+                                && (minimum != 4096 || bytes == minimum)
+                                && snapshot.hosts.iter().any(|host| {
+                                    let offer = &host.advertisement;
+                                    offer.host_id == placement.host_id
+                                        && offer.boot_id == placement.boot_id
+                                        && offer.offer_generation == placement.offer_generation
+                                        && offer.capabilities.iter().any(|capability| {
+                                            capability.capability_id == placement.capability_id
+                                                && capability.kind_id == placement.kind_id
+                                                && capability.implementation.implementation_id
+                                                    == placement.implementation_id
+                                                && capability.implementation.artifact_id
+                                                    == placement.artifact_id
+                                                && capability.resource_requirements.iter().any(
+                                                    |requirement| {
+                                                        requirement.class_id == resource.class_id
+                                                            && requirement.units == resource.units
+                                                    },
+                                                )
+                                        })
+                                })
                         })
                 })
             })
