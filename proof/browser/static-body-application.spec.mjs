@@ -336,7 +336,7 @@ test("malformed packaged Handbook Plot leaves an editable recovery route into a 
   try {
     const page = await session.context.newPage();
     await page.goto(new URL("broken/", site.url).href);
-    await expect(page.locator("[data-session-status]")).toContainText("PlotSyntaxInvalid");
+    await expect(page.locator("[data-session-status]")).toContainText("CND-FRM-051");
     const editor = page.getByRole("textbox", { name: "Plot source", exact: true });
     const chooser = page.getByLabel("Choose an example", { exact: true });
     await expect(editor).toBeEnabled();
@@ -389,7 +389,7 @@ test("a retained syntax refusal exposes original source without rewriting contin
     await page.locator(".handbook-application").getByText("Your body and browser", { exact: true }).click();
     await page.getByRole("button", { name: "Release this tab", exact: true }).click();
     await page.reload();
-    await expect(page.locator("[data-session-status]")).toContainText("PlotSyntaxInvalid");
+    await expect(page.locator("[data-session-status]")).toContainText("CND-FRM-051");
     const editor = page.getByRole("textbox", { name: "Plot source", exact: true });
     await expect(editor).toBeEnabled();
     await expect(editor).toHaveValue(/source = "1kHz"/);
