@@ -1,0 +1,27 @@
+{
+  "profile": "bounded-external-cdc-ecm-device@1",
+  "device": {"speed": "full", "vendor": 65535, "product": 61720, "ep0_packet_bytes": 8},
+  "configuration": 1,
+  "communication_interface": 0,
+  "data_interface": 1,
+  "data_alternate": 1,
+  "bulk_in": 129,
+  "bulk_out": 2,
+  "maximum_packet_bytes": 64,
+  "maximum_frame_bytes": 1514,
+  "mac": "020000000001",
+  "packet_filter": 15,
+  "cycles": 16,
+  "control_operations": 5,
+  "maximum_write_operations": 32,
+  "read_operations": 16,
+  "frame_queue_operations": 48,
+  "entry": "cdc-ecm-frame-service",
+  "start_type": "CdcEcmStart",
+  "start_terminator_bytes": 0,
+  "specializations": [
+    {"kind": "seeded-until", "value": {"type_name": "CdcEcmState", "maximum_bytes": 4096}},
+    {"kind": "feedback-zip", "left": {"type_name": "CdcEcmState", "maximum_bytes": 4096}, "right": {"type_name": "CdcEcmEvent", "maximum_bytes": 4096}},
+    {"kind": "merge", "value": {"type_name": "CdcEcmEvent", "maximum_bytes": 4096}}
+  ]
+}
