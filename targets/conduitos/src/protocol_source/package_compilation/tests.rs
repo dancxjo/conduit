@@ -190,3 +190,19 @@ plot bootstrap (
         conduit_core::PortTemporal::Flow { closes: true }
     );
 }
+
+#[test]
+fn storage_imports_survive_package_type_preparation_and_final_entry_check() {
+    let source = "with storage/block-read/request as BlockReadRequest\nwith storage/block-read/permit as BlockReadPermit\nwith storage/block-read/result as BlockReadResult\nplot identity (\n request: BlockReadRequest...| <= 4096B >> result: BlockReadRequest...| <= 4096B\n) = (.)\nplot permit-identity (\n value: BlockReadPermit...| >> result: BlockReadPermit...|\n) = (.)\nplot result-identity (\n value: BlockReadResult...| >> result: BlockReadResult...|\n) = (.)";
+    let package =
+        ProtocolSourcePackage::compile(source.into(), &[request("BlockReadPermit", 4096)]).unwrap();
+    let entry =
+        PreparedProtocolEntry::prepare(&serde_json::to_vec(&package).unwrap(), "identity").unwrap();
+    assert_eq!(entry.expanded().expanded.gears.len(), 1);
+    let ProtocolSpecialization::SeededFlow { value } = &package.specializations[0] else {
+        panic!()
+    };
+    let expected =
+        crate::storage_base::transaction_contract::BlockReadTransactionContract::prepare().unwrap();
+    assert_eq!(&value.schema, expected.permit_type());
+}
