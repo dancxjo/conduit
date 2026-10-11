@@ -244,6 +244,7 @@ ed25519-dalek = { version = "2.2", default-features = false, features = ["alloc"
 conduit-semantic-catalog = { path = "../../semantics/catalog", default-features = false, features = ["plot-catalog", "kernel-step"] }
 conduit-time = { path = "../../semantics/time" }
 conduit-text = { path = "../../semantics/text", default-features = false }
+conduit-data = { path = "../../semantics/data", default-features = false }
 conduit-web = { path = "../../semantics/web", default-features = false }
 conduit-synth = { path = "../../mechanisms/implementations/synth" }
 sha2 = { version = "=0.10.9", default-features = false }

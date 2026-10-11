@@ -14,7 +14,7 @@ pub fn validate_hex(hex: &str) -> Result<usize, BytesLiteralRefusal> {
     if hex.len() > MAXIMUM_LITERAL_BYTES as usize * 2 {
         return Err(BytesLiteralRefusal::Oversized);
     }
-    if hex.len() % 2 != 0 {
+    if !hex.len().is_multiple_of(2) {
         return Err(BytesLiteralRefusal::OddLength);
     }
     if !hex.bytes().all(|byte| byte.is_ascii_hexdigit()) {
@@ -32,7 +32,7 @@ pub fn decode_hex(hex: &str) -> Result<Vec<u8>, BytesLiteralRefusal> {
         }
     };
     let mut bytes = Vec::with_capacity(length);
-    for pair in hex.as_bytes().chunks_exact(2) {
+    for pair in hex.as_bytes().as_chunks::<2>().0 {
         bytes.push((nibble(pair[0]) << 4) | nibble(pair[1]));
     }
     Ok(bytes)
@@ -104,6 +104,15 @@ mod tests {
         assert!(kind.inputs.is_empty());
         assert_eq!(kind.outputs[0].value_kind.as_str(), "value/bytes");
         assert_eq!(kind.outputs[0].temporal, PortTemporal::Value);
-        assert_eq!(kind.checked_front().value_contracts().len(), 1);
+        let fore = kind.checked_front();
+        let output = fore
+            .value_contracts()
+            .iter()
+            .find(|value| {
+                value.location == FrontValueLocation::Output(kind.outputs[0].port_id.clone())
+            })
+            .expect("exact bounded byte output");
+        assert_eq!(output.contract.maximum_bytes, MAXIMUM_LITERAL_BYTES);
+        assert_eq!(output.contract.value_kind, kind.outputs[0].value_kind);
     }
 }

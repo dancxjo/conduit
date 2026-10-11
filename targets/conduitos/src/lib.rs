@@ -290,6 +290,7 @@ pub mod rescue_guest;
 pub mod sign_format;
 // Pending join facts are shared with the portable front door on every arch;
 // only the boot-specific serial emission is target-gated inside the module.
+pub mod bytes_literal;
 pub mod native_guest_part;
 pub mod spore_join;
 pub mod spore_provision;
@@ -298,7 +299,6 @@ pub mod synth_nucleus;
 pub mod text_composition;
 mod text_kernel_backs;
 pub mod text_literal;
-pub mod bytes_literal;
 mod text_offer;
 pub mod text_planned_kernel;
 #[cfg(conduitos_protected_execution)]
