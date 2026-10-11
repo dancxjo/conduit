@@ -5,7 +5,12 @@ use conduit_core::{
     StructuredFieldValue, StructuredInfoTypeShape, StructuredInfoValue,
     validate_canonical_structured_value,
 };
-fn request_bytes(contract: &BlockReadContract, size: u64, count: u64, lba: u64) -> Vec<u8> {
+pub(super) fn request_bytes(
+    contract: &BlockReadContract,
+    size: u64,
+    count: u64,
+    lba: u64,
+) -> Vec<u8> {
     let StructuredInfoTypeShape::Record { fields, .. } = contract.request_type().shape() else {
         panic!("request record")
     };
@@ -18,6 +23,7 @@ fn request_bytes(contract: &BlockReadContract, size: u64, count: u64, lba: u64) 
                 StructuredInfoValue::leaf(field.value_type().clone(), value.to_le_bytes().to_vec())
                     .unwrap(),
             )
+            .unwrap()
         })
         .collect();
     StructuredInfoValue::record(contract.request_type().clone(), values)
@@ -87,6 +93,7 @@ fn complete_and_incomplete_preserve_request_ordinal_and_storage_residue() {
                     .try_into()
                     .unwrap(),
             )
+            .unwrap()
         };
         assert_eq!(integer("actual"), length as u64);
         assert_eq!(integer("residue"), u64::from(residue));

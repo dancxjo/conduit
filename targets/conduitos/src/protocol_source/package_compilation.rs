@@ -56,6 +56,10 @@ impl ProtocolSourcePackage {
         install_clock(&mut startup, &mut profile)?;
         install_literal(&mut startup, &mut profile)?;
         usb_catalog::install(&mut startup, &mut profile)?;
+        crate::storage_base::contract::BlockReadContract::prepare()
+            .map_err(Error::Contract)?
+            .install_catalogs(&mut startup, &mut profile)
+            .map_err(Error::Catalog)?;
         crate::serial_base::contract::SerialDuplexContract::prepare()
             .map_err(Error::Contract)?
             .install_catalogs(&mut startup, &mut profile)
