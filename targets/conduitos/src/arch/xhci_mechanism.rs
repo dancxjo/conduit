@@ -14,6 +14,7 @@ mod event;
 #[path = "xhci_mechanism/ordering.rs"]
 mod ordering;
 pub(crate) use ordering::publish_dma;
+pub(crate) mod isochronous;
 #[path = "xhci_mechanism/transfer_publication.rs"]
 mod transfer_publication;
 pub(crate) use transfer_publication::publish_transfer;
@@ -93,6 +94,7 @@ pub struct XhciReady {
     event_cycle: u32,
     maximum_ports: u8,
     context_bytes: u8,
+    isochronous_threshold: u8,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -190,6 +192,7 @@ pub(crate) unsafe fn initialize_mapped(
         event_cycle: 1,
         maximum_ports: registers.maximum_ports,
         context_bytes: registers.context_bytes,
+        isochronous_threshold: registers.isochronous_threshold,
     })
 }
 
@@ -197,6 +200,7 @@ struct RegisterState {
     hardware_slots: u8,
     maximum_ports: u8,
     context_bytes: u8,
+    isochronous_threshold: u8,
     operational: usize,
     runtime_interrupter: usize,
     doorbell: usize,
@@ -320,6 +324,7 @@ unsafe fn initialize_registers(mmio: usize, dma_physical: u64) -> Result<Registe
                 context_bytes,
                 operational,
                 runtime_interrupter: interrupter,
+                isochronous_threshold: (hcs2 & 15) as u8,
                 doorbell,
             });
         }
@@ -329,6 +334,13 @@ unsafe fn initialize_registers(mmio: usize, dma_physical: u64) -> Result<Registe
 }
 
 impl XhciReady {
+    pub(crate) fn microframe_index(&self) -> u16 {
+        unsafe { (read32(self.runtime_interrupter - 0x20) & 0x3fff) as u16 }
+    }
+    pub(crate) const fn isochronous_threshold(&self) -> u8 {
+        self.isochronous_threshold
+    }
+
     pub(crate) const fn maximum_ports(&self) -> u8 {
         self.maximum_ports
     }
