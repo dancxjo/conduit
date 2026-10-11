@@ -33,7 +33,7 @@ impl UsbNativeHost<'_> {
         &mut self,
         index: UsbNativeCallIndex,
     ) -> Result<Option<&[u8]>, UsbNativeHostRefusal> {
-        if self.stopped || self.stop_acknowledged {
+        if self.stopped || self.stop_acknowledged || self.uncertain_bulk {
             return Err(UsbNativeHostRefusal::NotReady);
         }
         if self.pending_write.is_some() || self.pending_endpoint != Some(index.0) {
@@ -114,7 +114,7 @@ impl UsbNativeHost<'_> {
         &mut self,
         index: UsbNativeCallIndex,
     ) -> Result<Option<&[u8]>, UsbNativeHostRefusal> {
-        if self.stopped || self.stop_acknowledged {
+        if self.stopped || self.stop_acknowledged || self.uncertain_bulk {
             return Err(UsbNativeHostRefusal::NotReady);
         }
         if self.pending_write.is_some() || self.pending_endpoint != Some(index.0) {

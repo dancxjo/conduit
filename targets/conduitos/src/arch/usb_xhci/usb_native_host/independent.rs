@@ -172,7 +172,11 @@ impl UsbNativeHost<'_> {
             let index = slot.index.take().ok_or(UsbNativeHostRefusal::Binding)?;
             return Ok(Some((index, &slot.bytes[..slot.length])));
         }
-        if self.stopped || self.stop_acknowledged || self.cancellation_requested {
+        if self.stopped
+            || self.stop_acknowledged
+            || self.cancellation_requested
+            || self.uncertain_bulk
+        {
             return Err(UsbNativeHostRefusal::NotReady);
         }
         let keys = self.independent_keys()?;
