@@ -139,3 +139,32 @@ fn full_mtu_read_event_fits_admitted_bound_and_preserves_metadata_and_wire() {
         event
     );
 }
+
+#[test]
+fn transmit_budget_is_independent_of_receive_and_refuses_seventeenth_usb_write() {
+    let s = source();
+    let mut state = phase(&start(&s, &[]), 6);
+    for ordinal in 0..16 {
+        state = step(&s, &state, &transmit(&s, ordinal, &frame(1514)));
+        assert_eq!(tag(&eval(&program(&s, "cdc-ecm-route"), &state)), "write");
+        state = step(&s, &state, &written(&s, 1514));
+        state = step(&s, &state, &queue(&s, "acknowledged"));
+        assert_eq!(number(member(&state, "transmitted")), ordinal + 1);
+        assert_eq!(number(member(&state, "cycles")), 0);
+        assert_eq!(tag(member(&state, "transmit")), "pressure");
+    }
+    let stopped = step(&s, &state, &transmit(&s, 16, &frame(1514)));
+    assert_eq!(
+        tag(&eval(&program(&s, "cdc-ecm-route"), &stopped)),
+        "stopped"
+    );
+    assert_eq!(number(member(&stopped, "transmitted")), 16);
+    assert_eq!(number(member(&stopped, "cycles")), 0);
+    assert_eq!(tag(member(&stopped, "outcome")), "malformed");
+    state = step(&s, &state, &queue(&s, "pressure"));
+    state = step(&s, &state, &received(&s, 0, &frame(1514)));
+    state = step(&s, &state, &queue(&s, "accepted"));
+    assert_eq!(number(member(&state, "transmitted")), 16);
+    assert_eq!(number(member(&state, "cycles")), 1);
+    assert_eq!(tag(member(&state, "receive")), "take-transmit");
+}
