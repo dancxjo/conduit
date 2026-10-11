@@ -107,8 +107,11 @@ use crate::usb_base::{
     control_proof_plan::{self as planning, ControlProofSubject},
 };
 use conduit_core::*;
+#[cfg(not(all(target_arch = "x86_64", feature = "scripted-keyboard-proof")))]
 #[path = "../usb_control_kernel_proof/possession.rs"]
-mod possession;
+pub(in crate::arch::usb_xhci) mod possession;
+#[cfg(all(target_arch = "x86_64", feature = "scripted-keyboard-proof"))]
+pub(in crate::arch::usb_xhci) use super::super::kernel_proof::possession;
 
 fn control_input(contract: &ControlContract) -> alloc::vec::Vec<u8> {
     let StructuredInfoTypeShape::Record { fields, .. } = contract.request_type().shape() else {

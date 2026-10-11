@@ -1,13 +1,7 @@
+use super::super::native_host::stop_ack_tests::possession;
 use super::*;
-use crate::usb_base::{
-    control_contract::{CONTROL_CALL, CONTROL_MAXIMUM_BYTES},
-    control_factory::CONTROL_IMPLEMENTATION,
-    control_proof_plan::{self as planning, ControlProofSubject},
-};
-#[path = "../../../usb_base/isochronous/owner/tests/fixture.rs"]
-mod iso_fixture;
-#[path = "../usb_control_kernel_proof/possession.rs"]
-mod possession;
+use crate::usb_base::control_proof_plan::{self as planning, ControlProofSubject};
+use crate::usb_base::isochronous::owner::tests::fixture as iso_fixture;
 fn mapping(address: u64) -> Option<u64> {
     Some(address)
 }

@@ -107,7 +107,7 @@ pub(super) fn selected() -> (
     )
 }
 
-pub(super) fn owner(key: u8) -> IsochronousOutCallOwner {
+pub(crate) fn owner(key: u8) -> IsochronousOutCallOwner {
     let (fragment, lowered, active, placement) = selected();
     bind(
         SelectedOperationPlan {

@@ -3,7 +3,7 @@ use super::*;
 mod binding;
 mod completion;
 mod execution;
-mod fixture;
+pub(crate) mod fixture;
 mod possession;
 mod retirement;
 

@@ -67,6 +67,28 @@ pub(super) fn control_raw(
     slot: u8,
     request: ControlTransferRequest<'_>,
 ) -> Result<usize, UsbError> {
+    control_raw_checked(controller, ring, slot, request, false)
+}
+
+pub(super) fn control_raw_continuous(
+    controller: &mut XhciReady,
+    ring: &mut ControlRing,
+    slot: u8,
+    request: ControlTransferRequest<'_>,
+) -> Result<usize, UsbError> {
+    control_raw_checked(controller, ring, slot, request, true)
+}
+
+fn control_raw_checked(
+    controller: &mut XhciReady,
+    ring: &mut ControlRing,
+    slot: u8,
+    request: ControlTransferRequest<'_>,
+    continuous: bool,
+) -> Result<usize, UsbError> {
+    if continuous {
+        super::attachment::validate_attachment_continuity(controller.port_status(ring.root_port))?;
+    }
     if slot == 0
         || ring.root_port == 0
         || slot != ring.slot
@@ -78,7 +100,7 @@ pub(super) fn control_raw(
     }
     let (reservation, mut completion) = prepare_transfer(ring, &request)?;
     controller.ring_endpoint(slot, 1);
-    let result = wait_completion(controller, ring, &mut completion);
+    let result = wait_completion(controller, ring, &mut completion, continuous);
     match result {
         Ok(bytes) => {
             // SAFETY: the exact TD's successful final Status Stage was observed.
@@ -170,9 +192,20 @@ fn wait_completion(
     controller: &mut XhciReady,
     ring: &mut ControlRing,
     completion: &mut ControlCompletion,
+    continuous: bool,
 ) -> Result<usize, UsbError> {
     for _ in 0..TRANSFER_TRBS {
+        if continuous {
+            super::attachment::validate_attachment_continuity(
+                controller.port_status(ring.root_port),
+            )?;
+        }
         let event = controller.next_event()?;
+        if continuous {
+            super::attachment::validate_attachment_continuity(
+                controller.port_status(ring.root_port),
+            )?;
+        }
         if let Some(result) = completion.observe(event)? {
             if result.short {
                 ring.short_packets = ring.short_packets.saturating_add(1);

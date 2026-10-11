@@ -41,6 +41,7 @@ impl<'a> UsbNativeHost<'a> {
             || self.cancellation_requested
             || self.stop_acknowledged
             || self.uncertain_control
+            || self.uncertain_bulk
         {
             return Err(UsbNativeHostRefusal::NotReady);
         }
@@ -51,9 +52,10 @@ impl<'a> UsbNativeHost<'a> {
         transfer
             .validate(&self.device, endpoint_epoch)
             .map_err(UsbNativeHostRefusal::Isochronous)?;
-        if self.controller.port_status(self.device.root_port) & 1 == 0 {
-            return Err(UsbNativeHostRefusal::NotReady);
-        }
+        super::super::attachment::validate_attachment_continuity(
+            self.controller.port_status(self.device.root_port),
+        )
+        .map_err(UsbNativeHostRefusal::Native)?;
         Ok(
             crate::usb_base::isochronous_schedule::IsochronousOutSnapshot {
                 current_microframe: self.controller.microframe_index(),
@@ -112,10 +114,17 @@ impl<'a> UsbNativeHost<'a> {
             || self.cancellation_requested
             || self.stop_acknowledged
             || self.pending_endpoint.is_some()
+            || self.pending_write.is_some()
+            || self
+                .bulk_terminals
+                .as_ref()
+                .is_some_and(|slots| slots.iter().any(|slot| slot.index.is_some()))
             || self.uncertain_control
+            || self.uncertain_bulk
         {
             return Err(UsbNativeHostRefusal::NotReady);
         }
+        self.validate_continuity()?;
         let transfer = self
             .isochronous
             .as_mut()
@@ -154,9 +163,11 @@ impl<'a> UsbNativeHost<'a> {
             self.cancel()?;
             return Ok(Some(IsochronousOutObservation::ProviderLost));
         }
+        self.validate_continuity()?;
         let Some(event) = self.controller.poll_event() else {
             return Ok(None);
         };
+        self.validate_continuity()?;
         let observation = match self
             .isochronous
             .as_mut()
@@ -171,6 +182,7 @@ impl<'a> UsbNativeHost<'a> {
                 return Err(UsbNativeHostRefusal::Isochronous(error));
             }
         };
+        self.validate_continuity()?;
         if matches!(
             observation,
             IsochronousOutObservation::Underrun
@@ -192,6 +204,7 @@ impl<'a> UsbNativeHost<'a> {
             || self.cancellation_requested
             || self.stop_acknowledged
             || self.uncertain_control
+            || self.uncertain_bulk
             || !self.isochronous_started
         {
             return Err(UsbNativeHostRefusal::NotReady);
@@ -206,6 +219,7 @@ impl<'a> UsbNativeHost<'a> {
         if transfer.pending_count() != 0 {
             return Err(UsbNativeHostRefusal::Pending);
         }
+        self.validate_continuity()?;
         self.cancel()?;
         Ok(IsochronousOutObservation::Drained)
     }

@@ -336,4 +336,4 @@ impl IsochronousOutCallOwner {
 
 #[cfg(test)]
 #[path = "owner/tests.rs"]
-mod tests;
+pub(crate) mod tests;

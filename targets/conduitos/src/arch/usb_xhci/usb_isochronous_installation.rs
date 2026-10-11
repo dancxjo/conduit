@@ -472,7 +472,11 @@ fn validate_preissued_metadata(
 ) -> Result<(), UsbIsochronousCallRefusal> {
     let mut entries = table.inspections();
     let entry = entries.next().ok_or(UsbIsochronousCallRefusal::Binding)?;
-    if entries.next().is_some() || entry.scope.maximum_in_flight != 1 {
+    if entries.next().is_some()
+        || entry.scope.maximum_in_flight != 1
+        || table.maximum_capabilities() != 1
+        || table.reserved_capability_slots() != 1
+    {
         return Err(UsbIsochronousCallRefusal::Binding);
     }
     let scope = &entry.scope;
@@ -503,8 +507,14 @@ fn validate_preissued_metadata(
         &claim.resource_generation_id.0,
         claim.envelope_id.as_str(),
     ];
+    // Root's arena uses 32-byte allocation units. Length does not bound
+    // String capacity: charge original issuer, scope, claim and Vec allocations.
+    let metadata_bytes = table
+        .retained_storage_bytes(32)
+        .and_then(|bytes| bytes.checked_add(claim.retained_storage_bytes(32)?));
     if strings.iter().any(|text| text.len() > 256)
         || strings.iter().map(|text| text.len()).sum::<usize>() > 4096
+        || metadata_bytes.is_none_or(|bytes| bytes > 16384)
     {
         return Err(UsbIsochronousCallRefusal::Binding);
     }

@@ -121,6 +121,11 @@ pub struct PreparedProtocolCalls<P> {
         all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
     ))]
     pending_usb_failed: bool,
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    pending_duplex: [Option<(conduit_kernel::NodeId, AdmittedKernelCompositeHostRequest)>; 2],
 }
 impl<P: I2cProvider> PreparedProtocolCalls<P> {
     pub fn prepare(
@@ -344,6 +349,11 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
                 all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
             ))]
             pending_usb_failed: false,
+            #[cfg(any(
+                target_arch = "x86_64",
+                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+            ))]
+            pending_duplex: [None, None],
         })
     }
 
@@ -359,6 +369,7 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
         ))]
         if let Some(host) = &mut self.usb_protocol {
             host.cancel().map_err(Refusal::UsbProtocol)?;
+            self.pending_duplex = [None, None];
             self.pending_usb = None;
             self.pending_usb_failed = false;
         }
@@ -368,6 +379,7 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
         ))]
         if let Some(host) = &mut self.usb_duplex {
             host.cancel().map_err(Refusal::UsbProtocol)?;
+            self.pending_duplex = [None, None];
             self.pending_usb = None;
             self.pending_usb_failed = false;
         }

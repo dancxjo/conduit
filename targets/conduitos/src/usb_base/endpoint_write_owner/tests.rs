@@ -1,5 +1,5 @@
 use super::*;
-mod fixture;
+pub(crate) mod fixture;
 
 #[test]
 fn zero_length_submission_retains_authority_until_actual_acknowledgement() {

@@ -33,11 +33,11 @@ pub use x86_64::CandidateDeadline;
 pub use x86_64::run_isolation_proof;
 #[cfg(target_arch = "x86_64")]
 pub use x86_64::{
-    Clock, FTDI_PACKET_BYTES, FTDI_PAYLOAD_BYTES, FTDI_TRANSFER_TRBS, FtdiLineError, FtdiLineReady,
-    FtdiLineSession, HidError, HidKeyTransition, HidKeyboardSession, HidPointerError,
-    HidPointerReady, HidPointerSession, HidProof, I801PortWindow, Idle, Interrupts,
-    NativeMonotonicDeadlineClock, NativeUsbControlCall, Opl2, PcSpeaker, Ps2Error, Ps2Input,
-    Ps2Ready, RdrandEntropy, ReadyUsbControlBase, RebootBase, RebootError, Serial, Timer,
+    AttachmentBaseline, Clock, FTDI_PACKET_BYTES, FTDI_PAYLOAD_BYTES, FTDI_TRANSFER_TRBS,
+    FtdiLineError, FtdiLineReady, FtdiLineSession, HidError, HidKeyTransition, HidKeyboardSession,
+    HidPointerError, HidPointerReady, HidPointerSession, HidProof, I801PortWindow, Idle,
+    Interrupts, NativeMonotonicDeadlineClock, NativeUsbControlCall, Opl2, PcSpeaker, Ps2Error,
+    Ps2Input, Ps2Ready, RdrandEntropy, ReadyUsbControlBase, RebootBase, RebootError, Serial, Timer,
     UsbConfigurationSnapshot, UsbControlCallRefusal, UsbControlHostCall, UsbControlSelection,
     UsbDevice, VirtioNetError, VirtioNetIdentity, VirtioNetReady, XhciReady,
     address_selected_root_port_at_epoch, admitted_i801_block_read_ports, admitted_i801_pci_ports,
@@ -98,10 +98,10 @@ pub use aarch64::{
 
 #[cfg(all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5")))]
 pub use usb_xhci::{
-    EndpointNativeRefusal, EndpointWriteNativeRefusal, NativeUsbControlCall, ReadyUsbControlBase,
-    UsbConfigurationSnapshot, UsbControlCallRefusal, UsbControlHostCall, UsbControlSelection,
-    UsbDevice, UsbNativeHostRefusal, UsbNativeProtocolRefusal, address_selected_root_port_at_epoch,
-    discover_configuration,
+    AttachmentBaseline, EndpointNativeRefusal, EndpointWriteNativeRefusal, NativeUsbControlCall,
+    ReadyUsbControlBase, UsbConfigurationSnapshot, UsbControlCallRefusal, UsbControlHostCall,
+    UsbControlSelection, UsbDevice, UsbNativeHostRefusal, UsbNativeProtocolRefusal,
+    address_selected_root_port_at_epoch, discover_configuration,
 };
 #[cfg(all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5")))]
 pub(crate) use usb_xhci::{

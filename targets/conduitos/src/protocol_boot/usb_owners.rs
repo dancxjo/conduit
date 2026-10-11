@@ -98,6 +98,16 @@ pub(super) unsafe fn admit(
     if device.root_port != request.root_port {
         return Err("protocol-usb-attachment-mismatch");
     }
+    // Establish exactly once at the original address-completion boundary for
+    // every Root route. Later discovery/Ready/native effects never clear CSC.
+    let baseline = arch::AttachmentBaseline::establish(&controller, &device).map_err(|error| {
+        native_refusal(
+            "attachment-baseline",
+            error.as_str(),
+            device.root_port,
+            device.attachment_epoch,
+        )
+    })?;
     // No class Ready, offer, grant or endpoint configuration exists until this
     // exact packaged pure predicate accepts the Root-observed attachment.
     let discovery = if let Some(preflight) = request.preflight.as_ref() {
@@ -105,6 +115,7 @@ pub(super) unsafe fn admit(
             &mut controller,
             &mut device,
             boot::executable_physical_address,
+            baseline,
         )
         .map_err(|error| {
             native_refusal(
@@ -126,6 +137,16 @@ pub(super) unsafe fn admit(
         }
         Some(admitted)
     } else {
+        baseline
+            .validate_native(&controller, &device)
+            .map_err(|error| {
+                native_refusal(
+                    "attachment-continuity",
+                    error.as_str(),
+                    device.root_port,
+                    device.attachment_epoch,
+                )
+            })?;
         None
     };
     let generation = u64::from(device.attachment_epoch);
