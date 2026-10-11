@@ -274,6 +274,14 @@ export class BrowserBodyParticipation {
     this.#state.lastOwnerShow = shown;
     return shown;
   }
+  /** Exact retained Face bytes for observation; this does not refresh or acknowledge. */
+  ownerCanonicalFaceSnapshot() {
+    if (this.presenceState() !== "available" || !this.membershipCredential()
+        || !this.#state.lastOwnerShow) {
+      throw new Error("current acknowledged owner Show is required for canonical observation");
+    }
+    return this.#state.host.bridge.ownerFaceCanonicalSnapshot();
+  }
   /** Ask the installed owner to read its current acknowledged graphical Show aloud. */
   selectedDirectSpeechStart(view) {
     const shown = this.#state.lastOwnerShow;
