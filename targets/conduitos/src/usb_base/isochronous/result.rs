@@ -75,6 +75,18 @@ impl MetadataRecord {
             zero: zero.leaf(&0_u64.to_le_bytes())?.to_vec(),
         })
     }
+    fn prepared_heap_bytes(&self) -> usize {
+        self.record.prepared_heap_bytes()
+            + self.numbers.capacity() * core::mem::size_of::<PreparedStructuredComposer>()
+            + self
+                .numbers
+                .iter()
+                .map(PreparedStructuredComposer::prepared_heap_bytes)
+                .sum::<usize>()
+            + self.names.capacity() * core::mem::size_of::<String>()
+            + self.names.iter().map(String::capacity).sum::<usize>()
+            + self.zero.capacity()
+    }
     fn compose(&mut self, values: &[(&str, u64)]) -> Result<&[u8], Error> {
         if values.len() != self.numbers.len() || values.len() > 8 {
             return Err(Error::WrongRecordFields);
@@ -159,6 +171,35 @@ impl PreparedIsochronousResultEncoder {
             unit: unit.leaf(&[])?.to_vec(),
         })
     }
+    /// Exact reserved Rust storage after preparation, excluding allocator overhead.
+    /// Root must additionally admit native DMA (3072), input context/controller
+    /// resources, capability-table storage and its installed HostCall buffers.
+    pub fn prepared_storage_bytes(&self) -> usize {
+        core::mem::size_of::<Self>()
+            + [
+                &self.result,
+                &self.completed,
+                &self.short,
+                &self.missed,
+                &self.stopped,
+                &self.sequence,
+                &self.frame,
+            ]
+            .iter()
+            .map(|value| value.prepared_heap_bytes())
+            .sum::<usize>()
+            + self.packets.capacity() * core::mem::size_of::<MetadataRecord>()
+            + self
+                .packets
+                .iter()
+                .map(MetadataRecord::prepared_heap_bytes)
+                .sum::<usize>()
+            + self.fault_packet.prepared_heap_bytes()
+            + self.snapshot.prepared_heap_bytes()
+            + self.zero_packet.capacity()
+            + self.unit.capacity()
+    }
+
     pub fn encode(
         &mut self,
         completed: &[IsochronousCompletion],

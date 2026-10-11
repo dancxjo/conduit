@@ -1,7 +1,5 @@
 //! Cooperative admission/lifetime fixtures; no native DMA or controller proof.
 use super::*;
-use alloc::vec;
-use conduit_core::*;
 use conduit_plan_lowering::lowering::LoweredPlanFragment;
 
 pub(super) fn scope() -> BaseCapabilityScope {

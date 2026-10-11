@@ -88,7 +88,25 @@ impl PreparedStructuredComposer {
         })
     }
 
-    /// Last prepared result, borrowed without changing storage.
+    /// Last successful result, or empty after an aggregate validation refusal.
+    /// Preflight count, identity and extent refusals preserve the previous result.
+    /// Bytes reserved by owned heap buffers, excluding this object's inline size
+    /// and allocator bookkeeping. Available before Play for resource admission.
+    pub fn prepared_heap_bytes(&self) -> usize {
+        let shape = match &self.shape {
+            CompositionShape::Leaf(identity) => identity.capacity(),
+            CompositionShape::Record(fields) | CompositionShape::Variant(fields) => {
+                fields.capacity() * core::mem::size_of::<Field>()
+                    + fields
+                        .iter()
+                        .map(|field| field.name.capacity() + field.type_bytes.capacity())
+                        .sum::<usize>()
+            }
+            CompositionShape::Collection { element_type, .. } => element_type.capacity(),
+        };
+        self.prefix.capacity() + self.output.capacity() + shape
+    }
+
     pub fn encoded(&self) -> &[u8] {
         &self.output
     }
@@ -211,10 +229,13 @@ impl PreparedStructuredComposer {
         Ok(())
     }
 
-    fn finish(&self) -> Result<&[u8], Refusal> {
+    fn finish(&mut self) -> Result<&[u8], Refusal> {
         // Composition must also obey aggregate depth/node limits, rather than
         // inferring them from independently valid children.
-        validate_canonical_structured_value(&self.output)?;
+        if let Err(refusal) = validate_canonical_structured_value(&self.output) {
+            self.output.clear();
+            return Err(refusal);
+        }
         Ok(&self.output)
     }
 }
