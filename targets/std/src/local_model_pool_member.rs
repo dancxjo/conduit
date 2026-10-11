@@ -11,7 +11,10 @@ use crate::{
 use conduit_core::{GearId, PlacementId, Plan, PlannedGear, PoolSelectionEvidence};
 
 mod completion;
-pub use completion::{LocalModelCompletedWork, LocalModelMeasurementRefusal};
+pub use completion::{
+    LocalModelCompletedWork, LocalModelCompletionCalibrationRefusal, LocalModelMeasurementRefusal,
+    LocalModelPreparedCalibration,
+};
 
 pub struct AdmittedLocalModelPoolMember {
     sessions: PoolMemberSessions,
