@@ -357,6 +357,13 @@ pub(crate) fn advertisement_for_machinery(
             .filter(|entry| machinery.admits(entry))
             .map(|entry| {
                 let mut offer = (entry.offer)();
+                if matches!(
+                    offer.kind_id.as_str(),
+                    conduit_thermostat_plot::THERMOSTAT_KIND
+                        | conduit_semantic_catalog::FLOW_SCAN_KIND
+                ) {
+                    return offer;
+                }
                 offer.limits.max_queue_bytes = super::measurement_limits::queue_bound(
                     offer.kind_id.as_str(),
                 )

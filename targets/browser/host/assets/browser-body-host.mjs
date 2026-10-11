@@ -209,6 +209,13 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
   let closeResult = null;
   let input = null, timerSlots = [], clock = false, monotonicTimer = null, closed = false, started = null, completion = null, startAccepted = false, terminal = null;
   let startOutcome = "not-attempted";
+  // One bounded progress receipt from a synchronously admitted local Fore
+  // action joins this same dispatcher. Rust owns admission and execution.
+  let inputProgress = null, inputWake = null;
+  const admittedInput = {
+    take() { const value = inputProgress; inputProgress = null; return value; },
+    subscribe(callback) { inputWake = callback; return () => { inputWake = null; }; },
+  };
   const window = outputRoot.ownerDocument.defaultView;
   const tone = createPitchTonePerformer(window);
   owners.add(api);
@@ -455,12 +462,22 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
       assertCurrent();
       if (!started || completion) throw new Error("browser Body must be started exactly once before dispatch");
       completion = drainBrowserEffects({ api, initialProgress: started.progress, readOutput: () => readOutput(bridge), perform, bridge,
-        signal: dispatchController.signal, isCurrent: () => !closed })
+        signal: dispatchController.signal, isCurrent: () => !closed, admittedInput })
         .then(receipt => {
           if (receipt?.schema === "conduit.tour/manifestation-receipt@3") terminal = receipt;
           return receipt ?? terminal;
         });
       return completion;
+    },
+    thermostatFace() { assertCurrent(); return bridge.thermostatFace(); },
+    acknowledgeThermostatFace(acknowledgement) { assertCurrent(); return bridge.thermostatAcknowledge(acknowledgement); },
+    submitThermostatInteraction(interaction) {
+      assertCurrent();
+      if (inputProgress) throw new Error('Local Fore progress awaits dispatch');
+      const receipt = bridge.thermostatInteract(interaction);
+      inputProgress = receipt.progress;
+      inputWake?.();
+      return receipt;
     },
     close() {
       if (closed) return closeResult;

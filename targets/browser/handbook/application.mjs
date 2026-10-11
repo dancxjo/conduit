@@ -37,7 +37,45 @@ export async function startApplication(application) {
   let busy = false;
   let playFailure = null;
   let foreground = null;
+  let thermostatSequence = 0;
+  let thermostatFace = null;
   const surfaces = new Map();
+  const renderThermostat = async face => {
+    const active = play;
+    await readTruth();
+    if (!active || selected?.name !== 'thermostat/main') return;
+    let output = surfaces.get(selected.checkedPlotId);
+    if (!output) {
+      output = document.createElement('div');
+      output.dataset.residentPlot = selected.checkedPlotId;
+      output.hidden = foreground !== selected.checkedPlotId;
+      surface.append(output); surfaces.set(selected.checkedPlotId, output);
+    }
+    let component = output.querySelector('conduit-owner-face');
+    if (!component) {
+      const heading = document.createElement('h3'); heading.textContent = 'Thermostat'; output.append(heading);
+      component = document.createElement('conduit-owner-face'); output.append(component);
+    }
+    const invoke = async ({ view, action, arguments: actionArguments }) => {
+      component.disabled = true;
+      try {
+        const receipt = active.submitThermostatInteraction({ view, actionId: action.identity,
+          target: action.target, arguments: actionArguments, sequence: ++thermostatSequence });
+        await renderThermostat(receipt.face);
+        checkStatus.textContent = `Accepted ${action.name}. Settings remain in this Play.`;
+        await current();
+      } catch (error) {
+        checkStatus.textContent = `${error.code ?? 'ThermostatRefused'}: ${error.message}`;
+        component.disabled = false;
+      }
+    };
+    const supportsAction = action => action.identity.startsWith('thermostat.');
+    component.show(face.view, { invoke, supportsAction });
+    // Acknowledge only after the selected browser Mask's real DOM is present.
+    const available = active.acknowledgeThermostatFace(face.effect);
+    thermostatFace = available;
+    component.show(available.view, { invoke, supportsAction });
+  };
   const updateControls = () => {
     root.querySelector('[data-wake]').disabled = Boolean(play);
     root.querySelector('[data-lull]').disabled = !play;
@@ -58,7 +96,7 @@ export async function startApplication(application) {
       lifecycle: typeof state === 'string' ? state : Object.keys(state)[0],
       selectedPlot: selected?.checkedPlotId ?? null,
       installedPlots: snapshot.evidence.body.workset.plots, foreground: snapshot.foreground,
-      evidence: snapshot.evidence };
+      evidence: snapshot.evidence, realization };
     return truth;
   };
   const current = async () => {
@@ -75,6 +113,7 @@ export async function startApplication(application) {
   const wake = async () => {
     if (play) return;
     playFailure = null;
+    thermostatFace = null; thermostatSequence = 0;
     surface.replaceChildren(); surfaces.clear();
     play = await body.wake({ root: surface, presentationRootFor({ checkedPlotId }) {
       if (!surfaces.has(checkedPlotId)) {
@@ -86,6 +125,12 @@ export async function startApplication(application) {
       return surfaces.get(checkedPlotId);
     } });
     const active = play;
+    await readTruth();
+    if (selected?.name === 'thermostat/main'
+        && foreground === selected.checkedPlotId
+        && snapshot?.evidence.body.workset.plots.some(plot => plot.checked_plot_id === selected.checkedPlotId)) {
+      await renderThermostat(active.thermostatFace());
+    }
     active.dispatch().then(async () => {
       if (play === active && !busy) await current();
     }, async error => {
@@ -99,7 +144,12 @@ export async function startApplication(application) {
       status.dataset.refused = 'true';
     });
   };
-  const lull = async () => { if (play) { await body.lull(); play = null; playFailure = null; } };
+  const lull = async () => {
+    if (play) {
+      await body.lull(); play = null; playFailure = null;
+      for (const component of surface.querySelectorAll('conduit-owner-face')) component.disabled = true;
+    }
+  };
   const operate = async action => {
     if (busy) return;
     busy = true;
@@ -155,6 +205,15 @@ export async function startApplication(application) {
     await body.select(initial); show(initial.checkedPlotId); await wake();
     root.querySelector('[data-durability]').textContent = JSON.stringify(await application.storage.durability());
     globalThis.__conduitApplication = Object.freeze({ snapshot: readTruth, host: Object.freeze({ current: () => host.current() }),
+      thermostat: Object.freeze({
+        face: () => { if (!play) throw new Error('Thermostat Play is unavailable'); return play.thermostatFace(); },
+        interact: async request => {
+          if (!play) throw new Error('Thermostat Play is unavailable');
+          const receipt = play.submitThermostatInteraction(request);
+          await renderThermostat(receipt.face);
+          return { ...receipt, face: thermostatFace };
+        },
+      }),
       opening: Object.freeze({ recovered, birthState, snapshot: opening }) });
     await current();
     controls.forEach(control => control.disabled = false);
@@ -163,8 +222,10 @@ export async function startApplication(application) {
     root.querySelector('[data-try]').addEventListener('click', () => operate(async () => {
       const result = await host.plot(source.value).check();
       if (!result.ok) { checkStatus.dataset.refusalCode = result.refusal.code; checkStatus.textContent = `${result.refusal.code}: ${result.diagnostics.map(item => item.message).join('\n') || result.refusal.message}`; return; }
-      if (result.plots.length !== 1) throw new Error('Choose one plot for this lesson');
-      const next = result.plots[0];
+      // Reusable transition declarations belong to the selected document;
+      // install only its explicitly selected resident entry.
+      const next = result.plots.find(plot => plot.name === selector.value);
+      if (!next) throw new Error(`Keep the plot name ${selector.value} for this lesson`);
       if (next.name !== selector.value) {
         checkStatus.dataset.refusalCode = 'LessonPlotNameChanged';
         checkStatus.textContent = `Keep the plot name ${selector.value} for this lesson so your saved edits stay with the example.`;
@@ -197,6 +258,7 @@ export async function startApplication(application) {
     }));
     root.querySelector('[data-example]').addEventListener('click', () => operate(async () => {
       await body.select(selected); show(selected.checkedPlotId); await wake(); surface.focus();
+      if (selected.name === 'thermostat/main') await renderThermostat(play.thermostatFace());
     }));
     root.querySelector('[data-wake]').addEventListener('click', () => operate(wake));
     root.querySelector('[data-lull]').addEventListener('click', () => operate(lull));

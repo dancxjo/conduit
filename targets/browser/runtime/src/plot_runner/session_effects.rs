@@ -147,7 +147,13 @@ impl TourSession {
             }
             engine::DriveStatus::Quiescent => Ok(TourProgress::Waiting {
                 schema: "conduit.browser/pending-effects@1",
-                disposition: "quiescent_awaiting_input",
+                disposition: if self.scheduler.thermostat_state().is_some()
+                    && self.pending.is_empty()
+                {
+                    "externally_admitted_input"
+                } else {
+                    "quiescent_awaiting_input"
+                },
                 active_play_id: self.active_play_id.as_str().into(),
                 pending_effects: self.pending.len(),
                 timer_completions: self.timer_completions,

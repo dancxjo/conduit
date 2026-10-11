@@ -230,6 +230,7 @@ pub(in crate::plot_runner) fn prepare_body_scheduler(
     if !prepared_storage.matches(partitions) {
         return Err("browser storage witness does not bind selected Plans".into());
     }
+    let (mut scans, thermostat) = thermostat::prepare(partitions, application.as_ref())?;
     let mut operations = Vec::with_capacity(MAXIMUM_BROWSER_GEARS);
     let mut mappings = empty_slots(active_nodes);
     let mut audio_tones = empty_slots(active_nodes);
@@ -296,7 +297,10 @@ pub(in crate::plot_runner) fn prepare_body_scheduler(
                 startup,
             )? {
                 Some(operation) => operation,
-                None => (installation.prepare)(placement, &mut values)?,
+                None => match scans.remove(&placement.placement_id) {
+                    Some(back) => BrowserBack::installed_step(back),
+                    None => (installation.prepare)(placement, &mut values)?,
+                },
             },
         );
         comparisons[usize::from(node.node.0)] =
@@ -470,6 +474,7 @@ pub(in crate::plot_runner) fn prepare_body_scheduler(
         garden_steps,
         stroke_captures,
         applications,
+        thermostat,
         attempts,
         comparisons,
         snapshots,

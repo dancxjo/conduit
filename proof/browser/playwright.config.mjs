@@ -39,6 +39,7 @@ export default defineConfig({
     "browser-host-entrance.spec.mjs",
     "field-station-clock.spec.mjs",
     "static-body-application.spec.mjs",
+    "thermostat-local.spec.mjs",
     "sdk-body-participation.spec.mjs",
     "sdk-external-body-execution.spec.mjs",
     "browser-bundle-build.spec.mjs",

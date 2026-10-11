@@ -231,7 +231,9 @@ fn live_inspection_exposes_kernel_gaps_and_a_bounded_host_completion_window() {
     let (mut session, mut effect) =
         TourSession::prepare("host/gaps", "boot/gaps", source, 1).unwrap();
     let mut transitions = 0_u64;
-    for _ in 0..100 {
+    // Exercise actual retention overflow even as the admitted Sign table grows.
+    let completions = usize::from(crate::installed_browser::BROWSER_SIGN_ITEMS);
+    for _ in 0..completions {
         let (play, placement, request, output) = match effect {
             TourHostEffect::ButtonTransition(value) => {
                 let bytes = conduit_semantic_catalog::button_transition_value(
@@ -292,7 +294,7 @@ fn live_inspection_exposes_kernel_gaps_and_a_bounded_host_completion_window() {
                 && partition["fragment_id"] == placement["fragment_id"]));
     }
     assert!(observed["retention_gap"]["entries"].as_u64().unwrap() > 0);
-    assert_eq!(observed["host_completions"]["omitted"], 36);
+    assert_eq!(observed["host_completions"]["omitted"], completions - 64);
     assert_eq!(
         observed["host_completions"]["records"]
             .as_array()

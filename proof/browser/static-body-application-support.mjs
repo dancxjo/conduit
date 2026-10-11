@@ -18,7 +18,8 @@ export async function stageStaticApplications({ legacyLessonInventory = false } 
       const templateRoot = path.resolve("targets/browser/handbook");
       const template = JSON.parse(await readFile(path.join(templateRoot, "handbook.application.template.json"), "utf8"));
       const birth = JSON.parse(await readFile(path.join(templateRoot, "birth.json"), "utf8"));
-      birth.plots = birth.plots.filter(plot => !plot.role.startsWith("lesson-"));
+      birth.plots = birth.plots.filter(plot =>
+        ["tour", "patchbay", "clock-demo", "memory_lantern"].includes(plot.name));
       const birthPath = path.join(root, "legacy-birth.json");
       await writeFile(birthPath, JSON.stringify(birth));
       for (const resource of template.resources) {
