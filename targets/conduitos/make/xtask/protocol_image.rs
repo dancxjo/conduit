@@ -1,9 +1,9 @@
 //! Package an existing product kernel with exact, locally approved protocol input.
-use super::{image, report::sha256_file, ConduitosError};
+use super::{image, report::sha256_file, ConduitosArch, ConduitosError};
 use crate::cli::GlobalOpts;
 use clap::Args;
 use conduitos::{
-    protocol_boot::{ProtocolBootRequest, MAXIMUM_REQUEST_BYTES},
+    protocol_boot::{ProtocolBootRequest, UsbProtocolBootRequest, MAXIMUM_REQUEST_BYTES},
     protocol_source::{PreparedProtocolEntry, MAXIMUM_PACKAGE_BYTES},
 };
 use serde_json::{json, Value};
@@ -16,7 +16,7 @@ use std::{
 
 #[derive(Args, Debug)]
 pub(super) struct ImageArgs {
-    /// Existing capable x86_64 product kernel; no target build occurs.
+    /// Existing capable x86_64 or AArch64 product kernel; no target build occurs.
     #[arg(long)]
     kernel: PathBuf,
     /// Product build record binding the exact existing kernel digest.
@@ -47,27 +47,35 @@ pub(super) fn execute(args: ImageArgs, opts: &GlobalOpts) -> Result<(), Conduito
     let record: Value = serde_json::from_slice(&read(&args.build_record, 16384)?)
         .map_err(|error| refusal("protocol-kernel-record-refused", error))?;
     check_kernel(&record, &sha256_file(&args.kernel)?)?;
+    let architecture = kernel_architecture(&record)?;
     let package = read(&args.package, MAXIMUM_PACKAGE_BYTES)?;
     let request_bytes = read(&args.root_request, MAXIMUM_REQUEST_BYTES)?;
-    let request = ProtocolBootRequest::decode(&request_bytes)
-        .map_err(|error| refusal("protocol-root-request-refused", format!("{error:?}")))?;
-    request
-        .bind_package(&package)
-        .map_err(|error| refusal("protocol-source-binding-refused", format!("{error:?}")))?;
-    let entry = PreparedProtocolEntry::prepare(&package, &request.entry)
+    let request = SelectedRootRequest::decode(&request_bytes)?;
+    request.bind_package(&package)?;
+    let root_kind = request.kind();
+    if architecture != ConduitosArch::X86_64 && matches!(root_kind, image::ProtocolRootKind::I2c) {
+        return Err(refusal(
+            "protocol-root-architecture-refused",
+            "I2C protocol Root is supported only on x86_64",
+        ));
+    }
+    let entry = PreparedProtocolEntry::prepare(&package, request.entry())
         .map_err(|error| refusal("protocol-source-preparation-refused", format!("{error:?}")))?;
     // Preserve existing media and evidence; the administrator supplies independent
     // firmware/electrical approval. Checking Source does not admit native owners.
     fs::create_dir(&args.output_dir).map_err(io_error)?;
-    let image = image::assemble_protocol(
-        image::ProtocolModules {
-            kernel: &args.kernel,
-            output: &args.output_dir,
-            source: &package,
-            request: &request_bytes,
-        },
-        opts,
-    )?;
+    let modules = image::ProtocolModules {
+        kernel: &args.kernel,
+        output: &args.output_dir,
+        source: &package,
+        request: &request_bytes,
+    };
+    let image = match root_kind {
+        image::ProtocolRootKind::I2c => image::assemble_protocol(modules, opts),
+        image::ProtocolRootKind::Usb => {
+            image::assemble_protocol_root_for_arch(modules, root_kind, architecture, opts)
+        }
+    }?;
     check_kernel(
         &record,
         &sha256_file(&args.output_dir.join("iso-root/boot/conduitos"))?,
@@ -77,11 +85,15 @@ pub(super) fn execute(args: ImageArgs, opts: &GlobalOpts) -> Result<(), Conduito
         "schema": "conduit.conduitos/protocol-image-receipt@1",
         "proof_class": "source-check-and-image-packaging",
         "kernel_sha256": record["elf_sha256"],
+        "architecture": architecture.as_str(),
         "image_sha256": image.iso_sha256,
         "source_artifact_id": entry.artifact_id().as_str(),
         "source_document_id": expanded.source_document_id.as_str(),
         "checked_plot_id": expanded.checked_plot_id.as_str(),
         "expanded_plot_id": expanded.expanded_plot_id.as_str(),
+        "root_kind": root_kind.name(),
+        "root_request_schema": root_kind.schema(),
+        "root_module_command": root_kind.command(),
         "root_request_sha256": format!("{:x}", Sha256::digest(&request_bytes)),
         "native_execution": "not-yet-observed",
     });
@@ -94,15 +106,73 @@ pub(super) fn execute(args: ImageArgs, opts: &GlobalOpts) -> Result<(), Conduito
     Ok(())
 }
 
+enum SelectedRootRequest {
+    I2c(ProtocolBootRequest),
+    Usb(UsbProtocolBootRequest),
+}
+impl SelectedRootRequest {
+    fn decode(bytes: &[u8]) -> Result<Self, ConduitosError> {
+        let value: Value = serde_json::from_slice(bytes)
+            .map_err(|error| refusal("protocol-root-request-refused", error))?;
+        let decode_error = |error| refusal("protocol-root-request-refused", format!("{error:?}"));
+        match value.get("schema").and_then(Value::as_str) {
+            Some(schema) if schema == image::ProtocolRootKind::I2c.schema() => {
+                ProtocolBootRequest::decode(bytes)
+                    .map(Self::I2c)
+                    .map_err(decode_error)
+            }
+            Some(schema) if schema == image::ProtocolRootKind::Usb.schema() => {
+                UsbProtocolBootRequest::decode(bytes)
+                    .map(Self::Usb)
+                    .map_err(decode_error)
+            }
+            _ => Err(refusal(
+                "protocol-root-request-refused",
+                "requires an explicit supported Root request schema",
+            )),
+        }
+    }
+    fn kind(&self) -> image::ProtocolRootKind {
+        match self {
+            Self::I2c(_) => image::ProtocolRootKind::I2c,
+            Self::Usb(_) => image::ProtocolRootKind::Usb,
+        }
+    }
+    fn entry(&self) -> &str {
+        match self {
+            Self::I2c(request) => &request.entry,
+            Self::Usb(request) => &request.entry,
+        }
+    }
+    fn bind_package(&self, bytes: &[u8]) -> Result<(), ConduitosError> {
+        let result = match self {
+            Self::I2c(request) => request.bind_package(bytes),
+            Self::Usb(request) => request.bind_package(bytes),
+        };
+        result.map_err(|error| refusal("protocol-source-binding-refused", format!("{error:?}")))
+    }
+}
+
+fn kernel_architecture(record: &Value) -> Result<ConduitosArch, ConduitosError> {
+    match record["architecture"].as_str() {
+        Some("x86_64") => Ok(ConduitosArch::X86_64),
+        Some("aarch64") => Ok(ConduitosArch::Aarch64),
+        _ => Err(refusal(
+            "protocol-kernel-architecture-refused",
+            "requires x86_64 or AArch64 product architecture",
+        )),
+    }
+}
+
 fn check_kernel(record: &Value, digest: &str) -> Result<(), ConduitosError> {
     if record["schema"] != "conduit.conduitos.build/v2"
         || record["artifact_role"] != "product-host"
-        || record["architecture"] != "x86_64"
+        || kernel_architecture(record).is_err()
         || record["elf_sha256"] != digest
     {
         return Err(refusal(
             "protocol-kernel-record-refused",
-            "requires the exact x86_64 product kernel and build record",
+            "requires the exact supported product kernel and build record",
         ));
     }
     Ok(())
@@ -130,15 +200,52 @@ fn io_error(error: std::io::Error) -> ConduitosError {
 #[cfg(test)]
 mod tests {
     use super::*;
+    fn usb_request() -> Value {
+        json!({"schema":image::ProtocolRootKind::Usb.schema(), "entry":"usb-control",
+            "package_sha256":format!("{:x}", Sha256::digest(b"package")),
+            "administrator_approval":true,"firmware_handoff":true,"electrical_attachment_approved":true,
+            "root_port":1,"attachment_epoch":7,"maximum_control_operations":64,"maximum_steps":10000,"inputs":[]})
+    }
+    #[test]
+    fn explicit_usb_schema_selects_usb_command_and_exact_source_binding() {
+        let request =
+            SelectedRootRequest::decode(&serde_json::to_vec(&usb_request()).unwrap()).unwrap();
+        assert_eq!(request.kind(), image::ProtocolRootKind::Usb);
+        assert_eq!(
+            request.kind().command(),
+            "conduit.protocol/usb-root-request@1"
+        );
+        assert_eq!(request.entry(), "usb-control");
+        request.bind_package(b"package").unwrap();
+        assert!(request.bind_package(b"different").is_err());
+    }
+    #[test]
+    fn schema_dispatch_never_falls_back_to_another_root() {
+        for schema in [image::ProtocolRootKind::I2c.schema(), "unknown"] {
+            let mut request = usb_request();
+            request["schema"] = schema.into();
+            assert!(SelectedRootRequest::decode(&serde_json::to_vec(&request).unwrap()).is_err());
+        }
+        let mut request = usb_request();
+        request.as_object_mut().unwrap().remove("schema");
+        assert!(SelectedRootRequest::decode(&serde_json::to_vec(&request).unwrap()).is_err());
+        let mut request = usb_request();
+        request["pci_device"] = 31.into();
+        assert!(SelectedRootRequest::decode(&serde_json::to_vec(&request).unwrap()).is_err());
+    }
     #[test]
     fn proof_appliances_foreign_architectures_and_changed_kernels_cannot_be_packaged_as_product() {
         let record = json!({"schema":"conduit.conduitos.build/v2",
             "artifact_role":"product-host", "architecture":"x86_64", "elf_sha256":"abc"});
         check_kernel(&record, "abc").unwrap();
+        let mut arm = record.clone();
+        arm["architecture"] = "aarch64".into();
+        check_kernel(&arm, "abc").unwrap();
+        assert_eq!(kernel_architecture(&arm).unwrap(), ConduitosArch::Aarch64);
         assert!(check_kernel(&record, "changed").is_err());
         for (field, invalid) in [
             ("artifact_role", "architecture-proof-appliance"),
-            ("architecture", "aarch64"),
+            ("architecture", "riscv64"),
             ("schema", "unknown"),
         ] {
             let mut other = record.clone();

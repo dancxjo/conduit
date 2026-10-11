@@ -1,4 +1,4 @@
-//! Prepared canonical composition of exact leaf, record and variant values.
+//! Prepared canonical composition of finite exact structured values.
 
 use alloc::{string::String, vec::Vec};
 
@@ -27,6 +27,11 @@ enum CompositionShape {
     Leaf(String),
     Record(Vec<Field>),
     Variant(Vec<Field>),
+    Collection {
+        element_type: Vec<u8>,
+        minimum_items: u16,
+        maximum_items: u16,
+    },
 }
 
 impl PreparedStructuredComposer {
@@ -59,6 +64,20 @@ impl PreparedStructuredComposer {
                     })
                     .collect::<Result<_, Refusal>>()?,
             ),
+            Shape::Collection { element, length } => CompositionShape::Collection {
+                element_type: element.canonical_bytes()?,
+                minimum_items: length,
+                maximum_items: length,
+            },
+            Shape::Sequence {
+                element,
+                minimum_items,
+                maximum_items,
+            } => CompositionShape::Collection {
+                element_type: element.canonical_bytes()?,
+                minimum_items,
+                maximum_items,
+            },
             _ => return Err(Refusal::WrongType),
         };
         Ok(Self {
@@ -69,7 +88,25 @@ impl PreparedStructuredComposer {
         })
     }
 
-    /// Last prepared result, borrowed without changing storage.
+    /// Last successful result, or empty after an aggregate validation refusal.
+    /// Preflight count, identity and extent refusals preserve the previous result.
+    /// Bytes reserved by owned heap buffers, excluding this object's inline size
+    /// and allocator bookkeeping. Available before Play for resource admission.
+    pub fn prepared_heap_bytes(&self) -> usize {
+        let shape = match &self.shape {
+            CompositionShape::Leaf(identity) => identity.capacity(),
+            CompositionShape::Record(fields) | CompositionShape::Variant(fields) => {
+                fields.capacity() * core::mem::size_of::<Field>()
+                    + fields
+                        .iter()
+                        .map(|field| field.name.capacity() + field.type_bytes.capacity())
+                        .sum::<usize>()
+            }
+            CompositionShape::Collection { element_type, .. } => element_type.capacity(),
+        };
+        self.prefix.capacity() + self.output.capacity() + shape
+    }
+
     pub fn encoded(&self) -> &[u8] {
         &self.output
     }
@@ -143,6 +180,43 @@ impl PreparedStructuredComposer {
         self.finish()
     }
 
+    /// Compose a finite sequence or exact collection from validated children.
+    /// Count, child identity and total extent are checked before replacing the
+    /// previous output. Preparation reserves all schema and output storage.
+    pub fn collection(&mut self, values: &[Value<'_>]) -> Result<&[u8], Refusal> {
+        let CompositionShape::Collection {
+            element_type,
+            minimum_items,
+            maximum_items,
+        } = &self.shape
+        else {
+            return Err(Refusal::WrongType);
+        };
+        if values.len() < usize::from(*minimum_items) || values.len() > usize::from(*maximum_items)
+        {
+            return Err(Refusal::WrongCollectionLength);
+        }
+        let mut size = 5_usize;
+        for value in values {
+            if element_type.as_slice() != value.type_bytes() {
+                return Err(Refusal::WrongType);
+            }
+            size = size
+                .checked_add(value.value_node().len())
+                .ok_or(Refusal::CanonicalEncodingTooLarge)?;
+        }
+        self.admit_size(size)?;
+        self.output.clear();
+        self.output.extend_from_slice(&self.prefix);
+        self.output.push(1);
+        self.output
+            .extend_from_slice(&(values.len() as u32).to_le_bytes());
+        for value in values {
+            self.output.extend_from_slice(value.value_node());
+        }
+        self.finish()
+    }
+
     fn admit_size(&self, value_bytes: usize) -> Result<(), Refusal> {
         if self
             .prefix
@@ -155,10 +229,13 @@ impl PreparedStructuredComposer {
         Ok(())
     }
 
-    fn finish(&self) -> Result<&[u8], Refusal> {
+    fn finish(&mut self) -> Result<&[u8], Refusal> {
         // Composition must also obey aggregate depth/node limits, rather than
         // inferring them from independently valid children.
-        validate_canonical_structured_value(&self.output)?;
+        if let Err(refusal) = validate_canonical_structured_value(&self.output) {
+            self.output.clear();
+            return Err(refusal);
+        }
         Ok(&self.output)
     }
 }

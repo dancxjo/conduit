@@ -1,4 +1,5 @@
 //! One Root-owned native I2C/clock admission per Boot; no peripheral protocol.
+use super::authority::{CLAIMED, OperationAuthority, authority};
 use super::request::ProtocolBootRequest;
 use crate::{
     arch,
@@ -13,9 +14,8 @@ use crate::{
 };
 use alloc::format;
 use conduit_core::*;
-use core::sync::atomic::{AtomicBool, Ordering};
+use core::sync::atomic::Ordering;
 
-static CLAIMED: AtomicBool = AtomicBool::new(false);
 pub type NativeOwners =
     NativeProtocolOwners<I801Controller<arch::I801PortWindow>, arch::NativeMonotonicDeadlineClock>;
 
@@ -144,53 +144,4 @@ pub unsafe fn admit(
         bus_issuer,
         clock_issuer,
     })
-}
-
-struct OperationAuthority<'a> {
-    contract: &'a str,
-    call: &'a str,
-    kind: &'a str,
-    capability: &'a str,
-    bytes: u32,
-    work: u64,
-    operations: u32,
-}
-
-// All facts here originate in the independently retained native owners, before
-// Source planning. No selected placement or authored metadata is consulted.
-fn authority(
-    host: &HostId,
-    boot: &BootId,
-    name: &str,
-    identity: (
-        &BaseInstanceId,
-        &ResourcePoolId,
-        &ResourceGenerationId,
-        &CapabilityEnvelopeId,
-    ),
-    operation: OperationAuthority<'_>,
-) -> BaseCapabilityAuthority {
-    let (provider, pool, generation, envelope) = identity;
-    BaseCapabilityAuthority {
-        grant: AuthorityGrant {
-            grant_id: format!("conduitos/protocol/{}/{name}/grant", boot.as_str()).into(),
-            contract_id: operation.contract.into(),
-            host_call_contract_id: operation.call.into(),
-            subject_kind: operation.kind.into(),
-            host_id: host.clone(),
-            boot_id: boot.clone(),
-            capability_id: operation.capability.into(),
-        },
-        base_instance_id: provider.clone(),
-        base_provider_generation: 1,
-        resource_pool_id: pool.clone(),
-        resource_generation_id: generation.clone(),
-        operation_contract_id: operation.call.into(),
-        envelope_id: envelope.clone(),
-        maximum_parameter_bytes: operation.bytes,
-        maximum_result_bytes: operation.bytes,
-        maximum_work_units: operation.work,
-        maximum_in_flight: 1,
-        maximum_operations: operation.operations,
-    }
 }

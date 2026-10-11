@@ -1,0 +1,32 @@
+# Ordered duplex serial octets. No Unicode, line discipline, device, USB,
+# address, line coding, clock or authority is selected by these values.
+type SerialTransmit = {
+    bytes: Bytes <= 2048B
+}
+type SerialReceive = {
+    maximum: U64
+}
+type SerialDuplexRequest =
+    transmit SerialTransmit
+    | receive SerialReceive
+# Ordinal counts requests in one admitted provider lifetime, across both
+# directions. Partial actual extents remain observations, never implicit retries.
+type SerialTransmitted = {
+    ordinal: U64
+    requested: U64
+    actual: U64
+}
+type SerialReceived = {
+    ordinal: U64
+    requested: U64
+    actual: U64
+    short: Boolean
+    bytes: Bytes <= 2048B
+}
+type SerialDuplexResult =
+    transmitted SerialTransmitted
+    | received SerialReceived
+    | stalled
+    | provider-lost
+    | unsupported
+    | timeout

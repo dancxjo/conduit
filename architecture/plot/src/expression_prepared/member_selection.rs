@@ -1,10 +1,13 @@
 //! Borrow nested exact members; only a structured final result needs scratch.
-use super::{storage_bound, Refusal};
+use super::{
+    storage_bound, PreparedInput, PreparedPortableExpressionEvaluator, ProgramView, Refusal,
+};
 use crate::{PortableExpressionNode, PortableExpressionOperation, PortableExpressionProjection};
-use alloc::{string::String, vec::Vec};
+use alloc::{boxed::Box, string::String, vec::Vec};
 use conduit_core::{StructuredInfoType, StructuredInfoTypeShape};
 
 pub(super) struct PreparedMemberSelection {
+    source: Option<Box<PreparedPortableExpressionEvaluator>>,
     steps: Vec<Member>,
     output_type: Vec<u8>,
     output: Vec<u8>,
@@ -19,16 +22,18 @@ enum Member {
 pub(super) fn prepare(
     node: &PortableExpressionNode,
     input: &StructuredInfoType,
+    prepared_input: &PreparedInput,
 ) -> Result<PreparedMemberSelection, Refusal> {
     fn collect<'a>(
         node: &'a PortableExpressionNode,
         input: &StructuredInfoType,
         steps: &mut Vec<Member>,
+        base: &mut Option<&'a PortableExpressionNode>,
     ) -> Result<&'a StructuredInfoType, Refusal> {
         match &node.operation {
             PortableExpressionOperation::Input if &node.value_type == input => Ok(&node.value_type),
             PortableExpressionOperation::Projection { value, member } => {
-                let source = collect(value, input, steps)?;
+                let source = collect(value, input, steps, base)?;
                 let (selected, step) = match (source.shape(), member) {
                     (
                         StructuredInfoTypeShape::Record { fields, .. },
@@ -81,16 +86,35 @@ pub(super) fn prepare(
                 steps.push(step);
                 Ok(&node.value_type)
             }
+            PortableExpressionOperation::SemanticCall { kind, .. } if kind == "sequence/at" => {
+                *base = Some(node);
+                Ok(&node.value_type)
+            }
             _ => Err(Refusal::InvalidProgram),
         }
     }
     let mut steps = Vec::new();
-    collect(node, input, &mut steps)?;
+    let mut base = None;
+    collect(node, input, &mut steps, &mut base)?;
+    let source = base
+        .map(|root| {
+            PreparedPortableExpressionEvaluator::prepare(
+                ProgramView {
+                    input_type: input,
+                    output_type: &root.value_type,
+                    root,
+                },
+                prepared_input.clone(),
+            )
+            .map(Box::new)
+        })
+        .transpose()?;
     if steps.is_empty() {
         return Err(Refusal::InvalidProgram);
     }
     let primitive = is_primitive(&node.value_type);
     Ok(PreparedMemberSelection {
+        source,
         steps,
         output_type: node
             .value_type
@@ -106,7 +130,11 @@ pub(super) fn prepare(
 }
 impl PreparedMemberSelection {
     pub(super) fn evaluate<'a>(&'a mut self, input: &'a [u8]) -> Result<&'a [u8], Refusal> {
-        let mut value = conduit_core::validate_canonical_structured_value(input)
+        let selected = match &mut self.source {
+            Some(source) => source.evaluate(input)?,
+            None => input,
+        };
+        let mut value = conduit_core::validate_canonical_structured_value(selected)
             .map_err(|_| Refusal::InvalidInput)?;
         for step in &self.steps {
             value = match step {

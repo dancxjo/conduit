@@ -1,26 +1,35 @@
 //! The containing machine owns the bounded loop around the admitted kernel.
+#[cfg(target_arch = "x86_64")]
 use super::{owners::NativeOwners, request::ProtocolBootRequest};
 use crate::{
     arch,
-    protocol_source::{
-        NativeProtocolPreparationLimits, PreparedProtocolBodyPlay, PreparedProtocolEntry,
-        prepare_native_protocol,
-    },
+    protocol_source::{PreparedProtocolBodyPlay, PreparedProtocolEntry},
 };
 use alloc::{vec, vec::Vec};
 use conduit_composite::KernelCompositeStatus;
 use conduit_core::*;
 
+#[cfg(target_arch = "x86_64")]
 type NativePlay = PreparedProtocolBodyPlay<
     crate::i2c_base::i801::I801Controller<arch::I801PortWindow>,
     arch::NativeMonotonicDeadlineClock,
 >;
+
+#[cfg(target_arch = "aarch64")]
+type NativePlay = PreparedProtocolBodyPlay<
+    super::absent_providers::AbsentI2c,
+    super::absent_providers::AbsentClock,
+>;
+
+#[cfg(target_arch = "x86_64")]
+use crate::protocol_source::{NativeProtocolPreparationLimits, prepare_native_protocol};
 
 pub(super) struct Output {
     port: PortId,
     value: ValuePayload,
 }
 
+#[cfg(target_arch = "x86_64")]
 pub(super) fn prepare(
     entry: PreparedProtocolEntry,
     request: &ProtocolBootRequest,
@@ -52,12 +61,103 @@ pub(super) fn prepare(
         },
     )
     .map_err(|_| "protocol-plan-admission-refused")?;
+    prepare_outputs(play, &request.inputs)
+}
+
+pub(super) fn prepare_usb(
+    entry: PreparedProtocolEntry,
+    request: &super::usb_request::UsbProtocolBootRequest,
+    host: HostId,
+    boot: BootId,
+    owners: super::usb_owners::NativeUsbOwners,
+) -> Result<(NativePlay, Vec<Output>), &'static str> {
+    let session = super::body::admit(entry.resident(), &host, &boot)?;
+    let advertisement = HostAdvertisement {
+        protocol_version: PROTOCOL_VERSION,
+        host_id: host,
+        boot_id: boot,
+        offer_generation: OfferGeneration(1),
+        profile: "conduitos/native@1".into(),
+        bases: vec![],
+        resources: vec![],
+        capabilities: vec![],
+        planner_capabilities: vec![],
+    };
+    let play = match owners {
+        super::usb_owners::NativeUsbOwners::Isochronous {
+            ready,
+            control_issuer,
+            isochronous_issuer,
+        } => crate::protocol_source::prepare_native_usb_isochronous_protocol(
+            entry,
+            session,
+            advertisement,
+            *ready,
+            *control_issuer,
+            *isochronous_issuer,
+            0,
+            1,
+            request.additional_remote_sign_items,
+        ),
+        super::usb_owners::NativeUsbOwners::Duplex {
+            ready,
+            control_issuer,
+            read_issuer,
+            write_issuer,
+        } => crate::protocol_source::prepare_native_usb_duplex_protocol(
+            entry,
+            session,
+            advertisement,
+            *ready,
+            *control_issuer,
+            *read_issuer,
+            *write_issuer,
+            0,
+            1,
+            request.additional_remote_sign_items,
+        ),
+        super::usb_owners::NativeUsbOwners::Control { ready, issuer } => {
+            crate::protocol_source::prepare_native_usb_protocol_with_sign_storage(
+                entry,
+                session,
+                advertisement,
+                *ready,
+                *issuer,
+                0,
+                1,
+                request.additional_remote_sign_items,
+            )
+        }
+        super::usb_owners::NativeUsbOwners::Protocol {
+            ready,
+            control_issuer,
+            endpoint_issuer,
+        } => crate::protocol_source::prepare_native_usb_endpoint_protocol(
+            entry,
+            session,
+            advertisement,
+            *ready,
+            *control_issuer,
+            *endpoint_issuer,
+            0,
+            1,
+            request.additional_remote_sign_items,
+        ),
+    }
+    .map_err(|_| "protocol-usb-plan-admission-refused")?;
+    prepare_outputs(play, &request.inputs)
+}
+
+fn prepare_outputs(
+    play: NativePlay,
+    inputs: &[super::ProtocolBootInput],
+) -> Result<(NativePlay, Vec<Output>), &'static str> {
     let definition = play
         .kernel()
         .ok_or("protocol-kernel-unavailable")?
         .definition();
-    if request.inputs.len() != definition.external_capability.inputs.len()
-        || request.inputs.iter().any(|input| {
+    if inputs.len() != definition.external_capability.inputs.len()
+        || inputs.iter().any(|input| {
             !definition
                 .external_capability
                 .inputs
@@ -97,10 +197,28 @@ pub(super) fn prepare(
     Ok((play, outputs))
 }
 
+#[cfg(target_arch = "x86_64")]
 pub(super) fn execute(
     play: &mut NativePlay,
     outputs: &mut [Output],
     request: &ProtocolBootRequest,
+) -> Result<(), &'static str> {
+    execute_workload(play, outputs, &request.inputs, request.maximum_steps)
+}
+
+pub(super) fn execute_usb(
+    play: &mut NativePlay,
+    outputs: &mut [Output],
+    request: &super::usb_request::UsbProtocolBootRequest,
+) -> Result<(), &'static str> {
+    execute_workload(play, outputs, &request.inputs, request.maximum_steps)
+}
+
+fn execute_workload(
+    play: &mut NativePlay,
+    outputs: &mut [Output],
+    authored_inputs: &[super::ProtocolBootInput],
+    maximum_steps: u32,
 ) -> Result<(), &'static str> {
     // All allocations and Fore shape checks precede start. Ingress does not
     // dispatch physical effects; refusal cancels before the first Step.
@@ -108,8 +226,8 @@ pub(super) fn execute(
         .kernel()
         .ok_or("protocol-kernel-unavailable")?
         .definition();
-    let mut inputs = Vec::with_capacity(request.inputs.len());
-    for input in &request.inputs {
+    let mut inputs = Vec::with_capacity(authored_inputs.len());
+    for input in authored_inputs {
         let port = definition
             .external_capability
             .inputs
@@ -133,8 +251,23 @@ pub(super) fn execute(
             play.close_input(port)
                 .map_err(|_| "protocol-input-close-refused")?;
         }
-        for _ in 0..request.maximum_steps {
-            let status = play.step().map_err(|_| "protocol-step-refused")?;
+        for _ in 0..maximum_steps {
+            let status = play.step().map_err(|error| {
+                if let Some(identity) = play.session().realization().and_then(|r| r.play.as_ref()) {
+                    match super::step_failure::format(&error, identity) {
+                        Ok(Some(report)) => {
+                            let _ = arch::append_boot_diagnostic(report.as_bytes());
+                        }
+                        Err(_) => {
+                            let _ = arch::append_boot_diagnostic(
+                                b"CONDUIT_PROTOCOL_STEP_FAILURE_UNRETAINED envelope-exceeded\n",
+                            );
+                        }
+                        Ok(None) => {}
+                    }
+                }
+                "protocol-step-refused"
+            })?;
             for output in &mut *outputs {
                 if let Some(sequence) = play
                     .output_into(&output.port, &mut output.value)
@@ -144,7 +277,7 @@ pub(super) fn execute(
                     // does not reinterpret device data or manufacture a Face.
                     report_output(&output.port, &output.value)?;
                     play.complete_output(&output.port, sequence)
-                        .map_err(|_| "protocol-output-close-refused")?;
+                        .map_err(|error| output_close_refusal(&error))?;
                 }
             }
             if status == KernelCompositeStatus::Complete {
@@ -198,6 +331,37 @@ fn report_plan(plan: &Plan) -> Result<(), &'static str> {
     )
     .map_err(|_| "protocol-plan-sign-envelope-exceeded")?;
     arch::append_boot_diagnostic(text.as_bytes()).map_err(|_| "protocol-diagnostic-unavailable")?;
+    for fragment in &plan.fragments {
+        for gear in &fragment.placements {
+            let Some(base) = &gear.base else {
+                continue;
+            };
+            let mut selected = crate::sign_format::FixedText::new();
+            writeln!(selected,
+                "CONDUIT_PROTOCOL_BASE plan={} placement={} host={} boot={} base={} provider={} generation={} artifact={}",
+                plan.plan_id.as_str(), gear.placement_id.as_str(), fragment.host_id.as_str(),
+                fragment.boot_id.as_str(), base.base_id.as_str(), base.provider_instance_id.as_str(),
+                base.provider_generation, gear.artifact_id.as_str())
+                .map_err(|_| "protocol-base-sign-envelope-exceeded")?;
+            arch::append_boot_diagnostic(selected.as_bytes())
+                .map_err(|_| "protocol-diagnostic-unavailable")?;
+            for resource in &gear.resources {
+                let mut selected = crate::sign_format::FixedText::new();
+                writeln!(
+                    selected,
+                    "CONDUIT_PROTOCOL_RESOURCE plan={} placement={} pool={} class={} units={}",
+                    plan.plan_id.as_str(),
+                    gear.placement_id.as_str(),
+                    resource.pool_id.as_str(),
+                    resource.class_id.as_str(),
+                    resource.units
+                )
+                .map_err(|_| "protocol-resource-sign-envelope-exceeded")?;
+                arch::append_boot_diagnostic(selected.as_bytes())
+                    .map_err(|_| "protocol-diagnostic-unavailable")?;
+            }
+        }
+    }
     Ok(())
 }
 
@@ -221,3 +385,29 @@ fn report_play(play: &NativePlay) -> Result<(), &'static str> {
     arch::append_boot_diagnostic(text.as_bytes()).map_err(|_| "protocol-diagnostic-unavailable")?;
     Ok(())
 }
+
+// Keep the exact finite-storage refusal observable without allocating in Play.
+fn output_close_refusal(error: &crate::protocol_source::ProtocolBodyRefusal) -> &'static str {
+    use conduit_composite::{ChildExecutionError, KernelCompositeError};
+    use conduit_kernel::{SignError, scheduler::SchedulerError};
+    let crate::protocol_source::ProtocolBodyRefusal::Call(
+        crate::protocol_host_calls::ProtocolCallRefusal::Kernel(KernelCompositeError::Execution {
+            reason: ChildExecutionError::Scheduler(SchedulerError::Sign(reason)),
+            ..
+        }),
+    ) = error
+    else {
+        return "protocol-output-close-refused";
+    };
+    match reason {
+        SignError::InvalidBudget => "protocol-output-sign-invalid-budget",
+        SignError::ItemCapacityExceeded => "protocol-output-sign-items-exhausted",
+        SignError::ByteCapacityExceeded => "protocol-output-sign-bytes-exhausted",
+        SignError::RemoteItemCapacityExceeded => "protocol-output-sign-remote-items-exhausted",
+        SignError::RemoteByteCapacityExceeded => "protocol-output-sign-remote-bytes-exhausted",
+        SignError::SequenceOverflow => "protocol-output-sign-sequence-overflow",
+    }
+}
+
+#[cfg(test)]
+mod reuse_tests;

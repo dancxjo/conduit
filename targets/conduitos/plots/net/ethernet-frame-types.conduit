@@ -1,0 +1,27 @@
+# Fixed Ethernet II frames, without FCS; this first profile excludes VLAN/jumbo.
+# Network authority is independently selected, never obtained from USB discovery.
+type EthernetFrame = {
+    wire: Bytes <= 1514B
+}
+type EthernetTransmitAcknowledgement = {
+    ordinal: U64
+    actual: U64
+}
+type EthernetFrameRequest =
+    take-transmit
+    | deliver-receive EthernetFrame
+    | acknowledge-transmit EthernetTransmitAcknowledgement
+type EthernetTransmitFrame = {
+    ordinal: U64
+    wire: Bytes <= 1514B
+}
+type EthernetFrameResult =
+    transmit EthernetTransmitFrame
+    | accepted
+    | acknowledged
+    | pressure
+    | malformed
+    | stale
+    | sequence-exhausted
+    | provider-lost
+    | cancelled

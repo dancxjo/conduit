@@ -133,6 +133,7 @@ mod tests {
 
     fn package() -> Vec<u8> {
         serde_json::to_vec(&ProtocolSourcePackage {
+            backs: vec![],
             schema: conduitos::protocol_source::PACKAGE_SCHEMA.into(),
             source: "plot identity (\n >> input: Boolean...|\n output: Boolean...| >>\n) = (.)"
                 .into(),

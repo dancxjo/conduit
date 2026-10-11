@@ -4,6 +4,7 @@ use conduit_core::{BOOL_INFO_ID, kind_id};
 fn package() -> ProtocolSourcePackage {
     ProtocolSourcePackage {
         schema: PACKAGE_SCHEMA.into(),
+        backs: vec![],
         source: "plot identity (\n >> input: Boolean...|\n output: Boolean...| >>\n) = (.)".into(),
         specializations: vec![ProtocolSpecialization::SeededFlow {
             value: ProtocolValue {

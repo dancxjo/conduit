@@ -1,0 +1,42 @@
+# A finite, setup-once CDC realization of generic duplex serial octets.
+type CdcAcmDescriptorSupported = {
+    supported: Boolean
+}
+type CdcSerialControl = {
+    result: UsbControlResult
+    descriptor: Boolean
+    set-coding: Boolean
+    coding: Boolean
+    ack: Boolean
+}
+type CdcSerialEvent =
+    closed
+    | serial SerialDuplexResult
+    | command SerialDuplexRequest
+    | control CdcSerialControl
+    | write UsbEndpointWriteResult
+    | read UsbEndpointReadResult
+type CdcSerialState = {
+    request: SerialDuplexRequest
+    phase: U64
+    operations: U64
+    reads: U64
+    terminal: Boolean
+}
+type CdcSerialRoute =
+    ready CdcSerialState
+    | control CdcSerialState
+    | write CdcSerialState
+    | read CdcSerialState
+    | stopped CdcSerialState
+type CdcSerialPending =
+    running CdcSerialState
+    | stopped
+type CdcSerialTransition = {
+    previous: CdcSerialState
+    event: CdcSerialEvent
+    accepted: Boolean
+}
+type CdcSerialEmission =
+    emit SerialDuplexResult
+    | absent
