@@ -9,6 +9,7 @@ use conduit_plot::ExpandedAuthoringPlot;
 pub struct PreparedProtocolArtifact {
     artifact: AdmittedProtocolArtifact,
     operations: ProtocolOperations,
+    package_digest: Option<[u8; 32]>,
 }
 
 impl PreparedProtocolSource {
@@ -92,11 +93,23 @@ impl PreparedProtocolSource {
         Ok(PreparedProtocolArtifact {
             artifact,
             operations: self.operations,
+            package_digest: None,
         })
     }
 }
 
 impl PreparedProtocolArtifact {
+    /// Exact packaged bytes are retained only through PreparedProtocolEntry.
+    /// The digest is correlation/provenance, never storage possession.
+    pub fn package_digest(&self) -> Option<&[u8; 32]> {
+        self.package_digest.as_ref()
+    }
+
+    pub(super) fn retain_package_digest(mut self, digest: [u8; 32]) -> Self {
+        self.package_digest = Some(digest);
+        self
+    }
+
     pub(crate) fn into_preparation_parts(
         self,
     ) -> (

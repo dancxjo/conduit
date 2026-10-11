@@ -7,6 +7,8 @@ use crate::{
     protocol_play::{ClockAdmission, I2cAdmission},
 };
 mod kernel;
+#[path = "body_play/storage_preparation.rs"]
+pub(super) mod storage_preparation;
 use alloc::boxed::Box;
 use conduit_body::{BodyLifecycleSession, BodyLifecycleSessionError, BodyPlayIdentity};
 use conduit_composite::KernelCompositeStatus;
@@ -37,6 +39,7 @@ pub struct PreparedProtocolBodyPlay<P, C> {
     kernel: Option<ProtocolKernel<P, C>>,
     host: HostId,
     boot: BootId,
+    storage_preparation: Option<[u8; 32]>,
 }
 
 impl<P: I2cProvider, C: MonotonicDeadlineProvider> PreparedProtocolBodyPlay<P, C> {
@@ -156,6 +159,8 @@ impl<P: I2cProvider, C: MonotonicDeadlineProvider> PreparedProtocolBodyPlay<P, C
             let host = fragment.host_id.clone();
             let boot = fragment.boot_id.clone();
             let play = BodyPlayIdentity::bind(&current.plan, play_sequence);
+            let storage_preparation =
+                storage_preparation::commitment(&artifact, &current.plan, &play)?;
             let sign =
                 |sequence| bind_sign(&host, &boot, Some(&play.active_play_id), sequence).sign_id;
             let wake = current
@@ -170,18 +175,25 @@ impl<P: I2cProvider, C: MonotonicDeadlineProvider> PreparedProtocolBodyPlay<P, C
                 .started(&host, &boot, play, wake)
                 .map_err(ProtocolBodyRefusal::Lifecycle)?;
             let kernel = prepare_kernel(artifact).map_err(ProtocolBodyRefusal::Call)?;
-            Ok::<_, ProtocolBodyRefusal>((start_session, kernel, host, boot))
+            Ok::<_, ProtocolBodyRefusal>((start_session, kernel, host, boot, storage_preparation))
         })();
         match prepared {
-            Ok((start_session, kernel, host, boot)) => Ok(Self {
+            Ok((start_session, kernel, host, boot, storage_preparation)) => Ok(Self {
                 session,
                 start_session: Some(start_session),
                 kernel: Some(kernel),
                 host,
                 boot,
+                storage_preparation,
             }),
             Err(reason) => Err(Box::new(ProtocolBodyPreparationRefusal { session, reason })),
         }
+    }
+
+    /// Correlation with actual prepared Body/Play and exact packaged resident.
+    /// This grants no storage possession and is not a settlement receipt.
+    pub fn storage_preparation_commitment(&self) -> Option<&[u8; 32]> {
+        self.storage_preparation.as_ref()
     }
 
     pub fn session(&self) -> &BodyLifecycleSession {
