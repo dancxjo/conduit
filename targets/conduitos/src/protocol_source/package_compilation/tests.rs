@@ -60,11 +60,11 @@ fn unknown_types_invalid_envelopes_and_invalid_declarations_refuse() {
 }
 
 #[test]
-fn usb_duplex_plot_reuses_one_boolean_request_zip_specialization() {
+fn usb_duplex_plot_reuses_one_boolean_request_feedback_zip_specialization() {
     let source = include_str!("../../../plots/usb/control-endpoint-write-read.conduit");
     let package = ProtocolSourcePackage::compile(
         source.into(),
-        &[ProtocolSpecializationRequest::Zip {
+        &[ProtocolSpecializationRequest::FeedbackZip {
             left: ProtocolValueReference {
                 type_name: "UsbTransferCompleted".into(),
                 maximum_bytes: 256,
