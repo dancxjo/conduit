@@ -17,6 +17,12 @@ mod timed;
     all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
 ))]
 mod usb;
+#[cfg(any(
+    target_arch = "x86_64",
+    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+))]
+pub(crate) use usb::{StorageScopePossession, StorageUsbAdmission};
+mod registry;
 pub use timed::{ClockAdmission, PreparedTimedProtocolPlay};
 
 pub struct I2cAdmission<P> {
@@ -104,6 +110,11 @@ enum PhysicalMode {
         all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
     ))]
     UsbDuplex,
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    StorageUsbDuplex,
     #[cfg(any(
         target_arch = "x86_64",
         all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
@@ -278,38 +289,7 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
         registry
             .install(ExpressionOperationFactory::default())
             .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
-        match mode {
-            PhysicalMode::I2c => {
-                registry
-                    .install(
-                        I2cOperationFactory::prepare_contract()
-                            .map_err(|_| ProtocolCallRefusal::InvalidPlan)?,
-                    )
-                    .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
-            }
-            #[cfg(any(
-                target_arch = "x86_64",
-                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
-            ))]
-            PhysicalMode::UsbControl
-            | PhysicalMode::UsbProtocol
-            | PhysicalMode::UsbDuplex
-            | PhysicalMode::UsbIsochronous => {
-                registry.install(crate::usb_base::control_factory::ControlOperationFactory::prepare_contract().map_err(|_| ProtocolCallRefusal::InvalidPlan)?).map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
-                if matches!(mode, PhysicalMode::UsbProtocol | PhysicalMode::UsbDuplex) {
-                    registry.install(crate::usb_base::endpoint_read_factory::EndpointReadOperationFactory::prepare_contract().map_err(|_| ProtocolCallRefusal::InvalidPlan)?).map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
-                }
-                if matches!(mode, PhysicalMode::UsbIsochronous) {
-                    registry.install(crate::usb_base::isochronous::factory::IsochronousOutOperationFactory::prepare_contract().map_err(|_| ProtocolCallRefusal::InvalidPlan)?).map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
-                }
-                if matches!(mode, PhysicalMode::UsbDuplex) {
-                    registry.install(crate::usb_base::endpoint_write_factory::EndpointWriteOperationFactory::prepare_contract().map_err(|_| ProtocolCallRefusal::InvalidPlan)?).map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
-                }
-            }
-        }
-        registry
-            .install(SelectorOperationFactory::default())
-            .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
+        registry::install_physical(&mut registry, mode)?;
         registry
             .install(zip)
             .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
@@ -340,6 +320,17 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
             calls,
             deferred_host_request: None,
         })
+    }
+
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    pub(crate) fn bind_storage_body(
+        &mut self,
+        pin: Option<crate::protocol_source::StorageBodyPreparation>,
+    ) -> Result<(), ProtocolCallRefusal> {
+        self.calls.bind_storage_body(pin)
     }
 
     pub fn start(&mut self) -> Result<(), ProtocolCallRefusal> {

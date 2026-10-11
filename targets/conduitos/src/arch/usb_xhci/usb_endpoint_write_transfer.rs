@@ -65,6 +65,12 @@ pub(in crate::arch::usb_xhci) struct EndpointWriteTransfer<'a> {
 }
 
 impl<'a> EndpointWriteTransfer<'a> {
+    pub(in crate::arch::usb_xhci) fn retains_settlement_obligation(&self) -> bool {
+        self.pending.is_some()
+            || self.owner.has_pending_lease()
+            || self.dma.cursor.ensure_idle().is_err()
+    }
+
     pub(in crate::arch::usb_xhci) fn validate_settlement_idle(
         &self,
         device: &UsbDevice,

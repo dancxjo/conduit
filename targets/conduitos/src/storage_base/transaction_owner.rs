@@ -42,6 +42,9 @@ impl StorageAuthorizationSubmission {
 pub(crate) struct StorageSettlementReceipt(StorageAuthorizationSubmission);
 pub(crate) struct StorageCancellationReceipt(StorageAuthorizationSubmission);
 impl StorageCancellationReceipt {
+    pub(crate) fn into_submission(self) -> StorageAuthorizationSubmission {
+        self.0
+    }
     /// # Safety
     /// Original subordinate association must acknowledge physical stop and
     /// kernel retirement for this exact retained submission; idle is insufficient.
@@ -50,6 +53,9 @@ impl StorageCancellationReceipt {
     }
 }
 impl StorageSettlementReceipt {
+    pub(crate) fn into_submission(self) -> StorageAuthorizationSubmission {
+        self.0
+    }
     /// # Safety
     /// The original preparation-owned exclusive association must have verified
     /// native continuity and zero physical pending DMA/leases/uncertainty AND
@@ -161,6 +167,15 @@ impl BlockReadTransactionOwner {
             preparation,
             terminal: false,
         })
+    }
+    pub(crate) fn authorize_claim(&self) -> &BaseOperationClaim {
+        &self.authorize.claim
+    }
+    pub(crate) fn settle_claim(&self) -> &BaseOperationClaim {
+        &self.settle.claim
+    }
+    pub(crate) fn preparation(&self) -> &[u8; 32] {
+        &self.preparation
     }
     pub(crate) fn authorize_node(&self) -> NodeId {
         self.authorize.node

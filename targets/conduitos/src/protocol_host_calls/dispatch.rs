@@ -34,6 +34,16 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
             if self.pending_usb.is_some() || self.pending_usb_failed {
                 return Ok(false);
             }
+            if matches!(
+                binding.owner,
+                Owner::UsbDuplexControl | Owner::UsbDuplexRead | Owner::UsbDuplexWrite
+            ) && self
+                .storage
+                .as_ref()
+                .is_some_and(|storage| !storage.allows_usb(node))
+            {
+                return Ok(false);
+            }
             let available = match binding.owner {
                 Owner::UsbDuplexRead => self.pending_duplex[0].is_none(),
                 Owner::UsbDuplexWrite => self.pending_duplex[1].is_none(),
@@ -97,6 +107,17 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
                 target_arch = "x86_64",
                 all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
             ))]
+            Owner::StorageAuthorize => crate::storage_base::transaction_contract::AUTHORIZE_CALL,
+            #[cfg(any(
+                target_arch = "x86_64",
+                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+            ))]
+            Owner::StorageSettle => crate::storage_base::transaction_contract::SETTLE_CALL,
+
+            #[cfg(any(
+                target_arch = "x86_64",
+                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+            ))]
             Owner::UsbControl(_)
             | Owner::UsbProtocolControl
             | Owner::UsbDuplexControl
@@ -136,6 +157,23 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
             .admitted_host_request_view(&admitted)
             .map_err(Refusal::Kernel)?
             .request;
+        #[cfg(any(
+            target_arch = "x86_64",
+            all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+        ))]
+        if matches!(
+            binding.owner,
+            Owner::StorageAuthorize | Owner::StorageSettle
+        ) {
+            let settle = matches!(binding.owner, Owner::StorageSettle);
+            let result =
+                self.dispatch_storage(kernel, &admitted, node, call.call, call.request, settle);
+            if let Err(error) = result {
+                Self::complete_failure(kernel, &admitted, &error)?;
+                return Err(error);
+            }
+            return Ok(());
+        }
         let input = kernel
             .host_request_input(&admitted)
             .map_err(Refusal::Kernel)?;
@@ -267,6 +305,11 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
                 .invoke(node, call.call, call.request, input)
                 .map(Some)
                 .map_err(Refusal::Usb),
+            #[cfg(any(
+                target_arch = "x86_64",
+                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+            ))]
+            Owner::StorageAuthorize | Owner::StorageSettle => return Err(Refusal::InvalidPlan),
             Owner::Pure(owner) => owner.invoke(node, call.call, call.request, input),
             Owner::I2c(owner) => owner
                 .invoke(node, call.call, call.request, input)

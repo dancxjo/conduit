@@ -141,3 +141,52 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
         )
     }
 }
+
+/// Actual independently issued storage possessions; descriptive offers are separate.
+pub(crate) struct StorageScopePossession {
+    pub table: BaseCapabilityTable,
+    pub handle: BaseCapabilityHandle,
+    pub claim: BaseOperationClaim,
+}
+pub(crate) struct StorageUsbAdmission {
+    pub usb: UsbDuplexAdmission,
+    pub authorize: StorageScopePossession,
+    pub settle: StorageScopePossession,
+}
+impl<P: I2cProvider> PreparedProtocolPlay<P> {
+    pub(crate) fn prepare_storage_usb_duplex(
+        definition: KernelCompositeDefinition,
+        admission: StorageUsbAdmission,
+        operations: crate::protocol_operations::ProtocolOperations,
+    ) -> Result<Self, ProtocolCallRefusal> {
+        // Ordinary ingress cannot submit raw USB calls alongside storage requests.
+        let plan = &definition.internal_plan;
+        let authorize = plan
+            .fragments
+            .iter()
+            .flat_map(|fragment| &fragment.placements)
+            .find(|gear| {
+                gear.implementation_id.as_str()
+                    == crate::storage_base::transaction_factory::AUTHORIZE_IMPLEMENTATION
+            })
+            .ok_or(ProtocolCallRefusal::InvalidPlan)?;
+        if definition.boundary.input_fronts.len() != 1
+            || definition.boundary.input_fronts[0].internal_placement_id != authorize.placement_id
+        {
+            return Err(ProtocolCallRefusal::InvalidPlan);
+        }
+        Self::prepare_selected(
+            definition,
+            operations,
+            false,
+            PhysicalMode::StorageUsbDuplex,
+            conduit_composite::KernelCompositeSignStorage {
+                additional_local_items: 0,
+                additional_remote_items: admission.usb.additional_remote_sign_items,
+            },
+            |plan, zip, states| {
+                PreparedProtocolCalls::prepare_storage_usb_duplex(plan, admission, zip, states)
+            },
+        )
+    }
+}

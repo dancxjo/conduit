@@ -130,6 +130,7 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
         }
         Ok(Self {
             plan_id: plan.plan_id.clone(),
+            storage: None,
             identity: PreparationHostIdentity {
                 host_id: fragment.host_id.clone(),
                 boot_id: fragment.boot_id.clone(),
@@ -246,6 +247,7 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
         }
         Ok(Self {
             plan_id: plan.plan_id.clone(),
+            storage: None,
             identity: PreparationHostIdentity {
                 host_id: fragment.host_id.clone(),
                 boot_id: fragment.boot_id.clone(),
@@ -288,22 +290,35 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
         zip: &crate::flow_zip::FlowZipOperationFactory,
         states: &crate::seeded_state::SeededStateOperationFactory,
     ) -> Result<Self, ProtocolCallRefusal> {
+        Self::prepare_usb_duplex_selected(plan, admission, zip, states, false)
+    }
+
+    pub(super) fn prepare_usb_duplex_selected(
+        plan: &Plan,
+        admission: crate::protocol_play::UsbDuplexAdmission,
+        zip: &crate::flow_zip::FlowZipOperationFactory,
+        states: &crate::seeded_state::SeededStateOperationFactory,
+        storage: bool,
+    ) -> Result<Self, ProtocolCallRefusal> {
         use crate::usb_base::{
             control_factory::CONTROL_IMPLEMENTATION,
             endpoint_read_factory::ENDPOINT_READ_IMPLEMENTATION,
             endpoint_write_factory::ENDPOINT_WRITE_IMPLEMENTATION,
         };
         use ProtocolCallRefusal as Refusal;
-        let (lowered, active, mut bindings) = Self::prepare_pure(
-            plan,
-            &[
-                CONTROL_IMPLEMENTATION,
-                ENDPOINT_READ_IMPLEMENTATION,
-                ENDPOINT_WRITE_IMPLEMENTATION,
-            ],
-            zip,
-            states,
-        )?;
+        let mut implementations = alloc::vec![
+            CONTROL_IMPLEMENTATION,
+            ENDPOINT_READ_IMPLEMENTATION,
+            ENDPOINT_WRITE_IMPLEMENTATION
+        ];
+        if storage {
+            implementations.extend([
+                crate::storage_base::transaction_factory::AUTHORIZE_IMPLEMENTATION,
+                crate::storage_base::transaction_factory::SETTLE_IMPLEMENTATION,
+            ]);
+        }
+        let (lowered, active, mut bindings) =
+            Self::prepare_pure(plan, &implementations, zip, states)?;
         let fragment = &plan.fragments[0];
         let control = fragment
             .placements
@@ -380,6 +395,7 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
         }
         Ok(Self {
             plan_id: plan.plan_id.clone(),
+            storage: None,
             identity: PreparationHostIdentity {
                 host_id: fragment.host_id.clone(),
                 boot_id: fragment.boot_id.clone(),

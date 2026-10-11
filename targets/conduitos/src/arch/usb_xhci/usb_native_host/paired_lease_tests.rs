@@ -293,6 +293,12 @@ fn paired(stop_code: u8, stalled: bool, cancelled: bool) {
             kernel.cancel().unwrap();
             assert!(host.stopped && host.stop_acknowledged);
             assert_eq!(host.independent_keys().unwrap(), [None, None]);
+            host.validate_cancelled_settlement().unwrap();
+            assert!(
+                !kernel
+                    .has_retained_host_call_for_nodes(&fragment.host_id, &nodes)
+                    .unwrap()
+            );
             for direction in 0..2 {
                 assert!(matches!(
                     host.complete_independent_event(event(keys[direction].unwrap(), 1), keys),
@@ -327,6 +333,7 @@ fn paired(stop_code: u8, stalled: bool, cancelled: bool) {
             assert_eq!(host.independent_keys().unwrap(), keys);
             assert!(!host.stop_acknowledged);
             assert!(host.poll_independent().is_err());
+            assert!(host.validate_cancelled_settlement().is_err());
         } else if stalled {
             let (first, bytes) = completion.unwrap().unwrap();
             assert_eq!(first, read_index);
@@ -334,6 +341,7 @@ fn paired(stop_code: u8, stalled: bool, cancelled: bool) {
             assert!(kernel.complete_host_call_bytes(&tokens[0], bytes).is_err());
             assert!(kernel.host_request_input(&tokens[1]).is_ok());
             assert!(host.stopped && host.stop_acknowledged);
+            assert!(host.validate_cancelled_settlement().is_err());
             let (second, bytes) = host.poll_independent().unwrap().unwrap();
             assert_eq!(second, write_index);
             kernel.complete_host_call_bytes(&tokens[1], bytes).unwrap();

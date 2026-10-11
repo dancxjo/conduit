@@ -23,6 +23,7 @@ pub enum ProtocolCallRefusal {
         all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
     ))]
     UsbIsochronous(crate::arch::UsbIsochronousCallRefusal),
+    Storage(crate::storage_base::transaction_owner::StorageTransactionRefusal),
     InvalidPlan,
     Unsupported,
     Kernel(KernelCompositeError),
@@ -39,6 +40,18 @@ impl ProtocolCallRefusal {
         use I2cCallRefusal as I2c;
         use SelectorCallRefusal as Selector;
         let (code, detail) = match self {
+            Self::Storage(error) => {
+                use crate::storage_base::transaction_owner::StorageTransactionRefusal as S;
+                let code = match error {
+                    S::Binding | S::Stale | S::Terminal => FailureCode::InvalidLifecycle,
+                    S::Possession => FailureCode::HostCallDenied,
+                    S::Pressure => FailureCode::StorageExhausted,
+                    S::Candidate | S::Canonical(_) | S::Request(_) => FailureCode::InvalidInput,
+                    S::Capability(_) => FailureCode::HostCallFailed,
+                };
+                (code, 1097)
+            }
+
             #[cfg(any(
                 target_arch = "x86_64",
                 all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))

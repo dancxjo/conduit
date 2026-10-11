@@ -139,6 +139,7 @@ impl PreparedProtocolSource {
         install_clock(&mut startup, &mut profile)?;
         install_literal(&mut startup, &mut profile)?;
         usb_catalog::install(&mut startup, &mut profile)?;
+        storage_catalog::install(&mut startup, &mut profile)?;
         crate::serial_base::contract::SerialDuplexContract::prepare()
             .map_err(Error::Contract)?
             .install_catalogs(&mut startup, &mut profile)
@@ -381,6 +382,7 @@ mod schema_encoding {
 #[cfg(test)]
 mod tests;
 
+mod storage_catalog;
 mod usb_catalog;
 mod usb_hid;
 pub use usb_hid::{
@@ -403,6 +405,7 @@ mod issuer;
 pub use issuer::{NativeProtocolIssueRefusal, NativeProtocolIssuer, NativeProtocolPossession};
 
 mod body_play;
+pub(crate) use body_play::storage_preparation::StorageBodyPreparation;
 pub use body_play::{
     PreparedProtocolBodyPlay, ProtocolBodyPreparationRefusal, ProtocolBodyRefusal,
 };

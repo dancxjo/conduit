@@ -39,7 +39,7 @@ pub struct PreparedProtocolBodyPlay<P, C> {
     kernel: Option<ProtocolKernel<P, C>>,
     host: HostId,
     boot: BootId,
-    storage_preparation: Option<[u8; 32]>,
+    storage_preparation: Option<storage_preparation::StorageBodyPreparation>,
 }
 
 impl<P: I2cProvider, C: MonotonicDeadlineProvider> PreparedProtocolBodyPlay<P, C> {
@@ -126,6 +126,23 @@ impl<P: I2cProvider, C: MonotonicDeadlineProvider> PreparedProtocolBodyPlay<P, C
         })
     }
 
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    pub(crate) fn prepare_storage_usb_duplex(
+        artifact: PreparedProtocolArtifact,
+        session: BodyLifecycleSession,
+        play_sequence: u64,
+        admission: crate::protocol_play::StorageUsbAdmission,
+    ) -> Result<Self, Box<ProtocolBodyPreparationRefusal>> {
+        Self::prepare_with(artifact, session, play_sequence, |artifact| {
+            artifact
+                .prepare_storage_usb_duplex::<P>(admission)
+                .map(|kernel| ProtocolKernel::WithoutClock(Box::new(kernel)))
+        })
+    }
+
     fn prepare_with(
         artifact: PreparedProtocolArtifact,
         session: BodyLifecycleSession,
@@ -159,7 +176,14 @@ impl<P: I2cProvider, C: MonotonicDeadlineProvider> PreparedProtocolBodyPlay<P, C
             start_session
                 .started(&host, &boot, play, wake)
                 .map_err(ProtocolBodyRefusal::Lifecycle)?;
-            let kernel = prepare_kernel(artifact).map_err(ProtocolBodyRefusal::Call)?;
+            let mut kernel = prepare_kernel(artifact).map_err(ProtocolBodyRefusal::Call)?;
+            #[cfg(any(
+                target_arch = "x86_64",
+                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+            ))]
+            kernel
+                .bind_storage_body(storage_preparation.clone())
+                .map_err(ProtocolBodyRefusal::Call)?;
             Ok::<_, ProtocolBodyRefusal>((start_session, kernel, host, boot, storage_preparation))
         })();
         match prepared {
@@ -178,7 +202,7 @@ impl<P: I2cProvider, C: MonotonicDeadlineProvider> PreparedProtocolBodyPlay<P, C
     /// Correlation with actual prepared Body/Play and exact packaged resident.
     /// This grants no storage possession and is not a settlement receipt.
     pub fn storage_preparation_commitment(&self) -> Option<&[u8; 32]> {
-        self.storage_preparation.as_ref()
+        self.storage_preparation.as_ref().map(|pin| pin.digest())
     }
 
     pub fn session(&self) -> &BodyLifecycleSession {
