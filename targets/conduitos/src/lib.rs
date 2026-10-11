@@ -297,6 +297,7 @@ pub mod synth_nucleus;
 pub mod text_composition;
 mod text_kernel_backs;
 pub mod text_literal;
+pub mod bytes_literal;
 mod text_offer;
 pub mod text_planned_kernel;
 #[cfg(conduitos_protected_execution)]

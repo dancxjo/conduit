@@ -272,6 +272,9 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
             .install(singletons)
             .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
         registry
+            .install(crate::bytes_literal::BytesLiteralOperationFactory::default())
+            .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
+        registry
             .install(crate::text_literal::TextLiteralOperationFactory::default())
             .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
         registry
