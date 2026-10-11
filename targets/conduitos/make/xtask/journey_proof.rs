@@ -2,6 +2,7 @@
 //! Every image is captured after an observed guest transition, never fabricated
 //! from a fixture or a retired Tour surface.
 
+mod failure_stack;
 mod keyboard_domain;
 
 use std::{
@@ -53,10 +54,15 @@ pub(super) fn execute_supplied(
     let serial_path = paths.target.join("journey-serial.log");
     let _ = fs::remove_file(&monitor_socket);
     let _ = fs::remove_file(&serial_path);
-    match fs::remove_file(paths.target.join("journey-failure-registers.json")) {
-        Ok(()) => {}
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
-        Err(error) => return Err(io_error(error)),
+    for name in [
+        "journey-failure-registers.json",
+        "journey-failure-stack.json",
+    ] {
+        match fs::remove_file(paths.target.join(name)) {
+            Ok(()) => {}
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+            Err(error) => return Err(io_error(error)),
+        }
     }
     let mut command = Command::new("qemu-system-x86_64");
     command
@@ -236,6 +242,15 @@ pub(super) fn execute_supplied(
     })();
     if result.is_err() {
         if let Ok((mut qmp, mut reader)) = hid_qmp::connect(&monitor_socket, &mut child) {
+            // Freeze only after failure so registers and stack describe one CPU state.
+            if let Err(error) = super::qmp::request(
+                &mut qmp,
+                &mut reader,
+                br#"{"execute":"stop"}"#,
+                "journey-failure-stop",
+            ) {
+                artifacts.diagnostic_failure(&error);
+            }
             let registers = super::qmp::request_value(
                 &mut qmp,
                 &mut reader,
@@ -244,6 +259,11 @@ pub(super) fn execute_supplied(
             );
             match registers {
                 Ok(value) => {
+                    if let Err(error) =
+                        failure_stack::capture(&mut qmp, &mut reader, &value, &paths.target)
+                    {
+                        artifacts.diagnostic_failure(&error);
+                    }
                     let retained = serde_json::to_vec_pretty(&value)
                         .map_err(|error| refusal(error.to_string()))
                         .and_then(|bytes| {
