@@ -50,7 +50,9 @@ fn source() -> PreparedProtocolSource {
     .unwrap()
 }
 fn program(source: &PreparedProtocolSource, name: &str) -> PortableExpressionProgram {
-    let expanded = source.expand(name).unwrap();
+    let expanded = source
+        .expand(name)
+        .unwrap_or_else(|error| panic!("{name}: {error:?}"));
     let ConfigurationValue::Text(encoded) = &expanded.expanded.gears[0]
         .configuration
         .iter()
@@ -63,8 +65,12 @@ fn program(source: &PreparedProtocolSource, name: &str) -> PortableExpressionPro
     PortableExpressionProgram::from_canonical_hex(encoded).unwrap()
 }
 fn eval(p: &PortableExpressionProgram, v: &StructuredInfoValue) -> StructuredInfoValue {
-    StructuredInfoValue::from_canonical_bytes(&p.evaluate(&v.canonical_bytes().unwrap()).unwrap())
-        .unwrap()
+    let bytes = p.evaluate(&v.canonical_bytes().unwrap()).unwrap();
+    if matches!(p.output_type.shape(), StructuredInfoTypeShape::Leaf(_)) {
+        StructuredInfoValue::leaf(p.output_type.clone(), bytes).unwrap()
+    } else {
+        StructuredInfoValue::from_canonical_bytes(&bytes).unwrap()
+    }
 }
 fn fields(ty: &StructuredInfoType) -> &[StructuredFieldType] {
     let StructuredInfoTypeShape::Record { fields, .. } = ty.shape() else {
@@ -357,7 +363,10 @@ fn control_result(
             vec![
                 (
                     "transferred",
-                    leaf(field(inner, "transferred"), &actual.to_le_bytes()),
+                    leaf(
+                        field(inner, "transferred"),
+                        &u16::try_from(actual).unwrap().to_le_bytes(),
+                    ),
                 ),
                 ("short", leaf(field(inner, "short"), &[u8::from(short)])),
                 (
