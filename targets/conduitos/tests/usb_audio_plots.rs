@@ -35,7 +35,10 @@ fn source() -> String {
 }
 fn program(entry: &str) -> PortableExpressionProgram {
     let text = source();
-    let syntax = parse_syntax_document(&text);
+    program_from_text(&text, entry)
+}
+fn program_from_text(text: &str, entry: &str) -> PortableExpressionProgram {
+    let syntax = parse_syntax_document(text);
     assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);
     let checked = check_syntax_document(&syntax, &StartupCatalog::new()).unwrap();
     let expanded = expand_canonical_plot_for_authoring(&checked, entry, &ProfileCatalog::new())
@@ -298,7 +301,9 @@ fn block_value_with(
                 other => panic!("kind {other}"),
             };
             let bytes = if width == 0 {
-                (0..192)
+                (0..replacement
+                    .filter(|(target, _)| *target == path)
+                    .map_or(192, |(_, length)| length as usize))
                     .map(|offset| ((packet * 192 + offset) % 251) as u8)
                     .collect()
             } else {
@@ -530,4 +535,34 @@ fn checked_playback_source_prepares_control_clock_batch_and_explicit_drain() {
                 .any(|gear| gear.kind_id.as_str() == expected)
         );
     }
+}
+
+#[test]
+fn playback_authored_pcm_canonical_envelope_measures_lawful_and_declared_maximum() {
+    let text = [
+        source(),
+        include_str!("../plots/usb/audio-playback-types.conduit").into(),
+        include_str!("../plots/usb/audio-playback-policy.conduit").into(),
+    ]
+    .join("\n");
+    let p = program_from_text(&text, "usb-audio-authored-pcm-supported");
+    let lawful = block_value(&p.input_type, "", 0).canonical_bytes().unwrap();
+    let maximum = block_value_with(&p.input_type, "", 0, Some(("/segments/wire", 256)))
+        .canonical_bytes()
+        .unwrap();
+    println!(
+        "authored PCM canonical lawful={} declared-eight-by-256={}",
+        lawful.len(),
+        maximum.len()
+    );
+    assert_eq!(maximum.len() - lawful.len(), 8 * (256 - 192));
+    assert!(
+        maximum.len() <= 4096,
+        "authored input needs a reviewed separate envelope"
+    );
+    let mut evaluator = PreparedPortableExpressionEvaluator::new(&p).unwrap();
+    assert_eq!(evaluator.evaluate(&lawful).unwrap(), [1]);
+    assert_eq!(evaluator.evaluate(&maximum).unwrap(), [0]);
+    // This measures the original author input; it does not assert that the
+    // separately prepared feedback pair or native retained resources fit it.
 }
