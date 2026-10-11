@@ -144,7 +144,10 @@ impl MakeRecord {
         }
         if self.implementations == 0
             || self.implementations & !ALL_KNOWN_IMPLEMENTATIONS != 0
-            || (self.target != "conduitos/x86_64/pc" && self.includes(IMPL_USB_TRANSPORT))
+            || (!matches!(
+                self.target,
+                "conduitos/x86_64/pc" | "conduitos/aarch64/virt"
+            ) && self.includes(IMPL_USB_TRANSPORT))
             || self.facilities & !(FACILITY_NATIVE_COMPOSITOR | FACILITY_HTTP_CLIENT) != 0
             || self.resources & !(RESOURCE_PRESENTATION_SURFACE | RESOURCE_HTTP_CLIENT) != 0
             || self.bases & !(BASE_DISPLAY_SCANOUT | BASE_SERIAL_TEXT | BASE_HTTP_NETWORK) != 0
@@ -361,13 +364,12 @@ mod tests {
     }
 
     #[test]
-    fn usb_transport_inventory_is_native_x86_only_and_bit_fifteen_stays_unknown() {
+    fn usb_transport_inventory_rejects_unsupported_targets_and_unknown_bits() {
         let native = record();
         assert!(native.includes(IMPL_USB_TRANSPORT));
         assert_eq!(native.validate(1), Ok(()));
         for target in [
             "conduitos/ia32/pc",
-            "conduitos/aarch64/virt",
             "conduitos/riscv64/virt",
             "conduitos/loongarch64/virt",
             "conduitos/aarch64/orange-pi-5-rk3588s",
@@ -409,6 +411,14 @@ mod tests {
             ..x86
         };
         assert_eq!(record.validate(1), Ok(()));
+        assert_eq!(
+            MakeRecord {
+                implementations: record.implementations | IMPL_USB_TRANSPORT,
+                ..record
+            }
+            .validate(1),
+            Ok(())
+        );
         for malformed in [
             MakeRecord {
                 target: "conduitos/x86_64/pc",
