@@ -65,9 +65,8 @@ impl ProtocolCallRefusal {
                     }
                     Usb::Host(Host::Isochronous(_)) => (FailureCode::HostCallFailed, 1093),
                     Usb::Host(Host::Capacity) => (FailureCode::IdentityCapacityExhausted, 1091),
-                    Usb::Host(Host::Pending | Host::Native(_)) => {
-                        (FailureCode::HostCallFailed, 1092)
-                    }
+                    Usb::Host(Host::Native(error)) => native_usb_failure(error, 1092),
+                    Usb::Host(Host::Pending) => (FailureCode::HostCallFailed, 1092),
                 }
             }
             #[cfg(any(
@@ -139,7 +138,23 @@ fn control_failure(error: &crate::arch::UsbControlCallRefusal) -> (FailureCode, 
         Usb::Ownership(Owner::Result(_) | Owner::Canonical(_)) => {
             (FailureCode::HostCallFailed, 1075)
         }
-        Usb::Native(_) => (FailureCode::HostCallFailed, 1076),
+        Usb::Native(error) => native_usb_failure(error, 1076),
+    }
+}
+
+#[cfg(any(
+    target_arch = "x86_64",
+    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+))]
+fn native_usb_failure(
+    error: &crate::arch::usb_xhci::UsbError,
+    fallback: u16,
+) -> (FailureCode, u16) {
+    use crate::arch::usb_xhci::UsbError;
+    match error {
+        UsbError::StaleDeviceInstance => (FailureCode::InvalidLifecycle, 1095),
+        UsbError::DeviceVanished => (FailureCode::HostCallFailed, 1096),
+        _ => (FailureCode::HostCallFailed, fallback),
     }
 }
 
@@ -291,6 +306,35 @@ mod tests {
             assert_eq!(direct.code, expected);
             assert_eq!(
                 ProtocolCallRefusal::UsbProtocol(Usb::Host(Host::Write(error()))).failure(),
+                direct
+            );
+        }
+    }
+    #[test]
+    fn stale_attachment_and_provider_loss_keep_distinct_native_failure_identity() {
+        use crate::arch::usb_xhci::UsbError;
+        for (stale, code, detail) in [
+            (true, FailureCode::InvalidLifecycle, 1095),
+            (false, FailureCode::HostCallFailed, 1096),
+        ] {
+            let error = || {
+                if stale {
+                    UsbError::StaleDeviceInstance
+                } else {
+                    UsbError::DeviceVanished
+                }
+            };
+            let direct = ProtocolCallRefusal::Usb(Control::Native(error())).failure();
+            assert_eq!(direct, Failure { code, detail });
+            assert_eq!(
+                ProtocolCallRefusal::UsbProtocol(Usb::Host(Host::Native(error()))).failure(),
+                direct
+            );
+            assert_eq!(
+                ProtocolCallRefusal::UsbProtocol(Usb::Host(Host::Control(
+                    Control::Native(error())
+                )))
+                .failure(),
                 direct
             );
         }

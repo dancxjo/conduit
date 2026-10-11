@@ -75,17 +75,21 @@ fn event(key: PendingEventKey, code: u8) -> crate::arch::xhci_mechanism::Event {
 
 #[test]
 fn paired_original_endpoint_leases_route_out_before_in_without_double_completion() {
-    paired(1, false);
+    paired(1, false, false);
 }
 #[test]
 fn paired_stall_retires_both_original_leases_only_after_acknowledged_stop() {
-    paired(1, true);
+    paired(1, true, false);
 }
 #[test]
 fn paired_stall_failed_stop_retains_both_original_dma_reservations() {
-    paired(6, true);
+    paired(6, true, false);
 }
-fn paired(stop_code: u8, stalled: bool) {
+#[test]
+fn paired_acknowledged_cancel_rejects_late_original_events_and_both_kernel_tokens() {
+    paired(1, false, true);
+}
+fn paired(stop_code: u8, stalled: bool, cancelled: bool) {
     crate::arch::xhci_mechanism::with_synthetic_stop_controller(1, stop_code, 0, |controller| {
         let (mut fragment, _, _, read_placement) = read::selected();
         let (write_fragment, _, _, write_placement) = write::selected();
@@ -263,6 +267,30 @@ fn paired(stop_code: u8, stalled: bool) {
         let keys = host.independent_keys().unwrap();
         assert_eq!(keys[0].unwrap().index, read_index);
         assert_eq!(keys[1].unwrap().index, write_index);
+        if cancelled {
+            host.cancel().unwrap();
+            kernel.cancel().unwrap();
+            assert!(host.stopped && host.stop_acknowledged);
+            assert_eq!(host.independent_keys().unwrap(), [None, None]);
+            for direction in 0..2 {
+                assert!(matches!(
+                    host.complete_independent_event(event(keys[direction].unwrap(), 1), keys),
+                    Err(UsbNativeHostRefusal::NotReady)
+                ));
+                assert!(kernel.host_request_input(&tokens[direction]).is_err());
+                assert!(
+                    kernel
+                        .complete_host_call_bytes(&tokens[direction], &[])
+                        .is_err()
+                );
+            }
+            assert!(host.poll_independent().is_err());
+            unsafe {
+                assert_eq!((*dma).owner_slot, 0);
+            }
+            return;
+        }
+
         assert!(
             host.begin_independent_read(read_index, RequestId(13), &read::input_length(8))
                 .is_err()

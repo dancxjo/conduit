@@ -145,8 +145,14 @@ fn sticky_attachment_fault_closes_both_directions_until_original_stop() {
                 )
             );
             assert!(host.uncertain_bulk && host.uncertain_control);
-            assert!(host.admit_independent(0).is_err());
-            assert!(host.admit_independent(1).is_err());
+            assert!(
+                host.begin_independent_read(UsbNativeCallIndex(0), RequestId(0), &[])
+                    .is_err()
+            );
+            assert!(
+                host.begin_independent_write(UsbNativeCallIndex(0), RequestId(0), &[])
+                    .is_err()
+            );
             assert!(host.poll_independent().is_err());
             assert!(host.cancel().is_err());
             assert!(host.uncertain_bulk && host.uncertain_control);

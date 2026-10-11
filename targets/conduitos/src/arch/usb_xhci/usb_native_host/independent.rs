@@ -204,6 +204,13 @@ impl UsbNativeHost<'_> {
         event: crate::arch::xhci_mechanism::Event,
         keys: [Option<PendingEventKey>; 2],
     ) -> Result<Option<(UsbNativeCallIndex, &[u8])>, UsbNativeHostRefusal> {
+        if self.stopped
+            || self.stop_acknowledged
+            || self.cancellation_requested
+            || self.uncertain_bulk
+        {
+            return Err(UsbNativeHostRefusal::NotReady);
+        }
         self.validate_continuity()?;
         let index = match route_event(event, keys) {
             Ok(index) => index,
