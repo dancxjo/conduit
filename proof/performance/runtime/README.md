@@ -1,8 +1,8 @@
 # Runtime performance reference worker
 
-This is the first hosted measurement slice of #5395. It measures the existing
-prepared expression evaluator and the production shared-pool selection function.
-It does not yet answer the whole Plan/Play performance question.
+This hosted measurement slice of #5395 measures the existing prepared evaluator
+and production shared-pool selection function. An optional profile adds ordinary
+checked Plot/Plan/std Back/kernel execution through acknowledged typed Fores.
 
 From a clean, committed checkout:
 
@@ -20,8 +20,10 @@ the exact authored expressions in `sources/`.
 
 Finite options are `--values` (1–10 million, default 1 million),
 `--repetitions` (3–15, default 5), `--decisions` (1,000–1 million, default 10,000),
-and `--samples` (1,000–100,000, default 2,000). Repeat the command with a new
-directory on an idle host before treating differences as repeatable.
+and `--samples` (1,000–100,000, default 2,000). Add `--hosted-pipeline true` to
+include the finite ordinary hosted trials. The driver selects the corresponding
+worker feature and retains the exact build command. Repeat with a new directory
+on an idle host before treating differences as repeatable.
 
 ## Timed boundaries
 
@@ -55,6 +57,27 @@ these operations and output validation. All four lifecycle Signs and selected
 observation Sign identities are checked. Missing or stale evidence must refuse
 without occupation. The exact lowered fixture fields are retained.
 
+The hosted profile holds useful work constant at 32 checked additions per U64
+value, spread across 1, 8, or 32 actual Gears. It runs the normal production
+kernel and standard expression Backs from a sealed Plan, with 64 finite ordered
+input values and acknowledged outputs. Each repetition retains its source,
+complete Host advertisement, Plan, active Play identity and kernel Signs.
+Every output must match the native law, normalized ordered digest, exact Type,
+port, track and sequence. Mandatory output Signs and fixed value-storage
+capacity are checked. The equivalent native loop consumes and emits canonical
+eight-byte frames; legal native compiler fusion is allowed and disclosed.
+
+Cold hosted phases separate parsing, checking, expansion, Host-offer preparation,
+realization selection, and Plan realization validation/sealing. The measured
+Host call includes reservation, Back preparation, Play, Sign/report translation
+and teardown. Its first-to-last output interval spans 63 additional completed
+values; two wall samples in the Fore callback witness that interval. It is a
+finite completion window, and the whole call is not labeled steady Play.
+Host/harness teardown is measured separately. Allocations by the ordinary
+Host path are reported, while output validation and artifact serialization stay
+outside execution timings. These trials do not claim a million-item continuous
+stream or independent cold Back-preparation timing.
+
 ## Interpretation and remaining acceptance
 
 The report records actual wall time, Linux process CPU time, System allocator
@@ -67,9 +90,9 @@ Background load and frequency changes remain uncontrolled. Allocator counters
 run only on allocation/deallocation; allocation-free operations do not acquire
 an instrumentation counter on each arithmetic operation.
 
-The regression policy remains report-only. Whole checked Plot/Plan/std Back/
-kernel execution, 1/8/32 actual Gear pipelines, streaming/pressure/fairness,
-payload/fan-out/batch scaling, representative DSP, and reviewed repeatability
+The regression policy remains report-only. Fully separated cold Back/Play phases,
+continuous streaming/pressure/fairness, payload/fan-out/batch scaling,
+representative DSP, and reviewed repeatability
 remain #5395 acceptance work. Browser/WASM follows hosted repeatability.
 Scheduling need not wait for a symbolic mathematics engine: existing fixed-width
 paths can be measured now; reliable bounded arithmetic and type-safe projections

@@ -116,6 +116,7 @@ mod tests {
             repetitions: 3,
             decisions: 4,
             samples: 1000,
+            hosted_pipeline: false,
         };
         for count in [1, 8, 32] {
             let run = run(&Fixture::new(count).unwrap(), &config).unwrap();

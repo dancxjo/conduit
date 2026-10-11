@@ -22,7 +22,7 @@ fn git(root: &Path, arguments: &[&str]) -> Result<String, Box<dyn std::error::Er
 
 pub fn run(arguments: &[String], dry_run: bool) -> Result<(), Box<dyn std::error::Error>> {
     if arguments == ["--help"] {
-        println!("cargo xtask prove runtime-performance [--output PATH] [--values N] [--repetitions N] [--decisions N] [--samples N]\nRetains release measurements from committed, clean source. Output must be new and outside tracked source (default target/runtime-performance). Finite defaults: 1000000 values, 5 repetitions, 10000 decisions, 2000 samples.");
+        println!("cargo xtask prove runtime-performance [--output PATH] [--values N] [--repetitions N] [--decisions N] [--samples N] [--hosted-pipeline true|false]\nRetains release measurements from committed, clean source. Output must be new and outside tracked source (default target/runtime-performance). Finite defaults: 1000000 values, 5 repetitions, 10000 decisions, 2000 samples.");
         return Ok(());
     }
     let config = config::Config::parse(arguments)?;
@@ -69,20 +69,26 @@ pub fn run(arguments: &[String], dry_run: bool) -> Result<(), Box<dyn std::error
         config.decisions.to_string(),
         "--samples".to_owned(),
         config.samples.to_string(),
+        "--hosted-pipeline".to_owned(),
+        config.hosted_pipeline.to_string(),
     ];
     eprintln!(
         "Building release worker and retaining output in {}",
         output.display()
     );
+    let mut worker_command = vec![
+        "run",
+        "--locked",
+        "--release",
+        "-p",
+        "conduit-runtime-performance",
+    ];
+    if config.hosted_pipeline {
+        worker_command.extend(["--features", "hosted-pipeline"]);
+    }
+    worker_command.push("--");
     let status = Command::new("cargo")
-        .args([
-            "run",
-            "--locked",
-            "--release",
-            "-p",
-            "conduit-runtime-performance",
-            "--",
-        ])
+        .args(&worker_command)
         .args(&worker_arguments)
         .current_dir(&root)
         .env("CARGO_BUILD_JOBS", "2")
@@ -93,11 +99,13 @@ pub fn run(arguments: &[String], dry_run: bool) -> Result<(), Box<dyn std::error
     let final_sha = git(&root, &["rev-parse", "HEAD"])?;
     let clean = git(&root, &["status", "--porcelain"])?.is_empty();
     let custody = final_sha == sha && clean;
+    let mut recorded_command = vec!["cargo"];
+    recorded_command.extend(worker_command.iter().copied());
     let report = serde_json::json!({
         "schema":"conduit.runtime-performance-command@1", "git_sha":sha,
         "final_git_sha":final_sha, "source_custody_verified":custody,
         "worker_exit_code":status.code(), "worker_success":status.success(),
-        "command":["cargo", "run", "--locked", "--release", "-p", "conduit-runtime-performance", "--"],
+        "command":recorded_command,
         "worker_arguments":worker_arguments, "config":config,
         "artifact_sha256":manifest(&output)?,
     });
