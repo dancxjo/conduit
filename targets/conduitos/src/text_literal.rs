@@ -91,12 +91,11 @@ mod tests {
     use conduit_core::*;
     fn gear(text: &str) -> PlannedGear {
         let expected = crate::functional_offers::text_literal_offer();
-        PlannedGear {
+        conduit_core::planned_gear_from_parts! {
             placement_id: "literal-placement".into(),
             gear_id: "literal".into(),
             kind_id: expected.kind_id,
             kind_contract_revision: expected.kind_contract_revision,
-            source_span: None,
             execution_profile_id: expected.implementation.execution_profile_id,
             configuration: vec![ConfigurationEntry {
                 key: "value".into(),
@@ -110,7 +109,6 @@ mod tests {
             artifact_id: expected.implementation.artifact_id,
             base: None,
             realization_characteristics: vec![],
-            realization_properties: vec![],
             limits: expected.limits,
             inputs: expected.inputs,
             outputs: expected.outputs,
