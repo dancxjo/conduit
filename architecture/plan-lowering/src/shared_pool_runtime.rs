@@ -52,6 +52,7 @@ pub enum SharedPoolRuntimeError {
     InvalidEvidence,
     Cost(PoolCostLoweringError),
     MissingPreparedCosts,
+    WaitingAdmissionRequired,
 }
 
 pub struct HostedSharedPool<
@@ -135,6 +136,9 @@ impl<const MEMBER_SLOTS: usize, const POOL_SIGNS: usize, const OBSERVATION_SIGNS
         current: &[PoolRealizationObservation],
         selection_sign_id: SignId,
     ) -> Result<SharedPoolAdmissionOutcome, SharedPoolRuntimeError> {
+        if self.waiting.is_some() {
+            return Err(SharedPoolRuntimeError::WaitingAdmissionRequired);
+        }
         if self.lowered.selection_policy
             == conduit_core::SharedPoolSelectionPolicy::MinimumPredictedCompletionThenCapacity
         {

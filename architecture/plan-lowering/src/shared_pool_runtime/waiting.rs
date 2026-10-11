@@ -5,6 +5,9 @@ use super::*;
 use alloc::string::String;
 use conduit_core::MonotonicInstant;
 
+mod policy;
+pub use policy::*;
+
 pub const MAXIMUM_POOL_WAITING_OPERATIONS: usize = 32;
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct PoolWaitingLimits {
@@ -18,6 +21,7 @@ pub struct QueuedPoolOperation {
     pub pool: SharedPoolId,
     pub operation: PoolOperationId,
     pub requester: String,
+    pub class: PoolWaitingClass,
     pub key: MemberKey,
     pub demand: [u8; 32],
     /// Extent admitted by the request owner; this queue holds no payload.
@@ -27,6 +31,7 @@ pub struct QueuedPoolOperation {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PoolWaitingError {
     InvalidLimits,
+    PolicyMismatch,
     AlreadyEnabled,
     NotEnabled,
     InvalidIdentity,
@@ -44,10 +49,13 @@ pub enum PoolWaitingError {
 }
 struct Entry {
     sequence: u64,
+    bypasses: u8,
     operation: QueuedPoolOperation,
 }
 pub(super) struct BoundedPoolWaiting {
     limits: PoolWaitingLimits,
+    policy: PoolWaitingPolicy,
+    last_requester: Option<String>,
     entries: [Option<Entry>; MAXIMUM_POOL_WAITING_OPERATIONS],
     bytes: u32,
     next_sequence: u64,
@@ -62,14 +70,6 @@ impl BoundedPoolWaiting {
             return Err(PoolWaitingError::ClockRegressed);
         }
         Ok(())
-    }
-    fn first(&self) -> Option<usize> {
-        self.entries
-            .iter()
-            .enumerate()
-            .filter_map(|(i, e)| e.as_ref().map(|e| (i, e.sequence)))
-            .min_by_key(|(_, sequence)| *sequence)
-            .map(|(i, _)| i)
     }
     fn remove(&mut self, index: usize) -> QueuedPoolOperation {
         let entry = self.entries[index]
@@ -87,6 +87,24 @@ impl<const M: usize, const S: usize, const O: usize> HostedSharedPool<M, S, O> {
         limits: PoolWaitingLimits,
         now: MonotonicInstant,
     ) -> Result<(), PoolWaitingError> {
+        self.enable_waiting_with_policy(limits, PoolWaitingPolicy::Fifo, now)
+    }
+    /// The preparation owner admits immutable request-order policy. It grants
+    /// no realization or content authority and leaves cost admission unchanged.
+    pub fn enable_waiting_with_policy(
+        &mut self,
+        limits: PoolWaitingLimits,
+        policy: PoolWaitingPolicy,
+        now: MonotonicInstant,
+    ) -> Result<(), PoolWaitingError> {
+        if self.lowered.selection_policy
+            != conduit_core::SharedPoolSelectionPolicy::MinimumPredictedCompletionThenCapacity
+        {
+            return Err(PoolWaitingError::PolicyMismatch);
+        }
+        if !policy.valid() {
+            return Err(PoolWaitingError::InvalidLimits);
+        }
         if self.waiting.is_some() {
             return Err(PoolWaitingError::AlreadyEnabled);
         }
@@ -108,6 +126,8 @@ impl<const M: usize, const S: usize, const O: usize> HostedSharedPool<M, S, O> {
         }
         self.waiting = Some(BoundedPoolWaiting {
             limits,
+            policy,
+            last_requester: None,
             entries: core::array::from_fn(|_| None),
             bytes: 0,
             next_sequence: 0,
@@ -181,6 +201,7 @@ impl<const M: usize, const S: usize, const O: usize> HostedSharedPool<M, S, O> {
             .expect("bounded waiting slot available");
         *slot = Some(Entry {
             sequence: queue.next_sequence,
+            bypasses: 0,
             operation,
         });
         queue.next_sequence = next;
@@ -258,8 +279,9 @@ impl<const M: usize, const S: usize, const O: usize> HostedSharedPool<M, S, O> {
         let id = operation.operation.clone();
         let key = operation.key;
         let demand = operation.demand;
+        let decision = self.waiting.as_ref().unwrap().decision();
         let outcome = self
-            .admit_new_operation_with_costs(
+            .admit_operation_with_costs(
                 id.clone(),
                 key,
                 current,
@@ -269,6 +291,12 @@ impl<const M: usize, const S: usize, const O: usize> HostedSharedPool<M, S, O> {
                 evaluations,
             )
             .map_err(PoolWaitingError::Admission)?;
+        if matches!(
+            &outcome.admission,
+            SharedPoolAdmissionOutcome::Selected { .. }
+        ) {
+            self.waiting.as_mut().unwrap().completed_selection(&id);
+        }
         let retained = matches!(&outcome.admission,SharedPoolAdmissionOutcome::Refused(e) if e.disposition==PoolSelectionDisposition::CapacityRefused);
         let retired = if retained {
             None
@@ -276,13 +304,18 @@ impl<const M: usize, const S: usize, const O: usize> HostedSharedPool<M, S, O> {
             Some(self.cancel_waiting_operation(&id)?)
         };
         self.waiting.as_mut().unwrap().last_now = now.clone();
-        Ok(Some(QueuedCostAdmission { outcome, retired }))
+        Ok(Some(QueuedCostAdmission {
+            outcome,
+            retired,
+            decision,
+        }))
     }
 }
 /// Selected/envelope-exhausted requests leave waiting and return their exact
 /// metadata. Capacity refusal retains the request. Errors retain it as well.
 #[derive(Debug)]
 pub struct QueuedCostAdmission {
+    pub decision: PoolWaitingDecision,
     pub outcome: CostAwareSharedPoolAdmissionOutcome,
     pub retired: Option<QueuedPoolOperation>,
 }
