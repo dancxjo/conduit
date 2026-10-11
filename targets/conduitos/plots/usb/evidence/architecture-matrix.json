@@ -33,7 +33,13 @@
           "proof_level": "emulator-with-device",
           "receipt": "usb-bot-pattern-block-product-proof.json",
           "receipt_sha256": "fcf49403e8a4fe810fe93629ce3aeca9ae91bffa5fa1fc65c11451e1785da67d",
-          "acceptance": "partial"
+          "acceptance": "partial",
+          "repeated_read": {
+            "transactions": 16,
+            "receipt": "usb-bot-repeated-read-product-proof.json",
+            "receipt_sha256": "89800d1622bb633553370cfd66db9f822cd646708c323df891806ca9f66b483a",
+            "package_sha256": "e3ecbad3add0b585cdd5915dd22878424d8f4f57564bbf711c633e31b5f94be9"
+          }
         },
         "uac": {
           "status": "incomplete",
@@ -74,7 +80,13 @@
           "proof_level": "emulator-with-device",
           "receipt": "usb-bot-aarch64-pattern-block-product-proof.json",
           "receipt_sha256": "4228c529808e028baec378a8a8cbf81f2f5c74b82c79f4618daea00fc802344b",
-          "reason": "Single read-only LUN0 LBA0 READ(10); complete class recovery/fault acceptance pending"
+          "reason": "Single read-only LUN0 LBA0 READ(10); complete class recovery/fault acceptance pending",
+          "repeated_read": {
+            "transactions": 16,
+            "receipt": "usb-bot-aarch64-repeated-read-product-proof.json",
+            "receipt_sha256": "3cde6b4ff1849b4c61eb1912a1d31fabafb7e4077bcfb4a4c961cf7299dce3bc",
+            "package_sha256": "e3ecbad3add0b585cdd5915dd22878424d8f4f57564bbf711c633e31b5f94be9"
+          }
         },
         "uac": {
           "status": "incomplete",
