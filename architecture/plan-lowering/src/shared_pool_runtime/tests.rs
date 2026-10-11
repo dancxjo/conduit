@@ -297,3 +297,6 @@ fn hosted_controller_preserves_capacity_loss_and_replan_boundaries() {
         }
     ));
 }
+
+#[path = "cost_tests.rs"]
+mod cost_tests;
