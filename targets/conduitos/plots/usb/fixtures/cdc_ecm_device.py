@@ -5,6 +5,10 @@ Wire authority: SPICE usbredir usb-redirection-protocol.txt + usbredirproto.h.
 No libusb, TTY, personal device, guest class driver, or Conduit execution code.
 """
 import argparse
+from collections import deque
+import select
+from contextlib import ExitStack
+from ecm_network_backend import NetworkBackend
 import json
 import os
 import socket
@@ -39,9 +43,11 @@ def ethernet(wire):
 
 
 class Device:
-    def __init__(self, peer, transcript, deadline, reply):
+    def __init__(self, peer, transcript, deadline, reply, backend=None):
         self.peer, self.transcript, self.deadline = peer, transcript, deadline
         self.reply = reply
+        self.backend = backend
+        self.frames = deque()
         self.wide = False
         self.messages = self.wire = 0
         self.configuration = self.packet_filter = self.alternate = 0
@@ -66,6 +72,10 @@ class Device:
             remaining = self.deadline - time.monotonic()
             if remaining <= 0:
                 raise TimeoutError('fixture deadline')
+            self.pump_network()
+            readable, _, _ = select.select([self.peer], [], [], min(remaining, 0.01))
+            if not readable:
+                continue
             self.peer.settimeout(min(remaining, 1))
             try:
                 chunk = self.peer.recv(count - len(data))
@@ -152,7 +162,22 @@ class Device:
     def bulk_reply(self, packet_id, ep, length, status=SUCCESS, data=b''):
         self.send(101, packet_id, BULK.pack(ep, status, length, 0, 0) + data)
 
+    def pump_network(self):
+        if self.backend is None:
+            return
+        frame = self.backend.pump()
+        if frame is not None:
+            if not ethernet(frame):
+                raise ValueError('network backend malformed Ethernet frame')
+            if len(self.frames) >= 8:
+                raise ValueError('network receive queue full')
+            self.record('network-to-device', frame, 'ethernet', 0)
+            self.frames.append(frame)
+        self.flush_in()
+
     def flush_in(self):
+        if not self.rx and self.frames:
+            self.rx.extend(self.frames.popleft())
         if self.pending_in is not None and self.rx:
             packet_id, length = self.pending_in
             data = bytes(self.rx[:length])
@@ -182,11 +207,15 @@ class Device:
                     self.partial_tx.clear()
                     self.bulk_reply(packet_id, ep, 0, STALL)
                     return
-                if self.rx:
+                if self.backend is None and self.rx:
                     self.bulk_reply(packet_id, ep, 0, IOERROR)
                     return
                 self.partial_tx.clear()
-                self.rx.extend(self.reply)
+                if self.backend is None:
+                    self.rx.extend(self.reply)
+                else:
+                    self.record('device-to-network', wire, 'ethernet', 0)
+                    self.backend.transmit(wire)
             self.bulk_reply(packet_id, ep, length)
             self.flush_in()
         elif length == 0:
@@ -211,6 +240,7 @@ class Device:
                 self.packet_filter = self.alternate = 0
                 self.partial_tx.clear()
                 self.rx.clear()
+                self.frames.clear()
                 self.notification = False
                 self.metadata()
             self.send(8, packet_id, bytes([status, self.configuration]))
@@ -251,16 +281,25 @@ def main():
     parser.add_argument('--socket', required=True)
     parser.add_argument('--transcript', required=True)
     parser.add_argument('--seconds', type=int, default=60, choices=range(1, 121))
-    parser.add_argument('--reply-hex', required=True, help='one explicit Ethernet II frame, 14..1514 bytes')
+    mode = parser.add_mutually_exclusive_group(required=True)
+    mode.add_argument('--reply-hex', help='one explicit Ethernet II frame, 14..1514 bytes')
+    mode.add_argument('--network-log', help='exclusive new log for an owned QEMU network backend')
     args = parser.parse_args()
-    reply = bytes.fromhex(args.reply_hex)
-    if not ethernet(reply):
+    reply = bytes.fromhex(args.reply_hex) if args.reply_hex is not None else None
+    if reply is not None and not ethernet(reply):
         parser.error('reply must be one admitted Ethernet II frame, 14..1514 bytes')
     path = Path(args.socket)
     if path.exists() or path.is_symlink():
         parser.error('socket path already exists; existing resources are never replaced')
     deadline = time.monotonic() + args.seconds
-    with open(args.transcript, 'x', encoding='utf8') as transcript, socket.socket(socket.AF_UNIX) as listener:
+    with ExitStack() as resources:
+        transcript = resources.enter_context(open(args.transcript, 'x', encoding='utf8'))
+        listener = resources.enter_context(socket.socket(socket.AF_UNIX))
+        backend = None
+        if args.network_log is not None:
+            network_log = resources.enter_context(open(args.network_log, 'xb'))
+            backend = NetworkBackend(network_log)
+            resources.callback(backend.close)
         listener.bind(str(path))
         owned_inode = path.lstat().st_ino
         os.chmod(path, 0o600)
@@ -270,7 +309,7 @@ def main():
         try:
             peer, _ = listener.accept()
             with peer:
-                device = Device(peer, transcript, deadline, reply)
+                device = Device(peer, transcript, deadline, reply, backend)
                 device.handshake()
                 while True:
                     device.dispatch(*device.receive())

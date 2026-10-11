@@ -2,7 +2,10 @@ This is an external bounded **USB device** fixture for the checked ECM Source,
 not a Conduit Host Back, class driver, network stack, or proof receipt. It uses
 the same usbredir protocol framing as the retained CDC-ACM device fixture.
 A newly created Unix socket and transcript are owned for at most 120 seconds;
-no libusb, personal device, network socket, image, or filesystem disk is opened.
+no libusb, personal device, image, or filesystem disk is opened.
+The optional network mode owns a QEMU user-network process and a private
+socketpair; it can reach the explicitly selected proof server through QEMU’s
+ordinary gateway. Use a dedicated local proof server, never personal services.
 
 The pinned 80-byte ECM configuration includes CDC Header/Union/Ethernet
 functional descriptors, MAC string 4 (`020000000001`), communication interface
@@ -41,3 +44,13 @@ Run the device with a fresh `--socket`, fresh `--transcript`, and explicit
 `--reply-hex` containing one distinct Ethernet II frame (14..1514 bytes).
 QEMU must be connected via the ordinary protocol-run external usbredir option;
 root port/controller selection remains in the separately admitted Root.
+
+For actual network replies, select `--network-log` instead of `--reply-hex`.
+The device forwards each completed Ethernet frame unchanged through an owned
+QEMU socket/hub/user-network backend. It retains at most eight queued receive
+frames and eight transmit frame envelopes, checks lengths before allocation,
+and records both Ethernet directions alongside the USB transcript. It never
+constructs TCP packets or returns a fixed reply in this mode. Backend exit,
+queue exhaustion, malformed frames and deadline expiry refuse the run. The
+owned process is reaped at exit. This mode alone still proves neither a guest
+network exchange nor #5255 acceptance.
