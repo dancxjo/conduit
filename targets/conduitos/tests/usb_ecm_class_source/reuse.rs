@@ -39,7 +39,7 @@ fn sixteen_actual_source_cycles_keep_bytes_ordinals_and_terminal_fence_exact() {
         let req = eval(&program(&s, "cdc-ecm-write-request"), &state);
         assert_eq!(
             member(&req, "wire"),
-            leaf(field(req.value_type(), "wire"), &tx)
+            &leaf(field(req.value_type(), "wire"), &tx)
         );
         state = step(&s, &state, &written(&s, tx.len() as u64));
         if number(member(&state, "phase")) == 8 {
@@ -55,7 +55,7 @@ fn sixteen_actual_source_cycles_keep_bytes_ordinals_and_terminal_fence_exact() {
         assert_eq!(tag, "deliver-receive");
         assert_eq!(
             member(payload, "wire"),
-            leaf(field(payload.value_type(), "wire"), &rx)
+            &leaf(field(payload.value_type(), "wire"), &rx)
         );
         state = step(&s, &state, &queue(&s, "accepted"));
         assert_eq!(number(member(&state, "cycles")), ordinal + 1);

@@ -121,7 +121,7 @@ fn number(v: &StructuredInfoValue) -> u64 {
     let StructuredInfoValueShape::Leaf(bytes) = v.shape() else {
         panic!("leaf")
     };
-    u64::from_le_bytes(bytes.as_slice().try_into().unwrap())
+    u64::from_le_bytes(bytes.try_into().unwrap())
 }
 fn tag(v: &StructuredInfoValue) -> &str {
     let StructuredInfoValueShape::Variant { tag, .. } = v.shape() else {

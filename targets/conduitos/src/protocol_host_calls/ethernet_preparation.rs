@@ -3,12 +3,12 @@
 use super::*;
 use crate::ethernet_frame::{
     contract::EthernetFrameContract, factory::FRAME_IMPLEMENTATION,
-    installation::EthernetFrameSelection, owned_installation::OwnedReadyEthernetFrameBase,
+    installation::EthernetFrameSelection, owned_installation::ReadyOwnedEthernetFrameBase,
 };
 use smoltcp::time::Instant;
 
 pub(crate) struct EthernetFrameAdmission {
-    pub ready: OwnedReadyEthernetFrameBase,
+    pub ready: ReadyOwnedEthernetFrameBase,
     pub table: BaseCapabilityTable,
     pub handle: BaseCapabilityHandle,
     pub claim: BaseOperationClaim,
