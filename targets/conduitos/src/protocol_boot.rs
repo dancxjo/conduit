@@ -25,6 +25,7 @@ mod body;
     all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
 ))]
 mod runtime;
+mod step_failure;
 
 #[cfg(target_arch = "x86_64")]
 mod bootstrap;

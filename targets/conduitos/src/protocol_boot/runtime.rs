@@ -252,7 +252,22 @@ fn execute_workload(
                 .map_err(|_| "protocol-input-close-refused")?;
         }
         for _ in 0..maximum_steps {
-            let status = play.step().map_err(|_| "protocol-step-refused")?;
+            let status = play.step().map_err(|error| {
+                if let Some(identity) = play.session().realization().and_then(|r| r.play.as_ref()) {
+                    match super::step_failure::format(&error, identity) {
+                        Ok(Some(report)) => {
+                            let _ = arch::append_boot_diagnostic(report.as_bytes());
+                        }
+                        Err(_) => {
+                            let _ = arch::append_boot_diagnostic(
+                                b"CONDUIT_PROTOCOL_STEP_FAILURE_UNRETAINED envelope-exceeded\n",
+                            );
+                        }
+                        Ok(None) => {}
+                    }
+                }
+                "protocol-step-refused"
+            })?;
             for output in &mut *outputs {
                 if let Some(sequence) = play
                     .output_into(&output.port, &mut output.value)
