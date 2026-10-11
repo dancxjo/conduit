@@ -58,6 +58,16 @@ const mutations = [
   ['missing canonical actions', e => { delete e.before.canonicalFace.actions; delete e.after.canonicalFace.actions; }],
   ['unsafe revision numbers', e => { e.before.canonicalFace.revision = 9007199254740992; e.after.canonicalFace.revision = 9007199254740992; }],
   ['out-of-domain decimal revisions', e => { e.before.canonicalFace.revision = '18446744073709551616'; e.after.canonicalFace.revision = '18446744073709551616'; }],
+  ['rounded property counts', e => {
+    const property = { subject: 'item', name: 'Count', value: { Count: 9007199254740992 } };
+    e.before.canonicalFace.properties.push(property);
+    e.after.canonicalFace.properties.push(structuredClone(property));
+  }],
+  ['nonfinite property values', e => {
+    const property = { subject: 'item', name: 'Count', value: { Count: Infinity } };
+    e.before.canonicalFace.properties.push(property);
+    e.after.canonicalFace.properties.push(structuredClone(property));
+  }],
 ];
 for (const [label, mutate] of mutations) {
   test(`comparison refuses ${label}`, () => {
