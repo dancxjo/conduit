@@ -68,3 +68,9 @@ The terminal envelope is 512 bytes: the checked canonical encodings of all
 terminal variants reach 416 bytes, so the earlier 256-byte annotation was too
 small. The seed envelope remains 4096 bytes. Neither adapter admits USB or
 network authority.
+
+The full typed ECM event transcript can exceed the observer default of 256 KiB.
+For this bounded TCP proof, admit `--maximum-transcript-bytes 2097152` through
+`cargo xtask make conduitos protocol-run`; each transcript remains bounded and
+the receipt retains that admission. This changes observation storage, not USB,
+network, Plan or Play bounds.
