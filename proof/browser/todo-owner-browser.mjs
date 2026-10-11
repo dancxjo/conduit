@@ -291,9 +291,9 @@ try {
     assertLookReplacement(replacementEvidence);
     await writeFile(path.join(output, 'look-replacement-evidence.json'),
       `${JSON.stringify(replacementEvidence, null, 2)}\n`);
-    await page.getByLabel('Look', { exact: true }).selectOption('spacious');
-    await page.getByLabel('Layout', { exact: true }).selectOption('grouped');
-    await page.getByLabel('Minimum text size', { exact: true }).selectOption('200');
+    await page.getByLabel(/^Look\b/).selectOption('spacious');
+    await page.getByLabel(/^Layout\b/).selectOption('grouped');
+    await page.getByLabel(/^Minimum text size\b/).selectOption('200');
     await page.getByRole('button', { name: 'Apply presentation', exact: true }).click();
     await page.waitForFunction(() => {
       const view = globalThis.__conduitOwnerParticipation.face();
