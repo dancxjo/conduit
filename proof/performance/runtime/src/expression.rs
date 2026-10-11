@@ -64,7 +64,7 @@ impl Workload {
             ty
         };
         let expression = match self.shape {
-            Shape::Add(n) => format!(".{}", " + 1".repeat(n)),
+            Shape::Add(n) => addition_source(n),
             Shape::Conditional => ". > 1 ? . + 1 : . + 2".into(),
             Shape::Comparison => ". > 1".into(),
         };
@@ -109,6 +109,32 @@ impl Workload {
         let frame: [u8; 8] = bytes.try_into().map_err(|_| "wrong output frame")?;
         Ok(u64::from_le_bytes(frame))
     }
+}
+/// Keep the fixed number of checked additions within the portable tree-depth
+/// profile. The right subtree contains n constants and n-1 additions.
+pub(crate) fn addition_source(n: usize) -> String {
+    fn ones(n: usize) -> String {
+        if n == 1 {
+            "1".into()
+        } else {
+            format!("({} + {})", ones(n / 2), ones(n - n / 2))
+        }
+    }
+    assert!(n > 0);
+    format!(". + {}", ones(n))
+}
+fn portable_roundtrip(
+    program: PortableExpressionProgram,
+) -> Result<PortableExpressionProgram, String> {
+    let encoded = program
+        .canonical_hex()
+        .map_err(|e| format!("encode: {e:?}"))?;
+    let decoded = PortableExpressionProgram::from_canonical_hex(&encoded)
+        .map_err(|e| format!("decode: {e:?}"))?;
+    if decoded != program {
+        return Err("portable expression roundtrip changed the program".into());
+    }
+    Ok(decoded)
 }
 fn checked_add(value: u64, delta: u64, domain: Domain) -> Option<u64> {
     match domain {
@@ -156,14 +182,17 @@ fn checked(
 #[cfg(test)]
 pub fn program(workload: Workload) -> Result<PortableExpressionProgram, String> {
     let document = conduit_plot::parse_syntax_document(&workload.source());
-    PortableExpressionProgram::from_checked(&checked(&document, workload)?)
-        .map_err(|e| format!("program: {e:?}"))
+    portable_roundtrip(
+        PortableExpressionProgram::from_checked(&checked(&document, workload)?)
+            .map_err(|e| format!("program: {e:?}"))?,
+    )
 }
 #[derive(serde::Serialize)]
 pub struct Cold {
     pub parse: Metrics,
     pub check_expression: Metrics,
     pub compile_checked_expression: Metrics,
+    pub canonical_codec: Metrics,
     pub prepare: Metrics,
     pub first_output: Metrics,
     pub teardown: Metrics,
@@ -176,6 +205,8 @@ pub fn cold(workload: Workload) -> Result<(PortableExpressionProgram, Cold), Str
     let (program, compile_checked_expression) =
         timing::measure(|| PortableExpressionProgram::from_checked(&value));
     let program = program.map_err(|e| format!("compile: {e:?}"))?;
+    let (program, canonical_codec) = timing::measure(|| portable_roundtrip(program));
+    let program = program?;
     let (evaluator, prepare) =
         timing::measure(|| PreparedPortableExpressionEvaluator::new(&program));
     let mut evaluator = evaluator.map_err(|e| format!("prepare: {e:?}"))?;
@@ -194,6 +225,7 @@ pub fn cold(workload: Workload) -> Result<(PortableExpressionProgram, Cold), Str
             parse,
             check_expression,
             compile_checked_expression,
+            canonical_codec,
             prepare,
             first_output,
             teardown,
@@ -280,6 +312,19 @@ pub fn warm(
 #[cfg(test)]
 mod tests {
     use super::*;
+    fn additions(node: &conduit_plot::PortableExpressionNode) -> usize {
+        match &node.operation {
+            conduit_plot::PortableExpressionOperation::Binary {
+                operator: conduit_plot::BinaryOperator::Add,
+                left,
+                right,
+                ..
+            } => 1 + additions(left) + additions(right),
+            conduit_plot::PortableExpressionOperation::Input
+            | conduit_plot::PortableExpressionOperation::Literal(_) => 0,
+            other => panic!("unexpected addition workload operation: {other:?}"),
+        }
+    }
     #[test]
     fn frozen_sources_match_native_outputs_branches_and_refusals() {
         for domain in [Domain::U64, Domain::Scalar] {
@@ -293,6 +338,9 @@ mod tests {
             ] {
                 let workload = Workload { domain, shape };
                 let program = program(workload).unwrap();
+                if let Shape::Add(n) = shape {
+                    assert_eq!(additions(&program.root), n);
+                }
                 let mut evaluator = PreparedPortableExpressionEvaluator::new(&program).unwrap();
                 let maximum = match domain {
                     Domain::U64 => u64::MAX,
@@ -302,7 +350,13 @@ mod tests {
                     Domain::U64 => 0,
                     Domain::Scalar => i64::MIN as u64,
                 };
+                let delta = match shape {
+                    Shape::Add(n) => n as u64 * workload.scale(),
+                    _ => workload.scale(),
+                };
                 for input in [
+                    maximum - delta,
+                    maximum - delta + 1,
                     0,
                     workload.input(1),
                     workload.input(2),

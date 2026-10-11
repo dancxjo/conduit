@@ -1,0 +1,16 @@
+{
+  "architecture": "x86_64",
+  "checked_plot_id": "e694a736890697d81574c149a7db2b769b96bb12b9779386027f01e572c41edc",
+  "expanded_plot_id": "fa9ce50ff614b340f8e6d877a7a294ff7968cdecd2bd66d32b57413a58061b78",
+  "image_sha256": "19611aa8890eb5901caf2cb16e007d762172be2d000901490cd517a646c08424",
+  "kernel_sha256": "68ea33712fe0d6f9d4d7db39956414dc358a6bd4fc364b290506db22b4244203",
+  "native_execution": "not-yet-observed",
+  "proof_class": "source-check-and-image-packaging",
+  "root_kind": "usb",
+  "root_module_command": "conduit.protocol/usb-root-request@1",
+  "root_request_schema": "conduit.conduitos/usb-protocol-root-request@1",
+  "root_request_sha256": "dcbdacbc7f1867b76dff69c50bf3c315d07b955480bf621c6677ac46165ec8db",
+  "schema": "conduit.conduitos/protocol-image-receipt@1",
+  "source_artifact_id": "conduitos/protocol-source/sha256/e245021b78df2c4dc8fc9ff7cf4858200db320e8ad6db1443c8745214b5a3a1d",
+  "source_document_id": "7eb6628701910dd8ffde9cc5637e299a40abd0b7bc849606d88adf7443528db2"
+}

@@ -48,6 +48,8 @@ impl PreparedPureProtocolPlay {
                     || !matches!(
                         gear.implementation_id.as_str(),
                         crate::expression_host_call::IMPLEMENTATION
+                            | crate::offer::TEXT_LITERAL_IMPLEMENTATION
+                            | crate::flow_singleton::IMPLEMENTATION
                             | crate::structured_selector_host_call::IMPLEMENTATION
                             | crate::flow_zip::IMPLEMENTATION
                             | crate::flow_concat_finite::IMPLEMENTATION
@@ -94,7 +96,17 @@ impl PreparedPureProtocolPlay {
                 return Err(Refusal::Unsupported);
             }
         }
+        operations
+            .singletons
+            .validate_plan(plan)
+            .map_err(|_| Refusal::InvalidPlan)?;
         let mut registry = KernelOperationRegistry::new();
+        registry
+            .install(operations.singletons)
+            .map_err(|_| Refusal::InvalidPlan)?;
+        registry
+            .install(crate::text_literal::TextLiteralOperationFactory::default())
+            .map_err(|_| Refusal::InvalidPlan)?;
         registry
             .install(ExpressionOperationFactory::default())
             .map_err(|_| Refusal::InvalidPlan)?;

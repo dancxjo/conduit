@@ -29,7 +29,8 @@ pub extern "C" fn conduitos_aarch64_product_start() -> ! {
     let l2 = boot::executable_physical_address(l2).unwrap_or_else(|| refuse("mmio-l2-invalid"));
     arch::install_low_mmio_map(l0, l1, l2);
     arch::initialize_machine();
-    let record = boot::normalize_boot().unwrap_or_else(|error| refuse(error.as_str()));
+    let record = boot::normalize_boot_with_arena_bytes(EMBEDDED_MAKE.runtime_arena_ceiling)
+        .unwrap_or_else(|error| refuse(error.as_str()));
     arch::initialize_domains(&record);
     let arena = record
         .hhdm_offset
@@ -50,6 +51,12 @@ pub extern "C" fn conduitos_aarch64_product_start() -> ! {
     if !EMBEDDED_MAKE.includes(IMPL_LINEAR_PRESENTER) {
         refuse("linear-presenter-absent-from-image");
     }
+
+    // SAFETY: this ordinary product startup is the sole Root, before other
+    // native owners; selected local modules require independent administrator
+    // firmware and electrical approval and permanently retain their resources.
+    unsafe { conduitos::protocol_boot::run_if_selected(&record) }
+        .unwrap_or_else(|reason| refuse(reason));
 
     let counter = arch::read_counter();
     let identities = identity::derive(

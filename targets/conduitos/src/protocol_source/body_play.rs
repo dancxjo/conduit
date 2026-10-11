@@ -4,12 +4,14 @@ use crate::{
     i2c_base::I2cProvider,
     monotonic_clock::owner::MonotonicDeadlineProvider,
     protocol_host_calls::ProtocolCallRefusal,
-    protocol_play::{ClockAdmission, I2cAdmission, PreparedTimedProtocolPlay},
+    protocol_play::{ClockAdmission, I2cAdmission},
 };
+mod kernel;
 use alloc::boxed::Box;
 use conduit_body::{BodyLifecycleSession, BodyLifecycleSessionError, BodyPlayIdentity};
 use conduit_composite::KernelCompositeStatus;
 use conduit_core::{BootId, HostId, PortId, ValuePayload, bind_sign};
+use kernel::ProtocolKernel;
 
 #[derive(Debug)]
 pub enum ProtocolBodyRefusal {
@@ -32,7 +34,7 @@ pub struct ProtocolBodyPreparationRefusal {
 pub struct PreparedProtocolBodyPlay<P, C> {
     session: BodyLifecycleSession,
     start_session: Option<BodyLifecycleSession>,
-    kernel: Option<PreparedTimedProtocolPlay<P, C>>,
+    kernel: Option<ProtocolKernel<P, C>>,
     host: HostId,
     boot: BootId,
 }
@@ -44,6 +46,90 @@ impl<P: I2cProvider, C: MonotonicDeadlineProvider> PreparedProtocolBodyPlay<P, C
         play_sequence: u64,
         bus: I2cAdmission<P>,
         clock: ClockAdmission<C>,
+    ) -> Result<Self, Box<ProtocolBodyPreparationRefusal>> {
+        Self::prepare_with(artifact, session, play_sequence, |artifact| {
+            artifact
+                .prepare_timed(bus, clock)
+                .map(|kernel| ProtocolKernel::WithClock(Box::new(kernel)))
+        })
+    }
+
+    /// USB uses the ordinary protocol kernel and the same Body biography.
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    pub fn prepare_usb(
+        artifact: PreparedProtocolArtifact,
+        session: BodyLifecycleSession,
+        play_sequence: u64,
+        usb: crate::protocol_play::UsbControlAdmission,
+    ) -> Result<Self, Box<ProtocolBodyPreparationRefusal>> {
+        Self::prepare_with(artifact, session, play_sequence, |artifact| {
+            artifact
+                .prepare_usb::<P>(usb)
+                .map(|kernel| ProtocolKernel::WithoutClock(Box::new(kernel)))
+        })
+    }
+
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    pub(crate) fn prepare_usb_protocol(
+        artifact: PreparedProtocolArtifact,
+        session: BodyLifecycleSession,
+        play_sequence: u64,
+        usb: crate::protocol_play::UsbProtocolAdmission,
+    ) -> Result<Self, Box<ProtocolBodyPreparationRefusal>> {
+        Self::prepare_with(artifact, session, play_sequence, |artifact| {
+            artifact
+                .prepare_usb_protocol::<P>(usb)
+                .map(|kernel| ProtocolKernel::WithoutClock(Box::new(kernel)))
+        })
+    }
+
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    pub(crate) fn prepare_usb_isochronous(
+        artifact: PreparedProtocolArtifact,
+        session: BodyLifecycleSession,
+        play_sequence: u64,
+        usb: crate::protocol_play::UsbIsochronousAdmission,
+    ) -> Result<Self, Box<ProtocolBodyPreparationRefusal>> {
+        Self::prepare_with(artifact, session, play_sequence, |artifact| {
+            artifact
+                .prepare_usb_isochronous::<P>(usb)
+                .map(|kernel| ProtocolKernel::WithoutClock(Box::new(kernel)))
+        })
+    }
+
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    pub(crate) fn prepare_usb_duplex(
+        artifact: PreparedProtocolArtifact,
+        session: BodyLifecycleSession,
+        play_sequence: u64,
+        usb: crate::protocol_play::UsbDuplexAdmission,
+    ) -> Result<Self, Box<ProtocolBodyPreparationRefusal>> {
+        Self::prepare_with(artifact, session, play_sequence, |artifact| {
+            artifact
+                .prepare_usb_duplex::<P>(usb)
+                .map(|kernel| ProtocolKernel::WithoutClock(Box::new(kernel)))
+        })
+    }
+
+    fn prepare_with(
+        artifact: PreparedProtocolArtifact,
+        session: BodyLifecycleSession,
+        play_sequence: u64,
+        prepare_kernel: impl FnOnce(
+            PreparedProtocolArtifact,
+        ) -> Result<ProtocolKernel<P, C>, ProtocolCallRefusal>,
     ) -> Result<Self, Box<ProtocolBodyPreparationRefusal>> {
         let prepared = (|| {
             validate_workset(&session, &artifact.body_partition())?;
@@ -68,9 +154,7 @@ impl<P: I2cProvider, C: MonotonicDeadlineProvider> PreparedProtocolBodyPlay<P, C
             start_session
                 .started(&host, &boot, play, wake)
                 .map_err(ProtocolBodyRefusal::Lifecycle)?;
-            let kernel = artifact
-                .prepare_timed(bus, clock)
-                .map_err(ProtocolBodyRefusal::Call)?;
+            let kernel = prepare_kernel(artifact).map_err(ProtocolBodyRefusal::Call)?;
             Ok::<_, ProtocolBodyRefusal>((start_session, kernel, host, boot))
         })();
         match prepared {
@@ -91,7 +175,7 @@ impl<P: I2cProvider, C: MonotonicDeadlineProvider> PreparedProtocolBodyPlay<P, C
 
     /// Inspection exposes the same retained kernel, never a mutable execution path.
     pub fn kernel(&self) -> Option<&conduit_composite::KernelCompositeHost> {
-        self.kernel.as_ref().map(PreparedTimedProtocolPlay::kernel)
+        self.kernel.as_ref().map(ProtocolKernel::kernel)
     }
 
     pub fn start(&mut self) -> Result<(), ProtocolBodyRefusal> {
@@ -113,7 +197,7 @@ impl<P: I2cProvider, C: MonotonicDeadlineProvider> PreparedProtocolBodyPlay<P, C
         Ok(())
     }
 
-    fn playing(&mut self) -> Result<&mut PreparedTimedProtocolPlay<P, C>, ProtocolBodyRefusal> {
+    fn playing(&mut self) -> Result<&mut ProtocolKernel<P, C>, ProtocolBodyRefusal> {
         if self
             .session
             .realization()
@@ -134,7 +218,7 @@ impl<P: I2cProvider, C: MonotonicDeadlineProvider> PreparedProtocolBodyPlay<P, C
     pub fn has_pending_clock(&self) -> bool {
         self.kernel
             .as_ref()
-            .is_some_and(PreparedTimedProtocolPlay::has_pending_clock)
+            .is_some_and(ProtocolKernel::has_pending_clock)
     }
 
     pub fn cancel(&mut self) -> Result<(), ProtocolBodyRefusal> {

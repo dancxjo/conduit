@@ -1,0 +1,40 @@
+{
+  "schema": "conduit.usb/post-observation-validation@1",
+  "source_commit": "cc3af84d1265e7ba159df0bbe5939d665e5d2006",
+  "architecture": "x86_64",
+  "original_receipt_sha256": "1274ebba68c64c83c767feeb149d214abf5a07104dd5c6f6f640e0aa72a4f6a0",
+  "tools_sha256": {
+    "check_disconnect_wire.py": "ccac872a285eda554bd4b18c072511a04c4c119d7a16936182bb7727908bfa65",
+    "disconnect_decoder": "214dd152ca37469a0adfdda2211150f8ab7269cf4b52104d4a1780e4239040c5",
+    "check_discovery.py": "1eb7ab6cb5cb73386ef44e08da1ae1a31f520b341ee35292c87d4b5c81dbfc94"
+  },
+  "validation": "passed",
+  "results": {
+    "wire": {
+      "source_controls": 5,
+      "discovery_controls": 2,
+      "actual_transmit": 1,
+      "successful_receive": 0,
+      "cancelled_receive_responses": 1,
+      "cancelled_in": true,
+      "disconnect_observed": true,
+      "exact_octets": true,
+      "preflight": "supported",
+      "discovery_configuration_hex": "090243000201008032090400000102020100052400100105240100010424020205240600010705830310001009040100020a0000000705810240000007050202400000"
+    },
+    "serial": {
+      "serial_results": 2,
+      "transmitted": 1,
+      "terminal": "provider-lost",
+      "retired": true
+    },
+    "preflight": {
+      "package_sha256": "e245021b78df2c4dc8fc9ff7cf4858200db320e8ad6db1443c8745214b5a3a1d",
+      "supported": true,
+      "retired_pure_discovery": true,
+      "class_effects_after_verdict": true,
+      "native_wire_validation": "separate-required-gate"
+    }
+  },
+  "scope": "one original pending IN unplug and matching wire cancellation; no repeated detach or guest late-event proof"
+}

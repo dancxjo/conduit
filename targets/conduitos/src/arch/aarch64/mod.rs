@@ -16,6 +16,11 @@ mod domain_transition;
 mod ordinary_domain;
 #[cfg(target_os = "none")]
 pub use ordinary_domain::TextDomain;
+// These native leaves are not yet a product USB offer; keep their compilation
+// separate from acceptance until ordinary Root/Plot execution is integrated.
+#[allow(dead_code)]
+mod xhci;
+pub use xhci::{VirtXhciRefusal, initialize_xhci};
 mod entropy;
 pub use entropy::RndrEntropy;
 
@@ -31,6 +36,10 @@ pub fn early_write(bytes: &[u8]) {
     present(bytes);
 }
 
+mod protocol_diagnostic;
+pub use protocol_diagnostic::append_boot_diagnostic;
+mod protocol_clock_spacing;
+pub use protocol_clock_spacing::space_protocol_clock_poll;
 mod providers;
 pub use providers::{Clock, Idle, Interrupts, Serial, Timer};
 

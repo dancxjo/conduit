@@ -1,0 +1,12 @@
+{
+  "head": "35bb888c55f5268d31e8bede0e85a475fe75f203",
+  "formatting": "pass",
+  "patch_hygiene": "pass",
+  "strict_conduitos_clippy": {
+    "session": 25893,
+    "outcome": "pass"
+  },
+  "previous_functional_head": "ff1769af99337fbb2cd2be6cda1b676fdb89b980",
+  "previous_functional_proof": "26 native-host tests plus healthy CDC and independently validated disconnect on both product architectures",
+  "final_head_native_proof": "PASS: fresh kernels, healthy CDC and independently checked pending-IN disconnect on x86_64 and AArch64"
+}

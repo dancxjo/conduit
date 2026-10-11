@@ -11,6 +11,7 @@ use crate::{validate_primitive_info, KindId, PrimitiveInfoRefusal};
 
 mod borrowed;
 mod canonical;
+mod canonical_length;
 pub use borrowed::*;
 mod inspection;
 mod prepared_composition;
@@ -330,7 +331,7 @@ impl StructuredInfoType {
     }
 
     pub fn canonical_bytes(&self) -> Result<Vec<u8>, StructuredInfoRefusal> {
-        let mut encoded = Vec::new();
+        let mut encoded = Vec::with_capacity(canonical_length::encoded_length(self)?);
         encode_type(self, &mut encoded);
         check_encoding_size(encoded)
     }
@@ -371,7 +372,7 @@ impl StructuredInfoType {
         if nodes > MAXIMUM_STRUCTURED_INFO_NODES {
             return Err(StructuredInfoRefusal::TooManyNodes);
         }
-        self.canonical_bytes().map(|_| ())
+        canonical_length::encoded_length(self).map(|_| ())
     }
 }
 

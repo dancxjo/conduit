@@ -35,10 +35,12 @@ pub mod domain_timer_scope;
 pub mod dual_region_composition;
 pub mod dual_region_kernel;
 pub mod dual_region_plan;
+pub mod ethernet_frame;
 mod execution_region;
 pub mod expression_host_call;
 pub mod flow_concat_finite;
 pub mod flow_merge_finite;
+pub mod flow_singleton;
 pub mod flow_zip;
 #[cfg(any(
     test,
@@ -163,6 +165,7 @@ pub mod protocol_host_calls;
 pub mod protocol_operations;
 mod pure_protocol_owner;
 pub mod pure_protocol_play;
+pub mod serial_base;
 #[cfg(target_arch = "x86_64")]
 pub mod source_keyboard_batch;
 pub mod source_pointer_sample;
@@ -293,6 +296,7 @@ pub mod spore_provision;
 pub mod synth_nucleus;
 pub mod text_composition;
 mod text_kernel_backs;
+pub mod text_literal;
 mod text_offer;
 pub mod text_planned_kernel;
 #[cfg(conduitos_protected_execution)]

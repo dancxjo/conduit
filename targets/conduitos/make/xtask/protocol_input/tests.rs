@@ -1,6 +1,7 @@
 use super::*;
 fn schema() -> StructuredInfoType {
     let package = conduitos::protocol_source::ProtocolSourcePackage {
+        backs: vec![],
         schema: conduitos::protocol_source::PACKAGE_SCHEMA.into(),
         source: "type Packet = {\n code: U8\n}\nplot identity (\n >> input: Packet...|\n output: Packet...| >>\n) = (.)".into(),
         specializations: vec![],

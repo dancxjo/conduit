@@ -117,6 +117,7 @@ pub(super) fn lower_x86_64_pc(
         | conduitos::make::IMPL_KEYBOARD
         | conduitos::make::IMPL_I2C_TRANSACTION
         | conduitos::make::IMPL_MONOTONIC_DEADLINE
+        | conduitos::make::IMPL_USB_TRANSPORT
         | conduitos::make::IMPL_POINTER
         | conduitos::make::IMPL_PC_SPEAKER
         | conduitos::make::IMPL_OPL2;
@@ -308,7 +309,9 @@ pub(super) fn lower_aarch64_virt(
         | conduitos::make::IMPL_TEXT_PRESENTATION;
     Ok(TargetBuildInputs {
         cargo_features: vec!["aarch64-product"],
-        implementations: portable_backbone | conduitos::make::IMPL_LINEAR_PRESENTER,
+        implementations: portable_backbone
+            | conduitos::make::IMPL_LINEAR_PRESENTER
+            | conduitos::make::IMPL_USB_TRANSPORT,
         facilities: 0,
         resources: 0,
         bases: conduitos::make::BASE_SERIAL_TEXT,

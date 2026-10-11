@@ -13,6 +13,27 @@ construction, PCM negotiation and framing, Ethernet framing, and protocol retry
 policy belong in reviewed plots. An endpoint provider must not conceal a class
 driver behind a generic-looking gear.
 
+The product Root retains one original controller and attachment for ordinary
+control and endpoint-read offers. Exact source `549cf8306b685c414fd6a85048c166defcdcb117`
+completed a checked SET_CONFIGURATION followed by a real interrupt-IN report in
+QEMU: requested eight bytes, received four, short true, then acknowledged retirement.
+This is one freestanding emulator exchange, with no physical or class acceptance.
+An unsupported control request exposed a generic step refusal; the complete typed
+terminal-fault and retirement matrix remains required by #5253.
+
+`endpoint-write.conduit` adds a class-neutral owned byte payload, bounded to
+2,048 bytes. Empty payload means a real zero-length USB transfer. Optional trusted
+Root `endpoint_write` geometry admits a separate OUT endpoint alongside
+`endpoint_read`; write without read currently refuses. Control, read and write
+retain independent selected claims and DMA regions under the same native Host.
+`control-endpoint-write-read.conduit` orders one bounded request record through
+completed control, completed write and read. This finite proof topology requires
+cancellation after a failed transaction; it does not implement sustained class
+transactions. Later retained CDC and BOT product observations exercise bulk OUT
+on x86_64 and AArch64; their exact proof limits are recorded in the
+[product transfer inventory](#product-transfer-inventory-52535258) below.
+Complete class and cross-architecture acceptance remain open.
+
 This USB slice does not absorb #4833's I2C/BME280 acceptance. Portable binary
 composition is shared with that completed code slice: checked integer
 widening preserves the entire source domain, and packed-word helpers are bounded
@@ -504,3 +525,62 @@ two ring cycle transitions with matching class outputs and the arena sealed
 through normal closure and acknowledged stop. The same appliance limitations
 apply: legacy attachment setup, explicit fixture authority, and no ordinary
 class offer, physical compatibility or five-architecture acceptance.
+
+## Product transfer inventory (#5253–#5258)
+
+The current product candidate adds an explicit
+`conduit.protocol/usb-root-request@1` Boot module. Its bounded administrative
+request binds an exact Source package and root port; parsing does not grant
+controller ownership. Native admission retains the actual xHCI attachment and
+mapped DMA, publishes the shared control offer, and issues independently bounded
+possession from cryptographic entropy after ordinary planning. Product Root
+addressing initializes EP0 without interpreting configuration descriptors or
+sending `SET_CONFIGURATION`; those requests belong to checked Source. It reuses the
+Source, Body and composite-kernel path. An exact x86_64 product kernel at
+`c3368d1371f0d6d092dd1c7a2767d1185e4789db` completed an 18-byte device
+descriptor control request and acknowledged Play retirement under QEMU. The
+retained receipt records the emulator proof tier; physical compatibility remains
+unverified. The class-neutral control/read/write product route now has actual x86_64
+and AArch64 emulator execution evidence. Root inputs explicitly select bounded
+endpoint address, geometry, lifetime and operation count; Source supplies every
+request and class meaning. Control, read and write reuse the original admitted
+controller, attachment, capability generations and acknowledged retirement path.
+
+| Transfer | Native mechanics | Ordinary product evidence |
+| --- | --- | --- |
+| Control IN/OUT | Bounded control ring and acknowledged stop | Actual x86_64 and AArch64 CDC/BOT setup controls |
+| Interrupt IN | Bounded endpoint receive ring | Focused x86_64 control/read mouse report proof; full HID acceptance pending |
+| Bulk IN | Bounded endpoint receive ring | Actual x86_64 and AArch64 CDC replies and BOT DATA/CSW |
+| Bulk OUT | Shared class-neutral bounded transmit ring | Actual x86_64 and AArch64 CDC bytes and BOT CBWs |
+| Isochronous OUT | Bounded eight-TD native batch, finite checked offer and selected owner installed in this candidate | Checked preparation and focused native mechanics only; actual Source PCM playback and rolling reuse unproven |
+| Isochronous IN | Unsupported by current endpoint setup | No product offer or capture proof |
+
+The pinned AArch64 row is QEMU virt-10.2, GICv2, coherent low PCIe ECAM/BAR
+mapping and neoverse-n2. It executes the exact unchanged checked BOT and CDC
+packages previously run on x86_64 q35. BOT has both one patterned block and
+sixteen serialized READ(10) transactions; CDC has five setup controls and sixteen
+actual transmit/receive pairs. These are emulator-with-device proofs, not physical
+compatibility or complete class acceptance. The later
+[selected Serial Back observation](evidence/selected-serial-53b0baa1c/README.md)
+executes the existing transport-neutral serial Fore and retains 32 ordered typed
+results on both architectures. Newer descriptor preflight and terminal-drain
+observations are retained in draft [#5435](https://github.com/dancxjo/conduit/pull/5435)
+and [#5438](https://github.com/dancxjo/conduit/pull/5438); their kernel and checked
+Source identities are separately bound. Those observations are not evidence for
+this newly combined development head. The Ethernet stack seam, independent
+storage admission, complete fault coverage and actual checked USB Audio playback
+remain incomplete.
+
+IA-32, ARMv6, RISC-V64, LoongArch64 and AArch64 Orange Pi 5 have no admitted
+ordinary native USB provider in this tree. They refuse explicitly. Portable checked
+schemas and cross compilation alone never establish an executed row. The
+[evidence matrix](evidence/architecture-matrix.json) and
+[retained receipts](evidence/README.md) record exact architecture, kernel, Source,
+Boot/Plan/Play and class proof limits. #5258 remains open until its published
+supported-target acceptance matrix and CI gates are fully satisfied.
+
+The isolated `protocol-run --usb-control-mouse` emulator configuration supplies
+xHCI and an emulated mouse for generic descriptor control proof. It establishes
+neither HID class integration nor CDC, network, block, audio, physical-device or
+cross-architecture acceptance. All classes must consume the same offered
+transport; they cannot introduce another native controller consumer.

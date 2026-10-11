@@ -78,8 +78,9 @@ test("static Handbook applications retain independent local Bodies through use, 
       observation: "Live highlighting follows the Unicode edit. The checker reports a refusal; the existing Body, Play, and installed workset remain unchanged." });
     await editor.fill(originalSource);
     await page.getByRole("button", { name: "Try in my Handbook", exact: true }).click();
-    await expect.poll(async () => { const state = await current(page); return state.installedPlots.some(plot => plot.checked_plot_id === state.selectedPlot); }).toBe(true);
+    // Controls reenable after installation and the actual SDK current() settle.
     let example = await ready(page);
+    await expect.poll(async () => { const state = await current(page); return state.installedPlots.some(plot => plot.checked_plot_id === state.selectedPlot); }).toBe(true);
     expect(example.bodyId).toBe(first.bodyId);
     expect(example.selectedPlot).toBeTruthy();
     expect(example.installedPlots.some(plot => plot.checked_plot_id === example.selectedPlot)).toBe(true);

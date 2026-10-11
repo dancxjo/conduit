@@ -1,0 +1,92 @@
+{
+  "kernel_head": "35bb888c55f5268d31e8bede0e85a475fe75f203",
+  "proof_class": "freestanding-emulator",
+  "architectures": {
+    "x86": {
+      "healthy": {
+        "serial_results": 32,
+        "transmitted": 16,
+        "received": 16,
+        "ordered": true,
+        "retired": true
+      },
+      "independent_wire": {
+        "source_controls": 5,
+        "discovery_controls": 2,
+        "actual_transmit": 16,
+        "actual_receive": 16,
+        "status_success": true,
+        "exact_octets": true,
+        "preflight": "supported",
+        "discovery_configuration_hex": "090243000201008032090400000102020100052400100105240100010424020205240600010705830310001009040100020a0000000705810240000007050202400000"
+      },
+      "disconnect": {
+        "serial_results": 2,
+        "transmitted": 1,
+        "terminal": "provider-lost",
+        "retired": true
+      },
+      "disconnect_wire": {
+        "source_controls": 5,
+        "discovery_controls": 2,
+        "actual_transmit": 1,
+        "successful_receive": 0,
+        "cancelled_receive_responses": 1,
+        "cancelled_in": true,
+        "disconnect_observed": true,
+        "exact_octets": true,
+        "preflight": "supported",
+        "discovery_configuration_hex": "090243000201008032090400000102020100052400100105240100010424020205240600010705830310001009040100020a0000000705810240000007050202400000"
+      },
+      "original_disconnect_receipt_sha256": "db5e0405a476694d78a34a9b807c6a46e75a1e2878d19b58bccf48dc5b4d073f",
+      "post_observation_validation": "separate unchanged wire checker, canonical decoder and discovery checker passed; diagnostic receipt not rewritten"
+    },
+    "aarch64": {
+      "healthy": {
+        "serial_results": 32,
+        "transmitted": 16,
+        "received": 16,
+        "ordered": true,
+        "retired": true
+      },
+      "independent_wire": {
+        "source_controls": 5,
+        "discovery_controls": 2,
+        "actual_transmit": 16,
+        "actual_receive": 16,
+        "status_success": true,
+        "exact_octets": true,
+        "preflight": "supported",
+        "discovery_configuration_hex": "090243000201008032090400000102020100052400100105240100010424020205240600010705830310001009040100020a0000000705810240000007050202400000"
+      },
+      "disconnect": {
+        "serial_results": 2,
+        "transmitted": 1,
+        "terminal": "provider-lost",
+        "retired": true
+      },
+      "disconnect_wire": {
+        "source_controls": 5,
+        "discovery_controls": 2,
+        "actual_transmit": 1,
+        "successful_receive": 0,
+        "cancelled_receive_responses": 1,
+        "cancelled_in": true,
+        "disconnect_observed": true,
+        "exact_octets": true,
+        "preflight": "supported",
+        "discovery_configuration_hex": "090243000201008032090400000102020100052400100105240100010424020205240600010705830310001009040100020a0000000705810240000007050202400000"
+      },
+      "original_disconnect_receipt_sha256": "a509cf244e9462d9a15183221e788a20b90024513737dbe64eabdeb597f7d42e",
+      "post_observation_validation": "separate unchanged wire checker, canonical decoder and discovery checker passed; diagnostic receipt not rewritten"
+    }
+  },
+  "excluded_claims": [
+    "physical compatibility",
+    "full cancellation/late-event matrix",
+    "ECM network installation",
+    "storage authority",
+    "PCM playback",
+    "issue closure"
+  ]
+}
