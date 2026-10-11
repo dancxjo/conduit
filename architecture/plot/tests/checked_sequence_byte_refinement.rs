@@ -9,15 +9,23 @@ use conduit_plot::{
     parse_syntax_document,
 };
 const TYPES: &str = "
-type Packet = { wire: Bytes <= 256B }
-type WidePacket = { wire: Bytes <= 2048B }
+type Packet = {
+ wire: Bytes <= 256B
+}
+type WidePacket = {
+ wire: Bytes <= 2048B
+}
 type Input = {
  packets: sequence Packet <= 8
  other: sequence WidePacket <= 8
  index: U64
 }
-type Output = { wire: Bytes <= 256B }
-type Narrow = { wire: Bytes <= 128B }
+type Output = {
+ wire: Bytes <= 256B
+}
+type Narrow = {
+ wire: Bytes <= 128B
+}
 ";
 fn expand(
     expression: &str,
