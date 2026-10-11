@@ -95,6 +95,8 @@ pub fn render_cost_selection_refusal(
                 "submitted={:?} submitted_calibration={:?} (historical attribution)",
                 cost.submitted, cost.submitted_calibration
             )?;
+            writeln!(out, "current_execution={:?} expected_execution_condition={:?} execution_assumption={:?} (historical attribution)",
+                cost.current_execution, cost.expected_execution_condition, cost.submitted_execution_assumption)?;
         }
         Ok(())
     };
@@ -164,9 +166,14 @@ fn validate_shape(selection: &CostRealizationSelection<'_>) -> Result<(), CostEx
         }) {
             return Err(CostExplanationRefusal::InconsistentSelection);
         }
-        for source in [cost.submitted_source, cost.submitted_calibration_source]
-            .into_iter()
-            .flatten()
+        for source in [
+            cost.submitted_source,
+            cost.submitted_calibration_source,
+            cost.submitted_execution_assumption,
+            cost.current_execution.map(|sample| sample.source()),
+        ]
+        .into_iter()
+        .flatten()
         {
             if &source.host().host_id != cost.host_id
                 || &source.offer().capability_id != cost.capability_id
@@ -176,7 +183,20 @@ fn validate_shape(selection: &CostRealizationSelection<'_>) -> Result<(), CostEx
         }
         if let CostAvailability::Known(sample) = cost.availability {
             let source = sample.source();
-            if cost.submitted_source != Some(source)
+            if sample
+                .validate_for_execution(
+                    source.host(),
+                    source.calibration(),
+                    cost.evaluated_at,
+                    cost.current_execution,
+                )
+                .is_err()
+                || cost.expected_execution_condition != sample.expected_execution_condition()
+                || cost.submitted_execution_assumption
+                    != sample
+                        .execution_assumption()
+                        .map(|observation| observation.source())
+                || cost.submitted_source != Some(source)
                 || cost.submitted_calibration_source
                     != sample.calibration().map(|estimate| estimate.source())
             {
@@ -229,6 +249,22 @@ fn render(selection: &CostRealizationSelection<'_>, out: &mut impl Write) -> fmt
         if let Some(calibration) = cost.submitted_calibration_source {
             source(calibration, "submitted_calibration", out)?;
         }
+        if let Some(observation) = cost.current_execution {
+            source(observation.source(), "current_execution", out)?;
+            writeln!(
+                out,
+                "current_execution_condition={:?}",
+                observation.condition()
+            )?;
+        }
+        if let Some(assumption) = cost.submitted_execution_assumption {
+            source(assumption, "execution_assumption", out)?;
+        }
+        writeln!(
+            out,
+            "expected_execution_condition={:?}",
+            cost.expected_execution_condition
+        )?;
         match &cost.availability {
             CostAvailability::Missing => writeln!(out, "cost=unknown (no numeric substitute)")?,
             CostAvailability::Unusable(reason) => writeln!(out, "cost=unusable reason={reason:?}")?,

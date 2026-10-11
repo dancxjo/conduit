@@ -299,6 +299,7 @@ fn fast_cost_cannot_admit_a_structured_input_larger_than_the_realization_queue()
         .map(|(host, now)| CostEvaluationContext {
             host,
             calibrations: &revisions,
+            execution_observations: &[],
             now,
         })
         .collect::<Vec<_>>();
