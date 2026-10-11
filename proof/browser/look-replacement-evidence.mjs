@@ -8,6 +8,17 @@ const requiredIdentity = (value, label) => {
   return value;
 };
 
+function assertExactJSONNumbers(value, path = 'canonicalFace') {
+  if (typeof value === 'number') {
+    assert.ok(Number.isSafeInteger(value) && !Object.is(value, -0),
+      `${path} contains a number whose exact canonical integer is not preserved`);
+  } else if (value && typeof value === 'object') {
+    for (const [key, child] of Object.entries(value)) {
+      assertExactJSONNumbers(child, `${path}.${key}`);
+    }
+  }
+}
+
 /**
  * Each snapshot contains canonicalFace (the whole owner Presentation), owner
  * {sourceDocumentId, bodyId, hostId, bootId, planId, playId}, component
@@ -20,6 +31,7 @@ export function assertLookReplacement({ before, after, retirement }) {
   assert.ok(before && after && retirement, 'replacement needs both occurrences and retirement evidence');
   for (const snapshot of [before, after]) {
     assert.ok(snapshot.canonicalFace && typeof snapshot.canonicalFace === 'object');
+    assertExactJSONNumbers(snapshot.canonicalFace);
     requiredIdentity(snapshot.canonicalFace.identity, 'canonicalFace.identity');
     assert.ok((Number.isSafeInteger(snapshot.canonicalFace.revision) && snapshot.canonicalFace.revision >= 0)
       || (typeof snapshot.canonicalFace.revision === 'string'
