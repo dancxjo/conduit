@@ -25,6 +25,35 @@ pub enum CostExplanationRefusal {
 pub fn render_cost_selection_refusal(
     error: &CostSelectionError,
 ) -> Result<String, CostExplanationRefusal> {
+    if let CostSelectionError::HardAdmission(refusal) = error {
+        if refusal.signs.is_empty() {
+            return Err(CostExplanationRefusal::NoRetainedDecision);
+        }
+        if refusal.signs.len() > MAXIMUM_COST_CANDIDATES {
+            return Err(CostExplanationRefusal::Extent);
+        }
+        if refusal.signs.iter().any(|record| {
+            !matches!(
+                record.disposition,
+                RealizationDecisionDisposition::Rejected(_)
+            )
+        }) {
+            return Err(CostExplanationRefusal::InconsistentSelection);
+        }
+        let mut out = BoundedText(String::new());
+        let render = |out: &mut BoundedText| -> fmt::Result {
+            writeln!(out, "historical planner hard admission refused; no selected candidate; costs not compared")?;
+            for record in &refusal.signs {
+                writeln!(out, "candidate host={} boot={} generation={} capability={} implementation={} artifact={} hard_admission={:?}",
+                    record.host_id.as_str().escape_default(), record.boot_id.as_str().escape_default(),
+                    record.offer_generation.0, record.capability_id.as_str().escape_default(),
+                    record.implementation_id.as_str().escape_default(), record.artifact_id.as_str().escape_default(), record.disposition)?;
+            }
+            Ok(())
+        };
+        render(&mut out).map_err(|_| CostExplanationRefusal::Extent)?;
+        return Ok(out.0);
+    }
     let CostSelectionError::NoUsableForecast { realization, costs } = error else {
         return Err(CostExplanationRefusal::NoRetainedDecision);
     };

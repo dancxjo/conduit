@@ -11,6 +11,7 @@ struct Case {
     missing: bool,
     unavailable: UnavailableCostPolicy,
     capacity_b: u32,
+    withdraw_all: bool,
     minimum_items: u16,
     calibration_revision: u64,
     different_work: bool,
@@ -26,6 +27,7 @@ impl Default for Case {
             missing: false,
             unavailable: UnavailableCostPolicy::PreferKnown,
             capacity_b: 4,
+            withdraw_all: false,
             minimum_items: 0,
             calibration_revision: 1,
             different_work: false,
@@ -104,6 +106,11 @@ fn exercise(
                 .any(|requirement| requirement.class_id == observation.class_id)
         {
             observation.unreserved_units = case.capacity_b;
+        }
+    }
+    if case.withdraw_all {
+        for observation in &mut observations {
+            observation.unreserved_units = 0;
         }
     }
     let timed = observations
@@ -384,6 +391,54 @@ fn exact_ties_use_the_existing_deterministic_policy_order() {
                 result.unwrap().realization.choice.host_id.as_str(),
                 "host-a-efficient"
             )
+        },
+    );
+}
+
+#[test]
+fn every_hard_refusal_is_retained_without_evaluating_favorable_costs() {
+    exercise(
+        Case {
+            minimum_items: u16::MAX,
+            budget: 0,
+            ..Default::default()
+        },
+        |result| {
+            let Err(CostSelectionError::HardAdmission(refusal)) = result else {
+                panic!("hard refusal expected");
+            };
+            assert!(matches!(
+                refusal.reason,
+                PlannerError::HardRealizationRequirementUnsatisfied(_)
+            ));
+            assert_eq!(refusal.signs.len(), 2);
+            assert!(refusal.signs.iter().all(|record| record.disposition
+                == RealizationDecisionDisposition::Rejected(RealizationRejection::QueueItemBound)));
+        },
+    );
+}
+
+#[test]
+fn every_current_resource_refusal_is_retained_before_cost_comparison() {
+    exercise(
+        Case {
+            withdraw_all: true,
+            budget: 0,
+            ..Default::default()
+        },
+        |result| {
+            let Err(CostSelectionError::HardAdmission(refusal)) = result else {
+                panic!("resource refusal expected");
+            };
+            assert!(matches!(
+                refusal.reason,
+                PlannerError::CurrentResourceObservationUnavailable(_)
+            ));
+            assert_eq!(refusal.signs.len(), 2);
+            assert!(refusal.signs.iter().all(|record| record.disposition
+                == RealizationDecisionDisposition::Rejected(
+                    RealizationRejection::CurrentResourceObservation
+                )));
         },
     );
 }
