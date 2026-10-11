@@ -11,12 +11,13 @@ import { pathToFileURL } from 'node:url';
 import { startStaticProduct } from './static-product-server.mjs';
 import { observedTodoMutation } from './todo-owner-events.mjs';
 import { captureDirectTodoSpeech } from './todo-owner-spoken.mjs';
+import { assertLookReplacement } from './look-replacement-evidence.mjs';
 
 const [ownerCwdArg, binaryArg, stateArg, handbookArg, outputArg, playwrightArg,
   itemText = 'Pick up prescription', scenario = 'first-add'] = process.argv.slice(2);
-assert.ok(['first-add', 'cross-mask', 'cross-mask-speech'].includes(scenario), 'unknown Todo capture scenario');
+assert.ok(['first-add', 'cross-mask', 'cross-mask-speech', 'look-replacement'].includes(scenario), 'unknown Todo capture scenario');
 if (!ownerCwdArg || !binaryArg || !stateArg || !handbookArg || !outputArg || !playwrightArg) {
-  throw new Error('usage: todo-owner-browser.mjs OWNER-CWD INSTALLED-OWNER OWNER-STATE HANDBOOK-PACKAGE NEW-EVIDENCE-DIR PINNED-PLAYWRIGHT [NEW-ITEM-TEXT]');
+  throw new Error('usage: todo-owner-browser.mjs OWNER-CWD INSTALLED-OWNER OWNER-STATE HANDBOOK-PACKAGE NEW-EVIDENCE-DIR PINNED-PLAYWRIGHT [NEW-ITEM-TEXT] [first-add|cross-mask|cross-mask-speech|look-replacement]');
 }
 const ownerCwd = path.resolve(ownerCwdArg);
 const binary = path.resolve(ownerCwd, binaryArg);
@@ -173,6 +174,151 @@ try {
   assert.equal(await page.locator('.owner-face-collection-count').count(), 1);
   assert.equal(await page.locator('[data-owner-face-document] [data-face-role="Status"]').count(), 0,
     'matching progress wording must not appear twice');
+  if (scenario === 'look-replacement') {
+    const observations = [];
+    for (const [look, recipe] of [['compact', 'flat'], ['spacious', 'flat'], ['spacious', 'grouped']]) {
+      await page.evaluate(({ look, recipe }) =>
+        globalThis.__conduitOwnerParticipation.selectPresentation(look, recipe), { look, recipe });
+      await page.waitForFunction(() => {
+        const element = document.querySelector('conduit-owner-face');
+        const view = globalThis.__conduitOwnerParticipation.face();
+        return view?.component && element?.dataset.componentColumns ===
+          String(view.component.maximum_columns);
+      }, null, { timeout: 12_000 });
+      const occurrence = await page.evaluate(() => ({
+        view: globalThis.__conduitOwnerParticipation.face(),
+        canonical_json: globalThis.__conduitOwnerParticipation.canonicalFaceJSON(),
+        geometry: (() => {
+          const element = document.querySelector('conduit-owner-face');
+          const grid = element.shadowRoot.querySelector('.owner-face-document');
+          return { width: element.getBoundingClientRect().width,
+            admitted_columns: Number(element.dataset.componentColumns),
+            computed_columns: getComputedStyle(grid).gridTemplateColumns.split(/\s+/).filter(Boolean),
+            grid_width: grid.getBoundingClientRect().width,
+            button_font_px: Number.parseFloat(getComputedStyle(grid.querySelector('button')).fontSize) };
+        })(),
+        acknowledged_show_id: document.querySelector('[data-owner-show-acknowledged]')?.dataset.ownerShowAcknowledged,
+      }));
+      assert.ok(occurrence.view?.component, 'production renderer must supply checked component evidence');
+      assert.ok(occurrence.geometry.width - 2 * occurrence.view.component.gutter >=
+        occurrence.view.component.reflow_width, 'wide recipe proof must meet actual content reflow width');
+      assert.equal(occurrence.geometry.admitted_columns, recipe === 'grouped' ? 2 : 1);
+      assert.equal(occurrence.geometry.computed_columns.length, occurrence.geometry.admitted_columns,
+        'checked recipe must change actual computed grid columns');
+      assert.equal(occurrence.acknowledged_show_id, occurrence.view.show_id);
+      const currentOwner = face();
+      assert.deepEqual(currentOwner.presentation, startedFace.presentation,
+        'presentation selection must preserve the original whole Todo Face');
+      assert.equal(currentOwner.presentation_revision_decimal, startedFace.presentation_revision_decimal);
+      assert.deepEqual(currentOwner.advertisement, startedFace.advertisement);
+      const screenshot = `look-${recipe}-${look}.png`;
+      await page.locator('[data-owner-face]').screenshot({ path: path.join(output, screenshot) });
+      let retirement = null;
+      if (observations.length > 0) {
+        const retired = observations.at(-1).view;
+        const action = retired.actions.find(action => action.identity === 'todo.add');
+        assert.ok(action, 'retired Show must retain its actual typed add action');
+        assert.equal(action.arguments.length, 1, 'Todo add must expose its one declared text argument');
+        const refusal = await page.evaluate(async ({ view, action }) => {
+          try {
+            await globalThis.__conduitOwnerParticipation.submitFaceInteraction({
+              view, actionId: action.identity, target: action.target,
+              arguments: [{ name: action.arguments[0].name, value: 'Retired Look must not add this item' }],
+            });
+            return { refused: false };
+          } catch (error) {
+            return { refused: true, message: error.message, code: error.code ?? null };
+          }
+        }, { view: retired, action });
+        assert.equal(refusal.refused, true, 'old Show interaction must be refused');
+        assert.match(refusal.message, /^owner Face interaction refused \(-5\)$/,
+          'retirement proof must reach the WASM Show gate rather than fail argument validation');
+        const ownerAfterRefusal = face();
+        assert.deepEqual(ownerAfterRefusal.presentation, currentOwner.presentation,
+          'retired Show refusal must preserve the entire canonical owner Face');
+        assert.equal(await page.evaluate(() => globalThis.__conduitOwnerParticipation.face().show_id),
+          occurrence.view.show_id, 'refusal must preserve the replacement Show');
+        retirement = { retired_show_id: retired.show_id,
+          current_show_id: occurrence.view.show_id, refusal,
+          owner_before: currentOwner, owner_after: ownerAfterRefusal };
+      }
+      observations.push({ look, recipe, ...occurrence, owner: currentOwner, screenshot, retirement });
+      await writeFile(path.join(output, 'look-observations.json'), `${JSON.stringify({
+        scope: 'actual acknowledged browser occurrences and old-Show refusal; execution required',
+        observations,
+      }, null, 2)}\n`);
+    }
+    assert.notEqual(observations[0].view.show_id, observations[1].view.show_id);
+    assert.notDeepEqual(observations[0].view.component.expression, observations[1].view.component.expression);
+    assert.deepEqual(observations[0].view.component.configuration.component,
+      observations[1].view.component.configuration.component);
+    assert.deepEqual(observations[0].view.component.configuration.recipe,
+      observations[1].view.component.configuration.recipe);
+    assert.notDeepEqual(observations[1].view.component.configuration.recipe,
+      observations[2].view.component.configuration.recipe);
+    const ownerEvidence = owner => ({
+      sourceDocumentId: owner.presentation.basis.source_document_id,
+      bodyId: owner.presentation.basis.body_id,
+      hostId: owner.advertisement.host_id, bootId: owner.advertisement.boot_id,
+      planId: owner.presentation.basis.plan_id, playId: owner.presentation.basis.active_play_id,
+    });
+    const exactFace = owner => ({ ...owner.presentation, revision: owner.presentation_revision_decimal });
+    const occurrenceEvidence = occurrence => {
+      const canonical = JSON.parse(occurrence.canonical_json);
+      assert.equal(canonical.presentation_revision_decimal, occurrence.owner.presentation_revision_decimal);
+      const canonicalFace = { ...canonical.presentation, revision: canonical.presentation_revision_decimal };
+      assert.deepEqual(canonicalFace, exactFace(occurrence.owner),
+        'renderer retained canonical Face must match the independently observed owner');
+      const configuration = occurrence.view.component.configuration;
+      return { canonicalFace, owner: ownerEvidence(occurrence.owner),
+        component: { sourceDocumentId: configuration.component.source_document_id,
+          checkedPlotId: configuration.component.checked_plot_id, foreId: configuration.component.fore_id,
+          recipe: configuration.recipe },
+        realization: { expandedPlotId: canonical.route.planned_mask.mask.plot_identity.expanded_plot_id,
+          planId: occurrence.view.mask_plan_id, playId: occurrence.view.mask_play_id,
+          showId: occurrence.view.show_id, acknowledgedShowId: occurrence.acknowledged_show_id,
+          expression: occurrence.view.component.expression } };
+    };
+    const retired = observations[1].retirement;
+    const replacementEvidence = { before: occurrenceEvidence(observations[0]),
+      after: occurrenceEvidence(observations[1]), retirement: {
+        attemptedShowId: retired.retired_show_id, currentShowId: retired.current_show_id,
+        refusedBeforeSourceAdmission: retired.refusal.refused &&
+          retired.refusal.message === 'owner Face interaction refused (-5)',
+        ownerBefore: ownerEvidence(retired.owner_before), ownerAfter: ownerEvidence(retired.owner_after),
+        faceBefore: exactFace(retired.owner_before), faceAfter: exactFace(retired.owner_after),
+      } };
+    assertLookReplacement(replacementEvidence);
+    await writeFile(path.join(output, 'look-replacement-evidence.json'),
+      `${JSON.stringify(replacementEvidence, null, 2)}\n`);
+    await page.getByLabel('Look', { exact: true }).selectOption('spacious');
+    await page.getByLabel('Layout', { exact: true }).selectOption('grouped');
+    await page.getByLabel('Minimum text size', { exact: true }).selectOption('200');
+    await page.getByRole('button', { name: 'Apply presentation', exact: true }).click();
+    await page.waitForFunction(() => {
+      const view = globalThis.__conduitOwnerParticipation.face();
+      return view?.component?.expression?.expression?.text_scale_percent === 200 &&
+        document.querySelector('[data-owner-show-acknowledged]')?.dataset.ownerShowAcknowledged === view.show_id;
+    }, null, { timeout: 12_000 });
+    const largeText = await page.evaluate(() => {
+      const element = document.querySelector('conduit-owner-face');
+      const button = element.shadowRoot.querySelector('.owner-face-document button');
+      return { view: globalThis.__conduitOwnerParticipation.face(),
+        canonical_json: globalThis.__conduitOwnerParticipation.canonicalFaceJSON(),
+        button_font_px: Number.parseFloat(getComputedStyle(button).fontSize) };
+    });
+    assert.deepEqual(face().presentation, startedFace.presentation,
+      'user text-size override must preserve the whole canonical Face');
+    const priorScale = observations[2].view.component.expression.expression.text_scale_percent;
+    const expectedFont = observations[2].geometry.button_font_px * 200 / priorScale;
+    assert.ok(Math.abs(largeText.button_font_px - expectedFont) < 0.1,
+      'user minimum must change actual rendered control text proportionally');
+    await page.locator('[data-owner-face]').screenshot({ path: path.join(output, 'look-large-text.png') });
+    await writeFile(path.join(output, 'look-observations.json'), `${JSON.stringify({
+      scope: 'actual acknowledged browser occurrences, computed geometry, old-Show refusal and user large-text override',
+      observations, large_text: { ...largeText, screenshot: 'look-large-text.png' },
+    }, null, 2)}\n`);
+  }
   await page.locator('[data-owner-face]').screenshot({ path: path.join(output, 'browser-before.png') });
   const texts = scenario.startsWith('cross-mask') ? [itemText, 'Prepare lunch', 'Water plants'] : [itemText];
   assert.equal(new Set(texts).size, texts.length, 'scenario item names must be distinct');

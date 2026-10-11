@@ -5,7 +5,7 @@ use conduit_presentation::{PresentationActionAvailability, PresentationPropertyV
 
 impl OwnerBrowserMask {
     pub(super) fn view(&self) -> FaceView {
-        project_view(
+        let mut view = project_view(
             &self.body_id,
             &self.presentation,
             &self.planned,
@@ -19,7 +19,9 @@ impl OwnerBrowserMask {
                 mask_host_id: route.mask_host_id.clone(),
                 mask_boot_id: route.mask_boot_id.clone(),
             }),
-        )
+        );
+        view.component = self.component.as_ref().map(|component| component.clone());
+        view
     }
 }
 
@@ -51,6 +53,7 @@ fn project_view(
 ) -> FaceView {
     FaceView {
         schema: "conduit.browser/owner-face-mask@1",
+        component: None,
         body_id: body_id.as_str().into(),
         face_id: face.identity.as_str().into(),
         face_revision: face.revision.to_string(),

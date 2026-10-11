@@ -9,7 +9,7 @@ pub use raster::{render_glyph, render_text, render_text_scaled};
 mod layout;
 pub use layout::{PositionedGlyph, TextLayout};
 mod scene;
-pub use scene::{render_scene, render_scene_scaled};
+pub use scene::{render_scene, render_scene_configured, render_scene_scaled};
 
 /// Text purpose selects a fixed made profile, never an ambient font.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

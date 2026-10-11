@@ -256,6 +256,8 @@ limine = "=0.5.0"
 
 [dev-dependencies]
 conduit-std-host = { path = "../std" }
+conduit-todo-face = { path = "../../plots/todo/face" }
+conduit-todo-plot = { path = "../../plots/todo/model" }
 
 [build-dependencies]
 # Make-only rasterization: no font parser or atlas allocation in Play.

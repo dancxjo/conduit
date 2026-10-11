@@ -2817,6 +2817,8 @@ dependencies = [
  "conduit-synth",
  "conduit-text",
  "conduit-time",
+ "conduit-todo-face",
+ "conduit-todo-plot",
  "conduit-tour-model",
  "conduit-tutorial-plot",
  "conduit-web",

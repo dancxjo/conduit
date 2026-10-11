@@ -12,7 +12,12 @@ use conduit_presentation::{
     MaskShow, OwnerFaceSnapshotRequest, Presentation, RemoteOwnerMaskRouteSeal,
 };
 
+#[derive(Clone)]
 pub(super) struct NativeMaskRoute {
+    component_selection: Option<(
+        conduit_presentation::ComponentMaskLook,
+        conduit_presentation::TodoComponentRecipe,
+    )>,
     credential: MembershipCredential,
     host_offer: conduit_core::HostAdvertisement,
     face_line: LineOffer,
@@ -74,6 +79,31 @@ impl Owner {
         return_line: &LineOffer,
         expires_at_millis: u64,
     ) -> Result<RemoteOwnerMaskRouteSeal, String> {
+        let selection = self
+            .pending_native_mask
+            .as_ref()
+            .filter(|route| route.credential == receipt.credential)
+            .and_then(|route| route.component_selection);
+        self.seal_native_mask_route_with_component(
+            receipt,
+            face_line,
+            return_line,
+            expires_at_millis,
+            selection,
+        )
+    }
+
+    fn seal_native_mask_route_with_component(
+        &mut self,
+        receipt: &PortableAdmissionReceipt,
+        face_line: &LineOffer,
+        return_line: &LineOffer,
+        expires_at_millis: u64,
+        component_selection: Option<(
+            conduit_presentation::ComponentMaskLook,
+            conduit_presentation::TodoComponentRecipe,
+        )>,
+    ) -> Result<RemoteOwnerMaskRouteSeal, String> {
         if super::super::super::current_time_millis()? >= expires_at_millis {
             return Err("native-mask-return-expired".into());
         }
@@ -92,10 +122,14 @@ impl Owner {
                 .receipts
                 .iter()
                 .rev()
-                .any(|receipt| receipt.credential == *credential)
+                .any(|admitted| admitted.credential == *credential)
+        });
+        let retained_offer_mismatch = self.pending_native_mask.as_ref().is_some_and(|route| {
+            route.credential == *credential && route.host_offer != *native_offer
         });
         if !current
             || !admitted
+            || retained_offer_mismatch
             || receipt.schema != SPAWN_ADMISSION_RECEIPT_SCHEMA
             || !receipt.membership_admitted
             || receipt.plan_created
@@ -108,10 +142,19 @@ impl Owner {
         // attached browser route in the same new-Face Plan only after its
         // actual carrier and Lines have been revalidated and resealed.
         self.refresh_browser_mask_route_for_current_face()?;
-        let planned = conduit_conduitos_mask_offer::prepare_stage_from_offer(
-            conduit_conduitos_mask_offer::Adapter::Native,
-            native_offer,
-        )
+        let planned = if let Some((look, recipe)) = component_selection {
+            conduit_conduitos_mask_offer::prepare_component_stage_from_offer(
+                native_offer,
+                look,
+                recipe,
+            )
+            .map(|(stage, _)| stage)
+        } else {
+            conduit_conduitos_mask_offer::prepare_stage_from_offer(
+                conduit_conduitos_mask_offer::Adapter::Native,
+                native_offer,
+            )
+        }
         .map_err(|error| format!("native-mask-plan-refused:{error:?}"))?
         .planned_mask;
         let face = self.local_face_snapshot()?;
@@ -126,6 +169,7 @@ impl Owner {
         )
         .map_err(|error| format!("native-mask-route-refused:{error:?}"))?;
         let previous = self.pending_native_mask.replace(NativeMaskRoute {
+            component_selection,
             credential: credential.clone(),
             host_offer: native_offer.clone(),
             face_line: face_line.clone(),
@@ -139,6 +183,44 @@ impl Owner {
             return Err(error);
         }
         Ok(seal)
+    }
+
+    pub(crate) fn select_native_component_mask(
+        &mut self,
+        request: &OwnerFaceSnapshotRequest,
+        show: &MaskShow,
+        receipt: &PortableAdmissionReceipt,
+        look: conduit_presentation::ComponentMaskLook,
+        recipe: conduit_presentation::TodoComponentRecipe,
+    ) -> Result<RemoteOwnerMaskRouteSeal, String> {
+        self.validate_native_mask_route_show(request, show)?;
+        let previous_route = self
+            .pending_native_mask
+            .clone()
+            .ok_or("native-mask-route-not-selected")?;
+        if previous_route.credential != receipt.credential
+            || previous_route.host_offer != receipt.host_advertisement
+        {
+            return Err("native-mask-route-credential-mismatch".into());
+        }
+        let previous_wardrobe = self.presentation_wardrobe.clone();
+        let result = self
+            .seal_native_mask_route_with_component(
+                receipt,
+                &previous_route.face_line,
+                &previous_route.return_line,
+                previous_route.expires_at_millis,
+                Some((look, recipe)),
+            )
+            .and_then(|route| {
+                self.select_component_presentation_route(&route)?;
+                Ok(route)
+            });
+        if result.is_err() {
+            self.pending_native_mask = Some(previous_route);
+            self.presentation_wardrobe = previous_wardrobe;
+        }
+        result
     }
 
     pub(crate) fn acknowledge_native_mask_show(

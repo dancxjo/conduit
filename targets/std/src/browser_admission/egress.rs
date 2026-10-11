@@ -78,6 +78,21 @@ pub(super) fn validate(frame: &BrowserAdmissionEgress) -> Result<(), BrowserAdmi
             }
             protocol
         }
+        BrowserAdmissionEgress::FaceComponentMaskResponse {
+            protocol,
+            request_id,
+            accepted,
+            code,
+        } => {
+            if !valid_component_request_id(request_id)
+                || code.len() > 128
+                || (*accepted && !code.is_empty())
+                || (!*accepted && code.is_empty())
+            {
+                return Err(BrowserAdmissionFrameError::InvalidFaceSnapshot);
+            }
+            protocol
+        }
         BrowserAdmissionEgress::FaceWardrobeResponse {
             protocol,
             request_id,
