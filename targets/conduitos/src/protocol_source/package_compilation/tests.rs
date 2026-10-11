@@ -58,3 +58,29 @@ fn unknown_types_invalid_envelopes_and_invalid_declarations_refuse() {
         .is_err()
     );
 }
+
+#[test]
+fn usb_duplex_plot_reuses_one_boolean_request_zip_specialization() {
+    let source = include_str!("../../../plots/usb/control-endpoint-write-read.conduit");
+    let package = ProtocolSourcePackage::compile(
+        source.into(),
+        &[ProtocolSpecializationRequest::Zip {
+            left: ProtocolValueReference {
+                type_name: "UsbTransferCompleted".into(),
+                maximum_bytes: 256,
+            },
+            right: ProtocolValueReference {
+                type_name: "UsbWriteReadRequests".into(),
+                maximum_bytes: 4096,
+            },
+        }],
+    )
+    .unwrap();
+    assert_eq!(package.specializations.len(), 1);
+    let entry = PreparedProtocolEntry::prepare(
+        &serde_json::to_vec(&package).unwrap(),
+        "usb-control-endpoint-write-read",
+    )
+    .unwrap();
+    assert!(entry.expanded().expanded.gears.len() >= 5);
+}

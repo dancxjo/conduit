@@ -221,7 +221,9 @@ fn control_refusal(error: UsbNativeHostRefusal) -> UsbControlCallRefusal {
         UsbNativeHostRefusal::NotReady => {
             UsbControlCallRefusal::Ownership(ControlOwnerRefusal::Possession)
         }
-        UsbNativeHostRefusal::Binding | UsbNativeHostRefusal::Endpoint(_) => {
+        UsbNativeHostRefusal::Binding
+        | UsbNativeHostRefusal::Endpoint(_)
+        | UsbNativeHostRefusal::Write(_) => {
             UsbControlCallRefusal::Ownership(ControlOwnerRefusal::WrongBinding)
         }
     }
@@ -250,3 +252,18 @@ fn validate_claim(
 #[cfg(test)]
 #[path = "usb_control_installation_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+mod outbound_refusal_tests {
+    use super::*;
+    #[test]
+    fn control_only_adapter_rejects_an_unexpected_outbound_owner() {
+        let refusal = control_refusal(UsbNativeHostRefusal::Write(
+            super::super::endpoint_write_transfer::EndpointWriteNativeRefusal::Pending,
+        ));
+        assert!(matches!(
+            refusal,
+            UsbControlCallRefusal::Ownership(ControlOwnerRefusal::WrongBinding)
+        ));
+    }
+}

@@ -31,5 +31,9 @@ pub(super) fn install(
     crate::usb_base::endpoint_read_contract::EndpointReadContract::prepare()
         .map_err(Error::Contract)?
         .install_catalogs(startup, profile)
+        .map_err(Error::Catalog)?;
+    crate::usb_base::endpoint_write_contract::EndpointWriteContract::prepare()
+        .map_err(Error::Contract)?
+        .install_catalogs(startup, profile)
         .map_err(Error::Catalog)
 }

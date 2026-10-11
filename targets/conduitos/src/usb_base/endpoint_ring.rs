@@ -64,8 +64,19 @@ impl EndpointRingCursor {
     }
 
     pub fn reserve(&mut self, length: u16) -> Result<EndpointRingReservation, EndpointRingRefusal> {
+        if length == 0 {
+            return Err(EndpointRingRefusal::Geometry);
+        }
+        self.reserve_out(length)
+    }
+
+    /// OUT may publish a zero-byte Normal TRB; it still occupies one exact lease.
+    pub fn reserve_out(
+        &mut self,
+        length: u16,
+    ) -> Result<EndpointRingReservation, EndpointRingRefusal> {
         self.ensure_ready()?;
-        if length == 0 || length > super::endpoint_read_contract::ENDPOINT_READ_DATA_BYTES {
+        if length > super::endpoint_read_contract::ENDPOINT_READ_DATA_BYTES {
             return Err(EndpointRingRefusal::Geometry);
         }
         let sequence = self
@@ -235,3 +246,31 @@ mod tests;
 #[cfg(test)]
 #[path = "endpoint_ring/window_tests.rs"]
 mod window_tests;
+
+#[cfg(test)]
+mod outbound_tests {
+    use super::*;
+    #[test]
+    fn zero_byte_outbound_transfer_retains_exact_reservation_until_acknowledged() {
+        let mut cursor = EndpointRingCursor::new(64).unwrap();
+        assert_eq!(
+            cursor.reserve(0).unwrap_err(),
+            EndpointRingRefusal::Geometry
+        );
+        let zero = cursor.reserve_out(0).unwrap();
+        assert_eq!(zero.normal(0x8000)[2], 0);
+        assert_eq!(cursor.pending_count(), 1);
+        assert_eq!(cursor.ensure_idle(), Err(EndpointRingRefusal::Pending));
+        assert_eq!(cursor.actual(&zero, 0).unwrap(), 0);
+        assert!(cursor.actual(&zero, 1).is_err());
+        let changed = EndpointRingReservation {
+            sequence: zero.sequence + 1,
+            ..zero
+        };
+        assert!(unsafe { cursor.complete_quiesced(&changed) }.is_err());
+        assert_eq!(cursor.pending_count(), 1);
+        unsafe { cursor.complete_quiesced(&zero) }.unwrap();
+        assert_eq!(cursor.pending_count(), 0);
+        assert!(cursor.ensure_idle().is_ok());
+    }
+}

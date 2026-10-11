@@ -23,6 +23,8 @@ pub struct UsbProtocolBootRequest {
     pub maximum_control_operations: u32,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub endpoint_read: Option<UsbEndpointBootRequest>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub endpoint_write: Option<UsbEndpointBootRequest>,
     pub maximum_steps: u32,
     pub inputs: Vec<ProtocolBootInput>,
 }
@@ -40,8 +42,8 @@ pub struct UsbEndpointBootRequest {
 }
 
 impl UsbEndpointBootRequest {
-    fn valid(&self) -> bool {
-        self.address & 0x80 != 0
+    fn valid(&self, inbound: bool) -> bool {
+        (self.address & 0x80 != 0) == inbound
             && self.address & 0x70 == 0
             && self.address & 0x0f != 0
             && matches!(self.transfer_type, 2 | 3)
@@ -87,7 +89,11 @@ impl UsbProtocolBootRequest {
             || request
                 .endpoint_read
                 .as_ref()
-                .is_some_and(|endpoint| !endpoint.valid())
+                .is_some_and(|endpoint| !endpoint.valid(true))
+            || request
+                .endpoint_write
+                .as_ref()
+                .is_some_and(|endpoint| !endpoint.valid(false) || request.endpoint_read.is_none())
             || request.inputs.len() > 16
             || request.inputs.iter().any(|input| {
                 input.port.is_empty()

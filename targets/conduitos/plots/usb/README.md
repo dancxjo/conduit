@@ -13,6 +13,26 @@ construction, PCM negotiation and framing, Ethernet framing, and protocol retry
 policy belong in reviewed plots. An endpoint provider must not conceal a class
 driver behind a generic-looking gear.
 
+The product Root retains one original controller and attachment for ordinary
+control and endpoint-read offers. Exact source `549cf8306b685c414fd6a85048c166defcdcb117`
+completed a checked SET_CONFIGURATION followed by a real interrupt-IN report in
+QEMU: requested eight bytes, received four, short true, then acknowledged retirement.
+This is one freestanding emulator exchange, with no physical or class acceptance.
+An unsupported control request exposed a generic step refusal; the complete typed
+terminal-fault and retirement matrix remains required by #5253.
+
+`endpoint-write.conduit` adds a class-neutral owned byte payload, bounded to
+2,048 bytes. Empty payload means a real zero-length USB transfer. Optional trusted
+Root `endpoint_write` geometry admits a separate OUT endpoint alongside
+`endpoint_read`; write without read currently refuses. Control, read and write
+retain independent selected claims and DMA regions under the same native Host.
+`control-endpoint-write-read.conduit` orders one bounded request record through
+completed control, completed write and read. This finite proof topology requires
+cancellation after a failed transaction; it does not implement sustained class
+transactions. Bulk OUT product execution remains unproven until its exact built
+image completes a real transfer. Isochronous support and all successor class and
+cross-architecture acceptance remain open.
+
 This USB slice does not absorb #4833's I2C/BME280 acceptance. Portable binary
 composition is shared with that completed code slice: checked integer
 widening preserves the entire source domain, and packed-word helpers are bounded

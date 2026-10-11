@@ -186,11 +186,17 @@ pub use loongarch64::{FwCfgEntropy as DomainEntropy, early_write};
 pub use loongarch64::{TextDomain, initialize_domains};
 
 #[cfg(target_arch = "x86_64")]
-pub use x86_64::{EndpointNativeRefusal, UsbNativeHostRefusal, UsbNativeProtocolRefusal};
-#[cfg(target_arch = "x86_64")]
-pub(crate) use x86_64::{NativeUsbProtocolHost, ReadyUsbProtocolHost};
+pub use x86_64::{
+    EndpointNativeRefusal, EndpointWriteNativeRefusal, UsbNativeHostRefusal,
+    UsbNativeProtocolRefusal,
+};
 #[cfg(target_arch = "x86_64")]
 pub(crate) use x86_64::{
-    UsbConfiguredInboundEndpoint, UsbEndpointReceiveDma, UsbInboundEndpointParameters,
-    configure_usb_inbound,
+    NativeUsbDuplexHost, NativeUsbProtocolHost, ReadyUsbDuplexHost, ReadyUsbProtocolHost,
+};
+#[cfg(target_arch = "x86_64")]
+pub(crate) use x86_64::{
+    UsbConfiguredInboundEndpoint, UsbConfiguredOutboundEndpoint, UsbEndpointReceiveDma,
+    UsbEndpointTransmitDma, UsbInboundEndpointParameters, UsbOutboundEndpointParameters,
+    configure_usb_inbound, configure_usb_outbound,
 };

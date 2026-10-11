@@ -40,6 +40,20 @@ pub(crate) struct UsbProtocolAdmission {
     pub endpoint_claim: BaseOperationClaim,
 }
 
+#[cfg(target_arch = "x86_64")]
+pub(crate) struct UsbDuplexAdmission {
+    pub ready: crate::arch::ReadyUsbDuplexHost,
+    pub control_table: BaseCapabilityTable,
+    pub control_handle: BaseCapabilityHandle,
+    pub control_claim: BaseOperationClaim,
+    pub endpoint_table: BaseCapabilityTable,
+    pub endpoint_handle: BaseCapabilityHandle,
+    pub endpoint_claim: BaseOperationClaim,
+    pub write_table: BaseCapabilityTable,
+    pub write_handle: BaseCapabilityHandle,
+    pub write_claim: BaseOperationClaim,
+}
+
 #[derive(Clone, Copy)]
 enum PhysicalMode {
     I2c,
@@ -47,6 +61,8 @@ enum PhysicalMode {
     UsbControl,
     #[cfg(target_arch = "x86_64")]
     UsbProtocol,
+    #[cfg(target_arch = "x86_64")]
+    UsbDuplex,
 }
 
 /// Preparation owns the admitted kernel and the actual native owners together.
@@ -203,6 +219,23 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
         )
     }
 
+    #[cfg(target_arch = "x86_64")]
+    pub(crate) fn prepare_usb_duplex(
+        definition: KernelCompositeDefinition,
+        admission: UsbDuplexAdmission,
+        operations: crate::protocol_operations::ProtocolOperations,
+    ) -> Result<Self, ProtocolCallRefusal> {
+        Self::prepare_selected(
+            definition,
+            operations,
+            false,
+            PhysicalMode::UsbDuplex,
+            |plan, zip, states| {
+                PreparedProtocolCalls::prepare_usb_duplex(plan, admission, zip, states)
+            },
+        )
+    }
+
     fn prepare_selected(
         definition: KernelCompositeDefinition,
         operations: crate::protocol_operations::ProtocolOperations,
@@ -260,10 +293,13 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
                     .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
             }
             #[cfg(target_arch = "x86_64")]
-            PhysicalMode::UsbControl | PhysicalMode::UsbProtocol => {
+            PhysicalMode::UsbControl | PhysicalMode::UsbProtocol | PhysicalMode::UsbDuplex => {
                 registry.install(crate::usb_base::control_factory::ControlOperationFactory::prepare_contract().map_err(|_| ProtocolCallRefusal::InvalidPlan)?).map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
-                if matches!(mode, PhysicalMode::UsbProtocol) {
+                if matches!(mode, PhysicalMode::UsbProtocol | PhysicalMode::UsbDuplex) {
                     registry.install(crate::usb_base::endpoint_read_factory::EndpointReadOperationFactory::prepare_contract().map_err(|_| ProtocolCallRefusal::InvalidPlan)?).map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
+                }
+                if matches!(mode, PhysicalMode::UsbDuplex) {
+                    registry.install(crate::usb_base::endpoint_write_factory::EndpointWriteOperationFactory::prepare_contract().map_err(|_| ProtocolCallRefusal::InvalidPlan)?).map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
                 }
             }
         }

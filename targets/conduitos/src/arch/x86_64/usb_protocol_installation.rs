@@ -29,6 +29,7 @@ pub enum UsbNativeProtocolRefusal {
     Canonical(StructuredInfoRefusal),
     Control(UsbControlCallRefusal),
     Endpoint(EndpointNativeRefusal),
+    Write(super::endpoint_write_transfer::EndpointWriteNativeRefusal),
     Host(UsbNativeHostRefusal),
 }
 
@@ -262,7 +263,7 @@ impl ReadyUsbProtocolHost {
     }
 }
 
-fn validate_endpoint_selection(
+pub(super) fn validate_endpoint_selection(
     identity: &UsbNativeIdentity,
     claim: &BaseOperationClaim,
     selection: &SelectedOperationPlan<'_>,
@@ -349,15 +350,21 @@ impl NativeUsbProtocolHost {
         self.host.cancel().map_err(native_refusal)
     }
 }
-fn native_refusal(error: UsbNativeHostRefusal) -> UsbNativeProtocolRefusal {
+pub(super) fn native_refusal(error: UsbNativeHostRefusal) -> UsbNativeProtocolRefusal {
     match error {
         UsbNativeHostRefusal::Control(error) => UsbNativeProtocolRefusal::Control(error),
         UsbNativeHostRefusal::Endpoint(error) => UsbNativeProtocolRefusal::Endpoint(error),
+        UsbNativeHostRefusal::Write(error) => UsbNativeProtocolRefusal::Write(error),
         error => UsbNativeProtocolRefusal::Host(error),
     }
 }
 
-fn mapped_region(start: u64, physical: u64, bytes: u64, mapping: fn(u64) -> Option<u64>) -> bool {
+pub(super) fn mapped_region(
+    start: u64,
+    physical: u64,
+    bytes: u64,
+    mapping: fn(u64) -> Option<u64>,
+) -> bool {
     let Some(last) = start.checked_add(bytes - 1) else {
         return false;
     };

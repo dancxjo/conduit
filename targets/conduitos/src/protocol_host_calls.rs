@@ -11,14 +11,16 @@ use crate::{
     structured_selector_host_call,
 };
 use alloc::{boxed::Box, vec::Vec};
-use conduit_composite::{
-    AdmittedKernelCompositeHostRequest, KernelCompositeHost, KernelCompositeHostRequest,
-};
+use conduit_composite::{AdmittedKernelCompositeHostRequest, KernelCompositeHost};
 use conduit_core::*;
-use conduit_kernel::{FailureCode, HostCallDisposition, HostCallId, HostCallOutcome, NodeId};
+use conduit_kernel::{HostCallId, NodeId};
 use conduit_plan_lowering::lowering::lower_plan_fragment;
 
 pub use crate::protocol_call_refusal::ProtocolCallRefusal;
+
+mod dispatch;
+#[cfg(target_arch = "x86_64")]
+mod usb_preparation;
 
 enum Owner<P> {
     Pure(PureProtocolOwner),
@@ -29,6 +31,19 @@ enum Owner<P> {
     UsbProtocolControl,
     #[cfg(target_arch = "x86_64")]
     UsbProtocolEndpoint,
+    #[cfg(target_arch = "x86_64")]
+    UsbDuplexControl,
+    #[cfg(target_arch = "x86_64")]
+    UsbDuplexRead,
+    #[cfg(target_arch = "x86_64")]
+    UsbDuplexWrite,
+}
+#[cfg(target_arch = "x86_64")]
+#[derive(Clone, Copy)]
+enum PendingUsbKind {
+    ProtocolRead,
+    DuplexRead,
+    DuplexWrite,
 }
 struct Binding<P> {
     node: NodeId,
@@ -43,6 +58,10 @@ pub struct PreparedProtocolCalls<P> {
     bindings: Vec<Binding<P>>,
     #[cfg(target_arch = "x86_64")]
     usb_protocol: Option<crate::arch::NativeUsbProtocolHost>,
+    #[cfg(target_arch = "x86_64")]
+    usb_duplex: Option<crate::arch::NativeUsbDuplexHost>,
+    #[cfg(target_arch = "x86_64")]
+    pending_usb_kind: PendingUsbKind,
     #[cfg(target_arch = "x86_64")]
     pending_usb: Option<AdmittedKernelCompositeHostRequest>,
     #[cfg(target_arch = "x86_64")]
@@ -119,137 +138,6 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
                     .map_err(ProtocolCallRefusal::I2c)
             },
         )
-    }
-
-    #[cfg(target_arch = "x86_64")]
-    pub(crate) fn prepare_usb(
-        plan: &Plan,
-        ready: crate::arch::ReadyUsbControlBase,
-        table: BaseCapabilityTable,
-        handle: BaseCapabilityHandle,
-        claim: BaseOperationClaim,
-        zip: &crate::flow_zip::FlowZipOperationFactory,
-        states: &crate::seeded_state::SeededStateOperationFactory,
-    ) -> Result<Self, ProtocolCallRefusal> {
-        Self::prepare_selected(
-            plan,
-            crate::usb_base::control_factory::CONTROL_IMPLEMENTATION,
-            zip,
-            states,
-            |fragment, lowered, active, placement| {
-                let contract = crate::usb_base::control_contract::ControlContract::prepare()
-                    .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
-                ready
-                    .bind_selected(
-                        table,
-                        handle,
-                        claim,
-                        crate::arch::UsbControlSelection {
-                            contract: &contract,
-                            fragment,
-                            lowered,
-                            active,
-                            placement,
-                        },
-                    )
-                    .map(|owner| Owner::UsbControl(Box::new(owner)))
-                    .map_err(ProtocolCallRefusal::Usb)
-            },
-        )
-    }
-
-    #[cfg(target_arch = "x86_64")]
-    #[allow(clippy::too_many_arguments)]
-    pub(crate) fn prepare_usb_protocol(
-        plan: &Plan,
-        ready: crate::arch::ReadyUsbProtocolHost,
-        control_table: BaseCapabilityTable,
-        control_handle: BaseCapabilityHandle,
-        control_claim: BaseOperationClaim,
-        endpoint_table: BaseCapabilityTable,
-        endpoint_handle: BaseCapabilityHandle,
-        endpoint_claim: BaseOperationClaim,
-        zip: &crate::flow_zip::FlowZipOperationFactory,
-        states: &crate::seeded_state::SeededStateOperationFactory,
-    ) -> Result<Self, ProtocolCallRefusal> {
-        use crate::usb_base::{
-            control_factory::CONTROL_IMPLEMENTATION,
-            endpoint_read_factory::ENDPOINT_READ_IMPLEMENTATION,
-        };
-        use ProtocolCallRefusal as Refusal;
-        let (lowered, active, mut bindings) = Self::prepare_pure(
-            plan,
-            &[CONTROL_IMPLEMENTATION, ENDPOINT_READ_IMPLEMENTATION],
-            zip,
-            states,
-        )?;
-        let fragment = &plan.fragments[0];
-        let control = fragment
-            .placements
-            .iter()
-            .find(|gear| gear.implementation_id.as_str() == CONTROL_IMPLEMENTATION)
-            .ok_or(Refusal::Unsupported)?;
-        let endpoint = fragment
-            .placements
-            .iter()
-            .find(|gear| gear.implementation_id.as_str() == ENDPOINT_READ_IMPLEMENTATION)
-            .ok_or(Refusal::Unsupported)?;
-        let control_contract = crate::usb_base::control_contract::ControlContract::prepare()
-            .map_err(|_| Refusal::InvalidPlan)?;
-        let endpoint_contract =
-            crate::usb_base::endpoint_read_contract::EndpointReadContract::prepare()
-                .map_err(|_| Refusal::InvalidPlan)?;
-        let host = ready
-            .bind_selected(
-                control_table,
-                control_handle,
-                control_claim,
-                crate::arch::UsbControlSelection {
-                    contract: &control_contract,
-                    fragment,
-                    lowered: &lowered,
-                    active: &active,
-                    placement: &control.placement_id,
-                },
-                endpoint_table,
-                endpoint_handle,
-                endpoint_claim,
-                &endpoint_contract,
-                crate::machine_membrane::selected_operation::SelectedOperationPlan {
-                    fragment,
-                    lowered: &lowered,
-                    active: &active,
-                    placement_id: &endpoint.placement_id,
-                },
-            )
-            .map_err(Refusal::UsbProtocol)?;
-        for (gear, owner) in [
-            (control, Owner::UsbProtocolControl),
-            (endpoint, Owner::UsbProtocolEndpoint),
-        ] {
-            bindings.push(Binding {
-                node: lowered
-                    .identity
-                    .node_for_placement(&gear.placement_id)
-                    .ok_or(Refusal::InvalidPlan)?,
-                resources: gear.resources.clone(),
-                authorities: gear.authority.clone(),
-                owner,
-            });
-        }
-        Ok(Self {
-            plan_id: plan.plan_id.clone(),
-            identity: PreparationHostIdentity {
-                host_id: fragment.host_id.clone(),
-                boot_id: fragment.boot_id.clone(),
-                offer_generation: fragment.offer_generation,
-            },
-            bindings,
-            usb_protocol: Some(host),
-            pending_usb: None,
-            #[cfg(target_arch = "x86_64")]
-            pending_usb_failed: false,
-        })
     }
 
     fn prepare_pure(
@@ -372,203 +260,14 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
             #[cfg(target_arch = "x86_64")]
             usb_protocol: None,
             #[cfg(target_arch = "x86_64")]
+            usb_duplex: None,
+            #[cfg(target_arch = "x86_64")]
+            pending_usb_kind: PendingUsbKind::ProtocolRead,
+            #[cfg(target_arch = "x86_64")]
             pending_usb: None,
             #[cfg(target_arch = "x86_64")]
             pending_usb_failed: false,
         })
-    }
-
-    /// Service exactly one surfaced token. No request creation, retry or private stepping loop.
-    pub fn dispatch(
-        &mut self,
-        kernel: &mut KernelCompositeHost,
-        request: &KernelCompositeHostRequest,
-    ) -> Result<(), ProtocolCallRefusal> {
-        use ProtocolCallRefusal as Refusal;
-        if kernel.definition().internal_plan.plan_id != self.plan_id {
-            return Err(Refusal::InvalidPlan);
-        }
-        #[cfg(target_arch = "x86_64")]
-        if self.pending_usb.is_some() {
-            return Err(Refusal::Unsupported);
-        }
-        let view = kernel.host_request_view(request).map_err(Refusal::Kernel)?;
-        if *view.child != self.identity.host_id || view.request.call != HostCallId(0) {
-            return Err(Refusal::InvalidPlan);
-        }
-        let node = view.request.node;
-        let binding = self
-            .bindings
-            .iter_mut()
-            .find(|binding| binding.node == node)
-            .ok_or(Refusal::Unsupported)?;
-        let required = kernel
-            .host_request_obligation(request)
-            .map_err(Refusal::Kernel)?;
-        let expected = match binding.owner {
-            Owner::Pure(ref owner) => owner.contract(),
-            Owner::I2c(_) => I2C_CALL,
-            #[cfg(target_arch = "x86_64")]
-            Owner::UsbControl(_) | Owner::UsbProtocolControl => {
-                crate::usb_base::control_contract::CONTROL_CALL
-            }
-            #[cfg(target_arch = "x86_64")]
-            Owner::UsbProtocolEndpoint => {
-                crate::usb_base::endpoint_read_contract::ENDPOINT_READ_CALL
-            }
-        };
-        if required.requirement.contract_id.as_str() != expected {
-            return Err(Refusal::InvalidPlan);
-        }
-        let admitted = kernel
-            .admit_host_request(
-                request,
-                &self.identity,
-                &binding.resources,
-                &binding.authorities,
-            )
-            .map_err(Refusal::Kernel)?;
-        let call = *kernel
-            .admitted_host_request_view(&admitted)
-            .map_err(Refusal::Kernel)?
-            .request;
-        let input = kernel
-            .host_request_input(&admitted)
-            .map_err(Refusal::Kernel)?;
-        #[cfg(target_arch = "x86_64")]
-        if matches!(binding.owner, Owner::UsbProtocolEndpoint) {
-            let result = self
-                .usb_protocol
-                .as_mut()
-                .ok_or(Refusal::InvalidPlan)?
-                .endpoint_begin(node, call.call, call.request, input)
-                .map_err(Refusal::UsbProtocol);
-            match result {
-                Ok(()) => {
-                    self.pending_usb = Some(admitted);
-                    return Ok(());
-                }
-                Err(error) => {
-                    Self::complete_failure(kernel, &admitted, &error)?;
-                    return Err(error);
-                }
-            }
-        }
-        let result = match &mut binding.owner {
-            #[cfg(target_arch = "x86_64")]
-            Owner::UsbProtocolControl => self
-                .usb_protocol
-                .as_mut()
-                .ok_or(Refusal::InvalidPlan)?
-                .control_invoke(node, call.call, call.request, input)
-                .map(Some)
-                .map_err(Refusal::UsbProtocol),
-            #[cfg(target_arch = "x86_64")]
-            Owner::UsbProtocolEndpoint => return Err(Refusal::InvalidPlan),
-            #[cfg(target_arch = "x86_64")]
-            Owner::UsbControl(owner) => owner
-                .invoke(node, call.call, call.request, input)
-                .map(Some)
-                .map_err(Refusal::Usb),
-            Owner::Pure(owner) => owner.invoke(node, call.call, call.request, input),
-            Owner::I2c(owner) => owner
-                .invoke(node, call.call, call.request, input)
-                .map(Some)
-                .map_err(Refusal::I2c),
-        };
-        match result {
-            Ok(None) => kernel
-                .complete_host_call(
-                    &admitted,
-                    HostCallOutcome {
-                        disposition: HostCallDisposition::Completed,
-                        output: None,
-                        failure: None,
-                    },
-                )
-                .map_err(Refusal::Kernel),
-            Ok(Some(bytes)) => kernel
-                .complete_host_call_bytes(&admitted, bytes)
-                .map_err(Refusal::Kernel),
-            Err(error) => {
-                let failure = error.failure();
-                kernel
-                    .complete_host_call(
-                        &admitted,
-                        HostCallOutcome {
-                            disposition: if failure.code == FailureCode::HostCallDenied {
-                                HostCallDisposition::Denied
-                            } else {
-                                HostCallDisposition::Failed
-                            },
-                            output: None,
-                            failure: Some(failure),
-                        },
-                    )
-                    .map_err(Refusal::Kernel)?;
-                Err(error)
-            }
-        }
-    }
-
-    fn complete_failure(
-        kernel: &mut KernelCompositeHost,
-        admitted: &AdmittedKernelCompositeHostRequest,
-        error: &ProtocolCallRefusal,
-    ) -> Result<(), ProtocolCallRefusal> {
-        let failure = error.failure();
-        kernel
-            .complete_host_call(
-                admitted,
-                HostCallOutcome {
-                    disposition: if failure.code == FailureCode::HostCallDenied {
-                        HostCallDisposition::Denied
-                    } else {
-                        HostCallDisposition::Failed
-                    },
-                    output: None,
-                    failure: Some(failure),
-                },
-            )
-            .map_err(ProtocolCallRefusal::Kernel)
-    }
-
-    /// Poll at most one native event for the original admitted endpoint token.
-    pub fn poll_pending(
-        &mut self,
-        kernel: &mut KernelCompositeHost,
-    ) -> Result<bool, ProtocolCallRefusal> {
-        if kernel.definition().internal_plan.plan_id != self.plan_id {
-            return Err(ProtocolCallRefusal::InvalidPlan);
-        }
-        #[cfg(target_arch = "x86_64")]
-        if let Some(admitted) = self.pending_usb {
-            if self.pending_usb_failed {
-                return Err(ProtocolCallRefusal::Unsupported);
-            }
-            let result = self
-                .usb_protocol
-                .as_mut()
-                .ok_or(ProtocolCallRefusal::InvalidPlan)?
-                .endpoint_poll()
-                .map_err(ProtocolCallRefusal::UsbProtocol);
-            match result {
-                Ok(None) => {}
-                Ok(Some(bytes)) => {
-                    kernel
-                        .complete_host_call_bytes(&admitted, bytes)
-                        .map_err(ProtocolCallRefusal::Kernel)?;
-                    self.pending_usb = None;
-                }
-                Err(error) => {
-                    self.pending_usb_failed = true;
-                    Self::complete_failure(kernel, &admitted, &error)?;
-                    return Err(error);
-                }
-            }
-            return Ok(true);
-        }
-        Ok(false)
     }
 
     /// Revoke actual bus ownership as well as cancelling kernel and computation state.
@@ -579,6 +278,12 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
         }
         #[cfg(target_arch = "x86_64")]
         if let Some(host) = &mut self.usb_protocol {
+            host.cancel().map_err(Refusal::UsbProtocol)?;
+            self.pending_usb = None;
+            self.pending_usb_failed = false;
+        }
+        #[cfg(target_arch = "x86_64")]
+        if let Some(host) = &mut self.usb_duplex {
             host.cancel().map_err(Refusal::UsbProtocol)?;
             self.pending_usb = None;
             self.pending_usb_failed = false;

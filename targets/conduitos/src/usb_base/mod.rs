@@ -38,3 +38,10 @@ pub mod hid_source_plan;
 pub mod hid_endpoint_proof_kernel;
 
 pub mod installation;
+
+pub mod endpoint_write_contract;
+pub mod endpoint_write_factory;
+pub mod endpoint_write_offer;
+pub mod endpoint_write_owner;
+pub mod endpoint_write_request;
+pub mod endpoint_write_result;

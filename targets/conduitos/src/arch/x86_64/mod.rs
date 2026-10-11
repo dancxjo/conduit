@@ -114,9 +114,15 @@ extern "C" fn conduitos_exception_handler(vector: u64) -> ! {
 #[cfg(feature = "usb-endpoint-read-proof")]
 pub use usb::run_usb_endpoint_read_proof;
 
-pub use usb::{EndpointNativeRefusal, UsbNativeHostRefusal, UsbNativeProtocolRefusal};
-pub(crate) use usb::{NativeUsbProtocolHost, ReadyUsbProtocolHost};
+pub use usb::{
+    EndpointNativeRefusal, EndpointWriteNativeRefusal, UsbNativeHostRefusal,
+    UsbNativeProtocolRefusal,
+};
 pub(crate) use usb::{
-    UsbConfiguredInboundEndpoint, UsbEndpointReceiveDma, UsbInboundEndpointParameters,
-    configure_usb_inbound,
+    NativeUsbDuplexHost, NativeUsbProtocolHost, ReadyUsbDuplexHost, ReadyUsbProtocolHost,
+};
+pub(crate) use usb::{
+    UsbConfiguredInboundEndpoint, UsbConfiguredOutboundEndpoint, UsbEndpointReceiveDma,
+    UsbEndpointTransmitDma, UsbInboundEndpointParameters, UsbOutboundEndpointParameters,
+    configure_usb_inbound, configure_usb_outbound,
 };
