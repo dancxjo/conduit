@@ -265,3 +265,34 @@ fn discovery_budget_is_separate_exact_and_bounded() {
         Err(ProtocolBootRequestRefusal::Bounds)
     ));
 }
+
+#[test]
+fn iso_transport_requires_explicit_finite_parameters_and_disjoint_boot_mode() {
+    let mut value = request();
+    value["isochronous_out"] = serde_json::json!({"address":1,"maximum_packet":256,"interval":1,"endpoint_epoch":11,"maximum_operations":64});
+    let decoded = decode(&value).unwrap();
+    assert_eq!(decoded.isochronous_out.unwrap().maximum_packet, 256);
+    for (field, invalid) in [
+        ("address", 0),
+        ("address", 0x81),
+        ("maximum_packet", 0),
+        ("maximum_packet", 257),
+        ("interval", 0),
+        ("interval", 2),
+        ("endpoint_epoch", 0),
+        ("maximum_operations", 0),
+        ("maximum_operations", 4097),
+    ] {
+        let mut wrong = value.clone();
+        wrong["isochronous_out"][field] = invalid.into();
+        assert!(
+            matches!(decode(&wrong), Err(ProtocolBootRequestRefusal::Bounds)),
+            "{field}"
+        );
+    }
+    value["endpoint_read"] = serde_json::json!({"address":0x81,"transfer_type":2,"maximum_packet":64,"interval":0,"endpoint_epoch":12,"maximum_operations":4});
+    assert!(matches!(
+        decode(&value),
+        Err(ProtocolBootRequestRefusal::Bounds)
+    ));
+}

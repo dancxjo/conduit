@@ -110,6 +110,10 @@ impl IsochronousOutCallOwner {
             SelectedCallRefusal::WrongBinding => Error::WrongBinding,
             SelectedCallRefusal::Possession => Error::Possession,
         })?;
+        let encoder = PreparedIsochronousResultEncoder::new(contract).map_err(Error::Canonical)?;
+        if encoder.prepared_storage_bytes() > 65536 {
+            return Err(Error::Possession);
+        }
         Ok(Self {
             table,
             handle,
@@ -117,7 +121,7 @@ impl IsochronousOutCallOwner {
             node,
             attachment,
             decoder: PreparedIsochronousRequestDecoder::new(contract).map_err(Error::Canonical)?,
-            encoder: PreparedIsochronousResultEncoder::new(contract).map_err(Error::Canonical)?,
+            encoder,
             pending: None,
             next_request: 0,
             closed: false,

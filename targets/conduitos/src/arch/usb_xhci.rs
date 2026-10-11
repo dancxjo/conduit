@@ -551,7 +551,10 @@ pub(crate) use endpoint_setup::{
 };
 pub use isochronous_out::IsochronousOutRefusal;
 
-pub(crate) use native_host::UsbNativeHost as NativeUsbIsochronousHost;
+#[path = "usb_xhci/usb_isochronous_installation.rs"]
+mod isochronous_installation;
+pub use isochronous_installation::UsbIsochronousCallRefusal;
+pub(crate) use isochronous_installation::{NativeUsbIsochronousHost, ReadyUsbIsochronousHost};
 
 #[path = "usb_xhci/usb_configuration_snapshot.rs"]
 mod configuration_snapshot;

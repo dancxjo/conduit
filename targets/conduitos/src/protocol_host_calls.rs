@@ -58,6 +58,16 @@ enum Owner<P> {
         all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
     ))]
     UsbDuplexWrite,
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    UsbIsochronousControl,
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    UsbIsochronousOut,
 }
 #[cfg(any(
     target_arch = "x86_64",
@@ -68,6 +78,7 @@ enum PendingUsbKind {
     ProtocolRead,
     DuplexRead,
     DuplexWrite,
+    IsochronousOut,
 }
 struct Binding<P> {
     node: NodeId,
@@ -90,6 +101,11 @@ pub struct PreparedProtocolCalls<P> {
         all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
     ))]
     usb_duplex: Option<crate::arch::NativeUsbDuplexHost>,
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    usb_isochronous: Option<crate::arch::NativeUsbIsochronousHost>,
     #[cfg(any(
         target_arch = "x86_64",
         all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
@@ -312,6 +328,11 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
                 target_arch = "x86_64",
                 all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
             ))]
+            usb_isochronous: None,
+            #[cfg(any(
+                target_arch = "x86_64",
+                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+            ))]
             pending_usb_kind: PendingUsbKind::ProtocolRead,
             #[cfg(any(
                 target_arch = "x86_64",
@@ -347,6 +368,15 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
         ))]
         if let Some(host) = &mut self.usb_duplex {
             host.cancel().map_err(Refusal::UsbProtocol)?;
+            self.pending_usb = None;
+            self.pending_usb_failed = false;
+        }
+        #[cfg(any(
+            target_arch = "x86_64",
+            all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+        ))]
+        if let Some(host) = &mut self.usb_isochronous {
+            host.cancel().map_err(Refusal::UsbIsochronous)?;
             self.pending_usb = None;
             self.pending_usb_failed = false;
         }

@@ -29,6 +29,8 @@ pub struct UsbProtocolBootRequest {
     pub endpoint_read: Option<UsbEndpointBootRequest>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub endpoint_write: Option<UsbEndpointBootRequest>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub isochronous_out: Option<UsbIsochronousEndpointBootRequest>,
     /// Root reserves retained remote lifecycle history before Play. This is
     /// storage admission, not additional device authority or operation fuel.
     #[serde(default, skip_serializing_if = "is_zero")]
@@ -55,6 +57,27 @@ pub struct UsbPreflightBootRequest {
     pub entry: String,
     pub maximum_discovery_operations: u8,
     pub maximum_steps: u32,
+}
+
+/// Explicit USB2 full-speed 1ms ISO transport admission, independent of class policy.
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct UsbIsochronousEndpointBootRequest {
+    pub address: u8,
+    pub maximum_packet: u16,
+    pub interval: u8,
+    pub endpoint_epoch: u32,
+    pub maximum_operations: u32,
+}
+impl UsbIsochronousEndpointBootRequest {
+    fn valid(&self) -> bool {
+        self.address & 0xf0 == 0
+            && self.address != 0
+            && (1..=256).contains(&self.maximum_packet)
+            && self.interval == 1
+            && self.endpoint_epoch != 0
+            && (1..=4096).contains(&self.maximum_operations)
+    }
 }
 
 fn is_zero(value: &u16) -> bool {
@@ -121,6 +144,11 @@ impl UsbProtocolBootRequest {
                 .endpoint_write
                 .as_ref()
                 .is_some_and(|endpoint| !endpoint.valid(false) || request.endpoint_read.is_none())
+            || request.isochronous_out.as_ref().is_some_and(|endpoint| {
+                !endpoint.valid()
+                    || request.endpoint_read.is_some()
+                    || request.endpoint_write.is_some()
+            })
             || request.inputs.len() > 16
             || request.inputs.iter().any(|input| {
                 input.port.is_empty()

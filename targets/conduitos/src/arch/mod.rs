@@ -244,6 +244,12 @@ pub(crate) use x86_64::{
 ))]
 #[allow(unused_imports)] // ISO admission adapter is owned by the integration branch.
 pub(crate) use usb_xhci::{
-    NativeUsbIsochronousHost, UsbConfiguredIsochronousOutboundEndpoint,
+    NativeUsbIsochronousHost, ReadyUsbIsochronousHost, UsbConfiguredIsochronousOutboundEndpoint,
     configure_usb_isochronous_outbound,
 };
+
+#[cfg(any(
+    target_arch = "x86_64",
+    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+))]
+pub use usb_xhci::UsbIsochronousCallRefusal;

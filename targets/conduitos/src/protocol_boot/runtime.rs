@@ -84,6 +84,21 @@ pub(super) fn prepare_usb(
         planner_capabilities: vec![],
     };
     let play = match owners {
+        super::usb_owners::NativeUsbOwners::Isochronous {
+            ready,
+            control_issuer,
+            isochronous_issuer,
+        } => crate::protocol_source::prepare_native_usb_isochronous_protocol(
+            entry,
+            session,
+            advertisement,
+            *ready,
+            *control_issuer,
+            *isochronous_issuer,
+            0,
+            1,
+            request.additional_remote_sign_items,
+        ),
         super::usb_owners::NativeUsbOwners::Duplex {
             ready,
             control_issuer,

@@ -459,3 +459,14 @@ fn install_literal(
         .insert_kind(conduit_text::text_literal_semantics().into_semantic_contract())
         .map_err(|error| ProtocolSourceRefusal::Catalog(alloc::format!("{error:?}")))
 }
+
+#[cfg(any(
+    target_arch = "x86_64",
+    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+))]
+mod native_usb_isochronous_preparation;
+#[cfg(any(
+    target_arch = "x86_64",
+    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+))]
+pub(crate) use native_usb_isochronous_preparation::prepare_native_usb_isochronous_protocol;

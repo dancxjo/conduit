@@ -18,6 +18,11 @@ pub enum ProtocolCallRefusal {
         all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
     ))]
     UsbProtocol(crate::arch::UsbNativeProtocolRefusal),
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    UsbIsochronous(crate::arch::UsbIsochronousCallRefusal),
     InvalidPlan,
     Unsupported,
     Kernel(KernelCompositeError),
@@ -65,6 +70,11 @@ impl ProtocolCallRefusal {
                     }
                 }
             }
+            #[cfg(any(
+                target_arch = "x86_64",
+                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+            ))]
+            Self::UsbIsochronous(_) => (FailureCode::HostCallFailed, 1094),
             Self::InvalidPlan => (FailureCode::InvalidLifecycle, 1020),
             Self::Unsupported => (FailureCode::HostCallDenied, 1021),
             Self::Kernel(_) => (FailureCode::HostCallFailed, 1022),

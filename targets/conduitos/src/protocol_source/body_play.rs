@@ -93,6 +93,23 @@ impl<P: I2cProvider, C: MonotonicDeadlineProvider> PreparedProtocolBodyPlay<P, C
         target_arch = "x86_64",
         all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
     ))]
+    pub(crate) fn prepare_usb_isochronous(
+        artifact: PreparedProtocolArtifact,
+        session: BodyLifecycleSession,
+        play_sequence: u64,
+        usb: crate::protocol_play::UsbIsochronousAdmission,
+    ) -> Result<Self, Box<ProtocolBodyPreparationRefusal>> {
+        Self::prepare_with(artifact, session, play_sequence, |artifact| {
+            artifact
+                .prepare_usb_isochronous::<P>(usb)
+                .map(|kernel| ProtocolKernel::WithoutClock(Box::new(kernel)))
+        })
+    }
+
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
     pub(crate) fn prepare_usb_duplex(
         artifact: PreparedProtocolArtifact,
         session: BodyLifecycleSession,

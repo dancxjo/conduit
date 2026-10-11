@@ -37,7 +37,11 @@ impl<'a> UsbNativeHost<'a> {
         endpoint_epoch: u64,
     ) -> Result<crate::usb_base::isochronous_schedule::IsochronousOutSnapshot, UsbNativeHostRefusal>
     {
-        if self.stopped || self.stop_acknowledged || self.uncertain_control {
+        if self.stopped
+            || self.cancellation_requested
+            || self.stop_acknowledged
+            || self.uncertain_control
+        {
             return Err(UsbNativeHostRefusal::NotReady);
         }
         let transfer = self
