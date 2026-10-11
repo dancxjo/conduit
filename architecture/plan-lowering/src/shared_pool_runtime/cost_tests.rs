@@ -5,7 +5,7 @@ use alloc::vec;
 use conduit_core::*;
 use conduit_kernel::NodeId;
 
-fn plan() -> Plan {
+pub(super) fn plan() -> Plan {
     let mut pool = pool();
     pool.selection_policy = SharedPoolSelectionPolicy::MinimumPredictedCompletionThenCapacity;
     seal_plan(
@@ -17,7 +17,7 @@ fn plan() -> Plan {
         vec![fragment(pool)],
     )
 }
-fn hosts(plan: &Plan) -> Vec<HostAdvertisement> {
+pub(super) fn hosts(plan: &Plan) -> Vec<HostAdvertisement> {
     plan.fragments[0].shared_pools[0].realization_envelope.iter().map(|r| {
         let offer = conduit_core::capability_offer_from_parts! {
             semantic_contract: Default::default(), startup_parameters: vec![], shorthand: None,
@@ -30,7 +30,7 @@ fn hosts(plan: &Plan) -> Vec<HostAdvertisement> {
             profile: "cost/generic-fixture@1".into(), bases: vec![], resources: vec![], capabilities: vec![offer], planner_capabilities: vec![] }
     }).collect()
 }
-fn instant(host: &HostAdvertisement, ticks: u64) -> MonotonicInstant {
+pub(super) fn instant(host: &HostAdvertisement, ticks: u64) -> MonotonicInstant {
     MonotonicInstant::new(
         ticks,
         MonotonicClockIdentity::new(
@@ -45,10 +45,21 @@ fn instant(host: &HostAdvertisement, ticks: u64) -> MonotonicInstant {
     )
     .unwrap()
 }
+pub(super) fn revision() -> PoolCostCalibrationRevision {
+    PoolCostCalibrationRevision::new("cost/test-calibration".into(), 1).unwrap()
+}
 fn costs<'a>(
     plan: &'a Plan,
     hosts: &'a [HostAdvertisement],
     operation: &PoolOperationId,
+) -> Vec<PreparedPoolCost<'a>> {
+    costs_with_condition(plan, hosts, operation, None)
+}
+pub(super) fn costs_with_condition<'a>(
+    plan: &'a Plan,
+    hosts: &'a [HostAdvertisement],
+    operation: &PoolOperationId,
+    condition: Option<CostExecutionCondition>,
 ) -> Vec<PreparedPoolCost<'a>> {
     hosts
         .iter()
@@ -78,7 +89,10 @@ fn costs<'a>(
                     host,
                     offer: &host.capabilities[0],
                     resource: None,
+                    calibration: &revision(),
+                    expected_execution: condition,
                     sign: &sign,
+                    supporting_signs: &[],
                     observed: &instant(host, 10),
                     expires: &instant(host, 20),
                     evaluated_at: &instant(host, 15),
@@ -109,10 +123,16 @@ fn sealed_completion_policy_selects_faster_member_and_released_capacity_without_
         .iter()
         .map(|host| instant(host, 15))
         .collect::<Vec<_>>();
+    let calibrations = [revision()];
     let evaluations = hosts
         .iter()
         .zip(&now)
-        .map(|(host, now)| PoolCostEvaluation { host, now })
+        .map(|(host, now)| PoolCostEvaluation {
+            host,
+            now,
+            calibrations: &calibrations,
+            executions: &[],
+        })
         .collect::<Vec<_>>();
     let mut pool = HostedSharedPool::<2, 32, 4>::new(&plan, 0, pool_id, NodeId(10), 1).unwrap();
     assert_eq!(
@@ -196,10 +216,16 @@ fn stale_cross_operation_and_foreign_source_refuse_before_occupation() {
         .iter()
         .map(|host| instant(host, 20))
         .collect::<Vec<_>>();
+    let calibrations = [revision()];
     let evaluations = hosts
         .iter()
         .zip(&now)
-        .map(|(host, now)| PoolCostEvaluation { host, now })
+        .map(|(host, now)| PoolCostEvaluation {
+            host,
+            now,
+            calibrations: &calibrations,
+            executions: &[],
+        })
         .collect::<Vec<_>>();
     let mut pool = HostedSharedPool::<2, 32, 4>::new(
         &plan,
@@ -248,7 +274,12 @@ fn stale_cross_operation_and_foreign_source_refuse_before_occupation() {
     let evaluations = changed
         .iter()
         .zip(&now)
-        .map(|(host, now)| PoolCostEvaluation { host, now })
+        .map(|(host, now)| PoolCostEvaluation {
+            host,
+            now,
+            calibrations: &calibrations,
+            executions: &[],
+        })
         .collect::<Vec<_>>();
     assert!(matches!(
         pool.admit_new_operation_with_costs(
