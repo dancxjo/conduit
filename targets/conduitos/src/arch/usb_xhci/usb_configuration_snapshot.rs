@@ -118,14 +118,16 @@ impl UsbConfigurationSnapshot {
 }
 /// The exclusive Root reserves exactly two additional standard discovery calls.
 /// Neither discovery nor this observation grants a class implementation.
+/// Root supplies the baseline established once after addressing. Discovery never
+/// acknowledges connect changes, including changes during pure preflight.
 /// Failed transfers retain uncertain native DMA through existing control_raw.
 pub fn discover_configuration(
     controller: &mut XhciReady,
     device: &mut UsbDevice,
     mapping: fn(u64) -> Option<u64>,
+    baseline: AttachmentBaseline,
 ) -> Result<UsbConfigurationSnapshot, UsbError> {
     let dma = device_dma_pointer(device)?;
-    let baseline = AttachmentBaseline::establish(controller, device.root_port)?;
     let physical = super::control_owner::transfer::mapped_dma_physical(dma as u64, mapping)?;
     let mut ring = ControlRing {
         physical: physical + core::mem::offset_of!(UsbDma, transfer_ring) as u64,
