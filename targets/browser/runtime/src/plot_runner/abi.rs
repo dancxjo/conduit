@@ -8,12 +8,16 @@ mod effects;
 mod profiles;
 #[path = "abi_projection.rs"]
 mod projection;
+#[path = "abi_thermostat.rs"]
+mod thermostat;
 
 use super::TourSession;
 use std::cell::RefCell;
 
 pub(super) const INPUT_BYTES: usize = 8 * 1_024;
-pub(super) const OUTPUT_BYTES: usize = 128 * 1_024;
+// Terminal receipts retain the admitted 4096-item kernel Sign log, including
+// cancellation. Reserve its finite JSON boundary before Play starts.
+pub(super) const OUTPUT_BYTES: usize = 1_024 * 1_024;
 const STATUS_READY: i32 = 0;
 const ERROR_INPUT: i32 = -401;
 const ERROR_PREPARE: i32 = -402;
@@ -27,7 +31,7 @@ const ERROR_PROJECTION: i32 = -408;
 thread_local! {
     pub(super) static SESSION: RefCell<Option<TourSession>> = const { RefCell::new(None) };
     static INPUT: RefCell<[u8; INPUT_BYTES]> = const { RefCell::new([0; INPUT_BYTES]) };
-    static OUTPUT: RefCell<[u8; OUTPUT_BYTES]> = const { RefCell::new([0; OUTPUT_BYTES]) };
+    static OUTPUT: RefCell<Box<[u8]>> = RefCell::new(vec![0; OUTPUT_BYTES].into_boxed_slice());
     static OUTPUT_LEN: RefCell<usize> = const { RefCell::new(0) };
     static SOURCE_INTERACTION: RefCell<Option<crate::source_interaction::SourceInteractionEvidence>> = const { RefCell::new(None) };
 }
@@ -465,6 +469,9 @@ fn write_output_bytes(encoded: &[u8]) -> Result<(), ()> {
 }
 
 fn clear_output() {
+    // Initialize the fixed arena before any entry point can prepare or drive a
+    // Play, including a fresh caller that has not queried the output pointer.
+    OUTPUT.with(|output| output.borrow_mut()[0] = 0);
     OUTPUT_LEN.with(|length| *length.borrow_mut() = 0);
 }
 

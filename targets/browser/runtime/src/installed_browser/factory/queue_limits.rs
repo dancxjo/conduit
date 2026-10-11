@@ -3,6 +3,12 @@ use crate::installed_browser as browser;
 use conduit_core::CapabilityOffer;
 
 pub(super) fn apply(offer: &mut CapabilityOffer, implementation: &str) {
+    if matches!(
+        offer.kind_id.as_str(),
+        conduit_thermostat_plot::THERMOSTAT_KIND | conduit_semantic_catalog::FLOW_SCAN_KIND
+    ) {
+        return;
+    }
     offer.limits.max_queue_bytes = browser::measurement_limits::queue_bound(offer.kind_id.as_str())
         .unwrap_or(match implementation {
             "browser/unit-dimension@1" | "browser/quantity-dimension@1" => {

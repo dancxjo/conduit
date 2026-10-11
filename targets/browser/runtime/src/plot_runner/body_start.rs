@@ -4,7 +4,7 @@ use conduit_body::{BodyPlan, BodyPlayIdentity, Wake};
 use conduit_core::{
     ResourceAdmissionItem, ResourceAdmissionOwner, ResourceAdmissionRequest, ResourceObservation,
 };
-use conduit_plan_lowering::fragment_set::{lower_local_fragment_set, FragmentSetBounds};
+use conduit_plan_lowering::fragment_set::{lower_local_fragment_set_from_plans, FragmentSetBounds};
 #[path = "body_startup.rs"]
 mod startup;
 
@@ -123,8 +123,14 @@ pub(super) fn prepare(
     if request.observations.len() > host.resources.len() {
         return Err("Body resource observations exceed the installed resource bound".into());
     }
-    let lowered = lower_local_fragment_set(
-        &fragments.iter().collect::<Vec<_>>(),
+    let lowered = lower_local_fragment_set_from_plans(
+        &request
+            .plan
+            .plots
+            .iter()
+            .filter(|part| !external.contains(&part.plan.plan_id))
+            .map(|part| &part.plan)
+            .collect::<Vec<_>>(),
         conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PROFILE,
         FragmentSetBounds {
             fragments: conduit_body::MAX_BODY_PLOTS as u16,
@@ -287,6 +293,12 @@ pub(super) fn prepare(
         &wake_at_start,
     )?;
     let startup = startup::prepare(started_evidence.as_ref(), &request.plan, &play)?;
+    let thermostat_face = super::thermostat_face::ThermostatFace::prepare(
+        &request.plan,
+        &wake_at_start,
+        started_evidence.as_ref(),
+        request.play_sequence,
+    )?;
     let scheduler = engine::preparation::prepare_body_scheduler(
         &fragments
             .iter()
@@ -310,6 +322,7 @@ pub(super) fn prepare(
         active_play_id: play.active_play_id.clone(),
         terminal_sign_sequence: 2,
         latest_presentation: None,
+        thermostat_face: thermostat_face.map(Box::new),
         host_id: host.host_id,
         boot_id: host.boot_id,
         realization: MorseRealization::Direct,

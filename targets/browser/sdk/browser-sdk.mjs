@@ -52,6 +52,21 @@ export class IncompatibleRuntimeAbiError extends ConduitSdkError {
 
 setBrowserSdkErrors({ PlanRefusalError, ResourceLossError, InvalidLifecycleError, PermissionDeniedError, IncompatibleRuntimeAbiError });
 
+/** Validate the finite installed-executor disclosure without acquiring a Body. */
+export function checkedBrowserExecutionCapabilities(value) {
+  // Includes two Dimension projections and two Thermostat installations;
+  // distinct from the membership advertisement envelope.
+  const maximumExecutionCapabilities = 120;
+  if (value?.schema !== "conduit.browser/body-capabilities@1"
+      || !Array.isArray(value.capability_ids)
+      || value.capability_ids.length > maximumExecutionCapabilities
+      || value.capability_ids.some(identity => typeof identity !== "string"
+        || identity.length < 1 || identity.length > 256)) {
+    throw new Error("invalid external Body execution capabilities");
+  }
+  return Object.freeze([...value.capability_ids]);
+}
+
 /** Exact Host + Boot incarnation. Its mutable projection is refreshed from Boot evidence. */
 export class BrowserHost {
   #state;
@@ -320,15 +335,7 @@ export class BrowserBodyParticipation {
       throw new Error("external Body execution capabilities unavailable");
     }
     const value = this.#state.host.bridge.browserPlotReadOutputJson();
-    // The installed executor includes exact quantity receipts and two
-    // checked Dimension projections. Keep this bound tied to that profile.
-    if (value?.schema !== "conduit.browser/body-capabilities@1"
-        || !Array.isArray(value.capability_ids) || value.capability_ids.length > 118
-        || value.capability_ids.some(identity => typeof identity !== "string"
-          || identity.length < 1 || identity.length > 256)) {
-      throw new Error("invalid external Body execution capabilities");
-    }
-    return Object.freeze([...value.capability_ids]);
+    return checkedBrowserExecutionCapabilities(value);
   }
 
   /** Acquire this page's exact resources for an authority-owned external Body proposal. */
@@ -429,6 +436,32 @@ export class BrowserPlay {
   get plan() { return Object.freeze({ planId: this.#started.play.plan_id, wakeId: this.#started.play.wake_id, bodyId: this.#started.play.body_id }); }
   get state() { return this.#terminal ? "terminal" : this.#failure ? "failed" : "playing"; }
   get receipts() { return Object.freeze(this.#terminal ? [this.#terminal] : []); }
+  /** Read the contributed Face of this Play's admitted Thermostat scan. */
+  thermostatFace() {
+    if (this.state !== 'playing') throw new Error('Thermostat Play is unavailable');
+    return this.#adapter.thermostatFace();
+  }
+  acknowledgeThermostatFace(effect) {
+    if (this.state !== 'playing') throw new Error('Thermostat Play is unavailable');
+    return this.#adapter.acknowledgeThermostatFace({
+      show_id: effect.show_id, manifestation_id: effect.manifestation_id,
+      mask_plan_id: effect.mask_plan_id, active_play_id: effect.mask_play.active_play_id,
+      placement_id: effect.placement_id, presentation_id: effect.presentation_id,
+      presentation_revision: effect.presentation_revision,
+    });
+  }
+  submitThermostatInteraction({ view, actionId, target, arguments: actionArguments = [], sequence }) {
+    if (this.state !== 'playing') throw new Error('Thermostat Play is unavailable');
+    if (view?.body_id !== this.#started.play.body_id || view.show_state !== 'available'
+        || view.interactions_admitted !== true) throw new Error('Current local Body Show is required for interaction');
+    if (!Number.isSafeInteger(sequence) || sequence < 1) throw new RangeError('Face action sequence is invalid');
+    const checked = checkedOwnerFaceArguments(view, actionId, target, actionArguments);
+    return this.#adapter.submitThermostatInteraction({
+      show_id: view.show_id, presentation_id: view.face_id,
+      presentation_revision: Number(view.face_revision), action_id: actionId,
+      target, arguments: checked, sequence,
+    });
+  }
   dispatch() {
     if (!this.#completion) this.#completion = this.#adapter.run().then(receipt => {
       this.#terminal = receipt;

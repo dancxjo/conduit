@@ -7,6 +7,7 @@ import { retainedTodoBrowserDevelopmentEvidence } from '../todo-browser-developm
 import { retainWorkspaceEvidence } from './workspace-evidence.mjs';
 import { retainExactQuantityEvidence } from './quantity-evidence.mjs';
 import { retainNativeValueEvidence } from './native-value-evidence.mjs';
+import { retainThermostatEvidence } from './thermostat-evidence.mjs';
 
 // Exact staged Workspace acceptance plus independent browser adapter contracts.
 // Cross-target deployment tests require another lane's artifacts and are not
@@ -17,7 +18,7 @@ const SPECS = [
   'workspace-continuity', 'workspace-shared-journey',
   'field-station-clock',
   'sdk-body-participation',
-  'static-body-application', 'owner-face-component',
+  'static-body-application', 'thermostat-local', 'owner-face-component',
   'creche-browser-configuration', 'creche-rendezvous',
   'native-value-types', 'exact-quantity', 'scoped-glyphs', 'signal-dom-host', 'browser-body-time', 'browser-host-calls', 'browser-pointer', 'browser-human-input',
   'browser-host-entrance', 'browser-media-host', 'browser-device-base', 'browser-usb-device-base',
@@ -74,6 +75,8 @@ export function browser(directory) {
     path.join(releases, 'runtime.wasm'), process.env.CONDUIT_CHECKOUT_SHA);
   retainNativeValueEvidence('proof/browser/test-results', path.join(directory, 'native-value-types'),
     path.join(releases, 'runtime.wasm'), process.env.CONDUIT_CHECKOUT_SHA);
+  retainThermostatEvidence('proof/browser/test-results', path.join(directory, 'thermostat-local'),
+    path.join(releases, 'runtime.wasm'), process.env.CONDUIT_CHECKOUT_SHA);
   command('node', ['tools/ci/pipeline/targets/browser-smoke.mjs', product, path.join(directory, 'accessibility.json')]);
   retainWorkspaceEvidence('proof/browser/test-results', path.join(directory, 'workspace-journey'),
     JSON.parse(readFileSync('proof/journeys/workspace.json', 'utf8')).actions);
@@ -85,6 +88,8 @@ export function browser(directory) {
   const site = path.join(directory, 'site');
   publicationHistorySnapshot('before-site');
   assembleSite(site, process.env.CONDUIT_CHECKOUT_SHA);
+  cpSync(path.join(directory, 'thermostat-local'), path.join(site, 'evidence/thermostat-local'),
+    { recursive: true, errorOnExist: true, force: false });
   command('node', ['proof/browser/verify-public-site.mjs', site, path.join(directory, 'site-proof')]);
   writeFileSync(path.join(directory, 'proof-scope.json'), JSON.stringify({
     product: 'workspace/', project: 'chromium', workers: 1, retries: 0, specs: SPECS,

@@ -461,7 +461,7 @@ title = "Thermostat"
 entry = "thermostat/main"
 reusable_entries = [{ entry = "thermostat/transition", title = "Thermostat State Transition", composition = { parent = "thermostat/main", occurrences = ["reducer"] } }]
 deterministic = { package = "conduit-thermostat-runtime", test = "authored_kernel", case = "authored_thermostat_commands_execute_exact_plan_and_play", plan_play_evidence = true }
-browser_safe_not_applicable = "the browser Mask uses the repository loopback std kernel encounter; no browser Host sensor or equipment Back is admitted"
+browser_safe = { spec = "proof/browser/thermostat-local.spec.mjs", case = "static Handbook Thermostat uses one real local Play, acknowledged Face actions, refusals and recovery" }
 [[plots]]
 slug = "todo"
 title = "Todo State Slice"

@@ -232,7 +232,7 @@ test("Handbook lessons run text, arithmetic, logic and exact quantities in the l
     await page.goto(new URL("handbook/", site.url).href);
     const first = await ready(page);
     const selector = page.getByLabel("Choose an example", { exact: true });
-    await expect(selector.locator("option")).toHaveCount(10);
+    await expect(selector.locator("option")).toHaveCount(11);
     const surface = page.locator(".handbook-show");
     const editor = page.getByRole("textbox", { name: "Plot source", exact: true });
     const cases = [
@@ -306,7 +306,7 @@ test("an existing two-lesson Handbook gains new choices without resetting its Bo
 
     await page.goto(new URL("handbook/", site.url).href);
     expect((await ready(page)).bodyId).toBe(first.bodyId);
-    await expect(selector.locator("option")).toHaveCount(10);
+    await expect(selector.locator("option")).toHaveCount(11);
     await expect(editor).toHaveValue(edited);
     await selector.selectOption("compare-distance-demo");
     await page.getByRole("button", { name: "Try in my Handbook", exact: true }).click();
@@ -314,6 +314,11 @@ test("an existing two-lesson Handbook gains new choices without resetting its Bo
     const upgraded = await current(page);
     expect(upgraded.bodyId).toBe(first.bodyId);
     expect(upgraded.installedPlots).toHaveLength(3);
+    await selector.selectOption("thermostat/main");
+    await page.getByRole("button", { name: "Try in my Handbook", exact: true }).click();
+    await expect(page.locator('.handbook-show conduit-owner-face')
+      .getByText("Sensor unavailable", { exact: true })).toBeVisible();
+    expect((await current(page)).bodyId).toBe(first.bodyId);
     await selector.selectOption("clock-demo");
     await expect(editor).toHaveValue(edited);
     session.assertClean();
