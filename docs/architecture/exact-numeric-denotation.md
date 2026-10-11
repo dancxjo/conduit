@@ -175,3 +175,32 @@ rational denotation to ordinary checked transport, canonical Quantity conversion
 and offered numerical realization. Reliable bounded arithmetic and type-safe
 projection are the scheduling prerequisite; the remaining symbolic features do
 not block performance baselines, cost observations, dispatch or placement.
+
+[`RationalQuantity`](../../architecture/core/src/exact_numeric/quantity.rs)
+adds an optional bounded rational coordinate representation using the existing
+complete Unit capsule. It shares physical conversion eligibility and checked
+source correlation with the decimal path: Dimension, nominal family, affine
+role and reference anchor must all agree. Rational affine conversion applies
+the point offset once; differences receive only the scale. A conversion such
+as `1m` into a source-admitted Unit of three meters retains the exact coordinate
+`1/3`, while the existing decimal representation still truthfully refuses it.
+Receipts keep the checked original Quantity, authored evidence and target Unit
+spelling even when work admission refuses the result.
+
+Its separate integer projection retains the precise Unit and role alongside
+the machine coordinate. The generic projection report verifies the exact
+coordinate, target integer Type and physical contract. A Unit-conversion law
+cannot stand in for a numerical-representation law. Tests cover independent
+Unit and integer projections, fractional projection refusal, affine points and
+deltas, binary/decimal prefixes, incompatible dimensions/families/anchors,
+source mismatch and hostile codec data. Integer powers use bounded squaring;
+zero power is the multiplicative identity, and a negative power of zero refuses.
+The independent Python Fraction corpus also checks all 972 affine conversion
+vectors and 798 physical comparison vectors, including cases whose rational
+coordinate could not fit the existing finite-decimal profile.
+
+These are core representation and fidelity proofs. They do not yet register an
+authored rational Quantity Type, replace the decimal `Quantity` codec, select a
+numerical Back or prove ordinary Plan/Play precision admission. Checked transport
+and offered realization remain the next integration requirements; symbolic π,
+roots and general symbolic reasoning remain separate open work.

@@ -88,16 +88,24 @@ fn scalar(
     Ok(Fraction::new(n, d))
 }
 fn compatible(source: Quantity, target: Unit) -> Result<(), QuantityConversionRefusal> {
+    compatible_units(source.unit(), source.role(), target)
+}
+/// The shared physical eligibility law is independent of numerical storage.
+pub(crate) fn compatible_units(
+    source: Unit,
+    role: QuantityRole,
+    target: Unit,
+) -> Result<(), QuantityConversionRefusal> {
     if source.dimension() != target.dimension() {
         return Err(QuantityConversionRefusal::IncompatibleDimensions);
     }
     if source.family().identity() != target.family().identity() {
         return Err(QuantityConversionRefusal::IncompatibleQuantityFamilies);
     }
-    if !target.admits_role(source.role()) {
+    if !target.admits_role(role) {
         return Err(QuantityConversionRefusal::IncompatibleQuantityRoles);
     }
-    if source.unit().reference_anchor() != target.reference_anchor() {
+    if source.reference_anchor() != target.reference_anchor() {
         return Err(QuantityConversionRefusal::Inexact);
     }
     Ok(())

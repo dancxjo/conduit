@@ -3,8 +3,10 @@
 //! no operation allocates, rounds or changes existing Scalar/Quantity semantics.
 mod natural;
 mod projection;
+mod quantity;
 mod rational;
 pub use projection::*;
+pub use quantity::*;
 pub use rational::*;
 
 pub const EXACT_NUMERIC_MAX_BITS: usize = 4096;

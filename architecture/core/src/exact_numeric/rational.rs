@@ -42,6 +42,37 @@ impl ExactRational {
             work,
         )
     }
+    /// Exact decimal parts, independent of authored spelling or physical Unit.
+    pub fn from_decimal_parts(
+        coefficient: i128,
+        exponent: i16,
+        work: &mut Work,
+    ) -> Result<Self, R> {
+        Self::from_i128(coefficient)
+            .checked_multiply(Self::from_i128(10).checked_power(exponent, work)?, work)
+    }
+    /// Bounded exponentiation by squaring. Negative powers require a nonzero
+    /// base; every intermediate obeys the same storage and work admission.
+    /// The zero power is the multiplicative identity, including for a zero base.
+    pub fn checked_power(self, exponent: i16, work: &mut Work) -> Result<Self, R> {
+        let mut base = if exponent < 0 {
+            Self::ONE.checked_divide(self, work)?
+        } else {
+            self
+        };
+        let mut remaining = exponent.unsigned_abs();
+        let mut result = Self::ONE;
+        while remaining != 0 {
+            if remaining & 1 != 0 {
+                result = result.checked_multiply(base, work)?;
+            }
+            remaining >>= 1;
+            if remaining != 0 {
+                base = base.checked_multiply(base, work)?;
+            }
+        }
+        Ok(result)
+    }
     fn normalized(
         negative: bool,
         numerator: Natural,
