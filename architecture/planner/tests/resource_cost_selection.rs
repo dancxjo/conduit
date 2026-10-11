@@ -376,6 +376,11 @@ fn expired_hard_truth_work_exhaustion_and_uncertified_deadlines_refuse() {
     ] {
         exercise(case, |result| match result {
             Err(CostSelectionError::Evidence(error)) => assert_eq!(error, expected),
+            Err(CostSelectionError::Policy(account)) => {
+                assert_eq!(account.reason, expected);
+                assert_eq!(account.intent, PerformanceIntent::BoundedResponse);
+                assert_eq!(account.realization.signs.len(), 2);
+            }
             Err(CostSelectionError::Comparison(account)) => {
                 assert_eq!(account.reason, expected);
                 assert_eq!(account.arithmetic_work_limit, 0);

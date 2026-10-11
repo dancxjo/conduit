@@ -12,7 +12,7 @@ pub(super) fn render(refusal: &CostComparisonRefusal) -> Result<String, CostExpl
     if records.is_empty() {
         return Err(CostExplanationRefusal::NoRetainedDecision);
     }
-    if records.len() > MAXIMUM_COST_CANDIDATES {
+    if records.len() > conduit_planner::MAXIMUM_REALIZATION_DECISION_RECORDS {
         return Err(CostExplanationRefusal::Extent);
     }
     if !matches!(refusal.reason, CostEvidenceRefusal::Numeric(_))

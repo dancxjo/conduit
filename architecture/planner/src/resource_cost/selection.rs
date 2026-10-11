@@ -16,6 +16,9 @@ use conduit_core::{
 use core::cmp::Ordering;
 
 pub const MAXIMUM_COST_CANDIDATES: usize = 32;
+/// Each complete owner inventory is scanned independently of compatible cost
+/// comparands. At most 32 Hosts with 256 Offers each enter this preparation.
+pub const MAXIMUM_COST_OFFERS_PER_HOST: usize = 256;
 /// Current clock and reviewed calibration catalogue supplied by the planning
 /// boundary, independently of the sampled producer evidence.
 pub struct CostEvaluationContext<'a> {
@@ -87,9 +90,7 @@ pub fn select_realization_with_costs<'a>(
         || inputs
             .hosts
             .iter()
-            .map(|host| host.capabilities.len())
-            .sum::<usize>()
-            > MAXIMUM_COST_CANDIDATES
+            .any(|host| host.capabilities.len() > MAXIMUM_COST_OFFERS_PER_HOST)
     {
         return Err(Refusal::InputLimit.into());
     }
@@ -179,15 +180,40 @@ pub fn select_realization_with_costs<'a>(
         inputs.tie_policy,
     )
     .map_err(CostSelectionError::HardAdmission)?;
+    let admitted = realization
+        .signs
+        .iter()
+        .filter(|record| {
+            !matches!(
+                record.disposition,
+                RealizationDecisionDisposition::Rejected(_)
+            )
+        })
+        .count();
+    if admitted > MAXIMUM_COST_CANDIDATES {
+        return Err(policy_refusal(
+            realization,
+            inputs.intent,
+            Refusal::InputLimit,
+        ));
+    }
     if inputs.intent == PerformanceIntent::BoundedResponse {
-        return Err(Refusal::UnsupportedIntent.into());
+        return Err(policy_refusal(
+            realization,
+            inputs.intent,
+            Refusal::UnsupportedIntent,
+        ));
     }
     for (index, forecast) in inputs.forecasts.iter().enumerate() {
         if inputs.forecasts[..index].iter().any(|other| {
             other.source().host().host_id == forecast.source().host().host_id
                 && other.source().offer().capability_id == forecast.source().offer().capability_id
         }) {
-            return Err(Refusal::AmbiguousEvidence.into());
+            return Err(policy_refusal(
+                realization,
+                inputs.intent,
+                Refusal::AmbiguousEvidence,
+            ));
         }
     }
     let mut costs = Vec::new();
@@ -416,4 +442,16 @@ fn tie_order(
         observations,
         inputs.tie_policy,
     )
+}
+
+fn policy_refusal(
+    realization: crate::RealizationSelection,
+    intent: PerformanceIntent,
+    reason: Refusal,
+) -> CostSelectionError {
+    CostSelectionError::Policy(alloc::boxed::Box::new(CostPolicyRefusal {
+        realization,
+        intent,
+        reason,
+    }))
 }

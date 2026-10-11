@@ -75,6 +75,7 @@ pub enum CostSelectionError {
     Planner(PlannerError),
     Evidence(Refusal),
     HardAdmission(crate::RealizationSelectionRefusal),
+    Policy(alloc::boxed::Box<CostPolicyRefusal>),
     Comparison(alloc::boxed::Box<CostComparisonRefusal>),
     NoUsableForecast {
         realization: RealizationSelection,
@@ -140,4 +141,13 @@ pub struct CostComparisonRefusal {
     pub arithmetic_work_limit: u64,
     pub arithmetic_work_spent: u64,
     pub arithmetic_work_remaining: u64,
+}
+
+/// Ordinary hard-admission evidence retained when no cost policy can finish.
+/// Its tentative ordinary choice is not an executable cost-policy winner.
+#[derive(Debug)]
+pub struct CostPolicyRefusal {
+    pub realization: RealizationSelection,
+    pub intent: PerformanceIntent,
+    pub reason: Refusal,
 }
