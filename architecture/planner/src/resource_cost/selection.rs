@@ -237,9 +237,7 @@ pub fn select_realization_with_costs<'a>(
                         revision.identity() == forecast.source().calibration().identity()
                     })
                     .ok_or(Refusal::Scope(CostScopeChange::Calibration))?;
-                forecast
-                    .source()
-                    .validate_at(context.host, *calibration, context.now)
+                forecast.validate_at(context.host, *calibration, context.now)
             });
             match validation {
                 Ok(()) => CostAvailability::Known(forecast),
@@ -273,9 +271,8 @@ pub fn select_realization_with_costs<'a>(
                     unreachable!()
                 };
                 let order = forecast
-                    .forecast()
                     .upper_seconds()
-                    .checked_compare(previous_forecast.forecast().upper_seconds(), work)
+                    .checked_compare(previous_forecast.upper_seconds(), work)
                     .map_err(Refusal::from)?;
                 order == Ordering::Less
                     || (order == Ordering::Equal

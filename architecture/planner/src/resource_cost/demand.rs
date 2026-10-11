@@ -107,6 +107,7 @@ pub struct CostedForecast<'a> {
     source: &'a CostEvidenceSource<'a>,
     demand: CostDemand<'a>,
     forecast: &'a FulfillmentCostForecast,
+    calibration: Option<&'a super::CostCalibrationEstimate<'a>>,
 }
 // Evidence diagnostics expose size and scope, not prompt/input contents or a
 // repeated copy of the complete advertised inventory.
@@ -129,8 +130,9 @@ impl core::fmt::Debug for CostedForecast<'_> {
             .field("sign", &self.source.sign())
             .field("calibration", &self.source.calibration())
             .field("demand", &self.demand)
-            .field("lower_seconds", &self.forecast.lower_seconds())
-            .field("upper_seconds", &self.forecast.upper_seconds())
+            .field("lower_seconds", &self.lower_seconds())
+            .field("upper_seconds", &self.upper_seconds())
+            .field("calibrated_estimate", &self.calibration)
             .finish()
     }
 }
@@ -145,6 +147,7 @@ impl<'a> CostedForecast<'a> {
             source,
             demand,
             forecast,
+            calibration: None,
         })
     }
     pub fn source(&self) -> &'a CostEvidenceSource<'a> {
@@ -155,5 +158,44 @@ impl<'a> CostedForecast<'a> {
     }
     pub const fn forecast(&self) -> &'a FulfillmentCostForecast {
         self.forecast
+    }
+    /// Preserve the original stage account separately from the calibrated mean
+    /// estimate. The extra source is revalidated again at actual selection.
+    pub fn with_calibration(
+        mut self,
+        estimate: &'a super::CostCalibrationEstimate<'a>,
+        condition: super::CostExecutionCondition,
+        now: &conduit_core::MonotonicInstant,
+    ) -> Result<Self, Refusal> {
+        estimate.validate_use(self.source, self.demand, condition, now)?;
+        self.calibration = Some(estimate);
+        Ok(self)
+    }
+    pub fn calibration(&self) -> Option<&'a super::CostCalibrationEstimate<'a>> {
+        self.calibration
+    }
+    pub fn lower_seconds(&self) -> conduit_core::ExactRational {
+        self.calibration.map_or_else(
+            || self.forecast.lower_seconds(),
+            |estimate| estimate.duration().lower().seconds(),
+        )
+    }
+    pub fn upper_seconds(&self) -> conduit_core::ExactRational {
+        self.calibration.map_or_else(
+            || self.forecast.upper_seconds(),
+            |estimate| estimate.duration().upper().seconds(),
+        )
+    }
+    pub fn validate_at(
+        &self,
+        host: &conduit_core::HostAdvertisement,
+        revision: super::CostCalibrationRevision<'_>,
+        now: &conduit_core::MonotonicInstant,
+    ) -> Result<(), Refusal> {
+        self.source.validate_at(host, revision, now)?;
+        if let Some(estimate) = self.calibration {
+            estimate.source().validate_at(host, revision, now)?;
+        }
+        Ok(())
     }
 }
