@@ -32,7 +32,7 @@ use clock_observation::KernelClockObservations;
 use fore_route::BodyForeRoute;
 
 pub(crate) struct BodyKernel<'a> {
-    scheduler: InstalledScheduler,
+    scheduler: Box<InstalledScheduler>,
     fore: BodyForeRoute<'a>,
     activations: Vec<LoweredFragmentActivations>,
     partitions: Vec<KernelIdentityMap>,
