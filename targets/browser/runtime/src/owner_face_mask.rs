@@ -143,6 +143,7 @@ pub(crate) struct FaceView {
     face_id: String,
     face_revision: String,
     mask_plot_id: String,
+    mask_expanded_plot_id: String,
     mask_plan_id: String,
     mask_play_id: String,
     route: Option<RouteView>,

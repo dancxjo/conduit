@@ -274,7 +274,7 @@ try {
         component: { sourceDocumentId: configuration.component.source_document_id,
           checkedPlotId: configuration.component.checked_plot_id, foreId: configuration.component.fore_id,
           recipe: configuration.recipe },
-        realization: { expandedPlotId: canonical.route.planned_mask.mask.plot_identity.expanded_plot_id,
+        realization: { expandedPlotId: occurrence.view.mask_expanded_plot_id,
           planId: occurrence.view.mask_plan_id, playId: occurrence.view.mask_play_id,
           showId: occurrence.view.show_id, acknowledgedShowId: occurrence.acknowledged_show_id,
           expression: occurrence.view.component.expression } };
