@@ -37,7 +37,7 @@ pub(crate) fn charge(
         let mut line = crate::sign_format::FixedText::new();
         writeln!(
             &mut line,
-            "CONDUIT_STORAGE_PREPARE owner={} inline={} body={} retained={} admitted={}",
+            "CONDUIT_STORAGE_PREPARE preparation={} inline={} body={} retained={} admitted={}",
             owner, inline, body, retained, admitted,
         )
         .map_err(|_| StorageTransactionRefusal::Retention)?;

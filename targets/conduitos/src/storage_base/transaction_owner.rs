@@ -267,6 +267,9 @@ impl BlockReadTransactionOwner {
             .and(second)
             .map_err(StorageTransactionRefusal::Capability)
     }
+    // Return the genuine move-only receipt on refusal without introducing an
+    // allocation into the already charged cancellation/retirement path.
+    #[allow(clippy::result_large_err)]
     pub(crate) fn retire_cancelled(
         &mut self,
         receipt: StorageCancellationReceipt,
@@ -287,6 +290,9 @@ impl BlockReadTransactionOwner {
     }
     /// Candidate has exact reviewed semantic shape; class correctness remains
     /// Source-owned. Only genuine subordinate receipt allows lease retirement.
+    // A rejected candidate must preserve its original receipt. Boxing it here
+    // would add an unadmitted allocation after preparation and during settlement.
+    #[allow(clippy::result_large_err)]
     pub(crate) fn settle(
         &mut self,
         node: NodeId,

@@ -57,12 +57,7 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
             .as_ref()
             .ok_or(ProtocolCallRefusal::InvalidPlan)?
             .subordinate_nodes();
-        calls.storage = Some(storage::StorageAssociation::prepare(
-            owner,
-            plan,
-            nodes,
-            admission.maximum_retained_bytes,
-        )?);
+        let binding_start = crate::allocation::BOOT_ARENA.live_bytes();
         for (gear, owner) in [
             (authorize, Owner::StorageAuthorize),
             (settle, Owner::StorageSettle),
@@ -77,6 +72,19 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
                 owner,
             });
         }
+        let dispatcher_retained_bytes = crate::allocation::BOOT_ARENA
+            .live_bytes()
+            .checked_sub(binding_start)
+            .ok_or(ProtocolCallRefusal::Storage(
+                StorageTransactionRefusal::Retention,
+            ))?;
+        calls.storage = Some(storage::StorageAssociation::prepare(
+            owner,
+            plan,
+            nodes,
+            admission.maximum_retained_bytes,
+            dispatcher_retained_bytes,
+        )?);
         Ok(calls)
     }
 }

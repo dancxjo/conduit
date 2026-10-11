@@ -17,6 +17,7 @@ pub(super) struct StorageAssociation {
     cancelled: bool,
     revoked: bool,
     maximum_retained_bytes: u64,
+    preparation_retained_bytes: usize,
     output: [u8; 4096],
     output_length: usize,
 }
@@ -26,6 +27,7 @@ impl StorageAssociation {
         plan: &Plan,
         nodes: [NodeId; 3],
         maximum_retained_bytes: u64,
+        dispatcher_retained_bytes: usize,
     ) -> Result<Self, ProtocolCallRefusal> {
         let [fragment] = plan.fragments.as_slice() else {
             return Err(ProtocolCallRefusal::InvalidPlan);
@@ -52,8 +54,14 @@ impl StorageAssociation {
                 return Err(ProtocolCallRefusal::InvalidPlan);
             }
         }
+        let preparation_retained_bytes = owner
+            .retained_bytes()
+            .checked_add(dispatcher_retained_bytes)
+            .ok_or(ProtocolCallRefusal::Storage(
+                StorageTransactionRefusal::Retention,
+            ))?;
         crate::storage_base::transaction_owner::retention::charge(
-            owner.retained_bytes(),
+            preparation_retained_bytes,
             core::mem::size_of::<Self>(),
             0,
             maximum_retained_bytes,
@@ -69,6 +77,7 @@ impl StorageAssociation {
             cancelled: false,
             revoked: false,
             maximum_retained_bytes,
+            preparation_retained_bytes,
             output: [0; 4096],
             output_length: 0,
         })
@@ -84,7 +93,7 @@ impl StorageAssociation {
             return Err(ProtocolCallRefusal::InvalidPlan);
         }
         crate::storage_base::transaction_owner::retention::charge(
-            self.owner.retained_bytes(),
+            self.preparation_retained_bytes,
             core::mem::size_of::<Self>(),
             pin.plan().0.capacity(),
             self.maximum_retained_bytes,

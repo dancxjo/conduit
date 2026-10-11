@@ -436,15 +436,13 @@ pub use native_usb_preparation::prepare_native_usb_protocol;
 pub(crate) use native_usb_preparation::prepare_native_usb_protocol_with_sign_storage;
 
 #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
-pub(crate) use native_usb_preparation::{
-    NativeEthernetPreparation, prepare_native_usb_duplex_with_network,
-};
+pub(crate) use native_usb_preparation::NativeEthernetPreparation;
 #[cfg(any(
     target_arch = "x86_64",
     all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
 ))]
 pub(crate) use native_usb_preparation::{
-    prepare_native_usb_duplex_protocol, prepare_native_usb_endpoint_protocol,
+    NativeStoragePreparation, prepare_native_usb_duplex, prepare_native_usb_endpoint_protocol,
 };
 
 // A checked literal is inert Source configuration, not native I/O authority.
