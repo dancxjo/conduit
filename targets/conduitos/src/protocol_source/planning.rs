@@ -14,8 +14,13 @@ pub struct ProtocolQueueLimits {
 
 impl PreparedProtocolSource {
     pub fn expand(&self, entry: &str) -> Result<ExpandedAuthoringPlot, ProtocolSourceRefusal> {
-        conduit_plot::expand_canonical_plot_for_authoring(&self.checked, entry, &self.profile)
-            .map_err(ProtocolSourceRefusal::Expansion)
+        conduit_plot::expand_canonical_plot_for_authoring_with_backs(
+            &self.checked,
+            entry,
+            &self.profile,
+            &self.backs,
+        )
+        .map_err(ProtocolSourceRefusal::Expansion)
     }
 
     fn validate_expanded(

@@ -4,8 +4,8 @@ use crate::protocol_operations::ProtocolOperations;
 use alloc::{string::String, vec, vec::Vec};
 use conduit_core::{CapabilityOffer, CheckedValueContract, StructuredInfoType};
 use conduit_plot::{
-    CheckedSyntaxDocument, ProfileCatalog, StartupCatalog, check_syntax_document,
-    parse_syntax_document,
+    CanonicalBackCatalog, CheckedSyntaxDocument, ProfileCatalog, StartupCatalog,
+    check_syntax_document, parse_syntax_document,
 };
 use serde::{Deserialize, Serialize};
 
@@ -101,6 +101,7 @@ impl ProtocolSourcePackage {
 }
 
 pub struct PreparedProtocolSource {
+    pub backs: CanonicalBackCatalog,
     pub checked: CheckedSyntaxDocument,
     pub profile: ProfileCatalog,
     pub operations: ProtocolOperations,
@@ -110,6 +111,14 @@ pub struct PreparedProtocolSource {
 impl PreparedProtocolSource {
     /// Prepare pure code before planning. Native bases are admitted separately.
     pub fn prepare(package: ProtocolSourcePackage) -> Result<Self, ProtocolSourceRefusal> {
+        Self::prepare_with_backs(package, CanonicalBackCatalog::new())
+    }
+
+    /// Retain the reviewed checked realizations used for expansion and admission.
+    pub fn prepare_with_backs(
+        package: ProtocolSourcePackage,
+        backs: CanonicalBackCatalog,
+    ) -> Result<Self, ProtocolSourceRefusal> {
         use ProtocolSourceRefusal as Error;
         package.validate_bounds()?;
         let i2c = crate::i2c_base::contract::I2cContract::prepare().map_err(Error::Contract)?;
@@ -248,6 +257,7 @@ impl PreparedProtocolSource {
             }
         }
         Ok(Self {
+            backs,
             checked,
             profile,
             operations,
