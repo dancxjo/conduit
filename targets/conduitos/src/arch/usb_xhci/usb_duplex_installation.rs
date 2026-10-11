@@ -47,6 +47,15 @@ pub(crate) struct ReadyUsbDuplexHost {
     write_attachment: EndpointWriteAttachment,
 }
 impl ReadyUsbDuplexHost {
+    /// Required independent endpoint capacity after actual preparation accounting.
+    /// Root selects both finite capacities before advertisement; this function
+    /// never changes either authority or resource admission.
+    pub fn retained_endpoint_resource_bytes(newly_retained: usize) -> Option<u64> {
+        retention::retained_bytes(newly_retained)?
+            .checked_add(1)
+            .map(|bytes| (bytes / 2) as u64)
+    }
+
     /// # Safety
     /// Sole Root owns the original controller/device under all three exact
     /// native provider/resource generations and envelopes. Both actual configured
@@ -77,7 +86,7 @@ impl ReadyUsbDuplexHost {
             || read_attachment.endpoint_dci != read_configured.dci
             || read_attachment.maximum_data_bytes == 0
             || read_attachment.maximum_data_bytes > 2048
-            || read_attachment.resource_bytes < 3072
+            || read_attachment.resource_bytes < minimum_endpoint_resource_bytes()
         {
             return Err(read_binding());
         }
@@ -93,7 +102,7 @@ impl ReadyUsbDuplexHost {
             || write_attachment.generation != u64::from(device.attachment_epoch)
             || write_attachment.maximum_data_bytes == 0
             || write_attachment.maximum_data_bytes > 2048
-            || write_attachment.resource_bytes < 3072
+            || write_attachment.resource_bytes < minimum_endpoint_resource_bytes()
             || write_dma.cursor.ordinary_slots() != 63
         {
             return Err(write_binding());
@@ -306,6 +315,15 @@ impl ReadyUsbDuplexHost {
             .find(|node| &node.placement_id == write.placement_id)
             .ok_or_else(write_binding)?
             .node;
+        for (table, claim) in [
+            (&control_table, &control_claim),
+            (&read_table, &read_claim),
+            (&write_table, &write_claim),
+        ] {
+            retention::validate_metadata(table, claim)?;
+        }
+        let arena = &crate::allocation::BOOT_ARENA;
+        let before = arena.live_bytes();
         let (controller, device, mapping) = self.control.into_native_parts();
         // SAFETY: every selected exact identity preserves independently retained
         // Root ownership; bind functions do not discover or manufacture authority.
@@ -340,6 +358,20 @@ impl ReadyUsbDuplexHost {
             )
         }
         .map_err(native_refusal)?;
+        host.prepare_independent().map_err(native_refusal)?;
+        let newly_retained = arena
+            .live_bytes()
+            .checked_sub(before)
+            .ok_or_else(read_binding)?;
+        if arena.capacity() != 0 {
+            retention::admit(
+                newly_retained,
+                [
+                    self.read_attachment.resource_bytes,
+                    self.write_attachment.resource_bytes,
+                ],
+            )?;
+        }
         Ok(NativeUsbDuplexHost {
             host,
             control_index,
@@ -361,79 +393,9 @@ pub(crate) struct NativeUsbDuplexHost {
     read_node: NodeId,
     write_node: NodeId,
 }
-impl NativeUsbDuplexHost {
-    pub fn control_invoke(
-        &mut self,
-        node: NodeId,
-        call: HostCallId,
-        request: RequestId,
-        input: &[u8],
-    ) -> Result<&[u8], UsbNativeProtocolRefusal> {
-        if node != self.control_node || call != HostCallId(0) {
-            return Err(UsbNativeProtocolRefusal::Control(
-                UsbControlCallRefusal::Ownership(ControlOwnerRefusal::WrongBinding),
-            ));
-        }
-        self.host
-            .control_invoke(self.control_index, request, input)
-            .map_err(native_refusal)
-    }
-    pub fn read_begin(
-        &mut self,
-        node: NodeId,
-        call: HostCallId,
-        request: RequestId,
-        input: &[u8],
-    ) -> Result<(), UsbNativeProtocolRefusal> {
-        if node != self.read_node || call != HostCallId(0) {
-            return Err(read_binding());
-        }
-        self.host
-            .begin_independent_read(self.read_index, request, input)
-            .map_err(native_refusal)
-    }
-    pub fn read_poll(&mut self) -> Result<Option<&[u8]>, UsbNativeProtocolRefusal> {
-        self.host
-            .poll_endpoint(self.read_index)
-            .map_err(native_refusal)
-    }
-    pub fn write_begin(
-        &mut self,
-        node: NodeId,
-        call: HostCallId,
-        request: RequestId,
-        input: &[u8],
-    ) -> Result<(), UsbNativeProtocolRefusal> {
-        if node != self.write_node || call != HostCallId(0) {
-            return Err(write_binding());
-        }
-        self.host
-            .begin_independent_write(self.write_index, request, input)
-            .map_err(native_refusal)
-    }
-    pub fn write_poll(&mut self) -> Result<Option<&[u8]>, UsbNativeProtocolRefusal> {
-        self.host
-            .poll_write(self.write_index)
-            .map_err(native_refusal)
-    }
-    /// Consume at most one event and identify its original selected operation.
-    pub fn poll(&mut self) -> Result<Option<(NodeId, &[u8])>, UsbNativeProtocolRefusal> {
-        let Some((index, bytes)) = self.host.poll_independent().map_err(native_refusal)? else {
-            return Ok(None);
-        };
-        let node = if index == self.read_index {
-            self.read_node
-        } else if index == self.write_index {
-            self.write_node
-        } else {
-            return Err(read_binding());
-        };
-        Ok(Some((node, bytes)))
-    }
-    pub fn cancel(&mut self) -> Result<(), UsbNativeProtocolRefusal> {
-        self.host.cancel().map_err(native_refusal)
-    }
-}
+#[path = "usb_duplex_installation/runtime.rs"]
+mod runtime;
+
 fn validate_write_selection(
     identity: &UsbNativeIdentity,
     claim: &BaseOperationClaim,
@@ -479,3 +441,11 @@ fn write_binding() -> UsbNativeProtocolRefusal {
 fn advertisement_refusal() -> UsbNativeProtocolRefusal {
     UsbNativeProtocolRefusal::Installation(UsbInstallationRefusal::Advertisement)
 }
+
+/// Each independently admitted endpoint covers its DMA and fixed terminal output.
+pub(crate) const fn minimum_endpoint_resource_bytes() -> u64 {
+    super::native_host::independent_endpoint_resource_bytes()
+}
+
+#[path = "usb_duplex_installation/retention.rs"]
+mod retention;

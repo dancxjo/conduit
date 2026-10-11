@@ -66,7 +66,7 @@ pub(crate) struct UsbNativeHost<'a> {
     calls: Vec<BoundCall<'a>>,
     pending_endpoint: Option<usize>,
     pending_write: Option<usize>,
-    bulk_terminals: [independent::BulkTerminal; 2],
+    bulk_terminals: Option<alloc::boxed::Box<[independent::BulkTerminal; 2]>>,
     bulk_terminals_ready: bool,
     isochronous: Option<super::isochronous_out::IsochronousOutTransfer<'a>>,
     isochronous_started: bool,
@@ -106,7 +106,7 @@ impl<'a> UsbNativeHost<'a> {
             calls: Vec::with_capacity(MAXIMUM_CALLS),
             pending_endpoint: None,
             pending_write: None,
-            bulk_terminals: core::array::from_fn(|_| independent::BulkTerminal::empty()),
+            bulk_terminals: None,
             bulk_terminals_ready: false,
             isochronous: None,
             isochronous_started: false,
@@ -287,7 +287,10 @@ impl<'a> UsbNativeHost<'a> {
         }
         if self.pending_endpoint.is_some()
             || self.pending_write.is_some()
-            || self.bulk_terminals.iter().any(|slot| slot.index.is_some())
+            || self
+                .bulk_terminals
+                .as_ref()
+                .is_some_and(|slots| slots.iter().any(|slot| slot.index.is_some()))
             || self.uncertain_control
             || self.isochronous_started
         {
@@ -315,3 +318,11 @@ mod event_routing;
 
 #[path = "usb_native_host/independent.rs"]
 mod independent;
+
+pub(super) const fn independent_endpoint_resource_bytes() -> u64 {
+    independent::endpoint_resource_bytes()
+}
+
+#[cfg(test)]
+#[path = "usb_native_host/independent_tests.rs"]
+mod independent_tests;

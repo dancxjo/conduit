@@ -4,8 +4,9 @@ use super::*;
 
 pub(super) struct BulkTerminal {
     pub(super) index: Option<UsbNativeCallIndex>,
-    bytes: [u8; crate::usb_base::endpoint_read_contract::ENDPOINT_READ_MAXIMUM_BYTES as usize],
-    length: usize,
+    pub(super) bytes:
+        [u8; crate::usb_base::endpoint_read_contract::ENDPOINT_READ_MAXIMUM_BYTES as usize],
+    pub(super) length: usize,
 }
 impl BulkTerminal {
     pub(super) fn empty() -> Self {
@@ -18,14 +19,42 @@ impl BulkTerminal {
     }
 }
 
+/// DMA plus this direction's preparation-owned terminal record. Existing
+/// capability-table/validator admission remains separately accounted.
+pub(super) const fn endpoint_resource_bytes() -> u64 {
+    3072 + core::mem::size_of::<BulkTerminal>() as u64
+}
+
 impl UsbNativeHost<'_> {
+    /// Preparation only: the fixed records are absent in control/ISO hosts.
+    pub(super) fn prepare_independent(&mut self) -> Result<(), UsbNativeHostRefusal> {
+        if self.playing
+            || self.stopped
+            || self.cancellation_requested
+            || self.bulk_terminals.is_some()
+        {
+            return Err(UsbNativeHostRefusal::NotReady);
+        }
+        self.bulk_terminals = Some(alloc::boxed::Box::new(core::array::from_fn(|_| {
+            BulkTerminal::empty()
+        })));
+        Ok(())
+    }
+
     fn admit_independent(&self, direction: usize) -> Result<(), UsbNativeHostRefusal> {
-        if self.stop_acknowledged || self.stopped || self.cancellation_requested {
+        if self.bulk_terminals.is_none()
+            || self.stop_acknowledged
+            || self.stopped
+            || self.cancellation_requested
+        {
             return Err(UsbNativeHostRefusal::NotReady);
         }
         if self.uncertain_control
             || self.isochronous_started
-            || self.bulk_terminals.iter().any(|slot| slot.index.is_some())
+            || self
+                .bulk_terminals
+                .as_ref()
+                .is_some_and(|slots| slots.iter().any(|slot| slot.index.is_some()))
             || [self.pending_endpoint, self.pending_write][direction].is_some()
         {
             return Err(UsbNativeHostRefusal::Pending);
@@ -123,13 +152,16 @@ impl UsbNativeHost<'_> {
     ) -> Result<Option<(UsbNativeCallIndex, &[u8])>, UsbNativeHostRefusal> {
         if let Some(position) = self
             .bulk_terminals
-            .iter()
-            .position(|slot| slot.index.is_some())
+            .as_ref()
+            .and_then(|slots| slots.iter().position(|slot| slot.index.is_some()))
         {
             if !self.bulk_terminals_ready {
                 return Err(UsbNativeHostRefusal::NotReady);
             }
-            let slot = &mut self.bulk_terminals[position];
+            let slot = &mut self
+                .bulk_terminals
+                .as_mut()
+                .ok_or(UsbNativeHostRefusal::NotReady)?[position];
             let index = slot.index.take().ok_or(UsbNativeHostRefusal::Binding)?;
             return Ok(Some((index, &slot.bytes[..slot.length])));
         }
@@ -223,7 +255,10 @@ impl UsbNativeHost<'_> {
                 .map_err(UsbNativeHostRefusal::Write)?,
                 _ => return Err(UsbNativeHostRefusal::Binding),
             };
-            let slot = &mut self.bulk_terminals[direction];
+            let slot = &mut self
+                .bulk_terminals
+                .as_mut()
+                .ok_or(UsbNativeHostRefusal::NotReady)?[direction];
             slot.bytes[..bytes.len()].copy_from_slice(bytes);
             slot.length = bytes.len();
             slot.index = Some(UsbNativeCallIndex(index));

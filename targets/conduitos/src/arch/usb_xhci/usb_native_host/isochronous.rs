@@ -113,7 +113,10 @@ impl<'a> UsbNativeHost<'a> {
             || self.stop_acknowledged
             || self.pending_endpoint.is_some()
             || self.pending_write.is_some()
-            || self.bulk_terminals.iter().any(|slot| slot.index.is_some())
+            || self
+                .bulk_terminals
+                .as_ref()
+                .is_some_and(|slots| slots.iter().any(|slot| slot.index.is_some()))
             || self.uncertain_control
         {
             return Err(UsbNativeHostRefusal::NotReady);
