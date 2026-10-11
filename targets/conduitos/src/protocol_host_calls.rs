@@ -270,8 +270,9 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
             .validate_plan(plan)
             .map_err(|error| invalid_plan("pure/preparation", error))?;
         let fragment = &plan.fragments[0];
-        let lowered =
-            lower_plan_fragment(fragment).map_err(|error| invalid_plan("pure/lowering", error))?;
+        let lowered = lower_plan_fragment(fragment).map_err(|error| {
+            crate::protocol_play::preparation_diagnostic::lowering(fragment, error)
+        })?;
         let active = bind_active_play(&plan.plan_id, &fragment.host_id, &fragment.boot_id, 0);
         for implementation in implementations {
             if fragment
