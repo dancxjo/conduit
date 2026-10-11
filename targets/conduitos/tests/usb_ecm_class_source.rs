@@ -239,6 +239,24 @@ fn queue(s: &PreparedProtocolSource, name: &str) -> StructuredInfoValue {
     eval(&p, &unit(&p.input_type, name))
 }
 #[test]
+fn retained_payload_metadata_does_not_admit_unguarded_oversized_transport_bytes() {
+    let package = ProtocolSourcePackage::compile(
+        "with machine/usb/endpoint-read/result as UsbEndpointReadResult\n\
+         with network/ethernet-frame/request as EthernetFrameRequest\n\
+         plot unchecked-frame (\n\
+         value: UsbEndpointReadResult...| <= 4096B >> result: EthernetFrameRequest...| <= 4096B\n\
+         ) = (. is completed ? deliver-receive({ wire: .completed.wire }) : take-transmit(empty))"
+            .into(),
+        &[],
+    )
+    .unwrap();
+    let source = PreparedProtocolSource::prepare(package).unwrap();
+    let Err(ProtocolSourceRefusal::Expansion(diagnostic)) = source.expand("unchecked-frame") else {
+        panic!("unguarded wider transport bytes must not establish the frame bound");
+    };
+    assert_eq!(diagnostic.code, "CND-FRM-046");
+}
+#[test]
 fn entry_has_one_independent_queue_and_three_transport_placements() {
     let s = source();
     let expanded = s.expand("cdc-ecm-frame-service").unwrap();
