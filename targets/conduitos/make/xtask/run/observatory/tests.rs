@@ -55,10 +55,52 @@ fn fixture() -> (conduit_observatory::ObservatorySnapshot, serde_json::Value) {
         .find(|placement| placement.kind_id.as_str() == "text/upper")
         .unwrap();
     upper.resources[0].units = 4096 + 217088 + 22480;
+    let selected = upper.capability_id.clone();
+    snapshot.hosts[0]
+        .advertisement
+        .capabilities
+        .iter_mut()
+        .find(|capability| capability.capability_id == selected)
+        .unwrap()
+        .resource_requirements[0]
+        .units = 4096 + 217088 + 22480;
     (
         snapshot,
         serde_json::json!({"reserved_bytes":217088,"root_metadata_bytes":22374}),
     )
+}
+
+#[test]
+fn shared_morse_metadata_ceiling_is_admitted_but_unoffered_memory_is_refused() {
+    let (mut snapshot, cost) = fixture();
+    let upper = snapshot.plans[0].fragments[0]
+        .placements
+        .iter_mut()
+        .find(|placement| placement.kind_id.as_str() == "text/upper")
+        .unwrap();
+    upper.resources[0].units = 287552;
+    let selected = upper.capability_id.clone();
+    assert!(validate_protected_realization(&snapshot, &cost).is_err());
+    let offer = snapshot.hosts[0]
+        .advertisement
+        .capabilities
+        .iter_mut()
+        .find(|capability| capability.capability_id == selected)
+        .unwrap();
+    offer.resource_requirements[0].units = 287552;
+    validate_protected_realization(&snapshot, &cost).unwrap();
+    let mut stale = snapshot.clone();
+    stale.hosts[0].advertisement.offer_generation.0 += 1;
+    assert!(validate_protected_realization(&stale, &cost).is_err());
+    let mut wrong = snapshot;
+    let offer = wrong.hosts[0]
+        .advertisement
+        .capabilities
+        .iter_mut()
+        .find(|capability| capability.capability_id == selected)
+        .unwrap();
+    offer.implementation.artifact_id = "another-artifact".into();
+    assert!(validate_protected_realization(&wrong, &cost).is_err());
 }
 
 #[test]
