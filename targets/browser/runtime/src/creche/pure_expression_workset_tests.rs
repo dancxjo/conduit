@@ -163,3 +163,39 @@ fn application_subjects_retain_original_resident_order_titles_and_checked_glyphs
     let oversized = vec![residents[0].clone(); conduit_body::MAX_BODY_PLOTS + 1];
     assert!(initial_plots::inventory_application_subjects(&source, &oversized).is_err());
 }
+
+#[test]
+fn browser_repeated_expression_capacity_stays_at_its_admitted_profile() {
+    for count in [16, 17] {
+        let source = format!(
+            "plot repeated (\n input: U64 >> output: U64\n) {{\n input{} >> output\n}}\n",
+            " >> (. + 1)".repeat(count)
+        );
+        let document = initial_plots::check_inventory(&source).unwrap();
+        let (_, profile) = crate::installed_browser::catalogs_for_presentation(
+            crate::installed_browser::PresentationProfile::Annotation,
+        )
+        .unwrap();
+        let expanded = conduit_plot::expand_canonical_plot_for_authoring(
+            &document[0].checked,
+            "repeated",
+            &profile,
+        )
+        .unwrap();
+        let host = initial_plots::reviewed_browser_host(
+            &source,
+            "browser/repeated".into(),
+            "boot/repeated".into(),
+        )
+        .unwrap();
+        let result = conduit_planner::default_expanded_placements(&expanded.expanded, &[host]);
+        if count == 16 {
+            assert_eq!(result.unwrap().by_gear.len(), 16);
+        } else {
+            assert!(matches!(
+                result,
+                Err(conduit_planner::PlannerError::UnknownCapability(_))
+            ));
+        }
+    }
+}
