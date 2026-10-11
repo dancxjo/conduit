@@ -41,6 +41,21 @@ impl ControllerIdentity {
     }
 }
 impl UsbConfigurationSnapshot {
+    pub(crate) fn facts(&self) -> [u64; 11] {
+        [
+            u64::from(self.controller.segment),
+            u64::from(self.controller.bus),
+            u64::from(self.controller.device),
+            u64::from(self.controller.function),
+            u64::from(self.controller.vendor),
+            u64::from(self.controller.device_id),
+            self.controller.bar_physical,
+            u64::from(self.root_port),
+            u64::from(self.slot),
+            u64::from(self.dma_slot),
+            u64::from(self.epoch),
+        ]
+    }
     pub fn bytes(&self) -> &[u8] {
         &self.bytes
     }

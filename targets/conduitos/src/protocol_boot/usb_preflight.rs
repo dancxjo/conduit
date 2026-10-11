@@ -1,22 +1,35 @@
 //! Class admission consumes an exact frozen native observation through pure Source.
 use super::usb_request::{UsbPreflightBootRequest, UsbProtocolBootRequest};
 use crate::{arch::UsbConfigurationSnapshot, protocol_source::PreparedProtocolEntry};
-use alloc::{collections::BTreeMap, vec, vec::Vec};
+use alloc::{boxed::Box, collections::BTreeMap, vec, vec::Vec};
 use conduit_composite::{
     KernelCompositeSignStorage, KernelCompositeStatus, KernelCompositeTerminal,
 };
 use conduit_core::*;
 use conduit_planner::PlanningOptions;
 
-pub(super) struct AdmittedUsbDiscovery {
+#[derive(Debug, PartialEq, Eq)]
+pub(super) enum DiscoveryVerdict {
+    Supported,
+    Unsupported,
+}
+
+pub(super) struct RetiredUsbDiscovery {
+    verdict: DiscoveryVerdict,
     snapshot: UsbConfigurationSnapshot,
     package_digest: [u8; 32],
     class_resident: conduit_body::ResidentPlot,
     // Retain the exact pure Plan/Play and complete Sign, not just a verdict.
     _play: crate::pure_protocol_play::PreparedPureProtocolPlay,
 }
-impl AdmittedUsbDiscovery {
+impl RetiredUsbDiscovery {
+    pub(super) fn supported(&self) -> bool {
+        self.verdict == DiscoveryVerdict::Supported
+    }
     pub(super) fn validate_class(&self, entry: &PreparedProtocolEntry) -> Result<(), &'static str> {
+        if !self.supported() {
+            return Err("protocol-usb-profile-unsupported");
+        }
         if entry.package_digest() != &self.package_digest || entry.resident() != self.class_resident
         {
             return Err("protocol-usb-preflight-class-substitution");
@@ -41,7 +54,7 @@ pub(super) fn accept(
     snapshot: UsbConfigurationSnapshot,
     host: &HostId,
     boot: &BootId,
-) -> Result<AdmittedUsbDiscovery, &'static str> {
+) -> Result<Box<RetiredUsbDiscovery>, &'static str> {
     request
         .bind_package(package)
         .map_err(|_| "protocol-usb-preflight-package")?;
@@ -125,24 +138,24 @@ pub(super) fn accept(
             },
         )
         .map_err(|_| "protocol-usb-preflight-plan")?;
-    let mut play = artifact
+    let play = artifact
         .prepare_pure(KernelCompositeSignStorage::default())
         .map_err(|_| "protocol-usb-preflight-prepare")?;
-    let mut composer = PreparedStructuredComposer::new(
-        &StructuredInfoType::leaf(kind_id("value/bool"))
-            .map_err(|_| "protocol-usb-preflight-verdict")?,
-        64,
-    )
-    .map_err(|_| "protocol-usb-preflight-verdict")?;
-    let accepted = composer
-        .leaf(&[1])
-        .map_err(|_| "protocol-usb-preflight-verdict")?
-        .to_vec();
     let mut result = ValuePayload {
         value_kind: output.value_kind.clone(),
         encoded: Vec::with_capacity(64),
     };
-    let mut verdict = false;
+    // Every retained allocation precedes pure Play, including negative history.
+    let mut retained = Box::new(RetiredUsbDiscovery {
+        snapshot,
+        package_digest,
+        class_resident,
+        verdict: DiscoveryVerdict::Unsupported,
+        _play: play,
+    });
+    trace::prepared(&retained, &value)?;
+    let play = &mut retained._play;
+    let mut verdict = None;
     let mut closed = false;
     play.start().map_err(|_| "protocol-usb-preflight-start")?;
     if !matches!(
@@ -160,10 +173,15 @@ pub(super) fn accept(
             .output_into(&output.port_id, &mut result)
             .map_err(|_| "protocol-usb-preflight-output")?
         {
-            if verdict || result.encoded != accepted {
-                return Err("protocol-usb-profile-unsupported");
+            validate_primitive_info(output.value_kind.as_str(), &result.encoded)
+                .map_err(|_| "protocol-usb-preflight-verdict")?;
+            if verdict.is_some() {
+                return Err("protocol-usb-preflight-multiple-verdicts");
             }
-            verdict = true;
+            verdict = Some(result.encoded == [1]);
+            trace::output(&output.port_id, &result)?;
+            // False is an admitted pure observation: acknowledge it and retain
+            // Normal retirement before refusing the physical class profile.
             play.complete_output(&output.port_id, sequence)
                 .map_err(|_| "protocol-usb-preflight-output")?;
         }
@@ -171,22 +189,19 @@ pub(super) fn accept(
             .output_terminal_into(&output.port_id, &mut result)
             .map_err(|_| "protocol-usb-preflight-terminal")?
         {
-            if closed || terminal != KernelCompositeTerminal::Normal {
+            if terminal != KernelCompositeTerminal::Normal {
                 return Err("protocol-usb-preflight-terminal");
             }
             closed = true;
         }
         if status == KernelCompositeStatus::Complete && closed {
-            return if verdict {
-                Ok(AdmittedUsbDiscovery {
-                    snapshot,
-                    package_digest,
-                    class_resident,
-                    _play: play,
-                })
-            } else {
-                Err("protocol-usb-preflight-no-verdict")
+            retained.verdict = match verdict {
+                Some(true) => DiscoveryVerdict::Supported,
+                Some(false) => DiscoveryVerdict::Unsupported,
+                None => return Err("protocol-usb-preflight-no-verdict"),
             };
+            trace::retired(&retained.verdict)?;
+            return Ok(retained);
         }
     }
     Err("protocol-usb-preflight-budget")
@@ -195,3 +210,6 @@ pub(super) fn accept(
 #[cfg(test)]
 #[path = "usb_preflight/tests.rs"]
 mod tests;
+
+#[path = "usb_preflight/trace.rs"]
+mod trace;
