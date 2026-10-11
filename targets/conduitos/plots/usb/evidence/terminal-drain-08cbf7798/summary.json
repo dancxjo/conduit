@@ -1,0 +1,198 @@
+{
+  "schema": "conduit.usb/cdc-terminal-drain-evidence@1",
+  "source_commit": "08cbf7798efd6fba531e8a5812a9117f3cfb7d4f",
+  "product_kernel_commit": "1f5a7297820d1de826b7d4e9bec6c2d80baacebf",
+  "package_sha256": "e245021b78df2c4dc8fc9ff7cf4858200db320e8ad6db1443c8745214b5a3a1d",
+  "proof_class": "freestanding-emulator",
+  "physical_compatibility": "unverified",
+  "cases": [
+    {
+      "architecture": "x86",
+      "case": "supported",
+      "receipt_sha256": "7aaae593e3ba4ff32930db02a0e13e2fb04fcda35c1d8711f739562ca73c3d9e",
+      "validation": "passed",
+      "decoded_serial": {
+        "serial_results": 32,
+        "transmitted": 16,
+        "received": 16,
+        "ordered": true,
+        "retired": true
+      },
+      "independent_wire": {
+        "source_controls": 5,
+        "discovery_controls": 2,
+        "actual_transmit": 16,
+        "actual_receive": 16,
+        "status_success": true,
+        "exact_octets": true,
+        "preflight": "supported",
+        "discovery_configuration_hex": "090243000201008032090400000102020100052400100105240100010424020205240600010705830310001009040100020a0000000705810240000007050202400000"
+      }
+    },
+    {
+      "architecture": "x86",
+      "case": "binary-short",
+      "receipt_sha256": "f2df5ea689710bc1885e3222ddb338b024ee2c1bb1d8577e84da5bd6a1e966b0",
+      "validation": "passed",
+      "decoded_serial": {
+        "serial_results": 32,
+        "transmitted": 16,
+        "received": 16,
+        "ordered": true,
+        "retired": true
+      },
+      "independent_wire": {
+        "source_controls": 5,
+        "discovery_controls": 2,
+        "actual_transmit": 16,
+        "actual_receive": 16,
+        "status_success": true,
+        "exact_octets": true,
+        "preflight": "supported",
+        "discovery_configuration_hex": "090243000201008032090400000102020100052400100105240100010424020205240600010705830310001009040100020a0000000705810240000007050202400000"
+      }
+    },
+    {
+      "architecture": "x86",
+      "case": "short-coding",
+      "receipt_sha256": "a2fcb8fb4689f66bcadafc067e386540f43aa9a86878b1b9df36d6042f8281e2",
+      "validation": "passed",
+      "decoded_serial": {
+        "serial_results": 1,
+        "terminal": "unsupported",
+        "no_serial_success": true,
+        "retired": true
+      },
+      "independent_wire": {
+        "fault_mode": "short-coding",
+        "no_class_effects_after_coding_refusal": true,
+        "source_controls": 4,
+        "discovery_controls": 2,
+        "actual_transmit": 0,
+        "actual_receive": 0,
+        "status_success": true,
+        "exact_octets": true,
+        "preflight": "supported",
+        "discovery_configuration_hex": "090243000201008032090400000102020100052400100105240100010424020205240600010705830310001009040100020a0000000705810240000007050202400000"
+      }
+    },
+    {
+      "architecture": "x86",
+      "case": "wrong-coding",
+      "receipt_sha256": "9310c38eb1e5f734065743494397457abf8695ff7e653420574414c74ba80cb8",
+      "validation": "passed",
+      "decoded_serial": {
+        "serial_results": 1,
+        "terminal": "unsupported",
+        "no_serial_success": true,
+        "retired": true
+      },
+      "independent_wire": {
+        "fault_mode": "wrong-coding",
+        "no_class_effects_after_coding_refusal": true,
+        "source_controls": 4,
+        "discovery_controls": 2,
+        "actual_transmit": 0,
+        "actual_receive": 0,
+        "status_success": true,
+        "exact_octets": true,
+        "preflight": "supported",
+        "discovery_configuration_hex": "090243000201008032090400000102020100052400100105240100010424020205240600010705830310001009040100020a0000000705810240000007050202400000"
+      }
+    },
+    {
+      "architecture": "aarch64",
+      "case": "supported",
+      "receipt_sha256": "224e33326d3e3a104d0508a0dd717b53687aef6026ef570cbef91e265fe6c094",
+      "validation": "passed",
+      "decoded_serial": {
+        "serial_results": 32,
+        "transmitted": 16,
+        "received": 16,
+        "ordered": true,
+        "retired": true
+      },
+      "independent_wire": {
+        "source_controls": 5,
+        "discovery_controls": 2,
+        "actual_transmit": 16,
+        "actual_receive": 16,
+        "status_success": true,
+        "exact_octets": true,
+        "preflight": "supported",
+        "discovery_configuration_hex": "090243000201008032090400000102020100052400100105240100010424020205240600010705830310001009040100020a0000000705810240000007050202400000"
+      }
+    },
+    {
+      "architecture": "aarch64",
+      "case": "binary-short",
+      "receipt_sha256": "4e296713bb1c5adaeba6537f751f14bf4258f62d2724bb7f22985aa2a2086aa0",
+      "validation": "passed",
+      "decoded_serial": {
+        "serial_results": 32,
+        "transmitted": 16,
+        "received": 16,
+        "ordered": true,
+        "retired": true
+      },
+      "independent_wire": {
+        "source_controls": 5,
+        "discovery_controls": 2,
+        "actual_transmit": 16,
+        "actual_receive": 16,
+        "status_success": true,
+        "exact_octets": true,
+        "preflight": "supported",
+        "discovery_configuration_hex": "090243000201008032090400000102020100052400100105240100010424020205240600010705830310001009040100020a0000000705810240000007050202400000"
+      }
+    },
+    {
+      "architecture": "aarch64",
+      "case": "short-coding",
+      "receipt_sha256": "93cb894e1847402df46cfbcdf8bac74deec00ac83bea00db530b7a860aca6648",
+      "validation": "passed",
+      "decoded_serial": {
+        "serial_results": 1,
+        "terminal": "unsupported",
+        "no_serial_success": true,
+        "retired": true
+      },
+      "independent_wire": {
+        "fault_mode": "short-coding",
+        "no_class_effects_after_coding_refusal": true,
+        "source_controls": 4,
+        "discovery_controls": 2,
+        "actual_transmit": 0,
+        "actual_receive": 0,
+        "status_success": true,
+        "exact_octets": true,
+        "preflight": "supported",
+        "discovery_configuration_hex": "090243000201008032090400000102020100052400100105240100010424020205240600010705830310001009040100020a0000000705810240000007050202400000"
+      }
+    },
+    {
+      "architecture": "aarch64",
+      "case": "wrong-coding",
+      "receipt_sha256": "064bb8e36df5092e51ab6a7635888d1ea699b00d61bf2c5d5e16fdd6b0c89619",
+      "validation": "passed",
+      "decoded_serial": {
+        "serial_results": 1,
+        "terminal": "unsupported",
+        "no_serial_success": true,
+        "retired": true
+      },
+      "independent_wire": {
+        "fault_mode": "wrong-coding",
+        "no_class_effects_after_coding_refusal": true,
+        "source_controls": 4,
+        "discovery_controls": 2,
+        "actual_transmit": 0,
+        "actual_receive": 0,
+        "status_success": true,
+        "exact_octets": true,
+        "preflight": "supported",
+        "discovery_configuration_hex": "090243000201008032090400000102020100052400100105240100010424020205240600010705830310001009040100020a0000000705810240000007050202400000"
+      }
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+CDC_DEVICE_LISTENING /tmp/cdc-product-9f1bscyn/device.sock
+CDC_DEVICE_CONNECTED full-speed ffff:f117 IN81 OUT02 IRQ83
+FAULT_APPLIED short-coding
+CDC_DEVICE_PEER_CLOSED
