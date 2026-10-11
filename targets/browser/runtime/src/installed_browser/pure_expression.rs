@@ -114,6 +114,9 @@ pub(crate) fn offer(
     let contract = conduit_semantic_catalog::pure_expression_contract(program, temporal)
         .map_err(|error| format!("pure expression contract: {error:?}"))?;
     let target = contract.kind_id.clone();
+    // Raising the hosted ceiling does not expand this browser profile.
+    let mut limits = contract.limits.clone();
+    limits.max_active_instances = limits.max_active_instances.min(16);
     Ok(BackOfferBuilder::new(
         contract,
         Back {
@@ -134,6 +137,8 @@ pub(crate) fn offer(
             authority_requirements: Vec::new(),
         },
     )
+    .narrow_capacity(limits)
+    .map_err(|error| format!("pure expression capacity: {error:?}"))?
     .build())
 }
 
