@@ -18,7 +18,13 @@ pub const MAXIMUM_COST_CALIBRATION_UPDATES: usize = 64;
 pub enum CostExecutionCondition {
     Unknown,
     Cold,
-    Warm { residency_revision: u64 },
+    /// The producer observed residency in its finite window. This asserts no
+    /// continuous residency epoch and cannot substitute for an epoch-bound Warm
+    /// condition. Forecasts remain conditional estimates, never deadlines.
+    ResidentObserved,
+    Warm {
+        residency_revision: u64,
+    },
 }
 pub struct CostCalibrationRecord<'a> {
     forecast: &'a CostedForecast<'a>,

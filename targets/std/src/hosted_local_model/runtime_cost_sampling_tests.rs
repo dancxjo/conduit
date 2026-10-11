@@ -107,7 +107,7 @@ fn actual_owner_source_binds_clock_sign_and_reported_memory_without_inventing_wa
     assert_eq!(sample.sampling_duration().ticks(), 100);
     assert_eq!(
         sample.execution_observation().unwrap().condition(),
-        CostExecutionCondition::Unknown
+        CostExecutionCondition::ResidentObserved
     );
     assert_eq!(
         sample.resident_size().unwrap().coordinate(),

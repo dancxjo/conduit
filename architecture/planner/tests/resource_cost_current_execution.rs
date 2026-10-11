@@ -48,6 +48,15 @@ fn forecast(ms: i128) -> FulfillmentCostForecast {
 }
 #[test]
 fn independent_current_residency_controls_use_and_retains_refusal_custody() {
+    exercise_condition(CostExecutionCondition::Warm {
+        residency_revision: 7,
+    });
+}
+#[test]
+fn observed_residency_without_epoch_is_distinct_and_requires_its_own_fresh_source() {
+    exercise_condition(CostExecutionCondition::ResidentObserved);
+}
+fn exercise_condition(warm: CostExecutionCondition) {
     let hosts = common::competing_hosts();
     let gear = common::pulse_gear();
     let demand = CostDemand::admit(&gear, &[]).unwrap();
@@ -79,9 +88,6 @@ fn independent_current_residency_controls_use_and_retains_refusal_custody() {
         window(&hosts[0], 90, 100),
     )
     .unwrap();
-    let warm = CostExecutionCondition::Warm {
-        residency_revision: 7,
-    };
     let assumption = CostExecutionObservation::admit(&assumption_source, warm).unwrap();
     let durations = [forecast(1), forecast(10)];
     let samples = [
@@ -112,6 +118,16 @@ fn independent_current_residency_controls_use_and_retains_refusal_custody() {
     let tie = RealizationPolicy::default();
     for (condition, observed, expires, refusal) in [
         (Some(warm), 100, 200, None),
+        (
+            Some(CostExecutionCondition::ResidentObserved),
+            100,
+            200,
+            if warm == CostExecutionCondition::ResidentObserved {
+                None
+            } else {
+                Some(CostEvidenceRefusal::ExecutionConditionChanged)
+            },
+        ),
         (
             Some(CostExecutionCondition::Cold),
             100,
