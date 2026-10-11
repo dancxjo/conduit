@@ -31,6 +31,15 @@ test('comparison accepts a different acknowledged Look with unchanged owner and 
   assertLookReplacement(evidence());
 });
 
+test('comparison preserves the exact maximum u64 revision as decimal text', () => {
+  const value = evidence();
+  for (const face of [value.before.canonicalFace, value.after.canonicalFace,
+    value.retirement.faceBefore, value.retirement.faceAfter]) {
+    face.revision = '18446744073709551615';
+  }
+  assertLookReplacement(value);
+});
+
 const mutations = [
   ['Face revision', e => e.after.canonicalFace.revision++],
   ['action argument contract', e => e.after.canonicalFace.actions[0].arguments.push({ kind: 'Text' })],
@@ -48,6 +57,7 @@ const mutations = [
   ['missing canonical Face basis', e => { delete e.before.canonicalFace.basis; delete e.after.canonicalFace.basis; }],
   ['missing canonical actions', e => { delete e.before.canonicalFace.actions; delete e.after.canonicalFace.actions; }],
   ['unsafe revision numbers', e => { e.before.canonicalFace.revision = 9007199254740992; e.after.canonicalFace.revision = 9007199254740992; }],
+  ['out-of-domain decimal revisions', e => { e.before.canonicalFace.revision = '18446744073709551616'; e.after.canonicalFace.revision = '18446744073709551616'; }],
 ];
 for (const [label, mutate] of mutations) {
   test(`comparison refuses ${label}`, () => {
