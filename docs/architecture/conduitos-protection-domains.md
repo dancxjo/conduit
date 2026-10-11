@@ -371,14 +371,17 @@ and other scheduler copies remains unfinished.
 
 `cargo xtask make conduitos ia32-ordinary-domain-proof` builds and boots the
 normal live BIOS product twice before instrumenting it for independent IA-32
-checks. Its version-2 receipt retains both normal Plan/Play and sealed
+checks. Its version-3 receipt retains both normal Plan/Play and sealed
 Observatory exports separately from the instrumented product. Normal boots
 must preserve the image and checked Source/semantic Plan shape, refresh Host,
 Boot, Plan and Play identities, and contain no diagnostic-negative entries.
 Each normal UART/VGA record is retained before another boot replaces its
 conventional path. Receipt-validation refusals stop and reap the guest.
 The instrumented image checks seventeen memory/privilege/loop cases and the
-shared capability/lifecycle checks.
+shared capability/lifecycle checks using QEMU instruction time (`shift=0`,
+`sleep=off`, RTC `clock=vm`), recorded in the receipt. Normal product boots keep
+host time. Instruction time isolates the three-interrupt budget from host
+scheduling; it provides no cycle-accurate performance evidence.
 The two loop cases require three budget interrupts before returning, including
 one case with the user direction flag set. Root interrupt entry clears that
 flag before calling Rust. The IRQ frame accounts for the assembler's two-byte
