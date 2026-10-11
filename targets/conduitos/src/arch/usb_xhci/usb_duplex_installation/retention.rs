@@ -1,5 +1,13 @@
 //! Finite retention admission before any independently routed bulk publication.
 use super::*;
+use core::fmt::Write;
+
+#[cfg(test)]
+use crate::usb_base::{endpoint_read_contract::*, endpoint_read_owner::EndpointReadCallOwner};
+#[cfg(test)]
+#[allow(dead_code)]
+#[path = "../../../usb_base/endpoint_read_owner/tests/fixture.rs"]
+mod read_fixture;
 
 pub(super) fn validate_metadata(
     table: &BaseCapabilityTable,
@@ -66,19 +74,46 @@ pub(super) fn admit(
     // Both grants cover an equal, independently bounded share; neither borrows
     // capacity from its sibling or from the control DMA resource.
     let each = charge.checked_add(1).ok_or_else(read_binding)? / 2;
+    if crate::allocation::BOOT_ARENA.capacity() != 0 {
+        let receipt = measurement_line(newly_retained, admitted)?;
+        crate::arch::early_write(receipt.as_bytes());
+    }
     if admitted.into_iter().any(|bytes| bytes < each as u64) {
         return Err(read_binding());
     }
     Ok(charge)
 }
 
+fn measurement_line(
+    newly_retained: usize,
+    admitted: [u64; 2],
+) -> Result<crate::sign_format::FixedText, UsbNativeProtocolRefusal> {
+    let each = retained_bytes(newly_retained)
+        .and_then(|bytes| bytes.checked_add(1))
+        .ok_or_else(read_binding)?
+        / 2;
+    let mut line = crate::sign_format::FixedText::new();
+    writeln!(&mut line, "CONDUIT_USB_DUPLEX_PREPARE newly_retained={} inline_host={} preissued_tables=49152 dma_context=8192 flow_budget=24576 required_each={} read_admitted={} write_admitted={}", newly_retained, core::mem::size_of::<NativeUsbDuplexHost>(), each, admitted[0], admitted[1]).map_err(|_| read_binding())?;
+    Ok(line)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::usb_base::{endpoint_read_contract::*, endpoint_read_owner::EndpointReadCallOwner};
-    #[allow(dead_code)]
-    #[path = "../../../usb_base/endpoint_read_owner/tests/fixture.rs"]
-    mod read_fixture;
+
+    #[test]
+    fn receipt_reports_actual_input_and_exact_declared_and_required_bounds() {
+        let receipt = measurement_line(12345, [100001, 100002]).unwrap();
+        let text = core::str::from_utf8(receipt.as_bytes()).unwrap();
+        assert!(text.starts_with("CONDUIT_USB_DUPLEX_PREPARE newly_retained=12345 "));
+        assert!(text.contains("preissued_tables=49152 dma_context=8192 flow_budget=24576"));
+        assert!(text.contains(&alloc::format!(
+            "required_each={}",
+            retained_bytes(12345).unwrap().div_ceil(2)
+        )));
+        assert!(text.ends_with("read_admitted=100001 write_admitted=100002\n"));
+        assert!(measurement_line(usize::MAX, [u64::MAX; 2]).is_err());
+    }
 
     #[test]
     fn one_live_entry_does_not_hide_an_oversized_retained_table() {

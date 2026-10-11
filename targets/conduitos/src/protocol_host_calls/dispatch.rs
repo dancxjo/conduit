@@ -45,7 +45,7 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
                 | Owner::UsbIsochronousOut => self.pending_duplex.iter().all(Option::is_none),
                 _ => true,
             };
-            return Ok(available);
+            Ok(available)
         }
         #[cfg(not(any(
             target_arch = "x86_64",
