@@ -934,12 +934,12 @@ fn checked_native_recipe_marks_contiguous_runs_without_reordering_controls() {
         original.disclosures,
     )
     .unwrap();
-    let provider = crate::product_bases::fixture_surface_provider();
+    let provider = fixture::framebuffer_provider_entry();
     let host = conduit_conduitos_mask_offer::native_host_advertisement(
         &"host/native".into(),
         &"boot/native".into(),
         1,
-        &provider.entry,
+        &provider,
     );
     let mut scenes = Vec::new();
     for recipe in [TodoComponentRecipe::Flat, TodoComponentRecipe::Grouped] {
@@ -1055,12 +1055,12 @@ fn maximum_todo_projection_keeps_all_controls_and_detail_pages_in_both_native_lo
     )
     .unwrap();
     assert!(!original.actions[0].availability.is_available());
-    let provider = crate::product_bases::fixture_surface_provider();
+    let provider = fixture::framebuffer_provider_entry();
     let host = conduit_conduitos_mask_offer::native_host_advertisement(
         &"host/native".into(),
         &"boot/native".into(),
         1,
-        &provider.entry,
+        &provider,
     );
     for look in [ComponentMaskLook::Compact, ComponentMaskLook::Spacious] {
         for recipe in [TodoComponentRecipe::Flat, TodoComponentRecipe::Grouped] {
@@ -1140,12 +1140,12 @@ fn maximum_todo_projection_keeps_all_controls_and_detail_pages_in_both_native_lo
 #[test]
 fn native_density_changes_measured_padding_without_changing_source_geometry() {
     let original = face(7);
-    let provider = crate::product_bases::fixture_surface_provider();
+    let provider = fixture::framebuffer_provider_entry();
     let host = conduit_conduitos_mask_offer::native_host_advertisement(
         &"host/native".into(),
         &"boot/native".into(),
         1,
-        &provider.entry,
+        &provider,
     );
     let mut scenes = Vec::new();
     for look in [ComponentMaskLook::Compact, ComponentMaskLook::Spacious] {
