@@ -69,11 +69,11 @@ plot cdc-acm-advance (
 # bounded TX Fore value is retransmitted as 16 explicit requested buffers.
 # Initial class setup uses five control exchanges before any serial data.
 plot cdc-acm-serial (
-    >> transmit: UsbEndpointWriteRequest...| <= 4096B
+    >> transmit: UsbEndpointWriteRequest...|
     observations: CdcAcmEvent...| <= 4096B >>
     control-observations: UsbControlResult...| <= 4096B >>
-    received: Bytes...| <= 2048B >>
-    ended: CdcAcmState...| <= 4096B >>
+    received: Bytes...| >>
+    ended: CdcAcmState...| >>
 ) {
     cell: state/seeded/flow/until
     route: cdc-acm-route()
