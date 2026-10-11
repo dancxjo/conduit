@@ -1,0 +1,84 @@
+with machine/usb/control/request as UsbControlRequest
+with machine/usb/control/result as UsbControlResult
+with machine/usb/endpoint-read/request as UsbEndpointReadRequest
+with machine/usb/endpoint-read/result as UsbEndpointReadResult
+with machine/usb/endpoint-write/request as UsbEndpointWriteRequest
+with machine/usb/endpoint-write/result as UsbEndpointWriteResult
+with flow/zip/feedback/paired as BotPair
+
+plot bot-initialize (
+    command: UsbEndpointWriteRequest...| >> state: BotState...|
+) = ({ command: ., phase: 0, terminal: (bytes/length(.wire) != 31 ? true : !((((bytes/at(.wire, 0) == 85 && (bytes/at(.wire, 1) == 83 && bytes/at(.wire, 2) == 66)) && ((bytes/at(.wire, 3) == 67 && bytes/at(.wire, 4) == 1) && (bytes/at(.wire, 5) == 0 && bytes/at(.wire, 6) == 0))) && (((bytes/at(.wire, 7) == 0 && bytes/at(.wire, 8) == 0) && (bytes/at(.wire, 9) == 2 && bytes/at(.wire, 10) == 0)) && ((bytes/at(.wire, 11) == 0 && bytes/at(.wire, 12) == 128) && (bytes/at(.wire, 13) == 0 && bytes/at(.wire, 14) == 10)))) && ((((bytes/at(.wire, 15) == 40 && bytes/at(.wire, 16) == 0) && (bytes/at(.wire, 17) == 0 && bytes/at(.wire, 18) == 0)) && ((bytes/at(.wire, 19) == 0 && bytes/at(.wire, 20) == 0) && (bytes/at(.wire, 21) == 0 && bytes/at(.wire, 22) == 0))) && (((bytes/at(.wire, 23) == 1 && bytes/at(.wire, 24) == 0) && (bytes/at(.wire, 25) == 0 && bytes/at(.wire, 26) == 0)) && ((bytes/at(.wire, 27) == 0 && bytes/at(.wire, 28) == 0) && (bytes/at(.wire, 29) == 0 && bytes/at(.wire, 30) == 0)))))), refused: (bytes/length(.wire) != 31 ? true : !((((bytes/at(.wire, 0) == 85 && (bytes/at(.wire, 1) == 83 && bytes/at(.wire, 2) == 66)) && ((bytes/at(.wire, 3) == 67 && bytes/at(.wire, 4) == 1) && (bytes/at(.wire, 5) == 0 && bytes/at(.wire, 6) == 0))) && (((bytes/at(.wire, 7) == 0 && bytes/at(.wire, 8) == 0) && (bytes/at(.wire, 9) == 2 && bytes/at(.wire, 10) == 0)) && ((bytes/at(.wire, 11) == 0 && bytes/at(.wire, 12) == 128) && (bytes/at(.wire, 13) == 0 && bytes/at(.wire, 14) == 10)))) && ((((bytes/at(.wire, 15) == 40 && bytes/at(.wire, 16) == 0) && (bytes/at(.wire, 17) == 0 && bytes/at(.wire, 18) == 0)) && ((bytes/at(.wire, 19) == 0 && bytes/at(.wire, 20) == 0) && (bytes/at(.wire, 21) == 0 && bytes/at(.wire, 22) == 0))) && (((bytes/at(.wire, 23) == 1 && bytes/at(.wire, 24) == 0) && (bytes/at(.wire, 25) == 0 && bytes/at(.wire, 26) == 0)) && ((bytes/at(.wire, 27) == 0 && bytes/at(.wire, 28) == 0) && (bytes/at(.wire, 29) == 0 && bytes/at(.wire, 30) == 0)))))) })
+plot bot-route (
+    state: BotState...| >> route: BotRoute...|
+) = (.terminal || .phase > 4 ? stopped(.) : (.phase < 2 ? control(.) : (.phase == 2 ? write(.) : read(.))))
+plot bot-pending (
+    route: BotRoute...| >> pending: BotPending...|
+) = (. is control ? running(.control) : (. is write ? running(.write) : (. is read ? running(.read) : stopped(empty))))
+plot bot-control-event (
+    result: UsbControlResult...| >> event: BotEvent...|
+) = (control({ descriptor: !(. is completed) ? false : (.completed.transferred != 32 || .completed.short || sequence/length(.completed.input) != 32 ? false : (((((sequence/at(.completed.input, 0) == 9 && sequence/at(.completed.input, 1) == 2) && (sequence/at(.completed.input, 2) == 32 && sequence/at(.completed.input, 3) == 0)) && ((sequence/at(.completed.input, 4) == 1 && sequence/at(.completed.input, 5) == 1) && (sequence/at(.completed.input, 6) == 5 && sequence/at(.completed.input, 7) == 192))) && (((sequence/at(.completed.input, 8) == 0 && sequence/at(.completed.input, 9) == 9) && (sequence/at(.completed.input, 10) == 4 && sequence/at(.completed.input, 11) == 0)) && ((sequence/at(.completed.input, 12) == 0 && sequence/at(.completed.input, 13) == 2) && (sequence/at(.completed.input, 14) == 8 && sequence/at(.completed.input, 15) == 6)))) && ((((sequence/at(.completed.input, 16) == 80 && sequence/at(.completed.input, 17) == 0) && (sequence/at(.completed.input, 18) == 7 && sequence/at(.completed.input, 19) == 5)) && ((sequence/at(.completed.input, 20) == 129 && sequence/at(.completed.input, 21) == 2) && (sequence/at(.completed.input, 22) == 0 && sequence/at(.completed.input, 23) == 2))) && (((sequence/at(.completed.input, 24) == 0 && sequence/at(.completed.input, 25) == 7) && (sequence/at(.completed.input, 26) == 5 && sequence/at(.completed.input, 27) == 2)) && ((sequence/at(.completed.input, 28) == 2 && sequence/at(.completed.input, 29) == 0) && (sequence/at(.completed.input, 30) == 2 && sequence/at(.completed.input, 31) == 0)))))), ack: !(. is completed) ? false : (.completed.transferred == 0 && !.completed.short && sequence/length(.completed.input) == 0) }))
+plot bot-write-event (
+    result: UsbEndpointWriteResult...| >> event: BotEvent...|
+) = (write(.))
+plot bot-read-event (
+    result: UsbEndpointReadResult...| >> event: BotEvent...|
+) = (read({ result: ., data: !(. is completed) ? false : (.completed.ordinal == 0 && .completed.actual == 512 && !.completed.short && bytes/length(.completed.wire) == 512), status: !(. is completed) ? false : (.completed.ordinal != 1 || .completed.actual != 13 || .completed.short || bytes/length(.completed.wire) != 13 ? false : (((bytes/at(.completed.wire, 0) == 85 && (bytes/at(.completed.wire, 1) == 83 && bytes/at(.completed.wire, 2) == 66)) && (bytes/at(.completed.wire, 3) == 83 && (bytes/at(.completed.wire, 4) == 1 && bytes/at(.completed.wire, 5) == 0))) && ((bytes/at(.completed.wire, 6) == 0 && (bytes/at(.completed.wire, 7) == 0 && bytes/at(.completed.wire, 8) == 0)) && ((bytes/at(.completed.wire, 9) == 0 && bytes/at(.completed.wire, 10) == 0) && (bytes/at(.completed.wire, 11) == 0 && bytes/at(.completed.wire, 12) == 0))))) }))
+plot bot-accept (
+    pair: BotPair...| <= 16384B >> transition: BotTransition...|
+) = ({ previous: .0, accepted: (.0.terminal || .0.phase > 4 ? false : (.0.phase < 2 ? (.1 is control ? (.0.phase == 0 ? .1.control.descriptor : .1.control.ack) : false) : (.0.phase == 2 ? (.1 is write ? (.1.write is completed ? .1.write.completed.actual == 31 : false) : false) : (.1 is read ? (.0.phase == 3 ? .1.read.data : .1.read.status) : false)))) })
+plot bot-advance (
+    transition: BotTransition...| >> next: BotState...|
+) = ({ command: .previous.command, phase: .accepted && .previous.phase < 5 ? .previous.phase + 1 : .previous.phase, terminal: !.accepted || .previous.phase >= 4, refused: .previous.refused || !.accepted })
+plot bot-outcome (
+    state: BotState...| >> outcome: BotOutcome...|
+) = (.terminal && !.refused && .phase == 5 ? accepted(empty) : refused(empty))
+plot bot-accepted-state (
+    state: BotState...| >> accepted: BotAcceptedState...|
+) = (.terminal && !.refused && .phase == 5 ? ready(.) : refused(empty))
+plot bot-data-candidate (
+    event: BotEvent...| >> candidate: BotDataCandidate...|
+) = (!(. is read) ? absent(empty) : (.read.data ? ready(.) : absent(empty)))
+plot bot-accepted-wire (
+    pair: BotPair...| <= 16384B >> wire: Bytes...|
+) = (.1.read.result.completed.wire)
+
+# One actual physical operation of each kind; DATA and CSW reuse the same IN
+# attachment with exact ordinal0/1. No terminal outcome selects another effect.
+plot bot-read-block (
+    >> command: UsbEndpointWriteRequest...|
+    observations: BotEvent...| <= 4096B >>
+    control-observations: UsbControlResult...| <= 4096B >>
+    accepted-block: Bytes...| >>
+    outcome: BotOutcome...| >>
+    ended: BotState...| >>
+) {
+    cell: state/seeded/flow/until
+    route: bot-route()
+    join: flow/zip/feedback
+    block-join: flow/zip/feedback
+    events: flow/merge/finite
+    bulk-events: flow/merge/finite
+    control: machine/usb/control
+    write: machine/usb/endpoint-write
+    read: machine/usb/endpoint-read
+    command >> bot-initialize() >> cell.seed
+    cell.current >> route
+    route >> bot-pending() >> select(BotPending.running, unmatched=drop) >> join.left
+    route >> select(BotRoute.control, unmatched=drop) >> bot-control-request() >> control.request
+    route >> select(BotRoute.write, unmatched=drop) >> bot-write-request() >> write.request
+    route >> select(BotRoute.read, unmatched=drop) >> bot-read-request() >> read.request
+    control.result >> control-observations
+    control.result >> bot-control-event() >> events.left
+    write.result >> bot-write-event() >> bulk-events.left
+    read.result >> bot-read-event() >> bulk-events.right
+    bulk-events.merged >> events.right
+    events.merged >> bot-data-candidate() >> select(BotDataCandidate.ready, unmatched=drop) >> block-join.right
+    events.merged >> observations
+    events.merged >> join.right
+    join.paired >> bot-accept() >> bot-advance() >> cell.next
+    route >> select(BotRoute.stopped, unmatched=drop) >> ended
+    route >> select(BotRoute.stopped, unmatched=drop) >> bot-outcome() >> outcome
+    route >> select(BotRoute.stopped, unmatched=drop) >> bot-accepted-state() >> select(BotAcceptedState.ready, unmatched=drop) >> block-join.left
+    block-join.paired >> bot-accepted-wire() >> accepted-block
+}
