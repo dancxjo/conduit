@@ -25,8 +25,10 @@ enumeration is excluded from the configuration-control sequence, and no physical
 compatibility is inferred.
 
 `decode_discovery.rs` uses Core canonical validation to extract the nested actual
-configuration completion, attachment epoch and selected endpoint facts. It is a
-pending decoder candidate until compiled against the tested Core artifact. Native
+configuration completion, attachment epoch and selected endpoint facts. It compiled
+against the current Core artifact used by the native ISO bridge tests. A Core-built
+checker fixture decoded a nested short completion and absent/selected endpoints;
+truncated bytes, duplicate observations and a wrong primitive Type were refused. Native
 acceptance must compare its descriptor bytes to the independent wire validator's
 `discovery_configuration_hex`, and its endpoint geometry/epoch to the media Root.
 
