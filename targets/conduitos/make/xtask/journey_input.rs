@@ -21,6 +21,32 @@ pub(super) fn key_pair(
     hid_qmp::send_named_keys(qmp, reader, &[key], false, label)
 }
 
+/// QMP acceptance acknowledges the host command, not guest consumption.
+/// Hold the planning key until its complete semantic record is observed;
+/// release is still attempted on a refused observation, without replay.
+pub(super) fn key_until_status(
+    qmp: &mut UnixStream,
+    reader: &mut qmp::Reader,
+    serial: &Path,
+    child: &mut Child,
+    key: &str,
+    status: &str,
+) -> Result<(), ConduitosError> {
+    held_key(
+        |down| hid_qmp::send_named_keys(qmp, reader, &[key], down, "journey-lifecycle"),
+        || wait_status(serial, child, status),
+    )
+}
+fn held_key(
+    mut send: impl FnMut(bool) -> Result<(), ConduitosError>,
+    observe: impl FnOnce() -> Result<(), ConduitosError>,
+) -> Result<(), ConduitosError> {
+    send(true)?;
+    let observed = observe();
+    let released = send(false);
+    observed.and(released)
+}
+
 /// Birth the selected zero-Body Crèche plan through the ordinary keyboard Face.
 /// Keep the separate journey boots on the same authored interaction sequence.
 pub(super) fn birth_from_creche(
@@ -209,4 +235,30 @@ mod tests {
         assert_eq!(button["arguments"]["events"][0]["data"]["button"], "left");
         assert_eq!(button["arguments"]["events"][0]["data"]["down"], true);
     }
+    #[test]
+    fn planning_release_follows_guest_record_not_qmp_acceptance() {
+        let events = std::cell::RefCell::new(Vec::new());
+        held_key(|down| { events.borrow_mut().push(if down { "down" } else { "up" }); Ok(()) },
+            || { assert_eq!(*events.borrow(), ["down"]); events.borrow_mut().push("guest-planned"); Ok(()) }).unwrap();
+        assert_eq!(*events.borrow(), ["down", "guest-planned", "up"]);
+    }
+    #[test]
+    fn refused_guest_record_releases_once_and_preserves_original_failure() {
+        let events = std::cell::RefCell::new(Vec::new());
+        let error = held_key(|down| {
+            events.borrow_mut().push(down);
+            if down { Ok(()) } else { Err(ConduitosError::refusal("release-failed", "QMP stopped")) }
+        }, || Err(ConduitosError::refusal("product-journey-stage-timeout", "no planned record"))).unwrap_err();
+        assert_eq!(error.reason, "product-journey-stage-timeout");
+        assert_eq!(*events.borrow(), [true, false]);
+    }
+    #[test]
+    fn failed_press_never_waits_for_an_unissued_action() {
+        let observed = std::cell::Cell::new(false);
+        let error = held_key(|_| Err(ConduitosError::refusal("press-failed", "QMP unavailable")),
+            || { observed.set(true); Ok(()) }).unwrap_err();
+        assert_eq!(error.reason, "press-failed");
+        assert!(!observed.get());
+    }
+
 }
