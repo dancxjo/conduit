@@ -1,6 +1,6 @@
 """Validate actual USBredir pairs independently of checked serial outputs."""
 import json,struct,sys
-pending={}; controls=[]; tx=[]; rx=[]; bulk_order=[]
+pending={}; controls=[]; tx=[]; rx=[]; bulk_order=[]; configurations=[]
 preflight = sys.argv[3] if len(sys.argv)>3 else None
 assert preflight in (None, 'supported', 'unsupported')
 for line in open(sys.argv[1]):
@@ -28,6 +28,7 @@ for line in open(sys.argv[1]):
    assert result[6]==req[6] and len(body[10:])==req[6]
    if req[6] in (9,67):
     assert body[10:12]==bytes([9,2]) and body[12:14]==bytes([67,0])
+    configurations.append(body[10:])
   if req[1:3]==(32,33):
    assert request[10:]==bytes([0,194,1,0,0,0,8]) and result[6]==7 and body[10:]==b''
   if req[1:3]==(33,161):
@@ -56,7 +57,12 @@ source=[(6,128,512,0,67),(9,0,1,0,0),(32,33,0,0,7),(33,161,0,0,7),(34,33,3,0,0)]
 discovery=[(6,128,512,0,9),(6,128,512,0,67)] if preflight else []
 class_controls=[] if preflight=='unsupported' else source
 assert controls==bootstrap+discovery+class_controls
+if preflight:
+ assert len(configurations)==(3 if preflight=='unsupported' else 4)
+ assert configurations[1]==configurations[2][:9]
+ assert configurations[0]==configurations[2]
+ if preflight=='supported':assert configurations[3]==configurations[2]
 count=0 if preflight=='unsupported' else 16
 assert len(tx)==len(rx)==count
 assert bulk_order==[2,129]*count
-print(json.dumps({'source_controls':len(class_controls),'discovery_controls':len(discovery),'actual_transmit':count,'actual_receive':count,'status_success':True,'exact_octets':True,'preflight':preflight}))
+print(json.dumps({'source_controls':len(class_controls),'discovery_controls':len(discovery),'actual_transmit':count,'actual_receive':count,'status_success':True,'exact_octets':True,'preflight':preflight,'discovery_configuration_hex':configurations[2].hex() if preflight else None}))
