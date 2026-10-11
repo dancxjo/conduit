@@ -6,7 +6,7 @@ use super::{DMA, DmaStorage, EVENT_TRBS, Event, XhciReady, write64};
 
 impl XhciReady {
     /// Inspect the current event slot once without waiting for controller work.
-    pub(in crate::arch::x86_64) fn poll_event(&mut self) -> Option<Event> {
+    pub(crate) fn poll_event(&mut self) -> Option<Event> {
         let event = read_owned_event(self.event_cycle, |word| unsafe {
             core::ptr::read_volatile(core::ptr::addr_of!(
                 DMA.event_ring[self.event_dequeue][word]
@@ -37,8 +37,8 @@ pub(super) fn read_owned_event(
     if control & 1 != cycle {
         return None;
     }
-    // This module is x86-only: coherent DMA and x86 load ordering provide the
-    // hardware ordering; acquire also keeps payload loads after ownership.
+    // The native provider must establish coherent DMA and device load ordering
+    // (currently x86). Acquire also keeps payload loads after ownership.
     fence(Ordering::Acquire);
     let low = read_word(0);
     let high = read_word(1);
@@ -54,5 +54,5 @@ pub(super) fn read_owned_event(
 }
 
 #[cfg(test)]
-#[path = "xhci_event_tests.rs"]
+#[path = "event_tests.rs"]
 mod tests;

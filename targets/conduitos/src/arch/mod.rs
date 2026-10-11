@@ -3,6 +3,11 @@
 //! Shared ConduitOS code depends on this surface. Architecture facts never flow
 //! upward into authored meaning or semantic implementation identity.
 
+// Shared mechanism remains enabled only for the native provider whose DMA and
+// device-memory ordering contract currently has execution evidence.
+#[cfg(target_arch = "x86_64")]
+mod xhci_mechanism;
+
 #[cfg(target_arch = "x86_64")]
 mod x86_64;
 #[cfg(all(target_arch = "x86_64", target_os = "none"))]
