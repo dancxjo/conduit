@@ -375,3 +375,32 @@ fn repeated_eight_packet_batches_and_metadata_composition_allocate_nothing() {
         1024
     );
 }
+
+#[test]
+fn native_short_tag_remains_distinct_even_when_extent_equals_requested() {
+    let mut owner = fixture::owner(13);
+    let node = owner.node;
+    let submission = owner
+        .begin(node, HostCallId(0), RequestId(0), &batch_input(1, 256))
+        .unwrap();
+    let result = unsafe {
+        owner.finish_quiesced(
+            &submission,
+            &[],
+            IsochronousOutcome::Short(IsochronousCompletion {
+                frame: 1024,
+                requested: 256,
+                actual: 256,
+            }),
+        )
+    }
+    .unwrap();
+    assert_eq!(
+        validate_canonical_structured_value(result)
+            .unwrap()
+            .variant_tag()
+            .unwrap(),
+        "short"
+    );
+    assert!(owner.closed);
+}
