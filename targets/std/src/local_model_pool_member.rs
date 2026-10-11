@@ -11,6 +11,7 @@ use crate::{
 use conduit_core::{GearId, PlacementId, Plan, PlannedGear, PoolSelectionEvidence};
 
 mod completion;
+mod request_binding;
 pub use completion::{
     LocalModelCompletedWork, LocalModelCompletionCalibrationRefusal, LocalModelMeasurementRefusal,
     LocalModelPreparedCalibration,
@@ -22,6 +23,7 @@ pub struct AdmittedLocalModelPoolMember {
     placement: PlannedGear,
     operation_started: bool,
     measurement: completion::MeasurementSlot,
+    request_binding: Option<request_binding::RequestBinding>,
 }
 
 impl AdmittedLocalModelPoolMember {
@@ -53,6 +55,34 @@ impl StdHost {
         plan: &Plan,
         selection: PoolSelectionEvidence,
         consumer_placement_id: &PlacementId,
+    ) -> Result<AdmittedLocalModelPoolMember, String> {
+        self.prepare_local_model_pool_member_inner(plan, selection, consumer_placement_id, None)
+    }
+
+    /// Carry the owner's admitted checked demand into this exact operation.
+    /// Selection and capacity remain owned by the existing pool kernel/ledger.
+    /// A changed request is refused before the adapter and cannot be replayed.
+    pub fn prepare_local_model_pool_member_with_demand(
+        &mut self,
+        plan: &Plan,
+        selection: PoolSelectionEvidence,
+        consumer_placement_id: &PlacementId,
+        demand: conduit_planner::resource_cost::CostDemand<'_>,
+    ) -> Result<AdmittedLocalModelPoolMember, String> {
+        self.prepare_local_model_pool_member_inner(
+            plan,
+            selection,
+            consumer_placement_id,
+            Some(demand),
+        )
+    }
+
+    fn prepare_local_model_pool_member_inner(
+        &mut self,
+        plan: &Plan,
+        selection: PoolSelectionEvidence,
+        consumer_placement_id: &PlacementId,
+        demand: Option<conduit_planner::resource_cost::CostDemand<'_>>,
     ) -> Result<AdmittedLocalModelPoolMember, String> {
         selection
             .validate(plan)
@@ -105,7 +135,7 @@ impl StdHost {
             selection.pool_id.as_str(),
             selection.operation_id.as_str()
         );
-        let placement = conduit_core::planned_gear_from_parts! {
+        let mut placement = conduit_core::planned_gear_from_parts! {
             semantic_contract: Default::default(),
             placement_id: PlacementId::from(dynamic_identity.clone()),
             gear_id: GearId::from(dynamic_identity),
@@ -130,6 +160,21 @@ impl StdHost {
             authority: Vec::new(),
             pool_references: Vec::new(),
         };
+        let request_binding = demand
+            .map(|request| {
+                let initialized = self
+                    .local_model
+                    .as_ref()
+                    .ok_or_else(|| "selected local model is no longer initialized".to_string())?;
+                request_binding::RequestBinding::admit(
+                    request,
+                    &pool.member_front,
+                    capability,
+                    &initialized.offer().limits.work,
+                    &mut placement,
+                )
+            })
+            .transpose()?;
         let measurement = completion::MeasurementSlot::admit(&placement);
         let reservation = self.kernel_resources.reserve_pool_member(
             &advertisement,
@@ -155,6 +200,7 @@ impl StdHost {
             placement,
             operation_started: false,
             measurement,
+            request_binding,
         })
     }
 
@@ -171,13 +217,24 @@ impl StdHost {
         if first {
             member.measurement.start(input);
         }
-        let terminal = execute_pool_member_once(
-            self.local_model.as_deref_mut(),
-            &member.placement,
-            &mut member.operation_started,
-            input,
-            output,
-        );
+        let terminal = if first
+            && member
+                .request_binding
+                .as_ref()
+                .is_some_and(|binding| !binding.matches(member.measurement.input_identity()))
+        {
+            member.operation_started = true;
+            output.clear();
+            LocalModelAdapterTerminal::Refused
+        } else {
+            execute_pool_member_once(
+                self.local_model.as_deref_mut(),
+                &member.placement,
+                &mut member.operation_started,
+                input,
+                output,
+            )
+        };
         if first {
             member.measurement.finish(terminal, output.len());
         }
