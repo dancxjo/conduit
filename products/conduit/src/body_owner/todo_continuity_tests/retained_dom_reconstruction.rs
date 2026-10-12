@@ -6,6 +6,9 @@ use conduit_presentation::{
 };
 use serde_json::Value;
 
+#[path = "retained_look_reconstruction.rs"]
+mod retained_look_reconstruction;
+
 fn evidence(variable: &str) -> Value {
     let path = std::path::PathBuf::from(std::env::var_os(variable).expect(variable));
     assert!(
@@ -202,6 +205,7 @@ fn actual_retained_dom_completion_reconstructs_native_linear_and_utterance_meani
     ] {
         assert_eq!(record[key], expected_source);
     }
+    retained_look_reconstruction::verify(&record);
     let exchange = &record["retained_dom_completion"];
     let body = record["body_id"].as_str().unwrap();
     let before = occurrence(&exchange["before"], body);

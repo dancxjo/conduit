@@ -184,6 +184,8 @@ export async function compareRetainedTodoLooks({ page, face, bodyId, hostId, boo
         status: root.querySelector('.owner-face-collection-count')?.textContent,
         forms: [...root.querySelectorAll('[data-owner-action]')].map(form => ({ action_id: form.dataset.ownerAction,
           name: form.querySelector('button')?.textContent, disabled: form.querySelector('button')?.disabled })),
+        component_dataset: { expression: element.dataset.componentExpression ?? null,
+          density: element.dataset.componentDensity ?? null, columns: element.dataset.componentColumns ?? null },
         geometry: { collection_padding_px: Number.parseFloat(style.paddingTop),
           collection_radius_px: Number.parseFloat(style.borderTopLeftRadius) } };
     });
@@ -205,7 +207,8 @@ export async function compareRetainedTodoLooks({ page, face, bodyId, hostId, boo
       assert.ok(control.name?.includes(action.name), 'actual accessible control names must retain supplied action wording');
       if (action.availability !== 'available') assert.equal(control.disabled, true);
       const button = page.locator(`[data-owner-action="${control.action_id}"]`).getByRole('button');
-      assert.ok(await button.isVisible(), 'disclosed action must be visible');
+      control.visible = await button.isVisible();
+      assert.ok(control.visible, 'disclosed action must be visible');
     }
     for (const action of view.actions.filter(action => action.availability === 'available')) {
       assert.ok(dom.forms.some(form => form.action_id === action.identity), 'available supplied action must remain discoverable');
@@ -218,9 +221,14 @@ export async function compareRetainedTodoLooks({ page, face, bodyId, hostId, boo
     await input.focus();
     await page.keyboard.press('Tab');
     const addButton = addForm.getByRole('button', { name: add.name, exact: true });
-    assert.ok(await addButton.evaluate(node => node.getRootNode().activeElement === node),
-      'keyboard traversal must reach the supplied named action');
-    assert.ok(await addButton.isEnabled());
+    dom.keyboard_focus = { action_id: add.identity,
+      input: await input.evaluate(node => ({ type: node.type, maximum_length: node.maxLength,
+        labels: [...node.labels].map(label => label.textContent) })),
+      accessible_name: await addButton.textContent(),
+      focused: await addButton.evaluate(node => node.getRootNode().activeElement === node),
+      enabled: await addButton.isEnabled(), visible: await addButton.isVisible() };
+    assert.ok(dom.keyboard_focus.focused, 'keyboard traversal must reach the supplied named action');
+    assert.ok(dom.keyboard_focus.enabled && dom.keyboard_focus.visible);
     if (observations.length) {
       assert.deepEqual(dom.lists, observations[0].dom.lists);
       assert.equal(dom.status, observations[0].dom.status);
@@ -238,9 +246,11 @@ export async function compareRetainedTodoLooks({ page, face, bodyId, hostId, boo
       }, { stale: prior, action: staleAction });
       assert.equal(refusal.refused, true);
       assert.match(refusal.message, /^owner Face interaction refused \(-5\)$/);
-      assert.deepEqual(face().presentation, source.presentation, 'retired Look must have no owner effect');
+      const afterRefusal = face();
+      assert.deepEqual(afterRefusal.presentation, source.presentation, 'retired Look must have no owner effect');
       assert.equal(await page.evaluate(() => globalThis.__conduitOwnerParticipation.face().show_id), view.show_id);
-      retirement = { retired_show_id: prior.show_id, current_show_id: view.show_id, refusal };
+      retirement = { retired_show_id: prior.show_id, current_show_id: view.show_id, refusal,
+        after_refusal_owner_face: afterRefusal.presentation };
     }
     observations.push({ look: look ?? 'generic', recipe: look ? 'flat' : null, view, dom, retirement });
   }
