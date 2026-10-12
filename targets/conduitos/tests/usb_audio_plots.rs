@@ -1,9 +1,9 @@
 #[path = "../../../architecture/plot/tests/prepared_structured_payload/allocation.rs"]
 mod allocation;
-use conduit_core::{validate_canonical_structured_value, ConfigurationValue};
+use conduit_core::{ConfigurationValue, validate_canonical_structured_value};
 use conduit_plot::{
-    check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
     PortableExpressionProgram, PreparedPortableExpressionEvaluator, ProfileCatalog, StartupCatalog,
+    check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
 };
 fn source() -> String {
     let audio = include_str!("../../../semantics/audio/types.conduit");
@@ -471,11 +471,13 @@ fn ordinary_protocol_source_prepares_setup_once_with_exact_small_feedback_event(
     .unwrap();
     let source = PreparedProtocolSource::prepare(package).unwrap();
     let expanded = source.expand("usb-audio-negotiate").unwrap();
-    assert!(expanded
-        .expanded
-        .gears
-        .iter()
-        .any(|gear| gear.kind_id.as_str() == "machine/usb/control"));
+    assert!(
+        expanded
+            .expanded
+            .gears
+            .iter()
+            .any(|gear| gear.kind_id.as_str() == "machine/usb/control")
+    );
 }
 
 #[path = "usb_audio_plots/completion.rs"]
@@ -483,3 +485,6 @@ mod completion;
 
 #[path = "usb_audio_plots/playback.rs"]
 mod playback;
+
+#[path = "usb_audio_plots/admission.rs"]
+mod admission;

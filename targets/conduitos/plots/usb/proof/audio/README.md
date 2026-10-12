@@ -57,3 +57,30 @@ Both composition candidates still need exact generic pair/catalog preparation
 and ordinary kernel tests; passing the small pure policies does not prove these
 routes installed. The singlepacket clock projection is checked. Extending it
 through a sequence requires the separate conservative byte-contract proof fix.
+
+The current integration adds `audio-playback-policy.conduit` and
+`audio-playback-back.conduit`: a typed state loop retains one original PCM block,
+observes a real controller snapshot, submits eight exact 192-byte projections,
+correlates every completion deadline and extent, and requests drain. Its native
+catalog preparation and the 15-test Source suite passed at commit `0687b401a`.
+These checks did not execute USB transfers.
+
+`audio-admission-back.conduit` connects setup acceptance and the block laws to
+that loop using exact typed finite pairs. This full entry is `usb-audio-playback`;
+its serialized-entry preparation test passes with one control and one ISO
+placement. Public packaging also passes (80,383 bytes, 45 expanded gears). Generate its Source and generic
+specialization inputs with:
+
+```sh
+python3 targets/conduitos/plots/usb/proof/audio/build_source.py --output /new/audio-input
+cargo +stable xtask make conduitos protocol-source \
+  --source /new/audio-input/playback.conduit \
+  --specializations /new/audio-input/specializations.json \
+  --entry usb-audio-playback --output-dir /new/audio-package
+```
+
+The assembler performs no checking or physical effects. The current loop covers
+one eight-packet block. Continuous refill across at least 72 actual packets,
+64-TRB reuse, fault/cancellation coverage, cross-architecture execution and
+physical output remain required. Keep the existing continuous wire checker:
+one successful block cannot satisfy it.
