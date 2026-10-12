@@ -73,6 +73,7 @@ fn proves_at(
     }
     if remaining.is_empty() && matches!(value.operation, Op::Literal(_)) {
         let constant = PortableExpressionProgram {
+            input_maximum_bytes: None,
             input_type: conduit_core::StructuredInfoType::leaf(conduit_core::kind_id(
                 conduit_core::EMPTY_INFO_ID,
             ))
@@ -91,6 +92,30 @@ fn proves_at(
                 required.validate(bytes).is_ok()
             })
         });
+    }
+    // A successful window has exactly its requested length; invalid source
+    // bounds refuse before producing a value. Only a literal length proves it.
+    if remaining.is_empty() && required.value_kind.as_str() == "value/bytes" {
+        if let Op::SemanticCall { kind, arguments } = &value.operation {
+            if kind == "bytes/window" {
+                if let [_, _, length] = arguments.as_slice() {
+                    if let Op::Literal(literal) = &length.operation {
+                        if let Ok(length) = literal.parse::<u32>() {
+                            return length <= required.maximum_bytes
+                                && required.constraints.iter().all(
+                                    |constraint| match constraint {
+                                        conduit_core::ValueConstraint::ByteLength {
+                                            minimum,
+                                            maximum,
+                                        } => length >= *minimum && length <= *maximum,
+                                        _ => false,
+                                    },
+                                );
+                        }
+                    }
+                }
+            }
+        }
     }
     if facts.proves(value, remaining, required) {
         return true;
@@ -132,6 +157,19 @@ fn retained_contract(
             _ => return false,
         };
         return retained_contract(element, rest, required, types);
+    }
+    if let Some(rest) = path.strip_prefix('|') {
+        let end = rest.find(['.', '|', '[', '?']).unwrap_or(rest.len());
+        let (tag, remaining) = rest.split_at(end);
+        let StructuredInfoTypeShape::Variant { cases, .. } = input.shape() else {
+            return false;
+        };
+        return cases
+            .iter()
+            .find(|case| case.tag() == tag)
+            .is_some_and(|case| {
+                retained_contract(case.payload_type(), remaining, required, types)
+            });
     }
     let Some(rest) = path.strip_prefix('.') else {
         return false;

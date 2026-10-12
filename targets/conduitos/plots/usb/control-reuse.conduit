@@ -28,14 +28,13 @@ plot usb-control-reuse-request (
 # Count only actual completed results. The 64th result closes the cell; every
 # other disposition also closes it and remains visible on the typed result port.
 plot usb-control-reuse-update (
-    pair: UsbControlReusePair...| <= 16384B >> state: UsbControlReuseState...| <= 4096B
+    pair: UsbControlReusePair...| <= 9046B >> state: UsbControlReuseState...| <= 4096B
 ) = ({ request: .0.request, count: (.1 is completed && .0.count < 64 ? .0.count + 1 : .0.count), terminal: .0.terminal || .0.count >= 63 || !(.1 is completed) })
 
-# Pure-expression and selector Backs retain the checked state schema but do
-# not project an explicit port envelope. These Fore boundaries use that exact
-# contract; the native Root ceiling and selected Back queues still bound frames.
+# The input Fore bound matches the exact selected initializer Back.
+# The native Root ceiling and selected Back queues also bound frames.
 plot usb-control-reuse (
-    >> seed: UsbControlReuseState...|
+    >> seed: UsbControlReuseState...| <= 4096B
     result: UsbControlResult...| <= 4096B >>
     ended: UsbControlReuseState...| >>
 ) {

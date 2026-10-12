@@ -22,6 +22,7 @@ mod active_capacity;
 mod boxed_preparation;
 mod debug_control;
 mod derived_value;
+mod host_call_settlement;
 mod remote_fanout;
 mod retirement;
 use active_capacity::validate_active_capacity;

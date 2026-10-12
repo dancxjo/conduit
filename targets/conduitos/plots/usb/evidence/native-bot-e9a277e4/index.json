@@ -1,0 +1,366 @@
+{
+  "schema": "conduit.usb/bot-retained-native-cases@1",
+  "runtime_source_commit": "e9a277e4cb38805033c781355600122b49876d5f",
+  "cases": [
+    {
+      "architecture": "x86_64",
+      "mode": "bad-residue",
+      "files": {
+        "serial.log": {
+          "path": "x86_64/bad-residue/serial.log.gz",
+          "sha256": "551cf8ddf0d76bd9f97de98849626c38dbd67b991dc49d6c6ece0887cf1e0590"
+        },
+        "wire.jsonl": {
+          "path": "x86_64/bad-residue/wire.jsonl.gz",
+          "sha256": "ecb71977e293168acf709cb83983bcb0ae3d292a5b6e03894258060eb87dde1b"
+        },
+        "device.log": {
+          "path": "x86_64/bad-residue/device.log.gz",
+          "sha256": "62c1289a7def73c00da657ee8c7594f0790a503f74b1ecb50fc838fe3a497f7a"
+        }
+      }
+    },
+    {
+      "architecture": "x86_64",
+      "mode": "command-failed",
+      "files": {
+        "serial.log": {
+          "path": "x86_64/command-failed/serial.log.gz",
+          "sha256": "3665f9e50b519814a2d3c5771c52b56812aca3a69987dc58d847723a0a92b66d"
+        },
+        "wire.jsonl": {
+          "path": "x86_64/command-failed/wire.jsonl.gz",
+          "sha256": "03d493753ee0324b786c3989d0247357e2eb3b63d063b9d9f0d4ba89e96553a1"
+        },
+        "device.log": {
+          "path": "x86_64/command-failed/device.log.gz",
+          "sha256": "588e66e1c7510b95cbc7b3d0f6ca68c898fa2dbc018c46ccaa1c665f29ad2e8d"
+        }
+      }
+    },
+    {
+      "architecture": "x86_64",
+      "mode": "disconnect-in",
+      "files": {
+        "serial.log": {
+          "path": "x86_64/disconnect-in/serial.log.gz",
+          "sha256": "a219422d6d4b268d0b8d2b527c8294d332865cceec47fabbceb621c5d9d36a91"
+        },
+        "wire.jsonl": {
+          "path": "x86_64/disconnect-in/wire.jsonl.gz",
+          "sha256": "064f2c63fddd5ff4f0880b47d03b34aec3c500c2cb39476e22eea2b574f9a735"
+        },
+        "device.log": {
+          "path": "x86_64/disconnect-in/device.log.gz",
+          "sha256": "6b1b7e3e2bafd8a06a2fcfbe2b7fe189ba52c4511b616ebc0fa351c6b0451e57"
+        }
+      }
+    },
+    {
+      "architecture": "x86_64",
+      "mode": "none",
+      "files": {
+        "serial.log": {
+          "path": "x86_64/none/serial.log.gz",
+          "sha256": "8eb7831b0a0e73d7eab313c4295fca51f72ced0d2ce6fd84d75a884d67dee1d9"
+        },
+        "wire.jsonl": {
+          "path": "x86_64/none/wire.jsonl.gz",
+          "sha256": "e53c608d5839da4db78d48dabb864dfe9e7ba1534f5f91c204cebd433604b968"
+        },
+        "device.log": {
+          "path": "x86_64/none/device.log.gz",
+          "sha256": "14a2503334402ed5a00ebbeab3961df4f6538bf7dd04661b9ae4e827865abf33"
+        }
+      }
+    },
+    {
+      "architecture": "x86_64",
+      "mode": "phase-error",
+      "files": {
+        "serial.log": {
+          "path": "x86_64/phase-error/serial.log.gz",
+          "sha256": "1fdea51512e6636fff3335d91e6c01908e595d0287df08686529a01534f74cfb"
+        },
+        "wire.jsonl": {
+          "path": "x86_64/phase-error/wire.jsonl.gz",
+          "sha256": "ffbd2ebb05f51121c1cc39a14e7badfd275e1a4fdde08becad5a66e4217c8477"
+        },
+        "device.log": {
+          "path": "x86_64/phase-error/device.log.gz",
+          "sha256": "6e2669869c7626e7c17addabd0ba76e2ae1007d2ddcc72b326b24af75de0bca1"
+        }
+      }
+    },
+    {
+      "architecture": "x86_64",
+      "mode": "short-in",
+      "files": {
+        "serial.log": {
+          "path": "x86_64/short-in/serial.log.gz",
+          "sha256": "5495c9f036e6853f9afadaaf467c8678dd3550969eb992d471b668185c56f84a"
+        },
+        "wire.jsonl": {
+          "path": "x86_64/short-in/wire.jsonl.gz",
+          "sha256": "0b3cb01ae13a95639ebd0f49c3e331edf6314c54e05203b466c911d676be113d"
+        },
+        "device.log": {
+          "path": "x86_64/short-in/device.log.gz",
+          "sha256": "396603aa5c0f5ffe2295324f9930550e24bd3b32169e9a15743152bf12fb115c"
+        }
+      }
+    },
+    {
+      "architecture": "x86_64",
+      "mode": "stale-tag",
+      "files": {
+        "serial.log": {
+          "path": "x86_64/stale-tag/serial.log.gz",
+          "sha256": "95df1809ba4d984b14bc7e88fee66c5542917b29c5205daeef8c4536c6cb1b2e"
+        },
+        "wire.jsonl": {
+          "path": "x86_64/stale-tag/wire.jsonl.gz",
+          "sha256": "b2d8cef0d8e62a386b6b5a18642e4defcb97999e6750dd67e76d69d12a536a2a"
+        },
+        "device.log": {
+          "path": "x86_64/stale-tag/device.log.gz",
+          "sha256": "8b0dae515949e355613d01e1f484178db3ee68d2d6eca5739ca021e65dd7f3d0"
+        }
+      }
+    },
+    {
+      "architecture": "x86_64",
+      "mode": "stall-in",
+      "files": {
+        "serial.log": {
+          "path": "x86_64/stall-in/serial.log.gz",
+          "sha256": "6f662570635654361891ad09fa9c45606d30b5bfd7c151188f6e18d3a00cf769"
+        },
+        "wire.jsonl": {
+          "path": "x86_64/stall-in/wire.jsonl.gz",
+          "sha256": "5fd334e60839ab5dd9004d7c7f919c930cefca9d1844170e65d694240e476d5a"
+        },
+        "device.log": {
+          "path": "x86_64/stall-in/device.log.gz",
+          "sha256": "273686655c44e8a1cb97e815821e43c54066e83339b00dbe472c640ab2bfe5cc"
+        }
+      }
+    },
+    {
+      "architecture": "x86_64",
+      "mode": "hold-in",
+      "files": {
+        "serial.log": {
+          "path": "x86_64/hold-in/serial.log.gz",
+          "sha256": "12600ccd4586e3879e6c7c655b34d0d85b6316d55b618cf578e0ab42a10f1135"
+        },
+        "wire.jsonl": {
+          "path": "x86_64/hold-in/wire.jsonl.gz",
+          "sha256": "7767adc12a3b8eb06fbf649e45d94fd72bbb23c27c9f854068ae8cd2199cab0c"
+        },
+        "device.log": {
+          "path": "x86_64/hold-in/device.log.gz",
+          "sha256": "2e8e40d94ce133e4e7ad08590e29659a660b809adc0c30865ec9b188a1ed8daa"
+        }
+      }
+    },
+    {
+      "architecture": "x86_64",
+      "mode": "late-after-cancel",
+      "files": {
+        "serial.log": {
+          "path": "x86_64/late-after-cancel/serial.log.gz",
+          "sha256": "0e40f142f961420c5f8bfc2d7beb605a2fed8d1de57221a48b1c3f41eb9f1775"
+        },
+        "wire.jsonl": {
+          "path": "x86_64/late-after-cancel/wire.jsonl.gz",
+          "sha256": "4529e3402450b680a6481629cd82dd1a4181a4dc1df24a7a5e7216eb1659752a"
+        },
+        "device.log": {
+          "path": "x86_64/late-after-cancel/device.log.gz",
+          "sha256": "a7b3e4affa28e318ee2d82c1d4a8ba0bb4988d83fc1d54049434d2bf1477fab1"
+        }
+      }
+    },
+    {
+      "architecture": "aarch64",
+      "mode": "disconnect-in",
+      "files": {
+        "serial.log": {
+          "path": "aarch64/disconnect-in/serial.log.gz",
+          "sha256": "eaf8dcf4918d190c51817d8a7343f76630ce7a4f242559780e934bc4c775c82f"
+        },
+        "wire.jsonl": {
+          "path": "aarch64/disconnect-in/wire.jsonl.gz",
+          "sha256": "3d749996c0d093dea44f810fddd24003d85cea92d4d1171730e52703af55bff2"
+        },
+        "device.log": {
+          "path": "aarch64/disconnect-in/device.log.gz",
+          "sha256": "1ebbf9702eff8adb98df198278aa0420172f3d619b1ecb10bce923393b7475de"
+        }
+      }
+    },
+    {
+      "architecture": "aarch64",
+      "mode": "none",
+      "files": {
+        "serial.log": {
+          "path": "aarch64/none/serial.log.gz",
+          "sha256": "4bac5949bb3c0b7bf336194b31b3576baba03d0619b4a6b54f21c1717b7b7c40"
+        },
+        "wire.jsonl": {
+          "path": "aarch64/none/wire.jsonl.gz",
+          "sha256": "dbd26d72c3e34242c13b0ca6bcea601f833909f103daa1c9b36d7efaf605409c"
+        },
+        "device.log": {
+          "path": "aarch64/none/device.log.gz",
+          "sha256": "4f950a5143d39cd6021a5d849e5dc203e7fd0282c78e6a09266c106815ae7316"
+        }
+      }
+    },
+    {
+      "architecture": "aarch64",
+      "mode": "stall-in",
+      "files": {
+        "serial.log": {
+          "path": "aarch64/stall-in/serial.log.gz",
+          "sha256": "5dfcd95da8e3bf831e604971f548962cc260beeea4cc9d8b8582ab8d6a7936eb"
+        },
+        "wire.jsonl": {
+          "path": "aarch64/stall-in/wire.jsonl.gz",
+          "sha256": "a8dd6772bf30f45a0e4cfbc7090f0ba043b4adefd610d142dbe0909c0fd8867e"
+        },
+        "device.log": {
+          "path": "aarch64/stall-in/device.log.gz",
+          "sha256": "01247c2a5c4be7692b9e6e7a643536aff5116b920459c025a0afbea707ce9bd9"
+        }
+      }
+    },
+    {
+      "architecture": "aarch64",
+      "mode": "bad-residue",
+      "files": {
+        "serial.log": {
+          "path": "aarch64/bad-residue/serial.log.gz",
+          "sha256": "ec9eaa035d124b657e0e04acc717305435178556bfd76c7c065b0245624fa528"
+        },
+        "wire.jsonl": {
+          "path": "aarch64/bad-residue/wire.jsonl.gz",
+          "sha256": "3f303439993b37a8c547ead234ce33e47cb86ac0988a792416a15156f3665f12"
+        },
+        "device.log": {
+          "path": "aarch64/bad-residue/device.log.gz",
+          "sha256": "c7731568416560a329fb9b305332a1ffede2775ebd356ff61b1c20f0ebf88250"
+        }
+      }
+    },
+    {
+      "architecture": "aarch64",
+      "mode": "command-failed",
+      "files": {
+        "serial.log": {
+          "path": "aarch64/command-failed/serial.log.gz",
+          "sha256": "0ce5777d346ef8ea8bc41ef9540b40f2726e86fc2354664c55384519e54c857f"
+        },
+        "wire.jsonl": {
+          "path": "aarch64/command-failed/wire.jsonl.gz",
+          "sha256": "ef7d94b8d67369c9ab0b1f6f0229f2f54f11588074a173656dc0a8997145fe0e"
+        },
+        "device.log": {
+          "path": "aarch64/command-failed/device.log.gz",
+          "sha256": "eef36234f2be27d3b87f885c2eb703c396fed123ed55b4717749f66e1abf3566"
+        }
+      }
+    },
+    {
+      "architecture": "aarch64",
+      "mode": "phase-error",
+      "files": {
+        "serial.log": {
+          "path": "aarch64/phase-error/serial.log.gz",
+          "sha256": "3c7ad12e6a879c0b0fa9c460e798072c4ff9d18aab9da9c801af484e43361028"
+        },
+        "wire.jsonl": {
+          "path": "aarch64/phase-error/wire.jsonl.gz",
+          "sha256": "730a6a2a6d557971623063916edc2891127ac0128239ae42d6da8e1240c8493e"
+        },
+        "device.log": {
+          "path": "aarch64/phase-error/device.log.gz",
+          "sha256": "5a43e7b68d82ed251025c4a012dacaf7f146131af48fd03567288d272ca131ab"
+        }
+      }
+    },
+    {
+      "architecture": "aarch64",
+      "mode": "short-in",
+      "files": {
+        "serial.log": {
+          "path": "aarch64/short-in/serial.log.gz",
+          "sha256": "b54b29b78642ae404a3453df6e9efd355d0b23673f831c27d34cd214f3e54a71"
+        },
+        "wire.jsonl": {
+          "path": "aarch64/short-in/wire.jsonl.gz",
+          "sha256": "5a53a62980e05f6e840eb72fbd9d30d934063f0094b4e7ced2e785317d0da67a"
+        },
+        "device.log": {
+          "path": "aarch64/short-in/device.log.gz",
+          "sha256": "5d81669e3fcf9685e281502c40043baf898def726341cb982e826697a1eba9b5"
+        }
+      }
+    },
+    {
+      "architecture": "aarch64",
+      "mode": "stale-tag",
+      "files": {
+        "serial.log": {
+          "path": "aarch64/stale-tag/serial.log.gz",
+          "sha256": "cf032aba208145945d91d5b8172a3a01a162031ccf42f45aaef66bcd67d29a27"
+        },
+        "wire.jsonl": {
+          "path": "aarch64/stale-tag/wire.jsonl.gz",
+          "sha256": "5fc10904d83cc2aa1055f414563241fff88f4dbe9f8ce50db4d641541f986164"
+        },
+        "device.log": {
+          "path": "aarch64/stale-tag/device.log.gz",
+          "sha256": "3fb374f1091440bd7845348aae96c79bd012594ea7084b33eab634c86cc7b465"
+        }
+      }
+    },
+    {
+      "architecture": "aarch64",
+      "mode": "hold-in",
+      "files": {
+        "serial.log": {
+          "path": "aarch64/hold-in/serial.log.gz",
+          "sha256": "bca65e493ae1736027e7631e217abde97296d6529102e6dff9c96cf58d51ad6d"
+        },
+        "wire.jsonl": {
+          "path": "aarch64/hold-in/wire.jsonl.gz",
+          "sha256": "aad664d6f1955642a4448e53cd634938231845ecebdd180162438acfa5354a3c"
+        },
+        "device.log": {
+          "path": "aarch64/hold-in/device.log.gz",
+          "sha256": "14de0824f163a54a05e4b51bd466cf6ba3e999640274821af962d71982ca99b6"
+        }
+      }
+    },
+    {
+      "architecture": "aarch64",
+      "mode": "late-after-cancel",
+      "files": {
+        "serial.log": {
+          "path": "aarch64/late-after-cancel/serial.log.gz",
+          "sha256": "2fbbf9b8a243b6dadad999b881b666161379a92c8e567b8f7e033e0a00e01213"
+        },
+        "wire.jsonl": {
+          "path": "aarch64/late-after-cancel/wire.jsonl.gz",
+          "sha256": "b742adeb13cf86a054a61eb27d828547d1c5b26026e3791ccf08a1f59e27fdce"
+        },
+        "device.log": {
+          "path": "aarch64/late-after-cancel/device.log.gz",
+          "sha256": "503d26d4ee631a99f25e45d4ee96dadfa0e78a4360585bb837e1f791413b38de"
+        }
+      }
+    }
+  ]
+}

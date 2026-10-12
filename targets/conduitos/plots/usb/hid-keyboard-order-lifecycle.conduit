@@ -78,7 +78,7 @@ plot usb-hid-keyboard-order-session-command (
 
 plot usb-hid-keyboard-order-lifecycle (
     >> begin: Empty...|
-    >> command: UsbKeyboardOrderCommand...|
+    >> command: UsbKeyboardOrderCommand...| <= 4096B
     observation: UsbKeyboardOrderedObservation...| >>
     ended: UsbKeyboardOrderEnd...| >>
     changes: UsbKeyboardTransitionBatch...| >>

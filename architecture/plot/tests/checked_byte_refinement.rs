@@ -176,3 +176,22 @@ fn overflowing_length_literal_cannot_supply_a_constructor_bound() {
         .unwrap_err();
     assert_eq!(refusal.code, "CND-FRM-046");
 }
+
+#[test]
+fn fixed_windows_prove_exact_output_bounds_and_still_refuse_invalid_extents() {
+    for length in [0, 31, 1514] {
+        let program = program(&format!("ready({{wire:bytes/window(.wire, 1, {length})}})"));
+        let mut prepared = PreparedPortableExpressionEvaluator::new(&program).unwrap();
+        let source: Vec<_> = (0..1515).map(|index| (index % 251) as u8).collect();
+        let valid = input(&program, &source, &[], false);
+        assert_eq!(
+            prepared.evaluate(&valid).unwrap(),
+            program.evaluate(&valid).unwrap()
+        );
+        let insufficient = input(&program, &[], &[], false);
+        assert!(program.evaluate(&insufficient).is_err());
+        assert!(prepared.evaluate(&insufficient).is_err());
+    }
+    assert!(expand("ready({wire:bytes/window(.wire, 0, 1515)})").is_err());
+    assert!(expand("ready({wire:bytes/window(.wire, 0, bytes/length(.other))})").is_err());
+}

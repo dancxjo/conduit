@@ -169,6 +169,7 @@ mod planned;
 fn empty_unit_frames_keep_one_admitted_queue_cell_and_execute() {
     let unit = StructuredInfoType::leaf(kind_id(EMPTY_INFO_ID)).unwrap();
     let program = PortableExpressionProgram {
+        input_maximum_bytes: None,
         input_type: unit.clone(),
         output_type: unit.clone(),
         root: PortableExpressionNode {
@@ -183,5 +184,45 @@ fn empty_unit_frames_keep_one_admitted_queue_cell_and_execute() {
         call.invoke(call.node, HostCallId(0), RequestId(0), &[])
             .unwrap()
             .is_empty()
+    );
+}
+
+#[test]
+fn authored_input_ceiling_matches_native_offer_lowering_and_actual_call() {
+    let syntax = parse_syntax_document(
+        "plot length (\n wire: Bytes <= 2048B >> size: U64\n) = (bytes/length(.))\n",
+    );
+    assert!(syntax.diagnostics.is_empty());
+    let checked = check_syntax_document(&syntax, &StartupCatalog::new()).unwrap();
+    let expanded = expand_canonical_plot_for_authoring(&checked, "length", &ProfileCatalog::new())
+        .unwrap()
+        .expanded;
+    let ConfigurationValue::Text(encoded) = &expanded.gears[0].configuration[0].value else {
+        panic!("program")
+    };
+    let program = PortableExpressionProgram::from_canonical_hex(encoded).unwrap();
+    assert_eq!(program.input_maximum_bytes, Some(2048));
+    let offered = offer(&program, PortTemporal::Value).unwrap();
+    assert_eq!(offered.host_calls[0].maximum_input_bytes, 2048);
+    assert_eq!(offered.limits.max_queue_bytes, 2048);
+    assert_eq!(
+        offered
+            .checked_front()
+            .value_contract(&FrontValueLocation::Input(port_id("input")))
+            .unwrap()
+            .maximum_bytes,
+        2048
+    );
+    let (fragment, lowered, active, placement) = selected_program(program);
+    assert_eq!(lowered.nodes[0].inputs[0].maximum_value_bytes, Some(2048));
+    let mut call = ExpressionHostCall::prepare(&fragment, &lowered, &active, &placement).unwrap();
+    assert_eq!(
+        call.invoke(call.node, HostCallId(0), RequestId(0), &[7; 31])
+            .unwrap(),
+        31u64.to_le_bytes()
+    );
+    assert_eq!(
+        call.invoke(call.node, HostCallId(0), RequestId(1), &[7; 2049]),
+        Err(ExpressionCallRefusal::InvalidInput)
     );
 }
