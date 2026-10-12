@@ -152,12 +152,30 @@ pub(super) fn finish(
             .update(record, &mut work)
             .map_err(|e| format!("calibration update: {e:?}"))?;
         let (lower_error, upper_error) = record.error_bounds();
+        let predicted = prepared
+            .forecast
+            .stages()
+            .service
+            .ok_or("service forecast absent")?;
         Ok(
-            json!({"phase":"adapter-service-calibrated","scope":"adapter_call_only","condition":"Unknown","updates":model.updates(),"measured_lower":encoded(record.measured().lower().original())?,"measured_upper":encoded(record.measured().upper().original())?,"error_lower":encoded(lower_error)?,"error_upper":encoded(upper_error)?,"numeric_work":work.spent()}),
+            json!({"phase":"adapter-service-calibrated","scope":"adapter_call_only","condition":"Unknown","updates":model.updates(),"schema":"conduit.proof/adapter-service-calibration@1",
+                "selection":receipt.selection(),"input_digest":receipt.input_digest(),
+                "forecast_source":attribution(&source),"completion_source":attribution(&completion),
+                "predicted_lower":encoded(predicted.lower().original())?,"predicted_upper":encoded(predicted.upper().original())?,"measured_lower":encoded(record.measured().lower().original())?,"measured_upper":encoded(record.measured().upper().original())?,"error_lower":encoded(lower_error)?,"error_upper":encoded(upper_error)?,"numeric_work":work.spent()}),
         )
     })();
     match result {
         Ok(value) => value,
         Err(refusal) => json!({"phase":"service-calibration-refused","refusal":refusal}),
     }
+}
+
+fn attribution(source: &CostEvidenceSource<'_>) -> Value {
+    let value = CostSourceAttribution::from_source(source);
+    json!({"host_id":value.host_id,"boot_id":value.boot_id,"offer_generation":value.offer_generation,
+        "host_profile":value.host_profile,"capability_id":value.capability_id,"kind_id":value.kind_id,
+        "kind_contract_revision":value.kind_contract_revision,"execution_profile_id":value.execution_profile_id,
+        "implementation_id":value.implementation_id,"artifact_id":value.implementation_artifact,
+        "resource":value.resource,"sign_id":value.sign_id,"calibration_identity":value.calibration_identity,
+        "calibration_revision":value.calibration_revision,"observed":value.window.observed(),"expires":value.window.expires()})
 }
