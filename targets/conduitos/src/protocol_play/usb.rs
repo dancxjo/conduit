@@ -1,6 +1,8 @@
 //! USB storage admission preserves the ordinary shared kernel and exact owners.
 use super::*;
 
+mod storage_ingress;
+
 impl<P: I2cProvider> PreparedProtocolPlay<P> {
     #[cfg(any(
         target_arch = "x86_64",
@@ -214,10 +216,48 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
                     == crate::storage_base::transaction_factory::AUTHORIZE_IMPLEMENTATION
             })
             .ok_or(ProtocolCallRefusal::InvalidPlan)?;
-        if definition.boundary.input_fronts.len() != 1
-            || definition.boundary.input_fronts[0].internal_placement_id != authorize.placement_id
+        if definition.boundary.input_fronts.len() != 1 {
+            return Err(ProtocolCallRefusal::InvalidPlan);
+        }
+        let ingress = &definition.boundary.input_fronts[0];
+        if authorize.inputs.len() != 1
+            || ingress.external_port.value_kind != authorize.inputs[0].value_kind
         {
             return Err(ProtocolCallRefusal::InvalidPlan);
+        }
+        let placements: alloc::vec::Vec<_> = plan
+            .fragments
+            .iter()
+            .flat_map(|fragment| &fragment.placements)
+            .map(|gear| {
+                (
+                    gear.placement_id.as_str(),
+                    gear.implementation_id.as_str(),
+                    gear.base.is_some() || !gear.resources.is_empty() || !gear.authority.is_empty(),
+                )
+            })
+            .collect();
+        let connections: alloc::vec::Vec<_> = plan
+            .fragments
+            .iter()
+            .flat_map(|fragment| &fragment.connections)
+            .map(|connection| {
+                (
+                    connection.source_placement_id.as_str(),
+                    connection.sink_placement_id.as_str(),
+                )
+            })
+            .collect();
+        if !storage_ingress::authorized_route(
+            ingress.internal_placement_id.as_str(),
+            authorize.placement_id.as_str(),
+            &placements,
+            &connections,
+        ) {
+            return Err(super::preparation_diagnostic::invalid(
+                "storage-ingress",
+                "request bypasses storage authorization",
+            ));
         }
         Self::prepare_selected(
             definition,
