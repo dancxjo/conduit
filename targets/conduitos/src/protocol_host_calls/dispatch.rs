@@ -93,6 +93,8 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
         let expected = match binding.owner {
             Owner::Pure(ref owner) => owner.contract(),
             Owner::I2c(_) => I2C_CALL,
+            #[cfg(feature = "native-owner-network")]
+            Owner::EthernetFrame(_) => crate::ethernet_frame::contract::FRAME_CALL,
             #[cfg(any(
                 target_arch = "x86_64",
                 all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
@@ -267,6 +269,11 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
                 .invoke(node, call.call, call.request, input)
                 .map(Some)
                 .map_err(Refusal::Usb),
+            #[cfg(feature = "native-owner-network")]
+            Owner::EthernetFrame(owner) => owner
+                .invoke(node, call.call, call.request, input)
+                .map(Some)
+                .map_err(Refusal::EthernetFrame),
             Owner::Pure(owner) => owner.invoke(node, call.call, call.request, input),
             Owner::I2c(owner) => owner
                 .invoke(node, call.call, call.request, input)

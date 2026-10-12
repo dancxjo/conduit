@@ -121,6 +121,12 @@ impl EthernetFrameContract {
         profile: &mut ProfileCatalog,
     ) -> Result<(), String> {
         for (path, name) in [
+            ("network/ethernet-frame/frame", "EthernetFrame"),
+            ("network/ethernet-frame/transmit", "EthernetTransmitFrame"),
+            (
+                "network/ethernet-frame/acknowledgement",
+                "EthernetTransmitAcknowledgement",
+            ),
             ("network/ethernet-frame/request", "EthernetFrameRequest"),
             ("network/ethernet-frame/result", "EthernetFrameResult"),
         ] {

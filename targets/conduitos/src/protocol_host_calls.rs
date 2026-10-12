@@ -19,6 +19,22 @@ use conduit_plan_lowering::lowering::lower_plan_fragment;
 pub use crate::protocol_call_refusal::ProtocolCallRefusal;
 
 mod dispatch;
+#[cfg(all(
+    feature = "native-owner-network",
+    any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    )
+))]
+mod ethernet_preparation;
+#[cfg(all(
+    feature = "native-owner-network",
+    any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    )
+))]
+pub(crate) use ethernet_preparation::EthernetFrameAdmission;
 #[cfg(any(
     target_arch = "x86_64",
     all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
@@ -28,6 +44,8 @@ mod usb_preparation;
 enum Owner<P> {
     Pure(PureProtocolOwner),
     I2c(Box<I2cHostCall<P>>),
+    #[cfg(feature = "native-owner-network")]
+    EthernetFrame(Box<crate::ethernet_frame::owned_installation::OwnedNativeEthernetFrameHost>),
     #[cfg(any(
         target_arch = "x86_64",
         all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
@@ -402,6 +420,10 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
                 owner
                     .revoke(binding.node, HostCallId(0))
                     .map_err(Refusal::Usb)?;
+            }
+            #[cfg(feature = "native-owner-network")]
+            if let Owner::EthernetFrame(owner) = &mut binding.owner {
+                owner.cancel().map_err(Refusal::EthernetFrame)?;
             }
             if let Owner::I2c(owner) = &mut binding.owner {
                 owner
