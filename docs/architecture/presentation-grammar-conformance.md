@@ -390,3 +390,12 @@ the pending interaction request, exposes no return offer, and preserves the
 complete committed Face. This closes the committed-Todo gap in the checked
 browser cancellation/loss matrix, while live carrier/DOM recovery remains
 separate acceptance work.
+
+The zero-Body browser Fore test now completes the typed return boundary as well
+as the Face/Show exchange. Prepared Show, stale Face, invented action/target,
+unavailable Plot, over-limit name, and closed/replaced/adapter-failed Show
+proposals refuse through the canonical Face interaction contract. The supplied
+`creche.suggest` then traverses the actual checked Mask interaction Fore with
+identical encoded bytes and exact decode equality. Face bytes and absent
+Body/Wake/Plan/Play basis remain unchanged. Host effects are simulated, no Birth
+is applied, and this does not implement the visible browser zero-Body shell.

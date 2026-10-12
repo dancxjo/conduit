@@ -488,3 +488,7 @@ mod lifecycle_corpus_tests;
 #[cfg(test)]
 #[path = "owner_face_mask/committed_todo_tests.rs"]
 mod committed_todo_tests;
+
+#[cfg(test)]
+#[path = "owner_face_mask/prebirth_tests.rs"]
+mod prebirth_tests;
