@@ -98,13 +98,16 @@ pub fn select_realization_with_costs<'a>(
         if !inputs.hosts.iter().any(|host| host == context.host) {
             return Err(Refusal::UnadvertisedSubject.into());
         }
-        for (position, offer) in context.host.capabilities.iter().enumerate() {
-            if context.host.capabilities[..position]
-                .iter()
-                .any(|other| other.capability_id == offer.capability_id)
-            {
-                return Err(Refusal::AmbiguousEvidence.into());
-            }
+        // Bound already checked above and subject equality pins this inventory.
+        // Sorting borrowed IDs uses fixed scratch and creates no heap storage.
+        let mut ids = [None; MAXIMUM_COST_OFFERS_PER_HOST];
+        let count = context.host.capabilities.len();
+        for (slot, offer) in ids.iter_mut().zip(&context.host.capabilities) {
+            *slot = Some(&offer.capability_id);
+        }
+        ids[..count].sort_unstable();
+        if ids[..count].windows(2).any(|pair| pair[0] == pair[1]) {
+            return Err(Refusal::AmbiguousEvidence.into());
         }
         if inputs.contexts[..index]
             .iter()
