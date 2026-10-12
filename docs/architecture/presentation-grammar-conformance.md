@@ -366,6 +366,10 @@ exchange and is ignored in ordinary unit runs because it requires the producer.
 The producer is `verified_three_item_todo_and_completion_preserve_nonvisual_meaning`
 in the `conduit` binary test target. Run it first, then explicitly run the browser
 consumer with the same exchange path. The record's Body and terminal Signs are
-checked rather than normalized to deterministic fixture identities. This
-optional development entrance has not yet been registered as required hosted
-CI or stable acceptance.
+checked rather than normalized to deterministic fixture identities. The
+fresh producer/consumer sequence is registered as
+`check.committed-todo-mask-exchange` in the workspace gate, owned by the products
+shard. Its runner allocates a private temporary exchange, executes both exact
+test selectors, requires one passing test from each, and removes only its own
+scratch directory. Registration and local runner success do not establish
+hosted candidate/integration or stable acceptance.

@@ -250,7 +250,7 @@ impl WorkspaceShard {
             | Self::TestHostsBrowser
             | Self::TestHostsConduitos
             | Self::TestHostsWorkbench => false,
-            Self::TestProducts => false,
+            Self::TestProducts => step.id == "check.committed-todo-mask-exchange",
             Self::Portable => {
                 step.id.starts_with("check.no-std.")
                     || (step.id.starts_with("check.thumb.")
