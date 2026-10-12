@@ -381,3 +381,12 @@ through the checked interaction Fore and verifies Face/revision, Show, action,
 and target IDs. It deliberately does not submit this return to the owner;
 the producer's admitted task-1 completion remains the sole committed mutation
 in this proof, and the returned browser action is mechanism evidence.
+
+The fresh committed Todo consumer now exercises both actual before/after Faces
+against the declared add-text bound and three retired Show states. Oversized
+text refuses with the Show still available. Closed, replaced, and adapter-
+failed Shows refuse the otherwise available add action. Every refusal retains
+the pending interaction request, exposes no return offer, and preserves the
+complete committed Face. This closes the committed-Todo gap in the checked
+browser cancellation/loss matrix, while live carrier/DOM recovery remains
+separate acceptance work.
