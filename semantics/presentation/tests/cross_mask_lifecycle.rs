@@ -117,7 +117,9 @@ fn one_lulled_body_keeps_context_specific_faces_and_nonvisual_meaning() {
 #[cfg(feature = "plot-catalog")]
 #[test]
 fn context_switch_stale_show_and_invented_agency_refuse_without_changing_body() {
-    use conduit_presentation::{FaceInteraction, FaceInteractionRefusal};
+    use conduit_presentation::{
+        FaceInteraction, FaceInteractionRefusal, ManifestationFailure, ManifestationLifecycle,
+    };
 
     let body = Body::born(
         SourceDocumentId::from("source/cross-mask-agency"),
@@ -165,6 +167,40 @@ fn context_switch_stale_show_and_invented_agency_refuse_without_changing_body() 
     assert_eq!(
         interaction.validate_against(current, &library_show),
         Err(FaceInteractionRefusal::StaleShow)
+    );
+    let refreshed = Face::project(
+        &body,
+        None,
+        8,
+        FaceContext::Overview,
+        FaceFocus::Body,
+        vec![],
+    )
+    .unwrap();
+    let refreshed_show = common::available_mask_show(&refreshed.presentation);
+    assert_eq!(
+        interaction.validate_against(&refreshed.presentation, &refreshed_show),
+        Err(FaceInteractionRefusal::StaleFace)
+    );
+    let closed = show
+        .transition(
+            ManifestationLifecycle::Closed,
+            SignId::from("sign/show-closed"),
+        )
+        .unwrap();
+    assert_eq!(
+        interaction.validate_against(current, &closed),
+        Err(FaceInteractionRefusal::StaleShow)
+    );
+    let failed = show
+        .fail(
+            ManifestationFailure::AdapterUnavailable,
+            SignId::from("sign/show-lost"),
+        )
+        .unwrap();
+    assert_eq!(
+        interaction.validate_against(current, &failed),
+        Err(FaceInteractionRefusal::FailedShow)
     );
     assert_eq!(
         FaceInteraction::new(current, &show, "invented/start", &action.target, vec![], 2),
