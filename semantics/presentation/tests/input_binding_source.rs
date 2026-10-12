@@ -233,16 +233,68 @@ fn source_owned_start_remap_and_gameplay_policies_have_typed_fores() {
             Err(conduit_presentation::InputBindingCorrelationRefusal::StaleFace)
         ));
 
-        let retired = show
-            .transition(
-                conduit_presentation::ManifestationLifecycle::Closed,
-                conduit_core::SignId::from("sign/retired-input-fixture"),
+        for lifecycle in [
+            conduit_presentation::ManifestationLifecycle::Closed,
+            conduit_presentation::ManifestationLifecycle::Replaced,
+            conduit_presentation::ManifestationLifecycle::Failed,
+        ] {
+            let sign = conduit_core::SignId::from("sign/retired-input-fixture");
+            let retired = if lifecycle == conduit_presentation::ManifestationLifecycle::Failed {
+                show.fail(
+                    conduit_presentation::ManifestationFailure::AdapterUnavailable,
+                    sign,
+                )
+            } else {
+                show.transition(lifecycle, sign)
+            }
+            .unwrap();
+            assert!(matches!(
+                conduit_presentation::correlate_input_binding_proposal(&produced, &face, &retired),
+                Err(conduit_presentation::InputBindingCorrelationRefusal::Show)
+            ));
+        }
+        // A fresh Face/Show does not rescue an absent or unavailable action.
+        for unavailable in [false, true] {
+            let actions = if unavailable {
+                let mut action = face.actions[0].clone();
+                action.availability =
+                    conduit_presentation::PresentationActionAvailability::Unavailable {
+                        reason_code: "game/not-ready".into(),
+                        explanation: "Session unavailable".into(),
+                    };
+                vec![action]
+            } else {
+                vec![]
+            };
+            let changed_face = conduit_presentation::Presentation::new_with_semantics(
+                face.revision,
+                face.basis.clone(),
+                face.subjects.clone(),
+                face.relationships.clone(),
+                face.properties.clone(),
+                face.text.clone(),
+                actions,
+                face.disclosures.clone(),
             )
             .unwrap();
-        assert!(
-            conduit_presentation::correlate_input_binding_proposal(&produced, &face, &retired)
-                .is_err()
-        );
+            let changed_show = common::available_mask_show(&changed_face);
+            let mut changed = serde_json::to_value(&context).unwrap();
+            changed["face_identity"] = serde_json::json!(changed_face.identity.as_str());
+            changed["show_identity"] = serde_json::json!(changed_show.show_id.as_str());
+            let proposal = conduit_presentation::produce_checked_input_binding_proposal(
+                &custody,
+                serde_json::from_value(changed).unwrap(),
+            )
+            .unwrap();
+            assert!(matches!(
+                conduit_presentation::correlate_input_binding_proposal(
+                    &proposal,
+                    &changed_face,
+                    &changed_show
+                ),
+                Err(conduit_presentation::InputBindingCorrelationRefusal::Action)
+            ));
+        }
 
         assert_eq!(
             produced.producer_plot().checked_plot_id,
