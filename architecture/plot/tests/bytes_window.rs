@@ -1,5 +1,5 @@
 //! Generic checked opaque byte windows; no transport or class constants.
-use conduit_core::{StructuredInfoType, kind_id};
+use conduit_core::{kind_id, StructuredInfoType};
 use conduit_plot::{
     PortableExpressionNode as Node, PortableExpressionOperation as Op, PortableExpressionProgram,
     PreparedPortableExpressionEvaluator,
