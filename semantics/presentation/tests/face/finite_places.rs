@@ -109,6 +109,14 @@ fn finite_place_fixture_preserves_named_containment_and_bounded_agency() {
     )
     .unwrap()
     .presentation;
+    let specimen: conduit_presentation::Presentation = serde_json::from_str(include_str!(
+        "../../../../proof/conformance/presentation-waist/domain-derived/finite-place-face.json"
+    ))
+    .unwrap();
+    assert_eq!(
+        specimen, face,
+        "renderer specimen differs from finite domain truth"
+    );
     let linear = render_linear_presentation(&face).unwrap();
     let aural = plan_face_utterances(&face).unwrap();
     assert_eq!(

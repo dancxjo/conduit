@@ -85,3 +85,52 @@ fn native_generic_mask_preserves_open_domain_meaning_and_typed_controls() {
     );
     assert_eq!(scene.presentation(), &face);
 }
+
+#[test]
+fn native_generic_mask_preserves_finite_places_without_inventing_connectivity() {
+    let face: Presentation = serde_json::from_str(include_str!(
+        "../../../../proof/conformance/presentation-waist/domain-derived/finite-place-face.json"
+    ))
+    .unwrap();
+    let mut scene = NativeFaceScene::prepare(face.clone(), 640, 480).unwrap();
+    assert!(!scene.has_diagram());
+    let mut visible = String::new();
+    for _ in 0..scene.pages() {
+        let frame = scene.frame().unwrap();
+        assert!(frame.scene.commands().len() <= MAX_GRAPHICS_COMMANDS);
+        for command in frame.scene.commands() {
+            assert_eq!(
+                command.clip_class(),
+                conduit_presentation::GraphicsClipClass::FullyVisible
+            );
+            visible.push_str(command.payload());
+        }
+        scene.turn_page(true);
+    }
+    for name in ["Hub", "Workshop", "Crèche"] {
+        assert!(visible.contains(name), "lost {name}");
+    }
+    scene.show_details(true);
+    let details: String = scene.details.iter().map(|row| row.text.as_str()).collect();
+    assert!(details.contains("commons/contains-place"));
+    for (index, action) in face
+        .actions
+        .iter()
+        .enumerate()
+        .filter(|(_, action)| action.identity.starts_with("commons/"))
+    {
+        let (resolved, argument) = scene
+            .resolve(
+                &face.identity,
+                face.revision,
+                FaceControl {
+                    action: index,
+                    argument: None,
+                },
+            )
+            .unwrap();
+        assert_eq!(resolved, action);
+        assert!(argument.is_none());
+    }
+    assert_eq!(scene.presentation(), &face);
+}
