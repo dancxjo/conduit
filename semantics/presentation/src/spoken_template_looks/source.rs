@@ -100,91 +100,7 @@ impl PreparedSpokenTemplate {
         face: &Presentation,
         slots: &SpokenTemplateSlots,
     ) -> Result<SpokenTemplateWording, SpokenTemplateRefusal> {
-        if slots.face_id != face.identity.as_str() || slots.revision != face.revision {
-            return Err(SpokenTemplateRefusal::StaleFace);
-        }
-        let current =
-            crate::plan_face_utterances(face).map_err(|_| SpokenTemplateRefusal::Selection)?;
-        if slots.plan_digest != current.digest {
-            return Err(SpokenTemplateRefusal::StaleFace);
-        }
-        let leaf = StructuredInfoType::leaf("value/text".into())
-            .map_err(|_| SpokenTemplateRefusal::Shape)?;
-        let mut fields = Vec::new();
-        for (name, words) in [
-            "title",
-            "status",
-            "item_one",
-            "item_two",
-            "item_three",
-            "actions",
-        ]
-        .into_iter()
-        .zip(&slots.values)
-        {
-            if words.len() > MAX_SPOKEN_TEMPLATE_SLOT_BYTES {
-                return Err(SpokenTemplateRefusal::Bound);
-            }
-            fields.push(
-                StructuredFieldValue::new(
-                    name,
-                    StructuredInfoValue::leaf(leaf.clone(), words.as_bytes().to_vec())
-                        .map_err(|_| SpokenTemplateRefusal::Selection)?,
-                )
-                .map_err(|_| SpokenTemplateRefusal::Selection)?,
-            );
-        }
-        let input = StructuredInfoValue::record(self.program.input_type.clone(), fields)
-            .map_err(|_| SpokenTemplateRefusal::Selection)?
-            .canonical_bytes()
-            .map_err(|_| SpokenTemplateRefusal::Selection)?;
-        let output = self
-            .program
-            .evaluate(&input)
-            .map_err(|_| SpokenTemplateRefusal::Evaluation)?;
-        let value = validate_canonical_structured_value(&output)
-            .map_err(|_| SpokenTemplateRefusal::Evaluation)?;
-        let identity = value
-            .record_field("identity")
-            .map_err(|_| SpokenTemplateRefusal::Evaluation)?
-            .ok_or(SpokenTemplateRefusal::Evaluation)?
-            .primitive_bytes("value/text")
-            .map_err(|_| SpokenTemplateRefusal::Evaluation)?;
-        if identity != self.identity.as_bytes() {
-            return Err(SpokenTemplateRefusal::Evaluation);
-        }
-        let revision = value
-            .record_field("revision")
-            .map_err(|_| SpokenTemplateRefusal::Evaluation)?
-            .ok_or(SpokenTemplateRefusal::Evaluation)?
-            .primitive_bytes("value/u16")
-            .map_err(|_| SpokenTemplateRefusal::Evaluation)?;
-        if revision != 1_u16.to_le_bytes() {
-            return Err(SpokenTemplateRefusal::Evaluation);
-        }
-        let mut segments = vec![];
-        for name in ["a", "b", "c", "d", "e", "f", "g", "h", "i"] {
-            let bytes = value
-                .record_field(name)
-                .map_err(|_| SpokenTemplateRefusal::Evaluation)?
-                .ok_or(SpokenTemplateRefusal::Evaluation)?
-                .primitive_bytes("value/text")
-                .map_err(|_| SpokenTemplateRefusal::Evaluation)?;
-            let words =
-                core::str::from_utf8(bytes).map_err(|_| SpokenTemplateRefusal::Evaluation)?;
-            if !words.is_empty() {
-                segments.push(words.to_string());
-            }
-        }
-        for essential in slots.values.iter().filter(|slot| !slot.is_empty()) {
-            if !segments.contains(essential) {
-                return Err(SpokenTemplateRefusal::MissingEssential);
-            }
-        }
-        let wording = segments.join(" ");
-        if wording.is_empty() || wording.len() > MAX_SPOKEN_TEMPLATE_BYTES {
-            return Err(SpokenTemplateRefusal::Bound);
-        }
+        let (segments, wording) = render_program(&self.program, &self.identity, face, slots)?;
         Ok(SpokenTemplateWording {
             template_identity: self.identity.clone(),
             template_revision: 1,
@@ -201,4 +117,129 @@ impl PreparedSpokenTemplate {
             wording,
         })
     }
+}
+
+/// Validation-only replay of the static checked expression. It creates no
+/// prepared producer, selected Plan, Host admission, receipt or Look grant.
+pub(crate) fn expected_spoken_template_wording(
+    face: &Presentation,
+    entry: &str,
+) -> Result<(Vec<String>, String), SpokenTemplateRefusal> {
+    let identity = match entry {
+        "spoken/brief-template" => "spoken/brief@1",
+        "spoken/expanded-template" => "spoken/expanded@1",
+        _ => return Err(SpokenTemplateRefusal::Source),
+    };
+    let checked = check_syntax_document(
+        &parse_syntax_document(SPOKEN_TEMPLATE_LOOKS_SOURCE),
+        &StartupCatalog::new(),
+    )
+    .map_err(|_| SpokenTemplateRefusal::Source)?;
+    let expanded = expand_canonical_plot_for_authoring(&checked, entry, &ProfileCatalog::new())
+        .map_err(|_| SpokenTemplateRefusal::Source)?;
+    let [gear] = expanded.expanded.gears.as_slice() else {
+        return Err(SpokenTemplateRefusal::Shape);
+    };
+    let [field] = gear.configuration.as_slice() else {
+        return Err(SpokenTemplateRefusal::Shape);
+    };
+    let ("program", ConfigurationValue::Text(encoded)) = (field.key.as_str(), &field.value) else {
+        return Err(SpokenTemplateRefusal::Shape);
+    };
+    let program = PortableExpressionProgram::from_canonical_hex(encoded)
+        .map_err(|_| SpokenTemplateRefusal::Shape)?;
+    let slots = prepare_spoken_template_slots(face, &[])?;
+    render_program(&program, identity, face, &slots)
+}
+
+fn render_program(
+    program: &PortableExpressionProgram,
+    expected_identity: &str,
+    face: &Presentation,
+    slots: &SpokenTemplateSlots,
+) -> Result<(Vec<String>, String), SpokenTemplateRefusal> {
+    if slots.face_id != face.identity.as_str() || slots.revision != face.revision {
+        return Err(SpokenTemplateRefusal::StaleFace);
+    }
+    let current =
+        crate::plan_face_utterances(face).map_err(|_| SpokenTemplateRefusal::Selection)?;
+    if slots.plan_digest != current.digest {
+        return Err(SpokenTemplateRefusal::StaleFace);
+    }
+    let leaf =
+        StructuredInfoType::leaf("value/text".into()).map_err(|_| SpokenTemplateRefusal::Shape)?;
+    let mut fields = Vec::new();
+    for (name, words) in [
+        "title",
+        "status",
+        "item_one",
+        "item_two",
+        "item_three",
+        "actions",
+    ]
+    .into_iter()
+    .zip(&slots.values)
+    {
+        if words.len() > MAX_SPOKEN_TEMPLATE_SLOT_BYTES {
+            return Err(SpokenTemplateRefusal::Bound);
+        }
+        fields.push(
+            StructuredFieldValue::new(
+                name,
+                StructuredInfoValue::leaf(leaf.clone(), words.as_bytes().to_vec())
+                    .map_err(|_| SpokenTemplateRefusal::Selection)?,
+            )
+            .map_err(|_| SpokenTemplateRefusal::Selection)?,
+        );
+    }
+    let input = StructuredInfoValue::record(program.input_type.clone(), fields)
+        .map_err(|_| SpokenTemplateRefusal::Selection)?
+        .canonical_bytes()
+        .map_err(|_| SpokenTemplateRefusal::Selection)?;
+    let output = program
+        .evaluate(&input)
+        .map_err(|_| SpokenTemplateRefusal::Evaluation)?;
+    let value = validate_canonical_structured_value(&output)
+        .map_err(|_| SpokenTemplateRefusal::Evaluation)?;
+    let identity = value
+        .record_field("identity")
+        .map_err(|_| SpokenTemplateRefusal::Evaluation)?
+        .ok_or(SpokenTemplateRefusal::Evaluation)?
+        .primitive_bytes("value/text")
+        .map_err(|_| SpokenTemplateRefusal::Evaluation)?;
+    if identity != expected_identity.as_bytes() {
+        return Err(SpokenTemplateRefusal::Evaluation);
+    }
+    let revision = value
+        .record_field("revision")
+        .map_err(|_| SpokenTemplateRefusal::Evaluation)?
+        .ok_or(SpokenTemplateRefusal::Evaluation)?
+        .primitive_bytes("value/u16")
+        .map_err(|_| SpokenTemplateRefusal::Evaluation)?;
+    if revision != 1_u16.to_le_bytes() {
+        return Err(SpokenTemplateRefusal::Evaluation);
+    }
+    let mut segments = vec![];
+    for name in ["a", "b", "c", "d", "e", "f", "g", "h", "i"] {
+        let bytes = value
+            .record_field(name)
+            .map_err(|_| SpokenTemplateRefusal::Evaluation)?
+            .ok_or(SpokenTemplateRefusal::Evaluation)?
+            .primitive_bytes("value/text")
+            .map_err(|_| SpokenTemplateRefusal::Evaluation)?;
+        let words = core::str::from_utf8(bytes).map_err(|_| SpokenTemplateRefusal::Evaluation)?;
+        if !words.is_empty() {
+            segments.push(words.to_string());
+        }
+    }
+    for essential in slots.values.iter().filter(|slot| !slot.is_empty()) {
+        if !segments.contains(essential) {
+            return Err(SpokenTemplateRefusal::MissingEssential);
+        }
+    }
+    let wording = segments.join(" ");
+    if wording.is_empty() || wording.len() > MAX_SPOKEN_TEMPLATE_BYTES {
+        return Err(SpokenTemplateRefusal::Bound);
+    }
+    Ok((segments, wording))
 }

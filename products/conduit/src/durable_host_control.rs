@@ -78,9 +78,6 @@ pub(crate) fn has_remote_mask_action(face: &Presentation) -> bool {
     })
 }
 
-#[cfg(unix)]
-#[path = "durable_host_control/client_frame.rs"]
-mod client_frame;
 #[path = "durable_host_control/body.rs"]
 mod body;
 #[path = "durable_host_control/body_birth.rs"]
@@ -90,6 +87,9 @@ mod body_run;
 #[cfg(unix)]
 #[path = "durable_host_control/browser.rs"]
 pub(crate) mod browser;
+#[cfg(unix)]
+#[path = "durable_host_control/client_frame.rs"]
+mod client_frame;
 #[cfg(unix)]
 #[path = "durable_host_control/direct_spoken.rs"]
 pub(crate) mod direct_spoken;

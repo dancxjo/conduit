@@ -32,6 +32,14 @@ impl crate::StdHost {
         &self,
         face: &Presentation,
     ) -> Result<PreparedDirectSpokenMask, String> {
+        self.prepare_direct_spoken_mask_named(face, "owner_direct_spoken_mask")
+    }
+
+    pub(crate) fn prepare_direct_spoken_mask_named(
+        &self,
+        face: &Presentation,
+        plot_name: &str,
+    ) -> Result<PreparedDirectSpokenMask, String> {
         face.validate()
             .map_err(|error| format!("prepare direct Face: {error:?}"))?;
         // Refuse an oversized reading before sealing an advertised route.
@@ -44,7 +52,6 @@ impl crate::StdHost {
         conduit_tongues::install_speech_synthesis_catalog(&mut startup, &mut profiles)?;
         conduit_tongues::install_speech_commit_catalog(&mut startup, &mut profiles)?;
         conduit_semantic_catalog::install_sound_catalogs(&mut startup, &mut profiles)?;
-        let plot_name = "owner_direct_spoken_mask";
         let checked = check_syntax_document(&parse_syntax_document(&source(plot_name)), &startup)
             .map_err(|error| format!("check direct spoken Mask: {error:?}"))?;
         let authoring = expand_canonical_plot_for_authoring(&checked, plot_name, &profiles)

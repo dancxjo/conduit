@@ -101,6 +101,7 @@ pub trait ExternalForeOutputAdapter {
 }
 pub mod direct_spoken_mask;
 pub mod direct_spoken_mask_runtime;
+pub mod direct_spoken_template_mask;
 #[cfg(feature = "burn-model")]
 pub mod hosted_burn_work;
 pub mod hosted_linguistics;
@@ -135,6 +136,7 @@ pub mod spoken_mask_journey;
 pub mod spoken_mask_runtime;
 #[cfg(test)]
 mod spoken_mask_runtime_tests;
+pub mod spoken_template_reading;
 pub mod terminal_face_mask;
 pub mod terminal_mask_execution;
 mod thermostat_scan;
