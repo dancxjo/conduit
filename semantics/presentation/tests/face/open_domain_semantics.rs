@@ -80,6 +80,10 @@ fn ordinary_plot_contributes_universal_truth_without_an_application_view() {
     )
     .unwrap();
 
+    let specimen: conduit_presentation::Presentation = serde_json::from_str(include_str!(
+        "../../../../proof/conformance/presentation-waist/domain-derived/open-domain-face.json"
+    )).unwrap();
+    assert_eq!(specimen, face.presentation, "shared renderer specimen differs from its domain-owned projection");
     assert_eq!(face.presentation.interaction_context.identity, context_id);
     let navigation = PresentationNavigation::new(
         &face.presentation,
