@@ -212,3 +212,6 @@ pub use checked_source_plan::*;
 
 mod input_binding_producer;
 pub use input_binding_producer::*;
+
+mod input_binding_correlation;
+pub use input_binding_correlation::*;

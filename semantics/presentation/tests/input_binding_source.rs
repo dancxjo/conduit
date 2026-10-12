@@ -1,4 +1,5 @@
 //! Checked source declaration/expansion only; no physical binding admission.
+mod common;
 use conduit_plot::rust_binding::NativeRustBinding;
 use conduit_plot::{
     check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
@@ -36,17 +37,58 @@ fn source_owned_start_remap_and_gameplay_policies_have_typed_fores() {
         let expanded = expand_canonical_plot_for_authoring(&checked, name, &profiles).unwrap();
         assert_eq!(expanded.input_bindings.len(), 1);
         assert_eq!(expanded.output_bindings.len(), 1);
+        // Domain fixture for correlation, not a game execution or physical controller.
+        let action_id = if name == "gameplay-fire-binding" {
+            "game/shoot"
+        } else {
+            "game/start"
+        };
+        let face = conduit_presentation::Presentation::new_with_semantics(
+            7,
+            conduit_presentation::PresentationBasis {
+                body_id: None,
+                wake_id: None,
+                source_document_id: None,
+                checked_plot_id: None,
+                expanded_plot_id: None,
+                plan_id: None,
+                active_play_id: None,
+                sign_ids: vec![],
+            },
+            vec![conduit_presentation::PresentationSubject {
+                identity: "game/session".into(),
+                role: conduit_presentation::PresentationRole::Semantic(conduit_core::kind_id(
+                    "game/session",
+                )),
+                name: "Game session".into(),
+            }],
+            vec![],
+            vec![],
+            vec![],
+            vec![conduit_presentation::PresentationAction {
+                identity: action_id.into(),
+                intent: action_id.into(),
+                target: "game/session".into(),
+                name: "Activate".into(),
+                arguments: vec![],
+                disclosure: conduit_presentation::PresentationDisclosureLevel::Primary,
+                availability: conduit_presentation::PresentationActionAvailability::Available,
+            }],
+            vec![],
+        )
+        .unwrap();
+        let show = common::available_mask_show(&face);
         let context = ActionInputBindingProposalInfo::new(
             true,
             "boot/current".into(),
             "control/caller-forged".into(),
             "Caller label".into(),
-            "face/current".into(),
+            face.identity.as_str().into(),
             "host/current".into(),
             "plan/current-input".into(),
             2,
             GeneratedActionAffordance::new("game/caller-forged".into(), 7).unwrap(),
-            "show/current".into(),
+            show.show_id.as_str().into(),
             1,
         )
         .unwrap();
@@ -151,6 +193,57 @@ fn source_owned_start_remap_and_gameplay_policies_have_typed_fores() {
             conduit_presentation::produce_checked_input_binding_proposal(&custody, context.clone())
                 .unwrap();
         assert_eq!(produced.producer_plan_id(), &plan.plan_id);
+        let correlated =
+            conduit_presentation::correlate_input_binding_proposal(&produced, &face, &show)
+                .unwrap();
+        assert_eq!(correlated.action().identity, action_id);
+        assert_eq!(correlated.action().target, "game/session");
+        // Correlation must reject independently stale identities and revisions.
+        for (field, value, expected) in [
+            (
+                "face_identity",
+                serde_json::json!("face/stale"),
+                conduit_presentation::InputBindingCorrelationRefusal::StaleFace,
+            ),
+            (
+                "show_identity",
+                serde_json::json!("show/stale"),
+                conduit_presentation::InputBindingCorrelationRefusal::StaleShow,
+            ),
+        ] {
+            let mut changed = serde_json::to_value(&context).unwrap();
+            changed[field] = value;
+            let changed = serde_json::from_value(changed).unwrap();
+            let stale =
+                conduit_presentation::produce_checked_input_binding_proposal(&custody, changed)
+                    .unwrap();
+            assert!(
+                matches!(conduit_presentation::correlate_input_binding_proposal(&stale, &face, &show), Err(actual) if actual == expected)
+            );
+        }
+        let mut changed = serde_json::to_value(&context).unwrap();
+        changed["offered_action"]["source_presentation_revision"] = serde_json::json!(6);
+        let stale = conduit_presentation::produce_checked_input_binding_proposal(
+            &custody,
+            serde_json::from_value(changed).unwrap(),
+        )
+        .unwrap();
+        assert!(matches!(
+            conduit_presentation::correlate_input_binding_proposal(&stale, &face, &show),
+            Err(conduit_presentation::InputBindingCorrelationRefusal::StaleFace)
+        ));
+
+        let retired = show
+            .transition(
+                conduit_presentation::ManifestationLifecycle::Closed,
+                conduit_core::SignId::from("sign/retired-input-fixture"),
+            )
+            .unwrap();
+        assert!(
+            conduit_presentation::correlate_input_binding_proposal(&produced, &face, &retired)
+                .is_err()
+        );
+
         assert_eq!(
             produced.producer_plot().checked_plot_id,
             expanded.expanded.checked_plot_id
