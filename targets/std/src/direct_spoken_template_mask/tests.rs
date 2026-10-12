@@ -16,6 +16,16 @@ impl ExternalForeOutputAdapter for Capture {
 #[test]
 #[ignore = "requires real eSpeak, native coverage, artifact directory and actual retained Face"]
 fn native_provider_acknowledges_both_template_openings_on_the_same_actual_face() {
+    prove_templates(false);
+}
+
+#[test]
+#[ignore = "requires real eSpeak, native coverage, artifact directory and actual retained Face"]
+fn native_provider_completes_both_templates_on_the_same_actual_face() {
+    prove_templates(true);
+}
+
+fn prove_templates(complete: bool) {
     let face_path =
         std::path::PathBuf::from(std::env::var_os("CONDUIT_SPOKEN_TEMPLATE_FACE").unwrap());
     let coverage_path = std::path::PathBuf::from(
@@ -60,10 +70,19 @@ fn native_provider_acknowledges_both_template_openings_on_the_same_actual_face()
             Duration::from_secs(30),
         )
         .unwrap();
-    let artifact = crate::hosted_wav_artifact::WavArtifactSelection::per_play_root(
+    let artifact = crate::hosted_wav_artifact::WavArtifactSelection::per_play_root_with_limits(
         artifacts.clone(),
         config.boot_id.clone(),
         config.offer_generation,
+        if complete {
+            crate::hosted_wav_artifact::WavArtifactRetentionLimits::new(
+                128,
+                128 * (44 + 30 * 48_000 * 4),
+            )
+            .unwrap()
+        } else {
+            crate::hosted_wav_artifact::WavArtifactRetentionLimits::DEFAULT
+        },
     )
     .unwrap();
     let mut host = StdHost::new_with_composition(config, crate::StdHostComposition::reference());
@@ -153,6 +172,36 @@ fn native_provider_acknowledges_both_template_openings_on_the_same_actual_face()
             .capabilities
             .retain(|offer| !source_ids.contains(&offer.capability_id));
         assert!(preparation.validate_template_host(&missing_source).is_err());
+        if complete {
+            let mut session = host
+                .execute_prepared_spoken_template_opening(
+                    &face,
+                    fragment,
+                    preparation,
+                    reading,
+                    &RunControl::default(),
+                )
+                .unwrap();
+            assert_eq!(session.template(), &expected);
+            assert!(session.finish().is_err());
+            let show = session.show().clone();
+            while !session.complete() {
+                let before = session.completed_count();
+                let execution = session
+                    .read_next(&mut host, &face, &show, &RunControl::default())
+                    .unwrap();
+                assert!(execution.wav_path.starts_with(&artifacts));
+                assert_eq!(session.completed_count(), before + 1);
+            }
+            let summary = session.finish().unwrap();
+            assert_eq!(summary.template, expected);
+            assert_eq!(summary.completed_wording_bytes, expected.wording.len());
+            assert!(session
+                .read_next(&mut host, &face, &show, &RunControl::default())
+                .is_err());
+            evidence.push(serde_json::json!({"look":look,"execution":summary}));
+            continue;
+        }
         let input = ExternalForeInput {
             front_port_id: port_id("face"),
             track: ConnectionTrack::Payload,
@@ -216,7 +265,11 @@ fn native_provider_acknowledges_both_template_openings_on_the_same_actual_face()
         );
     }
     assert_eq!(mask_plans.len(), 2);
-    let path = artifacts.join("opening-evidence.json");
+    let path = artifacts.join(if complete {
+        "complete-evidence.json"
+    } else {
+        "opening-evidence.json"
+    });
     let mut options = std::fs::OpenOptions::new();
     options.write(true).create_new(true);
     #[cfg(unix)]
@@ -226,7 +279,7 @@ fn native_provider_acknowledges_both_template_openings_on_the_same_actual_face()
     }
     let file = options.open(path).unwrap();
     serde_json::to_writer_pretty(file, &serde_json::json!({
-        "proof_class":"real native speech provider; actual retained Face; two template opening artifacts only",
-        "complete_template_audio":false,"speaker_delivery":false,"openings":evidence,
+        "proof_class":if complete {"real native speech provider; same actual retained Face and Host; two complete ordered template artifact scripts"} else {"real native speech provider; actual retained Face; two template opening artifacts only"},
+        "complete_template_audio":complete,"speaker_delivery":false,"openings":evidence,
     })).unwrap();
 }

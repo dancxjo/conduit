@@ -694,3 +694,48 @@ remaining. This proves real software synthesis and opening artifacts, not
 installed owner template selection, complete template audio, speaker delivery,
 hearing or #5355 acceptance. Installed selection, ordered continuation/aggregate
 receipts and fresh exact-source cross-Mask execution remain required.
+
+### Installed checked spoken selection and ordered execution (in progress)
+
+The owner accepts `spoken-mask admit --look brief|expanded` and
+`spoken-mask select --look brief|expanded`. These finite choices select the
+checked source expressions; the caller supplies no script, receipt, template
+identity or Plan. Omitting `--look` preserves ordinary direct speech. `--llm`
+and a checked Look are mutually exclusive.
+
+The owner privately retains the opaque template selection alongside its route
+seal. Start revalidates current Host/Face, Mask Plan, grants and exact evaluated
+wording before transferring the sole Host to its worker. An actual completed
+opening Play/Show mints the private execution session. `read-remaining` consumes
+that session through ordered same-Host artifact Plays, advancing only after
+verified completion. Cancellation or failure retires the session; supplied
+receipts cannot advance it, and a missing session cannot fall back to ordinary
+remaining-item reading. Opening status distinguishes its acknowledged frame
+from complete-script evidence. Continuation receipts identify their checked
+reading scope and do not claim speaker delivery.
+
+Full native execution exposed synthesis overflow with both 256-byte and
+192-byte frames. Provenance identifiers can take substantially longer to speak
+than ordinary prose of the same byte length. The current lossless framing uses
+96-byte word/UTF-8 boundaries with at most 64 frames, retaining the existing
+per-Play 30-second PCM and segment limits. The actual retained Todo scripts
+partition into 55/56 frames without dropping or rewriting content. The
+comparison proof explicitly selects the existing 128-artifact retention pool
+before Host planning so both scripts fit on one Host; ordinary owner retention
+remains unchanged. This is a capacity admission, not evidence that synthesis
+has completed. Revised native execution and installed-owner selection tests
+remain required; no full-script or issue-acceptance claim follows from this
+implementation contract.
+
+The revised explicit native-provider proof passes with 96-byte framing. Brief
+and expanded complete in 55/56 frames (4871/4918 wording bytes) on the same
+Host/Boot and captured actual Todo Face. All 111 distinct Plays retain verified
+WAVs totaling 177436680 bytes. The completion audit checks ordered frame text
+hashes, complete wording hashes, exact Face/Show references, distinct Plays,
+RIFF/WAVE extents and each artifact's declared PCM or complete-file hash scope.
+The pool is explicitly admitted for 128 artifacts before planning. This proves
+complete software synthesis and retained artifacts, not installed-owner Look
+selection, speaker delivery, hearing or #5355 acceptance. Seven owner speech
+regressions, four focused CLI/IPC tests, lossless framing and explicit
+actual-Face preparation/staleness tests pass; exact committed-head repository
+validation and fresh installed cross-Mask execution remain required.

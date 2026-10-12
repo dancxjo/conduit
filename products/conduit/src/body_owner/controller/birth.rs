@@ -111,6 +111,7 @@ impl Owner {
             pending_native_mask: None,
             attached_terminal_route: None,
             direct_spoken_route: None,
+            direct_spoken_template: None,
             llm_spoken_route: None,
             presentation_wardrobe: None,
             thermostat_live: None,

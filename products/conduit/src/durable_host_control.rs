@@ -154,6 +154,8 @@ pub(crate) struct DurableHostRuntime {
     speech_terminal: Option<serde_json::Value>,
     owner_spoken_worker: Option<body::owner_spoken::OwnerSpokenWorker>,
     owner_spoken_terminal: Option<serde_json::Value>,
+    spoken_template_session:
+        Option<conduit_std_host::spoken_template_execution::SpokenTemplateExecutionSession>,
 }
 
 impl DurableHostRuntime {
@@ -183,6 +185,7 @@ impl DurableHostRuntime {
             speech_terminal: None,
             owner_spoken_worker: None,
             owner_spoken_terminal: None,
+            spoken_template_session: None,
         }
     }
 

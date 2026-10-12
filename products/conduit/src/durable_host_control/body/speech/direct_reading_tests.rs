@@ -289,3 +289,25 @@ fn artifact_remaining_batch_refuses_stale_source_and_precancel_without_provider_
     assert_eq!(owner.local_face_snapshot().unwrap(), face);
     fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn owner_checked_spoken_looks_refuse_incompatible_face_without_replacing_route() {
+    use conduit_std_host::direct_spoken_template_mask::DirectSpokenTemplateLook;
+    let root = root("checked-spoken-owner-refusal");
+    let (host, _) = selected_host_with_artifact(&root, true);
+    let mut owner = owner(host);
+    let ordinary = owner.select_direct_spoken_look(None).unwrap();
+    let body = owner.local_face_snapshot().unwrap().basis.body_id;
+    for look in [
+        DirectSpokenTemplateLook::Brief,
+        DirectSpokenTemplateLook::Expanded,
+    ] {
+        assert!(owner.select_direct_spoken_look(Some(look)).is_err());
+        assert_eq!(owner.local_face_snapshot().unwrap().basis.body_id, body);
+        let prepared = owner.prepare_selected_direct_spoken_start().unwrap();
+        assert_eq!(prepared.seal, ordinary);
+        assert!(prepared.template_reading.is_none());
+        assert!(owner.prepare_selected_direct_spoken_read().is_err());
+    }
+    fs::remove_dir_all(root).unwrap();
+}

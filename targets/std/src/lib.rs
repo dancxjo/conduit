@@ -136,6 +136,7 @@ pub mod spoken_mask_journey;
 pub mod spoken_mask_runtime;
 #[cfg(test)]
 mod spoken_mask_runtime_tests;
+pub mod spoken_template_execution;
 pub mod spoken_template_reading;
 pub mod terminal_face_mask;
 pub mod terminal_mask_execution;
