@@ -661,7 +661,7 @@ impl<'a> BodyKernel<'a> {
                     self.supported_parsec_input_scan.then_some(&mut keys),
                     self.parsec_map.as_mut(),
                 )?;
-                if !cancelling {
+                if !cancelling && control.requested_stop().is_none() {
                     if let (Some(owner), Some(map), Some(attachment)) = (
                         self.parsec_terminal.as_mut(),
                         self.parsec_map.as_ref(),
@@ -1139,6 +1139,28 @@ impl<'a> BodyKernel<'a> {
                     host_id,
                     boot_id,
                 );
+                // Snapshot the privately owned, acknowledged Show immediately
+                // before any adapter poll. This is observation metadata only;
+                // later action admission must still recheck exact current custody.
+                let input_view_epoch = if !cancelling && control.requested_stop().is_none() {
+                    match (
+                        self.parsec_terminal.as_mut(),
+                        self.parsec_map.as_ref(),
+                        terminal.as_ref(),
+                    ) {
+                        (Some(owner), Some(map), Some(attachment)) => Some(
+                            owner
+                                .current_face_show(map, &attachment.host)?
+                                .1
+                                .show
+                                .play_sequence,
+                        ),
+                        _ => None,
+                    }
+                } else {
+                    None
+                };
+                keys.set_input_view_epoch(input_view_epoch);
                 match status {
                     SchedulerStatus::Drained => {
                         self.fore.require_normal_terminal(&self.scheduler)?;

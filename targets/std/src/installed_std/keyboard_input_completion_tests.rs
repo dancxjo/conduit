@@ -26,6 +26,7 @@ fn event(request: u32, generation: u16) -> CompletedInputEvent {
             byte_len: 3,
         },
         physical_event: u64::from(request),
+        input_view_epoch: Some(u64::from(request) + 7),
     }
 }
 
@@ -229,13 +230,73 @@ fn exact_accepted_newer_request_does_not_replace_completed_older_origin() {
             .request,
         RequestId(0)
     );
-    admission
+    let completed = admission
         .completions
         .acknowledge(operation.node, operation.call, value)
         .unwrap();
+    assert_eq!(completed.input_view_epoch, Some(7));
     admission.revoke();
     assert!(admission
         .completions
         .claim(operation.node, operation.call, value)
         .is_err());
+}
+
+#[test]
+fn captured_view_epoch_survives_later_completion_and_same_event_fanout() {
+    let mut ledger = KeyboardInputCompletions::new();
+    ledger.enable().unwrap();
+    let mut raw = event(0, 1);
+    raw.input_view_epoch = Some(11);
+    let raw_value = raw.value;
+    let mut button = event(0, 1);
+    button.realization = InputRealization::SpaceButton;
+    button.request.node = NodeId(2);
+    button.value.slot = 2;
+    button.input_view_epoch = Some(11);
+    let button_value = button.value;
+    let mut later = event(1, 2);
+    later.input_view_epoch = Some(22);
+    let later_value = later.value;
+    let allocations = crate::allocation_probe::begin();
+    ledger.record(raw).unwrap();
+    ledger.record(button).unwrap();
+    ledger.record(later).unwrap();
+    ledger.claim(NodeId(1), HostCallId(0), raw_value).unwrap();
+    let raw = ledger
+        .acknowledge(NodeId(1), HostCallId(0), raw_value)
+        .unwrap();
+    ledger
+        .claim(NodeId(2), HostCallId(0), button_value)
+        .unwrap();
+    let button = ledger
+        .acknowledge(NodeId(2), HostCallId(0), button_value)
+        .unwrap();
+    assert_eq!(raw.input_view_epoch, Some(11));
+    assert_eq!(button.input_view_epoch, raw.input_view_epoch);
+    assert_eq!(button.physical_event, raw.physical_event);
+    ledger.claim(NodeId(1), HostCallId(0), later_value).unwrap();
+    let later = ledger
+        .acknowledge(NodeId(1), HostCallId(0), later_value)
+        .unwrap();
+    assert_eq!(later.input_view_epoch, Some(22));
+    assert_eq!(allocations.finish(), 0);
+    assert!(ledger
+        .acknowledge(NodeId(1), HostCallId(0), raw_value)
+        .is_err());
+}
+
+#[test]
+fn absent_view_context_remains_absent_in_owned_completion() {
+    let mut ledger = KeyboardInputCompletions::new();
+    ledger.enable().unwrap();
+    let mut input = event(0, 1);
+    input.input_view_epoch = None;
+    let value = input.value;
+    ledger.record(input).unwrap();
+    ledger.claim(NodeId(1), HostCallId(0), value).unwrap();
+    let consumed = ledger.acknowledge(NodeId(1), HostCallId(0), value).unwrap();
+    assert_eq!(consumed.input_view_epoch, None);
+    // No view is synthesized from request or public value identity.
+    assert!(ledger.claim(NodeId(1), HostCallId(0), value).is_err());
 }

@@ -10,6 +10,8 @@ pub(super) struct CompletedInputEvent {
     pub(super) request: HostCallRequest,
     pub(super) value: ValueRef,
     pub(super) physical_event: u64,
+    /// Captured private view epoch; this observation stamp grants no authority.
+    pub(super) input_view_epoch: Option<u64>,
 }
 
 struct Slot {
@@ -99,7 +101,7 @@ impl KeyboardInputCompletions {
         node: NodeId,
         call: HostCallId,
         value: ValueRef,
-    ) -> Result<(), String> {
+    ) -> Result<CompletedInputEvent, String> {
         if !self.enabled() {
             return Err("completed input custody is revoked or absent".into());
         }
@@ -117,8 +119,8 @@ impl KeyboardInputCompletions {
         if !slot.as_ref().is_some_and(|slot| slot.claimed) {
             return Err("completed input event was not claimed before acknowledgement".into());
         }
-        *slot = None;
-        Ok(())
+        let taken = slot.take().ok_or("completed input event disappeared")?;
+        Ok(taken.event)
     }
     pub(super) fn revoke(&mut self) {
         self.revoked = true;
