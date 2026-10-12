@@ -21,3 +21,5 @@ paths in run wrappers are provenance, not portable commands.
 This proves one-block emulator execution only. Continuous refill, 64-TRB
 reuse, full fault/cancellation coverage, other architecture cells and physical
 or audible output remain unproven. None of these archives closes #5254/#5258.
+
+The retained allocation measurement uses product kernel `68dc118ca8f31fe0f43903423059376f0f00c4a8`. It observes zero GlobalAlloc allocation and reallocation attempts from start through the execution loop, before cancellation. Eight actual packets carry the exact 1536 PCM bytes and the original Play retires. This proves the one-block path only; sustained ring reuse remains unproven. The archive retains the serial receipt, wire observations, PCM, Root request and kernel build identity.
