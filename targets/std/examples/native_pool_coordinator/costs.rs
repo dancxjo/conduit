@@ -46,6 +46,8 @@ struct Input {
     input: ValuePayload,
     candidates: Vec<Candidate>,
     tolerance: ValuePayload,
+    #[serde(default)]
+    admission: Option<super::dispatch::Admission>,
 }
 fn quantity(value: &ValuePayload, work: &mut ExactNumericWork) -> Result<RationalQuantity, String> {
     if value.value_kind.as_str() != RATIONAL_QUANTITY_ID {
@@ -92,7 +94,10 @@ fn prompt(value: &[u8]) -> Result<(), CostEvidenceRefusal> {
         .map(|_| ())
         .map_err(|_| CostEvidenceRefusal::InvalidWorkInput)
 }
-fn prepare(input: &Input) -> Result<serde_json::Value, String> {
+fn prepare(
+    input: &Input,
+    io: Option<(&mut impl Read, &mut impl Write)>,
+) -> Result<serde_json::Value, String> {
     if input.source.len() > 16_384
         || input.entry.is_empty()
         || input.entry.len() > 256
@@ -230,13 +235,51 @@ fn prepare(input: &Input) -> Result<serde_json::Value, String> {
         .collect();
     let prepared = NativePoolPreparedCosts::prepare(&request, preparations, &mut work)
         .map_err(|e| format!("private native costs: {e:?}"))?;
+    if let Some((reader, writer)) = io {
+        let admission = input
+            .admission
+            .as_ref()
+            .ok_or("native dispatch admission facts absent")?;
+        let revisions = samples
+            .iter()
+            .map(|sample| {
+                let revision = sample.source().calibration();
+                PoolCostCalibrationRevision::new(revision.identity().clone(), revision.revision())
+                    .map(|value| [value])
+                    .map_err(|e| format!("native current calibration: {e:?}"))
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        let evaluations = samples
+            .iter()
+            .enumerate()
+            .map(
+                |(index, sample)| conduit_plan_lowering::shared_pool_runtime::PoolCostEvaluation {
+                    host: sample.source().host(),
+                    now: &now[index],
+                    calibrations: &revisions[index],
+                    executions: &[],
+                },
+            )
+            .collect::<Vec<_>>();
+        super::dispatch::run(
+            &input.plan,
+            &input.pool,
+            request,
+            &prepared,
+            &evaluations,
+            admission,
+            reader,
+            writer,
+        )?;
+        return Ok(json!({"phase":"native-cost-controller-stopped"}));
+    }
     Ok(
         json!({"phase":"native-request-costs-prepared","prepared_candidates":prepared.accounts().len(),
         "refused_models":refused,"accounts":format!("{:?}",prepared.accounts()),"numeric_work":work.spent(),
         "input_bytes":demand.input_bytes(),"scope":"caller-admitted model estimates, not measured outcomes, authentication or dispatch"}),
     )
 }
-pub(super) fn run() -> Result<(), String> {
+pub(super) fn run(dispatch: bool) -> Result<(), String> {
     let mut input = std::io::stdin().lock();
     let mut prefix = [0; 4];
     input
@@ -251,12 +294,19 @@ pub(super) fn run() -> Result<(), String> {
         .read_exact(&mut bytes)
         .map_err(|_| "native cost document incomplete")?;
     let request = serde_json::from_slice(&bytes).map_err(|_| "native cost document invalid")?;
-    let result =
-        serde_json::to_vec(&prepare(&request)?).map_err(|_| "native cost receipt invalid")?;
+    let mut output = std::io::stdout().lock();
+    if dispatch {
+        prepare(&request, Some((&mut input, &mut output)))?;
+        return Ok(());
+    }
+    let result = serde_json::to_vec(&prepare(
+        &request,
+        None::<(&mut std::io::Empty, &mut std::io::Sink)>,
+    )?)
+    .map_err(|_| "native cost receipt invalid")?;
     if result.len() > 1024 * 1024 {
         return Err("native cost receipt extent refused".into());
     }
-    let mut output = std::io::stdout().lock();
     output
         .write_all(&(result.len() as u32).to_be_bytes())
         .and_then(|_| output.write_all(&result))
