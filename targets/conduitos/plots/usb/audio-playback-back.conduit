@@ -1,0 +1,29 @@
+# The caller admits the original PCM and completed class negotiation before
+# entering this loop. One physical offer handles observe, batch, and drain.
+plot usb-audio-playback-observation (
+    pair: UsbAudioPlaybackPair...| >> observation: UsbAudioPlaybackObservation...|
+) = ({ previous: .0, result: .1 })
+plot usb-audio-playback-admitted (
+    >> pcm: UsbAudioPcmBlock...| <= 4096B
+    ended: UsbAudioPlaybackState...| >>
+) {
+    state: UsbAudioPlaybackCell
+    route: usb-audio-playback-route()
+    join: UsbAudioPlaybackJoin
+    usb: machine/usb/isochronous-out
+    observations: usb-audio-playback-observation-route()
+    clock-batch: flow/merge/finite
+    updates: flow/merge/finite
+    pcm >> usb-audio-playback-seed() >> state.seed
+    state.current >> route
+    route >> select(UsbAudioPlaybackRoute.active, unmatched=drop) >> join.left
+    route >> select(UsbAudioPlaybackRoute.active, unmatched=drop) >> usb-audio-playback-request() >> usb.request
+    usb.result >> join.right
+    join.paired >> usb-audio-playback-observation() >> observations
+    observations >> select(UsbAudioPlaybackObservationRoute.clock, unmatched=drop) >> usb-audio-playback-clock-advance() >> clock-batch.left
+    observations >> select(UsbAudioPlaybackObservationRoute.batch, unmatched=drop) >> usb-audio-playback-batch-advance() >> clock-batch.right
+    clock-batch.merged >> updates.left
+    observations >> select(UsbAudioPlaybackObservationRoute.drain, unmatched=drop) >> usb-audio-playback-drain-advance() >> updates.right
+    updates.merged >> state.next
+    route >> select(UsbAudioPlaybackRoute.stopped, unmatched=drop) >> ended
+}

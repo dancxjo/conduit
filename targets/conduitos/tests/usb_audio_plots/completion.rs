@@ -5,7 +5,7 @@ use conduit_core::{
     StructuredInfoValue as Value,
 };
 
-fn input(
+pub(super) fn input(
     ty: &StructuredInfoType,
     path: &str,
     index: usize,

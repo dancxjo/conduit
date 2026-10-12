@@ -18,3 +18,27 @@ plot usb-audio-playback-route (
 plot usb-audio-playback-request (
     state: UsbAudioPlaybackState...| >> request: UsbIsochronousOutRequest...|
 ) = (.phase == 0 ? observe(empty) : (.phase == 1 ? batch({ packets: [{ frame: (.first-frame + 0) % 2048, wire: sequence/at(.pcm.packets, 0).wire }, { frame: (.first-frame + 1) % 2048, wire: sequence/at(.pcm.packets, 1).wire }, { frame: (.first-frame + 2) % 2048, wire: sequence/at(.pcm.packets, 2).wire }, { frame: (.first-frame + 3) % 2048, wire: sequence/at(.pcm.packets, 3).wire }, { frame: (.first-frame + 4) % 2048, wire: sequence/at(.pcm.packets, 4).wire }, { frame: (.first-frame + 5) % 2048, wire: sequence/at(.pcm.packets, 5).wire }, { frame: (.first-frame + 6) % 2048, wire: sequence/at(.pcm.packets, 6).wire }, { frame: (.first-frame + 7) % 2048, wire: sequence/at(.pcm.packets, 7).wire }] }) : drain(empty)))
+
+type UsbAudioPlaybackObservation = {
+    previous: UsbAudioPlaybackState
+    result: UsbIsochronousOutResult
+}
+plot usb-audio-playback-clock-advance (
+    observation: UsbAudioPlaybackObservation...| >> state: UsbAudioPlaybackState...|
+) = (.previous.terminal || .previous.phase != 0 ? { pcm: .previous.pcm, first-frame: .previous.first-frame, phase: .previous.phase, terminal: true } : (!(.result is snapshot) ? { pcm: .previous.pcm, first-frame: .previous.first-frame, phase: 0, terminal: true } : (.result.snapshot.current-microframe < 16384 && .result.snapshot.scheduling-threshold <= 248 && .result.snapshot.service-interval-microframes == 8 && .result.snapshot.maximum-packet-bytes == 192 && .result.snapshot.pending-packets == 0 && .result.snapshot.maximum-pending-packets == 8 && .result.snapshot.dma-resource-bytes == 3072 ? { pcm: .previous.pcm, first-frame: ((.result.snapshot.current-microframe / 8) + 32) % 2048, phase: 1, terminal: false } : { pcm: .previous.pcm, first-frame: .previous.first-frame, phase: 0, terminal: true })))
+
+plot usb-audio-playback-batch-advance (
+    observation: UsbAudioPlaybackObservation...| >> state: UsbAudioPlaybackState...|
+) = (.previous.terminal || .previous.phase != 1 ? { pcm: .previous.pcm, first-frame: .previous.first-frame, phase: .previous.phase, terminal: true } : (!(.result is completed) ? { pcm: .previous.pcm, first-frame: .previous.first-frame, phase: 1, terminal: true } : (sequence/length(.result.completed.packets) != 8 ? { pcm: .previous.pcm, first-frame: .previous.first-frame, phase: 1, terminal: true } : (((((sequence/at(.result.completed.packets, 0).frame == (.previous.first-frame + 0) % 2048 && sequence/at(.result.completed.packets, 0).requested == 192 && sequence/at(.result.completed.packets, 0).actual == 192) && (sequence/at(.result.completed.packets, 1).frame == (.previous.first-frame + 1) % 2048 && sequence/at(.result.completed.packets, 1).requested == 192 && sequence/at(.result.completed.packets, 1).actual == 192)) && ((sequence/at(.result.completed.packets, 2).frame == (.previous.first-frame + 2) % 2048 && sequence/at(.result.completed.packets, 2).requested == 192 && sequence/at(.result.completed.packets, 2).actual == 192) && (sequence/at(.result.completed.packets, 3).frame == (.previous.first-frame + 3) % 2048 && sequence/at(.result.completed.packets, 3).requested == 192 && sequence/at(.result.completed.packets, 3).actual == 192))) && (((sequence/at(.result.completed.packets, 4).frame == (.previous.first-frame + 4) % 2048 && sequence/at(.result.completed.packets, 4).requested == 192 && sequence/at(.result.completed.packets, 4).actual == 192) && (sequence/at(.result.completed.packets, 5).frame == (.previous.first-frame + 5) % 2048 && sequence/at(.result.completed.packets, 5).requested == 192 && sequence/at(.result.completed.packets, 5).actual == 192)) && ((sequence/at(.result.completed.packets, 6).frame == (.previous.first-frame + 6) % 2048 && sequence/at(.result.completed.packets, 6).requested == 192 && sequence/at(.result.completed.packets, 6).actual == 192) && (sequence/at(.result.completed.packets, 7).frame == (.previous.first-frame + 7) % 2048 && sequence/at(.result.completed.packets, 7).requested == 192 && sequence/at(.result.completed.packets, 7).actual == 192)))) ? { pcm: .previous.pcm, first-frame: .previous.first-frame, phase: 2, terminal: false } : { pcm: .previous.pcm, first-frame: .previous.first-frame, phase: 1, terminal: true }))))
+
+plot usb-audio-playback-drain-advance (
+    observation: UsbAudioPlaybackObservation...| >> state: UsbAudioPlaybackState...|
+) = (!.previous.terminal && .previous.phase == 2 && .result is drained ? { pcm: .previous.pcm, first-frame: .previous.first-frame, phase: 3, terminal: true } : { pcm: .previous.pcm, first-frame: .previous.first-frame, phase: .previous.phase, terminal: true })
+
+type UsbAudioPlaybackObservationRoute =
+    clock UsbAudioPlaybackObservation
+    | batch UsbAudioPlaybackObservation
+    | drain UsbAudioPlaybackObservation
+plot usb-audio-playback-observation-route (
+    observation: UsbAudioPlaybackObservation...| >> route: UsbAudioPlaybackObservationRoute...|
+) = (.previous.phase == 0 ? clock(.) : (.previous.phase == 1 ? batch(.) : drain(.)))
