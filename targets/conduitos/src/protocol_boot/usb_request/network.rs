@@ -37,8 +37,8 @@ impl UsbEthernetNetworkRequest {
             || !(1..=60_000).contains(&self.maximum_duration_millis)
             || !(1..=4096).contains(&self.maximum_operations)
             || self.request.is_empty()
-            || self.request.len() > 1024
-            || !(1..=1024).contains(&self.maximum_response_bytes)
+            || self.request.len() > 2048
+            || !(1..=2048).contains(&self.maximum_response_bytes)
             || self.expected_response_bytes == 0
             || self.expected_response_bytes > self.maximum_response_bytes
         {
@@ -117,7 +117,7 @@ mod tests {
             );
         }
         let mut request = scope();
-        request.request = alloc::vec![1; 1025];
+        request.request = alloc::vec![1; 2049];
         assert_eq!(request.validate(), Err(ProtocolBootRequestRefusal::Bounds));
         request = scope();
         request.maximum_polls = 1_000_001;

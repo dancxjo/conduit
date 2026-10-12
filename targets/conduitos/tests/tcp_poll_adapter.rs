@@ -13,6 +13,8 @@ use std::{
     cell::{Cell, RefCell},
 };
 
+thread_local! { static MAXIMUM_WIRE_BYTES: Cell<usize> = const { Cell::new(0) }; }
+
 struct CountingAllocator;
 thread_local! { static COUNTING: Cell<bool> = const { Cell::new(false) }; static ALLOCATIONS: Cell<usize> = const { Cell::new(0) }; }
 unsafe impl GlobalAlloc for CountingAllocator {
@@ -71,6 +73,7 @@ impl TxToken for Transmit<'_> {
         assert!(frames.items < SLOTS);
         let tail = (frames.head + frames.items) % SLOTS;
         let result = f(&mut frames.wire[tail][..length]);
+        MAXIMUM_WIRE_BYTES.with(|maximum| maximum.set(maximum.get().max(length)));
         frames.length[tail] = length;
         frames.items += 1;
         result
@@ -132,6 +135,15 @@ fn options(maximum_polls: u32) -> TcpExchangeOptions {
 
 #[test]
 fn retained_session_interleaves_real_peer_frames_and_allocates_nothing_during_poll() {
+    exchange_request(b"ping");
+}
+
+#[test]
+fn full_mtu_payload_uses_admitted_storage_without_poll_allocations() {
+    exchange_request(&[0x5a; 1460]);
+}
+
+fn exchange_request(request: &[u8]) {
     let client_in = Frames::new();
     let peer_in = Frames::new();
     let mut client = FixedDevice {
@@ -144,14 +156,14 @@ fn retained_session_interleaves_real_peer_frames_and_allocates_nothing_during_po
         outgoing: &client_in,
         receives: 0,
     };
-    let mut receive = [0; 1024];
-    let mut transmit = [0; 1024];
+    let mut receive = [0; 2048];
+    let mut transmit = [0; 2048];
     let mut storage = [SocketStorage::EMPTY];
     let mut response = [0; 4];
     let mut exchange = TcpExchange::prepare(
         &mut client,
         options(1000),
-        b"ping",
+        request,
         &mut response,
         4,
         &mut receive,
@@ -171,8 +183,8 @@ fn retained_session_interleaves_real_peer_frames_and_allocates_nothing_during_po
             ))
             .unwrap();
     });
-    let mut peer_rx = [0; 1024];
-    let mut peer_tx = [0; 1024];
+    let mut peer_rx = [0; 2048];
+    let mut peer_tx = [0; 2048];
     let mut peer_storage = [SocketStorage::EMPTY];
     let mut socket = tcp::Socket::new(
         tcp::SocketBuffer::new(&mut peer_rx[..]),
@@ -181,10 +193,11 @@ fn retained_session_interleaves_real_peer_frames_and_allocates_nothing_during_po
     socket.listen(9000).unwrap();
     let mut sockets = SocketSet::new(&mut peer_storage[..]);
     let handle = sockets.add(socket);
-    let mut observed = [0; 4];
+    let mut observed = [0; 2048];
     let mut received = 0;
     let mut replied = false;
     let mut receipt = None;
+    MAXIMUM_WIRE_BYTES.with(|maximum| maximum.set(0));
     ALLOCATIONS.with(|n| n.set(0));
     COUNTING.with(|active| active.set(true));
     for poll in 1..=1000 {
@@ -205,10 +218,12 @@ fn retained_session_interleaves_real_peer_frames_and_allocates_nothing_during_po
         interface.poll_ingress_single(now, &mut peer, &mut sockets);
         interface.poll_egress(now, &mut peer, &mut sockets);
         let socket = sockets.get_mut::<tcp::Socket>(handle);
-        if socket.can_recv() && received < 4 {
-            received += socket.recv_slice(&mut observed[received..]).unwrap();
+        if socket.can_recv() && received < request.len() {
+            received += socket
+                .recv_slice(&mut observed[received..request.len()])
+                .unwrap();
         }
-        if received == 4 && !replied && socket.can_send() {
+        if received == request.len() && !replied && socket.can_send() {
             assert_eq!(socket.send_slice(b"pong").unwrap(), 4);
             socket.close();
             replied = true;
@@ -217,10 +232,13 @@ fn retained_session_interleaves_real_peer_frames_and_allocates_nothing_during_po
     COUNTING.with(|active| active.set(false));
     assert_eq!(ALLOCATIONS.with(Cell::get), 0);
     let receipt = receipt.expect("bounded actual TCP handshake, data and FIN acknowledgment");
-    assert_eq!(receipt.transmitted_bytes, 4);
+    assert_eq!(usize::from(receipt.transmitted_bytes), request.len());
     assert_eq!(receipt.received_bytes, 4);
     assert_eq!(exchange.received(), b"pong");
-    assert_eq!(observed, *b"ping");
+    assert_eq!(&observed[..received], request);
+    if request.len() == 1460 {
+        assert_eq!(MAXIMUM_WIRE_BYTES.with(Cell::get), FRAME);
+    }
     let previous = client.receives;
     assert_eq!(
         exchange.poll_step(&mut client, Instant::from_millis(1001)),
@@ -355,4 +373,41 @@ fn full_frame_queue_preserves_ingress_and_returns_after_one_receive_attempt() {
     );
     assert_eq!(device.receives, 2);
     assert_eq!(incoming.borrow().items, SLOTS);
+}
+
+#[test]
+fn preparation_preserves_storage_and_receipt_bounds_before_device_effects() {
+    for (request_bytes, response_bytes, transmit_bytes, receive_bytes, expected) in [
+        (5, 4, 4, 4, VirtioTcpError::RequestTooLarge),
+        (4, 5, 4, 4, VirtioTcpError::ResponseTooLarge),
+        (65536, 4, 65536, 4, VirtioTcpError::RequestTooLarge),
+        (4, 65536, 4, 65536, VirtioTcpError::ResponseTooLarge),
+    ] {
+        let incoming = Frames::new();
+        let outgoing = Frames::new();
+        let mut device = FixedDevice {
+            incoming: &incoming,
+            outgoing: &outgoing,
+            receives: 0,
+        };
+        let request = vec![0x5a; request_bytes];
+        let mut response = vec![0; response_bytes];
+        let mut receive = vec![0; receive_bytes];
+        let mut transmit = vec![0; transmit_bytes];
+        let mut storage = [SocketStorage::EMPTY];
+        let result = TcpExchange::prepare(
+            &mut device,
+            options(1000),
+            &request,
+            &mut response,
+            response_bytes,
+            &mut receive,
+            &mut transmit,
+            &mut storage,
+        );
+        assert!(matches!(result, Err(error) if error == expected));
+        assert_eq!(device.receives, 0);
+        assert_eq!(incoming.borrow().items, 0);
+        assert_eq!(outgoing.borrow().items, 0);
+    }
 }

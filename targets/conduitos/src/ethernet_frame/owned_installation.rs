@@ -9,7 +9,7 @@ use conduit_core::{BaseCapabilityHandle, BaseCapabilityTable, BaseOperationClaim
 use conduit_kernel::{HostCallId, NodeId, RequestId};
 use core::ptr::NonNull;
 use smoltcp::{iface::SocketStorage, time::Instant};
-const TCP_BYTES: usize = 1024;
+const TCP_BYTES: usize = 2048;
 
 pub struct OwnedEthernetNetworkInput<'a> {
     pub request: &'a [u8],

@@ -128,13 +128,13 @@ fn session_is_destroyed_before_socket_slots_and_backing_storage_are_freed() {
 fn oversized_request_and_response_are_refused_before_any_session_exists() {
     for input in [
         OwnedEthernetNetworkInput {
-            request: &[0; 1025],
+            request: &[0; 2049],
             maximum_response_bytes: 64,
             expected_response_bytes: 16,
         },
         OwnedEthernetNetworkInput {
             request: b"r",
-            maximum_response_bytes: 1025,
+            maximum_response_bytes: 2049,
             expected_response_bytes: 16,
         },
         OwnedEthernetNetworkInput {

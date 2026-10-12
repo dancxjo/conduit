@@ -128,6 +128,27 @@ fn validate(
     expected_response_bytes: usize,
     maximum_polls: u32,
 ) -> Result<(), VirtioTcpError> {
+    validate_with_storage(
+        endpoint,
+        request,
+        response,
+        expected_response_bytes,
+        maximum_polls,
+        SOCKET_BUFFER_BYTES,
+        SOCKET_BUFFER_BYTES,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn validate_with_storage(
+    endpoint: VirtioTcpEndpoint,
+    request: &[u8],
+    response: &[u8],
+    expected_response_bytes: usize,
+    maximum_polls: u32,
+    transmit_bytes: usize,
+    receive_bytes: usize,
+) -> Result<(), VirtioTcpError> {
     if endpoint.prefix_length == 0
         || endpoint.prefix_length > 32
         || endpoint.remote_port == 0
@@ -139,12 +160,14 @@ fn validate(
     {
         return Err(VirtioTcpError::InvalidEndpoint);
     }
-    if request.is_empty() || request.len() > SOCKET_BUFFER_BYTES {
+    if request.is_empty() || request.len() > transmit_bytes || request.len() > usize::from(u16::MAX)
+    {
         return Err(VirtioTcpError::RequestTooLarge);
     }
     if expected_response_bytes == 0
         || expected_response_bytes > response.len()
-        || expected_response_bytes > SOCKET_BUFFER_BYTES
+        || expected_response_bytes > receive_bytes
+        || expected_response_bytes > usize::from(u16::MAX)
     {
         return Err(VirtioTcpError::ResponseTooLarge);
     }
