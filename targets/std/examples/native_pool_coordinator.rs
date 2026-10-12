@@ -4,6 +4,8 @@
 mod freshness;
 #[path = "native_pool_coordinator/identity.rs"]
 mod identity;
+#[path = "native_pool_coordinator/overlap.rs"]
+mod overlap;
 #[path = "native_pool_coordinator/planning.rs"]
 mod planning;
 #[path = "native_pool_coordinator/reference.rs"]
@@ -16,6 +18,7 @@ fn main() {
     let result = match std::env::args().nth(1).as_deref() {
         None | Some("plan") => planning::run(),
         Some("check-sample") => samples::run(),
+        Some("check-overlap") => overlap::run(),
         Some("run-reference") => reference::run(),
         Some("run-sessions") => sessions::run(),
         Some("initialize-reference") => identity::run(),

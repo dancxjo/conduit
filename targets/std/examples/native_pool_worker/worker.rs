@@ -1,5 +1,6 @@
 //! Bounded preparation documents followed by exact selected session frames.
 //! No provider selection, retries, migration, or model download lives here.
+mod completion;
 mod description;
 mod pool_observation;
 mod sampling;
@@ -47,6 +48,7 @@ struct Operation {
 #[serde(tag = "command", rename_all = "snake_case", deny_unknown_fields)]
 enum PreparationCommand {
     Observe,
+    ObserveClock,
     Describe {
         source: String,
         entry: String,
@@ -206,6 +208,10 @@ pub(super) fn run() -> Result<(), String> {
         let command: Option<PreparationCommand> = read_document(&mut reader)?;
         let op = match command {
             None => return Ok(()),
+            Some(PreparationCommand::ObserveClock) => {
+                document(&mut writer, &completion::clock(&host)?)?;
+                continue;
+            }
             Some(PreparationCommand::Observe) => {
                 let reply = match sampling::observe(&host, &mut sampler) {
                     Ok(sample) => serde_json::json!({"phase":"observed","cost_sample":sample}),
@@ -377,10 +383,11 @@ pub(super) fn run() -> Result<(), String> {
                 SessionMessage::Cancelled { code: 1 },
             )?;
         }
+        let completed_work = completion::prepare(&member);
         host.release_local_model_pool_member(member)?;
         document(
             &mut writer,
-            &serde_json::json!({"phase":"released","terminal":format!("{terminal:?}"),"output_bytes":result.len()}),
+            &serde_json::json!({"phase":"released","terminal":format!("{terminal:?}"),"output_bytes":result.len(),"completed_work":completed_work}),
         )?;
     }
     Err("worker operation budget exhausted".into())
