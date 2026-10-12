@@ -173,3 +173,12 @@ Patchbay, Commons, unknown-domain fallback and pressure
 remain required parts of the open four-Mask matrix. Separate reconstruction
 accounts in `proof/conformance/presentation-waist` remain model proof and must
 not substitute for these execution witnesses.
+
+The Patchbay specimen in
+`plots/patchbay/workbench/model/src/cross_mask_semantics_tests.rs` derives its
+Face from the checked and expanded `plots/hello/main.conduit`, its exact graph,
+and a Plan through the existing named reference Host adapter. It requires
+Gear, Port, and Cord subjects and verifies supplied names plus relationship
+and action provenance through production linear and deterministic aural
+readers. This is source-derived domain projection with a reference Host
+fixture, not live native/browser Shows or synthesized speech.
