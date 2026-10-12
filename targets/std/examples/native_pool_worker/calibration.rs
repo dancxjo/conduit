@@ -166,6 +166,23 @@ pub(super) fn finish(
                 &estimated_at,
             )
             .map_err(|e| format!("calibration estimate use: {e:?}"))?;
+        let next = CostedForecast::bind(&completion, demand, &prepared.forecast)
+            .and_then(|forecast| {
+                forecast.with_calibration(&estimate, CostExecutionCondition::Unknown, &estimated_at)
+            })
+            .map_err(|e| format!("calibrated next service forecast: {e:?}"))?;
+        let expired = completion.window().expires();
+        if estimate
+            .validate_use(
+                &completion,
+                demand,
+                CostExecutionCondition::Unknown,
+                expired,
+            )
+            .is_ok()
+        {
+            return Err("calibration estimate unexpectedly admitted at expiry".into());
+        }
         let (lower_error, upper_error) = record.error_bounds();
         let predicted = prepared
             .forecast
@@ -177,6 +194,9 @@ pub(super) fn finish(
                 "estimated_at":estimated_at,
                 "estimate_lower":encoded(estimate.duration().lower().original())?,
                 "estimate_upper":encoded(estimate.duration().upper().original())?,
+                "next_service_lower":encoded(seconds_quantity(next.lower_seconds())?)?,
+                "next_service_upper":encoded(seconds_quantity(next.upper_seconds())?)?,
+                "expiry_refusal_checked":true,
                 "estimate_claim":"bounded mean estimate, not a future-outcome confidence bound",
                 "selection":receipt.selection(),"input_digest":receipt.input_digest(),
                 "forecast_source":attribution(&source),"completion_source":attribution(&completion),
@@ -197,4 +217,13 @@ fn attribution(source: &CostEvidenceSource<'_>) -> Value {
         "implementation_id":value.implementation_id,"artifact_id":value.implementation_artifact,
         "resource":value.resource,"sign_id":value.sign_id,"calibration_identity":value.calibration_identity,
         "calibration_revision":value.calibration_revision,"observed":value.window.observed(),"expires":value.window.expires()})
+}
+
+fn seconds_quantity(value: ExactRational) -> Result<RationalQuantity, String> {
+    RationalQuantity::new(
+        value,
+        Unit::resolve("s").map_err(|e| format!("forecast Unit: {e:?}"))?,
+        QuantityRole::Linear,
+    )
+    .map_err(|e| format!("forecast Time: {e:?}"))
 }
