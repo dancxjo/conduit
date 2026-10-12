@@ -398,6 +398,10 @@ impl<'a> BodyKernel<'a> {
         plan: &conduit_body::BodyPlan,
         prospective: &conduit_body::BodyPlayIdentity,
     ) -> Result<(), String> {
+        if !super::keyboard_input_binding::has_input_source(&self.operations) {
+            // Ordinary non-input admission retains its own refusals and ordering.
+            return Ok(());
+        }
         if self.input_origin.is_some() {
             return Err("Body input origin was prepared twice".into());
         }
@@ -418,10 +422,11 @@ impl<'a> BodyKernel<'a> {
         advertisement: &conduit_core::HostAdvertisement,
         issued: &conduit_body::BodyPlayIdentity,
     ) -> Result<(), String> {
-        self.input_origin
-            .as_mut()
-            .ok_or("Body input origin was not prepared")?
-            .confirm_body_play(advertisement, issued)
+        match self.input_origin.as_mut() {
+            Some(origin) => origin.confirm_body_play(advertisement, issued),
+            None if !super::keyboard_input_binding::has_input_source(&self.operations) => Ok(()),
+            None => Err("Body input origin was not prepared".into()),
+        }
     }
 
     /// Bind at most one selected reader and publisher to their exact lowered

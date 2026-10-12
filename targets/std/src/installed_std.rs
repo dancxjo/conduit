@@ -734,15 +734,17 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             .iter()
             .map(|operation| &operation.contract_id),
     );
-    keyboard_host.install_request_admission(
-        keyboard_input_binding::KeyboardRequestAdmission::prepare(
-            advertisement,
-            fragment,
-            &lowered.identity,
-            &lowered.host_calls,
-            &active_play,
-        )?,
-    )?;
+    if keyboard_input_binding::has_input_source(&lowered.host_calls) {
+        keyboard_host.install_request_admission(
+            keyboard_input_binding::KeyboardRequestAdmission::prepare(
+                advertisement,
+                fragment,
+                &lowered.identity,
+                &lowered.host_calls,
+                &active_play,
+            )?,
+        )?;
+    }
     let mut indicator_host = indicator_host::IndicatorHost::prepare(
         indicator,
         advertisement,
