@@ -58,6 +58,16 @@ pub(super) fn acknowledge_show(
         }
         return refresh::serve(&mut line, listener, state_dir, grant, sequence, document);
     }
+    if document.get("schema").and_then(serde_json::Value::as_str)
+        == Some(component_selection::SCHEMA)
+    {
+        if !allow_refresh {
+            return Ok(ShowGate::Stopped);
+        }
+        return component_selection::serve(
+            &mut line, listener, state_dir, grant, sequence, document,
+        );
+    }
     let outcome = match serde_json::from_value::<ShowAcknowledgement>(document) {
         Ok(ack)
             if ack.schema == SHOW_ACK_SCHEMA

@@ -18,6 +18,8 @@ use serde::{Deserialize, Serialize};
 
 #[path = "owner_face_mask/abi.rs"]
 mod abi;
+#[path = "owner_face_mask/component.rs"]
+mod component;
 #[path = "owner_face_mask/interaction.rs"]
 mod interaction;
 #[path = "owner_face_mask/view.rs"]
@@ -31,6 +33,8 @@ struct HostBasis {
     body_id: BodyId,
     host_id: HostId,
     boot_id: BootId,
+    #[serde(default)]
+    visual_constraints: Option<component::VisualConstraints>,
 }
 
 #[derive(Deserialize)]
@@ -133,10 +137,13 @@ struct ArgumentView {
 #[derive(Serialize)]
 pub(crate) struct FaceView {
     schema: &'static str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    component: Option<component::ComponentView>,
     body_id: String,
     face_id: String,
     face_revision: String,
     mask_plot_id: String,
+    mask_expanded_plot_id: String,
     mask_plan_id: String,
     mask_play_id: String,
     route: Option<RouteView>,
@@ -158,6 +165,7 @@ struct RouteView {
 }
 
 struct OwnerBrowserMask {
+    component: Option<component::ComponentView>,
     body_id: BodyId,
     presentation: Presentation,
     planned: conduit_presentation::PlannedMaskPlot,
@@ -265,6 +273,7 @@ impl OwnerBrowserMask {
         play_sequence: u64,
         interactions_admitted: bool,
     ) -> Result<Self, String> {
+        let component = component::prepare(&basis, &planned, &presentation)?;
         let terminal = planned.show_placement();
         let play = bind_active_play(
             &planned.plan.plan_id,
@@ -343,7 +352,7 @@ impl OwnerBrowserMask {
                 other => {
                     return Err(format!(
                         "owner Face Mask did not request DOM presentation: {other:?}"
-                    ))
+                    ));
                 }
             }
         };
@@ -354,6 +363,7 @@ impl OwnerBrowserMask {
             return Err("browser Mask received a different owner Face".into());
         }
         Ok(Self {
+            component,
             body_id: basis.body_id,
             presentation,
             planned,

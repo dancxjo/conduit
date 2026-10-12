@@ -3,11 +3,11 @@ use super::*;
 #[test]
 fn remote_native_mask_accepts_only_the_offered_scoped_present_binding() {
     let (mut owner, root, _) = setup();
-    let host_id = HostId::from("host/native-test");
-    let boot_id = BootId::from("boot/native/first");
+    let host_id = HostId::from("a".repeat(64));
+    let boot_id = BootId::from("b".repeat(64));
     let provider = conduit_core::BaseProviderEntry {
-        base_id: "native/test/framebuffer".into(),
-        provider_instance_id: "native/test/framebuffer/1".into(),
+        base_id: "c".repeat(64).into(),
+        provider_instance_id: format!("{}/provider/1", "c".repeat(64)).into(),
         provider_generation: 1,
         implementation_id: "conduitos/framebuffer@1".into(),
         mechanism_family: "conduitos.base/framebuffer@1".into(),
@@ -15,7 +15,7 @@ fn remote_native_mask_accepts_only_the_offered_scoped_present_binding() {
         lifecycle: conduit_core::BaseLifecycle::Ready,
         capabilities: Vec::new(),
         resources: vec![conduit_core::resource_offer(
-            "native/test/framebuffer/surface",
+            &format!("{}/surface", "c".repeat(64)),
             conduit_presentation::SHOW_RESOURCE_CLASS,
             1,
         )],
@@ -34,7 +34,7 @@ fn remote_native_mask_accepts_only_the_offered_scoped_present_binding() {
         .any(|placement| !placement.authority.is_empty()));
 
     let authorized = owner
-        .browser_authorize_window("host/native-test", Some(BROWSER_KEY), 10_000)
+        .browser_authorize_window(host_id.as_str(), Some(BROWSER_KEY), 10_000)
         .unwrap();
     let Out::Challenge { challenge, .. } = owner
         .browser_begin(
@@ -80,19 +80,19 @@ fn remote_native_mask_accepts_only_the_offered_scoped_present_binding() {
                 source: &conduit_core::HostAdvertisement,
                 sink: &conduit_core::HostAdvertisement| {
         let mut line = conduit_core::process_owned_line_offer_with_limits(
-            &format!("line/test/native-mask/{direction}"),
-            &format!("binding/test/native-mask/{direction}"),
+            &format!("line/native-owner/{}/{direction}", "d".repeat(91)),
+            &format!("binding/native-owner/{}/{direction}", "d".repeat(91)),
             conduit_core::BaseImplementationId::from("conduit.base/websocket-rfc6455@1"),
-            "base-instance/test/native-mask",
+            &format!("base-instance/native-owner/{}", "d".repeat(91)),
             source,
             sink,
             limits,
         );
         line.binding.credential = conduit_core::LinkCredentialReference::Opaque(
-            conduit_core::CredentialReferenceId::from("credential/test/native-mask"),
+            conduit_core::CredentialReferenceId::from(format!("credential/{}", "e".repeat(64))),
         );
         line.binding.authority = conduit_core::LinkAuthorityReference::Grant(
-            conduit_core::AuthorityGrantId::from("grant/test/native-mask"),
+            conduit_core::AuthorityGrantId::from(format!("grant/native-owner/{}", "d".repeat(91))),
         );
         line.contract.scope = conduit_core::LineScope::RoutedNetwork;
         line.contract.security = conduit_core::LineSecurity::AuthenticatedEncrypted;
@@ -101,6 +101,63 @@ fn remote_native_mask_accepts_only_the_offered_scoped_present_binding() {
     let face_line = line("face", &owner_offer, &native_offer);
     let return_line = line("return", &native_offer, &owner_offer);
     let face = owner.local_face_snapshot().unwrap();
+    for look in [
+        conduit_presentation::ComponentMaskLook::Compact,
+        conduit_presentation::ComponentMaskLook::Spacious,
+    ] {
+        for recipe in [
+            conduit_presentation::TodoComponentRecipe::Flat,
+            conduit_presentation::TodoComponentRecipe::Grouped,
+        ] {
+            let (component, _) = conduit_conduitos_mask_offer::prepare_component_stage_from_offer(
+                &native_offer,
+                look,
+                recipe,
+            )
+            .unwrap();
+            let mut component_face = face.clone();
+            // A real Todo owner retains multiple full Sign identities, unlike
+            // the short owner fixture used by the legacy route test.
+            for index in 0..12 {
+                component_face
+                    .basis
+                    .sign_ids
+                    .push(conduit_core::SignId::from(format!(
+                        "sign/{index}/{}",
+                        "f".repeat(64)
+                    )));
+            }
+            component_face.basis.sign_ids.sort();
+            component_face = component_face
+                .clone()
+                .with_basis(component_face.basis.clone())
+                .unwrap();
+            let component_seal = conduit_presentation::RemoteOwnerMaskRouteSeal::seal_current(
+                &owner.session,
+                &component_face,
+                &owner_offer,
+                &native_offer,
+                &component.planned_mask,
+                &face_line,
+                &return_line,
+            )
+            .unwrap();
+            let encoded = serde_json::to_vec(&component_seal).unwrap();
+            assert!(encoded.len() > 32 * 1024 && encoded.len() < 40 * 1024);
+            component_seal
+                .validate_mask_host_offer(&native_offer)
+                .unwrap();
+            let mut oversized = component_seal;
+            oversized
+                .face_basis
+                .sign_ids
+                .push(conduit_core::SignId::from("x".repeat(40 * 1024)));
+            assert_eq!(
+                oversized.validate_mask_host_offer(&native_offer),
+                Err(conduit_presentation::RemoteOwnerMaskRouteError::SealCapacityExceeded)
+            );
+        }
+    }
     let seal = conduit_presentation::RemoteOwnerMaskRouteSeal::seal_current(
         &owner.session,
         &face,
@@ -146,6 +203,15 @@ fn remote_native_mask_accepts_only_the_offered_scoped_present_binding() {
         .seal_native_mask_route(&receipt, &face_line, &return_line, expires)
         .unwrap();
     assert_eq!(selected, seal);
+    let mut forged_receipt = receipt.clone();
+    forged_receipt.host_advertisement = wrong_offer;
+    assert_eq!(
+        owner
+            .seal_native_mask_route(&forged_receipt, &face_line, &return_line, expires)
+            .unwrap_err(),
+        "native-mask-part-unavailable"
+    );
+
     let plan_id = owner
         .presentation_wardrobe
         .as_ref()

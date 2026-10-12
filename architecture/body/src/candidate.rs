@@ -20,9 +20,10 @@ pub const MAX_CANDIDATE_RESOURCES: usize = 32;
 /// the browser's exact bounded two-axis audio realization, Ratio normalization,
 /// its separately admitted DOM Mask Back, and the four exact quantity conversion
 /// and comparison roles, standalone Unit/Quantity Dimension introspection,
-/// and the portable Thermostat transition and bounded scan.
+/// the portable Thermostat transition and bounded scan, and the separately
+/// admitted source-configured component Mask Back.
 /// The encoded advertisement byte bound remains independent.
-pub const MAX_CANDIDATE_CAPABILITIES: usize = 134;
+pub const MAX_CANDIDATE_CAPABILITIES: usize = 135;
 pub const MAX_CANDIDATE_PLANNER_CAPABILITIES: usize = 8;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]

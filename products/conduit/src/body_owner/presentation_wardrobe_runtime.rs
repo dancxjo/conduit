@@ -116,6 +116,53 @@ impl Owner {
             .map_err(wardrobe_error)
     }
 
+    pub(crate) fn select_component_presentation_route(
+        &mut self,
+        seal: &RemoteOwnerMaskRouteSeal,
+    ) -> Result<(), String> {
+        let face = self.local_face_snapshot()?;
+        let local = Self::current_attached_terminal_route(
+            &self.host,
+            self.attached_terminal_route.as_ref(),
+            &self.session,
+            &face,
+        )?;
+        let speech = Self::current_direct_spoken_route(
+            &self.host,
+            self.direct_spoken_route.as_ref(),
+            &self.session,
+            &face,
+        )?;
+        let llm_speech = Self::current_llm_spoken_route(
+            &self.host,
+            self.llm_spoken_route.as_ref(),
+            &self.session,
+            &face,
+        )?;
+        let current = Self::current_presentation_routes_with_native_and_speech(
+            self.host.advertisement(),
+            self.pending_browser.as_ref(),
+            local,
+            self.pending_native_mask.as_ref(),
+            speech,
+            llm_speech,
+            &self.session,
+            &face,
+            super::super::super::current_time_millis()?,
+        );
+        self.presentation_wardrobe
+            .as_mut()
+            .ok_or("owner presentation wardrobe is not admitted")?
+            .select_plot(
+                &self.session,
+                &face,
+                &current,
+                &seal.planned_mask.mask.plot_identity,
+                &seal.route_plan_id,
+            )
+            .map_err(wardrobe_error)
+    }
+
     pub(crate) fn admit_native_presentation_route(
         &mut self,
         seal: &RemoteOwnerMaskRouteSeal,

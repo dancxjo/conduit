@@ -269,3 +269,23 @@ test("initial workload review preserves its four exact fields and retires source
   assert.deepEqual([...new Uint8Array(api.memory.buffer, inputPointer, lengths.reduce((sum, length) => sum + length, 0))],
     new Array(lengths.reduce((sum, length) => sum + length, 0)).fill(0));
 });
+
+test("canonical owner Face observation preserves exact integer bytes and copies output", () => {
+  const api = runtime();
+  const pointer = 32768;
+  const bytes = new TextEncoder().encode('{"presentation":{"revision":18446744073709551615,"properties":[{"Count":9007199254740993}]}}');
+  api.conduit_browser_owner_face_output_ptr = () => pointer;
+  api.conduit_browser_owner_face_output_capacity = () => 64 * 1024;
+  api.conduit_browser_owner_face_output_len = () => bytes.length;
+  api.conduit_browser_owner_face_canonical_snapshot = () => {
+    new Uint8Array(api.memory.buffer, pointer, bytes.length).set(bytes);
+    return 0;
+  };
+  const bridge = bindBrowserRuntimeBridge(api, { context: "canonical observation proof" });
+  const captured = bridge.ownerFaceCanonicalSnapshot();
+  assert.deepEqual(captured, bytes);
+  new Uint8Array(api.memory.buffer, pointer, bytes.length).fill(0);
+  assert.deepEqual(captured, bytes);
+  api.conduit_browser_owner_face_canonical_snapshot = () => -5;
+  assert.throws(() => bridge.ownerFaceCanonicalSnapshot(), /snapshot refused/);
+});

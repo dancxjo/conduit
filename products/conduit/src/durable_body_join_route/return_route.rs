@@ -4,6 +4,8 @@
 use super::{current_time_millis, send};
 #[path = "return_route/action.rs"]
 mod action;
+#[path = "return_route/component_selection.rs"]
+mod component_selection;
 #[path = "return_route/face_request.rs"]
 mod face_request;
 #[path = "return_route/refresh.rs"]
@@ -30,6 +32,7 @@ const GRANT_SCHEMA: &str = "conduit.body/native-owner-return-grant@1";
 const ACTION_SCHEMA: &str = "conduit.body/native-owner-return-action@1";
 const RESPONSE_SCHEMA: &str = "conduit.body/native-owner-return-response@1";
 const MAX_ACTIONS: u8 = 4;
+const MAX_PRESENTATION_REFRESHES: u8 = 4;
 const MAX_LIFETIME_MILLIS: u64 = 60_000;
 const MAX_RETURN_ACTION_BYTES: usize = 64 * 1024;
 const CHUNK_HEADER_BYTES: usize = 40;
@@ -93,6 +96,24 @@ impl Grant {
         action.schema == ACTION_SCHEMA && self.matches_request(action.token, &action.request)
     }
 
+    fn replacement(&self, next_sequence: u8) -> Result<Self, String> {
+        let now = current_time_millis()?;
+        if now >= self.expires_at_millis
+            || next_sequence == 0
+            || next_sequence > self.maximum_actions.saturating_add(1)
+        {
+            return Err("native return replacement expired or sequence invalid".into());
+        }
+        let mut grant = Self::issue(&self.receipt)?;
+        grant.expires_at_millis = self.expires_at_millis;
+        grant.remaining_millis = self
+            .expires_at_millis
+            .saturating_sub(now)
+            .min(u64::from(u32::MAX)) as u32;
+        grant.maximum_actions = self.maximum_actions.saturating_sub(next_sequence - 1);
+        Ok(grant)
+    }
+
     fn matches_request(&self, token: [u8; 32], request: &OwnerFaceSnapshotRequest) -> bool {
         let mut difference = 0_u8;
         for (offered, issued) in token.into_iter().zip(self.token) {
@@ -150,7 +171,7 @@ pub(super) fn serve(
             &grant,
             sequence,
             deadline,
-            refreshes < 2,
+            refreshes < MAX_PRESENTATION_REFRESHES,
         )? {
             show_ack::ShowGate::Accepted => {}
             show_ack::ShowGate::Refreshed(next) => {
@@ -178,7 +199,39 @@ pub(super) fn serve(
         eprintln!("CONDUIT_OWNER_RETURN_DIAGNOSTIC {{\"phase\":\"accepted\"}}");
         line.set_read_timeout(Some(left.min(Duration::from_secs(5))))
             .map_err(|error| format!("bound native return read: {error:?}"))?;
-        let response = match receive_document::<Action>(&mut line, &mut frame, &mut assembled) {
+        let document = receive_document::<serde_json::Value>(&mut line, &mut frame, &mut assembled);
+        if document
+            .as_ref()
+            .ok()
+            .and_then(|value| value.get("schema"))
+            .and_then(serde_json::Value::as_str)
+            == Some(component_selection::SCHEMA)
+        {
+            if refreshes >= MAX_PRESENTATION_REFRESHES {
+                break;
+            }
+            match component_selection::serve(
+                &mut line,
+                listener,
+                state_dir,
+                &grant,
+                sequence,
+                document.map_err(|_| "native component frame unavailable")?,
+            )? {
+                show_ack::ShowGate::Refreshed(next) => {
+                    grant = *next;
+                    refreshes += 1;
+                    sequence = 1;
+                    continue;
+                }
+                _ => break,
+            }
+        }
+        let action = document.and_then(|value| {
+            serde_json::from_value::<Action>(value)
+                .map_err(|error| format!("decode native action: {error}"))
+        });
+        let response = match action {
             Ok(_) if current_time_millis()? >= grant.expires_at_millis => Response {
                 schema: RESPONSE_SCHEMA,
                 accepted: false,
@@ -319,6 +372,27 @@ mod tests {
             last_seen_revision: None,
             last_seen_identity: None,
         }
+    }
+
+    #[test]
+    fn presentation_replacement_preserves_deadline_and_consumed_action_budget() {
+        let original = Grant::issue(&receipt()).unwrap();
+        let mut current = original.replacement(3).unwrap();
+        assert_eq!(current.maximum_actions, 2);
+        for _ in 0..MAX_PRESENTATION_REFRESHES {
+            let next = current.replacement(1).unwrap();
+            assert_ne!(next.token, current.token);
+            assert_eq!(next.expires_at_millis, original.expires_at_millis);
+            assert!(next.remaining_millis <= current.remaining_millis);
+            assert_eq!(next.maximum_actions, 2);
+            assert!(next.matches_request(next.token, &request()));
+            assert!(!next.matches_request(current.token, &request()));
+            current = next;
+        }
+        assert!(current.replacement(0).is_err());
+        assert!(current.replacement(4).is_err());
+        current.expires_at_millis = 0;
+        assert!(current.replacement(1).is_err());
     }
 
     fn receipt() -> PortableAdmissionReceipt {

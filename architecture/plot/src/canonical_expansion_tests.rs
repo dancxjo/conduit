@@ -888,6 +888,16 @@ fn selected_canonical_back_changes_only_expansion_identity_and_records_exact_pro
             "test/high",
         )
         .unwrap();
+    let borrowed = backs.checked_definition(&high.kind_id).unwrap();
+    assert_eq!(
+        borrowed.realization.source_document_id,
+        back_document.source_document_id
+    );
+    assert_eq!(
+        borrowed.plot.checked_plot_id,
+        back_document.plots[0].checked_plot_id
+    );
+    assert!(backs.checked_definition(&kind_id("test/missing")).is_none());
     let recursive =
         crate::expand_canonical_plot_with_backs(&user, "main", &profile, &backs).unwrap();
 

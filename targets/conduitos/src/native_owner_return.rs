@@ -143,11 +143,7 @@ impl NativeOwnerReturnRoute {
         let sequence = self.next_sequence;
         let deadline = CandidateDeadline::admit(MAX_ACTION_MILLIS)
             .ok_or("native-owner-return-clock-unavailable")?;
-        let mut endpoint = self.endpoint;
-        endpoint.local_port = endpoint
-            .local_port
-            .checked_add(u16::from(sequence).saturating_mul(2).saturating_sub(1))
-            .ok_or("native-owner-return-port-bound")?;
+        let endpoint = next_return_endpoint(&mut self.endpoint)?;
         let seeds = crate::native_boot_join::fresh_seeds()?;
         let device = self
             .device
@@ -216,11 +212,7 @@ impl NativeOwnerReturnRoute {
         self.active = false;
         let deadline = CandidateDeadline::admit(MAX_ACTION_MILLIS)
             .ok_or("native-owner-return-clock-unavailable")?;
-        let mut endpoint = self.endpoint;
-        endpoint.local_port = endpoint
-            .local_port
-            .checked_add(u16::from(sequence).saturating_mul(2))
-            .ok_or("native-owner-return-port-bound")?;
+        let endpoint = next_return_endpoint(&mut self.endpoint)?;
         let seeds = crate::native_boot_join::fresh_seeds()?;
         let device = self
             .device
@@ -331,8 +323,17 @@ fn exchange(
     frame: &mut [u8],
 ) -> Result<Response, &'static str> {
     send_chunks(line, encoded, frame)?;
-    native_owner_document::receive(line, MAX_RETURN_ACTION_BYTES)
-        .map_err(|_| "control-outcome-unknown")
+    native_owner_document::receive(line, MAX_RETURN_ACTION_BYTES).map_err(|error| {
+        let code = match error {
+            native_owner_document::DocumentRefusal::Receive(error) => error.as_str(),
+            native_owner_document::DocumentRefusal::Bound => "native-owner-return-document-bound",
+            native_owner_document::DocumentRefusal::Decode => "native-owner-return-document-decode",
+        };
+        crate::arch::early_write(b"CONDUIT_NATIVE_OWNER_RETURN_DOCUMENT {\"code\":\"");
+        crate::arch::early_write(code.as_bytes());
+        crate::arch::early_write(b"\"}\n");
+        "control-outcome-unknown"
+    })
 }
 
 fn send_chunks(
@@ -361,130 +362,18 @@ fn send_chunks(
     Ok(())
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::bounded_websocket::WebSocketError;
-    use conduit_presentation::{FaceInteractionArgument, UTF8_TEXT_VALUE_KIND};
-
-    #[derive(Default)]
-    struct RecordedLine(Vec<Vec<u8>>);
-
-    impl BinaryWebSocketIo for RecordedLine {
-        fn send_binary(&mut self, payload: &[u8]) -> Result<(), WebSocketError> {
-            self.0.push(payload.into());
-            Ok(())
-        }
-
-        fn receive_binary(&mut self, _: &mut [u8]) -> Result<usize, WebSocketError> {
-            Err(WebSocketError::UnexpectedFrame)
-        }
-    }
-
-    #[test]
-    fn action_chunks_are_finite_ordered_and_digest_bound() {
-        let data = vec![0x5a; 20_000];
-        let mut frame = vec![0; MAXIMUM_BINARY_MESSAGE_BYTES];
-        let mut line = RecordedLine::default();
-        send_chunks(&mut line, &data, &mut frame).unwrap();
-        assert_eq!(line.0.len(), 3);
-        let digest = Sha256::digest(&data);
-        for (index, chunk) in line.0.iter().enumerate() {
-            assert!(chunk.len() <= MAXIMUM_BINARY_MESSAGE_BYTES);
-            assert_eq!(u32::from_le_bytes(chunk[..4].try_into().unwrap()), 20_000);
-            assert_eq!(
-                u32::from_le_bytes(chunk[4..8].try_into().unwrap()) as usize,
-                index * (MAXIMUM_BINARY_MESSAGE_BYTES - CHUNK_HEADER_BYTES)
-            );
-            assert_eq!(&chunk[8..CHUNK_HEADER_BYTES], digest.as_slice());
-        }
-        assert_eq!(
-            send_chunks(&mut line, &vec![0; MAX_RETURN_ACTION_BYTES + 1], &mut frame),
-            Err("native-owner-return-action-pressure")
-        );
-    }
-
-    #[test]
-    fn exact_checked_show_and_interaction_survive_bounded_action_envelope() {
-        let face = crate::native_face_scene::tests::face(12);
-        let show = crate::native_face_scene::tests::fixture::show(&face);
-        let interaction = FaceInteraction::new(
-            &face,
-            &show,
-            "edit",
-            "a-field",
-            vec![FaceInteractionArgument {
-                name: "value".into(),
-                value_kind: UTF8_TEXT_VALUE_KIND.into(),
-                value: b"500".into(),
-            }],
-            1,
-        )
-        .unwrap();
-        let request = OwnerFaceSnapshotRequest {
-            schema: OWNER_FACE_REQUEST_SCHEMA.into(),
-            credential_id: "credential/native-fixture".into(),
-            body_id: serde_json::from_str("\"body/native-fixture\"").unwrap(),
-            part_id: serde_json::from_str("\"part/native-fixture\"").unwrap(),
-            host_id: "host/native-fixture".into(),
-            boot_id: "boot/native-fixture".into(),
-            last_seen_revision: None,
-            last_seen_identity: None,
-        };
-        let mut storage = vec![0; MAX_RETURN_ACTION_BYTES];
-        let length = serde_json_core::to_slice(
-            &Action {
-                schema: ACTION_SCHEMA,
-                token: [7; 32],
-                sequence: 1,
-                request: request.clone(),
-                show: &show,
-                interaction: &interaction,
-            },
-            &mut storage,
-        )
-        .unwrap();
-        #[derive(Deserialize)]
-        struct Decoded {
-            schema: String,
-            token: [u8; 32],
-            sequence: u8,
-            request: OwnerFaceSnapshotRequest,
-            show: MaskShow,
-            interaction: FaceInteraction,
-        }
-        let decoded: Decoded = serde_json::from_slice(&storage[..length]).unwrap();
-        assert!(length > MAXIMUM_BINARY_MESSAGE_BYTES);
-        let mut line = RecordedLine::default();
-        let mut frame = vec![0; MAXIMUM_BINARY_MESSAGE_BYTES];
-        send_chunks(&mut line, &storage[..length], &mut frame).unwrap();
-        assert!(line.0.len() >= 2);
-        assert_eq!(decoded.schema, ACTION_SCHEMA);
-        assert_eq!(decoded.token, [7; 32]);
-        assert_eq!(decoded.sequence, 1);
-        assert_eq!(decoded.request, request);
-        assert_eq!(decoded.show, show);
-        assert_eq!(decoded.interaction, interaction);
-
-        let acknowledgement_length = serde_json_core::to_slice(
-            &ShowAcknowledgement {
-                schema: SHOW_ACK_SCHEMA,
-                token: [7; 32],
-                sequence: 1,
-                request: decoded.request,
-                show: &show,
-            },
-            &mut storage,
-        )
-        .unwrap();
-        assert!(acknowledgement_length <= MAX_RETURN_ACTION_BYTES);
-        let mut acknowledged_line = RecordedLine::default();
-        send_chunks(
-            &mut acknowledged_line,
-            &storage[..acknowledgement_length],
-            &mut frame,
-        )
-        .unwrap();
-        assert!(acknowledged_line.0.len() <= 16);
-    }
+// TCP source ports identify connections, independently from replaceable grants.
+// Consume a fresh port even on uncertain outcomes; never retry an old tuple.
+fn next_return_endpoint(
+    endpoint: &mut VirtioTcpEndpoint,
+) -> Result<VirtioTcpEndpoint, &'static str> {
+    endpoint.local_port = endpoint
+        .local_port
+        .checked_add(1)
+        .ok_or("native-owner-return-port-bound")?;
+    Ok(*endpoint)
 }
+
+#[cfg(test)]
+#[path = "native_owner_return/tests.rs"]
+mod tests;

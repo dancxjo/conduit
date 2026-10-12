@@ -30,10 +30,11 @@ mod generated {
 pub use generated::{
     AdmittedNavigationDestination, ApplicationAction, ApplicationComponent,
     ApplicationComponentForm, ApplicationEventKind, ApplicationEventKindForm, ApplicationNodeState,
-    ApplicationNodeStateForm, ApplicationViewRefusal, ChoiceMultiplicity, CompositionItemKind,
-    CompositionItemKindForm, CompositionRole, CompositionRoleForm, EvidenceDisposition, Extent2,
-    FaceContributionRole, FaceContributionRoleForm, FaceUtteranceClauseKind,
-    FaceUtteranceProvenance, FaceUtteranceProvenanceAction, FaceUtteranceProvenanceActionArgument,
+    ApplicationNodeStateForm, ApplicationViewRefusal, ChoiceMultiplicity, ComponentRecipeInfo,
+    ComponentRegionInfo, ComponentSubjectSelector, CompositionItemKind, CompositionItemKindForm,
+    CompositionRole, CompositionRoleForm, EvidenceDisposition, Extent2, FaceContributionRole,
+    FaceContributionRoleForm, FaceUtteranceClauseKind, FaceUtteranceProvenance,
+    FaceUtteranceProvenanceAction, FaceUtteranceProvenanceActionArgument,
     FaceUtteranceProvenanceComposition, FaceUtteranceProvenanceDisclosure,
     FaceUtteranceProvenanceProperty, FaceUtteranceProvenanceRelationship,
     FaceUtteranceProvenanceSubject, FaceUtteranceProvenanceTemporalFact,
@@ -56,12 +57,13 @@ pub use generated::{
     VisionObjectObservation, VisionObjectObservations, VisionObservationEvidenceClass,
     VisionObservationProvenance, VisionObservationSigns, VisionOptionalPixelRegion,
     VisionPixelRegion, VisionProvenance, VisionRgbSample, VisionTextsEight, VisionTrackObservation,
-    VisionTracksFour, VisionVisibleTextObservation, VisualExperience, VisualExperienceObservation,
-    VisualExperienceObservationImpression, VisualExperienceObservationMotion,
-    VisualExperienceObservationObject, VisualExperienceObservationTrack,
-    VisualExperienceObservationVisibleText, VisualExperienceObservations, VisualExperienceRelation,
-    VisualExperienceRelations, VisualImpression, VisualImpressionDisposition,
-    VisualSelectedObservationSigns,
+    VisionTracksFour, VisionVisibleTextObservation, VisualDensityPreference, VisualExperience,
+    VisualExperienceObservation, VisualExperienceObservationImpression,
+    VisualExperienceObservationMotion, VisualExperienceObservationObject,
+    VisualExperienceObservationTrack, VisualExperienceObservationVisibleText,
+    VisualExperienceObservations, VisualExperienceRelation, VisualExperienceRelations,
+    VisualExpressionInfo, VisualImpression, VisualImpressionDisposition, VisualMotionPreference,
+    VisualPalettePreference, VisualSelectedObservationSigns,
 };
 
 mod application_event;
@@ -129,6 +131,7 @@ mod structured_info;
 mod temporal;
 mod temporal_model;
 mod temporal_wording;
+mod visual_expression;
 
 pub use application_event::*;
 pub use application_theme::*;
@@ -190,6 +193,16 @@ pub use structured_info::*;
 pub use temporal::*;
 pub use temporal_model::*;
 pub use temporal_wording::*;
+pub use visual_expression::*;
 
 mod typed_value;
 pub use typed_value::{display_typed_value, spoken_typed_value, MAX_FACE_VALUE_BYTES};
+
+#[cfg(feature = "plot-catalog")]
+mod configured_mask;
+#[cfg(feature = "plot-catalog")]
+pub use configured_mask::*;
+mod visual_expression_info;
+pub use visual_expression_info::*;
+mod component_recipe;
+pub use component_recipe::*;

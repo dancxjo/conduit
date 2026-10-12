@@ -343,8 +343,27 @@ Their presence is not an additional physical or release acceptance claim:
   exact Celsius values, settings, refusals, accessibility, lifecycle and
   independent profiles with only static asset requests. Sensor and equipment
   operation remain unconfirmed. The Linux-owned participation route remains
-  distinct. This local development proof does not establish Candidate,
-  Integration or public Pages acceptance.
+  distinct. [PR #5407](https://github.com/dancxjo/conduit/pull/5407) is merged;
+  the exact merged source `84f15637fe22d4e559e163b046ce673db5b4dcc7`
+  passed [Integration](https://github.com/dancxjo/conduit/actions/runs/38151248168)
+  and [Pages publication](https://github.com/dancxjo/conduit/actions/runs/38154013617).
+  Fresh-profile execution on the public HTTPS Handbook verified the released
+  runtime, all mode/fan/preset options, exact quantities, typed returns,
+  accessibility, refusals and lifecycle. [#5399 is closed](https://github.com/dancxjo/conduit/issues/5399#issuecomment-6111069983).
+  This is public browser execution proof; physical HVAC activity is unconfirmed.
+
+- **Face/component/Look separation (#5364, in development):** the initial
+  finite visual facet has an exact checked structured startup Type and explicit
+  accessibility override/fallback outcomes. `ApplicationTheme` version-2 bytes
+  remain compatible. A shared configuration gate reconstructs checked expansion
+  and the ordinary Plan from the selected Host's planning inputs, then traces
+  source-owned recipes separately from renderer placement. Source/planner
+  custody tests and actual renderer integration remain distinct requirements.
+  The Look replacement evidence comparator refuses changed owner Play, canonical
+  Face, component recipe and stale-return effects. Its synthetic mutation tests
+  establish comparator behavior, not a native/browser Look replacement.
+  [The ownership boundary](docs/architecture/face-component-look.md) retains
+  the full outstanding renderer, accessibility and two-recipe proof gates.
 
 The current `cargo xtask make conduitos std-gap` report also identifies missing
 ConduitOS Host Calls for `math/map-quantity` and

@@ -240,10 +240,22 @@ export class BrowserBodyParticipation {
     if (this.presenceState() !== "available" || !credential) {
       throw new Error("current browser presence is required for the owner Face Mask");
     }
+    const minimumTextScale = options?.minimumTextScalePercent
+      ?? this.#state.minimumOwnerTextScalePercent ?? 100;
+    if (!Number.isInteger(minimumTextScale) || minimumTextScale < 100 || minimumTextScale > 200) {
+      throw new Error("minimum text scale must be between 100 and 200 percent");
+    }
+    this.#state.minimumOwnerTextScalePercent = minimumTextScale;
     const frame = await this.ownerFaceSnapshot(options);
     if (this.presenceState() !== "available") throw new Error("owner Face became stale before Mask preparation");
+    const mediaMatches = query => globalThis.matchMedia?.(query)?.matches === true;
     const view = this.#state.host.bridge.ownerFacePrepare({
       body_id: credential.body_id, host_id: this.hostId, boot_id: this.bootId,
+      visual_constraints: {
+        forced_colors: mediaMatches('(forced-colors: active)'),
+        reduced_motion: mediaMatches('(prefers-reduced-motion: reduce)'),
+        minimum_text_scale_percent: minimumTextScale,
+      },
     }, frame);
     if (view?.schema === "conduit.browser/owner-face-refusal@1") {
       throw new Error(`owner Face refused: ${view.code}`);
@@ -273,6 +285,30 @@ export class BrowserBodyParticipation {
     await this.#state.membership.acknowledgeFaceShow(this.#state.host.bridge.ownerFaceShowReceipt());
     this.#state.lastOwnerShow = shown;
     return shown;
+  }
+  async selectOwnerComponentMask({ look, recipe, minimumTextScalePercent }) {
+    if (minimumTextScalePercent !== undefined &&
+        (!Number.isInteger(minimumTextScalePercent) || minimumTextScalePercent < 100 || minimumTextScalePercent > 200)) {
+      throw new Error("minimum text scale must be between 100 and 200 percent");
+    }
+    if (this.presenceState() !== "available" || !this.membershipCredential()
+        || !this.#state.lastOwnerShow) {
+      throw new Error("current acknowledged owner Show is required for component selection");
+    }
+    await this.#state.membership.selectComponentMask({
+      showBytes: this.#state.host.bridge.ownerFaceShowReceipt(), look, recipe,
+    });
+    this.#state.lastOwnerShow = null;
+    this.#state.host.bridge.ownerFaceClear();
+    return this.prepareOwnerFaceMask({ minimumTextScalePercent });
+  }
+  /** Exact retained Face bytes for observation; this does not refresh or acknowledge. */
+  ownerCanonicalFaceSnapshot() {
+    if (this.presenceState() !== "available" || !this.membershipCredential()
+        || !this.#state.lastOwnerShow) {
+      throw new Error("current acknowledged owner Show is required for canonical observation");
+    }
+    return this.#state.host.bridge.ownerFaceCanonicalSnapshot();
   }
   /** Ask the installed owner to read its current acknowledged graphical Show aloud. */
   selectedDirectSpeechStart(view) {
