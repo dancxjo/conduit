@@ -73,20 +73,21 @@ pub(crate) fn install_until(
         .map_err(Error::Specialization)
 }
 
-pub(crate) fn install_feedback(
+pub(crate) fn install_zip(
     left: &ProtocolValue,
     right: &ProtocolValue,
     startup: &mut conduit_plot::StartupCatalog,
     profile: &mut conduit_plot::ProfileCatalog,
     operations: &mut ProtocolOperations,
+    feedback: bool,
 ) -> Result<conduit_core::CapabilityOffer, Error> {
-    let mut kind = conduit_semantic_catalog::flow_zip_feedback_semantic_contract(
-        &left.contract,
-        &left.schema,
-        &right.contract,
-        &right.schema,
-    )
-    .map_err(Error::Specialization)?;
+    let semantic = if feedback {
+        conduit_semantic_catalog::flow_zip_feedback_semantic_contract
+    } else {
+        conduit_semantic_catalog::flow_zip_finite_semantic_contract
+    };
+    let mut kind = semantic(&left.contract, &left.schema, &right.contract, &right.schema)
+        .map_err(Error::Specialization)?;
     kind.kind_id =
         instance_kind_id(kind.kind_id.as_str(), &[left, right]).map_err(Error::Catalog)?;
     let pair = conduit_core::PreparedTypedTuplePairEncoder::new(
@@ -103,11 +104,27 @@ pub(crate) fn install_feedback(
         )
         .map_err(Error::Catalog)?;
     install_kind(kind, startup, profile).map_err(Error::Catalog)?;
-    operations
-        .joins
-        .install_feedback_instance(&left.contract, &left.schema, &right.contract, &right.schema)
-        .map_err(Error::Catalog)
+    let offer = if feedback {
+        operations.joins.install_feedback_instance(
+            &left.contract,
+            &left.schema,
+            &right.contract,
+            &right.schema,
+        )
+    } else {
+        operations.joins.install_instance(
+            &left.contract,
+            &left.schema,
+            &right.contract,
+            &right.schema,
+        )
+    };
+    offer.map_err(Error::Catalog)
 }
+
+#[cfg(test)]
+#[path = "instances_finite_tests.rs"]
+mod finite_tests;
 
 #[cfg(test)]
 mod tests {

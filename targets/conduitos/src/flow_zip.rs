@@ -126,6 +126,16 @@ impl FlowZipOperationFactory {
         self.install_mode(left, left_type, right, right_type, true, false)
     }
 
+    pub(crate) fn install_instance(
+        &mut self,
+        left: &CheckedValueContract,
+        left_type: &StructuredInfoType,
+        right: &CheckedValueContract,
+        right_type: &StructuredInfoType,
+    ) -> Result<CapabilityOffer, String> {
+        self.install_mode(left, left_type, right, right_type, false, true)
+    }
+
     pub(crate) fn install_feedback_instance(
         &mut self,
         left: &CheckedValueContract,
