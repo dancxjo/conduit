@@ -1,0 +1,34 @@
+{
+  "proof_class": "native-qemu-x86_64",
+  "kernel_source": "bfa318cf0128b5fcf223b3588f63ae68af0977b2",
+  "package_sha256": "15a4b501b95e978c03c0f3a2bc9e966d44fa182280d6349f2664c754b9fca8b1",
+  "cases": [
+    {
+      "mode": "hold-in",
+      "pending_receive": true,
+      "completed_receive_published": false,
+      "root_outcome": "protocol-step-budget-exhausted",
+      "acknowledged_stop": true,
+      "alloc_attempts": 0,
+      "realloc_attempts": 0,
+      "external_late_response_after_stop": false,
+      "late_native_completion_proven": false,
+      "transcript_sha256": "780f3ba3d7893010db24f7bf977438c86d31fdf4b023c3f38ca7c01769bc436e",
+      "wire_sha256": "242699bd7179b0c372af1ee0853dbc0fa3c48b17c950dcc8d0b041c04f94a640"
+    },
+    {
+      "mode": "late-after-cancel",
+      "pending_receive": true,
+      "completed_receive_published": false,
+      "root_outcome": "protocol-step-budget-exhausted",
+      "acknowledged_stop": true,
+      "alloc_attempts": 0,
+      "realloc_attempts": 0,
+      "external_late_response_after_stop": true,
+      "late_native_completion_proven": false,
+      "transcript_sha256": "4028a7a9c684d392635df4f22c164a667cf88cf53c5e640bbdce39a4cc1ed291",
+      "wire_sha256": "1e0a1767aa882aa85dae9e4d4643058ea59d329d263a996814a018c1273c6709"
+    }
+  ],
+  "scope": "held original CDC receive and external late response timing; native late completion rejection still unproven"
+}
