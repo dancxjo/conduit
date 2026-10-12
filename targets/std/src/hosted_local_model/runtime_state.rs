@@ -1,12 +1,13 @@
 //! Volatile provider state; stable installed Offers do not establish residency.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum ModelResidencyState {
     Unknown,
     NotResident,
     /// Loaded is observable, but no continuous residency epoch is supplied.
     ResidentWithoutEpoch,
 }
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct LocalModelRuntimeState {
     pub residency: ModelResidencyState,
     /// Independently queried provider version; not a Boot or residency epoch.
