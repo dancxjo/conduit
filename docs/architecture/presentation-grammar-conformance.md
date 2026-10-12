@@ -493,3 +493,13 @@ these cases. The caller supplies prior state; this is compiler/evaluation proof,
 not a retained Body checkpoint, installed execution, physical input or gameplay
 end-to-end proof. Connecting the committed state to the selected binding policy
 and truthful native/browser/linear/spoken prompts remains required for #5355.
+
+`components/parsec-input-policy.conduit` now selects Start/Shoot from the
+application phase and Fire/Enter from an explicit remap choice through one
+checked Fore. The source owns all action/control names; forwarded context
+retains exact Host/Boot/input Plan, mapping revision, Face/Show/action revision
+and requested availability. `parsec_input_policy.rs` covers both phases, both
+mappings and both availability values, and carries the actual checked Start
+transition's output into the policy before checking Shoot. This is source
+composition/evaluation evidence; it does not authenticate the supplied phase,
+commit Body state, observe a controller or certify current input availability.
