@@ -140,4 +140,46 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
             },
         )
     }
+    /// USB class transfers and separately authorized frame Calls share one kernel.
+    #[cfg(all(
+        feature = "native-owner-network",
+        any(
+            target_arch = "x86_64",
+            all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+        )
+    ))]
+    pub(crate) fn prepare_usb_ethernet(
+        definition: KernelCompositeDefinition,
+        usb: UsbDuplexAdmission,
+        network: crate::protocol_host_calls::EthernetFrameAdmission,
+        operations: crate::protocol_operations::ProtocolOperations,
+    ) -> Result<Self, ProtocolCallRefusal> {
+        Self::prepare_selected(
+            definition,
+            operations,
+            false,
+            PhysicalMode::UsbEthernet,
+            conduit_composite::KernelCompositeSignStorage {
+                additional_local_items: 0,
+                additional_remote_items: usb.additional_remote_sign_items,
+            },
+            |plan, zip, states| {
+                PreparedProtocolCalls::prepare_usb_ethernet(plan, usb, network, zip, states)
+            },
+        )
+    }
+
+    #[cfg(all(
+        feature = "native-owner-network",
+        any(
+            target_arch = "x86_64",
+            all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+        )
+    ))]
+    pub(crate) fn poll_ethernet_network(
+        &mut self,
+        timestamp: smoltcp::time::Instant,
+    ) -> Result<Option<crate::virtio_tcp::VirtioTcpReceipt>, ProtocolCallRefusal> {
+        self.calls.poll_ethernet_network(timestamp)
+    }
 }

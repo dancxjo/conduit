@@ -6,6 +6,8 @@ use sha2::{Digest, Sha256};
 
 pub const ROOT_MODULE_COMMAND: &[u8] = b"conduit.protocol/usb-root-request@1";
 pub const REQUEST_SCHEMA: &str = "conduit.conduitos/usb-protocol-root-request@1";
+mod network;
+pub use network::UsbEthernetNetworkRequest;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -31,6 +33,9 @@ pub struct UsbProtocolBootRequest {
     pub endpoint_write: Option<UsbEndpointBootRequest>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub isochronous_out: Option<UsbIsochronousEndpointBootRequest>,
+    /// Independent network approval; USB attachment approval supplies none.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ethernet_network: Option<UsbEthernetNetworkRequest>,
     /// Root reserves retained remote lifecycle history before Play. This is
     /// storage admission, not additional device authority or operation fuel.
     #[serde(default, skip_serializing_if = "is_zero")]
@@ -115,6 +120,15 @@ impl UsbProtocolBootRequest {
             || !request.electrical_attachment_approved
         {
             return Err(Error::Approval);
+        }
+        if let Some(network) = &request.ethernet_network {
+            network.validate()?;
+            if request.endpoint_read.is_none()
+                || request.endpoint_write.is_none()
+                || request.isochronous_out.is_some()
+            {
+                return Err(Error::Bounds);
+            }
         }
         if request.preflight.as_ref().is_some_and(|preflight| {
             preflight.entry.is_empty()
