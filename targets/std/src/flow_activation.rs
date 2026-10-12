@@ -14,6 +14,8 @@ mod parsec_combine;
 mod parsec_combine_back;
 mod parsec_scan_offer;
 mod parsec_source_plan;
+mod spoken_template_plan;
+pub use spoken_template_plan::{required_spoken_template_offers, SpokenTemplateSourcePlan};
 mod pure_parsec_scan;
 pub use parsec_combine::{
     command_kind as parsec_command_kind, parsec_combine_kind, parsec_combine_offer,

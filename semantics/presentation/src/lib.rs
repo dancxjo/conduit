@@ -263,5 +263,8 @@ pub use input_binding_correlation::*;
 mod parsec_map_transition;
 pub use parsec_map_transition::*;
 
+mod spoken_template_looks;
+pub use spoken_template_looks::*;
+
 mod parsec_input_policy_producer;
 pub use parsec_input_policy_producer::*;
