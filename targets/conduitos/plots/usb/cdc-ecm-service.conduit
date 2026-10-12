@@ -34,7 +34,7 @@ plot cdc-ecm-write-request (
 
 plot cdc-ecm-read-request (
     value: CdcEcmState...| <= 4096B >> result: UsbEndpointReadRequest...| <= 4096B
-) = ({ length: 1514 })
+) = ({ length: 1515 })
 
 plot cdc-ecm-control-event (
     value: UsbControlResult...| <= 4096B >> result: CdcEcmEvent...| <= 4096B
@@ -50,7 +50,7 @@ plot cdc-ecm-write-event (
 
 plot cdc-ecm-read-event (
     value: UsbEndpointReadResult...| <= 4096B >> result: CdcEcmEvent...| <= 4096B
-) = (read({ ordinal: . is completed ? .completed.ordinal : 0, actual: . is completed ? .completed.actual : 0, short: . is completed ? .completed.short : false, gate: . is completed ? (.completed.actual != bytes/length(.completed.wire) || bytes/length(.completed.wire) > 1514 || .completed.actual < 14 || (.completed.actual < 1514) != .completed.short ? malformed(empty) : ((bytes/at(.completed.wire, 6) & 1) != 0 || (bytes/at(.completed.wire, 6) == 0 && bytes/at(.completed.wire, 7) == 0 && bytes/at(.completed.wire, 8) == 0 && bytes/at(.completed.wire, 9) == 0 && bytes/at(.completed.wire, 10) == 0 && bytes/at(.completed.wire, 11) == 0) ? malformed(empty) : (value/u64(bytes/at(.completed.wire, 12)) * 256 + value/u64(bytes/at(.completed.wire, 13)) < 1536 || (bytes/at(.completed.wire, 12) == 129 && bytes/at(.completed.wire, 13) == 0) || (bytes/at(.completed.wire, 12) == 136 && bytes/at(.completed.wire, 13) == 168) ? malformed(empty) : ready(deliver-receive({ wire: .completed.wire }))))) : (. is stalled ? stalled(empty) : (. is provider-lost ? provider-lost(empty) : (. is timeout ? timeout(empty) : unsupported(empty)))) }))
+) = (read({ ordinal: . is completed ? .completed.ordinal : 0, actual: . is completed ? .completed.actual : 0, short: . is completed ? .completed.short : false, gate: . is completed ? (.completed.actual != bytes/length(.completed.wire) || bytes/length(.completed.wire) > 1514 || .completed.actual < 14 || !.completed.short ? malformed(empty) : ((bytes/at(.completed.wire, 6) & 1) != 0 || (bytes/at(.completed.wire, 6) == 0 && bytes/at(.completed.wire, 7) == 0 && bytes/at(.completed.wire, 8) == 0 && bytes/at(.completed.wire, 9) == 0 && bytes/at(.completed.wire, 10) == 0 && bytes/at(.completed.wire, 11) == 0) ? malformed(empty) : (value/u64(bytes/at(.completed.wire, 12)) * 256 + value/u64(bytes/at(.completed.wire, 13)) < 1536 || (bytes/at(.completed.wire, 12) == 129 && bytes/at(.completed.wire, 13) == 0) || (bytes/at(.completed.wire, 12) == 136 && bytes/at(.completed.wire, 13) == 168) ? malformed(empty) : ready(deliver-receive({ wire: .completed.wire }))))) : (. is stalled ? stalled(empty) : (. is provider-lost ? provider-lost(empty) : (. is timeout ? timeout(empty) : unsupported(empty)))) }))
 
 plot cdc-ecm-accept (
     value: CdcEcmPair...| <= 8192B >> result: CdcEcmTransition...| <= 8192B
