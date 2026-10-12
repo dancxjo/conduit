@@ -189,3 +189,13 @@ biology role and relationship through an ordinary Plot's exact Face
 contribution basis. Linear and deterministic aural readers retain those open
 IDs, their supplied names, typed action identity, and source provenance.
 This is nonvisual reconstruction, not native/browser fallback execution.
+
+The shared open-domain Face now also enters the production native scene and
+checked browser Mask in focused tests. The native scene checks bounded,
+fully visible primary/detail frames, inspectable open IDs, supplied controls,
+and stale/unknown-control refusal without inventing a Gear diagram. The
+browser Mask preserves open IDs in its view and emits the supplied typed action
+with exact Face/Show correlation, rejecting stale and invented actions first.
+Its acknowledgement is explicitly simulated. These checks prove native layout
+and browser Mask mechanism behavior, not scanout, Chromium DOM interaction,
+installed-owner effect, synthesized audio, or independent human observation.
