@@ -15,6 +15,15 @@ pub fn generate(output: &Path) {
         &StartupCatalog::new(),
     )
     .expect("Parsec source types check");
+    let state = checked
+        .native_types
+        .iter()
+        .find(|ty| ty.name == "ParsecMapState")
+        .expect("Parsec map state Type exists");
+    assert!(
+        state.invariants.is_empty(),
+        "input policy checked import must retain newly authored map state where laws"
+    );
     let bindings = generate_rust_bindings(&checked.native_types, &RustBindingOptions::default())
         .expect("Parsec source types generate exact native consumers");
     fs::write(output.join("parsec_map_types.rs"), bindings.source)
