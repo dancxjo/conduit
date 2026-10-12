@@ -1,13 +1,26 @@
 //! #5355: source-derived graph semantics through nonvisual production readers.
-//! The named reference Host adapter is a fixture; this is not live Mask evidence.
+//! The declared Text Host adapter is a fixture; this is not live Mask evidence.
 use conduit_presentation::{
     plan_face_utterances, render_linear_presentation, FaceUtteranceProvenance, PresentationRole,
 };
 
 #[test]
 fn source_derived_patchbay_keeps_gear_port_cord_meaning_in_nonvisual_readers() {
-    let face = crate::portable_demonstration().unwrap();
+    let face = crate::portable_demo::portable_demonstration_with_profile(
+        crate::host_adapter::test_host_adapter(),
+        crate::PatchbayHostProfile::Text,
+    )
+    .unwrap()
+    .0;
     face.validate().unwrap();
+    let specimen: conduit_presentation::Presentation = serde_json::from_str(include_str!(
+        "../../../../../proof/conformance/presentation-waist/domain-derived/patchbay-face.json"
+    ))
+    .unwrap();
+    assert_eq!(
+        specimen, face,
+        "shared Patchbay input differs from exact source projection"
+    );
     assert!(face.basis.body_id.is_some());
     assert!(face.basis.checked_plot_id.is_some());
     assert!(face.basis.expanded_plot_id.is_some());

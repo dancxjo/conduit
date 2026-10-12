@@ -31,3 +31,16 @@ Play. Native bounded layout retains available/unavailable Plot choices without
 inventing a Body, and unavailable control resolution refuses. The browser
 Crèche application-view route is not a Body-owned Face route; browser prebirth
 Face/Show correspondence remains a separate missing proof.
+
+## Patchbay specimen
+
+`patchbay-face.json` is equality-checked against the checked and expanded hello
+Plot projected by the portable Patchbay producer with a declared Text Host
+profile. The producer omits the separate distributed signal demonstration,
+which that profile cannot plan; it retains the complete resulting Face.
+The original public Reference-profile demonstration remains unchanged.
+
+Linear and aural readers preserve Gear, Port, Cord, relationships, and action
+provenance. The checked browser Mask admits the complete serialized Face and
+preserves every subject identity, name, and role. Its Show acknowledgement is
+simulated; this does not establish a live DOM or installed-owner journey.
