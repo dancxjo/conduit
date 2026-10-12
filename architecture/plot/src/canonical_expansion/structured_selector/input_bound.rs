@@ -50,13 +50,15 @@ pub(super) fn checked_bound(
 pub(super) fn semantic_laws(
     checked: &crate::CheckedExpression,
 ) -> Result<Vec<KindSemanticLaw>, CanonicalExpansionDiagnostic> {
-    crate::expression_program::input_bound::semantic_laws_for_input(
+    crate::expression_program::input_bound::semantic_laws_for_identity(
         checked
             .input_type
             .value_kind()
             .expect("checked expression has semantic input")
             .clone(),
         checked.input_maximum_bytes,
+        checked.input_type == checked.value_type
+            && matches!(checked.syntax, crate::ExpressionSyntax::Input(_)),
     )
     .map_err(diagnostic)
 }

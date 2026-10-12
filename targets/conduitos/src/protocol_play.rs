@@ -24,7 +24,6 @@ mod usb;
 ))]
 pub(crate) use usb::{StorageScopePossession, StorageUsbAdmission};
 pub(crate) mod preparation_diagnostic;
-mod registry;
 pub use timed::{ClockAdmission, PreparedTimedProtocolPlay};
 
 pub struct I2cAdmission<P> {

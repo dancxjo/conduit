@@ -35,7 +35,12 @@ impl PortableExpressionProgram {
         &self,
         temporal: conduit_core::PortTemporal,
     ) -> Result<Vec<KindSemanticLaw>, conduit_core::StructuredInfoRefusal> {
-        let mut laws = self.semantic_laws()?;
+        self.validate_input_bound()
+            .map_err(|_| conduit_core::StructuredInfoRefusal::MalformedCanonicalEncoding)?;
+        let mut laws = semantic_laws_for_input(
+            crate::expression_definition::expression_port_kind(&self.input_type)?,
+            self.input_maximum_bytes,
+        )?;
         if matches!(temporal, conduit_core::PortTemporal::Flow { .. }) {
             if let Some(maximum) = self.input_maximum_bytes {
                 let contracts = laws
@@ -68,11 +73,33 @@ impl PortableExpressionProgram {
     ) -> Result<Vec<KindSemanticLaw>, conduit_core::StructuredInfoRefusal> {
         self.validate_input_bound()
             .map_err(|_| conduit_core::StructuredInfoRefusal::MalformedCanonicalEncoding)?;
-        semantic_laws_for_input(
+        semantic_laws_for_identity(
             crate::expression_definition::expression_port_kind(&self.input_type)?,
             self.input_maximum_bytes,
+            self.input_type == self.output_type
+                && matches!(self.root.operation, PortableExpressionOperation::Input),
         )
     }
+}
+
+// An exact identity emits the admitted input bytes unchanged. Other
+// expressions cannot inherit this bound, even when their shapes match.
+pub(crate) fn semantic_laws_for_identity(
+    input: conduit_core::KindId,
+    bound: Option<u32>,
+    identity: bool,
+) -> Result<Vec<KindSemanticLaw>, conduit_core::StructuredInfoRefusal> {
+    let mut laws = semantic_laws_for_input(input.clone(), bound)?;
+    if let (true, Some(maximum)) = (identity, bound) {
+        if let Some(KindSemanticLaw::ValueContracts(contracts)) = laws.last_mut() {
+            contracts.push(FrontValueContract {
+                location: FrontValueLocation::Output(conduit_core::port_id("output")),
+                contract: CheckedValueContract::new(input, maximum, vec![])
+                    .map_err(|_| conduit_core::StructuredInfoRefusal::MalformedCanonicalEncoding)?,
+            });
+        }
+    }
+    Ok(laws)
 }
 
 pub(crate) fn semantic_laws_for_input(

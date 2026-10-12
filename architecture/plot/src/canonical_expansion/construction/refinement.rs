@@ -93,6 +93,30 @@ fn proves_at(
             })
         });
     }
+    // A successful window has exactly its requested length; invalid source
+    // bounds refuse before producing a value. Only a literal length proves it.
+    if remaining.is_empty() && required.value_kind.as_str() == "value/bytes" {
+        if let Op::SemanticCall { kind, arguments } = &value.operation {
+            if kind == "bytes/window" {
+                if let [_, _, length] = arguments.as_slice() {
+                    if let Op::Literal(literal) = &length.operation {
+                        if let Ok(length) = literal.parse::<u32>() {
+                            return length <= required.maximum_bytes
+                                && required.constraints.iter().all(
+                                    |constraint| match constraint {
+                                        conduit_core::ValueConstraint::ByteLength {
+                                            minimum,
+                                            maximum,
+                                        } => length >= *minimum && length <= *maximum,
+                                        _ => false,
+                                    },
+                                );
+                        }
+                    }
+                }
+            }
+        }
+    }
     if facts.proves(value, remaining, required) {
         return true;
     }

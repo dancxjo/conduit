@@ -123,17 +123,19 @@ fn a_coarse_fore_ceiling_never_broadens_the_structural_type() {
         decoded.evaluate(&invalid),
         Err(PortableExpressionEvaluationRefusal::InvalidInput)
     );
-    assert!(PreparedPortableExpressionEvaluator::new(&decoded)
-        .unwrap()
-        .evaluate(&invalid)
-        .is_err());
+    assert!(
+        PreparedPortableExpressionEvaluator::new(&decoded)
+            .unwrap()
+            .evaluate(&invalid)
+            .is_err()
+    );
 }
 
 #[test]
 fn semantic_call_arguments_keep_the_source_ceiling() {
     use conduit_core::{
-        kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection,
-        PortTemporal,
+        CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection, PortTemporal, kind_id,
+        port_id,
     };
     let port = |name, direction| PortDescriptor {
         port_id: port_id(name),
@@ -205,5 +207,98 @@ fn semantic_call_arguments_keep_the_source_ceiling() {
             .collect::<Vec<_>>();
         bounds.sort();
         assert_eq!(bounds, expected);
+    }
+}
+
+#[test]
+fn exact_identity_retains_output_contract_without_claiming_transformed_bounds() {
+    use conduit_core::{FrontValueLocation, port_id};
+    for (body, identity) in [(".", true), (". == 0 ? 1 : .", false)] {
+        let source =
+            format!("plot relay (\n wire: U64 <= 64B >> result: U64 <= 64B\n) = ({body})\n");
+        let parsed = parse_syntax_document(&source);
+        assert!(parsed.diagnostics.is_empty());
+        let checked = check_syntax_document(&parsed, &StartupCatalog::new()).unwrap();
+        let expanded =
+            expand_canonical_plot_for_authoring(&checked, "relay", &ProfileCatalog::new()).unwrap();
+        let gear = &expanded.expanded.gears[0];
+        let program = programs(&source, "relay").pop().unwrap();
+        assert_eq!(
+            gear.semantic_contract.laws,
+            program.semantic_laws().unwrap()
+        );
+        let front = gear.checked_front();
+        let output = front.value_contract(&FrontValueLocation::Output(port_id("output")));
+        assert_eq!(output.is_some(), identity);
+        if let Some(output) = output {
+            assert_eq!(output.maximum_bytes, 64);
+            assert_eq!(
+                Some(output),
+                front.value_contract(&FrontValueLocation::Input(port_id("input")))
+            );
+            let mut prepared = PreparedPortableExpressionEvaluator::new(&program).unwrap();
+            assert_eq!(
+                prepared.evaluate(&255u64.to_le_bytes()).unwrap(),
+                &255u64.to_le_bytes()
+            );
+            assert!(prepared.evaluate(&[0; 65]).is_err());
+        }
+    }
+}
+
+#[test]
+fn bounded_boolean_identity_filter_keeps_flow_and_optional_value_contracts_distinct() {
+    use conduit_core::{
+        FrontValueLocation, KindSemanticLaw, PortTemporal, StructuredInfoType, kind_id, port_id,
+    };
+    let boolean = StructuredInfoType::leaf(kind_id("value/bool")).unwrap();
+    let program = PortableExpressionProgram {
+        input_type: boolean.clone(),
+        input_maximum_bytes: Some(1),
+        output_type: boolean.clone(),
+        root: PortableExpressionNode {
+            value_type: boolean,
+            operation: PortableExpressionOperation::Input,
+        },
+    };
+    let decoded =
+        PortableExpressionProgram::from_canonical_hex(&program.canonical_hex().unwrap()).unwrap();
+    for temporal in [PortTemporal::Flow { closes: true }, PortTemporal::Value] {
+        let definition = portable_filter_definition(&decoded, temporal).unwrap();
+        let contracts: Vec<_> = decoded
+            .filter_semantic_laws(temporal)
+            .unwrap()
+            .into_iter()
+            .filter_map(|law| {
+                if let KindSemanticLaw::ValueContracts(contracts) = law {
+                    Some(contracts)
+                } else {
+                    None
+                }
+            })
+            .flatten()
+            .collect();
+        let outputs: Vec<_> = contracts
+            .iter()
+            .filter(|contract| contract.location == FrontValueLocation::Output(port_id("output")))
+            .collect();
+        if matches!(temporal, PortTemporal::Flow { .. }) {
+            assert_eq!(outputs.len(), 1);
+            assert_eq!(
+                outputs[0].contract.value_kind,
+                definition.outputs[0].value_kind
+            );
+            assert_eq!(outputs[0].contract.maximum_bytes, 1);
+        } else {
+            assert!(outputs.is_empty());
+            assert_ne!(definition.outputs[0].value_kind.as_str(), "value/bool");
+        }
+        assert_eq!(
+            contracts
+                .iter()
+                .filter(|contract| contract.location == FrontValueLocation::Input(port_id("input")))
+                .count(),
+            1
+        );
     }
 }

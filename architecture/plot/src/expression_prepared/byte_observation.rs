@@ -1,10 +1,10 @@
 //! Observations of packed bytes retain their actual extent, without collection framing.
 use super::{
-    evaluate_node, prepare_node, primitive::PrimitiveValue, PreparedInput, PreparedNode, Refusal,
+    PreparedInput, PreparedNode, Refusal, evaluate_node, prepare_node, primitive::PrimitiveValue,
 };
 use crate::PortableExpressionNode;
 use alloc::boxed::Box;
-use conduit_core::{kind_id, PrimitiveInfoKind, StructuredInfoType};
+use conduit_core::{PrimitiveInfoKind, StructuredInfoType, kind_id};
 
 pub(super) struct PreparedByteObservation {
     source: Box<PreparedNode>,
@@ -65,11 +65,11 @@ impl PreparedByteObservation {
             index,
         })
     }
-    pub(super) fn evaluate(
-        &mut self,
-        input: &[u8],
+    pub(super) fn evaluate<'a>(
+        &'a mut self,
+        input: &'a [u8],
         input_kind: Option<PrimitiveInfoKind>,
-    ) -> Result<PrimitiveValue<'_>, Refusal> {
+    ) -> Result<PrimitiveValue<'a>, Refusal> {
         let source = evaluate_node(&mut self.source, input, input_kind)?;
         if let Some(length) = &mut self.length {
             let bytes = source.into_borrowed()?;
