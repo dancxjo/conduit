@@ -24,3 +24,10 @@ one Body basis, distinct Face identities/revisions, and only the awake record
 carries a Wake. Native and browser mechanism tests refuse the other state's
 Face/revision before accepting current supplied agency. Neither source record
 invents a domain Plan or Play; each Mask has its separate realization Plan.
+
+`prebirth-face.json` is equality-checked against the Host-owned Birth draft
+projection. Its Host/Boot encounter has no Body, Wake, domain Plan, or active
+Play. Native bounded layout retains available/unavailable Plot choices without
+inventing a Body, and unavailable control resolution refuses. The browser
+Crèche application-view route is not a Body-owned Face route; browser prebirth
+Face/Show correspondence remains a separate missing proof.

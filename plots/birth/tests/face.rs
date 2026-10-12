@@ -20,6 +20,11 @@ fn zero_body_draft_preserves_choice_availability_in_nonvisual_projections() {
             encounter_id: "encounter/prebirth-conformance".into(),
         })
         .unwrap();
+    let specimen: conduit_presentation::Presentation = serde_json::from_str(include_str!(
+        "../../../proof/conformance/presentation-waist/domain-derived/prebirth-face.json"
+    ))
+    .unwrap();
+    assert_eq!(specimen, face);
     assert!(face.basis.body_id.is_none());
     assert!(face.basis.wake_id.is_none());
     assert!(face.basis.plan_id.is_none());

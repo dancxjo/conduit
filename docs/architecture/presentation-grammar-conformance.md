@@ -236,3 +236,10 @@ fully visible; using the other state's Face or revision refuses. Browser
 simulated-Show execution likewise refuses the other state's revision before
 emitting one current supplied action. The shared Body is retained, and domain
 Plan/Play absence remains distinct from each Mask's realization Plan/Play.
+
+The zero-Body draft now supplies an equality-checked shared Face to native
+layout tests. Primary/detail frames remain bounded and fully visible, retain
+both available and unavailable choices, and refuse unavailable agency without
+introducing a Body/Wake/Plan/Play. Browser Crèche currently carries the common
+Birth draft through its application view; this is not proof of zero-Body
+Face/Show correspondence, and no placeholder Body is permitted to fill the gap.

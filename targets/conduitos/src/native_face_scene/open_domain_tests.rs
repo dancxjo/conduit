@@ -189,3 +189,52 @@ fn native_generic_mask_keeps_lifecycle_basis_and_refuses_the_other_states_face()
         assert!(scene.presentation().basis.active_play_id.is_none());
     }
 }
+
+#[test]
+fn native_prebirth_layout_preserves_choices_without_inventing_a_body() {
+    let face: Presentation = serde_json::from_str(include_str!(
+        "../../../../proof/conformance/presentation-waist/domain-derived/prebirth-face.json"
+    ))
+    .unwrap();
+    let mut scene = NativeFaceScene::prepare(face.clone(), 640, 480).unwrap();
+    assert!(scene.presentation().basis.body_id.is_none());
+    assert!(scene.presentation().basis.wake_id.is_none());
+    assert!(scene.presentation().basis.plan_id.is_none());
+    assert!(scene.presentation().basis.active_play_id.is_none());
+    let mut text = String::new();
+    for details in [false, true] {
+        scene.show_details(details);
+        for _ in 0..scene.pages() {
+            let frame = scene.frame().unwrap();
+            assert!(frame.scene.commands().len() <= MAX_GRAPHICS_COMMANDS);
+            for command in frame.scene.commands() {
+                assert_eq!(
+                    command.clip_class(),
+                    conduit_presentation::GraphicsClipClass::FullyVisible
+                );
+                text.push_str(command.payload());
+            }
+            scene.turn_page(true);
+        }
+    }
+    for name in ["Scratch", "Chime"] {
+        assert!(text.contains(name), "lost choice {name}");
+    }
+    let unavailable = face
+        .actions
+        .iter()
+        .position(|action| !action.availability.is_available())
+        .unwrap();
+    assert_eq!(
+        scene.resolve(
+            &face.identity,
+            face.revision,
+            FaceControl {
+                action: unavailable,
+                argument: None
+            }
+        ),
+        Err(FaceSceneError::UnavailableAction)
+    );
+    assert_eq!(scene.presentation(), &face);
+}
