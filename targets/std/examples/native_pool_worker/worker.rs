@@ -41,6 +41,13 @@ struct Operation {
     plot: String,
     input: ValuePayload,
 }
+#[derive(Deserialize)]
+#[serde(tag = "command", rename_all = "snake_case", deny_unknown_fields)]
+enum PreparationCommand {
+    Observe,
+    Execute { operation: Box<Operation> },
+}
+
 fn read_document<T: DeserializeOwned>(reader: &mut impl Read) -> Result<T, String> {
     let mut length = [0; 4];
     reader
@@ -185,9 +192,20 @@ pub(super) fn run() -> Result<(), String> {
         "identity":identity, "advertisement":host.advertisement(), "cost_sample":initial_sample}),
     )?;
     for _ in 0..OPERATIONS {
-        let op: Option<Operation> = read_document(&mut reader)?;
-        let Some(op) = op else {
-            return Ok(());
+        let command: Option<PreparationCommand> = read_document(&mut reader)?;
+        let op = match command {
+            None => return Ok(()),
+            Some(PreparationCommand::Observe) => {
+                let reply = match sampling::observe(&host, &mut sampler) {
+                    Ok(sample) => serde_json::json!({"phase":"observed","cost_sample":sample}),
+                    Err(reason) => {
+                        serde_json::json!({"phase":"observation-refused","reason":reason})
+                    }
+                };
+                document(&mut writer, &reply)?;
+                continue;
+            }
+            Some(PreparationCommand::Execute { operation }) => operation,
         };
         let mut startup = conduit_plot::StartupCatalog::new();
         let mut profiles = conduit_plot::ProfileCatalog::new();
