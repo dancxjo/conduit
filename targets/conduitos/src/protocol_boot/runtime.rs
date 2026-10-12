@@ -143,7 +143,7 @@ fn prepare_outputs(
             .map(|boundary| boundary.byte_capacity)
             .min()
             .ok_or("protocol-output-boundary-missing")?;
-        if maximum > crate::protocol_source::MAXIMUM_PROTOCOL_FORE_BYTES {
+        if maximum > crate::protocol_source::MAXIMUM_PROTOCOL_OUTPUT_FORE_BYTES {
             return Err("protocol-output-envelope-unsupported");
         }
         outputs.push(Output {
