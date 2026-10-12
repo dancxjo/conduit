@@ -26,9 +26,9 @@ fn ecm_accept_admits_the_actual_feedback_pair_encoder_envelope() {
     assert_eq!(member_limits, [4096, 4096]);
     let acceptance = program(&prepared, "cdc-ecm-accept");
     let encoder = PreparedTypedTuplePairEncoder::new(
-        field(&acceptance.input_type, "0").clone(),
+        field(&acceptance.input_type, "item-00000").clone(),
         member_limits[0],
-        field(&acceptance.input_type, "1").clone(),
+        field(&acceptance.input_type, "item-00001").clone(),
         member_limits[1],
     )
     .unwrap();

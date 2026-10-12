@@ -13,11 +13,11 @@ plot cdc-ecm-start (
 ) = ({ terminator: .terminator, phase: 1, cycles: 0, transmitted: 0, transmit: pressure(empty), receive: take-transmit(empty), terminal: bytes/length(.terminator.wire) != 0, outcome: bytes/length(.terminator.wire) != 0 ? malformed(empty) : completed(empty) })
 
 plot cdc-ecm-route (
-    value: CdcEcmState...| <= 4096B >> result: CdcEcmRoute...| <= 4096B
+    value: CdcEcmState...| <= 4096B >> result: CdcEcmRoute...| <= 12776B
 ) = (.terminal || .cycles >= 16 || .phase < 1 || .phase > 11 ? stopped(.) : (.phase <= 5 ? control(.) : (.phase == 6 || .phase == 9 || .phase == 11 ? frame(.) : (.phase == 7 || .phase == 8 ? write(.) : read(.)))))
 
 plot cdc-ecm-pending (
-    value: CdcEcmRoute...| <= 4096B >> result: CdcEcmPending...| <= 4096B
+    value: CdcEcmRoute...| <= 12776B >> result: CdcEcmPending...| <= 4096B
 ) = (. is stopped ? stopped(empty) : (. is control ? running(.control) : (. is frame ? running(.frame) : (. is write ? running(.write) : running(.read)))))
 
 plot cdc-ecm-control-request (
