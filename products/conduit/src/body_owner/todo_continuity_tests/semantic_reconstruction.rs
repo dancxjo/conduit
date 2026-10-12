@@ -1,4 +1,4 @@
-//! Real committed-state Plays feed nonvisual reconstruction; no state is
+//! Real committed-state Plays feed native and nonvisual reconstruction; no state is
 //! manufactured by a Mask and no synthetic receipt substitutes for the read.
 use super::*;
 use conduit_presentation::{plan_face_utterances, render_linear_presentation};
@@ -34,6 +34,50 @@ fn verified_three_item_todo_and_completion_preserve_nonvisual_meaning() {
         assert!(face.basis.active_play_id.is_none());
         assert!(face.basis.sign_ids.contains(&basis.read.terminal_sign_id));
         assert!(face.basis.sign_ids.contains(&basis.write.terminal_sign_id));
+        let mut native =
+            conduitos::native_face_scene::NativeFaceScene::prepare(face.clone(), 640, 480).unwrap();
+        assert_eq!(native.presentation(), &face);
+        let mut rendered = String::new();
+        for _ in 0..native.pages() {
+            let frame = native.frame().unwrap();
+            for command in frame.scene.commands() {
+                assert_eq!(
+                    command.clip_class(),
+                    conduit_presentation::GraphicsClipClass::FullyVisible
+                );
+                rendered.push_str(command.payload());
+            }
+            native.turn_page(true);
+        }
+        for item in state.items.iter().filter(|item| !item.complete) {
+            assert!(
+                rendered.contains(&item.text),
+                "native primary lost pending item {}",
+                item.id
+            );
+        }
+        assert!(rendered.contains(&format!("{expected_remaining} things left")));
+        native.show_details(true);
+        let mut details = String::new();
+        for _ in 0..native.pages() {
+            let frame = native.frame().unwrap();
+            for command in frame.scene.commands() {
+                assert_eq!(
+                    command.clip_class(),
+                    conduit_presentation::GraphicsClipClass::FullyVisible
+                );
+                details.push_str(command.payload());
+            }
+            native.turn_page(true);
+        }
+        for item in &state.items {
+            assert!(
+                details.contains(&item.text),
+                "native details lost committed item {}",
+                item.id
+            );
+        }
+        assert_eq!(native.presentation(), &face);
         let linear = render_linear_presentation(&face).unwrap().lines.join("\n");
         let spoken = plan_face_utterances(&face)
             .unwrap()

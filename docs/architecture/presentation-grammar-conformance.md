@@ -345,3 +345,14 @@ offer, and preserve the complete source Face. This establishes cancellation
 and adapter-loss refusal at the checked Mask boundary; it does not establish
 actual DOM cancellation, remote disconnect recovery, prebirth, or committed
 Todo coverage for that matrix.
+
+The owner checkpoint reconstruction test now feeds each freshly verified Todo
+Face directly into the production native scene. A real three-item checkpoint
+write/read and one admitted completion retain the same Body and exact terminal
+Signs. Native primary pages retain pending items and the current remaining
+count; Details retain all three items, including the completed item's source-
+authored SelectedDetail disclosure. All visited frames are fully visible,
+and native preparation/rendering leaves the source Face unchanged. The same
+Face enters linear and deterministic aural readers. This is real checkpoint
+execution plus native layout proof, not scanout or a native gesture. The
+native dependency is confined to the product's development tests.
