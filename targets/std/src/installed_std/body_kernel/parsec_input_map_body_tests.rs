@@ -1,7 +1,9 @@
 //! Actual combined scan/input Body: software commands retain state while keyboard is pending.
 //! A Space observation is not a binding grant or a game-command producer.
 use super::*;
+use crate::body_execution::{BodyParsecShowObserver, BodyParsecTerminalRoute};
 use crate::hosted_keyboard::{HostedKeyboardAdapter, HostedKeyboardPoll};
+use conduit_presentation::{ManifestationLifecycle, MaskShow, Presentation};
 use std::sync::{
     atomic::{AtomicUsize, Ordering},
     Arc,
@@ -9,11 +11,33 @@ use std::sync::{
 
 #[test]
 fn combined_body_retains_four_source_transitions_then_observes_space_without_a_command() {
-    let mut host = BodyLiveForeQueue::parsec_input_test_host(StdHostConfig {
+    let baseline = BodyLiveForeQueue::parsec_input_test_host(StdHostConfig {
         host_id: "std/combined-map-input-proof".into(),
         boot_id: "std/combined-map-input-proof/boot".into(),
         offer_generation: OfferGeneration(1),
     });
+    let mut advertisement = baseline.advertisement().clone();
+    for offer in crate::terminal_mask_execution::planning::attached_terminal_capabilities() {
+        if let Some(existing) = advertisement
+            .capabilities
+            .iter()
+            .find(|old| old.capability_id == offer.capability_id)
+        {
+            assert_eq!(existing, &offer);
+        } else {
+            advertisement.capabilities.push(offer);
+        }
+    }
+    for resource in crate::terminal_mask_execution::planning::attached_terminal_resources() {
+        if !advertisement.resources.contains(&resource) {
+            advertisement.resources.push(resource);
+        }
+    }
+    advertisement
+        .capabilities
+        .sort_by(|a, b| a.capability_id.cmp(&b.capability_id));
+    advertisement.resources.sort();
+    let mut host = StdHost::from_advertisement(advertisement).unwrap();
     let selected = BodyLiveForeQueue::authored_parsec_input_plan_on_host(host.advertisement());
     let control = RunControl::default();
     let queue = BodyLiveForeQueue::for_parsec_plan(&selected, control.clone(), 1).unwrap();
@@ -135,15 +159,33 @@ fn combined_body_retains_four_source_transitions_then_observes_space_without_a_c
         ack: Some(ack_tx),
         control: control.clone(),
     };
-    let result = host.run_body_plan_with_live_fore_to_with_start(
+    #[derive(Default)]
+    struct Shows(Vec<(Presentation, MaskShow)>);
+    impl BodyParsecShowObserver for Shows {
+        fn showed(&mut self, face: &Presentation, show: &MaskShow) -> Result<(), String> {
+            show.validate(face)
+                .map_err(|error| format!("Show: {error:?}"))?;
+            self.0.push((face.clone(), show.clone()));
+            Ok(())
+        }
+    }
+    let mut shows = Shows::default();
+    let mut terminal = Vec::new();
+    let result = host.run_body_plan_with_parsec_terminal_to_with_start(
         BodyRunRequest {
             wake: &wake,
             plan: &plan,
             control: &control,
             keyboard: Some(&mut keyboard),
         },
-        &queue,
-        &mut capture,
+        BodyParsecTerminalRoute {
+            queue: &queue,
+            fore_output: &mut capture,
+            terminal_output: &mut terminal,
+            observer: &mut shows,
+            columns: 80,
+            rows: 24,
+        },
         &mut Vec::new(),
         &mut NoTimer,
         |_, _| {
@@ -160,6 +202,56 @@ fn combined_body_retains_four_source_transitions_then_observes_space_without_a_c
     guard.join().unwrap();
     let report = result.unwrap();
     sent.unwrap();
+    assert!(
+        !terminal.is_empty(),
+        "actual software terminal Write effect"
+    );
+    let output = std::str::from_utf8(&terminal).unwrap();
+    assert!(output.contains("game/start") && output.contains("game/shoot"));
+    assert_eq!(
+        shows.0.len(),
+        3,
+        "unchanged maps must not mint another Show"
+    );
+    let mask_plan = &shows.0[0].1.planned_mask.plan.plan_id;
+    let mut mask_plays = std::collections::BTreeSet::new();
+    let mut show_ids = std::collections::BTreeSet::new();
+    for (index, (face, show)) in shows.0.iter().enumerate() {
+        let source = &plan.plots[0].plan;
+        assert_eq!(face.revision, index as u64 + 1);
+        let expected_basis = conduit_presentation::PresentationBasis {
+            body_id: Some(plan.body_id.clone()),
+            wake_id: Some(plan.wake_id.clone()),
+            source_document_id: Some(source.source_document_id.clone()),
+            checked_plot_id: Some(source.checked_plot_id.clone()),
+            expanded_plot_id: Some(source.expanded_plot_id.clone()),
+            plan_id: Some(plan.plan_id.clone()),
+            active_play_id: Some(report.play.active_play_id.clone()),
+            sign_ids: vec![],
+        };
+        assert_eq!(face.basis, expected_basis);
+        assert_eq!(face.actions.len(), 1);
+        assert_eq!(
+            face.actions[0].identity,
+            ["game/start", "game/shoot", "game/shoot"][index]
+        );
+        assert_eq!(face.actions[0].intent, face.actions[0].identity);
+        assert_eq!(face.actions[0].target, "parsec/game");
+        assert!(face.actions[0].availability.is_available());
+        assert_eq!(show.show.lifecycle, ManifestationLifecycle::Available);
+        assert_eq!(show.show.host_id, host.advertisement().host_id);
+        assert_eq!(show.show.boot_id, host.advertisement().boot_id);
+        assert_eq!(&show.planned_mask.plan.plan_id, mask_plan);
+        assert_eq!(show.show.plan_id, *mask_plan);
+        assert_eq!(show.show.play_sequence, index as u64);
+        assert_ne!(show.show.active_play_id, report.play.active_play_id);
+        assert!(mask_plays.insert(show.show.active_play_id.clone()));
+        assert!(show_ids.insert(show.show_id.clone()));
+        show.validate(face).unwrap();
+        for previous in shows.0[..index].iter() {
+            assert!(previous.1.validate(face).is_err());
+        }
+    }
     assert!(keyboard.emitted && keyboard.polls > 0);
     assert_eq!(capture.values.len(), 6);
     assert!(capture.values[..4]
@@ -197,39 +289,33 @@ fn combined_body_retains_four_source_transitions_then_observes_space_without_a_c
         states[3].state(),
         "stale Start cannot rewrite retained map"
     );
-    let keys: Vec<_> = capture
+    let keys = capture
         .values
         .iter()
-        .filter(|value| value.front_port_id.as_str() == "keys")
-        .collect();
-    assert_eq!(keys.len(), 1);
-    assert_eq!(keys[0].bytes, [0x2c, 0, 0]);
-    let fire: Vec<_> = capture
+        .find(|value| value.front_port_id.as_str() == "keys")
+        .unwrap();
+    assert_eq!(keys.bytes, [0x2c, 0, 0]);
+    let fire = capture
         .values
         .iter()
-        .filter(|value| value.front_port_id.as_str() == "fire")
-        .collect();
-    assert_eq!(fire.len(), 1);
+        .find(|value| value.front_port_id.as_str() == "fire")
+        .unwrap();
+    let fire = conduit_core::StructuredInfoValue::from_canonical_bytes(&fire.bytes).unwrap();
     assert_eq!(
-        conduit_core::StructuredInfoValue::from_canonical_bytes(&fire[0].bytes)
-            .unwrap()
-            .value_type(),
+        fire.value_type(),
         &conduit_semantic_catalog::input_button_transition_type()
     );
     assert!(matches!(
         report.terminal,
         TerminalDisposition::Cancelled { .. }
     ));
-    assert!(report.failure.is_none(), "{:?}", report.failure);
-    assert!(
-        report.kernel_failure.is_none(),
-        "{:?}",
-        report.kernel_failure
-    );
-    assert!(
-        report.cleanup_failure.is_none(),
-        "{:?}",
-        report.cleanup_failure
+    assert_eq!(
+        (
+            report.failure.as_ref(),
+            report.kernel_failure.as_ref(),
+            report.cleanup_failure.as_ref()
+        ),
+        (None, None, None)
     );
     assert!(!report.scan_cancellation_failed && !report.scan_output_completion_failed);
     let live = report.live_fore_status.unwrap();

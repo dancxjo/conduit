@@ -24,6 +24,27 @@ pub(super) fn plan(host: &HostAdvertisement) -> Result<PlannedMaskPlot, Terminal
 /// The attached path must plan against the actual current Host advertisement.
 /// Merely copying its Host/Boot into a made-up terminal offer is insufficient.
 pub(super) fn plan_attached(host: &HostAdvertisement) -> Result<PlannedMaskPlot, TerminalError> {
+    validate_attached_host(host)?;
+    plan_on_host(host, host)
+}
+
+pub(super) fn plan_attached_parsec(
+    host: &HostAdvertisement,
+) -> Result<PlannedMaskPlot, TerminalError> {
+    validate_attached_host(host)?;
+    // Reuse the exact ordinary graph under a distinct checked Plot identity,
+    // keeping its Body-scoped Plays separate from ordinary terminal Plays.
+    let source = include_str!("terminal.conduit");
+    if source.matches("plot terminal (").count() != 1 {
+        return Err(error(
+            "terminal graph no longer has its reviewed Plot header",
+        ));
+    }
+    let source = source.replacen("plot terminal (", "plot parsec/terminal-mask (", 1);
+    plan_on_host_source(host, host, &source, "parsec/terminal-mask")
+}
+
+fn validate_attached_host(host: &HostAdvertisement) -> Result<(), TerminalError> {
     for required in attached_terminal_capabilities() {
         if !host.capabilities.contains(&required) {
             return Err(error(
@@ -38,12 +59,26 @@ pub(super) fn plan_attached(host: &HostAdvertisement) -> Result<PlannedMaskPlot,
             ));
         }
     }
-    plan_on_host(host, host)
+    Ok(())
 }
 
 fn plan_on_host(
     host: &HostAdvertisement,
     planning_host: &HostAdvertisement,
+) -> Result<PlannedMaskPlot, TerminalError> {
+    plan_on_host_source(
+        host,
+        planning_host,
+        include_str!("terminal.conduit"),
+        "terminal",
+    )
+}
+
+fn plan_on_host_source(
+    host: &HostAdvertisement,
+    planning_host: &HostAdvertisement,
+    source: &str,
+    name: &str,
 ) -> Result<PlannedMaskPlot, TerminalError> {
     if host.protocol_version != PROTOCOL_VERSION
         || host.host_id.as_str().is_empty()
@@ -68,13 +103,10 @@ fn plan_on_host(
             .map_err(debug_error)?;
         catalog.insert(kind).map_err(debug_error)?;
     }
-    let checked = check_syntax_document(
-        &parse_syntax_document(include_str!("terminal.conduit")),
-        &startup,
-    )
-    .map_err(debug_error)?;
+    let checked =
+        check_syntax_document(&parse_syntax_document(source), &startup).map_err(debug_error)?;
     let authoring =
-        expand_canonical_plot_for_authoring(&checked, "terminal", &catalog).map_err(debug_error)?;
+        expand_canonical_plot_for_authoring(&checked, name, &catalog).map_err(debug_error)?;
     let mask = MaskPlot::admit(&authoring).map_err(debug_error)?;
     let hosts = [planning_host.clone()];
     let placements =

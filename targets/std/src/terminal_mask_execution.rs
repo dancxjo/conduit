@@ -50,6 +50,7 @@ pub struct HostedTerminalMaskExecution {
     planned: PlannedMaskPlot,
     read_only: bool,
     next_sequence: u64,
+    scope_end: Option<u64>,
     pending: Option<Play>,
     host_retired: bool,
 }
@@ -84,6 +85,37 @@ impl HostedTerminalMaskExecution {
         Self::with_plan(host, planning::plan_attached(host)?, false)
     }
 
+    pub(crate) fn new_parsec_attached(host: &HostAdvertisement) -> Result<Self, TerminalError> {
+        Self::with_plan(host, planning::plan_attached_parsec(host)?, false)
+    }
+
+    /// Called only with the private map owner's confirmed parent Play.
+    pub(crate) fn bind_parsec_body_scope(
+        &mut self,
+        parent: &conduit_body::BodyPlayIdentity,
+        maximum_shows: u16,
+    ) -> Result<(), TerminalError> {
+        if self.scope_end.is_some()
+            || self.next_sequence != 0
+            || self.pending.is_some()
+            || self.host_retired
+            || maximum_shows == 0
+            || maximum_shows > 64
+        {
+            return Err(error("terminal Body scope cannot be rebound"));
+        }
+        let base = parent
+            .play_sequence
+            .checked_mul(64)
+            .ok_or_else(|| error("terminal Body sequence scope exhausted"))?;
+        let end = base
+            .checked_add(u64::from(maximum_shows))
+            .ok_or_else(|| error("terminal Body sequence scope exhausted"))?;
+        self.next_sequence = base;
+        self.scope_end = Some(end);
+        Ok(())
+    }
+
     fn with_plan(
         host: &HostAdvertisement,
         planned: PlannedMaskPlot,
@@ -94,6 +126,7 @@ impl HostedTerminalMaskExecution {
             host: host.clone(),
             read_only,
             next_sequence: 0,
+            scope_end: None,
             pending: None,
             host_retired: false,
         })
@@ -121,6 +154,9 @@ impl HostedTerminalMaskExecution {
 
 impl TerminalMaskExecution for HostedTerminalMaskExecution {
     fn begin_render(&mut self, face: &Presentation) -> Result<MaskShow, TerminalError> {
+        if self.scope_end.is_some_and(|end| self.next_sequence >= end) {
+            return Err(error("terminal Body Show bound exhausted"));
+        }
         if self.host_retired {
             return Err(error("terminal Host was retired; prepare a fresh adapter"));
         }

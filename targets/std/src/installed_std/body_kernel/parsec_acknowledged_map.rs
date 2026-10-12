@@ -248,6 +248,13 @@ impl ParsecAcknowledgedMap {
         }
         Ok(&self.state)
     }
+    /// Observation custody from this owner, never a caller-supplied Play ID.
+    pub(super) fn current_play(&self) -> Result<&BodyPlayIdentity, String> {
+        if !self.issued || self.revoked {
+            return Err("Parsec map is unavailable".into());
+        }
+        Ok(&self.prospective)
+    }
     #[cfg(test)]
     pub(super) fn current_result(&self) -> Result<&[u8], String> {
         if !self.issued || self.revoked {
