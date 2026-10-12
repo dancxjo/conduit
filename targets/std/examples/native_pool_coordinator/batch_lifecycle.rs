@@ -93,7 +93,9 @@ pub(super) fn run<'a>(
                     .map_err(|e| format!("batch expiry: {e:?}"))?;
                 send(
                     writer,
-                    json!({"phase":"native-batch-expired","operation":retired.as_ref().map(|r| &r.operation().operation),"waiting_population":queue.waiting_population()}),
+                    json!({"phase":"native-batch-expired","operation":retired.as_ref().map(|r| &r.operation().operation),
+                    "input_bytes":retired.as_ref().map(|r| r.payload().encoded.len()),
+                    "input_digest":retired.as_ref().map(|r| semantic_digest("conduit.std/local-model-completed-input@1", &r.payload().encoded)),"waiting_population":queue.waiting_population()}),
                 )?;
                 continue;
             }
