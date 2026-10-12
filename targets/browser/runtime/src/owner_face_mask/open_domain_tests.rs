@@ -109,6 +109,13 @@ fn browser_generic_mask_keeps_finite_place_actions_bound_to_their_targets() {
         sequence: 1,
     };
     assert!(mask.interact(proposal("commons/workshop")).is_err());
+    let mut stale = proposal("commons/hub");
+    stale.show_id.push_str("-retired");
+    assert!(mask.interact(stale).is_err());
+    let mut unavailable = proposal("commons/creche");
+    unavailable.action_id = "commons/creche/inspect".into();
+    assert!(mask.interact(unavailable).is_err());
+    assert_eq!(mask.presentation, face);
     let emitted = mask.interact(proposal("commons/hub")).unwrap();
     assert_eq!(emitted.interaction.action_id, "commons/hub/inspect");
     assert_eq!(emitted.interaction.target, "commons/hub");

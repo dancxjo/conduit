@@ -1,5 +1,5 @@
 {
-  "identity": "e9fa374b4e19d25411f03321a932f636796d63aa2cf89c1c40b113b58de378a7",
+  "identity": "a90e7326a9507430fb1742a230df7e0a5f68e7e11c7d542a4cc22800bead3a46",
   "revision": 1,
   "basis": {
     "body_id": "02624385f1ca77ca1190be535e4399bcef8cc6fa4802d7f9f682983c733c767b",
@@ -339,7 +339,12 @@
       "name": "Inspect Cr\u00e8che",
       "arguments": [],
       "disclosure": "CurrentAction",
-      "availability": "Available"
+      "availability": {
+        "Unavailable": {
+          "reason_code": "fixture/inspection-unavailable",
+          "explanation": "Cr\u00e8che inspection is unavailable in this fixture."
+        }
+      }
     }
   ],
   "disclosures": [
