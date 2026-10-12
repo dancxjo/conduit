@@ -5,6 +5,10 @@
 const ENDPOINT_BYTES: u64 = 84 * 1024;
 const ROOT_DMA_BYTES: u64 = 8192;
 
+pub(super) fn pending_heap_bytes() -> usize {
+    (2 * (ENDPOINT_BYTES - ROOT_DMA_BYTES)) as usize
+}
+
 pub(super) fn admit(
     arena_capacity: usize,
     arena_live: usize,

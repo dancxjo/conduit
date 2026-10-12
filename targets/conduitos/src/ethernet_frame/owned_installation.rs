@@ -143,6 +143,10 @@ impl ReadyOwnedEthernetFrameBase {
     pub fn resource_bytes(&self) -> u64 {
         core::mem::size_of::<Storage>() as u64
     }
+    pub(crate) fn retained_preparation_bytes(&self) -> Option<usize> {
+        super::retention::rounded(core::mem::size_of::<Storage>())?
+            .checked_add(self.ready.as_ref()?.retained_identity_bytes()?)
+    }
     pub fn append_to_advertisement(
         &self,
         advertisement: &mut conduit_core::HostAdvertisement,
