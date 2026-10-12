@@ -216,3 +216,10 @@ retains containment in Details. The checked browser Mask preserves those facts,
 rejects the Hub action when misbound to Workshop, and emits the exact targeted
 inspection after simulated acknowledgement. These are fixture mechanism
 witnesses; they are not the #5359 Commons product or live output acceptance.
+
+The finite-place domain fixture explicitly withholds Crèche inspection with a
+named unavailable reason. Its source-equality-checked Face carries that truth
+into both Mask tests: native control resolution refuses it, and browser typed
+return refuses unavailable agency and a retired Show before the valid Hub
+inspection. Invalid returns preserve the supplied Face and do not consume the
+valid action's sequence. This remains fixture admission/mechanism evidence.

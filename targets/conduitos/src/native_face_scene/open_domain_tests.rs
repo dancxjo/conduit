@@ -119,18 +119,21 @@ fn native_generic_mask_preserves_finite_places_without_inventing_connectivity() 
         .enumerate()
         .filter(|(_, action)| action.identity.starts_with("commons/"))
     {
-        let (resolved, argument) = scene
-            .resolve(
-                &face.identity,
-                face.revision,
-                FaceControl {
-                    action: index,
-                    argument: None,
-                },
-            )
-            .unwrap();
-        assert_eq!(resolved, action);
-        assert!(argument.is_none());
+        let resolved = scene.resolve(
+            &face.identity,
+            face.revision,
+            FaceControl {
+                action: index,
+                argument: None,
+            },
+        );
+        if action.availability.is_available() {
+            let (current, argument) = resolved.unwrap();
+            assert_eq!(current, action);
+            assert!(argument.is_none());
+        } else {
+            assert_eq!(resolved, Err(FaceSceneError::UnavailableAction));
+        }
     }
     assert_eq!(scene.presentation(), &face);
 }

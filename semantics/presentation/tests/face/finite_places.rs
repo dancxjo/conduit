@@ -79,7 +79,14 @@ fn finite_place_fixture_preserves_named_containment_and_bounded_agency() {
                 name: format!("Inspect {name}"),
                 arguments: vec![],
                 disclosure: PresentationDisclosureLevel::CurrentAction,
-                availability: PresentationActionAvailability::Available,
+                availability: if *identity == "commons/creche" {
+                    PresentationActionAvailability::Unavailable {
+                        reason_code: "fixture/inspection-unavailable".into(),
+                        explanation: "Crèche inspection is unavailable in this fixture.".into(),
+                    }
+                } else {
+                    PresentationActionAvailability::Available
+                },
             })
             .collect(),
         disclosures: PLACES
