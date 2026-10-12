@@ -151,6 +151,21 @@ pub(super) fn finish(
         model
             .update(record, &mut work)
             .map_err(|e| format!("calibration update: {e:?}"))?;
+        let estimated_at = ThreadTimer
+            .monotonic_observation(&owner.host_id, &owner.boot_id)
+            .ok_or("calibration snapshot clock unavailable")?;
+        let estimate = model
+            .snapshot_at(owner, revision, &estimated_at)
+            .map_err(|e| format!("calibration snapshot: {e:?}"))?
+            .ok_or("calibration estimate absent")?;
+        estimate
+            .validate_use(
+                &completion,
+                demand,
+                CostExecutionCondition::Unknown,
+                &estimated_at,
+            )
+            .map_err(|e| format!("calibration estimate use: {e:?}"))?;
         let (lower_error, upper_error) = record.error_bounds();
         let predicted = prepared
             .forecast
@@ -159,6 +174,10 @@ pub(super) fn finish(
             .ok_or("service forecast absent")?;
         Ok(
             json!({"phase":"adapter-service-calibrated","scope":"adapter_call_only","condition":"Unknown","updates":model.updates(),"schema":"conduit.proof/adapter-service-calibration@1",
+                "estimated_at":estimated_at,
+                "estimate_lower":encoded(estimate.duration().lower().original())?,
+                "estimate_upper":encoded(estimate.duration().upper().original())?,
+                "estimate_claim":"bounded mean estimate, not a future-outcome confidence bound",
                 "selection":receipt.selection(),"input_digest":receipt.input_digest(),
                 "forecast_source":attribution(&source),"completion_source":attribution(&completion),
                 "predicted_lower":encoded(predicted.lower().original())?,"predicted_upper":encoded(predicted.upper().original())?,"measured_lower":encoded(record.measured().lower().original())?,"measured_upper":encoded(record.measured().upper().original())?,"error_lower":encoded(lower_error)?,"error_upper":encoded(upper_error)?,"numeric_work":work.spent()}),
