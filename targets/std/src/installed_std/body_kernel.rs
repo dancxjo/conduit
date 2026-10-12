@@ -466,6 +466,12 @@ impl<'a> BodyKernel<'a> {
                 &self.operations,
             )?,
         );
+        if self.supported_parsec_input_scan {
+            self.input_origin
+                .as_mut()
+                .ok_or("Parsec input origin is absent")?
+                .enable_completed_event_custody()?;
+        }
         Ok(())
     }
 
@@ -611,7 +617,11 @@ impl<'a> BodyKernel<'a> {
         let result = (|| -> Result<TerminalDisposition, String> {
             let mut cancelling = false;
             loop {
-                self.fore.drain(&mut self.scheduler, &mut fore_output)?;
+                self.fore.drain(
+                    &mut self.scheduler,
+                    &mut fore_output,
+                    self.supported_parsec_input_scan.then_some(&mut keys),
+                )?;
                 self.clock_observations.capture_new(
                     self.scheduler.signs().events(),
                     clock,

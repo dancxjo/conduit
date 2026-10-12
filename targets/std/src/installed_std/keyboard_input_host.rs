@@ -1,6 +1,7 @@
 //! Adapter-side completion of exact installed keyboard host requests.
 
 use super::keyboard_input_binding::{InputRealization, KeyboardRequestAdmission};
+use super::keyboard_input_completion::CompletedInputEvent;
 use super::InstalledScheduler;
 use conduit_kernel::scheduler::HostCallRequest;
 use conduit_kernel::{BoundedValueRef, HostCallDisposition, HostCallOutcome};
@@ -16,6 +17,7 @@ pub(super) struct KeyboardInputHost<'a> {
     button_sequence: u64,
     terminal: bool,
     request_admission: Option<KeyboardRequestAdmission>,
+    physical_event: u64,
 }
 
 #[derive(Clone, Copy)]
@@ -51,6 +53,7 @@ impl<'a> KeyboardInputHost<'a> {
             button_sequence: 0,
             terminal: false,
             request_admission: None,
+            physical_event: 0,
         }
     }
 
@@ -63,6 +66,32 @@ impl<'a> KeyboardInputHost<'a> {
         }
         self.request_admission = Some(admission);
         Ok(())
+    }
+
+    pub(super) fn claim_completed_event(
+        &mut self,
+        node: conduit_kernel::NodeId,
+        call: conduit_kernel::HostCallId,
+        value: conduit_kernel::ValueRef,
+    ) -> Result<&CompletedInputEvent, String> {
+        self.request_admission
+            .as_mut()
+            .ok_or("completed input origin is absent")?
+            .completions
+            .claim(node, call, value)
+    }
+
+    pub(super) fn acknowledge_completed_event(
+        &mut self,
+        node: conduit_kernel::NodeId,
+        call: conduit_kernel::HostCallId,
+        value: conduit_kernel::ValueRef,
+    ) -> Result<(), String> {
+        self.request_admission
+            .as_mut()
+            .ok_or("completed input origin is absent")?
+            .completions
+            .acknowledge(node, call, value)
     }
 
     #[cfg(test)]
@@ -154,6 +183,14 @@ impl<'a> KeyboardInputHost<'a> {
         {
             return Ok(false);
         }
+        if let Some(admission) = &self.request_admission {
+            if admission.completions.enabled() {
+                admission.completions.require_capacity(
+                    usize::from(self.pending_keyboard.is_some())
+                        + usize::from(self.pending_button.is_some()),
+                )?;
+            }
+        }
         let adapter = self
             .adapter
             .as_deref_mut()
@@ -161,6 +198,10 @@ impl<'a> KeyboardInputHost<'a> {
         match adapter.poll_next() {
             crate::hosted_keyboard::HostedKeyboardPoll::Pending => return Ok(false),
             crate::hosted_keyboard::HostedKeyboardPoll::Event(event) => {
+                let physical_event = self.physical_event;
+                self.physical_event = physical_event
+                    .checked_add(1)
+                    .ok_or("physical input event ordinal exhausted")?;
                 if let Some(request) = self.pending_keyboard.take() {
                     let encoded = event.encode();
                     self.complete_value(
@@ -168,6 +209,8 @@ impl<'a> KeyboardInputHost<'a> {
                         request,
                         &encoded,
                         conduit_human::KEY_EVENT_ENCODED_LEN as u32,
+                        InputRealization::RawKeyboard,
+                        physical_event,
                     )?;
                 }
                 if event.usage() == 0x2c {
@@ -206,6 +249,8 @@ impl<'a> KeyboardInputHost<'a> {
                             request,
                             value,
                             conduit_semantic_catalog::BUTTON_TRANSITION_MAXIMUM_BYTES,
+                            InputRealization::SpaceButton,
+                            physical_event,
                         )?;
                     }
                 }
@@ -234,11 +279,20 @@ impl<'a> KeyboardInputHost<'a> {
         request: HostCallRequest,
         encoded: &[u8],
         maximum: u32,
+        realization: InputRealization,
+        physical_event: u64,
     ) -> Result<(), String> {
         let value = scheduler
             .store_host_value(encoded)
             .map_err(|error| format!("store portable input event: {error:?}"))?;
-        self.complete_stored_value(scheduler, request, value, maximum)
+        self.complete_stored_value(
+            scheduler,
+            request,
+            value,
+            maximum,
+            realization,
+            physical_event,
+        )
     }
 
     fn complete_stored_value(
@@ -247,7 +301,16 @@ impl<'a> KeyboardInputHost<'a> {
         request: HostCallRequest,
         value: conduit_kernel::ValueRef,
         maximum: u32,
+        realization: InputRealization,
+        physical_event: u64,
     ) -> Result<(), String> {
+        let descriptor = match &self.request_admission {
+            Some(admission) if admission.completions.enabled() => {
+                admission.completions.require_capacity(1)?;
+                Some(admission.completed_origin_index(realization, request)?)
+            }
+            _ => None,
+        };
         let output = BoundedValueRef::new(value, maximum)
             .map_err(|error| format!("bound portable input event: {error:?}"))?;
         scheduler
@@ -260,7 +323,21 @@ impl<'a> KeyboardInputHost<'a> {
                     failure: None,
                 },
             )
-            .map_err(|error| format!("complete keyboard-backed input operation: {error:?}"))
+            .map_err(|error| format!("complete keyboard-backed input operation: {error:?}"))?;
+        if let Some(descriptor) = descriptor {
+            self.request_admission
+                .as_mut()
+                .ok_or("completed input origin lost")?
+                .completions
+                .record(CompletedInputEvent {
+                    descriptor,
+                    realization,
+                    request,
+                    value,
+                    physical_event,
+                })?;
+        }
+        Ok(())
     }
 
     fn complete_all(

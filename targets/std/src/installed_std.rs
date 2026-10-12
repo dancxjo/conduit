@@ -53,6 +53,7 @@ mod json_summary_back;
 mod kernel_preparation;
 mod keyboard_input_back;
 mod keyboard_input_binding;
+mod keyboard_input_completion;
 mod keyboard_input_host;
 mod layout_backs;
 mod local_model_back;
