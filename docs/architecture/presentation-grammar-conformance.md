@@ -311,3 +311,11 @@ The Face ID/revision and Show ID must match the current acknowledged request.
 The action, target, and exact byte arguments must match the Face contract.
 Changing those correlations refuses before an interaction is emitted. Domain
 Plan/Play basis is distinct from the Mask's realization Plan/Play.
+
+The shared browser fixture exposed #5469: the view previously reported every
+non-Available Show as Prepared, erasing Closed, Replaced, and Failed truth.
+The view now maps all five existing lifecycle states explicitly. Focused tests
+preserve distinct states, refuse argument pressure before emission, and refuse
+returns after closure, replacement, or adapter loss without changing the Face.
+This bounded projection correction is not a new lifecycle or renderer policy;
+required hosted/stable acceptance remains open.

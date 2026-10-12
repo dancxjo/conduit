@@ -299,3 +299,77 @@ fn checked_browser_mask_fore_carries_prebirth_face_and_show_without_a_body() {
     assert!(face.basis.plan_id.is_none());
     assert!(face.basis.active_play_id.is_none());
 }
+
+#[test]
+fn browser_mask_refuses_pressure_and_lost_shows_before_typed_emission() {
+    let face: Presentation = serde_json::from_str(include_str!(
+        "../../../../../proof/conformance/presentation-waist/domain-derived/open-domain-face.json"
+    ))
+    .unwrap();
+    for (index, lifecycle) in [
+        ManifestationLifecycle::Closed,
+        ManifestationLifecycle::Failed,
+        ManifestationLifecycle::Replaced,
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        let mut mask = OwnerBrowserMask::prepare_component_fixture(
+            HostBasis {
+                visual_constraints: None,
+                body_id: face.basis.body_id.clone().unwrap(),
+                host_id: HostId::from("host/browser-loss-fixture"),
+                boot_id: BootId::from("boot/browser-loss-fixture"),
+            },
+            face.clone(),
+            index as u64 + 1,
+            true,
+        )
+        .unwrap();
+        let prepared = mask.view();
+        mask.acknowledge(Acknowledgement {
+            show_id: prepared.show_id.clone(),
+            face_id: prepared.face_id.clone(),
+            face_revision: prepared.face_revision.clone(),
+        })
+        .unwrap();
+        let proposed = |value: String| ProposedInteraction {
+            show_id: prepared.show_id.clone(),
+            face_id: prepared.face_id.clone(),
+            face_revision: prepared.face_revision.clone(),
+            action_id: "lesson/answer".into(),
+            target: "concept/mitochondrion".into(),
+            arguments: vec![ProposedArgument {
+                name: "lesson/answer-text".into(),
+                value,
+            }],
+            sequence: 1,
+        };
+        assert!(mask.interact(proposed("x".repeat(129))).is_err());
+        assert_eq!(mask.presentation, face);
+        assert_eq!(mask.view().show_state, "available");
+        mask.show = if lifecycle == ManifestationLifecycle::Failed {
+            mask.show
+                .fail(
+                    conduit_presentation::ManifestationFailure::AdapterUnavailable,
+                    SignId::from("sign/browser-domain-adapter-lost"),
+                )
+                .unwrap()
+        } else {
+            mask.show
+                .transition(lifecycle, SignId::from("sign/browser-domain-show-closed"))
+                .unwrap()
+        };
+        assert_eq!(
+            mask.view().show_state,
+            match lifecycle {
+                ManifestationLifecycle::Closed => "closed",
+                ManifestationLifecycle::Failed => "failed",
+                ManifestationLifecycle::Replaced => "replaced",
+                _ => unreachable!(),
+            }
+        );
+        assert!(mask.interact(proposed("Energy".into())).is_err());
+        assert_eq!(mask.presentation, face);
+    }
+}
