@@ -1,5 +1,6 @@
 //! Bounded preparation documents followed by exact selected session frames.
 //! No provider selection, retries, migration, or model download lives here.
+mod calibration;
 mod completion;
 mod description;
 mod pool_observation;
@@ -43,6 +44,8 @@ struct Operation {
     source: String,
     plot: String,
     input: ValuePayload,
+    #[serde(default)]
+    service_estimate: Option<calibration::Estimate>,
 }
 #[derive(Deserialize)]
 #[serde(tag = "command", rename_all = "snake_case", deny_unknown_fields)]
@@ -296,6 +299,7 @@ pub(super) fn run() -> Result<(), String> {
                 return Err("session exceeds worker frame budget".into());
             }
         }
+        let service_forecast = calibration::prepare(&host, op.service_estimate.as_ref())?;
         let mut input = vec![0; FRAME_BYTES];
         let mut output = vec![0; FRAME_BYTES];
         let mut result = Vec::with_capacity(65_536);
@@ -384,10 +388,11 @@ pub(super) fn run() -> Result<(), String> {
             )?;
         }
         let completed_work = completion::prepare(&member);
+        let service_calibration = calibration::finish(&host, &member, demand, service_forecast.as_ref());
         host.release_local_model_pool_member(member)?;
         document(
             &mut writer,
-            &serde_json::json!({"phase":"released","terminal":format!("{terminal:?}"),"output_bytes":result.len(),"completed_work":completed_work}),
+            &serde_json::json!({"phase":"released","terminal":format!("{terminal:?}"),"output_bytes":result.len(),"completed_work":completed_work,"service_calibration":service_calibration}),
         )?;
     }
     Err("worker operation budget exhausted".into())
