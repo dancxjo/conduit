@@ -254,7 +254,8 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
         HostCommand::InspectLocalModel {
             model,
             ollama_endpoint,
-        } => host_local_model::inspect(&model, &ollama_endpoint, opts),
+            runtime_state,
+        } => host_local_model::inspect(&model, &ollama_endpoint, runtime_state, opts),
         HostCommand::ProveLocalModel {
             model,
             ollama_endpoint,

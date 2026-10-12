@@ -24,6 +24,24 @@ pub(super) struct FaceArrival {
     next_play: u64,
     next_interaction: u64,
     owner_face: Option<Presentation>,
+    preparation: NativeMaskPreparation,
+}
+
+struct NativeMaskPreparation {
+    host_id: HostId,
+    boot_id: BootId,
+    generation: OfferGeneration,
+    build_id: alloc::string::String,
+    display_base_id: HostBaseId,
+    provider: NativeSurfaceProvider,
+    minimum_text_scale_percent: u16,
+    forced_colors: bool,
+    owner_host: Option<conduit_presentation::RemoteMaskHostBasis>,
+    route_plan_id: Option<conduit_core::PlanId>,
+    selected: Option<(
+        conduit_presentation::ComponentMaskLook,
+        conduit_presentation::TodoComponentRecipe,
+    )>,
 }
 
 pub(super) enum FaceArrivalInput {
@@ -48,11 +66,11 @@ impl FaceArrival {
         owner_route: Option<&RemoteOwnerMaskRouteSeal>,
     ) -> Result<Self, &'static str> {
         let mask = NativeFaceMask::prepare_with_owner_route(
-            host_id,
-            boot_id,
+            host_id.clone(),
+            boot_id.clone(),
             generation,
             build_id,
-            display_base_id,
+            display_base_id.clone(),
             "conduitos/creche/face",
             provider,
             owner_route,
@@ -66,7 +84,111 @@ impl FaceArrival {
             next_play: 1,
             next_interaction: 1,
             owner_face: None,
+            preparation: NativeMaskPreparation {
+                host_id,
+                boot_id,
+                generation,
+                build_id: build_id.into(),
+                display_base_id,
+                provider: provider.clone(),
+                minimum_text_scale_percent: 100,
+                forced_colors: false,
+                selected: None,
+                owner_host: owner_route.map(|route| route.owner_host.clone()),
+                route_plan_id: owner_route.map(|route| route.route_plan_id.clone()),
+            },
         })
+    }
+
+    /// Mask-local appearance replacement through the current authenticated owner.
+    /// The owner returns the identical Face and a newly sealed planned Mask.
+    pub(super) fn select_owner_component(
+        &mut self,
+        identities: BootIdentities,
+        prior: &crate::native_guest_face::NativeGuestFace,
+        route: &mut NativeOwnerReturnRoute,
+        look: conduit_presentation::ComponentMaskLook,
+        recipe: conduit_presentation::TodoComponentRecipe,
+        display: &mut impl PixelTarget,
+    ) -> Result<crate::native_guest_face::NativeGuestFace, &'static str> {
+        let old_show = self.mask.show().cloned().ok_or("owner-face-show-absent")?;
+        let fresh = route.select_component(identities, prior, &old_show, look, recipe)?;
+        self.replace_owner_mask(&fresh, display)?;
+        self.acknowledge_owner_show(route, identities)?;
+        self.preparation.selected = Some((look, recipe));
+        Ok(fresh)
+    }
+
+    fn replace_owner_mask(
+        &mut self,
+        fresh: &crate::native_guest_face::NativeGuestFace,
+        display: &mut impl PixelTarget,
+    ) -> Result<(), &'static str> {
+        let context = &self.preparation;
+        let mut replacement = NativeFaceMask::prepare_with_owner_route(
+            context.host_id.clone(),
+            context.boot_id.clone(),
+            context.generation,
+            &context.build_id,
+            context.display_base_id.clone(),
+            "conduitos/creche/face",
+            &context.provider,
+            fresh.route(),
+        )
+        .map_err(|error| error.as_str())?;
+        replacement
+            .set_visual_user_constraints(
+                context.forced_colors,
+                true,
+                context.minimum_text_scale_percent,
+            )
+            .map_err(|error| error.as_str())?;
+        self.mask.suspend().map_err(|error| error.as_str())?;
+        self.mask = replacement;
+        self.preparation.owner_host = fresh.route().map(|route| route.owner_host.clone());
+        self.preparation.route_plan_id = fresh.route().map(|route| route.route_plan_id.clone());
+        // Keep owner Face identity/revision and independent Mask publication counters.
+        self.present_owner_face(
+            fresh.presentation().clone(),
+            fresh.interactions_admitted(),
+            display,
+        )?;
+        Ok(())
+    }
+
+    pub(super) fn toggle_owner_text_scale(
+        &mut self,
+        prior: &crate::native_guest_face::NativeGuestFace,
+        route: &mut NativeOwnerReturnRoute,
+        identities: BootIdentities,
+        display: &mut impl PixelTarget,
+    ) -> Result<crate::native_guest_face::NativeGuestFace, &'static str> {
+        self.preparation.minimum_text_scale_percent =
+            if self.preparation.minimum_text_scale_percent == 100 {
+                200
+            } else {
+                100
+            };
+        let (look, recipe) = self.preparation.selected.unwrap_or((
+            conduit_presentation::ComponentMaskLook::Compact,
+            conduit_presentation::TodoComponentRecipe::Flat,
+        ));
+        self.select_owner_component(identities, prior, route, look, recipe, display)
+    }
+
+    pub(super) fn toggle_owner_forced_colors(
+        &mut self,
+        prior: &crate::native_guest_face::NativeGuestFace,
+        route: &mut NativeOwnerReturnRoute,
+        identities: BootIdentities,
+        display: &mut impl PixelTarget,
+    ) -> Result<crate::native_guest_face::NativeGuestFace, &'static str> {
+        self.preparation.forced_colors = !self.preparation.forced_colors;
+        let (look, recipe) = self.preparation.selected.unwrap_or((
+            conduit_presentation::ComponentMaskLook::Compact,
+            conduit_presentation::TodoComponentRecipe::Flat,
+        ));
+        self.select_owner_component(identities, prior, route, look, recipe, display)
     }
 
     pub(super) fn route_keyboard(&self) -> Result<bool, &'static str> {
@@ -178,6 +300,31 @@ impl FaceArrival {
     ) -> Result<(), &'static str> {
         let show = self.mask.show().ok_or("owner-face-show-absent")?;
         route.acknowledge_show(identities, show)?;
+        if let (Some(face), Some(configuration), Some(expression)) = (
+            &self.owner_face,
+            self.mask.component_configuration(),
+            self.mask.visual_expression(),
+        ) {
+            let evidence = serde_json::to_vec(&serde_json::json!({
+                "schema":"conduit.conduitos/component-realization@1",
+                "presentation":face,
+                "presentation_revision_decimal":alloc::format!("{}",face.revision),
+                "owner_host":self.preparation.owner_host,
+                "route_plan_id":self.preparation.route_plan_id,
+                "configuration":configuration,
+                "expression":expression,
+                "fallback":self.mask.component_fallback(),
+                "acknowledged_show":show,
+                "owner_show_acknowledged":true,
+            }))
+            .map_err(|_| "native-component-evidence-encoding")?;
+            if evidence.len() > 65_536 {
+                return Err("native-component-evidence-bound");
+            }
+            arch::early_write(b"CONDUIT_NATIVE_COMPONENT_REALIZATION ");
+            arch::early_write(&evidence);
+            arch::early_write(b"\n");
+        }
         arch::early_write(b"CONDUIT_NATIVE_OWNER_FACE {\"schema\":\"conduit.conduitos/native-owner-face@1\",\"status\":\"acknowledged\",\"show_id\":\"");
         arch::early_write(show.show_id.as_str().as_bytes());
         arch::early_write(b"\"}\n");

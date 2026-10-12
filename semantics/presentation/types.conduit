@@ -649,3 +649,48 @@ type ApplicationViewRefusal =
     | stale_revision
     | event_too_large
     | queue_pressure
+
+# Initial finite visual Look facet. Semantic selectors and topology are absent.
+# These canonical values are startup configuration, not a common multimodal Look.
+type VisualDensityPreference =
+    compact
+    | spacious
+
+type VisualPalettePreference =
+    phosphor
+    | editorial
+
+type VisualMotionPreference =
+    none
+    | restrained
+
+type VisualExpressionInfo = {
+    density: VisualDensityPreference
+    identity: Text <= 128B not in [""]
+    motion: VisualMotionPreference
+    palette: VisualPalettePreference
+    text_scale_percent: U16 in 100..=200
+    version: U16 in 1..=1
+}
+
+# Structural selectors refer to existing Face classifications; they are not
+# widgets, paint roles, or replacement semantic subjects/actions.
+type ComponentSubjectSelector =
+    subject Text <= 256B not in [""]
+    | role Text in ["Document", "Body", "Part", "Candidate", "Plot", "Gear", "Port", "Cord", "Plan", "Play", "Host", "Capability", "Line", "Manifestation", "Route", "Diagnostic", "Sign", "Info", "Region", "Collection", "Item", "TextEntry", "Status", "Action"]
+
+type ComponentRegionInfo = {
+    group: U8 in 0..=7
+    identity: Text <= 64B not in [""]
+    maximum_subjects: U16 in 1..=20
+    selector: ComponentSubjectSelector
+}
+
+type ComponentRecipeInfo = {
+    gutter: U16 in 0..=24
+    identity: Text <= 128B not in [""]
+    maximum_columns: U16 in 1..=2
+    reflow_width: U16 in 280..=900
+    regions: sequence ComponentRegionInfo <= 8
+    version: U16 in 1..=1
+}

@@ -2,12 +2,18 @@
 
 use conduit_core::PlannedGear;
 
+mod cost_observation;
 mod ollama;
+mod runtime_state;
+pub use cost_observation::{LocalModelExecutionSample, ModelCostSampler, ModelCostSamplingPolicy};
+pub use runtime_state::{LocalModelRuntimeState, ModelResidencyState};
 pub(crate) mod ollama_present;
 mod ollama_stream;
 mod ollama_vision;
 pub use conduit_ai::{LocalModelKindProfile, MAXIMUM_LOCAL_MODEL_IDENTITY_BYTES};
-pub use ollama::{OllamaDiscovery, OllamaLocalModelAdapter, DEFAULT_OLLAMA_ENDPOINT};
+pub use ollama::{
+    sample_ollama_runtime, OllamaDiscovery, OllamaLocalModelAdapter, DEFAULT_OLLAMA_ENDPOINT,
+};
 pub use ollama_present::finite_face_wording_presenter_policy;
 pub use ollama_vision::{HostedVisualModelAdapter, OllamaVisualModelAdapter, VisualModelOutput};
 
@@ -41,6 +47,11 @@ pub trait HostedLocalModelAdapter: Send {
     /// Refresh provider availability without changing the stable offer.
     fn current_pool_health(&self) -> conduit_core::PoolRealizationHealth {
         conduit_core::PoolRealizationHealth::Unavailable
+    }
+
+    /// Preparation/background sampling only; never called by kernel stepping.
+    fn current_runtime_state(&self) -> Result<LocalModelRuntimeState, String> {
+        Ok(LocalModelRuntimeState::unknown())
     }
 
     fn execute(

@@ -1,5 +1,7 @@
 //! Exact retained raster staging, separately from successful scanout.
 use super::*;
+#[cfg(feature = "native-compositor")]
+use crate::display::PixelTarget;
 
 #[derive(Clone, Copy, Eq, PartialEq)]
 enum RasterMode {
@@ -58,6 +60,52 @@ impl NativeCompositor {
             RasterMode::Pending,
         )
     }
+    /// Stage an admitted expression on this exact pending Mask occurrence.
+    /// A different Plan or unchanged Face revision requires old-surface retirement.
+    pub fn update_pending_configured_mask_surface(
+        &mut self,
+        presentation: &Presentation,
+        show: &conduit_presentation::MaskShow,
+        display_base_id: &HostBaseId,
+        scene: &GraphicsScene,
+        expression: &conduit_presentation::AdmittedVisualExpression,
+    ) -> Result<&CompositionReceipt, NativeCompositorError> {
+        if !(100..=200).contains(&expression.expression.text_scale_percent) {
+            return Err(NativeCompositorError::Display(DisplayError::InvalidExtent));
+        }
+        show.validate(presentation)
+            .map_err(|_| NativeCompositorError::ManifestationInvalid)?;
+        if show.show.lifecycle != ManifestationLifecycle::Prepared {
+            return Err(NativeCompositorError::StaleIdentity);
+        }
+        self.validate_surface_binding(&show.show, &show.show.target_subject, display_base_id)?;
+        let surface = self
+            .surfaces
+            .iter_mut()
+            .find(|surface| surface.surface_id == show.show.target_subject)
+            .ok_or(NativeCompositorError::SurfaceNotAdmitted)?;
+        if let Some(binding) = &surface.binding {
+            if binding.plan_id != show.show.plan_id
+                || binding.placement_id != show.show.placement_id
+                || binding.front_subject != show.show.front_subject
+            {
+                return Err(NativeCompositorError::SurfaceAlreadyBound);
+            }
+            if presentation.revision <= binding.last_revision {
+                return Err(NativeCompositorError::StaleSurfaceRevision);
+            }
+        }
+        surface.visual_expression = Some(expression.clone());
+        self.raster_surface(
+            presentation,
+            &show.show,
+            &show.show.target_subject,
+            display_base_id,
+            scene,
+            RasterMode::Pending,
+        )
+    }
+
     /// Repaint Mask-local focus, pagination, or uncommitted input under the
     /// same acknowledged Show. The semantic Face revision must be identical;
     /// this operation cannot mint a new Show or advance application truth.
@@ -118,10 +166,17 @@ impl NativeCompositor {
         self.scanout_pixels = [0; MAX_COMPOSITOR_SURFACES];
         surface.buffer.clear();
         #[cfg(feature = "native-compositor")]
-        let display =
-            crate::display::typography::render_scene(&mut surface.buffer, scene, |_, command| {
-                command.text_role().into()
-            })?;
+        let display = {
+            let format = surface.buffer.format();
+            let expression = surface.visual_expression.as_ref();
+            crate::display::typography::render_scene_configured(
+                &mut surface.buffer,
+                scene,
+                |_, command| command.text_role().into(),
+                expression.map_or(100, |value| value.expression.text_scale_percent),
+                |role| visual_paint(format, role, expression),
+            )?
+        };
         #[cfg(not(feature = "native-compositor"))]
         let display = render_scene(&mut surface.buffer, scene)?;
         surface.binding = Some(SurfaceBinding {
@@ -148,6 +203,7 @@ impl NativeCompositor {
             front_subject: manifestation.front_subject.clone(),
             display_base_id: display_base_id.clone(),
             surface_id: surface_id.into(),
+            visual_expression: surface.visual_expression.clone(),
             display,
         });
         if surface.visible {
@@ -201,4 +257,44 @@ impl NativeCompositor {
         }
         Ok(())
     }
+}
+
+#[cfg(feature = "native-compositor")]
+fn visual_paint(
+    format: crate::display::DisplayFormat,
+    role: conduit_presentation::GraphicsPaintRole,
+    expression: Option<&conduit_presentation::AdmittedVisualExpression>,
+) -> u32 {
+    use crate::display::{ACCENT, BACKGROUND, DANGER, FOREGROUND, MUTED, SUCCESS, WARNING};
+    use conduit_presentation::{GraphicsPaintRole as Role, VisualPalette};
+    let color = if expression.is_some_and(|value| value.platform_forced_colors) {
+        match role {
+            Role::Background => (0, 0, 0),
+            Role::Focus | Role::Hovered | Role::Selected => (255, 255, 0),
+            _ => (255, 255, 255),
+        }
+    } else if expression.is_some_and(|value| value.expression.palette == VisualPalette::Editorial) {
+        match role {
+            Role::Background => (255, 249, 238),
+            Role::Foreground => (36, 32, 47),
+            Role::Muted => (81, 75, 95),
+            Role::Accent | Role::Selected => (85, 51, 116),
+            Role::Status | Role::Warning => (110, 62, 0),
+            Role::Success => (0, 85, 45),
+            Role::Danger => (140, 20, 35),
+            Role::Focus | Role::Hovered => (0, 67, 140),
+        }
+    } else {
+        match role {
+            Role::Background => BACKGROUND,
+            Role::Foreground => FOREGROUND,
+            Role::Accent | Role::Selected => ACCENT,
+            Role::Muted => MUTED,
+            Role::Status | Role::Warning => WARNING,
+            Role::Success => SUCCESS,
+            Role::Danger => DANGER,
+            Role::Focus | Role::Hovered => (255, 204, 51),
+        }
+    };
+    format.pixel(color.0, color.1, color.2)
 }

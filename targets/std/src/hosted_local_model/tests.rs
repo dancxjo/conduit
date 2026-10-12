@@ -591,3 +591,6 @@ fn checked_house_plot_executes_through_the_ordinary_local_model_play() {
     assert!(!plan_id.is_empty());
     assert!(completed);
 }
+
+#[path = "runtime_cost_sampling_tests.rs"]
+mod runtime_cost_sampling;

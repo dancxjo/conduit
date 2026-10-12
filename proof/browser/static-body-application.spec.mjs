@@ -5,7 +5,31 @@ import { openStaticProfile, stageStaticApplications } from "./static-body-applic
 test.describe.configure({ mode: "serial", retries: 0 });
 
 async function current(page) {
-  return page.evaluate(() => globalThis.__conduitApplication.snapshot());
+  // Chromium's inspector can collect its unresolved evaluation promise even
+  // while the actual snapshot remains live. Observe one real call's completion;
+  // polling this record neither repeats the snapshot nor performs an action.
+  await page.evaluate(() => {
+    if (globalThis.__conduitProofSnapshot) throw new Error("Concurrent snapshot observation");
+    const observation = { settled: false };
+    globalThis.__conduitProofSnapshot = observation;
+    globalThis.__conduitApplication.snapshot().then(value => {
+      observation.value = value;
+      observation.settled = true;
+    }, error => {
+      observation.error = { message: error.message, code: error.code };
+      observation.settled = true;
+    });
+  });
+  try {
+    await page.waitForFunction(() => globalThis.__conduitProofSnapshot.settled, null, { timeout: 15_000 });
+    return await page.evaluate(() => {
+      const observation = globalThis.__conduitProofSnapshot;
+      if (observation.error) throw Object.assign(new Error(observation.error.message), { code: observation.error.code });
+      return observation.value;
+    });
+  } finally {
+    await page.evaluate(() => { delete globalThis.__conduitProofSnapshot; });
+  }
 }
 
 async function ready(page) {
@@ -322,6 +346,88 @@ test("an existing two-lesson Handbook gains new choices without resetting its Bo
     expect((await current(page)).bodyId).toBe(first.bodyId);
     await selector.selectOption("clock-demo");
     await expect(editor).toHaveValue(edited);
+    session.assertClean();
+  } finally {
+    await session.context.close();
+    await site.close();
+  }
+});
+
+
+test("malformed packaged Handbook Plot leaves an editable recovery route into a real Body", async ({}, testInfo) => {
+  testInfo.setTimeout(120_000);
+  const site = await stageStaticApplications({ malformedLessonSource: true });
+  const session = await openStaticProfile(testInfo.outputPath("broken-package-profile"), new URL(site.url).origin);
+  try {
+    const page = await session.context.newPage();
+    await page.goto(new URL("broken/", site.url).href);
+    await expect(page.locator("[data-session-status]")).toContainText("CND-FRM-051");
+    const editor = page.getByRole("textbox", { name: "Plot source", exact: true });
+    const chooser = page.getByLabel("Choose an example", { exact: true });
+    await expect(editor).toBeEnabled();
+    await expect(chooser).toBeEnabled();
+    await expect(page.getByRole("button", { name: "Try in my Handbook", exact: true })).toBeEnabled();
+    await expect(editor).toHaveValue(/source = "1kHz"/);
+    await expect(chooser.locator("option")).toHaveCount(13); // Two resident Plots plus eleven lessons.
+    const repaired = (await editor.inputValue()).replace('source = "1kHz"', "source = 1kHz");
+    await editor.fill(repaired);
+    await page.getByRole("button", { name: "Try in my Handbook", exact: true }).click();
+    await expect(page.locator("[data-check]")).toContainText("Source checks. Correction saved");
+    await expect(page.getByRole("button", { name: "Try again", exact: true })).toBeEnabled();
+    await page.getByRole("button", { name: "Try again", exact: true }).click();
+    await ready(page);
+    await page.getByLabel("Choose an example", { exact: true }).selectOption("convert-pitch-demo");
+    await expect(page.getByRole("textbox", { name: "Plot source", exact: true }))
+      .toHaveValue(repaired);
+    await page.getByRole("button", { name: "Try in my Handbook", exact: true }).click();
+    await expect(page.locator("[data-check]")).toHaveText("Checked convert-pitch-demo.");
+    await expect(page.locator(".handbook-show [data-resident-plot]:visible"))
+      .toContainText("Exactly 1000 Hz");
+    session.assertClean();
+  } finally {
+    await session.context.close();
+    await site.close();
+  }
+});
+
+test("a retained syntax refusal exposes original source without rewriting continuity", async ({}, testInfo) => {
+  testInfo.setTimeout(120_000);
+  const site = await stageStaticApplications();
+  const session = await openStaticProfile(testInfo.outputPath("broken-retained-profile"), new URL(site.url).origin);
+  try {
+    const page = await session.context.newPage();
+    await page.goto(new URL("handbook/", site.url).href);
+    const original = await ready(page);
+    await page.getByRole("button", { name: "Lull", exact: true }).click();
+    const retainedSource = await page.evaluate(async () => {
+      const store = globalThis.__conduitBrowserApplication.storage;
+      const record = await store.readJson("body-continuity");
+      const inventory = JSON.parse(record.source);
+      const lesson = inventory.plots.find(plot => plot.entry === "convert-pitch-demo");
+      if (!lesson) throw new Error("missing retained pitch lesson");
+      lesson.source = lesson.source.replace("source = 1kHz", 'source = "1kHz"');
+      if (!lesson.source.includes('source = "1kHz"')) throw new Error("failed to seed syntax refusal");
+      const changed = { ...record, source: JSON.stringify(inventory) };
+      await store.writeJson("body-continuity", changed);
+      return changed.source;
+    });
+    await page.locator(".handbook-application").getByText("Your body and browser", { exact: true }).click();
+    await page.getByRole("button", { name: "Release this tab", exact: true }).click();
+    await page.reload();
+    await expect(page.locator("[data-session-status]")).toContainText("CND-FRM-051");
+    const editor = page.getByRole("textbox", { name: "Plot source", exact: true });
+    await expect(editor).toBeEnabled();
+    await expect(editor).toHaveValue(/source = "1kHz"/);
+    const repaired = (await editor.inputValue()).replace('source = "1kHz"', "source = 1kHz");
+    await editor.fill(repaired);
+    await page.getByRole("button", { name: "Try in my Handbook", exact: true }).click();
+    await expect(page.locator("[data-check]")).toContainText("Source checks. The retained Body has not been changed");
+    await expect(page.getByRole("button", { name: "Download original retained Body record" })).toBeEnabled();
+    const after = await page.evaluate(async () =>
+      (await globalThis.__conduitBrowserApplication.storage.readJson("body-continuity")).source);
+    expect(after).toBe(retainedSource);
+    expect(after).toContain('source = \\"1kHz\\"');
+    expect(original.bodyId).toBeTruthy();
     session.assertClean();
   } finally {
     await session.context.close();

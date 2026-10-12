@@ -124,6 +124,11 @@ pub(crate) struct BrowserWindow {
     clock: Instant,
     deadline: Instant,
     state: WindowState,
+    // Source-root selection belongs to this participating Mask, not Body state.
+    component_mask_selection: Option<(
+        conduit_presentation::ComponentMaskLook,
+        conduit_presentation::TodoComponentRecipe,
+    )>,
 }
 
 enum WindowState {
@@ -327,6 +332,7 @@ impl Owner {
             clock,
             deadline: clock + Duration::from_millis(maximum_millis),
             state: WindowState::Ready,
+            component_mask_selection: None,
         });
         Ok(BrowserWindowAuthorization {
             window_id: id,

@@ -32,6 +32,7 @@ fn exact_owner_face_runs_the_browser_mask_and_acknowledges_its_show() {
     .unwrap()
     .presentation;
     let basis = HostBasis {
+        visual_constraints: None,
         body_id: body.body_id.clone(),
         host_id: HostId::from("host/browser-owner-face"),
         boot_id: BootId::from("boot/browser-owner-face"),
@@ -78,6 +79,7 @@ fn selected_carrier_lines_survive_browser_lowering_and_bound_show() {
     .unwrap()
     .presentation;
     let basis = HostBasis {
+        visual_constraints: None,
         body_id: body.body_id,
         host_id: HostId::from("host/selected-browser"),
         boot_id: BootId::from("boot/selected-browser"),
@@ -124,6 +126,7 @@ fn selected_carrier_lines_survive_browser_lowering_and_bound_show() {
     .unwrap();
     assert!(OwnerBrowserMask::prepare_planned(
         HostBasis {
+            visual_constraints: None,
             body_id: basis.body_id.clone(),
             host_id: basis.host_id.clone(),
             boot_id: basis.boot_id.clone(),
@@ -148,6 +151,7 @@ fn selected_carrier_lines_survive_browser_lowering_and_bound_show() {
     )
     .unwrap();
     let full_basis = HostBasis {
+        visual_constraints: None,
         body_id: basis.body_id.clone(),
         host_id: basis.host_id.clone(),
         boot_id: basis.boot_id.clone(),
@@ -164,6 +168,7 @@ fn selected_carrier_lines_survive_browser_lowering_and_bound_show() {
     .is_err());
     OwnerBrowserMask::prepare_planned(
         HostBasis {
+            visual_constraints: None,
             body_id: basis.body_id.clone(),
             host_id: basis.host_id.clone(),
             boot_id: basis.boot_id.clone(),
@@ -260,6 +265,7 @@ fn current_browser_mask_emits_one_exact_typed_clock_interaction() {
     )
     .unwrap();
     let basis = HostBasis {
+        visual_constraints: None,
         body_id: body.body_id,
         host_id: HostId::from("host/browser-owner-action"),
         boot_id: BootId::from("boot/browser-owner-action"),

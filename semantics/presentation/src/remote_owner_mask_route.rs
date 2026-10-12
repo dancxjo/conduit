@@ -19,10 +19,13 @@ use crate::{
     MaskShow, PlannedMaskPlot, Presentation, PresentationBasis, PresentationContentId,
 };
 
-const MAX_REMOTE_ROUTE_SEAL_BYTES: usize = 32 * 1024;
+// Configured component Plans plus a real Todo Face basis and authenticated
+// carrier identities exceed 32 KiB. Keep preparation finite below the 60 KiB
+// owner Face document envelope; wire emission remains independently bounded.
+const MAX_REMOTE_ROUTE_SEAL_BYTES: usize = 40 * 1024;
 // Preparation hashes the full local inventory but transmits only its digest.
 // Allow the reference Host plus attached providers within the same finite 1 MiB
-// inventory envelope as local Mask sealing; the remote seal remains 32 KiB.
+// inventory envelope as local Mask sealing; the remote seal remains 40 KiB.
 const MAX_HOST_OFFER_BYTES: usize = 1024 * 1024;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

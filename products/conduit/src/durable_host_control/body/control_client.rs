@@ -107,6 +107,7 @@ fn clear_token(request: &mut Request) {
         | Request::BodyBrowserMaskRoute { token, .. }
         | Request::BodyBrowserShow { token, .. }
         | Request::BodyBrowserWardrobe { token, .. }
+        | Request::BodyBrowserComponentMask { token, .. }
         | Request::BodyBrowserAbort { token, .. }
         | Request::BodyBrowserCancel { token, .. }
         | Request::BodyBrowserLeave { token, .. }
@@ -114,6 +115,7 @@ fn clear_token(request: &mut Request) {
         | Request::BodyLocalFace { token, .. }
         | Request::BodyLocalWardrobe { token, .. }
         | Request::BodyNativeMaskRoute { token, .. }
+        | Request::BodyNativeComponentMask { token, .. }
         | Request::BodyNativeMaskShow { token, .. }
         | Request::BirthFace { token, .. }
         | Request::BirthInteraction { token, .. }

@@ -31,7 +31,7 @@ fn larger_local_inventory_binds_a_compact_exact_basis() {
         RemoteMaskHostBasis::bind(&offer).unwrap().offer_digest,
         basis.offer_digest
     );
-    assert_eq!(MAX_REMOTE_ROUTE_SEAL_BYTES, 32 * 1024);
+    assert_eq!(MAX_REMOTE_ROUTE_SEAL_BYTES, 40 * 1024);
 }
 
 #[test]
