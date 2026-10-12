@@ -40,7 +40,7 @@ impl StorageAuthorizationSubmission {
 }
 /// Constructor is restricted to audited in-crate native composition; serialized
 /// candidate bytes, capability inspection or successful Source output cannot mint it.
-pub(crate) struct StorageSettlementReceipt(StorageAuthorizationSubmission);
+pub(crate) struct StorageSettlementReceipt(StorageAuthorizationSubmission, bool);
 pub(crate) struct StorageCancellationReceipt(StorageAuthorizationSubmission);
 impl StorageCancellationReceipt {
     pub(crate) fn into_submission(self) -> StorageAuthorizationSubmission {
@@ -64,7 +64,14 @@ impl StorageSettlementReceipt {
     /// Cancellation additionally requires actual acknowledged native stop.
     /// A zero capability-table counter or Source verdict is insufficient.
     pub(crate) unsafe fn acknowledged(submission: StorageAuthorizationSubmission) -> Self {
-        Self(submission)
+        Self(submission, false)
+    }
+    /// # Safety
+    /// The original native transport has acknowledged stop, revoked possession,
+    /// and retired all DMA, lease, dispatcher and subordinate kernel obligations.
+    /// This receipt permits terminal failures only, never observed block success.
+    pub(crate) unsafe fn stopped(submission: StorageAuthorizationSubmission) -> Self {
+        Self(submission, true)
     }
 }
 #[derive(Debug, PartialEq, Eq)]
@@ -324,6 +331,15 @@ impl BlockReadTransactionOwner {
             }
             self.validator.validate(candidate).map_err(E::Canonical)?;
             validate_candidate(candidate, *request, *ordinal)?;
+            if receipt.1 {
+                let value = validate_canonical_structured_value(candidate).map_err(E::Canonical)?;
+                if matches!(
+                    value.variant_tag().map_err(E::Canonical)?,
+                    "completed" | "incomplete"
+                ) {
+                    return Err(E::Candidate);
+                }
+            }
             if self.authorize.table.inspections().any(|entry| {
                 entry.lifecycle != CapabilityLifecycle::Issued || entry.in_flight_operations != 1
             }) {

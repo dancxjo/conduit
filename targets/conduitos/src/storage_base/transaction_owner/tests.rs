@@ -182,3 +182,60 @@ fn original_claim_capacity_is_bounded_even_when_its_identity_bytes_match() {
     });
     assert!(matches!(result, Err(StorageTransactionRefusal::Retention)));
 }
+
+#[test]
+fn stopped_receipt_rejects_observed_blocks_and_retains_original_submission() {
+    for actual in [512usize, 17] {
+        let mut owner = fixture::owner(|_, _| {}).unwrap();
+        let (submission, _) = owner
+            .authorize(
+                owner.authorize_node(),
+                HostCallId(0),
+                RequestId(0),
+                &fixture::input(0),
+            )
+            .unwrap();
+        let contract = BlockReadTransactionContract::prepare().unwrap();
+        let mut encoder = PreparedBlockReadResultEncoder::new(contract.block()).unwrap();
+        let bytes = encoder
+            .observed(
+                submission.request(),
+                0,
+                &alloc::vec![0x80; actual],
+                (512 - actual) as u16,
+            )
+            .unwrap();
+        let receipt = unsafe { StorageSettlementReceipt::stopped(submission) };
+        let receipt = match owner.settle(
+            owner.settle_node(),
+            HostCallId(0),
+            RequestId(0),
+            bytes,
+            receipt,
+        ) {
+            Err((StorageTransactionRefusal::Candidate, receipt)) => receipt,
+            _ => panic!("stopped transport must never settle observed block success"),
+        };
+        assert!(owner.pending.is_some());
+        let bytes = encoder
+            .disposition(
+                receipt.0.request(),
+                0,
+                crate::storage_base::result::BlockReadDisposition::ProviderLost,
+            )
+            .unwrap();
+        assert!(
+            owner
+                .settle(
+                    owner.settle_node(),
+                    HostCallId(0),
+                    RequestId(0),
+                    bytes,
+                    receipt
+                )
+                .is_ok()
+        );
+        assert!(owner.pending.is_none());
+        assert!(owner.terminal);
+    }
+}

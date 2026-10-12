@@ -174,6 +174,7 @@ impl StorageAssociation {
         call: HostCallId,
         request: conduit_kernel::RequestId,
         input: &[u8],
+        stopped: bool,
     ) -> Result<&[u8], ProtocolCallRefusal> {
         let submission = match self.receipt.take() {
             Some(receipt) => receipt.into_submission(),
@@ -196,7 +197,12 @@ impl StorageAssociation {
         // SAFETY: the only caller first validates the same original native Host,
         // dispatcher tokens and every associated scheduler obligation. This
         // genuine original token never came from Source bytes or another owner.
-        let receipt = unsafe { StorageSettlementReceipt::acknowledged(submission) };
+        let receipt = if stopped {
+            // SAFETY: caller additionally validates the original acknowledged stop.
+            unsafe { StorageSettlementReceipt::stopped(submission) }
+        } else {
+            unsafe { StorageSettlementReceipt::acknowledged(submission) }
+        };
         if let Err((error, receipt)) = self.owner.settle(node, call, request, input, receipt) {
             self.receipt = Some(receipt);
             return Err(ProtocolCallRefusal::Storage(error));
@@ -272,7 +278,7 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
         request: conduit_kernel::RequestId,
         settle: bool,
     ) -> Result<(), ProtocolCallRefusal> {
-        self.validate_usb_subordinate_idle(kernel)?;
+        let stopped = self.validate_usb_subordinate_settlement(kernel, settle)?;
         let storage = self
             .storage
             .as_mut()
@@ -292,7 +298,7 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
             .host_request_input(admitted)
             .map_err(ProtocolCallRefusal::Kernel)?;
         let bytes = if settle {
-            storage.settle(node, call, request, input)?
+            storage.settle(node, call, request, input, stopped)?
         } else {
             storage.authorize(node, call, request, input)?
         };

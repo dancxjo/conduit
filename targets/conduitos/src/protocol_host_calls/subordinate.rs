@@ -9,6 +9,15 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
         &self,
         kernel: &KernelCompositeHost,
     ) -> Result<(), ProtocolCallRefusal> {
+        self.validate_usb_subordinate_settlement(kernel, false)
+            .map(|_| ())
+    }
+
+    pub(super) fn validate_usb_subordinate_settlement(
+        &self,
+        kernel: &KernelCompositeHost,
+        allow_stopped: bool,
+    ) -> Result<bool, ProtocolCallRefusal> {
         if kernel.definition().internal_plan.plan_id != self.plan_id {
             return Err(ProtocolCallRefusal::InvalidPlan);
         }
@@ -38,7 +47,13 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
         {
             return Err(ProtocolCallRefusal::Unsupported);
         }
-        host.validate_settlement_idle()
-            .map_err(ProtocolCallRefusal::UsbProtocol)
+        match host.validate_settlement_idle() {
+            Ok(()) => Ok(false),
+            Err(_) if allow_stopped => host
+                .validate_cancelled_settlement()
+                .map(|()| true)
+                .map_err(ProtocolCallRefusal::UsbProtocol),
+            Err(error) => Err(ProtocolCallRefusal::UsbProtocol(error)),
+        }
     }
 }
