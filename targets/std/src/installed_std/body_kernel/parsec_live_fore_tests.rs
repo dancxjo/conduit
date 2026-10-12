@@ -378,3 +378,6 @@ fn combined_parsec_pending_keyboard_progresses_without_a_command_then_cancels() 
         report.cleanup_failure
     );
 }
+
+#[path = "parsec_input_action_body_tests.rs"]
+mod input_actions;

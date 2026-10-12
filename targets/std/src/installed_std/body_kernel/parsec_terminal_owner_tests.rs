@@ -61,7 +61,7 @@ fn terminal_host() -> crate::StdHost {
     crate::StdHost::from_advertisement(advertisement).unwrap()
 }
 
-fn fixture() -> (
+pub(super) fn fixture() -> (
     crate::StdHost,
     BodyPlan,
     BodyPlayIdentity,

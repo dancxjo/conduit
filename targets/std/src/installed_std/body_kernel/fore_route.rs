@@ -6,6 +6,9 @@ use crate::{
 use conduit_core::PortDirection;
 use conduit_plan_lowering::lowering::{LoweredForePort, LoweredPlanFragment};
 
+use super::super::keyboard_input_completion::{CompletedInputEvent, MAX_COMPLETED_INPUT_EVENTS};
+use std::collections::VecDeque;
+
 use super::super::{
     external_fore_feeder::{self, PreparedForeInputs},
     InstalledScheduler,
@@ -17,6 +20,12 @@ pub(super) struct BodyForeRoute<'a> {
     output_slots: Vec<OutputSlots>,
     deliveries: Vec<ExternalForeDelivery>,
     started: bool,
+    acknowledged_inputs: VecDeque<AcknowledgedInput>,
+}
+
+pub(super) struct AcknowledgedInput {
+    pub(super) event: CompletedInputEvent,
+    delivery_index: usize,
 }
 
 struct OutputSlots {
@@ -158,6 +167,7 @@ impl<'a> BodyForeRoute<'a> {
             output_slots,
             deliveries: Vec::with_capacity(delivery_capacity),
             started: false,
+            acknowledged_inputs: VecDeque::with_capacity(MAX_COMPLETED_INPUT_EVENTS),
         })
     }
 
@@ -234,6 +244,9 @@ impl<'a> BodyForeRoute<'a> {
                                 .into(),
                         );
                     }
+                    if self.acknowledged_inputs.len() == MAX_COMPLETED_INPUT_EVENTS {
+                        return Err("acknowledged input staging bound exceeded".into());
+                    }
                     Some((node, call, event.descriptor, event.physical_event))
                 } else {
                     None
@@ -268,10 +281,14 @@ impl<'a> BodyForeRoute<'a> {
                     }
                 }
                 if let Some((node, call, descriptor, physical_event)) = completed {
-                    input
+                    let event = input
                         .as_deref_mut()
                         .ok_or("Body input observation lost its custody")?
                         .acknowledge_completed_event(node, call, offer.value)?;
+                    self.acknowledged_inputs.push_back(AcknowledgedInput {
+                        event,
+                        delivery_index: self.deliveries.len(),
+                    });
                     slots.acknowledged_descriptor = Some(descriptor);
                     slots.acknowledged_physical_event = Some(physical_event);
                 }
@@ -279,6 +296,17 @@ impl<'a> BodyForeRoute<'a> {
             }
         }
         Ok(())
+    }
+
+    /// Called only after the complete Fore drain, including state acknowledgements.
+    pub(super) fn take_acknowledged_input(&mut self) -> Option<AcknowledgedInput> {
+        self.acknowledged_inputs.pop_front()
+    }
+
+    pub(super) fn acknowledged_input_bytes(&self, input: &AcknowledgedInput) -> &[u8] {
+        // Delivery history is retained for the whole Play; the index is minted
+        // only after acknowledgement and before that exact delivery is appended.
+        &self.deliveries[input.delivery_index].bytes
     }
 
     pub(super) fn require_normal_terminal(

@@ -4,7 +4,7 @@ use conduit_body::{Body, BodyPlan, BodyPlayIdentity, BodyPlotPlan, ResidentPlot}
 use conduit_core::SignId;
 use conduit_kernel::{BoundedValueRef, RequestId, ValueRef};
 
-fn body_plan() -> (HostAdvertisement, BodyPlan, conduit_body::Wake) {
+pub(super) fn body_plan() -> (HostAdvertisement, BodyPlan, conduit_body::Wake) {
     let (advertisement, plan) = super::tests::planned_plan();
     let body = Body::born(
         plan.source_document_id.clone(),
@@ -31,7 +31,7 @@ fn body_plan() -> (HostAdvertisement, BodyPlan, conduit_body::Wake) {
     (advertisement, body_plan, wake)
 }
 
-fn origins(plan: &BodyPlan) -> (Vec<KernelIdentityMap>, Vec<LoweredHostCall>) {
+pub(super) fn origins(plan: &BodyPlan) -> (Vec<KernelIdentityMap>, Vec<LoweredHostCall>) {
     use conduit_plan_lowering::{
         fragment_set::{lower_local_fragment_set_from_plans, FragmentSetBounds},
         lowering::FIXED_KERNEL_STORAGE_PROFILE,
@@ -67,7 +67,7 @@ fn origins(plan: &BodyPlan) -> (Vec<KernelIdentityMap>, Vec<LoweredHostCall>) {
     (identities, operations)
 }
 
-fn request(operation: &LoweredHostCall) -> HostCallRequest {
+pub(super) fn request(operation: &LoweredHostCall) -> HostCallRequest {
     HostCallRequest {
         node: operation.node,
         call: operation.call,

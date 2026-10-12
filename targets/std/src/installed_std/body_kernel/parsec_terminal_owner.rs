@@ -15,6 +15,8 @@ use std::io::Write;
 
 #[path = "parsec_terminal_face.rs"]
 mod face;
+#[path = "parsec_terminal_input.rs"]
+mod input;
 
 pub(super) struct ParsecTerminalOwner {
     plan: BodyPlan,
@@ -31,6 +33,8 @@ pub(super) struct ParsecTerminalOwner {
     maximum_shows: u16,
     rendered_shows: u16,
     scoped_play: Option<BodyPlayIdentity>,
+    input_inflight: Option<u64>,
+    refresh_after_input: bool,
 }
 impl ParsecTerminalOwner {
     pub(super) fn prepare(
@@ -72,6 +76,8 @@ impl ParsecTerminalOwner {
             maximum_shows,
             rendered_shows: 0,
             scoped_play: None,
+            input_inflight: None,
+            refresh_after_input: false,
         })
     }
 
@@ -104,7 +110,17 @@ impl ParsecTerminalOwner {
         {
             return Err("Parsec terminal cannot replace its issued Body Play".into());
         }
-        if self.shown_play.as_ref() == Some(play) && map.current_state()? == self.state {
+        if self
+            .input_inflight
+            .is_some_and(|count| map.acknowledged_items() < count)
+        {
+            return Ok(false);
+        }
+        self.input_inflight = None;
+        if !self.refresh_after_input
+            && self.shown_play.as_ref() == Some(play)
+            && map.current_state()? == self.state
+        {
             self.current_face_show(map, host)?;
             return Ok(false);
         }
@@ -189,6 +205,9 @@ impl ParsecTerminalOwner {
         self.state.clear();
         let mut terminal = TerminalFaceMask::prepare(face.clone(), self.columns, self.rows)
             .map_err(|e| e.to_string())?;
+        terminal
+            .focus_prepared_action(&face.actions[0].identity)
+            .map_err(|e| format!("Parsec prepared action focus: {e:?}"))?;
         // This concrete execution, not an arbitrary caller's trait implementation,
         // performs receipt -> actual Host Call completion -> actual Show Fore.
         terminal
@@ -199,6 +218,8 @@ impl ParsecTerminalOwner {
         }
         self.state.extend_from_slice(state);
         self.rendered_shows += 1;
+        self.refresh_after_input = false;
+        self.input_inflight = None;
         self.shown_play = Some(play.clone());
         self.face = Some(face);
         self.terminal = Some(terminal);
@@ -210,6 +231,9 @@ impl ParsecTerminalOwner {
         map: &ParsecAcknowledgedMap,
         host: &HostAdvertisement,
     ) -> Result<(&'a Presentation, &'a MaskShow), String> {
+        if self.input_inflight.is_some() || self.refresh_after_input {
+            return Err("Parsec consumed Show awaits source acknowledgement".into());
+        }
         let valid = self.check_host(host).and_then(|()| {
             let play = map.current_play()?;
             if !play.validate_for(&self.plan)
@@ -251,6 +275,8 @@ impl ParsecTerminalOwner {
     }
     pub(super) fn retire(&mut self) {
         self.retired = true;
+        self.input_inflight = None;
+        self.refresh_after_input = false;
         let _ = self.execution.cancel();
         self.terminal = None;
         self.face = None;

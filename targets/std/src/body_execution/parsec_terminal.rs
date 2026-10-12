@@ -17,6 +17,7 @@ pub struct BodyParsecTerminalRoute<'a> {
 }
 
 pub(crate) struct ParsecTerminalAttachment<'a> {
+    pub queue: &'a BodyLiveForeQueue,
     pub output: &'a mut dyn Write,
     pub observer: &'a mut dyn BodyParsecShowObserver,
     pub host: conduit_core::HostAdvertisement,
@@ -26,8 +27,9 @@ pub(crate) struct ParsecTerminalAttachment<'a> {
 
 impl StdHost {
     /// Attach an explicitly supplied terminal writer to one exact Parsec Play.
-    /// The current Host must offer the terminal Mask. This renders source-derived
-    /// Faces and acknowledged Shows; device-to-action binding remains separate.
+    /// The current Host must offer the terminal Mask. Completed admitted input
+    /// is checked against the current source map and acknowledged Face/Show,
+    /// returned through the concrete Mask, then staged as a typed source command.
     pub fn run_body_plan_with_parsec_terminal_to_with_start<W: Write, T: TimerAdapter, F>(
         &mut self,
         request: BodyRunRequest<'_>,
@@ -40,6 +42,7 @@ impl StdHost {
         F: FnMut(&BodyPlayIdentity, &Wake) -> Result<(), String>,
     {
         let terminal = ParsecTerminalAttachment {
+            queue: route.queue,
             output: route.terminal_output,
             observer: route.observer,
             host: self.advertisement.clone(),
