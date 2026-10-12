@@ -18,12 +18,19 @@ pub(super) struct KeyboardInputHost<'a> {
     terminal: bool,
     request_admission: Option<KeyboardRequestAdmission>,
     physical_event: u64,
+    input_view_epoch: Option<u64>,
 }
 
 #[derive(Clone, Copy)]
 pub(super) enum InputRequestKind {
     Keyboard,
     SpaceButton,
+}
+
+#[derive(Clone, Copy)]
+struct InputEventContext {
+    physical_event: u64,
+    input_view_epoch: Option<u64>,
 }
 
 impl<'a> KeyboardInputHost<'a> {
@@ -54,6 +61,7 @@ impl<'a> KeyboardInputHost<'a> {
             terminal: false,
             request_admission: None,
             physical_event: 0,
+            input_view_epoch: None,
         }
     }
 
@@ -66,6 +74,12 @@ impl<'a> KeyboardInputHost<'a> {
         }
         self.request_admission = Some(admission);
         Ok(())
+    }
+
+    /// Snapshot supplied by the private current-Show owner before each poll.
+    /// The stamp itself never grants current Face, map or input authority.
+    pub(super) fn set_input_view_epoch(&mut self, epoch: Option<u64>) {
+        self.input_view_epoch = if self.terminal { None } else { epoch };
     }
 
     pub(super) fn claim_completed_event(
@@ -86,7 +100,7 @@ impl<'a> KeyboardInputHost<'a> {
         node: conduit_kernel::NodeId,
         call: conduit_kernel::HostCallId,
         value: conduit_kernel::ValueRef,
-    ) -> Result<(), String> {
+    ) -> Result<CompletedInputEvent, String> {
         self.request_admission
             .as_mut()
             .ok_or("completed input origin is absent")?
@@ -156,6 +170,7 @@ impl<'a> KeyboardInputHost<'a> {
             admission.revoke();
         }
         self.terminal = true;
+        self.input_view_epoch = None;
         self.pending_keyboard = None;
         self.pending_button = None;
     }
@@ -199,6 +214,10 @@ impl<'a> KeyboardInputHost<'a> {
             crate::hosted_keyboard::HostedKeyboardPoll::Pending => return Ok(false),
             crate::hosted_keyboard::HostedKeyboardPoll::Event(event) => {
                 let physical_event = self.physical_event;
+                let context = InputEventContext {
+                    physical_event,
+                    input_view_epoch: self.input_view_epoch,
+                };
                 self.physical_event = physical_event
                     .checked_add(1)
                     .ok_or("physical input event ordinal exhausted")?;
@@ -210,7 +229,7 @@ impl<'a> KeyboardInputHost<'a> {
                         &encoded,
                         conduit_human::KEY_EVENT_ENCODED_LEN as u32,
                         InputRealization::RawKeyboard,
-                        physical_event,
+                        context,
                     )?;
                 }
                 if event.usage() == 0x2c {
@@ -250,7 +269,7 @@ impl<'a> KeyboardInputHost<'a> {
                             value,
                             conduit_semantic_catalog::BUTTON_TRANSITION_MAXIMUM_BYTES,
                             InputRealization::SpaceButton,
-                            physical_event,
+                            context,
                         )?;
                     }
                 }
@@ -280,19 +299,12 @@ impl<'a> KeyboardInputHost<'a> {
         encoded: &[u8],
         maximum: u32,
         realization: InputRealization,
-        physical_event: u64,
+        context: InputEventContext,
     ) -> Result<(), String> {
         let value = scheduler
             .store_host_value(encoded)
             .map_err(|error| format!("store portable input event: {error:?}"))?;
-        self.complete_stored_value(
-            scheduler,
-            request,
-            value,
-            maximum,
-            realization,
-            physical_event,
-        )
+        self.complete_stored_value(scheduler, request, value, maximum, realization, context)
     }
 
     fn complete_stored_value(
@@ -302,7 +314,7 @@ impl<'a> KeyboardInputHost<'a> {
         value: conduit_kernel::ValueRef,
         maximum: u32,
         realization: InputRealization,
-        physical_event: u64,
+        context: InputEventContext,
     ) -> Result<(), String> {
         let descriptor = match &self.request_admission {
             Some(admission) if admission.completions.enabled() => {
@@ -334,7 +346,8 @@ impl<'a> KeyboardInputHost<'a> {
                     realization,
                     request,
                     value,
-                    physical_event,
+                    physical_event: context.physical_event,
+                    input_view_epoch: context.input_view_epoch,
                 })?;
         }
         Ok(())
@@ -347,6 +360,7 @@ impl<'a> KeyboardInputHost<'a> {
         failure: Option<conduit_kernel::Failure>,
     ) -> Result<(), String> {
         self.terminal = true;
+        self.input_view_epoch = None;
         if let Some(admission) = &mut self.request_admission {
             admission.revoke();
         }
