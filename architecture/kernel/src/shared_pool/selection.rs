@@ -4,6 +4,9 @@
 //! admissible member placement from the immutable lowered envelope, then asks
 //! the existing fixed pool to perform the atomic occupation transition.
 
+mod cost;
+pub use cost::*;
+
 use core::cmp::Ordering;
 
 use super::{FixedSharedPool, MemberIdentity, MemberKey, MemberPlacement, PoolError};
@@ -66,6 +69,8 @@ pub struct SelectedPoolMember {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PoolSelectionError {
     InvalidEnvelope,
+    CostInputLimit,
+    DuplicateCost,
     DuplicateObservation,
     EvidenceTooSmall,
     CapacityUnavailable { examined_realizations: u16 },
@@ -88,21 +93,95 @@ pub fn admit_selected_pool_member<const SLOTS: usize, const SIGN: usize>(
     policy: PoolSelectionPolicy,
     selected_observation_signs: &mut [u16],
 ) -> Result<SelectedPoolMember, PoolSelectionError> {
+    admit_pool_member(
+        pool,
+        key,
+        authority,
+        envelope,
+        requirements,
+        observations,
+        policy,
+        selected_observation_signs,
+        None,
+    )
+}
+
+/// Compare prepared completion costs only after the ordinary hard/current and
+/// population checks. Known costs precede unavailable costs; equal or absent
+/// costs use the existing capacity policy and immutable Plan order. This is a
+/// new-operation selection: admitted members are never moved or replayed.
+#[allow(clippy::too_many_arguments)]
+pub fn admit_cost_selected_pool_member<const SLOTS: usize, const SIGN: usize>(
+    pool: &mut FixedSharedPool<SLOTS, SIGN>,
+    key: MemberKey,
+    authority: u16,
+    envelope: &[LoweredPoolRealization],
+    requirements: &[LoweredPoolResourceRequirement],
+    observations: &[LoweredPoolObservation],
+    costs: PoolCostSelection<'_>,
+    selected_observation_signs: &mut [u16],
+    decisions: &mut [PoolCostCandidateDecision],
+) -> Result<SelectedPoolMember, PoolSelectionError> {
+    costs.validate(envelope, requirements.len(), observations.len())?;
+    if decisions.len() < envelope.len() {
+        return Err(PoolSelectionError::EvidenceTooSmall);
+    }
+    admit_pool_member(
+        pool,
+        key,
+        authority,
+        envelope,
+        requirements,
+        observations,
+        PoolSelectionPolicy::MoreUnreservedThenLessUtilizedThenPlanOrder,
+        selected_observation_signs,
+        Some((costs, decisions)),
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn admit_pool_member<const SLOTS: usize, const SIGN: usize>(
+    pool: &mut FixedSharedPool<SLOTS, SIGN>,
+    key: MemberKey,
+    authority: u16,
+    envelope: &[LoweredPoolRealization],
+    requirements: &[LoweredPoolResourceRequirement],
+    observations: &[LoweredPoolObservation],
+    policy: PoolSelectionPolicy,
+    selected_observation_signs: &mut [u16],
+    mut cost_selection: Option<(PoolCostSelection<'_>, &mut [PoolCostCandidateDecision])>,
+) -> Result<SelectedPoolMember, PoolSelectionError> {
     validate_envelope(envelope, requirements)?;
     let mut selected: Option<&LoweredPoolRealization> = None;
     let mut examined = 0_u16;
     let mut current_but_full = false;
-    for candidate in envelope {
+    for (index, candidate) in envelope.iter().enumerate() {
+        if let Some((_, decisions)) = &mut cost_selection {
+            decisions[index] = PoolCostCandidateDecision {
+                realization: candidate.realization,
+                ..PoolCostCandidateDecision::EMPTY
+            };
+        }
         examined = examined.saturating_add(1);
         if !is_current(candidate, requirements, observations)? {
             continue;
         }
+        if let Some((costs, decisions)) = &mut cost_selection {
+            decisions[index].cost = costs.availability(candidate);
+            decisions[index].admission = PoolCostAdmission::Eligible;
+        }
         if pool.population_for_realization(candidate.realization) >= candidate.member_capacity {
+            if let Some((_, decisions)) = &mut cost_selection {
+                decisions[index].admission = PoolCostAdmission::Full;
+            }
             current_but_full = true;
             continue;
         }
         let should_select = match selected {
-            Some(current) => better(candidate, current, requirements, observations, policy),
+            Some(current) => cost_selection
+                .as_ref()
+                .and_then(|(costs, _)| costs.better(candidate, current))
+                .unwrap_or_else(|| better(candidate, current, requirements, observations, policy)),
             None => true,
         };
         if should_select {
