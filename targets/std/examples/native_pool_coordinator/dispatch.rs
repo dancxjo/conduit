@@ -84,6 +84,7 @@ pub(super) fn run<'a>(
     queue
         .enqueue(request, &admission.queued_at)
         .map_err(|e| format!("native request queue: {e:?}"))?;
+    let decision_started = std::time::Instant::now();
     let dispatched = queue
         .dispatch(
             &admission.evaluated_at,
@@ -94,6 +95,7 @@ pub(super) fn run<'a>(
         )
         .map_err(|e| format!("native cost dispatch: {e:?}"))?
         .ok_or("native queue unexpectedly empty")?;
+    let decision_processing_ns = decision_started.elapsed().as_nanos();
     let account = format!("{:?}", dispatched.admission.outcome.account);
     // Keep retired native byte custody until the explicit terminal lifecycle.
     let retained_request = dispatched.request;
@@ -104,7 +106,9 @@ pub(super) fn run<'a>(
                 .ok_or("selected native request custody absent")?;
             send(
                 writer,
-                &json!({"phase":"native-cost-selected","selection":evidence,"cost_account":account,
+                &json!({"phase":"native-cost-selected","decision_processing_ns":decision_processing_ns,
+                "decision_scope":"generic queue dispatch only; includes checked cost comparison and atomic admission, excludes forecast preparation, JSON and native execution",
+                "selection":evidence,"cost_account":account,
                 "input_bytes":request.payload().encoded.len(),"input_digest":semantic_digest("conduit.std/local-model-completed-input@1",&request.payload().encoded),
                 "scope":"one original request; caller-admitted estimates; effects require exact native member preparation and explicit trigger"}),
             )?;
@@ -113,7 +117,9 @@ pub(super) fn run<'a>(
         SharedPoolAdmissionOutcome::Refused(evidence) => {
             send(
                 writer,
-                &json!({"phase":"native-cost-refused","selection":evidence,"cost_account":account,
+                &json!({"phase":"native-cost-refused","decision_processing_ns":decision_processing_ns,
+                "decision_scope":"generic queue dispatch only; includes checked cost comparison and atomic admission, excludes forecast preparation, JSON and native execution",
+                "selection":evidence,"cost_account":account,
                 "waiting_population":queue.waiting_population()}),
             )?;
             None
