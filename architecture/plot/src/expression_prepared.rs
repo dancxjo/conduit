@@ -120,14 +120,22 @@ impl PortableExpressionProgram {
             .map_or(structural, |maximum| maximum.min(structural)))
     }
 
-    /// Conservative canonical transport ceiling, computed before Play from the exact output Type.
+    /// Conservative transport ceiling from the operation and admitted input.
+    /// Programs without an input envelope retain their structural Type ceiling.
     pub fn maximum_prepared_output_bytes(&self) -> Result<u32, Refusal> {
         if self.input_type == self.output_type
             && matches!(self.root.operation, PortableExpressionOperation::Input)
         {
             return self.maximum_prepared_input_bytes();
         }
-        Ok(storage_bound::output(&self.output_type)? as u32)
+        self.validate_input_bound()
+            .map_err(|_| Refusal::InvalidProgram)?;
+        u32::try_from(storage_bound::expression(
+            &self.root,
+            &self.input_type,
+            self.input_maximum_bytes,
+        )?)
+        .map_err(|_| Refusal::InvalidProgram)
     }
 }
 

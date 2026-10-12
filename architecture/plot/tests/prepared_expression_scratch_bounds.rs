@@ -39,6 +39,7 @@ fn bounded_identity_preserves_exact_wire_without_evaluation_allocations() {
     let program = make_program(input(), Some(2048));
     let mut evaluator = Evaluator::new(&program).unwrap();
     assert_eq!(evaluator.output_capacity(), 2048);
+    assert_eq!(program.maximum_prepared_output_bytes().unwrap(), 2048);
     let wire = vec![0xa5; 2048];
     assert_eq!(
         allocation::allocations(|| for _ in 0..64 {
@@ -49,6 +50,12 @@ fn bounded_identity_preserves_exact_wire_without_evaluation_allocations() {
     assert!(evaluator.evaluate(&vec![0; 2049]).is_err());
     let unbounded = Evaluator::new(&make_program(input(), None)).unwrap();
     assert!(unbounded.output_capacity() > 2048);
+    assert_eq!(
+        make_program(input(), None)
+            .maximum_prepared_output_bytes()
+            .unwrap() as usize,
+        unbounded.output_capacity()
+    );
 }
 #[test]
 fn construction_and_selection_can_exceed_the_admitted_input_envelope() {
@@ -72,6 +79,8 @@ fn construction_and_selection_can_exceed_the_admitted_input_envelope() {
     let wire = vec![0x5a; 64];
     let expected = program.evaluate(&wire).unwrap();
     assert!(expected.len() > 64);
+    let maximum = program.maximum_prepared_output_bytes().unwrap() as usize;
+    assert!(maximum > 64 && maximum >= expected.len());
     let mut evaluator = Evaluator::new(&program).unwrap();
     assert!(evaluator.output_capacity() >= expected.len());
     assert_eq!(
@@ -128,6 +137,8 @@ fn seventy_two_packet_selection_reserves_input_bounded_scratch() {
         },
     };
     let expected = program.evaluate(&input).unwrap();
+    let maximum = program.maximum_prepared_output_bytes().unwrap() as usize;
+    assert!(maximum <= 32768 && maximum >= expected.len());
     let (mut evaluators, retained) = allocation::rounded_retained_bytes(|| {
         (0..9)
             .map(|_| Evaluator::new(&program).unwrap())
