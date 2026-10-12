@@ -2,13 +2,14 @@
 
 use conduit_core::PoolRealizationEnvelope;
 use serde::Deserialize;
-use std::{collections::BTreeSet, path::Path};
+use std::{collections::BTreeSet, io::Read, path::Path};
 
 const SCHEMA: &str = "conduit.proof/live-local-model-pool@1";
 const MAXIMUM_REALIZATIONS: usize = 16;
 const MAXIMUM_OPERATIONS: usize = 16;
 const MAXIMUM_SIGNS_PER_OPERATION: usize = 128;
 const MAXIMUM_IDENTITY_BYTES: usize = 192;
+const MAXIMUM_RECEIPT_BYTES: usize = 512 * 1024;
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -183,20 +184,40 @@ fn validate_identity(label: &str, value: &str) -> Result<(), String> {
 }
 
 pub(super) fn read(path: &Path) -> Result<(LiveLocalModelPoolReceipt, Vec<u8>), String> {
-    let bytes = std::fs::read(path)
+    let file = std::fs::File::open(path)
         .map_err(|error| format!("cannot read live receipt {}: {error}", path.display()))?;
-    if bytes.is_empty() || bytes.len() > 512 * 1024 {
-        return Err("live local-model receipt exceeds its finite file bound".into());
-    }
+    let bytes = bounded_bytes(file)?;
     let receipt: LiveLocalModelPoolReceipt = serde_json::from_slice(&bytes)
         .map_err(|error| format!("invalid live local-model receipt JSON: {error}"))?;
     receipt.validate()?;
     Ok((receipt, bytes))
 }
 
+fn bounded_bytes(reader: impl Read) -> Result<Vec<u8>, String> {
+    let mut bytes = Vec::new();
+    reader
+        .take((MAXIMUM_RECEIPT_BYTES + 1) as u64)
+        .read_to_end(&mut bytes)
+        .map_err(|error| format!("cannot read live receipt: {error}"))?;
+    if bytes.is_empty() || bytes.len() > MAXIMUM_RECEIPT_BYTES {
+        return Err("live local-model receipt exceeds its finite file bound".into());
+    }
+    Ok(bytes)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn input_extent_is_bounded_even_when_the_reader_never_ends() {
+        assert!(bounded_bytes(std::io::repeat(0))
+            .unwrap_err()
+            .contains("finite file bound"));
+        assert!(bounded_bytes(std::io::empty()).is_err());
+        let exact = std::io::repeat(0).take(MAXIMUM_RECEIPT_BYTES as u64);
+        assert_eq!(bounded_bytes(exact).unwrap().len(), MAXIMUM_RECEIPT_BYTES);
+    }
 
     fn receipt() -> serde_json::Value {
         let realization = |index: u8| {
