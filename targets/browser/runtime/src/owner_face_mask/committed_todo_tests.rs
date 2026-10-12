@@ -67,12 +67,80 @@ fn checked_browser_mask_consumes_actual_committed_todo_exchange() {
         assert_eq!(remaining, 3 - index);
         assert_eq!(exchange["remaining"], remaining);
         mask.acknowledge(Acknowledgement {
-            show_id: view.show_id,
-            face_id: view.face_id,
-            face_revision: view.face_revision,
+            show_id: view.show_id.clone(),
+            face_id: view.face_id.clone(),
+            face_revision: view.face_revision.clone(),
         })
         .unwrap();
         assert_eq!(mask.view().show_state, "available");
+        let action = face
+            .actions
+            .iter()
+            .find(|action| action.identity == "todo.complete.task-2")
+            .unwrap();
+        assert!(action.availability.is_available());
+        let proposed = |show_id: String, revision: String, action_id: String, target: String| {
+            ProposedInteraction {
+                show_id,
+                face_id: view.face_id.clone(),
+                face_revision: revision,
+                action_id,
+                target,
+                arguments: vec![],
+                sequence: 1,
+            }
+        };
+        assert!(mask
+            .interact(proposed(
+                "show/stale".into(),
+                view.face_revision.clone(),
+                action.identity.clone(),
+                action.target.clone()
+            ))
+            .is_err());
+        assert!(mask
+            .interact(proposed(
+                view.show_id.clone(),
+                (face.revision + 1).to_string(),
+                action.identity.clone(),
+                action.target.clone()
+            ))
+            .is_err());
+        assert!(mask
+            .interact(proposed(
+                view.show_id.clone(),
+                view.face_revision.clone(),
+                "todo.complete.invented".into(),
+                action.target.clone()
+            ))
+            .is_err());
+        let unavailable = face
+            .actions
+            .iter()
+            .find(|action| !action.availability.is_available())
+            .unwrap();
+        assert!(mask
+            .interact(proposed(
+                view.show_id.clone(),
+                view.face_revision.clone(),
+                unavailable.identity.clone(),
+                unavailable.target.clone()
+            ))
+            .is_err());
+        let emitted = mask
+            .interact(proposed(
+                view.show_id.clone(),
+                view.face_revision.clone(),
+                action.identity.clone(),
+                action.target.clone(),
+            ))
+            .unwrap();
+        assert_eq!(emitted.interaction.face_id, face.identity.as_str());
+        assert_eq!(emitted.interaction.face_revision, face.revision);
+        assert_eq!(emitted.interaction.show_id, view.show_id);
+        assert_eq!(emitted.interaction.action_id, action.identity);
+        assert_eq!(emitted.interaction.target, action.target);
+        // The returned interaction is not submitted to the owner in this proof.
         assert_eq!(mask.presentation, face);
     }
 }

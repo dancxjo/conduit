@@ -373,3 +373,11 @@ shard. Its runner allocates a private temporary exchange, executes both exact
 test selectors, requires one passing test from each, and removes only its own
 scratch directory. Registration and local runner success do not establish
 hosted candidate/integration or stable acceptance.
+
+The fresh committed Todo browser consumer now refuses stale Show, stale Face,
+invented action, and unavailable lifecycle action proposals before emission.
+For each exact before/after Face it emits the supplied task-2 completion
+through the checked interaction Fore and verifies Face/revision, Show, action,
+and target IDs. It deliberately does not submit this return to the owner;
+the producer's admitted task-1 completion remains the sole committed mutation
+in this proof, and the returned browser action is mechanism evidence.
