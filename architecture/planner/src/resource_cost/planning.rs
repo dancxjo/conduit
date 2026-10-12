@@ -26,6 +26,7 @@ pub struct CostPlanningOperation<'a> {
     pub unavailable: UnavailableCostPolicy,
 }
 
+#[derive(Clone, Copy)]
 pub struct CostPlanningInputs<'a, 'selection> {
     pub hosts: &'a [HostAdvertisement],
     pub contexts: &'a [CostEvaluationContext<'a>],

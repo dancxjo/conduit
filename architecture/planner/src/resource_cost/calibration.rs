@@ -12,14 +12,7 @@ use conduit_core::{
 
 pub const MAXIMUM_COST_CALIBRATION_HISTORY: usize = 16;
 pub const MAXIMUM_COST_CALIBRATION_UPDATES: usize = 64;
-/// Producer-admitted condition at execution start, not a request preference.
-/// Warm residency changes require a separate calibration stratum.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum CostExecutionCondition {
-    Unknown,
-    Cold,
-    Warm { residency_revision: u64 },
-}
+pub use conduit_core::CostExecutionCondition;
 pub struct CostCalibrationRecord<'a> {
     forecast: &'a CostedForecast<'a>,
     completion: &'a CostEvidenceSource<'a>,

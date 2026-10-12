@@ -19,6 +19,15 @@ use conduit_kernel::{
     NodeId,
 };
 
+mod waiting;
+pub use waiting::*;
+
+mod costs;
+pub use costs::{
+    CostAwareSharedPoolAdmissionOutcome, PoolCostEvaluation, PoolCostLoweringError,
+    PoolCostSourceReceipt,
+};
+
 const ADMISSION_AUTHORITY_TOKEN: u16 = 0;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -41,6 +50,9 @@ pub enum SharedPoolRuntimeError {
     Selection(PoolSelectionError),
     Lifecycle(PoolError),
     InvalidEvidence,
+    Cost(PoolCostLoweringError),
+    MissingPreparedCosts,
+    WaitingAdmissionRequired,
 }
 
 pub struct HostedSharedPool<
@@ -54,6 +66,8 @@ pub struct HostedSharedPool<
     kernel: FixedSharedPool<MEMBER_SLOTS, POOL_SIGNS>,
     first_member_node: NodeId,
     play: u16,
+    fragment_index: usize,
+    waiting: Option<waiting::BoundedPoolWaiting>,
 }
 
 impl<const MEMBER_SLOTS: usize, const POOL_SIGNS: usize, const OBSERVATION_SIGNS: usize>
@@ -102,6 +116,8 @@ impl<const MEMBER_SLOTS: usize, const POOL_SIGNS: usize, const OBSERVATION_SIGNS
             kernel,
             first_member_node,
             play,
+            fragment_index,
+            waiting: None,
         })
     }
 
@@ -120,6 +136,14 @@ impl<const MEMBER_SLOTS: usize, const POOL_SIGNS: usize, const OBSERVATION_SIGNS
         current: &[PoolRealizationObservation],
         selection_sign_id: SignId,
     ) -> Result<SharedPoolAdmissionOutcome, SharedPoolRuntimeError> {
+        if self.waiting.is_some() {
+            return Err(SharedPoolRuntimeError::WaitingAdmissionRequired);
+        }
+        if self.lowered.selection_policy
+            == conduit_core::SharedPoolSelectionPolicy::MinimumPredictedCompletionThenCapacity
+        {
+            return Err(SharedPoolRuntimeError::MissingPreparedCosts);
+        }
         let facts = self
             .lowered
             .lower_selection_facts(current, self.first_member_node, self.play)
@@ -255,7 +279,8 @@ impl<const MEMBER_SLOTS: usize, const POOL_SIGNS: usize, const OBSERVATION_SIGNS
 
 fn lower_policy(policy: conduit_core::SharedPoolSelectionPolicy) -> PoolSelectionPolicy {
     match policy {
-        conduit_core::SharedPoolSelectionPolicy::MoreUnreservedThenLessUtilizedThenPlanOrder => {
+        conduit_core::SharedPoolSelectionPolicy::MoreUnreservedThenLessUtilizedThenPlanOrder
+        | conduit_core::SharedPoolSelectionPolicy::MinimumPredictedCompletionThenCapacity => {
             PoolSelectionPolicy::MoreUnreservedThenLessUtilizedThenPlanOrder
         }
     }
