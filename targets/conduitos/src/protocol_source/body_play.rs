@@ -123,6 +123,21 @@ impl<P: I2cProvider, C: MonotonicDeadlineProvider> PreparedProtocolBodyPlay<P, C
         })
     }
 
+    #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
+    pub(crate) fn prepare_usb_ethernet(
+        artifact: PreparedProtocolArtifact,
+        session: BodyLifecycleSession,
+        play_sequence: u64,
+        usb: crate::protocol_play::UsbDuplexAdmission,
+        network: crate::protocol_host_calls::EthernetFrameAdmission,
+    ) -> Result<Self, Box<ProtocolBodyPreparationRefusal>> {
+        Self::prepare_with(artifact, session, play_sequence, |artifact| {
+            artifact
+                .prepare_usb_ethernet::<P>(usb, network)
+                .map(|kernel| ProtocolKernel::WithoutClock(Box::new(kernel)))
+        })
+    }
+
     fn prepare_with(
         artifact: PreparedProtocolArtifact,
         session: BodyLifecycleSession,
@@ -249,6 +264,20 @@ impl<P: I2cProvider, C: MonotonicDeadlineProvider> PreparedProtocolBodyPlay<P, C
             .admit_input(port, sequence, value)
             .map_err(ProtocolBodyRefusal::Call)
     }
+
+    #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
+    pub(crate) fn poll_ethernet_network(
+        &mut self,
+        timestamp: smoltcp::time::Instant,
+    ) -> Result<Option<crate::virtio_tcp::VirtioTcpReceipt>, ProtocolBodyRefusal> {
+        match self.playing()? {
+            ProtocolKernel::WithoutClock(kernel) => kernel
+                .poll_ethernet_network(timestamp)
+                .map_err(ProtocolBodyRefusal::Call),
+            ProtocolKernel::WithClock(_) => Err(ProtocolBodyRefusal::UnsupportedWorkset),
+        }
+    }
+
     pub fn close_input(&mut self, port: &PortId) -> Result<(), ProtocolBodyRefusal> {
         self.playing()?
             .close_input(port)

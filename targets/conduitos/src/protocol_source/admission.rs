@@ -206,6 +206,21 @@ impl PreparedProtocolArtifact {
     }
 
     /// Consume the retained package owners together with actual native possession.
+    #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
+    pub(crate) fn prepare_usb_ethernet<P: crate::i2c_base::I2cProvider>(
+        self,
+        usb: crate::protocol_play::UsbDuplexAdmission,
+        network: crate::protocol_host_calls::EthernetFrameAdmission,
+    ) -> Result<crate::protocol_play::PreparedProtocolPlay<P>, ProtocolCallRefusal> {
+        crate::protocol_play::PreparedProtocolPlay::prepare_usb_ethernet(
+            self.artifact.into_definition(),
+            usb,
+            network,
+            self.operations,
+        )
+    }
+
+    /// Consume the retained package owners together with actual native possession.
     pub fn prepare_timed<P, C>(
         self,
         bus: crate::protocol_play::I2cAdmission<P>,

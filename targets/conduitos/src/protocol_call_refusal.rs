@@ -23,6 +23,8 @@ pub enum ProtocolCallRefusal {
         all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
     ))]
     UsbIsochronous(crate::arch::UsbIsochronousCallRefusal),
+    #[cfg(feature = "native-owner-network")]
+    EthernetFrame(crate::ethernet_frame::installation::EthernetFrameNativeRefusal),
     InvalidPlan,
     Unsupported,
     Kernel(KernelCompositeError),
@@ -39,6 +41,20 @@ impl ProtocolCallRefusal {
         use I2cCallRefusal as I2c;
         use SelectorCallRefusal as Selector;
         let (code, detail) = match self {
+            #[cfg(feature = "native-owner-network")]
+            Self::EthernetFrame(error) => {
+                use crate::ethernet_frame::installation::EthernetFrameNativeRefusal as E;
+                match error {
+                    E::Identity | E::Advertisement | E::Binding | E::StaleRequest => {
+                        (FailureCode::InvalidLifecycle, 1210)
+                    }
+                    E::Possession | E::Capability(_) => (FailureCode::HostCallDenied, 1211),
+                    E::Canonical(_) => (FailureCode::InvalidInput, 1212),
+                    E::Network(_) => (FailureCode::HostCallFailed, 1213),
+                    E::Retention => (FailureCode::StorageExhausted, 1214),
+                }
+            }
+
             #[cfg(any(
                 target_arch = "x86_64",
                 all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
@@ -220,6 +236,20 @@ fn write_failure(error: &crate::arch::EndpointWriteNativeRefusal) -> (FailureCod
 
 #[cfg(all(test, target_arch = "x86_64"))]
 mod tests {
+    #[cfg(feature = "native-owner-network")]
+    #[test]
+    fn network_retention_is_distinct_from_binding_and_authority_refusal() {
+        use crate::ethernet_frame::installation::EthernetFrameNativeRefusal as E;
+        let failure = super::ProtocolCallRefusal::EthernetFrame(E::Retention).failure();
+        assert_eq!(failure.code, conduit_kernel::FailureCode::StorageExhausted);
+        assert_eq!(failure.detail, 1214);
+        for error in [E::Binding, E::Possession] {
+            assert_ne!(
+                failure,
+                super::ProtocolCallRefusal::EthernetFrame(error).failure()
+            );
+        }
+    }
     use super::*;
     use crate::arch::{
         EndpointNativeRefusal as Endpoint, UsbControlCallRefusal as Control,
