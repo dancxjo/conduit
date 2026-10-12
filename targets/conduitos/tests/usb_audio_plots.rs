@@ -488,3 +488,6 @@ mod playback;
 
 #[path = "usb_audio_plots/admission.rs"]
 mod admission;
+
+#[path = "usb_audio_plots/repeat.rs"]
+mod repeat;
