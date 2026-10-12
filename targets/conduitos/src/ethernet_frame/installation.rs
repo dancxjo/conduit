@@ -32,6 +32,7 @@ pub enum EthernetFrameNativeRefusal {
     Identity,
     Advertisement,
     Binding,
+    Retention,
     Possession,
     StaleRequest,
     Capability(BaseCapabilityRefusal),

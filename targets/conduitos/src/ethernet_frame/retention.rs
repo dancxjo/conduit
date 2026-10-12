@@ -22,7 +22,7 @@ pub(crate) fn admit_backing(
 ) -> Result<(), EthernetFrameNativeRefusal> {
     let needed = OWNED_RETENTION_BYTES.checked_add(pending_usb_heap);
     if needed.is_none_or(|needed| capacity.checked_sub(live).is_none_or(|free| free < needed)) {
-        return Err(EthernetFrameNativeRefusal::Binding);
+        return Err(EthernetFrameNativeRefusal::Retention);
     }
     Ok(())
 }
@@ -50,11 +50,11 @@ impl NetworkRetention {
             .retained_storage_bytes(32)
             .and_then(|bytes| bytes.checked_add(claim.retained_storage_bytes(32)?))
             .filter(|bytes| *bytes <= METADATA_BYTES)
-            .ok_or(EthernetFrameNativeRefusal::Binding)?;
+            .ok_or(EthernetFrameNativeRefusal::Retention)?;
         let existing = ready
             .retained_preparation_bytes()
             .and_then(|bytes| bytes.checked_add(metadata))
-            .ok_or(EthernetFrameNativeRefusal::Binding)?;
+            .ok_or(EthernetFrameNativeRefusal::Retention)?;
         charge(existing, 0, 0)?;
         Ok(Self {
             existing,
@@ -100,7 +100,7 @@ fn charge(
         .checked_add(after)
         .and_then(|total| total.checked_sub(before))
         .filter(|total| *total <= OWNED_RETENTION_BYTES)
-        .ok_or(EthernetFrameNativeRefusal::Binding)
+        .ok_or(EthernetFrameNativeRefusal::Retention)
 }
 
 #[cfg(test)]
