@@ -54,7 +54,7 @@ fn authority() -> BaseCapabilityAuthority {
     }
 }
 
-pub(super) fn request() -> CapabilityIssueRequest {
+pub(crate) fn request() -> CapabilityIssueRequest {
     CapabilityIssueRequest {
         scope: scope(),
         authority: authority(),
@@ -73,7 +73,7 @@ pub(super) fn table(key: u8) -> BaseCapabilityTable {
     .unwrap()
 }
 
-pub(super) fn claim() -> BaseOperationClaim {
+pub(crate) fn claim() -> BaseOperationClaim {
     let scope = scope();
     BaseOperationClaim {
         host_id: scope.host_id,
@@ -93,7 +93,7 @@ pub(super) fn claim() -> BaseOperationClaim {
     }
 }
 
-pub(super) fn selected() -> (
+pub(crate) fn selected() -> (
     PlanFragment,
     LoweredPlanFragment,
     ActivePlayIdentity,

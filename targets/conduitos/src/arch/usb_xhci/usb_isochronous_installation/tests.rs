@@ -154,3 +154,6 @@ fn retained_resource_gate_accepts_exact_charge_and_refuses_one_byte_less() {
         Err(UsbIsochronousCallRefusal::Binding)
     ));
 }
+
+#[path = "fault_pipeline.rs"]
+mod fault_pipeline;
