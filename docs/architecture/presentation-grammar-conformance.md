@@ -480,3 +480,20 @@ refuses. Storage-pressure refusal preserves the request; draining storage lets
 the same supplied action complete once, and repeated terminal proposals remain
 terminal without exhausting storage. These are checked browser mechanisms;
 installed owner effects and real DOM/cross-medium recovery remain separate.
+
+The installed keyboard Host lifetime is now hardened before binding admission:
+a duplicate request refuses without replacing the original pending request,
+and cancellation or terminal input failure closes the host object against late
+acceptance. Missing adapters and malformed inputs do not admit a request. The
+new ownership/lifetime tests fail on the prior code and pass with the repair;
+existing installed keyboard cancellation/reuse and continuous button-indicator
+execution also pass. These mechanisms do not yet construct a current binding
+witness or retained Parsec state.
+
+The explicit `retained-dom-completion` browser journey scenario preserves the
+sole retained Todo Body, reads its actual current state, and uses only supplied
+DOM reopen actions to reach three pending items before a DOM completion. It
+checks fresh acknowledged Shows, source-correlated verified write/read receipts,
+observed accessible lists/progress, unchanged Look, and stale-return refusal.
+The scenario requires exact-source owner/runtime/UI artifacts. It is prepared
+and syntax-checked; current-source live execution remains unproved.

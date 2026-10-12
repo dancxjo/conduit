@@ -11,15 +11,17 @@ import { pathToFileURL } from 'node:url';
 import { startStaticProduct } from './static-product-server.mjs';
 import { observedTodoMutation } from './todo-owner-events.mjs';
 import { captureDirectTodoSpeech } from './todo-owner-spoken.mjs';
+import { retainedTodoDomCompletion } from './todo-owner-retained-dom.mjs';
 import { assertLookReplacement } from './look-replacement-evidence.mjs';
 
 const [ownerCwdArg, binaryArg, stateArg, handbookArg, outputArg, playwrightArg,
   itemText = 'Pick up prescription', scenario = 'first-add'] = process.argv.slice(2);
-assert.ok(['first-add', 'cross-mask', 'cross-mask-speech', 'cross-mask-speech-resume', 'look-replacement'].includes(scenario), 'unknown Todo capture scenario');
-const resumeExisting = scenario === 'cross-mask-speech-resume';
+assert.ok(['first-add', 'cross-mask', 'cross-mask-speech', 'cross-mask-speech-resume', 'look-replacement', 'retained-dom-completion'].includes(scenario), 'unknown Todo capture scenario');
+const retainedDom = scenario === 'retained-dom-completion';
+const resumeExisting = scenario === 'cross-mask-speech-resume' || retainedDom;
 const captureSpeech = scenario.startsWith('cross-mask-speech');
 if (!ownerCwdArg || !binaryArg || !stateArg || !handbookArg || !outputArg || !playwrightArg) {
-  throw new Error('usage: todo-owner-browser.mjs OWNER-CWD INSTALLED-OWNER OWNER-STATE HANDBOOK-PACKAGE NEW-EVIDENCE-DIR PINNED-PLAYWRIGHT [NEW-ITEM-TEXT] [first-add|cross-mask|cross-mask-speech|cross-mask-speech-resume|look-replacement]');
+  throw new Error('usage: todo-owner-browser.mjs OWNER-CWD INSTALLED-OWNER OWNER-STATE HANDBOOK-PACKAGE NEW-EVIDENCE-DIR PINNED-PLAYWRIGHT [NEW-ITEM-TEXT] [first-add|cross-mask|cross-mask-speech|cross-mask-speech-resume|look-replacement|retained-dom-completion]');
 }
 const ownerCwd = path.resolve(ownerCwdArg);
 const binary = path.resolve(ownerCwd, binaryArg);
@@ -56,6 +58,8 @@ const sourceRecord = {
     && installed.release_source_identity === handbookUiSource && handbookUiSourceClean
     ? 'exact-source' : 'development-cross-source',
 };
+if (retainedDom) assert.equal(sourceRecord.source_relation, 'exact-source',
+  'retained DOM mutation requires identical clean owner/runtime/UI source');
 const expectedPlaywright = JSON.parse(await readFile(new URL('./package.json', import.meta.url)))
   .devDependencies['@playwright/test'];
 const actualPlaywright = JSON.parse(await readFile(path.join(path.dirname(playwrightArg), 'package.json'))).version;
@@ -328,7 +332,9 @@ try {
   await page.locator('[data-owner-face]').screenshot({ path: path.join(output, 'browser-before.png') });
   const specimenNames = [itemText, 'Prepare lunch', 'Water plants'];
   let resumedItems = null;
-  if (resumeExisting) {
+  const domCompletion = retainedDom
+    ? await retainedTodoDomCompletion({ page, face, state, output, bodyId }) : null;
+  if (resumeExisting && !retainedDom) {
     assert.equal(new Set(specimenNames).size, specimenNames.length, 'resume specimen names must be distinct');
     const retained = face();
     assert.deepEqual(retained.presentation.subjects.filter(subject => subject.role === 'Item').map(subject => subject.name), specimenNames,
@@ -345,7 +351,8 @@ try {
   const texts = resumeExisting ? [] : scenario.startsWith('cross-mask') ? specimenNames : [itemText];
   assert.equal(new Set(texts).size, texts.length, 'scenario item names must be distinct');
   const adds = [];
-  let after = before;
+  let after = retainedDom
+    ? await page.evaluate(() => globalThis.__conduitOwnerParticipation.face()) : before;
   for (const text of texts) {
     const prior = await page.evaluate(() => globalThis.__conduitOwnerParticipation.face());
     const priorOwner = face();
@@ -486,7 +493,7 @@ try {
     face_revision: afterOwner.presentation_revision_decimal, show_id: after.show_id,
     observed_at_unix_ms: Date.now() };
   assert.equal(afterOwner.presentation.basis.body_id, bodyId);
-  assert.ok(afterOwner.presentation.subjects.some(subject => subject.name === itemText));
+  if (!retainedDom) assert.ok(afterOwner.presentation.subjects.some(subject => subject.name === itemText));
   assert.deepEqual(errors, []);
   const directSpeech = captureSpeech
     ? await captureDirectTodoSpeech({ owner, state, output: path.join(output, 'spoken'), bodyId })
@@ -497,7 +504,7 @@ try {
     body_id: bodyId, browser_host_id: identity.hostId, browser_boot_id: identity.bootId,
     item_text: itemText, adds, resumed_items: resumedItems, cross_mask: crossMask, inspect_capture: inspectCapture,
     speech_before_completion: speechBeforeCompletion,
-    direct_speech: directSpeech, before: { face_id: before.face_id, face_revision: before.face_revision,
+    direct_speech: directSpeech, retained_dom_completion: domCompletion, before: { face_id: before.face_id, face_revision: before.face_revision,
       show_id: before.show_id }, after: { face_id: after.face_id,
       face_revision: after.face_revision, show_id: after.show_id },
     screenshots: scenario.startsWith('cross-mask') ? ['browser-before.png', 'browser-stale.png', 'browser-after.png']
