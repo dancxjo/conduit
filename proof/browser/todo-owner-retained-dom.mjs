@@ -108,9 +108,11 @@ export async function retainedTodoDomCompletion({ page, face, state, output, bod
   assert.equal(refusal.refused, true, 'replaced initiating Show must refuse');
   assert.match(refusal.message ?? '', /^owner Face interaction refused \(-5\)$/,
     'stale return must reach the exact Show gate');
-  assert.deepEqual(face().presentation, completion.after.owner.presentation,
+  const afterStaleOwner = face();
+  assert.deepEqual(afterStaleOwner.presentation, completion.after.owner.presentation,
     'stale return must have no domain effect');
-  const record = { initial, mutations, before, after: completion.after, stale_return: refusal };
+  const record = { initial, mutations, before, after: completion.after, stale_return: refusal,
+    after_stale_owner: afterStaleOwner };
   await writeFile(path.join(output, 'retained-dom-completion.json'), `${JSON.stringify(record, null, 2)}\n`);
   return record;
 }

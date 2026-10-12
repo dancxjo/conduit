@@ -313,11 +313,37 @@ fn actual_retained_dom_completion_reconstructs_native_linear_and_utterance_meani
         assert_eq!(pending(&before, id), pending(&after, id));
     }
     let retained = evidence("CONDUIT_RETAINED_DOM_VERIFIED_RECEIPT");
+    assert_eq!(retained["source_commit"], expected_source);
+    assert_eq!(
+        exchange["after_stale_owner"]["presentation"],
+        serde_json::to_value(&after).unwrap(),
+        "actual observation before browser cleanup must preserve exact post-stale Face"
+    );
+    assert_eq!(
+        exchange["after_stale_owner"]["presentation_revision_decimal"],
+        after.revision.to_string()
+    );
     assert_eq!(
         retained["after_stale_owner_face"],
-        serde_json::to_value(&after).unwrap(),
-        "retained post-stale observation must preserve the exact after Face"
+        exchange["after_stale_owner"]["presentation"]
     );
+    // Browser departure can retire a route and reproject identity/revision. Keep that
+    // later observation separate from the actual live post-stale observation.
+    if let Some(closed) = retained.get("owner_after_browser_close_face") {
+        let closed: Presentation = serde_json::from_value(closed.clone()).unwrap();
+        closed.validate().unwrap();
+        assert_eq!(closed.basis.body_id, after.basis.body_id);
+        let mut expected = serde_json::to_value(&after).unwrap();
+        let mut observed = serde_json::to_value(closed).unwrap();
+        for key in ["identity", "revision"] {
+            expected.as_object_mut().unwrap().remove(key);
+            observed.as_object_mut().unwrap().remove(key);
+        }
+        assert_eq!(
+            observed, expected,
+            "browser cleanup may reproject identity but must preserve domain meaning"
+        );
+    }
     let receipt = &retained["last_execution"];
     assert_eq!(receipt["schema"], "conduit.todo/verified-read-receipt@1");
     assert_eq!(receipt["verified"], true);
