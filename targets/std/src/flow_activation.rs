@@ -10,6 +10,23 @@ use conduit_core::{
     PreparationHostIdentity, PreparedFragmentReceipt, PreparedPlan,
 };
 
+mod parsec_combine;
+mod parsec_combine_back;
+mod parsec_scan_offer;
+mod parsec_source_plan;
+mod pure_parsec_scan;
+pub use parsec_combine::{
+    command_kind as parsec_command_kind, parsec_combine_kind, parsec_combine_offer,
+    result_kind as parsec_result_kind, ParsecCombineFactory,
+};
+pub(crate) use parsec_scan_offer::validate_planned_parsec_scan;
+pub use parsec_scan_offer::{
+    install_parsec_scan_catalogs, parsec_initial_bytes, parsec_initial_result, parsec_scan_offer,
+    PARSEC_SCAN_SOURCE,
+};
+pub use parsec_source_plan::{required_parsec_source_offers, ParsecSourcePlans};
+pub use pure_parsec_scan::install_pure_parsec_scan;
+
 mod pure_thermostat_scan;
 mod thermostat_combine;
 mod thermostat_scan_offer;
@@ -28,6 +45,8 @@ pub(crate) fn maximum_scan_child_steps(
 ) -> Result<u32, String> {
     if planned.item_input.value_kind.as_str() == conduit_thermostat_plot::COMMAND_KIND {
         thermostat_combine::maximum_scan_child_steps(planned)
+    } else if planned.item_input.value_kind == parsec_command_kind()? {
+        parsec_combine::maximum_scan_child_steps(planned)
     } else {
         todo_combine::maximum_scan_child_steps(planned)
     }
@@ -49,6 +68,19 @@ pub fn standard_child_registry() -> Result<KernelOperationRegistry, String> {
     registry.install(ThermostatCombineFactory)?;
     Ok(registry)
 }
+
+/// Scoped registry: Parsec computational source custody must come from the
+/// caller's actual Host offers before parent planning/preparation.
+pub fn parsec_child_registry(
+    sources: std::sync::Arc<ParsecSourcePlans>,
+) -> Result<KernelOperationRegistry, String> {
+    let mut registry = standard_child_registry()?;
+    registry.install(ParsecCombineFactory::new(sources))?;
+    Ok(registry)
+}
+
+#[cfg(test)]
+mod parsec_scan_tests;
 
 /// One current std boot's installed kernel implementations and prepared
 /// fragment reservations. This is preparation machinery, not a scheduler.
