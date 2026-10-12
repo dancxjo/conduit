@@ -469,3 +469,12 @@ shared source/Plan custody gate reproduces the complete Plan. Removing the
 required capability refuses placement. The std-offer dependency is development-
 only. This extends the proof to producer planning; it is still not installed
 Host execution, physical control availability or current binding admission.
+
+`produce_checked_input_binding_proposal` now accepts only a reproduced source/
+Plan wrapper and a context revalidated through canonical native decoding. It
+requires the exact single pure producer and matching input/output Type, evaluates
+its checked program, decodes the result, and retains producer Plot and Plan
+provenance in a non-forgeable result wrapper. Tests compare it to the checked
+program result and reject a deserialized zero-revision context before evaluation.
+This remains source-evaluated proposal evidence, not an installed Host execution
+receipt, a controller observation, or current binding availability authority.

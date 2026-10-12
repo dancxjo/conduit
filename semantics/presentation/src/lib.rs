@@ -209,3 +209,6 @@ pub use component_recipe::*;
 
 mod checked_source_plan;
 pub use checked_source_plan::*;
+
+mod input_binding_producer;
+pub use input_binding_producer::*;

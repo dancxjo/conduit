@@ -147,6 +147,26 @@ fn source_owned_start_remap_and_gameplay_policies_have_typed_fores() {
         )
         .unwrap();
         assert_eq!(custody.plan().plan_id, plan.plan_id);
+        let produced =
+            conduit_presentation::produce_checked_input_binding_proposal(&custody, context.clone())
+                .unwrap();
+        assert_eq!(produced.producer_plan_id(), &plan.plan_id);
+        assert_eq!(
+            produced.producer_plot().checked_plot_id,
+            expanded.expanded.checked_plot_id
+        );
+        assert_eq!(
+            produced.producer_plot().expanded_plot_id,
+            expanded.expanded.expanded_plot_id
+        );
+        let mut forged = serde_json::to_value(context.clone()).unwrap();
+        forged["mapping_revision"] = serde_json::json!(0);
+        let forged = serde_json::from_value(forged).unwrap();
+        assert!(matches!(
+            conduit_presentation::produce_checked_input_binding_proposal(&custody, forged),
+            Err(conduit_presentation::InputBindingProducerRefusal::Context)
+        ));
+
         assert_eq!(plan.fragments[0].placements[0].host_id, host.host_id);
         let input = context
             .clone()
@@ -165,6 +185,7 @@ fn source_owned_start_remap_and_gameplay_policies_have_typed_fores() {
             "pregame-enter-binding" => ("keyboard/enter", "Enter", "game/start"),
             _ => ("control/fire", "Fire", "game/shoot"),
         };
+        assert_eq!(produced.proposal(), &proposal);
         assert_eq!(proposal.control_identity(), control);
         assert_eq!(proposal.control_label(), label);
         assert_eq!(proposal.offered_action().action_identity(), action);
