@@ -3,7 +3,7 @@
 use super::*;
 
 #[test]
-fn domain_corpus_terminal_shows_refuse_before_interaction_emission() {
+fn domain_corpus_terminal_shows_and_cancelled_execution_refuse_before_interaction_emission() {
     let specimens = [
         include_str!("../../../../../proof/conformance/presentation-waist/domain-derived/open-domain-face.json"),
         include_str!("../../../../../proof/conformance/presentation-waist/domain-derived/finite-place-face.json"),
@@ -15,9 +15,10 @@ fn domain_corpus_terminal_shows_refuse_before_interaction_emission() {
         let face: Presentation = serde_json::from_str(specimen).unwrap();
         face.validate().unwrap();
         for lifecycle in [
-            ManifestationLifecycle::Closed,
-            ManifestationLifecycle::Replaced,
-            ManifestationLifecycle::Failed,
+            Some(ManifestationLifecycle::Closed),
+            Some(ManifestationLifecycle::Replaced),
+            Some(ManifestationLifecycle::Failed),
+            None, // actual scheduler cancellation with an acknowledged Show
         ] {
             let mut mask = OwnerBrowserMask::prepare_component_fixture(
                 HostBasis {
@@ -38,19 +39,25 @@ fn domain_corpus_terminal_shows_refuse_before_interaction_emission() {
                 face_revision: prepared.face_revision.clone(),
             })
             .unwrap();
-            assert!(mask.pending_interaction.is_some());
-            mask.show = if lifecycle == ManifestationLifecycle::Failed {
-                mask.show
-                    .fail(
-                        conduit_presentation::ManifestationFailure::AdapterUnavailable,
-                        SignId::from("sign/corpus-adapter-loss"),
-                    )
-                    .unwrap()
-            } else {
-                mask.show
-                    .transition(lifecycle, SignId::from("sign/corpus-show-retired"))
-                    .unwrap()
-            };
+            let pending = mask.pending_interaction;
+            assert!(pending.is_some());
+            match lifecycle {
+                None => mask.scheduler.cancel().unwrap(),
+                Some(state) => {
+                    mask.show = if state == ManifestationLifecycle::Failed {
+                        mask.show
+                            .fail(
+                                conduit_presentation::ManifestationFailure::AdapterUnavailable,
+                                SignId::from("sign/corpus-adapter-loss"),
+                            )
+                            .unwrap()
+                    } else {
+                        mask.show
+                            .transition(state, SignId::from("sign/corpus-show-retired"))
+                            .unwrap()
+                    };
+                }
+            }
             let action = face
                 .actions
                 .iter()
@@ -73,25 +80,36 @@ fn domain_corpus_terminal_shows_refuse_before_interaction_emission() {
                 sequence: 1,
             };
             match mask.interact(proposed) {
-                Err(reason) => assert_eq!(
-                    reason,
-                    "owner interaction return is not admitted for this Show"
-                ),
+                Err(reason) => {
+                    if lifecycle.is_none() {
+                        assert_eq!(reason, "store owner browser interaction: Cancelled");
+                    } else {
+                        assert_eq!(
+                            reason,
+                            "owner interaction return is not admitted for this Show"
+                        );
+                    }
+                }
                 Ok(_) => panic!("retired Show emitted interaction for {:?}", face.identity),
             }
-            assert!(
-                mask.pending_interaction.is_some(),
-                "refusal consumed interaction request"
+            assert_eq!(
+                mask.pending_interaction, pending,
+                "refusal changed interaction request"
             );
             assert_eq!(mask.presentation, face);
-            assert!(mask
-                .scheduler
-                .remote_egress_offer(
-                    mask.interaction_boundary.endpoint,
-                    mask.interaction_boundary.cord
-                )
-                .unwrap()
-                .is_none());
+            let egress = mask.scheduler.remote_egress_offer(
+                mask.interaction_boundary.endpoint,
+                mask.interaction_boundary.cord,
+            );
+            if lifecycle.is_none() {
+                assert!(matches!(
+                    egress,
+                    Err(conduit_kernel::scheduler::SchedulerError::Cancelled)
+                ));
+                assert!(mask.scheduler.next_host_request().is_none());
+            } else {
+                assert!(egress.unwrap().is_none());
+            }
         }
     }
 }

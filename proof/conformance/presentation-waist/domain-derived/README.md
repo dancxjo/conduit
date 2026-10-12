@@ -30,7 +30,10 @@ projection. Its Host/Boot encounter has no Body, Wake, domain Plan, or active
 Play. Native bounded layout retains available/unavailable Plot choices without
 inventing a Body, and unavailable control resolution refuses. The browser
 Crèche application-view route is not a Body-owned Face route; browser prebirth
-Face/Show correspondence remains a separate missing proof.
+Face/Show correspondence is now exercised through the checked browser Mask
+Fore with simulated DOM acknowledgement and typed return. Pressure, held return
+and cancellation before Host completion are covered. This is mechanism proof;
+a rendered zero-Body browser product journey remains separate.
 
 ## Patchbay specimen
 

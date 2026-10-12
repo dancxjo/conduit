@@ -409,100 +409,55 @@ real committed states. This is a falsifiable semantic-loss oracle over the
 actual checked browser projection, not runtime renderer attestation or a new
 owner-side refusal mechanism; #5372 owns that further correspondence boundary.
 
-### Parsec binding prerequisite audit
+### Parsec binding prerequisite
 
-The required Parsec/remap specimen remains unimplemented. The existing
-`semantics/human/src/input_chord.rs` maps structural modifier/key combinations
-to core chords and explicitly separates them from text and product actions.
-The bounded human interaction contracts validate proposals and application
-outcomes. Native `native_face_scene/input.rs` resolves the current supplied
-Face action through local focus and emits Show-bound typed interactions. None
-of these audited contracts supplies the current action/control/label,
-Host/Boot, mapping revision and availability witness required by #5369.
+The Parsec/remap specimen remains incomplete. Existing human chords separate
+structural modifier/key combinations from text and product actions; native
+focus/activation returns the supplied Show-bound Face action. Neither provides
+current control/label, Host/Boot, mapping revision and availability authority.
+The #5369 binding prerequisite must be admitted before claiming this portion
+of #5355 complete. A manual Fire map, generic Enter activation or prompt string
+cannot establish current binding truth. Binding authority remains outside Face
+and Look; there is no universal Button or Mask-local game reducer.
 
-The smallest prerequisite is #5369's bounded binding witness and its checked
-application/input Plot admission, reused by this corpus. That prerequisite
-must precede claiming the Parsec part of #5355 complete, even though the fuller
-prompt extension follows the main product path. A manually authored Fire map,
-a generic Enter activation, or a string containing "Press Fire" cannot stand
-in for current verified binding/remap truth. Keep raw input mechanics and
-binding authority outside Face and Look; reuse existing chords/typed returns
-rather than introducing a universal Button or Mask-local game reducer.
+The canonical `ActionInputBindingProposalInfo` carrier reuses
+`GeneratedActionAffordance` and bounds Face/Show, input Plan, Host/Boot, control
+identity/label, mapping revision and requested availability. Checked native
+decoding enforces its laws; raw serde is not admission. Carrier tests cover
+round-trip, source references, empty/oversized labels, zero revision, invalid
+version and unknown layout/callback fields.
 
-The first binding prerequisite now has a canonical Conduitese proposal carrier,
-`ActionInputBindingProposalInfo`, generated from presentation `types.conduit`.
-It reuses `GeneratedActionAffordance` for action identity and source revision,
-and carries bounded Face/Show, input Plan, Host/Boot, control identity/label,
-mapping revision and requested availability. It is outside Face and Look.
-Construction or raw serde transport is not binding admission; checked native
-decoding must enforce canonical bounds before a later policy gate uses it.
-The carrier tests cover exact round-trip, source reference, empty/oversized
-labels, zero revision, invalid version, and unknown layout/callback fields.
-A checked input Plot producer and current-source/Host/Show binding admission
-remain required. No truthful Fire prompt or remap completion is claimed yet.
+`prepare_checked_source_plan` reproduces the actual checked source expansion
+and selected Plan. Tests reject substituted Plans and replaced Host Boots.
+Configured Mask admission retains its original source-check, Mask/Fore-check,
+Plan-check order. This custody gate grants no reservation, physical control,
+current binding, active input or Show authority.
 
-Compiler/planner custody for the binding producer now reuses the configured
-Mask gate's actual source expansion and selected Plan reproduction through
-`prepare_checked_source_plan`. Its returned wrapper cannot be constructed from
-copied IDs, and tests reject a substituted Plan and replaced Host Boot. The
-configured Mask still performs its original Mask/Fore admission between those
-two shared checks, preserving existing refusal order and source/recipe guards.
-This is source/Plan correspondence only: it grants no resource reservation,
-physical control possession, current binding, active input or Show authority.
+`components/start-input-binding.conduit` owns three exact policy producers:
+pregame Fire/Enter to Start and gameplay Fire to Shoot. Context enters through
+a typed Fore, avoiding a self-referential Plan startup identity. Actual std
+pure-expression offers place them in a named fixture Host with bounded queues;
+missing offers refuse. Canonical native laws are required to construct outputs;
+imported shape alone refuses. `produce_checked_input_binding_proposal` accepts
+only reproduced source/Plan custody and revalidated context, evaluates the
+single exact pure producer and retains its Plot/Plan provenance. It proves
+source evaluation, not an installed Host receipt or control observation.
 
-`components/start-input-binding.conduit` now owns three typed proposal-producing
-Plots: pregame Fire/Enter mappings to `game/start`, and a distinct gameplay Fire
-mapping to `game/shoot`. Current context enters through a Fore rather than
-startup configuration, avoiding a self-referential input Plan identity.
-Checking includes the canonical native declarations and their laws; an imported
-shape alone refuses dynamic construction. Evaluation of the actual expanded
-pure-expression program proves that caller control labels/action names cannot
-replace the source literals while Face/Show and mapping revision are retained.
-This is source declaration/expansion/evaluation proof. It establishes neither
-a selected physical input binding nor a gameplay state transition; producer
-execution/Plan custody and current binding admission remain required.
+Face correlation resolves each produced proposal against the exact validated
+current Face and available Show and derives its target from the supplied
+action. Tests reject stale Face/Show/revision, absent/unavailable actions and
+Closed/Replaced/Failed Shows. This does not authorize controller remapping.
 
-Each binding policy now also places through the actual std pure-expression
-capability definition in a named fixture Host advertisement. Ordinary planning
-retains explicit bounded external Fore queues, selected Host/Boot, and the
-shared source/Plan custody gate reproduces the complete Plan. Removing the
-required capability refuses placement. The std-offer dependency is development-
-only. This extends the proof to producer planning; it is still not installed
-Host execution, physical control availability or current binding admission.
-
-`produce_checked_input_binding_proposal` now accepts only a reproduced source/
-Plan wrapper and a context revalidated through canonical native decoding. It
-requires the exact single pure producer and matching input/output Type, evaluates
-its checked program, decodes the result, and retains producer Plot and Plan
-provenance in a non-forgeable result wrapper. Tests compare it to the checked
-program result and reject a deserialized zero-revision context before evaluation.
-This remains source-evaluated proposal evidence, not an installed Host execution
-receipt, a controller observation, or current binding availability authority.
-
-Face correlation now resolves a source-produced binding proposal against the
-exact current validated Face and available Show. It derives the action target
-from the supplied action, rejects stale Face/Show/revision, and refuses missing
-or unavailable actions and Closed/Replaced/Failed Shows. This does not establish
-current controller availability or authorize a remapping from identity strings.
-
-`components/parsec-state-step.conduit` supplies a finite application-owned
-transition mechanism: Start enters gameplay; Shoot is accepted only during
-gameplay; stale Start and invented commands refuse without changing state.
-`parsec_state_source.rs` evaluates the actual checked/expanded program against
-these cases. The caller supplies prior state; this is compiler/evaluation proof,
-not a retained Body checkpoint, installed execution, physical input or gameplay
-end-to-end proof. Connecting the committed state to the selected binding policy
-and truthful native/browser/linear/spoken prompts remains required for #5355.
-
-`components/parsec-input-policy.conduit` now selects Start/Shoot from the
-application phase and Fire/Enter from an explicit remap choice through one
-checked Fore. The source owns all action/control names; forwarded context
-retains exact Host/Boot/input Plan, mapping revision, Face/Show/action revision
-and requested availability. `parsec_input_policy.rs` covers both phases, both
-mappings and both availability values, and carries the actual checked Start
-transition's output into the policy before checking Shoot. This is source
-composition/evaluation evidence; it does not authenticate the supplied phase,
-commit Body state, observe a controller or certify current input availability.
+`components/parsec-state-step.conduit` owns a finite transition: Start enters
+gameplay; Shoot refuses before gameplay; stale Start and invented commands
+refuse without changing state. `components/parsec-input-policy.conduit` selects
+Start/Shoot from phase and Fire/Enter from the explicit remap choice. Tests
+evaluate both actual checked programs, carry the Start transition output into
+the policy, cover both phases/mappings/availability values, and retain exact
+Host/Boot/input Plan, mapping revision and Face/Show/action revision context.
+The caller supplies prior state and context. Retained Body state, installed
+execution, current control admission and truthful native/browser/linear/spoken
+prompts remain required; no physical input or delivered audio is claimed.
 
 The zero-Body checked browser Mask Fore now has explicit pressure/cancellation
 coverage. Filling its actual planned input queue yields `Full` at the retained
@@ -512,3 +467,16 @@ egress. A held typed prebirth return retains its exact sequence/value until
 cancellation revokes delivery. The canonical Face remains unchanged and has no
 Body or active source Play. These are scheduler/checked-Fore mechanisms with
 simulated Host effects, not DOM rendering or a performed Birth.
+
+Actual scheduler cancellation is now included alongside terminal Show loss for
+all five shared Body-backed browser specimens. It refuses before interaction
+emission, retains the pending request and unchanged Face, and revokes egress.
+A repeated-input regression exposed a value leak after the interaction Fore
+was already consumed: terminal refusal previously allocated before checking
+request ownership, eventually reporting item-capacity pressure. The browser
+return path now checks pending ownership before allocation, consumes it only
+after successful completion, and releases a stored value when completion
+refuses. Storage-pressure refusal preserves the request; draining storage lets
+the same supplied action complete once, and repeated terminal proposals remain
+terminal without exhausting storage. These are checked browser mechanisms;
+installed owner effects and real DOM/cross-medium recovery remain separate.
