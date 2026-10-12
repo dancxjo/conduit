@@ -183,3 +183,96 @@ fn browser_generic_mask_keeps_one_body_lifecycle_and_rejects_the_other_states_re
         assert!(mask.presentation.basis.active_play_id.is_none());
     }
 }
+
+#[test]
+fn checked_browser_mask_fore_carries_prebirth_face_and_show_without_a_body() {
+    let face: Presentation = serde_json::from_str(include_str!(
+        "../../../../../proof/conformance/presentation-waist/domain-derived/prebirth-face.json"
+    ))
+    .unwrap();
+    assert!(face.basis.body_id.is_none());
+    let host = crate::installed_browser::membership_advertisement(
+        HostId::from("host/prebirth-conformance"),
+        BootId::from("boot/prebirth-conformance"),
+    );
+    let planned = crate::workspace_mask::plan::planned_mask(
+        &host,
+        crate::workspace_mask::plan::MASK_SOURCE,
+        "browser-graphical",
+    )
+    .unwrap();
+    let play = bind_active_play(&planned.plan.plan_id, &host.host_id, &host.boot_id, 1);
+    let show = MaskShow::prepared(
+        &planned,
+        &face,
+        play,
+        face.subjects[0].identity.clone(),
+        "browser/prebirth-fixture-document".into(),
+        SignId::from("sign/prebirth-mask-prepared"),
+    )
+    .unwrap();
+    let fragment = &planned.plan.fragments[0];
+    let lowered = lower_plan_fragment(fragment).unwrap();
+    let input =
+        execution::exact_boundary(&lowered.fore_ports, "face", PortDirection::Input).unwrap();
+    let output =
+        execution::exact_boundary(&lowered.fore_ports, "show", PortDirection::Output).unwrap();
+    let mut scheduler = execution::mask_scheduler(fragment, &lowered).unwrap();
+    let bytes = serde_json::to_vec(&face).unwrap();
+    assert_eq!(
+        scheduler
+            .admit_remote_input(input.endpoint, input.cord, 0, &bytes)
+            .unwrap(),
+        RemoteIngressOutcome::Accepted { sequence: 0 }
+    );
+    scheduler
+        .close_remote_input(input.endpoint, input.cord)
+        .unwrap();
+    let mut pending = None;
+    for _ in 0..64 {
+        if let Some(request) = scheduler.next_host_request() {
+            pending = Some(request);
+            break;
+        }
+        assert!(matches!(
+            scheduler.step().unwrap(),
+            SchedulerStatus::Progress { .. }
+        ));
+    }
+    let pending = pending.expect("finite Mask must request its DOM Host Call");
+    assert_eq!(scheduler.host_value(pending.input.value).unwrap(), bytes);
+    // Simulated DOM effect acknowledgement, not Chromium or physical output.
+    let show_bytes = serde_json::to_vec(&show.show).unwrap();
+    let stored = scheduler.store_host_value(&show_bytes).unwrap();
+    scheduler
+        .complete_host_call(
+            pending.node,
+            pending.request,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
+                output: Some(BoundedValueRef::new(stored, MASK_BYTES).unwrap()),
+                failure: None,
+            },
+        )
+        .unwrap();
+    let mut emitted = None;
+    for _ in 0..64 {
+        if let Some(offer) = scheduler
+            .remote_egress_offer(output.endpoint, output.cord)
+            .unwrap()
+        {
+            emitted = Some(offer);
+            break;
+        }
+        assert!(matches!(
+            scheduler.step().unwrap(),
+            SchedulerStatus::Progress { .. }
+        ));
+    }
+    let emitted = emitted.expect("finite Mask must emit the supplied Show");
+    assert_eq!(scheduler.host_value(emitted.value).unwrap(), show_bytes);
+    assert!(face.basis.body_id.is_none());
+    assert!(face.basis.wake_id.is_none());
+    assert!(face.basis.plan_id.is_none());
+    assert!(face.basis.active_play_id.is_none());
+}

@@ -243,3 +243,12 @@ both available and unavailable choices, and refuse unavailable agency without
 introducing a Body/Wake/Plan/Play. Browser Crèche currently carries the common
 Birth draft through its application view; this is not proof of zero-Body
 Face/Show correspondence, and no placeholder Body is permitted to fill the gap.
+
+A focused zero-Body browser Fore test now runs the existing checked generic
+Mask below the Body-owner carrier wrapper. It delivers the exact prebirth Face
+to the DOM Host Call and returns the exact prepared Show through the admitted
+Fore after simulated effect acknowledgement. The source keeps no Body, Wake,
+domain Plan, or active Play; the Mask has its own realization Plan/Play.
+This closes the fixture-level Fore correspondence gap without changing owner
+membership/authority. Actual browser Crèche rendering and typed source return
+through that route still require the canonical shell migration in #5356.
