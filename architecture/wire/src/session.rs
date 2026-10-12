@@ -788,7 +788,10 @@ fn terminal_code(disposition: SessionTerminalDisposition) -> u8 {
 fn supports_session_contract(contract: LineContract) -> bool {
     matches!(
         contract.scope,
-        LineScope::PointToPoint | LineScope::LocalNetwork | LineScope::RoutedNetwork
+        LineScope::Machine
+            | LineScope::PointToPoint
+            | LineScope::LocalNetwork
+            | LineScope::RoutedNetwork
     ) && matches!(
         contract.traffic_shape,
         LineTrafficShape::ByteStream | LineTrafficShape::Message

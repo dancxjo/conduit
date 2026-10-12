@@ -10,11 +10,14 @@ mod planning;
 mod reference;
 #[path = "native_pool_coordinator/samples.rs"]
 mod samples;
+#[path = "native_pool_coordinator/sessions.rs"]
+mod sessions;
 fn main() {
     let result = match std::env::args().nth(1).as_deref() {
         None | Some("plan") => planning::run(),
         Some("check-sample") => samples::run(),
         Some("run-reference") => reference::run(),
+        Some("run-sessions") => sessions::run(),
         Some("initialize-reference") => identity::run(),
         _ => Err("unknown preparation command".into()),
     };
