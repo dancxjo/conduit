@@ -47,6 +47,7 @@ pub(crate) struct BodyKernel<'a> {
     requests: Vec<HostCallRequest>,
     clock_observations: KernelClockObservations,
     supported_pure_scan: bool,
+    supported_parsec_input_scan: bool,
     todo_checkpoint: Option<crate::todo_checkpoint_call::TodoCheckpointHost>,
     todo_checkpoint_read: Option<crate::todo_checkpoint_read_call::TodoCheckpointReadHost>,
 }
@@ -188,6 +189,7 @@ impl<'a> BodyKernel<'a> {
 
     pub(crate) fn prepare_live_on_host(
         partitions: &[BodyPlotPlan],
+        has_keyboard: bool,
         parent_play: &conduit_core::ActivePlayId,
         queue: &BodyLiveForeQueue,
         control: &RunControl,
@@ -196,10 +198,13 @@ impl<'a> BodyKernel<'a> {
         if partitions.len() != 1 || !queue.matches_plan(&partitions[0].plan, control) {
             return Err("live Fore queue differs from the exact Body Plan or stop control".into());
         }
+        if has_keyboard {
+            BodyLiveForeQueue::validate_parsec_input_plan(&partitions[0].plan, host)?;
+        }
         let sources = parsec_sources::prepare(partitions, host)?;
         Self::prepare_with_live(
             partitions,
-            false,
+            has_keyboard,
             parent_play,
             &[],
             true,
@@ -257,6 +262,11 @@ impl<'a> BodyKernel<'a> {
             && has_fore_output
             && (live.is_some() || fore_inputs.len() <= 256)
             && fragments[0].placements[0].host_calls.is_empty();
+        let supported_parsec_input_scan = has_keyboard
+            && live.is_some()
+            && scans.len() == 1
+            && partitions.len() == 1
+            && parsec_sources.is_some();
         let plans = partitions
             .iter()
             .map(|partition| &partition.plan)
@@ -427,6 +437,7 @@ impl<'a> BodyKernel<'a> {
             requests: Vec::with_capacity(request_capacity),
             clock_observations: KernelClockObservations::with_capacity(usize::from(sign_items)),
             supported_pure_scan,
+            supported_parsec_input_scan,
             todo_checkpoint: None,
             todo_checkpoint_read: None,
         })
@@ -535,9 +546,9 @@ impl<'a> BodyKernel<'a> {
         Ok(())
     }
 
-    /// Only the exact finite pure Todo coordinator has an installed Body
-    /// route, with preloaded or admitted live typed Fore values. Face action
-    /// routing and other activations remain separate or refused.
+    /// Exact finite pure scans and the separately validated live Parsec input
+    /// profile have installed Body routes. This admits execution shape only;
+    /// Face action grants and current input-map authority remain separate.
     pub(crate) fn require_supported_execution(&self) -> Result<(), String> {
         if self.operations.iter().any(|operation| {
             operation.contract_id.as_str() == conduit_std_offers::TODO_CHECKPOINT_PUBLISH_CALL
@@ -558,6 +569,7 @@ impl<'a> BodyKernel<'a> {
             .iter()
             .any(|bound| !bound.entries.is_empty())
             && !self.supported_pure_scan
+            && !self.supported_parsec_input_scan
         {
             return Err("Body activation coordinator is not installed".into());
         }

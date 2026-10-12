@@ -1,8 +1,23 @@
 //! Exact Parsec command staging; source transition acceptance remains in the scan.
+#[path = "parsec_input_profile.rs"]
+mod input_profile;
+#[cfg(test)]
+#[path = "parsec_input_profile_tests.rs"]
+mod input_profile_tests;
+
 use super::*;
 use conduit_presentation::PARSEC_MAP_FRAME_BYTES;
 
 impl BodyLiveForeQueue {
+    /// Preparation-only exact combined input/scan admission. Resource reservation,
+    /// issued Play and accepted input requests remain separate required checks.
+    pub(crate) fn validate_parsec_input_plan(
+        plan: &Plan,
+        host: &conduit_core::HostAdvertisement,
+    ) -> Result<(), String> {
+        input_profile::validate(plan, host)
+    }
+
     pub fn for_parsec_plan(
         plan: &Plan,
         control: RunControl,

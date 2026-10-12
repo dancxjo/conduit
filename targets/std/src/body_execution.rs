@@ -383,11 +383,9 @@ impl StdHost {
         let prospective_play = BodyPlayIdentity::bind(request.plan, self.next_kernel_play_sequence);
         let live_queue = live.as_ref().map(|(queue, _)| *queue);
         let mut kernel = if let Some((queue, _)) = &live {
-            if request.keyboard.is_some() {
-                return Err("live Body Fore cannot also claim keyboard ingress".into());
-            }
             BodyKernel::prepare_live_on_host(
                 &request.plan.plots,
+                request.keyboard.is_some(),
                 &prospective_play.active_play_id,
                 queue,
                 request.control,
