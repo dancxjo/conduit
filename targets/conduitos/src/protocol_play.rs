@@ -18,6 +18,13 @@ mod timed;
     all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
 ))]
 mod usb;
+#[cfg(any(
+    target_arch = "x86_64",
+    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+))]
+pub(crate) use usb::{StorageScopePossession, StorageUsbAdmission};
+pub(crate) mod preparation_diagnostic;
+mod registry;
 pub use timed::{ClockAdmission, PreparedTimedProtocolPlay};
 
 pub struct I2cAdmission<P> {
@@ -113,6 +120,11 @@ enum PhysicalMode {
         all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
     ))]
     UsbDuplex,
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    StorageUsbDuplex,
     #[cfg(any(
         target_arch = "x86_64",
         all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
@@ -261,25 +273,30 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
             merges,
             concats,
         } = operations;
-        validate_fore(&definition)?;
+        validate_fore(&definition)
+            .map_err(|error| preparation_diagnostic::observe("fore", error))?;
         zip.validate_plan(&definition.internal_plan)
             .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
         states
             .validate_plan(&definition.internal_plan)
-            .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
+            .map_err(|error| preparation_diagnostic::invalid("states", error))?;
         concats
             .validate_plan(&definition.internal_plan)
-            .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
+            .map_err(|error| preparation_diagnostic::invalid("concats", error))?;
         merges
             .validate_plan(&definition.internal_plan)
-            .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
-        let calls = prepare_calls(&definition.internal_plan, &zip, &states)?;
+            .map_err(|error| preparation_diagnostic::invalid("merges", error))?;
+        let calls = prepare_calls(&definition.internal_plan, &zip, &states)
+            .map_err(|error| preparation_diagnostic::observe("calls", error))?;
         singletons
             .validate_plan(&definition.internal_plan)
-            .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
+            .map_err(|error| preparation_diagnostic::invalid("singletons", error))?;
         let mut registry = KernelOperationRegistry::new();
         registry
             .install(singletons)
+            .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
+        registry
+            .install(crate::bytes_literal::BytesLiteralOperationFactory::default())
             .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
         registry
             .install(crate::text_literal::TextLiteralOperationFactory::default())
@@ -288,9 +305,6 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
             .install(ExpressionOperationFactory::default())
             .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
         registry::install_physical(&mut registry, mode)?;
-        registry
-            .install(SelectorOperationFactory::default())
-            .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
         registry
             .install(zip)
             .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
@@ -321,6 +335,17 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
             calls,
             deferred_host_request: None,
         })
+    }
+
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    pub(crate) fn bind_storage_body(
+        &mut self,
+        pin: Option<crate::protocol_source::StorageBodyPreparation>,
+    ) -> Result<(), ProtocolCallRefusal> {
+        self.calls.bind_storage_body(pin)
     }
 
     pub fn start(&mut self) -> Result<(), ProtocolCallRefusal> {

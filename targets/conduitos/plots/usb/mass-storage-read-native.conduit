@@ -1,0 +1,228 @@
+with storage/block-read/request as BlockReadRequest
+with storage/block-read/result as BlockReadResult
+with machine/usb/control/request as UsbControlRequest
+with machine/usb/control/result as UsbControlResult
+with machine/usb/endpoint-read/request as UsbEndpointReadRequest
+with machine/usb/endpoint-read/result as UsbEndpointReadResult
+with machine/usb/endpoint-write/request as UsbEndpointWriteRequest
+with machine/usb/endpoint-write/result as UsbEndpointWriteResult
+with flow/zip/feedback/paired as BotStoragePair
+with flow/zip/finite/paired as BotStorageControlPair
+with storage/block-read/permit as BlockReadPermit
+# Bounded first-read BOT storage Back, LUN0, LBA0, one 512-byte block.
+# This recovery has checked packaging; ordinary guest acceptance remains pending.
+# Repeated-read acceptance still requires stronger per-command tag correlation.
+type BotControlFacts = {
+    descriptor: Boolean
+    ack: Boolean
+}
+type BotReadFacts = {
+    result: UsbEndpointReadResult
+    data: Boolean
+    status: Boolean
+}
+type BotEvent =
+    control BotControlFacts
+    | write UsbEndpointWriteResult
+    | read BotReadFacts
+type BotState = {
+    command: UsbEndpointWriteRequest
+    phase: U64
+    transaction: U64
+    terminal: Boolean
+    refused: Boolean
+}
+type BotRoute =
+    control BotState
+    | write BotState
+    | read BotState
+    | stopped BotState
+type BotPending =
+    running BotState
+    | stopped
+type BotTransition = {
+    previous: BotState
+    accepted: Boolean
+}
+type BotOutcome =
+    accepted
+    | refused
+type BotDataCandidate =
+    ready BotEvent
+    | absent
+type BotAcceptedState =
+    ready BotState
+    | refused
+
+# Request-driven first-profile read-only BOT realization; no media write API.
+type BotStorageControl = {
+    result: UsbControlResult
+    facts: BotControlFacts
+}
+type BotStorageEvent =
+    startup Bytes <= 2048B
+    | closed
+    | command BlockReadRequest
+    | control BotStorageControl
+    | observation BotEvent
+type BotStorageState = {
+    command: UsbEndpointWriteRequest
+    request: BlockReadRequest
+    data: UsbEndpointReadResult
+    phase: U64
+    operations: U64
+    terminal: Boolean
+}
+type BotStorageRoute =
+    ready BotStorageState
+    | control BotStorageState
+    | write BotStorageState
+    | read BotStorageState
+    | stopped BotStorageState
+type BotStoragePending =
+    running BotStorageState
+    | stopped
+type BotStorageTransition = {
+    previous: BotStorageState
+    event: BotStorageEvent
+    accepted: Boolean
+}
+type BotStorageEmission =
+    emit BlockReadResult
+    | absent
+
+# Reused unchanged pure BOT observation guards from f2ecef626.
+plot bot-initialize (
+    command: UsbEndpointWriteRequest...| >> state: BotState...|
+) = ({ command: ., phase: 0, transaction: 0, terminal: (bytes/length(.wire) != 31 ? true : !((((bytes/at(.wire, 0) == 85 && (bytes/at(.wire, 1) == 83 && bytes/at(.wire, 2) == 66)) && ((bytes/at(.wire, 3) == 67 && bytes/at(.wire, 4) == 1) && (bytes/at(.wire, 5) == 0 && bytes/at(.wire, 6) == 0))) && (((bytes/at(.wire, 7) == 0 && bytes/at(.wire, 8) == 0) && (bytes/at(.wire, 9) == 2 && bytes/at(.wire, 10) == 0)) && ((bytes/at(.wire, 11) == 0 && bytes/at(.wire, 12) == 128) && (bytes/at(.wire, 13) == 0 && bytes/at(.wire, 14) == 10)))) && ((((bytes/at(.wire, 15) == 40 && bytes/at(.wire, 16) == 0) && (bytes/at(.wire, 17) == 0 && bytes/at(.wire, 18) == 0)) && ((bytes/at(.wire, 19) == 0 && bytes/at(.wire, 20) == 0) && (bytes/at(.wire, 21) == 0 && bytes/at(.wire, 22) == 0))) && (((bytes/at(.wire, 23) == 1 && bytes/at(.wire, 24) == 0) && (bytes/at(.wire, 25) == 0 && bytes/at(.wire, 26) == 0)) && ((bytes/at(.wire, 27) == 0 && bytes/at(.wire, 28) == 0) && (bytes/at(.wire, 29) == 0 && bytes/at(.wire, 30) == 0)))))), refused: (bytes/length(.wire) != 31 ? true : !((((bytes/at(.wire, 0) == 85 && (bytes/at(.wire, 1) == 83 && bytes/at(.wire, 2) == 66)) && ((bytes/at(.wire, 3) == 67 && bytes/at(.wire, 4) == 1) && (bytes/at(.wire, 5) == 0 && bytes/at(.wire, 6) == 0))) && (((bytes/at(.wire, 7) == 0 && bytes/at(.wire, 8) == 0) && (bytes/at(.wire, 9) == 2 && bytes/at(.wire, 10) == 0)) && ((bytes/at(.wire, 11) == 0 && bytes/at(.wire, 12) == 128) && (bytes/at(.wire, 13) == 0 && bytes/at(.wire, 14) == 10)))) && ((((bytes/at(.wire, 15) == 40 && bytes/at(.wire, 16) == 0) && (bytes/at(.wire, 17) == 0 && bytes/at(.wire, 18) == 0)) && ((bytes/at(.wire, 19) == 0 && bytes/at(.wire, 20) == 0) && (bytes/at(.wire, 21) == 0 && bytes/at(.wire, 22) == 0))) && (((bytes/at(.wire, 23) == 1 && bytes/at(.wire, 24) == 0) && (bytes/at(.wire, 25) == 0 && bytes/at(.wire, 26) == 0)) && ((bytes/at(.wire, 27) == 0 && bytes/at(.wire, 28) == 0) && (bytes/at(.wire, 29) == 0 && bytes/at(.wire, 30) == 0)))))) })
+plot bot-control-event (
+    result: UsbControlResult...| >> event: BotEvent...|
+) = (control({ descriptor: !(. is completed) ? false : (.completed.transferred != 32 || .completed.short || sequence/length(.completed.input) != 32 ? false : (((((sequence/at(.completed.input, 0) == 9 && sequence/at(.completed.input, 1) == 2) && (sequence/at(.completed.input, 2) == 32 && sequence/at(.completed.input, 3) == 0)) && ((sequence/at(.completed.input, 4) == 1 && sequence/at(.completed.input, 5) == 1) && (sequence/at(.completed.input, 6) == 5 && sequence/at(.completed.input, 7) == 192))) && (((sequence/at(.completed.input, 8) == 0 && sequence/at(.completed.input, 9) == 9) && (sequence/at(.completed.input, 10) == 4 && sequence/at(.completed.input, 11) == 0)) && ((sequence/at(.completed.input, 12) == 0 && sequence/at(.completed.input, 13) == 2) && (sequence/at(.completed.input, 14) == 8 && sequence/at(.completed.input, 15) == 6)))) && ((((sequence/at(.completed.input, 16) == 80 && sequence/at(.completed.input, 17) == 0) && (sequence/at(.completed.input, 18) == 7 && sequence/at(.completed.input, 19) == 5)) && ((sequence/at(.completed.input, 20) == 129 && sequence/at(.completed.input, 21) == 2) && (sequence/at(.completed.input, 22) == 0 && sequence/at(.completed.input, 23) == 2))) && (((sequence/at(.completed.input, 24) == 0 && sequence/at(.completed.input, 25) == 7) && (sequence/at(.completed.input, 26) == 5 && sequence/at(.completed.input, 27) == 2)) && ((sequence/at(.completed.input, 28) == 2 && sequence/at(.completed.input, 29) == 0) && (sequence/at(.completed.input, 30) == 2 && sequence/at(.completed.input, 31) == 0)))))), ack: !(. is completed) ? false : (.completed.transferred == 0 && !.completed.short && sequence/length(.completed.input) == 0) }))
+plot bot-read-event (
+    result: UsbEndpointReadResult...| >> event: BotEvent...|
+) = (read({ result: ., data: !(. is completed) ? false : (.completed.actual == 512 && !.completed.short && bytes/length(.completed.wire) == 512), status: !(. is completed) ? false : (.completed.actual != 13 || .completed.short || bytes/length(.completed.wire) != 13 ? false : (((bytes/at(.completed.wire, 0) == 85 && (bytes/at(.completed.wire, 1) == 83 && bytes/at(.completed.wire, 2) == 66)) && (bytes/at(.completed.wire, 3) == 83 && (bytes/at(.completed.wire, 4) == 1 && bytes/at(.completed.wire, 5) == 0))) && ((bytes/at(.completed.wire, 6) == 0 && (bytes/at(.completed.wire, 7) == 0 && bytes/at(.completed.wire, 8) == 0)) && ((bytes/at(.completed.wire, 9) == 0 && bytes/at(.completed.wire, 10) == 0) && (bytes/at(.completed.wire, 11) == 0 && bytes/at(.completed.wire, 12) == 0))))) }))
+
+
+plot bot-storage-bootstrap (
+    wire: Bytes <= 2048B >> event: BotStorageEvent
+) = (bytes/length(.) <= 2048 ? startup(.) : closed(empty))
+plot bot-storage-bootstrap-request (
+    bootstrap: BotStorageEvent...| >> command: UsbEndpointWriteRequest...|
+) = ({ wire: .startup })
+plot bot-storage-start (
+    initialized: BotState...| >> state: BotStorageState...|
+) = ({ command: .command, request: { block_size: 512, count: 1, lba: 0 }, data: unsupported(empty), phase: 0, operations: 0, terminal: .terminal })
+plot bot-storage-closed (
+    bootstrap: BotStorageEvent...| >> event: BotStorageEvent...|
+) = (closed(empty))
+plot bot-storage-command (
+    request: BlockReadRequest...| >> event: BotStorageEvent...|
+) = (command(.))
+plot bot-storage-command-event (
+    pair: BotStoragePair...| >> event: BotStorageEvent...|
+) = (.1)
+plot bot-storage-route (
+    state: BotStorageState...| >> route: BotStorageRoute...|
+) = (.terminal || .operations > 16 || .phase > 7 ? stopped(.) : (.phase == 0 || .phase == 6 || .phase == 7 ? ready(.) : (.phase <= 2 ? control(.) : (.phase == 3 ? write(.) : read(.)))))
+plot bot-storage-pending (
+    route: BotStorageRoute...| >> pending: BotStoragePending...|
+) = (. is stopped ? stopped(empty) : (. is ready ? running(.ready) : (. is control ? running(.control) : (. is write ? running(.write) : running(.read)))))
+plot bot-storage-control-request (
+    state: BotStorageState...| >> request: UsbControlRequest...|
+) = (.phase == 1 ? { setup: 0x0020000002000680, output: [] } : { setup: 0x0000000000010900, output: [] })
+plot bot-storage-write-request (
+    state: BotStorageState...| >> request: UsbEndpointWriteRequest...|
+) = (.command)
+plot bot-storage-read-request (
+    state: BotStorageState...| >> request: UsbEndpointReadRequest...|
+) = (.phase == 4 ? { length: 512 } : { length: 13 })
+plot bot-storage-control-observation (
+    pair: BotStorageControlPair...| >> event: BotStorageEvent...|
+) = (control({ result: .0, facts: .1.control }))
+plot bot-storage-observe-control (
+    >> result: UsbControlResult...| <= 4096B
+    event: BotStorageEvent...| <= 4096B >>
+) {
+    pair: flow/zip/finite
+    result >> pair.left
+    result >> bot-control-event() >> pair.right
+    pair.paired >> bot-storage-control-observation() >> event
+}
+plot bot-storage-observation (
+    observation: BotEvent...| >> event: BotStorageEvent...|
+) = (observation(.))
+plot bot-storage-write-observation (
+    result: UsbEndpointWriteResult...| >> event: BotStorageEvent...|
+) = (observation(write(.)))
+plot bot-storage-accept (
+    pair: BotStoragePair...| >> transition: BotStorageTransition...|
+) = ({ previous: .0, event: .1, accepted: (((.0.phase == 7 && !.0.terminal && .0.operations <= 16 ? (.1 is command || .1 is closed) : false) || (((.0.phase == 0 || .0.phase == 6) && !.0.terminal && .0.operations <= 16 ? (.1 is closed ? true : (.1 is command ? (.0.operations < 16 && .1.command.block_size == 512 && .1.command.count == 1 && .1.command.lba == 0) : false)) : false) || ((.0.phase == 1 || .0.phase == 2) && !.0.terminal && .0.operations <= 16 ? (.1 is control ? (.0.phase == 1 ? .1.control.facts.descriptor : .1.control.facts.ack) : false) : false))) || ((.0.phase == 3 && !.0.terminal && .0.operations <= 16 ? (.1 is observation ? (.1.observation is write ? (.1.observation.write is completed ? .1.observation.write.completed.actual == 31 : false) : false) : false) : false) || ((.0.phase == 4 && !.0.terminal && .0.operations <= 16 ? (.1 is observation ? (.1.observation is read ? (.1.observation.read.result is completed ? (.1.observation.read.data && .1.observation.read.result.completed.ordinal == .0.operations + .0.operations) : false) : false) : false) : false) || (.0.phase == 5 && !.0.terminal && .0.operations <= 16 ? (.1 is observation ? (.1.observation is read ? (.1.observation.read.result is completed ? (.1.observation.read.status && .1.observation.read.result.completed.ordinal == .0.operations + .0.operations + 1) : false) : false) : false) : false)))) })
+
+plot bot-storage-advance (
+    transition: BotStorageTransition...| >> state: BotStorageState...|
+) = ({ command: .previous.command, request: (.previous.phase != 7 && .event is command ? .event.command : .previous.request), data: (.accepted && .previous.phase == 4 ? (.event is observation ? (.event.observation is read ? (.event.observation.read.result is completed ? .event.observation.read.result : .previous.data) : .previous.data) : .previous.data) : .previous.data), phase: (.event is closed ? 8 : (!.accepted || .previous.phase == 7 ? 7 : (.previous.phase == 0 ? 1 : (.previous.phase == 6 ? 3 : .previous.phase + 1)))), operations: (.accepted && .previous.phase == 5 && .previous.operations < 16 ? .previous.operations + 1 : .previous.operations), terminal: (.event is closed) })
+plot bot-storage-emission (
+    transition: BotStorageTransition...| >> emission: BotStorageEmission...|
+) = (.previous.phase == 7 || .event is closed ? absent(empty) : (.accepted ? (.previous.phase == 5 ? (.previous.data is completed ? (.previous.data.completed.actual == 512 && bytes/length(.previous.data.completed.wire) == 512 ? emit(completed({ actual: 512, block_size: .previous.request.block_size, bytes: .previous.data.completed.wire, count: .previous.request.count, lba: .previous.request.lba, ordinal: .previous.operations, residue: 0, short: false })) : absent(empty)) : absent(empty)) : absent(empty)) : emit((.event is command ? unsupported({ block_size: (.event is command ? .event.command.block_size : .previous.request.block_size), count: (.event is command ? .event.command.count : .previous.request.count), lba: (.event is command ? .event.command.lba : .previous.request.lba), ordinal: .previous.operations }) : (((.event is control ? .event.control.result is stalled : false) || (.event is observation ? (.event.observation is read ? .event.observation.read.result is stalled : (.event.observation is write ? .event.observation.write is stalled : false)) : false)) ? stalled({ block_size: (.event is command ? .event.command.block_size : .previous.request.block_size), count: (.event is command ? .event.command.count : .previous.request.count), lba: (.event is command ? .event.command.lba : .previous.request.lba), ordinal: .previous.operations }) : (((.event is control ? .event.control.result is provider-lost : false) || (.event is observation ? (.event.observation is read ? .event.observation.read.result is provider-lost : (.event.observation is write ? .event.observation.write is provider-lost : false)) : false)) ? provider-lost({ block_size: (.event is command ? .event.command.block_size : .previous.request.block_size), count: (.event is command ? .event.command.count : .previous.request.count), lba: (.event is command ? .event.command.lba : .previous.request.lba), ordinal: .previous.operations }) : ((false || (.event is observation ? (.event.observation is read ? .event.observation.read.result is timeout : false) : false)) ? timeout({ block_size: (.event is command ? .event.command.block_size : .previous.request.block_size), count: (.event is command ? .event.command.count : .previous.request.count), lba: (.event is command ? .event.command.lba : .previous.request.lba), ordinal: .previous.operations }) : command-failed({ block_size: (.event is command ? .event.command.block_size : .previous.request.block_size), count: (.event is command ? .event.command.count : .previous.request.count), lba: (.event is command ? .event.command.lba : .previous.request.lba), ordinal: .previous.operations }))))))))
+
+
+# Phase7 drains queued semantic commands effect-free; only explicit closed
+# reaches terminal phase8. The first failure alone emits its original identity.
+# The CBW is authored immutable Source configuration, not an extra semantic
+# input and not a Rust class constructor. Only LBA0/count1/512 is supported.
+# Root must separately admit storage ownership AND the original USB subordinate
+# calls; this selected Back never derives storage authority from enumeration.
+plot bot-storage-provider (
+    request: BlockReadRequest...| <= 4096B >> result: BlockReadResult...| <= 4096B
+) {
+    literal: bytes/literal("55534243010000000002000080000a28000000000000000100000000000000")
+    singleton: flow/singleton
+    cell: state/seeded/flow/until
+    route: bot-storage-route()
+    join: flow/zip/feedback
+    commands: flow/zip/feedback
+    requests: flow/concat/finite
+    events: flow/merge/finite
+    transport-events: flow/merge/finite
+    bulk-events: flow/merge/finite
+    control: machine/usb/control
+    observe-control: bot-storage-observe-control
+    write: machine/usb/endpoint-write
+    read: machine/usb/endpoint-read
+    literal >> bot-storage-bootstrap() >> singleton.value
+    singleton.flow >> bot-storage-bootstrap-request() >> bot-initialize() >> bot-storage-start() >> cell.seed
+    singleton.flow >> bot-storage-closed() >> requests.right
+    request >> bot-storage-command() >> requests.left
+    requests.concatenated >> commands.right
+    cell.current >> route
+    route >> bot-storage-pending() >> select(BotStoragePending.running, unmatched=drop) >> join.left
+    route >> select(BotStorageRoute.ready, unmatched=drop) >> commands.left
+    commands.paired >> bot-storage-command-event() >> events.left
+    route >> select(BotStorageRoute.control, unmatched=drop) >> bot-storage-control-request() >> control.request
+    route >> select(BotStorageRoute.write, unmatched=drop) >> bot-storage-write-request() >> write.request
+    route >> select(BotStorageRoute.read, unmatched=drop) >> bot-storage-read-request() >> read.request
+    control.result >> observe-control.result
+    observe-control.event >> transport-events.left
+    write.result >> bot-storage-write-observation() >> bulk-events.left
+    read.result >> bot-read-event() >> bot-storage-observation() >> bulk-events.right
+    bulk-events.merged >> transport-events.right
+    transport-events.merged >> events.right
+    events.merged >> join.right
+    join.paired >> bot-storage-accept() >> bot-storage-advance() >> cell.next
+    join.paired >> bot-storage-accept() >> bot-storage-emission() >> select(BotStorageEmission.emit, unmatched=drop) >> result
+}
+
+plot bot-storage-permitted (
+    permit: BlockReadPermit...| >> request: BlockReadRequest...|
+) = ({ block_size: .block_size, count: .count, lba: .lba })
+plot bot-storage-one-read (
+    request: BlockReadRequest...| <= 4096B >> result: BlockReadResult...| <= 4096B
+) {
+    authorize: storage/block-read/authorize
+    provider: bot-storage-provider
+    settle: storage/block-read/settle
+    request >> authorize.request
+    authorize.result >> bot-storage-permitted() >> provider.request
+    provider.result >> settle.request
+    settle.result >> result
+}

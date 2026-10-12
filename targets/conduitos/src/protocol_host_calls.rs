@@ -1,4 +1,5 @@
 //! Exact adapters for kernel-issued calls; protocol scheduling remains in the graph.
+use crate::protocol_play::preparation_diagnostic::invalid as invalid_plan;
 use crate::{
     expression_host_call,
     i2c_base::{
@@ -35,6 +36,21 @@ mod ethernet_preparation;
     )
 ))]
 pub(crate) use ethernet_preparation::EthernetFrameAdmission;
+#[cfg(any(
+    target_arch = "x86_64",
+    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+))]
+mod storage;
+#[cfg(any(
+    target_arch = "x86_64",
+    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+))]
+mod storage_preparation;
+#[cfg(any(
+    target_arch = "x86_64",
+    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+))]
+mod subordinate;
 #[cfg(any(
     target_arch = "x86_64",
     all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
@@ -80,6 +96,16 @@ enum Owner<P> {
         target_arch = "x86_64",
         all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
     ))]
+    StorageAuthorize,
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    StorageSettle,
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
     UsbIsochronousControl,
     #[cfg(any(
         target_arch = "x86_64",
@@ -107,6 +133,11 @@ struct Binding<P> {
 /// Admitted native owners and exact dispatch bindings prepared before Play.
 pub struct PreparedProtocolCalls<P> {
     plan_id: PlanId,
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    storage: Option<storage::StorageAssociation>,
     identity: PreparationHostIdentity,
     bindings: Vec<Binding<P>>,
     #[cfg(any(
@@ -237,9 +268,11 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
         }
         states
             .validate_plan(plan)
-            .map_err(|_| Refusal::InvalidPlan)?;
+            .map_err(|error| invalid_plan("pure/preparation", error))?;
         let fragment = &plan.fragments[0];
-        let lowered = lower_plan_fragment(fragment).map_err(|_| Refusal::InvalidPlan)?;
+        let lowered = lower_plan_fragment(fragment).map_err(|error| {
+            crate::protocol_play::preparation_diagnostic::lowering(fragment, error)
+        })?;
         let active = bind_active_play(&plan.plan_id, &fragment.host_id, &fragment.boot_id, 0);
         for implementation in implementations {
             if fragment
@@ -258,6 +291,7 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
                     gear.implementation_id.as_str(),
                     expression_host_call::IMPLEMENTATION
                         | crate::offer::TEXT_LITERAL_IMPLEMENTATION
+                        | crate::bytes_literal::IMPLEMENTATION
                         | crate::flow_singleton::IMPLEMENTATION
                         | structured_selector_host_call::IMPLEMENTATION
                         | crate::flow_zip::IMPLEMENTATION
@@ -271,13 +305,14 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
             return Err(Refusal::Unsupported);
         }
         // Validate pure typed storage before binding the physical owner.
-        zip.validate_plan(plan).map_err(|_| Refusal::InvalidPlan)?;
+        zip.validate_plan(plan)
+            .map_err(|error| invalid_plan("pure/preparation", error))?;
         for gear in &fragment.placements {
             if gear.implementation_id.as_str() == crate::current_sample::IMPLEMENTATION {
                 use conduit_composite::KernelOperationFactory;
                 crate::current_sample::CurrentSampleOperationFactory::default()
                     .budget(gear)
-                    .map_err(|_| Refusal::InvalidPlan)?;
+                    .map_err(|error| invalid_plan("pure/preparation", error))?;
             }
         }
         let mut bindings = Vec::with_capacity(fragment.placements.len());
@@ -331,6 +366,11 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
         });
         Ok(Self {
             plan_id: plan.plan_id.clone(),
+            #[cfg(any(
+                target_arch = "x86_64",
+                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+            ))]
+            storage: None,
             identity: PreparationHostIdentity {
                 host_id: fragment.host_id.clone(),
                 boot_id: fragment.boot_id.clone(),
@@ -381,6 +421,14 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
         if kernel.definition().internal_plan.plan_id != self.plan_id {
             return Err(Refusal::InvalidPlan);
         }
+        #[cfg(any(
+            target_arch = "x86_64",
+            all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+        ))]
+        if let Some(storage) = &mut self.storage {
+            storage.request_cancel()?;
+        }
+
         #[cfg(any(
             target_arch = "x86_64",
             all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
@@ -437,6 +485,12 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
                 owner.cancel(binding.node, HostCallId(0))?;
             }
         }
-        cancelled
+        cancelled?;
+        #[cfg(any(
+            target_arch = "x86_64",
+            all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+        ))]
+        self.retire_cancelled_storage(kernel)?;
+        Ok(())
     }
 }

@@ -2802,6 +2802,7 @@ dependencies = [
  "conduit-composite",
  "conduit-conduitos-mask-offer",
  "conduit-core",
+ "conduit-data",
  "conduit-home-model",
  "conduit-human",
  "conduit-kernel",

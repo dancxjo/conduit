@@ -296,3 +296,49 @@ fn iso_transport_requires_explicit_finite_parameters_and_disjoint_boot_mode() {
         Err(ProtocolBootRequestRefusal::Bounds)
     ));
 }
+
+#[test]
+fn storage_requires_independent_approval_bounded_fuel_and_exclusive_duplex_mode() {
+    let mut value = request();
+    value["endpoint_read"] = serde_json::json!({"address":129,"transfer_type":2,"maximum_packet":512,"interval":0,"endpoint_epoch":1,"maximum_operations":32});
+    value["endpoint_write"] = serde_json::json!({"address":2,"transfer_type":2,"maximum_packet":512,"interval":0,"endpoint_epoch":1,"maximum_operations":16});
+    value["storage"] = serde_json::json!({"administrator_approval":true,"maximum_operations":16});
+    assert_eq!(
+        decode(&value).unwrap().storage.unwrap().maximum_operations,
+        16
+    );
+    let mut denied = value.clone();
+    denied["storage"]["administrator_approval"] = false.into();
+    assert!(matches!(
+        decode(&denied),
+        Err(ProtocolBootRequestRefusal::Approval)
+    ));
+    for maximum in [0, 17] {
+        let mut invalid = value.clone();
+        invalid["storage"]["maximum_operations"] = maximum.into();
+        assert!(matches!(
+            decode(&invalid),
+            Err(ProtocolBootRequestRefusal::Bounds)
+        ));
+    }
+    for absent in ["endpoint_read", "endpoint_write"] {
+        let mut invalid = value.clone();
+        invalid[absent] = serde_json::Value::Null;
+        assert!(matches!(
+            decode(&invalid),
+            Err(ProtocolBootRequestRefusal::Bounds)
+        ));
+    }
+    let mut invalid = value.clone();
+    invalid["isochronous_out"] = serde_json::json!({"address":2,"maximum_packet":192,"interval":1,"endpoint_epoch":1,"maximum_operations":16});
+    assert!(matches!(
+        decode(&invalid),
+        Err(ProtocolBootRequestRefusal::Bounds)
+    ));
+    let mut invalid = value;
+    invalid["storage"]["write_approval"] = true.into();
+    assert!(matches!(
+        decode(&invalid),
+        Err(ProtocolBootRequestRefusal::Encoding)
+    ));
+}

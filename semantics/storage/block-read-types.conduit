@@ -1,0 +1,35 @@
+# Initial read-only block profile: 512-byte blocks, one block per request.
+# The checked decoder enforces this geometry and LBA <= u32MAX. There is no
+# filesystem, write command, device address or transport authority in this Fore.
+type BlockReadRequest = {
+    block_size: U64
+    count: U64
+    lba: U64
+}
+# Identity echoes the full checked request plus provider-lifetime ordinal.
+type BlockReadIdentity = {
+    block_size: U64
+    count: U64
+    lba: U64
+    ordinal: U64
+}
+# Residue is the missing storage byte count, not a BOT CSW or transport receipt.
+# Incomplete data is never an accepted block; class integrity remains Source-owned.
+type BlockReadObservation = {
+    actual: U64
+    block_size: U64
+    bytes: Bytes <= 512B
+    count: U64
+    lba: U64
+    ordinal: U64
+    residue: U64
+    short: Boolean
+}
+type BlockReadResult =
+    completed BlockReadObservation
+    | incomplete BlockReadObservation
+    | stalled BlockReadIdentity
+    | provider-lost BlockReadIdentity
+    | unsupported BlockReadIdentity
+    | timeout BlockReadIdentity
+    | command-failed BlockReadIdentity

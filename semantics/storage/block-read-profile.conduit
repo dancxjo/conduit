@@ -1,0 +1,4 @@
+# Pure initial-profile guard. A true verdict is not a provider/authority grant.
+plot block-read-profile (
+    request: BlockReadRequest...| >> valid: Boolean...|
+) = (.block_size == 512 && .count == 1 && .lba <= 4294967295)

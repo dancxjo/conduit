@@ -73,6 +73,7 @@ fn proves_at(
     }
     if remaining.is_empty() && matches!(value.operation, Op::Literal(_)) {
         let constant = PortableExpressionProgram {
+            input_maximum_bytes: None,
             input_type: conduit_core::StructuredInfoType::leaf(conduit_core::kind_id(
                 conduit_core::EMPTY_INFO_ID,
             ))
@@ -132,6 +133,19 @@ fn retained_contract(
             _ => return false,
         };
         return retained_contract(element, rest, required, types);
+    }
+    if let Some(rest) = path.strip_prefix('|') {
+        let end = rest.find(['.', '|', '[', '?']).unwrap_or(rest.len());
+        let (tag, remaining) = rest.split_at(end);
+        let StructuredInfoTypeShape::Variant { cases, .. } = input.shape() else {
+            return false;
+        };
+        return cases
+            .iter()
+            .find(|case| case.tag() == tag)
+            .is_some_and(|case| {
+                retained_contract(case.payload_type(), remaining, required, types)
+            });
     }
     let Some(rest) = path.strip_prefix('.') else {
         return false;

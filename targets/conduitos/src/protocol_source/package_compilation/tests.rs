@@ -190,3 +190,47 @@ plot bootstrap (
         conduit_core::PortTemporal::Flow { closes: true }
     );
 }
+
+#[test]
+fn storage_imports_survive_package_type_preparation_and_final_entry_check() {
+    let source = "with storage/block-read/request as BlockReadRequest\nwith storage/block-read/permit as BlockReadPermit\nwith storage/block-read/result as BlockReadResult\nplot identity (\n request: BlockReadRequest...| <= 4096B >> result: BlockReadRequest...| <= 4096B\n) = (.)\nplot permit-identity (\n value: BlockReadPermit...| >> result: BlockReadPermit...|\n) = (.)\nplot result-identity (\n value: BlockReadResult...| >> result: BlockReadResult...|\n) = (.)";
+    let package =
+        ProtocolSourcePackage::compile(source.into(), &[request("BlockReadPermit", 4096)]).unwrap();
+    let entry =
+        PreparedProtocolEntry::prepare(&serde_json::to_vec(&package).unwrap(), "identity").unwrap();
+    assert_eq!(entry.expanded().expanded.gears.len(), 1);
+    let ProtocolSpecialization::SeededFlow { value } = &package.specializations[0] else {
+        panic!()
+    };
+    let expected =
+        crate::storage_base::transaction_contract::BlockReadTransactionContract::prepare().unwrap();
+    assert_eq!(&value.schema, expected.permit_type());
+}
+
+#[test]
+fn storage_result_constructor_retains_nested_observation_bounds() {
+    let source = "with machine/usb/endpoint-read/result as UsbEndpointReadResult\nwith storage/block-read/result as BlockReadResult\nplot candidate (\n request: UsbEndpointReadResult...| <= 4096B >> result: BlockReadResult...| <= 4096B\n) = (. is completed ? (bytes/length(.completed.wire) <= 512 ? completed({ actual: .completed.actual, block_size: 512, bytes: .completed.wire, count: 1, lba: 0, ordinal: .completed.ordinal, residue: 0, short: .completed.short }) : unsupported({ block_size: 512, count: 1, lba: 0, ordinal: 0 })) : unsupported({ block_size: 512, count: 1, lba: 0, ordinal: 0 }))";
+    let package = ProtocolSourcePackage::compile(source.into(), &[]).unwrap();
+    PreparedProtocolEntry::prepare(&serde_json::to_vec(&package).unwrap(), "candidate").unwrap();
+    let unchecked = source.replace("bytes/length(.completed.wire) <= 512", "true");
+    let package = ProtocolSourcePackage::compile(unchecked, &[]).unwrap();
+    let prepared = PreparedProtocolSource::prepare(package).unwrap();
+    let Err(ProtocolSourceRefusal::Expansion(diagnostic)) = prepared.expand("candidate") else {
+        panic!("unguarded USB bytes must not satisfy the nested storage bound");
+    };
+    assert_eq!(diagnostic.code, "CND-FRM-046");
+}
+
+#[test]
+fn storage_forwarding_retains_bounds_through_variant_payloads() {
+    let source = "with storage/block-read/result as BlockReadResult\ntype Wrapped = {\n result: BlockReadResult\n}\nplot candidate (\n request: Wrapped...| <= 4096B >> result: BlockReadResult...| <= 4096B\n) = (.result is completed ? completed({ actual: .result.completed.actual, block_size: .result.completed.block_size, bytes: .result.completed.bytes, count: .result.completed.count, lba: .result.completed.lba, ordinal: .result.completed.ordinal, residue: .result.completed.residue, short: .result.completed.short }) : unsupported({ block_size: 512, count: 1, lba: 0, ordinal: 0 }))";
+    let package = ProtocolSourcePackage::compile(source.into(), &[]).unwrap();
+    PreparedProtocolEntry::prepare(&serde_json::to_vec(&package).unwrap(), "candidate").unwrap();
+    let unchecked = source.replace("with storage/block-read/result as BlockReadResult", "with machine/usb/endpoint-read/result as UsbEndpointReadResult\nwith storage/block-read/result as BlockReadResult").replace("result: BlockReadResult\n}", "result: UsbEndpointReadResult\n}").replace(".result.completed.bytes", ".result.completed.wire").replace(".result.completed.block_size", "512").replace(".result.completed.count", "1").replace(".result.completed.lba", "0").replace(".result.completed.residue", "0");
+    let package = ProtocolSourcePackage::compile(unchecked, &[]).unwrap();
+    let prepared = PreparedProtocolSource::prepare(package).unwrap();
+    let Err(ProtocolSourceRefusal::Expansion(diagnostic)) = prepared.expand("candidate") else {
+        panic!("larger USB byte bounds must not satisfy storage bounds");
+    };
+    assert_eq!(diagnostic.code, "CND-FRM-046");
+}

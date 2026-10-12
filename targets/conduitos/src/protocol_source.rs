@@ -139,6 +139,7 @@ impl PreparedProtocolSource {
         install_clock(&mut startup, &mut profile)?;
         install_literal(&mut startup, &mut profile)?;
         usb_catalog::install(&mut startup, &mut profile)?;
+        storage_catalog::install(&mut startup, &mut profile)?;
         crate::serial_base::contract::SerialDuplexContract::prepare()
             .map_err(Error::Contract)?
             .install_catalogs(&mut startup, &mut profile)
@@ -381,6 +382,7 @@ mod schema_encoding {
 #[cfg(test)]
 mod tests;
 
+mod storage_catalog;
 mod usb_catalog;
 mod usb_hid;
 pub use usb_hid::{
@@ -403,6 +405,7 @@ mod issuer;
 pub use issuer::{NativeProtocolIssueRefusal, NativeProtocolIssuer, NativeProtocolPossession};
 
 mod body_play;
+pub(crate) use body_play::storage_preparation::StorageBodyPreparation;
 pub use body_play::{
     PreparedProtocolBodyPlay, ProtocolBodyPreparationRefusal, ProtocolBodyRefusal,
 };
@@ -433,15 +436,13 @@ pub use native_usb_preparation::prepare_native_usb_protocol;
 pub(crate) use native_usb_preparation::prepare_native_usb_protocol_with_sign_storage;
 
 #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
-pub(crate) use native_usb_preparation::{
-    NativeEthernetPreparation, prepare_native_usb_duplex_with_network,
-};
+pub(crate) use native_usb_preparation::NativeEthernetPreparation;
 #[cfg(any(
     target_arch = "x86_64",
     all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
 ))]
 pub(crate) use native_usb_preparation::{
-    prepare_native_usb_duplex_protocol, prepare_native_usb_endpoint_protocol,
+    NativeStoragePreparation, prepare_native_usb_duplex, prepare_native_usb_endpoint_protocol,
 };
 
 // A checked literal is inert Source configuration, not native I/O authority.
@@ -461,6 +462,19 @@ fn install_literal(
         .map_err(ProtocolSourceRefusal::Catalog)?;
     profile
         .insert_kind(conduit_text::text_literal_semantics().into_semantic_contract())
+        .map_err(|error| ProtocolSourceRefusal::Catalog(alloc::format!("{error:?}")))?;
+    startup
+        .insert(conduit_plot::KindSignature {
+            kind: conduit_data::bytes_literal::BYTES_LITERAL_KIND.into(),
+            startup_parameters: vec![conduit_plot::StartupParameterSignature {
+                name: "hex".into(),
+                value_type: "Text".into(),
+                default: None,
+            }],
+        })
+        .map_err(ProtocolSourceRefusal::Catalog)?;
+    profile
+        .insert_kind(conduit_data::bytes_literal::definition())
         .map_err(|error| ProtocolSourceRefusal::Catalog(alloc::format!("{error:?}")))
 }
 

@@ -184,6 +184,7 @@ pub struct CheckedExpression {
     pub(crate) canonical_literals: BTreeMap<(usize, usize), Vec<u8>>,
     pub syntax: ExpressionSyntax,
     pub input_type: CheckedExpressionType,
+    pub(crate) input_maximum_bytes: Option<u32>,
     pub value_type: CheckedExpressionType,
     pub node_types: Vec<CheckedExpressionNodeType>,
     /// Arithmetic nodes whose safety follows from declared input-Type laws.
@@ -296,6 +297,7 @@ pub(crate) fn check_expression_as(
         canonical_literals: BTreeMap::new(),
         syntax: syntax.clone(),
         input_type: context.input.clone(),
+        input_maximum_bytes: None,
         value_type,
         node_types,
         proven_arithmetic: BTreeSet::new(),
