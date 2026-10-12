@@ -5,7 +5,7 @@ type UsbIsochronousPacket = {
     wire: Bytes <= 256B
 }
 type UsbIsochronousBatch = {
-    packets: sequence UsbIsochronousPacket <= 8
+    packets: sequence UsbIsochronousPacket <= 72
 }
 type UsbIsochronousOutRequest =
     observe
@@ -27,18 +27,18 @@ type UsbIsochronousCompletion = {
     actual: U64
 }
 type UsbIsochronousCompletedBatch = {
-    packets: sequence UsbIsochronousCompletion <= 8
+    packets: sequence UsbIsochronousCompletion <= 72
 }
 type UsbIsochronousShort = {
     packet: UsbIsochronousCompletion
-    completed: sequence UsbIsochronousCompletion <= 8
+    completed: sequence UsbIsochronousCompletion <= 72
 }
 type UsbIsochronousMissed = {
     frame: U64
-    completed: sequence UsbIsochronousCompletion <= 8
+    completed: sequence UsbIsochronousCompletion <= 72
 }
 type UsbIsochronousStoppedBatch = {
-    completed: sequence UsbIsochronousCompletion <= 8
+    completed: sequence UsbIsochronousCompletion <= 72
 }
 type UsbIsochronousOutResult =
     snapshot UsbIsochronousClock

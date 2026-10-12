@@ -214,7 +214,7 @@ pub(super) unsafe fn admit(
                 kind: ISOCHRONOUS_OUT_KIND,
                 capability: ISOCHRONOUS_OUT_IMPLEMENTATION,
                 bytes: ISOCHRONOUS_OUT_MAXIMUM_BYTES,
-                work: 8,
+                work: ISOCHRONOUS_OUT_MAXIMUM_PACKETS as u64,
                 operations: iso_request.maximum_operations,
             },
         );

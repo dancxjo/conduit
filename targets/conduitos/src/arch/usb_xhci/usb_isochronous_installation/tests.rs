@@ -1,4 +1,5 @@
 use super::super::native_host::stop_ack_tests::possession;
+use super::metadata::retained_resource_bytes;
 use super::*;
 use crate::usb_base::control_proof_plan::{self as planning, ControlProofSubject};
 use crate::usb_base::isochronous::owner::tests::fixture as iso_fixture;
@@ -121,7 +122,12 @@ fn full_native_preparation_retained_storage_is_measured_with_allocator_rounding(
 fn resource_charge_includes_rounded_metadata_original_tables_inline_and_dma() {
     assert_eq!(
         retained_resource_bytes(0),
-        Some(2 * 16384 + core::mem::size_of::<NativeUsbIsochronousHost>() + 8192 + 4 * 4096)
+        Some(
+            2 * 16384
+                + core::mem::size_of::<NativeUsbIsochronousHost>()
+                + 8192
+                + 4 * ISOCHRONOUS_OUT_MAXIMUM_BYTES as usize
+        )
     );
     assert_eq!(retained_resource_bytes(usize::MAX), None);
     let result = retained_resource_bytes(60570).unwrap();

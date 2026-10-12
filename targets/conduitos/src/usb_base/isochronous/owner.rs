@@ -81,7 +81,7 @@ impl IsochronousOutCallOwner {
             || claim.operation_contract_id.as_str() != ISOCHRONOUS_OUT_CALL
             || claim.subject_kind.as_str() != ISOCHRONOUS_OUT_KIND
             || claim.parameter_bytes != ISOCHRONOUS_OUT_MAXIMUM_BYTES
-            || claim.work_units != 8
+            || claim.work_units != super::contract::ISOCHRONOUS_OUT_MAXIMUM_PACKETS as u64
             || attachment.slot == 0
             || attachment.generation == 0
             || attachment.endpoint_generation == 0
@@ -111,7 +111,7 @@ impl IsochronousOutCallOwner {
             SelectedCallRefusal::Possession => Error::Possession,
         })?;
         let encoder = PreparedIsochronousResultEncoder::new(contract).map_err(Error::Canonical)?;
-        if encoder.prepared_storage_bytes() > 65536 {
+        if encoder.prepared_storage_bytes() > 524288 {
             return Err(Error::Possession);
         }
         Ok(Self {
