@@ -559,3 +559,8 @@ pub(crate) unsafe fn synthetic_stop_ack_event(controller: &XhciReady, slot: u8, 
         ];
     }
 }
+
+#[cfg(test)]
+mod transfer_fixture;
+#[cfg(test)]
+pub(crate) use transfer_fixture::{synthetic_next_stop_ack, synthetic_transfer_event};
