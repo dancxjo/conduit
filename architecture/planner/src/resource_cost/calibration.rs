@@ -2,12 +2,12 @@
 //! an interval; estimates and measured clock coordinates are distinct facts.
 use super::{
     CostDuration, CostDurationRange, CostEvidenceRefusal as Refusal, CostEvidenceSource,
-    CostedForecast,
+    CostMeasuredDuration, CostedForecast,
 };
 use alloc::vec::Vec;
 use conduit_core::{
-    ExactNumericWork, ExactRational, MonotonicDuration, MonotonicInstant, MonotonicTimeRefusal,
-    QuantityRole, RationalQuantity, SignId, TemporalScale, Unit,
+    ExactNumericWork, ExactRational, MonotonicDuration, MonotonicInstant, QuantityRole,
+    RationalQuantity, SignId, Unit,
 };
 
 pub const MAXIMUM_COST_CALIBRATION_HISTORY: usize = 16;
@@ -16,8 +16,7 @@ pub use conduit_core::CostExecutionCondition;
 pub struct CostCalibrationRecord<'a> {
     forecast: &'a CostedForecast<'a>,
     completion: &'a CostEvidenceSource<'a>,
-    elapsed: MonotonicDuration,
-    measured: CostDurationRange,
+    measurement: CostMeasuredDuration,
     error_lower: RationalQuantity,
     error_upper: RationalQuantity,
     condition: CostExecutionCondition,
@@ -44,40 +43,10 @@ impl<'a> CostCalibrationRecord<'a> {
         matching_realization(forecast.source(), completion)?;
         forecast.validate_at(completion.host(), completion.calibration(), dispatched)?;
         let completed = completion.window().observed();
-        let elapsed = completed
-            .elapsed_since(dispatched)
-            .map_err(Refusal::InvalidClock)?;
-        if completed.clock() != dispatched.clock() {
-            return Err(Refusal::ClockQualityChanged);
-        }
-        // Both endpoint errors contribute. A zero tick reading consequently
-        // retains a nonzero upper duration, never an infinite service rate.
-        let error = completed
-            .clock()
-            .resolution_ticks()
-            .checked_add(completed.clock().uncertainty_ticks())
-            .and_then(|value| value.checked_mul(2))
-            .ok_or(Refusal::InvalidClock(MonotonicTimeRefusal::Overflow))?;
-        let upper = elapsed
-            .ticks()
-            .checked_add(error)
-            .ok_or(Refusal::InvalidClock(MonotonicTimeRefusal::Overflow))?;
-        let denominator = match elapsed.scale() {
-            TemporalScale::Seconds => 1,
-            TemporalScale::Milliseconds => 1_000,
-            TemporalScale::Microseconds => 1_000_000,
-            TemporalScale::Nanoseconds => 1_000_000_000,
-        };
-        let lower = seconds(
-            ExactRational::ratio(
-                elapsed.ticks().saturating_sub(error).into(),
-                denominator,
-                work,
-            )?,
-            work,
-        )?;
-        let upper = seconds(ExactRational::ratio(upper.into(), denominator, work)?, work)?;
-        let measured = CostDurationRange::admit(lower, upper, work)?;
+        let measurement = CostMeasuredDuration::measure(dispatched, completed, work)?;
+        let measured = measurement.range();
+        let lower = measured.lower();
+        let upper = measured.upper();
         let error_lower = time_quantity(
             lower
                 .seconds()
@@ -91,8 +60,7 @@ impl<'a> CostCalibrationRecord<'a> {
         Ok(Self {
             forecast,
             completion,
-            elapsed,
-            measured,
+            measurement,
             error_lower,
             error_upper,
             condition,
@@ -105,10 +73,13 @@ impl<'a> CostCalibrationRecord<'a> {
         self.completion
     }
     pub const fn elapsed(&self) -> MonotonicDuration {
-        self.elapsed
+        self.measurement.elapsed()
     }
     pub const fn measured(&self) -> CostDurationRange {
-        self.measured
+        self.measurement.range()
+    }
+    pub fn measurement(&self) -> &CostMeasuredDuration {
+        &self.measurement
     }
     /// Signed Time residual interval: measured minus predicted. A negative
     /// error is retained, not clamped to a nonnegative cost or rounded away.
@@ -304,11 +275,11 @@ impl<'a> BoundedCostCalibration<'a> {
                 let correction = delta.checked_divide(ExactRational::from_i128(4), work)?;
                 seconds(old.seconds().checked_add(correction, work)?, work)
             };
-            let lower = blend(previous.lower(), record.measured.lower(), work)?;
-            let upper = blend(previous.upper(), record.measured.upper(), work)?;
+            let lower = blend(previous.lower(), record.measured().lower(), work)?;
+            let upper = blend(previous.upper(), record.measured().upper(), work)?;
             CostDurationRange::admit(lower, upper, work)?
         } else {
-            record.measured
+            record.measured()
         };
         // Every fallible calculation precedes mutation. Budget/scope refusal
         // leaves counters, history, deduplication and the estimate untouched.
