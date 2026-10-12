@@ -449,3 +449,15 @@ configured Mask still performs its original Mask/Fore admission between those
 two shared checks, preserving existing refusal order and source/recipe guards.
 This is source/Plan correspondence only: it grants no resource reservation,
 physical control possession, current binding, active input or Show authority.
+
+`components/start-input-binding.conduit` now owns three typed proposal-producing
+Plots: pregame Fire/Enter mappings to `game/start`, and a distinct gameplay Fire
+mapping to `game/shoot`. Current context enters through a Fore rather than
+startup configuration, avoiding a self-referential input Plan identity.
+Checking includes the canonical native declarations and their laws; an imported
+shape alone refuses dynamic construction. Evaluation of the actual expanded
+pure-expression program proves that caller control labels/action names cannot
+replace the source literals while Face/Show and mapping revision are retained.
+This is source declaration/expansion/evaluation proof. It establishes neither
+a selected physical input binding nor a gameplay state transition; producer
+execution/Plan custody and current binding admission remain required.
