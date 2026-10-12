@@ -78,6 +78,9 @@ pub struct SpokenGenerationEvidence {
 pub struct DirectArtifactAcknowledgedSpokenShow {
     pub show: MaskShow,
     pub artifact: SpokenMaskArtifactReceipt,
+    /// Correspondence metadata, not selected-template or audio coverage authority.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub checked_template: Option<crate::SpokenTemplateOpeningEvidence>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -89,6 +92,7 @@ pub enum SpokenMaskShowError {
     StaleGeneration,
     StalePlan,
     InvalidShow(MaskShowError),
+    InvalidCheckedTemplate,
 }
 
 impl ArtifactAcknowledgedSpokenShow {
@@ -158,6 +162,11 @@ impl ArtifactAcknowledgedSpokenShow {
 impl DirectArtifactAcknowledgedSpokenShow {
     pub fn validate(&self, presentation: &Presentation) -> Result<(), SpokenMaskShowError> {
         self.artifact.validate_for(&self.show)?;
+        if let Some(template) = &self.checked_template {
+            template
+                .validate(presentation)
+                .map_err(|_| SpokenMaskShowError::InvalidCheckedTemplate)?;
+        }
         if self.show.show.lifecycle != ManifestationLifecycle::Available {
             return Err(SpokenMaskShowError::NotAvailable);
         }

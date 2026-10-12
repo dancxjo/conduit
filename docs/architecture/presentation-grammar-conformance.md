@@ -589,3 +589,41 @@ that the installed owner selected either template. Ordinary direct spoken
 opening behavior remains separate. Installed template/Mask admission, bounded
 wording delivery, WAV artifacts and cross-Mask recovery still require execution;
 no speaker delivery, hearing, full #5380 or #5355 acceptance is claimed.
+
+### Template opening execution and bounded continuation preparation
+
+An opaque current-Host template reading now retains the exact checked script,
+full advertisement and Face. UTF-8/word-safe frames are at most 256 bytes and
+64 frames; reconstruction must preserve every byte and its digest. Empty speech
+turns and overlong words refuse before effects. Existing Tongues segmentation
+and its 30-second/32-segment per-Play limits remain unchanged. The prepared
+reader exposes bounded frames but grants no acknowledgement or cursor advance.
+
+Explicit brief/expanded selections have distinct ordinary Mask namespaces and
+Plans with the same typed Fore. Only internally checked source selection can
+prepare their openings. Runtime entry rechecks full Host custody before Play;
+ordinary public preparation cannot impersonate either reserved template Mask.
+Idle speech equipment attachment selects the exact template computation offers
+before publishing the advertisement and planning a Mask. The opening Show's
+optional checked-template evidence preserves ordinary receipt compatibility and
+records the full script plus the acknowledged prefix and finite remaining scope.
+Validation replays the exact checked expression, so rehashed appended claims or
+dropped clauses still refuse; documentary metadata never becomes a grant.
+
+Five artifact-evidence tests pass, including altered source/Face/digests,
+invented wording, missing coverage and false frame claims. Lossless framing and
+the explicit actual-retained-Face consumer pass. Three ordinary direct-spoken
+regressions pass (two environment-dependent tests remain explicitly ignored by
+default). Strict all-target presentation/Std Clippy with warnings denied passes.
+
+The explicit native-provider test selects real eSpeak and native language
+coverage on one Host/Boot and consumes the freshly captured retained Todo Face
+from owner source `4cf2c44c9`. Actual kernel Plays acknowledge both opening WAVs
+through their exact Shows and template evidence. PCM/file bytes and hashes are
+checked; opening clips have 3592144 and 3668092 WAV bytes. Missing template
+offers, stale generation and ordinary preparation claiming a template namespace
+refuse. The opening prefixes are 252/256 bytes; each Look still has 19 frames
+remaining. This proves real software synthesis and opening artifacts, not
+installed owner template selection, complete template audio, speaker delivery,
+hearing or #5355 acceptance. Installed selection, ordered continuation/aggregate
+receipts and fresh exact-source cross-Mask execution remain required.
