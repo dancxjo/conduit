@@ -43,12 +43,14 @@ impl<'a> TcpExchange<'a> {
         transmit_storage: &'a mut [u8],
         socket_storage: &'a mut [SocketStorage<'a>],
     ) -> Result<Self, VirtioTcpError> {
-        validate(
+        validate_with_storage(
             options.endpoint,
             request,
             response,
             expected_response_bytes,
             options.maximum_polls,
+            transmit_storage.len(),
+            receive_storage.len(),
         )?;
         let caps = device.capabilities();
         if caps.medium != Medium::Ethernet

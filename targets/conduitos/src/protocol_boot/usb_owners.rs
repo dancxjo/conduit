@@ -19,6 +19,9 @@ mod duplex_resources;
 mod endpoint;
 #[path = "usb_isochronous_owners.rs"]
 mod isochronous;
+#[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
+#[path = "usb_network_owners.rs"]
+pub(super) mod network;
 #[path = "usb_endpoint_write_owners.rs"]
 mod outbound;
 
@@ -29,6 +32,8 @@ pub(super) enum NativeUsbOwners {
         isochronous_issuer: Box<NativeProtocolIssuer>,
     },
     Duplex {
+        #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
+        network: Option<Box<network::NativeEthernetOwner>>,
         ready: Box<arch::ReadyUsbDuplexHost>,
         control_issuer: Box<NativeProtocolIssuer>,
         read_issuer: Box<NativeProtocolIssuer>,
@@ -63,6 +68,10 @@ pub(super) unsafe fn admit(
     ),
     &'static str,
 > {
+    #[cfg(not(all(target_arch = "x86_64", feature = "native-owner-network")))]
+    if request.ethernet_network.is_some() {
+        return Err("protocol-usb-network-unsupported");
+    }
     if request.endpoint_write.is_some() && request.endpoint_read.is_none() {
         return Err("protocol-usb-write-requires-read");
     }
@@ -392,6 +401,15 @@ pub(super) unsafe fn admit(
                     .map_err(|_| "protocol-usb-write-issuance-refused")?;
             return Ok((
                 NativeUsbOwners::Duplex {
+                    #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
+                    network: request
+                        .ethernet_network
+                        .as_ref()
+                        .map(|scope| {
+                            // SAFETY: sole Root retains validated independent approval.
+                            unsafe { network::admit(scope, host, boot_id, artifact) }.map(Box::new)
+                        })
+                        .transpose()?,
                     ready: Box::new(ready),
                     control_issuer: Box::new(control_issuer),
                     read_issuer: Box::new(read_issuer),
