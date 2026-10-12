@@ -476,3 +476,7 @@ mod tests;
 #[cfg(test)]
 #[path = "owner_face_mask/open_domain_tests.rs"]
 mod open_domain_tests;
+
+#[cfg(test)]
+#[path = "owner_face_mask/patchbay_tests.rs"]
+mod patchbay_tests;

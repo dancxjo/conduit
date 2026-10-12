@@ -329,3 +329,9 @@ all subject names remain inspectable in primary/details, the exact graph is
 recognized, every admitted document page is bounded and fully visible, and
 supplied controls retain their action contracts. This is native layout proof,
 not scanout or installed-owner effect evidence.
+
+The checked browser Patchbay regression also compares every relationship
+source, target, and kind and executes each available supplied action through
+the checked interaction Fore with exact Face/Show correlation. Every stale,
+invented, wrongly targeted, and unavailable proposal refuses before emission;
+these tests apply no owner effects.
