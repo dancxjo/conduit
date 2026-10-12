@@ -7,7 +7,7 @@ plot usb-audio-playback-admitted (
     >> pcm: UsbAudioPcmBlock...| <= 4096B
     >> setup: UsbAudioAdmission...| <= 4096B
     ended: UsbAudioPlaybackState...| >>
-    observed: UsbIsochronousOutResult...| <= 32768B >>
+    observed: UsbIsochronousOutResult...| <= 7864B >>
 ) {
     state: UsbAudioPlaybackCell
     admission: UsbAudioInitializationJoin

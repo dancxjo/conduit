@@ -1,5 +1,5 @@
 # Preserve the original typed transport observation, including fault tag,
 # completed prefix, frame and extents. Retirement remains a bound Root receipt.
 plot usb-audio-playback-result (
-    observation: UsbAudioPlaybackObservation...| <= 32768B >> result: UsbIsochronousOutResult...| <= 32768B
+    observation: UsbAudioPlaybackObservation...| <= 32768B >> result: UsbIsochronousOutResult...| <= 7864B
 ) = (.result)

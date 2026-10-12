@@ -2,7 +2,7 @@
 plot usb-audio-playback (
     >> pcm: UsbAudioPcmBlock...| <= 4096B
     ended: UsbAudioPlaybackState...| >>
-    observed: UsbIsochronousOutResult...| <= 32768B >>
+    observed: UsbIsochronousOutResult...| <= 7864B >>
 ) {
     setup: usb-audio-negotiate
     playback: usb-audio-playback-admitted
