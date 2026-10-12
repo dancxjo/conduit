@@ -39,7 +39,7 @@ pub(crate) const CONTROL_OUTCOME_UNKNOWN: &str = "control-outcome-unknown";
 const MAXIMUM_CONTROL_FRAME_BYTES: usize = 512 * 1024;
 // Local admission snapshots carry both complete reviewed Host advertisements.
 // This JSON envelope bound is separate from remote session payload/frame limits.
-const MAXIMUM_LOCAL_CONTROL_FRAME_BYTES: usize = 2 * 1024 * 1024;
+pub(crate) const MAXIMUM_LOCAL_CONTROL_FRAME_BYTES: usize = 2 * 1024 * 1024;
 
 fn supports_remote_mask_action_intent(intent: &str) -> bool {
     intent == crate::durable_host::owner::clock_interval_action()
