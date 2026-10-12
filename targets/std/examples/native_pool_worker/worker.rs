@@ -1,5 +1,7 @@
 //! Bounded preparation documents followed by exact selected session frames.
 //! No provider selection, retries, migration, or model download lives here.
+mod sampling;
+
 use conduit_ai::LocalModelKindProfile;
 use conduit_core::{
     ArtifactId, BootId, HostId, OfferGeneration, PlacementId, Plan, PoolMemberSessionDirection,
@@ -175,10 +177,12 @@ pub(super) fn run() -> Result<(), String> {
         StdHostComposition::minimal(),
         Box::new(adapter),
     )?;
+    let mut sampler = sampling::prepare(&host)?;
+    let initial_sample = sampling::observe(&host, &mut sampler)?;
     document(
         &mut writer,
         &serde_json::json!({"phase":"initialized-after-warmup",
-        "identity":identity, "advertisement":host.advertisement()}),
+        "identity":identity, "advertisement":host.advertisement(), "cost_sample":initial_sample}),
     )?;
     for _ in 0..OPERATIONS {
         let op: Option<Operation> = read_document(&mut reader)?;
