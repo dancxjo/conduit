@@ -18,7 +18,7 @@ struct Range {
 }
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
-struct Stages {
+pub(super) struct Stages {
     setup: Option<Range>,
     queue: Option<Range>,
     service: Option<Range>,
@@ -49,7 +49,7 @@ struct Input {
     #[serde(default)]
     admission: Option<super::dispatch::Admission>,
 }
-fn quantity(value: &ValuePayload, work: &mut ExactNumericWork) -> Result<RationalQuantity, String> {
+pub(super) fn quantity(value: &ValuePayload, work: &mut ExactNumericWork) -> Result<RationalQuantity, String> {
     if value.value_kind.as_str() != RATIONAL_QUANTITY_ID {
         return Err("forecast quantity semantic type changed".into());
     }
@@ -70,7 +70,7 @@ fn range(
         })
         .transpose()
 }
-fn stages(value: &Stages, work: &mut ExactNumericWork) -> Result<FulfillmentCostForecast, String> {
+pub(super) fn stages(value: &Stages, work: &mut ExactNumericWork) -> Result<FulfillmentCostForecast, String> {
     if [&value.setup, &value.queue, &value.service, &value.transfer]
         .iter()
         .any(|stage| stage.is_none())
@@ -89,7 +89,7 @@ fn stages(value: &Stages, work: &mut ExactNumericWork) -> Result<FulfillmentCost
     )
     .map_err(|e| format!("fulfillment stages: {e:?}"))
 }
-fn prompt(value: &[u8]) -> Result<(), CostEvidenceRefusal> {
+pub(super) fn prompt(value: &[u8]) -> Result<(), CostEvidenceRefusal> {
     core::str::from_utf8(value)
         .map(|_| ())
         .map_err(|_| CostEvidenceRefusal::InvalidWorkInput)

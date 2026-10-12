@@ -1,5 +1,7 @@
 //! Internal preparation entrance for the live pool proof. This builds ordinary
 //! Plans; it does not execute providers or implement an alternative selector.
+#[path = "native_pool_coordinator/batch.rs"]
+mod batch;
 #[path = "native_pool_coordinator/costs.rs"]
 mod costs;
 #[path = "native_pool_coordinator/dispatch.rs"]
@@ -27,6 +29,7 @@ fn main() {
         Some("check-current-sample") => samples::run(true),
         Some("prepare-native-costs") => costs::run(false),
         Some("run-native-costs") => costs::run(true),
+        Some("run-native-batch-costs") => batch::run(),
         Some("check-overlap") => overlap::run(),
         Some("run-reference") => reference::run(),
         Some("run-sessions") => sessions::run(),

@@ -16,8 +16,8 @@ use std::io::{Read, Write};
 pub(super) struct Admission {
     pub(super) queued_at: MonotonicInstant,
     pub(super) evaluated_at: MonotonicInstant,
-    current: Vec<PoolRealizationObservation>,
-    sign: SignId,
+    pub(super) current: Vec<PoolRealizationObservation>,
+    pub(super) sign: SignId,
 }
 #[derive(Deserialize)]
 #[serde(tag = "command", rename_all = "snake_case", deny_unknown_fields)]
