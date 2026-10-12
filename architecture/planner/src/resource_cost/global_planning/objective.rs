@@ -53,16 +53,18 @@ pub(super) fn topological_order(plot: &CheckedPlot) -> Result<Vec<usize>, Global
     }
     Ok(order)
 }
-pub(super) fn critical_path(
+pub(super) fn critical_path_with_transfers(
     plot: &CheckedPlot,
     order: &[usize],
     costs: &[ExactRational],
+    transfers: &[ExactRational],
     work: &mut ExactNumericWork,
 ) -> Result<ExactRational, ExactNumericRefusal> {
     let edges: Vec<_> = plot
         .connections
         .iter()
-        .map(|cord| {
+        .enumerate()
+        .map(|(index, cord)| {
             (
                 plot.gears
                     .iter()
@@ -72,6 +74,7 @@ pub(super) fn critical_path(
                     .iter()
                     .position(|gear| gear.gear_id == cord.sink_gear_id)
                     .expect("validated sink"),
+                transfers[index],
             )
         })
         .collect();
@@ -80,16 +83,19 @@ pub(super) fn critical_path(
 fn longest_path(
     order: &[usize],
     costs: &[ExactRational],
-    edges: &[(usize, usize)],
+    edges: &[(usize, usize, ExactRational)],
     work: &mut ExactNumericWork,
 ) -> Result<ExactRational, ExactNumericRefusal> {
     let mut finish = vec![ExactRational::ZERO; costs.len()];
     let mut maximum = ExactRational::ZERO;
     for index in order {
         let mut arrived = ExactRational::ZERO;
-        for (source, sink) in edges {
-            if sink == index && finish[*source].checked_compare(arrived, work)?.is_gt() {
-                arrived = finish[*source];
+        for (source, sink, transfer) in edges {
+            if sink == index {
+                let delivered = finish[*source].checked_add(*transfer, work)?;
+                if delivered.checked_compare(arrived, work)?.is_gt() {
+                    arrived = delivered;
+                }
             }
         }
         finish[*index] = arrived.checked_add(costs[*index], work)?;
@@ -104,13 +110,30 @@ fn longest_path(
 mod tests {
     use super::*;
     #[test]
+    fn each_predecessor_adds_its_own_transfer_before_join() {
+        let costs = [2, 7, 5].map(ExactRational::from_i128);
+        assert_eq!(
+            longest_path(
+                &[0, 1, 2],
+                &costs,
+                &[
+                    (0, 2, ExactRational::from_i128(20)),
+                    (1, 2, ExactRational::from_i128(1))
+                ],
+                &mut ExactNumericWork::new(100_000_000)
+            )
+            .unwrap(),
+            ExactRational::from_i128(27)
+        );
+    }
+    #[test]
     fn parallel_predecessors_take_maximum_before_serial_successor() {
         let costs = [2, 7, 5].map(ExactRational::from_i128);
         assert_eq!(
             longest_path(
                 &[0, 1, 2],
                 &costs,
-                &[(0, 2), (1, 2)],
+                &[(0, 2, ExactRational::ZERO), (1, 2, ExactRational::ZERO)],
                 &mut ExactNumericWork::new(100_000_000)
             )
             .unwrap(),
@@ -130,7 +153,7 @@ mod tests {
             longest_path(
                 &[0, 1, 2],
                 &costs,
-                &[(0, 1), (1, 2)],
+                &[(0, 1, ExactRational::ZERO), (1, 2, ExactRational::ZERO)],
                 &mut ExactNumericWork::new(100_000_000)
             )
             .unwrap(),

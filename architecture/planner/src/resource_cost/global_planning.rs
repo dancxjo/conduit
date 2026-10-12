@@ -5,9 +5,12 @@ use crate::{PlacementChoice, PlacementChoices, PlannerError, RealizationDecision
 use alloc::{collections::BTreeMap, vec::Vec};
 use conduit_core::{ExactNumericWork, ExactRational, Plan, ResourceObservation};
 use conduit_plot::CheckedPlot;
-use core::cmp::Ordering;
 mod objective;
+mod search;
+mod transfer_objective;
 pub use objective::{GlobalObjectiveRefusal, GlobalPlacementObjective};
+use search::Search;
+pub use transfer_objective::{CostCordTransferDemand, GlobalTransferInputs};
 
 const MAXIMUM_GLOBAL_STATES: u32 = 65_536;
 #[derive(Debug, Clone, Copy)]
@@ -25,6 +28,7 @@ pub enum GlobalPlacementDisposition {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct GlobalPlacementScore {
     pub unknown_operations: u16,
+    pub unknown_transfers: u16,
     pub known_upper_seconds: ExactRational,
     /// None retains unknown operands, never a fabricated zero path duration.
     pub critical_path_upper_seconds: Option<ExactRational>,
@@ -39,6 +43,7 @@ pub struct GlobalPlacementResult {
     pub refused_assignments: u32,
     pub candidate_count: usize,
     pub objective: GlobalPlacementObjective,
+    pub includes_transfer: bool,
 }
 #[derive(Debug)]
 pub enum GlobalPlacementRefusal {
@@ -89,6 +94,37 @@ pub fn plan_global_realizations_with_objective<'a>(
     objective: GlobalPlacementObjective,
     work: &mut ExactNumericWork,
 ) -> Result<GlobalPlacementResult, GlobalPlacementRefusal> {
+    plan_global(plot, inputs, budget, objective, None, work)
+}
+
+/// Critical-path Time with separately scoped incremental Cord transfer costs.
+/// Unknown or stale local/remote edge estimates remain unknown. Operation
+/// forecasts must declare zero transfer to prevent double counting.
+pub fn plan_global_realizations_with_transfer_costs<'a>(
+    plot: &CheckedPlot,
+    inputs: CostPlanningInputs<'a, '_>,
+    budget: GlobalPlacementBudget,
+    transfer: GlobalTransferInputs<'a>,
+    work: &mut ExactNumericWork,
+) -> Result<GlobalPlacementResult, GlobalPlacementRefusal> {
+    plan_global(
+        plot,
+        inputs,
+        budget,
+        GlobalPlacementObjective::CriticalPathFulfillmentTime,
+        Some(transfer),
+        work,
+    )
+}
+
+fn plan_global<'a>(
+    plot: &CheckedPlot,
+    inputs: CostPlanningInputs<'a, '_>,
+    budget: GlobalPlacementBudget,
+    objective: GlobalPlacementObjective,
+    transfer: Option<GlobalTransferInputs<'a>>,
+    work: &mut ExactNumericWork,
+) -> Result<GlobalPlacementResult, GlobalPlacementRefusal> {
     use GlobalPlacementRefusal as R;
     if plot.gears.is_empty()
         || plot.gears.len() > MAXIMUM_COST_PLANNING_OPERATIONS
@@ -101,6 +137,9 @@ pub fn plan_global_realizations_with_objective<'a>(
         || budget.maximum_states > MAXIMUM_GLOBAL_STATES
     {
         return Err(R::Input(CostEvidenceRefusal::InputLimit));
+    }
+    if let Some(transfer) = transfer {
+        transfer_objective::validate_inputs(plot, transfer).map_err(R::Input)?;
     }
     let order = if objective == GlobalPlacementObjective::CriticalPathFulfillmentTime {
         Some(objective::topological_order(plot).map_err(R::Objective)?)
@@ -185,6 +224,7 @@ pub fn plan_global_realizations_with_objective<'a>(
         disposition: GlobalPlacementDisposition::Exhaustive,
         best: None,
         objective,
+        transfer,
         order: order.as_deref(),
         work,
     };
@@ -205,161 +245,10 @@ pub fn plan_global_realizations_with_objective<'a>(
         refused_assignments: search.refused,
         candidate_count,
         objective,
+        includes_transfer: transfer.is_some(),
     })
 }
-struct Search<'a, 'b, 'c> {
-    plot: &'b CheckedPlot,
-    inputs: CostPlanningInputs<'a, 'c>,
-    grids: &'b [Vec<Candidate<'a>>],
-    requirements: &'b BTreeMap<conduit_core::GearId, crate::HardRealizationRequirements>,
-    maximum_states: u32,
-    states: u32,
-    complete: u32,
-    refused: u32,
-    disposition: GlobalPlacementDisposition,
-    best: Option<(Plan, GlobalPlacementScore)>,
-    work: &'b mut ExactNumericWork,
-    objective: GlobalPlacementObjective,
-    order: Option<&'b [usize]>,
-}
-impl Search<'_, '_, '_> {
-    fn visit(&mut self, depth: usize, chosen: &mut Vec<usize>) {
-        if self.disposition != GlobalPlacementDisposition::Exhaustive {
-            return;
-        }
-        if self.states == self.maximum_states {
-            self.disposition = GlobalPlacementDisposition::StateLimit;
-            return;
-        }
-        self.states += 1;
-        if depth == self.grids.len() {
-            self.finish(chosen);
-            return;
-        }
-        for index in 0..self.grids[depth].len() {
-            chosen.push(index);
-            self.visit(depth + 1, chosen);
-            chosen.pop();
-            if self.disposition != GlobalPlacementDisposition::Exhaustive {
-                break;
-            }
-        }
-    }
-    fn finish(&mut self, chosen: &[usize]) {
-        self.complete += 1;
-        let placements = PlacementChoices {
-            by_gear: self
-                .plot
-                .gears
-                .iter()
-                .zip(chosen)
-                .enumerate()
-                .map(|(depth, (gear, index))| {
-                    (
-                        gear.gear_id.clone(),
-                        self.grids[depth][*index].choice.clone(),
-                    )
-                })
-                .collect(),
-        };
-        let built = (|| {
-            crate::requirements::validate_hard_requirements(
-                self.plot,
-                self.inputs.hosts,
-                &placements,
-                self.requirements,
-            )?;
-            let plan = crate::plan_with_options(
-                self.plot,
-                self.inputs.hosts,
-                &placements,
-                self.inputs.bases,
-                self.inputs.options,
-            )?;
-            let plan = crate::characteristic_sealing::seal_characteristics(
-                plan,
-                self.inputs.advertisements,
-            )?;
-            observed_capacity(&plan, self.inputs.observations)?;
-            Ok::<_, PlannerError>(plan)
-        })();
-        let Ok(plan) = built else {
-            self.refused += 1;
-            return;
-        };
-        let mut score = GlobalPlacementScore {
-            unknown_operations: 0,
-            known_upper_seconds: ExactRational::ZERO,
-            critical_path_upper_seconds: None,
-        };
-        for (depth, index) in chosen.iter().enumerate() {
-            if let Some(forecast) = self.grids[depth][*index].forecast {
-                let Ok(sum) = score
-                    .known_upper_seconds
-                    .checked_add(forecast.upper_seconds(), self.work)
-                else {
-                    self.disposition = GlobalPlacementDisposition::NumericLimit;
-                    return;
-                };
-                score.known_upper_seconds = sum;
-            } else {
-                score.unknown_operations += 1;
-            }
-        }
-        if let Some(order) = self.order {
-            if score.unknown_operations == 0 {
-                let costs: Vec<_> = chosen
-                    .iter()
-                    .enumerate()
-                    .map(|(depth, index)| {
-                        self.grids[depth][*index]
-                            .forecast
-                            .expect("known operands established")
-                            .upper_seconds()
-                    })
-                    .collect();
-                match objective::critical_path(self.plot, order, &costs, self.work) {
-                    Ok(duration) => score.critical_path_upper_seconds = Some(duration),
-                    Err(_) => {
-                        self.disposition = GlobalPlacementDisposition::NumericLimit;
-                        return;
-                    }
-                }
-            }
-        }
-        let better = if let Some((_, previous)) = &self.best {
-            match score.unknown_operations.cmp(&previous.unknown_operations) {
-                Ordering::Less => true,
-                Ordering::Greater => false,
-                Ordering::Equal => {
-                    let operands = match self.objective {
-                        GlobalPlacementObjective::AggregateFulfillmentTime => {
-                            Some((score.known_upper_seconds, previous.known_upper_seconds))
-                        }
-                        GlobalPlacementObjective::CriticalPathFulfillmentTime => score
-                            .critical_path_upper_seconds
-                            .zip(previous.critical_path_upper_seconds),
-                    };
-                    match operands {
-                        None => false, // equally unknown path models retain stable enumeration
-                        Some((left, right)) => match left.checked_compare(right, self.work) {
-                            Ok(order) => order == Ordering::Less,
-                            Err(_) => {
-                                self.disposition = GlobalPlacementDisposition::NumericLimit;
-                                return;
-                            }
-                        },
-                    }
-                }
-            }
-        } else {
-            true
-        };
-        if better {
-            self.best = Some((plan, score));
-        }
-    }
-}
+
 fn observed_capacity(
     plan: &Plan,
     observations: &[TimedResourceObservation<'_>],
