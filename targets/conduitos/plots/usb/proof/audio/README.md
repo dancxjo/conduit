@@ -94,3 +94,11 @@ one eight-packet block. Continuous refill across at least 72 actual packets,
 64-TRB reuse, fault/cancellation coverage, cross-architecture execution and
 physical output remain required. Keep the existing continuous wire checker:
 one successful block cannot satisfy it.
+
+The external device accepts explicit `--mode wrong-rate` and `--mode stall-rate`
+negative fixtures. The former returns a successful GET_CUR with 44100 Hz after
+the 48000 Hz SET_CUR; the latter returns an actual STALL for SET_CUR. These
+responses exercise checked setup refusal without manufacturing ISO completions.
+The device unit tests prove only these external wire responses. Native proof
+must separately verify terminal refusal, zero ISO packets and acknowledged
+Root retirement against the original package and bound Play receipt.

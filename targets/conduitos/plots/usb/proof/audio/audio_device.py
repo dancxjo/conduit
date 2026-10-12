@@ -35,8 +35,11 @@ assert len(CONFIG) == 100
 
 
 class Device(wire.Device):
-    def __init__(self, peer, transcript, deadline, maximum_packets=128):
+    def __init__(self, peer, transcript, deadline, maximum_packets=128, mode="normal"):
         super().__init__(peer, transcript, deadline, b'')
+        if mode not in ("normal", "wrong-rate", "stall-rate"):
+            raise ValueError("unknown bounded audio fixture mode")
+        self.mode = mode
         self.alt = 0
         self.rate = 48000
         self.streaming = False
@@ -80,11 +83,11 @@ class Device(wire.Device):
             if descriptor is not None:
                 status, result = wire.SUCCESS, descriptor[:length]
         elif request_type == 0x22 and request == 1 and value == 0x100 and index == 1 and length == 3:
-            if self.configuration == 1 and int.from_bytes(payload, 'little') == 48000:
+            if self.mode != "stall-rate" and self.configuration == 1 and int.from_bytes(payload, 'little') == 48000:
                 self.rate, status = 48000, wire.SUCCESS
         elif request_type == 0xa2 and request == 0x81 and value == 0x100 and index == 1 and length == 3:
             if self.configuration == 1:
-                status, result = wire.SUCCESS, self.rate.to_bytes(3, 'little')
+                status, result = wire.SUCCESS, (44100 if self.mode == 'wrong-rate' else self.rate).to_bytes(3, 'little')
         actual = len(result) if inbound else (length if status == wire.SUCCESS else 0)
         self.send(100, packet_id, wire.CONTROL.pack(ep, request, request_type, status, value, index, actual)+result)
 
@@ -140,6 +143,7 @@ def main():
     parser.add_argument('--transcript', required=True)
     parser.add_argument('--seconds', type=int, default=60, choices=range(1,121))
     parser.add_argument('--maximum-packets', type=int, default=128, choices=range(1,129))
+    parser.add_argument('--mode', choices=('normal', 'wrong-rate', 'stall-rate'), default='normal')
     args = parser.parse_args()
     path = Path(args.socket)
     if path.exists() or path.is_symlink():
@@ -155,7 +159,7 @@ def main():
         try:
             peer, _ = listener.accept()
             with peer:
-                device = Device(peer, transcript, deadline, args.maximum_packets)
+                device = Device(peer, transcript, deadline, args.maximum_packets, args.mode)
                 device.handshake()
                 while True:
                     device.dispatch(*device.receive())

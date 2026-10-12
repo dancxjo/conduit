@@ -9,8 +9,8 @@ audio = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(audio)
 
 class Fixture(audio.Device):
-    def __init__(self):
-        super().__init__(None, None, 0, 2)
+    def __init__(self, mode="normal"):
+        super().__init__(None, None, 0, 2, mode)
         self.sent = []
     def send(self, kind, packet_id, body=b''):
         self.sent.append((kind, packet_id, body))
@@ -41,6 +41,24 @@ class AudioDeviceTests(unittest.TestCase):
         self.assertEqual(device.sent[-1][2][3], audio.wire.SUCCESS)
         device.control(6, audio.wire.CONTROL.pack(128,0x81,0xa2,0,0x100,1,3))
         self.assertEqual(device.sent[-1][2][-3:], bytes.fromhex('80bb00'))
+    def test_explicit_negative_rate_modes_preserve_actual_response_and_no_iso(self):
+        set_rate = audio.wire.CONTROL.pack(0,1,0x22,0,0x100,1,3)+(48000).to_bytes(3,'little')
+        get_rate = audio.wire.CONTROL.pack(128,0x81,0xa2,0,0x100,1,3)
+        stalled = Fixture('stall-rate');stalled.configuration = 1
+        stalled.control(21, set_rate)
+        self.assertEqual(stalled.sent[-1][1], 21)
+        self.assertEqual(stalled.sent[-1][2][3], audio.wire.STALL)
+        self.assertEqual(stalled.sent[-1][2][-2:], bytes(2))
+        wrong = Fixture('wrong-rate');wrong.configuration = 1
+        wrong.control(22, set_rate)
+        self.assertEqual(wrong.sent[-1][2][3], audio.wire.SUCCESS)
+        wrong.control(23, get_rate)
+        self.assertEqual(wrong.sent[-1][1], 23)
+        self.assertEqual(wrong.sent[-1][2][3], audio.wire.SUCCESS)
+        self.assertEqual(wrong.sent[-1][2][-3:], (44100).to_bytes(3,'little'))
+        for device in (stalled, wrong):
+            self.assertFalse(device.streaming)
+            self.assertEqual(device.packets, 0)
     def test_iso_has_no_invented_ack_and_pressure_refuses(self):
         device = Fixture()
         device.configuration, device.alt = 1,1
