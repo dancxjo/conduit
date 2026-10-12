@@ -22,8 +22,8 @@ mod structured;
 mod structured_contract;
 mod text_material;
 use primitive::{
-    decode_bool, evaluate_binary, evaluate_unary, kind_name, leaf_info_kind, leaf_kind,
-    PrimitiveValue,
+    PrimitiveValue, decode_bool, evaluate_binary, evaluate_unary, kind_name, leaf_info_kind,
+    leaf_kind,
 };
 use structured::PreparedStructuredExpression;
 
@@ -112,13 +112,19 @@ impl PortableExpressionProgram {
     pub fn maximum_prepared_input_bytes(&self) -> Result<u32, Refusal> {
         self.validate_input_bound()
             .map_err(|_| Refusal::InvalidProgram)?;
+        let structural = maximum_input_type_bytes(&self.input_type)?;
         Ok(self
             .input_maximum_bytes
-            .unwrap_or(maximum_input_type_bytes(&self.input_type)?))
+            .map_or(structural, |maximum| maximum.min(structural)))
     }
 
     /// Conservative canonical transport ceiling, computed before Play from the exact output Type.
     pub fn maximum_prepared_output_bytes(&self) -> Result<u32, Refusal> {
+        if self.input_type == self.output_type
+            && matches!(self.root.operation, PortableExpressionOperation::Input)
+        {
+            return self.maximum_prepared_input_bytes();
+        }
         Ok(storage_bound::output(&self.output_type)? as u32)
     }
 }
@@ -157,19 +163,29 @@ impl PreparedPortableExpressionEvaluator {
         program
             .validate_input_bound()
             .map_err(|_| Refusal::InvalidProgram)?;
-        let mut prepared = Self::prepare(
+        let mut prepared = Self::prepare_with_output_capacity(
             ProgramView {
                 input_type: &program.input_type,
                 output_type: &program.output_type,
                 root: &program.root,
             },
             input,
+            program.maximum_prepared_output_bytes()? as usize,
         )?;
         prepared.input_maximum_bytes = program.input_maximum_bytes;
         Ok(prepared)
     }
 
     fn prepare(program: ProgramView<'_>, input: PreparedInput) -> Result<Self, Refusal> {
+        let capacity = storage_bound::output(program.output_type)?;
+        Self::prepare_with_output_capacity(program, input, capacity)
+    }
+
+    fn prepare_with_output_capacity(
+        program: ProgramView<'_>,
+        input: PreparedInput,
+        capacity: usize,
+    ) -> Result<Self, Refusal> {
         let root = match program.output_type.shape() {
             StructuredInfoTypeShape::Leaf(_) | StructuredInfoTypeShape::Nominal { .. }
                 if leaf_kind(program.output_type).is_ok() =>
@@ -199,7 +215,7 @@ impl PreparedPortableExpressionEvaluator {
             root,
             input,
             input_maximum_bytes: None,
-            output: Vec::with_capacity(storage_bound::output(program.output_type)?),
+            output: Vec::with_capacity(capacity),
         })
     }
 

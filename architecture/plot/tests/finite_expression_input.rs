@@ -231,12 +231,15 @@ fn exact_identity_retains_output_contract_without_claiming_transformed_bounds() 
         let output = front.value_contract(&FrontValueLocation::Output(port_id("output")));
         assert_eq!(output.is_some(), identity);
         if let Some(output) = output {
+            assert_eq!(program.maximum_prepared_input_bytes().unwrap(), 8);
+            assert_eq!(program.maximum_prepared_output_bytes().unwrap(), 8);
             assert_eq!(output.maximum_bytes, 64);
             assert_eq!(
                 Some(output),
                 front.value_contract(&FrontValueLocation::Input(port_id("input")))
             );
             let mut prepared = PreparedPortableExpressionEvaluator::new(&program).unwrap();
+            assert_eq!(prepared.output_capacity(), 8);
             assert_eq!(
                 prepared.evaluate(&255u64.to_le_bytes()).unwrap(),
                 &255u64.to_le_bytes()
