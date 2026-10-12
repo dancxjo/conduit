@@ -440,3 +440,12 @@ The carrier tests cover exact round-trip, source reference, empty/oversized
 labels, zero revision, invalid version, and unknown layout/callback fields.
 A checked input Plot producer and current-source/Host/Show binding admission
 remain required. No truthful Fire prompt or remap completion is claimed yet.
+
+Compiler/planner custody for the binding producer now reuses the configured
+Mask gate's actual source expansion and selected Plan reproduction through
+`prepare_checked_source_plan`. Its returned wrapper cannot be constructed from
+copied IDs, and tests reject a substituted Plan and replaced Host Boot. The
+configured Mask still performs its original Mask/Fore admission between those
+two shared checks, preserving existing refusal order and source/recipe guards.
+This is source/Plan correspondence only: it grants no resource reservation,
+physical control possession, current binding, active input or Show authority.

@@ -206,3 +206,6 @@ mod visual_expression_info;
 pub use visual_expression_info::*;
 mod component_recipe;
 pub use component_recipe::*;
+
+mod checked_source_plan;
+pub use checked_source_plan::*;
