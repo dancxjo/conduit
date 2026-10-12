@@ -88,3 +88,76 @@ fn ecm_accept_admits_the_actual_feedback_pair_encoder_envelope() {
         4096
     );
 }
+
+#[test]
+fn actual_initial_state_route_and_pending_fit_every_admitted_source_boundary() {
+    let prepared = source();
+    let initial = start(&prepared, &[]);
+    let initial_bytes = initial.canonical_bytes().unwrap();
+    let start_front = prepared.expand("cdc-ecm-start").unwrap().front;
+    assert!(
+        initial_bytes.len() as u32
+            <= start_front
+                .value_contract(&FrontValueLocation::Output(
+                    start_front.outputs()[0].port_id.clone()
+                ),)
+                .unwrap()
+                .maximum_bytes
+    );
+
+    let route_program = program(&prepared, "cdc-ecm-route");
+    let route_front = prepared.expand("cdc-ecm-route").unwrap().front;
+    let route_limit = route_front
+        .value_contract(&FrontValueLocation::Output(
+            route_front.outputs()[0].port_id.clone(),
+        ))
+        .unwrap()
+        .maximum_bytes;
+    // A Route embeds five State cases in its canonical Type. Payload-only
+    // accounting must not silently accept an envelope smaller than that Type.
+    assert!(route_program.output_type.canonical_bytes().unwrap().len() as u32 <= route_limit);
+    assert_eq!(
+        route_limit,
+        route_program.maximum_prepared_output_bytes().unwrap()
+    );
+    let mut route = conduit_plot::PreparedPortableExpressionEvaluator::new(&route_program).unwrap();
+    let routed = route.evaluate(&initial_bytes).unwrap().to_vec();
+    assert!(routed.len() as u32 <= route_limit);
+    assert_eq!(
+        validate_canonical_structured_value(&routed)
+            .unwrap()
+            .variant_tag()
+            .unwrap(),
+        "control"
+    );
+
+    let pending_program = program(&prepared, "cdc-ecm-pending");
+    let pending_front = prepared.expand("cdc-ecm-pending").unwrap().front;
+    let pending_input = pending_front
+        .value_contract(&FrontValueLocation::Input(
+            pending_front.inputs()[0].port_id.clone(),
+        ))
+        .unwrap()
+        .maximum_bytes;
+    assert_eq!(pending_input, route_limit);
+    assert!(routed.len() as u32 <= pending_input);
+    let mut pending =
+        conduit_plot::PreparedPortableExpressionEvaluator::new(&pending_program).unwrap();
+    let retained = pending.evaluate(&routed).unwrap();
+    assert!(
+        retained.len() as u32
+            <= pending_front
+                .value_contract(&FrontValueLocation::Output(
+                    pending_front.outputs()[0].port_id.clone()
+                ),)
+                .unwrap()
+                .maximum_bytes
+    );
+    assert_eq!(
+        validate_canonical_structured_value(retained)
+            .unwrap()
+            .variant_tag()
+            .unwrap(),
+        "running"
+    );
+}
