@@ -90,3 +90,12 @@ fn affine_offsets_cancel_for_point_difference_and_never_enter_delta() {
         celsius
     );
 }
+
+#[test]
+fn identical_units_do_not_require_scale_offset_conversion_work() {
+    let value = quantity(1, "s", QuantityRole::Linear);
+    let mut budget = ExactNumericWork::new(131_072);
+    let sum = value.checked_add(value, &mut budget).unwrap();
+    assert_eq!(sum.coordinate(), ExactRational::from_i128(2));
+    assert!(budget.spent() < 131_072);
+}

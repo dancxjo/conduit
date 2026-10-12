@@ -41,7 +41,11 @@ impl RationalQuantity {
                 ))
             }
         };
-        let other = other.convert_to_unit(self.unit, work)?;
+        let other = if other.unit == self.unit {
+            other
+        } else {
+            other.convert_to_unit(self.unit, work)?
+        };
         let coordinate = if subtract {
             self.coordinate.checked_subtract(other.coordinate, work)?
         } else {
