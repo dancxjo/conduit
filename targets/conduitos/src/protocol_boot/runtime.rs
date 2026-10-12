@@ -248,6 +248,7 @@ fn execute_workload(
             matches!(port.temporal, PortTemporal::Flow { closes: true }),
         ));
     }
+    let allocation_before = crate::allocation::BOOT_ARENA.attempts();
     play.start().map_err(|_| "protocol-start-refused")?;
     let result = (|| {
         report_play(play)?;
@@ -323,6 +324,23 @@ fn execute_workload(
         }
         Err("protocol-step-budget-exhausted")
     })();
+    let allocation_after = crate::allocation::BOOT_ARENA.attempts();
+    if let Some(identity) = play.session().realization().and_then(|r| r.play.as_ref()) {
+        use core::fmt::Write;
+        let mut receipt = crate::sign_format::FixedText::new();
+        writeln!(
+            receipt,
+            "CONDUIT_PROTOCOL_PLAY_ALLOCATIONS body={} plan={} play={} alloc={} realloc={}",
+            identity.body_id.as_str(),
+            identity.plan_id.as_str(),
+            identity.active_play_id.as_str(),
+            allocation_after.0.saturating_sub(allocation_before.0),
+            allocation_after.1.saturating_sub(allocation_before.1),
+        )
+        .map_err(|_| "protocol-diagnostic-envelope-exceeded")?;
+        arch::append_boot_diagnostic(receipt.as_bytes())
+            .map_err(|_| "protocol-diagnostic-unavailable")?;
+    }
     play.cancel().map_err(|_| "protocol-retirement-refused")?;
     result
 }

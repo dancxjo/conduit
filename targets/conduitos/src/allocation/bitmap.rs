@@ -22,6 +22,8 @@ pub(super) struct ArenaState {
     cursor: usize,
     allocated: [u64; WORDS],
     pub(super) sealed: bool,
+    pub(super) allocation_attempts: u64,
+    pub(super) reallocation_attempts: u64,
 }
 
 impl ArenaState {
@@ -34,6 +36,8 @@ impl ArenaState {
             cursor: 0,
             allocated: [0; WORDS],
             sealed: false,
+            allocation_attempts: 0,
+            reallocation_attempts: 0,
         }
     }
 
