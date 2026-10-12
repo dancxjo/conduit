@@ -6,7 +6,7 @@ use conduit_presentation::{MaskShow, Presentation, SpokenTemplateWording};
 use sha2::{Digest, Sha256};
 use std::ops::Range;
 
-pub const MAX_SPOKEN_TEMPLATE_FRAME_BYTES: usize = 256;
+pub const MAX_SPOKEN_TEMPLATE_FRAME_BYTES: usize = 96;
 pub const MAX_SPOKEN_TEMPLATE_FRAMES: usize = 64;
 
 pub struct PreparedSpokenTemplateReading {
@@ -133,7 +133,7 @@ fn frame_ranges(text: &str) -> Result<Vec<Range<usize>>, String> {
             return Err("spoken template framing would produce an empty speech turn".into());
         }
         // Established Tongues splitting may divide a long word inside this frame,
-        // preserving every UTF8 byte. A 256B frame needs at most nine segments
+        // preserving every UTF8 byte. A 96B frame needs at most four segments
         // under its current 64B/halfway-whitespace splitter; never relax that bound.
         if conduit_tongues::MAXIMUM_COMMITTED_SEGMENTS < 9 {
             return Err("current Tongues segment capacity cannot admit this frame".into());

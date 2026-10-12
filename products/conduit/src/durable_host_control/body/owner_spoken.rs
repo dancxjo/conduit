@@ -24,6 +24,8 @@ struct ResultShow {
     generation_evidence: Option<conduit_presentation::SpokenGenerationEvidence>,
     active_play_id: conduit_core::ActivePlayId,
     speaker_playback: Option<Value>,
+    template_session:
+        Option<conduit_std_host::spoken_template_execution::SpokenTemplateExecutionSession>,
 }
 
 #[derive(Clone, Copy, Eq, PartialEq)]
@@ -108,6 +110,31 @@ fn run_direct(
         return Err("direct spoken provider or artifact was lost before Play".into());
     }
     let opening_wording = start.preparation.opening_wording()?.to_owned();
+    if let Some(reading) = start.template_reading {
+        let session = host.execute_prepared_spoken_template_opening(
+            &start.face,
+            start.fragment,
+            start.preparation,
+            reading,
+            control,
+        )?;
+        if session.opening().show.planned_mask != start.seal.planned_mask {
+            return Err("checked spoken Show differs from selected owner route".into());
+        }
+        let shown = session.opening();
+        let result = ResultShow {
+            show: shown.show.clone(),
+            artifact: shown.artifact.clone(),
+            generated_manifestation_identity: None,
+            accepted_wording: None,
+            direct_opening_wording: Some(opening_wording),
+            generation_evidence: None,
+            active_play_id: shown.show.show.active_play_id.clone(),
+            speaker_playback: None,
+            template_session: Some(session),
+        };
+        return Ok(result);
+    }
     let mut collector = OneShow::default();
     let report = host.run_direct_spoken_mask_controlled_to(
         start.fragment,
@@ -165,6 +192,7 @@ fn run_direct(
         generation_evidence: None,
         active_play_id: kernel.active_play_id,
         speaker_playback,
+        template_session: None,
     })
 }
 
@@ -230,30 +258,14 @@ fn run_llm(
         generation_evidence: Some(shown.generation_evidence),
         active_play_id: kernel.active_play_id,
         speaker_playback,
+        template_session: None,
     })
 }
 
 impl DurableHostRuntime {
-    pub(in crate::durable_host_control) fn admit_direct_spoken(&mut self) -> Result<Value, String> {
-        if self.owner_spoken_worker.is_some() || self.speech_worker.is_some() {
-            return Err("selected speech already owns the Host".into());
-        }
-        let HostSource::Body {
-            owner,
-            running: None,
-            ..
-        } = &mut self.host
-        else {
-            return Err("direct spoken Mask needs an idle Body owner".into());
-        };
-        let seal = owner.admit_direct_spoken_route()?;
-        Ok(json!({"schema":"conduit.body/direct-spoken-route@1",
-            "route_plan_id":seal.route_plan_id, "mask_plot":seal.planned_mask.mask.plot_identity,
-            "selection_unchanged":true, "show":null}))
-    }
-
-    pub(in crate::durable_host_control) fn select_direct_spoken(
+    pub(in crate::durable_host_control) fn admit_direct_spoken(
         &mut self,
+        look: Option<conduit_std_host::direct_spoken_template_mask::DirectSpokenTemplateLook>,
     ) -> Result<Value, String> {
         if self.owner_spoken_worker.is_some() || self.speech_worker.is_some() {
             return Err("selected speech already owns the Host".into());
@@ -266,7 +278,30 @@ impl DurableHostRuntime {
         else {
             return Err("direct spoken Mask needs an idle Body owner".into());
         };
-        let seal = owner.select_direct_spoken_route()?;
+        let seal = owner.admit_direct_spoken_look(look)?;
+        self.spoken_template_session = None;
+        Ok(json!({"schema":"conduit.body/direct-spoken-route@1",
+            "route_plan_id":seal.route_plan_id, "mask_plot":seal.planned_mask.mask.plot_identity,
+            "selection_unchanged":true, "show":null}))
+    }
+
+    pub(in crate::durable_host_control) fn select_direct_spoken(
+        &mut self,
+        look: Option<conduit_std_host::direct_spoken_template_mask::DirectSpokenTemplateLook>,
+    ) -> Result<Value, String> {
+        if self.owner_spoken_worker.is_some() || self.speech_worker.is_some() {
+            return Err("selected speech already owns the Host".into());
+        }
+        let HostSource::Body {
+            owner,
+            running: None,
+            ..
+        } = &mut self.host
+        else {
+            return Err("direct spoken Mask needs an idle Body owner".into());
+        };
+        let seal = owner.select_direct_spoken_look(look)?;
+        self.spoken_template_session = None;
         Ok(json!({"schema":"conduit.body/direct-spoken-route@1",
             "route_plan_id":seal.route_plan_id, "mask_plot":seal.planned_mask.mask.plot_identity,
             "selected":true, "show":null}))
@@ -303,6 +338,7 @@ impl DurableHostRuntime {
             return Err("LLM spoken Mask needs an idle Body owner".into());
         };
         let seal = owner.select_llm_spoken_route()?;
+        self.spoken_template_session = None;
         Ok(json!({"schema":"conduit.body/llm-spoken-route@1",
             "route_plan_id":seal.route_plan_id, "mask_plot":seal.planned_mask.mask.plot_identity,
             "selected":true, "show":null}))
@@ -372,6 +408,7 @@ impl DurableHostRuntime {
             let _ = thread.join();
             return Err("owner spoken Mask worker stopped before Host handoff".into());
         }
+        self.spoken_template_session = None;
         self.owner_spoken_worker = Some(OwnerSpokenWorker {
             operation_id: operation_id.clone(),
             control,
@@ -415,7 +452,12 @@ impl DurableHostRuntime {
                     }
                 };
                 match acknowledged {
-                    Ok(()) => json!({"schema":"conduit.body/owner-spoken-terminal@1",
+                    Ok(()) => {
+                        let checked_template = result.template_session.as_ref().map(|session| json!({
+                            "template":session.template(), "completed_frame_count":session.completed_count(),
+                            "complete":session.complete(), "proof_class":"opening WAV artifact only"}));
+                        self.spoken_template_session = result.template_session;
+                        json!({"schema":"conduit.body/owner-spoken-terminal@1",
                         "operation_id":worker.operation_id, "mode":worker.mode.name(),
                         "outcome":"available", "route_plan_id":worker.seal.route_plan_id,
                         "source_face_id":result.show.show.presentation_id,
@@ -425,6 +467,7 @@ impl DurableHostRuntime {
                         "generated_manifestation_identity":result.generated_manifestation_identity,
                         "accepted_wording":result.accepted_wording,
                         "direct_opening_wording":result.direct_opening_wording,
+                        "checked_template":checked_template,
                         "generation_evidence":result.generation_evidence,
                         "artifact":result.artifact,
                         "speaker_played":result.speaker_playback.as_ref().map(|playback| {
@@ -438,7 +481,8 @@ impl DurableHostRuntime {
                         "speaker_playback_outcome":result.speaker_playback.as_ref().map(|playback| &playback["outcome"]),
                         "direct_reading_complete":worker.mode == Mode::Direct && result.speaker_playback.as_ref().is_some_and(|playback| playback["outcome"] == "completed"),
                         "mask_artifact_scope":if worker.mode == Mode::Direct {"opening"} else {"accepted-wording"},
-                        "speaker_playback":result.speaker_playback}),
+                        "speaker_playback":result.speaker_playback})
+                    }
                     Err(detail) => json!({"schema":"conduit.body/owner-spoken-terminal@1",
                         "operation_id":worker.operation_id, "mode":worker.mode.name(),
                         "outcome":"show-refused", "route_plan_id":worker.seal.route_plan_id,
