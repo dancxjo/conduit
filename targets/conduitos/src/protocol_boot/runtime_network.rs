@@ -41,6 +41,12 @@ impl RuntimeNetwork {
         Ok(self.complete)
     }
 }
+pub(super) fn require_complete(network: Option<&RuntimeNetwork>) -> Result<(), &'static str> {
+    if network.is_some_and(|network| !network.complete()) {
+        return Err("protocol-network-not-complete");
+    }
+    Ok(())
+}
 fn report(receipt: crate::virtio_tcp::VirtioTcpReceipt) -> Result<(), &'static str> {
     use core::fmt::Write;
     let mut report = crate::sign_format::FixedText::new();

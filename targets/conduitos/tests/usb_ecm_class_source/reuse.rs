@@ -1,5 +1,14 @@
 use super::*;
 fn received(s: &PreparedProtocolSource, ordinal: u64, wire: &[u8]) -> StructuredInfoValue {
+    received_result(s, ordinal, wire, wire.len() as u64, true)
+}
+fn received_result(
+    s: &PreparedProtocolSource,
+    ordinal: u64,
+    wire: &[u8],
+    actual: u64,
+    short: bool,
+) -> StructuredInfoValue {
     let p = program(s, "cdc-ecm-read-event");
     let ty = case(&p.input_type, "completed");
     eval(
@@ -14,14 +23,8 @@ fn received(s: &PreparedProtocolSource, ordinal: u64, wire: &[u8]) -> Structured
                         "ordinal",
                         leaf(field(ty, "ordinal"), &ordinal.to_le_bytes()),
                     ),
-                    (
-                        "actual",
-                        leaf(field(ty, "actual"), &(wire.len() as u64).to_le_bytes()),
-                    ),
-                    (
-                        "short",
-                        leaf(field(ty, "short"), &[u8::from(wire.len() < 1514)]),
-                    ),
+                    ("actual", leaf(field(ty, "actual"), &actual.to_le_bytes())),
+                    ("short", leaf(field(ty, "short"), &[u8::from(short)])),
                     ("wire", leaf(field(ty, "wire"), wire)),
                 ],
             ),
@@ -116,7 +119,7 @@ fn full_mtu_read_event_fits_admitted_bound_and_preserves_metadata_and_wire() {
     assert_eq!(number(member(payload, "actual")), 1514);
     assert_eq!(
         member(payload, "short"),
-        &leaf(field(payload.value_type(), "short"), &[0])
+        &leaf(field(payload.value_type(), "short"), &[1])
     );
     let StructuredInfoValueShape::Variant {
         payload: request, ..
@@ -167,4 +170,49 @@ fn transmit_budget_is_independent_of_receive_and_refuses_seventeenth_usb_write()
     assert_eq!(number(member(&state, "transmitted")), 16);
     assert_eq!(number(member(&state, "cycles")), 1);
     assert_eq!(tag(member(&state, "receive")), "take-transmit");
+}
+
+#[test]
+fn receive_sentinel_refuses_oversized_prefix_and_missing_frame_termination_before_delivery() {
+    let s = source();
+    let state = phase(&start(&s, &[]), 10);
+    let request = eval(&program(&s, "cdc-ecm-read-request"), &state);
+    assert_eq!(number(member(&request, "length")), 1515);
+    let mtu = frame(1514);
+    let oversized = frame(1515);
+    for (wire, actual, short) in [
+        (mtu.as_slice(), 1514, false),
+        (oversized.as_slice(), 1515, false),
+        (oversized.as_slice(), 1515, true),
+        (mtu.as_slice(), 1513, true),
+        (&[][..], 0, true),
+        (&[0; 13][..], 13, true),
+    ] {
+        let event = received_result(&s, 0, wire, actual, short);
+        let stopped = step(&s, &state, &event);
+        assert_eq!(tag(member(&stopped, "outcome")), "malformed");
+        assert_eq!(
+            tag(&eval(&program(&s, "cdc-ecm-route"), &stopped)),
+            "stopped"
+        );
+        assert_eq!(number(member(&stopped, "cycles")), 0);
+    }
+}
+
+#[test]
+fn short_terminated_mtu_and_packet_aligned_frames_preserve_separate_ordinals() {
+    let s = source();
+    let mut state = phase(&start(&s, &[]), 10);
+    for (ordinal, length) in [(0, 1514), (1, 64)] {
+        let wire = frame(length);
+        let event = received_result(&s, ordinal, &wire, length as u64, true);
+        state = step(&s, &state, &event);
+        assert_eq!(number(member(&state, "phase")), 11);
+        let request = eval(&program(&s, "cdc-ecm-queue-request"), &state);
+        assert_eq!(tag(&request), "deliver-receive");
+        state = step(&s, &state, &queue(&s, "accepted"));
+        assert_eq!(number(member(&state, "cycles")), ordinal + 1);
+        state = step(&s, &state, &queue(&s, "pressure"));
+        assert_eq!(number(member(&state, "phase")), 10);
+    }
 }

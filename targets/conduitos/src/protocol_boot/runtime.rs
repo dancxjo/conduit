@@ -354,12 +354,7 @@ fn execute_workload(
             }
             if status == KernelCompositeStatus::Complete {
                 #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
-                if network_deadline
-                    .as_ref()
-                    .is_some_and(|network| !network.complete())
-                {
-                    return Err("protocol-network-not-complete");
-                }
+                network::require_complete(network_deadline.as_ref())?;
                 return Ok(());
             }
             if status == KernelCompositeStatus::Cancelled {
