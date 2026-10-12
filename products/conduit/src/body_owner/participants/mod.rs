@@ -386,6 +386,50 @@ fn serve_presence(
                     }),
                 })?;
             }
+            In::FaceComponentMaskRequest {
+                protocol: PROTOCOL,
+                request_id,
+                request,
+                show,
+                look,
+                recipe,
+            } => {
+                #[cfg(unix)]
+                let result = state_dir
+                    .zip(window_id)
+                    .ok_or_else(|| {
+                        "component selection requires the installed service actor".to_string()
+                    })
+                    .and_then(|(dir, window)| {
+                        crate::durable_host_control::browser::component_mask(
+                            dir,
+                            window,
+                            binding.clone(),
+                            request,
+                            show,
+                            look,
+                            recipe,
+                        )
+                    });
+                #[cfg(not(unix))]
+                let result = {
+                    let _ = (request, show, look, recipe);
+                    Err::<(), String>("owner-unavailable".into())
+                };
+                let code = result.as_ref().err().map_or_else(String::new, |error| {
+                    if error.contains("stale") || error.contains("Stale") {
+                        "stale-face-or-show".into()
+                    } else {
+                        "component-mask-selection-unavailable".into()
+                    }
+                });
+                socket.send(&Out::FaceComponentMaskResponse {
+                    protocol: PROTOCOL,
+                    request_id,
+                    accepted: result.is_ok(),
+                    code,
+                })?;
+            }
             In::FaceWardrobeRequest {
                 protocol: PROTOCOL,
                 request_id,

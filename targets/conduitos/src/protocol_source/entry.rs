@@ -144,6 +144,7 @@ mod tests {
     fn bytes() -> Vec<u8> {
         serde_json::to_vec(&ProtocolSourcePackage {
             schema: PACKAGE_SCHEMA.into(),
+            backs: vec![],
             source: "plot identity (\n >> input: Boolean...|\n output: Boolean...| >>\n) = (.)"
                 .into(),
             specializations: vec![],

@@ -318,6 +318,11 @@ mod tests {
             1,
             &crate::product_bases::fixture_surface_provider().entry,
         );
+        let advertisement_bytes = serde_json::to_vec(&advertisement).unwrap().len();
+        assert!(
+            advertisement_bytes < MAXIMUM_ROUTE_REQUEST_BYTES,
+            "actual native advertisement alone is {advertisement_bytes} bytes; routed request bound is {MAXIMUM_ROUTE_REQUEST_BYTES}"
+        );
         let prepared = prepare(provision, &advertisement).unwrap();
         let request = prepared.routed_request.unwrap();
         assert_eq!(request.schema, ROUTED_ADMISSION_REQUEST_SCHEMA);

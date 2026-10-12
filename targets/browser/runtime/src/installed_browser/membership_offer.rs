@@ -12,11 +12,15 @@ pub(crate) fn advertisement(host_id: HostId, boot_id: BootId) -> HostAdvertiseme
     }
     // The DOM Mask has its own bounded presentation executor and is not a
     // general workload Back in the ordinary browser plot runner.
-    let mask = super::dom_mask::offer();
-    advertised
-        .capabilities
-        .retain(|prior| prior.capability_id != mask.capability_id);
-    advertised.capabilities.push(mask);
+    for mask in [
+        super::dom_mask::offer(),
+        super::dom_mask::configured_offer(),
+    ] {
+        advertised
+            .capabilities
+            .retain(|prior| prior.capability_id != mask.capability_id);
+        advertised.capabilities.push(mask);
+    }
     for resource in local.resources {
         advertised
             .resources
@@ -44,6 +48,12 @@ mod tests {
         let local = crate::installed_browser::advertisement(host, boot);
         let execution = crate::installed_browser::execution_capability_ids();
         assert_eq!(execution.len(), local.capabilities.len());
+        let component = super::super::dom_mask::configured_offer();
+        assert!(advertised.capabilities.contains(&component));
+        assert!(
+            !execution.contains(&component.capability_id),
+            "component Mask must not become an ordinary Body workload Back"
+        );
         for offer in local.capabilities {
             assert!(advertised.capabilities.contains(&offer));
             assert!(execution.contains(&offer.capability_id));

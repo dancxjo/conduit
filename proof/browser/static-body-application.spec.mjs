@@ -5,7 +5,31 @@ import { openStaticProfile, stageStaticApplications } from "./static-body-applic
 test.describe.configure({ mode: "serial", retries: 0 });
 
 async function current(page) {
-  return page.evaluate(() => globalThis.__conduitApplication.snapshot());
+  // Chromium's inspector can collect its unresolved evaluation promise even
+  // while the actual snapshot remains live. Observe one real call's completion;
+  // polling this record neither repeats the snapshot nor performs an action.
+  await page.evaluate(() => {
+    if (globalThis.__conduitProofSnapshot) throw new Error("Concurrent snapshot observation");
+    const observation = { settled: false };
+    globalThis.__conduitProofSnapshot = observation;
+    globalThis.__conduitApplication.snapshot().then(value => {
+      observation.value = value;
+      observation.settled = true;
+    }, error => {
+      observation.error = { message: error.message, code: error.code };
+      observation.settled = true;
+    });
+  });
+  try {
+    await page.waitForFunction(() => globalThis.__conduitProofSnapshot.settled, null, { timeout: 15_000 });
+    return await page.evaluate(() => {
+      const observation = globalThis.__conduitProofSnapshot;
+      if (observation.error) throw Object.assign(new Error(observation.error.message), { code: observation.error.code });
+      return observation.value;
+    });
+  } finally {
+    await page.evaluate(() => { delete globalThis.__conduitProofSnapshot; });
+  }
 }
 
 async function ready(page) {
@@ -78,8 +102,9 @@ test("static Handbook applications retain independent local Bodies through use, 
       observation: "Live highlighting follows the Unicode edit. The checker reports a refusal; the existing Body, Play, and installed workset remain unchanged." });
     await editor.fill(originalSource);
     await page.getByRole("button", { name: "Try in my Handbook", exact: true }).click();
-    await expect.poll(async () => { const state = await current(page); return state.installedPlots.some(plot => plot.checked_plot_id === state.selectedPlot); }).toBe(true);
+    // Controls reenable after installation and the actual SDK current() settle.
     let example = await ready(page);
+    await expect.poll(async () => { const state = await current(page); return state.installedPlots.some(plot => plot.checked_plot_id === state.selectedPlot); }).toBe(true);
     expect(example.bodyId).toBe(first.bodyId);
     expect(example.selectedPlot).toBeTruthy();
     expect(example.installedPlots.some(plot => plot.checked_plot_id === example.selectedPlot)).toBe(true);

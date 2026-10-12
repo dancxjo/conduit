@@ -135,6 +135,63 @@ impl Owner {
         self.owner_wardrobe_report(owner_plan_id, basis_revision, action)
     }
 
+    /// Mask-local configuration keeps the active Body Play and exact Face.
+    /// The caller must hold the authenticated current carrier and acknowledged Show.
+    pub(crate) fn select_browser_component_mask(
+        &mut self,
+        window_id: &str,
+        binding: &LinkBindingId,
+        request: &OwnerFaceSnapshotRequest,
+        show: &MaskShow,
+        look: conduit_presentation::ComponentMaskLook,
+        recipe: conduit_presentation::TodoComponentRecipe,
+    ) -> Result<RemoteOwnerMaskRouteSeal, String> {
+        self.validate_browser_mask_show(window_id, binding, request, show)?;
+        let previous_wardrobe = self.presentation_wardrobe.clone();
+        let window = self.pending_browser.as_mut().ok_or("window-not-active")?;
+        let WindowState::Active {
+            credential,
+            line_evidence: Some(lines),
+            route,
+            acknowledged_show,
+            ..
+        } = &window.state
+        else {
+            return Err("browser-component-carrier-unavailable".into());
+        };
+        let credential = credential.clone();
+        let lines = (**lines).clone();
+        let previous_route = route.clone();
+        let previous_show = acknowledged_show.clone();
+        let previous_selection = window.component_mask_selection;
+        window.component_mask_selection = Some((look, recipe));
+        let result = self
+            .browser_mask_route(window_id, &credential, binding, Some(&lines))
+            .and_then(|route| {
+                self.select_component_presentation_route(&route)?;
+                Ok(route)
+            });
+        match result {
+            Ok(route) => Ok(route),
+            Err(error) => {
+                self.presentation_wardrobe = previous_wardrobe;
+                if let Some(window) = self.pending_browser.as_mut() {
+                    window.component_mask_selection = previous_selection;
+                    if let WindowState::Active {
+                        route,
+                        acknowledged_show,
+                        ..
+                    } = &mut window.state
+                    {
+                        *route = previous_route;
+                        *acknowledged_show = previous_show;
+                    }
+                }
+                Err(error)
+            }
+        }
+    }
+
     /// Called only by the worker holding the accepted browser socket. The
     /// serialized owner verifies its exact observed binding again and retains
     /// the selected route until replacement or browser leave.
@@ -183,10 +240,19 @@ impl Owner {
                 return Err("browser-route-part-unavailable".into());
             }
             let browser = &observation.advertisement;
-            if !browser
-                .capabilities
-                .contains(&conduit_browser_mask_offer::offer())
-            {
+            let (mask_source, mask_root, mask_offer) = match window.component_mask_selection {
+                Some((look, recipe)) => (
+                    conduit_presentation::TODO_COMPONENT_MASK_SOURCE,
+                    conduit_presentation::todo_component_mask_root(look, recipe),
+                    conduit_browser_mask_offer::configured_offer(),
+                ),
+                None => (
+                    conduit_browser_mask_offer::MASK_SOURCE,
+                    "browser-graphical",
+                    conduit_browser_mask_offer::offer(),
+                ),
+            };
+            if !browser.capabilities.contains(&mask_offer) {
                 return Err("browser-route-mask-back-unavailable".into());
             }
             let owner = self.host.advertisement();
@@ -206,8 +272,8 @@ impl Owner {
                 &evidence.face,
                 &evidence.returned,
                 &evidence.interaction,
-                conduit_browser_mask_offer::MASK_SOURCE,
-                "browser-graphical",
+                mask_source,
+                mask_root,
             )?;
             let face = self.local_face_snapshot()?;
             let selected = RemoteOwnerMaskRouteSeal::seal_current_with_interaction(

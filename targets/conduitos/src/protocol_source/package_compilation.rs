@@ -11,6 +11,9 @@ pub struct ProtocolValueReference {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "kebab-case", deny_unknown_fields)]
 pub enum ProtocolSpecializationRequest {
+    Singleton {
+        value: ProtocolValueReference,
+    },
     SeededFlow {
         value: ProtocolValueReference,
     },
@@ -51,7 +54,16 @@ impl ProtocolSourcePackage {
             .map_err(Error::Contract)?
             .catalogs();
         install_clock(&mut startup, &mut profile)?;
+        install_literal(&mut startup, &mut profile)?;
         usb_catalog::install(&mut startup, &mut profile)?;
+        crate::serial_base::contract::SerialDuplexContract::prepare()
+            .map_err(Error::Contract)?
+            .install_catalogs(&mut startup, &mut profile)
+            .map_err(Error::Catalog)?;
+        crate::ethernet_frame::contract::EthernetFrameContract::prepare()
+            .map_err(Error::Contract)?
+            .install_catalogs(&mut startup, &mut profile)
+            .map_err(Error::Catalog)?;
         // The first pass checks only declarations. Generic kind Fore contracts
         // depend on these schemas; the full Source is checked after installing
         // the resulting specializations by PreparedProtocolEntry::prepare.
@@ -82,6 +94,9 @@ impl ProtocolSourcePackage {
         for request in requests {
             use ProtocolSpecializationRequest as Request;
             specializations.push(match request {
+                Request::Singleton { value: reference } => ProtocolSpecialization::Singleton {
+                    value: value(reference)?,
+                },
                 Request::SeededFlow { value: reference } => ProtocolSpecialization::SeededFlow {
                     value: value(reference)?,
                 },
@@ -106,6 +121,7 @@ impl ProtocolSourcePackage {
         }
         Ok(Self {
             schema: PACKAGE_SCHEMA.into(),
+            backs: vec![],
             source,
             specializations,
         })

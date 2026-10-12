@@ -1,0 +1,50 @@
+# Transport frames are explicit controller-domain deadlines. These Types contain
+# no sample rate, channel, PCM format, endpoint selection or device authority.
+type UsbIsochronousPacket = {
+    frame: U64
+    wire: Bytes <= 256B
+}
+type UsbIsochronousBatch = {
+    packets: sequence UsbIsochronousPacket <= 8
+}
+type UsbIsochronousOutRequest =
+    observe
+    | batch UsbIsochronousBatch
+    | drain
+
+type UsbIsochronousClock = {
+    current-microframe: U64
+    scheduling-threshold: U64
+    service-interval-microframes: U64
+    maximum-packet-bytes: U64
+    pending-packets: U64
+    maximum-pending-packets: U64
+    dma-resource-bytes: U64
+}
+type UsbIsochronousCompletion = {
+    frame: U64
+    requested: U64
+    actual: U64
+}
+type UsbIsochronousCompletedBatch = {
+    packets: sequence UsbIsochronousCompletion <= 8
+}
+type UsbIsochronousShort = {
+    packet: UsbIsochronousCompletion
+    completed: sequence UsbIsochronousCompletion <= 8
+}
+type UsbIsochronousMissed = {
+    frame: U64
+    completed: sequence UsbIsochronousCompletion <= 8
+}
+type UsbIsochronousStoppedBatch = {
+    completed: sequence UsbIsochronousCompletion <= 8
+}
+type UsbIsochronousOutResult =
+    snapshot UsbIsochronousClock
+    | completed UsbIsochronousCompletedBatch
+    | short UsbIsochronousShort
+    | missed-service UsbIsochronousMissed
+    | underrun UsbIsochronousStoppedBatch
+    | provider-lost UsbIsochronousStoppedBatch
+    | drained

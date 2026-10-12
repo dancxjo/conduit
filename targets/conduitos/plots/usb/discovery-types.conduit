@@ -1,0 +1,20 @@
+# Descriptive Root-selected geometry is information, never possession or grants.
+# The configuration is an actual frozen standard-descriptor completion.
+type UsbDiscoveryGeometry = {
+    address: U64
+    epoch: U64
+    interval: U64
+    packet: U64
+    transfer: U64
+}
+type UsbDiscoverySelection =
+    absent
+    | selected UsbDiscoveryGeometry
+type UsbProtocolDiscovery = {
+    attachment: U64
+    configuration: UsbControlResult
+    read: UsbDiscoverySelection
+    write: UsbDiscoverySelection
+}
+
+# The pure finite join completes after both immutable observations close.

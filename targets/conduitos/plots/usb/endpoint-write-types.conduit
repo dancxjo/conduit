@@ -1,0 +1,14 @@
+# The selected native OUT endpoint receives bounded wire bytes. Requests cannot
+# choose an endpoint, device, attachment, DMA storage or resource authority.
+# Empty wire is an explicit USB zero-length packet request, never a skipped Call.
+type UsbEndpointWriteRequest = {
+    wire: Bytes <= 2048B
+}
+type UsbEndpointWriteCompletion = {
+    actual: U64
+}
+type UsbEndpointWriteResult =
+    completed UsbEndpointWriteCompletion
+    | stalled
+    | provider-lost
+    | unsupported

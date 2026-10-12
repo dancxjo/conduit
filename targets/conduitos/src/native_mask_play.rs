@@ -208,7 +208,9 @@ fn scheduler(
         .map(|placement| match placement.kind_id.as_str() {
             conduit_presentation::SHOW_RESOURCE_SOURCE_KIND => Ok(MaskBack::ResourceSource),
             conduit_presentation::PRESENTATION_TEE_KIND => Ok(MaskBack::Tee),
-            conduit_presentation::RENDERER_KIND | conduit_presentation::RESOURCE_RENDERER_KIND => {
+            conduit_presentation::RENDERER_KIND
+            | conduit_presentation::RESOURCE_RENDERER_KIND
+            | conduit_conduitos_mask_offer::NATIVE_COMPONENT_RENDERER_KIND => {
                 Ok(MaskBack::Renderer {
                     pending: false,
                     emitted: false,

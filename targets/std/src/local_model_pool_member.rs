@@ -10,14 +10,27 @@ use crate::{
 };
 use conduit_core::{GearId, PlacementId, Plan, PlannedGear, PoolSelectionEvidence};
 
+mod completion;
+pub use completion::{LocalModelCompletedWork, LocalModelMeasurementRefusal};
+
 pub struct AdmittedLocalModelPoolMember {
     sessions: PoolMemberSessions,
     reservation: Option<KernelResourceReservation>,
     placement: PlannedGear,
     operation_started: bool,
+    measurement: completion::MeasurementSlot,
 }
 
 impl AdmittedLocalModelPoolMember {
+    /// Prepare typed measurement truth outside execution. This creates neither
+    /// a forecast nor producer trust; failed terminals remain distinct.
+    pub fn prepare_completed_work(
+        &self,
+    ) -> Result<LocalModelCompletedWork<'_>, LocalModelMeasurementRefusal> {
+        self.measurement
+            .prepare(&self.placement, self.sessions.selection())
+    }
+
     pub fn sessions(&self) -> &PoolMemberSessions {
         &self.sessions
     }
@@ -114,6 +127,7 @@ impl StdHost {
             authority: Vec::new(),
             pool_references: Vec::new(),
         };
+        let measurement = completion::MeasurementSlot::admit(&placement);
         let reservation = self.kernel_resources.reserve_pool_member(
             &advertisement,
             plan.plan_id.clone(),
@@ -137,6 +151,7 @@ impl StdHost {
             reservation: Some(reservation),
             placement,
             operation_started: false,
+            measurement,
         })
     }
 
@@ -149,13 +164,21 @@ impl StdHost {
         input: &[u8],
         output: &mut Vec<u8>,
     ) -> LocalModelAdapterTerminal {
-        execute_pool_member_once(
+        let first = !member.operation_started;
+        if first {
+            member.measurement.start(input);
+        }
+        let terminal = execute_pool_member_once(
             self.local_model.as_deref_mut(),
             &member.placement,
             &mut member.operation_started,
             input,
             output,
-        )
+        );
+        if first {
+            member.measurement.finish(terminal, output.len());
+        }
+        terminal
     }
 
     pub fn release_local_model_pool_member(

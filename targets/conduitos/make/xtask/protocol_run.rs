@@ -6,6 +6,7 @@ use serde_json::{json, Value};
 use std::{
     fs,
     io::Read,
+    os::fd::AsRawFd,
     path::{Path, PathBuf},
     process::{Command, Stdio},
     thread,
@@ -23,6 +24,47 @@ pub(super) struct RunArgs {
     output_dir: PathBuf,
     #[arg(long, default_value_t = 120, value_parser = clap::value_parser!(u64).range(1..=120))]
     seconds: u64,
+    /// Attach an isolated emulated mouse to xHCI for class-neutral control proof.
+    /// This supplies hardware only; the checked Plot and Root still admit effects.
+    #[arg(long)]
+    usb_control_mouse: bool,
+    /// Inject exactly one known mouse report after the guest begins product Play.
+    #[arg(long, requires = "usb_control_mouse")]
+    usb_mouse_report: bool,
+    /// Optional local emulator executable for the receipt's exact architecture.
+    #[arg(long)]
+    emulator: Option<PathBuf>,
+    /// AArch64 UEFI firmware; required for the pinned virt product profile.
+    #[arg(long)]
+    aarch64_firmware: Option<PathBuf>,
+}
+
+fn emulator_profile(
+    architecture: &str,
+) -> Result<(&'static str, &'static str, Vec<&'static str>), ConduitosError> {
+    match architecture {
+        "x86_64" => Ok((
+            "qemu-system-x86_64",
+            "q35-single-cpu-512m-headless",
+            vec![
+                "-M",
+                "q35",
+                "-vga",
+                "std",
+                "-device",
+                "isa-debug-exit,iobase=0xf4,iosize=0x04",
+            ],
+        )),
+        "aarch64" => Ok((
+            "qemu-system-aarch64",
+            "virt-10.2-gic2-coherent-pcie-single-cpu-512m-headless",
+            vec!["-M", "virt-10.2,highmem=off,gic-version=2,iommu=none"],
+        )),
+        _ => Err(refusal(
+            "protocol-run-architecture-refused",
+            "no admitted emulator profile for this architecture",
+        )),
+    }
 }
 
 pub(super) fn execute(args: RunArgs, opts: &GlobalOpts) -> Result<(), ConduitosError> {
@@ -47,25 +89,75 @@ pub(super) fn execute(args: RunArgs, opts: &GlobalOpts) -> Result<(), ConduitosE
             "exact packaged image digest required",
         ));
     }
+    let architecture = receipt["architecture"].as_str().unwrap_or("x86_64");
+    let (default_emulator, profile, machine_args) = emulator_profile(architecture)?;
+    if architecture == "aarch64" && args.aarch64_firmware.is_none() {
+        return Err(refusal(
+            "protocol-run-firmware-required",
+            "AArch64 requires explicit UEFI firmware",
+        ));
+    }
+    if architecture != "aarch64" && args.aarch64_firmware.is_some() {
+        return Err(refusal(
+            "protocol-run-firmware-refused",
+            "AArch64 firmware cannot be used with another architecture",
+        ));
+    }
     fs::create_dir(&args.output_dir)
         .map_err(|error| refusal("protocol-run-output-refused", error))?;
     let serial = args.output_dir.join("serial.log");
     let stderr = args.output_dir.join("qemu.log");
-    let serial_target = format!("file:{}", serial.display());
-    let mut child = Command::new("qemu-system-x86_64")
+    let output_handle = if args.usb_mouse_report {
+        Some(
+            fs::File::open(&args.output_dir)
+                .map_err(|error| refusal("protocol-run-output-refused", error))?,
+        )
+    } else {
+        None
+    };
+    let observer_socket = output_handle.as_ref().map(|directory| {
+        PathBuf::from(format!("/proc/self/fd/{}/qmp.sock", directory.as_raw_fd()))
+    });
+    let serial_target = if args.usb_mouse_report {
+        format!(
+            "file:{}",
+            fs::canonicalize(&args.output_dir)
+                .map_err(|error| refusal("protocol-run-output-refused", error))?
+                .join("serial.log")
+                .display()
+        )
+    } else {
+        format!("file:{}", serial.display())
+    };
+    let launch_image = if args.usb_mouse_report {
+        fs::canonicalize(&image).map_err(|error| refusal("protocol-run-image-refused", error))?
+    } else {
+        image
+    };
+    let mut command = Command::new(
+        args.emulator
+            .as_deref()
+            .unwrap_or(Path::new(default_emulator)),
+    );
+    command.args(machine_args);
+    let cpu = if architecture == "aarch64" {
+        "neoverse-n2"
+    } else {
+        "max"
+    };
+    if let Some(firmware) = &args.aarch64_firmware {
+        command.arg("-bios").arg(firmware);
+    }
+    command
         .args([
-            "-M",
-            "q35",
             "-cpu",
-            "max",
+            cpu,
             "-m",
             "512M",
             "-smp",
             "1",
             "-display",
             "none",
-            "-vga",
-            "std",
             "-monitor",
             "none",
             "-serial",
@@ -73,21 +165,27 @@ pub(super) fn execute(args: RunArgs, opts: &GlobalOpts) -> Result<(), ConduitosE
             "-no-reboot",
             "-net",
             "none",
-            "-device",
-            "isa-debug-exit,iobase=0xf4,iosize=0x04",
             "-cdrom",
         ])
-        .arg(&image)
+        .arg(&launch_image)
         .args(["-boot", "d"])
+        .args(usb_devices(args.usb_control_mouse))
         .stdin(Stdio::null())
         .stdout(Stdio::null())
         .stderr(
             fs::File::create(&stderr)
                 .map_err(|error| refusal("protocol-run-output-refused", error))?,
-        )
+        );
+    if args.usb_mouse_report {
+        command
+            .current_dir(&args.output_dir)
+            .args(["-qmp", "unix:qmp.sock,server=on,wait=off"]);
+    }
+    let mut child = command
         .spawn()
         .map_err(|error| refusal("protocol-run-emulator-unavailable", error))?;
     let started = Instant::now();
+    let mut injected = false;
     let observed = (|| loop {
         let bytes = if serial.exists() {
             read(&serial, MAXIMUM_TRANSCRIPT)?
@@ -106,6 +204,32 @@ pub(super) fn execute(args: RunArgs, opts: &GlobalOpts) -> Result<(), ConduitosE
         }
         if let Some(outcome) = terminal(&bytes)? {
             return Ok(outcome);
+        }
+        if args.usb_mouse_report && !injected && play_observed(&bytes) {
+            // The shared QMP transport has finite 2-second connect/request bounds.
+            // Reserve those bounds inside this run's existing deadline; never
+            // restart the emulator or extend the admitted observation lifetime.
+            if Duration::from_secs(args.seconds).saturating_sub(started.elapsed())
+                < Duration::from_secs(8)
+            {
+                return Err(refusal(
+                    "protocol-run-input-deadline",
+                    "insufficient remaining QMP observation bound",
+                ));
+            }
+            let socket = observer_socket
+                .as_ref()
+                .ok_or_else(|| refusal("protocol-run-input-refused", "missing observer socket"))?;
+            let transcript = args.output_dir.join("qmp.jsonl");
+            let (mut stream, mut reader) =
+                super::qmp::connect_traced(socket, &mut child, Some(&transcript))?;
+            super::qmp::request(
+                &mut stream,
+                &mut reader,
+                mouse_report_command().to_string().as_bytes(),
+                "protocol-mouse-report",
+            )?;
+            injected = true;
         }
         if let Some(status) = child
             .try_wait()
@@ -132,8 +256,19 @@ pub(super) fn execute(args: RunArgs, opts: &GlobalOpts) -> Result<(), ConduitosE
         "image_sha256": digest,
         "outcome": outcome,
         "serial_sha256": sha256_file(&serial)?,
-        "qemu_profile": "q35-single-cpu-512m-headless",
+        "qemu_profile": profile,
+        "architecture": architecture,
+        "emulator": args.emulator.as_deref().unwrap_or(Path::new(default_emulator)),
+        "aarch64_firmware_sha256": args.aarch64_firmware.as_deref().map(sha256_file).transpose()?,
         "physical_compatibility": "unverified",
+        "usb_devices": usb_devices(args.usb_control_mouse),
+        "fixture_input": {
+            "requested": args.usb_mouse_report,
+            "injected": injected,
+            "command": if args.usb_mouse_report { mouse_report_command() } else { Value::Null },
+            "injection_gate": "CONDUIT_PROTOCOL_PLAY",
+            "maximum_reports": if args.usb_mouse_report { 1 } else { 0 },
+        },
     });
     fs::write(
         args.output_dir.join("receipt.json"),
@@ -143,6 +278,32 @@ pub(super) fn execute(args: RunArgs, opts: &GlobalOpts) -> Result<(), ConduitosE
     .map_err(|error| refusal("protocol-run-output-refused", error))?;
     println!("Observed protocol outcome: {outcome}");
     Ok(())
+}
+
+fn play_observed(bytes: &[u8]) -> bool {
+    String::from_utf8_lossy(bytes)
+        .split_inclusive('\n')
+        .any(|line| line.ends_with('\n') && line.starts_with("CONDUIT_PROTOCOL_PLAY "))
+}
+fn mouse_report_command() -> Value {
+    json!({"execute":"input-send-event","arguments":{"events":[
+        {"type":"btn","data":{"button":"left","down":true}},
+        {"type":"rel","data":{"axis":"x","value":1}},
+        {"type":"rel","data":{"axis":"y","value":2}}
+    ]}})
+}
+
+fn usb_devices(mouse: bool) -> &'static [&'static str] {
+    if mouse {
+        &[
+            "-device",
+            "qemu-xhci,id=protocol-usb",
+            "-device",
+            "usb-mouse,bus=protocol-usb.0,port=1",
+        ]
+    } else {
+        &[]
+    }
 }
 
 fn terminal(bytes: &[u8]) -> Result<Option<String>, ConduitosError> {
@@ -216,6 +377,20 @@ fn refusal(reason: &'static str, detail: impl std::fmt::Display) -> ConduitosErr
 mod tests {
     use super::*;
     #[test]
+    fn mouse_fixture_is_one_exact_report_after_complete_play_observation() {
+        assert!(!play_observed(b"CONDUIT_PROTOCOL_PLAN plan=p\n"));
+        assert!(!play_observed(b"CONDUIT_PROTOCOL_PLAY play=x"));
+        assert!(play_observed(b"CONDUIT_PROTOCOL_PLAY play=x\r\n"));
+        assert_eq!(
+            mouse_report_command(),
+            json!({"execute":"input-send-event","arguments":{"events":[
+                {"type":"btn","data":{"button":"left","down":true}},
+                {"type":"rel","data":{"axis":"x","value":1}},
+                {"type":"rel","data":{"axis":"y","value":2}}
+            ]}})
+        );
+    }
+    #[test]
     fn refusal_and_retirement_are_distinct_and_retirement_requires_actual_play() {
         assert!(terminal(b"CONDUIT_PROTOCOL_RETIRED complete\n").is_err());
         assert_eq!(terminal(b"CONDUIT_PROTOCOL_PLAN source=s plan=p\nCONDUIT_PROTOCOL_PLAY play=x\nCONDUIT_PROTOCOL_RETIRED complete\n").unwrap().as_deref(), Some("play-retired"));
@@ -229,5 +404,23 @@ mod tests {
         assert_eq!(terminal(b"CONDUIT_BOOT_SIGN {\"schema\":\"conduit.conduitos.boot-sign/v1\",\"status\":\"refused\",\"reason\":\"overlapping-artifacts\"}\n").unwrap().as_deref(), Some("boot-refused:overlapping-artifacts"));
         assert_eq!(terminal(b"CONDUIT_BOOT_STAGE ready\n").unwrap(), None);
         assert_eq!(terminal(b"CONDUIT_KERNEL_SIGN {\"schema\":").unwrap(), None);
+    }
+}
+
+#[cfg(test)]
+mod architecture_profile_tests {
+    use super::*;
+    #[test]
+    fn profiles_preserve_architecture_specific_hardware_and_refuse_other_rows() {
+        let (binary, _, args) = emulator_profile("aarch64").unwrap();
+        assert_eq!(binary, "qemu-system-aarch64");
+        assert_eq!(
+            args,
+            ["-M", "virt-10.2,highmem=off,gic-version=2,iommu=none"]
+        );
+        assert!(!args.iter().any(|arg| arg.contains("isa-debug-exit")));
+        assert_eq!(emulator_profile("x86_64").unwrap().0, "qemu-system-x86_64");
+        assert!(emulator_profile("riscv64").is_err());
+        assert!(emulator_profile("aarch64-orange-pi-5").is_err());
     }
 }

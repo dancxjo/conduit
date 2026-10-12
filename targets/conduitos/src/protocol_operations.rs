@@ -1,6 +1,7 @@
 //! Retained pure operation owners consumed together by a native protocol Play.
 #[derive(Default)]
 pub struct ProtocolOperations {
+    pub singletons: crate::flow_singleton::FlowSingletonOperationFactory,
     pub joins: crate::flow_zip::FlowZipOperationFactory,
     pub states: crate::seeded_state::SeededStateOperationFactory,
     pub concats: crate::flow_concat_finite::FlowConcatFiniteOperationFactory,

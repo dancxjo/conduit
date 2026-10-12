@@ -917,3 +917,302 @@ fn face_words_render_as_nonuniform_scene_pixels() {
     .unwrap();
     assert!(pixels.0.windows(2).any(|pair| pair[0] != pair[1]));
 }
+
+#[test]
+fn checked_native_recipe_marks_contiguous_runs_without_reordering_controls() {
+    let mut original = face(7);
+    original.subjects[0].role = PresentationRole::Collection;
+    original.subjects[1].role = PresentationRole::Item;
+    let original = Presentation::new_with_semantics(
+        original.revision,
+        original.basis,
+        original.subjects,
+        original.relationships,
+        original.properties,
+        original.text,
+        original.actions,
+        original.disclosures,
+    )
+    .unwrap();
+    let provider = fixture::framebuffer_provider_entry();
+    let host = conduit_conduitos_mask_offer::native_host_advertisement(
+        &"host/native".into(),
+        &"boot/native".into(),
+        1,
+        &provider,
+    );
+    let mut scenes = Vec::new();
+    for recipe in [TodoComponentRecipe::Flat, TodoComponentRecipe::Grouped] {
+        let (_, configuration) = conduit_conduitos_mask_offer::prepare_component_stage_from_offer(
+            &host,
+            ComponentMaskLook::Spacious,
+            recipe,
+        )
+        .unwrap();
+        let recipe = prepare_component_recipe(
+            conduit_core::StructuredInfoValue::from_canonical_bytes(
+                configuration.recipe.canonical_value(),
+            )
+            .unwrap(),
+            &original,
+        )
+        .unwrap();
+        let expression = admit_visual_expression(
+            Ok(visual_expression_from_info(
+                conduit_core::StructuredInfoValue::from_canonical_bytes(
+                    configuration.expression.canonical_value(),
+                )
+                .unwrap(),
+            )
+            .unwrap()),
+            VisualUserConstraints {
+                forced_colors: false,
+                reduced_motion: true,
+                minimum_text_scale_percent: 100,
+                maximum_supported_text_scale_percent: 200,
+            },
+        )
+        .unwrap();
+        scenes.push(
+            NativeFaceScene::prepare_configured(
+                original.clone(),
+                1000,
+                480,
+                true,
+                &recipe,
+                &expression,
+            )
+            .unwrap(),
+        );
+    }
+    assert_eq!(scenes[0].presentation(), &original);
+    assert_eq!(scenes[1].presentation(), &original);
+    let controls = |scene: &NativeFaceScene| {
+        scene
+            .primary
+            .iter()
+            .filter_map(|row| row.control)
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(controls(&scenes[0]), controls(&scenes[1]));
+    assert_eq!(
+        scenes[0]
+            .primary
+            .iter()
+            .filter(|row| row.region_start)
+            .count(),
+        1
+    );
+    assert_eq!(
+        scenes[1]
+            .primary
+            .iter()
+            .filter(|row| row.region_start)
+            .count(),
+        2
+    );
+    assert_eq!(scenes[0].text_scale_percent(), 125);
+    assert_eq!(scenes[1].text_scale_percent(), 125);
+}
+
+#[test]
+fn maximum_todo_projection_keeps_all_controls_and_detail_pages_in_both_native_looks() {
+    use conduit_todo_face::todo_fragment;
+    use conduit_todo_plot::{TodoItem, TodoState};
+    let state = TodoState {
+        title: "Things".into(),
+        revision: 20,
+        next_id: 21,
+        items: (1..=20)
+            .map(|number| TodoItem {
+                id: alloc::format!("task-{number}"),
+                text: alloc::format!("{number:02}{}", "é".repeat(35)),
+                complete: number % 2 == 0,
+            })
+            .collect(),
+    };
+    state.validate().unwrap();
+    let fragment = todo_fragment(
+        &state,
+        PresentationContributionBasis {
+            checked_plot_id: "checked/todo".into(),
+            plan_id: "plan/todo".into(),
+            active_play_id: "play/todo".into(),
+            required_interaction_context: None,
+        },
+        true,
+    )
+    .unwrap();
+    let original = Presentation::new_with_semantics(
+        7,
+        face(7).basis,
+        fragment.subjects,
+        fragment.relationships,
+        fragment.properties,
+        fragment.text,
+        fragment.actions,
+        fragment.disclosures,
+    )
+    .unwrap();
+    assert!(!original.actions[0].availability.is_available());
+    let provider = fixture::framebuffer_provider_entry();
+    let host = conduit_conduitos_mask_offer::native_host_advertisement(
+        &"host/native".into(),
+        &"boot/native".into(),
+        1,
+        &provider,
+    );
+    for look in [ComponentMaskLook::Compact, ComponentMaskLook::Spacious] {
+        for recipe in [TodoComponentRecipe::Flat, TodoComponentRecipe::Grouped] {
+            let (_, configuration) =
+                conduit_conduitos_mask_offer::prepare_component_stage_from_offer(
+                    &host, look, recipe,
+                )
+                .unwrap();
+            let recipe = prepare_component_recipe(
+                conduit_core::StructuredInfoValue::from_canonical_bytes(
+                    configuration.recipe.canonical_value(),
+                )
+                .unwrap(),
+                &original,
+            )
+            .unwrap();
+            let expression = admit_visual_expression(
+                visual_expression_from_info(
+                    conduit_core::StructuredInfoValue::from_canonical_bytes(
+                        configuration.expression.canonical_value(),
+                    )
+                    .unwrap(),
+                ),
+                VisualUserConstraints {
+                    forced_colors: true,
+                    reduced_motion: true,
+                    minimum_text_scale_percent: 200,
+                    maximum_supported_text_scale_percent: 200,
+                },
+            )
+            .unwrap();
+            let mut scene = NativeFaceScene::prepare_configured(
+                original.clone(),
+                320,
+                240,
+                true,
+                &recipe,
+                &expression,
+            )
+            .unwrap();
+            assert_eq!(scene.presentation(), &original);
+            assert_eq!(scene.text_scale_percent(), 200);
+            assert!(expression.platform_forced_colors);
+            scene.show_details(true);
+            assert!(scene.pages() > 1);
+            let text: alloc::string::String =
+                scene.details.iter().map(|row| row.text.as_str()).collect();
+            for item in &state.items {
+                assert!(text.contains(&item.text));
+            }
+            let mut expected = Vec::new();
+            for row in &scene.details {
+                if let Some(control) = row.control {
+                    if original.actions[control.action].availability.is_available()
+                        && !expected.contains(&control)
+                    {
+                        expected.push(control);
+                    }
+                }
+            }
+            assert_eq!(expected.len(), 40);
+            let mut reached = Vec::new();
+            for _ in 0..expected.len() {
+                let control = scene.focus_next(true).unwrap();
+                assert!(!reached.contains(&control));
+                assert!(original.actions[control.action].availability.is_available());
+                scene.frame().unwrap();
+                reached.push(control);
+            }
+            assert_eq!(reached, expected);
+            assert_eq!(scene.focus_next(true), expected.first().copied());
+            assert_eq!(scene.presentation(), &original);
+        }
+    }
+}
+
+#[test]
+fn native_density_changes_measured_padding_without_changing_source_geometry() {
+    let original = face(7);
+    let provider = fixture::framebuffer_provider_entry();
+    let host = conduit_conduitos_mask_offer::native_host_advertisement(
+        &"host/native".into(),
+        &"boot/native".into(),
+        1,
+        &provider,
+    );
+    let mut scenes = Vec::new();
+    for look in [ComponentMaskLook::Compact, ComponentMaskLook::Spacious] {
+        let (_, configuration) = conduit_conduitos_mask_offer::prepare_component_stage_from_offer(
+            &host,
+            look,
+            TodoComponentRecipe::Flat,
+        )
+        .unwrap();
+        let recipe = prepare_component_recipe(
+            conduit_core::StructuredInfoValue::from_canonical_bytes(
+                configuration.recipe.canonical_value(),
+            )
+            .unwrap(),
+            &original,
+        )
+        .unwrap();
+        let expression = admit_visual_expression(
+            visual_expression_from_info(
+                conduit_core::StructuredInfoValue::from_canonical_bytes(
+                    configuration.expression.canonical_value(),
+                )
+                .unwrap(),
+            ),
+            VisualUserConstraints {
+                forced_colors: false,
+                reduced_motion: true,
+                minimum_text_scale_percent: 200,
+                maximum_supported_text_scale_percent: 200,
+            },
+        )
+        .unwrap();
+        scenes.push(
+            NativeFaceScene::prepare_configured(
+                original.clone(),
+                1000,
+                480,
+                true,
+                &recipe,
+                &expression,
+            )
+            .unwrap(),
+        );
+    }
+    assert_eq!(scenes[0].primary[0].padding, SPACE_SM);
+    assert_eq!(scenes[1].primary[0].padding, SPACE_SM * 2);
+    assert_eq!(scenes[0].primary[0].bounds.x, scenes[1].primary[0].bounds.x);
+    assert_eq!(
+        scenes[0].primary[0].bounds.width,
+        scenes[1].primary[0].bounds.width
+    );
+    assert_eq!(
+        scenes[1].primary[0].bounds.height,
+        scenes[0].primary[0].bounds.height + SPACE_SM * 2
+    );
+    assert_eq!(
+        scenes[0].primary[0].text_bounds().height,
+        scenes[1].primary[0].text_bounds().height
+    );
+    let controls = |scene: &NativeFaceScene| {
+        scene
+            .primary
+            .iter()
+            .filter_map(|row| row.control)
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(controls(&scenes[0]), controls(&scenes[1]));
+    assert_eq!(scenes[0].presentation(), &original);
+    assert_eq!(scenes[1].presentation(), &original);
+}

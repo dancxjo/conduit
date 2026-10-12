@@ -2,10 +2,9 @@
 
 use embedded_io::{Error, ErrorKind, ErrorType, Read, Write};
 use smoltcp::{
-    iface::{Config, Interface, SocketHandle, SocketSet, SocketStorage},
+    iface::{Interface, SocketHandle, SocketSet, SocketStorage},
     socket::tcp,
     time::Instant,
-    wire::{EthernetAddress, HardwareAddress, IpAddress, IpCidr, Ipv4Address},
 };
 
 use crate::{
@@ -31,9 +30,13 @@ impl core::error::Error for VirtioTcpIoError {}
 impl Error for VirtioTcpIoError {
     fn kind(&self) -> ErrorKind {
         match self.0 {
-            VirtioTcpError::InvalidEndpoint => ErrorKind::InvalidInput,
+            VirtioTcpError::InvalidEndpoint | VirtioTcpError::ClockRegressed => {
+                ErrorKind::InvalidInput
+            }
             VirtioTcpError::ConnectRefused => ErrorKind::ConnectionRefused,
-            VirtioTcpError::RemoteClosed => ErrorKind::ConnectionAborted,
+            VirtioTcpError::RemoteClosed | VirtioTcpError::Cancelled => {
+                ErrorKind::ConnectionAborted
+            }
             VirtioTcpError::Timeout => ErrorKind::TimedOut,
             VirtioTcpError::SendRefused => ErrorKind::WriteZero,
             VirtioTcpError::ReceiveRefused
@@ -90,43 +93,16 @@ impl<'a> VirtioTcpStream<'a> {
         }
         let mac = device.identity().mac;
         let mut adapter = VirtioDevice::new(device);
-        let mut config = Config::new(HardwareAddress::Ethernet(EthernetAddress(mac)));
-        config.random_seed = random_seed;
-        let mut interface = Interface::new(config, &mut adapter, Instant::ZERO);
-        let mut address_admitted = false;
-        interface.update_ip_addrs(|addresses| {
-            address_admitted = addresses
-                .push(IpCidr::new(
-                    IpAddress::Ipv4(ipv4(endpoint.guest_address)),
-                    endpoint.prefix_length,
-                ))
-                .is_ok();
-        });
-        if !address_admitted {
-            return Err(VirtioTcpError::InvalidEndpoint);
-        }
-        interface
-            .routes_mut()
-            .add_default_ipv4_route(ipv4(endpoint.gateway))
-            .map_err(|_| VirtioTcpError::InvalidEndpoint)?;
-
-        let socket = tcp::Socket::new(
-            tcp::SocketBuffer::new(receive_storage),
-            tcp::SocketBuffer::new(transmit_storage),
-        );
-        let mut sockets = SocketSet::new(socket_storage);
-        let handle = sockets.add(socket);
-        sockets
-            .get_mut::<tcp::Socket>(handle)
-            .connect(
-                interface.context(),
-                (
-                    IpAddress::Ipv4(ipv4(endpoint.remote_address)),
-                    endpoint.remote_port,
-                ),
-                endpoint.local_port,
-            )
-            .map_err(|_| VirtioTcpError::ConnectRefused)?;
+        let (interface, sockets, handle) = crate::virtio_tcp::session::prepare_session(
+            &mut adapter,
+            random_seed,
+            mac,
+            endpoint,
+            Instant::ZERO,
+            receive_storage,
+            transmit_storage,
+            socket_storage,
+        )?;
         let mut stream = Self {
             adapter,
             interface,
@@ -197,8 +173,21 @@ impl Read for VirtioTcpStream<'_> {
         if output.is_empty() {
             return Ok(0);
         }
-        for _ in 0..self.maximum_polls {
-            self.poll_io()?;
+        // An admitted wall-clock deadline bounds product response waiting.
+        // A tight CPU poll count can expire before a bounded owner action has
+        // completed, even though its response window remains open. Clockless
+        // proof streams retain the explicit poll limit. poll() also checks the
+        // cumulative u32 counter, so every path retains a finite work bound.
+        let read_poll_limit = if self.deadline.is_some() {
+            u32::MAX
+        } else {
+            self.maximum_polls
+        };
+        for _ in 0..read_poll_limit {
+            self.poll_io().map_err(|error| {
+                report_read_refusal(error.0.as_str());
+                error
+            })?;
             let socket = self.sockets.get_mut::<tcp::Socket>(self.handle);
             if socket.can_recv() {
                 return socket
@@ -206,11 +195,19 @@ impl Read for VirtioTcpStream<'_> {
                     .map_err(|_| VirtioTcpIoError(VirtioTcpError::ReceiveRefused));
             }
             if !socket.may_recv() || !socket.is_active() {
+                report_read_refusal("tcp-peer-closed");
                 return Ok(0);
             }
         }
+        report_read_refusal("tcp-read-poll-bound");
         Err(VirtioTcpIoError(VirtioTcpError::Timeout))
     }
+}
+
+fn report_read_refusal(code: &str) {
+    crate::arch::early_write(b"CONDUIT_NATIVE_TCP_READ {\"code\":\"");
+    crate::arch::early_write(code.as_bytes());
+    crate::arch::early_write(b"\"}\n");
 }
 
 impl Write for VirtioTcpStream<'_> {
@@ -246,10 +243,6 @@ impl Write for VirtioTcpStream<'_> {
         }
         Err(VirtioTcpIoError(VirtioTcpError::Timeout))
     }
-}
-
-const fn ipv4(address: [u8; 4]) -> Ipv4Address {
-    Ipv4Address::new(address[0], address[1], address[2], address[3])
 }
 
 impl From<VirtioNetError> for VirtioTcpIoError {

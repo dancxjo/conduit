@@ -5,11 +5,11 @@
 //! its explicit replacement glyph. This is scalar rendering, not general shaping.
 
 mod raster;
-pub use raster::{render_glyph, render_text};
+pub use raster::{render_glyph, render_text, render_text_scaled};
 mod layout;
 pub use layout::{PositionedGlyph, TextLayout};
 mod scene;
-pub use scene::render_scene;
+pub use scene::{render_scene, render_scene_configured, render_scene_scaled};
 
 /// Text purpose selects a fixed made profile, never an ambient font.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -67,7 +67,31 @@ enum Raster {
 /// Borrowed glyph with explicit unsupported-scalar reporting.
 pub struct GlyphRaster {
     raster: Raster,
+    scale: TextScale,
     pub unsupported: bool,
+}
+
+/// Per-render scale admission; no ambient or mutable font configuration.
+#[derive(Clone, Copy)]
+pub(super) struct TextScale(u16);
+impl TextScale {
+    pub(super) fn new(percent: u16) -> Result<Self, crate::display::DisplayError> {
+        if !(100..=200).contains(&percent) {
+            return Err(crate::display::DisplayError::InvalidExtent);
+        }
+        Ok(Self(percent))
+    }
+    pub(super) fn unsigned(self, value: u32) -> u32 {
+        (value * u32::from(self.0)).div_ceil(100)
+    }
+    fn signed(self, value: i16) -> i16 {
+        (i32::from(value) * i32::from(self.0)).div_euclid(100) as i16
+    }
+}
+pub(super) fn scaled_glyph(role: TextRole, character: char, scale: TextScale) -> GlyphRaster {
+    let mut raster = glyph(role, character);
+    raster.scale = scale;
+    raster
 }
 
 pub fn metrics(role: TextRole) -> &'static ProfileMetrics {
@@ -79,12 +103,14 @@ pub fn glyph(role: TextRole, character: char) -> GlyphRaster {
     match GLYPHS.binary_search_by_key(&key, |glyph| (glyph.profile, glyph.codepoint)) {
         Ok(index) => GlyphRaster {
             raster: Raster::Smooth(&GLYPHS[index]),
+            scale: TextScale(100),
             unsupported: false,
         },
         Err(_) => {
             let (glyph, unsupported) = super::font::glyph(character);
             GlyphRaster {
                 raster: Raster::Rescue(glyph),
+                scale: TextScale(100),
                 unsupported,
             }
         }
@@ -94,13 +120,13 @@ pub fn glyph(role: TextRole, character: char) -> GlyphRaster {
 impl GlyphRaster {
     /// Horizontal advance in 1/64 pixel units; zero-advance marks stay zero.
     pub fn advance(&self) -> u16 {
-        match self.raster {
+        self.scale.unsigned(u32::from(match self.raster {
             Raster::Smooth(glyph) => glyph.advance,
             Raster::Rescue(glyph) => u16::from(glyph.width) * 64,
-        }
+        })) as u16
     }
 
-    pub fn extent(&self) -> (u8, u8) {
+    fn base_extent(&self) -> (u8, u8) {
         match self.raster {
             Raster::Smooth(glyph) => (glyph.width, glyph.height),
             Raster::Rescue(glyph) => (glyph.width, super::font::GLYPH_HEIGHT as u8),
@@ -108,19 +134,33 @@ impl GlyphRaster {
     }
 
     /// Top-left offset relative to the pen at the baseline; y grows downward.
-    pub fn bearing(&self) -> (i16, i16) {
+    fn base_bearing(&self) -> (i16, i16) {
         match self.raster {
             Raster::Smooth(glyph) => (glyph.x, -glyph.y - i16::from(glyph.height)),
             Raster::Rescue(_) => (0, -14),
         }
     }
 
+    pub fn extent(&self) -> (u8, u8) {
+        let (width, height) = self.base_extent();
+        (
+            self.scale.unsigned(u32::from(width)) as u8,
+            self.scale.unsigned(u32::from(height)) as u8,
+        )
+    }
+    pub fn bearing(&self) -> (i16, i16) {
+        let (x, y) = self.base_bearing();
+        (self.scale.signed(x), self.scale.signed(y))
+    }
     /// Coverage outside the glyph is transparent, including at clipped edges.
     pub fn coverage(&self, x: u8, y: u8) -> u8 {
         let (width, height) = self.extent();
         if x >= width || y >= height {
             return 0;
         }
+        let x = (u32::from(x) * 100 / u32::from(self.scale.0)) as u8;
+        let y = (u32::from(y) * 100 / u32::from(self.scale.0)) as u8;
+        let (width, _) = self.base_extent();
         match self.raster {
             Raster::Smooth(glyph) => {
                 COVERAGE[glyph.offset + usize::from(y) * usize::from(width) + usize::from(x)]
@@ -140,6 +180,29 @@ impl GlyphRaster {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn doubled_glyph_preserves_every_coverage_sample_in_four_pixels() {
+        for character in ['W', 'i', 'ề', '\u{10ffff}'] {
+            let original = glyph(TextRole::Body, character);
+            let doubled = scaled_glyph(TextRole::Body, character, TextScale::new(200).unwrap());
+            let (width, height) = original.extent();
+            assert_eq!(doubled.extent(), (width * 2, height * 2));
+            for y in 0..height {
+                for x in 0..width {
+                    for dy in 0..2 {
+                        for dx in 0..2 {
+                            assert_eq!(
+                                doubled.coverage(x * 2 + dx, y * 2 + dy),
+                                original.coverage(x, y)
+                            );
+                        }
+                    }
+                }
+            }
+            assert_eq!(doubled.unsupported, original.unsupported);
+        }
+    }
 
     #[test]
     fn fixed_tables_are_ordered_bounded_and_have_smooth_coverage() {
