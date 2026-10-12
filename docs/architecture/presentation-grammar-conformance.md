@@ -525,3 +525,29 @@ pages, deterministic linear output and utterance-plan provenance. It neither
 creates a fixture replacement Body nor performs an owner action. Until the
 live journey and consumer execute successfully, this remains prepared software
 proof, not native gesture, scanout, delivered speech or human evidence.
+
+The installed `4cf2c44c9` retained-DOM producer completed two supplied reopen
+actions and one completion on the existing three-item Body. Its stale Show
+return refused without changing the immediately observed Face. The outer
+capture then refused because browser cleanup changed Face identity/revision;
+it did not produce the verified-execution receipt required by the consumer.
+The corrected producer captures the actual post-stale Face before cleanup and
+retains a separate later owner Face. Generic, compact and spacious Looks now
+record source-correlated semantics, availability, disclosure, keyboard focus
+and measured density. These corrected captures still require live execution.
+
+Parsec now has checked source-owned finite map transitions and a bounded child
+scan retaining their complete results. Focused software tests cover phase,
+remap, stale revision, revision exhaustion, cancellation, pressure and parent
+Play receipts. An actual StdHost advertisement and one whole Body Play accept
+typed commands through a sealed live Fore queue. This proves the software scan
+path; it does not establish a current keyboard binding, physical input, or a
+Face/Show-correlated action grant. The combined keyboard/scan profile and its
+private current-binding checks remain required.
+
+The prepared input-policy evaluator checks exact authored-source reproduction
+and selected Plan custody, validates generated owner contracts, and evaluates
+phase/control proposals without runtime allocation. Five focused software
+tests and strict presentation Clippy pass, including altered checked-source
+refusal and malformed/refinement-forged frames. Proposal context and its
+revision remain supplied observations; they do not mint current authority.
