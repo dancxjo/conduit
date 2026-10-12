@@ -21,6 +21,7 @@ pub(super) struct BodyForeRoute<'a> {
 
 struct OutputSlots {
     port: LoweredForePort,
+    source_node: Option<conduit_kernel::NodeId>,
     available: Vec<ExternalForeDelivery>,
     input_origin: Option<(
         conduit_kernel::NodeId,
@@ -127,6 +128,13 @@ impl<'a> BodyForeRoute<'a> {
             }
             output_slots.push(OutputSlots {
                 port: port.clone(),
+                source_node: partitions.iter().find_map(|part| {
+                    let cord = part.cords.iter().find(|cord| cord.spec.cord == port.cord)?;
+                    match cord.spec.source {
+                        conduit_kernel::CordEndpoint::Local { node, .. } => Some(node),
+                        conduit_kernel::CordEndpoint::Remote(_) => None,
+                    }
+                }),
                 available,
                 input_origin: partitions.iter().find_map(|part| {
                     let cord = part.cords.iter().find(|cord| cord.spec.cord == port.cord)?;
@@ -192,6 +200,7 @@ impl<'a> BodyForeRoute<'a> {
         scheduler: &mut InstalledScheduler,
         output: &mut Option<&mut dyn BodyForeOutputAdapter>,
         mut input: Option<&mut super::super::keyboard_input_host::KeyboardInputHost<'_>>,
+        mut map: Option<&mut super::parsec_acknowledged_map::ParsecAcknowledgedMap>,
     ) -> Result<(), String> {
         for slots in &mut self.output_slots {
             let planned = &slots.port;
@@ -246,6 +255,18 @@ impl<'a> BodyForeRoute<'a> {
                 scheduler
                     .remote_egress_delivered(planned.endpoint, planned.cord, offer.sequence)
                     .map_err(|error| format!("Body Fore acknowledge: {error:?}"))?;
+                if slots.input_origin.is_none() {
+                    if let Some(map) = map.as_deref_mut() {
+                        map.acknowledge_lowered(
+                            planned,
+                            slots
+                                .source_node
+                                .ok_or("Parsec states Fore lost its local source")?,
+                            offer.sequence,
+                            &delivery.bytes,
+                        )?;
+                    }
+                }
                 if let Some((node, call, descriptor, physical_event)) = completed {
                     input
                         .as_deref_mut()

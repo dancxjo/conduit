@@ -17,6 +17,9 @@ use conduit_presentation::{ParsecMapCommand, ParsecMapTransitionResult, PARSEC_M
 use std::collections::BTreeMap;
 use std::{sync::mpsc, time::Duration};
 
+#[path = "parsec_input_map_body_tests.rs"]
+mod input_map;
+
 struct NoTimer;
 
 impl TimerAdapter for NoTimer {

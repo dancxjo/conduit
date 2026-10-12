@@ -26,6 +26,7 @@ use std::io::Write;
 
 mod clock_observation;
 mod fore_route;
+mod parsec_acknowledged_map;
 mod parsec_sources;
 mod scan_route;
 use crate::body_execution::ObservedKernelEvent;
@@ -48,6 +49,7 @@ pub(crate) struct BodyKernel<'a> {
     clock_observations: KernelClockObservations,
     supported_pure_scan: bool,
     supported_parsec_input_scan: bool,
+    parsec_map: Option<parsec_acknowledged_map::ParsecAcknowledgedMap>,
     todo_checkpoint: Option<crate::todo_checkpoint_call::TodoCheckpointHost>,
     todo_checkpoint_read: Option<crate::todo_checkpoint_read_call::TodoCheckpointReadHost>,
 }
@@ -438,6 +440,7 @@ impl<'a> BodyKernel<'a> {
             clock_observations: KernelClockObservations::with_capacity(usize::from(sign_items)),
             supported_pure_scan,
             supported_parsec_input_scan,
+            parsec_map: None,
             todo_checkpoint: None,
             todo_checkpoint_read: None,
         })
@@ -471,6 +474,14 @@ impl<'a> BodyKernel<'a> {
                 .as_mut()
                 .ok_or("Parsec input origin is absent")?
                 .enable_completed_event_custody()?;
+            self.parsec_map = Some(parsec_acknowledged_map::ParsecAcknowledgedMap::prepare(
+                plan,
+                advertisement,
+                prospective,
+                self.partitions
+                    .first()
+                    .ok_or("Parsec map partition is absent")?,
+            )?);
         }
         Ok(())
     }
@@ -484,7 +495,11 @@ impl<'a> BodyKernel<'a> {
             Some(origin) => origin.confirm_body_play(advertisement, issued),
             None if !super::keyboard_input_binding::has_input_source(&self.operations) => Ok(()),
             None => Err("Body input origin was not prepared".into()),
+        }?;
+        if let Some(map) = self.parsec_map.as_mut() {
+            map.confirm(advertisement, issued)?;
         }
+        Ok(())
     }
 
     /// Bind at most one selected reader and publisher to their exact lowered
@@ -621,6 +636,7 @@ impl<'a> BodyKernel<'a> {
                     &mut self.scheduler,
                     &mut fore_output,
                     self.supported_parsec_input_scan.then_some(&mut keys),
+                    self.parsec_map.as_mut(),
                 )?;
                 self.clock_observations.capture_new(
                     self.scheduler.signs().events(),
@@ -633,6 +649,9 @@ impl<'a> BodyKernel<'a> {
                         .cancel()
                         .map_err(|error| format!("Body cancel: {error:?}"))?;
                     keys.cancel();
+                    // No acknowledged map remains current while the owning
+                    // Body Play is being cancelled.
+                    self.parsec_map = None;
                     deadlines.clear();
                     cancelling = true;
                 }
