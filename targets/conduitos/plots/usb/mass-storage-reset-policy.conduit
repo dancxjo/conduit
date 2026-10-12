@@ -1,0 +1,29 @@
+with machine/usb/control/request as UsbControlRequest
+with machine/usb/control/result as UsbControlResult
+
+# First BOT profile only: interface 0, bulk IN 0x81, bulk OUT 0x02.
+# Invoke only after the previous transfer has acknowledged quiescence.
+# Recovery grants no block request, write authority or command replay.
+type BotRecoveryRequest =
+    ready UsbControlRequest
+    | refused
+type BotRecoveryOutcome =
+    recovered
+    | refused
+
+plot bot-recovery-start (
+    interface: U64...| <= 4096B >> next: BotRecoveryRequest...| <= 4096B
+) = (. == 0 ? ready({ setup: 0x000000000000ff21, output: [] }) : refused(empty))
+
+# Only exact successful zero-data acknowledgments advance the sequence.
+plot bot-recovery-after-reset (
+    result: UsbControlResult...| <= 4096B >> next: BotRecoveryRequest...| <= 4096B
+) = (. is completed ? (.completed.transferred == 0 && !.completed.short && sequence/length(.completed.input) == 0 ? ready({ setup: 0x0000008100000102, output: [] }) : refused(empty)) : refused(empty))
+
+plot bot-recovery-after-clear-in (
+    result: UsbControlResult...| <= 4096B >> next: BotRecoveryRequest...| <= 4096B
+) = (. is completed ? (.completed.transferred == 0 && !.completed.short && sequence/length(.completed.input) == 0 ? ready({ setup: 0x0000000200000102, output: [] }) : refused(empty)) : refused(empty))
+
+plot bot-recovery-after-clear-out (
+    result: UsbControlResult...| <= 4096B >> outcome: BotRecoveryOutcome...| <= 4096B
+) = (. is completed ? (.completed.transferred == 0 && !.completed.short && sequence/length(.completed.input) == 0 ? recovered(empty) : refused(empty)) : refused(empty))
