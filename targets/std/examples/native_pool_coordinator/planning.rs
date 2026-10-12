@@ -26,7 +26,9 @@ plot llm/generate (
     request: llm/generation-request@1 >> result: llm/generated-result@1
 ) {
 }
-plot consumer (workers: Pool) {
+plot consumer (
+    workers: Pool
+) {
     coordinate: conduit-proof/pool-coordinate(workers)
 }
 plot model-service {

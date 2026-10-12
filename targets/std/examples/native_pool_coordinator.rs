@@ -2,14 +2,20 @@
 //! Plans; it does not execute providers or implement an alternative selector.
 #[path = "native_pool_coordinator/freshness.rs"]
 mod freshness;
+#[path = "native_pool_coordinator/identity.rs"]
+mod identity;
 #[path = "native_pool_coordinator/planning.rs"]
 mod planning;
+#[path = "native_pool_coordinator/reference.rs"]
+mod reference;
 #[path = "native_pool_coordinator/samples.rs"]
 mod samples;
 fn main() {
     let result = match std::env::args().nth(1).as_deref() {
         None | Some("plan") => planning::run(),
         Some("check-sample") => samples::run(),
+        Some("run-reference") => reference::run(),
+        Some("initialize-reference") => identity::run(),
         _ => Err("unknown preparation command".into()),
     };
     if let Err(error) = result {
