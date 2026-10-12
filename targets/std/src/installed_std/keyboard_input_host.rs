@@ -13,6 +13,7 @@ pub(super) struct KeyboardInputHost<'a> {
     button_encoder: conduit_semantic_catalog::PreparedButtonTransitionEncoder,
     button_held: bool,
     button_sequence: u64,
+    terminal: bool,
 }
 
 #[derive(Clone, Copy)]
@@ -46,6 +47,7 @@ impl<'a> KeyboardInputHost<'a> {
             .expect("reviewed button transition encoder"),
             button_held: false,
             button_sequence: 0,
+            terminal: false,
         }
     }
 
@@ -55,6 +57,9 @@ impl<'a> KeyboardInputHost<'a> {
         input: &[u8],
         kind: InputRequestKind,
     ) -> Result<(), String> {
+        if self.terminal {
+            return Err("keyboard input session is terminal".into());
+        }
         if !input.is_empty() {
             return Err("keyboard input request carries unexpected bytes".into());
         }
@@ -65,13 +70,15 @@ impl<'a> KeyboardInputHost<'a> {
             InputRequestKind::Keyboard => &mut self.pending_keyboard,
             InputRequestKind::SpaceButton => &mut self.pending_button,
         };
-        if pending.replace(request).is_some() {
+        if pending.is_some() {
             return Err("input source has two pending requests for one semantic port".into());
         }
+        *pending = Some(request);
         Ok(())
     }
 
     pub(super) fn cancel(&mut self) {
+        self.terminal = true;
         self.pending_keyboard = None;
         self.pending_button = None;
     }
@@ -81,7 +88,7 @@ impl<'a> KeyboardInputHost<'a> {
     }
 
     pub(super) fn poll(&mut self, scheduler: &mut InstalledScheduler) -> Result<bool, String> {
-        if !self.is_pending() {
+        if self.terminal || !self.is_pending() {
             return Ok(false);
         }
         // One physical event fans out to all admitted input realizations. Do
@@ -206,6 +213,7 @@ impl<'a> KeyboardInputHost<'a> {
         disposition: HostCallDisposition,
         failure: Option<conduit_kernel::Failure>,
     ) -> Result<(), String> {
+        self.terminal = true;
         for request in [self.pending_keyboard.take(), self.pending_button.take()]
             .into_iter()
             .flatten()
@@ -232,6 +240,7 @@ impl<'a> KeyboardInputHost<'a> {
         code: conduit_kernel::FailureCode,
         detail: u16,
     ) -> Result<bool, String> {
+        self.cancel();
         scheduler
             .complete_host_call(
                 request.node,
@@ -246,3 +255,7 @@ impl<'a> KeyboardInputHost<'a> {
         Ok(true)
     }
 }
+
+#[cfg(test)]
+#[path = "keyboard_input_host_tests.rs"]
+mod tests;
