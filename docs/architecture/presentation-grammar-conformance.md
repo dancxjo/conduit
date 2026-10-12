@@ -525,3 +525,38 @@ pages, deterministic linear output and utterance-plan provenance. It neither
 creates a fixture replacement Body nor performs an owner action. Until the
 live journey and consumer execute successfully, this remains prepared software
 proof, not native gesture, scanout, delivered speech or human evidence.
+
+### Completed input through the retained Parsec terminal
+
+The bounded combined Body route now consumes private completed-event custody
+only after kernel Fore acknowledgement and stages the original bytes in retained
+delivery history. It checks events after the entire Fore drain, including source
+state acknowledgements. Both raw-key and button observations retain the private
+Show epoch captured at adapter completion; that stamp grants no authority by
+itself. Admission separately checks the exact retained Body Plan, issued Play,
+full current Host advertisement and original input descriptor. A later accepted
+request does not replace an older genuine completed event.
+
+The concrete terminal owner evaluates the checked input policy against its
+current acknowledged source map and actual Face/Show. Raw Space is not a second
+Fire action; releases, missing/stale epochs and controls absent from the current
+map produce no command. The source action is focused before the terminal frame
+crosses write/flush and Show acknowledgement. Apply returns through the actual
+checked Mask execution, whose typed correlation is checked before constructing
+the native command and admitting it to the live source queue. A consumed Show
+stays unavailable until the corresponding source output is acknowledged, even
+when Shoot leaves the map unchanged. Full staging withdraws availability and
+prepares a fresh Show after pending acknowledgements without replaying an action.
+Stop guards observe cancellation without consuming its lifecycle request.
+
+Twenty-two focused Parsec tests, twenty-five keyboard regressions and fifty-four
+terminal regressions (one explicit ignore) pass. Strict all-target Std Clippy
+with burn-model and warnings denied also passes. The Parsec tests include an actual combined Body Play
+with Space→Start, Space→Shoot, source remapping, refused remapped Space and
+Enter→Shoot. Four actual source transitions and child Play receipts are checked;
+there is no fifth command from remapped Space. Separate mechanisms cover stale
+Show epochs, releases, unmapped Enter, Full recovery and inflight refusal. This
+is software keyboard/terminal evidence, not physical input, a browser Parsec
+journey or complete gameplay. Installed cross-Mask Todo execution, two genuine
+spoken Looks, hosted acceptance and stable publication remain required for
+#5355; this bounded route does not close #5369.

@@ -48,6 +48,8 @@ enum RequestAdmission {
 /// can construct this value. It deliberately has no current-map witness API.
 pub(super) struct KeyboardRequestAdmission {
     descriptors: Vec<InputDescriptor>,
+    host: HostAdvertisement,
+    body_plan: Option<conduit_body::BodyPlan>,
     fragment_play: Option<ActivePlayIdentity>,
     body_play: Option<conduit_body::BodyPlayIdentity>,
     issued: bool,
@@ -85,6 +87,8 @@ impl KeyboardRequestAdmission {
         }
         let mut admission = Self {
             descriptors: Vec::new(),
+            host: advertisement.clone(),
+            body_plan: None,
             fragment_play: Some(play.clone()),
             body_play: None,
             issued: true,
@@ -108,6 +112,8 @@ impl KeyboardRequestAdmission {
         }
         let mut admission = Self {
             descriptors: Vec::new(),
+            host: advertisement.clone(),
+            body_plan: Some(plan.clone()),
             fragment_play: None,
             body_play: Some(prospective.clone()),
             issued: false,
@@ -152,6 +158,7 @@ impl KeyboardRequestAdmission {
         if self.revoked
             || self.issued
             || self.body_play.as_ref() != Some(issued)
+            || advertisement != &self.host
             || self.descriptors.iter().any(|descriptor| {
                 descriptor.placement.host_id != advertisement.host_id
                     || descriptor.placement.boot_id != advertisement.boot_id
@@ -310,6 +317,61 @@ impl KeyboardRequestAdmission {
         ).ok_or_else(|| "input completion differs from exact accepted request".into())
     }
 
+    /// Completed-event origin and current issued scope only. A captured view
+    /// epoch, action map, Face/Show and typed command remain separate checks.
+    /// Preparation already validates the Plan/Play derivation; exact retained
+    /// equality here avoids rebuilding that allocating identity during admission.
+    pub(super) fn require_completed_event_scope(
+        &self,
+        event: &super::keyboard_input_completion::CompletedInputEvent,
+        plan: &conduit_body::BodyPlan,
+        play: &conduit_body::BodyPlayIdentity,
+        host: &HostAdvertisement,
+    ) -> Result<&conduit_core::PlanId, String> {
+        if self.revoked
+            || !self.issued
+            || !self.completions.enabled()
+            || host != &self.host
+            || self.body_plan.as_ref() != Some(plan)
+            || self.body_play.as_ref() != Some(play)
+        {
+            return Err("completed input differs from current issued Body Plan/Play/Host".into());
+        }
+        let descriptor = self
+            .descriptors
+            .get(event.descriptor)
+            .ok_or("completed input descriptor is absent")?;
+        let RequestAdmission::Current(latest) = descriptor.state else {
+            return Err("completed input descriptor is not current".into());
+        };
+        if event.realization != descriptor.realization
+            || InputRealization::from_contract(descriptor.operation.contract_id.as_str())
+                != Some(event.realization)
+            || event.request.node != descriptor.operation.node
+            || event.request.call != descriptor.operation.call
+            || descriptor.operation.binding.call != event.request.call
+            || event.request.request.0 > latest.0
+            || event.request.input.value.byte_len != 0
+            || event.request.input.admitted_bytes != 0
+            || event.value.byte_len > descriptor.operation.binding.maximum_output_bytes
+            || descriptor.placement.host_id != host.host_id
+            || descriptor.placement.boot_id != host.boot_id
+            || descriptor.placement.offer_generation != host.offer_generation
+            || !plan.plots.iter().any(|partition| {
+                partition.plan.plan_id == descriptor.input_plan
+                    && partition.plan.fragments.iter().any(|fragment| {
+                        fragment
+                            .placements
+                            .iter()
+                            .any(|placement| placement == &descriptor.placement)
+                    })
+            })
+        {
+            return Err("completed input differs from original admitted descriptor".into());
+        }
+        Ok(&descriptor.input_plan)
+    }
+
     /// Check input provenance only. A source-correlated proposal still requires
     /// an authorized current mapping/revision and an exact control/label match.
     /// RawKeyboard is not itself evidence of an Enter mapping; SpaceButton is
@@ -376,3 +438,7 @@ mod tests;
 #[cfg(test)]
 #[path = "keyboard_input_binding_body_tests.rs"]
 mod body_tests;
+
+#[cfg(test)]
+#[path = "keyboard_input_scope_tests.rs"]
+mod scope_tests;

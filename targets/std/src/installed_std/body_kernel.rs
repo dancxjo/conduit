@@ -661,7 +661,7 @@ impl<'a> BodyKernel<'a> {
                     self.supported_parsec_input_scan.then_some(&mut keys),
                     self.parsec_map.as_mut(),
                 )?;
-                if !cancelling && control.requested_stop().is_none() {
+                if !cancelling && !control.stop_requested() {
                     if let (Some(owner), Some(map), Some(attachment)) = (
                         self.parsec_terminal.as_mut(),
                         self.parsec_map.as_ref(),
@@ -671,6 +671,38 @@ impl<'a> BodyKernel<'a> {
                             let (face, show) = owner.current_face_show(map, &attachment.host)?;
                             attachment.observer.showed(face, show)?;
                         }
+                    }
+                }
+                // Drain every source state before checking an input. An event
+                // observed against an earlier Show must never be reinterpreted
+                // against a newer source map merely because Fore order differs.
+                while let Some(observed) = self.fore.take_acknowledged_input() {
+                    if cancelling || control.stop_requested() {
+                        continue;
+                    }
+                    if let (Some(owner), Some(map), Some(attachment)) = (
+                        self.parsec_terminal.as_mut(),
+                        self.parsec_map.as_ref(),
+                        terminal.as_mut(),
+                    ) {
+                        let input_plan = keys.require_completed_event_scope(
+                            &observed.event,
+                            owner.body_plan(),
+                            map.current_play()?,
+                            &attachment.host,
+                        )?;
+                        if input_plan != &owner.body_plan().plots[0].plan.plan_id {
+                            return Err(
+                                "Parsec completed event belongs to a different input Plan".into()
+                            );
+                        }
+                        owner.admit_completed_input(
+                            map,
+                            &attachment.host,
+                            &observed.event,
+                            self.fore.acknowledged_input_bytes(&observed),
+                            attachment.queue,
+                        )?;
                     }
                 }
                 self.clock_observations.capture_new(
@@ -1142,19 +1174,15 @@ impl<'a> BodyKernel<'a> {
                 // Snapshot the privately owned, acknowledged Show immediately
                 // before any adapter poll. This is observation metadata only;
                 // later action admission must still recheck exact current custody.
-                let input_view_epoch = if !cancelling && control.requested_stop().is_none() {
+                let input_view_epoch = if !cancelling && !control.stop_requested() {
                     match (
                         self.parsec_terminal.as_mut(),
                         self.parsec_map.as_ref(),
                         terminal.as_ref(),
                     ) {
-                        (Some(owner), Some(map), Some(attachment)) => Some(
-                            owner
-                                .current_face_show(map, &attachment.host)?
-                                .1
-                                .show
-                                .play_sequence,
-                        ),
+                        (Some(owner), Some(map), Some(attachment)) => {
+                            owner.input_view_epoch(map, &attachment.host)?
+                        }
                         _ => None,
                     }
                 } else {
