@@ -461,3 +461,11 @@ replace the source literals while Face/Show and mapping revision are retained.
 This is source declaration/expansion/evaluation proof. It establishes neither
 a selected physical input binding nor a gameplay state transition; producer
 execution/Plan custody and current binding admission remain required.
+
+Each binding policy now also places through the actual std pure-expression
+capability definition in a named fixture Host advertisement. Ordinary planning
+retains explicit bounded external Fore queues, selected Host/Boot, and the
+shared source/Plan custody gate reproduces the complete Plan. Removing the
+required capability refuses placement. The std-offer dependency is development-
+only. This extends the proof to producer planning; it is still not installed
+Host execution, physical control availability or current binding admission.

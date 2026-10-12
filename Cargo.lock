@@ -2340,6 +2340,7 @@ dependencies = [
  "conduit-human",
  "conduit-planner",
  "conduit-plot",
+ "conduit-std-offers",
  "conduit-time",
  "postcard",
  "serde",

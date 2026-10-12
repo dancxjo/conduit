@@ -59,6 +59,95 @@ fn source_owned_start_remap_and_gameplay_policies_have_typed_fores() {
         let conduit_core::ConfigurationValue::Text(program) = &program.value else {
             panic!("checked program");
         };
+        let decoded = conduit_plot::PortableExpressionProgram::from_canonical_hex(program).unwrap();
+        let host = conduit_core::HostAdvertisement {
+            protocol_version: conduit_core::PROTOCOL_VERSION,
+            host_id: conduit_core::HostId::from("host/current"),
+            boot_id: conduit_core::BootId::from("boot/current"),
+            offer_generation: conduit_core::OfferGeneration(1),
+            profile: conduit_core::HostProfileId::from("fixture/std-input-policy"),
+            bases: vec![],
+            resources: vec![],
+            planner_capabilities: vec![],
+            capabilities: vec![conduit_std_offers::pure_expression_std_offer(
+                &decoded,
+                gear.inputs[0].temporal,
+            )
+            .unwrap()],
+        };
+        let mut unavailable_host = host.clone();
+        unavailable_host.capabilities.clear();
+        assert!(conduit_planner::default_expanded_placements(
+            &expanded.expanded,
+            std::slice::from_ref(&unavailable_host)
+        )
+        .is_err());
+        let placements = conduit_planner::default_expanded_placements(
+            &expanded.expanded,
+            std::slice::from_ref(&host),
+        )
+        .unwrap();
+        let empty = std::collections::BTreeMap::new();
+        let lines = std::collections::BTreeMap::new();
+        let options = || conduit_planner::PlanningOptions {
+            connection_bases: &empty,
+            line_candidates: &lines,
+            connection_item_capacity: 1,
+            connection_byte_capacity: 4096,
+            authority_grants: &[],
+            protected_resource_grants: &[],
+            line_offers: &[],
+        };
+        let boundaries = expanded
+            .input_bindings
+            .iter()
+            .map(|binding| (conduit_core::PortDirection::Input, binding))
+            .chain(
+                expanded
+                    .output_bindings
+                    .iter()
+                    .map(|binding| (conduit_core::PortDirection::Output, binding)),
+            )
+            .map(|(direction, binding)| {
+                (
+                    conduit_planner::ForeBoundaryKey {
+                        direction,
+                        front_port_id: binding.front_port_id.clone(),
+                        track: binding.track,
+                    },
+                    conduit_planner::ConnectionQueueLimits {
+                        item_capacity: 1,
+                        byte_capacity: 4096,
+                    },
+                )
+            })
+            .collect();
+        let plan = conduit_planner::plan_expanded_authoring_with_options(
+            &expanded,
+            std::slice::from_ref(&host),
+            &placements,
+            &[],
+            options(),
+            &boundaries,
+        )
+        .unwrap();
+        let custody = conduit_presentation::prepare_checked_source_plan(
+            &checked,
+            &expanded,
+            &profiles,
+            &conduit_plot::CanonicalBackCatalog::new(),
+            &plan,
+            conduit_presentation::CheckedSourcePlanInputs {
+                hosts: std::slice::from_ref(&host),
+                placements: &placements,
+                bases: &[],
+                options: options(),
+                boundary_limits: &boundaries,
+            },
+        )
+        .unwrap();
+        assert_eq!(custody.plan().plan_id, plan.plan_id);
+        assert_eq!(plan.fragments[0].placements[0].host_id, host.host_id);
         let input = context
             .clone()
             .into_structured()
