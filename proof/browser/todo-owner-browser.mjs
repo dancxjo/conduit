@@ -11,7 +11,7 @@ import { pathToFileURL } from 'node:url';
 import { startStaticProduct } from './static-product-server.mjs';
 import { observedTodoMutation } from './todo-owner-events.mjs';
 import { captureDirectTodoSpeech } from './todo-owner-spoken.mjs';
-import { retainedTodoDomCompletion } from './todo-owner-retained-dom.mjs';
+import { retainedTodoDomCompletion, compareRetainedTodoLooks } from './todo-owner-retained-dom.mjs';
 import { assertLookReplacement } from './look-replacement-evidence.mjs';
 
 const [ownerCwdArg, binaryArg, stateArg, handbookArg, outputArg, playwrightArg,
@@ -179,30 +179,8 @@ try {
   }
   let retainedLookSelection = null;
   if (retainedDom) {
-    const previous = await page.evaluate(() => globalThis.__conduitOwnerParticipation.face());
-    const ownerBeforeLook = face();
-    // Exactly one local Look selection; subsequent waits only observe its fresh Show.
-    await page.evaluate(() => globalThis.__conduitOwnerParticipation.selectPresentation('compact', 'flat'));
-    await page.waitForFunction(priorShow => {
-      const view = globalThis.__conduitOwnerParticipation.face();
-      const element = document.querySelector('conduit-owner-face');
-      const expression = view?.component?.expression?.expression;
-      return view?.show_id !== priorShow && view?.show_state === 'available'
-        && view.interactions_admitted && expression?.identity && expression?.density
-        && element?.dataset.componentExpression === expression.identity
-        && element?.dataset.componentDensity === expression.density
-        && element?.dataset.componentColumns === String(view.component.maximum_columns)
-        && document.querySelector('[data-owner-show-acknowledged]')?.dataset.ownerShowAcknowledged === view.show_id;
-    }, previous.show_id, { timeout: 12_000 });
-    const selected = await page.evaluate(() => globalThis.__conduitOwnerParticipation.face());
-    assert.equal(selected.body_id, bodyId);
-    assert.deepEqual(face().presentation, ownerBeforeLook.presentation,
-      'Look selection must preserve the complete retained owner Face');
-    retainedLookSelection = { look: 'compact', recipe: 'flat',
-      prior_show_id: previous.show_id, selected_show_id: selected.show_id,
-      face_id: selected.face_id, face_revision: selected.face_revision,
-      expression: selected.component.expression.expression.identity,
-      density: selected.component.expression.expression.density };
+    retainedLookSelection = await compareRetainedTodoLooks({ page, face, bodyId,
+      hostId: identity.hostId, bootId: identity.bootId, output });
   }
   const before = await page.evaluate(() => globalThis.__conduitOwnerParticipation.face());
   assert.equal(before.body_id, bodyId);

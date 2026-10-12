@@ -114,3 +114,139 @@ export async function retainedTodoDomCompletion({ page, face, state, output, bod
   await writeFile(path.join(output, 'retained-dom-completion.json'), `${JSON.stringify(record, null, 2)}\n`);
   return record;
 }
+
+// Three actual Shows of one retained Face. Selections/disclosure/focus are Mask-local.
+export async function compareRetainedTodoLooks({ page, face, bodyId, hostId, bootId, output }) {
+  const source = face();
+  const observations = [];
+  const semantics = view => ({ subjects: view.subjects, relationships: view.relationships,
+    actions: view.actions, face_id: view.face_id, face_revision: view.face_revision, body_id: view.body_id });
+  for (const look of [null, 'compact', 'spacious']) {
+    const prior = await page.evaluate(() => globalThis.__conduitOwnerParticipation.face());
+    if (look) {
+      await page.evaluate(value => globalThis.__conduitOwnerParticipation.selectPresentation(value, 'flat'), look);
+    }
+    await page.waitForFunction(({ previous, selected }) => {
+      const view = globalThis.__conduitOwnerParticipation.face();
+      const element = document.querySelector('conduit-owner-face');
+      const expression = view?.component?.expression?.expression;
+      return view?.show_state === 'available' && view.interactions_admitted
+        && (!selected || (view.show_id !== previous && expression?.identity
+          && expression.density === selected && element?.dataset.componentExpression === expression.identity
+          && element?.dataset.componentDensity === selected
+          && element?.dataset.componentColumns === String(view.component.maximum_columns)))
+        && document.querySelector('[data-owner-show-acknowledged]')?.dataset.ownerShowAcknowledged === view.show_id;
+    }, { previous: prior.show_id, selected: look }, { timeout: 12_000 });
+    const view = await page.evaluate(() => globalThis.__conduitOwnerParticipation.face());
+    if (!look) {
+      assert.equal(Object.hasOwn(view, 'component'), false, 'generic serialized view must omit component evidence');
+      const genericDataset = await page.locator('conduit-owner-face').evaluate(element => ({
+        expression: Object.hasOwn(element.dataset, 'componentExpression'),
+        density: Object.hasOwn(element.dataset, 'componentDensity'),
+        columns: Object.hasOwn(element.dataset, 'componentColumns'),
+      }));
+      assert.deepEqual(genericDataset, { expression: false, density: false, columns: false },
+        'actual generic renderer must clear checked Look datasets');
+    }
+    assert.equal(view.body_id, bodyId);
+    assert.equal(view.route.mask_host_id, hostId);
+    assert.equal(view.route.mask_boot_id, bootId);
+    assert.equal(view.route.owner_host_id, source.advertisement.host_id);
+    assert.equal(view.route.owner_boot_id, source.advertisement.boot_id);
+    for (const key of ['mask_plot_id', 'mask_plan_id', 'mask_play_id', 'show_id']) assert.ok(view[key]);
+    assert.deepEqual(face().presentation, source.presentation, 'Look must preserve whole canonical Face');
+    assert.deepEqual(view.subjects.map(subject => [subject.identity, subject.name, subject.role]),
+      source.presentation.subjects.map(subject => [subject.identity, subject.name, subject.role]));
+    assert.deepEqual(view.actions.map(action => [action.identity, action.name, action.target, action.intent]),
+      source.presentation.actions.map(action => [action.identity, action.name, action.target, action.intent]));
+    for (const action of source.presentation.actions) {
+      assert.equal(view.actions.find(current => current.identity === action.identity).availability,
+        action.availability === 'Available' ? 'available'
+          : Object.hasOwn(action.availability, 'Refused') ? 'refused' : 'unavailable');
+    }
+    assert.deepEqual(view.relationships, source.presentation.relationships.map(relation => ({
+      source: relation.source, target: relation.target, kind: relation.kind })));
+    if (observations.length) assert.deepEqual(semantics(view), semantics(observations[0].view),
+      'all projected subject/action/relationship identities, order, disclosure and availability must survive');
+    // Open disclosure once where necessary, without submitting any domain action.
+    const summaries = page.locator('conduit-owner-face details > summary');
+    for (let index = 0; index < await summaries.count(); index++) {
+      const summary = summaries.nth(index);
+      if (!await summary.evaluate(node => node.parentElement.open)) await summary.click();
+    }
+    const dom = await page.locator('conduit-owner-face').evaluate(element => {
+      const root = element.shadowRoot;
+      const collection = root.querySelector('.owner-face-collection');
+      const style = getComputedStyle(collection);
+      return { text: root.textContent,
+        lists: [...root.querySelectorAll('.owner-face-items')].map(list => ({ label: list.getAttribute('aria-label'),
+          names: [...list.querySelectorAll('.owner-face-item-name')].map(node => node.textContent) })),
+        status: root.querySelector('.owner-face-collection-count')?.textContent,
+        forms: [...root.querySelectorAll('[data-owner-action]')].map(form => ({ action_id: form.dataset.ownerAction,
+          name: form.querySelector('button')?.textContent, disabled: form.querySelector('button')?.disabled })),
+        geometry: { collection_padding_px: Number.parseFloat(style.paddingTop),
+          collection_radius_px: Number.parseFloat(style.borderTopLeftRadius) } };
+    });
+    for (const subject of view.subjects) {
+      // Progress may be folded into collection wording; its essential source text must survive.
+      if (subject.role === 'Status') {
+        assert.ok(subject.text.length > 0);
+        for (const text of subject.text) assert.ok(dom.text.includes(text), `DOM omitted status ${subject.identity}`);
+      } else assert.ok(dom.text.includes(subject.name), `DOM omitted supplied subject name ${subject.identity}`);
+    }
+    const names = new Map(view.subjects.map(subject => [subject.identity, subject.name]));
+    for (const relation of view.relationships) {
+      assert.ok(dom.text.includes(`${names.get(relation.source) ?? relation.source} ${relation.kind.toLowerCase()} ${names.get(relation.target) ?? relation.target}`),
+        'actual disclosed relationship endpoints and meaning must survive');
+    }
+    for (const control of dom.forms) {
+      const action = view.actions.find(candidate => candidate.identity === control.action_id);
+      assert.ok(action, 'DOM cannot invent action identity');
+      assert.ok(control.name?.includes(action.name), 'actual accessible control names must retain supplied action wording');
+      if (action.availability !== 'available') assert.equal(control.disabled, true);
+      const button = page.locator(`[data-owner-action="${control.action_id}"]`).getByRole('button');
+      assert.ok(await button.isVisible(), 'disclosed action must be visible');
+    }
+    for (const action of view.actions.filter(action => action.availability === 'available')) {
+      assert.ok(dom.forms.some(form => form.action_id === action.identity), 'available supplied action must remain discoverable');
+    }
+    const add = view.actions.find(action => action.identity === 'todo.add');
+    assert.ok(add?.availability === 'available' && add.arguments.length === 1);
+    const addForm = page.locator('[data-owner-action="todo.add"]');
+    const input = addForm.getByRole('textbox', { name: add.arguments[0].value_name });
+    assert.ok(await input.isVisible());
+    await input.focus();
+    await page.keyboard.press('Tab');
+    const addButton = addForm.getByRole('button', { name: add.name, exact: true });
+    assert.ok(await addButton.evaluate(node => node.getRootNode().activeElement === node),
+      'keyboard traversal must reach the supplied named action');
+    assert.ok(await addButton.isEnabled());
+    if (observations.length) {
+      assert.deepEqual(dom.lists, observations[0].dom.lists);
+      assert.equal(dom.status, observations[0].dom.status);
+    }
+    let retirement = null;
+    if (look) {
+      const staleAction = prior.actions.find(action => action.identity === 'todo.add');
+      const refusal = await page.evaluate(async ({ stale, action }) => {
+        try {
+          await globalThis.__conduitOwnerParticipation.submitFaceInteraction({ view: stale,
+            actionId: action.identity, target: action.target,
+            arguments: [{ name: action.arguments[0].name, value: 'Retired Show must refuse' }] });
+          return { refused: false };
+        } catch (error) { return { refused: true, message: error.message }; }
+      }, { stale: prior, action: staleAction });
+      assert.equal(refusal.refused, true);
+      assert.match(refusal.message, /^owner Face interaction refused \(-5\)$/);
+      assert.deepEqual(face().presentation, source.presentation, 'retired Look must have no owner effect');
+      assert.equal(await page.evaluate(() => globalThis.__conduitOwnerParticipation.face().show_id), view.show_id);
+      retirement = { retired_show_id: prior.show_id, current_show_id: view.show_id, refusal };
+    }
+    observations.push({ look: look ?? 'generic', recipe: look ? 'flat' : null, view, dom, retirement });
+  }
+  assert.ok(observations[2].dom.geometry.collection_padding_px > observations[1].dom.geometry.collection_padding_px,
+    'two checked density Looks must change actual computed CSS');
+  const record = { source, observations, proof_class: 'actual browser DOM, Mask-local disclosure/focus, no domain mutation' };
+  await writeFile(path.join(output, 'retained-look-comparison.json'), `${JSON.stringify(record, null, 2)}\n`);
+  return record;
+}
