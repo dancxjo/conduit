@@ -12,9 +12,15 @@ use conduit_core::{GearId, PlacementId, Plan, PlannedGear, PoolSelectionEvidence
 
 mod completion;
 mod request_binding;
+mod request_custody;
 pub use completion::{
     LocalModelCompletedWork, LocalModelCompletionCalibrationRefusal, LocalModelMeasurementRefusal,
     LocalModelPreparedCalibration,
+};
+pub use request_custody::{NativePoolCustodyRefusal, NativePoolRequestCustody};
+mod request_queue;
+pub use request_queue::{
+    NativePoolDispatch, NativePoolPreparedCosts, NativePoolQueueError, NativePoolRequestQueue,
 };
 
 pub struct AdmittedLocalModelPoolMember {

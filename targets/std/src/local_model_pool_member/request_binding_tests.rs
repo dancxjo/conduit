@@ -1,5 +1,7 @@
 //! Actual native admission/execution with an explicit deterministic adapter.
 //! No Ollama inference, producer authentication or physical capacity proof.
+#[path = "request_binding_tests/request_custody.rs"]
+mod request_custody;
 use super::*;
 use crate::{
     hosted_local_model::{HostedLocalModelAdapter, LocalModelAdapterTerminal},
@@ -33,6 +35,11 @@ struct FixtureAdapter {
 impl HostedLocalModelAdapter for FixtureAdapter {
     fn offer(&self) -> &conduit_ai::LocalModelOffer {
         &self.offer
+    }
+    fn current_pool_health(&self) -> PoolRealizationHealth {
+        // This deterministic in-process fixture is available; it makes no
+        // claim about an external Ollama provider or physical capacity.
+        PoolRealizationHealth::Ready
     }
     fn execute(
         &mut self,

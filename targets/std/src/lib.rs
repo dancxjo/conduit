@@ -193,7 +193,9 @@ pub mod pico_wifi_bootstrap;
 pub mod pool_member_sessions;
 pub use local_model_pool_member::{
     AdmittedLocalModelPoolMember, LocalModelCompletedWork, LocalModelCompletionCalibrationRefusal,
-    LocalModelMeasurementRefusal, LocalModelPreparedCalibration,
+    LocalModelMeasurementRefusal, LocalModelPreparedCalibration, NativePoolCustodyRefusal,
+    NativePoolDispatch, NativePoolPreparedCosts, NativePoolQueueError, NativePoolRequestCustody,
+    NativePoolRequestQueue,
 };
 pub mod pool_webchat;
 pub mod r1_control;
