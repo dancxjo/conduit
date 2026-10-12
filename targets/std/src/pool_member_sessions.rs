@@ -31,6 +31,15 @@ impl PoolMemberSession {
     pub fn machine_mut(&mut self) -> &mut SessionMachine {
         &mut self.machine
     }
+
+    /// Admit a message against this exact prepared binding without cloning
+    /// the owned identities during transport stepping.
+    pub fn admit_outbound_message(
+        &mut self,
+        message: conduit_wire::SessionMessage<'_>,
+    ) -> Result<(), conduit_wire::WireError> {
+        self.machine.admit_outbound(self.binding.frame(message))
+    }
 }
 
 pub struct PoolMemberSessions {
@@ -142,6 +151,9 @@ impl PoolMemberSessions {
 
 #[cfg(test)]
 pub(crate) mod tests {
+    #[cfg(unix)]
+    mod owned_transport;
+
     use super::*;
     use conduit_core::{
         mandatory_sign_storage_requirement, seal_plan, AdmittedLine, ArtifactId, AuthorityGrantId,
