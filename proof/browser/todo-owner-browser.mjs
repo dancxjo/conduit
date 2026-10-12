@@ -139,8 +139,10 @@ try {
       && document.querySelector('[data-owner-show-acknowledged]')?.dataset.ownerShowAcknowledged === current.show_id;
   }, null, { timeout: 12_000 });
   const beforeStart = await page.evaluate(() => globalThis.__conduitOwnerParticipation.face());
-  owner(['body', 'start', '--state-dir', state, '--maximum-millis', '60000',
-    '--todo-new-list', 'Groceries']);
+  if (!resumeExisting) {
+    owner(['body', 'start', '--state-dir', state, '--maximum-millis', '60000',
+      '--todo-new-list', 'Groceries']);
+  }
   let startedFace;
   for (let attempt = 0; attempt < 100; attempt++) {
     startedFace = face();
@@ -150,13 +152,15 @@ try {
   }
   assert.ok(startedFace.presentation.actions.some(action => action.identity === 'todo.add'
     && action.availability === 'Available'), 'Todo Play did not admit the add action');
-  assert.ok(!startedFace.presentation.subjects.some(subject => subject.name === itemText),
+  if (!resumeExisting) assert.ok(!startedFace.presentation.subjects.some(subject => subject.name === itemText),
     'new Todo item must be absent before this browser action');
   await page.getByRole('button', { name: 'Refresh this Face' }).click();
-  await page.waitForFunction(prior => {
+  await page.waitForFunction(({ prior, resumed }) => {
     const current = globalThis.__conduitOwnerParticipation.face();
-    return current?.face_revision !== prior && current?.actions.some(action => action.identity === 'todo.add');
-  }, beforeStart.face_revision, { timeout: 12_000 });
+    return current?.show_state === 'available' && (resumed || current.face_revision !== prior)
+      && current?.actions.some(action => action.identity === 'todo.add')
+      && document.querySelector('[data-owner-show-acknowledged]')?.dataset.ownerShowAcknowledged === current.show_id;
+  }, { prior: beforeStart.face_revision, resumed: resumeExisting }, { timeout: 12_000 });
   const prepared = await page.evaluate(() => ({
     face: globalThis.__conduitOwnerParticipation.face(),
     status: document.querySelector('[data-owner-face-status]')?.textContent,
