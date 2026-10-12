@@ -43,7 +43,19 @@
         },
         "uac": {
           "status": "incomplete",
-          "reason": "Owning class acceptance not complete"
+          "acceptance": "partial",
+          "proof_level": "emulator-with-device",
+          "receipt": "native-audio-public-cross-architecture/usb-audio-public-cross-architecture.json",
+          "receipt_sha256": "8d7ed5180aa2915a5efb8e7d94bad49cf951eb7f0b9f255bb6dc295949c4f605",
+          "package_sha256": "03de725b1218d7ba8a5d9d21b58fbb11ff14089b0353619ac782cc53af6d87ab",
+          "same_source_and_root": true,
+          "packets": 72,
+          "pcm_wire_bytes": 13824,
+          "public_typed_completion_records": 72,
+          "play_alloc_attempts": 0,
+          "play_realloc_attempts": 0,
+          "acknowledged_stop": true,
+          "reason": "Actual unchanged checked playback and public completion/drain run; remaining owning-issue fault acceptance is open. Physical output is a separate unverified proof tier."
         }
       },
       "machine": "q35",
@@ -71,12 +83,18 @@
           "proof_level": "emulator-with-device",
           "receipt": "usb-cdc-acm-aarch64-product-proof.json",
           "receipt_sha256": "13f1e1f561e41df590e8cb1641eb1c1375082a99ef01ed5c416ebdb2b093e457",
-          "reason": "Same checked CDC Source as x86; actual5controls+16TX/RXpairs, retired; generic semantic serial routing/full failures/physical acceptance incomplete"
+          "reason": "Same checked CDC Source as x86; actual five controls and16 TX/RX pairs with retirement retained. Full failures and final integration remain incomplete; physical evidence is separate."
         },
         "cdc-ecm": {
-          "status": "incomplete",
-          "reason": "No actual product USB class execution evidence yet",
-          "proof_level": "compile-only"
+          "status": "unsupported",
+          "acceptance": "unsupported-combination",
+          "proof_level": "none",
+          "reason": "Shared USB control/bulk is available on the pinned virt product. The Ethernet-frame/network Root realization is unavailable and explicitly refused; no retained AArch ECM semantic-seam execution proof.",
+          "missing_native_leaf": "AArch Ethernet-frame/network Root owner and offer",
+          "source_gates": [
+            "targets/conduitos/src/protocol_boot/usb_owners.rs:52",
+            "targets/conduitos/src/protocol_source/native_usb_duplex_preparation.rs:4"
+          ]
         },
         "bot": {
           "status": "incomplete",
@@ -94,8 +112,19 @@
         },
         "uac": {
           "status": "incomplete",
-          "reason": "No actual product USB class execution evidence yet",
-          "proof_level": "compile-only"
+          "acceptance": "partial",
+          "proof_level": "emulator-with-device",
+          "receipt": "native-audio-public-cross-architecture/usb-audio-public-cross-architecture.json",
+          "receipt_sha256": "8d7ed5180aa2915a5efb8e7d94bad49cf951eb7f0b9f255bb6dc295949c4f605",
+          "package_sha256": "03de725b1218d7ba8a5d9d21b58fbb11ff14089b0353619ac782cc53af6d87ab",
+          "same_source_and_root": true,
+          "packets": 72,
+          "pcm_wire_bytes": 13824,
+          "public_typed_completion_records": 72,
+          "play_alloc_attempts": 0,
+          "play_realloc_attempts": 0,
+          "acknowledged_stop": true,
+          "reason": "Actual unchanged checked playback and public completion/drain run; remaining owning-issue fault acceptance is open. Physical output is a separate unverified proof tier."
         }
       },
       "machine": "virt-10.2,highmem=off,gic-version=2,iommu=none",
