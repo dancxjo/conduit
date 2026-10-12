@@ -20,7 +20,7 @@ use std::collections::BTreeMap;
 mod input_policy;
 pub use input_policy::{required_parsec_input_policy_offer, ParsecInputPolicySourcePlan};
 
-struct Producer {
+pub(super) struct Producer {
     expanded: ExpandedAuthoringPlot,
     placements: PlacementChoices,
     bounds: BTreeMap<ForeBoundaryKey, ConnectionQueueLimits>,
@@ -40,9 +40,12 @@ fn checked() -> Result<CheckedSyntaxDocument, String> {
     )
     .map_err(|error| format!("Parsec source check: {error:?}"))
 }
-fn expanded(checked: &CheckedSyntaxDocument, name: &str) -> Result<ExpandedAuthoringPlot, String> {
+pub(super) fn expanded(
+    checked: &CheckedSyntaxDocument,
+    name: &str,
+) -> Result<ExpandedAuthoringPlot, String> {
     expand_canonical_plot_for_authoring(checked, name, &ProfileCatalog::new())
-        .map_err(|error| format!("Parsec source expansion: {error:?}"))
+        .map_err(|error| format!("checked source expansion: {error:?}"))
 }
 pub fn required_parsec_source_offers() -> Result<Vec<CapabilityOffer>, String> {
     let checked = checked()?;
@@ -68,9 +71,17 @@ impl Producer {
         hosts: &[HostAdvertisement; 1],
         name: &str,
     ) -> Result<Self, String> {
+        Self::prepare_bounded(checked, hosts, name, PARSEC_MAP_FRAME_BYTES as u32)
+    }
+    pub(super) fn prepare_bounded(
+        checked: &CheckedSyntaxDocument,
+        hosts: &[HostAdvertisement; 1],
+        name: &str,
+        maximum_frame_bytes: u32,
+    ) -> Result<Self, String> {
         let expanded = expanded(checked, name)?;
         let placements = conduit_planner::default_expanded_placements(&expanded.expanded, hosts)
-            .map_err(|error| format!("Parsec source placement: {error:?}"))?;
+            .map_err(|error| format!("checked source placement: {error:?}"))?;
         let bounds = expanded
             .input_bindings
             .iter()
@@ -90,7 +101,7 @@ impl Producer {
                     },
                     ConnectionQueueLimits {
                         item_capacity: 1,
-                        byte_capacity: PARSEC_MAP_FRAME_BYTES as u32,
+                        byte_capacity: maximum_frame_bytes,
                     },
                 )
             })
@@ -105,7 +116,7 @@ impl Producer {
             options(&empty, &lines),
             &bounds,
         )
-        .map_err(|error| format!("Parsec source Plan: {error:?}"))?;
+        .map_err(|error| format!("checked source Plan: {error:?}"))?;
         Ok(Self {
             expanded,
             placements,
@@ -113,7 +124,7 @@ impl Producer {
             plan,
         })
     }
-    fn custody<'a>(
+    pub(super) fn custody<'a>(
         &'a self,
         checked: &CheckedSyntaxDocument,
         hosts: &[HostAdvertisement; 1],
@@ -134,7 +145,7 @@ impl Producer {
                 boundary_limits: &self.bounds,
             },
         )
-        .map_err(|error| format!("Parsec source custody: {error:?}"))
+        .map_err(|error| format!("checked source custody: {error:?}"))
     }
 }
 fn options<'a>(

@@ -627,3 +627,32 @@ is software keyboard/terminal evidence, not physical input, a browser Parsec
 journey or complete gameplay. Installed cross-Mask Todo execution, two genuine
 spoken Looks, hosted acceptance and stable publication remain required for
 #5355; this bounded route does not close #5369.
+
+### Checked brief and expanded spoken wording
+
+Two ordinary checked source expressions now receive the same finite Face-derived
+wording slots. Both retain every clause from the existing aural projection;
+expanded adds only source-owned connective wording. Selection preserves semantic
+item order, item properties/text, unavailable action facts and unknown fallback.
+Each selected clause occurs exactly once in the slot partition. Exact Face
+identity/revision and aural digest bind the slots; stale context, missing status
+and bounds refuse without truncating essential meaning.
+
+Template preparation requires an independently reproduced checked Source Plan
+and the exact expression offer on the supplied current Host. The receipt retains
+template identity/revision/source digest, producer Plot/Plan, Face identity and
+revision, selected clause/action references and wording digest. This is
+computational custody, not a Source Play, spoken Show or audio receipt. The
+finite text bound is 8192 bytes, with admitted canonical frames of 131072 bytes.
+
+A fresh read-only capture from the existing retained Todo owner at source
+`4cf2c44c9` supplied its actual Face to the explicit consumers. Both Looks preserve
+all 76 aural clauses: brief is 4871 bytes, expanded 4918. Face/action identities,
+clause references and aural digest agree. Source distinction, current exact
+Host offers, altered-offer refusal, stale Face, omitted status and excess bounds
+are checked. The actual owner was neither replaced nor acted upon. The template
+Host is an explicitly constructed software test Host; these checks do not prove
+that the installed owner selected either template. Ordinary direct spoken
+opening behavior remains separate. Installed template/Mask admission, bounded
+wording delivery, WAV artifacts and cross-Mask recovery still require execution;
+no speaker delivery, hearing, full #5380 or #5355 acceptance is claimed.
