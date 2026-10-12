@@ -28,13 +28,13 @@ mod generated {
     }
 }
 pub use generated::{
-    AdmittedNavigationDestination, ApplicationAction, ApplicationComponent,
-    ApplicationComponentForm, ApplicationEventKind, ApplicationEventKindForm, ApplicationNodeState,
-    ApplicationNodeStateForm, ApplicationViewRefusal, ChoiceMultiplicity, ComponentRecipeInfo,
-    ComponentRegionInfo, ComponentSubjectSelector, CompositionItemKind, CompositionItemKindForm,
-    CompositionRole, CompositionRoleForm, EvidenceDisposition, Extent2, FaceContributionRole,
-    FaceContributionRoleForm, FaceUtteranceClauseKind, FaceUtteranceProvenance,
-    FaceUtteranceProvenanceAction, FaceUtteranceProvenanceActionArgument,
+    ActionInputBindingProposalInfo, AdmittedNavigationDestination, ApplicationAction,
+    ApplicationComponent, ApplicationComponentForm, ApplicationEventKind, ApplicationEventKindForm,
+    ApplicationNodeState, ApplicationNodeStateForm, ApplicationViewRefusal, ChoiceMultiplicity,
+    ComponentRecipeInfo, ComponentRegionInfo, ComponentSubjectSelector, CompositionItemKind,
+    CompositionItemKindForm, CompositionRole, CompositionRoleForm, EvidenceDisposition, Extent2,
+    FaceContributionRole, FaceContributionRoleForm, FaceUtteranceClauseKind,
+    FaceUtteranceProvenance, FaceUtteranceProvenanceAction, FaceUtteranceProvenanceActionArgument,
     FaceUtteranceProvenanceComposition, FaceUtteranceProvenanceDisclosure,
     FaceUtteranceProvenanceProperty, FaceUtteranceProvenanceRelationship,
     FaceUtteranceProvenanceSubject, FaceUtteranceProvenanceTemporalFact,

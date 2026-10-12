@@ -428,3 +428,15 @@ a generic Enter activation, or a string containing "Press Fire" cannot stand
 in for current verified binding/remap truth. Keep raw input mechanics and
 binding authority outside Face and Look; reuse existing chords/typed returns
 rather than introducing a universal Button or Mask-local game reducer.
+
+The first binding prerequisite now has a canonical Conduitese proposal carrier,
+`ActionInputBindingProposalInfo`, generated from presentation `types.conduit`.
+It reuses `GeneratedActionAffordance` for action identity and source revision,
+and carries bounded Face/Show, input Plan, Host/Boot, control identity/label,
+mapping revision and requested availability. It is outside Face and Look.
+Construction or raw serde transport is not binding admission; checked native
+decoding must enforce canonical bounds before a later policy gate uses it.
+The carrier tests cover exact round-trip, source reference, empty/oversized
+labels, zero revision, invalid version, and unknown layout/callback fields.
+A checked input Plot producer and current-source/Host/Show binding admission
+remain required. No truthful Fire prompt or remap completion is claimed yet.

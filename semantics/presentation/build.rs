@@ -94,8 +94,16 @@ fn main() {
                 "VisualImpressionDisposition".into(),
             ]
             .into(),
-            serde_record_types: ["GeneratedActionAffordance".into()].into(),
-            serde_deny_unknown_record_types: ["GeneratedActionAffordance".into()].into(),
+            serde_record_types: [
+                "GeneratedActionAffordance".into(),
+                "ActionInputBindingProposalInfo".into(),
+            ]
+            .into(),
+            serde_deny_unknown_record_types: [
+                "GeneratedActionAffordance".into(),
+                "ActionInputBindingProposalInfo".into(),
+            ]
+            .into(),
             copy_record_types: [
                 "GraphicsPoint".into(),
                 "LayoutFrame".into(),
