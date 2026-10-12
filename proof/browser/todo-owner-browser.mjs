@@ -15,9 +15,11 @@ import { assertLookReplacement } from './look-replacement-evidence.mjs';
 
 const [ownerCwdArg, binaryArg, stateArg, handbookArg, outputArg, playwrightArg,
   itemText = 'Pick up prescription', scenario = 'first-add'] = process.argv.slice(2);
-assert.ok(['first-add', 'cross-mask', 'cross-mask-speech', 'look-replacement'].includes(scenario), 'unknown Todo capture scenario');
+assert.ok(['first-add', 'cross-mask', 'cross-mask-speech', 'cross-mask-speech-resume', 'look-replacement'].includes(scenario), 'unknown Todo capture scenario');
+const resumeExisting = scenario === 'cross-mask-speech-resume';
+const captureSpeech = scenario.startsWith('cross-mask-speech');
 if (!ownerCwdArg || !binaryArg || !stateArg || !handbookArg || !outputArg || !playwrightArg) {
-  throw new Error('usage: todo-owner-browser.mjs OWNER-CWD INSTALLED-OWNER OWNER-STATE HANDBOOK-PACKAGE NEW-EVIDENCE-DIR PINNED-PLAYWRIGHT [NEW-ITEM-TEXT] [first-add|cross-mask|cross-mask-speech|look-replacement]');
+  throw new Error('usage: todo-owner-browser.mjs OWNER-CWD INSTALLED-OWNER OWNER-STATE HANDBOOK-PACKAGE NEW-EVIDENCE-DIR PINNED-PLAYWRIGHT [NEW-ITEM-TEXT] [first-add|cross-mask|cross-mask-speech|cross-mask-speech-resume|look-replacement]');
 }
 const ownerCwd = path.resolve(ownerCwdArg);
 const binary = path.resolve(ownerCwd, binaryArg);
@@ -29,7 +31,7 @@ assert.ok(itemText && Buffer.byteLength(itemText, 'utf8') <= 64, 'Todo text must
 const installed = JSON.parse(await readFile(path.join(state, 'installation.json')));
 assert.equal(path.resolve(ownerCwd, installed.product_executable), binary,
   'use the owner installed for this Body');
-if (scenario === 'cross-mask-speech') assert.equal(installed.selected_speech?.artifact_only, true,
+if (captureSpeech) assert.equal(installed.selected_speech?.artifact_only, true,
   'direct speech capture requires explicit selected artifact output');
 const packageManifest = JSON.parse(await readFile(path.join(handbook, 'application.application.json')));
 const browserBundle = JSON.parse(await readFile(path.join(handbook, 'sdk/bundle/browser-bundle-release.json')));
@@ -320,10 +322,26 @@ try {
     }, null, 2)}\n`);
   }
   await page.locator('[data-owner-face]').screenshot({ path: path.join(output, 'browser-before.png') });
-  const texts = scenario.startsWith('cross-mask') ? [itemText, 'Prepare lunch', 'Water plants'] : [itemText];
+  const specimenNames = [itemText, 'Prepare lunch', 'Water plants'];
+  let resumedItems = null;
+  if (resumeExisting) {
+    assert.equal(new Set(specimenNames).size, specimenNames.length, 'resume specimen names must be distinct');
+    const retained = face();
+    assert.deepEqual(retained.presentation.subjects.filter(subject => subject.role === 'Item').map(subject => subject.name), specimenNames,
+      'resume requires the exact previously added three-item specimen');
+    assert(retained.presentation.text.some(text => text.subject === 'todo/status' && text.text === '3 things left · 0 completed'),
+      'resume refuses an already completed or differently mutated specimen');
+    for (const item of retained.presentation.subjects.filter(subject => subject.role === 'Item')) {
+      assert(retained.presentation.properties.some(property => property.subject === item.identity
+        && property.name === 'complete' && property.value.Flag === false), 'resume requires every retained item to be pending');
+    }
+    resumedItems = retained;
+    await writeFile(path.join(output, 'resumed-owner-face.json'), `${JSON.stringify(retained, null, 2)}\n`);
+  }
+  const texts = resumeExisting ? [] : scenario.startsWith('cross-mask') ? specimenNames : [itemText];
   assert.equal(new Set(texts).size, texts.length, 'scenario item names must be distinct');
   const adds = [];
-  let after;
+  let after = before;
   for (const text of texts) {
     const prior = await page.evaluate(() => globalThis.__conduitOwnerParticipation.face());
     const priorOwner = face();
@@ -351,7 +369,7 @@ try {
     await writeFile(path.join(output, 'adds.json'), `${JSON.stringify(adds, null, 2)}\n`);
   }
   let crossMask = null;
-  const speechBeforeCompletion = scenario === 'cross-mask-speech'
+  const speechBeforeCompletion = captureSpeech
     ? await captureDirectTodoSpeech({ owner, state, output: path.join(output, 'spoken-before-complete'),
       bodyId, readRemaining: false }) : null;
   if (speechBeforeCompletion) {
@@ -466,14 +484,14 @@ try {
   assert.equal(afterOwner.presentation.basis.body_id, bodyId);
   assert.ok(afterOwner.presentation.subjects.some(subject => subject.name === itemText));
   assert.deepEqual(errors, []);
-  const directSpeech = scenario === 'cross-mask-speech'
+  const directSpeech = captureSpeech
     ? await captureDirectTodoSpeech({ owner, state, output: path.join(output, 'spoken'), bodyId })
     : null;
   await writeFile(path.join(output, 'receipt.json'), `${JSON.stringify({
     schema: 'conduit.proof/todo-owner-browser@1',
     ...sourceRecord,
     body_id: bodyId, browser_host_id: identity.hostId, browser_boot_id: identity.bootId,
-    item_text: itemText, adds, cross_mask: crossMask, inspect_capture: inspectCapture,
+    item_text: itemText, adds, resumed_items: resumedItems, cross_mask: crossMask, inspect_capture: inspectCapture,
     speech_before_completion: speechBeforeCompletion,
     direct_speech: directSpeech, before: { face_id: before.face_id, face_revision: before.face_revision,
       show_id: before.show_id }, after: { face_id: after.face_id,
