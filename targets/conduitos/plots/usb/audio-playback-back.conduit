@@ -7,6 +7,7 @@ plot usb-audio-playback-admitted (
     >> pcm: UsbAudioPcmBlock...| <= 4096B
     >> setup: UsbAudioAdmission...| <= 4096B
     ended: UsbAudioPlaybackState...| >>
+    observed: UsbIsochronousOutResult...| <= 32768B >>
 ) {
     state: UsbAudioPlaybackCell
     admission: UsbAudioInitializationJoin
@@ -31,7 +32,10 @@ plot usb-audio-playback-admitted (
     route >> select(UsbAudioPlaybackRoute.active, unmatched=drop) >> join.left
     route >> select(UsbAudioPlaybackRoute.active, unmatched=drop) >> usb-audio-playback-request() >> usb.request
     usb.result >> join.right
-    join.paired >> usb-audio-playback-observation() >> observations
+    observation: usb-audio-playback-observation()
+    join.paired >> observation
+    observation >> observations
+    observation >> usb-audio-playback-result() >> observed
     observations >> select(UsbAudioPlaybackObservationRoute.clock, unmatched=drop) >> usb-audio-playback-clock-advance() >> clock-batch.left
     observations >> select(UsbAudioPlaybackObservationRoute.batch, unmatched=drop) >> usb-audio-playback-batch-advance() >> clock-batch.right
     clock-batch.merged >> updates.left

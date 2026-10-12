@@ -131,6 +131,7 @@ fn repeat_completion_program(
 fn repeat_completion_observation(
     ty: &conduit_core::StructuredInfoType,
     change: Option<(usize, &str)>,
+    tag: &str,
 ) -> Vec<u8> {
     let StructuredInfoTypeShape::Record { fields, .. } = ty.shape() else {
         panic!("observation")
@@ -141,14 +142,9 @@ fn repeat_completion_observation(
             .iter()
             .map(|field| {
                 let value = match field.name() {
-                    "result" => super::completion::input(
-                        field.value_type(),
-                        "/result",
-                        0,
-                        change,
-                        72,
-                        "completed",
-                    ),
+                    "result" => {
+                        super::completion::input(field.value_type(), "/result", 0, change, 72, tag)
+                    }
                     "previous" => {
                         let StructuredInfoTypeShape::Record { fields, .. } =
                             field.value_type().shape()
@@ -242,7 +238,8 @@ fn all_nine_completion_stages_require_each_original_frame_requested_and_actual_e
     ) {
         // The shared completion fixture encodes frames (2045+index)%2048,
         // requested=actual=192. This covers wrap at index3 and the prior bug32.
-        let observation = repeat_completion_observation(&seed_program.input_type, change);
+        let observation =
+            repeat_completion_observation(&seed_program.input_type, change, "completed");
         let mut value = seed.evaluate(&observation).unwrap().to_vec();
         assert!(repeat_completion_flag(&value, "accepted"));
         for (stage, evaluator) in stages.iter_mut().enumerate() {
@@ -277,6 +274,64 @@ fn all_nine_completion_stages_require_each_original_frame_requested_and_actual_e
                 .primitive_bytes("value/u64")
                 .unwrap(),
             2045u64.to_le_bytes()
+        );
+    }
+}
+
+#[test]
+fn public_fault_observation_preserves_original_tag_and_prefix_before_terminal_stop() {
+    let text = source().replace(
+        include_str!("../../plots/usb/audio-playback-policy.conduit"),
+        include_str!("../../plots/usb/audio-repeat-playback-policy.conduit"),
+    );
+    let checked =
+        check_syntax_document(&parse_syntax_document(&text), &StartupCatalog::new()).unwrap();
+    let projection_program = repeat_completion_program(&checked, "usb-audio-playback-result");
+    let mut projection = PreparedPortableExpressionEvaluator::new(&projection_program).unwrap();
+    let seed_program = repeat_completion_program(&checked, "usb-audio-completion-validation-seed");
+    let mut seed = PreparedPortableExpressionEvaluator::new(&seed_program).unwrap();
+    let programs: Vec<_> = (0..9)
+        .map(|stage| {
+            repeat_completion_program(
+                &checked,
+                &format!("usb-audio-completion-validation-{stage}"),
+            )
+        })
+        .collect();
+    let mut stages: Vec<_> = programs
+        .iter()
+        .map(|p| PreparedPortableExpressionEvaluator::new(p).unwrap())
+        .collect();
+    let finish_program =
+        repeat_completion_program(&checked, "usb-audio-completion-validation-finish");
+    let mut finish = PreparedPortableExpressionEvaluator::new(&finish_program).unwrap();
+    for tag in ["short", "missed-service", "underrun", "provider-lost"] {
+        // Synthetic canonical transport observations; this is Source policy proof,
+        // not evidence of hardware or native controller fault delivery.
+        let observation = repeat_completion_observation(&seed_program.input_type, None, tag);
+        let original = validate_canonical_structured_value(&observation).unwrap();
+        let expected = original.record_field("result").unwrap().unwrap();
+        let projected = projection.evaluate(&observation).unwrap();
+        let result = validate_canonical_structured_value(projected).unwrap();
+        assert_eq!(result, expected, "{tag}: exact type and all payload bytes");
+        assert!(result.variant_payload(tag).unwrap().is_some(), "{tag}");
+        let mut validation = seed.evaluate(&observation).unwrap().to_vec();
+        assert!(!repeat_completion_flag(&validation, "accepted"), "{tag}");
+        for stage in &mut stages {
+            validation = stage.evaluate(&validation).unwrap().to_vec();
+            assert!(!repeat_completion_flag(&validation, "accepted"), "{tag}");
+        }
+        let state = finish.evaluate(&validation).unwrap();
+        assert!(repeat_completion_flag(state, "terminal"), "{tag}");
+        let value = validate_canonical_structured_value(state).unwrap();
+        assert_eq!(
+            value
+                .record_field("phase")
+                .unwrap()
+                .unwrap()
+                .primitive_bytes("value/u64")
+                .unwrap(),
+            &1u64.to_le_bytes()
         );
     }
 }

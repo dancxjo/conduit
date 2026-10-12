@@ -19,6 +19,7 @@ def assemble(root, repeat_nine=False):
         "control-types", "isochronous-out-types", "audio-types", "audio-block-types",
         "audio-block-profile", "audio-profile", "audio-completion-profile",
         "audio-repeat-playback-policy" if repeat_nine else "audio-playback-policy")]
+    sections += [read("audio-playback-result.conduit")]
     sections += [setup[setup.index("type UsbAudioSetupState"):],
                  read("audio-playback-back.conduit"), read("audio-admission-back.conduit")]
     def value(name):
