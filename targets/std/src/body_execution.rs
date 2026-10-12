@@ -386,20 +386,22 @@ impl StdHost {
             if request.keyboard.is_some() {
                 return Err("live Body Fore cannot also claim keyboard ingress".into());
             }
-            BodyKernel::prepare_live(
+            BodyKernel::prepare_live_on_host(
                 &request.plan.plots,
                 &prospective_play.active_play_id,
                 queue,
                 request.control,
+                &self.advertisement,
             )?
         } else {
-            BodyKernel::prepare(
+            BodyKernel::prepare_on_host(
                 &request.plan.plots,
                 request.keyboard.is_some(),
                 &prospective_play.active_play_id,
                 fore_inputs,
                 sequential_fore,
                 has_fore_output,
+                &self.advertisement,
             )?
         };
         kernel.prepare_input_origin(&self.advertisement, request.plan, &prospective_play)?;
