@@ -255,6 +255,10 @@ fn prepare(
             .collect::<Result<Vec<_>, _>>()?;
         for (initial, current) in samples.iter().zip(&current) {
             super::evaluation::validate(&refresh.preparation_received_at, initial, current)?;
+            super::evaluation::validate_evaluation(
+                &refresh.admission.evaluated_at,
+                current.current_local_sample()?,
+            )?;
         }
         let current_now = current
             .iter()

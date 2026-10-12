@@ -61,6 +61,16 @@ pub(super) fn validate(
     Ok(())
 }
 
+pub(super) fn validate_evaluation(
+    evaluated_at: &MonotonicInstant,
+    sample_now: &MonotonicInstant,
+) -> Result<(), String> {
+    if evaluated_at != sample_now {
+        return Err("dispatch sample was not projected at evaluation instant".into());
+    }
+    Ok(())
+}
+
 fn validate_order(
     received: &MonotonicInstant,
     initial: &MonotonicInstant,
@@ -88,6 +98,18 @@ mod tests {
             1,
         )
         .unwrap()
+    }
+    #[test]
+    fn sample_projection_must_match_actual_evaluation() {
+        let c = clock("coordinator");
+        let evaluated = MonotonicInstant::new(200, c.clone()).unwrap();
+        let earlier = MonotonicInstant::new(199, c.clone()).unwrap();
+        let later = MonotonicInstant::new(201, c).unwrap();
+        assert!(validate_evaluation(&evaluated, &earlier).is_err());
+        assert!(validate_evaluation(&evaluated, &later).is_err());
+        assert!(validate_evaluation(&evaluated, &evaluated).is_ok());
+        let foreign = MonotonicInstant::new(200, clock("foreign")).unwrap();
+        assert!(validate_evaluation(&evaluated, &foreign).is_err());
     }
     #[test]
     fn query_started_before_preparation_receipt_refuses() {
