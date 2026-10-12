@@ -1,7 +1,7 @@
 //! Adversarial checked Source command/data/status correlation; no USB device.
 use super::*;
 
-fn frame(ty: &StructuredInfoType, wire: &[u8], ordinal: u64, short: bool) -> StructuredInfoValue {
+pub(super) fn frame(ty: &StructuredInfoType, wire: &[u8], ordinal: u64, short: bool) -> StructuredInfoValue {
     variant(ty, "completed", |payload| {
         record(payload, |field| match field.name() {
             "wire" => StructuredInfoValue::leaf(field.value_type().clone(), wire.to_vec()).unwrap(),

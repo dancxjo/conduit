@@ -101,7 +101,9 @@ fn selected_storage_back_preserves_exact_fore_and_owns_one_usb_placement_each() 
     assert!(PreparedProtocolSource::prepare(stale).is_err());
 }
 fn program(source: &PreparedProtocolSource, name: &str) -> PortableExpressionProgram {
-    let expanded = source.expand(name).unwrap();
+    let expanded = source
+        .expand(name)
+        .unwrap_or_else(|error| panic!("{name}: {error:?}"));
     let ConfigurationValue::Text(encoded) = &expanded.expanded.gears[0].configuration[0].value
     else {
         panic!()
@@ -359,3 +361,6 @@ mod kernel;
 
 #[path = "usb_bot_storage/csw.rs"]
 mod csw;
+
+#[path = "usb_bot_storage/guards.rs"]
+mod guards;
