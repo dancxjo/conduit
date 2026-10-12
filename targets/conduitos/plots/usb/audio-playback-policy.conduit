@@ -1,0 +1,20 @@
+# Checked playback retains the original PCM block throughout observe, batch,
+# and drain. The controller coordinate is admitted only from a real snapshot.
+type UsbAudioPlaybackState = {
+    pcm: UsbAudioPcmBlock
+    first-frame: U64
+    phase: U64
+    terminal: Boolean
+}
+type UsbAudioPlaybackRoute =
+    active UsbAudioPlaybackState
+    | stopped UsbAudioPlaybackState
+plot usb-audio-playback-seed (
+    pcm: UsbAudioPcmBlock...| >> state: UsbAudioPlaybackState...|
+) = ({ pcm: ., first-frame: 0, phase: 0, terminal: false })
+plot usb-audio-playback-route (
+    state: UsbAudioPlaybackState...| >> route: UsbAudioPlaybackRoute...|
+) = (.terminal ? stopped(.) : active(.))
+plot usb-audio-playback-request (
+    state: UsbAudioPlaybackState...| >> request: UsbIsochronousOutRequest...|
+) = (.phase == 0 ? observe(empty) : (.phase == 1 ? batch({ packets: [{ frame: (.first-frame + 0) % 2048, wire: sequence/at(.pcm.packets, 0).wire }, { frame: (.first-frame + 1) % 2048, wire: sequence/at(.pcm.packets, 1).wire }, { frame: (.first-frame + 2) % 2048, wire: sequence/at(.pcm.packets, 2).wire }, { frame: (.first-frame + 3) % 2048, wire: sequence/at(.pcm.packets, 3).wire }, { frame: (.first-frame + 4) % 2048, wire: sequence/at(.pcm.packets, 4).wire }, { frame: (.first-frame + 5) % 2048, wire: sequence/at(.pcm.packets, 5).wire }, { frame: (.first-frame + 6) % 2048, wire: sequence/at(.pcm.packets, 6).wire }, { frame: (.first-frame + 7) % 2048, wire: sequence/at(.pcm.packets, 7).wire }] }) : drain(empty)))
