@@ -1,5 +1,7 @@
 //! Bounded preparation documents followed by exact selected session frames.
 //! No provider selection, retries, migration, or model download lives here.
+mod description;
+mod pool_observation;
 mod sampling;
 
 use conduit_ai::LocalModelKindProfile;
@@ -45,7 +47,16 @@ struct Operation {
 #[serde(tag = "command", rename_all = "snake_case", deny_unknown_fields)]
 enum PreparationCommand {
     Observe,
-    Execute { operation: Box<Operation> },
+    Describe {
+        source: String,
+        entry: String,
+    },
+    ObservePool {
+        realization: Box<conduit_core::PoolRealizationEnvelope>,
+    },
+    Execute {
+        operation: Box<Operation>,
+    },
 }
 
 fn read_document<T: DeserializeOwned>(reader: &mut impl Read) -> Result<T, String> {
@@ -191,7 +202,7 @@ pub(super) fn run() -> Result<(), String> {
         &serde_json::json!({"phase":"initialized-after-warmup",
         "identity":identity, "advertisement":host.advertisement(), "cost_sample":initial_sample}),
     )?;
-    for _ in 0..OPERATIONS {
+    for command_index in 0..OPERATIONS {
         let command: Option<PreparationCommand> = read_document(&mut reader)?;
         let op = match command {
             None => return Ok(()),
@@ -200,6 +211,30 @@ pub(super) fn run() -> Result<(), String> {
                     Ok(sample) => serde_json::json!({"phase":"observed","cost_sample":sample}),
                     Err(reason) => {
                         serde_json::json!({"phase":"observation-refused","reason":reason})
+                    }
+                };
+                document(&mut writer, &reply)?;
+                continue;
+            }
+            Some(PreparationCommand::Describe { source, entry }) => {
+                let reply = match description::describe(&host, &source, &entry) {
+                    Ok((plan, realization)) => {
+                        serde_json::json!({"phase":"member-described","local_plan":plan,"realization":realization})
+                    }
+                    Err(reason) => {
+                        serde_json::json!({"phase":"member-description-refused","reason":reason})
+                    }
+                };
+                document(&mut writer, &reply)?;
+                continue;
+            }
+            Some(PreparationCommand::ObservePool { realization }) => {
+                let reply = match pool_observation::observe(&host, &realization, command_index) {
+                    Ok(observation) => {
+                        serde_json::json!({"phase":"pool-observed","observation":observation})
+                    }
+                    Err(reason) => {
+                        serde_json::json!({"phase":"pool-observation-refused","reason":reason})
                     }
                 };
                 document(&mut writer, &reply)?;
