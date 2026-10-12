@@ -1,8 +1,8 @@
 import contextlib,io,runpy,sys,json,struct,hashlib
 from pathlib import Path
-root=Path(sys.argv[1]); sys.argv=[sys.argv[0],str(root/'run/serial.log')]
-with contextlib.redirect_stdout(io.StringIO()): ns=runpy.run_path('work/usb-ecm-native-proof/decode_events.py')
-D=ns['Decoder']; lines=(root/'run/serial.log').read_text().splitlines(); events=[]
+root=Path(sys.argv[1]) if len(sys.argv)>1 else Path(__file__).resolve().parent; sys.argv=[sys.argv[0],str(root/'serial.log')]
+with contextlib.redirect_stdout(io.StringIO()): ns=runpy.run_path(str(Path(__file__).with_name('decode_events.py')))
+D=ns['Decoder']; lines=(root/'serial.log').read_text().splitlines(); events=[]
 for i,line in enumerate(lines):
  if line.startswith('CONDUIT_PROTOCOL_OUTPUT'):
   d=D(bytes.fromhex(lines[i+1])); v=d.val(d.ty()); assert d.p==len(d.b); events.append(v)

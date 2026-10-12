@@ -80,8 +80,12 @@ One eight-packet historical run cannot satisfy the repeated-service gate.
 
 ## Remaining acceptance
 
-Short transfer, missed service, underrun, pressure, cancellation, failed-stop
-quarantine and premature drain still require the composed native fault proof.
+The [composed native fault proof](../../evidence/native-audio-composed-fault-pipeline/validation.json)
+passes five tests covering short transfer, missed service, underrun, pressure,
+cancellation, failed-stop quarantine, premature drain and rejection of old
+completion tokens. It executes the native lease, checked Source and Kernel
+delivery path with simulated controller observations; it is not guest or
+physical controller fault injection.
 Five-architecture acceptance remains open. Physical/acoustic evidence is a
 separate proof tier, not an invented prerequisite for this emulator slice.
 Keep exact Source, kernel, Root and original token identities in every claim.
