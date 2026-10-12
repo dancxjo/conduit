@@ -8,9 +8,11 @@ fn check_receipts(value: &Value, root: &Path) {
             if let Some(receipt) = fields.get("receipt").and_then(Value::as_str) {
                 let relative = Path::new(receipt);
                 assert!(!relative.is_absolute());
-                assert!(relative
-                    .components()
-                    .all(|p| matches!(p, std::path::Component::Normal(_))));
+                assert!(
+                    relative
+                        .components()
+                        .all(|p| matches!(p, std::path::Component::Normal(_)))
+                );
                 let expected = fields
                     .get("receipt_sha256")
                     .and_then(Value::as_str)
