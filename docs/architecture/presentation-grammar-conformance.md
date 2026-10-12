@@ -551,3 +551,22 @@ phase/control proposals without runtime allocation. Five focused software
 tests and strict presentation Clippy pass, including altered checked-source
 refusal and malformed/refinement-forged frames. Proposal context and its
 revision remain supplied observations; they do not mint current authority.
+
+The separately admitted combined Parsec profile selects exactly one raw
+keyboard source, one Space button source and the retained scan. A whole Body
+test observes Pending followed by a software Space event, acknowledges both
+source outputs without a queued command, and explicitly cancels the standing
+sources. Exact current Host/Boot/offer and boundary counterexamples refuse.
+This is software adapter and scheduler proof, not physical keyboard evidence.
+
+Private completion custody is now enabled before issued Play only for that
+profile. A fixed prepared ledger records exact accepted request/value identity
+after successful scheduler completion. Fore delivery claims the exact source
+value and retires custody only after successful kernel acknowledgement; newer
+requests cannot replace older records. Cancellation and failure revoke them.
+The raw keyboard Back now transfers its validated original completion value,
+matching the button Back, instead of copying bytes into a different value.
+Four custody tests, twenty keyboard regressions and strict Std Clippy pass.
+The policy also has exact current-Host source Plan preparation with missing or
+substituted offer refusal. These changes do not yet connect acknowledged scan
+state and current Face/Show to an authorized Start/Shoot interaction.
