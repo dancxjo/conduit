@@ -78,6 +78,9 @@ pub(crate) fn has_remote_mask_action(face: &Presentation) -> bool {
     })
 }
 
+#[cfg(unix)]
+#[path = "durable_host_control/client_frame.rs"]
+mod client_frame;
 #[path = "durable_host_control/body.rs"]
 mod body;
 #[path = "durable_host_control/body_birth.rs"]
@@ -1509,35 +1512,7 @@ pub(crate) fn serve(state_dir: &Path, mut runtime: DurableHostRuntime) -> Result
             }
             Err(error) => return Err(format!("accept local host control: {error}")),
         };
-        stream
-            .set_read_timeout(Some(std::time::Duration::from_secs(2)))
-            .map_err(|error| format!("bound local host control read: {error}"))?;
-        stream
-            .set_write_timeout(Some(std::time::Duration::from_secs(2)))
-            .map_err(|error| format!("bound local host control write: {error}"))?;
-        let mut first = [0_u8; 1];
-        stream
-            .read_exact(&mut first)
-            .map_err(|error| format!("read local host control prefix: {error}"))?;
-        if first[0] == terminal_attach::MAGIC[0] {
-            terminal_attach::serve(state_dir, &mut stream, &mut runtime, &token, first[0])?;
-        } else if first[0] == speech_route::MAGIC[0] {
-            speech_route::serve(&mut stream, &mut runtime, &token, first[0])?;
-        } else {
-            let mut request = std::io::Cursor::new(first).chain(&mut stream);
-            let response = match read_frame(&mut request) {
-                Ok(request) => handle(request, &token, &mut runtime),
-                Err(error) => {
-                    eprintln!("local control request refused: {error}");
-                    refused("invalid-local-control-frame")
-                }
-            };
-            // A malformed client or oversized response must not terminate the
-            // retained Owner. No request is replayed after a transport failure.
-            if let Err(error) = write_frame(&mut stream, &response) {
-                eprintln!("local control response refused: {error}");
-            }
-        }
+        client_frame::serve_client(state_dir, &mut stream, &mut runtime, &token)?;
     }
 }
 
