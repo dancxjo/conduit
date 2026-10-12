@@ -472,3 +472,7 @@ impl OwnerBrowserMask {
 #[cfg(test)]
 #[path = "owner_face_mask/tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "owner_face_mask/open_domain_tests.rs"]
+mod open_domain_tests;
