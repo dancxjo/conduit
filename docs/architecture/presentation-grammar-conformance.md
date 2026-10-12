@@ -147,3 +147,22 @@ The current conformance fixtures and Rust crate still use `presentation` and
 `Presentation` as migration-era serialized and implementation names. They
 exercise Face; they do not establish a Presentation layer between Face and
 Mask.
+
+## Lifecycle conformance in development
+
+Issue #5355 extends the existing reconstruction corpus with domain-derived
+ConduitOS lifecycle specimens. The first executable specimen in
+`semantics/presentation/tests/cross_mask_lifecycle.rs` starts from one actual
+born/lulled `Body`, projects Overview and Library Faces at the same revision,
+and checks their distinct context-bearing identities and common Body basis.
+Production linear and deterministic aural projections preserve supplied names
+and exact aural subject/action provenance. Neither projection changes the Body.
+
+The interaction specimen uses the existing planned fixture Mask/Show helper to
+check cross-context, stale-Show, invented-action and wrong-target refusal before
+any domain effect. That is correlation-admission proof, not graphical execution.
+Native/browser Shows, audible speech, prebirth, committed Todo mutation,
+Patchbay, Commons, unknown-domain fallback, unavailable actions and pressure
+remain required parts of the open four-Mask matrix. Separate reconstruction
+accounts in `proof/conformance/presentation-waist` remain model proof and must
+not substitute for these execution witnesses.
