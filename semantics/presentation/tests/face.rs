@@ -614,3 +614,6 @@ fn fulfilled_body_keeps_terminal_surface_without_wake_or_actions() {
 
 #[path = "face/open_domain_semantics.rs"]
 mod open_domain_semantics;
+
+#[path = "face/finite_places.rs"]
+mod finite_places;
