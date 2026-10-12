@@ -4,6 +4,7 @@ use conduit_plot::rust_binding::{
 };
 use conduit_plot::{check_syntax_document, parse_syntax_document, StartupCatalog};
 use std::{env, fs, path::PathBuf};
+mod parsec_map_build;
 
 fn main() {
     println!("cargo:rerun-if-changed=types.conduit");
@@ -235,4 +236,7 @@ fn main() {
     let output = PathBuf::from(env::var_os("OUT_DIR").expect("Cargo supplies OUT_DIR"))
         .join("semantic_types.rs");
     fs::write(output, generated.source).expect("write generated presentation bindings");
+    parsec_map_build::generate(&PathBuf::from(
+        env::var_os("OUT_DIR").expect("Cargo supplies OUT_DIR"),
+    ));
 }

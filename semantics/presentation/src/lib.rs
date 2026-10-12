@@ -215,3 +215,6 @@ pub use input_binding_producer::*;
 
 mod input_binding_correlation;
 pub use input_binding_correlation::*;
+
+mod parsec_map_transition;
+pub use parsec_map_transition::*;
