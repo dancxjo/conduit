@@ -177,11 +177,15 @@ not substitute for these execution witnesses.
 The Patchbay specimen in
 `plots/patchbay/workbench/model/src/cross_mask_semantics_tests.rs` derives its
 Face from the checked and expanded `plots/hello/main.conduit`, its exact graph,
-and a Plan through the existing named reference Host adapter. It requires
+and a Plan through the declared Text profile of the existing Host adapter. It requires
 Gear, Port, and Cord subjects and verifies supplied names plus relationship
 and action provenance through production linear and deterministic aural
-readers. This is source-derived domain projection with a reference Host
-fixture, not live native/browser Shows or synthesized speech.
+readers. The complete shared `domain-derived/patchbay-face.json` is equality-
+checked against that source projection. The checked browser Mask admits its
+complete serialized input and preserves every supplied subject identity,
+name, and role, then acknowledges its correlated Show through a simulated
+DOM effect. This is source-derived projection and checked Mask mechanism
+proof, not a live DOM/installed-owner journey or synthesized speech.
 
 The open-domain contribution fixture in
 `semantics/presentation/tests/face/open_domain_semantics.rs` contributes a
@@ -319,3 +323,9 @@ preserve distinct states, refuse argument pressure before emission, and refuse
 returns after closure, replacement, or adapter loss without changing the Face.
 This bounded projection correction is not a new lifecycle or renderer policy;
 required hosted/stable acceptance remains open.
+
+The shared Text-profile Patchbay Face also passes the native scene regression:
+all subject names remain inspectable in primary/details, the exact graph is
+recognized, every admitted document page is bounded and fully visible, and
+supplied controls retain their action contracts. This is native layout proof,
+not scanout or installed-owner effect evidence.

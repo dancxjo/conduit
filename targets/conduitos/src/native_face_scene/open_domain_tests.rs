@@ -44,14 +44,12 @@ fn native_generic_mask_preserves_open_domain_meaning_and_typed_controls() {
     for _ in 0..scene.pages() {
         let frame = scene.frame().unwrap();
         assert!(frame.scene.commands().len() <= MAX_GRAPHICS_COMMANDS);
-        assert!(
-            frame
-                .scene
-                .commands()
-                .iter()
-                .all(|command| command.clip_class()
-                    == conduit_presentation::GraphicsClipClass::FullyVisible)
-        );
+        assert!(frame
+            .scene
+            .commands()
+            .iter()
+            .all(|command| command.clip_class()
+                == conduit_presentation::GraphicsClipClass::FullyVisible));
         scene.turn_page(true);
     }
     let action = face
@@ -156,14 +154,12 @@ fn native_generic_mask_keeps_lifecycle_basis_and_refuses_the_other_states_face()
             for _ in 0..scene.pages() {
                 let frame = scene.frame().unwrap();
                 assert!(frame.scene.commands().len() <= MAX_GRAPHICS_COMMANDS);
-                assert!(
-                    frame
-                        .scene
-                        .commands()
-                        .iter()
-                        .all(|command| command.clip_class()
-                            == conduit_presentation::GraphicsClipClass::FullyVisible)
-                );
+                assert!(frame
+                    .scene
+                    .commands()
+                    .iter()
+                    .all(|command| command.clip_class()
+                        == conduit_presentation::GraphicsClipClass::FullyVisible));
                 scene.turn_page(true);
             }
         }
@@ -236,5 +232,67 @@ fn native_prebirth_layout_preserves_choices_without_inventing_a_body() {
         ),
         Err(FaceSceneError::UnavailableAction)
     );
+    assert_eq!(scene.presentation(), &face);
+}
+
+#[test]
+fn native_mask_preserves_complete_source_derived_patchbay_face() {
+    let face: Presentation = serde_json::from_str(include_str!(
+        "../../../../proof/conformance/presentation-waist/domain-derived/patchbay-face.json"
+    ))
+    .unwrap();
+    face.validate().unwrap();
+    let mut scene = NativeFaceScene::prepare(face.clone(), 640, 480).unwrap();
+    assert_eq!(scene.presentation(), &face);
+    assert!(
+        scene.has_diagram(),
+        "checked Gear/Port/Cord graph must be recognized"
+    );
+    let document: String = scene
+        .primary
+        .iter()
+        .chain(scene.details.iter())
+        .map(|row| row.text.as_str())
+        .collect();
+    for subject in &face.subjects {
+        assert!(
+            document.contains(&subject.name),
+            "lost subject {}",
+            subject.identity
+        );
+    }
+    for details in [false, true] {
+        scene.show_details(details);
+        for _ in 0..scene.pages() {
+            let frame = scene.frame().unwrap();
+            assert!(frame.scene.commands().len() <= MAX_GRAPHICS_COMMANDS);
+            assert!(frame
+                .scene
+                .commands()
+                .iter()
+                .all(|command| command.clip_class()
+                    == conduit_presentation::GraphicsClipClass::FullyVisible));
+            scene.turn_page(true);
+        }
+    }
+    for (index, action) in face.actions.iter().enumerate() {
+        let control = FaceControl {
+            action: index,
+            argument: None,
+        };
+        assert!(matches!(
+            scene.resolve(&face.identity, face.revision + 1, control),
+            Err(FaceSceneError::StaleFace)
+        ));
+        let resolved = scene.resolve(&face.identity, face.revision, control);
+        if action.availability.is_available() {
+            assert_eq!(resolved.unwrap().0, action);
+        } else {
+            assert!(matches!(resolved, Err(FaceSceneError::UnavailableAction)));
+        }
+    }
+    scene.show_diagram(true);
+    let frame = scene.frame().unwrap();
+    assert!(frame.scene.commands().len() <= MAX_GRAPHICS_COMMANDS);
     assert_eq!(scene.presentation(), &face);
 }
