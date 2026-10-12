@@ -570,3 +570,23 @@ Four custody tests, twenty keyboard regressions and strict Std Clippy pass.
 The policy also has exact current-Host source Plan preparation with missing or
 substituted offer refusal. These changes do not yet connect acknowledged scan
 state and current Face/Show to an authorized Start/Shoot interaction.
+
+The private Parsec map observer now initializes from the selected scan's exact
+initial accumulator, activates only for the confirmed Body Play, and updates
+only after the exact lowered states endpoint acknowledges a source result.
+Wrong source node, endpoint, sequence, shape or owner law revokes availability;
+successful acknowledgement preserves prepared capacities without allocation.
+
+An explicit terminal attachment now projects the source policy's emitted action
+into a semantic Face and obtains its Show through the concrete terminal Mask's
+actual write/flush receipt and kernel Host Call/Show Fore completion. It retains
+the real Body basis, current map and concrete execution privately. The scoped
+checked Mask Plot has a separate identity from ordinary terminal execution;
+bounded sequence ranges distinguish successive Body Plays and refuse exhaustion
+before writing. An actual combined Body test records three source Faces/Shows
+through Start, Shoot and remap while preserving the four source transitions and
+input-output cancellation checks. Twenty Parsec tests and strict Std Clippy
+pass; existing terminal regressions have 53 passes and one explicit ignore.
+These are software terminal effects, not foreground human or physical proof.
+Completed input still does not invoke a Face action through this terminal route;
+private policy correlation and typed return/command admission remain required.
