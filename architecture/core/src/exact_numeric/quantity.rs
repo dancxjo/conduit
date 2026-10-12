@@ -7,6 +7,7 @@ use crate::{
 };
 use core::cmp::Ordering;
 
+mod arithmetic;
 mod enclosure;
 mod projection;
 mod receipt;
