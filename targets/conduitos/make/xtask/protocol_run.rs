@@ -13,6 +13,8 @@ use std::{
     time::{Duration, Instant},
 };
 
+mod storage_fixture;
+
 #[derive(Args, Debug)]
 pub(super) struct RunArgs {
     /// Directory produced by protocol-image; the retained digest must match.
@@ -33,6 +35,9 @@ pub(super) struct RunArgs {
     /// Inject exactly one known mouse report after the guest begins product Play.
     #[arg(long, requires = "usb_control_mouse")]
     usb_mouse_report: bool,
+    /// Generate a new readonly 1 MiB USB storage fixture in output-dir.
+    #[arg(long, conflicts_with_all = ["usb_control_mouse", "usb_mouse_report"])]
+    usb_storage_fixture: bool,
     /// Optional local emulator executable for the receipt's exact architecture.
     #[arg(long)]
     emulator: Option<PathBuf>,
@@ -107,6 +112,14 @@ pub(super) fn execute(args: RunArgs, opts: &GlobalOpts) -> Result<(), ConduitosE
     }
     fs::create_dir(&args.output_dir)
         .map_err(|error| refusal("protocol-run-output-refused", error))?;
+    let emulator = args
+        .emulator
+        .as_deref()
+        .unwrap_or(Path::new(default_emulator));
+    let storage = args
+        .usb_storage_fixture
+        .then(|| storage_fixture::StorageFixture::create(&args.output_dir, emulator))
+        .transpose()?;
     let serial = args.output_dir.join("serial.log");
     let stderr = args.output_dir.join("qemu.log");
     let output_handle = if args.usb_mouse_report {
@@ -178,6 +191,9 @@ pub(super) fn execute(args: RunArgs, opts: &GlobalOpts) -> Result<(), ConduitosE
             fs::File::create(&stderr)
                 .map_err(|error| refusal("protocol-run-output-refused", error))?,
         );
+    if let Some(fixture) = &storage {
+        command.args(&fixture.arguments);
+    }
     if args.usb_mouse_report {
         command
             .current_dir(&args.output_dir)
@@ -265,6 +281,7 @@ pub(super) fn execute(args: RunArgs, opts: &GlobalOpts) -> Result<(), ConduitosE
         "aarch64_firmware_sha256": args.aarch64_firmware.as_deref().map(sha256_file).transpose()?,
         "physical_compatibility": "unverified",
         "usb_devices": usb_devices(args.usb_control_mouse),
+        "usb_storage_fixture": storage.as_ref().map(|fixture| fixture.receipt()).transpose()?,
         "fixture_input": {
             "requested": args.usb_mouse_report,
             "injected": injected,
