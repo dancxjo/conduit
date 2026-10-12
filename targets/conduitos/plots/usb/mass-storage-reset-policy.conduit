@@ -1,3 +1,4 @@
+with flow/zip/feedback/paired as BotRecoveryPair
 with machine/usb/control/request as UsbControlRequest
 with machine/usb/control/result as UsbControlResult
 
@@ -27,3 +28,44 @@ plot bot-recovery-after-clear-in (
 plot bot-recovery-after-clear-out (
     result: UsbControlResult...| <= 4096B >> outcome: BotRecoveryOutcome...| <= 4096B
 ) = (. is completed ? (.completed.transferred == 0 && !.completed.short && sequence/length(.completed.input) == 0 ? recovered(empty) : refused(empty)) : refused(empty))
+
+# One recovery per explicitly supplied seed. The caller must retain the same
+# selected attachment and wait for original transfer quiescence before seeding.
+type BotRecoveryState = {
+    phase: U64
+    failed: Boolean
+    terminal: Boolean
+}
+type BotRecoveryRoute =
+    running BotRecoveryState
+    | stopped BotRecoveryState
+plot bot-recovery-seed (
+    interface: U64...| <= 4096B >> state: BotRecoveryState...| <= 4096B
+) = ({ phase: 0, failed: . != 0, terminal: . != 0 })
+plot bot-recovery-route (
+    state: BotRecoveryState...| <= 4096B >> route: BotRecoveryRoute...| <= 4096B
+) = (.terminal || .phase >= 3 ? stopped(.) : running(.))
+plot bot-recovery-request (
+    state: BotRecoveryState...| <= 4096B >> request: UsbControlRequest...| <= 4096B
+) = ({ setup: .phase == 0 ? 0x000000000000ff21 : (.phase == 1 ? 0x0000008100000102 : 0x0000000200000102), output: [] })
+plot bot-recovery-advance (
+    pair: BotRecoveryPair...| >> state: BotRecoveryState...| <= 4096B
+) = ({ phase: .0.phase + 1, failed: .1 is completed ? (.1.completed.transferred != 0 || .1.completed.short || sequence/length(.1.completed.input) != 0) : true, terminal: .0.phase >= 2 || (.1 is completed ? (.1.completed.transferred != 0 || .1.completed.short || sequence/length(.1.completed.input) != 0) : true) })
+plot bot-recovery-outcome (
+    state: BotRecoveryState...| <= 4096B >> result: BotRecoveryOutcome...| <= 4096B
+) = (.failed ? refused(empty) : recovered(empty))
+plot bot-reset-recovery (
+    interface: U64...| <= 4096B >> result: BotRecoveryOutcome...| <= 4096B
+) {
+    cell: state/seeded/flow/until
+    route: bot-recovery-route()
+    join: flow/zip/feedback
+    control: machine/usb/control
+    interface >> bot-recovery-seed() >> cell.seed
+    cell.current >> route
+    route >> select(BotRecoveryRoute.running, unmatched=drop) >> join.left
+    route >> select(BotRecoveryRoute.running, unmatched=drop) >> bot-recovery-request() >> control.request
+    control.result >> join.right
+    join.paired >> bot-recovery-advance() >> cell.next
+    route >> select(BotRecoveryRoute.stopped, unmatched=drop) >> bot-recovery-outcome() >> result
+}

@@ -4,7 +4,10 @@ fn source() -> PreparedProtocolSource {
     PreparedProtocolSource::prepare(
         ProtocolSourcePackage::compile(
             include_str!("../../plots/usb/mass-storage-reset-policy.conduit").into(),
-            &[],
+            &serde_json::from_str::<Vec<ProtocolSpecializationRequest>>(include_str!(
+                "../../plots/usb/mass-storage-reset-specializations.json"
+            ))
+            .unwrap(),
         )
         .unwrap(),
     )
@@ -152,6 +155,66 @@ fn wrong_interface_and_every_failed_or_malformed_ack_refuse_next_effect() {
                     .unwrap(),
                 "refused",
                 "{name}"
+            );
+        }
+    }
+}
+
+#[test]
+fn sequenced_graph_uses_one_control_owner_and_stops_after_three_acks_or_first_failure() {
+    let s = source();
+    let expanded = s.expand("bot-reset-recovery").unwrap();
+    assert_eq!(
+        expanded
+            .expanded
+            .gears
+            .iter()
+            .filter(|g| g.kind_id.as_str() == "machine/usb/control")
+            .count(),
+        1
+    );
+    assert!(!expanded
+        .expanded
+        .gears
+        .iter()
+        .any(|g| g.kind_id.as_str().starts_with("storage/")
+            || g.kind_id.as_str().contains("endpoint-write")));
+    let advance = program(&s, "bot-recovery-advance");
+    let state_type = fields(&advance.input_type)[0].value_type();
+    let result_type = fields(&advance.input_type)[1].value_type();
+    for phase in 0..3 {
+        for failed in [false, true] {
+            let state = record(state_type, |f| match f.name() {
+                "phase" => scalar(f.value_type(), phase),
+                _ => StructuredInfoValue::leaf(f.value_type().clone(), vec![0]).unwrap(),
+            });
+            let ack = acknowledgment(result_type, 0, failed, &[]);
+            let pair = record(&advance.input_type, |f| {
+                if f.name() == fields(&advance.input_type)[0].name() {
+                    state.clone()
+                } else {
+                    ack.clone()
+                }
+            });
+            let bytes = evaluate(&advance, &pair);
+            let value = validate_canonical_structured_value(&bytes).unwrap();
+            assert_eq!(
+                value
+                    .record_field("terminal")
+                    .unwrap()
+                    .unwrap()
+                    .primitive_bytes("value/bool")
+                    .unwrap(),
+                [u8::from(failed || phase == 2)]
+            );
+            assert_eq!(
+                value
+                    .record_field("failed")
+                    .unwrap()
+                    .unwrap()
+                    .primitive_bytes("value/bool")
+                    .unwrap(),
+                [u8::from(failed)]
             );
         }
     }
