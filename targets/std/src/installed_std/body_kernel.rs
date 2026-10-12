@@ -28,6 +28,7 @@ mod clock_observation;
 mod fore_route;
 mod parsec_acknowledged_map;
 mod parsec_sources;
+mod parsec_terminal_owner;
 mod scan_route;
 use crate::body_execution::ObservedKernelEvent;
 use clock_observation::KernelClockObservations;
@@ -50,6 +51,7 @@ pub(crate) struct BodyKernel<'a> {
     supported_pure_scan: bool,
     supported_parsec_input_scan: bool,
     parsec_map: Option<parsec_acknowledged_map::ParsecAcknowledgedMap>,
+    parsec_terminal: Option<parsec_terminal_owner::ParsecTerminalOwner>,
     todo_checkpoint: Option<crate::todo_checkpoint_call::TodoCheckpointHost>,
     todo_checkpoint_read: Option<crate::todo_checkpoint_read_call::TodoCheckpointReadHost>,
 }
@@ -441,6 +443,7 @@ impl<'a> BodyKernel<'a> {
             supported_pure_scan,
             supported_parsec_input_scan,
             parsec_map: None,
+            parsec_terminal: None,
             todo_checkpoint: None,
             todo_checkpoint_read: None,
         })
@@ -499,6 +502,25 @@ impl<'a> BodyKernel<'a> {
         if let Some(map) = self.parsec_map.as_mut() {
             map.confirm(advertisement, issued)?;
         }
+        Ok(())
+    }
+
+    pub(crate) fn attach_parsec_terminal(
+        &mut self,
+        plan: &conduit_body::BodyPlan,
+        host: &conduit_core::HostAdvertisement,
+        columns: usize,
+        rows: usize,
+    ) -> Result<(), String> {
+        if !self.supported_parsec_input_scan
+            || self.parsec_map.is_none()
+            || self.parsec_terminal.is_some()
+        {
+            return Err("terminal attachment requires the exact prepared Parsec input Body".into());
+        }
+        self.parsec_terminal = Some(parsec_terminal_owner::ParsecTerminalOwner::prepare(
+            plan, host, columns, rows,
+        )?);
         Ok(())
     }
 
@@ -613,6 +635,7 @@ impl<'a> BodyKernel<'a> {
             conduit_core::MonotonicDuration,
         )>,
         admitted_clock_quality: Option<BodyTimeQuality>,
+        mut terminal: Option<crate::body_execution::ParsecTerminalAttachment<'_>>,
     ) -> BodyKernelResult {
         let mut keys = super::keyboard_input_host::KeyboardInputHost::new(
             input,
@@ -638,6 +661,18 @@ impl<'a> BodyKernel<'a> {
                     self.supported_parsec_input_scan.then_some(&mut keys),
                     self.parsec_map.as_mut(),
                 )?;
+                if !cancelling {
+                    if let (Some(owner), Some(map), Some(attachment)) = (
+                        self.parsec_terminal.as_mut(),
+                        self.parsec_map.as_ref(),
+                        terminal.as_mut(),
+                    ) {
+                        if owner.ensure_present(map, &attachment.host, attachment.output)? {
+                            let (face, show) = owner.current_face_show(map, &attachment.host)?;
+                            attachment.observer.showed(face, show)?;
+                        }
+                    }
+                }
                 self.clock_observations.capture_new(
                     self.scheduler.signs().events(),
                     clock,
@@ -652,6 +687,7 @@ impl<'a> BodyKernel<'a> {
                     // No acknowledged map remains current while the owning
                     // Body Play is being cancelled.
                     self.parsec_map = None;
+                    self.parsec_terminal = None;
                     deadlines.clear();
                     cancelling = true;
                 }
