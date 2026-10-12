@@ -507,6 +507,8 @@ activates it; cancellation, terminal failure, rejected requests, poll failure
 and lifetime end revoke it. This is input-origin custody, not a current
 source-owned action map, revision authority, physical-device receipt or retained
 Parsec execution. Those binding and gameplay requirements remain incomplete.
+Plans without an installed input call retain their existing admission path;
+input-origin preparation does not preempt their resource or stale-offer refusal.
 
 The retained-DOM journey now explicitly selects a checked compact Look before
 its domain snapshots. The first live attempt encountered generic browser

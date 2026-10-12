@@ -7,6 +7,12 @@ use conduit_core::{ActivePlayIdentity, HostAdvertisement, PlanFragment, PlannedG
 use conduit_kernel::scheduler::HostCallRequest;
 use conduit_plan_lowering::lowering::{KernelIdentityMap, LoweredHostCall};
 
+pub(super) fn has_input_source(operations: &[LoweredHostCall]) -> bool {
+    operations
+        .iter()
+        .any(|operation| InputRealization::from_contract(operation.contract_id.as_str()).is_some())
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) enum InputRealization {
     RawKeyboard,
