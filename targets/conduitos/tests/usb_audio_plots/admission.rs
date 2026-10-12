@@ -48,16 +48,10 @@ fn setup_and_pcm_admission_prepare_before_one_playback_offer() {
                 left: value("UsbAudioPlaybackState"),
                 right: value("UsbIsochronousOutResult"),
             },
-            R::FiniteZipInstance {
-                alias: "UsbAudioAdmissionJoin".into(),
-                paired_alias: "UsbAudioAdmissionPair".into(),
-                left: value("UsbAudioAdmission"),
-                right: value("UsbAudioAdmission"),
-            },
-            R::FiniteZipInstance {
-                alias: "UsbAudioRetainedPcmJoin".into(),
-                paired_alias: "UsbAudioRetainedPcmPair".into(),
-                left: value("UsbAudioPcmBlock"),
+            R::FeedbackZipInstance {
+                alias: "UsbAudioInitializationJoin".into(),
+                paired_alias: "UsbAudioInitializationPair".into(),
+                left: value("UsbAudioPlaybackState"),
                 right: value("UsbAudioAdmission"),
             },
         ],

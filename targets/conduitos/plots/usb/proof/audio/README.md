@@ -59,17 +59,27 @@ routes installed. The singlepacket clock projection is checked. Extending it
 through a sequence requires the separate conservative byte-contract proof fix.
 
 The current integration adds `audio-playback-policy.conduit` and
-`audio-playback-back.conduit`: a typed state loop retains one original PCM block,
-observes a real controller snapshot, submits eight exact 192-byte projections,
-correlates every completion deadline and extent, and requests drain. Its native
-catalog preparation and the 15-test Source suite passed at commit `0687b401a`.
-These checks did not execute USB transfers.
+`audio-playback-back.conduit`. The state is seeded immediately with the original
+PCM block. It waits for setup acceptance, validates the block laws through a
+separate checked transition, observes a real controller snapshot, submits eight
+exact 192-byte projections, correlates every completion deadline and extent,
+and requests drain. All 16 Source tests pass.
 
-`audio-admission-back.conduit` connects setup acceptance and the block laws to
-that loop using exact typed finite pairs. This full entry is `usb-audio-playback`;
-its serialized-entry preparation test passes with one control and one ISO
-placement. Public packaging also passes (80,383 bytes, 45 expanded gears). Generate its Source and generic
-specialization inputs with:
+`audio-admission-back.conduit` connects setup to that retained state through
+exact typed feedback. A finite zip cannot retain a closed PCM Flow while setup
+is pending: its contract discards unmatched values on normal close. This entry
+therefore uses state ownership and feedback to gate physical effects.
+
+The full entry is `usb-audio-playback`. Public packaging passes (79,954 bytes,
+47 expanded gears). An x86_64 QEMU run using kernel commit
+`8a230985a7c0a27f3e6ebf65197fd87171e0877c` and package digest
+`2b674b564412600373d6d4d197cbe5fac1876b8910c1ee6cc64e21ff3b550e69`
+carried all eight packets and exactly 1,536 original PCM bytes. Independent
+wire comparison passed; the checked terminal was phase 3 with original PCM
+retained and Root retirement observed. This is one-block emulator evidence.
+It does not establish continuous refill or physical sound.
+
+Generate the ordinary Source and generic specialization inputs with:
 
 ```sh
 python3 targets/conduitos/plots/usb/proof/audio/build_source.py --output /new/audio-input

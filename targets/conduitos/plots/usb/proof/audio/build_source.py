@@ -29,8 +29,7 @@ def assemble(root):
                  {"kind": "seeded-until-instance", "alias": "UsbAudioPlaybackCell", "value": value("UsbAudioPlaybackState")}]
     for kind, stem, left, right in (
         ("feedback-zip-instance", "Playback", "UsbAudioPlaybackState", "UsbIsochronousOutResult"),
-        ("finite-zip-instance", "Admission", "UsbAudioAdmission", "UsbAudioAdmission"),
-        ("finite-zip-instance", "RetainedPcm", "UsbAudioPcmBlock", "UsbAudioAdmission")):
+        ("feedback-zip-instance", "Initialization", "UsbAudioPlaybackState", "UsbAudioAdmission")):
         requests.append({"kind": kind, "alias": "UsbAudio" + stem + "Join",
                          "paired_alias": "UsbAudio" + stem + "Pair", "left": value(left), "right": value(right)})
     return "\n".join(sections), requests

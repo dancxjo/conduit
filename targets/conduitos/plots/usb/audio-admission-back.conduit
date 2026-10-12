@@ -1,41 +1,11 @@
-# Pure Boolean evidence remains distinct from the retained original PCM.
-type UsbAudioAdmission = {
-    accepted: Boolean
-}
-type UsbAudioAdmissionRoute =
-    accepted UsbAudioPcmBlock
-    | refused UsbAudioPcmBlock
-plot usb-audio-admission-evidence (
-    accepted: Boolean...| >> evidence: UsbAudioAdmission...|
-) = ({ accepted: . })
-plot usb-audio-admission-both (
-    pair: UsbAudioAdmissionPair...| >> evidence: UsbAudioAdmission...|
-) = ({ accepted: .0.accepted && .1.accepted })
-plot usb-audio-admission-route (
-    pair: UsbAudioRetainedPcmPair...| >> route: UsbAudioAdmissionRoute...|
-) = (.1.accepted ? accepted(.0) : refused(.0))
-plot usb-audio-admission-refused (
-    pcm: UsbAudioPcmBlock...| >> ended: UsbAudioPlaybackState...|
-) = ({ pcm: ., first-frame: 0, phase: 0, terminal: true })
+# Setup completion feeds the state already retaining the original PCM.
 plot usb-audio-playback (
     >> pcm: UsbAudioPcmBlock...| <= 4096B
     ended: UsbAudioPlaybackState...| >>
 ) {
     setup: usb-audio-negotiate
-    laws: usb-audio-block-admitted()
-    admission: UsbAudioAdmissionJoin
-    retained: UsbAudioRetainedPcmJoin
-    route: usb-audio-admission-route()
     playback: usb-audio-playback-admitted
-    terminals: flow/merge/finite
-    pcm >> retained.left
-    pcm >> laws
-    laws >> usb-audio-admission-evidence() >> admission.left
-    setup.accepted >> usb-audio-admission-evidence() >> admission.right
-    admission.paired >> usb-audio-admission-both() >> retained.right
-    retained.paired >> route
-    route >> select(UsbAudioAdmissionRoute.accepted, unmatched=drop) >> playback.pcm
-    route >> select(UsbAudioAdmissionRoute.refused, unmatched=drop) >> usb-audio-admission-refused() >> terminals.left
-    playback.ended >> terminals.right
-    terminals.merged >> ended
+    pcm >> playback.pcm
+    setup.accepted >> usb-audio-admission-evidence() >> playback.setup
+    playback.ended >> ended
 }

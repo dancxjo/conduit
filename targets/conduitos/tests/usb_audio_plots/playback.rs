@@ -12,11 +12,12 @@ fn playback_observes_before_submitting_exact_pcm_and_wraps_frames() {
     assert!(initial.len() <= 4096);
     let request = program("usb-audio-playback-request");
     let mut evaluator = PreparedPortableExpressionEvaluator::new(&request).unwrap();
-    let observed = evaluator.evaluate(&initial).unwrap();
+    let routing = program("usb-audio-playback-route");
+    let mut router = PreparedPortableExpressionEvaluator::new(&routing).unwrap();
     assert!(
-        validate_canonical_structured_value(observed)
+        validate_canonical_structured_value(router.evaluate(&initial).unwrap())
             .unwrap()
-            .variant_payload("observe")
+            .variant_payload("awaiting")
             .unwrap()
             .is_some()
     );
@@ -321,6 +322,12 @@ fn one_isochronous_offer_prepares_the_typed_playback_loop() {
     let package = ProtocolSourcePackage::compile(
         text,
         &[
+            Request::FeedbackZipInstance {
+                alias: "UsbAudioInitializationJoin".into(),
+                paired_alias: "UsbAudioInitializationPair".into(),
+                left: value("UsbAudioPlaybackState"),
+                right: value("UsbAudioAdmission"),
+            },
             Request::Merge {
                 value: value("UsbAudioPlaybackState"),
             },

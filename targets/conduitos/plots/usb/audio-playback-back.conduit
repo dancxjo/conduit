@@ -1,13 +1,18 @@
-# The caller admits the original PCM and completed class negotiation before
-# entering this loop. One physical offer handles observe, batch, and drain.
+# Retain PCM before setup completes. One physical offer handles observe, batch,
+# and drain only after setup and the original block laws accept it.
 plot usb-audio-playback-observation (
     pair: UsbAudioPlaybackPair...| >> observation: UsbAudioPlaybackObservation...|
 ) = ({ previous: .0, result: .1 })
 plot usb-audio-playback-admitted (
     >> pcm: UsbAudioPcmBlock...| <= 4096B
+    >> setup: UsbAudioAdmission...| <= 4096B
     ended: UsbAudioPlaybackState...| >>
 ) {
     state: UsbAudioPlaybackCell
+    admission: UsbAudioInitializationJoin
+    validation: UsbAudioInitializationJoin
+    admitted: flow/merge/finite
+    settled: flow/merge/finite
     route: usb-audio-playback-route()
     join: UsbAudioPlaybackJoin
     usb: machine/usb/isochronous-out
@@ -16,6 +21,13 @@ plot usb-audio-playback-admitted (
     updates: flow/merge/finite
     pcm >> usb-audio-playback-seed() >> state.seed
     state.current >> route
+    route >> select(UsbAudioPlaybackRoute.awaiting, unmatched=drop) >> admission.left
+    setup >> admission.right
+    admission.paired >> usb-audio-playback-initialize() >> admitted.left
+    route >> select(UsbAudioPlaybackRoute.validating, unmatched=drop) >> validation.left
+    route >> select(UsbAudioPlaybackRoute.validating, unmatched=drop) >> usb-audio-playback-pcm() >> usb-audio-block-admitted() >> usb-audio-admission-evidence() >> validation.right
+    validation.paired >> usb-audio-playback-validate() >> admitted.right
+    admitted.merged >> settled.left
     route >> select(UsbAudioPlaybackRoute.active, unmatched=drop) >> join.left
     route >> select(UsbAudioPlaybackRoute.active, unmatched=drop) >> usb-audio-playback-request() >> usb.request
     usb.result >> join.right
@@ -24,6 +36,14 @@ plot usb-audio-playback-admitted (
     observations >> select(UsbAudioPlaybackObservationRoute.batch, unmatched=drop) >> usb-audio-playback-batch-advance() >> clock-batch.right
     clock-batch.merged >> updates.left
     observations >> select(UsbAudioPlaybackObservationRoute.drain, unmatched=drop) >> usb-audio-playback-drain-advance() >> updates.right
-    updates.merged >> state.next
+    updates.merged >> settled.right
+    settled.merged >> state.next
     route >> select(UsbAudioPlaybackRoute.stopped, unmatched=drop) >> ended
 }
+
+plot usb-audio-playback-initialize (
+    pair: UsbAudioInitializationPair...| >> state: UsbAudioPlaybackState...|
+) = ({ pcm: .0.pcm, first-frame: .0.first-frame, phase: 5, terminal: .0.terminal || .0.phase != 4 || !.1.accepted })
+plot usb-audio-playback-validate (
+    pair: UsbAudioInitializationPair...| >> state: UsbAudioPlaybackState...|
+) = ({ pcm: .0.pcm, first-frame: .0.first-frame, phase: 0, terminal: .0.terminal || .0.phase != 5 || !.1.accepted })
