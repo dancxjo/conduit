@@ -253,6 +253,16 @@ fn one_body_wake_projects_current_state_without_inventing_plan_or_play() {
     )
     .unwrap()
     .presentation;
+    let recorded_lulled: conduit_presentation::Presentation = serde_json::from_str(include_str!(
+        "../../../proof/conformance/presentation-waist/domain-derived/lulled-body-face.json"
+    ))
+    .unwrap();
+    let recorded_awake: conduit_presentation::Presentation = serde_json::from_str(include_str!(
+        "../../../proof/conformance/presentation-waist/domain-derived/awake-body-face.json"
+    ))
+    .unwrap();
+    assert_eq!(recorded_lulled, lulled);
+    assert_eq!(recorded_awake, awake);
     assert_eq!(lulled.basis.body_id, awake.basis.body_id);
     assert_ne!(lulled.identity, awake.identity);
     assert!(lulled.basis.wake_id.is_none());
