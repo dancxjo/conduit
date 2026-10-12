@@ -63,3 +63,56 @@ fn browser_generic_mask_keeps_open_domain_ids_and_supplied_typed_agency() {
     assert_eq!(emitted.show.show_id.as_str(), prepared.show_id);
     assert_eq!(mask.presentation, face);
 }
+
+#[test]
+fn browser_generic_mask_keeps_finite_place_actions_bound_to_their_targets() {
+    let face: Presentation = serde_json::from_str(include_str!(
+        "../../../../../proof/conformance/presentation-waist/domain-derived/finite-place-face.json"
+    ))
+    .unwrap();
+    let mut mask = OwnerBrowserMask::prepare_component_fixture(
+        HostBasis {
+            visual_constraints: None,
+            body_id: face.basis.body_id.clone().unwrap(),
+            host_id: HostId::from("host/browser-finite-place-fixture"),
+            boot_id: BootId::from("boot/browser-finite-place-fixture"),
+        },
+        face.clone(),
+        1,
+        true,
+    )
+    .unwrap();
+    let prepared = mask.view();
+    let encoded = serde_json::to_string(&prepared).unwrap();
+    for meaning in [
+        "Hub",
+        "Workshop",
+        "Crèche",
+        "commons/place",
+        "commons/contains-place",
+    ] {
+        assert!(encoded.contains(meaning), "lost {meaning}");
+    }
+    mask.acknowledge(Acknowledgement {
+        show_id: prepared.show_id.clone(),
+        face_id: prepared.face_id.clone(),
+        face_revision: prepared.face_revision.clone(),
+    })
+    .unwrap();
+    let proposal = |target: &str| ProposedInteraction {
+        show_id: prepared.show_id.clone(),
+        face_id: prepared.face_id.clone(),
+        face_revision: prepared.face_revision.clone(),
+        action_id: "commons/hub/inspect".into(),
+        target: target.into(),
+        arguments: vec![],
+        sequence: 1,
+    };
+    assert!(mask.interact(proposal("commons/workshop")).is_err());
+    let emitted = mask.interact(proposal("commons/hub")).unwrap();
+    assert_eq!(emitted.interaction.action_id, "commons/hub/inspect");
+    assert_eq!(emitted.interaction.target, "commons/hub");
+    assert!(emitted.interaction.arguments.is_empty());
+    assert_eq!(emitted.show.show_id.as_str(), prepared.show_id);
+    assert_eq!(mask.presentation, face);
+}

@@ -209,3 +209,10 @@ never manufactures connectivity or authority. The fixture's empty Plan and
 lifecycle setup are test machinery; this does not implement or accept the
 checked Commons application requested by #5359. Native/browser realizations
 and the rest of this specimen's refusal matrix remain open.
+
+The finite-place fixture now has a source-equality-checked shared Face record.
+Native generic layout renders its names in bounded, fully visible frames and
+retains containment in Details. The checked browser Mask preserves those facts,
+rejects the Hub action when misbound to Workshop, and emits the exact targeted
+inspection after simulated acknowledgement. These are fixture mechanism
+witnesses; they are not the #5359 Commons product or live output acceptance.
