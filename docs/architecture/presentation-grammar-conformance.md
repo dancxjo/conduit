@@ -161,8 +161,15 @@ and exact aural subject/action provenance. Neither projection changes the Body.
 The interaction specimen uses the existing planned fixture Mask/Show helper to
 check cross-context, stale-Show, invented-action and wrong-target refusal before
 any domain effect. That is correlation-admission proof, not graphical execution.
-Native/browser Shows, audible speech, prebirth, committed Todo mutation,
-Patchbay, Commons, unknown-domain fallback, unavailable actions and pressure
+The domain-owned Birth draft fixture also checks zero-Body linear/aural
+projection and unavailable-choice refusal. The hosted owner continuity fixture
+uses actual checkpoint write/read Plays to encounter three retained Todo items,
+complete one, and reconstruct the verified lulled Face without a current Play.
+It rejects the prior generation's digest while preserving the current receipt.
+These are nonvisual projection and hosted kernel/Host Call proofs.
+
+Native/browser prebirth and committed Todo Shows, audible speech,
+Patchbay, Commons, unknown-domain fallback and pressure
 remain required parts of the open four-Mask matrix. Separate reconstruction
 accounts in `proof/conformance/presentation-waist` remain model proof and must
 not substitute for these execution witnesses.
