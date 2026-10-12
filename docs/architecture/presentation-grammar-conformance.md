@@ -199,3 +199,13 @@ with exact Face/Show correlation, rejecting stale and invented actions first.
 Its acknowledgement is explicitly simulated. These checks prove native layout
 and browser Mask mechanism behavior, not scanout, Chromium DOM interaction,
 installed-owner effect, synthesized audio, or independent human observation.
+
+`semantics/presentation/tests/face/finite_places.rs` adds an explicitly named
+Commons-place fixture for #5355: three domain-owned open-role subjects and two
+domain containment relationships enter the ordinary Foreground contribution
+boundary of one Body Face. Linear and deterministic aural readers preserve
+names, identities, and the supplied finite inspection actions. Containment
+never manufactures connectivity or authority. The fixture's empty Plan and
+lifecycle setup are test machinery; this does not implement or accept the
+checked Commons application requested by #5359. Native/browser realizations
+and the rest of this specimen's refusal matrix remain open.
