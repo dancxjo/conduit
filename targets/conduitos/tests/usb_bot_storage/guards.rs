@@ -71,11 +71,8 @@ fn control(ty: &StructuredInfoType, phase: u64, fault: Option<&str>) -> Structur
                                     bytes
                                         .iter()
                                         .map(|byte| {
-                                            StructuredInfoValue::leaf(
-                                                element.clone(),
-                                                vec![*byte],
-                                            )
-                                            .unwrap()
+                                            StructuredInfoValue::leaf(element.clone(), vec![*byte])
+                                                .unwrap()
                                         })
                                         .collect(),
                                 )

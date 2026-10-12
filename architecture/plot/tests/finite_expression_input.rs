@@ -123,19 +123,17 @@ fn a_coarse_fore_ceiling_never_broadens_the_structural_type() {
         decoded.evaluate(&invalid),
         Err(PortableExpressionEvaluationRefusal::InvalidInput)
     );
-    assert!(
-        PreparedPortableExpressionEvaluator::new(&decoded)
-            .unwrap()
-            .evaluate(&invalid)
-            .is_err()
-    );
+    assert!(PreparedPortableExpressionEvaluator::new(&decoded)
+        .unwrap()
+        .evaluate(&invalid)
+        .is_err());
 }
 
 #[test]
 fn semantic_call_arguments_keep_the_source_ceiling() {
     use conduit_core::{
-        CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection, PortTemporal, kind_id,
-        port_id,
+        kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection,
+        PortTemporal,
     };
     let port = |name, direction| PortDescriptor {
         port_id: port_id(name),
@@ -212,7 +210,7 @@ fn semantic_call_arguments_keep_the_source_ceiling() {
 
 #[test]
 fn exact_identity_retains_output_contract_without_claiming_transformed_bounds() {
-    use conduit_core::{FrontValueLocation, port_id};
+    use conduit_core::{port_id, FrontValueLocation};
     for (body, identity) in [(".", true), (". == 0 ? 1 : .", false)] {
         let source =
             format!("plot relay (\n wire: U64 <= 64B >> result: U64 <= 64B\n) = ({body})\n");
@@ -252,7 +250,7 @@ fn exact_identity_retains_output_contract_without_claiming_transformed_bounds() 
 #[test]
 fn bounded_boolean_identity_filter_keeps_flow_and_optional_value_contracts_distinct() {
     use conduit_core::{
-        FrontValueLocation, KindSemanticLaw, PortTemporal, StructuredInfoType, kind_id, port_id,
+        kind_id, port_id, FrontValueLocation, KindSemanticLaw, PortTemporal, StructuredInfoType,
     };
     let boolean = StructuredInfoType::leaf(kind_id("value/bool")).unwrap();
     let program = PortableExpressionProgram {

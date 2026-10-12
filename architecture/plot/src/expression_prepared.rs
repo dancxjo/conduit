@@ -22,8 +22,8 @@ mod structured;
 mod structured_contract;
 mod text_material;
 use primitive::{
-    PrimitiveValue, decode_bool, evaluate_binary, evaluate_unary, kind_name, leaf_info_kind,
-    leaf_kind,
+    decode_bool, evaluate_binary, evaluate_unary, kind_name, leaf_info_kind, leaf_kind,
+    PrimitiveValue,
 };
 use structured::PreparedStructuredExpression;
 
