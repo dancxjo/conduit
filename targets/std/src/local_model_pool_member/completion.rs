@@ -3,6 +3,9 @@
 //! This measures elapsed adapter-call time, including effects it waits for. It
 //! does not separately measure queue/transport/warmup, predict completion, assert
 //! residency, or grant authority to publish a cost observation.
+mod calibration;
+pub use calibration::{LocalModelCompletionCalibrationRefusal, LocalModelPreparedCalibration};
+
 use crate::{hosted_local_model::LocalModelAdapterTerminal, ThreadTimer, TimerAdapter};
 use conduit_core::{
     MonotonicClockIdentity, MonotonicDuration, MonotonicInstant, MonotonicTimeRefusal, PlannedGear,
@@ -23,9 +26,12 @@ pub enum LocalModelMeasurementRefusal {
 /// another model, Host, Boot, offer generation, operation or realization.
 ///
 /// ```
-/// use conduit_std_host::LocalModelCompletedWork;
+/// use conduit_std_host::{LocalModelCompletedWork, LocalModelPreparedCalibration};
 /// fn read(receipt: &LocalModelCompletedWork<'_>) -> [u8; 32] {
 ///     receipt.input_digest()
+/// }
+/// fn record<'a>(prepared: &LocalModelPreparedCalibration<'a>) {
+///     let _ = prepared.record().measured();
 /// }
 /// ```
 ///
@@ -135,6 +141,11 @@ impl MeasurementSlot {
         self.input_digest =
             conduit_core::semantic_digest("conduit.std/local-model-completed-input@1", input);
         self.started = ThreadTimer.monotonic_now_micros();
+    }
+    pub(super) fn input_identity(&self) -> Option<(u32, [u8; 32])> {
+        self.refusal
+            .is_none()
+            .then_some((self.input_bytes, self.input_digest))
     }
     pub(super) fn finish(&mut self, terminal: LocalModelAdapterTerminal, bytes: usize) {
         self.completed = ThreadTimer.monotonic_now_micros();
