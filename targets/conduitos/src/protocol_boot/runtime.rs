@@ -1,4 +1,7 @@
 //! The containing machine owns the bounded loop around the admitted kernel.
+#[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
+#[path = "runtime_network.rs"]
+mod network;
 #[cfg(target_arch = "x86_64")]
 use super::{owners::NativeOwners, request::ProtocolBootRequest};
 use crate::{
@@ -104,18 +107,57 @@ pub(super) fn prepare_usb(
             control_issuer,
             read_issuer,
             write_issuer,
-        } => crate::protocol_source::prepare_native_usb_duplex_protocol(
-            entry,
-            session,
-            advertisement,
-            *ready,
-            *control_issuer,
-            *read_issuer,
-            *write_issuer,
-            0,
-            1,
-            request.additional_remote_sign_items,
-        ),
+            #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
+            network,
+        } => {
+            #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
+            let result = match network {
+                Some(network) => crate::protocol_source::prepare_native_usb_duplex_with_network(
+                    entry,
+                    session,
+                    advertisement,
+                    *ready,
+                    *control_issuer,
+                    *read_issuer,
+                    *write_issuer,
+                    0,
+                    1,
+                    request.additional_remote_sign_items,
+                    Some(crate::protocol_source::NativeEthernetPreparation {
+                        ready: *network.ready,
+                        issuer: *network.issuer,
+                        random_seed: network.random_seed,
+                        timestamp: smoltcp::time::Instant::ZERO,
+                    }),
+                ),
+                None => crate::protocol_source::prepare_native_usb_duplex_protocol(
+                    entry,
+                    session,
+                    advertisement,
+                    *ready,
+                    *control_issuer,
+                    *read_issuer,
+                    *write_issuer,
+                    0,
+                    1,
+                    request.additional_remote_sign_items,
+                ),
+            };
+            #[cfg(not(all(target_arch = "x86_64", feature = "native-owner-network")))]
+            let result = crate::protocol_source::prepare_native_usb_duplex_protocol(
+                entry,
+                session,
+                advertisement,
+                *ready,
+                *control_issuer,
+                *read_issuer,
+                *write_issuer,
+                0,
+                1,
+                request.additional_remote_sign_items,
+            );
+            result
+        }
         super::usb_owners::NativeUsbOwners::Control { ready, issuer } => {
             crate::protocol_source::prepare_native_usb_protocol_with_sign_storage(
                 entry,
@@ -144,7 +186,10 @@ pub(super) fn prepare_usb(
             request.additional_remote_sign_items,
         ),
     }
-    .map_err(|_| "protocol-usb-plan-admission-refused")?;
+    .map_err(|refusal| {
+        report_preparation_refusal(&refusal.reason);
+        "protocol-usb-plan-admission-refused"
+    })?;
     prepare_outputs(play, &request.inputs)
 }
 
@@ -203,7 +248,14 @@ pub(super) fn execute(
     outputs: &mut [Output],
     request: &ProtocolBootRequest,
 ) -> Result<(), &'static str> {
-    execute_workload(play, outputs, &request.inputs, request.maximum_steps)
+    execute_workload(
+        play,
+        outputs,
+        &request.inputs,
+        request.maximum_steps,
+        #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
+        None,
+    )
 }
 
 pub(super) fn execute_usb(
@@ -211,7 +263,16 @@ pub(super) fn execute_usb(
     outputs: &mut [Output],
     request: &super::usb_request::UsbProtocolBootRequest,
 ) -> Result<(), &'static str> {
-    execute_workload(play, outputs, &request.inputs, request.maximum_steps)
+    #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
+    let network_deadline = network::prepare(request)?;
+    execute_workload(
+        play,
+        outputs,
+        &request.inputs,
+        request.maximum_steps,
+        #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
+        network_deadline,
+    )
 }
 
 fn execute_workload(
@@ -219,6 +280,8 @@ fn execute_workload(
     outputs: &mut [Output],
     authored_inputs: &[super::ProtocolBootInput],
     maximum_steps: u32,
+    #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
+    mut network_deadline: Option<network::RuntimeNetwork>,
 ) -> Result<(), &'static str> {
     // All allocations and Fore shape checks precede start. Ingress does not
     // dispatch physical effects; refusal cancels before the first Step.
@@ -240,18 +303,27 @@ fn execute_workload(
                 value_kind: port.value_kind.clone(),
                 encoded: input.canonical_bytes.clone(),
             },
+            matches!(port.temporal, PortTemporal::Flow { closes: true }),
         ));
     }
     play.start().map_err(|_| "protocol-start-refused")?;
     let result = (|| {
         report_play(play)?;
-        for (port, value) in &inputs {
+        for (port, value, closes) in &inputs {
             play.admit_input(port, 0, value)
                 .map_err(|_| "protocol-input-refused")?;
-            play.close_input(port)
-                .map_err(|_| "protocol-input-close-refused")?;
+            if *closes {
+                play.close_input(port)
+                    .map_err(|_| "protocol-input-close-refused")?;
+            }
         }
         for _ in 0..maximum_steps {
+            #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
+            if let Some(network) = network_deadline.as_mut()
+                && network.poll(play)?
+            {
+                return Ok(());
+            }
             let status = play.step().map_err(|error| {
                 if let Some(identity) = play.session().realization().and_then(|r| r.play.as_ref()) {
                     match super::step_failure::format(&error, identity) {
@@ -281,6 +353,8 @@ fn execute_workload(
                 }
             }
             if status == KernelCompositeStatus::Complete {
+                #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
+                network::require_complete(network_deadline.as_ref())?;
                 return Ok(());
             }
             if status == KernelCompositeStatus::Cancelled {
@@ -411,3 +485,11 @@ fn output_close_refusal(error: &crate::protocol_source::ProtocolBodyRefusal) -> 
 
 #[cfg(test)]
 mod reuse_tests;
+
+fn report_preparation_refusal(reason: &impl core::fmt::Debug) {
+    use core::fmt::Write;
+    let mut report = crate::sign_format::FixedText::new();
+    if writeln!(report, "CONDUIT_PROTOCOL_PREPARATION_REFUSAL {reason:?}").is_ok() {
+        let _ = arch::append_boot_diagnostic(report.as_bytes());
+    }
+}

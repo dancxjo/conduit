@@ -154,7 +154,8 @@ fn checked_ecm_adapter_expands_and_preserves_actual_wire_only_inside_bound() {
     let mut evaluator = PreparedPortableExpressionEvaluator::new(&program).unwrap();
     for length in [13, 14, 1514, 1515, 2048] {
         let wire = frame(length);
-        let input = observed(&program, &wire, length as u64, length < 1514);
+        // Legal MTU is short relative to the one-byte sentinel request.
+        let input = observed(&program, &wire, length as u64, length < 1515);
         check(
             &prepared,
             &program,
