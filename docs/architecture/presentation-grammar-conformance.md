@@ -223,3 +223,9 @@ into both Mask tests: native control resolution refuses it, and browser typed
 return refuses unavailable agency and a retired Show before the valid Hub
 inspection. Invalid returns preserve the supplied Face and do not consume the
 valid action's sequence. This remains fixture admission/mechanism evidence.
+
+The lifecycle target also checks a real wake transition on the same fixture
+Body. Its born/lulled and awake Faces have distinct identities, share the Body
+basis, and carry the actual Wake only when awake. Neither projection invents a
+Plan or active Play. Both nonvisual readers retain exact Face revisions and
+supplied action provenance while leaving current Body truth unchanged.
