@@ -503,3 +503,12 @@ mappings and both availability values, and carries the actual checked Start
 transition's output into the policy before checking Shoot. This is source
 composition/evaluation evidence; it does not authenticate the supplied phase,
 commit Body state, observe a controller or certify current input availability.
+
+The zero-Body checked browser Mask Fore now has explicit pressure/cancellation
+coverage. Filling its actual planned input queue yields `Full` at the retained
+sequence; repeating that submission stays pressured. Cancellation before DOM
+completion rejects a late Host result and revokes both Show and interaction
+egress. A held typed prebirth return retains its exact sequence/value until
+cancellation revokes delivery. The canonical Face remains unchanged and has no
+Body or active source Play. These are scheduler/checked-Fore mechanisms with
+simulated Host effects, not DOM rendering or a performed Birth.

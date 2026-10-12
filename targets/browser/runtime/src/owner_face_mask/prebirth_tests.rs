@@ -250,9 +250,138 @@ fn checked_browser_mask_fore_carries_prebirth_face_and_show_without_a_body() {
         FaceInteraction::decode(returned_bytes).unwrap(),
         interaction
     );
+    // Holding delivery retains the exact typed return instead of inventing a
+    // second event. Cancellation revokes the still-owned egress.
+    let held = scheduler
+        .remote_egress_offer(boundary.endpoint, boundary.cord)
+        .unwrap()
+        .unwrap();
+    assert_eq!(held.sequence, returned.sequence);
+    assert_eq!(held.value, returned.value);
+    scheduler.cancel().unwrap();
+    assert!(matches!(
+        scheduler.remote_egress_offer(boundary.endpoint, boundary.cord),
+        Err(conduit_kernel::scheduler::SchedulerError::Cancelled)
+    ));
+    assert!(matches!(
+        scheduler.step().unwrap(),
+        SchedulerStatus::Cancelled
+    ));
     assert_eq!(serde_json::to_vec(&face).unwrap(), bytes);
     assert!(face.basis.body_id.is_none());
     assert!(face.basis.wake_id.is_none());
     assert!(face.basis.plan_id.is_none());
+    assert!(face.basis.active_play_id.is_none());
+}
+
+#[test]
+fn cancelling_prebirth_mask_refuses_late_host_completion_before_show_delivery() {
+    let face: Presentation = serde_json::from_str(include_str!(
+        "../../../../../proof/conformance/presentation-waist/domain-derived/prebirth-face.json"
+    ))
+    .unwrap();
+    let original = serde_json::to_vec(&face).unwrap();
+    let host = crate::installed_browser::membership_advertisement(
+        HostId::from("host/prebirth-cancel"),
+        BootId::from("boot/prebirth-cancel"),
+    );
+    let planned = crate::workspace_mask::plan::planned_mask(
+        &host,
+        crate::workspace_mask::plan::MASK_SOURCE,
+        "browser-graphical",
+    )
+    .unwrap();
+    let show = MaskShow::prepared(
+        &planned,
+        &face,
+        bind_active_play(&planned.plan.plan_id, &host.host_id, &host.boot_id, 1),
+        face.subjects[0].identity.clone(),
+        "browser/prebirth-cancel-document".into(),
+        SignId::from("sign/prebirth-cancel-prepared"),
+    )
+    .unwrap();
+    let fragment = &planned.plan.fragments[0];
+    let lowered = lower_plan_fragment(fragment).unwrap();
+    let input =
+        execution::exact_boundary(&lowered.fore_ports, "face", PortDirection::Input).unwrap();
+    let output =
+        execution::exact_boundary(&lowered.fore_ports, "show", PortDirection::Output).unwrap();
+    let interaction =
+        execution::exact_boundary(&lowered.fore_ports, "interaction", PortDirection::Output)
+            .unwrap();
+    let mut scheduler = execution::mask_scheduler(fragment, &lowered).unwrap();
+    assert_eq!(
+        scheduler
+            .admit_remote_input(input.endpoint, input.cord, 0, &original)
+            .unwrap(),
+        RemoteIngressOutcome::Accepted { sequence: 0 }
+    );
+    // Fill the actual planned Fore capacity; do not assume a one-item queue.
+    let mut pressured_sequence = None;
+    for sequence in 1..=64 {
+        match scheduler
+            .admit_remote_input(input.endpoint, input.cord, sequence, &original)
+            .unwrap()
+        {
+            RemoteIngressOutcome::Accepted { sequence: actual } => assert_eq!(actual, sequence),
+            RemoteIngressOutcome::Full { sequence: actual } => {
+                assert_eq!(actual, sequence);
+                pressured_sequence = Some(sequence);
+                break;
+            }
+        }
+    }
+    let sequence = pressured_sequence.expect("finite planned Face queue must apply pressure");
+    assert_eq!(
+        scheduler
+            .admit_remote_input(input.endpoint, input.cord, sequence, &original)
+            .unwrap(),
+        RemoteIngressOutcome::Full { sequence }
+    );
+    scheduler
+        .close_remote_input(input.endpoint, input.cord)
+        .unwrap();
+    let mut pending = None;
+    for _ in 0..64 {
+        if let Some(request) = scheduler.next_host_request() {
+            pending = Some(request);
+            break;
+        }
+        assert!(matches!(
+            scheduler.step().unwrap(),
+            SchedulerStatus::Progress { .. }
+        ));
+    }
+    let pending = pending.expect("finite DOM request");
+    assert!(scheduler
+        .remote_egress_offer(output.endpoint, output.cord)
+        .unwrap()
+        .is_none());
+    assert!(scheduler
+        .remote_egress_offer(interaction.endpoint, interaction.cord)
+        .unwrap()
+        .is_none());
+    let value = scheduler
+        .store_host_value(&serde_json::to_vec(&show.show).unwrap())
+        .unwrap();
+    let completion = HostCallOutcome {
+        disposition: HostCallDisposition::Completed,
+        output: Some(BoundedValueRef::new(value, MASK_BYTES).unwrap()),
+        failure: None,
+    };
+    scheduler.cancel().unwrap();
+    assert!(matches!(
+        scheduler.complete_host_call(pending.node, pending.request, completion),
+        Err(conduit_kernel::scheduler::SchedulerError::HostCallCompletionRejected)
+    ));
+    assert!(scheduler.next_host_request().is_none());
+    for boundary in [output, interaction] {
+        assert!(matches!(
+            scheduler.remote_egress_offer(boundary.endpoint, boundary.cord),
+            Err(conduit_kernel::scheduler::SchedulerError::Cancelled)
+        ));
+    }
+    assert_eq!(serde_json::to_vec(&face).unwrap(), original);
+    assert!(face.basis.body_id.is_none());
     assert!(face.basis.active_play_id.is_none());
 }
