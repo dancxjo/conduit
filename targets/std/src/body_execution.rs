@@ -402,6 +402,7 @@ impl StdHost {
                 has_fore_output,
             )?
         };
+        kernel.prepare_input_origin(&self.advertisement, request.plan, &prospective_play)?;
         if let Some((root, checkpoint)) = checkpoint {
             kernel.attach_todo_checkpoint(&request.plan.plots, root, checkpoint)?;
         }
@@ -424,6 +425,7 @@ impl StdHost {
             if play.play_sequence != sequence {
                 return Err("Body prospective Play identity changed before start".into());
             }
+            kernel.confirm_input_play(&self.advertisement, &play)?;
             // Body lifecycle signs are scoped by this unique admitted Play.
             // The shared lifecycle session and browser producer use 0/1/2;
             // reusing the Host-wide cursor would make a second genuine start

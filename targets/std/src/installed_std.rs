@@ -52,6 +52,7 @@ mod json_backs;
 mod json_summary_back;
 mod kernel_preparation;
 mod keyboard_input_back;
+mod keyboard_input_binding;
 mod keyboard_input_host;
 mod layout_backs;
 mod local_model_back;
@@ -733,6 +734,15 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             .iter()
             .map(|operation| &operation.contract_id),
     );
+    keyboard_host.install_request_admission(
+        keyboard_input_binding::KeyboardRequestAdmission::prepare(
+            advertisement,
+            fragment,
+            &lowered.identity,
+            &lowered.host_calls,
+            &active_play,
+        )?,
+    )?;
     let mut indicator_host = indicator_host::IndicatorHost::prepare(
         indicator,
         advertisement,

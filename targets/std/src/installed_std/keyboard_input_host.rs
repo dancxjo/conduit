@@ -1,5 +1,6 @@
 //! Adapter-side completion of exact installed keyboard host requests.
 
+use super::keyboard_input_binding::{InputRealization, KeyboardRequestAdmission};
 use super::InstalledScheduler;
 use conduit_kernel::scheduler::HostCallRequest;
 use conduit_kernel::{BoundedValueRef, HostCallDisposition, HostCallOutcome};
@@ -14,6 +15,7 @@ pub(super) struct KeyboardInputHost<'a> {
     button_held: bool,
     button_sequence: u64,
     terminal: bool,
+    request_admission: Option<KeyboardRequestAdmission>,
 }
 
 #[derive(Clone, Copy)]
@@ -48,10 +50,44 @@ impl<'a> KeyboardInputHost<'a> {
             button_held: false,
             button_sequence: 0,
             terminal: false,
+            request_admission: None,
         }
     }
 
+    pub(super) fn install_request_admission(
+        &mut self,
+        admission: KeyboardRequestAdmission,
+    ) -> Result<(), String> {
+        if self.terminal || self.is_pending() || self.request_admission.is_some() {
+            return Err("input origin must be installed once before accepting requests".into());
+        }
+        self.request_admission = Some(admission);
+        Ok(())
+    }
+
+    #[cfg(test)]
+    pub(super) fn has_request_origin(&self, realization: InputRealization) -> bool {
+        self.request_admission
+            .as_ref()
+            .is_some_and(|admission| admission.is_current(realization))
+    }
+
     pub(super) fn accept(
+        &mut self,
+        request: HostCallRequest,
+        input: &[u8],
+        kind: InputRequestKind,
+    ) -> Result<(), String> {
+        let result = self.accept_inner(request, input, kind);
+        if result.is_err() {
+            if let Some(admission) = &mut self.request_admission {
+                admission.revoke();
+            }
+        }
+        result
+    }
+
+    fn accept_inner(
         &mut self,
         request: HostCallRequest,
         input: &[u8],
@@ -73,11 +109,23 @@ impl<'a> KeyboardInputHost<'a> {
         if pending.is_some() {
             return Err("input source has two pending requests for one semantic port".into());
         }
+        if let Some(admission) = &mut self.request_admission {
+            admission.accept(
+                match kind {
+                    InputRequestKind::Keyboard => InputRealization::RawKeyboard,
+                    InputRequestKind::SpaceButton => InputRealization::SpaceButton,
+                },
+                request,
+            )?;
+        }
         *pending = Some(request);
         Ok(())
     }
 
     pub(super) fn cancel(&mut self) {
+        if let Some(admission) = &mut self.request_admission {
+            admission.revoke();
+        }
         self.terminal = true;
         self.pending_keyboard = None;
         self.pending_button = None;
@@ -88,6 +136,14 @@ impl<'a> KeyboardInputHost<'a> {
     }
 
     pub(super) fn poll(&mut self, scheduler: &mut InstalledScheduler) -> Result<bool, String> {
+        let result = self.poll_inner(scheduler);
+        if result.is_err() {
+            self.cancel();
+        }
+        result
+    }
+
+    fn poll_inner(&mut self, scheduler: &mut InstalledScheduler) -> Result<bool, String> {
         if self.terminal || !self.is_pending() {
             return Ok(false);
         }
@@ -214,6 +270,9 @@ impl<'a> KeyboardInputHost<'a> {
         failure: Option<conduit_kernel::Failure>,
     ) -> Result<(), String> {
         self.terminal = true;
+        if let Some(admission) = &mut self.request_admission {
+            admission.revoke();
+        }
         for request in [self.pending_keyboard.take(), self.pending_button.take()]
             .into_iter()
             .flatten()
@@ -253,6 +312,12 @@ impl<'a> KeyboardInputHost<'a> {
             )
             .map_err(|error| format!("fail keyboard-backed input operation: {error:?}"))?;
         Ok(true)
+    }
+}
+
+impl Drop for KeyboardInputHost<'_> {
+    fn drop(&mut self) {
+        self.cancel();
     }
 }
 

@@ -37,6 +37,7 @@ pub(crate) struct BodyKernel<'a> {
     activations: Vec<LoweredFragmentActivations>,
     partitions: Vec<KernelIdentityMap>,
     operations: Vec<LoweredHostCall>,
+    input_origin: Option<super::keyboard_input_binding::KeyboardRequestAdmission>,
     typed_record_hosts: Vec<Option<super::typed_record_back::TypedRecordHost>>,
     image_text_hosts: Vec<Option<super::image_text_back::ImageTextHost>>,
     image_text_record_hosts: Vec<Option<super::image_text_record_back::ImageTextRecordHost>>,
@@ -364,6 +365,7 @@ impl<'a> BodyKernel<'a> {
         let scheduler = tables.install(drivers, values, signs)?;
         Ok(Self {
             scheduler,
+            input_origin: None,
             fore,
             activations,
             operations: lowered
@@ -387,6 +389,39 @@ impl<'a> BodyKernel<'a> {
             todo_checkpoint: None,
             todo_checkpoint_read: None,
         })
+    }
+
+    /// Prepare input origin descriptors without granting issued-Play authority.
+    pub(crate) fn prepare_input_origin(
+        &mut self,
+        advertisement: &conduit_core::HostAdvertisement,
+        plan: &conduit_body::BodyPlan,
+        prospective: &conduit_body::BodyPlayIdentity,
+    ) -> Result<(), String> {
+        if self.input_origin.is_some() {
+            return Err("Body input origin was prepared twice".into());
+        }
+        self.input_origin = Some(
+            super::keyboard_input_binding::KeyboardRequestAdmission::prepare_body(
+                advertisement,
+                plan,
+                prospective,
+                &self.partitions,
+                &self.operations,
+            )?,
+        );
+        Ok(())
+    }
+
+    pub(crate) fn confirm_input_play(
+        &mut self,
+        advertisement: &conduit_core::HostAdvertisement,
+        issued: &conduit_body::BodyPlayIdentity,
+    ) -> Result<(), String> {
+        self.input_origin
+            .as_mut()
+            .ok_or("Body input origin was not prepared")?
+            .confirm_body_play(advertisement, issued)
     }
 
     /// Bind at most one selected reader and publisher to their exact lowered
@@ -506,6 +541,12 @@ impl<'a> BodyKernel<'a> {
                 .iter()
                 .map(|operation| &operation.contract_id),
         );
+        if let Some(admission) = self.input_origin.take() {
+            // Installation can only fail for a reused or already-active host;
+            // this host is freshly constructed before its first request.
+            keys.install_request_admission(admission)
+                .expect("fresh Body keyboard input host");
+        }
         let mut deadlines = super::deadline_host::InstalledDeadlineHost::<PENDING_REQUESTS>::new();
         let mut clock_quality = admitted_clock_quality;
         let mut kernel_failure = None;
