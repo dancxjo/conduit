@@ -137,3 +137,55 @@ fn native_generic_mask_preserves_finite_places_without_inventing_connectivity() 
     }
     assert_eq!(scene.presentation(), &face);
 }
+
+#[test]
+fn native_generic_mask_keeps_lifecycle_basis_and_refuses_the_other_states_face() {
+    let lulled: Presentation = serde_json::from_str(include_str!(
+        "../../../../proof/conformance/presentation-waist/domain-derived/lulled-body-face.json"
+    ))
+    .unwrap();
+    let awake: Presentation = serde_json::from_str(include_str!(
+        "../../../../proof/conformance/presentation-waist/domain-derived/awake-body-face.json"
+    ))
+    .unwrap();
+    assert_eq!(lulled.basis.body_id, awake.basis.body_id);
+    for (face, other) in [(&lulled, &awake), (&awake, &lulled)] {
+        let mut scene = NativeFaceScene::prepare(face.clone(), 640, 480).unwrap();
+        for details in [false, true] {
+            scene.show_details(details);
+            for _ in 0..scene.pages() {
+                let frame = scene.frame().unwrap();
+                assert!(frame.scene.commands().len() <= MAX_GRAPHICS_COMMANDS);
+                assert!(
+                    frame
+                        .scene
+                        .commands()
+                        .iter()
+                        .all(|command| command.clip_class()
+                            == conduit_presentation::GraphicsClipClass::FullyVisible)
+                );
+                scene.turn_page(true);
+            }
+        }
+        let action = face
+            .actions
+            .iter()
+            .position(|action| action.availability.is_available())
+            .unwrap();
+        let control = FaceControl {
+            action,
+            argument: None,
+        };
+        assert_eq!(
+            scene.resolve(&other.identity, face.revision, control),
+            Err(FaceSceneError::StaleFace)
+        );
+        assert_eq!(
+            scene.resolve(&face.identity, other.revision, control),
+            Err(FaceSceneError::StaleFace)
+        );
+        assert_eq!(scene.presentation(), face);
+        assert!(scene.presentation().basis.plan_id.is_none());
+        assert!(scene.presentation().basis.active_play_id.is_none());
+    }
+}

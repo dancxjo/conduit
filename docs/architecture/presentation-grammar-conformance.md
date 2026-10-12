@@ -229,3 +229,10 @@ Body. Its born/lulled and awake Faces have distinct identities, share the Body
 basis, and carry the actual Wake only when awake. Neither projection invents a
 Plan or active Play. Both nonvisual readers retain exact Face revisions and
 supplied action provenance while leaving current Body truth unchanged.
+
+Source-equality-checked born/lulled and awake records now enter native layout
+and checked browser Mask tests. Native primary/detail frames stay bounded and
+fully visible; using the other state's Face or revision refuses. Browser
+simulated-Show execution likewise refuses the other state's revision before
+emitting one current supplied action. The shared Body is retained, and domain
+Plan/Play absence remains distinct from each Mask's realization Plan/Play.

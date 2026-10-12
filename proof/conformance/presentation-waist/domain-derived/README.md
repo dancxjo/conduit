@@ -17,3 +17,10 @@ containment, and bounded inspection actions. Its lifecycle and empty Plan are
 named fixture machinery, not the Commons application required by #5359.
 Native layout and checked browser Mask tests consume this same record and retain
 own realization/interaction assertions; browser acknowledgement is simulated.
+
+`lulled-body-face.json` and `awake-body-face.json` are equality-checked against
+the same actual fixture Body before and after its wake transition. They have
+one Body basis, distinct Face identities/revisions, and only the awake record
+carries a Wake. Native and browser mechanism tests refuse the other state's
+Face/revision before accepting current supplied agency. Neither source record
+invents a domain Plan or Play; each Mask has its separate realization Plan.

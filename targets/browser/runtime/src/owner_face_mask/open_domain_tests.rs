@@ -123,3 +123,63 @@ fn browser_generic_mask_keeps_finite_place_actions_bound_to_their_targets() {
     assert_eq!(emitted.show.show_id.as_str(), prepared.show_id);
     assert_eq!(mask.presentation, face);
 }
+
+#[test]
+fn browser_generic_mask_keeps_one_body_lifecycle_and_rejects_the_other_states_revision() {
+    let lulled: Presentation = serde_json::from_str(include_str!(
+        "../../../../../proof/conformance/presentation-waist/domain-derived/lulled-body-face.json"
+    ))
+    .unwrap();
+    let awake: Presentation = serde_json::from_str(include_str!(
+        "../../../../../proof/conformance/presentation-waist/domain-derived/awake-body-face.json"
+    ))
+    .unwrap();
+    assert_eq!(lulled.basis.body_id, awake.basis.body_id);
+    for (index, (face, other)) in [(&lulled, &awake), (&awake, &lulled)]
+        .into_iter()
+        .enumerate()
+    {
+        let mut mask = OwnerBrowserMask::prepare_component_fixture(
+            HostBasis {
+                visual_constraints: None,
+                body_id: face.basis.body_id.clone().unwrap(),
+                host_id: HostId::from("host/browser-lifecycle-fixture"),
+                boot_id: BootId::from("boot/browser-lifecycle-fixture"),
+            },
+            face.clone(),
+            index as u64 + 1,
+            true,
+        )
+        .unwrap();
+        let view = mask.view();
+        assert_eq!(view.face_id, face.identity.as_str());
+        assert_eq!(view.face_revision, face.revision.to_string());
+        mask.acknowledge(Acknowledgement {
+            show_id: view.show_id.clone(),
+            face_id: view.face_id.clone(),
+            face_revision: view.face_revision.clone(),
+        })
+        .unwrap();
+        let action = face
+            .actions
+            .iter()
+            .find(|action| action.availability.is_available() && action.arguments.is_empty())
+            .unwrap();
+        let proposal = |revision: String| ProposedInteraction {
+            show_id: view.show_id.clone(),
+            face_id: view.face_id.clone(),
+            face_revision: revision,
+            action_id: action.identity.clone(),
+            target: action.target.clone(),
+            arguments: vec![],
+            sequence: 1,
+        };
+        assert!(mask.interact(proposal(other.revision.to_string())).is_err());
+        let emitted = mask.interact(proposal(view.face_revision.clone())).unwrap();
+        assert_eq!(emitted.interaction.face_id, face.identity.as_str());
+        assert_eq!(emitted.interaction.action_id, action.identity);
+        assert_eq!(mask.presentation, *face);
+        assert!(mask.presentation.basis.plan_id.is_none());
+        assert!(mask.presentation.basis.active_play_id.is_none());
+    }
+}
