@@ -6,7 +6,7 @@ import sys
 import usbredir_transport as wire
 
 parser = argparse.ArgumentParser(add_help=False)
-parser.add_argument('--fault-mode', choices=['none', 'stall-in', 'disconnect-in', 'stale-tag', 'bad-residue', 'command-failed', 'phase-error', 'short-in', 'hold-in', 'late-after-cancel'], required=True)
+parser.add_argument('--fault-mode', choices=['reset-only', 'none', 'stall-in', 'disconnect-in', 'stale-tag', 'bad-residue', 'command-failed', 'phase-error', 'short-in', 'hold-in', 'late-after-cancel'], required=True)
 options, remaining = parser.parse_known_args()
 sys.argv = [sys.argv[0]] + remaining
 wire.CONFIG = bytes.fromhex('09 02 20 00 01 01 05 c0 00 09 04 00 00 02 08 06 50 00 07 05 81 02 00 02 00 07 05 02 02 00 02 00')
@@ -20,6 +20,7 @@ class Device(Base):
         self.stage = None
         self.tag = None
         self.commands = 0
+        self.recovery_step = 0
 
     def metadata(self):
         types, intervals, interfaces, sizes = [255]*32, [0]*32, [0]*32, [0]*32
@@ -38,6 +39,22 @@ class Device(Base):
         self.metadata()
         self.send(1,0,struct.pack('<BBBBHHH',2,0,0,0,0xffff,0xf117,0x0100))
         self.connected = True
+
+    def control(self, packet_id, body):
+        if options.fault_mode != 'reset-only':
+            return super().control(packet_id, body)
+        ep, request, request_type, _, value, index, length = wire.CONTROL.unpack_from(body)
+        expected = [(0x21, 0xff, 0), (0x02, 0x01, 0x81), (0x02, 0x01, 0x02)]
+        if request_type == 0x80 and request == 6:
+            return super().control(packet_id, body)
+        valid = (self.stage is None and self.recovery_step < 3 and
+                 (request_type, request, index) == expected[self.recovery_step] and
+                 ep == 0 and value == 0 and length == 0 and len(body) == wire.CONTROL.size)
+        status = wire.SUCCESS if valid else wire.STALL
+        if valid:
+            self.recovery_step += 1
+            print('BOT_RECOVERY_ACK ' + str(self.recovery_step), flush=True)
+        self.send(100, packet_id, wire.CONTROL.pack(ep, request, request_type, status, value, index, 0))
 
     def bulk(self, packet_id, body):
         if len(body)<wire.BULK.size:
