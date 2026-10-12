@@ -1,0 +1,182 @@
+# Composition of the small checked packet/correspondence/continuity laws.
+# Root's ordinary finite-zip offer must supply the exact Boolean pair metadata.
+with flow/zip/finite/paired as UsbAudioBooleanPair
+plot usb-audio-boolean-and (
+    pair: UsbAudioBooleanPair...| >> supported: Boolean...|
+) = (.0 && .1)
+plot usb-audio-batch-supported (
+    pcm: UsbAudioPcmBatch...| >> supported: Boolean...|
+) {
+    packet0: usb-audio-packet-0()
+    check0: usb-audio-packet-supported()
+    wire0: usb-audio-wire-0-supported()
+    packet1: usb-audio-packet-1()
+    check1: usb-audio-packet-supported()
+    wire1: usb-audio-wire-1-supported()
+    packet2: usb-audio-packet-2()
+    check2: usb-audio-packet-supported()
+    wire2: usb-audio-wire-2-supported()
+    packet3: usb-audio-packet-3()
+    check3: usb-audio-packet-supported()
+    wire3: usb-audio-wire-3-supported()
+    packet4: usb-audio-packet-4()
+    check4: usb-audio-packet-supported()
+    wire4: usb-audio-wire-4-supported()
+    packet5: usb-audio-packet-5()
+    check5: usb-audio-packet-supported()
+    wire5: usb-audio-wire-5-supported()
+    packet6: usb-audio-packet-6()
+    check6: usb-audio-packet-supported()
+    wire6: usb-audio-wire-6-supported()
+    packet7: usb-audio-packet-7()
+    check7: usb-audio-packet-supported()
+    wire7: usb-audio-wire-7-supported()
+    adjacent0: usb-audio-adjacent-0-supported()
+    adjacent1: usb-audio-adjacent-1-supported()
+    adjacent2: usb-audio-adjacent-2-supported()
+    adjacent3: usb-audio-adjacent-3-supported()
+    adjacent4: usb-audio-adjacent-4-supported()
+    adjacent5: usb-audio-adjacent-5-supported()
+    adjacent6: usb-audio-adjacent-6-supported()
+    shape: usb-audio-eight-packet-shape-supported()
+    join0: flow/zip/finite
+    and0: usb-audio-boolean-and()
+    join1: flow/zip/finite
+    and1: usb-audio-boolean-and()
+    join2: flow/zip/finite
+    and2: usb-audio-boolean-and()
+    join3: flow/zip/finite
+    and3: usb-audio-boolean-and()
+    join4: flow/zip/finite
+    and4: usb-audio-boolean-and()
+    join5: flow/zip/finite
+    and5: usb-audio-boolean-and()
+    join6: flow/zip/finite
+    and6: usb-audio-boolean-and()
+    join7: flow/zip/finite
+    and7: usb-audio-boolean-and()
+    join8: flow/zip/finite
+    and8: usb-audio-boolean-and()
+    join9: flow/zip/finite
+    and9: usb-audio-boolean-and()
+    join10: flow/zip/finite
+    and10: usb-audio-boolean-and()
+    join11: flow/zip/finite
+    and11: usb-audio-boolean-and()
+    join12: flow/zip/finite
+    and12: usb-audio-boolean-and()
+    join13: flow/zip/finite
+    and13: usb-audio-boolean-and()
+    join14: flow/zip/finite
+    and14: usb-audio-boolean-and()
+    join15: flow/zip/finite
+    and15: usb-audio-boolean-and()
+    join16: flow/zip/finite
+    and16: usb-audio-boolean-and()
+    join17: flow/zip/finite
+    and17: usb-audio-boolean-and()
+    join18: flow/zip/finite
+    and18: usb-audio-boolean-and()
+    join19: flow/zip/finite
+    and19: usb-audio-boolean-and()
+    join20: flow/zip/finite
+    and20: usb-audio-boolean-and()
+    join21: flow/zip/finite
+    and21: usb-audio-boolean-and()
+    join22: flow/zip/finite
+    and22: usb-audio-boolean-and()
+    pcm >> packet0 >> check0
+    pcm >> wire0
+    pcm >> packet1 >> check1
+    pcm >> wire1
+    pcm >> packet2 >> check2
+    pcm >> wire2
+    pcm >> packet3 >> check3
+    pcm >> wire3
+    pcm >> packet4 >> check4
+    pcm >> wire4
+    pcm >> packet5 >> check5
+    pcm >> wire5
+    pcm >> packet6 >> check6
+    pcm >> wire6
+    pcm >> packet7 >> check7
+    pcm >> wire7
+    pcm >> adjacent0
+    pcm >> adjacent1
+    pcm >> adjacent2
+    pcm >> adjacent3
+    pcm >> adjacent4
+    pcm >> adjacent5
+    pcm >> adjacent6
+    pcm >> shape
+    check0 >> join0.left
+    wire0 >> join0.right
+    join0.paired >> and0
+    check1 >> join1.left
+    wire1 >> join1.right
+    join1.paired >> and1
+    check2 >> join2.left
+    wire2 >> join2.right
+    join2.paired >> and2
+    check3 >> join3.left
+    wire3 >> join3.right
+    join3.paired >> and3
+    check4 >> join4.left
+    wire4 >> join4.right
+    join4.paired >> and4
+    check5 >> join5.left
+    wire5 >> join5.right
+    join5.paired >> and5
+    check6 >> join6.left
+    wire6 >> join6.right
+    join6.paired >> and6
+    check7 >> join7.left
+    wire7 >> join7.right
+    join7.paired >> and7
+    adjacent0 >> join8.left
+    adjacent1 >> join8.right
+    join8.paired >> and8
+    adjacent2 >> join9.left
+    adjacent3 >> join9.right
+    join9.paired >> and9
+    adjacent4 >> join10.left
+    adjacent5 >> join10.right
+    join10.paired >> and10
+    adjacent6 >> join11.left
+    shape >> join11.right
+    join11.paired >> and11
+    and0 >> join12.left
+    and1 >> join12.right
+    join12.paired >> and12
+    and2 >> join13.left
+    and3 >> join13.right
+    join13.paired >> and13
+    and4 >> join14.left
+    and5 >> join14.right
+    join14.paired >> and14
+    and6 >> join15.left
+    and7 >> join15.right
+    join15.paired >> and15
+    and8 >> join16.left
+    and9 >> join16.right
+    join16.paired >> and16
+    and10 >> join17.left
+    and11 >> join17.right
+    join17.paired >> and17
+    and12 >> join18.left
+    and13 >> join18.right
+    join18.paired >> and18
+    and14 >> join19.left
+    and15 >> join19.right
+    join19.paired >> and19
+    and16 >> join20.left
+    and17 >> join20.right
+    join20.paired >> and20
+    and18 >> join21.left
+    and19 >> join21.right
+    join21.paired >> and21
+    and21 >> join22.left
+    and20 >> join22.right
+    join22.paired >> and22
+    and22 >> supported
+}

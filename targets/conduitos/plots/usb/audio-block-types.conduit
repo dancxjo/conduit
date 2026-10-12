@@ -1,0 +1,17 @@
+# One lawful existing PCM header owns the whole ordered384-sample-frame block.
+# These8 explicit payload projections collectively cover its1536 original bytes;
+# the evidence checker compares their ordered concatenation with original PCM.
+type UsbAudioPcmBlock = {
+    header: PcmFrameHeader
+    cadence: UsbPcmCadence
+    packets: sequence UsbIsochronousPacket <= 8
+}
+type UsbAudioBlockSchedulingInput = {
+    pcm: UsbAudioPcmBlock
+    clock: UsbIsochronousClock
+}
+# Only semantic continuity is retained between complete admitted blocks.
+type UsbAudioBlockContinuity = {
+    previous: PcmFrameHeader
+    next: PcmFrameHeader
+}
