@@ -219,3 +219,113 @@ fn sequenced_graph_uses_one_control_owner_and_stops_after_three_acks_or_first_fa
         }
     }
 }
+
+#[test]
+fn prepared_kernel_orders_controls_and_never_submits_after_failed_ack() {
+    use conduit_composite::KernelCompositeStatus;
+    use conduit_kernel::scheduler::RemoteIngressOutcome;
+    for fail_at in [None, Some(0), Some(1), Some(2)] {
+        let package = ProtocolSourcePackage::compile(
+            include_str!("../../plots/usb/mass-storage-reset-policy.conduit").into(),
+            &serde_json::from_str::<Vec<ProtocolSpecializationRequest>>(include_str!(
+                "../../plots/usb/mass-storage-reset-specializations.json"
+            ))
+            .unwrap(),
+        )
+        .unwrap();
+        let mut run = execution::Execution::prepare_entry(package, "bot-reset-recovery");
+        let input = run.kernel.definition().external_capability.inputs[0].clone();
+        let output = run.kernel.definition().external_capability.outputs[0].clone();
+        let value = ValuePayload {
+            value_kind: input.value_kind,
+            encoded: 0u64.to_le_bytes().to_vec(),
+        };
+        let mut received = ValuePayload {
+            value_kind: output.value_kind,
+            encoded: Vec::with_capacity(4096),
+        };
+        let result_type = conduitos::usb_base::control_contract::ControlContract::prepare()
+            .unwrap()
+            .result_type()
+            .clone();
+        run.kernel.start().unwrap();
+        assert!(matches!(
+            run.kernel.admit_input(&input.port_id, 0, &value).unwrap(),
+            RemoteIngressOutcome::Accepted { .. }
+        ));
+        run.kernel.close_input(&input.port_id).unwrap();
+        let mut controls = 0;
+        let mut outputs = 0;
+        let mut retired = false;
+        for _ in 0..3000 {
+            let status = run.kernel.step().unwrap();
+            while let Some(request) = run.kernel.next_host_request() {
+                if run.service_pure(&request) {
+                    continue;
+                }
+                let required = run.kernel.host_request_obligation(&request).unwrap();
+                let admitted = run
+                    .kernel
+                    .admit_host_request(
+                        &request,
+                        &required.host,
+                        &required.resources,
+                        &required.authorities,
+                    )
+                    .unwrap();
+                let bytes = run.kernel.host_request_input(&admitted).unwrap();
+                let request_value = validate_canonical_structured_value(bytes).unwrap();
+                let expected = [
+                    [0x21, 0xff, 0, 0, 0, 0, 0, 0],
+                    [2, 1, 0, 0, 0x81, 0, 0, 0],
+                    [2, 1, 0, 0, 2, 0, 0, 0],
+                ];
+                assert!(controls < 3);
+                assert_eq!(
+                    request_value
+                        .record_field("setup")
+                        .unwrap()
+                        .unwrap()
+                        .primitive_bytes("value/u64")
+                        .unwrap(),
+                    expected[controls]
+                );
+                let response = acknowledgment(&result_type, 0, fail_at == Some(controls), &[])
+                    .canonical_bytes()
+                    .unwrap();
+                controls += 1;
+                run.kernel
+                    .complete_host_call_bytes(&admitted, &response)
+                    .unwrap();
+            }
+            if let Some(seq) = run
+                .kernel
+                .output_into(&output.port_id, &mut received)
+                .unwrap()
+            {
+                outputs += 1;
+                assert_eq!(outputs, 1);
+                assert_eq!(
+                    validate_canonical_structured_value(&received.encoded)
+                        .unwrap()
+                        .variant_tag()
+                        .unwrap(),
+                    if fail_at.is_some() {
+                        "refused"
+                    } else {
+                        "recovered"
+                    }
+                );
+                run.kernel.complete_output(&output.port_id, seq).unwrap();
+            }
+            if status == KernelCompositeStatus::Complete {
+                retired = true;
+                break;
+            }
+        }
+        assert_eq!(controls, fail_at.map_or(3, |n| n + 1));
+        assert_eq!(outputs, 1);
+        assert!(retired);
+        run.kernel.cancel().unwrap();
+    }
+}

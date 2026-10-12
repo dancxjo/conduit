@@ -55,7 +55,7 @@ plot bot-recovery-outcome (
     state: BotRecoveryState...| <= 4096B >> result: BotRecoveryOutcome...| <= 4096B
 ) = (.failed ? refused(empty) : recovered(empty))
 plot bot-reset-recovery (
-    interface: U64...| <= 4096B >> result: BotRecoveryOutcome...| <= 4096B
+    interface: U64...| <= 4096B >> result: BotRecoveryOutcome...|
 ) {
     cell: state/seeded/flow/until
     route: bot-recovery-route()
