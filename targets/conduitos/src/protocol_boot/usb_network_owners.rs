@@ -32,6 +32,12 @@ pub(super) unsafe fn admit(
     boot: &BootId,
     artifact: &str,
 ) -> Result<NativeEthernetOwner, &'static str> {
+    crate::ethernet_frame::retention::admit_backing(
+        crate::allocation::BOOT_ARENA.capacity(),
+        crate::allocation::BOOT_ARENA.live_bytes(),
+        super::duplex_resources::pending_heap_bytes(),
+    )
+    .map_err(|_| "protocol-network-retention-backing-refused")?;
     let prefix = format!("conduitos/protocol/{}/network", boot.as_str());
     let identity = EthernetFrameNativeIdentity {
         host_id: host.clone(),

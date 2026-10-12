@@ -13,6 +13,32 @@ fn identity() -> EthernetFrameNativeIdentity {
         artifact_id: "artifact/network/test".into(),
     }
 }
+#[test]
+fn retained_geometry_charges_hidden_identity_capacity_and_full_socket_storage() {
+    let mut identity = identity();
+    identity
+        .base_id
+        .0
+        .reserve(super::super::retention::OWNED_RETENTION_BYTES);
+    // SAFETY: this fixture owns the complete stable storage and inert approval.
+    let ready = unsafe {
+        ReadyOwnedEthernetFrameBase::prepare(
+            identity,
+            approval(),
+            OwnedEthernetNetworkInput {
+                request: b"request",
+                maximum_response_bytes: 64,
+                expected_response_bytes: 16,
+            },
+        )
+    }
+    .unwrap();
+    assert!(
+        ready.retained_preparation_bytes().unwrap()
+            > super::super::retention::OWNED_RETENTION_BYTES
+    );
+    assert!(ready.retained_preparation_bytes().unwrap() > ready.resource_bytes() as usize);
+}
 fn approval() -> EthernetNetworkApproval {
     // SAFETY: fixture-only Root permission, below native administrator proof.
     unsafe {

@@ -15,3 +15,5 @@ pub mod offer;
 pub mod owned_installation;
 pub(crate) mod owner;
 pub mod queues;
+#[cfg(feature = "native-owner-network")]
+pub(crate) mod retention;

@@ -108,6 +108,25 @@ impl<'a> ReadyEthernetFrameBase<'a> {
     pub fn resource_bytes(&self) -> u64 {
         core::mem::size_of::<EthernetFrameQueues>() as u64
     }
+    pub(crate) fn retained_identity_bytes(&self) -> Option<usize> {
+        let id = &self.identity;
+        let mut bytes = core::mem::size_of::<Self>();
+        for text in [
+            &id.host_id.0,
+            &id.boot_id.0,
+            &id.base_id.0,
+            &id.provider_instance_id.0,
+            &id.resource_pool_id.0,
+            &id.resource_generation_id.0,
+            &id.envelope_id.0,
+            &id.artifact_id.0,
+            &self.approval.host_id().0,
+            &self.approval.boot_id().0,
+        ] {
+            bytes = bytes.checked_add(super::retention::rounded(text.capacity())?)?;
+        }
+        Some(bytes)
+    }
     /// Inert description of the actual initialized queue provider, not possession.
     pub fn append_to_advertisement(
         &self,

@@ -41,6 +41,12 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
                 }
                 let contract = EthernetFrameContract::prepare()
                     .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
+                let retention = crate::ethernet_frame::retention::NetworkRetention::begin(
+                    &network.ready,
+                    &network.table,
+                    &network.claim,
+                )
+                .map_err(ProtocolCallRefusal::EthernetFrame)?;
                 let owner = network
                     .ready
                     .bind_selected(
@@ -67,6 +73,9 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
                     authorities: gear.authority.clone(),
                     owner: Owner::EthernetFrame(Box::new(owner)),
                 });
+                retention
+                    .finish()
+                    .map_err(ProtocolCallRefusal::EthernetFrame)?;
                 Ok(())
             },
         )
