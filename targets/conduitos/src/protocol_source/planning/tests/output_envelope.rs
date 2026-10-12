@@ -123,7 +123,6 @@ fn structured_output_above_ingress_limit_is_planned_lowered_and_delivered_exactl
                 .unwrap(),
             conduit_kernel::scheduler::RemoteIngressOutcome::Accepted { .. }
         ));
-        kernel.close_input(&port_id(port)).unwrap();
     }
     let mut output = ValuePayload {
         value_kind: encoder.value_type().profile().unwrap().value_kind().clone(),
@@ -140,11 +139,21 @@ fn structured_output_above_ingress_limit_is_planned_lowered_and_delivered_exactl
             kernel
                 .complete_output(&port_id("paired"), sequence)
                 .unwrap();
+            // Finite zip flushes an already formed pair, and discards unmatched
+            // ingress when closure arrives first. Close after exact delivery
+            // acknowledgement so this regression exercises both output and close.
+            for port in ["left", "right"] {
+                kernel.close_input(&port_id(port)).unwrap();
+            }
         }
         if status == conduit_composite::KernelCompositeStatus::Complete {
             complete = true;
             break;
         }
     }
-    assert!(observed && complete);
+    assert!(
+        observed && complete,
+        "observed={observed}, complete={complete}, signs={:?}",
+        kernel.signs()
+    );
 }
