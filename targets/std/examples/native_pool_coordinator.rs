@@ -4,6 +4,8 @@
 mod costs;
 #[path = "native_pool_coordinator/dispatch.rs"]
 mod dispatch;
+#[path = "native_pool_coordinator/evaluation.rs"]
+mod evaluation;
 #[path = "native_pool_coordinator/freshness.rs"]
 mod freshness;
 #[path = "native_pool_coordinator/identity.rs"]

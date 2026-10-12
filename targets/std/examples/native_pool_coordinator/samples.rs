@@ -179,6 +179,10 @@ pub(super) fn admit(input: &Request) -> Result<CheckedSample<'_>, String> {
         condition,
         current_bound,
         numeric_work: work.spent(),
+        query_started: input
+            .freshness
+            .as_ref()
+            .map(|f| f.exchange.local_send.clone()),
     })
 }
 
@@ -189,8 +193,20 @@ pub(super) struct CheckedSample<'a> {
     condition: CostExecutionCondition,
     current_bound: Option<BodyTimeEstimate>,
     numeric_work: u64,
+    query_started: Option<MonotonicInstant>,
 }
 impl<'a> CheckedSample<'a> {
+    pub(super) fn current_local_sample(&self) -> Result<&MonotonicInstant, String> {
+        self.current_bound
+            .as_ref()
+            .map(|bound| &bound.local_sample)
+            .ok_or("sample lacks admitted current clock bounds".into())
+    }
+    pub(super) fn current_query_started(&self) -> Result<&MonotonicInstant, String> {
+        self.query_started
+            .as_ref()
+            .ok_or("sample lacks admitted current query stamps".into())
+    }
     pub(super) fn source(&self) -> &CostEvidenceSource<'a> {
         &self.source
     }

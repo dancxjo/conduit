@@ -14,8 +14,8 @@ use std::io::{Read, Write};
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(super) struct Admission {
-    queued_at: MonotonicInstant,
-    evaluated_at: MonotonicInstant,
+    pub(super) queued_at: MonotonicInstant,
+    pub(super) evaluated_at: MonotonicInstant,
     current: Vec<PoolRealizationObservation>,
     sign: SignId,
 }

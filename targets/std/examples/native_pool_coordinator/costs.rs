@@ -240,7 +240,27 @@ fn prepare(
             .admission
             .as_ref()
             .ok_or("native dispatch admission facts absent")?;
-        let revisions = samples
+        let refresh = super::evaluation::request(reader, writer)?;
+        if refresh.samples.len() != samples.len()
+            || refresh.admission.queued_at != admission.queued_at
+            || refresh.admission.evaluated_at.clock() != refresh.preparation_received_at.clock()
+            || refresh.admission.evaluated_at.ticks() < refresh.preparation_received_at.ticks()
+        {
+            return Err("dispatch refresh changed queue or clock scope".into());
+        }
+        let current = refresh
+            .samples
+            .iter()
+            .map(super::samples::admit)
+            .collect::<Result<Vec<_>, _>>()?;
+        for (initial, current) in samples.iter().zip(&current) {
+            super::evaluation::validate(&refresh.preparation_received_at, initial, current)?;
+        }
+        let current_now = current
+            .iter()
+            .map(|s| s.current_upper_bound())
+            .collect::<Result<Vec<_>, _>>()?;
+        let revisions = current
             .iter()
             .map(|sample| {
                 let revision = sample.source().calibration();
@@ -249,13 +269,13 @@ fn prepare(
                     .map_err(|e| format!("native current calibration: {e:?}"))
             })
             .collect::<Result<Vec<_>, _>>()?;
-        let evaluations = samples
+        let evaluations = current
             .iter()
             .enumerate()
             .map(
                 |(index, sample)| conduit_plan_lowering::shared_pool_runtime::PoolCostEvaluation {
                     host: sample.source().host(),
-                    now: &now[index],
+                    now: &current_now[index],
                     calibrations: &revisions[index],
                     executions: &[],
                 },
@@ -267,7 +287,7 @@ fn prepare(
             request,
             &prepared,
             &evaluations,
-            admission,
+            &refresh.admission,
             reader,
             writer,
         )?;
