@@ -219,3 +219,67 @@ fn context_switch_stale_show_and_invented_agency_refuse_without_changing_body() 
     );
     assert_eq!(serde_json::to_value(&body).unwrap(), before);
 }
+
+#[test]
+fn one_body_wake_projects_current_state_without_inventing_plan_or_play() {
+    let body = Body::born(
+        SourceDocumentId::from("source/cross-mask-wake"),
+        CheckedPlotId::from("checked/cross-mask-wake"),
+        1,
+        SignId::from("sign/cross-mask-wake-born"),
+    )
+    .unwrap();
+    let lulled = Face::project(
+        &body,
+        None,
+        11,
+        FaceContext::Overview,
+        FaceFocus::Body,
+        vec![],
+    )
+    .unwrap()
+    .presentation;
+    let (awake_body, wake) = body
+        .wake(2, SignId::from("sign/cross-mask-wake-awake"))
+        .unwrap();
+    let truth = serde_json::to_value(&awake_body).unwrap();
+    let awake = Face::project(
+        &awake_body,
+        Some(&wake),
+        12,
+        FaceContext::Overview,
+        FaceFocus::Body,
+        vec![],
+    )
+    .unwrap()
+    .presentation;
+    assert_eq!(lulled.basis.body_id, awake.basis.body_id);
+    assert_ne!(lulled.identity, awake.identity);
+    assert!(lulled.basis.wake_id.is_none());
+    assert_eq!(awake.basis.wake_id.as_ref(), Some(&wake.wake_id));
+    for face in [&lulled, &awake] {
+        assert!(face.basis.plan_id.is_none());
+        assert!(face.basis.active_play_id.is_none());
+        let linear = render_linear_presentation(face).unwrap();
+        let aural = plan_face_utterances(face).unwrap();
+        assert_eq!(linear.presentation_id, face.identity);
+        assert_eq!(linear.revision, face.revision);
+        assert_eq!(aural.source_face_identity, face.identity.as_str());
+        assert_eq!(aural.source_face_revision, face.revision);
+        for action in &face.actions {
+            assert!(aural.clauses.iter().any(
+                |clause| matches!(&clause.provenance, FaceUtteranceProvenance::Action(source)
+                    if source.identity() == &action.identity)
+            ));
+            assert!(linear
+                .lines
+                .iter()
+                .any(|line| line.contains(&action.identity)));
+        }
+    }
+    assert_eq!(
+        serde_json::to_value(&awake_body).unwrap(),
+        truth,
+        "renderer projection changed current Body truth"
+    );
+}
