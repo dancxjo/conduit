@@ -6,7 +6,7 @@ with machine/usb/endpoint-write/request as UsbEndpointWriteRequest
 with machine/usb/endpoint-write/result as UsbEndpointWriteResult
 with machine/usb/endpoint-read/request as UsbEndpointReadRequest
 with machine/usb/endpoint-read/result as UsbEndpointReadResult
-with flow/zip/finite/paired as UsbTransferRequestPair
+with flow/zip/feedback/paired as UsbTransferRequestPair
 
 type UsbControlWriteReadRequest = {
     control: UsbControlRequest
@@ -40,7 +40,8 @@ plot usb-control-write-read-write-completed (
     result: UsbEndpointWriteResult...| <= 4096B >> completed: UsbTransferCompleted...| <= 256B
 ) = ({ completed: . is completed })
 
-# Zip retains the request until the preceding actual transfer result arrives.
+# Feedback Zip retains its closed request event until the delayed completion
+# state arrives. Finite Zip would discard that unmatched event on early close.
 # Every non-completed disposition drops the next submission branch.
 plot usb-control-write-completed (
     pair: UsbTransferRequestPair...| <= 16384B >> gate: UsbControlWriteGate...| <= 4096B
@@ -50,7 +51,7 @@ plot usb-write-read-completed (
 ) = (.0.completed ? ready(.1.read) : refused(empty))
 
 plot usb-control-endpoint-write-read (
-    >> request: UsbControlWriteReadRequest...| <= 8192B
+    >> request: UsbControlWriteReadRequest...|
     control: UsbControlResult...| <= 4096B >>
     written: UsbEndpointWriteResult...| <= 4096B >>
     received: UsbEndpointReadResult...| <= 4096B >>
@@ -58,8 +59,8 @@ plot usb-control-endpoint-write-read (
     setup: machine/usb/control
     write: machine/usb/endpoint-write
     read: machine/usb/endpoint-read
-    after-control: flow/zip/finite
-    after-write: flow/zip/finite
+    after-control: flow/zip/feedback
+    after-write: flow/zip/feedback
     pending: usb-control-write-read-requests()
     request >> usb-control-write-read-control() >> setup.request
     request >> pending
