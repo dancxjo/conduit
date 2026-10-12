@@ -26,6 +26,7 @@ use std::io::Write;
 
 mod clock_observation;
 mod fore_route;
+mod parsec_sources;
 mod scan_route;
 use crate::body_execution::ObservedKernelEvent;
 use clock_observation::KernelClockObservations;
@@ -142,6 +143,7 @@ fn presentation(operation: &LoweredHostCall) -> bool {
 }
 
 impl<'a> BodyKernel<'a> {
+    #[cfg(test)]
     pub(crate) fn prepare(
         partitions: &[BodyPlotPlan],
         has_keyboard: bool,
@@ -158,19 +160,53 @@ impl<'a> BodyKernel<'a> {
             sequential_fore,
             has_fore_output,
             None,
+            None,
         )
     }
 
-    pub(crate) fn prepare_live(
+    pub(crate) fn prepare_on_host(
+        partitions: &[BodyPlotPlan],
+        has_keyboard: bool,
+        parent_play: &conduit_core::ActivePlayId,
+        fore_inputs: &'a [ExternalForeInput],
+        sequential_fore: bool,
+        has_fore_output: bool,
+        host: &conduit_core::HostAdvertisement,
+    ) -> Result<Self, String> {
+        let sources = parsec_sources::prepare(partitions, host)?;
+        Self::prepare_with_live(
+            partitions,
+            has_keyboard,
+            parent_play,
+            fore_inputs,
+            sequential_fore,
+            has_fore_output,
+            None,
+            sources.as_ref(),
+        )
+    }
+
+    pub(crate) fn prepare_live_on_host(
         partitions: &[BodyPlotPlan],
         parent_play: &conduit_core::ActivePlayId,
         queue: &BodyLiveForeQueue,
         control: &RunControl,
+        host: &conduit_core::HostAdvertisement,
     ) -> Result<Self, String> {
         if partitions.len() != 1 || !queue.matches_plan(&partitions[0].plan, control) {
             return Err("live Fore queue differs from the exact Body Plan or stop control".into());
         }
-        Self::prepare_with_live(partitions, false, parent_play, &[], true, true, Some(queue))
+        let sources = parsec_sources::prepare(partitions, host)?;
+        Self::prepare_with_live(
+            partitions,
+            false,
+            parent_play,
+            &[],
+            true,
+            true,
+            Some(queue),
+            sources.as_ref(),
+        )
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -182,6 +218,7 @@ impl<'a> BodyKernel<'a> {
         sequential_fore: bool,
         has_fore_output: bool,
         live: Option<&BodyLiveForeQueue>,
+        parsec_sources: Option<&std::sync::Arc<crate::flow_activation::ParsecSourcePlans>>,
     ) -> Result<Self, String> {
         let fragments = partitions
             .iter()
@@ -197,7 +234,11 @@ impl<'a> BodyKernel<'a> {
         // Activation coordinators belong to the whole sealed Plan. Bind each
         // entry to its exact local fragment before lowering ordinary nodes.
         let activations = bind_body_activations(partitions, &fragments)?;
-        let mut scans = scan_route::prepare(partitions, parent_play)?;
+        let mut scans = if parsec_sources.is_some() {
+            scan_route::prepare_with_parsec_sources(partitions, parent_play, parsec_sources)?
+        } else {
+            scan_route::prepare(partitions, parent_play)?
+        };
         if scans.len() == 1 {
             let conduit_core::PlannedActivationEntry::Scan(planned) =
                 &partitions[scans[0].partition].plan.activations[0]
@@ -1042,9 +1083,13 @@ impl<'a> BodyKernel<'a> {
                         {
                             continue;
                         }
-                        if let Some(observed) = live_observed {
-                            if self.fore.wait_for_activity(observed)? {
-                                continue;
+                        // A pending admitted keyboard request owns progress even
+                        // when no command has reached the live Fore queue yet.
+                        if !keys.is_pending() {
+                            if let Some(observed) = live_observed {
+                                if self.fore.wait_for_activity(observed)? {
+                                    continue;
+                                }
                             }
                         }
                         if !keys.is_pending() && deadlines.is_empty() {
@@ -1164,3 +1209,7 @@ mod todo_core_replay_tests;
 #[cfg(test)]
 #[path = "body_kernel/thermostat_live_fore_tests.rs"]
 mod thermostat_live_fore_tests;
+
+#[cfg(test)]
+#[path = "body_kernel/parsec_live_fore_tests.rs"]
+mod parsec_live_fore_tests;
