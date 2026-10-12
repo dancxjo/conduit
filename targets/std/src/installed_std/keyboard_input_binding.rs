@@ -52,6 +52,7 @@ pub(super) struct KeyboardRequestAdmission {
     body_play: Option<conduit_body::BodyPlayIdentity>,
     issued: bool,
     revoked: bool,
+    pub(super) completions: super::keyboard_input_completion::KeyboardInputCompletions,
 }
 
 impl KeyboardRequestAdmission {
@@ -88,6 +89,7 @@ impl KeyboardRequestAdmission {
             body_play: None,
             issued: true,
             revoked: false,
+            completions: super::keyboard_input_completion::KeyboardInputCompletions::new(),
         };
         admission.prepare_fragment(advertisement, fragment, identity, operations)?;
         admission.require_all_input_operations(operations)?;
@@ -110,6 +112,7 @@ impl KeyboardRequestAdmission {
             body_play: Some(prospective.clone()),
             issued: false,
             revoked: false,
+            completions: super::keyboard_input_completion::KeyboardInputCompletions::new(),
         };
         for (partition, identity) in plan.plots.iter().zip(identities) {
             if !conduit_core::verify_plan(&partition.plan) {
@@ -282,6 +285,31 @@ impl KeyboardRequestAdmission {
         Ok(())
     }
 
+    /// Toggle only preallocated completion custody during preparation. This
+    /// cannot admit a request before later successful issued-Play confirmation.
+    pub(super) fn enable_completed_event_custody(&mut self) -> Result<(), String> {
+        if self.revoked || self.issued {
+            return Err("completed event custody must be enabled before issued Play".into());
+        }
+        self.completions.enable()
+    }
+
+    pub(super) fn completed_origin_index(
+        &self,
+        realization: InputRealization,
+        request: HostCallRequest,
+    ) -> Result<usize, String> {
+        if self.revoked || !self.issued {
+            return Err("input completion has no current issued origin".into());
+        }
+        self.descriptors.iter().position(|descriptor|
+            descriptor.realization == realization
+                && descriptor.operation.node == request.node
+                && descriptor.operation.call == request.call
+                && matches!(descriptor.state, RequestAdmission::Current(current) if current == request.request)
+        ).ok_or_else(|| "input completion differs from exact accepted request".into())
+    }
+
     /// Check input provenance only. A source-correlated proposal still requires
     /// an authorized current mapping/revision and an exact control/label match.
     /// RawKeyboard is not itself evidence of an Enter mapping; SpaceButton is
@@ -319,6 +347,7 @@ impl KeyboardRequestAdmission {
 
     pub(super) fn revoke(&mut self) {
         self.revoked = true;
+        self.completions.revoke();
         for descriptor in &mut self.descriptors {
             descriptor.state = RequestAdmission::Revoked;
         }

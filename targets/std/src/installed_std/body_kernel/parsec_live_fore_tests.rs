@@ -336,7 +336,15 @@ fn combined_parsec_pending_keyboard_progresses_without_a_command_then_cancels() 
         report.kernel_failure,
         report.cleanup_failure
     );
-    assert_eq!(capture.values.len(), 2);
+    assert_eq!(
+        capture.values.len(),
+        2,
+        "terminal={:?} failure={:?} kernel={:?} cleanup={:?}",
+        report.terminal,
+        report.failure,
+        report.kernel_failure,
+        report.cleanup_failure
+    );
     let key = capture
         .values
         .iter()

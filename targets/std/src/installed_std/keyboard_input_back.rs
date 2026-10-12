@@ -43,18 +43,21 @@ impl<const PORTS: usize> StepBack<PORTS> for KeyboardInputBack {
                     if !io.output_ready(PortId(0)) {
                         return StepOutcome::Await;
                     }
-                    let Some(canonical) = input_bytes.host_output() else {
+                    let (Some(output), Some(canonical)) =
+                        (outcome.output, input_bytes.host_output())
+                    else {
                         return step_fail(FailureCode::InvalidLifecycle, 111);
                     };
-                    if conduit_human::KeyEvent::decode(canonical).is_err() {
+                    if conduit_human::KeyEvent::decode(canonical).is_err()
+                        || output.value.byte_len as usize != canonical.len()
+                    {
                         return step_fail(FailureCode::InvalidInput, 112);
                     }
-                    let Ok(value) = conduit_kernel::CanonicalValue::new(canonical) else {
-                        return step_fail(FailureCode::StorageExhausted, 113);
-                    };
                     io.consume_host_completion()
                         .expect("observed keyboard completion");
-                    io.send_canonical(PortId(0), value)
+                    // Preserve the exact admitted completion value through the
+                    // source Fore, so later custody cannot be minted from bytes.
+                    io.send(PortId(0), output.value)
                         .expect("ready keyboard event output");
                     self.pending = None;
                     self.emitted = true;
