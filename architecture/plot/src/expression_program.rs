@@ -8,6 +8,7 @@ use conduit_core::{StructuredInfoRefusal, StructuredInfoType};
 
 mod checked_encoding;
 mod constant;
+pub(crate) mod input_bound;
 pub(crate) use checked_encoding::checked_canonical_hex;
 
 pub const MAXIMUM_PURE_EXPRESSION_PROGRAM_BYTES: usize = crate::MAXIMUM_PLOT_SOURCE_BYTES * 64;
@@ -15,6 +16,7 @@ pub const MAXIMUM_PURE_EXPRESSION_PROGRAM_BYTES: usize = crate::MAXIMUM_PLOT_SOU
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PortableExpressionProgram {
     pub input_type: StructuredInfoType,
+    pub input_maximum_bytes: Option<u32>,
     pub output_type: StructuredInfoType,
     pub root: PortableExpressionNode,
 }
@@ -91,6 +93,7 @@ impl PortableExpressionProgram {
         expression: &CheckedExpression,
     ) -> Result<Self, PortableExpressionProgramRefusal> {
         let value = Self {
+            input_maximum_bytes: expression.input_maximum_bytes,
             input_type: expression
                 .input_type
                 .structured_info_type_with(&expression.semantic_structures)?,
@@ -103,18 +106,6 @@ impl PortableExpressionProgram {
             return Err(PortableExpressionProgramRefusal::TooLarge);
         }
         Ok(value)
-    }
-
-    fn encode(&self, encoded: &mut ProgramSink) -> Result<(), PortableExpressionProgramRefusal> {
-        encoded.extend_from_slice(b"conduit.pure-expression.program.v2");
-        push_type(encoded, &self.input_type)?;
-        push_type(encoded, &self.output_type)?;
-        push_node(encoded, &self.root)?;
-        if encoded.length > MAXIMUM_PURE_EXPRESSION_PROGRAM_BYTES {
-            Err(PortableExpressionProgramRefusal::TooLarge)
-        } else {
-            Ok(())
-        }
     }
 
     fn canonical_size(&self) -> Result<usize, PortableExpressionProgramRefusal> {

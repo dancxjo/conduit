@@ -4,6 +4,7 @@
 //! fixed envelopes before Play. Kernel/Body allocation remains separately charged.
 const ENDPOINT_BYTES: u64 = 84 * 1024;
 const ROOT_DMA_BYTES: u64 = 8192;
+pub(in crate::protocol_boot) const HEAP_BYTES: u64 = 2 * (ENDPOINT_BYTES - ROOT_DMA_BYTES);
 
 #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
 pub(super) fn pending_heap_bytes() -> usize {
@@ -19,7 +20,7 @@ pub(super) fn admit(
     if dma_bytes != [ROOT_DMA_BYTES; 2] {
         return Err("protocol-usb-duplex-dma-envelope-refused");
     }
-    let heap_budget = 2 * (ENDPOINT_BYTES - ROOT_DMA_BYTES);
+    let heap_budget = HEAP_BYTES;
     let available = arena_capacity
         .checked_sub(arena_live)
         .ok_or("protocol-usb-duplex-arena-envelope-refused")?;

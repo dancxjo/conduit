@@ -108,6 +108,10 @@ impl ChildKernel {
         self.status
     }
 
+    pub(crate) fn has_retained_host_call_for_nodes(&self, nodes: &[NodeId]) -> bool {
+        self.scheduler.has_retained_host_call_for_nodes(nodes)
+    }
+
     pub(crate) fn next_host_request(&mut self) -> Option<HostCallRequest> {
         self.scheduler.next_host_request()
     }

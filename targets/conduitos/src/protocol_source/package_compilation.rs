@@ -20,6 +20,16 @@ pub enum ProtocolSpecializationRequest {
     SeededUntil {
         value: ProtocolValueReference,
     },
+    SeededUntilInstance {
+        alias: String,
+        value: ProtocolValueReference,
+    },
+    FeedbackZipInstance {
+        alias: String,
+        paired_alias: String,
+        left: ProtocolValueReference,
+        right: ProtocolValueReference,
+    },
     Concat {
         value: ProtocolValueReference,
     },
@@ -56,6 +66,7 @@ impl ProtocolSourcePackage {
         install_clock(&mut startup, &mut profile)?;
         install_literal(&mut startup, &mut profile)?;
         usb_catalog::install(&mut startup, &mut profile)?;
+        storage_catalog::install(&mut startup, &mut profile)?;
         crate::serial_base::contract::SerialDuplexContract::prepare()
             .map_err(Error::Contract)?
             .install_catalogs(&mut startup, &mut profile)
@@ -90,6 +101,7 @@ impl ProtocolSourcePackage {
                 .map_err(|_| Error::Specialization("invalid named type envelope"))?;
             Ok(ProtocolValue { schema, contract })
         };
+        let mut imports = String::new();
         let mut specializations = Vec::with_capacity(requests.len());
         for request in requests {
             use ProtocolSpecializationRequest as Request;
@@ -103,6 +115,41 @@ impl ProtocolSourcePackage {
                 Request::SeededUntil { value: reference } => ProtocolSpecialization::SeededUntil {
                     value: value(reference)?,
                 },
+                Request::SeededUntilInstance {
+                    alias,
+                    value: reference,
+                } => {
+                    let value = value(reference)?;
+                    let kind = instances::instance_kind_id("state/seeded/flow/until", &[&value])
+                        .map_err(Error::Catalog)?;
+                    imports.push_str(
+                        &instances::binding_import(&kind, alias).map_err(Error::Catalog)?,
+                    );
+                    ProtocolSpecialization::SeededUntilInstance { value }
+                }
+                Request::FeedbackZipInstance {
+                    alias,
+                    paired_alias,
+                    left,
+                    right,
+                } => {
+                    let left = value(left)?;
+                    let right = value(right)?;
+                    let kind = instances::instance_kind_id(
+                        conduit_semantic_catalog::FLOW_ZIP_FEEDBACK_KIND,
+                        &[&left, &right],
+                    )
+                    .map_err(Error::Catalog)?;
+                    imports.push_str(
+                        &instances::binding_import(&kind, alias).map_err(Error::Catalog)?,
+                    );
+                    let paired = conduit_core::kind_id(&alloc::format!("{}/paired", kind.as_str()));
+                    imports.push_str(
+                        &instances::binding_import(&paired, paired_alias)
+                            .map_err(Error::Catalog)?,
+                    );
+                    ProtocolSpecialization::FeedbackZipInstance { left, right }
+                }
                 Request::Concat { value: reference } => ProtocolSpecialization::Concat {
                     value: value(reference)?,
                 },
@@ -122,7 +169,7 @@ impl ProtocolSourcePackage {
         Ok(Self {
             schema: PACKAGE_SCHEMA.into(),
             backs: vec![],
-            source,
+            source: alloc::format!("{imports}{source}"),
             specializations,
         })
     }

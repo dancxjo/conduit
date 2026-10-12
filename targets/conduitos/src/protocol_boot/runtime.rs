@@ -40,6 +40,7 @@ pub(super) fn prepare(
     boot: BootId,
     owners: NativeOwners,
 ) -> Result<(NativePlay, Vec<Output>), &'static str> {
+    validate_input_values(&entry, &request.inputs)?;
     let session = super::body::admit(entry.resident(), &host, &boot)?;
     let advertisement = HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
@@ -67,130 +68,42 @@ pub(super) fn prepare(
     prepare_outputs(play, &request.inputs)
 }
 
-pub(super) fn prepare_usb(
-    entry: PreparedProtocolEntry,
-    request: &super::usb_request::UsbProtocolBootRequest,
-    host: HostId,
-    boot: BootId,
-    owners: super::usb_owners::NativeUsbOwners,
-) -> Result<(NativePlay, Vec<Output>), &'static str> {
-    let session = super::body::admit(entry.resident(), &host, &boot)?;
-    let advertisement = HostAdvertisement {
-        protocol_version: PROTOCOL_VERSION,
-        host_id: host,
-        boot_id: boot,
-        offer_generation: OfferGeneration(1),
-        profile: "conduitos/native@1".into(),
-        bases: vec![],
-        resources: vec![],
-        capabilities: vec![],
-        planner_capabilities: vec![],
-    };
-    let play = match owners {
-        super::usb_owners::NativeUsbOwners::Isochronous {
-            ready,
-            control_issuer,
-            isochronous_issuer,
-        } => crate::protocol_source::prepare_native_usb_isochronous_protocol(
-            entry,
-            session,
-            advertisement,
-            *ready,
-            *control_issuer,
-            *isochronous_issuer,
-            0,
-            1,
-            request.additional_remote_sign_items,
-        ),
-        super::usb_owners::NativeUsbOwners::Duplex {
-            ready,
-            control_issuer,
-            read_issuer,
-            write_issuer,
-            #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
-            network,
-        } => {
-            #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
-            let result = match network {
-                Some(network) => crate::protocol_source::prepare_native_usb_duplex_with_network(
-                    entry,
-                    session,
-                    advertisement,
-                    *ready,
-                    *control_issuer,
-                    *read_issuer,
-                    *write_issuer,
-                    0,
-                    1,
-                    request.additional_remote_sign_items,
-                    Some(crate::protocol_source::NativeEthernetPreparation {
-                        ready: *network.ready,
-                        issuer: *network.issuer,
-                        random_seed: network.random_seed,
-                        timestamp: smoltcp::time::Instant::ZERO,
-                    }),
-                ),
-                None => crate::protocol_source::prepare_native_usb_duplex_protocol(
-                    entry,
-                    session,
-                    advertisement,
-                    *ready,
-                    *control_issuer,
-                    *read_issuer,
-                    *write_issuer,
-                    0,
-                    1,
-                    request.additional_remote_sign_items,
-                ),
-            };
-            #[cfg(not(all(target_arch = "x86_64", feature = "native-owner-network")))]
-            let result = crate::protocol_source::prepare_native_usb_duplex_protocol(
-                entry,
-                session,
-                advertisement,
-                *ready,
-                *control_issuer,
-                *read_issuer,
-                *write_issuer,
-                0,
-                1,
-                request.additional_remote_sign_items,
-            );
-            result
+#[path = "runtime_usb_preparation.rs"]
+mod usb_preparation;
+pub(super) use usb_preparation::prepare_usb;
+
+fn validate_input_values(
+    entry: &PreparedProtocolEntry,
+    inputs: &[super::ProtocolBootInput],
+) -> Result<(), &'static str> {
+    for input in inputs {
+        let port: PortId = input.port.clone().into();
+        let schema = entry
+            .input_schema(&port)
+            .ok_or("protocol-input-port-missing")?;
+        let contract = entry
+            .expanded()
+            .front
+            .value_contract(&FrontValueLocation::Input(port));
+        for bytes in core::iter::once(&input.canonical_bytes).chain(&input.subsequent_values) {
+            if let Some(contract) = contract {
+                contract
+                    .validate(bytes)
+                    .map_err(|_| "protocol-input-contract-refused")?;
+            }
+            if matches!(schema.shape(), StructuredInfoTypeShape::Leaf(_)) {
+                StructuredInfoValue::leaf(schema.clone(), bytes.clone())
+                    .map_err(|_| "protocol-input-value-refused")?;
+            } else {
+                let value = StructuredInfoValue::from_canonical_bytes(bytes)
+                    .map_err(|_| "protocol-input-value-refused")?;
+                if value.value_type() != &schema {
+                    return Err("protocol-input-kind-refused");
+                }
+            }
         }
-        super::usb_owners::NativeUsbOwners::Control { ready, issuer } => {
-            crate::protocol_source::prepare_native_usb_protocol_with_sign_storage(
-                entry,
-                session,
-                advertisement,
-                *ready,
-                *issuer,
-                0,
-                1,
-                request.additional_remote_sign_items,
-            )
-        }
-        super::usb_owners::NativeUsbOwners::Protocol {
-            ready,
-            control_issuer,
-            endpoint_issuer,
-        } => crate::protocol_source::prepare_native_usb_endpoint_protocol(
-            entry,
-            session,
-            advertisement,
-            *ready,
-            *control_issuer,
-            *endpoint_issuer,
-            0,
-            1,
-            request.additional_remote_sign_items,
-        ),
     }
-    .map_err(|refusal| {
-        report_preparation_refusal(&refusal.reason);
-        "protocol-usb-plan-admission-refused"
-    })?;
-    prepare_outputs(play, &request.inputs)
+    Ok(())
 }
 
 fn prepare_outputs(
@@ -297,27 +210,65 @@ fn execute_workload(
             .iter()
             .find(|port| port.port_id.as_str() == input.port)
             .ok_or("protocol-input-port-missing")?;
+        let maximum = definition
+            .internal_plan
+            .fragments
+            .iter()
+            .flat_map(|fragment| &fragment.fore_ports)
+            .filter(|boundary| {
+                boundary.front_port_id == port.port_id
+                    && boundary.direction == PortDirection::Input
+                    && boundary.track == ConnectionTrack::Payload
+            })
+            .map(|boundary| boundary.byte_capacity)
+            .min()
+            .ok_or("protocol-input-boundary-missing")?;
+        if core::iter::once(&input.canonical_bytes)
+            .chain(&input.subsequent_values)
+            .any(|bytes| bytes.len() > maximum as usize)
+        {
+            return Err("protocol-input-envelope-exceeded");
+        }
+        if !input.subsequent_values.is_empty()
+            && !matches!(port.temporal, PortTemporal::Flow { closes: true })
+        {
+            return Err("protocol-input-sequence-requires-finite-flow");
+        }
+        let values = core::iter::once(&input.canonical_bytes)
+            .chain(&input.subsequent_values)
+            .map(|bytes| ValuePayload {
+                value_kind: port.value_kind.clone(),
+                encoded: bytes.clone(),
+            })
+            .collect::<Vec<_>>();
         inputs.push((
             port.port_id.clone(),
-            ValuePayload {
-                value_kind: port.value_kind.clone(),
-                encoded: input.canonical_bytes.clone(),
-            },
+            values,
+            0usize,
             matches!(port.temporal, PortTemporal::Flow { closes: true }),
         ));
     }
     play.start().map_err(|_| "protocol-start-refused")?;
     let result = (|| {
         report_play(play)?;
-        for (port, value, closes) in &inputs {
-            play.admit_input(port, 0, value)
-                .map_err(|_| "protocol-input-refused")?;
-            if *closes {
-                play.close_input(port)
-                    .map_err(|_| "protocol-input-close-refused")?;
-            }
-        }
         for _ in 0..maximum_steps {
+            for (port, values, next, closes) in &mut inputs {
+                if *next < values.len() {
+                    match play
+                        .admit_input(port, *next as u64, &values[*next])
+                        .map_err(|_| "protocol-input-refused")?
+                    {
+                        conduit_kernel::scheduler::RemoteIngressOutcome::Accepted { .. } => {
+                            *next += 1;
+                            if *next == values.len() && *closes {
+                                play.close_input(port)
+                                    .map_err(|_| "protocol-input-close-refused")?;
+                            }
+                        }
+                        conduit_kernel::scheduler::RemoteIngressOutcome::Full { .. } => {}
+                    }
+                }
+            }
             #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
             if let Some(network) = network_deadline.as_mut()
                 && network.poll(play)?
@@ -353,6 +304,12 @@ fn execute_workload(
                 }
             }
             if status == KernelCompositeStatus::Complete {
+                if inputs
+                    .iter()
+                    .any(|(_, values, next, _)| *next != values.len())
+                {
+                    return Err("protocol-input-sequence-incomplete");
+                }
                 #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
                 network::require_complete(network_deadline.as_ref())?;
                 return Ok(());
@@ -491,5 +448,37 @@ fn report_preparation_refusal(reason: &impl core::fmt::Debug) {
     let mut report = crate::sign_format::FixedText::new();
     if writeln!(report, "CONDUIT_PROTOCOL_PREPARATION_REFUSAL {reason:?}").is_ok() {
         let _ = arch::append_boot_diagnostic(report.as_bytes());
+    }
+}
+
+#[cfg(test)]
+mod input_tests {
+    use super::*;
+    #[test]
+    fn every_flow_value_is_checked_before_play() {
+        let package = crate::protocol_source::ProtocolSourcePackage::compile(
+            "plot checked (
+ >> input: Boolean...|
+ output: Boolean...| >>
+) = (.)"
+                .into(),
+            &[],
+        )
+        .unwrap();
+        let bytes = serde_json::to_vec(&package).unwrap();
+        let entry = PreparedProtocolEntry::prepare(&bytes, "checked").unwrap();
+        let mut input = super::super::ProtocolBootInput {
+            port: "input".into(),
+            canonical_bytes: vec![1],
+            subsequent_values: vec![vec![0]; 15],
+        };
+        assert_eq!(
+            validate_input_values(&entry, core::slice::from_ref(&input)),
+            Ok(())
+        );
+        input.subsequent_values[14] = vec![2];
+        assert!(validate_input_values(&entry, core::slice::from_ref(&input)).is_err());
+        input.subsequent_values[14] = vec![0; 4096];
+        assert!(validate_input_values(&entry, core::slice::from_ref(&input)).is_err());
     }
 }

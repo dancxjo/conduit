@@ -46,6 +46,12 @@ impl<'a> PrimitiveValue<'a> {
         })
     }
 
+    pub(super) fn into_borrowed(self) -> Result<&'a [u8], Refusal> {
+        match self.bytes {
+            PrimitiveBytes::Borrowed(bytes) => Ok(bytes),
+            PrimitiveBytes::Inline(_) => Err(Refusal::InvalidProgram),
+        }
+    }
     pub(super) fn as_slice(&self) -> &[u8] {
         match &self.bytes {
             PrimitiveBytes::Borrowed(bytes) => bytes,

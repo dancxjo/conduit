@@ -40,6 +40,14 @@ impl PortableExpressionProgram {
     /// installations prepare bounded scratch storage before exposing the same
     /// evaluator through the execution kernel.
     pub fn evaluate(&self, input: &[u8]) -> Result<Vec<u8>, PortableExpressionEvaluationRefusal> {
+        self.validate_input_bound()
+            .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?;
+        if self
+            .input_maximum_bytes
+            .is_some_and(|maximum| input.len() > maximum as usize)
+        {
+            return Err(PortableExpressionEvaluationRefusal::InvalidInput);
+        }
         validate_input(&self.input_type, input)?;
         let output = evaluate_node(&self.root, input, &self.input_type)?;
         if output.value_type != self.output_type {
