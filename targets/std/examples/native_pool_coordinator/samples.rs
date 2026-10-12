@@ -41,6 +41,8 @@ struct Request {
     host: HostAdvertisement,
     owner_clock: MonotonicClockIdentity,
     sample: Sample,
+    #[serde(default)]
+    freshness: Option<super::freshness::Input>,
 }
 fn measurement(
     value: Option<&ValuePayload>,
@@ -144,6 +146,11 @@ fn check(input: &Request) -> Result<serde_json::Value, String> {
     source
         .validate_at(host, calibration, &sample.validated_at)
         .map_err(|e| format!("sample owner validation: {e:?}"))?;
+    let current_bound = input
+        .freshness
+        .as_ref()
+        .map(|exchange| super::freshness::validate(exchange, source.window(), &sample.validated_at))
+        .transpose()?;
     let expected = match sample.runtime_state.residency {
         ModelResidencyState::NotResident => CostExecutionCondition::Cold,
         ModelResidencyState::Unknown | ModelResidencyState::ResidentWithoutEpoch => {
@@ -167,7 +174,8 @@ fn check(input: &Request) -> Result<serde_json::Value, String> {
         &mut work,
     )?;
     Ok(
-        json!({"phase":"sample-checked","freshness_scope":"reported_owner_validation_only",
+        json!({"phase":"sample-checked","freshness_scope":if current_bound.is_some() { "coordinator_via_admitted_peer_exchange" } else { "reported_owner_validation_only" },
+        "owner_current_interval":current_bound,
         "host_id":host.host_id,"boot_id":host.boot_id,"sign_id":source.sign(),
         "condition":format!("{:?}",execution.condition()),"numeric_work":work.spent(),
         "observed":source.window().observed(),"expires":source.window().expires()}),

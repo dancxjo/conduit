@@ -1,5 +1,7 @@
 //! Internal preparation entrance for the live pool proof. This builds ordinary
 //! Plans; it does not execute providers or implement an alternative selector.
+#[path = "native_pool_coordinator/freshness.rs"]
+mod freshness;
 #[path = "native_pool_coordinator/planning.rs"]
 mod planning;
 #[path = "native_pool_coordinator/samples.rs"]
