@@ -6,7 +6,7 @@ import sys
 import usbredir_transport as wire
 
 parser = argparse.ArgumentParser(add_help=False)
-parser.add_argument('--fault-mode', choices=['reset-only', 'none', 'stall-in', 'disconnect-in', 'stale-tag', 'bad-residue', 'command-failed', 'phase-error', 'short-in', 'hold-in', 'late-after-cancel'], required=True)
+parser.add_argument('--fault-mode', choices=['reset-only', 'reset-stall-in', 'none', 'stall-in', 'disconnect-in', 'stale-tag', 'bad-residue', 'command-failed', 'phase-error', 'short-in', 'hold-in', 'late-after-cancel'], required=True)
 options, remaining = parser.parse_known_args()
 sys.argv = [sys.argv[0]] + remaining
 wire.CONFIG = bytes.fromhex('09 02 20 00 01 01 05 c0 00 09 04 00 00 02 08 06 50 00 07 05 81 02 00 02 00 07 05 02 02 00 02 00')
@@ -41,7 +41,7 @@ class Device(Base):
         self.connected = True
 
     def control(self, packet_id, body):
-        if options.fault_mode != 'reset-only':
+        if not options.fault_mode.startswith('reset-'):
             return super().control(packet_id, body)
         ep, request, request_type, _, value, index, length = wire.CONTROL.unpack_from(body)
         expected = [(0x21, 0xff, 0), (0x02, 0x01, 0x81), (0x02, 0x01, 0x02)]
@@ -51,7 +51,9 @@ class Device(Base):
                  (request_type, request, index) == expected[self.recovery_step] and
                  ep == 0 and value == 0 and length == 0 and len(body) == wire.CONTROL.size)
         status = wire.SUCCESS if valid else wire.STALL
-        if valid:
+        if options.fault_mode == 'reset-stall-in' and self.recovery_step == 1:
+            status = wire.STALL
+        if valid and status == wire.SUCCESS:
             self.recovery_step += 1
             print('BOT_RECOVERY_ACK ' + str(self.recovery_step), flush=True)
         self.send(100, packet_id, wire.CONTROL.pack(ep, request, request_type, status, value, index, 0))
