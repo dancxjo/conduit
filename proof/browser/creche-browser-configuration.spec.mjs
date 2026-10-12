@@ -22,6 +22,8 @@ test("Crèche evidence budgets cover the release runtime's canonical advertiseme
 });
 
 test("one reviewed distribution makes materially different, capability-enforcing browser Hosts", async ({ browser }) => {
+  // This capstone completes two sequential Host make/boot workflows plus active use.
+  test.setTimeout(40_000);
   const viewerPage = await browser.newPage();
   const richPage = await browser.newPage();
   const capabilityPage = await browser.newPage();
