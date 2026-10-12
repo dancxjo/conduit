@@ -23,6 +23,26 @@ mod generated {
 }
 pub use generated::{ParsecMapCommand, ParsecMapState, ParsecMapTransitionResult};
 
+pub(crate) fn parsec_map_state_checked_type(
+) -> Result<conduit_plot::CheckedNativeType, conduit_plot::rust_binding::NativeBindingRefusal> {
+    let value_type = ParsecMapState::semantic_type()?;
+    let conduit_core::StructuredInfoTypeShape::Record { schema, .. } = value_type.shape() else {
+        return Err(
+            conduit_plot::rust_binding::NativeBindingRefusal::InvalidValue(
+                conduit_core::StructuredInfoRefusal::WrongType,
+            ),
+        );
+    };
+    Ok(conduit_plot::CheckedNativeType {
+        name: "ParsecMapState".into(),
+        identity: schema.clone(),
+        value_type,
+        value_contracts: generated::state_contracts(),
+        // parsec_map_build.rs fences any future owner where law.
+        invariants: Vec::new(),
+    })
+}
+
 /// Exact specimen source bundle. Consumers must check and plan this source;
 /// source correspondence is not execution or physical input admission.
 pub const PARSEC_MAP_TRANSITION_SOURCE: &str = concat!(

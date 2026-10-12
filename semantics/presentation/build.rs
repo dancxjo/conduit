@@ -40,6 +40,20 @@ fn main() {
         &catalog,
     )
     .expect("presentation semantic Types must check");
+    for name in [
+        "GeneratedActionAffordance",
+        "ActionInputBindingProposalInfo",
+    ] {
+        let owner = checked
+            .native_types
+            .iter()
+            .find(|ty| ty.name == name)
+            .expect("input policy owner Type exists");
+        assert!(
+            owner.invariants.is_empty(),
+            "input policy checked import must retain newly authored owner/nested where laws"
+        );
+    }
     let external_identity =
         |value_type: &conduit_plot::rust_binding::semantic_core::StructuredInfoType| {
             match value_type.shape() {
