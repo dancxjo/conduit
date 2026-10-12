@@ -289,7 +289,7 @@ impl Pipeline {
                 .unwrap()
                 .collection_length()
                 .unwrap(),
-            prefix
+            prefix as u32
         );
         let completed = payload.record_field("completed").unwrap().unwrap();
         for index in 0..prefix {

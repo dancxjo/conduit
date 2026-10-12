@@ -287,3 +287,11 @@ impl UsbNativeHost<'_> {
         }
     }
 }
+
+#[cfg(test)]
+impl UsbNativeCallIndex {
+    /// Placeholder for a fixture that never invokes or advertises control.
+    pub(crate) fn synthetic_unused() -> Self {
+        Self(usize::MAX)
+    }
+}

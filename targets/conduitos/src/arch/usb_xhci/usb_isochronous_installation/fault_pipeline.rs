@@ -5,9 +5,8 @@
 //! acceptance remain covered by the separate ordinary guest proof.
 use super::*;
 use crate::arch::xhci_mechanism;
-use crate::usb_base::isochronous::{factory::*, owner::tests::fixture};
+use crate::usb_base::isochronous::owner::tests::fixture;
 use alloc::{boxed::Box, vec, vec::Vec};
-use conduit_core::*;
 use conduit_kernel::{HostCallId, RequestId};
 #[path = "fault_pipeline/kernel.rs"]
 mod kernel;
@@ -145,7 +144,7 @@ fn exercise(code: u8, failed_stop: bool, cancel: bool) {
         let mut runtime = NativeUsbIsochronousHost {
             host,
             owner,
-            control_index: UsbNativeCallIndex(0),
+            control_index: UsbNativeCallIndex::synthetic_unused(),
             control_node: conduit_kernel::NodeId(u16::MAX),
             iso_node: node,
             endpoint_epoch: 9,
@@ -162,7 +161,10 @@ fn exercise(code: u8, failed_stop: bool, cancel: bool) {
         let original = loop {
             kernel.step().unwrap();
             if let Some(request) = kernel.next_host_request() {
-                break kernel.admit_host_request(&request).unwrap();
+                let exact = kernel.host_request_obligation(&request).unwrap();
+                break kernel
+                    .admit_host_request(&request, &exact.host, &exact.resources, &exact.authorities)
+                    .unwrap();
             }
         };
         let request_id = kernel
