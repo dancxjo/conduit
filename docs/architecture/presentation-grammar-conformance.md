@@ -335,3 +335,13 @@ source, target, and kind and executes each available supplied action through
 the checked interaction Fore with exact Face/Show correlation. Every stale,
 invented, wrongly targeted, and unavailable proposal refuses before emission;
 these tests apply no owner effects.
+
+The browser lifecycle corpus regression now carries the source-verified
+open-domain, finite-place, lulled, awake, and Patchbay Faces through checked
+Mask execution. After simulated acknowledgement it closes, replaces, or
+fails each Show (adapter unavailable). All fifteen cases refuse before
+consuming the pending interaction Host request, expose no interaction egress
+offer, and preserve the complete source Face. This establishes cancellation
+and adapter-loss refusal at the checked Mask boundary; it does not establish
+actual DOM cancellation, remote disconnect recovery, prebirth, or committed
+Todo coverage for that matrix.

@@ -480,3 +480,7 @@ mod open_domain_tests;
 #[cfg(test)]
 #[path = "owner_face_mask/patchbay_tests.rs"]
 mod patchbay_tests;
+
+#[cfg(test)]
+#[path = "owner_face_mask/lifecycle_corpus_tests.rs"]
+mod lifecycle_corpus_tests;
