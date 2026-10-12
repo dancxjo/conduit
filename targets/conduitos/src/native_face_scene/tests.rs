@@ -973,6 +973,17 @@ fn checked_native_recipe_marks_contiguous_runs_without_reordering_controls() {
             },
         )
         .unwrap();
+        let fallback = NativeFaceScene::prepare_visual_fallback(
+            original.clone(),
+            1000,
+            480,
+            true,
+            &expression,
+        )
+        .unwrap();
+        assert_eq!(fallback.presentation(), &original);
+        assert_eq!(fallback.text_scale_percent(), 125);
+        assert!(fallback.frame().is_ok());
         scenes.push(
             NativeFaceScene::prepare_configured(
                 original.clone(),
@@ -1113,12 +1124,11 @@ fn maximum_todo_projection_keeps_all_controls_and_detail_pages_in_both_native_lo
             }
             let mut expected = Vec::new();
             for row in &scene.details {
-                if let Some(control) = row.control {
-                    if original.actions[control.action].availability.is_available()
-                        && !expected.contains(&control)
-                    {
-                        expected.push(control);
-                    }
+                if let Some(control) = row.control
+                    && original.actions[control.action].availability.is_available()
+                    && !expected.contains(&control)
+                {
+                    expected.push(control);
                 }
             }
             assert_eq!(expected.len(), 40);

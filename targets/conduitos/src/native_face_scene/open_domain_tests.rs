@@ -44,12 +44,14 @@ fn native_generic_mask_preserves_open_domain_meaning_and_typed_controls() {
     for _ in 0..scene.pages() {
         let frame = scene.frame().unwrap();
         assert!(frame.scene.commands().len() <= MAX_GRAPHICS_COMMANDS);
-        assert!(frame
-            .scene
-            .commands()
-            .iter()
-            .all(|command| command.clip_class()
-                == conduit_presentation::GraphicsClipClass::FullyVisible));
+        assert!(
+            frame
+                .scene
+                .commands()
+                .iter()
+                .all(|command| command.clip_class()
+                    == conduit_presentation::GraphicsClipClass::FullyVisible)
+        );
         scene.turn_page(true);
     }
     let action = face
@@ -154,12 +156,14 @@ fn native_generic_mask_keeps_lifecycle_basis_and_refuses_the_other_states_face()
             for _ in 0..scene.pages() {
                 let frame = scene.frame().unwrap();
                 assert!(frame.scene.commands().len() <= MAX_GRAPHICS_COMMANDS);
-                assert!(frame
-                    .scene
-                    .commands()
-                    .iter()
-                    .all(|command| command.clip_class()
-                        == conduit_presentation::GraphicsClipClass::FullyVisible));
+                assert!(
+                    frame
+                        .scene
+                        .commands()
+                        .iter()
+                        .all(|command| command.clip_class()
+                            == conduit_presentation::GraphicsClipClass::FullyVisible)
+                );
                 scene.turn_page(true);
             }
         }
@@ -266,12 +270,14 @@ fn native_mask_preserves_complete_source_derived_patchbay_face() {
         for _ in 0..scene.pages() {
             let frame = scene.frame().unwrap();
             assert!(frame.scene.commands().len() <= MAX_GRAPHICS_COMMANDS);
-            assert!(frame
-                .scene
-                .commands()
-                .iter()
-                .all(|command| command.clip_class()
-                    == conduit_presentation::GraphicsClipClass::FullyVisible));
+            assert!(
+                frame
+                    .scene
+                    .commands()
+                    .iter()
+                    .all(|command| command.clip_class()
+                        == conduit_presentation::GraphicsClipClass::FullyVisible)
+            );
             scene.turn_page(true);
         }
     }
