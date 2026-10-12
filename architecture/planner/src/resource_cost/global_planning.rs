@@ -6,6 +6,7 @@ use alloc::{collections::BTreeMap, vec::Vec};
 use conduit_core::{ExactNumericWork, ExactRational, Plan, ResourceObservation};
 use conduit_plot::CheckedPlot;
 mod objective;
+mod prefix_capacity;
 mod search;
 mod transfer_objective;
 pub use objective::{GlobalObjectiveRefusal, GlobalPlacementObjective};
@@ -41,6 +42,8 @@ pub struct GlobalPlacementResult {
     pub states: u32,
     pub complete_assignments: u32,
     pub refused_assignments: u32,
+    /// Prefixes rejected because minimum reserved demand already exceeds capacity.
+    pub capacity_pruned_prefixes: u32,
     pub candidate_count: usize,
     pub objective: GlobalPlacementObjective,
     pub includes_transfer: bool,
@@ -54,6 +57,7 @@ pub enum GlobalPlacementRefusal {
         disposition: GlobalPlacementDisposition,
         states: u32,
         refused_assignments: u32,
+        capacity_pruned_prefixes: u32,
     },
 }
 struct Candidate<'a> {
@@ -221,6 +225,7 @@ fn plan_global<'a>(
         states: 0,
         complete: 0,
         refused: 0,
+        capacity_pruned: 0,
         disposition: GlobalPlacementDisposition::Exhaustive,
         best: None,
         objective,
@@ -234,6 +239,7 @@ fn plan_global<'a>(
             disposition: search.disposition,
             states: search.states,
             refused_assignments: search.refused,
+            capacity_pruned_prefixes: search.capacity_pruned,
         });
     };
     Ok(GlobalPlacementResult {
@@ -243,6 +249,7 @@ fn plan_global<'a>(
         states: search.states,
         complete_assignments: search.complete,
         refused_assignments: search.refused,
+        capacity_pruned_prefixes: search.capacity_pruned,
         candidate_count,
         objective,
         includes_transfer: transfer.is_some(),
