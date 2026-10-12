@@ -24,7 +24,10 @@ pub use parsec_scan_offer::{
     install_parsec_scan_catalogs, parsec_initial_bytes, parsec_initial_result, parsec_scan_offer,
     PARSEC_SCAN_SOURCE,
 };
-pub use parsec_source_plan::{required_parsec_source_offers, ParsecSourcePlans};
+pub use parsec_source_plan::{
+    required_parsec_input_policy_offer, required_parsec_source_offers, ParsecInputPolicySourcePlan,
+    ParsecSourcePlans,
+};
 pub use pure_parsec_scan::install_pure_parsec_scan;
 
 mod pure_thermostat_scan;
