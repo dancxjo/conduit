@@ -342,3 +342,30 @@ fn storage_requires_independent_approval_bounded_fuel_and_exclusive_duplex_mode(
         Err(ProtocolBootRequestRefusal::Encoding)
     ));
 }
+
+#[test]
+fn usb_flow_input_sequence_preserves_unique_port_and_finite_values() {
+    let mut value = request();
+    value["inputs"][0]["subsequent_values"] = serde_json::json!(vec![vec![2]; 15]);
+    assert_eq!(
+        decode(&value).unwrap().inputs[0].subsequent_values.len(),
+        15
+    );
+    for invalid in [
+        serde_json::json!(vec![vec![2]; 16]),
+        serde_json::json!([[]]),
+        serde_json::json!([vec![0; 4097]]),
+    ] {
+        value["inputs"][0]["subsequent_values"] = invalid;
+        assert!(matches!(
+            decode(&value),
+            Err(ProtocolBootRequestRefusal::Bounds)
+        ));
+    }
+    value["inputs"][0]["subsequent_values"] = serde_json::json!([]);
+    value["inputs"] = serde_json::json!([value["inputs"][0].clone(), value["inputs"][0].clone()]);
+    assert!(matches!(
+        decode(&value),
+        Err(ProtocolBootRequestRefusal::Bounds)
+    ));
+}

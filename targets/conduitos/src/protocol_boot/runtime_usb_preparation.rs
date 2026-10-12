@@ -8,6 +8,7 @@ pub(in crate::protocol_boot) fn prepare_usb(
     boot: BootId,
     owners: crate::protocol_boot::usb_owners::NativeUsbOwners,
 ) -> Result<(NativePlay, Vec<Output>), &'static str> {
+    validate_input_values(&entry, &request.inputs)?;
     let session = crate::protocol_boot::body::admit(entry.resident(), &host, &boot)?;
     let advertisement = HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,

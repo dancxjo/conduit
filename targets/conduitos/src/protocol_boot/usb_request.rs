@@ -179,13 +179,7 @@ impl UsbProtocolBootRequest {
                     || request.endpoint_write.is_some()
             })
             || request.inputs.len() > 16
-            || request.inputs.iter().any(|input| {
-                input.port.is_empty()
-                    || input.port.len() > 128
-                    || input.canonical_bytes.is_empty()
-                    || input.canonical_bytes.len()
-                        > crate::protocol_source::MAXIMUM_PROTOCOL_FORE_BYTES as usize
-            })
+            || request.inputs.iter().any(|input| !input.valid())
             || request.inputs.iter().enumerate().any(|(index, input)| {
                 request.inputs[..index]
                     .iter()
