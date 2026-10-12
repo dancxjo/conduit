@@ -1,104 +1,93 @@
-# Finite checked USB Audio candidate
+# Checked USB Audio playback proof
 
-Supported candidate: USB Audio Class1.0 at USB2 full speed, configuration1,
+The supported profile is UAC1 at USB2 full speed: configuration1,
 AudioControl interface0, AudioStreaming interface1 alternate0 idle/alternate1,
-TypeI PCM signed16 little endian, stereo left/right,48000 samples/second.
-Synchronous ISO OUT01 has maxpacket192 and bInterval1 (one millisecond), no
-feedback endpoint. Each packet holds48 stereo sample frames (192 bytes).
-The exact100-byte configuration is recognized in checked Source. SET_CONFIGURATION,
-SET_INTERFACE, endpoint SamplingFrequency SET_CUR48000 and GET_CUR exact48000
-are explicit class controls; unsupported descriptors/rate/channel/layout refuse.
+TypeI signed16 little-endian stereo PCM at48000 samples/second. Synchronous
+ISO OUT01 has maximum packet192 and interval1, with no feedback endpoint.
+Each packet contains48 stereo sample frames. Checked Source recognizes the
+exact100-byte configuration and performs configuration, alternate selection,
+SET_CUR48000 and exact GET_CUR48000 controls before playback admission.
 
-PCM meaning reuses semantics/audio/types.conduit PcmFrameHeader, including clock,
-start-frame, discontinuity and exact payload extent. USB packet cadence reuses
-usb-pcm-packet-bytes/usb-pcm-next-phase in protocol.conduit. SignalCadence regular
-(samples per Quantity) remains the generic sample-clock meaning; USB controller
-frame IDs are a separate domain, explicitly supplied per packet. No host assigns
-sample clock, converts formats or retries class negotiation.
+PCM uses the existing PcmFrameHeader with sample clock, start frame,
+discontinuity and exact payload extent. Controller frame deadlines are a
+separate domain. Source owns PCM validation, negotiation, deadlines,
+completion correlation and drain. Native code assigns no sample clock,
+performs no format conversion and retries no class negotiation.
 
-Native currently retains one original possession for at most8 TDs and completes
-that HostCall only after every TD completes or acknowledged all-stop. Therefore
-successfully repeating8-packet batches does not establish continuous service:
-the ring empties between batches, and completion14 must remain underrun. First
-actual QEMU execution must retain this truth. If continuous rolling refill is
-needed, a separately reviewed larger finite explicit-frame request must keep the
-same original claim while refilling free native slots. Source owns bytes and
-clock conversion; native must not hide cadence, repair or retry.
+The entry is `usb-audio-playback`. It retains the original PCM block while
+setup completes, validates its laws, observes a real controller snapshot and
+submits Source-authored packet deadlines. Generic typed feedback retains this
+state: finite zip discards unmatched values when an input closes.
+`build_source.py --repeat-nine` selects `audio-repeat-playback-policy.conduit`,
+which explicitly repeats the eight-packet clip nine times in one finite
+72-packet request. The default selects the original one-block policy.
 
-`audio_device.py` is an external emulated device, adapting the existing bounded
-usbredir framing fixture. It uses only one freshly owned Unix socket, a finite
-transcript and at most128 packets. ISO OUT usbredir has no per-packet reply: its
-transcript proves received PCM bytes, while native QEMU event evidence proves
-controller completion separately. Neither proves audible output. It is an
-internal proof harness pending integration through cargo xtask.
+Native retains one original possession for the entire request, reusing eight
+256-byte DMA slots and the63 ordinary entries of a64-entry transfer ring.
+Only actual completion releases a slot for the next retained packet. Source
+bytes and frames are preserved; native never repairs a missed deadline.
+Public `observed` output preserves the original typed ISO result, including
+fault tag and completed prefix. The result schema bounds prepared output at
+7864 bytes. Native protocol output storage has a separate32768-byte ceiling;
+Root ingress remains4096 bytes. The public Fore matches its selected Back's
+exact contract rather than adding an unmatched output ValueContract.
 
-Authorities: USB-IF Audio1.0 https://www.usb.org/sites/default/files/audio10.pdf,
-Formats1.0 https://www.usb.org/sites/default/files/frmts10.pdf; SPICE usbredir0.15.0
-https://www.spice-space.org/download/usbredir/usbredir-0.15.0.tar.xz
-(usbredirproto.h and docs/usb-redirection-protocol.md).
+## Retained evidence
 
-Source-only candidate. No native ISO execution, continuous streaming, acoustic,
-physical-device or issue-closure acceptance claim yet.
+`../../evidence/native-audio-public-cross-architecture/` contains unchanged
+Source package03de725b and byte-identical Root runs on x86_64 kernel d2ab8e8a
+and AArch64 kernel71e043c8b. Each run verifies public snapshot, all72 completed
+frame/requested/actual records and drained,72 exact wire packets containing
+13824 original PCM bytes, terminal phase3 with PCM retained, and bound
+acknowledged Stop with zero Play alloc/realloc attempts.
 
-`check_audio_wire.py` requires at least72 actual192-byte packets, exceeding the
-64TRB native ring, and independently decoded native completed batches with
-contiguous explicit frame IDs. Its receipt must retain original PCM/clock/start,
-selected topology, exact negotiated format, actual native batch outcomes and
-original acknowledged stop/retired possessions. Underrun or a scheduling gap
-refuses the continuous-reuse acceptance check; this does not erase its evidence.
-No receipt is supplied by this candidate, since no guest Audio run occurred.
+`../../evidence/native-audio-provider-loss-d2ab8e8a/` retains actual pending
+ISO device loss: four packets and768 exact PCM bytes, typed provider-lost with
+four matching completions, no packets after detach, terminal phase1 and
+acknowledged Stop with zero Play allocation attempts.
 
-The factored batch policy is `audio-batch-back.conduit`:24 small checked truths
-cover8 exact PCM blocks,8 byte/frame correspondences,7 adjacent clock/sample/
-USB-frame continuities and the transport shape.23 finite Boolean zip/and gears
-compose them. `audio-negotiation-back.conduit` is the ordinary setup-once control
-route for the exact descriptor, configuration, alternate, SET_CUR and GET_CUR.
-Both composition candidates still need exact generic pair/catalog preparation
-and ordinary kernel tests; passing the small pure policies does not prove these
-routes installed. The singlepacket clock projection is checked. Extending it
-through a sequence requires the separate conservative byte-contract proof fix.
+`../../evidence/native-audio-setup-bfa318cf/` retains actual wrong-rate GET_CUR
+and SET_CUR STALL responses, each refusing before any ISO packet. Native
+wire and canonical Source results are separate checks. These are emulator
+proofs, not audible or physical-device evidence. All19 Audio Source tests
+pass, including all72 completion extents and216 corruptions; the synthetic
+Source fault fixtures do not replace native fault delivery proof.
 
-The current integration adds `audio-playback-policy.conduit` and
-`audio-playback-back.conduit`. The state is seeded immediately with the original
-PCM block. It waits for setup acceptance, validates the block laws through a
-separate checked transition, observes a real controller snapshot, submits eight
-exact 192-byte projections, correlates every completion deadline and extent,
-and requests drain. All 16 Source tests pass.
+## Reproduction
 
-`audio-admission-back.conduit` connects setup to that retained state through
-exact typed feedback. A finite zip cannot retain a closed PCM Flow while setup
-is pending: its contract discards unmatched values on normal close. This entry
-therefore uses state ownership and feedback to gate physical effects.
-
-The full entry is `usb-audio-playback`. Public packaging passes (79,954 bytes,
-47 expanded gears). An x86_64 QEMU run using kernel commit
-`8a230985a7c0a27f3e6ebf65197fd87171e0877c` and package digest
-`2b674b564412600373d6d4d197cbe5fac1876b8910c1ee6cc64e21ff3b550e69`
-carried all eight packets and exactly 1,536 original PCM bytes. Independent
-wire comparison passed; the checked terminal was phase 3 with original PCM
-retained and Root retirement observed. This is one-block emulator evidence.
-It does not establish continuous refill or physical sound.
-
-Generate the ordinary Source and generic specialization inputs with:
+The assembler checks nothing and performs no physical effects. Package its
+ordinary Source through the public validation entrance:
 
 ```sh
-python3 targets/conduitos/plots/usb/proof/audio/build_source.py --output /new/audio-input
+python3 targets/conduitos/plots/usb/proof/audio/build_source.py \
+  --repeat-nine --output /new/audio-input
 cargo +stable xtask make conduitos protocol-source \
   --source /new/audio-input/playback.conduit \
   --specializations /new/audio-input/specializations.json \
   --entry usb-audio-playback --output-dir /new/audio-package
 ```
 
-The assembler performs no checking or physical effects. The current loop covers
-one eight-packet block. Continuous refill across at least 72 actual packets,
-64-TRB reuse, fault/cancellation coverage, cross-architecture execution and
-physical output remain required. Keep the existing continuous wire checker:
-one successful block cannot satisfy it.
+`audio_device.py` is one bounded external usbredir device, with one fresh
+owned Unix socket and at most128 packets. OUT ISO has no per-packet usbredir
+reply; do not manufacture one. `--mode wrong-rate` returns44100 Hz after the
+48000 Hz SET_CUR, and `--mode stall-rate` returns an actual SET_CUR STALL.
+Its five unit tests establish device wire behavior, not native acceptance.
 
-The external device accepts explicit `--mode wrong-rate` and `--mode stall-rate`
-negative fixtures. The former returns a successful GET_CUR with 44100 Hz after
-the 48000 Hz SET_CUR; the latter returns an actual STALL for SET_CUR. These
-responses exercise checked setup refusal without manufacturing ISO completions.
-The device unit tests prove only these external wire responses. Native proof
-must separately verify terminal refusal, zero ISO packets and acknowledged
-Root retirement against the original package and bound Play receipt.
+`check_audio_wire.py` retains the strict minimum72-packet, exact PCM and
+contiguous native frame checks. Retained archives also include their exact
+canonical decoders, independent wire checkers and bound Play receipt checker.
+One eight-packet historical run cannot satisfy the repeated-service gate.
+
+## Remaining acceptance
+
+Short transfer, missed service, underrun, pressure, cancellation, failed-stop
+quarantine and premature drain still require the composed native fault proof.
+Five-architecture acceptance remains open. Physical/acoustic evidence is a
+separate proof tier, not an invented prerequisite for this emulator slice.
+Keep exact Source, kernel, Root and original token identities in every claim.
+
+Wire authorities: USB-IF Audio1.0
+https://www.usb.org/sites/default/files/audio10.pdf and Formats1.0
+https://www.usb.org/sites/default/files/frmts10.pdf; SPICE usbredir0.15.0
+https://www.spice-space.org/download/usbredir/usbredir-0.15.0.tar.xz
+(usbredirproto.h and docs/usb-redirection-protocol.md).
