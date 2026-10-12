@@ -36,6 +36,25 @@ fn exercise(
         &[HostAdvertisement],
     ),
 ) {
+    exercise_objective(
+        constrained_b,
+        states,
+        GlobalPlacementObjective::AggregateFulfillmentTime,
+        false,
+        inspect,
+    )
+}
+fn exercise_objective(
+    constrained_b: bool,
+    states: u32,
+    objective: GlobalPlacementObjective,
+    critical_tradeoff: bool,
+    inspect: impl FnOnce(
+        Result<GlobalPlacementResult, GlobalPlacementRefusal>,
+        Result<CostPlannedRealizations<'_>, CostPlanningError<'_>>,
+        &[HostAdvertisement],
+    ),
+) {
     let plot = conduit_plot::parse_with_startup(
         "plot costs {\n first: flow/pulse(count = 2, period-ms = 0, initial = false)\n second: flow/pulse(count = 3, period-ms = 0, initial = false)\n}\n",
         &conduit_signal::signal_startup_catalog(), &conduit_signal::signal_profile_catalog()).unwrap();
@@ -98,7 +117,11 @@ fn exercise(
         .collect();
     // The two checked startup counts are distinct work classes, so the second
     // operation legitimately has a different demand-specific fulfillment model.
-    let forecasts = [[forecast(1), forecast(2)], [forecast(2), forecast(100)]];
+    let forecasts = if critical_tradeoff {
+        [[forecast(1), forecast(6)], [forecast(6), forecast(9)]]
+    } else {
+        [[forecast(1), forecast(2)], [forecast(2), forecast(100)]]
+    };
     let bound: Vec<Vec<_>> = plot
         .gears
         .iter()
@@ -168,12 +191,13 @@ fn exercise(
             line_offers: &[],
         },
     };
-    let global = plan_global_realizations_with_costs(
+    let global = plan_global_realizations_with_objective(
         &plot,
         inputs,
         GlobalPlacementBudget {
             maximum_states: states,
         },
+        objective,
         &mut ExactNumericWork::new(100_000_000),
     );
     let greedy = plan_selected_realizations_with_costs(
@@ -258,4 +282,29 @@ fn state_bound_returns_only_an_independently_feasible_plan_or_explicit_refusal()
             })
         ));
     });
+}
+
+#[test]
+fn critical_path_mode_selects_parallel_completion_over_smaller_aggregate_time() {
+    let expected = ExactRational::ratio(6, 1000, &mut ExactNumericWork::new(100_000_000)).unwrap();
+    exercise_objective(
+        false,
+        64,
+        GlobalPlacementObjective::CriticalPathFulfillmentTime,
+        true,
+        |global, greedy, _| {
+            let global = global.unwrap();
+            assert!(verify_plan(&global.plan));
+            assert_ne!(global.plan.plan_id, greedy.unwrap().plan.plan_id);
+            assert_eq!(
+                global.objective,
+                GlobalPlacementObjective::CriticalPathFulfillmentTime
+            );
+            assert_eq!(global.score.critical_path_upper_seconds, Some(expected));
+            assert_eq!(
+                global.score.known_upper_seconds,
+                ExactRational::ratio(12, 1000, &mut ExactNumericWork::new(100_000_000)).unwrap()
+            );
+        },
+    );
 }

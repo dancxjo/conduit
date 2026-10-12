@@ -6,6 +6,8 @@ use alloc::{collections::BTreeMap, vec::Vec};
 use conduit_core::{ExactNumericWork, ExactRational, Plan, ResourceObservation};
 use conduit_plot::CheckedPlot;
 use core::cmp::Ordering;
+mod objective;
+pub use objective::{GlobalObjectiveRefusal, GlobalPlacementObjective};
 
 const MAXIMUM_GLOBAL_STATES: u32 = 65_536;
 #[derive(Debug, Clone, Copy)]
@@ -24,6 +26,8 @@ pub enum GlobalPlacementDisposition {
 pub struct GlobalPlacementScore {
     pub unknown_operations: u16,
     pub known_upper_seconds: ExactRational,
+    /// None retains unknown operands, never a fabricated zero path duration.
+    pub critical_path_upper_seconds: Option<ExactRational>,
 }
 #[derive(Debug)]
 pub struct GlobalPlacementResult {
@@ -34,11 +38,13 @@ pub struct GlobalPlacementResult {
     pub complete_assignments: u32,
     pub refused_assignments: u32,
     pub candidate_count: usize,
+    pub objective: GlobalPlacementObjective,
 }
 #[derive(Debug)]
 pub enum GlobalPlacementRefusal {
     Input(CostEvidenceRefusal),
     Candidate(CostSelectionError),
+    Objective(GlobalObjectiveRefusal),
     NoFeasibleAssignment {
         disposition: GlobalPlacementDisposition,
         states: u32,
@@ -55,12 +61,32 @@ struct Candidate<'a> {
 /// and revalidation against the original current observed capacity.
 /// The reviewed objective here is lexicographic: fewer unknown operands, then
 /// minimum sum of exact known upper fulfillment Time, then stable admitted-candidate enumeration order.
-/// This is not a critical-path or transfer-latency model; those objective modes
-/// require separately scoped models and remain explicit follow-up work.
+/// The default retains the aggregate fulfillment objective. The explicit
+/// objective entrance can use DAG critical-path Time. Independently scoped
+/// incremental Cord/Line transfer costs remain necessary before that model
+/// can claim transport-sensitive end-to-end response Time.
 pub fn plan_global_realizations_with_costs<'a>(
     plot: &CheckedPlot,
     inputs: CostPlanningInputs<'a, '_>,
     budget: GlobalPlacementBudget,
+    work: &mut ExactNumericWork,
+) -> Result<GlobalPlacementResult, GlobalPlacementRefusal> {
+    plan_global_realizations_with_objective(
+        plot,
+        inputs,
+        budget,
+        GlobalPlacementObjective::AggregateFulfillmentTime,
+        work,
+    )
+}
+
+/// Choose the reviewed finite aggregate or DAG critical-path upper Time model.
+/// Both are preparation objectives over scoped estimates, not deadline promises.
+pub fn plan_global_realizations_with_objective<'a>(
+    plot: &CheckedPlot,
+    inputs: CostPlanningInputs<'a, '_>,
+    budget: GlobalPlacementBudget,
+    objective: GlobalPlacementObjective,
     work: &mut ExactNumericWork,
 ) -> Result<GlobalPlacementResult, GlobalPlacementRefusal> {
     use GlobalPlacementRefusal as R;
@@ -76,6 +102,11 @@ pub fn plan_global_realizations_with_costs<'a>(
     {
         return Err(R::Input(CostEvidenceRefusal::InputLimit));
     }
+    let order = if objective == GlobalPlacementObjective::CriticalPathFulfillmentTime {
+        Some(objective::topological_order(plot).map_err(R::Objective)?)
+    } else {
+        None
+    };
     let mut grids = Vec::with_capacity(plot.gears.len());
     let mut plain_requirements = BTreeMap::new();
     for (gear, operation) in plot.gears.iter().zip(inputs.operations) {
@@ -153,6 +184,8 @@ pub fn plan_global_realizations_with_costs<'a>(
         refused: 0,
         disposition: GlobalPlacementDisposition::Exhaustive,
         best: None,
+        objective,
+        order: order.as_deref(),
         work,
     };
     search.visit(0, &mut Vec::with_capacity(plot.gears.len()));
@@ -171,6 +204,7 @@ pub fn plan_global_realizations_with_costs<'a>(
         complete_assignments: search.complete,
         refused_assignments: search.refused,
         candidate_count,
+        objective,
     })
 }
 struct Search<'a, 'b, 'c> {
@@ -185,6 +219,8 @@ struct Search<'a, 'b, 'c> {
     disposition: GlobalPlacementDisposition,
     best: Option<(Plan, GlobalPlacementScore)>,
     work: &'b mut ExactNumericWork,
+    objective: GlobalPlacementObjective,
+    order: Option<&'b [usize]>,
 }
 impl Search<'_, '_, '_> {
     fn visit(&mut self, depth: usize, chosen: &mut Vec<usize>) {
@@ -254,6 +290,7 @@ impl Search<'_, '_, '_> {
         let mut score = GlobalPlacementScore {
             unknown_operations: 0,
             known_upper_seconds: ExactRational::ZERO,
+            critical_path_upper_seconds: None,
         };
         for (depth, index) in chosen.iter().enumerate() {
             if let Some(forecast) = self.grids[depth][*index].forecast {
@@ -269,20 +306,51 @@ impl Search<'_, '_, '_> {
                 score.unknown_operations += 1;
             }
         }
-        let better = if let Some((_, previous)) = &self.best {
-            match score.unknown_operations.cmp(&previous.unknown_operations) {
-                Ordering::Less => true,
-                Ordering::Greater => false,
-                Ordering::Equal => match score
-                    .known_upper_seconds
-                    .checked_compare(previous.known_upper_seconds, self.work)
-                {
-                    Ok(order) => order == Ordering::Less,
+        if let Some(order) = self.order {
+            if score.unknown_operations == 0 {
+                let costs: Vec<_> = chosen
+                    .iter()
+                    .enumerate()
+                    .map(|(depth, index)| {
+                        self.grids[depth][*index]
+                            .forecast
+                            .expect("known operands established")
+                            .upper_seconds()
+                    })
+                    .collect();
+                match objective::critical_path(self.plot, order, &costs, self.work) {
+                    Ok(duration) => score.critical_path_upper_seconds = Some(duration),
                     Err(_) => {
                         self.disposition = GlobalPlacementDisposition::NumericLimit;
                         return;
                     }
-                },
+                }
+            }
+        }
+        let better = if let Some((_, previous)) = &self.best {
+            match score.unknown_operations.cmp(&previous.unknown_operations) {
+                Ordering::Less => true,
+                Ordering::Greater => false,
+                Ordering::Equal => {
+                    let operands = match self.objective {
+                        GlobalPlacementObjective::AggregateFulfillmentTime => {
+                            Some((score.known_upper_seconds, previous.known_upper_seconds))
+                        }
+                        GlobalPlacementObjective::CriticalPathFulfillmentTime => score
+                            .critical_path_upper_seconds
+                            .zip(previous.critical_path_upper_seconds),
+                    };
+                    match operands {
+                        None => false, // equally unknown path models retain stable enumeration
+                        Some((left, right)) => match left.checked_compare(right, self.work) {
+                            Ok(order) => order == Ordering::Less,
+                            Err(_) => {
+                                self.disposition = GlobalPlacementDisposition::NumericLimit;
+                                return;
+                            }
+                        },
+                    }
+                }
             }
         } else {
             true
