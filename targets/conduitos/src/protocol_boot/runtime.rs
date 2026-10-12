@@ -27,6 +27,9 @@ type NativePlay = PreparedProtocolBodyPlay<
 #[cfg(target_arch = "x86_64")]
 use crate::protocol_source::{NativeProtocolPreparationLimits, prepare_native_protocol};
 
+#[path = "runtime/execution_receipt.rs"]
+mod execution_receipt;
+
 pub(super) struct Output {
     port: PortId,
     value: ValuePayload,
@@ -325,23 +328,13 @@ fn execute_workload(
         Err("protocol-step-budget-exhausted")
     })();
     let allocation_after = crate::allocation::BOOT_ARENA.attempts();
-    if let Some(identity) = play.session().realization().and_then(|r| r.play.as_ref()) {
-        use core::fmt::Write;
-        let mut receipt = crate::sign_format::FixedText::new();
-        writeln!(
-            receipt,
-            "CONDUIT_PROTOCOL_PLAY_ALLOCATIONS body={} plan={} play={} alloc={} realloc={}",
-            identity.body_id.as_str(),
-            identity.plan_id.as_str(),
-            identity.active_play_id.as_str(),
-            allocation_after.0.saturating_sub(allocation_before.0),
-            allocation_after.1.saturating_sub(allocation_before.1),
-        )
-        .map_err(|_| "protocol-diagnostic-envelope-exceeded")?;
-        arch::append_boot_diagnostic(receipt.as_bytes())
-            .map_err(|_| "protocol-diagnostic-unavailable")?;
-    }
+    let stopped = execution_receipt::before_stop(play, allocation_before, allocation_after);
+    // Diagnostics must never bypass retirement. The bound receipt is published
+    // only after native stop, kernel cancellation and Body Lull all succeed.
     play.cancel().map_err(|_| "protocol-retirement-refused")?;
+    if let Some(stopped) = stopped {
+        let _ = arch::append_boot_diagnostic(stopped.as_bytes());
+    }
     result
 }
 

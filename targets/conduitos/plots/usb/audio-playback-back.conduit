@@ -1,7 +1,7 @@
 # Retain PCM before setup completes. One physical offer handles observe, batch,
 # and drain only after setup and the original block laws accept it.
 plot usb-audio-playback-observation (
-    pair: UsbAudioPlaybackPair...| >> observation: UsbAudioPlaybackObservation...|
+    pair: UsbAudioPlaybackPair...| <= 65536B >> observation: UsbAudioPlaybackObservation...|
 ) = ({ previous: .0, result: .1 })
 plot usb-audio-playback-admitted (
     >> pcm: UsbAudioPcmBlock...| <= 4096B

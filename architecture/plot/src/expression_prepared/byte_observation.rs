@@ -1,10 +1,10 @@
 //! Observations of packed bytes retain their actual extent, without collection framing.
 use super::{
-    evaluate_node, prepare_node, primitive::PrimitiveValue, PreparedInput, PreparedNode, Refusal,
+    PreparedInput, PreparedNode, Refusal, evaluate_node, prepare_node, primitive::PrimitiveValue,
 };
 use crate::PortableExpressionNode;
 use alloc::boxed::Box;
-use conduit_core::{kind_id, PrimitiveInfoKind, StructuredInfoType};
+use conduit_core::{PrimitiveInfoKind, StructuredInfoType, kind_id};
 
 pub(super) struct PreparedByteObservation {
     source: Box<PreparedNode>,

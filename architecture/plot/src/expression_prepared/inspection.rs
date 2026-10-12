@@ -1,7 +1,7 @@
 //! Prepared, allocation-free observations of exact structured expression values.
 use super::{
-    primitive::PrimitiveValue, PreparedInput, PreparedPortableExpressionEvaluator, ProgramView,
-    Refusal,
+    PreparedInput, PreparedPortableExpressionEvaluator, ProgramView, Refusal,
+    primitive::PrimitiveValue,
 };
 use crate::{PortableExpressionNode, PortableExpressionOperation};
 use alloc::{boxed::Box, string::String};
@@ -68,6 +68,7 @@ impl PreparedInspection {
             _ => return Err(Refusal::InvalidProgram),
         };
         let program = ProgramView {
+            input_maximum_bytes: prepared_input.maximum_bytes(),
             input_type: input,
             output_type: &source.value_type,
             root: source,

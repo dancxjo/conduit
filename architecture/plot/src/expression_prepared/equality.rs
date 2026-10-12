@@ -1,7 +1,7 @@
 //! Prepared exact-Type equality follows the ordinary structured equality law.
 use super::*;
 use conduit_core::{
-    validate_canonical_structured_value, StructuredInfoType, StructuredInfoTypeShape,
+    StructuredInfoType, StructuredInfoTypeShape, validate_canonical_structured_value,
 };
 
 pub(super) struct PreparedEquality {
@@ -38,6 +38,7 @@ pub(super) fn binary(
     let child = |node: &PortableExpressionNode| {
         PreparedPortableExpressionEvaluator::prepare(
             ProgramView {
+                input_maximum_bytes: input.maximum_bytes(),
                 input_type,
                 output_type: &node.value_type,
                 root: node,

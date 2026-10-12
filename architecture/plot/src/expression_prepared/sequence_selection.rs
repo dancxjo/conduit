@@ -1,11 +1,11 @@
 //! Runtime finite collection indexing over admitted canonical values.
 use super::{
-    member_selection, storage_bound, PreparedInput, PreparedPortableExpressionEvaluator,
-    ProgramView, Refusal,
+    PreparedInput, PreparedPortableExpressionEvaluator, ProgramView, Refusal, member_selection,
+    storage_bound,
 };
 use crate::{PortableExpressionNode, PortableExpressionOperation};
 use alloc::{boxed::Box, vec::Vec};
-use conduit_core::{kind_id, StructuredInfoType};
+use conduit_core::{StructuredInfoType, kind_id};
 
 pub(super) struct PreparedSequenceSelection {
     source: Box<PreparedPortableExpressionEvaluator>,
@@ -39,6 +39,7 @@ impl PreparedSequenceSelection {
         let prepare = |child: &PortableExpressionNode| {
             PreparedPortableExpressionEvaluator::prepare(
                 ProgramView {
+                    input_maximum_bytes: prepared_input.maximum_bytes(),
                     input_type: input,
                     output_type: &child.value_type,
                     root: child,
@@ -56,7 +57,7 @@ impl PreparedSequenceSelection {
             output: Vec::with_capacity(if primitive {
                 0
             } else {
-                storage_bound::canonical(element)?
+                storage_bound::expression(node, input, prepared_input.maximum_bytes())?
             }),
             primitive,
         })
