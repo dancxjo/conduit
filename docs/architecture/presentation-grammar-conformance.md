@@ -252,3 +252,62 @@ domain Plan, or active Play; the Mask has its own realization Plan/Play.
 This closes the fixture-level Fore correspondence gap without changing owner
 membership/authority. Actual browser Crèche rendering and typed source return
 through that route still require the canonical shell migration in #5356.
+
+## Reference Face-to-Mask exchange
+
+The canonical `face` Fore input is the complete validated Face, such as
+[`open-domain-face.json`](../../proof/conformance/presentation-waist/domain-derived/open-domain-face.json).
+It is not a layout, an application-state copy, or the partial summary below.
+The checked Mask emits its correlated `show` Fore value; the `interaction`
+Fore may return only actions and arguments supplied by that exact Face.
+
+[`face-mask-reference.json`](../../proof/conformance/presentation-waist/domain-derived/face-mask-reference.json)
+records the source/context basis, Host/Boot, Mask Plot/Plan/Play, Show, and actual
+returned interaction for the open-domain browser fixture. The producing test
+checks complete equality with this record. DOM acknowledgement is simulated;
+no source effect, physical output, or human observation is claimed.
+
+The request correlation excerpt is:
+
+```json
+{
+  "face_id": "9f060a72c4991e1b5bb3080652bdde0ee8d093d5179dff11d6b73b300bbf6918",
+  "face_revision": 30,
+  "mask_plan_id": "15eb970ecf14f71deb0ad955d34ceb883776ccd143a47f03a365e6c008387751",
+  "mask_play_id": "a39d4c2b9dfa654c0e01938f1aa3593ae4fe9db85676af22ce7de8a16ab777f2",
+  "show_id": "show/c1d5e25552e0eab5e9e6e6f6f99856a01f475877c69a2fe3cbe360db6afac0ca"
+}
+```
+
+The actual serialized typed return is:
+
+```json
+{
+  "action_id": "lesson/answer",
+  "arguments": [
+    {
+      "name": "lesson/answer-text",
+      "value": [
+        69,
+        110,
+        101,
+        114,
+        103,
+        121
+      ],
+      "value_kind": "value/text"
+    }
+  ],
+  "face_id": "9f060a72c4991e1b5bb3080652bdde0ee8d093d5179dff11d6b73b300bbf6918",
+  "face_revision": 30,
+  "identity": "1886da4a36530f551a9720cdb094cc647615a31ef34286b047bee27d871327e5",
+  "sequence": 1,
+  "show_id": "show/c1d5e25552e0eab5e9e6e6f6f99856a01f475877c69a2fe3cbe360db6afac0ca",
+  "target": "concept/mitochondrion"
+}
+```
+
+The Face ID/revision and Show ID must match the current acknowledged request.
+The action, target, and exact byte arguments must match the Face contract.
+Changing those correlations refuses before an interaction is emitted. Domain
+Plan/Play basis is distinct from the Mask's realization Plan/Play.

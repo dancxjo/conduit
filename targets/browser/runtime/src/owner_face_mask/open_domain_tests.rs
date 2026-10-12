@@ -56,6 +56,29 @@ fn browser_generic_mask_keeps_open_domain_ids_and_supplied_typed_agency() {
     let emitted = mask
         .interact(proposed(prepared.face_revision.clone(), "lesson/answer"))
         .unwrap();
+    let reference = serde_json::json!({
+        "schema":"conduit.proof/face-mask-reference@1",
+        "proof_class":"checked browser Mask with simulated DOM acknowledgement",
+        "face_file":"open-domain-face.json",
+        "request_summary":{
+            "input_fore":"face", "output_fore":"show", "return_fore":"interaction",
+            "face_id":face.identity.as_str(), "face_revision":face.revision,
+            "interaction_context":face.interaction_context, "source_basis":face.basis,
+            "mask_plot_id":prepared.mask_plot_id, "mask_expanded_plot_id":prepared.mask_expanded_plot_id,
+            "mask_plan_id":prepared.mask_plan_id, "mask_play_id":prepared.mask_play_id,
+            "host_id":"host/browser-open-domain-fixture", "boot_id":"boot/browser-open-domain-fixture",
+            "show_id":prepared.show_id,
+        },
+        "returned_interaction":emitted.interaction,
+        "source_effect_applied":false,
+    });
+    let recorded:serde_json::Value=serde_json::from_str(include_str!(
+        "../../../../../proof/conformance/presentation-waist/domain-derived/face-mask-reference.json"
+    )).unwrap();
+    assert_eq!(
+        recorded, reference,
+        "reference IDs differ from actual checked Mask execution"
+    );
     assert_eq!(emitted.interaction.action_id, "lesson/answer");
     assert_eq!(emitted.interaction.face_id, face.identity.as_str());
     assert_eq!(emitted.interaction.face_revision, face.revision);
