@@ -84,7 +84,7 @@ impl ProtocolSourcePackage {
             if reference.type_name.is_empty()
                 || reference.type_name.len() > 128
                 || reference.maximum_bytes == 0
-                || reference.maximum_bytes > 4096
+                || reference.maximum_bytes > 32768
             {
                 return Err(Error::Bounds);
             }

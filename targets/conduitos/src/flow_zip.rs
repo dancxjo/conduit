@@ -8,8 +8,8 @@ use conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 pub const IMPLEMENTATION: &str = "conduitos/flow-zip-finite@1";
 pub const PROFILE: &str = "conduitos/flow-zip-finite-prepared@1";
 pub const ARTIFACT: &str = "conduit-composite/flow-zip@1";
-pub const MAXIMUM_INPUT_BYTES: u32 = 4096;
-pub const MAXIMUM_PAIR_BYTES: u32 = 16_384;
+pub const MAXIMUM_INPUT_BYTES: u32 = 32768;
+pub const MAXIMUM_PAIR_BYTES: u32 = 65536;
 pub const MAXIMUM_SPECIALIZATIONS: usize = 16;
 
 fn offer(
