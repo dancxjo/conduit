@@ -173,8 +173,21 @@ impl Read for VirtioTcpStream<'_> {
         if output.is_empty() {
             return Ok(0);
         }
-        for _ in 0..self.maximum_polls {
-            self.poll_io()?;
+        // An admitted wall-clock deadline bounds product response waiting.
+        // A tight CPU poll count can expire before a bounded owner action has
+        // completed, even though its response window remains open. Clockless
+        // proof streams retain the explicit poll limit. poll() also checks the
+        // cumulative u32 counter, so every path retains a finite work bound.
+        let read_poll_limit = if self.deadline.is_some() {
+            u32::MAX
+        } else {
+            self.maximum_polls
+        };
+        for _ in 0..read_poll_limit {
+            self.poll_io().map_err(|error| {
+                report_read_refusal(error.0.as_str());
+                error
+            })?;
             let socket = self.sockets.get_mut::<tcp::Socket>(self.handle);
             if socket.can_recv() {
                 return socket
@@ -182,11 +195,19 @@ impl Read for VirtioTcpStream<'_> {
                     .map_err(|_| VirtioTcpIoError(VirtioTcpError::ReceiveRefused));
             }
             if !socket.may_recv() || !socket.is_active() {
+                report_read_refusal("tcp-peer-closed");
                 return Ok(0);
             }
         }
+        report_read_refusal("tcp-read-poll-bound");
         Err(VirtioTcpIoError(VirtioTcpError::Timeout))
     }
+}
+
+fn report_read_refusal(code: &str) {
+    crate::arch::early_write(b"CONDUIT_NATIVE_TCP_READ {\"code\":\"");
+    crate::arch::early_write(code.as_bytes());
+    crate::arch::early_write(b"\"}\n");
 }
 
 impl Write for VirtioTcpStream<'_> {

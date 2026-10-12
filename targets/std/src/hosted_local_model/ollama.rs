@@ -21,10 +21,12 @@ const WARMUP_MAXIMUM_TOKENS: u64 = 8;
 mod discovery;
 mod protocol;
 mod request;
+mod runtime_state;
 pub use discovery::OllamaDiscovery;
 pub(super) use protocol::curl_json;
 use protocol::*;
 use request::{configuration_count, proof_presenter_diagnostic};
+pub use runtime_state::sample_ollama_runtime;
 
 pub struct OllamaLocalModelAdapter {
     offer: LocalModelOffer,
@@ -54,6 +56,21 @@ impl HostedLocalModelAdapter for OllamaLocalModelAdapter {
         } else {
             conduit_core::PoolRealizationHealth::Unavailable
         }
+    }
+
+    fn current_runtime_state(&self) -> Result<super::LocalModelRuntimeState, String> {
+        let state = sample_ollama_runtime(
+            &self.endpoint,
+            &self.offer.identity.model_name,
+            &self.offer.identity.model_content_identity,
+        )?;
+        if !runtime_state::version_profile_matches(
+            &self.offer.identity.runtime_version,
+            state.runtime_version.as_deref(),
+        ) {
+            return Err("current provider version differs from initialized model profile".into());
+        }
+        Ok(state)
     }
 
     fn execute(

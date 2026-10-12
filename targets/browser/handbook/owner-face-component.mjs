@@ -15,6 +15,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
   #projectCollections;
   #supportsAction = () => true;
   #disabled = true;
+  #layoutObserver;
   constructor() {
     super();
     const shadow = this.attachShadow({ mode: 'open' });
@@ -24,6 +25,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
     this.#surface = document.createElement('div');
     shadow.append(look, this.#surface);
   }
+  disconnectedCallback() { this.#layoutObserver?.disconnect(); }
   set disabled(value) {
     this.#disabled = Boolean(value);
     this.setAttribute('aria-busy', String(this.#disabled));
@@ -43,6 +45,40 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
     this.#supportsAction = supportsAction;
     this.#disabled = view.show_state !== 'available' || view.interactions_admitted !== true;
 
+    this.#layoutObserver?.disconnect();
+    const component = view.component;
+    const expression = component?.expression?.expression;
+    for (const key of ['componentExpression', 'componentDensity', 'componentPalette', 'componentFallback', 'componentColumns']) delete this.dataset[key];
+    for (const key of ['--face-columns', '--face-gutter', '--face-text-scale']) this.style.removeProperty(key);
+    if (component && expression) {
+      this.dataset.componentExpression = expression.identity;
+      this.dataset.componentDensity = expression.density;
+      this.dataset.componentPalette = expression.palette;
+      this.dataset.componentFallback = component.fallback ?? '';
+      this.style.setProperty('--face-text-scale', String(expression.text_scale_percent / 100));
+      this.style.setProperty('--face-gutter', `${component.gutter}px`);
+      const reflow = () => {
+        const width = this.getBoundingClientRect().width;
+        const available = Math.max(0, width - 2 * component.gutter);
+        const columns = !component.fallback && available >= component.reflow_width ? component.maximum_columns : 1;
+        this.style.setProperty('--face-columns', String(columns));
+        this.dataset.componentColumns = String(columns);
+      };
+      reflow();
+      if (globalThis.ResizeObserver) {
+        this.#layoutObserver = new ResizeObserver(reflow);
+        this.#layoutObserver.observe(this);
+      }
+    }
+    const bindRegion = (node, subject) => {
+      if (!component) return;
+      const subjectIndex = view.subjects.findIndex(candidate => candidate.identity === subject.identity);
+      const region = component.subject_regions[subjectIndex];
+      if (region !== null && region !== undefined) {
+        node.dataset.componentRegion = String(region);
+        node.dataset.componentGroup = String(component.groups[region]);
+      } else node.dataset.componentFallback = 'unmatched';
+    };
     const names = new Map(view.subjects.map(subject => [subject.identity, subject.name]));
     const documentNode = faceNode('article', '', 'owner-face-document');
     documentNode.setAttribute('part', 'document');
@@ -115,6 +151,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
       node.className = 'owner-face-subject';
       node.setAttribute('part', 'subject');
       node.dataset.faceRole = subject.role;
+      bindRegion(node, subject);
       node.append(faceNode('span', subject.semantic_role ?? subject.role, 'owner-face-role'));
       node.append(faceNode(subject.role === 'Body' ? 'h4' : 'h5', subject.name));
       for (const text of subject.text) node.append(faceNode('p', text));
@@ -141,6 +178,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
     for (const { collection, open, completed, count } of collections) {
       const section = document.createElement('section');
       section.className = 'owner-face-collection';
+      bindRegion(section, collection);
       section.setAttribute('part', 'collection');
       section.append(faceNode('h4', collection.name));
       for (const text of collection.text) section.append(faceNode('p', text));
@@ -150,6 +188,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
       openList.setAttribute('aria-label', `Things left in ${collection.name}`);
       for (const item of open) {
         const row = document.createElement('li');
+        bindRegion(row, item);
         row.append(faceNode('span', item.name, 'owner-face-item-name'));
         for (const action of view.actions.filter(action => action.target === item.identity
           && actionReady(action) && action.disclosure === 'CurrentAction')) {
@@ -168,6 +207,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
         completedList.setAttribute('aria-label', `Completed items in ${collection.name}`);
         for (const item of completed) {
           const row = document.createElement('li');
+          bindRegion(row, item);
           row.append(faceNode('span', item.name, 'owner-face-item-name'));
           for (const action of view.actions.filter(action => action.target === item.identity
             && actionReady(action) && action.disclosure === 'CurrentAction')) {
@@ -200,6 +240,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
         || options.filter(option => option.flags.find(flag => flag.name === 'selected').value).length > 1) continue;
       const fieldset = document.createElement('fieldset');
       fieldset.className = 'owner-face-choice-group';
+      bindRegion(fieldset, group);
       fieldset.setAttribute('part', 'choice-group');
       fieldset.append(faceNode('legend', group.name));
       for (const text of group.text) fieldset.append(faceNode('p', text));
@@ -268,6 +309,27 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
       }
       if (actions.children.length > 1) documentNode.append(actions);
       if (secondary.children.length > 1) documentNode.append(secondary);
+    }
+    if (component && !component.fallback) {
+      // Group only consecutive rendered roots. Source grouping never moves a
+      // subject past another root or changes native list/control semantics.
+      const roots = [...documentNode.children];
+      let run, previousGroup;
+      for (const node of roots) {
+        const group = node.dataset.componentGroup;
+        if (group === undefined) {
+          run = undefined; previousGroup = undefined;
+          continue;
+        }
+        if (!run || group !== previousGroup) {
+          run = document.createElement('div');
+          run.className = 'owner-component-region-run';
+          run.dataset.componentGroup = group;
+          documentNode.insertBefore(run, node);
+          previousGroup = group;
+        }
+        run.append(node);
+      }
     }
     this.#surface.replaceChildren(documentNode);
     this.dataset.faceId = view.face_id;

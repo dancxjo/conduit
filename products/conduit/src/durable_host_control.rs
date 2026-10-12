@@ -109,7 +109,9 @@ pub(crate) use body::start_browser_window;
 pub(crate) use body::submit_attached_terminal_interaction;
 use body::HostSource;
 #[allow(unused_imports)]
-pub(crate) use body::{acknowledge_native_mask_show, select_native_mask_route};
+pub(crate) use body::{
+    acknowledge_native_mask_show, select_native_component_mask, select_native_mask_route,
+};
 #[allow(unused_imports)]
 // Native return consumes the expiry-bearing entrance after its route lands.
 pub(crate) use body::{
@@ -1054,6 +1056,16 @@ enum Request {
         request: OwnerFaceSnapshotRequest,
         show: Box<MaskShow>,
     },
+    BodyBrowserComponentMask {
+        protocol: u16,
+        token: Vec<u8>,
+        window_id: String,
+        binding: LinkBindingId,
+        request: OwnerFaceSnapshotRequest,
+        show: Box<MaskShow>,
+        look: conduit_std_host::browser_admission::BrowserComponentLook,
+        recipe: conduit_std_host::browser_admission::BrowserComponentRecipe,
+    },
     BodyBrowserWardrobe {
         protocol: u16,
         token: Vec<u8>,
@@ -1107,6 +1119,15 @@ enum Request {
         face_line: Box<LineOffer>,
         return_line: Box<LineOffer>,
         expires_at_millis: u64,
+    },
+    BodyNativeComponentMask {
+        protocol: u16,
+        token: Vec<u8>,
+        receipt: Box<PortableAdmissionReceipt>,
+        request: OwnerFaceSnapshotRequest,
+        show: Box<MaskShow>,
+        look: conduit_std_host::browser_admission::BrowserComponentLook,
+        recipe: conduit_std_host::browser_admission::BrowserComponentRecipe,
     },
     BodyNativeMaskShow {
         protocol: u16,
@@ -1278,6 +1299,9 @@ enum Response {
         route: Box<RemoteOwnerMaskRouteSeal>,
     },
     BodyBrowserShowAccepted {
+        protocol: u16,
+    },
+    BodyBrowserComponentMaskAccepted {
         protocol: u16,
     },
     BodyBrowserWardrobeReport {
@@ -1902,6 +1926,7 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         | Request::BodyBrowserOffer { token, .. }
         | Request::BodyBrowserMaskRoute { token, .. }
         | Request::BodyBrowserShow { token, .. }
+        | Request::BodyBrowserComponentMask { token, .. }
         | Request::BodyBrowserWardrobe { token, .. }
         | Request::BodyBrowserAbort { token, .. }
         | Request::BodyBrowserCancel { token, .. }
@@ -1910,6 +1935,7 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         | Request::BodyLocalFace { token, .. }
         | Request::BodyLocalWardrobe { token, .. }
         | Request::BodyNativeMaskRoute { token, .. }
+        | Request::BodyNativeComponentMask { token, .. }
         | Request::BodyNativeMaskShow { token, .. }
         | Request::BirthFace { token, .. }
         | Request::BirthInteraction { token, .. }
@@ -1945,10 +1971,12 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
                 | Request::BodyFace { .. }
                 | Request::BodyBrowserMaskRoute { .. }
                 | Request::BodyBrowserShow { .. }
+                | Request::BodyBrowserComponentMask { .. }
                 | Request::BodyBrowserWardrobe { .. }
                 | Request::BodyLocalFace { .. }
                 | Request::BodyLocalWardrobe { .. }
                 | Request::BodyNativeMaskRoute { .. }
+                | Request::BodyNativeComponentMask { .. }
                 | Request::BodyNativeMaskShow { .. }
                 | Request::BodyInteraction { .. }
                 | Request::BodyBrowserInteraction { .. }
@@ -2083,6 +2111,32 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             .browser_acknowledge_show(&window_id, &binding, &request, &show)
             .map(|()| Response::BodyBrowserShowAccepted { protocol: PROTOCOL })
             .unwrap_or_else(|code| refused(&code)),
+        Request::BodyBrowserComponentMask {
+            protocol,
+            window_id,
+            binding,
+            request,
+            show,
+            look,
+            recipe,
+            ..
+        } if protocol == PROTOCOL => {
+            use conduit_std_host::browser_admission::{
+                BrowserComponentLook as L, BrowserComponentRecipe as R,
+            };
+            let look = match look {
+                L::Compact => conduit_presentation::ComponentMaskLook::Compact,
+                L::Spacious => conduit_presentation::ComponentMaskLook::Spacious,
+            };
+            let recipe = match recipe {
+                R::Flat => conduit_presentation::TodoComponentRecipe::Flat,
+                R::Grouped => conduit_presentation::TodoComponentRecipe::Grouped,
+            };
+            runtime
+                .select_browser_component_mask(&window_id, &binding, &request, &show, look, recipe)
+                .map(|_| Response::BodyBrowserComponentMaskAccepted { protocol: PROTOCOL })
+                .unwrap_or_else(|code| refused(&code))
+        }
         Request::BodyBrowserWardrobe {
             protocol,
             window_id,
@@ -2197,6 +2251,39 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
                 route: Box::new(route),
             })
             .unwrap_or_else(|code| refused(&code)),
+        Request::BodyNativeComponentMask {
+            protocol,
+            receipt,
+            request,
+            show,
+            look,
+            recipe,
+            ..
+        } if protocol == PROTOCOL => {
+            let look = match look {
+                conduit_std_host::browser_admission::BrowserComponentLook::Compact => {
+                    conduit_presentation::ComponentMaskLook::Compact
+                }
+                conduit_std_host::browser_admission::BrowserComponentLook::Spacious => {
+                    conduit_presentation::ComponentMaskLook::Spacious
+                }
+            };
+            let recipe = match recipe {
+                conduit_std_host::browser_admission::BrowserComponentRecipe::Flat => {
+                    conduit_presentation::TodoComponentRecipe::Flat
+                }
+                conduit_std_host::browser_admission::BrowserComponentRecipe::Grouped => {
+                    conduit_presentation::TodoComponentRecipe::Grouped
+                }
+            };
+            runtime
+                .owned_body_native_component_mask(&request, &show, &receipt, look, recipe)
+                .map(|route| Response::BodyNativeMaskRoute {
+                    protocol: PROTOCOL,
+                    route: Box::new(route),
+                })
+                .unwrap_or_else(|code| refused(&code))
+        }
         Request::BodyNativeMaskShow {
             protocol,
             request,

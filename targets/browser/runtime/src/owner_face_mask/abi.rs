@@ -230,6 +230,29 @@ pub extern "C" fn conduit_browser_owner_face_show_receipt() -> i32 {
     })
 }
 
+/// Read the retained original Face without the lossy human-readable projection.
+/// This is observation only; it neither refreshes nor acknowledges a Show.
+#[no_mangle]
+pub extern "C" fn conduit_browser_owner_face_canonical_snapshot() -> i32 {
+    OUTPUT.with(|output| output.borrow_mut().clear());
+    CURRENT.with(|current| {
+        let current = current.borrow();
+        let Some(mask) = current.as_ref() else {
+            return -6;
+        };
+        if mask.show.show.lifecycle != ManifestationLifecycle::Available {
+            return -5;
+        }
+        write_output(&serde_json::json!({
+            "schema": "conduit.browser/owner-canonical-face@1",
+            "presentation": &mask.presentation,
+            "presentation_revision_decimal": mask.presentation.revision.to_string(),
+            "route": &mask.route,
+            "show_id": mask.show.show_id.as_str(),
+        }))
+    })
+}
+
 #[no_mangle]
 pub extern "C" fn conduit_browser_owner_face_clear() {
     CURRENT.with(|current| {
@@ -260,6 +283,71 @@ mod tests {
             input[basis.len()..basis.len() + frame.len()].copy_from_slice(&frame);
         });
         conduit_browser_owner_face_prepare(basis.len(), frame.len())
+    }
+
+    #[test]
+    fn canonical_observation_requires_acknowledged_show_and_preserves_original_bytes() {
+        conduit_browser_owner_face_clear();
+        OUTPUT.with(|output| output.borrow_mut().extend_from_slice(b"stale"));
+        assert_eq!(conduit_browser_owner_face_canonical_snapshot(), -6);
+        assert_eq!(conduit_browser_owner_face_output_len(), 0);
+        let body = Body::born(
+            SourceDocumentId::from("source/canonical-observation"),
+            CheckedPlotId::from("checked/canonical-observation"),
+            1,
+            SignId::from("sign/canonical-observation"),
+        )
+        .unwrap();
+        let face = Face::project(
+            &body,
+            None,
+            u64::MAX,
+            FaceContext::Overview,
+            FaceFocus::Body,
+            vec![],
+        )
+        .unwrap()
+        .presentation;
+        let mask = OwnerBrowserMask::prepare_component_fixture(
+            HostBasis {
+                body_id: body.body_id.clone(),
+                host_id: HostId::from("host/canonical-observation"),
+                boot_id: BootId::from("boot/canonical-observation"),
+                visual_constraints: None,
+            },
+            face.clone(),
+            1,
+            false,
+        )
+        .unwrap();
+        let prepared = mask.view();
+        CURRENT.with(|current| *current.borrow_mut() = Some(mask));
+        assert_eq!(conduit_browser_owner_face_canonical_snapshot(), -5);
+        CURRENT.with(|current| {
+            current
+                .borrow_mut()
+                .as_mut()
+                .unwrap()
+                .acknowledge(Acknowledgement {
+                    show_id: prepared.show_id.clone(),
+                    face_id: prepared.face_id,
+                    face_revision: prepared.face_revision,
+                })
+                .unwrap()
+        });
+        assert_eq!(conduit_browser_owner_face_canonical_snapshot(), 0);
+        let bytes = OUTPUT.with(|output| output.borrow().clone());
+        assert!(std::str::from_utf8(&bytes)
+            .unwrap()
+            .contains("18446744073709551615"));
+        let observed: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+        let retained: Presentation =
+            serde_json::from_value(observed["presentation"].clone()).unwrap();
+        assert_eq!(retained, face);
+        assert_eq!(observed["show_id"], prepared.show_id);
+        assert_eq!(conduit_browser_owner_face_canonical_snapshot(), 0);
+        assert_eq!(OUTPUT.with(|output| output.borrow().clone()), bytes);
+        conduit_browser_owner_face_clear();
     }
 
     #[test]

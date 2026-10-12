@@ -247,6 +247,19 @@ export function bindBrowserRuntimeBridge(api, { context }) {
         label: "owner Face Show receipt",
       });
     },
+    // Return exact bytes; JSON parsing at this boundary would round u64 fields.
+    ownerFaceCanonicalSnapshot() {
+      const status = call("conduit_browser_owner_face_canonical_snapshot");
+      if (status < 0) throw new Error(`owner canonical Face snapshot refused (${status})`);
+      return readBytes(api, {
+        pointerExport: "conduit_browser_owner_face_output_ptr",
+        lengthExport: "conduit_browser_owner_face_output_len",
+        capacityExport: "conduit_browser_owner_face_output_capacity",
+        minimum: 1,
+        maximum: 64 * 1024,
+        label: "owner canonical Face snapshot",
+      });
+    },
     ownerFaceInteract(proposed) {
       const input = encoder.encode(JSON.stringify(proposed));
       return withInput(api, input, {

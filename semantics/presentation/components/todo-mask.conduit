@@ -1,0 +1,62 @@
+plot todo-component-flat (
+ expression: VisualExpressionInfo
+ >> face: Presentation
+ show: Show >>
+ interaction: FaceInteraction...| >>
+) {
+ renderer: presentation/component-mask(recipe = {gutter: 12, identity: "conduit.presentation/todo-flat@1", maximum_columns: 1, reflow_width: 720, regions: [{group: 0, identity: "collection", maximum_subjects: 1, selector: role("Collection")}, {group: 0, identity: "items", maximum_subjects: 20, selector: role("Item")}, {group: 0, identity: "entry", maximum_subjects: 1, selector: role("TextEntry")}], version: 1}, expression = expression)
+ face >> renderer.presentation
+ renderer.show >> show
+ renderer.interaction >> interaction
+}
+plot todo-mask-flat-compact (
+ >> face: Presentation
+ show: Show >>
+ interaction: FaceInteraction...| >>
+) {
+ component: todo-component-flat(expression = {density: compact(empty), identity: "conduit.presentation/compact@1", motion: none(empty), palette: phosphor(empty), text_scale_percent: 100, version: 1})
+ face >> component.face
+ component.show >> show
+ component.interaction >> interaction
+}
+plot todo-mask-flat-spacious (
+ >> face: Presentation
+ show: Show >>
+ interaction: FaceInteraction...| >>
+) {
+ component: todo-component-flat(expression = {density: spacious(empty), identity: "conduit.presentation/spacious@1", motion: none(empty), palette: editorial(empty), text_scale_percent: 125, version: 1})
+ face >> component.face
+ component.show >> show
+ component.interaction >> interaction
+}
+plot todo-component-grouped (
+ expression: VisualExpressionInfo
+ >> face: Presentation
+ show: Show >>
+ interaction: FaceInteraction...| >>
+) {
+ renderer: presentation/component-mask(recipe = {gutter: 12, identity: "conduit.presentation/todo-grouped@1", maximum_columns: 2, reflow_width: 720, regions: [{group: 0, identity: "collection", maximum_subjects: 1, selector: role("Collection")}, {group: 1, identity: "items", maximum_subjects: 20, selector: role("Item")}, {group: 2, identity: "entry", maximum_subjects: 1, selector: role("TextEntry")}], version: 1}, expression = expression)
+ face >> renderer.presentation
+ renderer.show >> show
+ renderer.interaction >> interaction
+}
+plot todo-mask-grouped-compact (
+ >> face: Presentation
+ show: Show >>
+ interaction: FaceInteraction...| >>
+) {
+ component: todo-component-grouped(expression = {density: compact(empty), identity: "conduit.presentation/compact@1", motion: none(empty), palette: phosphor(empty), text_scale_percent: 100, version: 1})
+ face >> component.face
+ component.show >> show
+ component.interaction >> interaction
+}
+plot todo-mask-grouped-spacious (
+ >> face: Presentation
+ show: Show >>
+ interaction: FaceInteraction...| >>
+) {
+ component: todo-component-grouped(expression = {density: spacious(empty), identity: "conduit.presentation/spacious@1", motion: none(empty), palette: editorial(empty), text_scale_percent: 125, version: 1})
+ face >> component.face
+ component.show >> show
+ component.interaction >> interaction
+}

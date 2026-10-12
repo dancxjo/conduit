@@ -15,6 +15,8 @@ pub(super) struct Item {
     pub paint: GraphicsPaintRole,
     pub control: Option<FaceControl>,
     pub indent: u8,
+    pub subject_index: Option<usize>,
+    pub region: Option<u8>,
 }
 
 fn item(text: String, role: GraphicsTextRole) -> Item {
@@ -24,6 +26,8 @@ fn item(text: String, role: GraphicsTextRole) -> Item {
         paint: GraphicsPaintRole::Foreground,
         control: None,
         indent: 0,
+        subject_index: None,
+        region: None,
     }
 }
 
@@ -120,6 +124,10 @@ pub(super) fn prepare(
         }
         let mut append = |mut item: Item| {
             item.indent = depth;
+            item.subject_index = face
+                .subjects
+                .iter()
+                .position(|candidate| candidate.identity == subject.identity);
             primary.push(item);
         };
         let name = if subject.role == PresentationRole::Item {
@@ -199,6 +207,8 @@ pub(super) fn prepare(
                     argument: None,
                 }),
                 indent: 0,
+                subject_index: None,
+                region: None,
             });
             for (argument_index, argument) in action.arguments.iter().enumerate() {
                 let hint = if argument.contract.value_kind.as_str() == "value/bool" {
@@ -215,6 +225,8 @@ pub(super) fn prepare(
                         argument: Some(argument_index),
                     }),
                     indent: 0,
+                    subject_index: None,
+                    region: None,
                 });
             }
         }

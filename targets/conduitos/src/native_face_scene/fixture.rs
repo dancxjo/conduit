@@ -244,3 +244,24 @@ pub(super) fn producer_plan() -> Plan {
         conduit_planner::default_placements(&plot, core::slice::from_ref(&host)).unwrap();
     conduit_planner::plan(&plot, &[host], &placements, &[]).unwrap()
 }
+
+/// Fixture-only observed framebuffer Base for shared scene conformance.
+pub(crate) fn framebuffer_provider_entry() -> BaseProviderEntry {
+    BaseProviderEntry {
+        base_id: HostBaseId::from("conduitos/test/framebuffer"),
+        provider_instance_id: BaseInstanceId::from("conduitos/test/framebuffer/provider/1"),
+        provider_generation: 1,
+        implementation_id: BaseImplementationId::from("conduitos/framebuffer@1"),
+        mechanism_family: HostBaseKindId::from("conduitos.base/framebuffer@1"),
+        enforcement_class: BaseEnforcementClass::ConduitOsKernelEnforced,
+        lifecycle: BaseLifecycle::Ready,
+        capabilities: Vec::new(),
+        resources: vec![ResourceOffer {
+            pool_id: ResourcePoolId::from("conduitos/test/framebuffer/surface"),
+            class_id: ResourceClassId::from(SHOW_RESOURCE_CLASS),
+            capacity_units: 1,
+            compute: None,
+            content: None,
+        }],
+    }
+}

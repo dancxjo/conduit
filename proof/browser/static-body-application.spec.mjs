@@ -5,7 +5,31 @@ import { openStaticProfile, stageStaticApplications } from "./static-body-applic
 test.describe.configure({ mode: "serial", retries: 0 });
 
 async function current(page) {
-  return page.evaluate(() => globalThis.__conduitApplication.snapshot());
+  // Chromium's inspector can collect its unresolved evaluation promise even
+  // while the actual snapshot remains live. Observe one real call's completion;
+  // polling this record neither repeats the snapshot nor performs an action.
+  await page.evaluate(() => {
+    if (globalThis.__conduitProofSnapshot) throw new Error("Concurrent snapshot observation");
+    const observation = { settled: false };
+    globalThis.__conduitProofSnapshot = observation;
+    globalThis.__conduitApplication.snapshot().then(value => {
+      observation.value = value;
+      observation.settled = true;
+    }, error => {
+      observation.error = { message: error.message, code: error.code };
+      observation.settled = true;
+    });
+  });
+  try {
+    await page.waitForFunction(() => globalThis.__conduitProofSnapshot.settled, null, { timeout: 15_000 });
+    return await page.evaluate(() => {
+      const observation = globalThis.__conduitProofSnapshot;
+      if (observation.error) throw Object.assign(new Error(observation.error.message), { code: observation.error.code });
+      return observation.value;
+    });
+  } finally {
+    await page.evaluate(() => { delete globalThis.__conduitProofSnapshot; });
+  }
 }
 
 async function ready(page) {

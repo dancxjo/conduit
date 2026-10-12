@@ -41,6 +41,19 @@ pub const BROWSER_ADMISSION_PROTOCOL: u16 = 1;
 pub const MAX_BROWSER_ADMISSION_FRAME_BYTES: usize =
     MAX_CANDIDATE_ADVERTISEMENT_BYTES as usize + 1_024;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum BrowserComponentLook {
+    Compact,
+    Spacious,
+}
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum BrowserComponentRecipe {
+    Flat,
+    Grouped,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "kebab-case", deny_unknown_fields)]
 pub enum BrowserAdmissionIngress {
@@ -95,6 +108,14 @@ pub enum BrowserAdmissionIngress {
         protocol: u16,
         request: OwnerFaceSnapshotRequest,
         show: Box<MaskShow>,
+    },
+    FaceComponentMaskRequest {
+        protocol: u16,
+        request_id: String,
+        request: OwnerFaceSnapshotRequest,
+        show: Box<MaskShow>,
+        look: BrowserComponentLook,
+        recipe: BrowserComponentRecipe,
     },
     FaceWardrobeRequest {
         protocol: u16,
@@ -213,6 +234,12 @@ pub enum BrowserAdmissionEgress {
     },
     FaceShowResponse {
         protocol: u16,
+        accepted: bool,
+        code: String,
+    },
+    FaceComponentMaskResponse {
+        protocol: u16,
+        request_id: String,
         accepted: bool,
         code: String,
     },
@@ -485,6 +512,27 @@ fn validate_ingress(frame: &BrowserAdmissionIngress) -> Result<(), BrowserAdmiss
             }
             protocol
         }
+        BrowserAdmissionIngress::FaceComponentMaskRequest {
+            protocol,
+            request_id,
+            request,
+            show,
+            ..
+        } => {
+            if !request.has_exact_basis()
+                || !valid_component_request_id(request_id)
+                || show.show.host_id != request.host_id
+                || show.show.boot_id != request.boot_id
+                || show.show.body_id.as_ref() != Some(&request.body_id)
+                || serde_json::to_vec(show)
+                    .map_err(|_| BrowserAdmissionFrameError::InvalidFaceSnapshot)?
+                    .len()
+                    > 64 * 1024
+            {
+                return Err(BrowserAdmissionFrameError::InvalidFaceSnapshot);
+            }
+            protocol
+        }
         BrowserAdmissionIngress::FaceWardrobeRequest {
             protocol,
             request_id,
@@ -636,6 +684,17 @@ fn valid_speech_id(value: &str) -> bool {
     !value.is_empty() && value.len() <= 256 && value.bytes().all(|byte| byte.is_ascii_graphic())
 }
 
+fn valid_component_request_id(value: &str) -> bool {
+    value
+        .strip_prefix("browser-component:")
+        .is_some_and(|sequence| {
+            !sequence.is_empty()
+                && sequence.len() <= 16
+                && !sequence.starts_with('0')
+                && sequence.bytes().all(|byte| byte.is_ascii_digit())
+        })
+}
+
 fn valid_wardrobe_request_id(value: &str) -> bool {
     !value.is_empty()
         && value.len() <= 128
@@ -730,3 +789,48 @@ mod selected_speech_tests {
 #[cfg(test)]
 #[path = "browser_admission/tests.rs"]
 mod tests;
+
+#[cfg(test)]
+mod component_mask_wire_tests {
+    use super::*;
+
+    #[test]
+    fn component_response_requires_exact_correlation_and_truthful_outcome() {
+        let mut output = [0; 4096];
+        for (accepted, code) in [(true, ""), (false, "stale-face-or-show")] {
+            for request_id in ["browser-component:1", "browser-component:9999999999999999"] {
+                let frame = BrowserAdmissionEgress::FaceComponentMaskResponse {
+                    protocol: BROWSER_ADMISSION_PROTOCOL,
+                    request_id: request_id.into(),
+                    accepted,
+                    code: code.into(),
+                };
+                assert!(encode_browser_admission_frame(&frame, &mut output).is_ok());
+            }
+        }
+        for (protocol, request_id, accepted, code) in [
+            (2, "browser-component:1", true, ""),
+            (1, "browser-component:0", true, ""),
+            (1, "browser-component:01", true, ""),
+            (1, "browser-component:10000000000000000", true, ""),
+            (1, "browser-component:1e2", true, ""),
+            (1, "browser-component:1", true, "refused"),
+            (1, "browser-component:1", false, ""),
+        ] {
+            let frame = BrowserAdmissionEgress::FaceComponentMaskResponse {
+                protocol,
+                request_id: request_id.into(),
+                accepted,
+                code: code.into(),
+            };
+            assert!(encode_browser_admission_frame(&frame, &mut output).is_err());
+        }
+        let oversized = BrowserAdmissionEgress::FaceComponentMaskResponse {
+            protocol: BROWSER_ADMISSION_PROTOCOL,
+            request_id: "browser-component:1".into(),
+            accepted: false,
+            code: "x".repeat(129),
+        };
+        assert!(encode_browser_admission_frame(&oversized, &mut output).is_err());
+    }
+}

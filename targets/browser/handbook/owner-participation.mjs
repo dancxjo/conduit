@@ -286,7 +286,7 @@ export async function startOwnerParticipation(application, root) {
     faceDocument.dataset.faceRevision = view.face_revision;
     faceDocument.dataset.showId = view.show_id;
   };
-  const refreshFace = async () => {
+  const refreshFace = async (selection = null) => {
     if (!participation || faceBusy || participation.presenceState() !== 'available') return;
     faceBusy = true; faceRefresh.disabled = true;
     const priorFace = faceView;
@@ -297,9 +297,11 @@ export async function startOwnerParticipation(application, root) {
     faceComponent.disabled = true;
     try {
       faceStatus.textContent = 'Asking the owner for its current Face…';
-      const prepared = await participation.prepareOwnerFaceMask(priorFace ? {
-        lastSeenRevision: priorFace.face_revision, lastSeenIdentity: priorFace.face_id,
-      } : undefined);
+      const prepared = selection?.look && selection?.recipe
+        ? await participation.selectOwnerComponentMask(selection)
+        : await participation.prepareOwnerFaceMask(priorFace ? {
+          lastSeenRevision: priorFace.face_revision, lastSeenIdentity: priorFace.face_id,
+        } : undefined);
       renderFace(prepared);
       const shown = await participation.acknowledgeOwnerFaceMask(prepared);
       const inspectedRoute = checkedOwnerRouteEvidence(shown, participation.hostId, participation.bootId);
@@ -318,10 +320,48 @@ export async function startOwnerParticipation(application, root) {
     } finally {
       faceBusy = false;
       faceRefresh.disabled = participation?.presenceState() !== 'available';
+      applyPresentation.disabled = !faceView || faceRefresh.disabled || Boolean(speechOperationId);
       speechControls();
       if (!wardrobeReport) queueMicrotask(refreshWardrobe);
     }
   };
+  const presentationControls = document.createElement('fieldset');
+  const presentationLegend = document.createElement('legend');
+  presentationLegend.textContent = 'Presentation';
+  const lookLabel = document.createElement('label');
+  lookLabel.textContent = 'Look ';
+  const lookSelect = document.createElement('select');
+  for (const value of ['compact', 'spacious']) {
+    const option = document.createElement('option'); option.value = value;
+    option.textContent = value === 'compact' ? 'Compact' : 'Spacious'; lookSelect.append(option);
+  }
+  lookLabel.append(lookSelect);
+  const recipeLabel = document.createElement('label'); recipeLabel.textContent = 'Layout ';
+  const recipeSelect = document.createElement('select');
+  for (const [value, name] of [['flat', 'Single section'], ['grouped', 'Grouped sections']]) {
+    const option = document.createElement('option'); option.value = value; option.textContent = name;
+    recipeSelect.append(option);
+  }
+  recipeLabel.append(recipeSelect);
+  const textScaleLabel = document.createElement('label');
+  textScaleLabel.textContent = 'Minimum text size ';
+  const textScaleSelect = document.createElement('select');
+  for (const percent of [100, 150, 200]) {
+    const option = document.createElement('option');
+    option.value = String(percent); option.textContent = `${percent}%`;
+    textScaleSelect.append(option);
+  }
+  textScaleLabel.append(textScaleSelect);
+  const applyPresentation = document.createElement('button'); applyPresentation.type = 'button';
+  applyPresentation.textContent = 'Apply presentation';
+  applyPresentation.disabled = true;
+  applyPresentation.addEventListener('click', () => {
+    if (!faceView || faceBusy || speechOperationId) return;
+    refreshFace({ look: lookSelect.value, recipe: recipeSelect.value,
+      minimumTextScalePercent: Number(textScaleSelect.value) });
+  });
+  presentationControls.append(presentationLegend, lookLabel, recipeLabel, textScaleLabel, applyPresentation);
+  faceRefresh.insertAdjacentElement('afterend', presentationControls);
   const showState = state => {
     status.textContent = `Browser participation: ${state}.`;
     status.dataset.state = state;
@@ -335,6 +375,7 @@ export async function startOwnerParticipation(application, root) {
       if (faceView) faceStatus.textContent = 'The route to the owner is lost. The last Face is historical.';
       faceView = null;
       faceRefresh.disabled = true;
+      applyPresentation.disabled = true;
       faceEvidence.textContent = 'No current sealed browser Show. Previous route evidence is historical.';
       faceComponent.disabled = true;
       actionResult.textContent = 'The owner window is closed; this browser has no current action return.';
@@ -476,5 +517,18 @@ export async function startOwnerParticipation(application, root) {
     credential: () => participation?.membershipCredential() ?? null,
     biography: () => participation?.biographyEvidence() ?? null,
     face: () => faceView,
+    // Preserve exact canonical JSON text for proof capture before any JS parse.
+    selectPresentation: (look, recipe, minimumTextScalePercent) =>
+      refreshFace({ look, recipe, minimumTextScalePercent }),
+    submitFaceInteraction: ({ view, actionId, target, arguments: actionArguments }) => {
+      if (!participation) throw new Error('Join a current owner before interaction.');
+      return participation.submitOwnerFaceInteraction({ view, actionId, target,
+        arguments: actionArguments, sequence: ++actionSequence });
+    },
+    canonicalFaceJSON: () => {
+      if (!participation) throw new Error('Join a current owner before canonical observation.');
+      return new TextDecoder('utf-8', { fatal: true }).decode(
+        participation.ownerCanonicalFaceSnapshot());
+    },
   });
 }

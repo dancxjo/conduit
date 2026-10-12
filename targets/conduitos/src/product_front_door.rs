@@ -18,7 +18,7 @@ use workspace_input::refresh_with_face as refresh;
 
 use alloc::format;
 
-use conduit_human::KeyTransition;
+use conduit_human::{KeyModifiers, KeyTransition};
 use conduit_presentation::ApplicationEvent;
 
 use crate::{
@@ -219,6 +219,78 @@ pub fn run(
                         rescue_guest::observe(identities, rescue_matcher, local, true);
                     }
                     ProductInputEvent::Key(event) if owner_face_presented => {
+                        let modifier_bits = event.modifiers_after().bits();
+                        let shift_only = modifier_bits != 0
+                            && modifier_bits
+                                & !(KeyModifiers::LEFT_SHIFT.bits()
+                                    | KeyModifiers::RIGHT_SHIFT.bits())
+                                == 0;
+                        if !owner_route_standby
+                            && owner_route.is_some()
+                            && event.transition() == KeyTransition::Pressed
+                            && (modifier_bits == 0 || (event.usage() == 66 && shift_only))
+                            && matches!(event.usage(), 63..=66)
+                        {
+                            let prior = current_owner_face
+                                .as_ref()
+                                .ok_or("native-owner-face-absent")?;
+                            let route = owner_route
+                                .as_mut()
+                                .ok_or("native-owner-return-unavailable")?;
+                            let result = if event.usage() == 66 && shift_only {
+                                face_arrival.toggle_owner_forced_colors(
+                                    prior,
+                                    route,
+                                    *identities,
+                                    display,
+                                )
+                            } else if event.usage() == 66 {
+                                face_arrival.toggle_owner_text_scale(
+                                    prior,
+                                    route,
+                                    *identities,
+                                    display,
+                                )
+                            } else {
+                                let (look, recipe) = match event.usage() {
+                                    63 => (
+                                        conduit_presentation::ComponentMaskLook::Compact,
+                                        conduit_presentation::TodoComponentRecipe::Flat,
+                                    ),
+                                    64 => (
+                                        conduit_presentation::ComponentMaskLook::Spacious,
+                                        conduit_presentation::TodoComponentRecipe::Flat,
+                                    ),
+                                    _ => (
+                                        conduit_presentation::ComponentMaskLook::Spacious,
+                                        conduit_presentation::TodoComponentRecipe::Grouped,
+                                    ),
+                                };
+                                face_arrival.select_owner_component(
+                                    *identities,
+                                    prior,
+                                    route,
+                                    look,
+                                    recipe,
+                                    display,
+                                )
+                            };
+                            match result {
+                                Ok(fresh) => {
+                                    current_owner_face = Some(fresh);
+                                }
+                                Err(reason) => {
+                                    arch::early_write(b"CONDUIT_NATIVE_COMPONENT_SELECTION {\"status\":\"refused\",\"code\":\"");
+                                    arch::early_write(reason.as_bytes());
+                                    arch::early_write(b"\"}\n");
+                                    owner_route = None;
+                                    face_arrival.retire_owner_route(display)?;
+                                    face_arrival
+                                        .show_owner_result(false, false, reason, display)?;
+                                }
+                            }
+                            return Ok(ProductInputControl::Continue);
+                        }
                         if owner_route_standby
                             && event.transition() == KeyTransition::Pressed
                             && event.usage() == F5
