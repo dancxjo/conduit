@@ -9,7 +9,7 @@ type BotReadProducerRoute =
     running BotReadProducerState
     | stopped
 plot bot-read-producer-start (
-    request: BlockReadRequest...| >> state: BotReadProducerState...|
+    request: BlockReadRequest...| <= 4096B >> state: BotReadProducerState...|
 ) = ({ request: ., operations: 0, terminal: .block_size != 512 || .count != 1 || .lba != 0 })
 plot bot-read-producer-route (
     state: BotReadProducerState...| >> route: BotReadProducerRoute...|

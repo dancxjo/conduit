@@ -275,7 +275,7 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
         validate_fore(&definition)
             .map_err(|error| preparation_diagnostic::observe("fore", error))?;
         zip.validate_plan(&definition.internal_plan)
-            .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
+            .map_err(|error| preparation_diagnostic::invalid("zip", error))?;
         states
             .validate_plan(&definition.internal_plan)
             .map_err(|error| preparation_diagnostic::invalid("states", error))?;
