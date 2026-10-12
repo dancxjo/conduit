@@ -1,5 +1,6 @@
 //! Bounded preparation of packaged Source and generic typed protocol Backs.
 //! Packages contain no native resource possession or controller selection.
+pub(crate) mod instances;
 use crate::protocol_operations::ProtocolOperations;
 use alloc::{string::String, vec, vec::Vec};
 use conduit_core::{CapabilityOffer, CheckedValueContract, StructuredInfoType};
@@ -24,33 +25,8 @@ pub struct ProtocolValue {
     pub contract: CheckedValueContract,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(tag = "kind", rename_all = "kebab-case", deny_unknown_fields)]
-pub enum ProtocolSpecialization {
-    Singleton {
-        value: ProtocolValue,
-    },
-    SeededFlow {
-        value: ProtocolValue,
-    },
-    SeededUntil {
-        value: ProtocolValue,
-    },
-    Concat {
-        value: ProtocolValue,
-    },
-    Merge {
-        value: ProtocolValue,
-    },
-    Zip {
-        left: ProtocolValue,
-        right: ProtocolValue,
-    },
-    FeedbackZip {
-        left: ProtocolValue,
-        right: ProtocolValue,
-    },
-}
+mod specialization;
+pub use specialization::ProtocolSpecialization;
 
 /// Exact checked realization selected by inert package metadata.
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -190,6 +166,18 @@ impl PreparedProtocolSource {
                         .states
                         .install_until(&value.contract, &value.schema)
                         .map_err(Error::Specialization)
+                }
+                ProtocolSpecialization::SeededUntilInstance { value } => {
+                    instances::install_until(value, &mut startup, &mut profile, &mut operations)
+                }
+                ProtocolSpecialization::FeedbackZipInstance { left, right } => {
+                    instances::install_feedback(
+                        left,
+                        right,
+                        &mut startup,
+                        &mut profile,
+                        &mut operations,
+                    )
                 }
                 ProtocolSpecialization::Concat { value } => {
                     conduit_semantic_catalog::install_flow_concat_finite_kind(
