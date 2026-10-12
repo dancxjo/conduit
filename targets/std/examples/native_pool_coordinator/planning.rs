@@ -48,9 +48,15 @@ struct Preparation {
     mechanism: BaseImplementationId,
     authority: conduit_core::AuthorityGrant,
     policy: SharedPoolSelectionPolicy,
+    #[serde(default)]
+    source: Option<String>,
 }
 
 fn build(input: Preparation) -> Result<conduit_core::Plan, String> {
+    let source = input.source.as_deref().unwrap_or(SOURCE);
+    if source.is_empty() || source.len() > 16_384 {
+        return Err("pool Source extent refused".into());
+    }
     let mut startup = StartupCatalog::new();
     startup
         .insert(KindSignature {
@@ -74,7 +80,7 @@ fn build(input: Preparation) -> Result<conduit_core::Plan, String> {
             configuration: vec![],
         })
         .map_err(|e| e.to_string())?;
-    let checked = check_syntax_document(&parse_syntax_document(SOURCE), &startup)
+    let checked = check_syntax_document(&parse_syntax_document(source), &startup)
         .map_err(|e| format!("check pool Source: {e:?}"))?;
     let expanded = expand_canonical_plot(&checked, "model-service", &profiles)
         .map_err(|e| format!("expand pool Source: {e:?}"))?;
@@ -157,10 +163,11 @@ pub(super) fn run() -> Result<(), String> {
         .map_err(|_| "preparation document incomplete")?;
     let request: Preparation =
         serde_json::from_slice(&bytes).map_err(|_| "preparation document invalid")?;
+    let source = request.source.clone().unwrap_or_else(|| SOURCE.to_owned());
     let plan = build(request)?;
     let receipt = serde_json::to_vec(&serde_json::json!({
         "phase":"planned", "proof_class":"preparation-only",
-        "source":SOURCE, "plan":plan,
+        "source":source, "plan":plan,
     }))
     .map_err(|_| "Plan serialization failed")?;
     if receipt.len() > MAXIMUM_DOCUMENT {
