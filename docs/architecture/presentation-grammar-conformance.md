@@ -182,3 +182,10 @@ Gear, Port, and Cord subjects and verifies supplied names plus relationship
 and action provenance through production linear and deterministic aural
 readers. This is source-derived domain projection with a reference Host
 fixture, not live native/browser Shows or synthesized speech.
+
+The open-domain contribution fixture in
+`semantics/presentation/tests/face/open_domain_semantics.rs` contributes a
+biology role and relationship through an ordinary Plot's exact Face
+contribution basis. Linear and deterministic aural readers retain those open
+IDs, their supplied names, typed action identity, and source provenance.
+This is nonvisual reconstruction, not native/browser fallback execution.
