@@ -484,3 +484,7 @@ mod patchbay_tests;
 #[cfg(test)]
 #[path = "owner_face_mask/lifecycle_corpus_tests.rs"]
 mod lifecycle_corpus_tests;
+
+#[cfg(test)]
+#[path = "owner_face_mask/committed_todo_tests.rs"]
+mod committed_todo_tests;

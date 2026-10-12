@@ -356,3 +356,16 @@ and native preparation/rendering leaves the source Face unchanged. The same
 Face enters linear and deterministic aural readers. This is real checkpoint
 execution plus native layout proof, not scanout or a native gesture. The
 native dependency is confined to the product's development tests.
+
+The committed Todo producer/consumer proof uses
+`CONDUIT_CROSS_MASK_TODO_EXCHANGE` to export the freshly executed owner test's
+before/after Faces and verified read receipts to an absolute scratch path.
+The explicit browser consumer test
+`checked_browser_mask_consumes_actual_committed_todo_exchange` reads that
+exchange and is ignored in ordinary unit runs because it requires the producer.
+The producer is `verified_three_item_todo_and_completion_preserve_nonvisual_meaning`
+in the `conduit` binary test target. Run it first, then explicitly run the browser
+consumer with the same exchange path. The record's Body and terminal Signs are
+checked rather than normalized to deterministic fixture identities. This
+optional development entrance has not yet been registered as required hosted
+CI or stable acceptance.

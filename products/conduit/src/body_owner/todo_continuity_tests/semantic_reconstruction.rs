@@ -18,6 +18,7 @@ fn verified_three_item_todo_and_completion_preserve_nonvisual_meaning() {
     state = next_action(&mut owner, &root, Some("Eggs"), 2, None);
     assert_eq!(state.items.len(), 2);
     state = next_action(&mut owner, &root, Some("Bread"), 3, None);
+    let mut exchanges = Vec::new();
     for expected_remaining in [3, 2] {
         assert_eq!(state.items.len(), 3);
         assert_eq!(
@@ -78,6 +79,10 @@ fn verified_three_item_todo_and_completion_preserve_nonvisual_meaning() {
             );
         }
         assert_eq!(native.presentation(), &face);
+        exchanges.push(serde_json::json!({
+            "face": face, "remaining": expected_remaining,
+            "verified_read_receipt": owner.todo_verified_read_receipt().unwrap(),
+        }));
         let linear = render_linear_presentation(&face).unwrap().lines.join("\n");
         let spoken = plan_face_utterances(&face)
             .unwrap()
@@ -109,6 +114,20 @@ fn verified_three_item_todo_and_completion_preserve_nonvisual_meaning() {
                 &current_receipt
             );
         }
+    }
+    if let Some(path) = std::env::var_os("CONDUIT_CROSS_MASK_TODO_EXCHANGE") {
+        let path = std::path::PathBuf::from(path);
+        assert!(path.is_absolute());
+        std::fs::write(
+            path,
+            serde_json::to_vec_pretty(&serde_json::json!({
+                "schema": "conduit.proof/committed-todo-mask-exchange@1",
+                "proof_class": "real checkpoint execution with fixture owner; no live DOM",
+                "exchanges": exchanges,
+            }))
+            .unwrap(),
+        )
+        .unwrap();
     }
     drop(owner);
     std::fs::remove_dir_all(root).unwrap();
