@@ -99,6 +99,7 @@ fn input_host(config: StdHostConfig) -> StdHost {
     );
     let mut offers = crate::flow_activation::required_parsec_source_offers().unwrap();
     offers.extend([
+        crate::flow_activation::required_parsec_input_policy_offer().unwrap(),
         crate::flow_activation::parsec_combine_offer().unwrap(),
         crate::flow_activation::parsec_scan_offer(32).unwrap(),
         conduit_std_offers::hosted_keyboard_offer(

@@ -16,6 +16,10 @@ use conduit_presentation::{
 };
 use std::collections::BTreeMap;
 
+#[path = "parsec_input_policy_plan.rs"]
+mod input_policy;
+pub use input_policy::{required_parsec_input_policy_offer, ParsecInputPolicySourcePlan};
+
 struct Producer {
     expanded: ExpandedAuthoringPlot,
     placements: PlacementChoices,
