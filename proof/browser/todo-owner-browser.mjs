@@ -177,6 +177,33 @@ try {
     await page.locator('[data-owner-face]').screenshot({ path: path.join(output, 'browser-route-diagnostic.png') });
     throw new Error(`Todo browser Show has no admitted action return: ${prepared.status}`);
   }
+  let retainedLookSelection = null;
+  if (retainedDom) {
+    const previous = await page.evaluate(() => globalThis.__conduitOwnerParticipation.face());
+    const ownerBeforeLook = face();
+    // Exactly one local Look selection; subsequent waits only observe its fresh Show.
+    await page.evaluate(() => globalThis.__conduitOwnerParticipation.selectPresentation('compact', 'flat'));
+    await page.waitForFunction(priorShow => {
+      const view = globalThis.__conduitOwnerParticipation.face();
+      const element = document.querySelector('conduit-owner-face');
+      const expression = view?.component?.expression?.expression;
+      return view?.show_id !== priorShow && view?.show_state === 'available'
+        && view.interactions_admitted && expression?.identity && expression?.density
+        && element?.dataset.componentExpression === expression.identity
+        && element?.dataset.componentDensity === expression.density
+        && element?.dataset.componentColumns === String(view.component.maximum_columns)
+        && document.querySelector('[data-owner-show-acknowledged]')?.dataset.ownerShowAcknowledged === view.show_id;
+    }, previous.show_id, { timeout: 12_000 });
+    const selected = await page.evaluate(() => globalThis.__conduitOwnerParticipation.face());
+    assert.equal(selected.body_id, bodyId);
+    assert.deepEqual(face().presentation, ownerBeforeLook.presentation,
+      'Look selection must preserve the complete retained owner Face');
+    retainedLookSelection = { look: 'compact', recipe: 'flat',
+      prior_show_id: previous.show_id, selected_show_id: selected.show_id,
+      face_id: selected.face_id, face_revision: selected.face_revision,
+      expression: selected.component.expression.expression.identity,
+      density: selected.component.expression.expression.density };
+  }
   const before = await page.evaluate(() => globalThis.__conduitOwnerParticipation.face());
   assert.equal(before.body_id, bodyId);
   assert.equal(before.show_state, 'available');
@@ -504,7 +531,7 @@ try {
     body_id: bodyId, browser_host_id: identity.hostId, browser_boot_id: identity.bootId,
     item_text: itemText, adds, resumed_items: resumedItems, cross_mask: crossMask, inspect_capture: inspectCapture,
     speech_before_completion: speechBeforeCompletion,
-    direct_speech: directSpeech, retained_dom_completion: domCompletion, before: { face_id: before.face_id, face_revision: before.face_revision,
+    direct_speech: directSpeech, retained_look_selection: retainedLookSelection, retained_dom_completion: domCompletion, before: { face_id: before.face_id, face_revision: before.face_revision,
       show_id: before.show_id }, after: { face_id: after.face_id,
       face_revision: after.face_revision, show_id: after.show_id },
     screenshots: scenario.startsWith('cross-mask') ? ['browser-before.png', 'browser-stale.png', 'browser-after.png']

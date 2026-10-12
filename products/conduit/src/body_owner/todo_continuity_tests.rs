@@ -10,6 +10,9 @@ use std::time::{Duration, Instant};
 #[path = "todo_continuity_tests/semantic_reconstruction.rs"]
 mod semantic_reconstruction;
 
+#[path = "todo_continuity_tests/retained_dom_reconstruction.rs"]
+mod retained_dom_reconstruction;
+
 fn next_action(
     owner: &mut Owner,
     root: &Path,

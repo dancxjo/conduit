@@ -497,3 +497,29 @@ checks fresh acknowledged Shows, source-correlated verified write/read receipts,
 observed accessible lists/progress, unchanged Look, and stale-return refusal.
 The scenario requires exact-source owner/runtime/UI artifacts. It is prepared
 and syntax-checked; current-source live execution remains unproved.
+
+Private installed input-origin admission now retains the exact selected
+placement and lowered call, current Host/Boot/offer generation, and issued
+fragment Play. Body preparation separately retains a prospective Body Play;
+confirmation occurs after successful reservation and issue. Neither preparation
+nor adapter existence activates an origin. An accepted exact scheduler request
+activates it; cancellation, terminal failure, rejected requests, poll failure
+and lifetime end revoke it. This is input-origin custody, not a current
+source-owned action map, revision authority, physical-device receipt or retained
+Parsec execution. Those binding and gameplay requirements remain incomplete.
+
+The retained-DOM journey now explicitly selects a checked compact Look before
+its domain snapshots. The first live attempt encountered generic browser
+fallback and refused its required Look assertion before any Todo action. A
+separate empty control connection exposed owner-service termination while
+reading the prefix; bounded client dispatch now retires incomplete clients
+without retiring the owner. Its regression uses one listener and retained
+owner, followed by a valid authenticated read-only Face request.
+
+An explicit ignored retained-DOM consumer requires the actual journey record,
+exact producer source, and an immutable verified owner execution receipt. It
+checks the recorded three-to-two pending transition through native rendered
+pages, deterministic linear output and utterance-plan provenance. It neither
+creates a fixture replacement Body nor performs an owner action. Until the
+live journey and consumer execute successfully, this remains prepared software
+proof, not native gesture, scanout, delivered speech or human evidence.
