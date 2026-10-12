@@ -1,8 +1,14 @@
 //! Bounded preparation diagnostics; preserve every original refusal.
 use super::ProtocolCallRefusal;
-use core::fmt::{Debug, Write};
+use core::fmt::Debug;
+#[cfg(all(not(target_arch = "arm"), not(feature = "aarch64-orange-pi-5")))]
+use core::fmt::Write;
 
 pub(crate) fn observe<E: Debug>(stage: &str, error: E) -> E {
+    #[cfg(any(target_arch = "arm", feature = "aarch64-orange-pi-5"))]
+    let _ = stage;
+    // These retained USB diagnostics use the early console on product proof targets.
+    #[cfg(all(not(target_arch = "arm"), not(feature = "aarch64-orange-pi-5")))]
     if crate::allocation::BOOT_ARENA.capacity() != 0 {
         let mut line = crate::sign_format::FixedText::new();
         if writeln!(

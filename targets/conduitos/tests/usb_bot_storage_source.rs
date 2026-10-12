@@ -146,7 +146,7 @@ fn source_cbw_is_fixed_and_verified_before_class_effects() {
         .unwrap();
     let wire = conduit_data::bytes_literal::decode_hex(hex).unwrap();
     assert_eq!(wire.len(), 16 * 31);
-    for (ordinal, command) in wire.chunks_exact(31).enumerate() {
+    for (ordinal, command) in wire.as_chunks::<31>().0.iter().enumerate() {
         assert_eq!(&command[..4], b"USBC");
         assert_eq!(
             u32::from_le_bytes(command[4..8].try_into().unwrap()),
