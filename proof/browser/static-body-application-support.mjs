@@ -6,30 +6,38 @@ import path from "node:path";
 import { chromium } from "@playwright/test";
 import { startStaticProduct } from "./static-product-server.mjs";
 
-export async function stageStaticApplications({ legacyLessonInventory = false } = {}) {
+export async function stageStaticApplications({ legacyLessonInventory = false, malformedLessonSource = false } = {}) {
   const root = await mkdtemp(path.join(tmpdir(), "conduit-static-applications-"));
   let server;
   try {
     await cp("target/handbook-static", path.join(root, "handbook"), { recursive: true });
     await cp("target/handbook-static-second", path.join(root, "second"), { recursive: true });
-    if (legacyLessonInventory) {
+    if (legacyLessonInventory || malformedLessonSource) {
       // Produce a real compatible package whose Body is born with the earlier
       // two-lesson source inventory, using the ordinary package producer.
       const templateRoot = path.resolve("targets/browser/handbook");
       const template = JSON.parse(await readFile(path.join(templateRoot, "handbook.application.template.json"), "utf8"));
       const birth = JSON.parse(await readFile(path.join(templateRoot, "birth.json"), "utf8"));
-      birth.plots = birth.plots.filter(plot =>
+      if (legacyLessonInventory) birth.plots = birth.plots.filter(plot =>
         ["tour", "patchbay", "clock-demo", "memory_lantern"].includes(plot.name));
       const birthPath = path.join(root, "legacy-birth.json");
       await writeFile(birthPath, JSON.stringify(birth));
+      const originalPitch = await readFile(path.join(templateRoot, "plots/convert-pitch.conduit"), "utf8");
+      const brokenPitchPath = path.join(root, "broken-pitch.conduit");
+      if (malformedLessonSource) {
+        const malformed = originalPitch.replace("source = 1kHz", 'source = "1kHz"');
+        assert.notEqual(malformed, originalPitch);
+        await writeFile(brokenPitchPath, malformed);
+      }
       for (const resource of template.resources) {
         resource.source = resource.role === "birth-specification" ? birthPath
-          : path.resolve(templateRoot, resource.source ?? resource.path);
+          : malformedLessonSource && resource.role === "lesson-convert-pitch-source" ? brokenPitchPath
+            : path.resolve(templateRoot, resource.source ?? resource.path);
       }
       const templatePath = path.join(root, "legacy-template.json");
       await writeFile(templatePath, JSON.stringify(template));
       execFileSync(process.execPath, ["targets/browser/tools/package-static-application.mjs",
-        templatePath, "target/handbook-static/sdk/bundle", path.join(root, "legacy")], { stdio: "pipe" });
+        templatePath, "target/handbook-static/sdk/bundle", path.join(root, malformedLessonSource ? "broken" : "legacy")], { stdio: "pipe" });
     }
     server = await startStaticProduct(root);
     return { url: server.url, async close() {

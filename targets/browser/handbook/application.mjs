@@ -30,9 +30,18 @@ export async function startApplication(application) {
   const controls = [...root.querySelectorAll('button,select,textarea')];
   controls.forEach(control => control.disabled = true);
   const specification = JSON.parse(application.text('birth-specification'));
-  const bundle = JSON.stringify({ schema: 'conduit.creche/reviewed-plot-bundle@2', plots: specification.plots.map(plot => ({
-    slug: plot.name, entry: plot.name, title: plot.title, source: application.text(plot.role),
-  })) });
+  // A corrected packaged lesson may be retried without changing the signed package
+  // or the original source. Overrides are exact-source scoped and independently
+  // checked by the Rust checker on the next Boot.
+  const rescueEdits = await application.storage.readJson('handbook-source-rescue').catch(() => null);
+  const validRescueEdits = Array.isArray(rescueEdits) ? rescueEdits.slice(0, specification.plots.length) : [];
+  const packagedPlots = specification.plots.map(plot => {
+    const original = application.text(plot.role);
+    const rescue = validRescueEdits.find(item => item?.name === plot.name && item.original === original
+      && typeof item.source === 'string' && new TextEncoder().encode(item.source).length <= 16_384);
+    return { slug: plot.name, entry: plot.name, title: plot.title, source: rescue?.source ?? original };
+  });
+  const bundle = JSON.stringify({ schema: 'conduit.creche/reviewed-plot-bundle@2', plots: packagedPlots });
   let host, body, play, checked, reviewed, editor, selected, snapshot;
   let busy = false;
   let playFailure = null;
@@ -276,7 +285,128 @@ export async function startApplication(application) {
     status.textContent = `${error.code ?? 'Refused'}: ${error.message}`;
     status.dataset.refused = 'true';
     controls.forEach(control => control.disabled = true);
-    const retry = root.querySelector('[data-retry]'); retry.hidden = false; retry.disabled = false;
+    const retry = root.querySelector('[data-retry]');
+    retry.hidden = false; retry.disabled = false;
     retry.addEventListener('click', () => location.reload());
+
+    // Recovery must never depend on successful checking, Body admission, or Play.
+    // Present exact source, not a fabricated runnable Body or silent syntax migration.
+    let retained = null;
+    try { retained = await application.storage.readJson('body-continuity'); } catch { /* Show packaged source. */ }
+    const originals = [];
+    if (typeof retained?.source === 'string') {
+      try {
+        const record = JSON.parse(retained.source);
+        if (record?.schema === 'conduit.creche/reviewed-plot-bundle@2' && Array.isArray(record.plots)) {
+          for (const plot of record.plots.slice(0, 32)) {
+            if (typeof plot?.source === 'string' && plot.source.length <= 32_768) {
+              originals.push({ origin: 'retained', name: plot.entry ?? plot.slug ?? 'retained',
+                title: plot.title ?? plot.entry ?? 'Retained Plot', source: plot.source });
+            }
+          }
+        }
+      } catch { /* Single historical source, not a JSON bundle. */ }
+      if (originals.length === 0) originals.push({ origin: 'retained', name: 'retained',
+        title: 'Retained source', source: retained.source });
+    }
+    const available = [
+      ...originals,
+      ...packagedPlots.map(plot => ({ origin: 'packaged', name: plot.entry,
+        title: plot.title, source: plot.source })),
+    ];
+    const drafts = available.map(plot => plot.source);
+    let index = 0;
+    if (host) {
+      // This probe is diagnostics only. It creates no Body, Plan, or Play.
+      for (let i = 0; i < available.length; i++) {
+        try {
+          const probe = await host.plot(available[i].source).check();
+          if (!probe.ok) { index = i; break; }
+        } catch { index = i; break; }
+      }
+    }
+    selector.replaceChildren();
+    for (let i = 0; i < available.length; i++) {
+      const option = document.createElement('option');
+      option.value = String(i);
+      option.textContent = available[i].title + ' (' + available[i].origin + ')';
+      selector.append(option);
+    }
+    const showSource = () => {
+      source.value = drafts[index];
+      root.querySelector('[data-lesson]').textContent = 'Recovery source only. The current Body has not been changed.';
+      checkStatus.textContent = 'Edit this source and press Try to check it without executing anything.';
+      try { editor ??= host?.attachEditor(source); editor?.render(); }
+      catch { /* Plain editable textarea is the source-of-truth fallback. */ }
+    };
+    selector.value = String(index);
+    showSource();
+    source.disabled = false;
+    selector.disabled = false;
+    root.querySelector('[data-try]').disabled = !host;
+    selector.addEventListener('change', () => {
+      drafts[index] = source.value;
+      index = Number(selector.value);
+      showSource();
+    });
+    source.addEventListener('input', () => {
+      drafts[index] = source.value;
+      checkStatus.textContent = 'Edited source, not yet checked or applied.';
+      delete checkStatus.dataset.refusalCode;
+    });
+    root.querySelector('[data-try]').addEventListener('click', async () => {
+      const candidate = available[index];
+      const value = source.value;
+      if (new TextEncoder().encode(value).length > 16_384) {
+        checkStatus.textContent = 'Recovery source exceeds the 16 KiB editor bound.';
+        return;
+      }
+      try {
+        const result = await host.plot(value).check();
+        if (!result.ok) {
+          checkStatus.dataset.refusalCode = result.refusal.code;
+          checkStatus.textContent = result.refusal.code + ': '
+            + (result.diagnostics.map(item => item.message).join('\n') || result.refusal.message);
+          return;
+        }
+        delete checkStatus.dataset.refusalCode;
+        if (retained) {
+          checkStatus.textContent = 'Source checks. The retained Body has not been changed: '
+            + 'its signed source/Plot identities cannot be rewritten by this editor. '
+            + 'Export its record before explicitly starting a new Body.';
+          return;
+        }
+        if (candidate.origin !== 'packaged') return;
+        const original = application.text(specification.plots.find(plot => plot.name === candidate.name).role);
+        const updated = validRescueEdits.filter(item => item?.name !== candidate.name);
+        updated.push({ name: candidate.name, original, source: value });
+        await application.storage.writeJson('handbook-source-rescue', updated);
+        checkStatus.textContent = 'Source checks. Correction saved for this application; '
+          + 'press Try again to reopen the Handbook. No Body has been changed.';
+      } catch (refusal) {
+        checkStatus.textContent = (refusal.code ?? 'CheckRefused') + ': ' + refusal.message;
+      }
+    });
+
+    // A backup is explicit and read-only. History may include independently
+    // retained archives; this file is the continuity record, not a full export.
+    if (retained) {
+      const backup = document.createElement('button');
+      backup.type = 'button';
+      backup.textContent = 'Download original retained Body record';
+      backup.addEventListener('click', () => {
+        const blob = new Blob([JSON.stringify(retained, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url; link.download = 'conduit-handbook-retained-body.json';
+        link.click();
+        setTimeout(() => URL.revokeObjectURL(url), 0);
+      });
+      const explanation = document.createElement('p');
+      explanation.textContent = 'The original retained Body has not been reset or rewritten. '
+        + 'The download preserves its continuity record, but may omit separately archived history. '
+        + 'Recovering or migrating this Body requires explicit, checked compatibility.';
+      checkStatus.after(explanation, backup);
+    }
   }
 }
