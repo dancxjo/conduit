@@ -32,6 +32,7 @@ fn source() -> String {
         include_str!("../plots/usb/audio-profile.conduit"),
         include_str!("../plots/usb/audio-completion-profile.conduit"),
         include_str!("../plots/usb/audio-playback-policy.conduit"),
+        include_str!("../plots/usb/audio-playback-result.conduit"),
     ]
     .join("\n")
 }
