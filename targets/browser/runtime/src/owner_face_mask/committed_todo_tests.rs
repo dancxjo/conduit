@@ -47,6 +47,31 @@ fn checked_browser_mask_consumes_actual_committed_todo_exchange() {
         )
         .unwrap();
         let view = mask.view();
+        assert!(matches_required_todo_meaning(&face, &view));
+        let mut lost_status = mask.view();
+        lost_status
+            .subjects
+            .retain(|subject| subject.role != "Status");
+        assert!(!matches_required_todo_meaning(&face, &lost_status));
+        let mut lost_status_text = mask.view();
+        let status = lost_status_text
+            .subjects
+            .iter_mut()
+            .find(|subject| subject.identity == "todo/status")
+            .unwrap();
+        assert!(!status.text.is_empty());
+        status.text.clear();
+        assert!(!matches_required_todo_meaning(&face, &lost_status_text));
+        let mut wrong_endpoint = mask.view();
+        wrong_endpoint.relationships[0].target = "invented/body-port".into();
+        assert!(!matches_required_todo_meaning(&face, &wrong_endpoint));
+        let mut invented_relation = mask.view();
+        invented_relation.relationships.push(RelationshipView {
+            source: "invented/port".into(),
+            target: "invented/cord".into(),
+            kind: "Connects".into(),
+        });
+        assert!(!matches_required_todo_meaning(&face, &invented_relation));
         let items = view
             .subjects
             .iter()
@@ -236,4 +261,44 @@ fn check_retired_todo_shows(face: &Presentation) {
             .is_none());
         assert_eq!(&mask.presentation, face);
     }
+}
+
+// Semantic reconstruction comparison, not renderer attestation or a domain reducer.
+fn matches_required_todo_meaning(face: &Presentation, view: &FaceView) -> bool {
+    if view.subjects.len() != face.subjects.len()
+        || view.relationships.len() != face.relationships.len()
+    {
+        return false;
+    }
+    for source in &face.subjects {
+        let Some(rendered) = view
+            .subjects
+            .iter()
+            .find(|item| item.identity == source.identity)
+        else {
+            return false;
+        };
+        if rendered.name != source.name || rendered.role != format!("{:?}", source.role) {
+            return false;
+        }
+        if source.role == conduit_presentation::PresentationRole::Status {
+            let expected: Vec<_> = face
+                .text
+                .iter()
+                .filter(|text| text.subject == source.identity)
+                .map(|text| text.text.clone())
+                .collect();
+            if rendered.text != expected {
+                return false;
+            }
+        }
+    }
+    view.relationships
+        .iter()
+        .zip(&face.relationships)
+        .all(|(rendered, source)| {
+            rendered.source == source.source
+                && rendered.target == source.target
+                && rendered.kind == format!("{:?}", source.kind)
+        })
 }

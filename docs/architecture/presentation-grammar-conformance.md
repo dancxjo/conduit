@@ -399,3 +399,12 @@ proposals refuse through the canonical Face interaction contract. The supplied
 identical encoded bytes and exact decode equality. Face bytes and absent
 Body/Wake/Plan/Play basis remain unchanged. Host effects are simulated, no Birth
 is applied, and this does not implement the visible browser zero-Body shell.
+
+The fresh Todo consumer also compares source-derived semantic reconstruction:
+subject identities/names/roles, Status text, and relationship endpoints/kinds.
+Its negative observations remove the essential progress subject, remove only
+its text while preserving counts, invent a Port/Cord relation, or redirect an
+existing endpoint to an invented Body/Port. Each fails the comparison for both
+real committed states. This is a falsifiable semantic-loss oracle over the
+actual checked browser projection, not runtime renderer attestation or a new
+owner-side refusal mechanism; #5372 owns that further correspondence boundary.
