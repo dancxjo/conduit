@@ -37,7 +37,7 @@ struct Sample {
 }
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
-struct Request {
+pub(super) struct Request {
     host: HostAdvertisement,
     owner_clock: MonotonicClockIdentity,
     sample: Sample,
@@ -68,7 +68,7 @@ fn measurement(
         _ => Err("measurement presence changed".into()),
     }
 }
-fn check(input: &Request) -> Result<serde_json::Value, String> {
+pub(super) fn admit(input: &Request) -> Result<CheckedSample<'_>, String> {
     let host = &input.host;
     let sample = &input.sample;
     input
@@ -173,15 +173,61 @@ fn check(input: &Request) -> Result<serde_json::Value, String> {
         sample.runtime_state.vram_bytes,
         &mut work,
     )?;
-    Ok(
-        json!({"phase":"sample-checked","freshness_scope":if current_bound.is_some() { "coordinator_via_admitted_peer_exchange" } else { "reported_owner_validation_only" },
-        "owner_current_interval":current_bound,
-        "host_id":host.host_id,"boot_id":host.boot_id,"sign_id":source.sign(),
-        "condition":format!("{:?}",execution.condition()),"numeric_work":work.spent(),
-        "observed":source.window().observed(),"expires":source.window().expires()}),
-    )
+    let condition = execution.condition();
+    Ok(CheckedSample {
+        source,
+        condition,
+        current_bound,
+        numeric_work: work.spent(),
+    })
 }
-pub(super) fn run() -> Result<(), String> {
+
+/// Checked producer data borrows its immutable original report. This is not
+/// producer authentication; the caller still owns the admitted producing pipe.
+pub(super) struct CheckedSample<'a> {
+    source: CostEvidenceSource<'a>,
+    condition: CostExecutionCondition,
+    current_bound: Option<BodyTimeEstimate>,
+    numeric_work: u64,
+}
+impl<'a> CheckedSample<'a> {
+    pub(super) fn source(&self) -> &CostEvidenceSource<'a> {
+        &self.source
+    }
+    pub(super) fn condition(&self) -> CostExecutionCondition {
+        self.condition
+    }
+    /// Conservative endpoint of a proven current owner-clock interval, not a
+    /// newly measured owner timestamp. Owner-only historical validation refuses.
+    pub(super) fn current_upper_bound(&self) -> Result<MonotonicInstant, String> {
+        let bound = self
+            .current_bound
+            .as_ref()
+            .ok_or("sample lacks admitted current clock bounds")?;
+        MonotonicInstant::new(
+            bound.latest_ticks,
+            self.source.window().observed().clock().clone(),
+        )
+        .map_err(|e| format!("sample current upper endpoint: {e:?}"))
+    }
+}
+fn check(input: &Request, require_current: bool) -> Result<serde_json::Value, String> {
+    let checked = admit(input)?;
+    let upper = if require_current {
+        Some(checked.current_upper_bound()?)
+    } else {
+        None
+    };
+    let source = checked.source();
+    Ok(json!({"phase":"sample-checked",
+        "freshness_scope":if checked.current_bound.is_some() { "coordinator_via_admitted_peer_exchange" } else { "reported_owner_validation_only" },
+        "owner_current_interval":checked.current_bound,
+        "required_current_upper_bound":upper,
+        "host_id":source.host().host_id,"boot_id":source.host().boot_id,"sign_id":source.sign(),
+        "condition":format!("{:?}",checked.condition()),"numeric_work":checked.numeric_work,
+        "observed":source.window().observed(),"expires":source.window().expires()}))
+}
+pub(super) fn run(require_current: bool) -> Result<(), String> {
     const MAXIMUM: usize = 1024 * 1024;
     let mut input = std::io::stdin().lock();
     let mut prefix = [0; 4];
@@ -197,7 +243,8 @@ pub(super) fn run() -> Result<(), String> {
         .read_exact(&mut bytes)
         .map_err(|_| "sample document incomplete")?;
     let request: Request = serde_json::from_slice(&bytes).map_err(|_| "sample document invalid")?;
-    let receipt = serde_json::to_vec(&check(&request)?).map_err(|_| "sample receipt invalid")?;
+    let receipt = serde_json::to_vec(&check(&request, require_current)?)
+        .map_err(|_| "sample receipt invalid")?;
     let mut output = std::io::stdout().lock();
     output
         .write_all(&(receipt.len() as u32).to_be_bytes())

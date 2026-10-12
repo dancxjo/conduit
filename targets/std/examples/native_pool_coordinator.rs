@@ -17,7 +17,8 @@ mod sessions;
 fn main() {
     let result = match std::env::args().nth(1).as_deref() {
         None | Some("plan") => planning::run(),
-        Some("check-sample") => samples::run(),
+        Some("check-sample") => samples::run(false),
+        Some("check-current-sample") => samples::run(true),
         Some("check-overlap") => overlap::run(),
         Some("run-reference") => reference::run(),
         Some("run-sessions") => sessions::run(),
