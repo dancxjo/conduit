@@ -17,10 +17,6 @@ pub enum ProtocolSpecialization {
     SeededUntilInstance {
         value: ProtocolValue,
     },
-    FiniteZipInstance {
-        left: ProtocolValue,
-        right: ProtocolValue,
-    },
     FeedbackZipInstance {
         left: ProtocolValue,
         right: ProtocolValue,

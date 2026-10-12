@@ -170,18 +170,13 @@ impl PreparedProtocolSource {
                 ProtocolSpecialization::SeededUntilInstance { value } => {
                     instances::install_until(value, &mut startup, &mut profile, &mut operations)
                 }
-                ProtocolSpecialization::FeedbackZipInstance { left, right }
-                | ProtocolSpecialization::FiniteZipInstance { left, right } => {
-                    instances::install_zip(
+                ProtocolSpecialization::FeedbackZipInstance { left, right } => {
+                    instances::install_feedback(
                         left,
                         right,
                         &mut startup,
                         &mut profile,
                         &mut operations,
-                        matches!(
-                            specialization,
-                            ProtocolSpecialization::FeedbackZipInstance { .. }
-                        ),
                     )
                 }
                 ProtocolSpecialization::Concat { value } => {

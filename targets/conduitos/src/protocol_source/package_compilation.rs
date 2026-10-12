@@ -24,12 +24,6 @@ pub enum ProtocolSpecializationRequest {
         alias: String,
         value: ProtocolValueReference,
     },
-    FiniteZipInstance {
-        alias: String,
-        paired_alias: String,
-        left: ProtocolValueReference,
-        right: ProtocolValueReference,
-    },
     FeedbackZipInstance {
         alias: String,
         paired_alias: String,
@@ -138,22 +132,11 @@ impl ProtocolSourcePackage {
                     paired_alias,
                     left,
                     right,
-                }
-                | Request::FiniteZipInstance {
-                    alias,
-                    paired_alias,
-                    left,
-                    right,
                 } => {
-                    let feedback = matches!(request, Request::FeedbackZipInstance { .. });
                     let left = value(left)?;
                     let right = value(right)?;
                     let kind = instances::instance_kind_id(
-                        if feedback {
-                            conduit_semantic_catalog::FLOW_ZIP_FEEDBACK_KIND
-                        } else {
-                            conduit_semantic_catalog::FLOW_ZIP_FINITE_KIND
-                        },
+                        conduit_semantic_catalog::FLOW_ZIP_FEEDBACK_KIND,
                         &[&left, &right],
                     )
                     .map_err(Error::Catalog)?;
@@ -165,11 +148,7 @@ impl ProtocolSourcePackage {
                         &instances::binding_import(&paired, paired_alias)
                             .map_err(Error::Catalog)?,
                     );
-                    if feedback {
-                        ProtocolSpecialization::FeedbackZipInstance { left, right }
-                    } else {
-                        ProtocolSpecialization::FiniteZipInstance { left, right }
-                    }
+                    ProtocolSpecialization::FeedbackZipInstance { left, right }
                 }
                 Request::Concat { value: reference } => ProtocolSpecialization::Concat {
                     value: value(reference)?,
