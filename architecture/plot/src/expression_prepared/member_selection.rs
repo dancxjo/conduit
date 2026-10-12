@@ -1,6 +1,6 @@
 //! Borrow nested exact members; only a structured final result needs scratch.
 use super::{
-    PreparedInput, PreparedPortableExpressionEvaluator, ProgramView, Refusal, storage_bound,
+    storage_bound, PreparedInput, PreparedPortableExpressionEvaluator, ProgramView, Refusal,
 };
 use crate::{PortableExpressionNode, PortableExpressionOperation, PortableExpressionProjection};
 use alloc::{boxed::Box, string::String, vec::Vec};

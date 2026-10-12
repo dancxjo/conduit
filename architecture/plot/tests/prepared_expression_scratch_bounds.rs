@@ -1,7 +1,7 @@
 //! AST provenance preserves finite scratch without truncating constructed values.
 #[path = "prepared_structured_payload/allocation.rs"]
 mod allocation;
-use conduit_core::{StructuredFieldType, StructuredInfoType, kind_id};
+use conduit_core::{kind_id, StructuredFieldType, StructuredInfoType};
 use conduit_plot::{
     PortableExpressionNode as Node, PortableExpressionOperation as Op,
     PortableExpressionProgram as Program, PortableExpressionProjection as Projection,
@@ -100,13 +100,11 @@ fn seventy_two_packet_selection_reserves_input_bounded_scratch() {
         .map(|index| {
             StructuredInfoValue::record(
                 packet.clone(),
-                vec![
-                    StructuredFieldValue::new(
-                        "wire",
-                        StructuredInfoValue::leaf(bytes(), vec![index; 192]).unwrap(),
-                    )
-                    .unwrap(),
-                ],
+                vec![StructuredFieldValue::new(
+                    "wire",
+                    StructuredInfoValue::leaf(bytes(), vec![index; 192]).unwrap(),
+                )
+                .unwrap()],
             )
             .unwrap()
         })

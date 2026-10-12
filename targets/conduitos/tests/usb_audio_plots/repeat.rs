@@ -288,7 +288,10 @@ fn public_fault_observation_preserves_original_tag_and_prefix_before_terminal_st
         check_syntax_document(&parse_syntax_document(&text), &StartupCatalog::new()).unwrap();
     let projection_program = repeat_completion_program(&checked, "usb-audio-playback-result");
     // Public Fore contract must exactly match the selected expression Back.
-    assert_eq!(projection_program.maximum_prepared_output_bytes().unwrap(), 7864);
+    assert_eq!(
+        projection_program.maximum_prepared_output_bytes().unwrap(),
+        7864
+    );
     let mut projection = PreparedPortableExpressionEvaluator::new(&projection_program).unwrap();
     let seed_program = repeat_completion_program(&checked, "usb-audio-completion-validation-seed");
     let mut seed = PreparedPortableExpressionEvaluator::new(&seed_program).unwrap();

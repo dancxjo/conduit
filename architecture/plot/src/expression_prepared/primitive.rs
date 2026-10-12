@@ -2,9 +2,9 @@
 use super::Refusal;
 use crate::{BinaryOperator, UnaryOperator};
 use conduit_core::{
-    BOOL_INFO_ID, COUNT_INFO_ID, FixedInteger, InfoBool, MAXIMUM_STRUCTURED_LEAF_BYTES,
-    PrimitiveInfoKind, Quantity, SCALAR_INFO_ID, Scalar, StructuredInfoTypeShape, decode_count,
-    encode_count, primitive_info_kind,
+    decode_count, encode_count, primitive_info_kind, FixedInteger, InfoBool, PrimitiveInfoKind,
+    Quantity, Scalar, StructuredInfoTypeShape, BOOL_INFO_ID, COUNT_INFO_ID,
+    MAXIMUM_STRUCTURED_LEAF_BYTES, SCALAR_INFO_ID,
 };
 use core::cmp::Ordering;
 

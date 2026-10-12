@@ -1,11 +1,11 @@
 //! Runtime finite collection indexing over admitted canonical values.
 use super::{
-    PreparedInput, PreparedPortableExpressionEvaluator, ProgramView, Refusal, member_selection,
-    storage_bound,
+    member_selection, storage_bound, PreparedInput, PreparedPortableExpressionEvaluator,
+    ProgramView, Refusal,
 };
 use crate::{PortableExpressionNode, PortableExpressionOperation};
 use alloc::{boxed::Box, vec::Vec};
-use conduit_core::{StructuredInfoType, kind_id};
+use conduit_core::{kind_id, StructuredInfoType};
 
 pub(super) struct PreparedSequenceSelection {
     source: Box<PreparedPortableExpressionEvaluator>,

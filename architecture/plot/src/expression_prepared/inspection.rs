@@ -1,7 +1,7 @@
 //! Prepared, allocation-free observations of exact structured expression values.
 use super::{
-    PreparedInput, PreparedPortableExpressionEvaluator, ProgramView, Refusal,
-    primitive::PrimitiveValue,
+    primitive::PrimitiveValue, PreparedInput, PreparedPortableExpressionEvaluator, ProgramView,
+    Refusal,
 };
 use crate::{PortableExpressionNode, PortableExpressionOperation};
 use alloc::{boxed::Box, string::String};

@@ -173,12 +173,14 @@ fn sequenced_graph_uses_one_control_owner_and_stops_after_three_acks_or_first_fa
             .count(),
         1
     );
-    assert!(!expanded
-        .expanded
-        .gears
-        .iter()
-        .any(|g| g.kind_id.as_str().starts_with("storage/")
-            || g.kind_id.as_str().contains("endpoint-write")));
+    assert!(
+        !expanded
+            .expanded
+            .gears
+            .iter()
+            .any(|g| g.kind_id.as_str().starts_with("storage/")
+                || g.kind_id.as_str().contains("endpoint-write"))
+    );
     let advance = program(&s, "bot-recovery-advance");
     let state_type = fields(&advance.input_type)[0].value_type();
     let result_type = fields(&advance.input_type)[1].value_type();
