@@ -408,3 +408,23 @@ existing endpoint to an invented Body/Port. Each fails the comparison for both
 real committed states. This is a falsifiable semantic-loss oracle over the
 actual checked browser projection, not runtime renderer attestation or a new
 owner-side refusal mechanism; #5372 owns that further correspondence boundary.
+
+### Parsec binding prerequisite audit
+
+The required Parsec/remap specimen remains unimplemented. The existing
+`semantics/human/src/input_chord.rs` maps structural modifier/key combinations
+to core chords and explicitly separates them from text and product actions.
+The bounded human interaction contracts validate proposals and application
+outcomes. Native `native_face_scene/input.rs` resolves the current supplied
+Face action through local focus and emits Show-bound typed interactions. None
+of these audited contracts supplies the current action/control/label,
+Host/Boot, mapping revision and availability witness required by #5369.
+
+The smallest prerequisite is #5369's bounded binding witness and its checked
+application/input Plot admission, reused by this corpus. That prerequisite
+must precede claiming the Parsec part of #5355 complete, even though the fuller
+prompt extension follows the main product path. A manually authored Fire map,
+a generic Enter activation, or a string containing "Press Fire" cannot stand
+in for current verified binding/remap truth. Keep raw input mechanics and
+binding authority outside Face and Look; reuse existing chords/typed returns
+rather than introducing a universal Button or Mask-local game reducer.
