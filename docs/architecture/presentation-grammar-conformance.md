@@ -478,3 +478,18 @@ provenance in a non-forgeable result wrapper. Tests compare it to the checked
 program result and reject a deserialized zero-revision context before evaluation.
 This remains source-evaluated proposal evidence, not an installed Host execution
 receipt, a controller observation, or current binding availability authority.
+
+Face correlation now resolves a source-produced binding proposal against the
+exact current validated Face and available Show. It derives the action target
+from the supplied action, rejects stale Face/Show/revision, and refuses missing
+or unavailable actions and Closed/Replaced/Failed Shows. This does not establish
+current controller availability or authorize a remapping from identity strings.
+
+`components/parsec-state-step.conduit` supplies a finite application-owned
+transition mechanism: Start enters gameplay; Shoot is accepted only during
+gameplay; stale Start and invented commands refuse without changing state.
+`parsec_state_source.rs` evaluates the actual checked/expanded program against
+these cases. The caller supplies prior state; this is compiler/evaluation proof,
+not a retained Body checkpoint, installed execution, physical input or gameplay
+end-to-end proof. Connecting the committed state to the selected binding policy
+and truthful native/browser/linear/spoken prompts remains required for #5355.
