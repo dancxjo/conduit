@@ -1,0 +1,102 @@
+{
+  "schema": "conduit.usb/bot-native-fault-matrix@1",
+  "source_commit": "e9a277e4cb38805033c781355600122b49876d5f",
+  "image_id": "image:sha256:7a6eabc3da9c9f3eadfdfbbaaf730ae8be79fed8ef5aa975db6c1e10a149906a",
+  "proof_class": "emulated-native-storage-with-external-device",
+  "cases": [
+    {
+      "mode": "none",
+      "runner_exit": 0,
+      "decoder_exit": 0,
+      "native_tags": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16
+      ],
+      "passed": true
+    },
+    {
+      "mode": "stall-in",
+      "runner_exit": 0,
+      "decoder_exit": 0,
+      "native_tags": [
+        1
+      ],
+      "passed": true
+    },
+    {
+      "mode": "disconnect-in",
+      "runner_exit": 0,
+      "decoder_exit": 0,
+      "native_tags": [
+        1
+      ],
+      "passed": true
+    },
+    {
+      "mode": "stale-tag",
+      "runner_exit": 0,
+      "decoder_exit": 0,
+      "native_tags": [
+        1
+      ],
+      "passed": true
+    },
+    {
+      "mode": "bad-residue",
+      "runner_exit": 0,
+      "decoder_exit": 0,
+      "native_tags": [
+        1
+      ],
+      "passed": true
+    },
+    {
+      "mode": "command-failed",
+      "runner_exit": 0,
+      "decoder_exit": 0,
+      "native_tags": [
+        1
+      ],
+      "passed": true
+    },
+    {
+      "mode": "phase-error",
+      "runner_exit": 0,
+      "decoder_exit": 0,
+      "native_tags": [
+        1
+      ],
+      "passed": true
+    },
+    {
+      "mode": "short-in",
+      "runner_exit": 0,
+      "decoder_exit": 0,
+      "native_tags": [
+        1
+      ],
+      "passed": true
+    }
+  ],
+  "physical_hardware_proven": false,
+  "remaining": [
+    "held transfer cancellation and late response",
+    "reset reentry policy",
+    "AArch64 execution",
+    "integration and CI"
+  ]
+}

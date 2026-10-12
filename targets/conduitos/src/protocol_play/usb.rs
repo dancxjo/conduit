@@ -1,6 +1,8 @@
 //! USB storage admission preserves the ordinary shared kernel and exact owners.
 use super::*;
 
+mod storage_ingress;
+
 impl<P: I2cProvider> PreparedProtocolPlay<P> {
     #[cfg(any(
         target_arch = "x86_64",
@@ -181,5 +183,94 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
         timestamp: smoltcp::time::Instant,
     ) -> Result<Option<crate::virtio_tcp::VirtioTcpReceipt>, ProtocolCallRefusal> {
         self.calls.poll_ethernet_network(timestamp)
+    }
+}
+
+/// Actual independently issued storage possessions; descriptive offers are separate.
+pub(crate) struct StorageScopePossession {
+    pub table: BaseCapabilityTable,
+    pub handle: BaseCapabilityHandle,
+    pub claim: BaseOperationClaim,
+}
+pub(crate) struct StorageUsbAdmission {
+    /// Independently Root-backed storage retention, separate from USB envelopes.
+    pub maximum_retained_bytes: u64,
+    pub usb: UsbDuplexAdmission,
+    pub authorize: StorageScopePossession,
+    pub settle: StorageScopePossession,
+}
+impl<P: I2cProvider> PreparedProtocolPlay<P> {
+    pub(crate) fn prepare_storage_usb_duplex(
+        definition: KernelCompositeDefinition,
+        admission: StorageUsbAdmission,
+        operations: crate::protocol_operations::ProtocolOperations,
+    ) -> Result<Self, ProtocolCallRefusal> {
+        // Ordinary ingress cannot submit raw USB calls alongside storage requests.
+        let plan = &definition.internal_plan;
+        let authorize = plan
+            .fragments
+            .iter()
+            .flat_map(|fragment| &fragment.placements)
+            .find(|gear| {
+                gear.implementation_id.as_str()
+                    == crate::storage_base::transaction_factory::AUTHORIZE_IMPLEMENTATION
+            })
+            .ok_or(ProtocolCallRefusal::InvalidPlan)?;
+        if definition.boundary.input_fronts.len() != 1 {
+            return Err(ProtocolCallRefusal::InvalidPlan);
+        }
+        let ingress = &definition.boundary.input_fronts[0];
+        if authorize.inputs.len() != 1
+            || ingress.external_port.value_kind != authorize.inputs[0].value_kind
+        {
+            return Err(ProtocolCallRefusal::InvalidPlan);
+        }
+        let placements: alloc::vec::Vec<_> = plan
+            .fragments
+            .iter()
+            .flat_map(|fragment| &fragment.placements)
+            .map(|gear| {
+                (
+                    gear.placement_id.as_str(),
+                    gear.implementation_id.as_str(),
+                    gear.base.is_some() || !gear.resources.is_empty() || !gear.authority.is_empty(),
+                )
+            })
+            .collect();
+        let connections: alloc::vec::Vec<_> = plan
+            .fragments
+            .iter()
+            .flat_map(|fragment| &fragment.connections)
+            .map(|connection| {
+                (
+                    connection.source_placement_id.as_str(),
+                    connection.sink_placement_id.as_str(),
+                )
+            })
+            .collect();
+        if !storage_ingress::authorized_route(
+            ingress.internal_placement_id.as_str(),
+            authorize.placement_id.as_str(),
+            &placements,
+            &connections,
+        ) {
+            return Err(super::preparation_diagnostic::invalid(
+                "storage-ingress",
+                "request bypasses storage authorization",
+            ));
+        }
+        Self::prepare_selected(
+            definition,
+            operations,
+            false,
+            PhysicalMode::StorageUsbDuplex,
+            conduit_composite::KernelCompositeSignStorage {
+                additional_local_items: 0,
+                additional_remote_items: admission.usb.additional_remote_sign_items,
+            },
+            |plan, zip, states| {
+                PreparedProtocolCalls::prepare_storage_usb_duplex(plan, admission, zip, states)
+            },
+        )
     }
 }

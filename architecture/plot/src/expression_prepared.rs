@@ -32,6 +32,7 @@ use structured::PreparedStructuredExpression;
 pub struct PreparedPortableExpressionEvaluator {
     root: PreparedRoot,
     input: PreparedInput,
+    input_maximum_bytes: Option<u32>,
     output: Vec<u8>,
 }
 
@@ -100,14 +101,30 @@ pub fn maximum_prepared_canonical_value_bytes(
     Ok(storage_bound::canonical(ty)? as u32)
 }
 
+pub(crate) fn maximum_input_type_bytes(
+    ty: &conduit_core::StructuredInfoType,
+) -> Result<u32, Refusal> {
+    Ok(storage_bound::output(ty)? as u32)
+}
+
 impl PortableExpressionProgram {
     /// Conservative canonical transport ceiling, computed before Play from the exact input Type.
     pub fn maximum_prepared_input_bytes(&self) -> Result<u32, Refusal> {
-        Ok(storage_bound::output(&self.input_type)? as u32)
+        self.validate_input_bound()
+            .map_err(|_| Refusal::InvalidProgram)?;
+        let structural = maximum_input_type_bytes(&self.input_type)?;
+        Ok(self
+            .input_maximum_bytes
+            .map_or(structural, |maximum| maximum.min(structural)))
     }
 
     /// Conservative canonical transport ceiling, computed before Play from the exact output Type.
     pub fn maximum_prepared_output_bytes(&self) -> Result<u32, Refusal> {
+        if self.input_type == self.output_type
+            && matches!(self.root.operation, PortableExpressionOperation::Input)
+        {
+            return self.maximum_prepared_input_bytes();
+        }
         Ok(storage_bound::output(&self.output_type)? as u32)
     }
 }
@@ -143,17 +160,32 @@ impl PreparedPortableExpressionEvaluator {
                     .into(),
             ),
         };
-        Self::prepare(
+        program
+            .validate_input_bound()
+            .map_err(|_| Refusal::InvalidProgram)?;
+        let mut prepared = Self::prepare_with_output_capacity(
             ProgramView {
                 input_type: &program.input_type,
                 output_type: &program.output_type,
                 root: &program.root,
             },
             input,
-        )
+            program.maximum_prepared_output_bytes()? as usize,
+        )?;
+        prepared.input_maximum_bytes = program.input_maximum_bytes;
+        Ok(prepared)
     }
 
     fn prepare(program: ProgramView<'_>, input: PreparedInput) -> Result<Self, Refusal> {
+        let capacity = storage_bound::output(program.output_type)?;
+        Self::prepare_with_output_capacity(program, input, capacity)
+    }
+
+    fn prepare_with_output_capacity(
+        program: ProgramView<'_>,
+        input: PreparedInput,
+        capacity: usize,
+    ) -> Result<Self, Refusal> {
         let root = match program.output_type.shape() {
             StructuredInfoTypeShape::Leaf(_) | StructuredInfoTypeShape::Nominal { .. }
                 if leaf_kind(program.output_type).is_ok() =>
@@ -182,11 +214,18 @@ impl PreparedPortableExpressionEvaluator {
         Ok(Self {
             root,
             input,
-            output: Vec::with_capacity(storage_bound::output(program.output_type)?),
+            input_maximum_bytes: None,
+            output: Vec::with_capacity(capacity),
         })
     }
 
     pub fn evaluate(&mut self, input: &[u8]) -> Result<&[u8], Refusal> {
+        if self
+            .input_maximum_bytes
+            .is_some_and(|maximum| input.len() > maximum as usize)
+        {
+            return Err(Refusal::InvalidInput);
+        }
         let mut primitive_bytes = input;
         let primitive_input = match &self.input {
             PreparedInput::Primitive {
@@ -334,8 +373,10 @@ fn prepare_node(
         PortableExpressionOperation::SemanticCall {
             kind: call,
             arguments,
-        } if matches!(call.as_str(), "bytes/length" | "bytes/at") => {
-            let expected = if call == "bytes/at" {
+        } if matches!(call.as_str(), "bytes/length" | "bytes/at" | "bytes/window") => {
+            let expected = if call == "bytes/window" {
+                PrimitiveInfoKind::Bytes
+            } else if call == "bytes/at" {
                 PrimitiveInfoKind::U8
             } else {
                 PrimitiveInfoKind::U64
@@ -365,7 +406,7 @@ fn prepare_node(
         _ => {
             return Err(Refusal::UnsupportedType(
                 "structured expression runtime".into(),
-            ))
+            ));
         }
     };
     Ok(PreparedNode {

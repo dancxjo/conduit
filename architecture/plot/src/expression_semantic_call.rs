@@ -70,7 +70,30 @@ pub(super) fn check(
         }
         return Ok(CheckedExpressionType::semantic(target));
     }
-    if matches!(name.text.as_str(), "bytes/length" | "bytes/at") {
+    if name.text == "bytes/window" {
+        if arguments.len() != 3 {
+            return Err(diagnostic(
+                span,
+                "byte window requires Bytes, U64 offset and U64 length",
+            ));
+        }
+        let bytes = CheckedExpressionType::semantic("value/bytes");
+        let integer = CheckedExpressionType::semantic("value/u64");
+        if check_argument(&arguments[0], Some(&bytes))? != bytes
+            || check_argument(&arguments[1], Some(&integer))? != integer
+            || check_argument(&arguments[2], Some(&integer))? != integer
+        {
+            return Err(diagnostic(
+                span,
+                "byte window requires exact Bytes and U64 bounds",
+            ));
+        }
+        return Ok(bytes);
+    }
+    if matches!(
+        name.text.as_str(),
+        "bytes/length" | "bytes/at" | "bytes/window"
+    ) {
         let expected_count = if name.text == "bytes/at" { 2 } else { 1 };
         if arguments.len() != expected_count {
             return Err(diagnostic(
@@ -269,7 +292,7 @@ pub(crate) fn collection_element(
             }
             conduit_core::StructuredInfoTypeShape::Collection { element, .. }
             | conduit_core::StructuredInfoTypeShape::Sequence { element, .. } => {
-                return Some(element)
+                return Some(element);
             }
             _ => return None,
         }
@@ -370,5 +393,6 @@ pub(crate) fn is_intrinsic(name: &str) -> bool {
                 | "sequence/at"
                 | "bytes/length"
                 | "bytes/at"
+                | "bytes/window"
         )
 }

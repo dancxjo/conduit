@@ -1,5 +1,6 @@
-//! Three original USB owners plus an independently admitted network queue owner.
+//! Original USB owners and optional independently admitted semantic services.
 use super::*;
+use crate::protocol_source::NativeProtocolPossession;
 #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
 pub(crate) struct NativeEthernetPreparation {
     pub ready: crate::ethernet_frame::owned_installation::ReadyOwnedEthernetFrameBase,
@@ -9,10 +10,7 @@ pub(crate) struct NativeEthernetPreparation {
 }
 /// Plan and admit three transports with independently issued exact possession.
 #[allow(clippy::too_many_arguments)]
-pub(crate) fn prepare_native_usb_duplex_with_network<
-    P: I2cProvider,
-    C: MonotonicDeadlineProvider,
->(
+pub(crate) fn prepare_native_usb_duplex<P: I2cProvider, C: MonotonicDeadlineProvider>(
     entry: PreparedProtocolEntry,
     session: BodyLifecycleSession,
     mut advertisement: HostAdvertisement,
@@ -26,6 +24,7 @@ pub(crate) fn prepare_native_usb_duplex_with_network<
     #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))] network: Option<
         NativeEthernetPreparation,
     >,
+    storage: Option<NativeStoragePreparation>,
 ) -> Result<PreparedProtocolBodyPlay<P, C>, Box<NativeProtocolPreparationRefusal>> {
     use NativeProtocolPreparationReason as Reason;
     let mut retained_session = Some(session);
@@ -63,6 +62,11 @@ pub(crate) fn prepare_native_usb_duplex_with_network<
                     ))
                 })?;
         }
+        if let Some(storage) = &storage {
+            storage.append(&mut advertisement).map_err(|error| {
+                Reason::Body(super::super::body_play::ProtocolBodyRefusal::Call(error))
+            })?;
+        }
         entry
             .publish_pure_backs(&mut advertisement)
             .map_err(Reason::Source)?;
@@ -71,19 +75,19 @@ pub(crate) fn prepare_native_usb_duplex_with_network<
         advertisement
             .resources
             .sort_by(|left, right| left.pool_id.cmp(&right.pool_id));
-        let grants = vec![
+        let mut grants = vec![
             issuer.grant().clone(),
             endpoint_issuer.grant().clone(),
             write_issuer.grant().clone(),
         ];
         #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
-        let grants = {
-            let mut grants = grants;
-            if let Some(network) = &network {
-                grants.push(network.issuer.grant().clone());
-            }
-            grants
-        };
+        if let Some(network) = &network {
+            grants.push(network.issuer.grant().clone());
+        }
+        if let Some(storage) = &storage {
+            grants.push(storage.authorize.grant().clone());
+            grants.push(storage.settle.grant().clone());
+        }
         let hosts = [advertisement];
         let placements = entry.placements(&hosts).map_err(Reason::Source)?;
         let empty = BTreeMap::new();
@@ -157,49 +161,89 @@ pub(crate) fn prepare_native_usb_duplex_with_network<
             write_handle: write_possession.handle,
             write_claim: write_possession.claim,
         };
-        #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
-        let result = match network {
-            Some(network) => {
-                let possession = network
-                    .issuer
-                    .issue(
-                        plan,
-                        &active,
-                        &ImplementationId::from(
-                            crate::ethernet_frame::factory::FRAME_IMPLEMENTATION,
-                        ),
-                        work_units,
+        let result = if let Some(storage) = storage {
+            let authorize = storage
+                .authorize
+                .issue(
+                    plan,
+                    &active,
+                    &crate::storage_base::transaction_factory::AUTHORIZE_IMPLEMENTATION.into(),
+                    work_units,
+                )
+                .map_err(Reason::Possession)?;
+            let settle = storage
+                .settle
+                .issue(
+                    plan,
+                    &active,
+                    &crate::storage_base::transaction_factory::SETTLE_IMPLEMENTATION.into(),
+                    work_units,
+                )
+                .map_err(Reason::Possession)?;
+            let scope = |possession: NativeProtocolPossession| {
+                crate::protocol_play::StorageScopePossession {
+                    table: possession.table,
+                    handle: possession.handle,
+                    claim: possession.claim,
+                }
+            };
+            PreparedProtocolBodyPlay::prepare_storage_usb_duplex(
+                artifact,
+                retained_session.take().expect("retained body"),
+                body_play_sequence,
+                crate::protocol_play::StorageUsbAdmission {
+                    maximum_retained_bytes: storage.maximum_retained_bytes,
+                    usb,
+                    authorize: scope(authorize),
+                    settle: scope(settle),
+                },
+            )
+        } else {
+            #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
+            let result = match network {
+                Some(network) => {
+                    let possession = network
+                        .issuer
+                        .issue(
+                            plan,
+                            &active,
+                            &ImplementationId::from(
+                                crate::ethernet_frame::factory::FRAME_IMPLEMENTATION,
+                            ),
+                            work_units,
+                        )
+                        .map_err(Reason::Possession)?;
+                    PreparedProtocolBodyPlay::prepare_usb_ethernet(
+                        artifact,
+                        retained_session.take().expect("retained body"),
+                        body_play_sequence,
+                        usb,
+                        crate::protocol_host_calls::EthernetFrameAdmission {
+                            ready: network.ready,
+                            table: possession.table,
+                            handle: possession.handle,
+                            claim: possession.claim,
+                            random_seed: network.random_seed,
+                            timestamp: network.timestamp,
+                        },
                     )
-                    .map_err(Reason::Possession)?;
-                PreparedProtocolBodyPlay::prepare_usb_ethernet(
+                }
+                None => PreparedProtocolBodyPlay::prepare_usb_duplex(
                     artifact,
                     retained_session.take().expect("retained body"),
                     body_play_sequence,
                     usb,
-                    crate::protocol_host_calls::EthernetFrameAdmission {
-                        ready: network.ready,
-                        table: possession.table,
-                        handle: possession.handle,
-                        claim: possession.claim,
-                        random_seed: network.random_seed,
-                        timestamp: network.timestamp,
-                    },
-                )
-            }
-            None => PreparedProtocolBodyPlay::prepare_usb_duplex(
+                ),
+            };
+            #[cfg(not(all(target_arch = "x86_64", feature = "native-owner-network")))]
+            let result = PreparedProtocolBodyPlay::prepare_usb_duplex(
                 artifact,
                 retained_session.take().expect("retained body"),
                 body_play_sequence,
                 usb,
-            ),
+            );
+            result
         };
-        #[cfg(not(all(target_arch = "x86_64", feature = "native-owner-network")))]
-        let result = PreparedProtocolBodyPlay::prepare_usb_duplex(
-            artifact,
-            retained_session.take().expect("retained body"),
-            body_play_sequence,
-            usb,
-        );
         match result {
             Ok(play) => Ok(play),
             Err(refusal) => {

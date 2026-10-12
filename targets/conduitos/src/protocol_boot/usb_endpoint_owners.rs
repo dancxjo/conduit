@@ -92,7 +92,27 @@ pub(super) unsafe fn configure(
             &mut dma,
         )
     }
-    .map_err(|_| "protocol-usb-endpoint-configuration-refused")?;
+    .map_err(|error| {
+        // Preserve the original finite native refusal without changing geometry
+        // or retrying a quarantined endpoint on this attachment.
+        if crate::allocation::BOOT_ARENA.capacity() != 0 {
+            use core::fmt::Write;
+            let mut line = crate::sign_format::FixedText::new();
+            if writeln!(
+                line,
+                "CONDUIT_PROTOCOL_ENDPOINT_REFUSAL direction=in reason={error:?} slot={} address={} packet={} ring={:#x} buffer={:#x} input={:#x}",
+                device.slot,
+                request.address,
+                request.maximum_packet,
+                dma.ring_physical,
+                dma.buffer_physical,
+                physical + core::mem::offset_of!(EndpointDma, input) as u64,
+            ).is_ok() {
+                arch::early_write(line.as_bytes());
+            }
+        }
+        "protocol-usb-endpoint-configuration-refused"
+    })?;
     Ok(NativeEndpoint {
         configured,
         dma,

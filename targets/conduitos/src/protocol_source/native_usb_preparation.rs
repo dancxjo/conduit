@@ -238,37 +238,11 @@ pub(crate) fn prepare_native_usb_endpoint_protocol<P: I2cProvider, C: MonotonicD
     })
 }
 
+#[path = "native_storage_preparation.rs"]
+mod storage;
+pub(crate) use storage::NativeStoragePreparation;
 #[path = "native_usb_duplex_preparation.rs"]
 mod duplex;
 #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
-pub(crate) use duplex::{NativeEthernetPreparation, prepare_native_usb_duplex_with_network};
-
-/// Plan and admit three transports with independently issued exact possession.
-#[allow(clippy::too_many_arguments)]
-pub(crate) fn prepare_native_usb_duplex_protocol<P: I2cProvider, C: MonotonicDeadlineProvider>(
-    entry: PreparedProtocolEntry,
-    session: BodyLifecycleSession,
-    advertisement: HostAdvertisement,
-    ready: crate::arch::ReadyUsbDuplexHost,
-    issuer: NativeProtocolIssuer,
-    endpoint_issuer: NativeProtocolIssuer,
-    write_issuer: NativeProtocolIssuer,
-    body_play_sequence: u64,
-    work_units: u64,
-    additional_remote_sign_items: u16,
-) -> Result<PreparedProtocolBodyPlay<P, C>, Box<NativeProtocolPreparationRefusal>> {
-    duplex::prepare_native_usb_duplex_with_network(
-        entry,
-        session,
-        advertisement,
-        ready,
-        issuer,
-        endpoint_issuer,
-        write_issuer,
-        body_play_sequence,
-        work_units,
-        additional_remote_sign_items,
-        #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
-        None,
-    )
-}
+pub(crate) use duplex::NativeEthernetPreparation;
+pub(crate) use duplex::prepare_native_usb_duplex;

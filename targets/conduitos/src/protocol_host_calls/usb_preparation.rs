@@ -130,6 +130,7 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
         }
         Ok(Self {
             plan_id: plan.plan_id.clone(),
+            storage: None,
             identity: PreparationHostIdentity {
                 host_id: fragment.host_id.clone(),
                 boot_id: fragment.boot_id.clone(),
@@ -246,6 +247,7 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
         }
         Ok(Self {
             plan_id: plan.plan_id.clone(),
+            storage: None,
             identity: PreparationHostIdentity {
                 host_id: fragment.host_id.clone(),
                 boot_id: fragment.boot_id.clone(),
@@ -402,6 +404,7 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
         bind_extra(fragment, &lowered, &active, &mut bindings)?;
         Ok(Self {
             plan_id: plan.plan_id.clone(),
+            storage: None,
             identity: PreparationHostIdentity {
                 host_id: fragment.host_id.clone(),
                 boot_id: fragment.boot_id.clone(),

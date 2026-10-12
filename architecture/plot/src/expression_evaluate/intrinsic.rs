@@ -23,6 +23,48 @@ pub(super) fn intrinsic_call(
             encoded,
         });
     }
+    if kind == "bytes/window" {
+        let source_type = StructuredInfoType::leaf(conduit_core::kind_id("value/bytes"))
+            .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?;
+        let integer_type = StructuredInfoType::leaf(conduit_core::kind_id("value/u64"))
+            .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?;
+        if arguments.len() != 3
+            || expected != &source_type
+            || arguments[0].value_type != source_type
+            || arguments[1].value_type != integer_type
+            || arguments[2].value_type != integer_type
+        {
+            return Err(PortableExpressionEvaluationRefusal::InvalidProgram);
+        }
+        let integer = |value: &Value| -> Result<u64, PortableExpressionEvaluationRefusal> {
+            Ok(u64::from_le_bytes(
+                value
+                    .encoded
+                    .as_slice()
+                    .try_into()
+                    .map_err(|_| PortableExpressionEvaluationRefusal::InvalidInput)?,
+            ))
+        };
+        let offset = integer(&arguments[1])?;
+        let length = integer(&arguments[2])?;
+        let start = usize::try_from(offset)
+            .map_err(|_| PortableExpressionEvaluationRefusal::InvalidInput)?;
+        let end = usize::try_from(
+            offset
+                .checked_add(length)
+                .ok_or(PortableExpressionEvaluationRefusal::InvalidInput)?,
+        )
+        .map_err(|_| PortableExpressionEvaluationRefusal::InvalidInput)?;
+        let encoded = arguments[0]
+            .encoded
+            .get(start..end)
+            .ok_or(PortableExpressionEvaluationRefusal::InvalidInput)?
+            .to_vec();
+        return Ok(Value {
+            value_type: source_type,
+            encoded,
+        });
+    }
     if matches!(kind, "bytes/length" | "bytes/at") {
         let count = if kind == "bytes/at" { 2 } else { 1 };
         let source_type = StructuredInfoType::leaf(conduit_core::kind_id("value/bytes"))

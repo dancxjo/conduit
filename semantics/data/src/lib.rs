@@ -2,6 +2,8 @@
 
 extern crate alloc;
 
+pub mod bytes_literal;
+
 #[allow(dead_code, clippy::too_many_arguments)]
 mod generated {
     include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
