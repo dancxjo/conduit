@@ -14,7 +14,10 @@ pub const MAXIMUM_PACKAGE_BYTES: usize = 1024 * 1024;
 pub const MAXIMUM_SOURCE_BYTES: usize = 256 * 1024;
 pub const MAXIMUM_SPECIALIZATIONS: usize = 16;
 /// Native containing-machine storage budget per external Fore boundary.
+/// Finite native Root ingress ceiling, independent of output realization.
 pub const MAXIMUM_PROTOCOL_FORE_BYTES: u32 = 4096;
+/// Finite native output ceiling for checked structured transport receipts.
+pub const MAXIMUM_PROTOCOL_OUTPUT_FORE_BYTES: u32 = 32768;
 pub const PACKAGE_SCHEMA: &str = "conduit.conduitos/protocol-source@1";
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
