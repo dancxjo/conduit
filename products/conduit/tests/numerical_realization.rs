@@ -76,3 +76,39 @@ fn symbolic_or_negative_precision_refuses_without_play_or_output() {
         assert!(output.is_empty());
     }
 }
+
+#[test]
+fn finite_specimen_runs_through_the_actual_cli_without_stdin_cancellation() {
+    let path =
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../plots/numerics/main.conduit");
+    let report =
+        std::env::temp_dir().join(format!("conduit-numerical-cli-{}.json", std::process::id()));
+    let output = std::process::Command::new(env!("CARGO_BIN_EXE_conduit"))
+        .arg("run")
+        .arg(path)
+        .arg("--report")
+        .arg(&report)
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{:?}", output);
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(
+        stdout
+            .lines()
+            .any(|line| line.starts_with("plan ") && line.ends_with(" complete")),
+        "{stdout}"
+    );
+    let snapshot: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(&report).unwrap()).unwrap();
+    let observations: Vec<conduit_core::Observation> =
+        serde_json::from_value(snapshot["observations"].clone()).unwrap();
+    assert_eq!(
+        observations
+            .iter()
+            .filter(|o| matches!(o.kind, ObservationKind::ValuePresented { .. }))
+            .count(),
+        2
+    );
+    std::fs::remove_file(report).unwrap();
+    assert!(!stdout.contains("OperatorRequested"), "{stdout}");
+}

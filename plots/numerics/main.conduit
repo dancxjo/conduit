@@ -6,4 +6,4 @@ plot numerics {
     loose-show: presentation/numerical-result
     exact.result >> exact-show.input
     loose.result >> loose-show.input
-}
+}.

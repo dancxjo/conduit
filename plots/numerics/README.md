@@ -1,6 +1,7 @@
 # Prepared numerical receipts
 
-Run `conduit run plots/numerics/main.conduit` on the installed std Host. Both
+Run `conduit run plots/numerics/main.conduit --report numerics-report.json`
+on the installed std Host. The report retains both typed presentation Signs. Both
 requests retain exact mathematical source `0.3`. Zero error requires the rational
 point result; the loose request permits the outward integer enclosure `[0,1]`,
 whose certified maximum endpoint error is `0.7`.
