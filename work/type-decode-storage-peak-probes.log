@@ -1,0 +1,16 @@
+   Compiling conduit-core v0.1.0 (/home/dancxjo/conduit-4907-decode-accounting/architecture/core)
+    Finished `test` profile [unoptimized] target(s) in 0.19s
+     Running tests/type_decode_storage.rs (target/debug/deps/type_decode_storage-b19f73f7c8914f59)
+
+running 2 tests
+type decode encoded=14 retained=9 peak=9 requested=9 bound=9
+type decode encoded=20 retained=66 peak=86 requested=86 bound=86
+type decode encoded=17 retained=65 peak=82 requested=82 bound=82
+test leaf_and_law_free_nominal_charge_the_actual_constructor_paths ... ok
+type decode encoded=216 retained=999 peak=1215 requested=2622 bound=3262
+type decode encoded=1865 retained=6400 peak=11520 requested=13385 bound=18505
+type decode encoded=1865 retained=6400 peak=11520 requested=13385 bound=18505
+test nested_shapes_and_unsorted_full_aggregate_buffers_fit_requested_bound ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

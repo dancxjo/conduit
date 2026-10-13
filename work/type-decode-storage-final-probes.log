@@ -1,0 +1,10 @@
+   Compiling conduit-core v0.1.0 (/home/dancxjo/conduit-4907-decode-accounting/architecture/core)
+    Finished `test` profile [unoptimized] target(s) in 0.17s
+     Running tests/type_decode_storage.rs (target/debug/deps/type_decode_storage-b19f73f7c8914f59)
+
+running 2 tests
+test leaf_and_law_free_nominal_charge_the_actual_constructor_paths ... ok
+test nested_shapes_and_unsorted_full_aggregate_buffers_fit_requested_bound ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

@@ -1,0 +1,1207 @@
+   Compiling conduit-core v0.1.0 (/home/dancxjo/conduit-4907-decode-accounting/architecture/core)
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/conduit-4907-decode-accounting/architecture/plot)
+    Finished `test` profile [unoptimized] target(s) in 35.79s
+     Running unittests src/lib.rs (target/debug/deps/conduit_core-be07b835276666ef)
+
+running 86 tests
+test capability_offer::tests::construction_keeps_semantics_owned_by_the_contract ... ok
+test capability_offer::tests::abnormal_value_contract_must_name_the_exact_declared_terminal_kind ... ok
+test capability_offer::tests::kind_fore_rejects_one_symbol_reused_across_directions ... ok
+test capability_offer::tests::resource_port_must_name_one_real_fore_port ... ok
+test capability_offer::tests::realization_capacity_may_only_narrow ... ok
+test capability_offer::tests::kind_validation_refuses_duplicate_or_front_mismatched_configuration ... ok
+test capability_offer::tests::semantic_contract_integers_remain_exact_across_json_and_positional_carriers ... ok
+test capability_offer::tests::resource_ports_are_checked_fore_identity_without_bearer_material ... ok
+test capability_offer::tests::semantic_contract_is_required_in_json_and_breaks_legacy_positional_frames_closed ... ok
+test characteristic::tests::finite_categories_reject_unknown_labels_and_implicit_ordering ... ok
+test capability_offer::tests::terminal_transduction_keeps_types_and_three_behaviors_independent ... ok
+test capability_offer::tests::state_retention_is_offer_owned_validated_and_serialized ... ok
+test characteristic::tests::quantity_validation_keeps_units_subject_and_stability_exact ... ok
+test characteristic::tests::planner_characteristic_quantities_converge_only_for_reviewed_units ... ok
+test capability_offer::tests::value_contracts_are_exact_checked_fore_identity_and_validate_fail_closed ... ok
+test deadline::tests::contract_is_exact_bounded_and_round_trips_every_boundary ... ok
+test delivery::tests::accounting_exhaustion_returns_ownership_without_mutating_pending_state ... ok
+test delivery::tests::declared_state_coalescing_retains_the_newest_value_and_accounting ... ok
+test delivery::tests::coherent_frames_are_replaced_only_as_whole_values ... ok
+test configuration::tests::structured_configuration_requires_matching_profile_and_canonical_value ... ok
+test delivery::tests::delivery_meaning_changes_exact_contract_identity ... ok
+test delivery::tests::ordered_occurrences_refuse_pressure_without_overwriting ... ok
+test delivery::tests::request_and_signal_contracts_reject_coalescing ... ok
+test delivery::tests::renderer_coalescing_cannot_mutate_semantic_delivery_accounting ... ok
+test delivery::tests::supersession_and_cancellation_leave_exact_release_with_the_owner ... ok
+test device::tests::old_truth_is_retained_only_when_explicitly_historical ... ok
+test device::tests::optional_and_composite_current_associations_validate ... ok
+test device::tests::stale_current_truth_and_dangling_capabilities_refuse ... ok
+test device::tests::vendor_product_facts_cannot_masquerade_as_physical_identity ... ok
+test front::tests::abnormal_tracks_receive_independent_canonical_finite_envelopes ... ok
+test front::tests::abnormal_contract_changes_exact_fore_identity_without_changing_payload ... ok
+test front::tests::canonical_variable_size_kinds_supply_their_finite_default_envelopes ... ok
+test front::tests::explicit_value_bound_replaces_the_default_at_the_same_location ... ok
+test front::tests::constraints_participate_in_exact_checked_fore_identity ... ok
+test ieee_float::tests::binary64_preserves_nan_payload_zero_and_subnormal_bits ... ok
+test ieee_float::tests::bit_identity_preserves_every_edge_class ... ok
+test ieee_float::tests::finite_and_ordered_contracts_refuse_nonfinite_and_out_of_range_values ... ok
+test interop::tests::direction_bounds_and_mapping_identity_are_exact ... ok
+test interop::tests::directional_bridge_does_not_assimilate_reflections_or_siblings ... ok
+test state_delay::tests::admission_accounts_current_candidate_and_mandatory_evidence ... ok
+test state_delay::tests::architecture_contract_keeps_state_explicit_and_non_authoritative ... ok
+test state_delay::tests::duplicate_unbounded_and_oversized_initial_state_refuse ... ok
+test state_delay::tests::lifetime_and_absent_initial_value_are_exact_plan_truth ... ok
+test stream_sampling::tests::oversize_and_exhaustion_return_exact_ownership_with_distinct_reasons ... ok
+test stream_sampling::tests::invalid_rules_and_changed_meaning_have_distinct_contract_identity ... ok
+test stream_sampling::tests::reviewed_rule_selects_exact_source_indices_and_accounts_omissions ... ok
+test stream_sampling::tests::sampling_vocabulary_cannot_report_pressure_or_supersession ... ok
+test structured_info::borrowed::leaf_sequence::tests::borrowed_copy_preserves_destination_on_capacity_identity_and_width_refusal ... ok
+test structured_info::borrowed::nominal::tests::nominal_child_observation_preserves_exact_outer_identity_and_bytes ... ok
+test structured_info::decode_storage::tests::storage_arithmetic_refuses_overflow ... ok
+test structured_info::decode_storage::tests::malformed_type_preflight_preserves_decoder_first_refusal ... ok
+test structured_info::prepared_composition::tests::borrowed_depth_exhaustion_remains_distinct_from_malformed_encoding ... ok
+test structured_info::sequence::tests::prepared_sequence_refuses_excess_items_and_bytes ... ok
+test structured_info::sequence::tests::prepared_sequence_matches_the_canonical_bounded_sequence_type ... ok
+test temporal_civil_conversion::tests::conversion_refuses_precision_loss_and_pre_epoch_instants ... ok
+test temporal_civil_conversion::tests::leap_day_and_offset_date_crossing_round_trip ... ok
+test temporal_civil_conversion::tests::nanosecond_scale_refuses_unsigned_tick_overflow ... ok
+test structured_info::tuple::tests::prepared_pair_is_the_same_canonical_tuple_used_by_expression_types ... ok
+test temporal_civil_conversion::tests::reverse_conversion_requires_exact_unix_utc_truth ... ok
+test temporal_civil_conversion::tests::utc_epoch_and_explicit_offset_name_the_same_instant ... ok
+test structured_info::tuple::tests::prepared_triple_uses_the_canonical_three_member_tuple_without_growth ... ok
+test temporal_quantity::tests::duration_construction_converts_exact_time_quantities ... ok
+test temporal_quantity::tests::duration_construction_refuses_loss_and_wrong_dimensions ... ok
+test temporal_quantity::tests::duration_construction_refuses_negative_quantity ... ok
+test temporal_quantity::tests::duration_exports_exact_quantity_or_refuses_range_loss ... ok
+test temporal_quantity::tests::temporal_scales_map_to_time_quantity_units ... ok
+test terminal_info::tests::causal_digest_binds_every_exact_origin_and_domain_fact ... ok
+test terminal_info::tests::every_category_round_trips_in_one_exact_bounded_shape ... ok
+test terminal_info::tests::malformed_values_and_unbounded_cause_sets_refuse ... ok
+test tests::mandatory_sign_budget_counts_items_and_identity_bytes_independently ... ok
+test tests::execution_identity_chain_keeps_plan_play_sign_and_presentation_distinct ... ok
+test value_constraint::tests::deterministic_text_pattern_is_full_match_and_work_bounded ... ok
+test value_constraint::tests::exact_contract_distinguishes_structure_from_constraint_refusal ... ok
+test value_constraint::tests::exclusive_interval_endpoints_are_exact_and_empty_ranges_refuse ... ok
+test value_constraint::tests::incompatible_and_malformed_constraints_refuse_before_play ... ok
+test value_constraint::tests::negated_membership_and_pattern_are_exact_checked_truth ... ok
+test value_constraint::tests::open_semantic_ranges_keep_finite_carrier_admission_separate ... ok
+test value_constraint::tests::overlapping_transitions_refuse_as_nondeterministic ... ok
+test value_constraint::tests::quantity_range_refuses_a_mismatched_kind_or_dimension ... ok
+test value_constraint::tests::semantic_openness_has_identity_distinct_from_carrier_extrema ... ok
+test value_constraint::tests::signed_and_quantity_ranges_compare_semantic_values ... ok
+test value_constraint::tests::text_contract_combines_bound_membership_and_pattern ... ok
+test value_constraint::tests::zero_byte_unit_and_exact_empty_text_remain_expressible ... ok
+test structured_info::borrowed::validated_extent::tests::validated_extent_views_match_owned_children_for_every_shape_and_empty_payload ... ok
+test structured_info::prepared_composition::tests::composed_envelope_identity_and_aggregate_node_limits_are_enforced ... ok
+test structured_info::prepared_composition::tests::prepared_composition_matches_owned_canonical_values_without_growth ... ok
+
+test result: ok. 86 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/base_capability.rs (target/debug/deps/base_capability-104165edf83d222c)
+
+running 7 tests
+test copied_ids_and_another_issuers_bearer_cannot_manufacture_privilege ... ok
+test issue_narrows_authority_and_exposes_only_non_secret_inspection ... ok
+test completion_rotates_only_the_exact_move_only_possession ... ok
+test finite_pressure_completion_and_one_shot_replay_are_distinct ... ok
+test provider_checks_every_exact_scope_field_at_operation_time ... ok
+test revocation_cancellation_and_replacement_make_possession_stale ... ok
+test allocation::admitted_lease_work_and_rotation_allocate_nothing_under_pressure ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/base_registry.rs (target/debug/deps/base_registry-015afb1b37cf2163)
+
+running 4 tests
+test empty_effect_host_advertises_only_pure_work ... ok
+test replacement_fences_stale_provider_and_preserves_enforcement_truth ... ok
+test one_provider_cannot_mutate_a_sibling_entry ... ok
+test independent_bases_aggregate_and_fail_independently ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/body_time.rs (target/debug/deps/body_time-951cd1144d93abc7)
+
+running 11 tests
+test boot_and_horizon_are_enforced ... ok
+test different_local_scales_project_to_one_body_scale ... ok
+test disjoint_intervals_order_physical_time_only ... ok
+test malformed_replayed_estimate_cannot_invent_physical_order ... ok
+test partition_expires_quality_then_rejoin_uses_widened_continuity_bounds ... ok
+test cross_host_quality_admission_checks_the_whole_elapsed_horizon ... ok
+test offset_clocks_share_one_bounded_basis_and_drift_widens_bounds ... ok
+test rejoin_accepts_consistent_new_generation_without_reversing_progress ... ok
+test stale_replayed_regressing_and_conflicting_candidates_cannot_mutate_truth ... ok
+test repeated_bounded_samples_refine_rate_without_rewriting_old_generations ... ok
+test rate_estimator_rejects_outlier_and_old_generation ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/body_time_exchange.rs (target/debug/deps/body_time_exchange-346a9c8a1c124d79)
+
+running 2 tests
+test exchange_refuses_wrong_boot_and_excessive_round_trip ... ok
+test exchange_establishes_bounded_local_correlation_without_symmetric_delay_claim ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/body_time_multi_host.rs (target/debug/deps/body_time_multi_host-f4a246889a65bfc1)
+
+running 1 test
+test deterministic_two_host_body_time_lifecycle ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/borrowed_projection.rs (target/debug/deps/borrowed_projection-6b795749a57edd09)
+
+running 2 tests
+test truncated_or_forged_values_cannot_produce_a_borrowed_view ... ok
+test borrowed_sequence_and_case_views_preserve_nominal_identity_and_actual_length ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/bounded_collect.rs (target/debug/deps/bounded_collect-2987940d3aa33a65)
+
+running 3 tests
+test bounded_collect_law_cannot_be_duplicated ... ok
+test bounded_collect_seals_maximum_output_and_overflow_disposition ... ok
+test bounded_collect_requires_a_closing_flow_and_one_value_output ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/claims.rs (target/debug/deps/claims-33e0ab3f7060ec5f)
+
+running 7 tests
+test admission::malformed_edges_cycles_identity_order_and_bounds_refuse ... ok
+test admission::separate_support_closure_preserves_other_targets_and_rejects_substitution ... ok
+test admission::policy_cannot_select_excluded_or_absent_claims ... ok
+test lifecycle::confidence_requires_exact_score_contract_and_producer ... ok
+test diagnosis::one_failure_observation_cannot_distinguish_host_from_path ... ok
+test lifecycle::lifecycle_preserves_history_and_locks_committed_truth ... ok
+test sensor::sensor_rule_model_and_manual_correction_retain_losers_and_exact_evidence ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/consequential_effect.rs (target/debug/deps/consequential_effect-3e1d8c5cdd2bbcc1)
+
+running 3 tests
+test attended_last_mile_gate_refuses_before_effect_and_observes_exact_success ... ok
+test provider_loss_is_safe_and_ambiguous_failure_is_never_retried ... ok
+test stale_expired_forged_and_unready_inputs_never_reach_provider ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/control_loop.rs (target/debug/deps/control_loop-910783eb04852330)
+
+running 6 tests
+test a_non_change_and_empty_sign_fail_closed ... ok
+test replacement_must_have_a_new_plan_identity ... ok
+test architecture_contract_keeps_replan_and_route_change_language_distinct ... ok
+test replacement_planning_and_same_plan_route_selection_are_distinct_records ... ok
+test route_selection_may_change_only_inside_the_same_sealed_plan ... ok
+test unavailable_host_must_be_exactly_sealed_by_the_same_plan ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/delivery_fanout.rs (target/debug/deps/delivery_fanout-3baa8f8b5ee4ec3d)
+
+running 1 test
+test fanout_branches_keep_independent_pressure_meaning_and_resource_claims ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/delivery_terminal.rs (target/debug/deps/delivery_terminal-8f85397c208665b5)
+
+running 2 tests
+test cancellation_is_terminal_and_distinct_from_closure_and_pressure ... ok
+test closure_preserves_owed_delivery_and_refuses_new_ownership ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/domain_ownership.rs (target/debug/deps/domain_ownership-da3af6dcd4358682)
+
+running 3 tests
+test core_has_no_upward_domain_or_application_dependencies ... ok
+test checked_responsibility_map_names_every_retained_module ... ok
+test extracted_domain_modules_cannot_reappear_in_core ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/fixed_integer.rs (target/debug/deps/fixed_integer-734442d14f92d59c)
+
+running 4 tests
+test arithmetic_refuses_overflow_zero_division_and_cross_type_promotion ... ok
+test comparison_and_bitwise_operations_follow_checked_signedness ... ok
+test shifts_have_one_portable_range_law_and_signed_right_shift_is_arithmetic ... ok
+test exact_width_values_round_trip_little_endian ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/info.rs (target/debug/deps/info-b61df2a625fdab9e)
+
+running 6 tests
+test bool_contract_has_one_canonical_byte_per_state ... ok
+test bool_refuses_integer_like_and_malformed_encodings ... ok
+test scalar_arithmetic_is_checked_and_multiplication_truncates_toward_zero ... ok
+test scalar_contract_is_exact_signed_fixed_point ... ok
+test scalar_refuses_every_non_exact_width ... ok
+test semantic_digests_bind_exact_contract_and_canonical_value ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/kind_effects.rs (target/debug/deps/kind_effects-b0f9feba83cd5e0b)
+
+running 11 tests
+test effectful_retry_requires_retained_consumer_evidence ... ok
+test every_independent_semantic_fact_is_required_for_pure_calls ... ok
+test explicit_semantic_inputs_do_not_become_hidden_ambient_dependencies ... ok
+test each_impure_semantic_dimension_refuses_separately ... ok
+test pure_bounded_work_is_eligible_for_every_observationally_exact_transformation ... ok
+test selected_back_cannot_hide_effect_authority_or_resource_envelopes ... ok
+test exact_not_committed_receipt_is_distinct_from_failure_or_unknown_commit_truth ... ok
+test matching_retained_evidence_authorizes_only_the_promised_effect_retry ... ok
+test retry_evidence_retention_is_bounded_append_only_and_operation_exact ... ok
+test stale_contract_back_operation_and_law_evidence_refuse_distinctly ... ok
+test stronger_effect_law_does_not_erase_other_retry_axes ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/plan_preparation.rs (target/debug/deps/plan_preparation-4c129a437e5c77d5)
+
+running 9 tests
+test stale_identity_and_failed_release_remain_distinct_machine_readable_evidence ... ok
+test completion_policy_is_sealed_into_plan_and_fragment_identity ... ok
+test every_selected_host_prepares_before_any_exact_fragment_starts ... ok
+test one_host_veto_rolls_back_prior_reservations_and_a_later_attempt_succeeds ... ok
+test invalid_subordinate_receipt_preserves_its_release_refusal ... ok
+test subordinate_start_refuses_stale_boot_and_offer_before_any_play ... ok
+test subordinate_fragments_are_prepared_and_rollback_atomically ... ok
+test stale_offer_missing_host_and_finite_bound_refuse_before_start ... ok
+test subordinate_preparation_total_is_finitely_bounded_before_host_work ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/planned_activation.rs (target/debug/deps/planned_activation-3328fe8b36d1e442)
+
+running 5 tests
+test activation_owner_is_unique_even_when_ids_and_variants_differ ... ok
+test activation_refuses_inexact_ownership_fronts_limits_and_sign_accounting ... ok
+test selected_plan_is_recursive_plan_truth_and_changes_outer_identity ... ok
+test fold_activation_seals_two_inputs_initial_storage_and_child_plan ... ok
+test activation_preparation_binding_refuses_missing_extra_stale_and_nonlocal_truth ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/prepared_structured_validation.rs (target/debug/deps/prepared_structured_validation-aa00a22e2af211c5)
+
+running 5 tests
+test prepared_shape_validation_refuses_wrong_type_truncation_trailing_data_and_capacity ... ok
+test prepared_validation_accepts_nested_collection_and_selected_variant_only ... ok
+test prepared_validation_preserves_nominal_identity_while_walking_its_representation ... ok
+test prepared_validation_enforces_exact_sequence_cardinality_bounds ... ok
+test prepared_validation_walks_exact_record_members ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/primitive_info.rs (target/debug/deps/primitive_info-1160c49c8387786a)
+
+running 4 tests
+test fixed_width_integer_info_requires_its_exact_portable_encoding_width ... ok
+test every_primitive_has_one_canonical_leaf_contract ... ok
+test primitive_registry_is_exact_and_has_no_boolean_alias ... ok
+test nested_primitive_record_is_rejected_when_a_leaf_is_not_canonical ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/projection.rs (target/debug/deps/projection-b220b79c9d9af4a2)
+
+running 11 tests
+test admission::attempt_pressure_and_unknown_native_identity_refuse_before_domain_admission ... ok
+test admission::fallback_records_only_admitted_realizations_and_exact_terminal_chain ... ok
+test admission::maximum_selected_attempt_index_is_typed_refusal_without_overflow ... ok
+test admission::finite_bounds_unknown_references_and_duplicate_obligations_refuse ... ok
+test admission::terminal_outcomes_are_distinct_and_categories_cannot_be_relabelled ... ok
+test admission::unattempted_refusal_does_not_claim_preservation_or_need_a_target ... ok
+test fidelity::every_loss_class_is_explicit_and_budget_is_aggregate ... ok
+test fidelity::fidelity_and_strict_consumption_derive_from_complete_inventory ... ok
+test fidelity::transformation_is_exact_but_undeclared_law_refuses ... ok
+test scores::declared_numerical_normalization_retains_original_and_refuses_wrong_mapping ... ok
+test scores::native_cost_is_not_confidence_and_normalization_needs_a_policy ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/quantity.rs (target/debug/deps/quantity-14fc4be1a8fa44ed)
+
+running 15 tests
+test canonical_multiplication_overflow_is_explicit ... ok
+test affine_temperature_conversion_is_explicit_and_exact_only ... ok
+test civil_and_medieval_time_units_convert_exactly ... ok
+test compatible_units_compare_through_the_shared_exact_dimension_law ... ok
+test current_charge_and_radian_families_are_concrete_and_angle_cross_conversion_refuses ... ok
+test exact_decimal_and_binary_conversions_are_deterministic ... ok
+test every_reviewed_unit_has_one_round_tripping_plot_suffix ... ok
+test incompatible_and_inexact_conversions_refuse_without_rounding ... ok
+test percentage_and_dimensionless_one_convert_without_float_truth ... ok
+test plot_literals_refuse_missing_unknown_inexact_and_overflowing_parts ... ok
+test reviewed_families_have_exact_distinct_dimensions ... ok
+test scientific_plot_literals_preserve_reviewed_units_and_exact_decimals ... ok
+test si_and_named_derived_quantities_share_exact_dimension_laws ... ok
+test signed_physical_values_remain_exact ... ok
+test uncommon_engineering_historical_and_scientific_units_are_exact ... ok
+
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/quantity_structured.rs (target/debug/deps/quantity_structured-3df724ff595587e9)
+
+running 3 tests
+test malformed_quantity_encoding_refuses_before_structured_use ... ok
+test structured_record_transport_preserves_quantity_value_and_unit ... ok
+test every_quantity_unit_has_one_round_tripping_canonical_tag ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/resource_admission.rs (target/debug/deps/resource_admission-4a9f0846ee461948)
+
+running 6 tests
+test every_terminal_path_releases_the_exact_admission_and_assignment ... ok
+test prior_observation_does_not_make_a_racing_second_admission_authoritative ... ok
+test one_atomic_law_admits_scalable_multicore_contention_and_releases_exactly ... ok
+test lane_assignment_is_transient_bounded_and_reassignable_without_plan_mutation ... ok
+test stale_boot_generation_and_provider_health_refuse_before_mutation ... ok
+test batch::batch_admission_is_atomic_and_retains_exact_per_plan_reservations ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/resource_collections.rs (target/debug/deps/resource_collections-cd7e38adbaec973a)
+
+running 3 tests
+test acquisition_distinguishes_all_terminal_paths_and_stale_replacements ... ok
+test bounded_collection_selects_latest_without_mutating_generations ... ok
+test selection_refuses_ambiguity_and_work_beyond_admission ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/resource_content.rs (target/debug/deps/resource_content-f9bb2edec734c8f2)
+
+running 2 tests
+test content_contract_admission_preserves_exact_meaning_and_refuses_foreign_residence ... ok
+test reference_encoding_remains_portable_and_lifetime_and_coherence_are_separate_contracts ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/resource_cord.rs (target/debug/deps/resource_cord-cdcee71f47ee8836)
+
+running 1 test
+test move_only_bearer_crosses_only_the_exact_local_plan_cord_and_revokes_at_play_end ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/resource_reference.rs (target/debug/deps/resource_reference-1a2e94f7fa5f1d90)
+
+running 8 tests
+test access_refuses_lost_stale_mismatched_and_unadmitted_references ... ok
+test bounds_and_expiry_are_exact_and_fail_closed ... ok
+test different_host_handles_bind_one_semantic_reference_without_changing_identity ... ok
+test encoded_view_validates_without_owning_reference_identities ... ok
+test malformed_or_locator_shaped_bytes_never_become_a_reference_identity ... ok
+test prepared_reference_encoding_never_grows_caller_storage ... ok
+test filesystem_and_audio_profiles_share_one_exact_canonical_reference_contract ... ok
+test structured_plot_value_carries_reference_without_inlining_large_content ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/revision.rs (target/debug/deps/revision-7758fdc31ca7cf33)
+
+running 6 tests
+test admission::corrections_require_exact_retained_commit_and_cannot_cross_its_frontier ... ok
+test admission::finite_region_scope_order_and_prior_identity_refuse_atomically ... ok
+test admission::independent_pipeline_stages_do_not_share_commitment_or_delivery ... ok
+test admission::invalid_domain_values_evidence_and_limits_are_admission_failures ... ok
+test tracking_revises_stability_commits_and_corrects_without_rewriting_history ... ok
+test withdrawal_truncation_and_history_pressure_are_explicit ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/sealed_state.rs (target/debug/deps/sealed_state-edbb04c1e8fcb966)
+
+running 7 tests
+test exact_kind_semantics_are_an_immutable_plan_commitment ... ok
+test resealing_cannot_admit_invalid_state_placement_type_or_evidence_capacity ... ok
+test state_identity_cannot_be_duplicated_across_host_fragments ... ok
+test larger_state_capacity_requires_a_new_plan_but_not_new_plot_identity ... ok
+test retained_provenance_changes_plan_without_replacing_authored_initialization ... ok
+test every_state_contract_field_is_an_immutable_plan_commitment ... ok
+test malformed_retained_identity_type_capacity_and_generation_refuse_even_after_reseal ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/shared_pool.rs (target/debug/deps/shared_pool-d2a8d9c910f9f63c)
+
+running 4 tests
+test pool_observation_is_current_only_for_the_exact_sealed_provider_identity ... ok
+test member_compatibility_uses_checked_front_while_envelope_identity_stays_exact ... ok
+test plan_identity_seals_pool_bound_front_envelope_authority_and_consumers ... ok
+test selection_evidence_names_only_one_realization_from_the_immutable_plan ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/structured_info.rs (target/debug/deps/structured_info-bf5a2fa45ba4efdb)
+
+running 15 tests
+test borrowed_validation_accepts_nominal_types_and_checks_their_representation ... ok
+test borrowed_node_validation_checks_nested_shape_without_reconstruction ... ok
+test exact_collection_lengths_and_record_members_are_checked ... ok
+test bounded_sequence_preserves_element_type_and_canonical_actual_length ... ok
+test bounds_and_dynamic_shapes_fail_closed ... ok
+test exact_structured_type_round_trips_without_a_value_node ... ok
+test nested_finite_instrument_and_feedback_shapes_share_one_substrate ... ok
+test nominal_schemas_prevent_protocol_and_portable_records_from_accidental_aliasing ... ok
+test optional_info_is_exactly_the_finite_none_or_some_variant ... ok
+test nominal_types_keep_distinct_identity_over_the_same_exact_representation ... ok
+test startup_and_runtime_contexts_remain_distinct_types ... ok
+test prepared_optional_encoding_matches_the_canonical_variant_without_growth ... ok
+test record_field_order_is_canonically_irrelevant_and_digest_stable ... ok
+test variants_keep_exact_tags_and_validate_payload_types ... ok
+test validated_llm_extraction_uses_the_same_nominal_record_model ... ok
+
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/structured_inspection.rs (target/debug/deps/structured_inspection-ebe8b334ee6799f4)
+
+running 5 tests
+test non_value_malformed_and_wrong_profile_signs_refuse_distinctly ... ok
+test quantity_signs_retain_exact_typed_semantics_without_general_leaf_disclosure ... ok
+test inspection_names_nominal_identity_and_retains_representation_semantics ... ok
+test music_and_llm_signs_share_one_leaf_redacting_inspection ... ok
+test inspection_has_a_tighter_cap_and_reports_every_omitted_node ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/structured_selection.rs (target/debug/deps/structured_selection-c8a50c0d07b59651)
+
+running 11 tests
+test button_index_selects_one_finite_pitch_without_numeric_coercion ... ok
+test canonical_selection_validates_the_whole_input_and_writes_the_exact_value ... ok
+test feedback_field_projection_is_typed_for_presentation ... ok
+test flow_selection_preserves_pressure_order_and_closure_without_retention ... ok
+test out_of_range_unknown_and_wrong_input_paths_refuse_deterministically ... ok
+test musical_variant_selection_has_exact_output_and_explicit_unmatched_paths ... ok
+test record_field_predicate_round_trips_and_selects_without_play_time_allocation ... ok
+test selector_configuration_round_trips_and_rejects_noncanonical_bytes ... ok
+test record_field_predicates_carry_the_whole_record_and_have_an_exact_inverse ... ok
+test selectors_look_through_nominal_type_identity_without_erasing_it ... ok
+test selector_identity_is_canonical_and_includes_unmatched_policy ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/structured_transport.rs (target/debug/deps/structured_transport-aa9fa9efe9e222d0)
+
+running 6 tests
+test malformed_lengths_tags_names_and_trailing_bytes_never_decode ... ok
+test nominal_identity_round_trips_without_changing_the_wire_representation ... ok
+test bounded_sequence_round_trips_through_transport_with_actual_length ... ok
+test semantic_profile_is_shape_derived_and_not_authored_alias_text ... ok
+test music_and_llm_values_share_one_bounded_versioned_transport ... ok
+test size_version_profile_and_mutation_fail_distinctly ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/temporal.rs (target/debug/deps/temporal-10b585008caa36d5)
+
+running 5 tests
+test dst_gap_and_fold_are_explicit_finite_resolution_results ... ok
+test gregorian_dates_and_local_times_refuse_invalid_boundaries ... ok
+test offset_floating_and_named_zone_bases_remain_distinct ... ok
+test resolution_refuses_reversed_or_incomparable_candidates ... ok
+test shared_instant_relation_preserves_exact_basis_scale_and_uncertainty ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/temporal_clock.rs (target/debug/deps/temporal_clock-931356f144b52596)
+
+running 5 tests
+test invalid_clock_and_wall_correlation_refuse ... ok
+test deadline_is_boot_scoped_and_expires_without_wall_time ... ok
+test reboot_makes_monotonic_instants_incomparable ... ok
+test wall_clock_steps_do_not_change_monotonic_elapsed_time ... ok
+test regression_scale_mismatch_and_overflow_refuse ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/type_decode_storage.rs (target/debug/deps/type_decode_storage-b19f73f7c8914f59)
+
+running 2 tests
+test leaf_and_law_free_nominal_charge_the_actual_constructor_paths ... ok
+test nested_shapes_and_unsorted_full_aggregate_buffers_fit_requested_bound ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/typed_pair.rs (target/debug/deps/typed_pair-aaae05c6a273ca15)
+
+running 5 tests
+test combined_traversal_is_admitted_before_accepting_individually_valid_members ... ok
+test declared_envelopes_refuse_oversize_and_keep_nominal_identity ... ok
+test exact_structured_member_envelopes_count_each_type_prefix_once ... ok
+test wrong_structural_schema_and_truncation_refuse_before_replacing_output ... ok
+test structured_and_empty_primitive_members_retain_exact_nested_views ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/value_constraint_transport.rs (target/debug/deps/value_constraint_transport-b5cb873b1577a49c)
+
+running 1 test
+test exact_negated_constraint_profile_round_trips_across_portable_and_json_carriers ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/debug/deps/conduit_plot-316a6af4f66c7b42)
+
+running 320 tests
+test canonical_expansion::configuration_contract::tests::decimals_lower_to_exact_microunits_without_reinterpreting_integer_literals ... ok
+test canonical_expansion::startup::tests::structured_parameter_requires_a_concrete_value_of_the_same_exact_type ... ok
+test canonical_expansion_tests::canonical_back_refuses_a_front_that_differs_from_the_high_level_kind ... ok
+test activation_tests::scan_refuses_a_unary_combine_plot_instead_of_faking_unary_activation ... ok
+test activation_tests::fold_refuses_a_unary_combine_plot ... ok
+test canonical_expansion_tests::canonical_keep_uses_the_existing_retained_current_gear_and_direction_sugar ... ok
+test activation_tests::activation_refuses_a_flow_behavior ... ok
+test canonical_expansion_tests::canonical_kind_fore_owns_callable_default_truth ... ok
+test canonical_expansion_tests::exact_abnormal_terminal_can_bind_a_typed_plot_output_without_becoming_payload ... ok
+test activation_tests::select_refuses_non_boolean_predicates_without_truthiness_coercion ... ok
+test behavior_parameter_tests::type_and_behavior_parameters_specialize_one_exact_generic_fore ... ok
+test activation_tests::scan_retains_exact_initial_and_two_input_combine_truth ... ok
+test activation_tests::specialization_retains_one_exact_checked_activation ... ok
+test activation_tests::fold_retains_exact_initial_and_two_input_combine_truth ... ok
+test behavior_parameter_tests::exact_behavior_identity_changes_checked_specialization_identity ... ok
+test behavior_parameter_tests::local_plot_captures_outer_behavior_only_as_compile_time_identity ... ok
+test canonical_expansion_tests::abnormal_projection_requires_the_exact_source_fore_terminal_kind ... ok
+test canonical_expansion::structured_selector::semantic_call::diagnostic_tests::ambiguous_runtime_arithmetic_names_the_explicit_temporal_families ... ok
+test activation_tests::select_specialization_keeps_the_exact_predicate_but_outputs_the_retained_item ... ok
+test activation_tests::expansion_keeps_selected_plot_opaque_and_emits_flow_coordinator ... ok
+test activation_tests::activation_law_participates_in_checked_identity ... ok
+test canonical_expansion_tests::canonical_terminal_transduction_survives_expansion_and_changes_identity ... ok
+test canonical_expansion_tests::exact_back_admission_refuses_stale_source_and_checked_plot_identities ... ok
+test canonical_expansion_tests::initialized_boolean_keep_lowers_to_exact_typed_state ... ok
+test canonical_expansion_tests::exact_recovery_discharges_the_containing_plot_abnormal_export ... ok
+test canonical_expansion_tests::fixed_arity_relational_glyph_expands_to_one_ordinary_gear ... ok
+test canonical_expansion_tests::local_plot_cycles_refuse_before_any_privileged_nested_runtime_exists ... ok
+test canonical_expansion_tests::multiple_unresolved_child_abnormals_refuse_implicit_fanin ... ok
+test canonical_expansion_tests::profile_startup_catalog_preserves_quantity_dimensions ... ok
+test canonical_expansion_tests::multiple_abnormal_origins_cannot_claim_one_implicit_recovery_input ... ok
+test canonical_expansion_tests::inferred_plot_abnormal_composes_recursively_without_payload_binding ... ok
+test canonical_expansion_tests::inline_reusable_and_primitive_gears_expand_without_a_parallel_path ... ok
+test canonical_expansion_tests::expanded_identity_rejects_graph_contract_and_provenance_mutation ... ok
+test canonical_expansion_tests::optional_keep_refuses_an_explicit_bound_smaller_than_some_payload ... ok
+test canonical_expansion_tests::nested_plot_exact_recovery_clears_the_runtime_abnormal_obligation ... ok
+test canonical_expansion_tests::lexical_local_plot_expands_as_an_ordinary_nested_plot_with_exact_provenance ... ok
+test canonical_expansion_tests::expression_body_refuses_effectful_stateful_and_suspending_calls_without_escape_hatches ... ok
+test canonical_expansion_tests::nested_plot_observation_does_not_hide_unhandled_root_abnormal ... ok
+test canonical_expansion_tests::expression_body_checks_and_expands_identically_to_its_explicit_plot ... ok
+test canonical_expansion_tests::pool_name_is_not_ambiently_captured_by_nested_plots_or_graph_cords ... ok
+test canonical_expansion_tests::reusable_plot_without_declared_shorthand_requires_named_port ... ok
+test canonical_expansion_tests::optional_keep_lowers_omitted_and_present_initializers_to_none_and_some ... ok
+test canonical_expansion_tests::front_binding_preserves_flow_closure_and_current_observation_contracts ... ok
+test canonical_expansion_tests::primitive_contract_bounds_and_front_types_fail_closed ... ok
+test canonical_expansion_tests::pure_expression_lowers_to_one_exact_ordinary_gear ... ok
+test canonical_expansion_tests::public_input_fanout_flattens_to_explicit_ordinary_connections ... ok
+test canonical_expansion_tests::normal_close_projection_refuses_a_nonclosing_flow ... ok
+test canonical_expansion_tests::terminal_projections_lower_to_distinct_typed_connection_tracks ... ok
+test canonical_expansion_tests::terminal_projection_survives_a_nested_plot_input_boundary ... ok
+test canonical_expansion_tests::parameterized_plot_flattens_to_ordinary_primitive_graph ... ok
+test canonical_expansion_tests::selected_canonical_back_changes_only_expansion_identity_and_records_exact_provenance ... ok
+test canonical_expansion_tests::two_explicit_consumers_share_one_exact_expanded_pool_reference ... ok
+test canonical_expansion_tests::semantic_cancellation_is_an_ordinary_cord_to_an_exact_declared_fore_control ... ok
+test canonical_expansion_tests::nested_expansion_and_source_reordering_have_deterministic_identity ... ok
+test diagnostic::tests::attacker_controlled_message_is_truncated_on_a_utf8_boundary ... ok
+test diagnostic::tests::unknown_schema_and_unbounded_related_subjects_fail_closed ... ok
+test expression_prepared::preparation::tests::cumulative_quota_refuses_checked_overflow_before_allocation ... ok
+test expression_definition::identity_tests::streaming_identity_preserves_the_existing_exact_delimited_bytes ... ok
+test functional_front::tests::eligibility_refuses_same_identity_and_front_with_different_semantic_law ... ok
+test canonical_expansion_tests::recursion_and_expansion_depth_fail_with_distinct_diagnostics ... ok
+test functional_front::tests::equivalent_alternate_back_retains_contract_and_distinct_implementation ... ok
+test generic_plot_tests::generic_inference_refuses_conflicting_port_evidence ... ok
+test generic_plot_tests::explicit_generic_application_cannot_disagree_with_connected_ports ... ok
+test canonical_expansion_tests::variadic_relational_glyph_expands_to_one_finitely_specialized_gear ... ok
+test generic_plot_tests::behavior_parameter_refuses_an_incompatible_named_fore ... ok
+test canonical_expansion_tests::two_uses_share_one_plot_definition_but_have_distinct_occurrence_paths ... ok
+test generic_plot_tests::installed_kind_and_source_plot_arguments_share_the_same_fore_check ... ok
+test generic_plot_tests::generic_specialization_preserves_temporal_modalities_and_data_references ... ok
+test canonical_expansion_tests::unhandled_child_abnormal_is_an_exact_separate_containing_plot_export ... ok
+test generic_plot_tests::named_parameters_specialize_independently_to_structured_and_scalar_types ... ok
+test generic_plot_tests::runtime_startup_values_remain_after_compile_time_type_arguments_disappear ... ok
+test generic_plot_tests::exact_source_plot_behavior_parameter_specializes_to_an_ordinary_gear ... ok
+test generic_plot_tests::specialization_propagates_finite_bounds_into_startup_and_retained_state ... ok
+test integer_literal::tests::every_canonical_base_and_separator_normalizes_to_exact_meaning ... ok
+test integer_literal::tests::range_sign_and_separator_errors_refuse_portably ... ok
+test generic_plot_tests::named_type_parameters_specialize_to_exact_ordinary_fores ... ok
+test canonical_expansion_tests::optional_dimensioned_keep_preserves_none_some_identity_bound_and_duration ... ok
+test generic_plot_tests::generic_use_alias_preserves_the_canonical_specialization_identity ... ok
+test generic_plot_tests::type_parameter_cannot_masquerade_as_a_runtime_front_name ... ok
+test generic_plot_tests::type_arguments_must_resolve_to_exact_checked_types ... ok
+test expression_program::checked_encoding::tests::streamed_checked_programs_match_the_retained_v2_tree_encoding ... ok
+test package_bundle_tests::lexical_local_plot_cannot_become_a_pack_export ... ok
+test package_bundle_tests::package_bundle_refuses_local_module_cycles_and_duplicate_plots ... ok
+test package_bundle_tests::export_source_name_remains_distinct_from_canonical_plot_name ... ok
+test generic_plot_tests::same_fore_effectful_behavior_refuses_when_the_use_requires_purity ... ok
+test generic_plot_tests::unary_generic_application_infers_one_unambiguous_port_type ... ok
+test package_bundle_tests::package_bundle_refuses_missing_exports_members_and_plots ... ok
+test generic_plot_tests::multi_port_behavior_parameter_preserves_every_named_fore_role ... ok
+test generic_plot_tests::supplied_behavior_laws_survive_specialization_into_the_ordinary_graph ... ok
+test package_check_tests::an_unimported_external_plot_name_does_not_create_an_ambient_binding ... ok
+test package_bundle_tests::package_bundle_identity_covers_sorted_member_paths_and_exact_source ... ok
+test package_check_tests::cross_module_plot_is_not_ambiently_visible ... ok
+test generic_plot_tests::specialization_expands_without_a_generic_runtime_gear ... ok
+test package_resolution_tests::checked_package_content_cannot_be_detached_from_its_parsed_source ... ok
+test package_check_tests::explicit_local_import_resolves_a_pool_member_plot ... ok
+test package_resolution_tests::legacy_export_keyword_is_not_a_compatibility_spelling ... ok
+test package_check_tests::package_check_retains_checked_codes ... ok
+test package_resolution_tests::legacy_package_keyword_is_not_a_compatibility_spelling ... ok
+test package_check_tests::local_source_path_does_not_replace_the_canonical_plot_name ... ok
+test package_resolution_tests::deserialized_or_manually_constructed_package_truth_revalidates_fail_closed ... ok
+test package_resolution_tests::legacy_require_and_quoted_versions_are_not_compatibility_spellings ... ok
+test package_resolution_tests::malformed_package_source_never_falls_back_to_plot_syntax ... ok
+test package_resolution_tests::package_source_is_lossless_finite_and_canonicalizes_order ... ok
+test refinement_tests::duplicate_constraint_family_refuses_instead_of_last_write_wins ... ok
+test rust_binding::bounded::tests::sequence_and_text_are_fixed_capacity_and_fail_closed ... ok
+test refinement_tests::authored_ranges_preserve_open_and_closed_endpoints ... ok
+test rust_binding::generate::names::tests::reserved_words_escape_without_changing_semantic_spelling ... ok
+test refinement_tests::ieee_float_refinements_are_exact_finite_and_identity_bearing ... ok
+test package_resolution_tests::package_catalog_and_root_work_have_explicit_finite_admission_bounds ... ok
+test package_resolution_tests::later_constraints_backtrack_to_the_highest_jointly_compatible_version ... ok
+test package_check_tests::explicit_local_glyph_import_checks_as_the_exact_ordinary_plot ... ok
+test package_resolution_tests::resolver_selects_highest_matching_version_and_locks_exact_content ... ok
+test package_resolution_tests::cycles_conflicts_and_duplicate_content_refuse_distinctly ... ok
+test canonical_expansion_tests::type_laws_mark_only_proven_integer_arithmetic_unchecked ... ok
+test refinement_tests::malformed_or_incompatible_authored_refinements_refuse_during_checking ... ok
+test rust_binding::generate_tests::byte_bindings_retain_the_full_checked_structured_capacity ... ok
+test rust_binding::generate_tests::checked_form_generates_the_only_rust_discriminant_table ... ok
+test refinement_tests::missing_range_ends_remain_semantically_open ... ok
+test refinement_tests::canonical_anchors_select_prefix_suffix_and_whole_value_profiles ... ok
+test refinement_tests::membership_is_canonical_and_composes_with_pattern_independent_of_authored_order ... ok
+test rust_binding::generate_tests::constrained_integer_nominal_validates_without_structured_allocation ... ok
+test rust_binding::generate_tests::constrained_copy_record_validation_does_not_clone_the_candidate ... ok
+test rust_binding::generate_layout_tests::inline_variant_layout_is_explicit_and_preserves_semantic_identity ... ok
+test refinement_tests::negated_membership_and_pattern_are_checked_relations ... ok
+test refinement_tests::leading_lookahead_is_checked_once_and_searches_within_the_admitted_text ... ok
+test rust_binding::borrowed_contracts::tests::all_path_shapes_and_first_refusals_match_owned_reference ... ok
+test rust_binding::external_binding_validation::tests::foreign_record_variant_payload_retains_exact_nested_owner_bindings ... ok
+test rust_binding::generate_tests::generated_code_preserves_explicit_iota_origin ... ok
+test package_check_tests::pack_can_define_ship_and_use_native_semantic_types ... ok
+test rust_binding::generate_tests::quantity_unit_fields_use_the_canonical_native_unit_vocabulary ... ok
+test rust_binding::generate_tests::generated_contracts_preserve_semantic_openness ... ok
+test rust_binding::generate_tests::record_constructor_order_must_name_every_field_exactly_once ... ok
+test rust_binding::prepared_invariants_tests::actual_language_complete_native_bank_readiness ... ignored, checks the complete Language authored Source closure
+test rust_binding::generate_tests::selected_record_can_retain_established_constructor_argument_order ... ok
+test rust_binding::generate_tests::exact_reference_leaves_use_validated_native_bindings ... ok
+test rust_binding::generate_tests::ordinary_generation_refuses_missing_drifted_and_unused_external_bindings ... ok
+test structured_startup::literal::float_literal_tests::exact_float_literals_preserve_signed_zero_and_refuse_excess_precision ... ok
+test structured_startup::literal::float_literal_tests::structured_text_literals_decode_source_quotes_and_escapes_once ... ok
+test rust_binding::generate_tests::locked_package_generation_revalidates_exact_source_without_network_work ... ok
+test rust_binding::generate_tests::selected_constrained_record_validates_direct_integer_bounds_without_structured_allocation ... ok
+test rust_binding::prepared_invariants_tests::bounded_native_bank_refuses_every_unsupported_law_at_its_original_index ... ok
+test surface_tests::body_wardrobe_directives_are_role_specific_lossless_syntax ... ok
+test surface_tests::canonical_ast_spans_are_exact_utf8_byte_slices ... ok
+test surface_tests::canonical_back_represents_values_named_arguments_and_anonymous_gears ... ok
+test rust_binding::prepared_invariants_tests::prepared_native_bank_checks_nested_members_and_foreign_exact_types ... ok
+test surface_tests::canonical_clock_plot_round_trips_with_named_and_inline_gears ... ok
+test surface_tests::canonical_document_roles_share_tokens_declarations_values_and_diagnostics ... ok
+test surface_tests::canonical_front_keeps_startup_values_runtime_ports_and_shorthand_distinct ... ok
+test surface_tests::canonical_negative_corpus_has_stable_diagnostics_and_exact_spans ... ok
+test surface_tests::canonical_duplex_front_has_auxiliary_ports_without_a_shorthand_path ... ok
+test surface_tests::canonical_parser_accepts_multiple_plots_without_semantic_lowering ... ok
+test surface_tests::canonical_parser_rejects_unbalanced_invocation_expressions ... ok
+test structured_startup::tests::fixed_six_decimal_scalar_literals_refuse_precision_and_range_overflow ... ok
+test surface_tests::canonical_parser_handles_inline_plot_calls_and_quoted_punctuation ... ok
+test surface_tests::checked_pattern_refinement_is_lossless_front_syntax ... ok
+test surface_tests::comparisons_do_not_become_legacy_cord_diagnostics ... ok
+test surface_tests::english_completion_keyword_is_not_retained_as_an_alias ... ok
+test surface_tests::data_references_and_exact_width_integer_types_are_canonical_fore_types ... ok
+test surface_tests::freestanding_completion_full_stop_is_rejected ... ok
+test surface_tests::all_canonical_temporal_modalities_and_finite_bounds_are_retained ... ok
+test rust_binding::generate_tests::wide_record_constructor_allows_its_generated_argument_shape ... ok
+test surface_tests::expression_body_is_one_lossless_sugar_for_an_explicit_cord ... ok
+test rust_binding::prepared_invariants_tests::prepared_native_bank_preserves_order_and_law_refusals ... ok
+test surface_tests::legacy_use_keyword_is_not_a_compatibility_spelling ... ok
+test surface_tests::legacy_single_greater_than_is_not_retained_as_a_cord_alias ... ok
+test surface_tests::input_tuple_record_projection_and_semantic_calls_have_distinct_syntax ... ok
+test surface_tests::generic_native_type_syntax_is_lossless_and_target_neutral ... ok
+test surface_tests::kind_parameter_retains_its_exact_named_fore_constraint ... ok
+test surface_tests::keep_parses_initializers_bounds_and_every_canonical_lifetime ... ok
+test surface_tests::legacy_without_glyphs_header_is_not_a_compatibility_spelling ... ok
+test surface_tests::malformed_statement_before_inline_comment_keeps_its_exact_span ... ok
+test surface_tests::named_type_parameters_are_not_runtime_startup_values ... ok
+test surface_tests::local_plots_are_lossless_nested_source_syntax ... ok
+test surface_tests::native_sequence_can_state_exact_nonzero_cardinality_bounds ... ok
+test surface_tests::native_fixed_collection_requires_one_exact_finite_length ... ok
+test surface_tests::inline_comments_are_lossless_trivia_across_surface_roles ... ok
+test surface_tests::native_semantic_types_are_lossless_finite_syntax_not_rust_shapes ... ok
+test surface_tests::native_sequence_supports_large_but_finite_semantic_families ... ok
+test surface_tests::native_sequence_type_requires_one_explicit_finite_cardinality_bound ... ok
+test surface_tests::native_variant_case_can_carry_a_type_directly ... ok
+test surface_tests::open_ended_ranges_remain_lossless_until_the_type_supplies_their_bounds ... ok
+test surface_tests::parenthesized_runtime_expression_is_one_cord_stage ... ok
+test surface_tests::plots_are_live_by_default_and_completion_is_explicit ... ok
+test surface_tests::punctuation_gear_names_are_lossless_but_core_tokens_remain_grammar ... ok
+test surface_tests::pure_expression_precedence_and_ternary_are_structural_not_opaque_text ... ok
+test surface_tests::percentage_quantity_suffix_is_not_a_remainder_without_a_right_operand ... ok
+test surface_tests::portable_lookahead_and_group_profiles_are_lossless_front_syntax ... ok
+test surface_tests::quoted_text_is_a_distinct_lossless_graph_stage ... ok
+test surface_tests::range_membership_and_composition_are_lossless_front_syntax ... ok
+test surface_tests::recursive_or_empty_data_reference_types_are_rejected ... ok
+test surface_tests::temporal_markers_cannot_be_combined_or_left_without_a_value_type ... ok
+test surface_tests::with_headers_and_glyph_opt_out_are_lossless_document_structure ... ok
+test syntax_check_tests::back_bindings_cannot_shadow_fore_symbols ... ok
+test syntax_check_tests::authored_with_alias_resolves_to_canonical_kind_without_changing_checked_identity ... ok
+test surface_tests::when_terminal_quiescence_and_cancellation_stages_are_not_ordinary_references ... ok
+test syntax_check_tests::checked_front_canonicalizes_runtime_port_declaration_order ... ok
+test surface_tests::where_is_not_a_when_compatibility_alias ... ok
+test syntax_check_tests::checked_front_equality_ignores_callable_name_and_back ... ok
+test syntax_check_tests::defaults_are_used_only_when_omitted_and_explicit_values_override_them ... ok
+test syntax_check_tests::comment_only_edits_change_source_identity_but_not_checked_meaning ... ok
+test syntax_check_tests::delimiter_like_literal_text_is_bound_unambiguously_into_identity ... ok
+test syntax_check_tests::completion_policy_is_exact_checked_meaning ... ok
+test syntax_check_tests::configured_gear_occurrence_may_have_a_glyph_name ... ok
+test syntax_check_tests::duplicate_immutable_bindings_fail_without_last_write_wins ... ok
+test syntax_check_tests::dependent_defaults_use_explicit_caller_binding_without_mutating_signature ... ok
+test syntax_check_tests::duplicate_gear_and_unsupported_kind_diagnostics_are_stable ... ok
+test syntax_check_tests::duplicate_named_arguments_are_conflicting_not_last_write_wins ... ok
+test syntax_check_tests::explicit_unary_glyph_inspection_uses_the_checked_fore_and_lossless_replacement ... ok
+test syntax_check_tests::fixed_arity_relational_glyph_binds_operands_in_checked_fore_order ... ok
+test syntax_check_tests::fixed_width_integer_defaults_are_checked_before_identity ... ok
+test syntax_check_tests::checked_front_equality_binds_startup_ports_and_shorthand ... ok
+test syntax_check_tests::finite_value_bounds_survive_in_the_exact_checked_fore ... ok
+test syntax_check_tests::form_iota_refuses_u8_overflow ... ok
+test syntax_check_tests::form_is_named_bounded_and_distinct_from_type_identity ... ok
+test syntax_check_tests::form_iota_may_start_at_an_explicit_u8_value ... ok
+test syntax_check_tests::explicit_glyph_alias_lowers_to_the_same_ordinary_inline_gear ... ok
+test syntax_check_tests::forward_reference_chains_resolve_to_one_canonical_value ... ok
+test syntax_check_tests::form_mapping_changes_compatibility_not_semantic_type_identity ... ok
+test syntax_check_tests::fixed_width_integer_literals_are_range_checked_and_canonicalized ... ok
+test syntax_check_tests::explicit_iota_order_requires_each_variant_exactly_once ... ok
+test syntax_check_tests::front_defaults_are_resolved_in_definition_scope_for_checked_identity ... ok
+test syntax_check_tests::front_default_cycles_are_rejected_even_before_invocation ... ok
+test syntax_check_tests::grouped_with_resolves_each_exact_installed_kind ... ok
+test syntax_check_tests::generic_native_types_refuse_each_invalid_parameter_contract ... ok
+test syntax_check_tests::generic_family_aliases_share_canonical_concrete_references ... ok
+test syntax_check_tests::installed_kind_glyph_requires_and_uses_its_exact_checked_fore ... ok
+test rust_binding::generate_tests::selected_record_retains_copy_and_serde_binding_traits ... ok
+test rust_binding::generate_tests::exact_float_law_generates_semantic_wrappers_and_checked_refinements ... ok
+test syntax_check_tests::keep_lifetime_optional_and_bound_are_exact_checked_meaning ... ok
+test syntax_check_tests::legacy_code_keyword_is_not_a_compatibility_alias ... ok
+test rust_binding::generate_tests::serde_variant_exclusion_preserves_a_non_serde_binding ... ok
+test syntax_check_tests::generic_native_types_monomorphize_to_exact_finite_checked_meaning ... ok
+test syntax_check_tests::local_plot_is_checked_through_one_private_ordinary_plot_seam ... ok
+test syntax_check_tests::local_bindings_cannot_shadow_front_values_or_runtime_ports ... ok
+test syntax_check_tests::multiple_positional_and_named_bindings_follow_one_declared_signature ... ok
+test syntax_check_tests::native_fixed_collection_checks_to_exact_structured_collection_truth ... ok
+test syntax_check_tests::local_plot_privacy_and_implicit_capture_fail_closed ... ok
+test syntax_check_tests::native_text_bounds_and_negated_refinements_remain_checked_contracts ... ok
+test syntax_check_tests::local_plot_captures_outer_type_parameters_only_as_exact_compile_time_identity ... ok
+test syntax_check_tests::local_values_and_gears_resolve_independently_of_statement_order ... ok
+test syntax_check_tests::old_executable_form_spelling_is_not_a_plot_alias ... ok
+test syntax_check_tests::native_type_identity_ignores_source_trivia_but_not_semantic_name ... ok
+test syntax_check_tests::native_types_resolve_forward_references_and_refuse_recursive_cycles ... ok
+test syntax_check_tests::native_scalar_record_and_variant_types_own_nominal_checked_identity ... ok
+test syntax_check_tests::pool_member_must_be_declared_and_size_is_a_positive_finite_bound ... ok
+test syntax_check_tests::positional_and_named_binding_of_one_parameter_is_rejected ... ok
+test rust_binding::generate_tests::selected_record_can_retain_established_public_fields ... ok
+test syntax_check_tests::pre_v1_representation_keyword_is_not_a_compatibility_alias ... ok
+test syntax_check_tests::native_record_where_laws_are_typed_owned_and_enforced ... ok
+test syntax_check_tests::optional_ports_resolve_to_the_canonical_finite_variant_profile ... ok
+test syntax_check_tests::native_types_preserve_open_semantic_range_ends_for_every_numeric_family ... ok
+test syntax_check_tests::pool_declaration_seals_member_front_and_bound_without_nominal_identity ... ok
+test syntax_check_tests::public_front_names_cannot_be_duplicated_or_shadowed_by_gears ... ok
+test syntax_check_tests::native_record_where_laws_must_be_boolean_and_follow_fields ... ok
+test syntax_check_tests::pure_expression_identity_is_structural_and_ignores_parentheses_and_trivia ... ok
+test syntax_check_tests::repeated_variadic_glyph_specializes_one_exact_ordinary_gear ... ok
+test syntax_check_tests::relational_glyph_refuses_wrong_arity_and_mixed_adjacent_meanings ... ok
+test syntax_check_tests::native_types_work_in_keeps_and_data_refs_without_structural_interchange ... ok
+test syntax_check_tests::positional_named_and_local_reference_bindings_are_semantically_equivalent ... ok
+test syntax_check_tests::pattern_refinement_refuses_wrong_kind_and_bounds_star_by_the_text_envelope ... ok
+test syntax_check_tests::reusable_plot_arguments_use_declared_front_startup_signature_without_expansion ... ok
+test syntax_check_tests::runtime_ports_cannot_masquerade_as_startup_values ... ok
+test syntax_check_tests::runtime_ports_hidden_inside_unsupported_expressions_still_fail_as_runtime_values ... ok
+test syntax_check_tests::scientific_quantity_dimension_and_canonical_spelling_are_checked ... ok
+test syntax_check_tests::scientific_quantity_defaults_and_locals_are_checked_typed_values ... ok
+test syntax_check_tests::startup_aliases_canonicalize_front_identity_and_fingerprint ... ok
+test syntax_check_tests::shorthand_pair_participates_in_checked_identity ... ok
+test syntax_check_tests::startup_dependency_cycles_are_rejected_exactly ... ok
+test syntax_check_tests::variadic_glyph_refuses_an_implicit_unary_specialization ... ok
+test syntax_check_tests::unsupported_expression_plots_fail_instead_of_becoming_opaque_literals ... ok
+test syntax_check_tests::unresolved_unused_duplicate_and_shadowing_imports_refuse ... ok
+test syntax_check_tests::sans_glyphs_removes_only_the_standard_prelude ... ok
+test syntax_highlight::tests::checked_pattern_spelling_is_one_lossless_language_construct ... ok
+test syntax_highlight::tests::composed_refinement_words_are_language_keywords ... ok
+test syntax_highlight::tests::canonical_source_is_lossless_and_grammar_aware ... ok
+test syntax_check_tests::startup_type_and_default_semantics_have_explicit_identity_boundaries ... ok
+test syntax_check_tests::pure_expressions_admit_only_explicit_integer_widening_and_variant_tags ... ok
+test syntax_highlight::tests::inline_comments_are_distinct_from_hashes_inside_strings ... ok
+test syntax_highlight::tests::incomplete_invalid_edit_still_highlights_exact_source ... ok
+test syntax_highlight::tests::kind_parameter_uses_the_compile_time_keyword ... ok
+test syntax_highlight::tests::named_type_parameter_uses_the_compile_time_keyword ... ok
+test syntax_highlight::tests::pack_source_uses_the_shared_lossless_highlighter ... ok
+test syntax_highlight::tests::punctuation_and_literals_remain_finite_without_regex_rewriting ... ok
+test syntax_highlight::tests::scientific_quantity_typography_is_one_preserved_numeric_span ... ok
+test syntax_highlight::tests::unicode_comments_and_names_keep_utf8_byte_boundaries ... ok
+test text_value::tests::text_startup_quoting_preserves_unicode_and_each_retained_escape ... ok
+test syntax_highlight::tests::with_and_glyph_header_words_are_language_keywords ... ok
+test value_pattern_tests::admitted_match_work_is_refused_before_play ... ok
+test value_pattern_tests::canonical_bounded_regex_source_compiles_before_play ... ok
+test value_pattern_tests::empty_plots_have_exact_regular_language_meanings ... ok
+test value_pattern_tests::malformed_source_has_exact_errors ... ok
+test value_pattern_tests::overlapping_choices_are_determinized_into_disjoint_ranges ... ok
+test value_pattern_tests::leading_positive_and_negative_lookahead_compile_to_finite_languages ... ok
+test value_pattern_tests::noncapturing_and_named_groups_compile_to_the_same_boolean_language ... ok
+test value_pattern_tests::source_refuses_malformed_constructs ... ok
+test value_pattern_tests::unicode_range_crossing_surrogates_is_split_canonically ... ok
+test value_type::tests::canonical_text_resolves_without_changing_exact_explicit_kinds ... ok
+test syntax_check_tests::variant_case_tests_resolve_against_the_exact_declared_type ... ok
+test value_type::tests::semantic_owner_can_register_a_value_spelling_without_plot_changes ... ok
+test value_type::tests::unregistered_author_alias_refuses_before_planning ... ok
+test variadic_front::tests::malformed_or_empty_family_refuses_before_catalog_truth ... ok
+test variadic_front::tests::specialization_is_finite_exact_and_canonically_named ... ok
+test variadic_front::tests::semantic_kind_specialization_repeats_exact_per_input_terminal_law ... ok
+test value_type::tests::data_reference_wraps_the_exact_checked_content_type_once ... ok
+test value_pattern_tests::star_and_plus_are_finitely_bound_by_the_input_contract ... ok
+test syntax_check_tests::standard_glyph_prelude_resolves_every_reviewed_binding_lazily ... ok
+test rust_binding::generate_tests::rust_only_variant_order_preserves_serde_abi_without_changing_type_identity ... ok
+test value_pattern_tests::sequence_choice_and_finite_repeat_compile_to_full_match ... ok
+test syntax_check_tests::text_pattern_refinement_enters_the_checked_fore_and_identity ... ok
+test syntax_check_tests::unknown_missing_and_excess_parameters_are_distinct ... ok
+test value_pattern_tests::compiled_state_ceiling_is_refused_exactly ... ok
+test rust_binding::generate_tests::selected_serde_record_can_retain_deny_unknown_fields ... ok
+test rust_binding::generate_tests::generation_is_deterministic_and_keeps_rust_spelling_out_of_identity ... ok
+test rust_binding::generate_tests::colliding_or_invalid_rust_spellings_refuse_instead_of_rebinding ... ok
+test rust_binding::generate_tests::binding_only_boxing_preserves_semantic_identity_and_refuses_invalid_targets ... ok
+test surface_tests::authored_imports_have_one_explicit_finite_document_bound ... ok
+test syntax_highlight::tests::source_and_token_pressure_refuse_distinctly ... ok
+test rust_binding::generate_tests::shared_generated_descriptor_union_has_separate_runtime_and_generation_ceilings ... ok
+test rust_binding::generate_tests::locked_dependency_types_come_only_from_their_exact_source_bundle ... ok
+test rust_binding::generate_tests::generated_bindings_compile_as_an_independent_rust_library ... ok
+
+test result: ok. 319 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.78s
+
+     Running tests/bme280_compensation.rs (target/debug/deps/bme280_compensation-3680925f210a11ff)
+
+running 6 tests
+test every_compensation_plot_checks_and_expands ... ok
+test wire_sample_masks_reserved_nibbles_and_retains_disabled_sentinels ... ok
+test wire_calibration_retains_unsigned_and_negative_packed_coefficients ... ok
+test zero_pressure_denominator_and_humidity_clamps_are_explicit ... ok
+test humidity_carries_calibration_then_applies_correction_and_clamp ... ok
+test published_temperature_pressure_vector_is_carried_through_exact_stages ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.90s
+
+     Running tests/bme280_lifecycle.rs (target/debug/deps/bme280_lifecycle-d4f3e6f845b396c7)
+
+running 11 tests
+test automatic_clock_event_adapters_check_and_prepare_as_ordinary_source ... ok
+test transcript::source_initializer_accepts_only_the_two_protocol_addresses ... ok
+test transcript::waiting_retains_observed_time_and_rejects_a_later_stale_event ... ok
+test transcript::one_event_advances_one_phase_and_deadlines_use_monotonic_time ... ok
+test transcript::clock_events_do_not_repeat_an_in_flight_transaction ... ok
+test transcript::every_clock_failure_is_preserved_and_terminates_without_inventing_time ... ok
+test transcript::polling_exhaustion_and_stale_clock_are_explicit ... ok
+test preparation_footprint_is_finite_and_reported ... ok
+test lifecycle_policy_is_checked_source_and_prepares_without_device_code ... ok
+test transcript::prepared_transition_reuse_never_allocates_or_grows ... ok
+test transcript::identity_short_bus_loss_and_unexpected_events_refuse_without_new_requests ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 19.45s
+
+     Running tests/bme280_observation.rs (target/debug/deps/bme280_observation-1f22a018b9d65432)
+
+running 2 tests
+test disabled_samples_and_invalid_calibration_never_publish_numeric_defaults ... ok
+test complete_compensation_yields_one_exact_typed_observation ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.79s
+
+     Running tests/device_binary.rs (target/debug/deps/device_binary-475c0e486b9139f4)
+
+running 4 tests
+test every_binary_plot_checks_and_expands ... ok
+test bitfield_and_integer_overflow_refuse_instead_of_wrapping ... ok
+test generic_crc_steps_match_standard_check_vectors_without_growth ... ok
+test endian_decoding_and_signed_extremes_keep_exact_values ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.26s
+
+     Running tests/device_frames.rs (target/debug/deps/device_frames-b61ea142d7fae33f)
+
+running 3 tests
+test concatenation_preserves_actual_bytes_and_excludes_padding ... ok
+test byte_access_distinguishes_short_from_malformed_and_never_reads_padding ... ok
+test repeated_frame_composition_uses_only_admitted_storage ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.06s
+
+     Running tests/ecmascript_types.rs (target/debug/deps/ecmascript_types-1c2be3b2b269ca76)
+
+running 1 test
+test ecmascript_inspects_records_references_optionals_and_bounds ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
+
+     Running tests/immutable_expression.rs (target/debug/deps/immutable_expression-a4b32421bc8baed1)
+
+running 1 test
+test immutable_quantity_local_is_captured_by_the_lowered_expression ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/integer_widening.rs (target/debug/deps/integer_widening-07d19d626e3f7f62)
+
+running 5 tests
+test serialized_program_cannot_change_widening_target_or_arity ... ok
+test nested_widening_and_arithmetic_stay_in_the_same_pure_operation ... ok
+test widening_around_a_real_semantic_call_keeps_that_calls_identity ... ok
+test narrowing_same_width_and_signed_to_unsigned_remain_refused ... ok
+test widening_expands_without_a_fictitious_catalog_kind_and_prepares_once ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/named_record_expression.rs (target/debug/deps/named_record_expression-ab18e3e13ca0ccef)
+
+running 7 tests
+test nested_constructor_keeps_both_native_record_schemas ... ok
+test sequence_literals_obey_declared_bounds_and_allow_exact_empty_payloads ... ok
+test contextual_record_constructor_retains_declared_identity_and_exact_members ... ok
+test variants_keep_case_payload_identity_and_do_not_evaluate_unselected_failure ... ok
+test forwarding_nested_protocol_values_preserves_full_types_and_stays_bounded ... ok
+test finite_constructor_play_never_allocates_or_grows_with_reuse ... ok
+test checked_case_and_actual_length_guard_optional_sequence_members_without_allocation ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.38s
+
+     Running tests/native_expression_construction.rs (target/debug/deps/native_expression_construction-8d7b7c36058bd2fc)
+
+running 13 tests
+test imported_shape_without_law_metadata_cannot_authorize_construction ... ok
+test variant_record_payload_keeps_its_native_schema_identity ... ok
+test prepared_qualified_variants_match_portable_evaluation ... ok
+test native_record_construction_retains_declared_schema_and_field_types ... ok
+test qualified_constructors_preserve_case_payload_and_exact_variant_identity ... ok
+test imported_checked_metadata_preserves_refinement_construction_rules ... ok
+test construction_cannot_bypass_native_refinements_or_record_laws ... ok
+test refined_constants_keep_existing_arithmetic_proof_and_refuse_invalid_values ... ok
+test foreign_cases_missing_cases_and_wrong_payloads_refuse_at_checking ... ok
+test nominal_text_constants_preserve_identity_and_prove_their_bounds ... ok
+test variant_payload_projection_preserves_exact_forwarded_refinements ... ok
+test nested_conditional_and_variant_fields_preserve_every_active_refinement ... ok
+test refined_record_construction_preserves_exact_forwarded_field_contracts ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/native_family_decode_storage.rs (target/debug/deps/native_family_decode_storage-6966d7715339e988)
+
+running 1 test
+test law_free_nominal_preparation_refuses_one_under_complete_decode_bound ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/native_invariant_admission.rs (target/debug/deps/native_invariant_admission-38492e7277dd48cd)
+
+running 2 tests
+test malformed_later_law_does_not_replace_the_original_first_failure ... ok
+test prepared_complete_native_bank_never_allocates_during_reuse ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/ownership.rs (target/debug/deps/ownership-c406941c48e7d59c)
+
+running 1 test
+test universal_value_fallback_names_only_language_primitives ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/prepared_actual_native_bank.rs (target/debug/deps/prepared_actual_native_bank-cc76e8a3ef61111c)
+
+running 2 tests
+test retained_actual_native_law_bank_readiness ... ignored, requires an immutable generated-law snapshot TSV
+test retained_actual_stable_lexical_complete_bank_parity ... ignored, requires original actual fact and its immutable complete generated law bank
+
+test result: ok. 0 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/prepared_byte_observation.rs (target/debug/deps/prepared_byte_observation-01e8fd15d05408f1)
+
+running 3 tests
+test byte_calls_require_exact_source_index_and_arity ... ok
+test malformed_programs_are_refused_before_play_and_bad_frames_do_not_poison_reuse ... ok
+test byte_observations_preserve_actual_extent_above_the_collection_ceiling ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s
+
+     Running tests/prepared_computed_projection.rs (target/debug/deps/prepared_computed_projection-04d64c979b7cb2c0)
+
+running 1 test
+test computed_element_projection_preserves_refusals_without_runtime_allocation ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/prepared_leaf_storage.rs (target/debug/deps/prepared_leaf_storage-729cd28cfd7c6709)
+
+running 1 test
+test maximum_text_leaves_do_not_become_recursive_stack_storage ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/prepared_sequence_selection.rs (target/debug/deps/prepared_sequence_selection-069e7eba62bcade7)
+
+running 4 tests
+test checking_and_preparation_reject_substituted_index_and_element_types ... ok
+test fixed_collections_obey_the_same_exact_index_contract ... ok
+test runtime_index_obeys_actual_count_and_never_truncates_large_indices ... ok
+test guarded_selection_and_record_elements_are_allocation_free_after_preparation ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.30s
+
+     Running tests/prepared_storage_accounting.rs (target/debug/deps/prepared_storage_accounting-165140013f906f41)
+
+running 1 test
+test capacity_slack_and_recursive_prepared_storage_bound_actual_live_allocations ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/prepared_structured_payload.rs (target/debug/deps/prepared_structured_payload-b3fc265414d36ba1)
+
+running 4 tests
+test serialized_identity_cannot_relabel_a_different_structured_type ... ok
+test checked_source_preserves_complete_request_and_selects_every_bounded_payload_length ... ok
+test malformed_payload_and_substituted_type_remain_refusals_after_reuse ... ok
+test complete_request_reuse_and_malformed_refusals_do_not_allocate ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.03s
+
+     Running tests/pure_expression_types.rs (target/debug/deps/pure_expression_types-b755df48043d3876)
+
+running 12 tests
+test scientific_literal_unit_supplies_its_exact_expression_type ... ok
+test ambiguous_and_out_of_range_integer_literals_refuse_during_checking ... ok
+test prepared_primitive_evaluation_matches_checked_meaning ... ok
+test reviewed_pure_semantic_kind_call_uses_its_exact_front ... ok
+test semantic_count_and_scalar_arithmetic_remain_exact_and_checked ... ok
+test checked_expression_retains_its_exact_input_and_output_contract ... ok
+test conditional_is_boolean_and_unifies_one_exact_branch_type ... ok
+test fixed_integer_operators_retain_width_and_comparisons_return_boolean ... ok
+test portable_fixed_integer_evaluation_is_checked_and_conditional_is_lazy ... ok
+test portable_anonymous_structures_carry_their_exact_checked_profile ... ok
+test nominal_structured_input_projects_into_anonymous_structures ... ok
+test anonymous_expression_types_have_stable_exact_port_identities ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/semantic_expression_call.rs (target/debug/deps/semantic_expression_call-e2c19a2b8399790f)
+
+running 7 tests
+test outer_expression_cannot_reuse_independent_input_beside_call_result ... ok
+test outer_expression_cannot_implicitly_synchronize_two_call_results ... ok
+test repeated_input_arguments_lower_to_one_multi_input_semantic_gear ... ok
+test semantic_call_beneath_operator_lowers_to_call_then_pure_expression ... ok
+test nested_pure_semantic_calls_lower_to_ordered_called_kind_gears_not_host_calls ... ok
+test semantic_call_beneath_structure_lowers_to_call_then_pure_expression ... ok
+test literal_call_argument_lowers_to_an_admitted_expression_gear ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/structured_expression_equality.rs (target/debug/deps/structured_expression_equality-6fc3894fe6db64a2)
+
+running 5 tests
+test structured_quantity_equality_compares_meaning_across_units ... ok
+test nested_records_compare_each_exact_member ... ok
+test vectors_compare_actual_length_order_and_exact_f32_members ... ok
+test variants_compare_tags_and_ieee_bits_instead_of_float_arithmetic ... ok
+test structured_equality_reuses_complete_input_and_refuses_foreign_or_malformed_bytes ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+
+     Running tests/structured_profiles.rs (target/debug/deps/structured_profiles-b58a174c9fa04aea)
+
+running 5 tests
+test ordinary_unregistered_port_kinds_keep_the_existing_exact_vocabulary ... ok
+test changing_shape_changes_checked_identity_and_port_compatibility ... ok
+test runtime_ports_use_semantic_profile_identity_instead_of_alias_spelling ... ok
+test checked_document_retains_exact_structured_type_by_semantic_value_kind ... ok
+test canonical_expansion_checks_the_resolved_profile_not_the_alias ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/structured_selectors.rs (target/debug/deps/structured_selectors-dbe28f6949e3d8dc)
+
+running 12 tests
+test exhaustive_variant_route_lowers_to_exact_drop_selectors ... ok
+test guarded_route_round_trips_and_lowers_to_exact_record_carrying_tracks ... ok
+test unsupported_selector_profile_refuses_before_plan_or_play ... ok
+test required_domain_selectors_are_statically_typed_cord_stages ... ok
+test guarded_routes_refuse_gaps_overlap_mixed_fields_and_nonfinal_otherwise ... ok
+test route_trivia_changes_source_identity_but_not_checked_meaning ... ok
+test guarded_route_retains_every_possible_track_in_the_expanded_graph ... ok
+test selector_identity_ignores_trivia_but_includes_unmatched_policy ... ok
+test exhaustive_variant_route_expands_every_track_into_the_immutable_graph ... ok
+test expansion_lowers_selector_to_one_exact_ordinary_gear_for_value_and_flow ... ok
+test closed_variant_routes_refuse_gaps_duplicates_mixed_types_and_otherwise ... ok
+test invalid_members_bounds_and_policies_refuse_explicitly ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/structured_values.rs (target/debug/deps/structured_values-b21a1f2fe23aabc2)
+
+running 12 tests
+test parser_refuses_excessive_nesting_at_the_exact_nested_value ... ok
+test malformed_structured_literals_keep_lossless_source_and_deterministic_diagnostics ... ok
+test collection_record_and_variant_literals_become_one_concrete_f0_value ... ok
+test quantity_literals_become_exact_canonical_leaf_bytes_during_plot_checking ... ok
+test structured_local_and_nested_plot_parameter_resolve_without_runtime_evaluation ... ok
+test malformed_quantity_literals_refuse_at_the_owned_source_span ... ok
+test trivia_and_record_field_order_do_not_change_checked_identity ... ok
+test duplicate_unknown_missing_and_unknown_tag_have_precise_diagnostics ... ok
+test collection_length_leaf_type_and_runtime_port_fail_distinctly ... ok
+test structured_catalog_and_plot_defaults_are_checked_semantic_values ... ok
+test bounded_sequence_literals_keep_actual_length_in_checked_values ... ok
+test leaf_and_total_canonical_byte_bounds_fail_before_checked_identity ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.28s
+
+     Running tests/text_material.rs (target/debug/deps/text_material-30ec7809642f1313)
+
+running 3 tests
+test text_material_preserves_utf8_and_empty_material_in_both_evaluators ... ok
+test text_material_refuses_nontext_and_does_not_admit_a_foreign_nominal_output ... ok
+test material_equality_compares_full_bytes_across_distinct_native_contracts ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/typed_pair_expression.rs (target/debug/deps/typed_pair_expression-3908820e97835283)
+
+running 2 tests
+test tuple_projection_refuses_out_of_range_and_named_or_forged_records ... ok
+test typed_join_retains_nested_source_meaning_without_runtime_allocation ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/typed_pair_refinements.rs (target/debug/deps/typed_pair_refinements-5586644c1e9fe0b7)
+
+running 4 tests
+test imported_member_shape_without_retained_laws_cannot_authorize_construction ... ok
+test weaker_member_contract_cannot_authorize_a_stronger_constructed_value ... ok
+test exact_native_refinements_forward_through_tuple_projection ... ok
+test cross_field_laws_still_require_a_validator_when_reconstructing_a_tuple_member ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/when_filter.rs (target/debug/deps/when_filter-8b048891fb0a78cd)
+
+running 2 tests
+test when_lowers_to_one_exact_flow_preserving_filter_gear ... ok
+test one_value_when_outputs_the_canonical_finite_optional_profile ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests conduit_core
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests conduit_plot
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
