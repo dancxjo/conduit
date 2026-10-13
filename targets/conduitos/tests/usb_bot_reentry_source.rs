@@ -50,7 +50,10 @@ fn checked_reentry_has_two_storage_pairs_but_one_original_usb_operation_each() {
             1,
             "Root must explicitly map {role} to its matching independently issued pair"
         );
-        assert_eq!(selected[0].gear_id, format!("bot-storage-read-reentry/{role}"));
+        assert_eq!(
+            selected[0].gear_id,
+            format!("bot-storage-read-reentry/{role}")
+        );
     }
     assert_eq!(expanded.front.inputs().len(), 1);
     assert_eq!(expanded.front.outputs().len(), 1);
@@ -71,8 +74,8 @@ fn phase_guards_keep_first_submission_until_three_acks_and_original_settlement()
     let accept = program(&source, "bot-reentry-accept");
     let event_type = fields(&accept.input_type)[1].value_type();
     let permit = variant(event_type, "permit", |p| identity(p, 0));
-    assert!(accepted(&accept, 1, permit.clone()));
-    assert!(accepted(&accept, 11, permit));
+    assert!(accepted(&accept, 0, permit.clone()));
+    assert!(accepted(&accept, 10, permit));
     let stalled = read_event(&source, event_type, None, 0, false);
     assert!(accepted(&accept, 5, stalled.clone()));
     for phase in [4, 6, 7, 8, 10, 13, 14] {
@@ -113,7 +116,7 @@ fn phase_guards_keep_first_submission_until_three_acks_and_original_settlement()
         }
     }
     let wrong = variant(event_type, "permit", |p| identity(p, 1));
-    for phase in [1, 11] {
+    for phase in [0, 10] {
         assert!(!accepted(&accept, phase, wrong.clone()));
     }
 }
@@ -380,10 +383,9 @@ fn complete_two_caller_phase_path_settles_each_identity_once_before_unlocking_ne
     let advance = program(&source, "bot-reentry-advance");
     let emit = program(&source, "bot-reentry-emission");
     let event_type = fields(&accept.input_type)[1].value_type();
-    for phase in 0..16 {
+    for phase in [0u64, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13, 14, 15] {
         let event = match phase {
-            0 | 10 => variant(event_type, "command", |p| identity(p, 0)),
-            1 | 11 => variant(event_type, "permit", |p| identity(p, 0)),
+            0 | 10 => variant(event_type, "permit", |p| identity(p, 0)),
             2 | 3 | 6 | 7 | 8 => variant(event_type, "control", |p| {
                 record(p, |f| {
                     boolean(
@@ -425,7 +427,12 @@ fn complete_two_caller_phase_path_settles_each_identity_once_before_unlocking_ne
                 .unwrap()
                 .primitive_bytes("value/u64")
                 .unwrap(),
-            (phase + 1).to_le_bytes()
+            (match phase {
+                0 => 2u64,
+                10 => 12,
+                _ => phase + 1,
+            })
+            .to_le_bytes()
         );
         let emitted = evaluate(&emit, &transition).canonical_bytes().unwrap();
         assert_eq!(
@@ -444,3 +451,6 @@ fn complete_two_caller_phase_path_settles_each_identity_once_before_unlocking_ne
 
 #[path = "usb_bot_reentry/refinement.rs"]
 mod refinement;
+
+#[path = "usb_bot_reentry/ingress.rs"]
+mod ingress;

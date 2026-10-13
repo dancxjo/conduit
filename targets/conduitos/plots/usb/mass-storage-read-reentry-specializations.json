@@ -45,5 +45,18 @@
       "maximum_bytes": 4096
     },
     "alias": "BotReentryResults"
+  },
+  {
+    "kind": "feedback-zip-instance",
+    "alias": "BotReentryRequestGate",
+    "paired_alias": "BotReentryRequestPair",
+    "left": {
+      "type_name": "BotReentryState",
+      "maximum_bytes": 4096
+    },
+    "right": {
+      "type_name": "BlockReadRequest",
+      "maximum_bytes": 4096
+    }
   }
 ]

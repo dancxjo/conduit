@@ -60,10 +60,14 @@ type BotReentryState = {
  failed: Boolean
  terminal: Boolean
 }
+# Raw request descendants terminate at a selected authorizer. This route never
+# sends raw payloads or closure observations into the physical state machine.
+type BotReentryAuthorizationRequest =
+ first BlockReadRequest
+ | second BlockReadRequest
+ | absent
 type BotReentryRoute =
  ready BotReentryState
- | first-authorize BotReentryState
- | second-authorize BotReentryState
  | control BotReentryState
  | write BotReentryState
  | read BotReentryState
@@ -126,12 +130,15 @@ plot bot-reentry-read-event (
 plot bot-reentry-command-event (
     pair: BotReentryPair...| >> event: BotReentryEvent...|
 ) = (.1)
+plot bot-reentry-raw-authorization (
+    pair: BotReentryRequestPair...| >> route: BotReentryAuthorizationRequest...|
+) = (.0.failed || .0.terminal ? absent(empty) : (.0.phase == 0 ? first(.1) : (.0.phase == 10 ? second(.1) : absent(empty))))
 plot bot-reentry-route (
     state: BotReentryState...| >> route: BotReentryRoute...|
-) = (.terminal || .phase > 16 ? stopped(.) : (.failed ? ready(.) : (.phase == 0 || .phase == 10 || .phase == 16 ? ready(.) : (.phase == 1 ? first-authorize(.) : (.phase == 11 ? second-authorize(.) : (.phase == 9 ? first-settle(.) : (.phase == 15 ? second-settle(.) : (.phase == 4 || .phase == 12 ? write(.) : (.phase == 5 || .phase == 13 || .phase == 14 ? read(.) : control(.))))))))))
+) = (.terminal || .phase > 16 || .phase == 1 || .phase == 11 ? stopped(.) : (.failed ? ready(.) : (.phase == 0 || .phase == 10 || .phase == 16 ? ready(.) : (.phase == 9 ? first-settle(.) : (.phase == 15 ? second-settle(.) : (.phase == 4 || .phase == 12 ? write(.) : (.phase == 5 || .phase == 13 || .phase == 14 ? read(.) : control(.))))))))
 plot bot-reentry-pending (
     route: BotReentryRoute...| >> pending: BotReentryPending...|
-) = (. is stopped ? stopped(empty) : (. is ready ? running(.ready) : (. is first-authorize ? running(.first-authorize) : (. is second-authorize ? running(.second-authorize) : (. is first-settle ? running(.first-settle) : (. is second-settle ? running(.second-settle) : (. is control ? running(.control) : (. is write ? running(.write) : running(.read)))))))))
+) = (. is stopped ? stopped(empty) : (. is ready ? running(.ready) : (. is first-settle ? running(.first-settle) : (. is second-settle ? running(.second-settle) : (. is control ? running(.control) : (. is write ? running(.write) : running(.read)))))))
 plot bot-reentry-authorization (
     state: BotReentryState...| >> request: BlockReadRequest...| <= 4096B
 ) = (.request)
@@ -153,11 +160,11 @@ plot bot-reentry-second-candidate (
 
 plot bot-reentry-accept (
     pair: BotReentryPair...| >> transition: BotReentryTransition...|
-) = ({ previous: .0, event: .1, accepted: (.0.terminal || .0.phase > 16 || (.0.failed && .0.phase != 16) ? false : (((((.0.phase == 0 || .0.phase == 10) ? (.1 is closed ? true : (.1 is command ? ((.1.command.block_size == 512 && (.1.command.count == 1 && .1.command.lba == 0))) : false)) : false) || ((.0.phase == 16 ? (.1 is command || .1 is closed) : false) || ((.0.phase == 1 || .0.phase == 11) ? (.1 is permit ? (((.1.permit.block_size == .0.request.block_size && .1.permit.count == .0.request.count) && (.1.permit.lba == .0.request.lba && .1.permit.ordinal == 0))) : false) : false))) || (((.0.phase == 2 ? (.1 is control ? .1.control.descriptor : false) : false) || (((.0.phase == 3 || .0.phase == 6) || (.0.phase == 7 || .0.phase == 8)) ? (.1 is control ? .1.control.ack : false) : false)) || (((.0.phase == 4 || .0.phase == 12) ? (.1 is write ? (.1.write is completed ? .1.write.completed.actual == 31 : false) : false) : false) || (.0.phase == 5 ? (.1 is read ? (.1.read.result is stalled) : false) : false)))) || ((.0.phase == 13 ? (.1 is read ? (.1.read.result is completed ? (((.1.read.data && .1.read.ordinal == 1) && (.1.read.result.completed.actual == 512 && !.1.read.result.completed.short))) : false) : false) : false) || ((.0.phase == 14 ? (.1 is read ? (.1.read.result is completed ? (((.1.read.status && .1.read.ordinal == 2) && (.1.read.tag == 2 && (.1.read.residue == 0 && .1.read.status_code == 0)))) : false) : false) : false) || ((.0.phase == 9 ? (.1 is settled ? (.1.settled.stalled ? (((.1.settled.block_size == .0.permit.block_size && .1.settled.count == .0.permit.count) && (.1.settled.lba == .0.permit.lba && .1.settled.ordinal == .0.permit.ordinal))) : false) : false) : false) || (.0.phase == 15 ? (.1 is settled ? (.1.settled.completed ? ((((.1.settled.block_size == .0.permit.block_size && .1.settled.count == .0.permit.count) && (.1.settled.lba == .0.permit.lba && .1.settled.ordinal == .0.permit.ordinal)) && ((.1.settled.actual == 512 && .1.settled.residue == 0) && (!.1.settled.short && .1.settled.length == 512)))) : false) : false) : false)))))) })
+) = ({ previous: .0, event: .1, accepted: (.0.terminal || .0.phase > 16 || (.0.failed && .0.phase != 16) ? false : ((((.0.phase == 16 ? (.1 is command || .1 is closed) : false) || ((((.0.phase == 0 || .0.phase == 10) ? (.1 is closed ? true : (.1 is permit ? ((.1.permit.block_size == 512 && .1.permit.count == 1) && (.1.permit.lba == 0 && .1.permit.ordinal == 0)) : false)) : false)) || (.0.phase == 2 ? (.1 is control ? .1.control.descriptor : false) : false))) || ((((.0.phase == 3 || .0.phase == 6) || (.0.phase == 7 || .0.phase == 8)) ? (.1 is control ? .1.control.ack : false) : false) || (((.0.phase == 4 || .0.phase == 12) ? (.1 is write ? (.1.write is completed ? .1.write.completed.actual == 31 : false) : false) : false) || (.0.phase == 5 ? (.1 is read ? (.1.read.result is stalled) : false) : false)))) || ((.0.phase == 13 ? (.1 is read ? (.1.read.result is completed ? (((.1.read.data && .1.read.ordinal == 1) && (.1.read.result.completed.actual == 512 && !.1.read.result.completed.short))) : false) : false) : false) || ((.0.phase == 14 ? (.1 is read ? (.1.read.result is completed ? (((.1.read.status && .1.read.ordinal == 2) && (.1.read.tag == 2 && (.1.read.residue == 0 && .1.read.status_code == 0)))) : false) : false) : false) || ((.0.phase == 9 ? (.1 is settled ? (.1.settled.stalled ? (((.1.settled.block_size == .0.permit.block_size && .1.settled.count == .0.permit.count) && (.1.settled.lba == .0.permit.lba && .1.settled.ordinal == .0.permit.ordinal))) : false) : false) : false) || (.0.phase == 15 ? (.1 is settled ? (.1.settled.completed ? ((((.1.settled.block_size == .0.permit.block_size && .1.settled.count == .0.permit.count) && (.1.settled.lba == .0.permit.lba && .1.settled.ordinal == .0.permit.ordinal)) && ((.1.settled.actual == 512 && .1.settled.residue == 0) && (!.1.settled.short && .1.settled.length == 512)))) : false) : false) : false)))))) })
 
 plot bot-reentry-advance (
     transition: BotReentryTransition...| >> state: BotReentryState...|
-) = ({ bank: .previous.bank, request: (.accepted && .event is command && .previous.phase != 16 ? .event.command : .previous.request), permit: (.accepted && .event is permit ? .event.permit : .previous.permit), data: (.accepted && .previous.phase == 13 ? (.event is read ? .event.read.result : .previous.data) : .previous.data), phase: (.accepted && .event is closed ? 17 : (!.accepted || .previous.phase >= 16 ? 16 : .previous.phase + 1)), failed: (.previous.failed || !.accepted), terminal: (.accepted && .event is closed) })
+) = ({ bank: .previous.bank, request: (.accepted && .event is permit ? { block_size: .event.permit.block_size, count: .event.permit.count, lba: .event.permit.lba } : .previous.request), permit: (.accepted && .event is permit ? .event.permit : .previous.permit), data: (.accepted && .previous.phase == 13 ? (.event is read ? .event.read.result : .previous.data) : .previous.data), phase: (.accepted && .event is closed ? 17 : (!.accepted || .previous.phase >= 16 ? 16 : (.previous.phase == 0 ? 2 : (.previous.phase == 10 ? 12 : .previous.phase + 1)))), failed: (.previous.failed || !.accepted), terminal: (.accepted && .event is closed) })
 plot bot-reentry-emission (
     transition: BotReentryTransition...| >> emission: BotReentryEmission...|
 ) = (.accepted && (.previous.phase == 9 || .previous.phase == 15) ? (.event is settled ? emit(empty) : absent(empty)) : absent(empty))
@@ -170,9 +177,10 @@ plot bot-storage-read-reentry (
  route: bot-reentry-route()
  join: flow/zip/feedback
  commands: flow/zip/feedback
+ request-gate: BotReentryRequestGate
+ authorize-route: bot-reentry-raw-authorization()
  requests: flow/concat/finite
  events: flow/merge/finite
- authority-events: flow/merge/finite
  permit-events: flow/merge/finite
  settlement-events: flow/merge/finite
  results: BotReentryResults
@@ -190,14 +198,16 @@ plot bot-storage-read-reentry (
  literal >> bot-reentry-bootstrap() >> singleton.value
  singleton.flow >> bot-reentry-start() >> cell.seed
  singleton.flow >> bot-reentry-closed() >> requests.right
- request >> bot-reentry-command() >> requests.left
+ request >> request-gate.right
  requests.concatenated >> commands.right
  cell.current >> route
  route >> bot-reentry-pending() >> select(BotReentryPending.running, unmatched=drop) >> join.left
  route >> select(BotReentryRoute.ready, unmatched=drop) >> commands.left
+ route >> select(BotReentryRoute.ready, unmatched=drop) >> request-gate.left
+ request-gate.paired >> authorize-route
+ authorize-route >> select(BotReentryAuthorizationRequest.first, unmatched=drop) >> first-authorize.request
+ authorize-route >> select(BotReentryAuthorizationRequest.second, unmatched=drop) >> second-authorize.request
  commands.paired >> bot-reentry-command-event() >> events.left
- route >> select(BotReentryRoute.first-authorize, unmatched=drop) >> bot-reentry-authorization() >> first-authorize.request
- route >> select(BotReentryRoute.second-authorize, unmatched=drop) >> bot-reentry-authorization() >> second-authorize.request
  route >> select(BotReentryRoute.first-settle, unmatched=drop) >> bot-reentry-first-candidate() >> first-settle.request
  route >> select(BotReentryRoute.second-settle, unmatched=drop) >> bot-reentry-second-candidate() >> second-settle.request
  route >> select(BotReentryRoute.control, unmatched=drop) >> bot-reentry-control-request() >> control.request
@@ -209,14 +219,13 @@ plot bot-storage-read-reentry (
  first-settle.result >> results.left
  second-settle.result >> bot-reentry-settled() >> settlement-events.right
  second-settle.result >> results.right
- permit-events.merged >> authority-events.left
- settlement-events.merged >> authority-events.right
+ permit-events.merged >> requests.left
+ settlement-events.merged >> combined-events.left
  control.result >> bot-reentry-control-event() >> transport-events.left
  write.result >> bot-reentry-write-event() >> bulk-events.left
  read.result >> observe-read.result
  observe-read.event >> bulk-events.right
  bulk-events.merged >> transport-events.right
- authority-events.merged >> combined-events.left
  transport-events.merged >> combined-events.right
  combined-events.merged >> events.right
  events.merged >> join.right

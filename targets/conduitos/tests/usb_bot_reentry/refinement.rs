@@ -120,8 +120,8 @@ fn exact_accept_predicate_and_each_phase_branch_expand_without_refined_construct
     branches(&guard[colon + 1..], &mut phases);
     assert_eq!(
         phases.len(),
-        11,
-        "probe must cover all authored phase groups; phase tests retain all17 phases"
+        10,
+        "probe must cover all authored groups including post-authorizer permit gates"
     );
     let mut extra = format!(
         "plot probe-accepted-bool (\n pair: BotReentryPair...| >> observed: Boolean...|\n) = ({accepted})\n"
