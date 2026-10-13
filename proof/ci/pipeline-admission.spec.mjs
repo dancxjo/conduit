@@ -58,3 +58,28 @@ test('numerical changes exercise the actual Plan/Play Back behind its feature ga
   assert.deepEqual(plan(['Cargo.lock', 'products/conduit/Cargo.toml']).packages, ['conduit']);
   assert.deepEqual(plan(['Cargo.lock']).packages, [...names].sort());
  });
+
+test('Std changes use a hosted smoke without unrelated browser compilation', () => {
+  const commands = [];
+  runAdmission(['targets/std/src/lib.rs'], metadata, '/repo', (...args) => commands.push(args));
+  assert.ok(commands.some(([, args]) => args.join(' ') === 'xtask prove journey std'));
+  assert.ok(!commands.some(([, args]) => args.includes('integrate') || args.includes('wasm32-unknown-unknown')));
+});
+test('architecture smoke retains multi-placement and recovery; browser changes build WASM', () => {
+  for (const [path, expected] of [['architecture/kernel/src/lib.rs', 'r1-new-plan-recovery'], ['targets/browser/src/lib.rs', 'wasm32-unknown-unknown']]) {
+    const commands = [];
+    runAdmission([path], metadata, '/repo', (...args) => commands.push(args));
+    assert.ok(commands.some(([, args]) => args.includes(expected)));
+  }
+});
+test('numerical catalogue changes select numerical tests; other catalogue edits retain full tests', () => {
+  const model = {workspace_members: [...names, 'catalog'], packages: [...metadata.packages, {id: 'catalog', name:'conduit-semantic-catalog', manifest_path:'/repo/semantics/catalog/Cargo.toml'}]};
+  for (const [path, targeted] of [['semantics/catalog/src/numerical_realization_back.rs', true], ['semantics/catalog/src/lib.rs', false]]) {
+    const commands = [];
+    runAdmission([path], model, '/repo', (...args) => commands.push(args));
+    const tests = commands.filter(([, args]) => args[0] === 'test' && args.includes('conduit-semantic-catalog'));
+    assert.equal(tests.some(([, args]) => args.includes('--lib') && args.includes('numerical')), targeted);
+    assert.equal(tests.some(([, args]) => args.includes('--no-fail-fast')), !targeted);
+    if (targeted) assert.ok(tests.some(([, args]) => args.includes('kernel-step')));
+  }
+});

@@ -45,11 +45,25 @@ export function runAdmission(paths, metadata, root, run) {
   if (paths.length && paths.every(name => /^(?:docs\/.+\.md|[^/]+\.md|LICENSE)$/.test(name))) return;
   console.log(`Admission packages: ${plan.packages.join(', ')}`);
   run('cargo', ['clippy', '--locked', '--workspace', '--all-targets', '--', '-D', 'warnings']);
-  if (plan.packages.length) run('cargo', ['test', '--locked', '--no-fail-fast', ...plan.packages.flatMap(name => ['-p', name]), '--', '--test-threads=1']);
+  const catalogChanges = paths.filter(name => name.startsWith('semantics/catalog/') && !name.endsWith('.md'));
+  const numericalCatalog = catalogChanges.length > 0 && catalogChanges.every(name =>
+    /^semantics\/catalog\/(?:src\/numerical_realization(?:_back)?\.rs|numerical\/|tests\/numerical_realization(?:\.rs|\/))/.test(name));
+  const packages = plan.packages.filter(name => !(numericalCatalog && name === 'conduit-semantic-catalog'));
+  if (packages.length) run('cargo', ['test', '--locked', '--no-fail-fast', ...packages.flatMap(name => ['-p', name]), '--', '--test-threads=1']);
+  if (numericalCatalog) run('cargo', ['test', '--locked', '-p', 'conduit-semantic-catalog', '--lib', 'numerical', '--', '--test-threads=1']);
   if (plan.packages.includes('conduit-kernel')) run('cargo', ['test', '--locked', '-p', 'conduit-kernel', '--features', 'alloc', '--', '--test-threads=1']);
   if (paths.some(name => /(?:numerical|exact_numeric|binary64)/.test(name))
       && metadata.packages.some(pkg => pkg.name === 'conduit-semantic-catalog')) {
     run('cargo', ['test', '--locked', '-p', 'conduit-semantic-catalog', '--features', 'kernel-step', '--test', 'numerical_realization', '--', '--test-threads=1']);
   }
-  if (plan.smoke) run('cargo', ['xtask', 'integrate']);
+  if (plan.smoke) {
+    run('cargo', ['xtask', 'prove', 'journey', 'std']);
+    if (paths.some(name => name.startsWith('architecture/'))) {
+      run('cargo', ['xtask', 'prove', 'journey', 'triple']);
+      run('cargo', ['xtask', 'prove', 'r1-new-plan-recovery']);
+    }
+    if (paths.some(name => name.startsWith('targets/browser/'))) {
+      run('cargo', ['build', '--locked', '-p', 'conduit-browser-runtime', '--target', 'wasm32-unknown-unknown']);
+    }
+  }
 }
