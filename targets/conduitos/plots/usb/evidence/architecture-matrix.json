@@ -131,7 +131,14 @@
       },
       "machine": "q35",
       "controller": "QEMU xHCI",
-      "substrate": "bounded product control/bulk/interrupt mechanics; complete fault matrix pending"
+      "substrate": "bounded product control/bulk/interrupt mechanics; complete fault matrix pending",
+      "native_readiness": {
+        "dma": "Root-owned coherent contiguous DMA retained until exact acknowledged Stop",
+        "completion": "Bounded event-ring polling; no USB IRQ handler ownership claimed",
+        "shared_contract_source": "targets/conduitos/src/arch/xhci_mechanism.rs:144",
+        "ordering_source": "targets/conduitos/src/arch/xhci_mechanism/ordering.rs:1",
+        "mapping_source": "targets/conduitos/src/arch/x86_64/xhci.rs"
+      }
     },
     {
       "architecture": "aarch64",
@@ -145,8 +152,9 @@
         },
         "hid": {
           "status": "incomplete",
-          "reason": "No actual product USB class execution evidence yet",
-          "proof_level": "compile-only"
+          "reason": "Shared controller substrate compiled; unchanged HID class Plot has no retained AArch product device execution. Deferred under #5258; no separate provider bring-up issue identified.",
+          "proof_level": "compile-only",
+          "owning_issue": 5258
         },
         "cdc-acm": {
           "status": "incomplete",
@@ -223,7 +231,13 @@
       "cpu": "neoverse-n2",
       "controller": "QEMU xHCI PCIe",
       "substrate": "Actual product control/bulk IN/OUT execution on coherent PCIe xHCI; fault matrix pending",
-      "candidate_source": "20def19de53cede58c47a46f363309f3f798bbf5"
+      "native_readiness": {
+        "dma": "Root-owned coherent contiguous DMA retained until exact acknowledged Stop",
+        "completion": "Bounded event-ring polling; no USB IRQ handler ownership claimed",
+        "shared_contract_source": "targets/conduitos/src/arch/xhci_mechanism.rs:144",
+        "ordering_source": "targets/conduitos/src/arch/xhci_mechanism/ordering.rs:1",
+        "mapping_source": "targets/conduitos/src/arch/aarch64/xhci/mapping.rs"
+      }
     },
     {
       "architecture": "ia32",
@@ -261,7 +275,12 @@
         }
       },
       "substrate": "unsupported",
-      "reason": "No admitted ordinary native USB transfer provider in current product inventory"
+      "reason": "No admitted ordinary native USB transfer provider in current product inventory",
+      "deferral": {
+        "tracking_issue": 5258,
+        "provider_issue": null,
+        "reason": "No separate USB controller/provider bring-up issue identified; unsupported disposition remains tracked by #5258, not a completed architecture milestone."
+      }
     },
     {
       "architecture": "riscv64",
@@ -299,7 +318,12 @@
         }
       },
       "substrate": "unsupported",
-      "reason": "No admitted ordinary native USB transfer provider in current product inventory"
+      "reason": "No admitted ordinary native USB transfer provider in current product inventory",
+      "deferral": {
+        "tracking_issue": 5258,
+        "provider_issue": null,
+        "reason": "No separate USB controller/provider bring-up issue identified; unsupported disposition remains tracked by #5258, not a completed architecture milestone."
+      }
     },
     {
       "architecture": "loongarch64",
@@ -337,7 +361,12 @@
         }
       },
       "substrate": "unsupported",
-      "reason": "No admitted ordinary native USB transfer provider in current product inventory"
+      "reason": "No admitted ordinary native USB transfer provider in current product inventory",
+      "deferral": {
+        "tracking_issue": 5258,
+        "provider_issue": null,
+        "reason": "No separate USB controller/provider bring-up issue identified; unsupported disposition remains tracked by #5258, not a completed architecture milestone."
+      }
     }
   ],
   "scope": "Published supported-target evidence inventory; all six owning issue acceptances remain open",
