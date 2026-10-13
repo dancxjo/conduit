@@ -5,6 +5,8 @@ use super::{
 };
 use core::cmp::Ordering;
 
+mod binary64;
+
 pub const EXACT_RATIONAL_ID: &str = "numeric/exact-rational@1";
 
 /// Fixed storage, with no heap or symbolic interpreter on existing native paths.

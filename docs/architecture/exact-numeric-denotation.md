@@ -375,3 +375,48 @@ certified binary64 algorithms, irrational realization strategies, physical Unit
 projection and DSP/tensor consumers remain open. The repository acceptance
 entrance is `cargo xtask ci pipeline unit foundation`; candidate/integration CI
 retains its exact execution evidence.
+
+## Prepared finite binary64 algorithms (development)
+
+`PreparedBinary64Projection` rounds an exact rational with integer arithmetic,
+under explicit work and absolute-error requirements. Nearest ties-to-even and
+rounding toward zero, positive infinity or negative infinity are explicit policy
+values. Normal/subnormal encodings, signed underflow zero, significand carry and
+finite-range refusal follow the reviewed binary64 layout and rounding rules.
+Format and rounding references are the [Oracle double-format guide](https://docs.oracle.com/cd/E37069_01/html/E39019/z4000ac019269.html)
+and [Numerical Computation Guide, rounding directions](https://docs.oracle.com/cd/E77782_01/pdf/E77791.pdf).
+
+Fractional quotient bits are streamed without growing a full-extent numerator
+past its declared storage. A remainder comparison with `denominator-remainder`
+avoids overflowing doubled scratch. Error claims distinguish the exact absolute
+distance from a certified requested bound. If an exact-distance intermediate
+exceeds the profile, continued-fraction comparisons can still prove containment
+in the requested target-centered interval. Failure to prove the bound refuses.
+Inexact and tiny-inexact-after-rounding status are retained as data. Finite IEEE
+inputs retain their signed-zero bits; the existing IEEE carrier continues to
+preserve infinities and NaN payloads independently of this finite profile.
+
+`PreparedBinary64Algorithm` preserves a specified sequence of at most 32 constant,
+IEEE-input, add/subtract/multiply/divide and negate steps. Each step retains both
+its exact mathematical value and a certified rounding of the operation on the
+previously rounded operands. End-to-end error is checked separately from every
+local rounding. Thus `0.1+0.2` yields a different binary64 result from a projection
+of exact `0.3`, and `(10^16+1)-10^16` yields zero with error one against exact source
+one. Reordering the latter to `(10^16-10^16)+1` has a different retained algorithm
+and certificate, even though its mathematical value remains one.
+
+Step count, retained payload and limb work are admitted before allocation and
+execution. Exact constants have separately counted boxed storage; the trace is
+frozen after preparation. Payload accounting excludes caller input storage,
+allocator overhead and stack frames. Invalid/forward references, exhausted work
+or storage, finite-range overflow and a denominator rounded to zero refuse
+explicitly. A valid mathematical denominator that became zero through rounding
+has a distinct refusal from mathematical division by zero.
+
+The existing generic projection domain and policy inspect the sealed operation
+order's end-to-end precision loss without repeating arithmetic. Tests include
+midpoints, full-extent scratch, subnormal boundaries, signed zero, cancellation,
+policy/forgery refusal and independent native nearest-even operation comparisons.
+These are portable core preparation proofs. Numerical offer/Plan/Play integration,
+irrational source strategies, dynamic DSP/tensor execution and their performance
+and exact-main acceptance gates remain open.
