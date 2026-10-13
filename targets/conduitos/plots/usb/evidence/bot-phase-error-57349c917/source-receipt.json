@@ -1,0 +1,12 @@
+{
+  "artifact_id": "conduitos/protocol-source/sha256/3fc6aacc3edd2611f0acf0fdd31b64c3d7c10f8fd3821a9fe7ac3f1cd43d026f",
+  "checked_plot_id": "dec05d164e5f905455d4074c35703a015d612b0852c379bba9d0e6da90adff3a",
+  "entry": "bot-storage-read-reentry",
+  "expanded_plot_id": "d2e1dba49063ab8b9348f5221fde55bbdb8e4a70039e0697af480aabf7392289",
+  "gears": 53,
+  "package_bytes": 63750,
+  "package_sha256": "sha256:3fc6aacc3edd2611f0acf0fdd31b64c3d7c10f8fd3821a9fe7ac3f1cd43d026f",
+  "proof_class": "source-check-and-expansion",
+  "schema": "conduit.conduitos/protocol-source-receipt@1",
+  "source_document_id": "9d3b638e147ab939d460da12d04af2932aa76254d50c5f899496b8ae225d0ecf"
+}

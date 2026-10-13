@@ -21,11 +21,66 @@
               "integration": "pending",
               "physical_proof": false
             }
-          ]
+          ],
+          "source_binding": {
+            "receipt": "standalone-control-21e596e3/image-receipt.json",
+            "receipt_sha256": "f4820670b159bd285aabef0ba8c33b99063dac199bda7b70bf0e0af02e94404b",
+            "source_artifact_id": "conduitos/protocol-source/sha256/873c156e351413161f4a4f49a76b446323ae59471ea85251a7aec4ac256e1c50",
+            "source_document_id": "dc02722175c9568da4023685de8ab0da5436275c097420acf974206ab3eba1f7",
+            "checked_plot_id": "63099e0851407765ddd9cc281304682ed3d9a4394ea3249d912b5e3b7160664e",
+            "expanded_plot_id": "6377ac192ebd3345edc8e7f057c3f55b25336a9549a1ada105e75c39676df188",
+            "root_request_sha256": "5b8d41414551c0ba82387875fc5b2ed2e2f99357fcfea4c88ce654a30a21d3f0",
+            "kernel_sha256": "8fa1f767f50907d0aec9b6f3b57b13f28c8329e9067c3f743e549e912fe978b4",
+            "image_sha256": "a98aac35251c3a497611b8a7854218cda8be898361fdc0d237b945acc91883b6"
+          },
+          "proof_tiers": {
+            "compile-only": {
+              "status": "verified",
+              "scope": "Checked Source and image packaging only; not device execution."
+            },
+            "deterministic-simulation": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "emulator-with-device": {
+              "status": "partial",
+              "scope": "Only the retained exact profile receipts; not full owning-issue acceptance."
+            },
+            "hardware-in-loop": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "physical": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            }
+          }
         },
         "hid": {
           "status": "incomplete",
-          "reason": "Owning class acceptance not complete"
+          "reason": "Owning class acceptance not complete",
+          "proof_tiers": {
+            "compile-only": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "deterministic-simulation": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "emulator-with-device": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "hardware-in-loop": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "physical": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            }
+          }
         },
         "cdc-acm": {
           "status": "emulator-verified",
@@ -49,7 +104,40 @@
               "integration": "pending",
               "physical_proof": false
             }
-          ]
+          ],
+          "source_binding": {
+            "receipt": "current-usb-classes-a783be37/cdc/image-receipt.json",
+            "receipt_sha256": "b97b89afd92e26d3e125fe370f5e250f9d69ab43cddb024007743fed762fa2ad",
+            "source_artifact_id": "conduitos/protocol-source/sha256/15a4b501b95e978c03c0f3a2bc9e966d44fa182280d6349f2664c754b9fca8b1",
+            "source_document_id": "6d8cfad770b929722cf51be4335b2ad74e5f365d42271851f73b65b9aab29c4a",
+            "checked_plot_id": "e694a736890697d81574c149a7db2b769b96bb12b9779386027f01e572c41edc",
+            "expanded_plot_id": "09ea334dffb657fad63c72eabab609dbbcf5ddc8b5b6cc83e3aec05a4e5d371e",
+            "root_request_sha256": "47c927287fb3258bf89014b600b4f311d375abc94359c241703d8dd004c0700e",
+            "kernel_sha256": "f7e88343b1078f6e3f337d87c0d1a7a4cffb26bd61724be8c0a3340222792d76",
+            "image_sha256": "94b0c9b5c76bad323d750fdd20c8e118d57b303745158954c5936226bc9f49c5"
+          },
+          "proof_tiers": {
+            "compile-only": {
+              "status": "verified",
+              "scope": "Checked Source and image packaging only; not device execution."
+            },
+            "deterministic-simulation": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "emulator-with-device": {
+              "status": "verified",
+              "scope": "Only the retained exact profile receipts; not full owning-issue acceptance."
+            },
+            "hardware-in-loop": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "physical": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            }
+          }
         },
         "cdc-ecm": {
           "status": "emulator-verified",
@@ -80,7 +168,40 @@
               "integration": "pending",
               "physical_proof": false
             }
-          ]
+          ],
+          "source_binding": {
+            "receipt": "current-usb-classes-a783be37/ecm/protocol-receipt.json",
+            "receipt_sha256": "95f9338cf27909ef32150d14def08ea91dbb58c9979cf0ffe85a0bb6cf27246d",
+            "source_artifact_id": "conduitos/protocol-source/sha256/1a341ecaf311abeb2a6cb1618134bcf77beb8cd0a17f2def05c99d05b6e205c6",
+            "source_document_id": "449bdc6a2bb6bfc97698b6e9e82d11f51b0dabced9335825989783b08b059a88",
+            "checked_plot_id": "96ae8f7de16c8b1885d9d1fbea29b9518ba74f9fb2a221e9b3b2a3f12296f7a2",
+            "expanded_plot_id": "6f61713f378f1539f066c9ff0e7f8c6aa27be1819fd1f39c788ab489df73e951",
+            "root_request_sha256": "73f47a34a0cd054a5d77daf385985c70bd3ec7b0f04003bbd3d840697cdc9d2e",
+            "kernel_sha256": "f7e88343b1078f6e3f337d87c0d1a7a4cffb26bd61724be8c0a3340222792d76",
+            "image_sha256": "b1b9aed4cbdcc37782675fcf4711ef8dd6ebb1e5d36623be27cac56c983ee005"
+          },
+          "proof_tiers": {
+            "compile-only": {
+              "status": "verified",
+              "scope": "Checked Source and image packaging only; not device execution."
+            },
+            "deterministic-simulation": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "emulator-with-device": {
+              "status": "verified",
+              "scope": "Only the retained exact profile receipts; not full owning-issue acceptance."
+            },
+            "hardware-in-loop": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "physical": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            }
+          }
         },
         "bot": {
           "status": "emulator-verified",
@@ -149,7 +270,40 @@
               "integration": "pending",
               "physical_proof": false
             }
-          ]
+          ],
+          "source_binding": {
+            "receipt": "bot-reentry-failed-clear-a783be37/image-receipt.json",
+            "receipt_sha256": "75c058f4c498cdbeb0d5b3f64d858ebe8700814a5818dd583b70df2f134123ec",
+            "source_artifact_id": "conduitos/protocol-source/sha256/bea3a4f111c39a582784d487c272160a3adbba1f8c00400cb0941529ca52de06",
+            "source_document_id": "750af25a47fc3845a44f0def83989acff820781b4d92e47344e7777329ed8a0e",
+            "checked_plot_id": "e1b33a68a8430e66126990d30662768a94be0703c4e9b925aec0631c03c1aa8a",
+            "expanded_plot_id": "34af6ad528849e722979d2ffeac3fda4e3bb33b096fb14b91a621a398d449c89",
+            "root_request_sha256": "e202483137d4589067f71f09729f48846a796f3af996e2b8edc16ba1a7b759fb",
+            "kernel_sha256": "f7e88343b1078f6e3f337d87c0d1a7a4cffb26bd61724be8c0a3340222792d76",
+            "image_sha256": "38323aeb087b3f13ce44762f13cd5b8e136397249f66ef510eec4c8519335158"
+          },
+          "proof_tiers": {
+            "compile-only": {
+              "status": "verified",
+              "scope": "Checked Source and image packaging only; not device execution."
+            },
+            "deterministic-simulation": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "emulator-with-device": {
+              "status": "verified",
+              "scope": "Only the retained exact profile receipts; not full owning-issue acceptance."
+            },
+            "hardware-in-loop": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "physical": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            }
+          }
         },
         "uac": {
           "status": "emulator-verified",
@@ -175,7 +329,97 @@
               "integration": "pending",
               "physical_proof": false
             }
-          ]
+          ],
+          "source_binding": {
+            "receipt": "current-usb-classes-a783be37/audio/image-receipt.json",
+            "receipt_sha256": "fc4097a8c4874f126035e28bb8f27d765f0e9e2f5432c409e56947286ab1629f",
+            "source_artifact_id": "conduitos/protocol-source/sha256/03de725b1218d7ba8a5d9d21b58fbb11ff14089b0353619ac782cc53af6d87ab",
+            "source_document_id": "f6cec9199b2b9250af94876bbdf3c05c0e3bd7f38e652603e6c3b3ce4161b1ca",
+            "checked_plot_id": "596faf58cc20ab40e2ab90e6155def35fc681cf355be9fdb9883f628bfc6b36d",
+            "expanded_plot_id": "2edd17e146c1b5c5748117a74e501d7328b8215059022ec98719428557df68c1",
+            "root_request_sha256": "4acd344bc7b7bc49b76f198ea8ba0a949cf64b992e6cda2fe5bc904eb059f7c7",
+            "kernel_sha256": "f7e88343b1078f6e3f337d87c0d1a7a4cffb26bd61724be8c0a3340222792d76",
+            "image_sha256": "7f54eb29e08a394491891a1bb83bbc6b2ff5abd848f2aa46df4837cc6eb9aa7f"
+          },
+          "proof_tiers": {
+            "compile-only": {
+              "status": "verified",
+              "scope": "Checked Source and image packaging only; not device execution."
+            },
+            "deterministic-simulation": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "emulator-with-device": {
+              "status": "verified",
+              "scope": "Only the retained exact profile receipts; not full owning-issue acceptance."
+            },
+            "hardware-in-loop": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "physical": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            }
+          }
+        },
+        "substrate": {
+          "status": "incomplete",
+          "reason": "Actual control/bulk execution in the bounded CDC profile; full substrate fault/interrupt/ISO acceptance remains independently owned.",
+          "proof_level": "emulator-with-device",
+          "acceptance": "partial",
+          "retained_product_proofs": [
+            {
+              "receipt": "native-cdc-current-kernel-21e596e3/validation.json",
+              "receipt_sha256": "c9240ff9279d968f3b160c37577b2e31980797e8b11408f9a45e5411f05437e1",
+              "proof_level": "emulator-with-device",
+              "claim": "Sixteen actual transmitted and received buffers, with typed results, zero Play allocations and retirement",
+              "integration": "pending",
+              "physical_proof": false
+            },
+            {
+              "receipt": "current-usb-classes-a783be37/cdc-cross-architecture.json",
+              "receipt_sha256": "3414d449a6bb1c7b9918184f4cea59a6355ce0451687ee08c6179b919b4e9846",
+              "proof_level": "emulator-with-device",
+              "same_checked_package_and_root": true,
+              "integration": "pending",
+              "physical_proof": false
+            }
+          ],
+          "source_binding": {
+            "receipt": "current-usb-classes-a783be37/cdc/image-receipt.json",
+            "receipt_sha256": "b97b89afd92e26d3e125fe370f5e250f9d69ab43cddb024007743fed762fa2ad",
+            "source_artifact_id": "conduitos/protocol-source/sha256/15a4b501b95e978c03c0f3a2bc9e966d44fa182280d6349f2664c754b9fca8b1",
+            "source_document_id": "6d8cfad770b929722cf51be4335b2ad74e5f365d42271851f73b65b9aab29c4a",
+            "checked_plot_id": "e694a736890697d81574c149a7db2b769b96bb12b9779386027f01e572c41edc",
+            "expanded_plot_id": "09ea334dffb657fad63c72eabab609dbbcf5ddc8b5b6cc83e3aec05a4e5d371e",
+            "root_request_sha256": "47c927287fb3258bf89014b600b4f311d375abc94359c241703d8dd004c0700e",
+            "kernel_sha256": "f7e88343b1078f6e3f337d87c0d1a7a4cffb26bd61724be8c0a3340222792d76",
+            "image_sha256": "94b0c9b5c76bad323d750fdd20c8e118d57b303745158954c5936226bc9f49c5"
+          },
+          "proof_tiers": {
+            "compile-only": {
+              "status": "verified",
+              "scope": "Checked Source and image packaging only; not device execution."
+            },
+            "deterministic-simulation": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "emulator-with-device": {
+              "status": "partial",
+              "scope": "Only the retained exact profile receipts; not full owning-issue acceptance."
+            },
+            "hardware-in-loop": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "physical": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            }
+          }
         }
       },
       "machine": "q35",
@@ -197,13 +441,68 @@
           "status": "incomplete",
           "reason": "Actual ordinary CDC and BOT setup controls are retained; dedicated and full substrate acceptance remain pending",
           "proof_level": "emulator-with-device",
-          "acceptance": "partial"
+          "acceptance": "partial",
+          "source_binding": {
+            "receipt": "current-usb-classes-a783be37/cdc-aarch64/image-receipt.json",
+            "receipt_sha256": "eac143eac7e45e81e26ecb907105bf95523708b0149c153e1261eb4f61a6f96e",
+            "source_artifact_id": "conduitos/protocol-source/sha256/15a4b501b95e978c03c0f3a2bc9e966d44fa182280d6349f2664c754b9fca8b1",
+            "source_document_id": "6d8cfad770b929722cf51be4335b2ad74e5f365d42271851f73b65b9aab29c4a",
+            "checked_plot_id": "e694a736890697d81574c149a7db2b769b96bb12b9779386027f01e572c41edc",
+            "expanded_plot_id": "09ea334dffb657fad63c72eabab609dbbcf5ddc8b5b6cc83e3aec05a4e5d371e",
+            "root_request_sha256": "47c927287fb3258bf89014b600b4f311d375abc94359c241703d8dd004c0700e",
+            "kernel_sha256": "c5db3ab2b572861d59850d445d7ec89b2ff25a0d8d1b076b4a28426025722ad1",
+            "image_sha256": "d37df200da8d60cc79809c36b15d34450d6ce83a4bd338f49903da94e65c0c46"
+          },
+          "proof_tiers": {
+            "compile-only": {
+              "status": "verified",
+              "scope": "Checked Source and image packaging only; not device execution."
+            },
+            "deterministic-simulation": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "emulator-with-device": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "hardware-in-loop": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "physical": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            }
+          }
         },
         "hid": {
           "status": "incomplete",
           "reason": "Shared controller substrate compiled; unchanged HID class Plot has no retained AArch product device execution. Deferred under #5258; no separate provider bring-up issue identified.",
           "proof_level": "compile-only",
-          "owning_issue": 5258
+          "owning_issue": 5258,
+          "proof_tiers": {
+            "compile-only": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "deterministic-simulation": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "emulator-with-device": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "hardware-in-loop": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "physical": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            }
+          }
         },
         "cdc-acm": {
           "status": "emulator-verified",
@@ -221,7 +520,40 @@
               "integration": "pending",
               "physical_proof": false
             }
-          ]
+          ],
+          "source_binding": {
+            "receipt": "current-usb-classes-a783be37/cdc-aarch64/image-receipt.json",
+            "receipt_sha256": "eac143eac7e45e81e26ecb907105bf95523708b0149c153e1261eb4f61a6f96e",
+            "source_artifact_id": "conduitos/protocol-source/sha256/15a4b501b95e978c03c0f3a2bc9e966d44fa182280d6349f2664c754b9fca8b1",
+            "source_document_id": "6d8cfad770b929722cf51be4335b2ad74e5f365d42271851f73b65b9aab29c4a",
+            "checked_plot_id": "e694a736890697d81574c149a7db2b769b96bb12b9779386027f01e572c41edc",
+            "expanded_plot_id": "09ea334dffb657fad63c72eabab609dbbcf5ddc8b5b6cc83e3aec05a4e5d371e",
+            "root_request_sha256": "47c927287fb3258bf89014b600b4f311d375abc94359c241703d8dd004c0700e",
+            "kernel_sha256": "c5db3ab2b572861d59850d445d7ec89b2ff25a0d8d1b076b4a28426025722ad1",
+            "image_sha256": "d37df200da8d60cc79809c36b15d34450d6ce83a4bd338f49903da94e65c0c46"
+          },
+          "proof_tiers": {
+            "compile-only": {
+              "status": "verified",
+              "scope": "Checked Source and image packaging only; not device execution."
+            },
+            "deterministic-simulation": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "emulator-with-device": {
+              "status": "verified",
+              "scope": "Only the retained exact profile receipts; not full owning-issue acceptance."
+            },
+            "hardware-in-loop": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "physical": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            }
+          }
         },
         "cdc-ecm": {
           "status": "unsupported",
@@ -234,7 +566,30 @@
             "targets/conduitos/src/protocol_source/native_usb_duplex_preparation.rs:4"
           ],
           "deferred_issue": 5490,
-          "deferred_issue_url": "https://github.com/dancxjo/conduit/issues/5490"
+          "deferred_issue_url": "https://github.com/dancxjo/conduit/issues/5490",
+          "proof_tiers": {
+            "compile-only": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "deterministic-simulation": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "emulator-with-device": {
+              "status": "unsupported",
+              "reason": "Shared USB control/bulk is available on the pinned virt product. The Ethernet-frame/network Root realization is unavailable and explicitly refused; no retained AArch ECM semantic-seam execution proof.",
+              "deferred_issue": 5490
+            },
+            "hardware-in-loop": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "physical": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            }
+          }
         },
         "bot": {
           "status": "emulator-verified",
@@ -279,7 +634,40 @@
               "integration": "pending",
               "physical_proof": false
             }
-          ]
+          ],
+          "source_binding": {
+            "receipt": "current-usb-classes-a783be37/aarch64-failed-clear/image-receipt.json",
+            "receipt_sha256": "bf3a8b115112d0fec7837fa8033ceae6ac45bff19350a14bddc060868e57bdc7",
+            "source_artifact_id": "conduitos/protocol-source/sha256/bea3a4f111c39a582784d487c272160a3adbba1f8c00400cb0941529ca52de06",
+            "source_document_id": "750af25a47fc3845a44f0def83989acff820781b4d92e47344e7777329ed8a0e",
+            "checked_plot_id": "e1b33a68a8430e66126990d30662768a94be0703c4e9b925aec0631c03c1aa8a",
+            "expanded_plot_id": "34af6ad528849e722979d2ffeac3fda4e3bb33b096fb14b91a621a398d449c89",
+            "root_request_sha256": "e202483137d4589067f71f09729f48846a796f3af996e2b8edc16ba1a7b759fb",
+            "kernel_sha256": "c5db3ab2b572861d59850d445d7ec89b2ff25a0d8d1b076b4a28426025722ad1",
+            "image_sha256": "bebc6c0520036ad4b187ca64c7c3df6bde8dca90f3478489b335a7ca4d0144b4"
+          },
+          "proof_tiers": {
+            "compile-only": {
+              "status": "verified",
+              "scope": "Checked Source and image packaging only; not device execution."
+            },
+            "deterministic-simulation": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "emulator-with-device": {
+              "status": "verified",
+              "scope": "Only the retained exact profile receipts; not full owning-issue acceptance."
+            },
+            "hardware-in-loop": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "physical": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            }
+          }
         },
         "uac": {
           "status": "emulator-verified",
@@ -305,7 +693,89 @@
               "integration": "pending",
               "physical_proof": false
             }
-          ]
+          ],
+          "source_binding": {
+            "receipt": "current-usb-classes-a783be37/audio-aarch64/image-receipt.json",
+            "receipt_sha256": "62a812bb2a0a8d502f658f5b2eb4b0b28a73a50e532a09236425417ee0ceec6a",
+            "source_artifact_id": "conduitos/protocol-source/sha256/03de725b1218d7ba8a5d9d21b58fbb11ff14089b0353619ac782cc53af6d87ab",
+            "source_document_id": "f6cec9199b2b9250af94876bbdf3c05c0e3bd7f38e652603e6c3b3ce4161b1ca",
+            "checked_plot_id": "596faf58cc20ab40e2ab90e6155def35fc681cf355be9fdb9883f628bfc6b36d",
+            "expanded_plot_id": "2edd17e146c1b5c5748117a74e501d7328b8215059022ec98719428557df68c1",
+            "root_request_sha256": "4acd344bc7b7bc49b76f198ea8ba0a949cf64b992e6cda2fe5bc904eb059f7c7",
+            "kernel_sha256": "c5db3ab2b572861d59850d445d7ec89b2ff25a0d8d1b076b4a28426025722ad1",
+            "image_sha256": "3aa68734442c08d9ee544a5358717e908febcdcc62a69bc4350f159b26a7ba79"
+          },
+          "proof_tiers": {
+            "compile-only": {
+              "status": "verified",
+              "scope": "Checked Source and image packaging only; not device execution."
+            },
+            "deterministic-simulation": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "emulator-with-device": {
+              "status": "verified",
+              "scope": "Only the retained exact profile receipts; not full owning-issue acceptance."
+            },
+            "hardware-in-loop": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "physical": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            }
+          }
+        },
+        "substrate": {
+          "status": "incomplete",
+          "reason": "Actual control/bulk execution in the bounded CDC profile; full substrate fault/interrupt/ISO acceptance remains independently owned.",
+          "proof_level": "emulator-with-device",
+          "acceptance": "partial",
+          "retained_product_proofs": [
+            {
+              "receipt": "current-usb-classes-a783be37/cdc-cross-architecture.json",
+              "receipt_sha256": "3414d449a6bb1c7b9918184f4cea59a6355ce0451687ee08c6179b919b4e9846",
+              "proof_level": "emulator-with-device",
+              "same_checked_package_and_root": true,
+              "integration": "pending",
+              "physical_proof": false
+            }
+          ],
+          "source_binding": {
+            "receipt": "current-usb-classes-a783be37/cdc-aarch64/image-receipt.json",
+            "receipt_sha256": "eac143eac7e45e81e26ecb907105bf95523708b0149c153e1261eb4f61a6f96e",
+            "source_artifact_id": "conduitos/protocol-source/sha256/15a4b501b95e978c03c0f3a2bc9e966d44fa182280d6349f2664c754b9fca8b1",
+            "source_document_id": "6d8cfad770b929722cf51be4335b2ad74e5f365d42271851f73b65b9aab29c4a",
+            "checked_plot_id": "e694a736890697d81574c149a7db2b769b96bb12b9779386027f01e572c41edc",
+            "expanded_plot_id": "09ea334dffb657fad63c72eabab609dbbcf5ddc8b5b6cc83e3aec05a4e5d371e",
+            "root_request_sha256": "47c927287fb3258bf89014b600b4f311d375abc94359c241703d8dd004c0700e",
+            "kernel_sha256": "c5db3ab2b572861d59850d445d7ec89b2ff25a0d8d1b076b4a28426025722ad1",
+            "image_sha256": "d37df200da8d60cc79809c36b15d34450d6ce83a4bd338f49903da94e65c0c46"
+          },
+          "proof_tiers": {
+            "compile-only": {
+              "status": "verified",
+              "scope": "Checked Source and image packaging only; not device execution."
+            },
+            "deterministic-simulation": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "emulator-with-device": {
+              "status": "partial",
+              "scope": "Only the retained exact profile receipts; not full owning-issue acceptance."
+            },
+            "hardware-in-loop": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "physical": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            }
+          }
         }
       },
       "machine": "virt-10.2,highmem=off,gic-version=2,iommu=none",
@@ -328,37 +798,203 @@
           "status": "unsupported",
           "reason": "No admitted ordinary native USB transfer provider in current product inventory",
           "proof_level": "none",
-          "deferred_issue": 5489
+          "deferred_issue": 5489,
+          "proof_tiers": {
+            "compile-only": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "deterministic-simulation": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "emulator-with-device": {
+              "status": "unsupported",
+              "reason": "No admitted ordinary native USB transfer provider in current product inventory",
+              "deferred_issue": 5489
+            },
+            "hardware-in-loop": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "physical": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            }
+          }
         },
         "hid": {
           "status": "unsupported",
           "reason": "No admitted ordinary native USB transfer provider in current product inventory",
           "proof_level": "none",
-          "deferred_issue": 5489
+          "deferred_issue": 5489,
+          "proof_tiers": {
+            "compile-only": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "deterministic-simulation": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "emulator-with-device": {
+              "status": "unsupported",
+              "reason": "No admitted ordinary native USB transfer provider in current product inventory",
+              "deferred_issue": 5489
+            },
+            "hardware-in-loop": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "physical": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            }
+          }
         },
         "cdc-acm": {
           "status": "unsupported",
           "reason": "No admitted ordinary native USB transfer provider in current product inventory",
           "proof_level": "none",
-          "deferred_issue": 5489
+          "deferred_issue": 5489,
+          "proof_tiers": {
+            "compile-only": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "deterministic-simulation": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "emulator-with-device": {
+              "status": "unsupported",
+              "reason": "No admitted ordinary native USB transfer provider in current product inventory",
+              "deferred_issue": 5489
+            },
+            "hardware-in-loop": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "physical": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            }
+          }
         },
         "cdc-ecm": {
           "status": "unsupported",
           "reason": "No admitted ordinary native USB transfer provider in current product inventory",
           "proof_level": "none",
-          "deferred_issue": 5489
+          "deferred_issue": 5489,
+          "proof_tiers": {
+            "compile-only": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "deterministic-simulation": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "emulator-with-device": {
+              "status": "unsupported",
+              "reason": "No admitted ordinary native USB transfer provider in current product inventory",
+              "deferred_issue": 5489
+            },
+            "hardware-in-loop": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "physical": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            }
+          }
         },
         "bot": {
           "status": "unsupported",
           "reason": "No admitted ordinary native USB transfer provider in current product inventory",
           "proof_level": "none",
-          "deferred_issue": 5489
+          "deferred_issue": 5489,
+          "proof_tiers": {
+            "compile-only": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "deterministic-simulation": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "emulator-with-device": {
+              "status": "unsupported",
+              "reason": "No admitted ordinary native USB transfer provider in current product inventory",
+              "deferred_issue": 5489
+            },
+            "hardware-in-loop": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "physical": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            }
+          }
         },
         "uac": {
           "status": "unsupported",
           "reason": "No admitted ordinary native USB transfer provider in current product inventory",
           "proof_level": "none",
-          "deferred_issue": 5489
+          "deferred_issue": 5489,
+          "proof_tiers": {
+            "compile-only": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "deterministic-simulation": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "emulator-with-device": {
+              "status": "unsupported",
+              "reason": "No admitted ordinary native USB transfer provider in current product inventory",
+              "deferred_issue": 5489
+            },
+            "hardware-in-loop": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "physical": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            }
+          }
+        },
+        "substrate": {
+          "status": "unsupported",
+          "reason": "No admitted ordinary native USB transfer provider in current product inventory",
+          "deferred_issue": 5489,
+          "proof_tiers": {
+            "compile-only": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "deterministic-simulation": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "emulator-with-device": {
+              "status": "unsupported",
+              "reason": "No admitted ordinary native USB transfer provider in current product inventory",
+              "deferred_issue": 5489
+            },
+            "hardware-in-loop": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "physical": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            }
+          }
         }
       },
       "substrate": "unsupported",
@@ -379,37 +1015,203 @@
           "status": "unsupported",
           "reason": "No admitted ordinary native USB transfer provider in current product inventory",
           "proof_level": "none",
-          "deferred_issue": 5489
+          "deferred_issue": 5489,
+          "proof_tiers": {
+            "compile-only": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "deterministic-simulation": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "emulator-with-device": {
+              "status": "unsupported",
+              "reason": "No admitted ordinary native USB transfer provider in current product inventory",
+              "deferred_issue": 5489
+            },
+            "hardware-in-loop": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "physical": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            }
+          }
         },
         "hid": {
           "status": "unsupported",
           "reason": "No admitted ordinary native USB transfer provider in current product inventory",
           "proof_level": "none",
-          "deferred_issue": 5489
+          "deferred_issue": 5489,
+          "proof_tiers": {
+            "compile-only": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "deterministic-simulation": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "emulator-with-device": {
+              "status": "unsupported",
+              "reason": "No admitted ordinary native USB transfer provider in current product inventory",
+              "deferred_issue": 5489
+            },
+            "hardware-in-loop": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "physical": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            }
+          }
         },
         "cdc-acm": {
           "status": "unsupported",
           "reason": "No admitted ordinary native USB transfer provider in current product inventory",
           "proof_level": "none",
-          "deferred_issue": 5489
+          "deferred_issue": 5489,
+          "proof_tiers": {
+            "compile-only": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "deterministic-simulation": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "emulator-with-device": {
+              "status": "unsupported",
+              "reason": "No admitted ordinary native USB transfer provider in current product inventory",
+              "deferred_issue": 5489
+            },
+            "hardware-in-loop": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "physical": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            }
+          }
         },
         "cdc-ecm": {
           "status": "unsupported",
           "reason": "No admitted ordinary native USB transfer provider in current product inventory",
           "proof_level": "none",
-          "deferred_issue": 5489
+          "deferred_issue": 5489,
+          "proof_tiers": {
+            "compile-only": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "deterministic-simulation": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "emulator-with-device": {
+              "status": "unsupported",
+              "reason": "No admitted ordinary native USB transfer provider in current product inventory",
+              "deferred_issue": 5489
+            },
+            "hardware-in-loop": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "physical": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            }
+          }
         },
         "bot": {
           "status": "unsupported",
           "reason": "No admitted ordinary native USB transfer provider in current product inventory",
           "proof_level": "none",
-          "deferred_issue": 5489
+          "deferred_issue": 5489,
+          "proof_tiers": {
+            "compile-only": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "deterministic-simulation": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "emulator-with-device": {
+              "status": "unsupported",
+              "reason": "No admitted ordinary native USB transfer provider in current product inventory",
+              "deferred_issue": 5489
+            },
+            "hardware-in-loop": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "physical": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            }
+          }
         },
         "uac": {
           "status": "unsupported",
           "reason": "No admitted ordinary native USB transfer provider in current product inventory",
           "proof_level": "none",
-          "deferred_issue": 5489
+          "deferred_issue": 5489,
+          "proof_tiers": {
+            "compile-only": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "deterministic-simulation": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "emulator-with-device": {
+              "status": "unsupported",
+              "reason": "No admitted ordinary native USB transfer provider in current product inventory",
+              "deferred_issue": 5489
+            },
+            "hardware-in-loop": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "physical": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            }
+          }
+        },
+        "substrate": {
+          "status": "unsupported",
+          "reason": "No admitted ordinary native USB transfer provider in current product inventory",
+          "deferred_issue": 5489,
+          "proof_tiers": {
+            "compile-only": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "deterministic-simulation": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "emulator-with-device": {
+              "status": "unsupported",
+              "reason": "No admitted ordinary native USB transfer provider in current product inventory",
+              "deferred_issue": 5489
+            },
+            "hardware-in-loop": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "physical": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            }
+          }
         }
       },
       "substrate": "unsupported",
@@ -430,37 +1232,203 @@
           "status": "unsupported",
           "reason": "No admitted ordinary native USB transfer provider in current product inventory",
           "proof_level": "none",
-          "deferred_issue": 5489
+          "deferred_issue": 5489,
+          "proof_tiers": {
+            "compile-only": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "deterministic-simulation": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "emulator-with-device": {
+              "status": "unsupported",
+              "reason": "No admitted ordinary native USB transfer provider in current product inventory",
+              "deferred_issue": 5489
+            },
+            "hardware-in-loop": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "physical": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            }
+          }
         },
         "hid": {
           "status": "unsupported",
           "reason": "No admitted ordinary native USB transfer provider in current product inventory",
           "proof_level": "none",
-          "deferred_issue": 5489
+          "deferred_issue": 5489,
+          "proof_tiers": {
+            "compile-only": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "deterministic-simulation": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "emulator-with-device": {
+              "status": "unsupported",
+              "reason": "No admitted ordinary native USB transfer provider in current product inventory",
+              "deferred_issue": 5489
+            },
+            "hardware-in-loop": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "physical": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            }
+          }
         },
         "cdc-acm": {
           "status": "unsupported",
           "reason": "No admitted ordinary native USB transfer provider in current product inventory",
           "proof_level": "none",
-          "deferred_issue": 5489
+          "deferred_issue": 5489,
+          "proof_tiers": {
+            "compile-only": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "deterministic-simulation": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "emulator-with-device": {
+              "status": "unsupported",
+              "reason": "No admitted ordinary native USB transfer provider in current product inventory",
+              "deferred_issue": 5489
+            },
+            "hardware-in-loop": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "physical": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            }
+          }
         },
         "cdc-ecm": {
           "status": "unsupported",
           "reason": "No admitted ordinary native USB transfer provider in current product inventory",
           "proof_level": "none",
-          "deferred_issue": 5489
+          "deferred_issue": 5489,
+          "proof_tiers": {
+            "compile-only": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "deterministic-simulation": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "emulator-with-device": {
+              "status": "unsupported",
+              "reason": "No admitted ordinary native USB transfer provider in current product inventory",
+              "deferred_issue": 5489
+            },
+            "hardware-in-loop": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "physical": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            }
+          }
         },
         "bot": {
           "status": "unsupported",
           "reason": "No admitted ordinary native USB transfer provider in current product inventory",
           "proof_level": "none",
-          "deferred_issue": 5489
+          "deferred_issue": 5489,
+          "proof_tiers": {
+            "compile-only": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "deterministic-simulation": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "emulator-with-device": {
+              "status": "unsupported",
+              "reason": "No admitted ordinary native USB transfer provider in current product inventory",
+              "deferred_issue": 5489
+            },
+            "hardware-in-loop": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "physical": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            }
+          }
         },
         "uac": {
           "status": "unsupported",
           "reason": "No admitted ordinary native USB transfer provider in current product inventory",
           "proof_level": "none",
-          "deferred_issue": 5489
+          "deferred_issue": 5489,
+          "proof_tiers": {
+            "compile-only": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "deterministic-simulation": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "emulator-with-device": {
+              "status": "unsupported",
+              "reason": "No admitted ordinary native USB transfer provider in current product inventory",
+              "deferred_issue": 5489
+            },
+            "hardware-in-loop": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "physical": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            }
+          }
+        },
+        "substrate": {
+          "status": "unsupported",
+          "reason": "No admitted ordinary native USB transfer provider in current product inventory",
+          "deferred_issue": 5489,
+          "proof_tiers": {
+            "compile-only": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "deterministic-simulation": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "emulator-with-device": {
+              "status": "unsupported",
+              "reason": "No admitted ordinary native USB transfer provider in current product inventory",
+              "deferred_issue": 5489
+            },
+            "hardware-in-loop": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            },
+            "physical": {
+              "status": "unverified",
+              "reason": "No independently bound evidence of this proof class is claimed by this cell."
+            }
+          }
         }
       },
       "substrate": "unsupported",
@@ -474,7 +1442,7 @@
       "provider_issue_url": "https://github.com/dancxjo/conduit/issues/5489"
     }
   ],
-  "scope": "Published supported-target evidence inventory; all six owning issue acceptances remain open",
+  "scope": "Source-bound supported-target evidence inventory; each proof tier and owning-issue acceptance remain distinct.",
   "aarch64_bot_package_sha256": "e09a9f5aa14c599d85fb7a5ea247c91c0aab5d2d3045efca55bd3f08c003134d",
   "acceptance_scope": {
     "class_profiles": [

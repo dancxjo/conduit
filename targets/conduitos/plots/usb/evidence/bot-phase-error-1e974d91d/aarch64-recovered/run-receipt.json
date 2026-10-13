@@ -1,0 +1,22 @@
+{
+  "aarch64_firmware_sha256": "e264b5d66d05ad3abad9ec0b63dcf0c956007a3af9345dd03f79c5246ffcb392",
+  "architecture": "aarch64",
+  "emulator": "/home/dancxjo/Documents/Codex/2026-10-13/goal-scan-the-open-conduit-issues/work/bot-phase-error-recovery/targets/conduitos/proof/usb-bot/qemu_bot_wrapper.py",
+  "fixture_input": {
+    "command": null,
+    "injected": false,
+    "injection_gate": "CONDUIT_PROTOCOL_PLAY",
+    "maximum_reports": 0,
+    "requested": false
+  },
+  "image_sha256": "1c3183bffae4ae96889a7228b74c17dd14636417130119da74a793bae6949c7c",
+  "maximum_transcript_bytes": 2097152,
+  "outcome": "play-retired",
+  "physical_compatibility": "unverified",
+  "proof_class": "freestanding-emulator",
+  "qemu_profile": "virt-10.2-gic2-coherent-pcie-single-cpu-512m-headless",
+  "schema": "conduit.conduitos/protocol-run-receipt@1",
+  "serial_sha256": "c76f0e242b9161c517a6f8eead8cebdb5ef73f70d07199172fda3756a25d5e3f",
+  "usb_devices": [],
+  "usb_storage_fixture": null
+}

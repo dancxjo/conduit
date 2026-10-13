@@ -41,6 +41,34 @@ export async function startApplication(application) {
       && typeof item.source === 'string' && new TextEncoder().encode(item.source).length <= 16_384);
     return { slug: plot.name, entry: plot.name, title: plot.title, source: rescue?.source ?? original };
   });
+  // Source inspection is available before any checker, Host or Body starts.
+  // Drafts remain unapplied UI input; the original reviewed bundle stays exact.
+  const openingDrafts = new Map();
+  let openingChoice = null;
+  for (const plot of specification.plots.filter(plot => plot.lesson)) {
+    const option = document.createElement('option'); option.value = plot.name; option.textContent = plot.title; selector.append(option);
+  }
+  const inspectOpeningSource = () => {
+    const plot = packagedPlots.find(plot => plot.entry === selector.value);
+    if (!plot) return;
+    source.value = openingDrafts.get(plot.entry) ?? plot.source;
+    root.querySelector('[data-lesson]').textContent = specification.plots.find(entry => entry.name === plot.entry).lesson;
+    checkStatus.textContent = 'Source editing is available. Checking and Body startup are pending.';
+  };
+  const chooseOpeningSource = () => { openingChoice = selector.value; inspectOpeningSource(); };
+  const editOpeningSource = () => {
+    openingChoice = selector.value;
+    openingDrafts.set(openingChoice, source.value);
+    checkStatus.textContent = 'Edited source, not checked or applied.';
+  };
+  const finishOpeningInspection = () => {
+    selector.removeEventListener('change', chooseOpeningSource);
+    source.removeEventListener('input', editOpeningSource);
+  };
+  inspectOpeningSource();
+  source.disabled = false; selector.disabled = false;
+  selector.addEventListener('change', chooseOpeningSource);
+  source.addEventListener('input', editOpeningSource);
   const bundle = JSON.stringify({ schema: 'conduit.creche/reviewed-plot-bundle@2', plots: packagedPlots });
   let host, body, play, checked, reviewed, editor, selected, snapshot;
   let busy = false;
@@ -177,7 +205,8 @@ export async function startApplication(application) {
     // in Bodies born before this application update. Installation is explicit.
     selected = checked.plots.find(plot => plot.name === entry.name)
       ?? reviewed.plots.find(plot => plot.name === entry.name);
-    source.value = selected.source;
+    source.value = openingDrafts.get(entry.name) ?? selected.source;
+    openingDrafts.delete(entry.name);
     editor.render();
     root.querySelector('[data-lesson]').textContent = entry.lesson;
     checkStatus.textContent = 'Edit the source, then check and try it in your body.';
@@ -196,15 +225,13 @@ export async function startApplication(application) {
     if (!checked.ok) throw new Error(checked.refusal.message);
     const opening = await body.current();
     const birthState = opening.evidence.body.state;
+    finishOpeningInspection();
     editor = host.attachEditor(source);
     source.addEventListener('input', () => {
       delete checkStatus.dataset.refusalCode;
       checkStatus.textContent = 'Edited source — not checked or applied yet. Try it to check and apply the change.';
     });
-    for (const plot of specification.plots.filter(plot => plot.lesson)) {
-      const option = document.createElement('option'); option.value = plot.name; option.textContent = plot.title; selector.append(option);
-    }
-    const retained = await application.storage.readJson('selected-example');
+    const retained = openingChoice ?? await application.storage.readJson('selected-example');
     if (specification.plots.some(plot => plot.lesson && plot.name === retained)) selector.value = retained;
     await selectExample();
     const installed = opening.evidence.body.workset.plots;
@@ -285,6 +312,7 @@ export async function startApplication(application) {
     status.textContent = `${error.code ?? 'Refused'}: ${error.message}`;
     status.dataset.refused = 'true';
     controls.forEach(control => control.disabled = true);
+    source.disabled = false; selector.disabled = false;
     const retry = root.querySelector('[data-retry]');
     retry.hidden = false; retry.disabled = false;
     retry.addEventListener('click', () => location.reload());
@@ -314,9 +342,8 @@ export async function startApplication(application) {
       ...packagedPlots.map(plot => ({ origin: 'packaged', name: plot.entry,
         title: plot.title, source: plot.source })),
     ];
-    const drafts = available.map(plot => plot.source);
     let index = 0;
-    if (host) {
+    if (host && !openingChoice) {
       // This probe is diagnostics only. It creates no Body, Plan, or Play.
       for (let i = 0; i < available.length; i++) {
         try {
@@ -325,6 +352,11 @@ export async function startApplication(application) {
         } catch { index = i; break; }
       }
     }
+    finishOpeningInspection();
+    const chosen = available.findIndex(plot => plot.origin === 'packaged' && plot.name === openingChoice);
+    if (chosen >= 0) index = chosen;
+    const drafts = available.map(plot => plot.origin === 'packaged'
+      ? openingDrafts.get(plot.name) ?? plot.source : plot.source);
     selector.replaceChildren();
     for (let i = 0; i < available.length; i++) {
       const option = document.createElement('option');
