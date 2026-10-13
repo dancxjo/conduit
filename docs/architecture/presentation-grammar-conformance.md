@@ -818,3 +818,24 @@ transition frames, four child receipt identities and final prompt withdrawal.
 The export refuses to overwrite existing evidence. Std all-target Clippy with
 burn-model and warnings denied passes. This is software input/terminal evidence;
 it does not establish reconstruction of the instruction by other Masks.
+
+### Parsec instruction carrier counterexample
+
+The explicit actual-artifact diagnostic
+`actual_parsec_instruction_is_lost_at_face_only_mask_boundary` passes against
+the post-flush exchange above. It validates captured Face/Show/Body/Host/binding
+correlations and canonical source transitions, reconstructs native scenes,
+linear output and aural plans, and rejects substituted, missing and action-
+rewriting binding records. This checks documentary consistency; no artifact
+can grant runtime input authority.
+
+All three reconstructions preserve the offered Start/Shoot action, but their
+action-associated wording lacks the admitted Space/Enter mapping. Native
+navigation still says `Enter act`; that describes generic Mask activation and
+is not evidence of the source policy's current controller mapping. The same
+source action survives the remap while the actual terminal instruction changes.
+This is the concrete #5369 presentation/input encounter carrier gap required
+by the #5355 Parsec specimen. Canonical Mask admission and the Face ontology
+remain unchanged. The diagnostic proves neither a browser Show nor native
+scanout, spoken delivery or completed cross-Mask instruction acceptance.
+Product all-target Clippy with warnings denied and patch hygiene pass.
