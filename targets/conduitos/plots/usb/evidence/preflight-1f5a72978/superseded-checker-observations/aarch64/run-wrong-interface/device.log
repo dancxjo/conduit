@@ -1,0 +1,3 @@
+CDC_DEVICE_LISTENING /tmp/cdc-product-duhez3m4/device.sock
+CDC_DEVICE_CONNECTED full-speed ffff:f117 IN81 OUT02 IRQ83
+CDC_DEVICE_PEER_CLOSED

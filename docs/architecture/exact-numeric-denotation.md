@@ -298,3 +298,46 @@ General arithmetic/trig source lowering, symbolic Quantity coordinates,
 certified π/compound-expression projection and ordinary numerical Back selection
 still require their own integration. Existing fixed-width arithmetic keeps its
 current carrier and prepared execution path.
+
+## Certified compound-expression enclosure in development
+
+`PreparedMathematicalEnclosure` prepares an exact rational enclosure for the
+supported bounded mathematical DAG. Literal rationals retain point intervals;
+roots use the checked principal-root bisection certificate. π uses
+`π = 16 atan(1/5) - 4 atan(1/239)` with exact alternating-series remainder
+bounds. τ is already the canonical product `2 × π`, so it uses the same
+certificate and exact multiplication rather than an independent rounded value.
+
+The [arctangent series](https://dlmf.nist.gov/4.24#E3) has decreasing alternating
+terms for these arguments. A partial sum and its first omitted term enclose
+the exact arctangent. Machin's identity follows from the tangent addition law:
+with `a = atan(1/5)` and `b = atan(1/239)`, `tan(4a) = 120/119` and
+`tan(4a-b) = 1`. The alternating bounds place `4a-b` in the principal first
+quadrant, fixing it as `π/4` rather than another tangent branch. No decimal
+constant or host float routine supplies the proof.
+
+Addition, subtraction, negation, multiplication and rational division propagate
+outward intervals through every selected operation. The final composed width
+must meet the consumer's maximum, independently of each leaf's width. Shared
+nodes are evaluated once, but sharing alone does not manufacture an algebraic
+identity: interval evaluation of `π-π` can retain a nonzero width. This is an
+exact-interval algorithm, not evidence for the intermediate rounding behavior
+of a separate IEEE algorithm.
+
+Requests admit constant terms, root refinements, limb work, scratch payload and
+retained payload bytes. Host admission must separately account for allocator
+overhead and stack frames. Rational-only preparation needs no graph scratch.
+A zero-width π leaf refuses this rational-interval strategy immediately; the
+exact symbolic source remains available for another strategy. Exhausted work,
+terms, payload storage, root refinement and final tolerance refuse distinctly.
+
+Preparation seals the original mathematical source, endpoints, actual width,
+requirements, payload sizes and spent limb work. The existing generic projection
+report distinguishes exact point results from certified precision loss and
+validates the complete retained evidence without repeating arithmetic. An
+explicitly budgeted certificate comparison can prove equality from identical
+source values or matching point intervals, and difference from disjoint
+enclosures; overlapping intervals remain unknown. These are core
+preparation/fidelity proofs. Ordinary Back offers, Planner selection,
+source requirement syntax, Plan/Play receipts and dimensioned symbolic Unit
+projections remain separate unfinished integration gates.
