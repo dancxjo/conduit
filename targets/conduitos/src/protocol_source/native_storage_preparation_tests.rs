@@ -1,9 +1,9 @@
 //! Projection from actual fixture issuers/tables, not native Root approval,
 //! entropy admission, storage possession issuance or physical execution proof.
 use super::*;
-use alloc::vec::Vec;
 use crate::storage_base::{contract::*, transaction_contract::*};
 use alloc::format;
+use alloc::vec::Vec;
 
 fn authority(pair: usize, role: StorageTransactionRole) -> BaseCapabilityAuthority {
     let (call, kind) = match role {

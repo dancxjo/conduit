@@ -1,4 +1,5 @@
 //! Every external request route must authorize before reaching physical work.
+#[cfg(test)]
 pub(super) fn authorized_route<'a>(
     ingress: &'a str,
     authorize: &str,

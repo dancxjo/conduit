@@ -1,5 +1,5 @@
 use super::*;
-use conduit_core::{StructuredInfoValue, StructuredInfoValueShape, TEXT_INFO_ID, kind_id};
+use conduit_core::{kind_id, StructuredInfoValue, StructuredInfoValueShape, TEXT_INFO_ID};
 use conduit_kernel::ValueRef;
 
 fn operation() -> FlowZipBack {
@@ -123,14 +123,12 @@ fn typed_pairing_preserves_nested_schema_under_pressure_without_play_allocation(
     .unwrap();
     let input = StructuredInfoValue::record(
         packet.clone(),
-        vec![
-            StructuredFieldValue::new(
-                "count",
-                StructuredInfoValue::leaf(leaf.clone(), conduit_core::encode_count(7).to_vec())
-                    .unwrap(),
-            )
-            .unwrap(),
-        ],
+        vec![StructuredFieldValue::new(
+            "count",
+            StructuredInfoValue::leaf(leaf.clone(), conduit_core::encode_count(7).to_vec())
+                .unwrap(),
+        )
+        .unwrap()],
     )
     .unwrap()
     .canonical_bytes()

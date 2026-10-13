@@ -108,7 +108,7 @@ pub(super) fn execute(args: ImageArgs, opts: &GlobalOpts) -> Result<(), Conduito
 
 enum SelectedRootRequest {
     I2c(ProtocolBootRequest),
-    Usb(UsbProtocolBootRequest),
+    Usb(Box<UsbProtocolBootRequest>),
 }
 impl SelectedRootRequest {
     fn decode(bytes: &[u8]) -> Result<Self, ConduitosError> {
@@ -123,6 +123,7 @@ impl SelectedRootRequest {
             }
             Some(schema) if schema == image::ProtocolRootKind::Usb.schema() => {
                 UsbProtocolBootRequest::decode(bytes)
+                    .map(Box::new)
                     .map(Self::Usb)
                     .map_err(decode_error)
             }

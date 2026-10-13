@@ -18,9 +18,8 @@ Supported native rows use Root-owned coherent DMA and bounded event-ring polling
 no USB IRQ handler ownership is claimed. The matrix records shared ordering and
 architecture mapping sources. Kernel identities belong to individual receipts,
 not one historical row-wide candidate source. AArch64 HID device execution remains
-deferred under #5258. IA-32, RISC-V64 and LoongArch64 have no admitted USB provider;
-no separately filed USB provider bring-up issue was identified, so their explicit
-unsupported dispositions remain tracked by #5258. This does not imply those
+uncertified in this four-class milestone. IA-32, RISC-V64 and LoongArch64 have no
+admitted USB provider; their unsupported dispositions have explicit follow-up owners. This does not imply those
 architectures lack other product capabilities.
 
 The `hosts-conduitos` CI shard discovers ConduitOS integration targets through
@@ -29,3 +28,11 @@ The `hosts-conduitos` CI shard discovers ConduitOS integration targets through
 exact retained receipt hashes. The HID and protocol-Plot integration binaries
 are assigned to their existing browser and workbench shards. This gate checks
 retained evidence integrity; it does not substitute a device execution claim.
+
+Deferred native USB providers for IA-32, RISC-V64 and LoongArch64 are owned by
+[#5489](https://github.com/dancxjo/conduit/issues/5489). AArch64 ECM network Root
+admission is owned by [#5490](https://github.com/dancxjo/conduit/issues/5490).
+The matrix certifies collected emulator execution evidence for the four owning
+class profiles; exact-head Candidate, merged-tree Integration and automated stable-main
+acceptance are separate closure gates. HID remains an explicitly uncertified profile. Receipt-level
+integration fields preserve their collection-time status.

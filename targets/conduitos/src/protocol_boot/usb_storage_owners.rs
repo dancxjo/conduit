@@ -13,6 +13,7 @@ use alloc::format;
 use conduit_core::*;
 
 pub(super) const RETAINED_BYTES: u64 = 128 * 1024;
+#[cfg(test)]
 fn backing(capacity: usize, live: usize) -> Result<u64, &'static str> {
     // USB envelopes are admitted before their heap allocations occur. Reserve
     // both budgets against this same arena snapshot rather than sharing bytes.

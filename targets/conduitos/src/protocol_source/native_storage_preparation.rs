@@ -1,9 +1,9 @@
 //! Root-initialized storage resources; class wire meaning remains ordinary Source.
 use super::*;
-use alloc::vec::Vec;
 use crate::storage_base::{
     transaction_contract::BlockReadTransactionContract, transaction_factory::*,
 };
+use alloc::vec::Vec;
 
 pub(crate) struct NativeStoragePreparation {
     pub host: HostId,

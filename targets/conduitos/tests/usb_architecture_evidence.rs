@@ -64,7 +64,10 @@ fn published_usb_matrix_binds_existing_exact_receipts_and_explicit_target_dispos
             let status = entry["status"]
                 .as_str()
                 .expect("each class needs disposition");
-            assert!(matches!(status, "incomplete" | "unsupported"));
+            assert!(matches!(
+                status,
+                "incomplete" | "unsupported" | "emulator-verified"
+            ));
             assert!(
                 !entry["reason"].as_str().unwrap_or("").is_empty(),
                 "{} {class}",
@@ -72,6 +75,19 @@ fn published_usb_matrix_binds_existing_exact_receipts_and_explicit_target_dispos
             );
             if status == "unsupported" {
                 assert_ne!(entry["acceptance"], "complete")
+            }
+            if status == "emulator-verified" {
+                assert_eq!(entry["proof_level"], "emulator-with-device");
+                assert_eq!(entry["acceptance"], "execution-verified");
+                assert!(
+                    !entry["retained_product_proofs"]
+                        .as_array()
+                        .unwrap()
+                        .is_empty()
+                );
+            }
+            if status == "unsupported" && class != "hid" {
+                assert!(entry["deferred_issue"].as_u64().is_some());
             }
         }
     }

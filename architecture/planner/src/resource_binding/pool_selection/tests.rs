@@ -214,7 +214,8 @@ fn capability_base_with_no_owned_matching_pool_can_use_unique_host_shared_pool()
     other.class_id = "fixture/other-class".into();
     host.bases[0].resource_pool_ids.push(other.pool_id.clone());
     host.resources.push(other);
-    host.resources.sort_by(|left, right| left.pool_id.cmp(&right.pool_id));
+    host.resources
+        .sort_by(|left, right| left.pool_id.cmp(&right.pool_id));
     plan(&plot, &[host], &choices, &[]).unwrap();
 }
 #[test]

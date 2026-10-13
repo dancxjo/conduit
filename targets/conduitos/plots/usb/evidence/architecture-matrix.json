@@ -1,6 +1,6 @@
 {
   "schema": "conduit.usb/architecture-acceptance-matrix@1",
-  "status": "incomplete",
+  "status": "verified-emulator-evidence",
   "issue": 5258,
   "rows": [
     {
@@ -28,10 +28,10 @@
           "reason": "Owning class acceptance not complete"
         },
         "cdc-acm": {
-          "status": "incomplete",
-          "reason": "Retained local emulator evidence; complete owning issue acceptance pending",
+          "status": "emulator-verified",
+          "reason": "Retained checked-profile, device wire, typed outcome and retirement evidence is verified. Final Candidate and merged-tree Integration remain required for issue closure; physical evidence is a separate tier.",
           "proof_level": "emulator-with-device",
-          "acceptance": "partial",
+          "acceptance": "execution-verified",
           "retained_product_proofs": [
             {
               "receipt": "native-cdc-current-kernel-21e596e3/validation.json",
@@ -52,10 +52,10 @@
           ]
         },
         "cdc-ecm": {
-          "status": "incomplete",
-          "reason": "Owning class acceptance not complete",
+          "status": "emulator-verified",
+          "reason": "Retained checked-profile, device wire, typed outcome and retirement evidence is verified. Final Candidate and merged-tree Integration remain required for issue closure; physical evidence is a separate tier.",
           "proof_level": "emulator-with-device",
-          "acceptance": "partial",
+          "acceptance": "execution-verified",
           "retained_product_proofs": [
             {
               "receipt": "native-ecm-current-kernel-21e596e3/validation.json",
@@ -83,12 +83,12 @@
           ]
         },
         "bot": {
-          "status": "incomplete",
-          "reason": "Owning class acceptance not complete",
+          "status": "emulator-verified",
+          "reason": "Retained checked-profile, device wire, typed outcome and retirement evidence is verified. Final Candidate and merged-tree Integration remain required for issue closure; physical evidence is a separate tier.",
           "proof_level": "emulator-with-device",
           "receipt": "usb-bot-pattern-block-product-proof.json",
           "receipt_sha256": "fcf49403e8a4fe810fe93629ce3aeca9ae91bffa5fa1fc65c11451e1785da67d",
-          "acceptance": "partial",
+          "acceptance": "execution-verified",
           "repeated_read": {
             "transactions": 16,
             "receipt": "usb-bot-repeated-read-product-proof.json",
@@ -152,8 +152,8 @@
           ]
         },
         "uac": {
-          "status": "incomplete",
-          "acceptance": "partial",
+          "status": "emulator-verified",
+          "acceptance": "execution-verified",
           "proof_level": "emulator-with-device",
           "receipt": "native-audio-public-cross-architecture/usb-audio-public-cross-architecture.json",
           "receipt_sha256": "8d7ed5180aa2915a5efb8e7d94bad49cf951eb7f0b9f255bb6dc295949c4f605",
@@ -165,7 +165,7 @@
           "play_alloc_attempts": 0,
           "play_realloc_attempts": 0,
           "acknowledged_stop": true,
-          "reason": "Actual unchanged checked playback and public completion/drain run; remaining owning-issue fault acceptance is open. Physical output is a separate unverified proof tier.",
+          "reason": "Retained checked-profile, device wire, typed outcome and retirement evidence is verified. Final Candidate and merged-tree Integration remain required for issue closure; physical evidence is a separate tier.",
           "retained_product_proofs": [
             {
               "receipt": "current-usb-classes-a783be37/audio-cross-architecture.json",
@@ -206,12 +206,12 @@
           "owning_issue": 5258
         },
         "cdc-acm": {
-          "status": "incomplete",
-          "acceptance": "partial",
+          "status": "emulator-verified",
+          "acceptance": "execution-verified",
           "proof_level": "emulator-with-device",
           "receipt": "usb-cdc-acm-aarch64-product-proof.json",
           "receipt_sha256": "13f1e1f561e41df590e8cb1641eb1c1375082a99ef01ed5c416ebdb2b093e457",
-          "reason": "Same checked CDC Source as x86; actual five controls and16 TX/RX pairs with retirement retained. Full failures and final integration remain incomplete; physical evidence is separate.",
+          "reason": "Retained checked-profile, device wire, typed outcome and retirement evidence is verified. Final Candidate and merged-tree Integration remain required for issue closure; physical evidence is a separate tier.",
           "retained_product_proofs": [
             {
               "receipt": "current-usb-classes-a783be37/cdc-cross-architecture.json",
@@ -232,15 +232,17 @@
           "source_gates": [
             "targets/conduitos/src/protocol_boot/usb_owners.rs:52",
             "targets/conduitos/src/protocol_source/native_usb_duplex_preparation.rs:4"
-          ]
+          ],
+          "deferred_issue": 5490,
+          "deferred_issue_url": "https://github.com/dancxjo/conduit/issues/5490"
         },
         "bot": {
-          "status": "incomplete",
-          "acceptance": "partial",
+          "status": "emulator-verified",
+          "acceptance": "execution-verified",
           "proof_level": "emulator-with-device",
           "receipt": "usb-bot-aarch64-pattern-block-product-proof.json",
           "receipt_sha256": "4228c529808e028baec378a8a8cbf81f2f5c74b82c79f4618daea00fc802344b",
-          "reason": "Single read-only LUN0 LBA0 READ(10); complete class recovery/fault acceptance pending",
+          "reason": "Retained checked-profile, device wire, typed outcome and retirement evidence is verified. Final Candidate and merged-tree Integration remain required for issue closure; physical evidence is a separate tier.",
           "repeated_read": {
             "transactions": 16,
             "receipt": "usb-bot-aarch64-repeated-read-product-proof.json",
@@ -280,8 +282,8 @@
           ]
         },
         "uac": {
-          "status": "incomplete",
-          "acceptance": "partial",
+          "status": "emulator-verified",
+          "acceptance": "execution-verified",
           "proof_level": "emulator-with-device",
           "receipt": "native-audio-public-cross-architecture/usb-audio-public-cross-architecture.json",
           "receipt_sha256": "8d7ed5180aa2915a5efb8e7d94bad49cf951eb7f0b9f255bb6dc295949c4f605",
@@ -293,7 +295,7 @@
           "play_alloc_attempts": 0,
           "play_realloc_attempts": 0,
           "acknowledged_stop": true,
-          "reason": "Actual unchanged checked playback and public completion/drain run; remaining owning-issue fault acceptance is open. Physical output is a separate unverified proof tier.",
+          "reason": "Retained checked-profile, device wire, typed outcome and retirement evidence is verified. Final Candidate and merged-tree Integration remain required for issue closure; physical evidence is a separate tier.",
           "retained_product_proofs": [
             {
               "receipt": "current-usb-classes-a783be37/audio-cross-architecture.json",
@@ -325,41 +327,49 @@
         "control": {
           "status": "unsupported",
           "reason": "No admitted ordinary native USB transfer provider in current product inventory",
-          "proof_level": "none"
+          "proof_level": "none",
+          "deferred_issue": 5489
         },
         "hid": {
           "status": "unsupported",
           "reason": "No admitted ordinary native USB transfer provider in current product inventory",
-          "proof_level": "none"
+          "proof_level": "none",
+          "deferred_issue": 5489
         },
         "cdc-acm": {
           "status": "unsupported",
           "reason": "No admitted ordinary native USB transfer provider in current product inventory",
-          "proof_level": "none"
+          "proof_level": "none",
+          "deferred_issue": 5489
         },
         "cdc-ecm": {
           "status": "unsupported",
           "reason": "No admitted ordinary native USB transfer provider in current product inventory",
-          "proof_level": "none"
+          "proof_level": "none",
+          "deferred_issue": 5489
         },
         "bot": {
           "status": "unsupported",
           "reason": "No admitted ordinary native USB transfer provider in current product inventory",
-          "proof_level": "none"
+          "proof_level": "none",
+          "deferred_issue": 5489
         },
         "uac": {
           "status": "unsupported",
           "reason": "No admitted ordinary native USB transfer provider in current product inventory",
-          "proof_level": "none"
+          "proof_level": "none",
+          "deferred_issue": 5489
         }
       },
       "substrate": "unsupported",
       "reason": "No admitted ordinary native USB transfer provider in current product inventory",
       "deferral": {
-        "tracking_issue": 5258,
-        "provider_issue": null,
-        "reason": "No separate USB controller/provider bring-up issue identified; unsupported disposition remains tracked by #5258, not a completed architecture milestone."
-      }
+        "tracking_issue": 5489,
+        "provider_issue": 5489,
+        "reason": "Native USB controller/provider bring-up is explicitly deferred to #5489; this target remains unsupported in the accepted emulator scope."
+      },
+      "provider_issue": 5489,
+      "provider_issue_url": "https://github.com/dancxjo/conduit/issues/5489"
     },
     {
       "architecture": "riscv64",
@@ -368,41 +378,49 @@
         "control": {
           "status": "unsupported",
           "reason": "No admitted ordinary native USB transfer provider in current product inventory",
-          "proof_level": "none"
+          "proof_level": "none",
+          "deferred_issue": 5489
         },
         "hid": {
           "status": "unsupported",
           "reason": "No admitted ordinary native USB transfer provider in current product inventory",
-          "proof_level": "none"
+          "proof_level": "none",
+          "deferred_issue": 5489
         },
         "cdc-acm": {
           "status": "unsupported",
           "reason": "No admitted ordinary native USB transfer provider in current product inventory",
-          "proof_level": "none"
+          "proof_level": "none",
+          "deferred_issue": 5489
         },
         "cdc-ecm": {
           "status": "unsupported",
           "reason": "No admitted ordinary native USB transfer provider in current product inventory",
-          "proof_level": "none"
+          "proof_level": "none",
+          "deferred_issue": 5489
         },
         "bot": {
           "status": "unsupported",
           "reason": "No admitted ordinary native USB transfer provider in current product inventory",
-          "proof_level": "none"
+          "proof_level": "none",
+          "deferred_issue": 5489
         },
         "uac": {
           "status": "unsupported",
           "reason": "No admitted ordinary native USB transfer provider in current product inventory",
-          "proof_level": "none"
+          "proof_level": "none",
+          "deferred_issue": 5489
         }
       },
       "substrate": "unsupported",
       "reason": "No admitted ordinary native USB transfer provider in current product inventory",
       "deferral": {
-        "tracking_issue": 5258,
-        "provider_issue": null,
-        "reason": "No separate USB controller/provider bring-up issue identified; unsupported disposition remains tracked by #5258, not a completed architecture milestone."
-      }
+        "tracking_issue": 5489,
+        "provider_issue": 5489,
+        "reason": "Native USB controller/provider bring-up is explicitly deferred to #5489; this target remains unsupported in the accepted emulator scope."
+      },
+      "provider_issue": 5489,
+      "provider_issue_url": "https://github.com/dancxjo/conduit/issues/5489"
     },
     {
       "architecture": "loongarch64",
@@ -411,43 +429,69 @@
         "control": {
           "status": "unsupported",
           "reason": "No admitted ordinary native USB transfer provider in current product inventory",
-          "proof_level": "none"
+          "proof_level": "none",
+          "deferred_issue": 5489
         },
         "hid": {
           "status": "unsupported",
           "reason": "No admitted ordinary native USB transfer provider in current product inventory",
-          "proof_level": "none"
+          "proof_level": "none",
+          "deferred_issue": 5489
         },
         "cdc-acm": {
           "status": "unsupported",
           "reason": "No admitted ordinary native USB transfer provider in current product inventory",
-          "proof_level": "none"
+          "proof_level": "none",
+          "deferred_issue": 5489
         },
         "cdc-ecm": {
           "status": "unsupported",
           "reason": "No admitted ordinary native USB transfer provider in current product inventory",
-          "proof_level": "none"
+          "proof_level": "none",
+          "deferred_issue": 5489
         },
         "bot": {
           "status": "unsupported",
           "reason": "No admitted ordinary native USB transfer provider in current product inventory",
-          "proof_level": "none"
+          "proof_level": "none",
+          "deferred_issue": 5489
         },
         "uac": {
           "status": "unsupported",
           "reason": "No admitted ordinary native USB transfer provider in current product inventory",
-          "proof_level": "none"
+          "proof_level": "none",
+          "deferred_issue": 5489
         }
       },
       "substrate": "unsupported",
       "reason": "No admitted ordinary native USB transfer provider in current product inventory",
       "deferral": {
-        "tracking_issue": 5258,
-        "provider_issue": null,
-        "reason": "No separate USB controller/provider bring-up issue identified; unsupported disposition remains tracked by #5258, not a completed architecture milestone."
-      }
+        "tracking_issue": 5489,
+        "provider_issue": 5489,
+        "reason": "Native USB controller/provider bring-up is explicitly deferred to #5489; this target remains unsupported in the accepted emulator scope."
+      },
+      "provider_issue": 5489,
+      "provider_issue_url": "https://github.com/dancxjo/conduit/issues/5489"
     }
   ],
   "scope": "Published supported-target evidence inventory; all six owning issue acceptances remain open",
-  "aarch64_bot_package_sha256": "e09a9f5aa14c599d85fb7a5ea247c91c0aab5d2d3045efca55bd3f08c003134d"
+  "aarch64_bot_package_sha256": "e09a9f5aa14c599d85fb7a5ea247c91c0aab5d2d3045efca55bd3f08c003134d",
+  "acceptance_scope": {
+    "class_profiles": [
+      "cdc-acm",
+      "cdc-ecm",
+      "bot",
+      "uac"
+    ],
+    "supported_emulator_architectures": [
+      "x86_64",
+      "aarch64"
+    ],
+    "integration_gates": [
+      "exact-head Candidate",
+      "exact merged-tree Integration",
+      "automated stable-main acceptance"
+    ],
+    "uncertified_profile": "HID evidence remains separately reported; it is outside the four owning class issues"
+  }
 }

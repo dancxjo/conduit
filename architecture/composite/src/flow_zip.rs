@@ -6,12 +6,12 @@ use conduit_core::{
 };
 mod encoder;
 use conduit_kernel::{
-    Failure, FailureCode, PortId,
     scheduler::{
         AssignedAbnormalTransduction, AssignedCancellationTransduction,
         AssignedFiniteTerminalEmission, AssignedNormalCloseTransduction,
         AssignedTerminalTransduction, StepBack, StepInputBytes, StepIo, StepOutcome,
     },
+    Failure, FailureCode, PortId,
 };
 use encoder::PairEncoder;
 
