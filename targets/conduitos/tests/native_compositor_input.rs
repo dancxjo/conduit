@@ -502,6 +502,8 @@ fn patchbay_face_revision_recomposes_only_its_native_surface() {
     use conduit_tour_model::TourWorkspacePhase;
 
     let (face, plan, _main, top, mut compositor) = fixture(1);
+    // The Tour reserves a 64-pixel status edge. Build its supported logical
+    // viewport; the compositor still clips into the admitted 10-by-7 surface.
     let initial_scene =
         conduitos::tour_workspace::scene(640, 480, 1, TourWorkspacePhase::LessonReady).unwrap();
     update_with_scene(&mut compositor, &face, &plan, &top, TOP, &initial_scene);

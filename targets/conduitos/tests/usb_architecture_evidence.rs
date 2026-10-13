@@ -2,6 +2,8 @@
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 use std::{collections::BTreeSet, fs, path::Path};
+#[path = "usb_architecture_evidence/proof_tiers.rs"]
+mod proof_tiers;
 fn check_receipts(value: &Value, root: &Path) {
     match value {
         Value::Object(fields) => {
@@ -59,7 +61,15 @@ fn published_usb_matrix_binds_existing_exact_receipts_and_explicit_target_dispos
     );
     for row in rows {
         assert_eq!(row["physical_evidence"], "unverified");
-        for class in ["control", "hid", "cdc-acm", "cdc-ecm", "bot", "uac"] {
+        for class in [
+            "substrate",
+            "control",
+            "hid",
+            "cdc-acm",
+            "cdc-ecm",
+            "bot",
+            "uac",
+        ] {
             let entry = &row["classes"][class];
             let status = entry["status"]
                 .as_str()
@@ -92,4 +102,5 @@ fn published_usb_matrix_binds_existing_exact_receipts_and_explicit_target_dispos
         }
     }
     check_receipts(&matrix, &root);
+    proof_tiers::validate(&matrix, &root).unwrap();
 }

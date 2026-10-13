@@ -434,3 +434,51 @@ test("a retained syntax refusal exposes original source without rewriting contin
     await site.close();
   }
 });
+
+for (const malformed of [false, true]) {
+  test(`Handbook source editing precedes Host startup and preserves pending drafts (${malformed ? "refused" : "accepted"} bundle)`, async ({}, testInfo) => {
+    testInfo.setTimeout(120_000);
+    const site = await stageStaticApplications({ malformedLessonSource: malformed });
+    const session = await openStaticProfile(testInfo.outputPath("opening-editor-profile"), new URL(site.url).origin);
+    let release;
+    const gate = new Promise(resolve => { release = resolve; });
+    try {
+      const page = await session.context.newPage();
+      let downloads = 0;
+      await page.route("**/sdk/bundle/runtime.wasm", async route => {
+        // The first fetch admits the real application package. Pause only the
+        // second fetch, which belongs to the genuine SDK's Host startup.
+        if (++downloads === 2) await gate;
+        await route.continue();
+      });
+      await page.goto(new URL(malformed ? "broken/" : "handbook/", site.url).href, { waitUntil: "commit" });
+      await expect.poll(() => downloads, { timeout: 30_000 }).toBe(2);
+      const editor = page.getByRole("textbox", { name: "Plot source", exact: true });
+      const chooser = page.getByLabel("Choose an example", { exact: true });
+      await expect(editor).toBeEnabled();
+      await expect(chooser).toBeEnabled();
+      await expect(page.getByRole("button", { name: "Try in my Handbook", exact: true })).toBeDisabled();
+      await chooser.selectOption("clock-demo");
+      const draft = `${await editor.inputValue()}\n# pending-startup-draft\n`;
+      await editor.fill(draft);
+      await expect(page.locator("[data-check]")).toContainText("not checked or applied");
+      release();
+      if (malformed) {
+        await expect(page.locator("[data-session-status]")).toContainText("CND-FRM-051");
+        await expect(page.getByRole("button", { name: "Try in my Handbook", exact: true })).toBeEnabled();
+      } else {
+        await ready(page);
+        const record = await page.evaluate(() => globalThis.__conduitBrowserApplication.storage.readJson("body-continuity"));
+        expect(record.source).not.toContain("pending-startup-draft");
+      }
+      await expect(editor).toBeEnabled();
+      await expect(chooser).toBeEnabled();
+      await expect(editor).toHaveValue(draft);
+      session.assertClean();
+    } finally {
+      release();
+      await session.context.close();
+      await site.close();
+    }
+  });
+}
