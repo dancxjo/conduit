@@ -348,6 +348,7 @@ impl DurableHostRuntime {
             speech_terminal,
             owner_spoken_worker,
             owner_spoken_terminal,
+            spoken_template_session,
         } = self;
         let HostSource::Bare(host) = host else {
             return Err("durable Host already owns a Body session".into());
@@ -387,6 +388,7 @@ impl DurableHostRuntime {
             speech_terminal,
             owner_spoken_worker,
             owner_spoken_terminal,
+            spoken_template_session,
         })
     }
 

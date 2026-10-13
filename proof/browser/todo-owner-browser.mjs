@@ -11,13 +11,17 @@ import { pathToFileURL } from 'node:url';
 import { startStaticProduct } from './static-product-server.mjs';
 import { observedTodoMutation } from './todo-owner-events.mjs';
 import { captureDirectTodoSpeech } from './todo-owner-spoken.mjs';
+import { retainedTodoDomCompletion, compareRetainedTodoLooks } from './todo-owner-retained-dom.mjs';
 import { assertLookReplacement } from './look-replacement-evidence.mjs';
 
 const [ownerCwdArg, binaryArg, stateArg, handbookArg, outputArg, playwrightArg,
   itemText = 'Pick up prescription', scenario = 'first-add'] = process.argv.slice(2);
-assert.ok(['first-add', 'cross-mask', 'cross-mask-speech', 'look-replacement'].includes(scenario), 'unknown Todo capture scenario');
+assert.ok(['first-add', 'cross-mask', 'cross-mask-speech', 'cross-mask-speech-resume', 'look-replacement', 'retained-dom-completion'].includes(scenario), 'unknown Todo capture scenario');
+const retainedDom = scenario === 'retained-dom-completion';
+const resumeExisting = scenario === 'cross-mask-speech-resume' || retainedDom;
+const captureSpeech = scenario.startsWith('cross-mask-speech');
 if (!ownerCwdArg || !binaryArg || !stateArg || !handbookArg || !outputArg || !playwrightArg) {
-  throw new Error('usage: todo-owner-browser.mjs OWNER-CWD INSTALLED-OWNER OWNER-STATE HANDBOOK-PACKAGE NEW-EVIDENCE-DIR PINNED-PLAYWRIGHT [NEW-ITEM-TEXT] [first-add|cross-mask|cross-mask-speech|look-replacement]');
+  throw new Error('usage: todo-owner-browser.mjs OWNER-CWD INSTALLED-OWNER OWNER-STATE HANDBOOK-PACKAGE NEW-EVIDENCE-DIR PINNED-PLAYWRIGHT [NEW-ITEM-TEXT] [first-add|cross-mask|cross-mask-speech|cross-mask-speech-resume|look-replacement|retained-dom-completion]');
 }
 const ownerCwd = path.resolve(ownerCwdArg);
 const binary = path.resolve(ownerCwd, binaryArg);
@@ -29,7 +33,7 @@ assert.ok(itemText && Buffer.byteLength(itemText, 'utf8') <= 64, 'Todo text must
 const installed = JSON.parse(await readFile(path.join(state, 'installation.json')));
 assert.equal(path.resolve(ownerCwd, installed.product_executable), binary,
   'use the owner installed for this Body');
-if (scenario === 'cross-mask-speech') assert.equal(installed.selected_speech?.artifact_only, true,
+if (captureSpeech) assert.equal(installed.selected_speech?.artifact_only, true,
   'direct speech capture requires explicit selected artifact output');
 const packageManifest = JSON.parse(await readFile(path.join(handbook, 'application.application.json')));
 const browserBundle = JSON.parse(await readFile(path.join(handbook, 'sdk/bundle/browser-bundle-release.json')));
@@ -54,6 +58,8 @@ const sourceRecord = {
     && installed.release_source_identity === handbookUiSource && handbookUiSourceClean
     ? 'exact-source' : 'development-cross-source',
 };
+if (retainedDom) assert.equal(sourceRecord.source_relation, 'exact-source',
+  'retained DOM mutation requires identical clean owner/runtime/UI source');
 const expectedPlaywright = JSON.parse(await readFile(new URL('./package.json', import.meta.url)))
   .devDependencies['@playwright/test'];
 const actualPlaywright = JSON.parse(await readFile(path.join(path.dirname(playwrightArg), 'package.json'))).version;
@@ -137,8 +143,10 @@ try {
       && document.querySelector('[data-owner-show-acknowledged]')?.dataset.ownerShowAcknowledged === current.show_id;
   }, null, { timeout: 12_000 });
   const beforeStart = await page.evaluate(() => globalThis.__conduitOwnerParticipation.face());
-  owner(['body', 'start', '--state-dir', state, '--maximum-millis', '60000',
-    '--todo-new-list', 'Groceries']);
+  if (!resumeExisting) {
+    owner(['body', 'start', '--state-dir', state, '--maximum-millis', '60000',
+      '--todo-new-list', 'Groceries']);
+  }
   let startedFace;
   for (let attempt = 0; attempt < 100; attempt++) {
     startedFace = face();
@@ -148,13 +156,15 @@ try {
   }
   assert.ok(startedFace.presentation.actions.some(action => action.identity === 'todo.add'
     && action.availability === 'Available'), 'Todo Play did not admit the add action');
-  assert.ok(!startedFace.presentation.subjects.some(subject => subject.name === itemText),
+  if (!resumeExisting) assert.ok(!startedFace.presentation.subjects.some(subject => subject.name === itemText),
     'new Todo item must be absent before this browser action');
   await page.getByRole('button', { name: 'Refresh this Face' }).click();
-  await page.waitForFunction(prior => {
+  await page.waitForFunction(({ prior, resumed }) => {
     const current = globalThis.__conduitOwnerParticipation.face();
-    return current?.face_revision !== prior && current?.actions.some(action => action.identity === 'todo.add');
-  }, beforeStart.face_revision, { timeout: 12_000 });
+    return current?.show_state === 'available' && (resumed || current.face_revision !== prior)
+      && current?.actions.some(action => action.identity === 'todo.add')
+      && document.querySelector('[data-owner-show-acknowledged]')?.dataset.ownerShowAcknowledged === current.show_id;
+  }, { prior: beforeStart.face_revision, resumed: resumeExisting }, { timeout: 12_000 });
   const prepared = await page.evaluate(() => ({
     face: globalThis.__conduitOwnerParticipation.face(),
     status: document.querySelector('[data-owner-face-status]')?.textContent,
@@ -166,6 +176,11 @@ try {
     }, null, 2)}\n`);
     await page.locator('[data-owner-face]').screenshot({ path: path.join(output, 'browser-route-diagnostic.png') });
     throw new Error(`Todo browser Show has no admitted action return: ${prepared.status}`);
+  }
+  let retainedLookSelection = null;
+  if (retainedDom) {
+    retainedLookSelection = await compareRetainedTodoLooks({ page, face, bodyId,
+      hostId: identity.hostId, bootId: identity.bootId, output });
   }
   const before = await page.evaluate(() => globalThis.__conduitOwnerParticipation.face());
   assert.equal(before.body_id, bodyId);
@@ -320,10 +335,29 @@ try {
     }, null, 2)}\n`);
   }
   await page.locator('[data-owner-face]').screenshot({ path: path.join(output, 'browser-before.png') });
-  const texts = scenario.startsWith('cross-mask') ? [itemText, 'Prepare lunch', 'Water plants'] : [itemText];
+  const specimenNames = [itemText, 'Prepare lunch', 'Water plants'];
+  let resumedItems = null;
+  const domCompletion = retainedDom
+    ? await retainedTodoDomCompletion({ page, face, state, output, bodyId }) : null;
+  if (resumeExisting && !retainedDom) {
+    assert.equal(new Set(specimenNames).size, specimenNames.length, 'resume specimen names must be distinct');
+    const retained = face();
+    assert.deepEqual(retained.presentation.subjects.filter(subject => subject.role === 'Item').map(subject => subject.name), specimenNames,
+      'resume requires the exact previously added three-item specimen');
+    assert(retained.presentation.text.some(text => text.subject === 'todo/status' && text.text === '3 things left · 0 completed'),
+      'resume refuses an already completed or differently mutated specimen');
+    for (const item of retained.presentation.subjects.filter(subject => subject.role === 'Item')) {
+      assert(retained.presentation.properties.some(property => property.subject === item.identity
+        && property.name === 'complete' && property.value.Flag === false), 'resume requires every retained item to be pending');
+    }
+    resumedItems = retained;
+    await writeFile(path.join(output, 'resumed-owner-face.json'), `${JSON.stringify(retained, null, 2)}\n`);
+  }
+  const texts = resumeExisting ? [] : scenario.startsWith('cross-mask') ? specimenNames : [itemText];
   assert.equal(new Set(texts).size, texts.length, 'scenario item names must be distinct');
   const adds = [];
-  let after;
+  let after = retainedDom
+    ? await page.evaluate(() => globalThis.__conduitOwnerParticipation.face()) : before;
   for (const text of texts) {
     const prior = await page.evaluate(() => globalThis.__conduitOwnerParticipation.face());
     const priorOwner = face();
@@ -351,7 +385,7 @@ try {
     await writeFile(path.join(output, 'adds.json'), `${JSON.stringify(adds, null, 2)}\n`);
   }
   let crossMask = null;
-  const speechBeforeCompletion = scenario === 'cross-mask-speech'
+  const speechBeforeCompletion = captureSpeech
     ? await captureDirectTodoSpeech({ owner, state, output: path.join(output, 'spoken-before-complete'),
       bodyId, readRemaining: false }) : null;
   if (speechBeforeCompletion) {
@@ -464,18 +498,18 @@ try {
     face_revision: afterOwner.presentation_revision_decimal, show_id: after.show_id,
     observed_at_unix_ms: Date.now() };
   assert.equal(afterOwner.presentation.basis.body_id, bodyId);
-  assert.ok(afterOwner.presentation.subjects.some(subject => subject.name === itemText));
+  if (!retainedDom) assert.ok(afterOwner.presentation.subjects.some(subject => subject.name === itemText));
   assert.deepEqual(errors, []);
-  const directSpeech = scenario === 'cross-mask-speech'
+  const directSpeech = captureSpeech
     ? await captureDirectTodoSpeech({ owner, state, output: path.join(output, 'spoken'), bodyId })
     : null;
   await writeFile(path.join(output, 'receipt.json'), `${JSON.stringify({
     schema: 'conduit.proof/todo-owner-browser@1',
     ...sourceRecord,
     body_id: bodyId, browser_host_id: identity.hostId, browser_boot_id: identity.bootId,
-    item_text: itemText, adds, cross_mask: crossMask, inspect_capture: inspectCapture,
+    item_text: itemText, adds, resumed_items: resumedItems, cross_mask: crossMask, inspect_capture: inspectCapture,
     speech_before_completion: speechBeforeCompletion,
-    direct_speech: directSpeech, before: { face_id: before.face_id, face_revision: before.face_revision,
+    direct_speech: directSpeech, retained_look_selection: retainedLookSelection, retained_dom_completion: domCompletion, before: { face_id: before.face_id, face_revision: before.face_revision,
       show_id: before.show_id }, after: { face_id: after.face_id,
       face_revision: after.face_revision, show_id: after.show_id },
     screenshots: scenario.startsWith('cross-mask') ? ['browser-before.png', 'browser-stale.png', 'browser-after.png']

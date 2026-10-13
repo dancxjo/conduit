@@ -1,0 +1,32 @@
+# This finite specimen admits sixteen phase/control changes after revision one.
+# The revision bound is authored policy, not a universal binding limit.
+# The game step supplied here must come from the checked state-step producer.
+# This expression retains no Body state and establishes no current input authority.
+type ParsecMapState = {
+    started: Boolean
+    keyboard: Boolean
+    mapping_revision: U64 in 1..=17
+}
+type ParsecMapCommand = {
+    action: Text <= 16B not in [""]
+    keyboard: Boolean
+    expected_revision: U64 in 1..=17
+}
+type ParsecMapTransitionRequest = {
+    state: ParsecMapState
+    command: ParsecMapCommand
+    step: ParsecStepResult
+}
+type ParsecMapTransitionResult = {
+    state: ParsecMapState
+    accepted: Boolean
+}
+
+# Admission requires the current revision, a remap or accepted game step,
+# and revision headroom whenever the phase or selected control changes.
+# Balanced literal successors establish the refinement within finite program depth.
+# Canonical expression-bodied plots use one physical expression line.
+plot parsec/map-transition (
+ >> request: ParsecMapTransitionRequest
+ result: ParsecMapTransitionResult >>
+) = {accepted: .command.expected_revision == .state.mapping_revision && (.command.action == "game/remap" || .step.accepted) && (!(.step.started != .state.started || (.command.action == "game/remap" && .command.keyboard != .state.keyboard)) || .state.mapping_revision < 17), state: .command.expected_revision == .state.mapping_revision && (.command.action == "game/remap" || .step.accepted) && (!(.step.started != .state.started || (.command.action == "game/remap" && .command.keyboard != .state.keyboard)) || .state.mapping_revision < 17) ? {keyboard: .command.action == "game/remap" ? .command.keyboard : .state.keyboard, mapping_revision: .step.started != .state.started || (.command.action == "game/remap" && .command.keyboard != .state.keyboard) ? (.state.mapping_revision <= 9 ? (.state.mapping_revision <= 5 ? (.state.mapping_revision <= 3 ? (.state.mapping_revision <= 2 ? (.state.mapping_revision <= 1 ? 2 : 3) : 4) : (.state.mapping_revision <= 4 ? 5 : 6)) : (.state.mapping_revision <= 7 ? (.state.mapping_revision <= 6 ? 7 : 8) : (.state.mapping_revision <= 8 ? 9 : 10))) : (.state.mapping_revision <= 13 ? (.state.mapping_revision <= 11 ? (.state.mapping_revision <= 10 ? 11 : 12) : (.state.mapping_revision <= 12 ? 13 : 14)) : (.state.mapping_revision <= 15 ? (.state.mapping_revision <= 14 ? 15 : 16) : (.state.mapping_revision <= 16 ? 17 : .state.mapping_revision)))) : .state.mapping_revision, started: .step.started} : .state}

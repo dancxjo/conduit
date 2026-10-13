@@ -7,12 +7,15 @@ impl BodyScanBack {
         scan: BoundedScanActivationHost,
         planned: &PlannedScanActivation,
     ) -> Result<KernelScanBack, String> {
-        let maximum_items =
-            if planned.item_input.value_kind.as_str() == conduit_thermostat_plot::COMMAND_KIND {
-                256
-            } else {
-                64
-            };
+        let maximum_items = if planned.item_input.value_kind
+            == crate::flow_activation::parsec_command_kind()?
+        {
+            32
+        } else if planned.item_input.value_kind.as_str() == conduit_thermostat_plot::COMMAND_KIND {
+            256
+        } else {
+            64
+        };
         KernelScanBack::prepare(
             scan,
             planned,

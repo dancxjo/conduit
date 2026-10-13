@@ -24,6 +24,13 @@ pub fn portable_demonstration_with_adapter(
 pub fn portable_demonstration_with_parts_and_adapter(
     adapter: &dyn PatchbayHostAdapter,
 ) -> Result<(Presentation, PartsView), String> {
+    portable_demonstration_with_profile(adapter, PatchbayHostProfile::Reference)
+}
+
+pub(crate) fn portable_demonstration_with_profile(
+    adapter: &dyn PatchbayHostAdapter,
+    profile: PatchbayHostProfile,
+) -> Result<(Presentation, PartsView), String> {
     let editor = PlotEditor::from_source(
         "plots/hello/main.conduit".into(),
         include_str!("../../../../../plots/hello/main.conduit").into(),
@@ -36,7 +43,7 @@ pub fn portable_demonstration_with_parts_and_adapter(
         HostId::from("patchbay-portable/host"),
         BootId::from("patchbay-portable/boot"),
         OfferGeneration(1),
-        PatchbayHostProfile::Reference,
+        profile,
     )?;
     let host_id = advertisement.host_id.clone();
     let boot_id = advertisement.boot_id.clone();
@@ -54,17 +61,26 @@ pub fn portable_demonstration_with_parts_and_adapter(
     topology
         .ingest(&patchbay.startup_snapshot())
         .map_err(|error| error.to_string())?;
-    let route = DistributedRouteDemo::build_for_source(advertisement.clone())
-        .map_err(|error| format!("{error:?}"))?
-        .presentation()
-        .clone();
+    // The distributed signal demonstration requires the Reference offer. A
+    // Text-only specimen projects the checked hello graph without inventing a
+    // signal route that its declared Host cannot plan.
+    let routes = if profile == PatchbayHostProfile::Reference {
+        vec![
+            DistributedRouteDemo::build_for_source(advertisement.clone())
+                .map_err(|error| format!("{error:?}"))?
+                .presentation()
+                .clone(),
+        ]
+    } else {
+        Vec::new()
+    };
     let projection = PatchbayPresentation::new(
         1,
         editor.view(),
         Some(plan_document),
         Some(play_document),
         topology.current_report().cloned(),
-        vec![route],
+        routes,
     )
     .map_err(|error| error.to_string())?
     .with_graph(crate::PatchbayGraph::from_expanded(&expanded).map_err(|error| error.to_string())?)

@@ -48,12 +48,16 @@ mod instrument_map_back;
 mod ipa_constructor_back;
 mod numerical_back;
 pub(crate) use numerical_back::{offers as numerical_offers, owns_offer as owns_numerical_offer};
+pub(crate) mod parsec_instruction_source_admission;
+pub(crate) mod parsec_instruction_source_back;
 mod quantity_conversion_back;
 pub(super) use quantity_conversion_back::offers as quantity_conversion_offers;
 mod json_backs;
 mod json_summary_back;
 mod kernel_preparation;
 mod keyboard_input_back;
+mod keyboard_input_binding;
+mod keyboard_input_completion;
 mod keyboard_input_host;
 mod layout_backs;
 mod local_model_back;
@@ -735,6 +739,17 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             .iter()
             .map(|operation| &operation.contract_id),
     );
+    if keyboard_input_binding::has_input_source(&lowered.host_calls) {
+        keyboard_host.install_request_admission(
+            keyboard_input_binding::KeyboardRequestAdmission::prepare(
+                advertisement,
+                fragment,
+                &lowered.identity,
+                &lowered.host_calls,
+                &active_play,
+            )?,
+        )?;
+    }
     let mut indicator_host = indicator_host::IndicatorHost::prepare(
         indicator,
         advertisement,

@@ -6,8 +6,22 @@ use serde_json::{json, Value};
 use std::path::Path;
 
 pub(crate) fn run(state_dir: &Path, command: SpokenMaskCommand) -> Result<(), String> {
+    if matches!(
+        &command,
+        SpokenMaskCommand::Admit {
+            llm: true,
+            look: Some(_),
+            ..
+        } | SpokenMaskCommand::Select {
+            llm: true,
+            look: Some(_),
+            ..
+        }
+    ) {
+        return Err("checked spoken Look cannot be combined with --llm".into());
+    }
     let value = match command {
-        SpokenMaskCommand::Admit { llm } => match call(state_dir, |token| {
+        SpokenMaskCommand::Admit { llm, look } => match call(state_dir, |token| {
             if llm {
                 SpeechRequest::LlmAdmit {
                     protocol: PROTOCOL,
@@ -17,6 +31,7 @@ pub(crate) fn run(state_dir: &Path, command: SpokenMaskCommand) -> Result<(), St
                 SpeechRequest::DirectAdmit {
                     protocol: PROTOCOL,
                     token,
+                    look: look.map(Into::into),
                 }
             }
         })? {
@@ -27,7 +42,7 @@ pub(crate) fn run(state_dir: &Path, command: SpokenMaskCommand) -> Result<(), St
             SpeechReply::Refused { code, .. } => return Err(code),
             _ => return Err("owner returned the wrong direct Mask admission response".into()),
         },
-        SpokenMaskCommand::Select { llm } => match call(state_dir, |token| {
+        SpokenMaskCommand::Select { llm, look } => match call(state_dir, |token| {
             if llm {
                 SpeechRequest::LlmSelect {
                     protocol: PROTOCOL,
@@ -37,6 +52,7 @@ pub(crate) fn run(state_dir: &Path, command: SpokenMaskCommand) -> Result<(), St
                 SpeechRequest::DirectSelect {
                     protocol: PROTOCOL,
                     token,
+                    look: look.map(Into::into),
                 }
             }
         })? {

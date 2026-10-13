@@ -184,6 +184,8 @@ pub(crate) struct Owner {
     pending_native_mask: Option<native_mask_route::NativeMaskRoute>,
     attached_terminal_route: Option<conduit_presentation::LocalOwnerMaskRouteSeal>,
     direct_spoken_route: Option<conduit_presentation::LocalOwnerMaskRouteSeal>,
+    direct_spoken_template:
+        Option<conduit_std_host::direct_spoken_template_mask::PreparedDirectSpokenTemplateMask>,
     llm_spoken_route: Option<conduit_presentation::LocalOwnerMaskRouteSeal>,
     presentation_wardrobe: Option<presentation_wardrobe::OwnerPresentationWardrobe>,
     /// Bounded projection cache from the configured initial Form and the exact
@@ -288,6 +290,7 @@ impl Owner {
             pending_native_mask: None,
             attached_terminal_route: None,
             direct_spoken_route: None,
+            direct_spoken_template: None,
             llm_spoken_route: None,
             presentation_wardrobe: None,
             thermostat_live: None,
@@ -314,6 +317,7 @@ impl Owner {
             pending_native_mask: None,
             attached_terminal_route: None,
             direct_spoken_route: None,
+            direct_spoken_template: None,
             llm_spoken_route: None,
             presentation_wardrobe: None,
             thermostat_live: None,

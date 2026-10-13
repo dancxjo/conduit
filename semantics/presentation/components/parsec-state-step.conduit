@@ -1,0 +1,16 @@
+# Finite application-owned transition specimen. The caller supplies the prior
+# state and exact semantic command; this expression does not authenticate a
+# caller, persist state, observe a controller, or claim a delivered effect.
+type ParsecStepRequest = {
+    started: Boolean
+    action: Text
+}
+type ParsecStepResult = {
+    started: Boolean
+    accepted: Boolean
+}
+
+plot parsec/state-step (
+ >> request: ParsecStepRequest
+ result: ParsecStepResult >>
+) = {started: .started || .action == "game/start", accepted: .started ? .action == "game/shoot" : .action == "game/start"}

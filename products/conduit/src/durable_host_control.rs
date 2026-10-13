@@ -39,7 +39,7 @@ pub(crate) const CONTROL_OUTCOME_UNKNOWN: &str = "control-outcome-unknown";
 const MAXIMUM_CONTROL_FRAME_BYTES: usize = 512 * 1024;
 // Local admission snapshots carry both complete reviewed Host advertisements.
 // This JSON envelope bound is separate from remote session payload/frame limits.
-const MAXIMUM_LOCAL_CONTROL_FRAME_BYTES: usize = 2 * 1024 * 1024;
+pub(crate) const MAXIMUM_LOCAL_CONTROL_FRAME_BYTES: usize = 2 * 1024 * 1024;
 
 fn supports_remote_mask_action_intent(intent: &str) -> bool {
     intent == crate::durable_host::owner::clock_interval_action()
@@ -87,6 +87,9 @@ mod body_run;
 #[cfg(unix)]
 #[path = "durable_host_control/browser.rs"]
 pub(crate) mod browser;
+#[cfg(unix)]
+#[path = "durable_host_control/client_frame.rs"]
+mod client_frame;
 #[cfg(unix)]
 #[path = "durable_host_control/direct_spoken.rs"]
 pub(crate) mod direct_spoken;
@@ -151,6 +154,8 @@ pub(crate) struct DurableHostRuntime {
     speech_terminal: Option<serde_json::Value>,
     owner_spoken_worker: Option<body::owner_spoken::OwnerSpokenWorker>,
     owner_spoken_terminal: Option<serde_json::Value>,
+    spoken_template_session:
+        Option<conduit_std_host::spoken_template_execution::SpokenTemplateExecutionSession>,
 }
 
 impl DurableHostRuntime {
@@ -180,6 +185,7 @@ impl DurableHostRuntime {
             speech_terminal: None,
             owner_spoken_worker: None,
             owner_spoken_terminal: None,
+            spoken_template_session: None,
         }
     }
 
@@ -1509,35 +1515,7 @@ pub(crate) fn serve(state_dir: &Path, mut runtime: DurableHostRuntime) -> Result
             }
             Err(error) => return Err(format!("accept local host control: {error}")),
         };
-        stream
-            .set_read_timeout(Some(std::time::Duration::from_secs(2)))
-            .map_err(|error| format!("bound local host control read: {error}"))?;
-        stream
-            .set_write_timeout(Some(std::time::Duration::from_secs(2)))
-            .map_err(|error| format!("bound local host control write: {error}"))?;
-        let mut first = [0_u8; 1];
-        stream
-            .read_exact(&mut first)
-            .map_err(|error| format!("read local host control prefix: {error}"))?;
-        if first[0] == terminal_attach::MAGIC[0] {
-            terminal_attach::serve(state_dir, &mut stream, &mut runtime, &token, first[0])?;
-        } else if first[0] == speech_route::MAGIC[0] {
-            speech_route::serve(&mut stream, &mut runtime, &token, first[0])?;
-        } else {
-            let mut request = std::io::Cursor::new(first).chain(&mut stream);
-            let response = match read_frame(&mut request) {
-                Ok(request) => handle(request, &token, &mut runtime),
-                Err(error) => {
-                    eprintln!("local control request refused: {error}");
-                    refused("invalid-local-control-frame")
-                }
-            };
-            // A malformed client or oversized response must not terminate the
-            // retained Owner. No request is replayed after a transport failure.
-            if let Err(error) = write_frame(&mut stream, &response) {
-                eprintln!("local control response refused: {error}");
-            }
-        }
+        client_frame::serve_client(state_dir, &mut stream, &mut runtime, &token)?;
     }
 }
 

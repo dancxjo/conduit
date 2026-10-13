@@ -14,7 +14,10 @@ use std::{
 
 pub(crate) const MAGIC: &[u8; 8] = b"CDTERM01";
 const MAX_HANDSHAKE_BYTES: usize = 4_096;
-const MAX_REPLY_BYTES: usize = 512 * 1024;
+// A local Show reply carries the complete current Host advertisement, just
+// like the local control snapshots. Selected speech adds reviewed contracts
+// which need not fit the smaller remote-control frame budget.
+const MAX_REPLY_BYTES: usize = super::super::MAXIMUM_LOCAL_CONTROL_FRAME_BYTES;
 const HANDSHAKE_DEADLINE: Duration = Duration::from_secs(2);
 
 #[derive(Serialize, Deserialize)]
