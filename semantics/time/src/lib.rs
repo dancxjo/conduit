@@ -72,6 +72,7 @@ mod rhythm;
 pub use rhythm::*;
 
 mod calendar;
+mod civil_deadline;
 mod calendar_proposal;
 mod historical_command;
 mod historical_configuration;
@@ -96,6 +97,7 @@ mod temporal_schedule;
 mod temporal_window;
 
 pub use calendar::*;
+pub use civil_deadline::*;
 pub use calendar_proposal::*;
 pub use generated::{
     TemporalInstant as NativeTemporalInstant, TemporalScale as NativeTemporalScale,
