@@ -50,7 +50,11 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog) {
     startup
         .insert(KindSignature {
             kind: "face/text".into(),
-            startup_parameters: vec![],
+            startup_parameters: vec![StartupParameterSignature {
+                name: "label".into(),
+                value_type: "Text".into(),
+                default: None,
+            }],
         })
         .unwrap();
 
@@ -86,7 +90,7 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog) {
             kind_contract_revision: KindIdentity::from("face/text@1"),
             inputs: vec![port("text", PortDirection::Input)],
             outputs: vec![],
-            configuration: vec![],
+            configuration: conduit_core::data_label_configuration(),
         })
         .unwrap();
     (startup, profile)
@@ -136,7 +140,7 @@ fn offer(definition: &KindProjection) -> CapabilityOffer {
                     ConfigurationValue::Unit(_) => conduit_core::UNIT_INFO_ID,
                     ConfigurationValue::TemperatureDifference(_) => conduit_core::EXACT_TEMPERATURE_DIFFERENCE_INFO_ID,
                 }),
-                has_default: true,
+                has_default: !matches!(field.rule, KindConfigurationRule::DataLabel { .. }),
             })
             .collect(),
         shorthand: None,

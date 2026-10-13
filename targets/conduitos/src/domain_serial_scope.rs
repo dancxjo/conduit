@@ -299,10 +299,12 @@ impl SerialScope {
             })
             .ok_or(DomainRefusal::WrongBinding)?;
         let _ = pool;
+        conduit_core::face_data_label(&placement.configuration)
+            .map_err(|_| DomainRefusal::WrongBinding)?;
         let maximum_operations = match face {
-            Face::Count if placement.configuration.is_empty() => 2,
+            Face::Count if placement.configuration.len() == 1 => 2,
             Face::Count => return Err(DomainRefusal::WrongBinding),
-            Face::Indicator if placement.configuration.is_empty() => 1,
+            Face::Indicator if placement.configuration.len() == 1 => 1,
             Face::Indicator => return Err(DomainRefusal::WrongBinding),
             Face::Text => placement
                 .configuration

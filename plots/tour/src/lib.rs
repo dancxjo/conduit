@@ -38,7 +38,7 @@ pub const CANONICAL_SOURCE: &str = concat!(
     "plot meet-one-gear {\n",
     "    words: text/literal(\"hello\")\n",
     "    change: text/upper\n",
-    "    result: face/text\n\n",
+    "    result: face/text(\"Message\")\n\n",
     "    words >> change >> result\n",
     "}."
 );

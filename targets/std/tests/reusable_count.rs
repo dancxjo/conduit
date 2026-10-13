@@ -55,7 +55,7 @@ fn reusable_count_runs_through_two_nested_levels_in_one_kernel_play() {
         .checked_plot_id
         .clone();
     let proof_source = format!(
-        "{COUNT_SOURCE}\nplot nested-count (\n    bump: Tick...| >> value: $Count\n) {{\n    counter: count(7)\n    bump >> counter.bump\n    counter.value >> value\n}}\n\nplot count-nesting-driver {{\n    clock: time/every(1s)\n    nested: nested-count\n    show: face/count\n    clock >> nested >> show\n}}\n"
+        "{COUNT_SOURCE}\nplot nested-count (\n    bump: Tick...| >> value: $Count\n) {{\n    counter: count(7)\n    bump >> counter.bump\n    counter.value >> value\n}}\n\nplot count-nesting-driver {{\n    clock: time/every(1s)\n    nested: nested-count\n    show: face/count(\"Nested count\")\n    clock >> nested >> show\n}}\n"
     );
     let checked = check_syntax_document(&parse_syntax_document(&proof_source), &startup).unwrap();
     assert_eq!(
@@ -97,7 +97,7 @@ fn reusable_count_runs_through_two_nested_levels_in_one_kernel_play() {
     let output = String::from_utf8(output).unwrap();
     let counts = output
         .lines()
-        .filter_map(|line| line.strip_prefix("count value="))
+        .filter_map(|line| line.strip_prefix("Nested count: count value="))
         .map(|value| value.parse::<u64>().unwrap())
         .collect::<Vec<_>>();
     assert!(counts.len() > 5, "counts={counts:?}");

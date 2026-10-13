@@ -113,10 +113,11 @@ pub fn live_indicator_advertisement(
         resource_requirement(SERIAL_OPERATION_RESOURCE, 1),
     ];
     requirements.sort();
+    let contract = conduit_signal::show_semantic_contract();
     let show = conduit_core::capability_offer_from_parts! {
-        semantic_contract: Default::default(),
-        startup_parameters: Vec::new(),
-        shorthand: None,
+        semantic_contract: contract.semantic_contract(),
+        startup_parameters: contract.startup_parameters,
+        shorthand: contract.shorthand,
         capability_id: CapabilityId::from(INDICATOR_CAPABILITY),
         kind_id: conduit_signal::show_kind(),
         kind_contract_revision: conduit_signal::show_contract_revision(),

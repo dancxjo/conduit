@@ -17,6 +17,7 @@ depends on semantic, application, target, or proof packages.
 | `consequential_effect.rs` | universal architecture | Generic attended last-mile gating for bounded consequential physical effects, including exact resource generation, safety readiness, one-shot authority, uncertain outcomes, and safe disposition. |
 | `characteristic.rs` | universal architecture | Generic realization, resource, topology, base, and observation characteristics. |
 | `completion.rs` | universal architecture | Exact live-versus-semantic-completion policy sealed from checked plot meaning into plan and fragment identity. |
+| `data_label.rs` | universal architecture | Bounded explicit construction names carried separately from typed data; validation and required startup declarations. |
 | `configuration.rs` | universal architecture | Generic bounded configuration values carried by checked plots and plans. |
 | `flow_semantic_laws.rs` | universal architecture | Finite flow transformation laws and value contracts shared by checking, planning and realization. |
 | `control_loop.rs` | universal architecture | Generic plan satisfaction, recovery, and replan decisions over current truth. |

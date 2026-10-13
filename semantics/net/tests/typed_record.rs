@@ -450,7 +450,11 @@ fn desk_telegraph_uses_reusable_text_record_fronts_around_exact_framing() {
     startup
         .insert(conduit_plot::KindSignature {
             kind: "face/text".into(),
-            startup_parameters: vec![],
+            startup_parameters: vec![conduit_plot::StartupParameterSignature {
+                name: "label".into(),
+                value_type: "Text".into(),
+                default: None,
+            }],
         })
         .unwrap();
     profile
@@ -465,7 +469,7 @@ fn desk_telegraph_uses_reusable_text_record_fronts_around_exact_framing() {
                 abnormal_kind: None,
             }],
             outputs: vec![],
-            configuration: vec![],
+            configuration: conduit_core::data_label_configuration(),
         })
         .unwrap();
     let source = include_str!("../../../plots/desk-telegraph/main.conduit");
@@ -519,7 +523,11 @@ fn night_radio_composes_existing_framing_queue_and_face() {
     startup
         .insert(conduit_plot::KindSignature {
             kind: "face/text".into(),
-            startup_parameters: vec![],
+            startup_parameters: vec![conduit_plot::StartupParameterSignature {
+                name: "label".into(),
+                value_type: "Text".into(),
+                default: None,
+            }],
         })
         .unwrap();
     profile
@@ -534,7 +542,7 @@ fn night_radio_composes_existing_framing_queue_and_face() {
                 abnormal_kind: None,
             }],
             outputs: vec![],
-            configuration: vec![],
+            configuration: conduit_core::data_label_configuration(),
         })
         .unwrap();
 

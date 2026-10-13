@@ -80,7 +80,7 @@ fn canonical_program_reacts_to_open_flow_until_explicit_stop() {
     let output = String::from_utf8(output).unwrap();
     let counts = output
         .lines()
-        .filter_map(|line| line.strip_prefix("count value="))
+        .filter_map(|line| line.strip_prefix("Current count: count value="))
         .map(|value| value.parse::<u64>().unwrap())
         .collect::<Vec<_>>();
     assert!(counts.len() > 5, "counts={counts:?}");

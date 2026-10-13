@@ -27,7 +27,7 @@ fn reusable_greet_runs_twice_with_exact_occurrences_in_one_kernel_play() {
         .checked_plot_id
         .clone();
     let proof_source = format!(
-        "{GREET_SOURCE}\nplot greet-double-driver {{\n    first: greet(\"Hi \")\n    second: greet(\"Bye \")\n    \"Ada\" >> first >> face/text\n    \"Bob\" >> second >> face/text\n}}\n"
+        "{GREET_SOURCE}\nplot greet-double-driver {{\n    first: greet(\"Hi \")\n    second: greet(\"Bye \")\n    \"Ada\" >> first >> face/text(\"First greeting\")\n    \"Bob\" >> second >> face/text(\"Second greeting\")\n}}\n"
     );
     let checked = check_syntax_document(&parse_syntax_document(&proof_source), &startup).unwrap();
     assert_eq!(
@@ -75,8 +75,16 @@ fn reusable_greet_runs_twice_with_exact_occurrences_in_one_kernel_play() {
         kernel.value_allocation_capacity_after
     );
     let output = String::from_utf8(output).unwrap();
-    assert!(output.contains("Hi Ada"), "{output}");
-    assert!(output.contains("Bye Bob"), "{output}");
+    assert!(
+        output.lines().any(|line| line == "First greeting: Hi Ada"),
+        "{output}"
+    );
+    assert!(
+        output
+            .lines()
+            .any(|line| line == "Second greeting: Bye Bob"),
+        "{output}"
+    );
     println!(
         "{EVIDENCE_MARKER}{{\"plan_id\":\"{}\",\"play_id\":\"{}\"}}",
         plan_id.as_str(),
