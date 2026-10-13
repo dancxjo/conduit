@@ -39,6 +39,7 @@ impl PreparedSequenceSelection {
         let prepare = |child: &PortableExpressionNode| {
             PreparedPortableExpressionEvaluator::prepare(
                 ProgramView {
+                    input_maximum_bytes: prepared_input.maximum_bytes(),
                     input_type: input,
                     output_type: &child.value_type,
                     root: child,
@@ -56,7 +57,7 @@ impl PreparedSequenceSelection {
             output: Vec::with_capacity(if primitive {
                 0
             } else {
-                storage_bound::canonical(element)?
+                storage_bound::expression(node, input, prepared_input.maximum_bytes())?
             }),
             primitive,
         })

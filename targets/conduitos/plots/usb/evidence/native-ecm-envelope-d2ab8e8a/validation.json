@@ -1,0 +1,29 @@
+{
+  "tier": "native-x86_64-qemu-external-usb-device",
+  "tx_frames": 6,
+  "rx_frames": 7,
+  "tx_lengths": [
+    42,
+    66,
+    54,
+    1514,
+    54,
+    54
+  ],
+  "rx_lengths": [
+    64,
+    1514,
+    60,
+    60,
+    1494,
+    74,
+    60
+  ],
+  "wire_exact": true,
+  "tcp_bytes_each_direction": 1460,
+  "play_allocations": 0,
+  "play_reallocations": 0,
+  "acknowledged_stop": true,
+  "normal_retirement": true,
+  "physical_proof": false
+}

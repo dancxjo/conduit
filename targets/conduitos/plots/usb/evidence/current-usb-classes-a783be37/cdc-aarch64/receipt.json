@@ -1,0 +1,126 @@
+{
+  "schema": "conduit.usb/cdc-control-observation@1",
+  "proof_class": "freestanding-emulator",
+  "scope": "pure descriptor preflight retirement before selected serial Back; unsupported profile refuses class effects; wire gate independent",
+  "outcome": "play-retired",
+  "image_sha256": "d37df200da8d60cc79809c36b15d34450d6ce83a4bd338f49903da94e65c0c46",
+  "qemu_arguments": [
+    "/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-aarch64-tools/root/usr/bin/qemu-system-aarch64",
+    "-M",
+    "virt-10.2,highmem=off,gic-version=2,iommu=none",
+    "-cpu",
+    "neoverse-n2",
+    "-m",
+    "512M",
+    "-smp",
+    "1",
+    "-display",
+    "none",
+    "-monitor",
+    "none",
+    "-serial",
+    "file:/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-current-drain-class-proof/cdc-aarch64-run/serial.log",
+    "-no-reboot",
+    "-net",
+    "none",
+    "-bios",
+    "/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-aarch64-tools/root/usr/share/qemu-efi-aarch64/QEMU_EFI.fd",
+    "-cdrom",
+    "/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-current-drain-class-proof/cdc-aarch64-media/conduitos.iso",
+    "-boot",
+    "d",
+    "-device",
+    "qemu-xhci,id=protocol-usb,p2=1,p3=0",
+    "-chardev",
+    "socket,id=cdc,path=/dev/shm/cdc-product-afes09ni/device.sock",
+    "-device",
+    "usb-redir,chardev=cdc,bus=protocol-usb.0,port=1,msos-desc=off,streams=off,debug=4"
+  ],
+  "serial_sha256": "a0952eb578b71024c8f40ef0e130147b0137acf159d5b7b827b99221f5d9ccf2",
+  "physical_compatibility": "unverified",
+  "architecture": "aarch64",
+  "protocol_image_receipt": {
+    "architecture": "aarch64",
+    "checked_plot_id": "e694a736890697d81574c149a7db2b769b96bb12b9779386027f01e572c41edc",
+    "expanded_plot_id": "09ea334dffb657fad63c72eabab609dbbcf5ddc8b5b6cc83e3aec05a4e5d371e",
+    "image_sha256": "d37df200da8d60cc79809c36b15d34450d6ce83a4bd338f49903da94e65c0c46",
+    "kernel_sha256": "c5db3ab2b572861d59850d445d7ec89b2ff25a0d8d1b076b4a28426025722ad1",
+    "native_execution": "not-yet-observed",
+    "proof_class": "source-check-and-image-packaging",
+    "root_kind": "usb",
+    "root_module_command": "conduit.protocol/usb-root-request@1",
+    "root_request_schema": "conduit.conduitos/usb-protocol-root-request@1",
+    "root_request_sha256": "47c927287fb3258bf89014b600b4f311d375abc94359c241703d8dd004c0700e",
+    "schema": "conduit.conduitos/protocol-image-receipt@1",
+    "source_artifact_id": "conduitos/protocol-source/sha256/15a4b501b95e978c03c0f3a2bc9e966d44fa182280d6349f2664c754b9fca8b1",
+    "source_document_id": "6d8cfad770b929722cf51be4335b2ad74e5f365d42271851f73b65b9aab29c4a"
+  },
+  "product_commit": "a405f218bada701e22fe1f4f1a962037222ae5a7",
+  "build_record": {
+    "schema": "conduit.conduitos.build/v2",
+    "artifact_role": "product-host",
+    "base_commit": "a405f218bada701e22fe1f4f1a962037222ae5a7",
+    "architecture": "aarch64",
+    "rust_target": "aarch64-unknown-none",
+    "limine_crate": "0.5.0",
+    "elf_sha256": "c5db3ab2b572861d59850d445d7ec89b2ff25a0d8d1b076b4a28426025722ad1"
+  },
+  "firmware_sha256": "e264b5d66d05ad3abad9ec0b63dcf0c956007a3af9345dd03f79c5246ffcb392",
+  "emulator_sha256": "c232f67cee378d22414d869b36fd9bcbaa5009630e12fbfb50fa5c9449593da5",
+  "device_profile": "valid",
+  "proof_runner_sha256": "60bcdd3f05fad577629180a2e1f9c3c91ad36bbbec593205c4f57166ddcdf674",
+  "validation_tools_sha256": {
+    "check_discovery.py": "1eb7ab6cb5cb73386ef44e08da1ae1a31f520b341ee35292c87d4b5c81dbfc94",
+    "check_wire.py": "9bdc6bd275d4d1a65b6057a589e3107c1a956e3e5b35905e5ff75bb9007876f7",
+    "decoder": "8efc6065cdd5001c2d9e754427bca9e6de41b4a58978f390da170d02fc9f9428",
+    "serial_decoder": "40bda9c08da2cc89e62381320a8b60d2704aefcc25b536b3ed45b465ee066d03"
+  },
+  "validation": "passed",
+  "discovery": {
+    "package_sha256": "15a4b501b95e978c03c0f3a2bc9e966d44fa182280d6349f2664c754b9fca8b1",
+    "supported": true,
+    "retired_pure_discovery": true,
+    "class_effects_after_verdict": true,
+    "native_wire_validation": "separate-required-gate"
+  },
+  "decoded_serial": {
+    "serial_results": 32,
+    "transmitted": 16,
+    "received": 16,
+    "ordered": true,
+    "retired": true
+  },
+  "independent_wire": {
+    "source_controls": 5,
+    "discovery_controls": 2,
+    "actual_transmit": 16,
+    "actual_receive": 16,
+    "status_success": true,
+    "exact_octets": true,
+    "preflight": "supported",
+    "discovery_configuration_hex": "090243000201008032090400000102020100052400100105240100010424020205240600010705830310001009040100020a0000000705810240000007050202400000"
+  },
+  "canonical_discovery": {
+    "attachment_epoch": 1,
+    "configuration": {
+      "transferred": 67,
+      "short": false,
+      "input_hex": "090243000201008032090400000102020100052400100105240100010424020205240600010705830310001009040100020a0000000705810240000007050202400000"
+    },
+    "endpoint_read": {
+      "address": 129,
+      "endpoint_epoch": 1,
+      "interval": 0,
+      "maximum_packet": 64,
+      "transfer_type": 2
+    },
+    "endpoint_write": {
+      "address": 2,
+      "endpoint_epoch": 1,
+      "interval": 0,
+      "maximum_packet": 64,
+      "transfer_type": 2
+    },
+    "canonical_core_validation": true
+  }
+}

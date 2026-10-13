@@ -63,6 +63,17 @@ pub(crate) fn prepare_native_usb_duplex<P: I2cProvider, C: MonotonicDeadlineProv
                 })?;
         }
         if let Some(storage) = &storage {
+            if storage
+                .additional
+                .as_ref()
+                .is_some_and(|extra| extra.additional.is_some())
+            {
+                return Err(Reason::Body(
+                    super::super::body_play::ProtocolBodyRefusal::Call(
+                        crate::protocol_host_calls::ProtocolCallRefusal::InvalidPlan,
+                    ),
+                ));
+            }
             storage.append(&mut advertisement).map_err(|error| {
                 Reason::Body(super::super::body_play::ProtocolBodyRefusal::Call(error))
             })?;
@@ -87,9 +98,20 @@ pub(crate) fn prepare_native_usb_duplex<P: I2cProvider, C: MonotonicDeadlineProv
         if let Some(storage) = &storage {
             grants.push(storage.authorize.grant().clone());
             grants.push(storage.settle.grant().clone());
+            if let Some(additional) = &storage.additional {
+                grants.push(additional.authorize.grant().clone());
+                grants.push(additional.settle.grant().clone());
+            }
         }
         let hosts = [advertisement];
-        let placements = entry.placements(&hosts).map_err(Reason::Source)?;
+        let mut placements = entry.placements(&hosts).map_err(Reason::Source)?;
+        if let Some(storage) = &storage {
+            storage
+                .select_placements(&entry.expanded().expanded.gears, &hosts[0], &mut placements)
+                .map_err(|error| {
+                    Reason::Body(super::super::body_play::ProtocolBodyRefusal::Call(error))
+                })?;
+        }
         let empty = BTreeMap::new();
         let artifact = entry
             .plan(
@@ -161,25 +183,19 @@ pub(crate) fn prepare_native_usb_duplex<P: I2cProvider, C: MonotonicDeadlineProv
             write_handle: write_possession.handle,
             write_claim: write_possession.claim,
         };
-        let result = if let Some(storage) = storage {
-            let authorize = storage
-                .authorize
-                .issue(
-                    plan,
-                    &active,
-                    &crate::storage_base::transaction_factory::AUTHORIZE_IMPLEMENTATION.into(),
-                    work_units,
-                )
-                .map_err(Reason::Possession)?;
-            let settle = storage
-                .settle
-                .issue(
-                    plan,
-                    &active,
-                    &crate::storage_base::transaction_factory::SETTLE_IMPLEMENTATION.into(),
-                    work_units,
-                )
-                .map_err(Reason::Possession)?;
+        let result = if let Some(mut storage) = storage {
+            let maximum_retained_bytes = storage.maximum_retained_bytes;
+            let additional = storage
+                .additional
+                .take()
+                .map(|preparation| {
+                    let maximum_retained_bytes = preparation.maximum_retained_bytes;
+                    let (authorize, settle) =
+                        issue_storage_pair(*preparation, plan, &active, work_units)?;
+                    Ok::<_, Reason>((maximum_retained_bytes, authorize, settle))
+                })
+                .transpose()?;
+            let (authorize, settle) = issue_storage_pair(storage, plan, &active, work_units)?;
             let scope = |possession: NativeProtocolPossession| {
                 crate::protocol_play::StorageScopePossession {
                     table: possession.table,
@@ -187,17 +203,33 @@ pub(crate) fn prepare_native_usb_duplex<P: I2cProvider, C: MonotonicDeadlineProv
                     claim: possession.claim,
                 }
             };
-            PreparedProtocolBodyPlay::prepare_storage_usb_duplex(
-                artifact,
-                retained_session.take().expect("retained body"),
-                body_play_sequence,
-                crate::protocol_play::StorageUsbAdmission {
-                    maximum_retained_bytes: storage.maximum_retained_bytes,
-                    usb,
-                    authorize: scope(authorize),
-                    settle: scope(settle),
-                },
-            )
+            let first = crate::protocol_play::StorageUsbAdmission {
+                maximum_retained_bytes,
+                usb,
+                authorize: scope(authorize),
+                settle: scope(settle),
+            };
+            match additional {
+                Some((maximum_retained_bytes, authorize, settle)) => {
+                    PreparedProtocolBodyPlay::prepare_storage_usb_duplex_two_pairs(
+                        artifact,
+                        retained_session.take().expect("retained body"),
+                        body_play_sequence,
+                        first,
+                        crate::protocol_host_calls::AdditionalStoragePairAdmission {
+                            maximum_retained_bytes,
+                            authorize: scope(authorize),
+                            settle: scope(settle),
+                        },
+                    )
+                }
+                None => PreparedProtocolBodyPlay::prepare_storage_usb_duplex(
+                    artifact,
+                    retained_session.take().expect("retained body"),
+                    body_play_sequence,
+                    first,
+                ),
+            }
         } else {
             #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
             let result = match network {
@@ -258,4 +290,24 @@ pub(crate) fn prepare_native_usb_duplex<P: I2cProvider, C: MonotonicDeadlineProv
             reason,
         })
     })
+}
+
+fn issue_storage_pair(
+    preparation: NativeStoragePreparation,
+    plan: &Plan,
+    active: &ActivePlayIdentity,
+    work_units: u64,
+) -> Result<(NativeProtocolPossession, NativeProtocolPossession), NativeProtocolPreparationReason> {
+    use crate::storage_base::transaction_factory::{
+        AUTHORIZE_IMPLEMENTATION, SETTLE_IMPLEMENTATION,
+    };
+    let authorize = preparation
+        .authorize
+        .issue(plan, active, &AUTHORIZE_IMPLEMENTATION.into(), work_units)
+        .map_err(NativeProtocolPreparationReason::Possession)?;
+    let settle = preparation
+        .settle
+        .issue(plan, active, &SETTLE_IMPLEMENTATION.into(), work_units)
+        .map_err(NativeProtocolPreparationReason::Possession)?;
+    Ok((authorize, settle))
 }

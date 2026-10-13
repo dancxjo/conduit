@@ -27,6 +27,9 @@ type NativePlay = PreparedProtocolBodyPlay<
 #[cfg(target_arch = "x86_64")]
 use crate::protocol_source::{NativeProtocolPreparationLimits, prepare_native_protocol};
 
+#[path = "runtime/execution_receipt.rs"]
+mod execution_receipt;
+
 pub(super) struct Output {
     port: PortId,
     value: ValuePayload,
@@ -140,7 +143,7 @@ fn prepare_outputs(
             .map(|boundary| boundary.byte_capacity)
             .min()
             .ok_or("protocol-output-boundary-missing")?;
-        if maximum > crate::protocol_source::MAXIMUM_PROTOCOL_FORE_BYTES {
+        if maximum > crate::protocol_source::MAXIMUM_PROTOCOL_OUTPUT_FORE_BYTES {
             return Err("protocol-output-envelope-unsupported");
         }
         outputs.push(Output {
@@ -248,6 +251,7 @@ fn execute_workload(
             matches!(port.temporal, PortTemporal::Flow { closes: true }),
         ));
     }
+    let allocation_before = crate::allocation::BOOT_ARENA.attempts();
     play.start().map_err(|_| "protocol-start-refused")?;
     let result = (|| {
         report_play(play)?;
@@ -323,7 +327,14 @@ fn execute_workload(
         }
         Err("protocol-step-budget-exhausted")
     })();
+    let allocation_after = crate::allocation::BOOT_ARENA.attempts();
+    let stopped = execution_receipt::before_stop(play, allocation_before, allocation_after);
+    // Diagnostics must never bypass retirement. The bound receipt is published
+    // only after native stop, kernel cancellation and Body Lull all succeed.
     play.cancel().map_err(|_| "protocol-retirement-refused")?;
+    if let Some(stopped) = stopped {
+        let _ = arch::append_boot_diagnostic(stopped.as_bytes());
+    }
     result
 }
 

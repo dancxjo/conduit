@@ -24,6 +24,23 @@ pub struct NativeProtocolPossession {
 }
 
 impl NativeProtocolIssuer {
+    /// Retain a real fixture table without claiming native or entropy admission.
+    #[cfg(test)]
+    pub(crate) fn from_test_authority(
+        authority: BaseCapabilityAuthority,
+        key: [u8; 32],
+    ) -> Result<Self, BaseCapabilityRefusal> {
+        let table = BaseCapabilityTable::new(
+            authority.grant.host_id.clone(),
+            authority.grant.boot_id.clone(),
+            authority.base_instance_id.clone(),
+            authority.base_provider_generation,
+            key,
+            1,
+        )?;
+        Ok(Self { authority, table })
+    }
+
     /// Retain independently authorized native authority and a fresh issuer key.
     ///
     /// # Safety
@@ -91,7 +108,13 @@ impl NativeProtocolIssuer {
         let mut matches = fragment
             .placements
             .iter()
-            .filter(|gear| &gear.implementation_id == implementation);
+            // Each Root-held issuer selects only its independently granted
+            // capability. Other placements of the same implementation do not
+            // confer possession or make this exact capability ambiguous.
+            .filter(|gear| {
+                &gear.implementation_id == implementation
+                    && gear.capability_id == authority.grant.capability_id
+            });
         let gear = matches.next().ok_or(Error::WrongSelection)?;
         let base = gear.base.as_ref().ok_or(Error::WrongSelection)?;
         let [call] = gear.host_calls.as_slice() else {
@@ -173,3 +196,7 @@ impl NativeProtocolIssuer {
         })
     }
 }
+
+#[cfg(test)]
+#[path = "issuer_tests.rs"]
+mod tests;

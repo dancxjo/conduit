@@ -79,6 +79,23 @@ impl<P: I2cProvider, C: MonotonicDeadlineProvider> PreparedProtocolBodyPlay<P, C
         target_arch = "x86_64",
         all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
     ))]
+    pub(crate) fn prepare_usb_endpoint_only(
+        artifact: PreparedProtocolArtifact,
+        session: BodyLifecycleSession,
+        play_sequence: u64,
+        usb: crate::protocol_play::UsbEndpointAdmission,
+    ) -> Result<Self, Box<ProtocolBodyPreparationRefusal>> {
+        Self::prepare_with(artifact, session, play_sequence, |artifact| {
+            artifact
+                .prepare_usb_endpoint_only::<P>(usb)
+                .map(|kernel| ProtocolKernel::WithoutClock(Box::new(kernel)))
+        })
+    }
+
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
     pub(crate) fn prepare_usb_protocol(
         artifact: PreparedProtocolArtifact,
         session: BodyLifecycleSession,
@@ -154,6 +171,24 @@ impl<P: I2cProvider, C: MonotonicDeadlineProvider> PreparedProtocolBodyPlay<P, C
         Self::prepare_with(artifact, session, play_sequence, |artifact| {
             artifact
                 .prepare_storage_usb_duplex::<P>(admission)
+                .map(|kernel| ProtocolKernel::WithoutClock(Box::new(kernel)))
+        })
+    }
+
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    pub(crate) fn prepare_storage_usb_duplex_two_pairs(
+        artifact: PreparedProtocolArtifact,
+        session: BodyLifecycleSession,
+        play_sequence: u64,
+        admission: crate::protocol_play::StorageUsbAdmission,
+        additional: crate::protocol_host_calls::AdditionalStoragePairAdmission,
+    ) -> Result<Self, Box<ProtocolBodyPreparationRefusal>> {
+        Self::prepare_with(artifact, session, play_sequence, |artifact| {
+            artifact
+                .prepare_storage_usb_duplex_two_pairs::<P>(admission, additional)
                 .map(|kernel| ProtocolKernel::WithoutClock(Box::new(kernel)))
         })
     }

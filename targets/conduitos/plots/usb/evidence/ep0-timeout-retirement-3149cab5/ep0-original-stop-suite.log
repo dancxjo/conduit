@@ -1,0 +1,15 @@
+    Finished `test` profile [unoptimized] target(s) in 0.14s
+     Running unittests src/lib.rs (../usb-target/debug/deps/conduitos-6ed99a4ed0c43888)
+
+running 8 tests
+test arch::usb_xhci::native_host::stop_ack_tests::bound_control_failed_stop_keeps_revoked_lease_and_dma ... ok
+test arch::usb_xhci::native_host::stop_ack_tests::bound_control_lease_retires_only_after_original_stop_ack ... ok
+test arch::usb_xhci::native_host::stop_ack_tests::foreign_command_pointer_cannot_retire_original_dma ... ok
+test arch::usb_xhci::native_host::stop_ack_tests::foreign_slot_success_cannot_retire_original_dma ... ok
+test arch::usb_xhci::native_host::stop_ack_tests::bound_control_foreign_stop_keeps_revoked_lease_and_dma ... ok
+test arch::usb_xhci::native_host::stop_ack_tests::original_successful_stop_retires_aggregate_marker_once ... ok
+test arch::usb_xhci::native_host::stop_ack_tests::failed_original_stop_keeps_aggregate_quarantined ... ok
+test arch::usb_xhci::native_host::stop_ack_tests::timeout::submitted_ep0_timeout_retains_dma_until_exact_stop_and_rejects_late_success ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 920 filtered out; finished in 1.40s
+

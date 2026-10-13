@@ -90,6 +90,12 @@ pub(super) fn prepare(
                 *base = Some(node);
                 Ok(&node.value_type)
             }
+            _ if !is_primitive(&node.value_type) => {
+                // A projection may select from an admitted constructed value.
+                // Preparing this exact source validates its constructor law.
+                *base = Some(node);
+                Ok(&node.value_type)
+            }
             _ => Err(Refusal::InvalidProgram),
         }
     }
@@ -100,6 +106,7 @@ pub(super) fn prepare(
         .map(|root| {
             PreparedPortableExpressionEvaluator::prepare(
                 ProgramView {
+                    input_maximum_bytes: prepared_input.maximum_bytes(),
                     input_type: input,
                     output_type: &root.value_type,
                     root,
@@ -123,7 +130,7 @@ pub(super) fn prepare(
         output: Vec::with_capacity(if primitive {
             0
         } else {
-            storage_bound::canonical(&node.value_type)?
+            storage_bound::expression(node, input, prepared_input.maximum_bytes())?
         }),
         primitive,
     })

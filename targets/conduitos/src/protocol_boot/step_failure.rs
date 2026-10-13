@@ -20,6 +20,16 @@ pub(super) fn format(
         _ => return Ok(None),
     };
     let mut text = crate::sign_format::FixedText::new();
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    if let ProtocolBodyRefusal::Call(
+        crate::protocol_host_calls::ProtocolCallRefusal::UsbIsochronous(reason),
+    ) = error
+    {
+        writeln!(text, "CONDUIT_PROTOCOL_USB_ISO_REFUSAL reason={reason:?}")?;
+    }
     write!(
         text,
         "CONDUIT_PROTOCOL_STEP_FAILURE body={} plan={} play={} child=",

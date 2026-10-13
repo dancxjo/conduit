@@ -1,0 +1,13 @@
+   Compiling conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/targets/conduitos)
+    Finished `test` profile [unoptimized] target(s) in 13.13s
+     Running unittests src/lib.rs (../usb-target/debug/deps/conduitos-6ed99a4ed0c43888)
+
+running 5 tests
+test arch::usb_xhci::isochronous_installation::tests::fault_pipeline::mid_request_cancel_rejects_original_token_and_stopped_poll ... ok
+test arch::usb_xhci::isochronous_installation::tests::fault_pipeline::actual_underrun_event_flows_through_native_encoder_and_checked_source ... ok
+test arch::usb_xhci::isochronous_installation::tests::fault_pipeline::failed_stop_retains_original_dma_and_kernel_token_until_acknowledgement ... ok
+test arch::usb_xhci::isochronous_installation::tests::fault_pipeline::actual_missed_event_flows_through_native_encoder_and_checked_source ... ok
+test arch::usb_xhci::isochronous_installation::tests::fault_pipeline::actual_short_event_flows_through_native_encoder_and_checked_source ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 921 filtered out; finished in 10.53s
+

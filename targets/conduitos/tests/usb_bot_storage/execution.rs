@@ -21,8 +21,11 @@ pub(super) struct Execution {
 }
 impl Execution {
     pub fn prepare(package: ProtocolSourcePackage) -> Self {
+        Self::prepare_entry(package, "block-storage-entrance")
+    }
+    pub fn prepare_entry(package: ProtocolSourcePackage, entry_name: &str) -> Self {
         let bytes = serde_json::to_vec(&package).unwrap();
-        let entry = PreparedProtocolEntry::prepare(&bytes, "block-storage-entrance").unwrap();
+        let entry = PreparedProtocolEntry::prepare(&bytes, entry_name).unwrap();
         let (mut host, grants) = advertisement::host();
         entry.publish_pure_backs(&mut host).unwrap();
         let hosts = [host];

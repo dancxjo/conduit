@@ -1,0 +1,1 @@
+Native QEMU x86_64 setup refusal evidence. Exact kernel bfa318cf and unchanged Source 35f2583c are pinned in summary and archive. Wrong-rate GET_CUR and SET_CUR STALL both stop before ISO effects with original PCM retained and acknowledged Root retirement, alloc=0 realloc=0. Not pending ISO fault, audible or cross-architecture evidence.

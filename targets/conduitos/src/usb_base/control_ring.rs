@@ -108,6 +108,17 @@ impl ControlRingCursor {
     pub fn retain_uncertain(&mut self) {
         self.uncertain = true;
     }
+
+    /// Retire the stopped queue without rewinding its producer or identities.
+    ///
+    /// # Safety
+    /// The exclusive native owner must have acknowledged physical stop of this
+    /// exact queue through its original controller. It must retain the original
+    /// attachment and DMA mapping. Timeout or software revocation is insufficient.
+    pub unsafe fn retire_stopped(&mut self) {
+        self.pending = None;
+        self.uncertain = false;
+    }
 }
 
 #[cfg(test)]

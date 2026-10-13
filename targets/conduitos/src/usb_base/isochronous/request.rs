@@ -1,4 +1,4 @@
-//! Prepared decoding borrows canonical input and copies only eight fixed packets.
+//! Prepared decoding borrows canonical input and retains one finite explicit packet list.
 use super::contract::{
     ISOCHRONOUS_OUT_MAXIMUM_PACKETS, ISOCHRONOUS_OUT_PACKET_BYTES, IsochronousOutContract,
 };
@@ -52,7 +52,7 @@ impl DecodedIsochronousBatch {
         Ok(())
     }
 }
-#[allow(clippy::large_enum_variant)] // One preparation-reserved request owns exactly eight fixed packet buffers.
+#[allow(clippy::large_enum_variant)] // One preparation-reserved request owns one bounded packet list.
 pub enum DecodedIsochronousRequest {
     Observe,
     Batch(DecodedIsochronousBatch),
@@ -95,9 +95,9 @@ impl PreparedIsochronousRequestDecoder {
                     return Err(Error::PacketCount);
                 }
                 let mut batch = DecodedIsochronousBatch {
-                    frames: [0; 8],
-                    lengths: [0; 8],
-                    buffers: [[0; 256]; 8],
+                    frames: [0; ISOCHRONOUS_OUT_MAXIMUM_PACKETS],
+                    lengths: [0; ISOCHRONOUS_OUT_MAXIMUM_PACKETS],
+                    buffers: [[0; 256]; ISOCHRONOUS_OUT_MAXIMUM_PACKETS],
                     count,
                 };
                 for index in 0..count {

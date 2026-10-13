@@ -138,6 +138,23 @@ impl PreparedProtocolArtifact {
         )
     }
 
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    pub(crate) fn prepare_storage_usb_duplex_two_pairs<P: crate::i2c_base::I2cProvider>(
+        self,
+        admission: crate::protocol_play::StorageUsbAdmission,
+        additional: crate::protocol_host_calls::AdditionalStoragePairAdmission,
+    ) -> Result<crate::protocol_play::PreparedProtocolPlay<P>, ProtocolCallRefusal> {
+        crate::protocol_play::PreparedProtocolPlay::prepare_storage_usb_duplex_two_pairs(
+            self.artifact.into_definition(),
+            admission,
+            additional,
+            self.operations,
+        )
+    }
+
     /// Consume the exact local Plan and retained generic operation owners.
     /// This profile executes computation/state only; it cannot admit a physical
     /// implementation, transport Line, resource Cord, or device authority.
@@ -185,6 +202,21 @@ impl PreparedProtocolArtifact {
             usb.claim,
             self.operations,
             usb.additional_remote_sign_items,
+        )
+    }
+
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    pub(crate) fn prepare_usb_endpoint_only<P: crate::i2c_base::I2cProvider>(
+        self,
+        usb: crate::protocol_play::UsbEndpointAdmission,
+    ) -> Result<crate::protocol_play::PreparedProtocolPlay<P>, ProtocolCallRefusal> {
+        crate::protocol_play::PreparedProtocolPlay::prepare_usb_endpoint_only(
+            self.artifact.into_definition(),
+            usb,
+            self.operations,
         )
     }
 

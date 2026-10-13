@@ -47,6 +47,30 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
         )
     }
 
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    pub(crate) fn prepare_usb_endpoint_only(
+        definition: KernelCompositeDefinition,
+        admission: UsbEndpointAdmission,
+        operations: crate::protocol_operations::ProtocolOperations,
+    ) -> Result<Self, ProtocolCallRefusal> {
+        Self::prepare_selected(
+            definition,
+            operations,
+            false,
+            PhysicalMode::UsbProtocol,
+            conduit_composite::KernelCompositeSignStorage {
+                additional_local_items: 0,
+                additional_remote_items: admission.additional_remote_sign_items,
+            },
+            |plan, zip, states| {
+                PreparedProtocolCalls::prepare_usb_endpoint_only(plan, admission, zip, states)
+            },
+        )
+    }
+
     /// Both exact native operations retain one controller and ordinary kernel.
     #[cfg(any(
         target_arch = "x86_64",
@@ -205,24 +229,46 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
         admission: StorageUsbAdmission,
         operations: crate::protocol_operations::ProtocolOperations,
     ) -> Result<Self, ProtocolCallRefusal> {
+        Self::prepare_storage_usb_duplex_pairs(definition, admission, None, operations)
+    }
+
+    pub(crate) fn prepare_storage_usb_duplex_two_pairs(
+        definition: KernelCompositeDefinition,
+        admission: StorageUsbAdmission,
+        additional: crate::protocol_host_calls::AdditionalStoragePairAdmission,
+        operations: crate::protocol_operations::ProtocolOperations,
+    ) -> Result<Self, ProtocolCallRefusal> {
+        Self::prepare_storage_usb_duplex_pairs(definition, admission, Some(additional), operations)
+    }
+
+    fn prepare_storage_usb_duplex_pairs(
+        definition: KernelCompositeDefinition,
+        admission: StorageUsbAdmission,
+        additional: Option<crate::protocol_host_calls::AdditionalStoragePairAdmission>,
+        operations: crate::protocol_operations::ProtocolOperations,
+    ) -> Result<Self, ProtocolCallRefusal> {
         // Ordinary ingress cannot submit raw USB calls alongside storage requests.
         let plan = &definition.internal_plan;
-        let authorize = plan
+        let authorizers: alloc::vec::Vec<_> = plan
             .fragments
             .iter()
             .flat_map(|fragment| &fragment.placements)
-            .find(|gear| {
+            .filter(|gear| {
                 gear.implementation_id.as_str()
                     == crate::storage_base::transaction_factory::AUTHORIZE_IMPLEMENTATION
             })
-            .ok_or(ProtocolCallRefusal::InvalidPlan)?;
+            .collect();
+        if authorizers.len() != if additional.is_some() { 2 } else { 1 } {
+            return Err(ProtocolCallRefusal::InvalidPlan);
+        }
         if definition.boundary.input_fronts.len() != 1 {
             return Err(ProtocolCallRefusal::InvalidPlan);
         }
         let ingress = &definition.boundary.input_fronts[0];
-        if authorize.inputs.len() != 1
-            || ingress.external_port.value_kind != authorize.inputs[0].value_kind
-        {
+        if authorizers.iter().any(|authorize| {
+            authorize.inputs.len() != 1
+                || ingress.external_port.value_kind != authorize.inputs[0].value_kind
+        }) {
             return Err(ProtocolCallRefusal::InvalidPlan);
         }
         let placements: alloc::vec::Vec<_> = plan
@@ -248,9 +294,13 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
                 )
             })
             .collect();
-        if !storage_ingress::authorized_route(
+        let authorization_ids: alloc::vec::Vec<_> = authorizers
+            .iter()
+            .map(|gear| gear.placement_id.as_str())
+            .collect();
+        if !storage_ingress::authorized_routes(
             ingress.internal_placement_id.as_str(),
-            authorize.placement_id.as_str(),
+            &authorization_ids,
             &placements,
             &connections,
         ) {
@@ -268,8 +318,13 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
                 additional_local_items: 0,
                 additional_remote_items: admission.usb.additional_remote_sign_items,
             },
-            |plan, zip, states| {
-                PreparedProtocolCalls::prepare_storage_usb_duplex(plan, admission, zip, states)
+            |plan, zip, states| match additional {
+                Some(additional) => PreparedProtocolCalls::prepare_storage_usb_duplex_two_pairs(
+                    plan, admission, additional, zip, states,
+                ),
+                None => {
+                    PreparedProtocolCalls::prepare_storage_usb_duplex(plan, admission, zip, states)
+                }
             },
         )
     }

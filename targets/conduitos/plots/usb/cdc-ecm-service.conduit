@@ -13,11 +13,11 @@ plot cdc-ecm-start (
 ) = ({ terminator: .terminator, phase: 1, cycles: 0, transmitted: 0, transmit: pressure(empty), receive: take-transmit(empty), terminal: bytes/length(.terminator.wire) != 0, outcome: bytes/length(.terminator.wire) != 0 ? malformed(empty) : completed(empty) })
 
 plot cdc-ecm-route (
-    value: CdcEcmState...| <= 4096B >> result: CdcEcmRoute...| <= 4096B
+    value: CdcEcmState...| <= 4096B >> result: CdcEcmRoute...| <= 12776B
 ) = (.terminal || .cycles >= 16 || .phase < 1 || .phase > 11 ? stopped(.) : (.phase <= 5 ? control(.) : (.phase == 6 || .phase == 9 || .phase == 11 ? frame(.) : (.phase == 7 || .phase == 8 ? write(.) : read(.)))))
 
 plot cdc-ecm-pending (
-    value: CdcEcmRoute...| <= 4096B >> result: CdcEcmPending...| <= 4096B
+    value: CdcEcmRoute...| <= 12776B >> result: CdcEcmPending...| <= 4096B
 ) = (. is stopped ? stopped(empty) : (. is control ? running(.control) : (. is frame ? running(.frame) : (. is write ? running(.write) : running(.read)))))
 
 plot cdc-ecm-control-request (
@@ -53,7 +53,7 @@ plot cdc-ecm-read-event (
 ) = (read({ ordinal: . is completed ? .completed.ordinal : 0, actual: . is completed ? .completed.actual : 0, short: . is completed ? .completed.short : false, gate: . is completed ? (.completed.actual != bytes/length(.completed.wire) || bytes/length(.completed.wire) > 1514 || .completed.actual < 14 || !.completed.short ? malformed(empty) : ((bytes/at(.completed.wire, 6) & 1) != 0 || (bytes/at(.completed.wire, 6) == 0 && bytes/at(.completed.wire, 7) == 0 && bytes/at(.completed.wire, 8) == 0 && bytes/at(.completed.wire, 9) == 0 && bytes/at(.completed.wire, 10) == 0 && bytes/at(.completed.wire, 11) == 0) ? malformed(empty) : (value/u64(bytes/at(.completed.wire, 12)) * 256 + value/u64(bytes/at(.completed.wire, 13)) < 1536 || (bytes/at(.completed.wire, 12) == 129 && bytes/at(.completed.wire, 13) == 0) || (bytes/at(.completed.wire, 12) == 136 && bytes/at(.completed.wire, 13) == 168) ? malformed(empty) : ready(deliver-receive({ wire: .completed.wire }))))) : (. is stalled ? stalled(empty) : (. is provider-lost ? provider-lost(empty) : (. is timeout ? timeout(empty) : unsupported(empty)))) }))
 
 plot cdc-ecm-accept (
-    value: CdcEcmPair...| <= 8192B >> result: CdcEcmTransition...| <= 8192B
+    value: CdcEcmPair...| <= 12452B >> result: CdcEcmTransition...| <= 8192B
 ) = ({ previous: .0, event: .1, accepted: .0.terminal || .0.cycles >= 16 || .0.phase < 1 || .0.phase > 11 ? false : (.0.phase <= 5 ? (.1 is control ? (.0.phase == 1 ? .1.control.topology : (.0.phase == 3 ? .1.control.mac : .1.control.ack)) : false) : (.0.phase == 6 ? (.1 is frame ? (.1.frame is transmit ? (.0.transmitted < 16 && .1.frame.transmit.ordinal == .0.transmitted && bytes/length(.1.frame.transmit.wire) >= 14 && bytes/length(.1.frame.transmit.wire) <= 1514) : .1.frame is pressure) : false) : (.0.phase == 7 || .0.phase == 8 ? (.1 is write ? (.1.write is completed ? .1.write.completed.actual == (.0.phase == 8 ? 0 : bytes/length(.0.transmit.transmit.wire)) : false) : false) : (.0.phase == 9 ? (.1 is frame && .1.frame is acknowledged) : (.0.phase == 10 ? (.1 is read ? (.1.read.gate is ready ? .1.read.ordinal == .0.cycles : false) : false) : (.1 is frame && .1.frame is accepted)))))) })
 
 plot cdc-ecm-advance (

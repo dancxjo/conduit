@@ -189,10 +189,10 @@ impl PreparedProtocolSource {
                 };
                 let limit = ConnectionQueueLimits {
                     item_capacity: 1,
-                    byte_capacity: selected
-                        .limits
-                        .max_queue_bytes
-                        .min(super::MAXIMUM_PROTOCOL_FORE_BYTES),
+                    byte_capacity: selected.limits.max_queue_bytes.min(match direction {
+                        PortDirection::Input => super::MAXIMUM_PROTOCOL_FORE_BYTES,
+                        PortDirection::Output => super::MAXIMUM_PROTOCOL_OUTPUT_FORE_BYTES,
+                    }),
                 };
                 boundaries
                     .entry(key)

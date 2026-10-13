@@ -21,6 +21,92 @@ pub(super) struct StorageAssociation {
     output: [u8; 4096],
     output_length: usize,
 }
+/// At most two independently issued pairs; at most one genuine live submission.
+pub(super) struct StorageAssociations {
+    pairs: [Option<Box<StorageAssociation>>; 2],
+}
+impl StorageAssociations {
+    pub(super) fn prepare(
+        first: StorageAssociation,
+        second: Option<StorageAssociation>,
+    ) -> Result<Self, ProtocolCallRefusal> {
+        if let Some(other) = &second {
+            let first_nodes = [first.owner.authorize_node(), first.owner.settle_node()];
+            if [other.owner.authorize_node(), other.owner.settle_node()]
+                .iter()
+                .any(|node| first_nodes.contains(node))
+            {
+                return Err(ProtocolCallRefusal::InvalidPlan);
+            }
+        }
+        let before = crate::allocation::BOOT_ARENA.live_bytes();
+        let mut bank = Self {
+            pairs: [Some(Box::new(first)), second.map(Box::new)],
+        };
+        let allocated = crate::allocation::BOOT_ARENA
+            .live_bytes()
+            .checked_sub(before)
+            .ok_or(ProtocolCallRefusal::Storage(
+                StorageTransactionRefusal::Retention,
+            ))?;
+        // Charge the full finite container to each separately backed envelope;
+        // this conservative charge never borrows another pair's budget.
+        let container = allocated
+            .max(bank.pairs().count() * core::mem::size_of::<StorageAssociation>())
+            .checked_add(core::mem::size_of::<Self>())
+            .ok_or(ProtocolCallRefusal::Storage(
+                StorageTransactionRefusal::Retention,
+            ))?;
+        for pair in bank.pairs_mut() {
+            pair.preparation_retained_bytes = pair
+                .preparation_retained_bytes
+                .checked_add(container)
+                .ok_or(ProtocolCallRefusal::Storage(
+                    StorageTransactionRefusal::Retention,
+                ))?;
+            crate::storage_base::transaction_owner::retention::charge(
+                pair.preparation_retained_bytes,
+                core::mem::size_of::<StorageAssociation>(),
+                0,
+                pair.maximum_retained_bytes,
+            )
+            .map_err(ProtocolCallRefusal::Storage)?;
+        }
+        Ok(bank)
+    }
+    fn pairs(&self) -> impl Iterator<Item = &StorageAssociation> {
+        self.pairs.iter().filter_map(|pair| pair.as_deref())
+    }
+    fn pairs_mut(&mut self) -> impl Iterator<Item = &mut StorageAssociation> {
+        self.pairs.iter_mut().filter_map(|pair| pair.as_deref_mut())
+    }
+    fn active_count(&self) -> usize {
+        self.pairs().filter(|pair| pair.active()).count()
+    }
+    pub(super) fn allows_usb(&self, node: NodeId) -> bool {
+        self.active_count() == 1 && self.pairs().any(|pair| pair.allows_usb(node))
+    }
+    pub(super) fn request_cancel(&mut self) -> Result<(), ProtocolCallRefusal> {
+        // Close every pair even if one revocation refuses; an error must not
+        // leave another independently issued pair open for USB admission.
+        let mut refusal = None;
+        for pair in self.pairs_mut() {
+            if let Err(error) = pair.request_cancel() {
+                refusal.get_or_insert(error);
+            }
+        }
+        refusal.map_or(Ok(()), Err)
+    }
+    fn bind_body(&mut self, pin: StorageBodyPreparation) -> Result<(), ProtocolCallRefusal> {
+        // Every clone pins the same verified Body/Plan, and its actual retained
+        // PlanId capacity is independently charged by bind_body before Play.
+        for pair in self.pairs_mut() {
+            pair.bind_body(pin.clone())?;
+        }
+        Ok(())
+    }
+}
+
 impl StorageAssociation {
     pub(super) fn prepare(
         owner: BlockReadTransactionOwner,
@@ -279,9 +365,29 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
         settle: bool,
     ) -> Result<(), ProtocolCallRefusal> {
         let stopped = self.validate_usb_subordinate_settlement(kernel, settle)?;
-        let storage = self
+        let bank = self
             .storage
             .as_mut()
+            .ok_or(ProtocolCallRefusal::InvalidPlan)?;
+        if !settle && bank.active_count() != 0 {
+            return Err(ProtocolCallRefusal::Storage(
+                StorageTransactionRefusal::Pressure,
+            ));
+        }
+        if settle && bank.active_count() != 1 {
+            return Err(ProtocolCallRefusal::Storage(
+                StorageTransactionRefusal::Stale,
+            ));
+        }
+        let storage = bank
+            .pairs_mut()
+            .find(|pair| {
+                node == if settle {
+                    pair.owner.settle_node()
+                } else {
+                    pair.owner.authorize_node()
+                }
+            })
             .ok_or(ProtocolCallRefusal::InvalidPlan)?;
         storage.validate_active_play(kernel)?;
         if settle
@@ -314,33 +420,40 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
         kernel: &KernelCompositeHost,
     ) -> Result<(), ProtocolCallRefusal> {
         use ProtocolCallRefusal as Refusal;
-        if self.storage.is_some() {
-            let storage = self.storage.as_mut().ok_or(Refusal::InvalidPlan)?;
+        if let Some(storage) = &mut self.storage {
             let usb_nodes = self
                 .usb_duplex
                 .as_ref()
                 .ok_or(Refusal::InvalidPlan)?
                 .subordinate_nodes();
-            let nodes = [
-                usb_nodes[0],
-                usb_nodes[1],
-                usb_nodes[2],
-                storage.owner.authorize_node(),
-                storage.owner.settle_node(),
-            ];
-            if kernel
-                .has_retained_host_call_for_nodes(&self.identity.host_id, &nodes)
-                .map_err(Refusal::Kernel)?
-            {
-                return Err(Refusal::Unsupported);
+            for pair in storage.pairs() {
+                let nodes = [
+                    usb_nodes[0],
+                    usb_nodes[1],
+                    usb_nodes[2],
+                    pair.owner.authorize_node(),
+                    pair.owner.settle_node(),
+                ];
+                if kernel
+                    .has_retained_host_call_for_nodes(&self.identity.host_id, &nodes)
+                    .map_err(Refusal::Kernel)?
+                {
+                    return Err(Refusal::Unsupported);
+                }
             }
             let host = self.usb_duplex.as_mut().ok_or(Refusal::InvalidPlan)?;
             host.discard_cancelled_terminals()
                 .map_err(Refusal::UsbProtocol)?;
             host.validate_cancelled_settlement()
                 .map_err(Refusal::UsbProtocol)?;
-            storage.retire_cancelled()?;
+            for pair in storage.pairs_mut() {
+                pair.retire_cancelled()?;
+            }
         }
         Ok(())
     }
 }
+
+#[cfg(all(test, target_arch = "x86_64"))]
+#[path = "storage_association_tests.rs"]
+mod association_tests;

@@ -30,7 +30,31 @@ fn selected_back_drains_short_or_wrong_coding_after_one_terminal_result() {
         }
     }
 }
-fn execute(count: usize, coding_fault: Option<&str>) {
+// These exercise the production selected Back and original admitted Kernel token.
+// The physical boundary is deterministic; no DMA retirement is claimed here.
+#[test]
+fn selected_back_cancels_pending_bulk_and_rejects_original_late_completion() {
+    for mode in ["cancel-write", "cancel-read"] {
+        execute(2, Some(mode));
+    }
+}
+#[test]
+fn selected_back_preserves_bulk_terminal_dispositions_and_partial_write() {
+    for mode in [
+        "write-stalled",
+        "write-lost",
+        "read-stalled",
+        "read-lost",
+        "read-timeout",
+        "partial-write",
+    ] {
+        execute(2, Some(mode));
+    }
+}
+fn execute(count: usize, scenario: Option<&str>) {
+    let coding_failure = matches!(scenario, Some("short" | "wrong"));
+    let bulk_failure =
+        scenario.filter(|mode| mode.starts_with("write-") || mode.starts_with("read-"));
     let mut run = Execution::prepare(package());
     let kernel = &mut run.kernel;
     let input = kernel.definition().external_capability.inputs[0].clone();
@@ -135,8 +159,8 @@ fn execute(count: usize, coding_fault: Option<&str>) {
                     let request = decoded.request(256).unwrap();
                     let data: &[u8] = match controls {
                         0 => CONFIG,
-                        3 if coding_fault == Some("short") => &[0, 194, 1, 0, 0, 0],
-                        3 if coding_fault == Some("wrong") => &[128, 37, 0, 0, 0, 0, 8],
+                        3 if scenario == Some("short") => &[0, 194, 1, 0, 0, 0],
+                        3 if scenario == Some("wrong") => &[128, 37, 0, 0, 0, 0, 8],
                         3 => &[0, 194, 1, 0, 0, 0, 8],
                         _ => &[],
                     };
@@ -157,23 +181,64 @@ fn execute(count: usize, coding_fault: Option<&str>) {
                     let wire = wd.decode(bytes, 64).unwrap();
                     assert_eq!(wire, &[255, 0, 128]);
                     writes += 1;
-                    we.completed(wire.len() as u16, wire.len() as u16)
-                        .unwrap()
-                        .to_vec()
+                    use conduitos::usb_base::endpoint_write_result::EndpointWriteDisposition as D;
+                    match scenario {
+                        Some("write-stalled") => we.disposition(D::Stalled).unwrap().to_vec(),
+                        Some("write-lost") => we.disposition(D::ProviderLost).unwrap().to_vec(),
+                        Some("partial-write") => we.completed(3, 1).unwrap().to_vec(),
+                        _ => we.completed(3, 3).unwrap().to_vec(),
+                    }
                 }
                 conduitos::usb_base::endpoint_read_contract::ENDPOINT_READ_CALL => {
                     let length = rd.decode(bytes, 64).unwrap();
                     assert_eq!(length, 64);
-                    let result = re
-                        .completed(reads as u64, length, 3, &[255, 0, 128])
-                        .unwrap()
-                        .to_vec();
+                    use conduitos::usb_base::endpoint_read_result::EndpointReadDisposition as D;
+                    let result = match scenario {
+                        Some("read-stalled") => re.disposition(D::Stalled).unwrap().to_vec(),
+                        Some("read-lost") => re.disposition(D::ProviderLost).unwrap().to_vec(),
+                        Some("read-timeout") => re.disposition(D::Timeout).unwrap().to_vec(),
+                        _ => re
+                            .completed(reads as u64, length, 3, &[255, 0, 128])
+                            .unwrap()
+                            .to_vec(),
+                    };
                     reads += 1;
                     result
                 }
                 other => panic!("unexpected effect {other}"),
             };
-            if controls == (if coding_fault.is_some() { 4 } else { 5 }) && !held {
+            if (scenario == Some("cancel-write") && writes == 1)
+                || (scenario == Some("cancel-read") && reads == 1)
+            {
+                // Cancel with the exact bulk call still outstanding, before publishing it.
+                run.kernel.cancel().unwrap();
+                assert!(run.kernel.cancellation_failures().is_empty());
+                for _ in 0..2 {
+                    assert_eq!(
+                        run.kernel.complete_host_call_bytes(&call, &result),
+                        Err(conduit_composite::KernelCompositeError::InvalidLifecycle)
+                    );
+                }
+                assert!(run.kernel.next_host_request().is_none());
+                assert_eq!(
+                    run.kernel.output_into(&output.port_id, &mut buffer),
+                    Err(conduit_composite::KernelCompositeError::InvalidLifecycle)
+                );
+                assert_eq!(controls, 5);
+                // Output pressure may retain the preceding transmitted result;
+                // cancellation must never publish the pending receive result.
+                assert!(seen <= usize::from(scenario == Some("cancel-read")));
+                assert_eq!(
+                    (writes, reads),
+                    if scenario == Some("cancel-read") {
+                        (1, 1)
+                    } else {
+                        (1, 0)
+                    }
+                );
+                return;
+            }
+            if controls == (if coding_failure { 4 } else { 5 }) && !held {
                 held = true;
                 pending = Some((call, result, 8));
             } else {
@@ -192,9 +257,22 @@ fn execute(count: usize, coding_fault: Option<&str>) {
             let StructuredInfoValueShape::Variant { tag, payload } = value.shape() else {
                 panic!()
             };
-            if coding_fault.is_some() {
+            if coding_failure {
                 assert_eq!(tag, "unsupported");
                 assert_eq!(seen, 0, "one terminal result, no duplicate publication");
+            } else if let Some(mode) =
+                bulk_failure.filter(|mode| mode.starts_with("write-") || seen == 1)
+            {
+                assert_eq!(
+                    tag,
+                    if mode.ends_with("stalled") {
+                        "stalled"
+                    } else if mode.ends_with("lost") {
+                        "provider-lost"
+                    } else {
+                        "timeout"
+                    }
+                );
             } else {
                 assert_eq!(
                     tag,
@@ -208,7 +286,15 @@ fn execute(count: usize, coding_fault: Option<&str>) {
                     scalar(member(payload, "ordinal")),
                     (seen as u64).to_le_bytes()
                 );
-                assert_eq!(scalar(member(payload, "actual")), 3u64.to_le_bytes());
+                assert_eq!(
+                    scalar(member(payload, "actual")),
+                    (if scenario == Some("partial-write") && seen == 0 {
+                        1u64
+                    } else {
+                        3u64
+                    })
+                    .to_le_bytes()
+                );
             }
             seen += 1;
             run.kernel
@@ -226,8 +312,17 @@ fn execute(count: usize, coding_fault: Option<&str>) {
         run.kernel.signs()
     );
     assert!(pending.is_none());
-    if coding_fault.is_some() {
+    if coding_failure {
         assert_eq!((seen, controls, writes, reads), (1, 4, 0, 0));
+    } else if let Some(mode) = bulk_failure {
+        assert_eq!(
+            (seen, controls, writes, reads),
+            if mode.starts_with("write-") {
+                (1, 5, 1, 0)
+            } else {
+                (2, 5, 1, 1)
+            }
+        );
     } else {
         assert_eq!(seen, count);
         assert_eq!(controls, if count == 0 { 0 } else { 5 });

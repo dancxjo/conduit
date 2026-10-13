@@ -1,0 +1,41 @@
+   Compiling conduit-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/architecture/core)
+   Compiling conduit-kernel v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/architecture/kernel)
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/architecture/plot)
+   Compiling conduit-body v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/architecture/body)
+   Compiling conduit-plan-lowering v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/architecture/plan-lowering)
+   Compiling conduit-time v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/semantics/time)
+   Compiling conduit-data v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/semantics/data)
+   Compiling conduit-human v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/semantics/human)
+   Compiling conduit-audio v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/semantics/audio)
+   Compiling conduit-language v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/semantics/language)
+   Compiling conduit-presentation v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/semantics/presentation)
+   Compiling conduit-education v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/semantics/education)
+   Compiling conduit-purpose v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/semantics/purpose)
+   Compiling conduit-web v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/semantics/web)
+   Compiling conduit-alife v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/semantics/alife)
+   Compiling conduit-net v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/semantics/net)
+   Compiling conduit-process v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/semantics/process)
+   Compiling conduit-robotics v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/semantics/robotics)
+   Compiling conduit-text v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/semantics/text)
+   Compiling conduit-midi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/mechanisms/protocols/midi)
+   Compiling conduit-signal v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/semantics/signal)
+   Compiling conduit-planner v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/architecture/planner)
+   Compiling conduit-semantic-catalog v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/semantics/catalog)
+   Compiling conduit-composite v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/architecture/composite)
+    Finished `test` profile [unoptimized] target(s) in 45.00s
+     Running unittests src/lib.rs (../usb-target/debug/deps/conduit_composite-b34a5815d4967d40)
+
+running 10 tests
+test flow_zip::tests::feedback_left_close_waits_for_delayed_right_payload_and_its_real_close ... ok
+test flow_zip::tests::feedback_close_tests::right_abnormal_during_left_first_drain_is_failure_not_normal_completion ... ok
+test flow_zip::tests::finite_close_retires_queued_unmatched_values_one_per_step ... ok
+test flow_zip::tests::typed_pair_preparation_requires_exact_member_kind_contracts ... ok
+test flow_zip::tests::feedback_close_tests::formed_pair_left_close_preserves_pressure_then_drains_until_real_right_close ... ok
+test flow_zip::tests::normal_close_discards_one_unmatched_value_and_uses_exact_input_contract ... ok
+test flow_zip::tests::opposite_arrival_order_emits_one_exact_pair_and_clears_both_slots ... ok
+test flow_zip::tests::empty_feedback_close_waits_for_initial_state_without_growth ... ok
+test flow_zip::tests::finite_typed_pair_close_flush_is_bounded_under_pressure_without_allocation ... ok
+test flow_zip::tests::typed_pairing_preserves_nested_schema_under_pressure_without_play_allocation ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 31 filtered out; finished in 0.00s
+

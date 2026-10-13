@@ -1,0 +1,42 @@
+{
+  "scope": "one checked PCM block across two product architectures in QEMU",
+  "same_root_request": true,
+  "root_request_sha256": "afdf1118f0b73c93c8326b0a489672f2144efcb7556abe09cb12a758c70d0733",
+  "package_sha256": "2b674b564412600373d6d4d197cbe5fac1876b8910c1ee6cc64e21ff3b550e69",
+  "architectures": {
+    "x86_64": {
+      "kernel_source_commit": "8a230985a7c0a27f3e6ebf65197fd87171e0877c",
+      "packets": 8,
+      "exact_pcm_bytes": 1536,
+      "terminal_phase": 3,
+      "retired": true
+    },
+    "aarch64": {
+      "kernel_source_commit": "e9a277e4cb38805033c781355600122b49876d5f",
+      "kernel_elf_sha256": "e22f5e7608dd84463f5574393f0047725c63ecb60476ca4aaa77448ac99176dd",
+      "packets": 8,
+      "exact_pcm_bytes": 1536,
+      "terminal_phase": 3,
+      "retired": true
+    }
+  },
+  "continuous_refill_proven": false,
+  "ring_reuse_proven": false,
+  "physical_hardware_proven": false,
+  "audible_output_claimed": false,
+  "full_architecture_acceptance_proven": false,
+  "aarch64_evidence_sha256": {
+    "kernel-build.json": "73d536822576e55e23b0810f7a8d5d8846bb97cc614a8d157e7da090e67fe98a",
+    "root-request.json": "afdf1118f0b73c93c8326b0a489672f2144efcb7556abe09cb12a758c70d0733",
+    "original-pcm.bin": "80583a0c5cada4a15c9a6e7ce5a5ab03c1fc23e955ce685100faf11a8c285c81",
+    "verify_wire.py": "3aff39344002b9e8c5290904d9a5bbac0e2a9b313ec036c33f6d7a9776f73f82",
+    "run-result.log": "585822c7173f928b4ba4312c8a4579ed60ec8761a785192a13212d0b69857cdd",
+    "run/serial.log": "693f8b4a54ae106c1f1920af579505c2134ed87719a43a5d22d7490e91132b6b",
+    "run/qemu.log": "7a00cec36f532168a50c44da5deb88bf2c3dbd6aaa7ea08eca25e9211a323043",
+    "run/receipt.json": "23043b6af54c5bfa6777166dc474495777f4d4e7ebf9bcb07d9cc4837957cb37",
+    "device/device.log": "fa55ebff5e01a43c6c5b0a98af5769571267ea9d4387acc88e9d01c7c404dcc1",
+    "device/wire.jsonl": "07f23af7d397210e02b3da7f75318b21cf6fdfc7bcd01d95936bda5fff0440e8",
+    "media/protocol-receipt.json": "eb8d09f0b16b233ba5e271619203667291ce68b4bc3a501ce9aa9a267be81b79",
+    "media/image.json": "885d74140debed6c8ca1a85a80420f004e1ec4d4174530ebad7625cd8b0df1f2"
+  }
+}

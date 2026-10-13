@@ -13,10 +13,19 @@ use alloc::format;
 use conduit_core::*;
 
 pub(super) const RETAINED_BYTES: u64 = 128 * 1024;
+#[cfg(test)]
 fn backing(capacity: usize, live: usize) -> Result<u64, &'static str> {
     // USB envelopes are admitted before their heap allocations occur. Reserve
     // both budgets against this same arena snapshot rather than sharing bytes.
+    backing_pairs(capacity, live, 1)
+}
+fn backing_pairs(capacity: usize, live: usize, pairs: u64) -> Result<u64, &'static str> {
+    if !(1..=2).contains(&pairs) {
+        return Err("protocol-storage-arena-envelope-refused");
+    }
     let required = RETAINED_BYTES
+        .checked_mul(pairs)
+        .ok_or("protocol-storage-arena-envelope-refused")?
         .checked_add(super::duplex_resources::HEAP_BYTES)
         .ok_or("protocol-storage-arena-envelope-refused")?;
     if capacity
@@ -37,12 +46,71 @@ pub(super) unsafe fn admit(
     boot: &BootId,
     artifact: &str,
 ) -> Result<NativeStoragePreparation, &'static str> {
-    if !request.administrator_approval || !(1..=16).contains(&request.maximum_operations) {
+    if request.validate().is_err() {
         return Err("protocol-storage-approval-refused");
     }
     let arena = &crate::allocation::BOOT_ARENA;
-    let maximum_retained_bytes = backing(arena.capacity(), arena.live_bytes())?;
-    let prefix = format!("conduitos/protocol/{}/read-only-storage", boot.as_str());
+    backing_pairs(
+        arena.capacity(),
+        arena.live_bytes(),
+        if request.read_only_reentry_approval {
+            2
+        } else {
+            1
+        },
+    )?;
+    let additional = if request.read_only_reentry_approval {
+        Some(alloc::boxed::Box::new(unsafe {
+            admit_pair(host, boot, artifact, 1, true)
+        }?))
+    } else {
+        None
+    };
+    let mut primary =
+        unsafe { admit_pair(host, boot, artifact, request.maximum_operations, false) }?;
+    primary.additional = additional;
+    if let Some(bindings) = &request.placement_bindings {
+        primary.selected_gears = Some((
+            bindings.authorize.as_str().into(),
+            bindings.settle.as_str().into(),
+        ));
+        let additional = primary
+            .additional
+            .as_mut()
+            .ok_or("protocol-storage-approval-refused")?;
+        additional.selected_gears = Some((
+            bindings.reentry_authorize.as_str().into(),
+            bindings.reentry_settle.as_str().into(),
+        ));
+    }
+    Ok(primary)
+}
+
+/// # Safety
+/// Caller retains the independently approved arena and exact read-only scope.
+unsafe fn admit_pair(
+    host: &HostId,
+    boot: &BootId,
+    artifact: &str,
+    operations: u32,
+    reentry: bool,
+) -> Result<NativeStoragePreparation, &'static str> {
+    let maximum_retained_bytes = RETAINED_BYTES;
+    let prefix = format!(
+        "conduitos/protocol/{}/read-only-storage{}",
+        boot.as_str(),
+        if reentry { "/reentry" } else { "" }
+    );
+    let authorize_capability = if reentry {
+        format!("{AUTHORIZE_IMPLEMENTATION}/reentry")
+    } else {
+        AUTHORIZE_IMPLEMENTATION.into()
+    };
+    let settle_capability = if reentry {
+        format!("{SETTLE_IMPLEMENTATION}/reentry")
+    } else {
+        SETTLE_IMPLEMENTATION.into()
+    };
     let provider = BaseInstanceId::from(format!("{prefix}/provider"));
     let pool = ResourcePoolId::from(format!("{prefix}/retention"));
     let generation = ResourceGenerationId(format!("{prefix}/generation/1"));
@@ -63,7 +131,7 @@ pub(super) unsafe fn admit(
                 capability: implementation,
                 bytes: BLOCK_READ_MAXIMUM_BYTES,
                 work: 1,
-                operations: request.maximum_operations,
+                operations,
             },
         );
         // SAFETY: each issuer receives its independently approved storage scope and fresh key.
@@ -71,16 +139,24 @@ pub(super) unsafe fn admit(
             .map_err(|_| "protocol-storage-issuance-refused")
     };
     let authorize = issue(
-        "block-read-authorize",
+        if reentry {
+            "block-read-authorize-reentry"
+        } else {
+            "block-read-authorize"
+        },
         AUTHORIZE_CALL,
         AUTHORIZE_KIND,
-        AUTHORIZE_IMPLEMENTATION,
+        authorize_capability.as_str(),
     )?;
     let settle = issue(
-        "block-read-settle",
+        if reentry {
+            "block-read-settle-reentry"
+        } else {
+            "block-read-settle"
+        },
         SETTLE_CALL,
         SETTLE_KIND,
-        SETTLE_IMPLEMENTATION,
+        settle_capability.as_str(),
     )?;
     Ok(NativeStoragePreparation {
         host: host.clone(),
@@ -91,11 +167,21 @@ pub(super) unsafe fn admit(
         maximum_retained_bytes,
         authorize,
         settle,
+        additional: None,
+        selected_gears: None,
     })
 }
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn reentry_requires_both_independent_storage_envelopes() {
+        let required = (2 * RETAINED_BYTES + super::super::duplex_resources::HEAP_BYTES) as usize;
+        assert_eq!(backing_pairs(required + 32, 32, 2), Ok(RETAINED_BYTES));
+        assert!(backing_pairs(required + 31, 32, 2).is_err());
+        assert!(backing_pairs(required, 0, 0).is_err());
+        assert!(backing_pairs(required, 0, 3).is_err());
+    }
     #[test]
     fn actual_arena_headroom_backs_storage_separately_from_usb() {
         let required = (RETAINED_BYTES + super::super::duplex_resources::HEAP_BYTES) as usize;

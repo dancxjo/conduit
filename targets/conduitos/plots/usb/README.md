@@ -552,7 +552,7 @@ controller, attachment, capability generations and acknowledged retirement path.
 | Interrupt IN | Bounded endpoint receive ring | Focused x86_64 control/read mouse report proof; full HID acceptance pending |
 | Bulk IN | Bounded endpoint receive ring | Actual x86_64 and AArch64 CDC replies and BOT DATA/CSW |
 | Bulk OUT | Shared class-neutral bounded transmit ring | Actual x86_64 and AArch64 CDC bytes and BOT CBWs |
-| Isochronous OUT | Bounded eight-TD native batch, finite checked offer and selected owner installed in this candidate | Checked preparation and focused native mechanics only; actual Source PCM playback and rolling reuse unproven |
+| Isochronous OUT | Rolling reuse of eight DMA slots and a finite transfer ring; checked 72-packet maximum | Same checked PCM package executes 72 exact packets on x86_64 and AArch64, with typed completions, drain and zero Play allocator attempts; [retained proof](evidence/native-audio-public-cross-architecture/README.md) |
 | Isochronous IN | Unsupported by current endpoint setup | No product offer or capture proof |
 
 The pinned AArch64 row is QEMU virt-10.2, GICv2, coherent low PCIe ECAM/BAR
@@ -563,13 +563,15 @@ actual transmit/receive pairs. These are emulator-with-device proofs, not physic
 compatibility or complete class acceptance. The later
 [selected Serial Back observation](evidence/selected-serial-53b0baa1c/README.md)
 executes the existing transport-neutral serial Fore and retains 32 ordered typed
-results on both architectures. Newer descriptor preflight and terminal-drain
-observations are retained in draft [#5435](https://github.com/dancxjo/conduit/pull/5435)
-and [#5438](https://github.com/dancxjo/conduit/pull/5438); their kernel and checked
-Source identities are separately bound. Those observations are not evidence for
-this newly combined development head. The Ethernet stack seam, independent
-storage admission, complete fault coverage and actual checked USB Audio playback
-remain incomplete.
+results on both architectures. Descriptor preflight and terminal-drain observations retain their exact kernel
+and checked Source identities separately. The current evidence also includes
+[CDC repeated disconnect without implicit rebinding](evidence/native-cdc-repeated-disconnect-bfa318cf/README.md),
+[full-MTU ECM through the existing network owner](evidence/native-ecm-envelope-d2ab8e8a/README.md),
+[BOT fault and cancellation evidence on both architectures](evidence/native-bot-e9a277e4/CURRENT-ACCEPTANCE.md),
+and [72-packet checked USB Audio playback](proof/audio/README.md).
+Each proof binds its collected package and kernel; it does not certify a later
+combined development head. Integrated lifecycle coverage, BOT interrupted-command
+reset reentry, and the supported-target CI gates remain acceptance work.
 
 IA-32, ARMv6, RISC-V64, LoongArch64 and AArch64 Orange Pi 5 have no admitted
 ordinary native USB provider in this tree. They refuse explicitly. Portable checked

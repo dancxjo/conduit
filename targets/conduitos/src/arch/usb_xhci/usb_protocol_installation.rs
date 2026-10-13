@@ -255,10 +255,51 @@ impl ReadyUsbProtocolHost {
         .map_err(native_refusal)?;
         Ok(NativeUsbProtocolHost {
             host,
-            control_index,
+            control: Some((control_node, control_index)),
             endpoint_index,
-            control_node,
             endpoint_node,
+        })
+    }
+    /// Consume the original owner with only the independently selected IN call.
+    pub(crate) fn bind_endpoint_selected(
+        self,
+        table: BaseCapabilityTable,
+        handle: BaseCapabilityHandle,
+        claim: BaseOperationClaim,
+        contract: &EndpointReadContract,
+        endpoint: SelectedOperationPlan<'_>,
+    ) -> Result<NativeUsbProtocolHost, UsbNativeProtocolRefusal> {
+        validate_endpoint_selection(&self.endpoint_identity, &claim, &endpoint)?;
+        let node = endpoint
+            .lowered
+            .identity
+            .node_for_placement(endpoint.placement_id)
+            .ok_or(UsbNativeProtocolRefusal::Endpoint(
+                EndpointNativeRefusal::Ownership(EndpointReadOwnerRefusal::WrongBinding),
+            ))?;
+        let (controller, device, mapping) = self.control.into_native_parts();
+        // SAFETY: Ready retains the original Root-owned controller, device and
+        // mappings. No control call, lease or placement is synthesized here.
+        let mut host = unsafe { UsbNativeHost::new(controller, device, mapping) }
+            .map_err(UsbNativeProtocolRefusal::Host)?;
+        let endpoint_index = unsafe {
+            host.add_endpoint(
+                self.configured,
+                self.dma,
+                self.attachment,
+                table,
+                handle,
+                claim,
+                contract,
+                endpoint,
+            )
+        }
+        .map_err(native_refusal)?;
+        Ok(NativeUsbProtocolHost {
+            host,
+            control: None,
+            endpoint_index,
+            endpoint_node: node,
         })
     }
 }
@@ -303,9 +344,8 @@ pub(super) fn validate_endpoint_selection(
 
 pub(crate) struct NativeUsbProtocolHost {
     host: UsbNativeHost<'static>,
-    control_index: UsbNativeCallIndex,
+    control: Option<(NodeId, UsbNativeCallIndex)>,
     endpoint_index: UsbNativeCallIndex,
-    control_node: NodeId,
     endpoint_node: NodeId,
 }
 impl NativeUsbProtocolHost {
@@ -316,13 +356,18 @@ impl NativeUsbProtocolHost {
         request: RequestId,
         input: &[u8],
     ) -> Result<&[u8], UsbNativeProtocolRefusal> {
-        if node != self.control_node || call != HostCallId(0) {
+        let Some((control_node, control_index)) = self.control else {
+            return Err(UsbNativeProtocolRefusal::Control(
+                UsbControlCallRefusal::Ownership(ControlOwnerRefusal::WrongBinding),
+            ));
+        };
+        if node != control_node || call != HostCallId(0) {
             return Err(UsbNativeProtocolRefusal::Control(
                 UsbControlCallRefusal::Ownership(ControlOwnerRefusal::WrongBinding),
             ));
         }
         self.host
-            .control_invoke(self.control_index, request, input)
+            .control_invoke(control_index, request, input)
             .map_err(native_refusal)
     }
     pub(crate) fn endpoint_begin(
@@ -401,3 +446,7 @@ mod tests {
         assert!(!mapped_region(0x1000, u64::MAX - 1, 1024, coherent));
     }
 }
+
+#[cfg(all(test, target_arch = "x86_64"))]
+#[path = "usb_protocol_installation/endpoint_fixture.rs"]
+mod endpoint_fixture;
