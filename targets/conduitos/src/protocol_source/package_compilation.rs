@@ -36,6 +36,10 @@ pub enum ProtocolSpecializationRequest {
     Merge {
         value: ProtocolValueReference,
     },
+    MergeInstance {
+        alias: String,
+        value: ProtocolValueReference,
+    },
     Zip {
         left: ProtocolValueReference,
         right: ProtocolValueReference,
@@ -103,6 +107,15 @@ impl ProtocolSourcePackage {
         };
         let mut imports = String::new();
         let mut specializations = Vec::with_capacity(requests.len());
+        let mut aliases = alloc::collections::BTreeSet::new();
+        let mut reserve_alias = |alias: &str| -> Result<(), Error> {
+            if !aliases.insert(String::from(alias)) {
+                return Err(Error::Catalog(
+                    "typed instance Source alias already bound".into(),
+                ));
+            }
+            Ok(())
+        };
         for request in requests {
             use ProtocolSpecializationRequest as Request;
             specializations.push(match request {
@@ -119,6 +132,7 @@ impl ProtocolSourcePackage {
                     alias,
                     value: reference,
                 } => {
+                    reserve_alias(alias)?;
                     let value = value(reference)?;
                     let kind = instances::instance_kind_id("state/seeded/flow/until", &[&value])
                         .map_err(Error::Catalog)?;
@@ -133,6 +147,8 @@ impl ProtocolSourcePackage {
                     left,
                     right,
                 } => {
+                    reserve_alias(alias)?;
+                    reserve_alias(paired_alias)?;
                     let left = value(left)?;
                     let right = value(right)?;
                     let kind = instances::instance_kind_id(
@@ -156,6 +172,22 @@ impl ProtocolSourcePackage {
                 Request::Merge { value: reference } => ProtocolSpecialization::Merge {
                     value: value(reference)?,
                 },
+                Request::MergeInstance {
+                    alias,
+                    value: reference,
+                } => {
+                    reserve_alias(alias)?;
+                    let value = value(reference)?;
+                    let kind = instances::instance_kind_id(
+                        conduit_semantic_catalog::FLOW_MERGE_FINITE_KIND,
+                        &[&value],
+                    )
+                    .map_err(Error::Catalog)?;
+                    imports.push_str(
+                        &instances::binding_import(&kind, alias).map_err(Error::Catalog)?,
+                    );
+                    ProtocolSpecialization::MergeInstance { value }
+                }
                 Request::Zip { left, right } => ProtocolSpecialization::Zip {
                     left: value(left)?,
                     right: value(right)?,

@@ -208,6 +208,9 @@ impl PreparedProtocolSource {
                         .install(&value.contract, &value.schema)
                         .map_err(Error::Catalog)
                 }
+                ProtocolSpecialization::MergeInstance { value } => {
+                    instances::install_merge(value, &mut startup, &mut profile, &mut operations)
+                }
                 ProtocolSpecialization::Zip { left, right } => {
                     conduit_semantic_catalog::install_flow_zip_finite_kind(
                         &left.contract,
