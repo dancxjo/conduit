@@ -91,7 +91,13 @@ impl NativeProtocolIssuer {
         let mut matches = fragment
             .placements
             .iter()
-            .filter(|gear| &gear.implementation_id == implementation);
+            // Each Root-held issuer selects only its independently granted
+            // capability. Other placements of the same implementation do not
+            // confer possession or make this exact capability ambiguous.
+            .filter(|gear| {
+                &gear.implementation_id == implementation
+                    && gear.capability_id == authority.grant.capability_id
+            });
         let gear = matches.next().ok_or(Error::WrongSelection)?;
         let base = gear.base.as_ref().ok_or(Error::WrongSelection)?;
         let [call] = gear.host_calls.as_slice() else {
@@ -173,3 +179,7 @@ impl NativeProtocolIssuer {
         })
     }
 }
+
+#[cfg(test)]
+#[path = "issuer_tests.rs"]
+mod tests;
