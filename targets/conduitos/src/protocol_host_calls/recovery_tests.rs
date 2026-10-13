@@ -60,7 +60,7 @@ fn admit_fore(fragment: &mut PlanFragment) {
     }
 }
 
-fn prepare(plan: Plan) -> KernelCompositeHost {
+pub(crate) fn prepare(plan: Plan) -> KernelCompositeHost {
     let fragment = &plan.fragments[0];
     let mut inputs = alloc::vec::Vec::new();
     let mut outputs = alloc::vec::Vec::new();
@@ -124,7 +124,7 @@ fn prepare(plan: Plan) -> KernelCompositeHost {
     KernelCompositeHost::prepare(definition, &registry).unwrap()
 }
 
-fn plan() -> Plan {
+pub(crate) fn plan() -> Plan {
     let (mut fragment, _, _, read_placement) = read::selected();
     let (write_fragment, _, _, write_placement) = write::selected();
     fragment.placements.extend(write_fragment.placements);

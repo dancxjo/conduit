@@ -357,3 +357,7 @@ impl UsbNativeHost<'_> {
 #[cfg(test)]
 #[path = "usb_native_host/paired_lease_tests.rs"]
 mod paired_lease_tests;
+
+#[cfg(all(test, target_arch = "x86_64"))]
+#[path = "usb_native_host/recovery_tests.rs"]
+mod recovery_tests;

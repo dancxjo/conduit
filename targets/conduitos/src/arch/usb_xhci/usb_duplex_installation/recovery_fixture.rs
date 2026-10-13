@@ -204,3 +204,15 @@ impl NativeUsbDuplexHost {
         }
     }
 }
+
+impl NativeUsbDuplexHost {
+    pub(in crate::arch::usb_xhci) fn into_recovery_fixture(
+        self,
+    ) -> (
+        UsbNativeHost<'static>,
+        UsbNativeCallIndex,
+        UsbNativeCallIndex,
+    ) {
+        (self.host, self.read_index, self.write_index)
+    }
+}
