@@ -157,8 +157,8 @@ fn product_context_does_not_classify_base_identity_names() {
 
 #[test]
 fn portable_lenia_demo_executes_four_fields_through_the_product_entrance() {
-    let mut context = ProductExecutionContext::local_std().unwrap();
     let plot = lenia_plot();
+    let mut context = ProductExecutionContext::local_std_for_plot(&plot).unwrap();
     let plan = context.plan(&plot, None).unwrap();
     for connection in plan
         .fragments

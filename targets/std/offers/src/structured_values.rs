@@ -43,6 +43,15 @@ pub fn structured_face_std_offer(
     )
 }
 
+/// Inspect one typed numerical receipt through the shared Face boundary.
+pub fn numerical_face_std_offer() -> CapabilityOffer {
+    offer(
+        conduit_semantic_catalog::numerical_face_semantic_contract(),
+        false,
+        Some(CapabilityId::from("std-numerical-result-face")),
+    )
+}
+
 /// Emit a canonical Scalar through the existing bounded literal executor.
 pub fn scalar_literal_std_offer() -> CapabilityOffer {
     offer(

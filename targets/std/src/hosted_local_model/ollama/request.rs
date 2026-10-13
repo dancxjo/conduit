@@ -8,7 +8,7 @@ impl OllamaLocalModelAdapter {
         input: &str,
         maximum_tokens: u64,
         structured: bool,
-    ) -> Result<GenerateResponse, String> {
+    ) -> Result<GenerateResponse, LocalModelAdapterTerminal> {
         let mut request = json!({
             "model": self.model_name,
             "prompt": input,
@@ -20,21 +20,32 @@ impl OllamaLocalModelAdapter {
         if structured {
             request["format"] = json!("json");
         }
-        let body = serde_json::to_vec(&request).map_err(|error| error.to_string())?;
-        serde_json::from_slice(&curl_json(&self.endpoint, "/api/generate", Some(&body))?)
-            .map_err(|error| format!("decode local Ollama inference: {error}"))
+        let body = serde_json::to_vec(&request)
+            .map_err(|_| LocalModelAdapterTerminal::InvalidStructuredResult)?;
+        let response: GenerateResponse = serde_json::from_slice(
+            &curl_json(&self.endpoint, "/api/generate", Some(&body))
+                .map_err(|_| LocalModelAdapterTerminal::ProviderLost)?,
+        )
+        .map_err(|_| LocalModelAdapterTerminal::InvalidStructuredResult)?;
+        if response.done != Some(true) {
+            return Err(LocalModelAdapterTerminal::InvalidStructuredResult);
+        }
+        Ok(response)
     }
 
-    pub(super) fn embed(&self, input: &str) -> Result<EmbedResponse, String> {
+    pub(super) fn embed(&self, input: &str) -> Result<EmbedResponse, LocalModelAdapterTerminal> {
         let body = serde_json::to_vec(&json!({
             "model": self.model_name,
             "input": input,
             "truncate": false,
             "keep_alive": "5m"
         }))
-        .map_err(|error| error.to_string())?;
-        serde_json::from_slice(&curl_json(&self.endpoint, "/api/embed", Some(&body))?)
-            .map_err(|error| format!("decode local Ollama embedding: {error}"))
+        .map_err(|_| LocalModelAdapterTerminal::InvalidStructuredResult)?;
+        serde_json::from_slice(
+            &curl_json(&self.endpoint, "/api/embed", Some(&body))
+                .map_err(|_| LocalModelAdapterTerminal::ProviderLost)?,
+        )
+        .map_err(|_| LocalModelAdapterTerminal::InvalidStructuredResult)
     }
 
     pub(super) fn chat_present(
@@ -42,9 +53,9 @@ impl OllamaLocalModelAdapter {
         system: &str,
         semantic_data: &str,
         maximum_tokens: u64,
-    ) -> Result<ChatResponse, String> {
-        let input: GenerativePresenterInput =
-            serde_json::from_str(semantic_data).map_err(|error| error.to_string())?;
+    ) -> Result<ChatResponse, LocalModelAdapterTerminal> {
+        let input: GenerativePresenterInput = serde_json::from_str(semantic_data)
+            .map_err(|_| LocalModelAdapterTerminal::InvalidStructuredResult)?;
         let available_actions = input
             .face
             .actions
@@ -61,7 +72,8 @@ impl OllamaLocalModelAdapter {
         // validates every Face identity, value, and available action after
         // inference; schema conformance alone grants no semantic authority.
         let format = if system == super::super::ollama_present::WORDING_SYSTEM_POLICY {
-            super::super::ollama_present::wording_format(&input, &available_actions)?
+            super::super::ollama_present::wording_format(&input, &available_actions)
+                .map_err(|_| LocalModelAdapterTerminal::InvalidStructuredResult)?
         } else {
             json!({
                 "type": "object",
@@ -90,9 +102,16 @@ impl OllamaLocalModelAdapter {
             "keep_alive": "5m",
             "options": { "num_predict": maximum_tokens, "temperature": 0 }
         }))
-        .map_err(|error| error.to_string())?;
-        serde_json::from_slice(&curl_json(&self.endpoint, "/api/chat", Some(&body))?)
-            .map_err(|error| format!("decode local Ollama presenter inference: {error}"))
+        .map_err(|_| LocalModelAdapterTerminal::InvalidStructuredResult)?;
+        let response: ChatResponse = serde_json::from_slice(
+            &curl_json(&self.endpoint, "/api/chat", Some(&body))
+                .map_err(|_| LocalModelAdapterTerminal::ProviderLost)?,
+        )
+        .map_err(|_| LocalModelAdapterTerminal::InvalidStructuredResult)?;
+        if response.done != Some(true) {
+            return Err(LocalModelAdapterTerminal::InvalidStructuredResult);
+        }
+        Ok(response)
     }
 }
 

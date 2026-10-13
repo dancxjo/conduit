@@ -2423,6 +2423,7 @@ dependencies = [
  "conduit-kernel",
  "conduit-planner",
  "conduit-plot",
+ "conduit-signal",
  "conduit-std-host",
  "conduit-std-offers",
  "libc",

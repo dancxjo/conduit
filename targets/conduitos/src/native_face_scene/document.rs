@@ -4,8 +4,8 @@
 use super::*;
 use alloc::{format, string::String};
 use conduit_face::{
-    FaceActionAvailability, FaceDisclosureLevel, FacePropertyValue, FaceRole,
-    FaceUtteranceProvenance as Provenance, plan_face_utterances, readable_finite_text_choices,
+    plan_face_utterances, readable_finite_text_choices, FaceActionAvailability,
+    FaceDisclosureLevel, FacePropertyValue, FaceRole, FaceUtteranceProvenance as Provenance,
 };
 
 pub(super) struct Item {
@@ -37,6 +37,32 @@ pub(super) fn prepare(
     let plan = plan_face_utterances(face).map_err(|_| FaceSceneError::DocumentBound)?;
     let mut primary = Vec::new();
     let mut details = Vec::with_capacity(plan.clauses.len());
+    for (index, subject) in face.subjects.iter().enumerate().filter(|(_, subject)| {
+        matches!(
+            subject.role,
+            FaceRole::Gear | FaceRole::Port | FaceRole::Cord
+        )
+    }) {
+        let mut identity = item(
+            format!("{:?} identity: {}", subject.role, subject.identity),
+            GraphicsTextRole::Body,
+        );
+        identity.subject_index = Some(index);
+        details.push(identity);
+        if subject.role == FaceRole::Cord {
+            for relation in face.relationships.iter().filter(|relation| {
+                relation.source == subject.identity
+                    && relation.kind == conduit_face::FaceRelationshipKind::Connects
+            }) {
+                let mut endpoint = item(
+                    format!("{} connects {}", subject.identity, relation.target),
+                    GraphicsTextRole::Body,
+                );
+                endpoint.subject_index = Some(index);
+                details.push(endpoint);
+            }
+        }
+    }
     for clause in &plan.clauses {
         let mut detail = item(clause.text.clone(), GraphicsTextRole::Body);
         let action_name = match &clause.provenance {

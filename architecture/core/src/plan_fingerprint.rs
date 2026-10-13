@@ -292,9 +292,7 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
         canonical.extend_from_slice(&pool.member_limits.sign_item_capacity.to_le_bytes());
         push_u32(&mut canonical, pool.member_limits.sign_byte_capacity);
         canonical.push(u8::from(pool.member_sessions_required));
-        canonical.push(match pool.selection_policy {
-            crate::SharedPoolSelectionPolicy::MoreUnreservedThenLessUtilizedThenPlanOrder => 0,
-        });
+        canonical.push(pool.selection_policy.fingerprint_discriminant());
         push_u32(&mut canonical, pool.realization_envelope.len() as u32);
         for realization in &pool.realization_envelope {
             push_string(&mut canonical, realization.host_id.as_str());

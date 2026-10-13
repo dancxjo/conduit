@@ -1,5 +1,5 @@
 schema = "conduit.reviewed-plot-inventory/v2"
-maximum_plots = 121
+maximum_plots = 122
 maximum_combined_workloads = 4
 
 # Membership is explicit: repository path discovery validates this list but never creates it.
@@ -295,6 +295,12 @@ title = "Normalized Light Intensity"
 entry = "normalized-light-intensity"
 deterministic = { package = "conduit-semantic-catalog", test = "quantity_mapping_plot", case = "reusable_mapping_and_outside_consumer_are_checked_and_host_neutral" }
 browser_safe_not_applicable = "portable quantity mapping has no installed browser realization"
+[[plots]]
+slug = "numerics"
+title = "Numerical Realizations"
+entry = "numerics"
+deterministic = { package = "conduit", test = "numerical_realization", case = "ordinary_product_source_retains_exact_meaning_through_selected_std_receipts" }
+browser_safe_not_applicable = "certified numerical realizations are currently installed by the std host"
 [[plots]]
 slug = "patchbay-front-door"
 title = "Patchbay Front Door"

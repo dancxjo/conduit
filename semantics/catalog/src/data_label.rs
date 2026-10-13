@@ -104,6 +104,7 @@ mod all_face_construction_tests {
         kinds.extend(conduit_face::spoken_mask_kinds());
         kinds.push(conduit_face::component_mask_kind(4096));
         kinds.push(crate::quantity_face_semantic_contract());
+        kinds.push(crate::numerical_face_semantic_contract());
         kinds.push(
             crate::structured_face_contract("Quantity", &crate::wrapped_quantity_type()).into(),
         );

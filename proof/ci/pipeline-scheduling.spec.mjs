@@ -18,14 +18,14 @@ test('independent proof starts after preflight and preserves complete aggregatio
   }
   assert.match(job(ci, 'unit'), /matrix: \$\{\{ fromJSON\(needs.preflight.outputs.unit-matrix\) \}\}/);
   assert.match(job(ci, 'complete'), /needs: \[preflight, unit, admission, target\]/);
-  assert.match(job(ci, 'complete'), /if: \$\{\{ always\(\) \}\}/);
+  assert.match(job(ci, 'complete'), /if: \$\{\{ always\(\) && !cancelled\(\) \}\}/);
 });
 
 test('draft and ready transitions require the same exact merge-preview admission', () => {
   assert.match(candidate, /types: \[opened, synchronize, reopened, ready_for_review, converted_to_draft\]/);
   assert.match(job(candidate, 'proof'), /exhaustive: false/);
   assert.match(job(candidate, 'proof'), /sha: \$\{\{ github.sha \}\}/);
-  assert.match(job(candidate, 'candidate'), /if: \$\{\{ always\(\) \}\}/);
+  assert.match(job(candidate, 'candidate'), /if: \$\{\{ always\(\) && !cancelled\(\) \}\}/);
   assert.match(job(candidate, 'candidate'), /needs: proof/);
   assert.match(job(candidate, 'candidate'), /test "\$RESULT" = success/);
   assert.match(job(ci, 'preflight'), /name: candidate\/quick/);
@@ -67,4 +67,11 @@ test('required candidate accepts healthy drafts and rejects unsuccessful proof',
   for (const result of ['failure', 'cancelled', 'skipped', '']) assert.equal(passes('true', result), false);
   for (const result of ['failure', 'cancelled', 'skipped', '']) assert.equal(passes('false', result), false);
 
+});
+
+test('PR scopes use the actual merge-preview parent, including admission', () => {
+  assert.match(job(ci, 'preflight'), /proof_base=\$\(git rev-parse "\$SHA\^1"\)/);
+  assert.match(job(ci, 'preflight'), /git merge-base --is-ancestor "\$BASE" "\$proof_base"/);
+  assert.match(job(ci, 'preflight'), /BASE: \$\{\{ steps\.base\.outputs\.sha \}\}/);
+  assert.match(job(ci, 'admission'), /BASE: \$\{\{ needs\.preflight\.outputs\.base \}\}/);
 });

@@ -171,7 +171,7 @@ These are nonvisual projection and hosted kernel/Host Call proofs.
 Native/browser prebirth and committed Todo Shows, audible speech,
 Patchbay, Commons, unknown-domain fallback and pressure
 remain required parts of the open four-Mask matrix. Separate reconstruction
-accounts in `proof/conformance/face-waist` remain model proof and must
+accounts in `proof/conformance/presentation-waist` remain model proof and must
 not substitute for these execution witnesses.
 
 The Patchbay specimen in
@@ -260,12 +260,12 @@ through that route still require the canonical shell migration in #5356.
 ## Reference Face-to-Mask exchange
 
 The canonical `face` Fore input is the complete validated Face, such as
-[`open-domain-face.json`](../../proof/conformance/face-waist/domain-derived/open-domain-face.json).
+[`open-domain-face.json`](../../proof/conformance/presentation-waist/domain-derived/open-domain-face.json).
 It is not a layout, an application-state copy, or the partial summary below.
 The checked Mask emits its correlated `show` Fore value; the `interaction`
 Fore may return only actions and arguments supplied by that exact Face.
 
-[`face-mask-reference.json`](../../proof/conformance/face-waist/domain-derived/face-mask-reference.json)
+[`face-mask-reference.json`](../../proof/conformance/presentation-waist/domain-derived/face-mask-reference.json)
 records the source/context basis, Host/Boot, Mask Plot/Plan/Play, Show, and actual
 returned interaction for the open-domain browser fixture. The producing test
 checks complete equality with this record. DOM acknowledgement is simulated;
@@ -337,6 +337,14 @@ all subject names remain inspectable in primary/details, the exact graph is
 recognized, every admitted document page is bounded and fully visible, and
 supplied controls retain their action contracts. This is native layout proof,
 not scanout or installed-owner effect evidence.
+
+The native Patchbay diagram reports drawn Cords against the complete Face Cord
+count, including the exact omitted count. The drawing cap remains twelve paths;
+off-page, missing, ambiguous, and same-Gear endpoints do not produce invented
+paths. F2 retains the complete semantic facts and endpoint identities even when
+the diagram cannot draw them. The overflow regression compares the displayed
+count with actual path commands and keeps the authoritative Face unchanged.
+This is a bounded native scene mechanism, not QEMU or physical display proof.
 
 The checked browser Patchbay regression also compares every relationship
 source, target, and kind and executes each available supplied action through

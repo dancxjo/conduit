@@ -178,8 +178,14 @@ fn validate_face(placement: &PlannedGear) -> Result<(), String> {
     let [input] = placement.inputs.as_slice() else {
         return Err("structured face requires one input".into());
     };
-    let exact_front = if placement.kind_id == kind_id(conduit_semantic_catalog::QUANTITY_FACE_KIND)
+    let exact_front = if placement.kind_id == kind_id(conduit_semantic_catalog::NUMERICAL_FACE_KIND)
     {
+        let contract = conduit_semantic_catalog::numerical_face_semantic_contract();
+        placement.kind_contract_revision == contract.kind_contract_revision
+            && placement.inputs == contract.inputs
+            && placement.outputs == contract.outputs
+            && placement.semantic_contract == contract.semantic_contract()
+    } else if placement.kind_id == kind_id(conduit_semantic_catalog::QUANTITY_FACE_KIND) {
         let contract = conduit_semantic_catalog::quantity_face_semantic_contract();
         placement.kind_contract_revision == contract.kind_contract_revision
             && placement.inputs == contract.inputs

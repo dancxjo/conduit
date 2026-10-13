@@ -370,12 +370,39 @@ the entire executing kernel path, and isolated transactional tests cover pressur
 retry, commit, cancellation and inadequate output extent.
 
 These are portable prepared-Back and kernel proofs, with hosted receipt sinks as
-fixtures. Default product catalog installation, std offer/factory registration,
-certified binary64 algorithms, irrational realization strategies, physical Unit
+fixtures. Certified binary64 algorithms, irrational realization strategies, physical Unit
 projection and DSP/tensor consumers remain open. The repository acceptance
 entrance is `cargo xtask ci pipeline unit foundation`; candidate/integration CI
 retains its exact execution evidence.
 
+
+## Ordinary std product installation (development)
+
+The default product source catalog and repository Plot-checking catalog install
+`math/realize` and `face/numerical-result`. The local `conduit run` and
+library execution entrances initialize numerical offers from the checked,
+expanded source before invoking the ordinary planner. The presenter uses the
+existing admitted structured Face Host Call and typed Face Signs.
+Each `face/numerical-result` constructor requires its data label.
+`plots/numerics/main.conduit` names the two receipts "Exact numerical result"
+and "Approximate numerical result" and is the retained runnable specimen.
+
+Std initialization replaces only its own previous numerical source batch, with
+at most 32 requested instances. Offers carry deterministic source-certificate
+identities and compiled-code artifact evidence. Repeated preparation of the same
+batch preserves the advertisement; a changed batch advances its finite generation.
+Active reservations fence reconfiguration, and refusal leaves the previous
+advertisement and resource ledger intact. Unsupported symbolic sources remain
+valid mathematical meanings but refuse the presently installed rational strategies.
+
+The installed factories independently recreate their expected strategy offers
+and check the exact capability, implementation, profile, artifact, limits and
+certificate before allocating the immutable receipt Back. That Back uses the
+portable transactional execution implementation; its retained byte capacity
+participates in the std capacity account. Product tests exercise the ordinary
+source-to-Plan-to-Play path and compare typed Face receipts with the
+selected certificates. These are hosted product proofs, not stable-main or
+hardware acceptance and not proofs of an IEEE arithmetic algorithm.
 ## Prepared finite binary64 algorithms (development)
 
 `PreparedBinary64Projection` rounds an exact rational with integer arithmetic,
