@@ -284,17 +284,11 @@ fn port_location(
     direction: &str,
     height: u16,
 ) -> Option<(usize, usize)> {
+    let resolved = super::ports::resolve(face, cord, semantic_id, direction)?;
     let mut found = None;
     for (column, gear) in gears.iter().enumerate() {
         for (row, port) in ports(face, gear).take(visible_ports(height)).enumerate() {
-            if property_identity(face, &port.identity, "semantic-id") == Some(semantic_id)
-                && property_text(face, &port.identity, "direction") == Some(direction)
-                && face.relationships.iter().any(|relation| {
-                    relation.kind == PresentationRelationshipKind::Connects
-                        && relation.source == cord
-                        && relation.target == port.identity
-                })
-            {
+            if port.identity == resolved.identity {
                 if found.is_some() {
                     return None;
                 }

@@ -250,10 +250,9 @@ fn large_graphs_keep_every_identity_reachable_and_report_omitted_geometry() {
             if matches!(
                 property.name.as_str(),
                 "semantic-id" | "source-port" | "sink-port"
-            ) {
-                if let PresentationPropertyValue::Identity(value) = &mut property.value {
-                    *value = format!("{prefix}{value}");
-                }
+            ) && let PresentationPropertyValue::Identity(value) = &mut property.value
+            {
+                *value = format!("{prefix}{value}");
             }
             face.properties.push(property);
         }
@@ -334,4 +333,83 @@ fn large_graphs_keep_every_identity_reachable_and_report_omitted_geometry() {
         }
         assert_eq!(scene.presentation(), &face);
     }
+}
+
+#[test]
+fn off_page_ambiguous_endpoint_never_borrows_a_visible_ports_geometry() {
+    let (mut face, cord_id, source, _) = fan_face();
+    for index in 0..4 {
+        face.subjects.push(PresentationSubject {
+            identity: format!("gear/disconnected/{index}"),
+            role: PresentationRole::Gear,
+            name: format!("Disconnected {index}"),
+        });
+    }
+    let hidden_gear = "gear/ambiguous-offpage";
+    face.subjects.push(PresentationSubject {
+        identity: hidden_gear.into(),
+        role: PresentationRole::Gear,
+        name: "Off-page ambiguity".into(),
+    });
+    let duplicate_id = "port/duplicate-source";
+    let mut duplicate = face
+        .subjects
+        .iter()
+        .find(|s| s.identity == source)
+        .unwrap()
+        .clone();
+    duplicate.identity = duplicate_id.into();
+    face.subjects.push(duplicate);
+    let properties: alloc::vec::Vec<_> = face
+        .properties
+        .iter()
+        .filter(|p| p.subject == source)
+        .cloned()
+        .collect();
+    for mut property in properties {
+        property.subject = duplicate_id.into();
+        face.properties.push(property);
+    }
+    face.relationships.push(PresentationRelationship {
+        source: hidden_gear.into(),
+        target: duplicate_id.into(),
+        kind: PresentationRelationshipKind::Contains,
+    });
+    face.relationships.push(PresentationRelationship {
+        source: cord_id.clone(),
+        target: duplicate_id.into(),
+        kind: PresentationRelationshipKind::Connects,
+    });
+    let face = Presentation::new_with_semantics(
+        face.revision,
+        face.basis,
+        face.subjects,
+        face.relationships,
+        face.properties,
+        face.text,
+        face.actions,
+        face.disclosures,
+    )
+    .unwrap();
+    let cord = face
+        .subjects
+        .iter()
+        .find(|s| s.identity == cord_id)
+        .unwrap();
+    assert!(cord_summary(&face, cord).starts_with("Cord endpoints not uniquely resolved"));
+    let mut scene = NativeFaceScene::prepare(face.clone(), 640, 720).unwrap();
+    scene.show_diagram(true);
+    assert!(scene.pages() > 1);
+    assert_eq!(
+        scene
+            .frame()
+            .unwrap()
+            .scene
+            .commands()
+            .iter()
+            .filter(|c| c.kind == GraphicsCommandKind::OrthogonalPath)
+            .count(),
+        2
+    );
+    assert_eq!(scene.presentation(), &face);
 }

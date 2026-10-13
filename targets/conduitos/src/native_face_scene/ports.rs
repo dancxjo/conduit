@@ -40,13 +40,22 @@ fn endpoint<'a>(
     direction: &str,
 ) -> Option<&'a PresentationSubject> {
     let semantic = property(face, &cord.identity, name, true)?;
+    resolve(face, &cord.identity, semantic, direction)
+}
+
+pub(super) fn resolve<'a>(
+    face: &'a Presentation,
+    cord: &str,
+    semantic: &str,
+    direction: &str,
+) -> Option<&'a PresentationSubject> {
     let mut matching = face.subjects.iter().filter(|port| {
         port.role == PresentationRole::Port
             && property(face, &port.identity, "semantic-id", true) == Some(semantic)
             && property(face, &port.identity, "direction", false) == Some(direction)
             && face.relationships.iter().any(|r| {
                 r.kind == PresentationRelationshipKind::Connects
-                    && r.source == cord.identity
+                    && r.source == cord
                     && r.target == port.identity
             })
     });
