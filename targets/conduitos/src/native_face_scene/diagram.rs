@@ -360,7 +360,7 @@ mod tests {
     #[test]
     fn notice_counts_capped_links_and_missing_endpoints_without_changing_face() {
         let mut face: Face = serde_json::from_str(include_str!(
-            "../../../../proof/conformance/presentation-waist/domain-derived/patchbay-face.json"
+            "../../../../proof/conformance/face-waist/domain-derived/patchbay-face.json"
         ))
         .unwrap();
         let cord = face
