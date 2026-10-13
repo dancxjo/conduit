@@ -61,3 +61,9 @@ The exact standalone endpoint-read entry instead refuses preparation with
 The current combined admission path unconditionally issues control possession,
 but this checked Plan has no control placement. The combined guest demonstration
 does not discharge this missing standalone acceptance item.
+
+The endpoint-only admission correction73f3abc97 binds only the exact independently
+selected endpoint scope and refuses control invocation when control is absent.
+[Two production-path regressions and31 native lifecycle tests](endpoint-only-admission-73f3abc9/validation.json)
+pass. This removes the demonstrated preparation defect; a corrected guest rerun
+is still required before claiming the standalone endpoint acceptance item.
