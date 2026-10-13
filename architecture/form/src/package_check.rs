@@ -117,7 +117,10 @@ pub fn check_package_bundle(
     })
 }
 
-fn local_source_paths(bundle: &CheckedPackageBundle, current: &str) -> BTreeMap<String, String> {
+pub(crate) fn local_source_paths(
+    bundle: &CheckedPackageBundle,
+    current: &str,
+) -> BTreeMap<String, String> {
     let Some(member) = bundle.members.iter().find(|member| member.path == current) else {
         return BTreeMap::new();
     };
@@ -132,7 +135,7 @@ fn local_source_paths(bundle: &CheckedPackageBundle, current: &str) -> BTreeMap<
         .collect()
 }
 
-fn reject_ambient_references(
+pub(crate) fn reject_ambient_references(
     module: &str,
     document: &SyntaxDocument,
     owners: &BTreeMap<String, String>,
