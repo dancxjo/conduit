@@ -6,7 +6,7 @@ import sys
 import usbredir_transport as wire
 
 parser = argparse.ArgumentParser(add_help=False)
-parser.add_argument('--fault-mode', choices=['reset-only', 'reset-stall-in', 'none', 'stall-in', 'disconnect-in', 'stale-tag', 'bad-residue', 'command-failed', 'phase-error', 'short-in', 'hold-in', 'late-after-cancel'], required=True)
+parser.add_argument('--fault-mode', choices=['reset-only', 'reset-stall-in', 'read-reentry', 'read-reentry-stall-clear-in', 'none', 'stall-in', 'disconnect-in', 'stale-tag', 'bad-residue', 'command-failed', 'phase-error', 'short-in', 'hold-in', 'late-after-cancel'], required=True)
 options, remaining = parser.parse_known_args()
 sys.argv = [sys.argv[0]] + remaining
 wire.CONFIG = bytes.fromhex('09 02 20 00 01 01 05 c0 00 09 04 00 00 02 08 06 50 00 07 05 81 02 00 02 00 07 05 02 02 00 02 00')
@@ -41,20 +41,26 @@ class Device(Base):
         self.connected = True
 
     def control(self, packet_id, body):
-        if not options.fault_mode.startswith('reset-'):
+        reentry = options.fault_mode.startswith('read-reentry')
+        if not options.fault_mode.startswith('reset-') and not reentry:
             return super().control(packet_id, body)
         ep, request, request_type, _, value, index, length = wire.CONTROL.unpack_from(body)
         expected = [(0x21, 0xff, 0), (0x02, 0x01, 0x81), (0x02, 0x01, 0x02)]
         if request_type == 0x80 and request == 6:
             return super().control(packet_id, body)
-        valid = (self.stage is None and self.recovery_step < 3 and
+        if reentry and self.commands == 0 and request_type == 0 and request == 9:
+            return super().control(packet_id, body)
+        valid_stage = (self.stage in ('terminal', 'recovery') and self.commands == 1) if reentry else self.stage is None
+        valid = (valid_stage and self.recovery_step < 3 and
                  (request_type, request, index) == expected[self.recovery_step] and
                  ep == 0 and value == 0 and length == 0 and len(body) == wire.CONTROL.size)
         status = wire.SUCCESS if valid else wire.STALL
-        if options.fault_mode == 'reset-stall-in' and self.recovery_step == 1:
+        if options.fault_mode in ('reset-stall-in', 'read-reentry-stall-clear-in') and self.recovery_step == 1:
             status = wire.STALL
         if valid and status == wire.SUCCESS:
             self.recovery_step += 1
+            if reentry:
+                self.stage = None if self.recovery_step == 3 else 'recovery'
             print('BOT_RECOVERY_ACK ' + str(self.recovery_step), flush=True)
         self.send(100, packet_id, wire.CONTROL.pack(ep, request, request_type, status, value, index, 0))
 
@@ -66,6 +72,12 @@ class Device(Base):
         if stream or high or length>wire.MAX_DATA or len(payload)!=(0 if ep&128 else length):
             raise ValueError('invalid bulk envelope')
         if ep==2:
+            if options.fault_mode.startswith('read-reentry'):
+                expected_tag = self.commands + 1
+                if self.commands >= 2 or (self.commands == 1 and self.recovery_step != 3):
+                    raise ValueError('reentry command before exact reset/clear acknowledgements')
+                if len(payload) < 8 or struct.unpack_from('<I', payload, 4)[0] != expected_tag:
+                    raise ValueError('replayed or foreign reentry CBW tag')
             if self.stage is not None or length!=31 or payload[:4]!=b'USBC':
                 return self.bulk_reply(packet_id,ep,0,wire.STALL)
             tag, extent = struct.unpack_from('<II',payload,4)
@@ -93,7 +105,7 @@ class Device(Base):
                 self.connected=False
                 print('BOT_DISCONNECT_AFTER_CBW '+str(self.tag),flush=True)
                 return
-            if options.fault_mode=='stall-in':
+            if options.fault_mode=='stall-in' or (options.fault_mode.startswith('read-reentry') and self.commands == 1):
                 self.stage='terminal'
                 print('BOT_STALL_AFTER_CBW '+str(self.tag),flush=True)
                 return self.bulk_reply(packet_id,ep,0,wire.STALL)
