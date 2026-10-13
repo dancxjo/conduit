@@ -34,7 +34,10 @@ retain their owning target family. Ordinary package/test corrections do not requ
 cross-platform packaging.
 
 The `candidate` job requires successful preflight, admission and any selected
-native target proof for the exact PR SHA. Integration remains exhaustive: all
+native target proof for GitHub’s exact PR merge-preview commit. This checks the
+change together with current `dev` and keeps CI tooling available to older PR
+branches when the admission policy changes. The preview is a candidate, not a
+publication source. Integration remains exhaustive: all
 unit shards, workspace lint and every target run after a push to `dev`, even for
 prose-only changes. Failed integrated proof must be repaired before release;
 publication continues to require those exact verified artifacts. PR admission

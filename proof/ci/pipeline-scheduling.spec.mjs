@@ -21,10 +21,10 @@ test('independent proof starts after preflight and preserves complete aggregatio
   assert.match(job(ci, 'complete'), /if: \$\{\{ always\(\) \}\}/);
 });
 
-test('draft and ready transitions require the same exact-head admission', () => {
+test('draft and ready transitions require the same exact merge-preview admission', () => {
   assert.match(candidate, /types: \[opened, synchronize, reopened, ready_for_review, converted_to_draft\]/);
   assert.match(job(candidate, 'proof'), /exhaustive: false/);
-  assert.match(job(candidate, 'proof'), /sha: \$\{\{ github.event.pull_request.head.sha \}\}/);
+  assert.match(job(candidate, 'proof'), /sha: \$\{\{ github.sha \}\}/);
   assert.match(job(candidate, 'candidate'), /if: \$\{\{ always\(\) \}\}/);
   assert.match(job(candidate, 'candidate'), /needs: proof/);
   assert.match(job(candidate, 'candidate'), /test "\$RESULT" = success/);
