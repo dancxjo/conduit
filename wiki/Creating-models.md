@@ -287,6 +287,46 @@ and compatibility; stale recipes, corruption, and unsupported schemas refuse.
 The tiny proof stops, creates a fresh runtime, resumes the recorded cursor,
 advances work, exports, reloads, and compares inference within declared tolerance.
 
+### Inspect the tiny model's durable restart
+
+The tiny CPU command above performs the save/stop/resume/export/reload sequence
+through the public adapter and durable store. Open
+`work/tiny-model-library/artifacts/journey.json`: its versioned
+`conduit.fixture/model-authoring-journey@1` record reports the durable resume
+step (40), final committed step (80), before/after loss, checkpoint identities,
+and `exact_same_device_reload`. The fixture's measured loss decreases from
+9.0 to about 0.004; a run must meet its actual test bound rather than copy this
+number into a success claim.
+
+The immutable objects live separately under `artifacts/resume/` and
+`artifacts/inference/`. Keep each whole store together: the content-derived
+JSON descriptor names its weight/model/optimizer blobs. `latest.json` locates
+a durable resume identity; the pathname does not grant model authority.
+The inference export contains weights and a versioned descriptor, with no
+optimizer or training-session authority. Its fixture extent is 928 bytes.
+
+Follow the executable `retained_journey.rs` example: `checkpoint` returns the
+exact identity, the original adapter is dropped, a fresh adapter calls
+`resume` with that identity and the same data/config/recipe, and training
+continues from the next step. After `export_inference`,
+`InferenceBurnAdapter::load` receives the model definition, admitted runtime,
+store, and exact checkpoint identity; it needs no training dataset or optimizer.
+The ordinary Plot command additionally tests the same operations as admitted
+`model/work` HostCalls and checks their Kernel request/completion Sign records.
+These records are execution evidence, not a claim of cryptographic signing.
+
+A different corpus payload or shuffle recipe, model configuration,
+checkpoint schema, or training recipe receives
+`IncompatibleCheckpoint` and leaves committed state unchanged. Restore the
+matching definition and admitted context; the loader does not silently train
+a replacement. Corrupted descriptor/blob bytes and incompatible optimizer parameter IDs/shapes
+receive `CorruptCheckpoint`;
+recover the known immutable store instead of editing its content-derived names.
+The CPU library command runs these refusal tests along with the restart proof.
+A fresh output directory replays the demonstration without overwriting a prior
+store. The synthetic regression and its restart teach public lifecycle APIs;
+#5207's trained voice and held-out speech acceptance remain separate.
+
 ## Offer and use the capability
 
 Ordinary artifact/admission machinery loads the checkpoint and offers a bounded
