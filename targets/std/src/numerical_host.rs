@@ -12,8 +12,6 @@ impl StdHost {
         &mut self,
         plot: &ExpandedCanonicalPlot,
     ) -> Result<(), String> {
-        plot.validate_expansion()
-            .map_err(|why| format!("numeric source identity: {why}"))?;
         let gears = plot
             .gears
             .iter()
@@ -28,6 +26,8 @@ impl StdHost {
         if gears.len() > 32 {
             return Err("std numerical source preparation exceeds 32 instances".into());
         }
+        plot.validate_expansion()
+            .map_err(|why| format!("numeric source identity: {why}"))?;
         if !self.kernel_resources.is_idle() {
             return Err("numeric offers cannot change active reservations".into());
         }
