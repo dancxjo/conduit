@@ -230,3 +230,34 @@ point is admitted as its error distance. This supplies a reviewed preparation
 boundary for future finite scheduling coordinates. It does not yet lower a cost
 forecast into dispatch, register a source numeric Type or select an ordinary
 Plan numerical Back; those integration requirements remain open.
+
+## Certified principal square-root enclosure in development
+
+[`PreparedSquareRoot`](../../architecture/core/src/exact_numeric/root.rs)
+prepares the principal nonnegative real square root of an exact rational
+radicand as exact rational endpoints. Exact bisection preserves
+`lower² <= radicand <= upper²`; the retained interval width bounds either
+endpoint's absolute error. No floating-point constant, library approximation,
+or statistical confidence claim participates in the certificate. The source
+radicand remains unchanged.
+
+The caller admits a maximum interval width, a finite refinement count and
+limb-work budget. Negative radicands and negative tolerances refuse distinctly;
+exhausted refinement, arithmetic work or intermediate extent also refuse.
+Zero tolerance succeeds only if this algorithm proves an exact root. For
+example, `sqrt(4)` produces `[2, 2]`, and `sqrt(2)` with width at most `1/1000`
+produces a certified enclosure. A rational root that bisection cannot find
+exactly may refuse zero tolerance; this is algorithm eligibility, not a claim
+that its mathematical root is irrational.
+
+The existing generic projection report records precision loss for a nonzero
+width and exact fidelity for a proved point result. Preparation seals
+source/endpoints/width; report inspection performs no arithmetic. Consumer
+policy retains the exact admitted width, and altered results, missing
+obligations or invented transformation laws fail domain validation.
+
+This is a core Rust preparation and evidence primitive. It does not yet
+introduce authored square-root syntax, a symbolic expression codec, physical
+Quantity root algebra, or an offered Planner/Plan/Play realization. Those
+#5392 integration gates remain open. The fixed-width arithmetic hot path is
+unchanged; bisection runs only at an explicitly requested preparation boundary.
