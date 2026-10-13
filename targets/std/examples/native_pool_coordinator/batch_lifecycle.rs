@@ -150,6 +150,11 @@ pub(super) fn run<'a>(
                 .ok_or("batch nonempty queue disappeared")?;
             let elapsed = started.elapsed().as_nanos();
             let account = format!("{:?}", outcome.admission.outcome.account);
+            let cost_explanation = conduit_observatory::render_pool_cost_selection(
+                &input.plan,
+                &outcome.admission.outcome.account,
+            )
+            .map_err(|reason| format!("{reason:?}"));
             custody[slot] = outcome.request;
             match outcome.admission.outcome.admission {
                 SharedPoolAdmissionOutcome::Selected { member, evidence } => {
@@ -162,13 +167,13 @@ pub(super) fn run<'a>(
                         .ok_or("batch selected custody absent")?;
                     send(
                         writer,
-                        json!({"phase":"native-batch-selected","selection":evidence,"cost_account":account,"input_bytes":original.payload().encoded.len(),"input_digest":semantic_digest("conduit.std/local-model-completed-input@1", &original.payload().encoded),"decision_processing_ns":elapsed,"waiting_population":queue.waiting_population()}),
+                        json!({"phase":"native-batch-selected","selection":evidence,"cost_account":account,"cost_explanation":cost_explanation,"input_bytes":original.payload().encoded.len(),"input_digest":semantic_digest("conduit.std/local-model-completed-input@1", &original.payload().encoded),"decision_processing_ns":elapsed,"waiting_population":queue.waiting_population()}),
                     )?;
                 }
                 SharedPoolAdmissionOutcome::Refused(evidence) => {
                     send(
                         writer,
-                        json!({"phase":"native-batch-refused","selection":evidence,"cost_account":account,"decision_processing_ns":elapsed,"waiting_population":queue.waiting_population()}),
+                        json!({"phase":"native-batch-refused","selection":evidence,"cost_account":account,"cost_explanation":cost_explanation,"decision_processing_ns":elapsed,"waiting_population":queue.waiting_population()}),
                     )?;
                 }
             }

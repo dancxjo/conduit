@@ -97,6 +97,11 @@ pub(super) fn run<'a>(
         .ok_or("native queue unexpectedly empty")?;
     let decision_processing_ns = decision_started.elapsed().as_nanos();
     let account = format!("{:?}", dispatched.admission.outcome.account);
+    let cost_explanation = conduit_observatory::render_pool_cost_selection(
+        plan,
+        &dispatched.admission.outcome.account,
+    )
+    .map_err(|reason| format!("{reason:?}"));
     // Keep retired native byte custody until the explicit terminal lifecycle.
     let retained_request = dispatched.request;
     let mut member = match dispatched.admission.outcome.admission {
@@ -108,7 +113,7 @@ pub(super) fn run<'a>(
                 writer,
                 &json!({"phase":"native-cost-selected","decision_processing_ns":decision_processing_ns,
                 "decision_scope":"generic queue dispatch only; includes checked cost comparison and atomic admission, excludes forecast preparation, JSON and native execution",
-                "selection":evidence,"cost_account":account,
+                "selection":evidence,"cost_account":account,"cost_explanation":cost_explanation,
                 "input_bytes":request.payload().encoded.len(),"input_digest":semantic_digest("conduit.std/local-model-completed-input@1",&request.payload().encoded),
                 "scope":"one original request; caller-admitted estimates; effects require exact native member preparation and explicit trigger"}),
             )?;
@@ -119,7 +124,7 @@ pub(super) fn run<'a>(
                 writer,
                 &json!({"phase":"native-cost-refused","decision_processing_ns":decision_processing_ns,
                 "decision_scope":"generic queue dispatch only; includes checked cost comparison and atomic admission, excludes forecast preparation, JSON and native execution",
-                "selection":evidence,"cost_account":account,
+                "selection":evidence,"cost_account":account,"cost_explanation":cost_explanation,
                 "waiting_population":queue.waiting_population()}),
             )?;
             None
