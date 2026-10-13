@@ -50,6 +50,7 @@ fn checked_reentry_has_two_storage_pairs_but_one_original_usb_operation_each() {
             1,
             "Root must explicitly map {role} to its matching independently issued pair"
         );
+        assert_eq!(selected[0].gear_id, format!("bot-storage-read-reentry/{role}"));
     }
     assert_eq!(expanded.front.inputs().len(), 1);
     assert_eq!(expanded.front.outputs().len(), 1);

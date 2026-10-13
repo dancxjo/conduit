@@ -72,16 +72,18 @@ class Device(Base):
         if stream or high or length>wire.MAX_DATA or len(payload)!=(0 if ep&128 else length):
             raise ValueError('invalid bulk envelope')
         if ep==2:
+            if length!=31 or payload[:4]!=b'USBC':
+                return self.bulk_reply(packet_id,ep,0,wire.STALL)
+            tag, extent = struct.unpack_from('<II',payload,4)
+            if payload[12:16]!=bytes([128,0,10,0x28]) or extent!=512 or payload[17:21]!=bytes(4) or payload[22:24]!=bytes([0,1]):
+                return self.bulk_reply(packet_id,ep,0,wire.STALL)
             if options.fault_mode.startswith('read-reentry'):
                 expected_tag = self.commands + 1
                 if self.commands >= 2 or (self.commands == 1 and self.recovery_step != 3):
                     raise ValueError('reentry command before exact reset/clear acknowledgements')
                 if len(payload) < 8 or struct.unpack_from('<I', payload, 4)[0] != expected_tag:
                     raise ValueError('replayed or foreign reentry CBW tag')
-            if self.stage is not None or length!=31 or payload[:4]!=b'USBC':
-                return self.bulk_reply(packet_id,ep,0,wire.STALL)
-            tag, extent = struct.unpack_from('<II',payload,4)
-            if payload[12:16]!=bytes([128,0,10,0x28]) or extent!=512 or payload[17:21]!=bytes(4) or payload[22:24]!=bytes([0,1]):
+            if self.stage is not None:
                 return self.bulk_reply(packet_id,ep,0,wire.STALL)
             self.commands+=1
             if self.commands>16:

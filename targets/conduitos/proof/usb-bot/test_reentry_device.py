@@ -50,6 +50,17 @@ class RecoveryDeviceTests(unittest.TestCase):
         self.cbw(module, device, 2)
         self.assertEqual((device.commands, device.tag, device.stage), (2, 2, 'data'))
 
+    def test_firmware_inquiry_refuses_profile_without_consuming_reentry_budget(self):
+        module, device, replies = self.device()
+        device.stage, device.commands = None, 0
+        command = bytearray(31)
+        command[:4] = b'USBC'
+        struct.pack_into('<II', command, 4, 999, 36)
+        command[12:16] = bytes([128, 0, 12, 0x12])
+        device.bulk(8, module.wire.BULK.pack(2, 0, 31, 0, 0) + command)
+        self.assertEqual((device.commands, device.recovery_step, device.stage), (0, 0, None))
+        self.assertEqual(replies[-1][0], (8, 2, 0, module.wire.STALL))
+
     def test_failed_clear_in_never_unlocks_a_second_command(self):
         module, device, replies = self.device('read-reentry-stall-clear-in')
         self.control(module, device, 0x21, 0xff, 0)
