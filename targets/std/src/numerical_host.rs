@@ -20,6 +20,7 @@ impl StdHost {
             .filter(|gear| {
                 gear.kind_id.as_str() == conduit_semantic_catalog::NUMERICAL_REALIZE_KIND
             })
+            .take(33)
             .collect::<Vec<_>>();
         if gears.is_empty() {
             return Ok(());

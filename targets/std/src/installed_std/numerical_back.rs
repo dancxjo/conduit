@@ -94,10 +94,7 @@ pub(crate) fn offers(
         ) {
             Ok(prepared) => result.push(offer(&prepared)?),
             Err(NumericalRealizationRefusal::Integer(_))
-                if algorithm == NumericalAlgorithm::OutwardI64 =>
-            {
-                ()
-            }
+                if algorithm == NumericalAlgorithm::OutwardI64 => {}
             Err(why) => return Err(format!("std numerical source realization refused: {why:?}")),
         }
     }
