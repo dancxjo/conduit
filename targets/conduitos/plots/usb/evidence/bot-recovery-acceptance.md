@@ -16,7 +16,11 @@ Implemented locally
   acknowledgement, keeping EP0 and the attachment. Peer activity, unknown faults
   and control uncertainty retain full-slot sealed retirement. New effects remain
   blocked until the original bulk Kernel obligations retire. All 99 existing
-  native USB regressions passed; focused recovery coverage is still pending.
+  native USB regressions passed; focused single-STALL coverage is still pending.
+* 0ec05f8f1: the actual dispatcher regression with genuine three-operation
+  selected owners passed. Completed-but-unconsumed bulk Kernel obligations
+  still block control. See [retained result](duplex-kernel-retirement-0ec05f8f/validation.json).
+  This fixture does not execute a stalled TD or the Source reset sequence.
 
 Existing Source policy
 ----------------------
@@ -49,9 +53,15 @@ other than completed/incomplete. `PreparedStorageCalls::allows_usb` requires an
 active authorized submission and forbids controls after that submission settles.
 `dispatch_storage` independently validates original USB subordinate settlement.
 The retained stopped queue currently blocks that idle validation until explicit
-reentry. Therefore returning Source to its ready phase alone cannot establish
-recovery: a fresh storage authorization and truthful quiescence receipt must be
-composed explicitly. Clearing the terminal flag or reviving revoked possession
+reentry. Keep the original storage submission active through the checked reset
+sequence, then settle its original stalled result unchanged; the first owner
+remains permanently terminal. Reentry needs a second independently Root-issued
+authorize/settle pair at distinct selected nodes. The planner counts placements
+per capability ID, so distinct explicit capability IDs must each retain their
+existing instance limit of one. Both scopes, tables and retained buffers must
+be charged before Play; only one association may be active. Therefore returning
+Source to its ready phase alone cannot establish recovery: a fresh storage
+authorization and truthful quiescence receipt must be composed explicitly. Clearing the terminal flag or reviving revoked possession
 is not evidence of authorization. No replacement authority contract is admitted
 by this audit.
 
