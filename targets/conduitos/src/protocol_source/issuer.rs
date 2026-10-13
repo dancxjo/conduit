@@ -24,6 +24,23 @@ pub struct NativeProtocolPossession {
 }
 
 impl NativeProtocolIssuer {
+    /// Retain a real fixture table without claiming native or entropy admission.
+    #[cfg(test)]
+    pub(crate) fn from_test_authority(
+        authority: BaseCapabilityAuthority,
+        key: [u8; 32],
+    ) -> Result<Self, BaseCapabilityRefusal> {
+        let table = BaseCapabilityTable::new(
+            authority.grant.host_id.clone(),
+            authority.grant.boot_id.clone(),
+            authority.base_instance_id.clone(),
+            authority.base_provider_generation,
+            key,
+            1,
+        )?;
+        Ok(Self { authority, table })
+    }
+
     /// Retain independently authorized native authority and a fresh issuer key.
     ///
     /// # Safety

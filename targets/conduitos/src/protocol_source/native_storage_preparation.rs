@@ -95,3 +95,7 @@ impl NativeStoragePreparation {
         Ok(())
     }
 }
+
+#[cfg(test)]
+#[path = "native_storage_preparation_tests.rs"]
+mod tests;
