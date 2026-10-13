@@ -933,3 +933,20 @@ Withdrawal removes the reading; the original Face action remains disabled in thi
 historical reconstruction and is never replaced by an instruction callback.
 This is captured-occurrence reconstruction, not a current browser Show/input grant,
 physical control, scanout, synthesized speech or speaker-delivery claim.
+
+### Parsec browser Fore agency fixture
+
+An explicit consumer of original-frame-validated Parsec records now prepares the
+actual checked browser Mask for all four captured Faces. Each fixture has its own
+Host/Boot, planned Mask and Play, and acknowledges its own Show before returning
+the supplied Start or Shoot action through the typed interaction Fore. Exact
+Body/source Play, Face identity/revision, context, target, Mask Plan/Play and Show
+correlations are checked. Captured terminal metadata does not grant this browser
+fixture authority, and no returned interaction is submitted to the owner.
+
+Prepared, stale, forged, wrong-target, extra-argument and unavailable proposals
+refuse before egress while retaining the pending interaction request. The
+unavailable specimen derives a fresh canonical Face identity and checks the
+specific availability reason. This is bounded kernel/Fore fixture evidence with
+simulated browser Show acknowledgement, not an installed browser carrier,
+current device binding or independently committed browser mutation.
