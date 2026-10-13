@@ -31,6 +31,7 @@ pub enum PrimitiveInfoKind {
     Quantity,
     Unit,
     Dimension,
+    MathematicalValue,
     Distance,
     Frequency,
     Duration,
@@ -71,6 +72,7 @@ pub enum PrimitiveInfoRefusal {
     Quantity(QuantityRefusal),
     Unit(crate::UnitRefusal),
     Dimension(crate::PhysicalDefinitionRefusal),
+    MathematicalValue(crate::MathematicalValueRefusal),
     Terminal(TerminalInfoDecodeRefusal),
     WrongQuantityDimension {
         /// Full fingerprint of the ordered expected/actual dimension descriptors.
@@ -116,6 +118,7 @@ pub fn primitive_info_kind(identity: &str) -> Option<PrimitiveInfoKind> {
         b"value/quantity@1" => Some(PrimitiveInfoKind::Quantity),
         b"value/unit@1" => Some(PrimitiveInfoKind::Unit),
         b"value/dimension@1" => Some(PrimitiveInfoKind::Dimension),
+        b"numeric/mathematical-value@1" => Some(PrimitiveInfoKind::MathematicalValue),
         b"value/u8" => Some(PrimitiveInfoKind::U8),
         b"value/u16" => Some(PrimitiveInfoKind::U16),
         b"value/u32" => Some(PrimitiveInfoKind::U32),
@@ -186,6 +189,12 @@ pub fn validate_primitive_info(identity: &str, encoded: &[u8]) -> Result<(), Pri
         Some(PrimitiveInfoKind::Unit) => crate::Unit::decode(encoded)
             .map(|_| ())
             .map_err(PrimitiveInfoRefusal::Unit),
+        Some(PrimitiveInfoKind::MathematicalValue) => crate::MathematicalValueView::decode(
+            encoded,
+            &mut crate::ExactNumericWork::new(crate::MATHEMATICAL_VALUE_VALIDATION_WORK),
+        )
+        .map(|_| ())
+        .map_err(PrimitiveInfoRefusal::MathematicalValue),
         Some(PrimitiveInfoKind::Dimension) => crate::Dimension::decode(encoded)
             .map(|_| ())
             .map_err(PrimitiveInfoRefusal::Dimension),

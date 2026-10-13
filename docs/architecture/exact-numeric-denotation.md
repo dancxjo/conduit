@@ -230,3 +230,114 @@ point is admitted as its error distance. This supplies a reviewed preparation
 boundary for future finite scheduling coordinates. It does not yet lower a cost
 forecast into dispatch, register a source numeric Type or select an ordinary
 Plan numerical Back; those integration requirements remain open.
+
+## Certified principal square-root enclosure in development
+
+[`PreparedSquareRoot`](../../architecture/core/src/exact_numeric/root.rs)
+prepares the principal nonnegative real square root of an exact rational
+radicand as exact rational endpoints. Exact bisection preserves
+`lower² <= radicand <= upper²`; the retained interval width bounds either
+endpoint's absolute error. No floating-point constant, library approximation,
+or statistical confidence claim participates in the certificate. The source
+radicand remains unchanged.
+
+The caller admits a maximum interval width, a finite refinement count and
+limb-work budget. Negative radicands and negative tolerances refuse distinctly;
+exhausted refinement, arithmetic work or intermediate extent also refuse.
+Zero tolerance succeeds only if this algorithm proves an exact root. For
+example, `sqrt(4)` produces `[2, 2]`, and `sqrt(2)` with width at most `1/1000`
+produces a certified enclosure. A rational root that bisection cannot find
+exactly may refuse zero tolerance; this is algorithm eligibility, not a claim
+that its mathematical root is irrational.
+
+The existing generic projection report records precision loss for a nonzero
+width and exact fidelity for a proved point result. Preparation seals
+source/endpoints/width; report inspection performs no arithmetic. Consumer
+policy retains the exact admitted width, and altered results, missing
+obligations or invented transformation laws fail domain validation.
+
+This is a core Rust preparation and evidence primitive. It does not yet
+introduce authored square-root syntax, a symbolic expression codec, physical
+Quantity root algebra, or an offered Planner/Plan/Play realization. Those
+#5392 integration gates remain open. The fixed-width arithmetic hot path is
+unchanged; bisection runs only at an explicitly requested preparation boundary.
+
+## Bounded mathematical values and symbolic transport in development
+
+`MathematicalValue` is a distinct typed magnitude carrier. A rational-only value
+uses a compact canonical literal encoding; symbolic values use a versioned DAG
+with at most 32 nodes and depth 16. The supported nodes are exact rationals,
+pinned mathematical π, exact τ = 2π, negation, addition, subtraction, multiplication,
+division by a proved nonzero rational, and the principal square root of a
+proved nonnegative rational. Unsupported root or divisor domain proofs refuse.
+This finite subset does not infer physical dimensions, families or roles: an
+Angle remains a separate Quantity contract.
+
+Preparation interns shared subexpressions, folds rational arithmetic exactly,
+removes unreachable staging nodes and emits deterministic child-first traversal.
+Structural identity commits to that normalized DAG; it is separate from a
+mathematical comparison. Identical structures prove equal, rational comparison
+proves equality or difference, and other symbolic comparisons return unknown.
+Ordinary `==`/`!=` on an unproved comparison refuse explicitly in both the
+allocating conformance evaluator and the prepared runtime evaluator.
+
+The primitive codec validates without allocation under a finite work profile.
+It rejects forward edges/cycles, bad lengths, duplicate/unreachable nodes,
+noncanonical traversal, unfolded rational operations, invalid domains and
+malformed rational literals. A borrowed view retains encoded storage rather
+than reconstructing the graph. Prepared transport through authored record
+fields and runtime connections preserves π and `sqrt(2)` with no per-operation
+allocation. Native generated bindings retain the same checked Type and codec.
+Closed `MathematicalValue` literals admit exact decimals, `π`/`pi` and `τ`/`tau`.
+Tau normalizes to the canonical product `2 × π`, so the checked relation is
+proved structurally rather than by rounded constants. This does
+not introduce a general symbolic source grammar or IEEE coercion.
+
+These proofs establish typed symbolic custody and bounded equality behavior.
+General arithmetic/trig source lowering, symbolic Quantity coordinates,
+certified π/compound-expression projection and ordinary numerical Back selection
+still require their own integration. Existing fixed-width arithmetic keeps its
+current carrier and prepared execution path.
+
+## Certified compound-expression enclosure in development
+
+`PreparedMathematicalEnclosure` prepares an exact rational enclosure for the
+supported bounded mathematical DAG. Literal rationals retain point intervals;
+roots use the checked principal-root bisection certificate. π uses
+`π = 16 atan(1/5) - 4 atan(1/239)` with exact alternating-series remainder
+bounds. τ is already the canonical product `2 × π`, so it uses the same
+certificate and exact multiplication rather than an independent rounded value.
+
+The [arctangent series](https://dlmf.nist.gov/4.24#E3) has decreasing alternating
+terms for these arguments. A partial sum and its first omitted term enclose
+the exact arctangent. Machin's identity follows from the tangent addition law:
+with `a = atan(1/5)` and `b = atan(1/239)`, `tan(4a) = 120/119` and
+`tan(4a-b) = 1`. The alternating bounds place `4a-b` in the principal first
+quadrant, fixing it as `π/4` rather than another tangent branch. No decimal
+constant or host float routine supplies the proof.
+
+Addition, subtraction, negation, multiplication and rational division propagate
+outward intervals through every selected operation. The final composed width
+must meet the consumer's maximum, independently of each leaf's width. Shared
+nodes are evaluated once, but sharing alone does not manufacture an algebraic
+identity: interval evaluation of `π-π` can retain a nonzero width. This is an
+exact-interval algorithm, not evidence for the intermediate rounding behavior
+of a separate IEEE algorithm.
+
+Requests admit constant terms, root refinements, limb work, scratch payload and
+retained payload bytes. Host admission must separately account for allocator
+overhead and stack frames. Rational-only preparation needs no graph scratch.
+A zero-width π leaf refuses this rational-interval strategy immediately; the
+exact symbolic source remains available for another strategy. Exhausted work,
+terms, payload storage, root refinement and final tolerance refuse distinctly.
+
+Preparation seals the original mathematical source, endpoints, actual width,
+requirements, payload sizes and spent limb work. The existing generic projection
+report distinguishes exact point results from certified precision loss and
+validates the complete retained evidence without repeating arithmetic. An
+explicitly budgeted certificate comparison can prove equality from identical
+source values or matching point intervals, and difference from disjoint
+enclosures; overlapping intervals remain unknown. These are core
+preparation/fidelity proofs. Ordinary Back offers, Planner selection,
+source requirement syntax, Plan/Play receipts and dimensioned symbolic Unit
+projections remain separate unfinished integration gates.

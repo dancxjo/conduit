@@ -114,6 +114,10 @@ pub(super) fn atomic(
             _ => None,
         })
         .unwrap_or(kind.as_str());
+    if represented_kind == conduit_core::MATHEMATICAL_VALUE_ID {
+        crate::mathematical_value::encode(text).map_err(|message| diagnostic(span, &message))?;
+        return Ok(expected.clone());
+    }
     if represented_kind == conduit_core::F32_INFO_ID {
         crate::ieee_literal::f32_bits(text).map_err(|message| diagnostic(span, &message))?;
         return Ok(expected.clone());
