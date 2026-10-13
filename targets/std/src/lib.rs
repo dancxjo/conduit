@@ -196,7 +196,8 @@ pub mod pico_usb_source;
 pub mod pico_wifi_bootstrap;
 pub mod pool_member_sessions;
 pub use local_model_pool_member::{
-    AdmittedLocalModelPoolMember, LocalModelCompletedWork, LocalModelMeasurementRefusal,
+    AdmittedLocalModelPoolMember, LocalModelCompletedWork, LocalModelCompletionCalibrationRefusal,
+    LocalModelMeasurementRefusal, LocalModelPreparedCalibration,
 };
 pub mod pool_webchat;
 pub mod r1_control;

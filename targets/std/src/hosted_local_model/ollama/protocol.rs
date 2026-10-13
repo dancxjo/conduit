@@ -34,11 +34,13 @@ pub(super) struct ShowResponse {
 pub(super) struct GenerateResponse {
     pub(super) response: String,
     #[serde(default)]
+    pub(super) done: Option<bool>,
+    #[serde(default)]
     pub(super) done_reason: String,
     #[serde(default)]
-    pub(super) prompt_eval_count: u64,
+    pub(super) prompt_eval_count: Option<u64>,
     #[serde(default)]
-    pub(super) eval_count: u64,
+    pub(super) eval_count: Option<u64>,
 }
 
 #[derive(Deserialize)]
@@ -55,7 +57,7 @@ pub(super) struct ExtractionWire {
 pub(super) struct EmbedResponse {
     pub(super) embeddings: Vec<Vec<f32>>,
     #[serde(default)]
-    pub(super) prompt_eval_count: u64,
+    pub(super) prompt_eval_count: Option<u64>,
 }
 
 #[derive(Deserialize)]
@@ -73,11 +75,13 @@ pub(super) struct InterpretationWire {
 pub(super) struct ChatResponse {
     pub(super) message: ChatMessage,
     #[serde(default)]
+    pub(super) done: Option<bool>,
+    #[serde(default)]
     pub(super) done_reason: String,
     #[serde(default)]
-    pub(super) prompt_eval_count: u64,
+    pub(super) prompt_eval_count: Option<u64>,
     #[serde(default)]
-    pub(super) eval_count: u64,
+    pub(super) eval_count: Option<u64>,
 }
 
 #[derive(Deserialize)]
