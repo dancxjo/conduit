@@ -17,3 +17,8 @@ Recheck wire bytes with:
 
 Recheck lifecycle with the repository proof/check_play_receipts.py on serial.log.
 validation.json binds all retained files with SHA-256.
+
+The retained decode_public.rs validates canonical public snapshot/completed/
+drained values, all 72 frame/requested/actual extents and final original PCM.
+Build it against this repository's conduit_core; run it with serial.log and
+original-pcm.bin as its two arguments. It does not replace wire verification.

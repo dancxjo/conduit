@@ -28,6 +28,7 @@
     "original-pcm.bin": "80583a0c5cada4a15c9a6e7ce5a5ab03c1fc23e955ce685100faf11a8c285c81",
     "root-request.json": "4acd344bc7b7bc49b76f198ea8ba0a949cf64b992e6cda2fe5bc904eb059f7c7",
     "protocol-source.json": "03de725b1218d7ba8a5d9d21b58fbb11ff14089b0353619ac782cc53af6d87ab",
-    "verify_wire.py": "bc2931fcf65d2deef91b6423b2c0828563d4c10b8f4f30c067ceec130808a628"
+    "verify_wire.py": "bc2931fcf65d2deef91b6423b2c0828563d4c10b8f4f30c067ceec130808a628",
+    "decode_public.rs": "60722b4b6285ad015a250cf135210634093f64b3ec63f5fea092bc8648f8b268"
   }
 }
