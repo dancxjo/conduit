@@ -189,3 +189,48 @@ fn endpoint_stop_event_budget_is_finite() {
         }
     });
 }
+
+#[test]
+fn endpoint_reset_and_dequeue_require_exact_slot_success() {
+    for (slot, code, delta, accepted) in [
+        (1, 1, 0, true),
+        (2, 1, 0, false),
+        (1, 6, 0, false),
+        (1, 1, 16, false),
+    ] {
+        for reset in [true, false] {
+            with_synthetic_stop_controller(slot, code, delta, |mut controller| {
+                let result = unsafe {
+                    if reset {
+                        controller.reset_original_halted_endpoint(1, 3)
+                    } else {
+                        controller.set_original_stopped_endpoint_dequeue(1, 3, 0x4000, 1)
+                    }
+                };
+                assert_eq!(result.is_ok(), accepted);
+                unsafe {
+                    let command =
+                        core::ptr::read_volatile(core::ptr::addr_of!(DMA.command_ring[0]));
+                    assert_eq!((command[3] >> 10) & 63, if reset { 14 } else { 16 });
+                    assert_eq!((command[3] >> 16) & 31, 3);
+                    assert_eq!(command[3] >> 24, 1);
+                    assert_eq!(command[0], if reset { 0 } else { 0x4001 });
+                    assert_eq!(synthetic_stop_dcbaa(), 0xfeed0000);
+                }
+            });
+        }
+    }
+}
+
+#[test]
+fn endpoint_dequeue_rejects_invalid_position_before_publication() {
+    with_synthetic_stop_controller(1, 1, 0, |mut controller| {
+        for (address, cycle) in [(0, 1), (0x4001, 1), (0x4000, 2)] {
+            assert_eq!(
+                unsafe { controller.set_original_stopped_endpoint_dequeue(1, 3, address, cycle) },
+                Err(XhciError::InvalidLayout)
+            );
+        }
+        assert_eq!(controller.command_enqueue, 0);
+    });
+}

@@ -9,6 +9,7 @@ use core::{
     ptr::{read_volatile, write_volatile},
 };
 
+mod endpoint_commands;
 #[path = "xhci_mechanism/event.rs"]
 mod event;
 #[path = "xhci_mechanism/ordering.rs"]
