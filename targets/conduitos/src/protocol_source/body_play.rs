@@ -158,6 +158,24 @@ impl<P: I2cProvider, C: MonotonicDeadlineProvider> PreparedProtocolBodyPlay<P, C
         })
     }
 
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    pub(crate) fn prepare_storage_usb_duplex_two_pairs(
+        artifact: PreparedProtocolArtifact,
+        session: BodyLifecycleSession,
+        play_sequence: u64,
+        admission: crate::protocol_play::StorageUsbAdmission,
+        additional: crate::protocol_host_calls::AdditionalStoragePairAdmission,
+    ) -> Result<Self, Box<ProtocolBodyPreparationRefusal>> {
+        Self::prepare_with(artifact, session, play_sequence, |artifact| {
+            artifact
+                .prepare_storage_usb_duplex_two_pairs::<P>(admission, additional)
+                .map(|kernel| ProtocolKernel::WithoutClock(Box::new(kernel)))
+        })
+    }
+
     fn prepare_with(
         artifact: PreparedProtocolArtifact,
         session: BodyLifecycleSession,
