@@ -209,6 +209,21 @@ impl PreparedProtocolArtifact {
         target_arch = "x86_64",
         all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
     ))]
+    pub(crate) fn prepare_usb_endpoint_only<P: crate::i2c_base::I2cProvider>(
+        self,
+        usb: crate::protocol_play::UsbEndpointAdmission,
+    ) -> Result<crate::protocol_play::PreparedProtocolPlay<P>, ProtocolCallRefusal> {
+        crate::protocol_play::PreparedProtocolPlay::prepare_usb_endpoint_only(
+            self.artifact.into_definition(),
+            usb,
+            self.operations,
+        )
+    }
+
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
     pub(crate) fn prepare_usb_protocol<P: crate::i2c_base::I2cProvider>(
         self,
         usb: crate::protocol_play::UsbProtocolAdmission,

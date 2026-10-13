@@ -47,6 +47,30 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
         )
     }
 
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    pub(crate) fn prepare_usb_endpoint_only(
+        definition: KernelCompositeDefinition,
+        admission: UsbEndpointAdmission,
+        operations: crate::protocol_operations::ProtocolOperations,
+    ) -> Result<Self, ProtocolCallRefusal> {
+        Self::prepare_selected(
+            definition,
+            operations,
+            false,
+            PhysicalMode::UsbProtocol,
+            conduit_composite::KernelCompositeSignStorage {
+                additional_local_items: 0,
+                additional_remote_items: admission.additional_remote_sign_items,
+            },
+            |plan, zip, states| {
+                PreparedProtocolCalls::prepare_usb_endpoint_only(plan, admission, zip, states)
+            },
+        )
+    }
+
     /// Both exact native operations retain one controller and ordinary kernel.
     #[cfg(any(
         target_arch = "x86_64",
