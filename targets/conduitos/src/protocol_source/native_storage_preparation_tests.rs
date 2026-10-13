@@ -244,19 +244,21 @@ fn selected_fixture() -> (
         ("gear/second-s", contract.settle_kind()),
     ]
     .into_iter()
-    .map(|(id, kind)| conduit_plot::CheckedGear {
-        gear_id: id.into(),
-        kind_id: kind.kind_id.clone(),
-        kind_contract_revision: kind.kind_contract_revision.clone(),
-        startup_parameters: kind.startup_parameters.clone(),
-        shorthand: kind.shorthand.clone(),
-        inputs: kind.inputs.clone(),
-        outputs: kind.outputs.clone(),
-        semantic_contract: kind.semantic_contract(),
-        terminal_transductions: vec![],
-        resource_ports: vec![],
-        configuration: vec![],
-        pool_references: vec![],
+    .map(|(id, kind)| {
+        conduit_plot::checked_gear_from_parts! {
+            gear_id: id.into(),
+            kind_id: kind.kind_id.clone(),
+            kind_contract_revision: kind.kind_contract_revision.clone(),
+            startup_parameters: kind.startup_parameters.clone(),
+            shorthand: kind.shorthand.clone(),
+            inputs: kind.inputs.clone(),
+            outputs: kind.outputs.clone(),
+            semantic_contract: kind.semantic_contract(),
+            terminal_transductions: vec![],
+            resource_ports: vec![],
+            configuration: vec![],
+            pool_references: vec![],
+        }
     })
     .collect::<Vec<_>>();
     // Deliberately reverse both default choices: trusted bindings must replace
