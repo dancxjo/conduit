@@ -1,0 +1,22 @@
+{
+  "aarch64_firmware_sha256": null,
+  "architecture": "x86_64",
+  "emulator": "/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/../audio-output-envelope-native/qemu_audio_wrapper.py",
+  "fixture_input": {
+    "command": null,
+    "injected": false,
+    "injection_gate": "CONDUIT_PROTOCOL_PLAY",
+    "maximum_reports": 0,
+    "requested": false
+  },
+  "image_sha256": "7f54eb29e08a394491891a1bb83bbc6b2ff5abd848f2aa46df4837cc6eb9aa7f",
+  "maximum_transcript_bytes": 2097152,
+  "outcome": "play-retired",
+  "physical_compatibility": "unverified",
+  "proof_class": "freestanding-emulator",
+  "qemu_profile": "q35-single-cpu-512m-headless",
+  "schema": "conduit.conduitos/protocol-run-receipt@1",
+  "serial_sha256": "18c2b2f7196673353a14bedbc8adba2d1127b860579f04f6fbfcbeaa8d822737",
+  "usb_devices": [],
+  "usb_storage_fixture": null
+}
