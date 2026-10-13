@@ -107,7 +107,7 @@ impl Natural {
             Ok(result)
         }
     }
-    fn shifted(self, shift: usize, work: &mut Work) -> Result<Self, R> {
+    pub(super) fn shifted(self, shift: usize, work: &mut Work) -> Result<Self, R> {
         work.charge(LIMBS as u64)?;
         if self.bits() + shift > EXACT_NUMERIC_MAX_BITS {
             return Err(R::ExtentExceeded);
