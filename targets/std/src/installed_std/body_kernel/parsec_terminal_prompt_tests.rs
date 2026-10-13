@@ -10,13 +10,13 @@ use conduit_plan_lowering::{
     lowering::FIXED_KERNEL_STORAGE_PROFILE,
 };
 
-struct Pending;
+pub(in crate::installed_std::body_kernel::parsec_terminal_owner) struct Pending;
 impl crate::hosted_keyboard::HostedKeyboardAdapter for Pending {
     fn poll_next(&mut self) -> crate::hosted_keyboard::HostedKeyboardPoll {
         crate::hosted_keyboard::HostedKeyboardPoll::Pending
     }
 }
-fn prepared_keys<'a>(
+pub(in crate::installed_std::body_kernel::parsec_terminal_owner) fn prepared_keys<'a>(
     adapter: &'a mut Pending,
     host: &HostAdvertisement,
     plan: &BodyPlan,
@@ -81,7 +81,10 @@ fn prepared_keys<'a>(
         .collect();
     (keys, requests)
 }
-fn accept(keys: &mut KeyboardInputHost<'_>, requests: &[(HostCallRequest, InputRequestKind)]) {
+pub(in crate::installed_std::body_kernel::parsec_terminal_owner) fn accept(
+    keys: &mut KeyboardInputHost<'_>,
+    requests: &[(HostCallRequest, InputRequestKind)],
+) {
     for (request, kind) in requests {
         keys.accept(*request, &[], *kind).unwrap();
     }
@@ -117,7 +120,7 @@ fn only_exact_accepted_request_enables_source_space_prompt_and_epoch() {
         .unwrap());
     assert!(std::str::from_utf8(&output)
         .unwrap()
-        .contains("Press Space to game/start."));
+        .contains("Input: Space to Begin."));
     assert!(owner
         .prompt_input_view_epoch(&map, host.advertisement(), &keys)
         .unwrap()
@@ -182,7 +185,7 @@ fn remap_withdraws_space_and_requires_new_show_before_source_enter_instruction()
         .unwrap();
     assert!(std::str::from_utf8(&output[start..])
         .unwrap()
-        .contains("Press Enter to game/start."));
+        .contains("Input: Enter to Begin."));
     assert_ne!(
         owner
             .prompt_input_view_epoch(&map, host.advertisement(), &keys)
@@ -367,12 +370,72 @@ fn read_only_instruction_observation_exists_only_after_exact_scope_and_flush() {
         serialized["body_play"]["active_play_id"],
         play.active_play_id.as_str()
     );
-    assert!(observation
-        .prompt_text()
-        .contains("Press Space to game/start."));
+    assert!(observation.prompt_text().contains("Input: Space to Begin."));
     keys.cancel();
     assert!(owner
         .instruction_observation(&map, host.advertisement(), &keys)
         .unwrap()
         .is_none());
+}
+
+#[test]
+fn instruction_witness_requires_current_accepted_scope_and_exact_mask_play() {
+    let (host, plan, play, identity, _, _) = super::super::tests::fixture();
+    let mut map =
+        ParsecAcknowledgedMap::prepare(&plan, host.advertisement(), &play, &identity).unwrap();
+    map.confirm(host.advertisement(), &play).unwrap();
+    let mut owner = ParsecTerminalOwner::prepare(&plan, host.advertisement(), 80, 24).unwrap();
+    owner
+        .ensure_present(&map, host.advertisement(), &mut Vec::new())
+        .unwrap();
+    let mut adapter = Pending;
+    let (mut keys, requests) = prepared_keys(&mut adapter, host.advertisement(), &plan, &play);
+    assert!(owner
+        .qualify_instruction(&map, host.advertisement(), &keys)
+        .unwrap()
+        .is_none());
+    accept(&mut keys, &requests);
+    let request = owner
+        .execution
+        .pending_instruction_request(host.advertisement())
+        .unwrap();
+    assert_eq!(request.request, RequestId(0));
+    assert!(request.input.value.byte_len > 0);
+    let witness = owner
+        .qualify_instruction(&map, host.advertisement(), &keys)
+        .unwrap()
+        .unwrap();
+    assert_eq!(witness.map_bytes(), map.current_state().unwrap());
+    assert!(
+        *ActionInputBindingProposalInfo::decode(witness.binding_bytes())
+            .unwrap()
+            .available()
+    );
+    let mask = witness.show.planned_mask.clone();
+    let active = conduit_core::bind_active_play(
+        &mask.plan.plan_id,
+        &host.advertisement().host_id,
+        &host.advertisement().boot_id,
+        witness.show.show.play_sequence,
+    );
+    witness
+        .require_source_scope(&plan, &play, &mask, &active, host.advertisement())
+        .unwrap();
+    let mut wrong = active.clone();
+    wrong.play_sequence += 1;
+    assert!(witness
+        .require_source_scope(&plan, &play, &mask, &wrong, host.advertisement())
+        .is_err());
+    let mut changed = host.advertisement().clone();
+    changed.offer_generation.0 += 1;
+    assert!(witness
+        .require_source_scope(&plan, &play, &mask, &active, &changed)
+        .is_err());
+    let witness = owner
+        .revalidate_instruction(witness, &map, host.advertisement(), &keys)
+        .unwrap();
+    keys.cancel();
+    assert!(owner
+        .revalidate_instruction(witness, &map, host.advertisement(), &keys)
+        .is_err());
 }

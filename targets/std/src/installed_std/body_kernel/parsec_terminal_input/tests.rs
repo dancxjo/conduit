@@ -1,4 +1,7 @@
-//! Concrete owner/Mask return negatives; source acknowledgements are explicit fixture steps.
+//! Concrete owner/Mask return negatives with real instruction Source/effect ACK.
+//! Key events and source scan acknowledgements are synthetic mechanism fixtures;
+//! this is not production completed-event custody or whole-Body execution proof.
+use super::super::prompt::tests::{accept, prepared_keys, Pending};
 use super::*;
 use conduit_kernel::{BoundedValueRef, HostCallId, NodeId, RequestId, ValueRef};
 
@@ -37,9 +40,16 @@ fn actual_terminal_return_refuses_stale_unmapped_and_release_then_waits_for_sour
         ParsecAcknowledgedMap::prepare(&plan, host.advertisement(), &play, &identity).unwrap();
     map.confirm(host.advertisement(), &play).unwrap();
     let mut owner = ParsecTerminalOwner::prepare(&plan, host.advertisement(), 80, 24).unwrap();
+    let mut output = Vec::new();
+    let mut adapter = Pending;
+    let (mut keys, requests) = prepared_keys(&mut adapter, host.advertisement(), &plan, &play);
+    accept(&mut keys, &requests);
     owner
-        .ensure_present(&map, host.advertisement(), &mut Vec::new())
+        .ensure_present(&map, host.advertisement(), &mut output)
         .unwrap();
+    assert!(owner
+        .sync_prompt(&map, host.advertisement(), &keys, &mut output)
+        .unwrap());
     let initial = owner
         .current_face_show(&map, host.advertisement())
         .unwrap()
@@ -102,7 +112,7 @@ fn actual_terminal_return_refuses_stale_unmapped_and_release_then_waits_for_sour
         .unwrap()
         .is_none());
     assert!(!owner
-        .ensure_present(&map, host.advertisement(), &mut Vec::new())
+        .ensure_present(&map, host.advertisement(), &mut output)
         .unwrap());
     assert!(!owner
         .admit_completed_input(&map, host.advertisement(), &fire, &press, &queue)
@@ -121,7 +131,10 @@ fn actual_terminal_return_refuses_stale_unmapped_and_release_then_waits_for_sour
         .to_vec();
     map.acknowledge_lowered(&port, node, 0, &result).unwrap();
     assert!(owner
-        .ensure_present(&map, host.advertisement(), &mut Vec::new())
+        .ensure_present(&map, host.advertisement(), &mut output)
+        .unwrap());
+    assert!(owner
+        .sync_prompt(&map, host.advertisement(), &keys, &mut output)
         .unwrap());
     let (face, current) = owner.current_face_show(&map, host.advertisement()).unwrap();
     assert_eq!(face.actions[0].identity, "game/shoot");
@@ -142,7 +155,10 @@ fn actual_terminal_return_refuses_stale_unmapped_and_release_then_waits_for_sour
         .unwrap()
         .is_none());
     assert!(owner
-        .ensure_present(&map, host.advertisement(), &mut Vec::new())
+        .ensure_present(&map, host.advertisement(), &mut output)
+        .unwrap());
+    assert!(owner
+        .sync_prompt(&map, host.advertisement(), &keys, &mut output)
         .unwrap());
     assert_ne!(
         owner
@@ -163,7 +179,10 @@ fn actual_terminal_return_refuses_stale_unmapped_and_release_then_waits_for_sour
         .to_vec();
     map.acknowledge_lowered(&port, node, 1, &remapped).unwrap();
     assert!(owner
-        .ensure_present(&map, host.advertisement(), &mut Vec::new())
+        .ensure_present(&map, host.advertisement(), &mut output)
+        .unwrap());
+    assert!(owner
+        .sync_prompt(&map, host.advertisement(), &keys, &mut output)
         .unwrap());
     let epoch = owner
         .input_view_epoch(&map, host.advertisement())

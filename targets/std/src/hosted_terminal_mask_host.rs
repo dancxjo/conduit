@@ -44,8 +44,10 @@ impl StdHost {
             return Err("terminal attachment peer already closed".into());
         }
         let mut advertisement = self.advertisement.clone();
-        let capabilities = terminal_mask_execution::planning::attached_terminal_capabilities();
-        let resources = terminal_mask_execution::planning::attached_terminal_resources();
+        let mut capabilities = terminal_mask_execution::planning::attached_terminal_capabilities();
+        capabilities.extend(terminal_mask_execution::planning::parsec_instruction_capabilities()?);
+        let mut resources = terminal_mask_execution::planning::attached_terminal_resources();
+        resources.extend(terminal_mask_execution::planning::parsec_instruction_resources());
         if capabilities.iter().any(|offer| {
             advertisement
                 .capabilities
@@ -79,11 +81,15 @@ impl StdHost {
             return Err("terminal detachment requires an idle attached Host".into());
         }
         let mut advertisement = self.advertisement.clone();
-        let capability_ids = terminal_mask_execution::planning::attached_terminal_capabilities()
+        let mut capabilities = terminal_mask_execution::planning::attached_terminal_capabilities();
+        capabilities.extend(terminal_mask_execution::planning::parsec_instruction_capabilities()?);
+        let capability_ids = capabilities
             .into_iter()
             .map(|offer| offer.capability_id)
             .collect::<Vec<_>>();
-        let pool_ids = terminal_mask_execution::planning::attached_terminal_resources()
+        let mut resources = terminal_mask_execution::planning::attached_terminal_resources();
+        resources.extend(terminal_mask_execution::planning::parsec_instruction_resources());
+        let pool_ids = resources
             .into_iter()
             .map(|offer| offer.pool_id)
             .collect::<Vec<_>>();

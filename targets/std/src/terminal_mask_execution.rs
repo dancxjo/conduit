@@ -18,10 +18,16 @@ use conduit_presentation::{
 
 #[path = "terminal_mask_execution/backs.rs"]
 mod backs;
+#[path = "terminal_mask_execution/instruction.rs"]
+mod instruction;
 #[path = "terminal_mask_execution/kernel.rs"]
 mod kernel;
+#[path = "terminal_mask_execution/parsec_instruction_effect.rs"]
+mod parsec_instruction_effect;
 #[path = "terminal_mask_execution/planning.rs"]
 pub(crate) mod planning;
+#[path = "terminal_mask_execution/play.rs"]
+mod play;
 #[cfg(test)]
 #[path = "terminal_mask_execution/tests.rs"]
 mod tests;
@@ -51,6 +57,7 @@ pub struct HostedTerminalMaskExecution {
     read_only: bool,
     next_sequence: u64,
     scope_end: Option<u64>,
+    body_scope: Option<(conduit_body::BodyPlan, conduit_body::BodyPlayIdentity)>,
     pending: Option<Play>,
     host_retired: bool,
 }
@@ -65,9 +72,19 @@ struct Play {
     awaiting_input: bool,
     read_only: bool,
     retired: bool,
+    instruction_admission: Option<
+        crate::installed_std::parsec_instruction_source_admission::ParsecInstructionSourceAdmission,
+    >,
+    instruction_node: Option<conduit_kernel::NodeId>,
+    instruction_effect: Option<conduit_plan_lowering::lowering::LoweredHostCall>,
+    instruction_request: Option<HostCallRequest>,
+    acknowledged_show_value: Option<conduit_kernel::ValueRef>,
 }
 impl Drop for Play {
     fn drop(&mut self) {
+        if let Some(admission) = &mut self.instruction_admission {
+            admission.revoke();
+        }
         if !self.retired {
             let _ = self.scheduler.cancel();
         }
@@ -92,6 +109,7 @@ impl HostedTerminalMaskExecution {
     /// Called only with the private map owner's confirmed parent Play.
     pub(crate) fn bind_parsec_body_scope(
         &mut self,
+        plan: &conduit_body::BodyPlan,
         parent: &conduit_body::BodyPlayIdentity,
         maximum_shows: u16,
     ) -> Result<(), TerminalError> {
@@ -99,6 +117,7 @@ impl HostedTerminalMaskExecution {
             || self.next_sequence != 0
             || self.pending.is_some()
             || self.host_retired
+            || !parent.validate_for(plan)
             || maximum_shows == 0
             || maximum_shows > 64
         {
@@ -113,6 +132,7 @@ impl HostedTerminalMaskExecution {
             .ok_or_else(|| error("terminal Body sequence scope exhausted"))?;
         self.next_sequence = base;
         self.scope_end = Some(end);
+        self.body_scope = Some((plan.clone(), parent.clone()));
         Ok(())
     }
 
@@ -127,6 +147,7 @@ impl HostedTerminalMaskExecution {
             read_only,
             next_sequence: 0,
             scope_end: None,
+            body_scope: None,
             pending: None,
             host_retired: false,
         })
@@ -182,7 +203,7 @@ impl TerminalMaskExecution for HostedTerminalMaskExecution {
         let show = MaskShow::prepared(
             &self.planned,
             face,
-            active,
+            active.clone(),
             face.subjects
                 .first()
                 .ok_or(TerminalError::InvalidFace)?
@@ -227,6 +248,47 @@ impl TerminalMaskExecution for HostedTerminalMaskExecution {
         {
             return Err(error("terminal Host Call binding mismatch"));
         }
+        let instruction_node = lowered
+            .host_calls
+            .iter()
+            .find(|call| {
+                call.contract_id.as_str()
+                    == crate::flow_activation::parsec_instruction_source_offer::CONTRACT
+            })
+            .map(|call| call.node);
+        let instruction_effect = lowered
+            .host_calls
+            .iter()
+            .find(|call| call.contract_id.as_str() == parsec_instruction_effect::CONTRACT)
+            .cloned();
+        if instruction_node.is_some() != instruction_effect.is_some() {
+            return Err(error(
+                "instruction Source and effect must be selected together",
+            ));
+        }
+        if let Some(effect) = &instruction_effect {
+            let placement = fragment
+                .placements
+                .iter()
+                .find(|p| p.kind_id.as_str() == parsec_instruction_effect::KIND)
+                .ok_or_else(|| error("instruction effect placement is absent"))?;
+            if placement.implementation_id.as_str() != parsec_instruction_effect::IMPLEMENTATION
+                || effect.binding.maximum_input_bytes != crate::flow_activation::parsec_instruction_source_offer::MAXIMUM_INSTRUCTION_BYTES
+                || effect.binding.maximum_output_bytes != 0 {
+                return Err(error("instruction effect differs from exact selected Back"));
+            }
+        }
+        let mut instruction_admission = if instruction_node.is_some() {
+            let (parent_plan, parent_play) = self
+                .body_scope
+                .as_ref()
+                .ok_or_else(|| error("Parsec instruction has no issued parent scope"))?;
+            Some(crate::installed_std::parsec_instruction_source_admission::ParsecInstructionSourceAdmission::prepare(
+                &self.host, parent_plan, parent_play, &self.planned, &active,
+                &lowered.identity, &lowered.host_calls).map_err(error)?)
+        } else {
+            None
+        };
         let mut scheduler = Box::new(kernel::prepare(fragment, &lowered)?);
         if scheduler
             .admit_remote_input(face_fore.endpoint, face_fore.cord, 0, &bytes)
@@ -250,6 +312,15 @@ impl TerminalMaskExecution for HostedTerminalMaskExecution {
             scheduler.cancel().map_err(debug_error)?;
             return Err(error("terminal renderer received another Face"));
         }
+        if let Some(admission) = &mut instruction_admission {
+            let (_, parent) = self
+                .body_scope
+                .as_ref()
+                .ok_or_else(|| error("missing parent scope"))?;
+            admission
+                .confirm_issued(parent, &active, &self.host)
+                .map_err(error)?;
+        }
         self.pending = Some(Play {
             scheduler,
             face: face.clone(),
@@ -261,6 +332,11 @@ impl TerminalMaskExecution for HostedTerminalMaskExecution {
             awaiting_input: false,
             read_only: self.read_only,
             retired: false,
+            instruction_admission,
+            instruction_node,
+            instruction_effect,
+            instruction_request: None,
+            acknowledged_show_value: None,
         });
         Ok(show)
     }
@@ -289,10 +365,15 @@ impl TerminalMaskExecution for HostedTerminalMaskExecution {
             .map_err(debug_error)?;
         let bytes = serde_json::to_vec(&available).map_err(debug_error)?;
         play.complete_call(Some(&bytes))?;
+        play.show = available;
         let mut observed = false;
         let mut pending = None;
         for _ in 0..64 {
             if let Some(request) = play.scheduler.next_host_request() {
+                if Some(request.node) == play.instruction_node {
+                    play.accept_instruction_request(request, &self.host)?;
+                    continue;
+                }
                 if play.read_only
                     || pending.is_some()
                     || Some(request.node) != play.interaction_node
@@ -400,88 +481,4 @@ fn wait_request(scheduler: &mut kernel::Scheduler) -> Result<HostCallRequest, Te
         step(scheduler)?;
     }
     Err(error("terminal Host Call work bound exhausted"))
-}
-impl Play {
-    fn complete_call(&mut self, bytes: Option<&[u8]>) -> Result<(), TerminalError> {
-        let output = bytes
-            .map(|bytes| {
-                if bytes.len() > MAX_TERMINAL_VALUE_BYTES as usize {
-                    return Err(TerminalError::DocumentPressure);
-                }
-                let value = self
-                    .scheduler
-                    .store_host_value(bytes)
-                    .map_err(debug_error)?;
-                BoundedValueRef::new(value, bytes.len() as u32).map_err(debug_error)
-            })
-            .transpose()?;
-        self.scheduler
-            .complete_host_call(
-                self.request.node,
-                self.request.request,
-                HostCallOutcome {
-                    disposition: HostCallDisposition::Completed,
-                    output,
-                    failure: None,
-                },
-            )
-            .map_err(debug_error)
-    }
-    fn take_output(&mut self, port: &LoweredForePort) -> Result<Option<Vec<u8>>, TerminalError> {
-        let Some(offer) = self
-            .scheduler
-            .remote_egress_offer(port.endpoint, port.cord)
-            .map_err(debug_error)?
-        else {
-            return Ok(None);
-        };
-        let bytes = self
-            .scheduler
-            .host_value(offer.value)
-            .map_err(debug_error)?
-            .to_vec();
-        self.scheduler
-            .remote_egress_accept(port.endpoint, port.cord, offer.sequence)
-            .map_err(debug_error)?;
-        self.scheduler
-            .remote_egress_delivered(port.endpoint, port.cord, offer.sequence)
-            .map_err(debug_error)?;
-        Ok(Some(bytes))
-    }
-    fn finish(&mut self, expected: Option<&[u8]>) -> Result<Option<Vec<u8>>, TerminalError> {
-        let mut observed = None;
-        for _ in 0..64 {
-            if self.scheduler.next_host_request().is_some() {
-                return Err(error("unexpected terminal Host Call"));
-            }
-            if let Some(actual) = self.take_output(&self.interaction_fore.clone())? {
-                if observed.is_some() || Some(actual.as_slice()) != expected {
-                    return Err(error("terminal interaction Fore mismatch"));
-                }
-                observed = Some(actual);
-            }
-            match self.scheduler.step().map_err(debug_error)? {
-                SchedulerStatus::Drained => {
-                    if observed.is_some() != expected.is_some() {
-                        return Err(error("terminal interaction delivery absent"));
-                    }
-                    for port in [&self.show_fore, &self.interaction_fore] {
-                        if self
-                            .scheduler
-                            .remote_egress_terminal_disposition(port.endpoint, port.cord)
-                            .map_err(debug_error)?
-                            != Some(RemoteTerminalDisposition::NormalClose)
-                        {
-                            return Err(error("terminal Fore did not close normally"));
-                        }
-                    }
-                    self.retired = true;
-                    return Ok(observed);
-                }
-                SchedulerStatus::Progress { .. } => {}
-                _ => return Err(error("terminal Mask failed to drain")),
-            }
-        }
-        Err(error("terminal Mask drain work bound exhausted"))
-    }
 }

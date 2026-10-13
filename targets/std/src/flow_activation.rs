@@ -13,6 +13,7 @@ use conduit_core::{
 mod parsec_combine;
 mod parsec_combine_back;
 mod parsec_input_instruction_plan;
+pub(crate) mod parsec_instruction_source_offer;
 mod parsec_scan_offer;
 mod parsec_source_plan;
 pub use parsec_input_instruction_plan::{

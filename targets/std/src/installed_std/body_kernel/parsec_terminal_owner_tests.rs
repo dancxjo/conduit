@@ -34,6 +34,9 @@ fn terminal_host() -> crate::StdHost {
         conduit_std_offers::button::offer(),
     ]);
     offers.extend(crate::terminal_mask_execution::planning::attached_terminal_capabilities());
+    offers.extend(
+        crate::terminal_mask_execution::planning::parsec_instruction_capabilities().unwrap(),
+    );
     for offer in offers {
         if let Some(existing) = advertisement
             .capabilities
@@ -56,6 +59,9 @@ fn terminal_host() -> crate::StdHost {
     advertisement
         .resources
         .extend(crate::terminal_mask_execution::planning::attached_terminal_resources());
+    advertisement
+        .resources
+        .extend(crate::terminal_mask_execution::planning::parsec_instruction_resources());
     advertisement.resources.sort();
     // Every fixture capability/resource is selected before the actual runner is constructed.
     crate::StdHost::from_advertisement(advertisement).unwrap()

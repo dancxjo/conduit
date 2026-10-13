@@ -28,20 +28,16 @@ pub(super) fn plan_attached(host: &HostAdvertisement) -> Result<PlannedMaskPlot,
     plan_on_host(host, host)
 }
 
-pub(super) fn plan_attached_parsec(
+pub(crate) fn plan_attached_parsec(
     host: &HostAdvertisement,
 ) -> Result<PlannedMaskPlot, TerminalError> {
     validate_attached_host(host)?;
-    // Reuse the exact ordinary graph under a distinct checked Plot identity,
-    // keeping its Body-scoped Plays separate from ordinary terminal Plays.
-    let source = include_str!("terminal.conduit");
-    if source.matches("plot terminal (").count() != 1 {
-        return Err(error(
-            "terminal graph no longer has its reviewed Plot header",
-        ));
-    }
-    let source = source.replacen("plot terminal (", "plot parsec/terminal-mask (", 1);
-    plan_on_host_source(host, host, &source, "parsec/terminal-mask")
+    plan_on_host_source(
+        host,
+        host,
+        include_str!("parsec_terminal.conduit"),
+        "parsec/terminal-mask",
+    )
 }
 
 fn validate_attached_host(host: &HostAdvertisement) -> Result<(), TerminalError> {
@@ -102,6 +98,15 @@ fn plan_on_host_source(
             })
             .map_err(debug_error)?;
         catalog.insert(kind).map_err(debug_error)?;
+    }
+    if name == "parsec/terminal-mask" {
+        crate::flow_activation::parsec_instruction_source_offer::install_catalogs(
+            &mut startup,
+            &mut catalog,
+        )
+        .map_err(error)?;
+        super::parsec_instruction_effect::install_catalogs(&mut startup, &mut catalog)
+            .map_err(error)?;
     }
     let checked =
         check_syntax_document(&parse_syntax_document(source), &startup).map_err(debug_error)?;
@@ -224,4 +229,72 @@ pub(crate) fn terminal_resources() -> Vec<ResourceOffer> {
 
 pub(crate) fn attached_terminal_resources() -> Vec<ResourceOffer> {
     terminal_resources()
+}
+
+/// Extra exact offers for the internal Parsec instruction encounter.
+/// These retain the existing single terminal-output reservation.
+pub(crate) fn parsec_instruction_capabilities() -> Result<Vec<CapabilityOffer>, String> {
+    Ok(vec![
+        crate::flow_activation::parsec_instruction_source_offer::offer()?,
+        super::parsec_instruction_effect::offer()?,
+        crate::flow_activation::required_parsec_input_instruction_offer()?,
+    ])
+}
+
+/// Actual attached-provider supplementary operation reservation.
+pub(crate) fn parsec_instruction_resources() -> Vec<ResourceOffer> {
+    vec![super::parsec_instruction_effect::resource()]
+}
+
+#[cfg(test)]
+mod parsec_instruction_tests {
+    use super::*;
+    #[test]
+    fn parsec_instruction_stays_internal_to_canonical_mask_front() {
+        let mut host = crate::StdHost::new_with_config(crate::StdHostConfig {
+            host_id: "proof/parsec-internal-instruction".into(),
+            boot_id: "proof/parsec-internal-instruction/boot".into(),
+            offer_generation: OfferGeneration(1),
+        })
+        .advertisement()
+        .clone();
+        host.capabilities.extend(attached_terminal_capabilities());
+        host.capabilities
+            .push(crate::flow_activation::parsec_instruction_source_offer::offer().unwrap());
+        host.capabilities
+            .push(super::super::parsec_instruction_effect::offer().unwrap());
+        host.resources.extend(attached_terminal_resources());
+        host.resources
+            .push(super::super::parsec_instruction_effect::resource());
+        host.capabilities
+            .sort_by(|a, b| a.capability_id.cmp(&b.capability_id));
+        host.resources.sort_by(|a, b| a.pool_id.cmp(&b.pool_id));
+        let planned = plan_attached_parsec(&host).unwrap();
+        assert_eq!(planned.plan.fragments.len(), 1);
+        let fragment = &planned.plan.fragments[0];
+        assert_eq!(fragment.placements.len(), 5);
+        let lowered = lower_plan_fragment(fragment).unwrap();
+        assert_eq!(lowered.cords.len(), 8);
+        assert_eq!(lowered.host_calls.len(), 4);
+        assert!(matches!(
+            super::super::kernel::prepare(fragment, &lowered).unwrap(),
+            super::super::kernel::Scheduler::Parsec(_)
+        ));
+        assert_eq!(
+            lowered
+                .fore_ports
+                .iter()
+                .filter(|p| p.direction == PortDirection::Input)
+                .count(),
+            1
+        );
+        assert_eq!(
+            lowered
+                .fore_ports
+                .iter()
+                .filter(|p| p.direction == PortDirection::Output)
+                .count(),
+            2
+        );
+    }
 }

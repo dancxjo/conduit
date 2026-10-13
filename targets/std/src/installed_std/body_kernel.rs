@@ -29,6 +29,7 @@ mod fore_route;
 mod parsec_acknowledged_map;
 mod parsec_sources;
 mod parsec_terminal_owner;
+pub(crate) use parsec_terminal_owner::QualifiedParsecInstruction;
 mod scan_route;
 use crate::body_execution::ObservedKernelEvent;
 use clock_observation::KernelClockObservations;
@@ -1376,3 +1377,7 @@ mod thermostat_live_fore_tests;
 #[cfg(test)]
 #[path = "body_kernel/parsec_live_fore_tests.rs"]
 mod parsec_live_fore_tests;
+
+#[cfg(test)]
+#[path = "body_kernel/parsec_instruction_source_tests.rs"]
+mod parsec_instruction_source_tests;

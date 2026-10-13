@@ -861,3 +861,33 @@ They do not decide current availability, correlate keyboard/control policy,
 grant input authority or certify a rendered instruction. Private accepted
 request ownership, internal Source Fore completion and each medium's actual
 supplementary effect acknowledgement remain required for the #5369 carrier.
+
+### Actual internal Parsec instruction execution
+
+The terminal specimen now composes an ordinary internal instruction Source and
+supplementary effect sink without changing the canonical Mask Front or Face.
+The private owner qualifies current accepted input, source map, Face/Show and
+full Host; an opaque, non-cloneable witness is revalidated before completion.
+The Source consumes the original acknowledged renderer Show value. Its actual
+scheduler completion, internal Fore forwarding and supplementary effect request
+retain the exact original instruction value, rather than reconstructing custody
+from JSON or observation metadata.
+
+The initial Show does not certify the later instruction. Source-authored linear
+Begin/Shoot wording is written and flushed through the separate admitted effect;
+the kernel consumes that exact effect completion before input becomes eligible.
+Cancellation, failed output and stale scope retire custody. The effect consumes
+the one-item Flow closure before retirement. The attached terminal advertises
+and withdraws a separate capacity-one instruction-operation reservation, keeping
+the initial terminal-output pool at one; this is a finite operation slot on the
+same provider, not another terminal device. Ordinary three-gear and Parsec
+five-gear scheduler profiles remain exact, sharing the production kernel.
+
+All 38 contributing Parsec checks pass, including the actual Start/Shoot/remap/
+refused-Space/Enter Body journey. A fresh retained exchange contains four actual
+post-effect instructions and four source transitions. Its software fixture guard
+is bounded at 30 seconds to accommodate checked preparation; the targeted journey
+completed in 12.50 seconds with all original action/state assertions intact.
+Native/browser/linear/spoken instruction encounters still need their own actual
+transport/effect evidence. This establishes neither physical controller input,
+scanout, speaker delivery nor completed cross-Mask acceptance.

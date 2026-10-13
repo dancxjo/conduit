@@ -383,4 +383,4 @@ fn combined_parsec_pending_keyboard_progresses_without_a_command_then_cancels() 
 mod input_actions;
 
 #[path = "parsec_input_body_fixture.rs"]
-mod input_fixture;
+pub(super) mod input_fixture;

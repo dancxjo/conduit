@@ -1,7 +1,7 @@
 //! Shared actual Host/Body preparation for the retained combined-input proofs.
 use super::*;
 
-pub(super) fn prepare() -> (
+pub(in crate::installed_std::body_kernel) fn prepare() -> (
     StdHost,
     RunControl,
     BodyLiveForeQueue,
@@ -14,7 +14,12 @@ pub(super) fn prepare() -> (
         offer_generation: OfferGeneration(1),
     });
     let mut advertisement = baseline.advertisement().clone();
-    for offer in crate::terminal_mask_execution::planning::attached_terminal_capabilities() {
+    let offers = crate::terminal_mask_execution::planning::attached_terminal_capabilities()
+        .into_iter()
+        .chain(
+            crate::terminal_mask_execution::planning::parsec_instruction_capabilities().unwrap(),
+        );
+    for offer in offers {
         if let Some(existing) = advertisement
             .capabilities
             .iter()
@@ -25,7 +30,10 @@ pub(super) fn prepare() -> (
             advertisement.capabilities.push(offer);
         }
     }
-    for resource in crate::terminal_mask_execution::planning::attached_terminal_resources() {
+    let resources = crate::terminal_mask_execution::planning::attached_terminal_resources()
+        .into_iter()
+        .chain(crate::terminal_mask_execution::planning::parsec_instruction_resources());
+    for resource in resources {
         if !advertisement.resources.contains(&resource) {
             advertisement.resources.push(resource);
         }
