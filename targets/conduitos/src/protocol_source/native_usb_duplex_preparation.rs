@@ -104,7 +104,14 @@ pub(crate) fn prepare_native_usb_duplex<P: I2cProvider, C: MonotonicDeadlineProv
             }
         }
         let hosts = [advertisement];
-        let placements = entry.placements(&hosts).map_err(Reason::Source)?;
+        let mut placements = entry.placements(&hosts).map_err(Reason::Source)?;
+        if let Some(storage) = &storage {
+            storage
+                .select_placements(&entry.expanded().expanded.gears, &hosts[0], &mut placements)
+                .map_err(|error| {
+                    Reason::Body(super::super::body_play::ProtocolBodyRefusal::Call(error))
+                })?;
+        }
         let empty = BTreeMap::new();
         let artifact = entry
             .plan(

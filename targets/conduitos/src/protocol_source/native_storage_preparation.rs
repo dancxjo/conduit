@@ -1,5 +1,6 @@
 //! Root-initialized storage resources; class wire meaning remains ordinary Source.
 use super::*;
+use alloc::vec::Vec;
 use crate::storage_base::{
     transaction_contract::BlockReadTransactionContract, transaction_factory::*,
 };
@@ -14,8 +15,94 @@ pub(crate) struct NativeStoragePreparation {
     pub authorize: NativeProtocolIssuer,
     pub settle: NativeProtocolIssuer,
     pub additional: Option<Box<NativeStoragePreparation>>,
+    /// Exact authorize/settle Gear IDs chosen by the trusted Root, never Source.
+    pub selected_gears: Option<(GearId, GearId)>,
 }
 impl NativeStoragePreparation {
+    pub(super) fn select_placements(
+        &self,
+        gears: &[conduit_plot::CheckedGear],
+        host: &HostAdvertisement,
+        placements: &mut conduit_planner::PlacementChoices,
+    ) -> Result<(), crate::protocol_host_calls::ProtocolCallRefusal> {
+        use crate::protocol_host_calls::ProtocolCallRefusal as E;
+        let Some(additional) = &self.additional else {
+            return if self.selected_gears.is_none() {
+                Ok(())
+            } else {
+                Err(E::InvalidPlan)
+            };
+        };
+        if additional.additional.is_some() {
+            return Err(E::InvalidPlan);
+        }
+        let mut choices = Vec::with_capacity(4);
+        for pair in [self, additional.as_ref()] {
+            let (authorize, settle) = pair.selected_gears.as_ref().ok_or(E::InvalidPlan)?;
+            if host.host_id != pair.host || host.boot_id != pair.boot {
+                return Err(E::InvalidPlan);
+            }
+            for (id, issuer, kind) in [
+                (
+                    authorize,
+                    &pair.authorize,
+                    crate::storage_base::transaction_contract::AUTHORIZE_KIND,
+                ),
+                (
+                    settle,
+                    &pair.settle,
+                    crate::storage_base::transaction_contract::SETTLE_KIND,
+                ),
+            ] {
+                if choices.iter().any(|(previous, _)| previous == id) {
+                    return Err(E::InvalidPlan);
+                }
+                let mut matching = gears.iter().filter(|gear| &gear.gear_id == id);
+                let gear = matching.next().ok_or(E::InvalidPlan)?;
+                if matching.next().is_some() || gear.kind_id.as_str() != kind {
+                    return Err(E::InvalidPlan);
+                }
+                let grant = issuer.grant();
+                let call = if kind == crate::storage_base::transaction_contract::AUTHORIZE_KIND {
+                    crate::storage_base::transaction_contract::AUTHORIZE_CALL
+                } else {
+                    crate::storage_base::transaction_contract::SETTLE_CALL
+                };
+                if grant.contract_id.as_str() != crate::storage_base::contract::BLOCK_READ_AUTHORITY
+                    || grant.host_call_contract_id.as_str() != call
+                    || grant.host_id != host.host_id
+                    || grant.boot_id != host.boot_id
+                    || grant.subject_kind.as_str() != kind
+                {
+                    return Err(E::InvalidPlan);
+                }
+                let mut offers = host
+                    .capabilities
+                    .iter()
+                    .filter(|offer| offer.capability_id == grant.capability_id);
+                let offer = offers.next().ok_or(E::InvalidPlan)?;
+                if offers.next().is_some()
+                    || offer.kind_id.as_str() != kind
+                    || !gear.accepts_realization(offer)
+                    || !placements.by_gear.contains_key(id)
+                {
+                    return Err(E::InvalidPlan);
+                }
+                choices.push((
+                    id.clone(),
+                    conduit_planner::PlacementChoice {
+                        host_id: host.host_id.clone(),
+                        capability_id: grant.capability_id.clone(),
+                    },
+                ));
+            }
+        }
+        for (id, choice) in choices {
+            placements.by_gear.insert(id, choice);
+        }
+        Ok(())
+    }
+
     pub(super) fn append(
         &self,
         advertisement: &mut HostAdvertisement,

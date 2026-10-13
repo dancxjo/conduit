@@ -1,6 +1,7 @@
 //! Projection from actual fixture issuers/tables, not native Root approval,
 //! entropy admission, storage possession issuance or physical execution proof.
 use super::*;
+use alloc::vec::Vec;
 use crate::storage_base::{contract::*, transaction_contract::*};
 use alloc::format;
 
@@ -49,6 +50,7 @@ fn preparation(pair: usize) -> NativeStoragePreparation {
         authorize: NativeProtocolIssuer::from_test_authority(a, [40 + pair as u8; 32]).unwrap(),
         settle: NativeProtocolIssuer::from_test_authority(s, [50 + pair as u8; 32]).unwrap(),
         additional: None,
+        selected_gears: None,
     }
 }
 fn advertisement() -> HostAdvertisement {
@@ -219,4 +221,108 @@ fn wrong_host_or_boot_and_repeat_append_refuse() {
     first.append(&mut projected).unwrap();
     assert!(first.append(&mut projected).is_err());
     assert_eq!(projected.capabilities.len(), 2);
+}
+
+fn selected_fixture() -> (
+    NativeStoragePreparation,
+    HostAdvertisement,
+    Vec<conduit_plot::CheckedGear>,
+    conduit_planner::PlacementChoices,
+) {
+    let mut first = preparation(0);
+    let mut second = preparation(1);
+    first.selected_gears = Some(("gear/first-a".into(), "gear/first-s".into()));
+    second.selected_gears = Some(("gear/second-a".into(), "gear/second-s".into()));
+    first.additional = Some(Box::new(second));
+    let mut projected = advertisement();
+    first.append(&mut projected).unwrap();
+    let contract = BlockReadTransactionContract::prepare().unwrap();
+    let gears = [
+        ("gear/first-a", contract.authorize_kind()),
+        ("gear/first-s", contract.settle_kind()),
+        ("gear/second-a", contract.authorize_kind()),
+        ("gear/second-s", contract.settle_kind()),
+    ]
+    .into_iter()
+    .map(|(id, kind)| conduit_plot::CheckedGear {
+        gear_id: id.into(),
+        kind_id: kind.kind_id.clone(),
+        kind_contract_revision: kind.kind_contract_revision.clone(),
+        startup_parameters: kind.startup_parameters.clone(),
+        shorthand: kind.shorthand.clone(),
+        inputs: kind.inputs.clone(),
+        outputs: kind.outputs.clone(),
+        semantic_contract: kind.semantic_contract(),
+        terminal_transductions: vec![],
+        resource_ports: vec![],
+        configuration: vec![],
+        pool_references: vec![],
+    })
+    .collect::<Vec<_>>();
+    // Deliberately reverse both default choices: trusted bindings must replace
+    // this ambiguous selection with each actual retained issuer's capability.
+    let mut choices = conduit_planner::PlacementChoices {
+        by_gear: alloc::collections::BTreeMap::new(),
+    };
+    for gear in &gears {
+        choices.by_gear.insert(
+            gear.gear_id.clone(),
+            conduit_planner::PlacementChoice {
+                host_id: projected.host_id.clone(),
+                capability_id: "wrong/default".into(),
+            },
+        );
+    }
+    (first, projected, gears, choices)
+}
+#[test]
+fn explicit_root_gear_bindings_select_each_retained_exact_role_scope() {
+    let (first, projected, gears, mut choices) = selected_fixture();
+    first
+        .select_placements(&gears, &projected, &mut choices)
+        .unwrap();
+    for pair in [&first, first.additional.as_ref().unwrap().as_ref()] {
+        let (a, s) = pair.selected_gears.as_ref().unwrap();
+        assert_eq!(
+            choices.by_gear[a].capability_id,
+            pair.authorize.grant().capability_id
+        );
+        assert_eq!(
+            choices.by_gear[s].capability_id,
+            pair.settle.grant().capability_id
+        );
+        assert_eq!(choices.by_gear[a].host_id, pair.host);
+    }
+}
+#[test]
+fn missing_duplicate_foreign_role_or_unoffered_bindings_refuse_without_override() {
+    for fault in 0..6 {
+        let (mut first, mut projected, mut gears, mut choices) = selected_fixture();
+        match fault {
+            0 => first.selected_gears = None,
+            1 => {
+                first
+                    .additional
+                    .as_mut()
+                    .unwrap()
+                    .selected_gears
+                    .as_mut()
+                    .unwrap()
+                    .0 = "gear/first-a".into()
+            }
+            2 => first.selected_gears.as_mut().unwrap().0 = "gear/foreign".into(),
+            3 => gears[0].kind_id = SETTLE_KIND.into(),
+            4 => {
+                projected.capabilities.remove(0);
+            }
+            _ => projected.host_id = "foreign/host".into(),
+        };
+        let original = choices.clone();
+        assert!(
+            first
+                .select_placements(&gears, &projected, &mut choices)
+                .is_err()
+        );
+        assert_eq!(choices, original);
+    }
 }

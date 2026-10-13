@@ -45,7 +45,7 @@ pub(super) unsafe fn admit(
     boot: &BootId,
     artifact: &str,
 ) -> Result<NativeStoragePreparation, &'static str> {
-    if !request.administrator_approval || !(1..=16).contains(&request.maximum_operations) {
+    if request.validate().is_err() {
         return Err("protocol-storage-approval-refused");
     }
     let arena = &crate::allocation::BOOT_ARENA;
@@ -68,6 +68,20 @@ pub(super) unsafe fn admit(
     let mut primary =
         unsafe { admit_pair(host, boot, artifact, request.maximum_operations, false) }?;
     primary.additional = additional;
+    if let Some(bindings) = &request.placement_bindings {
+        primary.selected_gears = Some((
+            bindings.authorize.as_str().into(),
+            bindings.settle.as_str().into(),
+        ));
+        let additional = primary
+            .additional
+            .as_mut()
+            .ok_or("protocol-storage-approval-refused")?;
+        additional.selected_gears = Some((
+            bindings.reentry_authorize.as_str().into(),
+            bindings.reentry_settle.as_str().into(),
+        ));
+    }
     Ok(primary)
 }
 
@@ -153,6 +167,7 @@ unsafe fn admit_pair(
         authorize,
         settle,
         additional: None,
+        selected_gears: None,
     })
 }
 #[cfg(test)]
