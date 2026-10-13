@@ -11,7 +11,17 @@
           "status": "incomplete",
           "reason": "Retained local emulator evidence; complete owning issue acceptance pending",
           "proof_level": "emulator-with-device",
-          "acceptance": "partial"
+          "acceptance": "partial",
+          "retained_product_proofs": [
+            {
+              "receipt": "standalone-control-21e596e3/typed-result-check.json",
+              "receipt_sha256": "de4babb63bada3e2dc089a15ac1d6cb53f8f763377c4aeb26f01760a232c134a",
+              "proof_level": "emulator-with-device",
+              "claim": "Standalone ordinary control entry returns actual descriptor with zero Play allocations and retirement",
+              "integration": "pending",
+              "physical_proof": false
+            }
+          ]
         },
         "hid": {
           "status": "incomplete",
@@ -21,11 +31,41 @@
           "status": "incomplete",
           "reason": "Retained local emulator evidence; complete owning issue acceptance pending",
           "proof_level": "emulator-with-device",
-          "acceptance": "partial"
+          "acceptance": "partial",
+          "retained_product_proofs": [
+            {
+              "receipt": "native-cdc-current-kernel-21e596e3/validation.json",
+              "receipt_sha256": "c9240ff9279d968f3b160c37577b2e31980797e8b11408f9a45e5411f05437e1",
+              "proof_level": "emulator-with-device",
+              "claim": "Sixteen actual transmitted and received buffers, with typed results, zero Play allocations and retirement",
+              "integration": "pending",
+              "physical_proof": false
+            }
+          ]
         },
         "cdc-ecm": {
           "status": "incomplete",
-          "reason": "Owning class acceptance not complete"
+          "reason": "Owning class acceptance not complete",
+          "proof_level": "emulator-with-device",
+          "acceptance": "partial",
+          "retained_product_proofs": [
+            {
+              "receipt": "native-ecm-current-kernel-21e596e3/validation.json",
+              "receipt_sha256": "fd62ac42943c6a6711eb0e3445ff55fb11d92ad7687a7c0fb2907b66dde1c94b",
+              "proof_level": "emulator-with-device",
+              "claim": "Full-MTU Ethernet and 1460 TCP bytes each way, zero Play allocations and retirement",
+              "integration": "pending",
+              "physical_proof": false
+            },
+            {
+              "receipt": "ecm-aligned-out-zlp-73f3abc9/run/receipt.json",
+              "receipt_sha256": "6298d559f9a2b53aa98ebac2ffa32e6aa7dc6c2b88f23bccc2553dc7240a6bd6",
+              "proof_level": "emulator-with-device",
+              "claim": "Packet-aligned OUT transfer plus distinct ZLP; whole-transfer emulator evidence only",
+              "integration": "pending",
+              "physical_proof": false
+            }
+          ]
         },
         "bot": {
           "status": "incomplete",
@@ -60,7 +100,17 @@
             "late_native_completion_proven": false,
             "proof_level": "emulator-with-device",
             "acceptance": "partial"
-          }
+          },
+          "retained_product_proofs": [
+            {
+              "receipt": "bot-read-reentry-24d0b2ca/run-receipt.json",
+              "receipt_sha256": "6c0b842c0f09e94379dcd7ee4265778b2f9e8348ef6313ab1d60281d09a68137",
+              "proof_level": "emulator-with-device",
+              "claim": "Original stalled read, three exact recovery acknowledgments, independently authorized fresh read and exact512 bytes; zero allocations and retirement. Failed-clear finite termination remains unresolved.",
+              "integration": "pending",
+              "physical_proof": false
+            }
+          ]
         },
         "uac": {
           "status": "incomplete",
