@@ -1,5 +1,7 @@
 //! Construction-time names for data manifested through a Face.
-use alloc::{string::ToString, vec, vec::Vec};
+use alloc::string::ToString;
+#[cfg(feature = "plot-catalog")]
+use alloc::{vec, vec::Vec};
 
 pub use conduit_core::{data_label_configuration, face_data_label, MAXIMUM_DATA_LABEL_BYTES};
 
@@ -10,6 +12,34 @@ pub fn data_label_startup_signature() -> Vec<conduit_plot::StartupParameterSigna
         value_type: "Text".to_string(),
         default: None,
     }]
+}
+
+/// Check construction names against the trusted installed contract's exact bounds.
+/// A Plan's copied semantic contract is not authority for widening a label.
+pub fn validate_declared_data_labels(
+    configuration: &[conduit_core::ConfigurationEntry],
+    fields: &[conduit_core::KindConfigurationField],
+) -> Result<(), alloc::string::String> {
+    for field in fields.iter().filter(|field| {
+        matches!(
+            field.rule,
+            conduit_core::KindConfigurationRule::DataLabel { .. }
+        )
+    }) {
+        let mut entries = configuration.iter().filter(|entry| entry.key == field.key);
+        let entry = entries
+            .next()
+            .ok_or_else(|| alloc::format!("missing construction label '{}'", field.key))?;
+        if entries.next().is_some() {
+            return Err(alloc::format!(
+                "duplicate construction label '{}'",
+                field.key
+            ));
+        }
+        conduit_plot::validate_configuration_value(field, &entry.value)
+            .map_err(|error| error.to_string())?;
+    }
+    Ok(())
 }
 
 #[cfg(all(test, feature = "plot-catalog"))]

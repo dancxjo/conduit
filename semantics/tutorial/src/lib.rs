@@ -68,7 +68,7 @@ pub fn generative_request(
 }
 
 /// Project the canonical Face grammar consumed by every tutorial Mask.
-pub fn face_face(
+pub fn canonical_face(
     body: &BodyLifecycleSession,
     face_revision: u64,
     playback: TutorialPlayback,

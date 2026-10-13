@@ -267,15 +267,31 @@ fn execute_plot(source: &str, sink_kind: &str) -> Result<(Vec<u8>, conduit_core:
     Ok((output, plan.plan_id))
 }
 
+pub(crate) fn validate_nucleus_data_labels(
+    placements: &[conduit_core::PlannedGear],
+) -> Result<(), String> {
+    let installed = offer_composition::offers();
+    for placement in placements {
+        if conduit_semantic_catalog::face_data_label_required(placement.kind_id.as_str()) {
+            let offer = installed
+                .iter()
+                .find(|offer| offer.kind_id == placement.kind_id)
+                .ok_or_else(|| "Face nucleus has no installed label contract".to_string())?;
+            conduit_semantic_catalog::validate_declared_data_labels(
+                &placement.configuration,
+                &offer.semantic_contract.configuration,
+            )?;
+            conduit_semantic_catalog::face_data_label(&placement.configuration)?;
+        }
+    }
+    Ok(())
+}
+
 fn prepare_scheduler(
     fragment: &conduit_core::PlanFragment,
     lowered: &conduit_plan_lowering::lowering::LoweredPlanFragment,
 ) -> Result<NucleusScheduler, String> {
-    for placement in &fragment.placements {
-        if conduit_semantic_catalog::face_data_label_required(placement.kind_id.as_str()) {
-            conduit_semantic_catalog::face_data_label(&placement.configuration)?;
-        }
-    }
+    validate_nucleus_data_labels(&fragment.placements)?;
     if fragment.placements.len() != MAX_NODES
         || fragment.connections.len() != MAX_CORDS
         || lowered.nodes.len() != MAX_NODES

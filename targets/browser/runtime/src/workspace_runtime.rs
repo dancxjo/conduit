@@ -561,7 +561,7 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                     });
             }
             Request::TutorialView { revision, playback } => {
-                let semantic = conduit_tutorial_plot::face(current, revision, playback)
+                let semantic = conduit_tutorial_plot::canonical_face(current, revision, playback)
                     .map_err(|error| Refusal::new("TutorialFace", format!("{error:?}")))?;
                 let view = semantic.lower()
                     .map_err(|error| Refusal::new("TutorialFace", format!("{error:?}")))?;
@@ -586,7 +586,7 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
             }
             Request::PresentTutorialMask { host_id, boot_id, revision, playback } => {
                 let realization = current.realization().ok_or_else(|| Refusal::new("TutorialMaskPrepare", "Body has no active realization"))?;
-                let face = conduit_tutorial_plot::face_face(
+                let face = conduit_tutorial_plot::canonical_face(
                     current, revision, playback,
                 ).map_err(|error| Refusal::new("TutorialMaskFace", format!("{error:?}")))?;
                 let (runtime, effect) = crate::workspace_mask::BrowserMaskRuntime::prepare(

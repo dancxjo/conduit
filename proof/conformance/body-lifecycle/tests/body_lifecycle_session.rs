@@ -102,7 +102,7 @@ fn tutorial_builds_an_exact_orifina_request_from_current_body_truth() {
 #[test]
 fn production_tutorial_face_keeps_one_constraint_across_encounters_and_validation() {
     let body = born();
-    let face = conduit_tutorial_plot::face_face(
+    let face = conduit_tutorial_plot::canonical_face(
         &body,
         12,
         conduit_tutorial_plot::TutorialPlayback::Lulled,
@@ -281,11 +281,14 @@ fn exact_tutorial_completion_only_presents_fulfillment_as_an_operator_choice() {
 #[test]
 fn tutorial_guidance_is_a_renderer_neutral_revision_bound_application_view() {
     let body = born();
-    let view =
-        conduit_tutorial_plot::face(&body, 7, conduit_tutorial_plot::TutorialPlayback::Lulled)
-            .unwrap()
-            .lower()
-            .unwrap();
+    let view = conduit_tutorial_plot::canonical_face(
+        &body,
+        7,
+        conduit_tutorial_plot::TutorialPlayback::Lulled,
+    )
+    .unwrap()
+    .lower()
+    .unwrap();
     assert_eq!(view.revision, 7);
     assert!(view.nodes.iter().any(|node| node.text == "Wake this body"));
     assert!(view.actions.iter().any(|action| action.id == "body.wake"));
@@ -299,11 +302,14 @@ fn revised_tutorial_uses_the_shared_host_invitation_action() {
     let mut body = born();
     body.admit_plot(0, plot("notes"), &host(), &boot()).unwrap();
     start(&mut body);
-    let view =
-        conduit_tutorial_plot::face(&body, 8, conduit_tutorial_plot::TutorialPlayback::Playing)
-            .unwrap()
-            .lower()
-            .unwrap();
+    let view = conduit_tutorial_plot::canonical_face(
+        &body,
+        8,
+        conduit_tutorial_plot::TutorialPlayback::Playing,
+    )
+    .unwrap()
+    .lower()
+    .unwrap();
     assert!(
         view.nodes
             .iter()
@@ -382,11 +388,14 @@ fn repaired_wake_advances_tutorial_guidance_from_fault_to_continuity() {
     )
     .unwrap();
 
-    let repair =
-        conduit_tutorial_plot::face(&body, 9, conduit_tutorial_plot::TutorialPlayback::Refused)
-            .unwrap()
-            .lower()
-            .unwrap();
+    let repair = conduit_tutorial_plot::canonical_face(
+        &body,
+        9,
+        conduit_tutorial_plot::TutorialPlayback::Refused,
+    )
+    .unwrap()
+    .lower()
+    .unwrap();
     assert!(
         repair
             .nodes
@@ -406,11 +415,14 @@ fn repaired_wake_advances_tutorial_guidance_from_fault_to_continuity() {
         obligation.obligation_id == "repair-fault"
             && matches!(obligation.state, PurposeObligationState::Satisfied { .. })
     }));
-    let repaired =
-        conduit_tutorial_plot::face(&body, 10, conduit_tutorial_plot::TutorialPlayback::Playing)
-            .unwrap()
-            .lower()
-            .unwrap();
+    let repaired = conduit_tutorial_plot::canonical_face(
+        &body,
+        10,
+        conduit_tutorial_plot::TutorialPlayback::Playing,
+    )
+    .unwrap()
+    .lower()
+    .unwrap();
     assert!(
         repaired
             .nodes
