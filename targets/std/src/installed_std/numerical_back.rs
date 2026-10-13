@@ -5,6 +5,7 @@ use conduit_kernel::HostedValueStore;
 use conduit_semantic_catalog::{NumericalRealizationBack, NUMERICAL_REALIZE_KIND};
 const EXACT: &str = "conduit.std/numeric-rational@1";
 const INTEGER: &str = "conduit.std/numeric-outward-i64@1";
+const FLOAT: &str = "conduit.std/numeric-binary64-nearest@1";
 const PROFILE: &str = "conduit.std/prepared-numerical-receipt@1";
 const WORK: u64 = 100_000_000;
 pub(super) static EXACT_FACTORY: BackFactory = BackFactory {
@@ -14,6 +15,11 @@ pub(super) static EXACT_FACTORY: BackFactory = BackFactory {
 };
 pub(super) static INTEGER_FACTORY: BackFactory = BackFactory {
     implementation_id: INTEGER,
+    budget,
+    prepare,
+};
+pub(super) static FLOAT_FACTORY: BackFactory = BackFactory {
+    implementation_id: FLOAT,
     budget,
     prepare,
 };
@@ -29,6 +35,10 @@ fn offer(prepared: &PreparedNumericalRealization) -> Result<CapabilityOffer, Str
     let implementation = match prepared.algorithm() {
         NumericalAlgorithm::ExactRational => EXACT,
         NumericalAlgorithm::OutwardI64 => INTEGER,
+        NumericalAlgorithm::Binary64 {
+            rounding: Binary64Rounding::NearestTiesEven,
+        } => FLOAT,
+        _ => return Err("std numerical rounding strategy is not installed".into()),
     };
     let property = prepared
         .property()
@@ -46,6 +56,12 @@ fn offer(prepared: &PreparedNumericalRealization) -> Result<CapabilityOffer, Str
             include_str!("../../../../semantics/catalog/numerical/types.conduit"),
             include_str!("../../../../architecture/core/src/exact_numeric/realization.rs"),
             include_str!("../../../../architecture/core/src/exact_numeric/realization/codec.rs"),
+            include_str!(
+                "../../../../architecture/core/src/exact_numeric/realization/codec/float.rs"
+            ),
+            include_str!("../../../../architecture/core/src/exact_numeric/binary64.rs"),
+            include_str!("../../../../architecture/core/src/exact_numeric/binary64/algorithm.rs"),
+            include_str!("../../../../architecture/core/src/exact_numeric/rational/binary64.rs"),
             include_str!("../../../../architecture/core/src/exact_numeric/enclosure.rs"),
             include_str!("../../../../architecture/core/src/exact_numeric.rs"),
             include_str!("../../../../architecture/core/src/exact_numeric/natural.rs"),
@@ -73,7 +89,7 @@ pub(crate) fn owns_offer(offer: &CapabilityOffer) -> bool {
     offer.implementation.execution_profile_id.as_str() == PROFILE
         && matches!(
             offer.implementation.implementation_id.as_str(),
-            EXACT | INTEGER
+            EXACT | INTEGER | FLOAT
         )
 }
 /// Prepare the finite supported realizations of one exact source, independently
@@ -85,16 +101,27 @@ pub(crate) fn offers(
     for algorithm in [
         NumericalAlgorithm::ExactRational,
         NumericalAlgorithm::OutwardI64,
+        NumericalAlgorithm::Binary64 {
+            rounding: Binary64Rounding::NearestTiesEven,
+        },
     ] {
         match PreparedNumericalRealization::prepare(
             request.source(),
             algorithm,
-            ExactRational::ONE,
+            if matches!(algorithm, NumericalAlgorithm::Binary64 { .. }) {
+                request.maximum_error()
+            } else {
+                ExactRational::ONE
+            },
             &mut ExactNumericWork::new(WORK),
         ) {
             Ok(prepared) => result.push(offer(&prepared)?),
             Err(NumericalRealizationRefusal::Integer(_))
                 if algorithm == NumericalAlgorithm::OutwardI64 => {}
+            Err(NumericalRealizationRefusal::Binary64(Binary64AlgorithmRefusal::Projection(
+                Binary64Refusal::ToleranceExceeded
+                | Binary64Refusal::Numeric(ExactNumericRefusal::OutOfRange),
+            ))) if matches!(algorithm, NumericalAlgorithm::Binary64 { .. }) => {}
             Err(why) => return Err(format!("std numerical source realization refused: {why:?}")),
         }
     }
@@ -115,7 +142,7 @@ fn admitted(gear: &PlannedGear) -> Result<NumericalRealizationBack, String> {
     let expected = PreparedNumericalRealization::prepare(
         selected.source(),
         selected.algorithm(),
-        ExactRational::ONE,
+        selected.prepared_error_limit(),
         &mut ExactNumericWork::new(WORK),
     )
     .map_err(|why| format!("numeric installed strategy: {why:?}"))?;

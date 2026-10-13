@@ -60,7 +60,12 @@ fn ordinary_product_source_retains_exact_meaning_through_selected_std_receipts()
         if gear.gear_id.as_str().ends_with("/exact") {
             assert_eq!(certificate.algorithm(), NumericalAlgorithm::ExactRational);
         } else {
-            assert_eq!(certificate.algorithm(), NumericalAlgorithm::OutwardI64);
+            assert_eq!(
+                certificate.algorithm(),
+                NumericalAlgorithm::Binary64 {
+                    rounding: conduit_core::Binary64Rounding::NearestTiesEven
+                }
+            );
         }
         let expected_label = if gear.gear_id.as_str().ends_with("/exact") {
             "Exact numerical result"
