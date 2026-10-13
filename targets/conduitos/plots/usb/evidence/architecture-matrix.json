@@ -106,7 +106,23 @@
               "receipt": "bot-read-reentry-24d0b2ca/run-receipt.json",
               "receipt_sha256": "6c0b842c0f09e94379dcd7ee4265778b2f9e8348ef6313ab1d60281d09a68137",
               "proof_level": "emulator-with-device",
-              "claim": "Original stalled read, three exact recovery acknowledgments, independently authorized fresh read and exact512 bytes; zero allocations and retirement. Failed-clear finite termination remains unresolved.",
+              "claim": "Original stalled read, three exact recovery acknowledgments, independently authorized fresh read and exact512 bytes; zero allocations and retirement.",
+              "integration": "pending",
+              "physical_proof": false
+            },
+            {
+              "receipt": "bot-reentry-failed-clear-a783be37/run-receipt.json",
+              "receipt_sha256": "2a896bbd7ded88cd6d46ba2e3f399275acc056c81eee127f761475c90c1a86b4",
+              "proof_level": "emulator-with-device",
+              "claim": "Actual clear-IN STALL terminates with no fresh read/result, zero allocations and acknowledged retirement",
+              "integration": "pending",
+              "physical_proof": false
+            },
+            {
+              "receipt": "bot-reentry-failed-clear-a783be37/success/run-receipt.json",
+              "receipt_sha256": "5cd70f8d39b4696364c6c81ad83fa8d674f79f4dd91bcb915bfbe0e598d1566a",
+              "proof_level": "emulator-with-device",
+              "claim": "Corrected feedback-drain kernel still completes fresh exact512-byte read after original STALL and three reset acknowledgments",
               "integration": "pending",
               "physical_proof": false
             }
