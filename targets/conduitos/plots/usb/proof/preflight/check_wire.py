@@ -54,17 +54,21 @@ assert not pending
 # Firmware enumeration differs; require its explicit architecture-specific prefix.
 architecture=sys.argv[2] if len(sys.argv)>2 else 'aarch64'
 assert architecture in ('aarch64','x86_64')
-bootstrap=[(6,128,512,0,67)]+([(9,0,1,0,0)] if architecture=='aarch64' else [])
+device_profile=sys.argv[5] if len(sys.argv)>5 else 'valid'
+assert device_profile in ('valid','wrong-interface')
+bootstrap=([(6,128,512,0,9)] if architecture=='x86_64' and preflight else [])+[(6,128,512,0,67)]+([(9,0,1,0,0)] if architecture=='aarch64' and device_profile=='valid' else [])
 source=[(6,128,512,0,67),(9,0,1,0,0),(32,33,0,0,7),(33,161,0,0,7),(34,33,3,0,0)]
 discovery=[(6,128,512,0,9),(6,128,512,0,67)] if preflight else []
 class_controls=[] if preflight=='unsupported' else source
 assert controls==bootstrap+discovery+class_controls
 if preflight:
- assert len(configurations)==(3 if preflight=='unsupported' else 4)
- assert configurations[1]==configurations[2][:9]
- assert configurations[0]==configurations[2]
- if preflight=='supported':assert configurations[3]==configurations[2]
+ discovery_index=3 if architecture=='x86_64' else 2
+ assert len(configurations)==discovery_index+1+(preflight=='supported')
+ assert configurations[discovery_index-1]==configurations[discovery_index][:9]
+ assert configurations[discovery_index-2]==configurations[discovery_index]
+ if architecture=='x86_64':assert configurations[0]==configurations[1][:9]
+ if preflight=='supported':assert configurations[discovery_index+1]==configurations[discovery_index]
 count=0 if preflight=='unsupported' else 16
 assert len(tx)==len(rx)==count
 assert bulk_order==[2,129]*count
-print(json.dumps({'source_controls':len(class_controls),'discovery_controls':len(discovery),'actual_transmit':count,'actual_receive':count,'status_success':True,'exact_octets':True,'preflight':preflight,'discovery_configuration_hex':configurations[2].hex() if preflight else None}))
+print(json.dumps({'source_controls':len(class_controls),'discovery_controls':len(discovery),'actual_transmit':count,'actual_receive':count,'status_success':True,'exact_octets':True,'preflight':preflight,'discovery_configuration_hex':configurations[discovery_index].hex() if preflight else None}))
