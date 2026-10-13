@@ -42,19 +42,19 @@ test("Birth hands off to a Lulled Body; Wake starts listening Plots and reload p
   await page.getByRole("navigation", { name: "Your plots" }).getByRole("button", { name: "Memory Lantern", exact: true }).click();
   const output = page.locator("[data-plot-output] output:visible");
   await page.keyboard.press("h");
-  await expect(output).toHaveText("h");
+  await expect(output).toHaveText("Remembered message: h");
   await page.keyboard.press("i");
-  await expect(output).toHaveText("hi");
+  await expect(output).toHaveText("Remembered message: hi");
   await page.getByRole("navigation", { name: "Your plots" }).getByRole("button", { name: "Desk Telegraph", exact: true }).click();
   await page.keyboard.press("o");
   await page.keyboard.press("k");
   await page.keyboard.press("Enter");
-  await expect(output).toHaveText("ok");
+  await expect(output).toHaveText("Received message: ok");
   await page.getByRole("navigation", { name: "Your plots" }).getByRole("button", { name: "Memory Lantern", exact: true }).click();
-  await expect(output).toHaveText("hi");
+  await expect(output).toHaveText("Remembered message: hi");
   await expect(page.locator("[data-flow-label]")).toHaveText("keyboard → keymap → edit → text");
   await page.keyboard.press("Backspace");
-  await expect(output).toHaveText("h");
+  await expect(output).toHaveText("Remembered message: h");
   expect((await identity()).active_play_id).toBe(first.active_play_id);
   expect((await identity()).plan_id).toBe(first.plan_id);
   await page.screenshot({ path: testInfo.outputPath("workspace-listening.png"), fullPage: true });
@@ -72,7 +72,7 @@ test("Birth hands off to a Lulled Body; Wake starts listening Plots and reload p
   expect(restored.active_play_id).not.toBe(first.active_play_id);
   await page.keyboard.press("n");
   await page.keyboard.press("Enter");
-  await expect(output).toHaveText("n");
+  await expect(output).toHaveText("Received message: n");
   await page.screenshot({ path: testInfo.outputPath("workspace-returned.png"), fullPage: true });
   await page.getByRole("button", { name: "lull body", exact: true }).click();
   await expect(page.locator("[data-play-state]")).toHaveText("Lulled");
@@ -128,7 +128,7 @@ test("a second window cannot recover a body while its first host is alive", asyn
   await expect(other.locator("[data-workspace-surface]")).toBeHidden();
   await page.locator("#plot-input").focus();
   await page.keyboard.press("a");
-  await expect(page.locator("[data-plot-output] output:visible")).toHaveText("a");
+  await expect(page.locator("[data-plot-output] output:visible")).toHaveText("Remembered message: a");
   await other.close();
 });
 
@@ -141,7 +141,7 @@ test("Birth and the listening surface fit a narrow window", async ({ page }, tes
   await page.getByRole("button", { name: "wake body", exact: true }).click();
   await expect(page.locator("[data-play-state]")).toHaveText("Playing");
   await page.keyboard.press("h");
-  await expect(page.locator("[data-plot-output] output:visible")).toHaveText("h");
+  await expect(page.locator("[data-plot-output] output:visible")).toHaveText("Remembered message: h");
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
   await page.screenshot({ path: testInfo.outputPath("workspace-narrow.png"), fullPage: true });
 });
@@ -321,7 +321,7 @@ test("removing the default cue survives reload and a later first-wake installati
   await page.getByRole('button', { name: 'back to the surface', exact: true }).click();
   await page.getByRole('navigation', { name: 'Your plots' }).getByRole('button', { name: 'Memory Lantern', exact: true }).click();
   await page.keyboard.press('a');
-  await expect(page.locator('[data-plot-output] output:visible')).toHaveText('a');
+  await expect(page.locator('[data-plot-output] output:visible')).toHaveText('Remembered message: a');
 });
 
 test("unavailable audio is omitted by default and an explicitly installed cue cannot stop other Plots", async ({ page }, testInfo) => {
@@ -333,7 +333,7 @@ test("unavailable audio is omitted by default and an explicitly installed cue ca
   await page.getByRole('button', { name: 'wake body', exact: true }).click();
   await expect(page.locator('[data-play-state]')).toHaveText('Playing');
   await page.keyboard.press('a');
-  await expect(page.locator('[data-plot-output] output:visible')).toHaveText('a');
+  await expect(page.locator('[data-plot-output] output:visible')).toHaveText('Remembered message: a');
   const evidence = await liveEvidence(page);
   expect(evidence.host_completions.records.some(record => record.disposition === 'failed' && record.failure_code === 'host_call_failed' && record.failure_detail === 1)).toBe(true);
   await page.screenshot({ path: testInfo.outputPath('chime-unavailable-body-listening.png'), fullPage: true });
@@ -351,7 +351,7 @@ test("a suspended real audio context reports denial while the body keeps listeni
   await page.getByRole('button', { name: 'wake body', exact: true }).click();
   await expect(page.locator('[data-play-state]')).toHaveText('Playing');
   await page.keyboard.press('b');
-  await expect(page.locator('[data-plot-output] output:visible')).toHaveText('b');
+  await expect(page.locator('[data-plot-output] output:visible')).toHaveText('Remembered message: b');
   const evidence = await liveEvidence(page);
   expect(evidence.host_completions.records.some(record => record.disposition === 'denied' && record.failure_code === 'host_call_denied' && record.failure_detail === 2)).toBe(true);
 });

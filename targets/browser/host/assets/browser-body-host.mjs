@@ -390,10 +390,16 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
         const channel = applicationChannel(effect.checked_plot_id);
         let applicationSurface = output;
         if (typeof dataLabel === "string") {
-          const heading = output.ownerDocument.createElement("p");
+          let heading = output.querySelector(':scope > [data-application-data-label]');
+          applicationSurface = output.querySelector(':scope > [data-named-application-surface]');
+          if (!heading || !applicationSurface) {
+            heading = output.ownerDocument.createElement("p");
+            heading.dataset.applicationDataLabel = "";
+            applicationSurface = output.ownerDocument.createElement("div");
+            applicationSurface.dataset.namedApplicationSurface = "";
+            output.replaceChildren(heading, applicationSurface);
+          }
           heading.textContent = dataLabel;
-          applicationSurface = output.ownerDocument.createElement("div");
-          output.replaceChildren(heading, applicationSurface);
         }
         channel.manifestation = manifestApplicationView(Uint8Array.from(effect.application_view), applicationSurface, {
           eventCapacity: 8,

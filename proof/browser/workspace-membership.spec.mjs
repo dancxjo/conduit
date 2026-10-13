@@ -95,7 +95,7 @@ test("the ordinary face binds and admits one compiler-free reviewed browser Host
   await page.locator("#plot-input").click();
   await page.keyboard.type("hello");
   await page.keyboard.press("Enter");
-  await expect(page.locator("[data-plot-output] output:visible")).toHaveText("hello");
+  await expect(page.locator("[data-plot-output] output:visible")).toHaveText("Received message: hello");
   await capture("plot.used", "Typing hello into Desk Telegraph produces hello through the running plot.");
   expect((await page.evaluate(() => globalThis.__conduitWorkspace.current())).workload_revision).toBe(1);
   await page.getByRole("button", { name: "parts / hosts", exact: true }).click();
@@ -273,7 +273,7 @@ test("the ordinary face binds and admits one compiler-free reviewed browser Host
   await page.locator("#plot-input").click();
   await page.keyboard.type("still here");
   await page.keyboard.press("Enter");
-  await expect(page.locator("[data-plot-output] output:visible")).toHaveText("still here");
+  await expect(page.locator("[data-plot-output] output:visible")).toHaveText("Received message: still here");
   const continued = await page.evaluate(() => globalThis.__conduitWorkspace.evidence().realization);
   expect(continued.play).toBeTruthy();
   expect(continued.play).toEqual(repaired.evidence.realization.play);

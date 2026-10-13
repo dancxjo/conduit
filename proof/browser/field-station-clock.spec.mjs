@@ -21,7 +21,7 @@ test("an external page recovers one Clock Body across a fresh Boot without resur
   }));
   expect(first.recovered).toBe(false);
   expect(first.playState).toBe("playing");
-  await expect(page.locator('[data-face-kind="face/tick"]')).toHaveText("0", { timeout: 15_000 });
+  await expect(page.locator('[data-face-kind="face/tick"]')).toHaveText("Clock tick: 0", { timeout: 15_000 });
 
   await journey.capture(page, {
     id: "open", title: "Open the clock",
@@ -98,7 +98,7 @@ test("an external page recovers one Clock Body across a fresh Boot without resur
   }
 
   const tick = page.locator('[data-face-kind="face/tick"]');
-  await expect(tick).toHaveText("0", { timeout: 15_000 });
+  await expect(tick).toHaveText("Clock tick: 0", { timeout: 15_000 });
   const manifestation = await tick.evaluate(element => ({ ...element.dataset }));
   await journey.capture(page, {
     id: "reload", title: "Reload the same Body",

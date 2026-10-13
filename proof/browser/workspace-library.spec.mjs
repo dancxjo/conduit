@@ -83,14 +83,14 @@ test("Use installs into the same body; repeated Use preserves Play and removal s
   await page.locator("#plot-input").focus();
   await page.keyboard.type("hello");
   await page.keyboard.press("Enter");
-  await expect(page.locator("[data-plot-output] output:visible")).toHaveText("hello");
+  await expect(page.locator("[data-plot-output] output:visible")).toHaveText("Received message: hello");
   await page.keyboard.type("again");
   await page.keyboard.press("Enter");
-  await expect(page.locator("[data-plot-output] output:visible")).toHaveText("again");
+  await expect(page.locator("[data-plot-output] output:visible")).toHaveText("Received message: again");
   await openLibrary(page);
   await card(page, "Desk Telegraph").getByRole("button", { name: "Use", exact: true }).click();
   expect((await current(page)).active_play_id).toBe(installed.active_play_id);
-  await expect(page.locator("[data-plot-output] output:visible")).toHaveText("again");
+  await expect(page.locator("[data-plot-output] output:visible")).toHaveText("Received message: again");
   await page.screenshot({ path: testInfo.outputPath("workspace-installed-plot.png"), fullPage: true });
   await openLibrary(page);
   await card(page, "Desk Telegraph").getByRole("button", { name: "Remove", exact: true }).click();
@@ -100,7 +100,7 @@ test("Use installs into the same body; repeated Use preserves Play and removal s
   await expect(page.locator("[data-play-state]")).toHaveText("Playing");
   await page.locator("#plot-input").focus();
   await page.keyboard.press("r");
-  await expect(page.locator("[data-plot-output] output:visible")).toHaveText("r");
+  await expect(page.locator("[data-plot-output] output:visible")).toHaveText("Remembered message: r");
   await page.evaluate(() => globalThis.__conduitWorkspace.settled());
   await page.reload();
   await expect(page.locator("[data-play-state]")).toHaveText("Playing");
@@ -233,7 +233,7 @@ test("removing the final Plot retains an empty Body that can acquire Plots again
   await expect(page.locator("[data-play-state]")).toHaveText("Playing");
   await expect(page.getByRole("button", { name: "lull body", exact: true })).toBeVisible();
   await page.keyboard.press("a");
-  await expect(page.locator("[data-plot-output] output:visible")).toHaveText("a");
+  await expect(page.locator("[data-plot-output] output:visible")).toHaveText("Remembered message: a");
   expect((await current(page)).body_id).toBe(initial.body_id);
 });
 
@@ -348,7 +348,7 @@ for (const [title, kind] of [['Firefly Choir', 'pulse'], ['Night Radio', 'text']
     const surface = page.locator('#plot-input');
     const output = page.locator('[data-plot-output] output:visible');
     if (kind === 'pulse') {
-      await expect.poll(async () => Number((await output.filter({ hasText: /^pulse / }).textContent())?.match(/^pulse (\d+) ·/)?.[1] ?? 0)).toBeGreaterThanOrEqual(5);
+      await expect.poll(async () => Number((await output.filter({ hasText: /^Pulse activity: pulse / }).textContent())?.match(/^Pulse activity: pulse (\d+) ·/)?.[1] ?? 0)).toBeGreaterThanOrEqual(5);
     } else if (kind === 'text') {
       await page.keyboard.type('first'); await page.keyboard.press('Enter');
       await expect(output).toContainText('first');
