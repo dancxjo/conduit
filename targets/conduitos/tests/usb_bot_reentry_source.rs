@@ -457,3 +457,6 @@ mod ingress;
 
 #[path = "usb_bot_reentry/failure.rs"]
 mod failure;
+
+#[path = "usb_bot_reentry/phase_error.rs"]
+mod phase_error;

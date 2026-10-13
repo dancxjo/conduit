@@ -1,0 +1,76 @@
+{
+  "schema": "conduit.usb/bot-phase-error-proof@1",
+  "runtime_source_commit": "57349c9170f9e10b6eedfccf733a5068d97e39ad",
+  "proof_class": "fresh-freestanding-emulator-product-host",
+  "physical_proof": false,
+  "source_package_sha256": "3fc6aacc3edd2611f0acf0fdd31b64c3d7c10f8fd3821a9fe7ac3f1cd43d026f",
+  "root_request_sha256": "468dd1d441cdbdeb737c0b19fe3b691abfd04e5808ca6520f97d1317abdeab6c",
+  "first_data_differs_from_fresh_data": true,
+  "cases": [
+    {
+      "architecture": "x86_64",
+      "case": "recovered",
+      "directory": "x86-recovered",
+      "outcome": "play-retired",
+      "kernel_sha256": "bd7ff76f447156d29eb1c24b4a3fc28d3426c781d0c63d78e5eefe2a290b598f",
+      "verified": true
+    },
+    {
+      "architecture": "x86_64",
+      "case": "failed-clear",
+      "directory": "x86-failed-clear",
+      "outcome": "play-retired",
+      "kernel_sha256": "bd7ff76f447156d29eb1c24b4a3fc28d3426c781d0c63d78e5eefe2a290b598f",
+      "verified": true
+    },
+    {
+      "architecture": "aarch64",
+      "case": "recovered",
+      "directory": "aarch64-recovered",
+      "outcome": "play-retired",
+      "kernel_sha256": "247b9aca4077afd23010c682b14886cdde713904c0117ba254da463ae5ad116a",
+      "verified": true
+    },
+    {
+      "architecture": "aarch64",
+      "case": "failed-clear",
+      "directory": "aarch64-failed-clear",
+      "outcome": "play-retired",
+      "kernel_sha256": "247b9aca4077afd23010c682b14886cdde713904c0117ba254da463ae5ad116a",
+      "verified": true
+    }
+  ],
+  "files": {
+    "aarch64-failed-clear/build-manifest.json": "c9002999e7dfc579314da2075990cdbd850edb67ee616d3322822d4ceae3dfd3",
+    "aarch64-failed-clear/build.json": "ebed42f736eb5188c30723f2715faee6aa08847dfbf8d32397a48c2f9cff0213",
+    "aarch64-failed-clear/device.log": "22a1a084ede42af0eb410f16e653e9c480f48797ed3f8f15e4a1787e1447d07b",
+    "aarch64-failed-clear/protocol-receipt.json": "5b6959f03cee31ad501105a9bbd1c172dd8e3a8b50896c67798dcb7e6923ba9b",
+    "aarch64-failed-clear/run-receipt.json": "8bd9128f8cd5da73941301c11fafce3183431cd1a36769e70cc3b3e535a80c66",
+    "aarch64-failed-clear/serial.log": "5c1b3dafaa26b7eb159c60b2705f13cd5baba18458a9231f3b8e58aa0068b93e",
+    "aarch64-failed-clear/wire.jsonl": "4474e78d4954293630972f245dbae99b4cc51f2c8633493b9ea54751f95e9eb5",
+    "aarch64-recovered/build-manifest.json": "c9002999e7dfc579314da2075990cdbd850edb67ee616d3322822d4ceae3dfd3",
+    "aarch64-recovered/build.json": "ebed42f736eb5188c30723f2715faee6aa08847dfbf8d32397a48c2f9cff0213",
+    "aarch64-recovered/device.log": "6ea541c0e45c3fd4a60a338e6365068b50c2995a04bb6cec6067f9bc21d350e0",
+    "aarch64-recovered/protocol-receipt.json": "5b6959f03cee31ad501105a9bbd1c172dd8e3a8b50896c67798dcb7e6923ba9b",
+    "aarch64-recovered/run-receipt.json": "f2c48c5a082e75e034216e39d6149a8d60a0fe9dc6745f5b5f0a8cf4a9a274e0",
+    "aarch64-recovered/serial.log": "76b93c16ecf90cb5feba41fec8305f2d60c5c8f9805c8b1b1e577b22553568d9",
+    "aarch64-recovered/wire.jsonl": "355d8320951dca51e0b75a1796e3a6c74f4b1c8d2a3afb8b5520176a1a4dbe75",
+    "protocol-source.json": "3fc6aacc3edd2611f0acf0fdd31b64c3d7c10f8fd3821a9fe7ac3f1cd43d026f",
+    "root-request.json": "468dd1d441cdbdeb737c0b19fe3b691abfd04e5808ca6520f97d1317abdeab6c",
+    "source-receipt.json": "99cf82c43cf8128651f370b062f3ed04f35bef06cdf985231ca684afb02ba3ab",
+    "x86-failed-clear/build-manifest.json": "7d45590431b96821068f0ce8a37d694eb719ef4b373e30b83e0fd85ee12f830d",
+    "x86-failed-clear/build.json": "0035ae441466467b173bd213a04e453b024cc93174553f66ad75cf54d4960fdc",
+    "x86-failed-clear/device.log": "fc9142c1b960cf2d4aa047c612e00ce3bcdaa433456357ed77f589f614e33093",
+    "x86-failed-clear/protocol-receipt.json": "cd7eb12a60ac71a37957b9aca26daf717688ee5ce6fa7c3a256a7578a3741ef6",
+    "x86-failed-clear/run-receipt.json": "5033bd049b635b141db5cb78d1b12ba2b9cfe160bf345f15c8f4cd3e4e3307c4",
+    "x86-failed-clear/serial.log": "67e5f6cb223da1026c3d89cd98d0d11ccdd0104fb3dd435053a71bb828375e78",
+    "x86-failed-clear/wire.jsonl": "5d732de6c916027d9f12aa4d2f98e4ae3514004eb900a6dfb1b3355fa28fd8a7",
+    "x86-recovered/build-manifest.json": "7d45590431b96821068f0ce8a37d694eb719ef4b373e30b83e0fd85ee12f830d",
+    "x86-recovered/build.json": "0035ae441466467b173bd213a04e453b024cc93174553f66ad75cf54d4960fdc",
+    "x86-recovered/device.log": "d97cf87bc68a6386ece3be032763a4b184474c5b8fda98ec6fa459ad1f521344",
+    "x86-recovered/protocol-receipt.json": "cd7eb12a60ac71a37957b9aca26daf717688ee5ce6fa7c3a256a7578a3741ef6",
+    "x86-recovered/run-receipt.json": "93b41d2d043c60141a16ba66f6a2c77430e73904e112e8a5cd5fc28310468c9e",
+    "x86-recovered/serial.log": "3aecfa84d562392c27706b89c7b1cb1acc87c8e6d15a7618a84eac373f2e040a",
+    "x86-recovered/wire.jsonl": "9bb2c4d1395e75b885ada662cf683438407cac8d49b46fa7ebf555affb8c4d0e"
+  }
+}
