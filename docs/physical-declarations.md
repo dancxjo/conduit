@@ -177,3 +177,14 @@ Nominal quantity families and point/difference roles remain separate from
 dimension algebra. Exact symbolic
 constants, including the turn/radian relationship, and planner-selected numeric
 precision belong to the separate #5392 implementation.
+
+## Full-turn spellings
+
+`turn` remains the canonical Angle Unit. `tr` is the preferred compact spelling;
+`rev` and `rot` are exact one-turn synonyms. `pla` is an uncommon historical
+spelling for a full angle. All four are checked source-defined Units, without
+prefixes: `1tr = 1rev = 1rot = 1pla = 1turn = 360° = 400gon`, and
+`0.25tr = 90°` exactly. Bare names denote Units; `1tr` and `2rev` denote
+Angle Quantities. Unknown spellings and attempts to redeclare these built-in
+Units are refused by ordinary checking (`CND-FRM-055` for an undeclared
+quantity suffix; `CND-FRM-058` for a conflicting declaration).
