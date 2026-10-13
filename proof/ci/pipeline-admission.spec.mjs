@@ -22,7 +22,7 @@ test('numerical certificates and cancellation retain shared boundary tests', () 
   }
 });
 test('native ownership and isolation require native proof, including either rename side', () => {
-  for (const name of ['targets/conduitos/domain/gate.rs', 'targets/conduitos/src/usb.rs', 'targets/conduitos/proof/usb-bot/verify_cancellation.py']) assert.equal(nativeRisk([name]), true);
+  for (const name of ['targets/conduitos/Cargo.toml', 'targets/conduitos/build.rs', 'targets/conduitos/domain/gate.rs', 'targets/conduitos/src/usb.rs', 'targets/conduitos/proof/usb-bot/verify_cancellation.py']) assert.equal(nativeRisk([name]), true);
   assert.equal(nativeRisk(['targets/conduitos/domain/old.rs', 'products/new.rs']), true);
   assert.equal(nativeRisk(['products/conduit/tests/installed_screen_free_birth.rs']), false);
 });

@@ -3,7 +3,7 @@ import path from 'node:path';
 export function nativeRisk(paths) {
   // The native kernel owns isolation, device ownership and preemption. Its
   // standalone sources cannot be covered by workspace package tests alone.
-  return paths.some(name => /^targets\/conduitos\/(?:src|domain|build|proof)\//.test(name));
+  return paths.some(name => /^targets\/conduitos\/(?:(?:src|domain|build|proof)\/|(?:Cargo\.(?:toml|lock)|build\.rs)$)/.test(name));
 }
 
 export function admissionPlan(paths, metadata, root) {
@@ -23,7 +23,7 @@ export function admissionPlan(paths, metadata, root) {
   }
   if (broad) for (const pkg of members) selected.add(pkg.name);
   const sensitive = paths.some(name => /^(?:architecture\/(?:core|kernel|planner|assigned-plan|protected-line|composite)\/|semantics\/data\/)/.test(name)
-    || /(?:usb|xhci|cancel|certificate|isolation|capability)/i.test(name));
+    || /(?:usb|xhci|cancel|certificate|numerical|exact_numeric|binary64|isolation|capability)/i.test(name));
   if (sensitive) {
     for (const name of ['conduit-core', 'conduit-kernel', 'conduit-planner', 'conduit-assigned-plan', 'conduit-protected-line', 'conduit-composite', 'conduit-data']) {
       if (members.some(pkg => pkg.name === name)) selected.add(name);
