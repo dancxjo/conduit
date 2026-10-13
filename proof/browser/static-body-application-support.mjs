@@ -9,6 +9,7 @@ import { startStaticProduct } from "./static-product-server.mjs";
 export async function stageStaticApplications({ legacyLessonInventory = false, malformedLessonSource = false } = {}) {
   const root = await mkdtemp(path.join(tmpdir(), "conduit-static-applications-"));
   let server;
+  let sourceInspection;
   try {
     await cp("target/handbook-static", path.join(root, "handbook"), { recursive: true });
     await cp("target/handbook-static-second", path.join(root, "second"), { recursive: true });
@@ -22,16 +23,27 @@ export async function stageStaticApplications({ legacyLessonInventory = false, m
         ["tour", "patchbay", "clock-demo", "memory_lantern"].includes(plot.name));
       const birthPath = path.join(root, "legacy-birth.json");
       await writeFile(birthPath, JSON.stringify(birth));
-      const originalPitch = await readFile(path.join(templateRoot, "plots/convert-pitch.conduit"), "utf8");
-      const brokenPitchPath = path.join(root, "broken-pitch.conduit");
-      if (malformedLessonSource) {
-        const malformed = originalPitch.replace("source = 1kHz", 'source = "1kHz"');
-        assert.notEqual(malformed, originalPitch);
-        await writeFile(brokenPitchPath, malformed);
-      }
+      const lessons = birth.plots.filter(plot => plot.lesson);
+      const broken = malformedLessonSource === "first" ? lessons[0]
+        : malformedLessonSource === "middle" ? lessons[Math.floor(lessons.length / 2)]
+          : birth.plots.find(plot => plot.name === "convert-pitch-demo");
+      const brokenPath = path.join(root, "broken-lesson.conduit");
+      sourceInspection = await Promise.all(birth.plots.map(async plot => {
+        const resource = template.resources.find(resource => resource.role === plot.role);
+        let source = await readFile(path.resolve(templateRoot, resource.source ?? resource.path), "utf8");
+        if (malformedLessonSource && plot === broken) {
+          const original = source;
+          source = malformedLessonSource === true
+            ? source.replace("source = 1kHz", 'source = "1kHz"')
+            : source + '\nplot refused_fixture (\n angle: Angle = "1turn"\n) {\n}\n';
+          assert.notEqual(source, original);
+          await writeFile(brokenPath, source);
+        }
+        return { ...plot, source, malformed: Boolean(malformedLessonSource && plot === broken) };
+      }));
       for (const resource of template.resources) {
         resource.source = resource.role === "birth-specification" ? birthPath
-          : malformedLessonSource && resource.role === "lesson-convert-pitch-source" ? brokenPitchPath
+          : malformedLessonSource && resource.role === broken.role ? brokenPath
             : path.resolve(templateRoot, resource.source ?? resource.path);
       }
       const templatePath = path.join(root, "legacy-template.json");
@@ -40,7 +52,7 @@ export async function stageStaticApplications({ legacyLessonInventory = false, m
         templatePath, "target/handbook-static/sdk/bundle", path.join(root, malformedLessonSource ? "broken" : "legacy")], { stdio: "pipe" });
     }
     server = await startStaticProduct(root);
-    return { url: server.url, async close() {
+    return { url: server.url, sourceInspection, async close() {
       await stop(server.child);
       await rm(root, { recursive: true });
     } };
