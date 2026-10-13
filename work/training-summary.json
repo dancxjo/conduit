@@ -1,0 +1,39 @@
+{
+  "eligible_sentences": {
+    "train": 1986,
+    "dev": 454,
+    "test": 533
+  },
+  "exclusions": {
+    "train": {
+      "over_four_tokens": 10539,
+      "multiword_or_empty_node": 19
+    },
+    "dev": {
+      "over_four_tokens": 1538,
+      "multiword_or_empty_node": 9
+    },
+    "test": {
+      "over_four_tokens": 1535,
+      "multiword_or_empty_node": 9
+    }
+  },
+  "model_bytes": 56868,
+  "diagnostic_oracle_action_metrics": {
+    "train": {
+      "oracle_action_correct": 8658,
+      "oracle_action_total": 9286,
+      "accuracy": 0.9323713116519492
+    },
+    "dev": {
+      "oracle_action_correct": 2027,
+      "oracle_action_total": 2228,
+      "accuracy": 0.9097845601436265
+    },
+    "test": {
+      "oracle_action_correct": 2281,
+      "oracle_action_total": 2498,
+      "accuracy": 0.9131305044035228
+    }
+  }
+}

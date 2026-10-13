@@ -1,0 +1,6 @@
+Debug0 unoptimized exact-source heldout run, interrupted before completion to verify first-row mapping and rerun scoped optimized generic crates.
+Model corruption/tensor identity/foreign lexical basis test: passed.
+Source features/proposal/transition graphs expanded.
+First-row progress: native heldout sentences=1 tokens=2 transitions=78.
+Earlier harness failure: primitive Boolean completion output decoded as StructuredInfoValue, MalformedCanonicalEncoding. Corrected primitive inspection; no source policy/architecture change.
+No completed heldout accuracy claim from this run.

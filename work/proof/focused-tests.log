@@ -1,0 +1,66 @@
+   Compiling conduit-language v0.1.0 (/home/dancxjo/conduit-4907-scorer/semantics/language)
+    Finished `test` profile [unoptimized] target(s) in 6.73s
+     Running tests/parser_admission.rs (target/debug/deps/parser_admission-56c4222955f62fd9)
+
+running 2 tests
+test admitted_survivors_drive_the_source_agreement_graph ... ok
+test recursive_native_admission_refuses_forged_graph_and_foreign_basis ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 19.25s
+
+     Running tests/parser_beam.rs (target/debug/deps/parser_beam-9964319c0aa2ffc1)
+
+running 3 tests
+test fixture_scores_preserve_ambiguous_graphs_until_survivors_agree ... ok
+test pressure_cancellation_and_stability_gate_commitment ... ok
+test unprocessed_survivor_and_exact_basis_disagreement_prevent_stability ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 14.48s
+
+     Running tests/parser_graph.rs (target/debug/deps/parser_graph-b6fa3798349a0659)
+
+running 1 test
+test source_transition_graph_runs_under_ordinary_plan_and_play ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 37.24s
+
+     Running tests/parser_learned.rs (target/debug/deps/parser_learned-b60aa9d32b39372b)
+
+running 3 tests
+test exact_model_and_feature_admission_refuse_corruption_and_foreign_basis ... ok
+test pinned_learned_artifact_scores_native_streaming_source_graphs_on_heldout_ewt ... ignored, explicit corpus evidence; greedy diagnostic is not beam/revision acceptance
+test representative_native_mapping_exposes_greedy_dead_end ... FIRST_ROW features=[17, 33, 357, 361, 366, 371, 373] top=[(73, 5207), (0, 2170), (4, 1592)]
+FIRST_ROW class=73 action=right_arc relation=root accepted=true
+FIRST_ROW features=[15, 29, 317, 362, 367, 372, 373] top=[(0, 2795), (67, 2479), (59, 1798)]
+FIRST_ROW class=0 action=shift relation=dep accepted=true
+FIRST_ROW features=[11, 35, 251, 363, 368, 371, 373] top=[(1, 6867), (28, 3007), (27, 2644)]
+FIRST_ROW class=1 action=reduce relation=dep accepted=false
+FIRST_ROW class=28 action=left_arc relation=nsubj accepted=false
+FIRST_ROW class=27 action=left_arc relation=nmod accepted=false
+FIRST_ROW class=12 action=left_arc relation=compound accepted=false
+FIRST_ROW class=26 action=left_arc relation=mark accepted=false
+native heldout sentences=1 tokens=2 transitions=78
+NATIVE_LEARNED_METRICS {"assigned_edges":1,"assignment_delay_tokens_maximum":0,"assignment_delay_tokens_sum":0,"committed_edges_evaluated":0,"committed_later_contradiction_percentage":null,"complete_sentences":0,"compute_work_units_per_score":532,"diagnostic_limit":1,"feature_graph_nanoseconds_maximum":2022375,"feature_graph_nanoseconds_sum":5817599,"host_process_memory_status":"VmHWM:\t  456876 kB; VmRSS:\t  296692 kB","las_correct":1,"limitation":"arc assignments in this profile are monotonic; no later text correction tested, singleton agreement is not beam4 stabilization evidence","model_bytes":56868,"model_content_identity":"6f49fd7b10ff09b699b33b05cb485f0b261e1702e261935d1be67edc6a7ddee9","native_elapsed_ms":37518,"numeric_working_memory_bound_bytes":1048576,"observed_edge_revision_count":0,"plan_realization_nanoseconds_maximum":34181751992,"plan_realization_nanoseconds_sum":34181751992,"preparation_phases_nanoseconds_planning_lowering_owners_kernel":[3732740560,637806222,28502406994,1308459330],"profile":"four-token greedy beam width1 gold-UPOS; immutable-source availability streamed","proof":"ordinary Plan/Play source features/transitions + exact hosted integer model","proposal_graph_nanoseconds_maximum":4621590,"proposal_graph_nanoseconds_sum":347492724,"scorer_compute_nanoseconds":7220076,"sentences":1,"source_feature_requests":3,"source_preparation_milliseconds":12761,"source_transition_requests":78,"tokens":2,"transition_graph_nanoseconds_maximum":40233666,"transition_graph_nanoseconds_sum":2658765739,"uas_correct":1,"universal_base_las_correct":1,"vocative_correct_head_and_label":0,"vocative_gold":0,"vocative_predicted":0}
+ok
+
+test result: ok. 2 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 53.61s
+
+     Running tests/parser_mask.rs (target/debug/deps/parser_mask-9051df6a723c7d81)
+
+running 1 test
+test source_mask_matches_actual_transition_acceptance_for_every_action_class ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 113.47s
+
+     Running tests/parser_transition.rs (target/debug/deps/parser_transition-c24f1c68ad16d60e)
+
+running 6 tests
+test commitment_and_finite_token_bounds_refuse_mutation ... ok
+test headless_shift_can_receive_a_left_arc_before_input_end ... ok
+test illegal_or_stale_proposals_preserve_state ... ok
+test invalid_raw_graph_is_refused_by_native_and_source_admission ... ok
+test proposed_arc_that_closes_a_cycle_is_refused ... ok
+test root_vocative_and_reduce_are_source_owned_transitions ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 19.19s
+

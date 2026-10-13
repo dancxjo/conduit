@@ -1,0 +1,10 @@
+Exact source ordinary Plan/Play diagnostic, optimized generic core/plot/kernel/planner, two tests passed.
+features=[17,33,357,361,366,371,373], top classes=[73:5207,0:2170,4:1592].
+source decoded class73 right_arc/root accepted.
+features=[15,29,317,362,367,372,373], top classes=[0:2795,67:2479,59:1798].
+source decoded class0 shift/dep accepted.
+final unassigned-token features=[11,35,251,363,368,371,373], top classes=[1:6867,28:3007,27:2644].
+source decoded class1 reduce/dep refused; class28 left_arc/nsubj refused; all76 refused.
+First row2tokens,78transitionrequests,1correctrootedge,0complete trees. Runtime23.859s.
+This diagnoses a legal greedy shift leading to a dead end, not class or feature encoding mismatch.
+No full heldout accuracy claim from one row.
