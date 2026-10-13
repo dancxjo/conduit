@@ -27,6 +27,16 @@ export async function startApplication(application) {
   const selector = root.querySelector('select');
   const surface = root.querySelector('.handbook-show');
   const checkStatus = root.querySelector('[data-check]');
+  const showCheckRefusal = (result, origin, name) => {
+    checkStatus.dataset.refusalCode = result.refusal.code;
+    const details = result.diagnostics.map(item => {
+      const span = item.span;
+      const position = Number.isInteger(span?.line) && Number.isInteger(span?.column)
+        ? ` at line ${span.line}, column ${span.column}` : '';
+      return `${item.code ?? result.refusal.code}${position}: ${item.message}`;
+    }).join('\n') || `${result.refusal.code}: ${result.refusal.message}`;
+    checkStatus.textContent = `${origin} source ${name} — checking refused. ${details}`;
+  };
   const controls = [...root.querySelectorAll('button,select,textarea')];
   controls.forEach(control => control.disabled = true);
   const specification = JSON.parse(application.text('birth-specification'));
@@ -72,6 +82,7 @@ export async function startApplication(application) {
   const bundle = JSON.stringify({ schema: 'conduit.creche/reviewed-plot-bundle@2', plots: packagedPlots });
   let host, body, play, checked, reviewed, editor, selected, snapshot;
   let busy = false;
+  let openingStage = 'Browser startup';
   let playFailure = null;
   let foreground = null;
   let thermostatSequence = 0;
@@ -214,13 +225,19 @@ export async function startApplication(application) {
   };
   try {
     host = await application.browser({ root: surface });
+    openingStage = 'Packaged source checking';
     checked = await host.plot(bundle).check();
     if (!checked.ok) throw new Error(checked.refusal.message);
     reviewed = checked;
+    openingStage = 'Retained Body recovery';
     body = await host.recover();
     const recovered = Boolean(body);
-    if (!body) body = await host.birth({ name: specification.name,
-      plots: checked.plots.filter(plot => specification.initialPlots.includes(plot.name)) });
+    if (!body) {
+      openingStage = 'Body birth';
+      body = await host.birth({ name: specification.name,
+        plots: checked.plots.filter(plot => specification.initialPlots.includes(plot.name)) });
+    }
+    openingStage = 'Retained source checking';
     checked = await body.plots();
     if (!checked.ok) throw new Error(checked.refusal.message);
     const opening = await body.current();
@@ -238,6 +255,7 @@ export async function startApplication(application) {
     const initial = checked.plots.find(plot => plot.name === (!recovered ? specification.initialPlots[0] : null))
       ?? checked.plots.find(plot => plot.checkedPlotId === opening.foreground?.checked_plot_id)
       ?? checked.plots.find(plot => installed.some(entry => entry.checked_plot_id === plot.checkedPlotId));
+    openingStage = 'Play admission';
     await body.select(initial); show(initial.checkedPlotId); await wake();
     root.querySelector('[data-durability]').textContent = JSON.stringify(await application.storage.durability());
     globalThis.__conduitApplication = Object.freeze({ snapshot: readTruth, host: Object.freeze({ current: () => host.current() }),
@@ -257,7 +275,7 @@ export async function startApplication(application) {
     selector.addEventListener('change', () => operate(selectExample));
     root.querySelector('[data-try]').addEventListener('click', () => operate(async () => {
       const result = await host.plot(source.value).check();
-      if (!result.ok) { checkStatus.dataset.refusalCode = result.refusal.code; checkStatus.textContent = `${result.refusal.code}: ${result.diagnostics.map(item => item.message).join('\n') || result.refusal.message}`; return; }
+      if (!result.ok) { showCheckRefusal(result, 'edited', selector.value); return; }
       // Reusable transition declarations belong to the selected document;
       // install only its explicitly selected resident entry.
       const next = result.plots.find(plot => plot.name === selector.value);
@@ -309,7 +327,7 @@ export async function startApplication(application) {
       catch (error) { status.textContent = error.message; busy = false; }
     });
   } catch (error) {
-    status.textContent = `${error.code ?? 'Refused'}: ${error.message}`;
+    status.textContent = `${openingStage} refused: ${error.code ?? 'Refused'}: ${error.message}`;
     status.dataset.refused = 'true';
     controls.forEach(control => control.disabled = true);
     source.disabled = false; selector.disabled = false;
@@ -395,10 +413,9 @@ export async function startApplication(application) {
       }
       try {
         const result = await host.plot(value).check();
+        if (source.value !== value || available[index] !== candidate) return;
         if (!result.ok) {
-          checkStatus.dataset.refusalCode = result.refusal.code;
-          checkStatus.textContent = result.refusal.code + ': '
-            + (result.diagnostics.map(item => item.message).join('\n') || result.refusal.message);
+          showCheckRefusal(result, candidate.origin, candidate.name);
           return;
         }
         delete checkStatus.dataset.refusalCode;
@@ -438,7 +455,29 @@ export async function startApplication(application) {
       explanation.textContent = 'The original retained Body has not been reset or rewritten. '
         + 'The download preserves its continuity record, but may omit separately archived history. '
         + 'Recovering or migrating this Body requires explicit, checked compatibility.';
-      checkStatus.after(explanation, backup);
+      const consentLabel = document.createElement('label');
+      const consent = document.createElement('input');
+      consent.type = 'checkbox';
+      consentLabel.append(consent, ' I have saved what I need and understand that a new Body replaces this application’s retained state and separately archived history.');
+      const replacement = document.createElement('button');
+      replacement.type = 'button';
+      replacement.textContent = 'Start a new Handbook Body';
+      replacement.disabled = true;
+      consent.disabled = !host;
+      consent.addEventListener('change', () => {
+        replacement.disabled = !host || !consent.checked || busy;
+      });
+      replacement.addEventListener('click', async () => {
+        if (!host || !consent.checked || busy) return;
+        busy = true; replacement.disabled = true;
+        try { await host.forget(); location.reload(); }
+        catch (refusal) {
+          status.textContent = (refusal.code ?? 'ReplacementRefused') + ': ' + refusal.message;
+          busy = false; replacement.disabled = !consent.checked;
+        }
+      });
+      explanation.textContent += ' Starting a new Body removes this application’s retained state and archived history; it keeps the browser Host identity. Download the original record and save any edits you need before continuing.';
+      checkStatus.after(explanation, backup, consentLabel, replacement);
     }
   }
 }

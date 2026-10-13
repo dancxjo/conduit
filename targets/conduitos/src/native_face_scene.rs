@@ -20,6 +20,8 @@ mod document;
 mod input;
 #[path = "native_face_scene/layout.rs"]
 mod layout;
+#[path = "native_face_scene/ports.rs"]
+mod ports;
 pub use input::{FaceFocusRequest, FaceSceneInput};
 #[cfg(test)]
 #[path = "native_face_scene/tests.rs"]

@@ -50,6 +50,12 @@ pub(super) fn prepare(
         identity.subject_index = Some(index);
         details.push(identity);
         if subject.role == FaceRole::Cord {
+            let mut endpoints = item(
+                super::ports::cord_summary(face, subject),
+                GraphicsTextRole::Body,
+            );
+            endpoints.subject_index = Some(index);
+            details.push(endpoints);
             for relation in face.relationships.iter().filter(|relation| {
                 relation.source == subject.identity
                     && relation.kind == conduit_face::FaceRelationshipKind::Connects
