@@ -503,3 +503,10 @@ pub use pure_expression_back::PureExpressionBack;
 mod converted_equals_back;
 #[cfg(feature = "kernel-step")]
 pub use converted_equals_back::ConvertedEqualsBack;
+
+mod numerical_realization;
+pub use numerical_realization::*;
+#[cfg(feature = "kernel-step")]
+mod numerical_realization_back;
+#[cfg(feature = "kernel-step")]
+pub use numerical_realization_back::NumericalRealizationBack;

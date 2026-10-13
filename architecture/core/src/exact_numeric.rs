@@ -6,12 +6,14 @@ mod natural;
 mod projection;
 mod quantity;
 mod rational;
+mod realization;
 mod root;
 mod symbolic;
 pub use enclosure::*;
 pub use projection::*;
 pub use quantity::*;
 pub use rational::*;
+pub use realization::*;
 pub use root::*;
 pub use symbolic::*;
 

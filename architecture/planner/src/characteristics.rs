@@ -88,7 +88,11 @@ pub fn select_realization_with_characteristics_account(
                         reason,
                     })
             });
+        let numeric_rejection = crate::numerical_realization::candidate_check(gear, offer)?
+            .err()
+            .map(|reason| crate::RealizationRejection::Numerical { reason });
         let rejection = coverage_rejection
+            .or(numeric_rejection)
             .or_else(|| hard_requirement_failure(offer, requirements).map(base_rejection))
             .or_else(|| characteristic_rejection(facts, requirements));
         let rejection = match rejection {
