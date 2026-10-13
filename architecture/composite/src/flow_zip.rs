@@ -124,7 +124,7 @@ impl<const PORTS: usize> StepBack<PORTS> for FlowZipBack {
                 }
                 io.consume_closed(port)
                     .expect("present flow/zip normal close");
-                if self.feedback && port == PortId(0) {
+                if self.feedback && port == PortId(0) && !self.right_closed {
                     self.drain_right_until_close = true;
                 }
                 if pair_ready {
