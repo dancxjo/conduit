@@ -326,3 +326,23 @@ Bare spellings such as `tr` denote Units, while suffixed values such as `2rev`
 denote Angle Quantities. These units do not admit prefixes. An undeclared
 suffix is refused with `CND-FRM-055`; redeclaring a unit symbol is refused
 with `CND-FRM-058`.
+
+## Optional international full-turn vocabulary
+
+`plots/units/international-turns.conduit` provides `tour`, `toer`,
+`revolución`, `rivoluzione`, `revolução`, `Umdrehung`, `varv`, and `obrót`.
+Each checked declaration references `turn` with scale 1. Bare names denote
+Units; suffixed quantities such as `1revolución` equal one turn, and
+`0.25obrót` equals a quarter turn exactly.
+
+These names are optional. Include the declarations in authored Source, or
+check the declaration document with `checked_physical_catalog_for_document`
+and pass the returned immutable catalogue to the consumer's checker. The
+default catalogue does not acquire these names globally. This uses existing
+checked declarations and catalogue custody; it introduces no file-import syntax.
+
+Spellings are case-sensitive and preserve their UTF-8 bytes. There is no
+Unicode normalization, accent removal, transliteration, or locale-based lookup:
+`revolucion` and decomposed `revolución` remain undeclared and receive
+`CND-FRM-055`. An import cannot rebind `turn` or an already imported alias
+(`CND-FRM-058`). The canonical reference and existing checked values remain fixed.
