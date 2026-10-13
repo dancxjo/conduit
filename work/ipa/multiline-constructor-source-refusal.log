@@ -1,0 +1,58 @@
+   Compiling conduit-speech v0.1.0 (/home/dancxjo/conduit-unicode-ipa/semantics/speech)
+   Compiling conduit-std-host v0.1.0 (/home/dancxjo/conduit-unicode-ipa/targets/std)
+    Finished `test` profile [unoptimized] target(s) in 2m 00s
+     Running tests/ipa_authoring_journey.rs (/home/dancxjo/conduit/target/debug/deps/ipa_authoring_journey-7a082dd5c6819f16)
+
+running 6 tests
+test quoted_ipa_cst_highlighter_and_literal_serialization_preserve_utf8 ... FAILED
+test quoted_unicode_constructor_runs_actual_standard_hostcall_without_inventory ... FAILED
+test single_phone_keeps_unknown_identity_and_cannot_decode_as_phoneme ... FAILED
+test orphan_mark_and_invalid_boundaries_return_located_native_outcomes ... FAILED
+test constructor_unit_and_text_bounds_refuse_without_truncation ... FAILED
+test phonemic_source_requires_exact_inventory_revision_and_membership ... FAILED
+
+failures:
+
+---- quoted_ipa_cst_highlighter_and_literal_serialization_preserve_utf8 stdout ----
+
+thread 'quoted_ipa_cst_highlighter_and_literal_serialization_preserve_utf8' (1996157) panicked at targets/std/tests/ipa_authoring_journey.rs:192:9:
+[PlotDiagnostic { code: "CND-FRM-019", span: Span { start: 169, end: 205, line: 5, column: 9, end_line: 5, end_column: 45 }, message: "invalid canonical plot syntax: speech/phonetic-from-ipa(request = {" }]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- quoted_unicode_constructor_runs_actual_standard_hostcall_without_inventory stdout ----
+
+thread 'quoted_unicode_constructor_runs_actual_standard_hostcall_without_inventory' (1996158) panicked at targets/std/tests/ipa_authoring_journey.rs:41:83:
+called `Result::unwrap()` on an `Err` value: SyntaxCheckDiagnostic { code: "CND-FRM-019", span: Span { start: 169, end: 205, line: 5, column: 9, end_line: 5, end_column: 45 }, message: "invalid canonical plot syntax: speech/phonetic-from-ipa(request = {" }
+
+---- single_phone_keeps_unknown_identity_and_cannot_decode_as_phoneme stdout ----
+
+thread 'single_phone_keeps_unknown_identity_and_cannot_decode_as_phoneme' (1996159) panicked at targets/std/tests/ipa_authoring_journey.rs:41:83:
+called `Result::unwrap()` on an `Err` value: SyntaxCheckDiagnostic { code: "CND-FRM-019", span: Span { start: 169, end: 205, line: 5, column: 9, end_line: 5, end_column: 45 }, message: "invalid canonical plot syntax: speech/phonetic-from-ipa(request = {" }
+
+---- orphan_mark_and_invalid_boundaries_return_located_native_outcomes stdout ----
+
+thread 'orphan_mark_and_invalid_boundaries_return_located_native_outcomes' (1996155) panicked at targets/std/tests/ipa_authoring_journey.rs:41:83:
+called `Result::unwrap()` on an `Err` value: SyntaxCheckDiagnostic { code: "CND-FRM-019", span: Span { start: 169, end: 205, line: 5, column: 9, end_line: 5, end_column: 45 }, message: "invalid canonical plot syntax: speech/phonetic-from-ipa(request = {" }
+
+---- constructor_unit_and_text_bounds_refuse_without_truncation stdout ----
+
+thread 'constructor_unit_and_text_bounds_refuse_without_truncation' (1996154) panicked at targets/std/tests/ipa_authoring_journey.rs:41:83:
+called `Result::unwrap()` on an `Err` value: SyntaxCheckDiagnostic { code: "CND-FRM-019", span: Span { start: 169, end: 205, line: 5, column: 9, end_line: 5, end_column: 45 }, message: "invalid canonical plot syntax: speech/phonetic-from-ipa(request = {" }
+
+---- phonemic_source_requires_exact_inventory_revision_and_membership stdout ----
+
+thread 'phonemic_source_requires_exact_inventory_revision_and_membership' (1996156) panicked at targets/std/tests/ipa_authoring_journey.rs:41:83:
+called `Result::unwrap()` on an `Err` value: SyntaxCheckDiagnostic { code: "CND-FRM-019", span: Span { start: 162, end: 187, line: 5, column: 9, end_line: 5, end_column: 34 }, message: "invalid canonical plot syntax: speech/phonemic-from-ipa(" }
+
+
+failures:
+    constructor_unit_and_text_bounds_refuse_without_truncation
+    orphan_mark_and_invalid_boundaries_return_located_native_outcomes
+    phonemic_source_requires_exact_inventory_revision_and_membership
+    quoted_ipa_cst_highlighter_and_literal_serialization_preserve_utf8
+    quoted_unicode_constructor_runs_actual_standard_hostcall_without_inventory
+    single_phone_keeps_unknown_identity_and_cannot_decode_as_phoneme
+
+test result: FAILED. 0 passed; 6 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+error: test failed, to rerun pass `-p conduit-std-host --test ipa_authoring_journey`

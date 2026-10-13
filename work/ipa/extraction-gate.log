@@ -1,0 +1,41 @@
+   Compiling conduit-assigned-plan v0.1.0 (/home/dancxjo/conduit-unicode-ipa/architecture/assigned-plan)
+   Compiling conduit-core v0.1.0 (/home/dancxjo/conduit-unicode-ipa/architecture/core)
+   Compiling conduit-kernel v0.1.0 (/home/dancxjo/conduit-unicode-ipa/architecture/kernel)
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/conduit-unicode-ipa/architecture/plot)
+   Compiling conduit-plan-lowering v0.1.0 (/home/dancxjo/conduit-unicode-ipa/architecture/plan-lowering)
+   Compiling conduit-language v0.1.0 (/home/dancxjo/conduit-unicode-ipa/semantics/language)
+   Compiling conduit-planner v0.1.0 (/home/dancxjo/conduit-unicode-ipa/architecture/planner)
+   Compiling conduit-speech v0.1.0 (/home/dancxjo/conduit-unicode-ipa/semantics/speech)
+    Finished `test` profile [unoptimized] target(s) in 3m 21s
+     Running tests/ipa_inventory.rs (/home/dancxjo/conduit/target/debug/deps/ipa_inventory-3eeff86dbf1ab177)
+
+running 2 tests
+test exact_definitions_keep_distinct_identities_and_executed_notation ... ok
+test foreign_basis_missing_bindings_and_provider_codes_refuse ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.09s
+
+     Running tests/ipa_membership.rs (/home/dancxjo/conduit/target/debug/deps/ipa_membership-fbee5ff7f1632160)
+
+running 2 tests
+test duplicate_definitions_and_guessed_aliases_cannot_prepare ... ok
+test executed_ipa_retains_full_profile_and_refuses_foreign_basis ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+
+     Running tests/ipa_notation.rs (/home/dancxjo/conduit/target/debug/deps/ipa_notation-37ca8fa708e21053)
+
+running 2 tests
+test unsupported_notation_delimiters_and_suprasegmental_order_refuse ... ok
+test checked_unicode_profile_retains_original_spelling_and_all_unit_spans ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.18s
+
+     Running tests/ipa_source_execution.rs (/home/dancxjo/conduit/target/debug/deps/ipa_source_execution-64596545c74c0ace)
+
+running 2 tests
+test actual_source_laws_refuse_unsupported_units_and_wrong_kinds ... ok
+test actual_source_unit_laws_and_pure_projection_preserve_complete_definition ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.33s
+

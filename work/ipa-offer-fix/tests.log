@@ -1,0 +1,24 @@
+   Compiling conduit-std-host v0.1.0 (/home/dancxjo/conduit-unicode-ipa/targets/std)
+    Finished `test` profile [unoptimized] target(s) in 0.86s
+     Running tests/ipa_authoring_journey.rs (/home/dancxjo/conduit/target/debug/deps/ipa_authoring_journey-c07315d9ee825bd2)
+
+running 7 tests
+test quoted_ipa_cst_highlighter_and_literal_serialization_preserve_utf8 ... ok
+test quoted_unicode_constructor_runs_actual_standard_hostcall_without_inventory ... ok
+test constructor_unit_and_text_bounds_refuse_without_truncation ... ok
+test single_phone_keeps_unknown_identity_and_cannot_decode_as_phoneme ... ok
+test explicit_syllable_boundary_cannot_be_erased_inside_one_phoneme ... ok
+test orphan_mark_and_invalid_boundaries_return_located_native_outcomes ... ok
+test phonemic_source_requires_exact_inventory_revision_and_membership ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.80s
+
+     Running tests/native_speech.rs (/home/dancxjo/conduit/target/debug/deps/native_speech-8229d9b35676c43d)
+
+running 3 tests
+test installed_native_voice_refuses_other_languages_and_pronunciation_varieties_before_play ... ok
+test minimal_and_reference_compositions_truthfully_select_the_native_family ... ok
+test installed_host_runs_native_voice_and_closes_after_exact_pcm_delivery ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.46s
+

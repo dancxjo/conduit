@@ -1,0 +1,6 @@
+    Checking conduit-assigned-plan v0.1.0 (/home/dancxjo/conduit-unicode-ipa/architecture/assigned-plan)
+   Compiling conduit-speech v0.1.0 (/home/dancxjo/conduit-unicode-ipa/semantics/speech)
+    Checking conduit-core v0.1.0 (/home/dancxjo/conduit-unicode-ipa/architecture/core)
+    Checking conduit-plot v0.1.0 (/home/dancxjo/conduit-unicode-ipa/architecture/plot)
+    Checking conduit-language v0.1.0 (/home/dancxjo/conduit-unicode-ipa/semantics/language)
+    Finished `dev` profile [unoptimized] target(s) in 2m 49s

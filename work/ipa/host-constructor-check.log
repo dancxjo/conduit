@@ -1,0 +1,102 @@
+   Compiling conduit-assigned-plan v0.1.0 (/home/dancxjo/conduit-unicode-ipa/architecture/assigned-plan)
+    Checking ring v0.17.14
+    Checking patchbay-control v0.1.0 (/home/dancxjo/conduit-unicode-ipa/plots/patchbay)
+    Checking conduit-protected-line v0.1.0 (/home/dancxjo/conduit-unicode-ipa/architecture/protected-line)
+    Checking conduit-core v0.1.0 (/home/dancxjo/conduit-unicode-ipa/architecture/core)
+    Checking conduit-kernel v0.1.0 (/home/dancxjo/conduit-unicode-ipa/architecture/kernel)
+    Checking rustls-webpki v0.103.15
+    Checking tungstenite v0.30.0
+    Checking rustls v0.23.45
+    Checking conduit-emergency-keyword-spotter v0.1.0 (/home/dancxjo/conduit-unicode-ipa/mechanisms/implementations/emergency-keyword-spotter)
+    Checking ureq v3.4.2
+    Checking conduit-plot v0.1.0 (/home/dancxjo/conduit-unicode-ipa/architecture/plot)
+    Checking conduit-body v0.1.0 (/home/dancxjo/conduit-unicode-ipa/architecture/body)
+    Checking conduit-plan-lowering v0.1.0 (/home/dancxjo/conduit-unicode-ipa/architecture/plan-lowering)
+    Checking conduit-rp2040-network-realization v0.1.0 (/home/dancxjo/conduit-unicode-ipa/targets/rp2040/network-realization)
+    Checking conduit-composite v0.1.0 (/home/dancxjo/conduit-unicode-ipa/architecture/composite)
+   Compiling conduit-time v0.1.0 (/home/dancxjo/conduit-unicode-ipa/semantics/time)
+   Compiling conduit-human v0.1.0 (/home/dancxjo/conduit-unicode-ipa/semantics/human)
+   Compiling conduit-audio v0.1.0 (/home/dancxjo/conduit-unicode-ipa/semantics/audio)
+   Compiling conduit-language v0.1.0 (/home/dancxjo/conduit-unicode-ipa/semantics/language)
+   Compiling conduit-web v0.1.0 (/home/dancxjo/conduit-unicode-ipa/semantics/web)
+   Compiling conduit-data v0.1.0 (/home/dancxjo/conduit-unicode-ipa/semantics/data)
+   Compiling conduit-presentation v0.1.0 (/home/dancxjo/conduit-unicode-ipa/semantics/presentation)
+   Compiling conduit-text v0.1.0 (/home/dancxjo/conduit-unicode-ipa/semantics/text)
+   Compiling conduit-net v0.1.0 (/home/dancxjo/conduit-unicode-ipa/semantics/net)
+   Compiling conduit-alife v0.1.0 (/home/dancxjo/conduit-unicode-ipa/semantics/alife)
+   Compiling conduit-process v0.1.0 (/home/dancxjo/conduit-unicode-ipa/semantics/process)
+   Compiling conduit-robotics v0.1.0 (/home/dancxjo/conduit-unicode-ipa/semantics/robotics)
+   Compiling conduit-purpose v0.1.0 (/home/dancxjo/conduit-unicode-ipa/semantics/purpose)
+    Checking conduit-midi v0.1.0 (/home/dancxjo/conduit-unicode-ipa/mechanisms/protocols/midi)
+   Compiling conduit-ai v0.1.0 (/home/dancxjo/conduit-unicode-ipa/semantics/ai)
+   Compiling conduit-signal v0.1.0 (/home/dancxjo/conduit-unicode-ipa/semantics/signal)
+   Compiling conduit-tongues v0.1.0 (/home/dancxjo/conduit-unicode-ipa/semantics/tongues)
+   Compiling conduit-chat v0.1.0 (/home/dancxjo/conduit-unicode-ipa/semantics/chat)
+   Compiling conduit-wire v0.1.0 (/home/dancxjo/conduit-unicode-ipa/architecture/wire)
+    Checking conduit-todo-plot v0.1.0 (/home/dancxjo/conduit-unicode-ipa/plots/todo/model)
+   Compiling conduit-education v0.1.0 (/home/dancxjo/conduit-unicode-ipa/semantics/education)
+    Checking conduit-bluetooth v0.1.0 (/home/dancxjo/conduit-unicode-ipa/mechanisms/protocols/bluetooth)
+   Compiling conduit-plot-library v0.1.0 (/home/dancxjo/conduit-unicode-ipa/semantics/plot-library)
+   Compiling conduit-body-invitation-plot v0.1.0 (/home/dancxjo/conduit-unicode-ipa/semantics/body-invitation)
+   Compiling conduit-tutorial-plot v0.1.0 (/home/dancxjo/conduit-unicode-ipa/semantics/tutorial)
+   Compiling conduit-finance v0.1.0 (/home/dancxjo/conduit-unicode-ipa/semantics/finance)
+    Checking conduit-birth-plot v0.1.0 (/home/dancxjo/conduit-unicode-ipa/plots/birth)
+    Checking conduit-synth v0.1.0 (/home/dancxjo/conduit-unicode-ipa/mechanisms/implementations/synth)
+    Checking conduit-little-seismograph-fixture v0.1.0 (/home/dancxjo/conduit-unicode-ipa/plots/little-seismograph/fixture)
+    Checking conduit-planner v0.1.0 (/home/dancxjo/conduit-unicode-ipa/architecture/planner)
+    Checking conduit-semantic-catalog v0.1.0 (/home/dancxjo/conduit-unicode-ipa/semantics/catalog)
+    Checking conduit-alife-distributed-conformance v0.1.0 (/home/dancxjo/conduit-unicode-ipa/proof/conformance/alife-distributed)
+   Compiling conduit-speech v0.1.0 (/home/dancxjo/conduit-unicode-ipa/semantics/speech)
+    Checking conduit-host-make v0.1.0 (/home/dancxjo/conduit-unicode-ipa/make/host)
+    Checking patchbay-graph v0.1.0 (/home/dancxjo/conduit-unicode-ipa/plots/patchbay/graph)
+    Checking patchbay-application v0.1.0 (/home/dancxjo/conduit-unicode-ipa/plots/patchbay/application)
+    Checking conduit-std-offers v0.1.0 (/home/dancxjo/conduit-unicode-ipa/targets/std/offers)
+    Checking conduit-signal-conformance v0.1.0 (/home/dancxjo/conduit-unicode-ipa/proof/conformance/signal)
+    Checking conduit-tour-model v0.1.0 (/home/dancxjo/conduit-unicode-ipa/plots/tour)
+    Checking conduit-host-browser-make v0.1.0 (/home/dancxjo/conduit-unicode-ipa/targets/browser/make)
+    Checking conduit-browser-mask-offer v0.1.0 (/home/dancxjo/conduit-unicode-ipa/targets/browser/mask-offer)
+    Checking conduit-host-esp32-make v0.1.0 (/home/dancxjo/conduit-unicode-ipa/targets/esp32/make)
+    Checking conduit-host-rp2040 v0.1.0 (/home/dancxjo/conduit-unicode-ipa/targets/rp2040/make)
+    Checking conduit-host-hosted v0.1.0 (/home/dancxjo/conduit-unicode-ipa/targets/std/make)
+    Checking conduit-host-raspberry-pi v0.1.0 (/home/dancxjo/conduit-unicode-ipa/targets/raspberry-pi/make)
+    Checking conduit-host-conduitos-make v0.1.0 (/home/dancxjo/conduit-unicode-ipa/targets/conduitos/make)
+    Checking conduit-body-make v0.1.0 (/home/dancxjo/conduit-unicode-ipa/make/body)
+    Checking conduit-host-orange-pi v0.1.0 (/home/dancxjo/conduit-unicode-ipa/targets/orange-pi/make)
+    Checking conduit-linear-framebuffer-make v0.1.0 (/home/dancxjo/conduit-unicode-ipa/mechanisms/implementations/linear-framebuffer-make)
+    Checking conduit-host-avr-make v0.1.0 (/home/dancxjo/conduit-unicode-ipa/targets/avr/make)
+    Checking conduit-r1-network-conformance v0.1.0 (/home/dancxjo/conduit-unicode-ipa/proof/conformance/network-r1)
+    Checking conduit-browser-runtime v0.1.0 (/home/dancxjo/conduit-unicode-ipa/targets/browser/runtime)
+error: failed to run custom build command for `conduit-speech v0.1.0 (/home/dancxjo/conduit-unicode-ipa/semantics/speech)`
+
+Caused by:
+  process didn't exit successfully: `/home/dancxjo/conduit/target/debug/build/conduit-speech-9bc83057bd5613b7/build-script-build` (exit status: 101)
+  --- stdout
+  cargo:rerun-if-changed=types.conduit
+  cargo:rerun-if-changed=rule_status.conduit
+  cargo:rerun-if-changed=selection.conduit
+  cargo:rerun-if-changed=listening.conduit
+  cargo:rerun-if-changed=translation.conduit
+  cargo:rerun-if-changed=timing.conduit
+  cargo:rerun-if-changed=intent.conduit
+  cargo:rerun-if-changed=inventory.conduit
+  cargo:rerun-if-changed=ipa.conduit
+  cargo:rerun-if-changed=ipa_syntax.conduit
+  cargo:rerun-if-changed=ipa_inventory.conduit
+  cargo:rerun-if-changed=profile_phones.conduit
+  cargo:rerun-if-changed=voice_profile.conduit
+  cargo:rerun-if-changed=timing_projection.conduit
+  cargo:rerun-if-changed=duration_projection.conduit
+  cargo:rerun-if-changed=duration_render.conduit
+  cargo:rerun-if-changed=control_projection.conduit
+  cargo:rerun-if-changed=context_match.conduit
+  cargo:rerun-if-changed=linguistic_prosody.conduit
+  cargo:rerun-if-changed=pitch_trajectory.conduit
+  cargo:rerun-if-changed=pitch_projection.conduit
+  cargo:rerun-if-changed=ipa_phonetic.conduit
+  cargo:rerun-if-changed=ipa_authoring.conduit
+
+  --- stderr
+
+  thread 'main' (1984700) panicked at semantics/speech/build.rs:87:14:
+  Speaking segment and listening contracts check: SyntaxCheckDiagnostic { code: "CND-FRM-058", span: Span { start: 56711, end: 57101, line: 1574, column: 1, end_line: 1583, end_column: 2 }, message: "native semantic Type exceeds finite checked bounds: TooDeep" }
+  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace

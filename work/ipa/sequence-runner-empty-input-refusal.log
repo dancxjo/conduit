@@ -1,0 +1,59 @@
+   Compiling conduit-speech v0.1.0 (/home/dancxjo/conduit-unicode-ipa/semantics/speech)
+   Compiling conduit-std-host v0.1.0 (/home/dancxjo/conduit-unicode-ipa/targets/std)
+    Finished `test` profile [unoptimized] target(s) in 3m 06s
+     Running tests/ipa_authoring_journey.rs (/home/dancxjo/conduit/target/debug/deps/ipa_authoring_journey-7a082dd5c6819f16)
+
+running 7 tests
+test quoted_ipa_cst_highlighter_and_literal_serialization_preserve_utf8 ... ok
+test explicit_syllable_boundary_cannot_be_erased_inside_one_phoneme ... FAILED
+test single_phone_keeps_unknown_identity_and_cannot_decode_as_phoneme ... FAILED
+test quoted_unicode_constructor_runs_actual_standard_hostcall_without_inventory ... FAILED
+test orphan_mark_and_invalid_boundaries_return_located_native_outcomes ... FAILED
+test constructor_unit_and_text_bounds_refuse_without_truncation ... FAILED
+test phonemic_source_requires_exact_inventory_revision_and_membership ... FAILED
+
+failures:
+
+---- explicit_syllable_boundary_cannot_be_erased_inside_one_phoneme stdout ----
+
+thread 'explicit_syllable_boundary_cannot_be_erased_inside_one_phoneme' (1998443) panicked at targets/std/tests/ipa_authoring_journey.rs:41:83:
+called `Result::unwrap()` on an `Err` value: SyntaxCheckDiagnostic { code: "CND-FRM-019", span: Span { start: 1512, end: 1513, line: 5, column: 1351, end_line: 5, end_column: 1352 }, message: "invalid canonical plot syntax: expected an atomic expression value" }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- single_phone_keeps_unknown_identity_and_cannot_decode_as_phoneme stdout ----
+
+thread 'single_phone_keeps_unknown_identity_and_cannot_decode_as_phoneme' (1998448) panicked at targets/std/tests/ipa_authoring_journey.rs:86:10:
+called `Result::unwrap()` on an `Err` value: "external Fore sequence requires one to 64 admitted input values"
+
+---- quoted_unicode_constructor_runs_actual_standard_hostcall_without_inventory stdout ----
+
+thread 'quoted_unicode_constructor_runs_actual_standard_hostcall_without_inventory' (1998447) panicked at targets/std/tests/ipa_authoring_journey.rs:86:10:
+called `Result::unwrap()` on an `Err` value: "external Fore sequence requires one to 64 admitted input values"
+
+---- orphan_mark_and_invalid_boundaries_return_located_native_outcomes stdout ----
+
+thread 'orphan_mark_and_invalid_boundaries_return_located_native_outcomes' (1998444) panicked at targets/std/tests/ipa_authoring_journey.rs:86:10:
+called `Result::unwrap()` on an `Err` value: "external Fore sequence requires one to 64 admitted input values"
+
+---- constructor_unit_and_text_bounds_refuse_without_truncation stdout ----
+
+thread 'constructor_unit_and_text_bounds_refuse_without_truncation' (1998442) panicked at targets/std/tests/ipa_authoring_journey.rs:86:10:
+called `Result::unwrap()` on an `Err` value: "external Fore sequence requires one to 64 admitted input values"
+
+---- phonemic_source_requires_exact_inventory_revision_and_membership stdout ----
+
+thread 'phonemic_source_requires_exact_inventory_revision_and_membership' (1998445) panicked at targets/std/tests/ipa_authoring_journey.rs:86:10:
+called `Result::unwrap()` on an `Err` value: "external Fore sequence requires one to 64 admitted input values"
+
+
+failures:
+    constructor_unit_and_text_bounds_refuse_without_truncation
+    explicit_syllable_boundary_cannot_be_erased_inside_one_phoneme
+    orphan_mark_and_invalid_boundaries_return_located_native_outcomes
+    phonemic_source_requires_exact_inventory_revision_and_membership
+    quoted_unicode_constructor_runs_actual_standard_hostcall_without_inventory
+    single_phone_keeps_unknown_identity_and_cannot_decode_as_phoneme
+
+test result: FAILED. 1 passed; 6 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
+
+error: test failed, to rerun pass `-p conduit-std-host --test ipa_authoring_journey`

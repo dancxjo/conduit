@@ -1,0 +1,133 @@
+   Compiling conduit-assigned-plan v0.1.0 (/home/dancxjo/conduit-unicode-ipa/architecture/assigned-plan)
+    Checking curve25519-dalek v4.1.3
+    Checking postcard v1.1.3
+    Checking conduit-core v0.1.0 (/home/dancxjo/conduit-unicode-ipa/architecture/core)
+    Checking conduit-kernel v0.1.0 (/home/dancxjo/conduit-unicode-ipa/architecture/kernel)
+    Checking ed25519-dalek v2.2.0
+    Checking toml_edit v0.22.27
+    Checking smallvec v1.16.1
+    Checking static-automata v1.0.3
+    Checking langtag v1.1.0
+    Checking toml v0.8.23
+    Checking heapless v0.8.0
+    Checking speaking v0.1.0 (https://github.com/dancxjo/tongues.git?rev=b5d7535b2ccd3730b4db878fb61b2e4e48ae89c9#b5d7535b)
+    Checking serde-json-core v0.6.0
+    Checking parking_lot_core v0.9.12
+    Checking parking_lot v0.12.5
+    Checking icu_normalizer v2.3.0
+    Checking tokio v1.53.1
+    Checking chacha20poly1305 v0.10.1
+    Checking rand_chacha v0.9.0
+    Checking idna_adapter v1.2.2
+    Checking futures-io v0.3.34
+    Checking futures-util v0.3.34
+    Checking idna v1.1.0
+    Checking rand v0.9.5
+    Checking conduit-plot v0.1.0 (/home/dancxjo/conduit-unicode-ipa/architecture/plot)
+    Checking conduit-plan-lowering v0.1.0 (/home/dancxjo/conduit-unicode-ipa/architecture/plan-lowering)
+    Checking conduit-body v0.1.0 (/home/dancxjo/conduit-unicode-ipa/architecture/body)
+    Checking conduit-composite v0.1.0 (/home/dancxjo/conduit-unicode-ipa/architecture/composite)
+    Checking noise-rust-crypto v0.6.2
+    Checking rustls-webpki v0.103.15
+    Checking rand_chacha v0.3.1
+    Checking x25519-dalek v2.0.1
+    Checking thiserror v1.0.69
+    Checking patchbay-control v0.1.0 (/home/dancxjo/conduit-unicode-ipa/plots/patchbay)
+    Checking webrtc-util v0.17.2
+    Checking conduit-protected-line v0.1.0 (/home/dancxjo/conduit-unicode-ipa/architecture/protected-line)
+    Checking rand v0.8.8
+    Checking rustls v0.23.45
+    Checking url v2.5.8
+    Checking futures-executor v0.3.34
+    Checking stun v0.17.2
+    Checking futures v0.3.34
+    Checking instant-distance v0.6.1
+    Checking conduit-observatory v0.1.0 (/home/dancxjo/conduit-unicode-ipa/architecture/observatory)
+    Checking conduit-rp2040-network-realization v0.1.0 (/home/dancxjo/conduit-unicode-ipa/targets/rp2040/network-realization)
+    Checking tokio-util v0.7.19
+    Checking conduit-emergency-keyword-spotter v0.1.0 (/home/dancxjo/conduit-unicode-ipa/mechanisms/implementations/emergency-keyword-spotter)
+    Checking rcgen v0.14.10
+    Checking turn v0.17.2
+    Checking ureq v3.4.2
+   Compiling conduit-time v0.1.0 (/home/dancxjo/conduit-unicode-ipa/semantics/time)
+   Compiling conduit-audio v0.1.0 (/home/dancxjo/conduit-unicode-ipa/semantics/audio)
+   Compiling conduit-language v0.1.0 (/home/dancxjo/conduit-unicode-ipa/semantics/language)
+   Compiling conduit-human v0.1.0 (/home/dancxjo/conduit-unicode-ipa/semantics/human)
+   Compiling conduit-data v0.1.0 (/home/dancxjo/conduit-unicode-ipa/semantics/data)
+   Compiling conduit-presentation v0.1.0 (/home/dancxjo/conduit-unicode-ipa/semantics/presentation)
+   Compiling conduit-web v0.1.0 (/home/dancxjo/conduit-unicode-ipa/semantics/web)
+   Compiling conduit-alife v0.1.0 (/home/dancxjo/conduit-unicode-ipa/semantics/alife)
+   Compiling conduit-net v0.1.0 (/home/dancxjo/conduit-unicode-ipa/semantics/net)
+   Compiling conduit-text v0.1.0 (/home/dancxjo/conduit-unicode-ipa/semantics/text)
+   Compiling conduit-process v0.1.0 (/home/dancxjo/conduit-unicode-ipa/semantics/process)
+   Compiling conduit-purpose v0.1.0 (/home/dancxjo/conduit-unicode-ipa/semantics/purpose)
+   Compiling conduit-robotics v0.1.0 (/home/dancxjo/conduit-unicode-ipa/semantics/robotics)
+    Checking conduit-midi v0.1.0 (/home/dancxjo/conduit-unicode-ipa/mechanisms/protocols/midi)
+   Compiling conduit-ai v0.1.0 (/home/dancxjo/conduit-unicode-ipa/semantics/ai)
+   Compiling conduit-education v0.1.0 (/home/dancxjo/conduit-unicode-ipa/semantics/education)
+   Compiling conduit-signal v0.1.0 (/home/dancxjo/conduit-unicode-ipa/semantics/signal)
+   Compiling conduit-chat v0.1.0 (/home/dancxjo/conduit-unicode-ipa/semantics/chat)
+   Compiling conduit-tongues v0.1.0 (/home/dancxjo/conduit-unicode-ipa/semantics/tongues)
+    Checking conduit-todo-plot v0.1.0 (/home/dancxjo/conduit-unicode-ipa/plots/todo/model)
+   Compiling conduit-wire v0.1.0 (/home/dancxjo/conduit-unicode-ipa/architecture/wire)
+   Compiling conduit-plot-library v0.1.0 (/home/dancxjo/conduit-unicode-ipa/semantics/plot-library)
+   Compiling conduit-body-invitation-plot v0.1.0 (/home/dancxjo/conduit-unicode-ipa/semantics/body-invitation)
+   Compiling conduit-tutorial-plot v0.1.0 (/home/dancxjo/conduit-unicode-ipa/semantics/tutorial)
+    Checking conduit-bluetooth v0.1.0 (/home/dancxjo/conduit-unicode-ipa/mechanisms/protocols/bluetooth)
+   Compiling conduit-finance v0.1.0 (/home/dancxjo/conduit-unicode-ipa/semantics/finance)
+    Checking conduit-birth-plot v0.1.0 (/home/dancxjo/conduit-unicode-ipa/plots/birth)
+    Checking conduit-synth v0.1.0 (/home/dancxjo/conduit-unicode-ipa/mechanisms/implementations/synth)
+    Checking conduit-little-seismograph-fixture v0.1.0 (/home/dancxjo/conduit-unicode-ipa/plots/little-seismograph/fixture)
+    Checking conduit-planner v0.1.0 (/home/dancxjo/conduit-unicode-ipa/architecture/planner)
+    Checking conduit-semantic-catalog v0.1.0 (/home/dancxjo/conduit-unicode-ipa/semantics/catalog)
+    Checking conduit-alife-distributed-conformance v0.1.0 (/home/dancxjo/conduit-unicode-ipa/proof/conformance/alife-distributed)
+   Compiling conduit-speech v0.1.0 (/home/dancxjo/conduit-unicode-ipa/semantics/speech)
+    Checking conduit-host-make v0.1.0 (/home/dancxjo/conduit-unicode-ipa/make/host)
+    Checking patchbay-graph v0.1.0 (/home/dancxjo/conduit-unicode-ipa/plots/patchbay/graph)
+    Checking patchbay-application v0.1.0 (/home/dancxjo/conduit-unicode-ipa/plots/patchbay/application)
+    Checking conduit-std-offers v0.1.0 (/home/dancxjo/conduit-unicode-ipa/targets/std/offers)
+    Checking conduit-signal-conformance v0.1.0 (/home/dancxjo/conduit-unicode-ipa/proof/conformance/signal)
+    Checking conduit-tour-model v0.1.0 (/home/dancxjo/conduit-unicode-ipa/plots/tour)
+    Checking conduit-host-browser-make v0.1.0 (/home/dancxjo/conduit-unicode-ipa/targets/browser/make)
+    Checking conduit-host-rp2040 v0.1.0 (/home/dancxjo/conduit-unicode-ipa/targets/rp2040/make)
+    Checking conduit-host-conduitos-make v0.1.0 (/home/dancxjo/conduit-unicode-ipa/targets/conduitos/make)
+    Checking conduit-host-orange-pi v0.1.0 (/home/dancxjo/conduit-unicode-ipa/targets/orange-pi/make)
+    Checking conduit-host-raspberry-pi v0.1.0 (/home/dancxjo/conduit-unicode-ipa/targets/raspberry-pi/make)
+    Checking conduit-host-avr-make v0.1.0 (/home/dancxjo/conduit-unicode-ipa/targets/avr/make)
+    Checking conduit-host-esp32-make v0.1.0 (/home/dancxjo/conduit-unicode-ipa/targets/esp32/make)
+    Checking conduit-host-hosted v0.1.0 (/home/dancxjo/conduit-unicode-ipa/targets/std/make)
+    Checking conduit-linear-framebuffer-make v0.1.0 (/home/dancxjo/conduit-unicode-ipa/mechanisms/implementations/linear-framebuffer-make)
+    Checking conduit-browser-mask-offer v0.1.0 (/home/dancxjo/conduit-unicode-ipa/targets/browser/mask-offer)
+    Checking conduit-body-make v0.1.0 (/home/dancxjo/conduit-unicode-ipa/make/body)
+    Checking conduit-r1-network-conformance v0.1.0 (/home/dancxjo/conduit-unicode-ipa/proof/conformance/network-r1)
+    Checking conduit-workspace-make v0.1.0 (/home/dancxjo/conduit-unicode-ipa/make/workspace)
+    Checking conduit-browser-runtime v0.1.0 (/home/dancxjo/conduit-unicode-ipa/targets/browser/runtime)
+error: using `clone` on type `SpeechIpaRefusalReason` which implements the `Copy` trait
+  --> semantics/speech/src/ipa_authoring.rs:76:17
+   |
+76 |                 reason.reason().clone(),
+   |                 ^^^^^^^^^^^^^^^^^^^^^^^ help: try dereferencing it: `*reason.reason()`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#clone_on_copy
+   = note: `-D clippy::clone-on-copy` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::clone_on_copy)]`
+
+error: using `clone` on type `SpeechIpaRefusalReason` which implements the `Copy` trait
+   --> semantics/speech/src/ipa_authoring.rs:113:13
+    |
+113 |             reason.reason().clone(),
+    |             ^^^^^^^^^^^^^^^^^^^^^^^ help: try dereferencing it: `*reason.reason()`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#clone_on_copy
+
+error: using `clone` on type `SpeechIpaRefusalReason` which implements the `Copy` trait
+   --> semantics/speech/src/ipa_authoring.rs:261:9
+    |
+261 |         reason.reason().clone(),
+    |         ^^^^^^^^^^^^^^^^^^^^^^^ help: try dereferencing it: `*reason.reason()`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#clone_on_copy
+
+error: could not compile `conduit-speech` (lib) due to 3 previous errors
+warning: build failed, waiting for other jobs to finish...
+error: could not compile `conduit-speech` (lib test) due to 3 previous errors

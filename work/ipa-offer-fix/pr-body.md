@@ -1,0 +1,16 @@
+Make quoted Unicode IPA a checked public Source authoring contract. Inventory-independent phonetic values retain unknown phone identity; separate phonemic values require exact inventory, variety, revision and membership. Ordinary Source constructors select the standard Back and execute an actual HostCall, returning a typed admitted value or refusal with original-text byte/scalar locations.
+
+Admission covers the finite explicitly prepared IPA unit/alias profile; it does not claim support for every IPA spelling.
+
+Extracts the notation and inventory foundations from #5273, preserving their original commit provenance. Adds bounded preparation of exact constructor startup owners and outcomes, lossless Unicode CST/highlighter coverage, canonical public examples, and explicit terminal ASCII projection documentation. No parser, FARGAN, model or full Speech stack import.
+
+Closes #5260. Optional shorthand #5317 remains independent. Depends on #5208; this branch includes its consolidated foundation head. No automatic merge requested.
+
+Validation and exact source hashes are recorded in the proof receipt. Source formatting remains an explicitly unsupported API boundary; CST round trip, text serialization and highlighter tests cover the supported authoring tools. Finite profile ceilings are not a whole-process heap or allocation-free parsing claim.
+
+Validation: full Speech 317 tests and Std 665 tests, Speech no-default-features check, and conduit/xtask public catalog check passed. These full gates precede a three-expression clone-on-Copy lint correction; final source passed strict scoped Clippy and all seven actual Source/HostCall journeys. Both byte hashes and the original failed lint probe are preserved in `proof/speech/unicode-ipa`.
+
+
+CI verifier integration: includes exact-ancestor source 672da0ad8285002b44a87ac842a3e0170b9d611a and its evidence-only packet. After the scoped timeout fix, all 100 browser tests passed, but CI repeated the unexplained optimized merge-base refusal. Both Todo validators now require a complete successful unpruned walk of actual commit parents; shallow/grafted/incomplete history refuses, replacement refs/commit graphs/lazy fetch are disabled, and only complete first-token SHA membership is accepted. The strict ancestry requirement remains. Local tests pass under Git 2.53 and locally built official Git 2.55, including 160 pipeline tests and actual retained Todo admission. The original merge-base discrepancy remains unexplained; version alone did not reproduce it. Final combined-head CI is pending; auto-merge remains off.
+
+CI fixture repair: the exact native-speech composition assertion now expects the utterance offer plus both IPA constructor offers. Minimal composition excludes all three; reference composition includes all three complete canonical offers. The 3 native-speech and 7 IPA journeys plus scoped test Clippy pass; implementation source hashes are unchanged. Original failed CI and repair receipt are preserved.
