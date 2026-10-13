@@ -441,6 +441,70 @@ impl XhciReady {
         Err(XhciError::UnexpectedCompletion)
     }
 
+    /// Stop one exact original endpoint without disabling its slot or EP0.
+    /// Only the caller's still-retained TD may be drained before the exact
+    /// command acknowledgement. This does not retire software leases, reset a
+    /// halted endpoint, or authorize publishing another transfer.
+    ///
+    /// # Safety
+    /// Caller exclusively owns the original slot/DCI and controller event ring,
+    /// has closed submissions, and retains all DMA and obligations on failure.
+    /// `original_td` must name the sole admitted pending TD on this queue, or be
+    /// None for an idle queue. No other queue may have an outstanding transfer.
+    #[allow(dead_code)] // Endpoint recovery composition is not installed yet.
+    pub(crate) unsafe fn stop_original_endpoint(
+        &mut self,
+        slot: u8,
+        endpoint: u8,
+        original_td: Option<u64>,
+    ) -> Result<u8, XhciError> {
+        if slot == 0
+            || slot > self.admitted_slots
+            || !(2..=31).contains(&endpoint)
+            || original_td.is_some_and(|pointer| pointer == 0 || pointer & 15 != 0)
+        {
+            return Err(XhciError::InvalidLayout);
+        }
+        if self.command_enqueue >= COMMAND_TRBS - 1 {
+            return Err(XhciError::CommandRingFull);
+        }
+        let index = self.command_enqueue;
+        let pointer = self.dma_physical
+            + core::mem::offset_of!(DmaStorage, command_ring) as u64
+            + (index * 16) as u64;
+        let command = [
+            0,
+            0,
+            0,
+            (15 << 10) | (u32::from(endpoint) << 16) | (u32::from(slot) << 24) | self.command_cycle,
+        ];
+        unsafe { transfer_publication::write_command_slot(index, command) };
+        self.command_enqueue += 1;
+        unsafe { write32(self.doorbell, 0) };
+        let mut drained = 0;
+        for _ in 0..EVENT_TRBS {
+            let event = self.next_event()?;
+            match event.event_type {
+                34 => continue,
+                32 if event.slot == slot
+                    && event.endpoint == endpoint
+                    && Some(event.pointer) == original_td
+                    && drained == 0 =>
+                {
+                    drained = 1;
+                }
+                33 if event.pointer == pointer
+                    && event.slot == slot
+                    && event.completion_code == 1 =>
+                {
+                    return Ok(drained);
+                }
+                _ => return Err(XhciError::UnexpectedCompletion),
+            }
+        }
+        Err(XhciError::UnexpectedCompletion)
+    }
+
     pub(crate) fn ring_endpoint(&self, slot: u8, endpoint: u8) {
         unsafe { write32(self.doorbell + usize::from(slot) * 4, u32::from(endpoint)) }
     }
