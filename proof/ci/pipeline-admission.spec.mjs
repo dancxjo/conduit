@@ -78,8 +78,23 @@ test('numerical catalogue changes select numerical tests; other catalogue edits 
     const commands = [];
     runAdmission([path], model, '/repo', (...args) => commands.push(args));
     const tests = commands.filter(([, args]) => args[0] === 'test' && args.includes('conduit-semantic-catalog'));
-    assert.equal(tests.some(([, args]) => args.includes('--lib') && args.includes('numerical')), targeted);
+    assert.equal(tests.some(([, args]) => args.includes('--lib')), targeted);
     assert.equal(tests.some(([, args]) => args.includes('--no-fail-fast')), !targeted);
     if (targeted) assert.ok(tests.some(([, args]) => args.includes('kernel-step')));
   }
+});
+
+test('numerical consumer admission retains full library and actual CLI tests, with broad fallback', () => {
+  const model = {workspace_members:['host'],packages:[{id:'host',name:'conduit-std-host',manifest_path:'/repo/targets/std/Cargo.toml'}]};
+  for (const [extra, narrow] of [ [[],true], [['targets/std/src/hosted_local_model/ollama.rs'],false], [['targets/std/tests/lifecycle.rs'],false] ]) {
+    const commands = [];
+    runAdmission(['targets/std/src/numerical_host.rs','targets/std/src/lib.rs',...extra], model, '/repo', (...args) => commands.push(args));
+    assert.equal(commands.some(([,args]) => args.includes('--lib') && args.includes('conduit-std-host')), narrow);
+    assert.equal(commands.some(([,args]) => args.includes('--test') && args.includes('numerical_offers')), narrow);
+    assert.equal(commands.some(([,args]) => args.includes('--no-fail-fast')), !narrow);
+  }
+  const commands = [];
+  runAdmission(['products/conduit/src/product_execution/numerical.rs','products/conduit/src/main.rs'], metadata, '/repo', (...args) => commands.push(args));
+  assert.ok(commands.some(([,args]) => args.includes('--lib') && args.includes('conduit')));
+  assert.ok(commands.some(([,args]) => args.includes('--test') && args.includes('numerical_realization')));
 });

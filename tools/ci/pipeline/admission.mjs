@@ -48,9 +48,23 @@ export function runAdmission(paths, metadata, root, run) {
   const catalogChanges = paths.filter(name => name.startsWith('semantics/catalog/') && !name.endsWith('.md'));
   const numericalCatalog = catalogChanges.length > 0 && catalogChanges.every(name =>
     /^semantics\/catalog\/(?:src\/numerical_realization(?:_back)?\.rs|numerical\/|tests\/numerical_realization(?:\.rs|\/))/.test(name));
-  const packages = plan.packages.filter(name => !(numericalCatalog && name === 'conduit-semantic-catalog'));
+  // Numerical registration changes affect the whole consumer library, but do
+  // not require compiling every unrelated UI/network integration-test binary.
+  // Any other source or test path falls back to the complete package suite.
+  const consumers = [
+    { name: 'conduit', directory: 'products/conduit/', allowed: /^products\/conduit\/(?:src\/(?:lib|main|plot_source|product_execution|product_execution_tests)\.rs|src\/product_execution\/numerical\.rs|tests\/numerical_realization\.rs)$/, test: 'numerical_realization' },
+    { name: 'conduit-std-host', directory: 'targets/std/', allowed: /^targets\/std\/(?:src\/(?:lib|installed_std|numerical_host)\.rs|src\/installed_std\/(?:back_capacity|back_kind|back_step|catalog|numerical_back|numerical_back_tests|structured_values_back)\.rs|tests\/numerical_offers\.rs)$/, test: 'numerical_offers' },
+  ].filter(consumer => {
+    const changes = paths.filter(name => name.startsWith(consumer.directory) && !name.endsWith('.md') && !name.startsWith('targets/std/offers/'));
+    return plan.packages.includes(consumer.name) && changes.some(name => name.includes('numerical')) && changes.every(name => consumer.allowed.test(name));
+  });
+  const packages = plan.packages.filter(name => !(numericalCatalog && name === 'conduit-semantic-catalog') && !consumers.some(consumer => consumer.name === name));
   if (packages.length) run('cargo', ['test', '--locked', '--no-fail-fast', ...packages.flatMap(name => ['-p', name]), '--', '--test-threads=1']);
-  if (numericalCatalog) run('cargo', ['test', '--locked', '-p', 'conduit-semantic-catalog', '--lib', 'numerical', '--', '--test-threads=1']);
+  for (const consumer of consumers) {
+    run('cargo', ['test', '--locked', '-p', consumer.name, '--lib', '--', '--test-threads=1']);
+    run('cargo', ['test', '--locked', '-p', consumer.name, '--test', consumer.test, '--', '--test-threads=1']);
+  }
+  if (numericalCatalog) run('cargo', ['test', '--locked', '-p', 'conduit-semantic-catalog', '--lib', '--', '--test-threads=1']);
   if (plan.packages.includes('conduit-kernel')) run('cargo', ['test', '--locked', '-p', 'conduit-kernel', '--features', 'alloc', '--', '--test-threads=1']);
   if (paths.some(name => /(?:numerical|exact_numeric|binary64)/.test(name))
       && metadata.packages.some(pkg => pkg.name === 'conduit-semantic-catalog')) {
