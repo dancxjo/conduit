@@ -232,7 +232,7 @@ pub fn decode_assigned_plan(
         let valid_length = match tag {
             ASSIGNED_NODE => length == 52,
             ASSIGNED_PORT => length == 37,
-            ASSIGNED_CONFIGURATION => length == 27,
+            ASSIGNED_CONFIGURATION => length == 27 || (20..=147).contains(&length),
             ASSIGNED_CORD => length == 37,
             ASSIGNED_ROUTE => length == 8,
             ASSIGNED_ROUTE_TARGET => length == 6 || length == 7,
@@ -250,7 +250,15 @@ pub fn decode_assigned_plan(
         }
         let valid_discriminants = match tag {
             ASSIGNED_PORT => payload[4] <= 1,
-            ASSIGNED_CONFIGURATION => payload[18] <= 2,
+            ASSIGNED_CONFIGURATION => match payload[18] {
+                0..=2 => length == 27,
+                3 => core::str::from_utf8(&payload[19..]).is_ok_and(|text| {
+                    text.len() <= 128
+                        && !text.trim().is_empty()
+                        && !text.chars().any(char::is_control)
+                }),
+                _ => false,
+            },
             ASSIGNED_CORD => payload[18] <= 1 && payload[23] <= 1 && payload[36] <= 2,
             ASSIGNED_ROUTE_TARGET => length == 6 || payload[2] == 1,
             ASSIGNED_SIGN => payload[34] <= 3,

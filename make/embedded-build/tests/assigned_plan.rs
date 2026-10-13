@@ -308,3 +308,40 @@ fn remove_first_record(bytes: &[u8], wanted: u8) -> Vec<u8> {
     }
     panic!("wanted assigned-plan record was absent")
 }
+
+#[test]
+fn bounded_face_label_survives_the_assigned_image_exactly() {
+    use conduit_embedded_build::{GeneratedConfigurationEntry, GeneratedConfigurationValue};
+    let mut generated = local_signal_plan();
+    generated.configuration.push(GeneratedConfigurationEntry {
+        node: 0,
+        key: "label".into(),
+        value: GeneratedConfigurationValue::Text("Room temperature °C".into()),
+    });
+    let bytes = encode_assigned_plan(&generated, AssignedPlanMaxima::TINY_HOST).unwrap();
+    assert!(bytes
+        .windows("Room temperature °C".len())
+        .any(|part| part == "Room temperature °C".as_bytes()));
+    let operations = operation_requirements(&generated);
+    let resources = resource_requirements(&generated);
+    decode_assigned_plan(
+        &bytes,
+        AssignedPlanMaxima::TINY_HOST,
+        requirements(&generated, &operations, &resources, &[]),
+    )
+    .unwrap();
+    for invalid in ["x".repeat(129), " ".into(), "Room\ntemperature".into()] {
+        generated.configuration.last_mut().unwrap().value =
+            GeneratedConfigurationValue::Text(invalid);
+        let bytes = encode_assigned_plan(&generated, AssignedPlanMaxima::TINY_HOST).unwrap();
+        assert!(decode_assigned_plan(
+            &bytes,
+            AssignedPlanMaxima::TINY_HOST,
+            requirements(&generated, &operations, &resources, &[])
+        )
+        .is_err());
+    }
+    assert!(generated
+        .render_no_alloc_firmware_module()
+        .contains("Text(&'static str)"));
+}

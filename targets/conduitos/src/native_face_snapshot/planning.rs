@@ -40,7 +40,7 @@ impl NativeFaceSnapshotProducer {
         startup
             .insert(KindSignature {
                 kind: tee.kind_id.as_str().into(),
-                startup_parameters: Vec::new(),
+                startup_parameters: conduit_semantic_catalog::data_label_startup_signature(),
             })
             .map_err(|_| FaceSnapshotRefusal::Catalog)?;
         profiles

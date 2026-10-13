@@ -6,8 +6,8 @@ mod generated_signal {
 }
 
 use conduit_kernel::{
-    CordId, FixedHostCallBindings, FixedRoutes, HostCallId, NodeId, PortId,
-    RemoteEndpointId, ValueRef,
+    CordId, FixedHostCallBindings, FixedRoutes, HostCallId, NodeId, PortId, RemoteEndpointId,
+    ValueRef,
 };
 use conduit_signal::{PULSE_KIND, SHOW_KIND, SIGNAL_ENCODED_LEN, SIGNAL_PORT, SIGNAL_VALUE_KIND};
 
@@ -236,6 +236,10 @@ fn generated_signal_configuration(pulse_node: NodeId) -> Option<SignalConfigurat
             continue;
         }
         match (key, value) {
+            ("label", generated_signal::GeneratedConfigurationValue::Text(value))
+                if !value.trim().is_empty()
+                    && value.len() <= 128
+                    && !value.chars().any(char::is_control) => {}
             ("count", generated_signal::GeneratedConfigurationValue::U64(value)) => {
                 count = usize::try_from(value).ok();
             }
@@ -334,7 +338,8 @@ pub fn generated_remote_endpoint() -> Option<RemoteEndpointIdentity> {
         peer_host: generated_signal::GENERATED_REMOTE_ENDPOINT_PEER_HOSTS.first()?,
         peer_boot: generated_signal::GENERATED_REMOTE_ENDPOINT_PEER_BOOTS.first()?,
         peer_endpoint: generated_signal::GENERATED_REMOTE_ENDPOINT_PEER_ENDPOINTS.first()?,
-        base_implementation_id: generated_signal::GENERATED_REMOTE_ENDPOINT_BASE_IMPLEMENTATION_IDS.first()?,
+        base_implementation_id: generated_signal::GENERATED_REMOTE_ENDPOINT_BASE_IMPLEMENTATION_IDS
+            .first()?,
         contract: *generated_signal::GENERATED_REMOTE_ENDPOINT_LINE_CONTRACTS.first()?,
         base_instance_id: generated_signal::GENERATED_REMOTE_ENDPOINT_BASE_INSTANCE_IDS.first()?,
         line_id: generated_signal::GENERATED_REMOTE_ENDPOINT_LINE_IDS.first()?,

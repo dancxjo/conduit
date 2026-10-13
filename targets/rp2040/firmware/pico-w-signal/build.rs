@@ -4,8 +4,8 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use conduit_core::{
-    bind_active_play, bind_face, bind_sign, BaseImplementationId, BootId, HostId,
-    PlacementId, PlanId,
+    bind_active_play, bind_face, bind_sign, BaseImplementationId, BootId, HostId, PlacementId,
+    PlanId,
 };
 use conduit_embedded_build::{generate_embedded_plan, EmbeddedImageBounds, GeneratedEmbeddedPlan};
 use conduit_plan_lowering::lowering::lower_plan_fragment;
@@ -24,8 +24,10 @@ use firmware_mode::firmware_mode;
 mod r1_control_images;
 
 const SIGNAL_DEMO_FORM: &str = include_str!("../../../../proof/fixtures/plots/signal-demo.conduit");
-const R1_CONTROL_FORM: &str = include_str!("../../../../proof/fixtures/plots/r1-three-peer-control.conduit");
-const TRIPLE_SIGNAL_FORM: &str = include_str!("../../../../proof/fixtures/plots/triple-signal.conduit");
+const R1_CONTROL_FORM: &str =
+    include_str!("../../../../proof/fixtures/plots/r1-three-peer-control.conduit");
+const TRIPLE_SIGNAL_FORM: &str =
+    include_str!("../../../../proof/fixtures/plots/triple-signal.conduit");
 const IDENTITY_SIDECAR_ENV: &str = "CONDUIT_PICO_SIGNAL_IDENTITY_SIDECAR";
 const IDENTITY_SIDECAR_RERUN_ENV: &str = "CONDUIT_PICO_SIGNAL_IDENTITY_RERUN";
 const APPLIANCE_IDENTITY_SIDECAR_ENV: &str = "CONDUIT_PICO_APPLIANCE_IDENTITY_SIDECAR";
@@ -44,16 +46,21 @@ fn main() {
     println!("cargo:rerun-if-env-changed=CONDUIT_PICO_INDICATOR_IDENTITY_SIDECAR");
     if firmware_mode() == "indicator-resource" {
         if let Some(path) = env::var_os("CONDUIT_PICO_INDICATOR_IDENTITY_SIDECAR") {
-            fs::write(path, serde_json::to_vec_pretty(&serde_json::json!({
-                "schema": "conduit.pico-indicator/image@1",
-                "firmware_mode": "indicator-resource",
-                "firmware_build_id": appliance_build_id,
-                "git_revision": git_revision(),
-                "tree_state": git_tree_state(),
-                "target": env::var("TARGET").unwrap(),
-                "profile": env::var("PROFILE").unwrap(),
-                "conduit_plan_claimed": false,
-            })).unwrap()).expect("indicator build identity must be writable");
+            fs::write(
+                path,
+                serde_json::to_vec_pretty(&serde_json::json!({
+                    "schema": "conduit.pico-indicator/image@1",
+                    "firmware_mode": "indicator-resource",
+                    "firmware_build_id": appliance_build_id,
+                    "git_revision": git_revision(),
+                    "tree_state": git_tree_state(),
+                    "target": env::var("TARGET").unwrap(),
+                    "profile": env::var("PROFILE").unwrap(),
+                    "conduit_plan_claimed": false,
+                }))
+                .unwrap(),
+            )
+            .expect("indicator build identity must be writable");
         }
     }
     println!(
@@ -746,11 +753,7 @@ fn render_identity_constants(module: &mut String, identity: &GeneratedFirmwareId
     render_string_constant(module, "BOOT_SIGN_ID", &identity.boot_sign_id);
     render_string_constant(module, "TERMINAL_SIGN_ID", &identity.terminal_sign_id);
     render_string_array(module, "FACE_IDS", &identity.face_ids);
-    render_string_array(
-        module,
-        "FACE_SIGN_IDS",
-        &identity.face_sign_ids,
-    );
+    render_string_array(module, "FACE_SIGN_IDS", &identity.face_sign_ids);
 }
 
 fn render_string_constant(module: &mut String, name: &str, value: &str) {
@@ -775,7 +778,7 @@ fn pico_signal_bounds() -> EmbeddedImageBounds {
         maximum_host_calls: 2,
         maximum_resources: 2,
         maximum_sign_expectations: 8,
-        maximum_configuration_entries: 3,
+        maximum_configuration_entries: 4,
         maximum_ports_per_node:
             conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
         maximum_remote_endpoints: 2,

@@ -10,6 +10,13 @@ use serde::Serialize;
 
 use crate::{cli::GlobalOpts, proof::ProofClass};
 
+/// Production browser packaging must optimize the entire dependency graph.
+pub const BROWSER_RELEASE_ENVIRONMENT: [(&str, &str); 3] = [
+    ("CARGO_PROFILE_RELEASE_OPT_LEVEL", "z"),
+    ("CARGO_PROFILE_RELEASE_LTO", "fat"),
+    ("CARGO_PROFILE_RELEASE_CODEGEN_UNITS", "1"),
+];
+
 /// A single read-only probe or orchestrated task step with stable identity and provenance.
 #[derive(Debug, Clone)]
 pub struct Step {
@@ -27,6 +34,8 @@ pub struct Step {
     pub tool_or_target: Option<&'static str>,
     /// Proof class or proof purpose.
     pub proof_class: Option<ProofClass>,
+    /// Explicit environment values for this step.
+    pub environment: &'static [(&'static str, &'static str)],
     /// Expected output artifacts.
     pub expected_artifacts: &'static [&'static str],
 }
@@ -47,6 +56,7 @@ impl Step {
             tool_or_target: None,
             proof_class: None,
             expected_artifacts: &[],
+            environment: &[],
         }
     }
 
@@ -70,12 +80,23 @@ impl Step {
             tool_or_target,
             proof_class,
             expected_artifacts,
+            environment: &[],
         }
+    }
+    pub const fn with_environment(
+        mut self,
+        environment: &'static [(&'static str, &'static str)],
+    ) -> Self {
+        self.environment = environment;
+        self
     }
 }
 
 impl fmt::Display for Step {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        for (name, value) in self.environment {
+            write!(f, "{name}={value} ")?;
+        }
         write!(f, "{} {}", self.program, self.args.join(" "))
     }
 }
@@ -142,7 +163,7 @@ impl std::error::Error for StepError {}
 /// can report every prerequisite in one pass. `--dry-run` never launches the
 /// process and returns a skipped record instead.
 pub fn run_probe(step: &Step, working_dir: &Path, opts: &GlobalOpts) -> ProbeOutcome {
-    let command_line = format!("{} {}", step.program, step.args.join(" "));
+    let command_line = step.to_string();
 
     if !opts.quiet && !opts.json {
         println!("» [{}] {}", step.id, step.description);
@@ -168,6 +189,7 @@ pub fn run_probe(step: &Step, working_dir: &Path, opts: &GlobalOpts) -> ProbeOut
     match command_for(step.program)
         .args(step.args)
         .current_dir(working_dir)
+        .envs(step.environment.iter().copied())
         .stdin(Stdio::null())
         .output()
     {
@@ -266,7 +288,16 @@ fn run_step_with_arguments_and_environment(
         effective_args.insert(1, "--locked".to_string());
     }
 
-    let command_line = format!("{} {}", step.program, effective_args.join(" "));
+    let environment_prefix = step
+        .environment
+        .iter()
+        .map(|(name, value)| format!("{name}={value} "))
+        .collect::<String>();
+    let command_line = format!(
+        "{environment_prefix}{} {}",
+        step.program,
+        effective_args.join(" ")
+    );
 
     if !opts.quiet && !opts.json {
         let meta = match (step.tool_or_target, step.proof_class) {
@@ -290,6 +321,7 @@ fn run_step_with_arguments_and_environment(
     cmd.args(&effective_args)
         .current_dir(&work_dir)
         .envs(environment.iter().copied());
+    cmd.envs(step.environment.iter().copied());
 
     match cmd.status() {
         Ok(status) if status.success() => Ok(()),
@@ -380,5 +412,26 @@ mod tests {
         ];
         let result = run_suite(steps, &workspace(), &dry_opts());
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn owning_browser_artifact_steps_use_production_packaging_environment() {
+        for steps in [
+            crate::suites::patchbay_body_workbench::PROVE_PATCHBAY_BODY_WORKBENCH_STEPS,
+            crate::suites::browser_check::BROWSER_CHECK_STEPS,
+        ] {
+            let browser = steps
+                .iter()
+                .find(|step| {
+                    step.args.contains(&"--release")
+                        && step.args.contains(&"conduit-browser-runtime")
+                })
+                .unwrap();
+            assert_eq!(browser.environment, BROWSER_RELEASE_ENVIRONMENT);
+            assert!(steps
+                .iter()
+                .filter(|step| step.args.first() == Some(&"test"))
+                .all(|step| step.environment.is_empty()));
+        }
     }
 }

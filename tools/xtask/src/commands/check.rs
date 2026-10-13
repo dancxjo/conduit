@@ -384,7 +384,8 @@ const QUANTITY_MAPPING_STEPS: &[Step] = &[
             "tour-surface",
             "--locked",
         ],
-    ),
+    )
+    .with_environment(&crate::process::BROWSER_RELEASE_ENVIRONMENT),
     Step::new(
         "quantity-mapping.contract",
         "Check exact mapping refusals and bounded structured Quantity encoding",
