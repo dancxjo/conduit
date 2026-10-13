@@ -18,6 +18,16 @@ pub const MAXIMUM_SHOW_BYTES: u32 = 65_536;
 pub const MAXIMUM_INSTRUCTION_BYTES: u32 = PARSEC_INPUT_INSTRUCTION_FRAME_BYTES as u32;
 
 pub fn instruction_native_type() -> Result<CheckedNativeType, String> {
+    // This checked declaration depends only on embedded source. Host offers,
+    // reservations and current input custody are validated separately.
+    static DECLARATION: std::sync::OnceLock<Result<CheckedNativeType, String>> =
+        std::sync::OnceLock::new();
+    DECLARATION
+        .get_or_init(prepare_instruction_native_type)
+        .clone()
+}
+
+fn prepare_instruction_native_type() -> Result<CheckedNativeType, String> {
     checked_parsec_input_instruction()
         .map_err(|e| format!("instruction source: {e:?}"))?
         .native_types

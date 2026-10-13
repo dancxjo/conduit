@@ -10,6 +10,14 @@ use conduit_presentation::{
 };
 
 pub fn required_parsec_input_instruction_offer() -> Result<CapabilityOffer, String> {
+    // Reuse only the immutable source-derived offer, never a Host or Plan.
+    static OFFER: std::sync::OnceLock<Result<CapabilityOffer, String>> = std::sync::OnceLock::new();
+    OFFER
+        .get_or_init(prepare_parsec_input_instruction_offer)
+        .clone()
+}
+
+fn prepare_parsec_input_instruction_offer() -> Result<CapabilityOffer, String> {
     let checked =
         checked_parsec_input_instruction().map_err(|e| format!("Parsec instruction: {e:?}"))?;
     let expanded = expanded(&checked, "parsec/input-instruction")?;
