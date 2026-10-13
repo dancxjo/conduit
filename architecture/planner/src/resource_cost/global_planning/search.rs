@@ -14,6 +14,7 @@ pub(super) struct Search<'a, 'b, 'c> {
     pub(super) capacity_pruned: u32,
     pub(super) disposition: GlobalPlacementDisposition,
     pub(super) best: Option<(Plan, GlobalPlacementScore)>,
+    pub(super) cache: Option<&'b mut GlobalPlanCache>,
     pub(super) work: &'b mut ExactNumericWork,
     pub(super) objective: GlobalPlacementObjective,
     pub(super) transfer: Option<GlobalTransferInputs<'a>>,
@@ -70,17 +71,38 @@ impl Search<'_, '_, '_> {
                 &placements,
                 self.requirements,
             )?;
-            let plan = crate::plan_with_options(
-                self.plot,
-                self.inputs.hosts,
-                &placements,
-                self.inputs.bases,
-                self.inputs.options,
-            )?;
-            let plan = crate::characteristic_sealing::seal_characteristics(
-                plan,
-                self.inputs.advertisements,
-            )?;
+            let key = self.cache.as_mut().and_then(|cache| {
+                cache.key(self.plot, self.inputs, self.requirements, &placements)
+            });
+            let reused = key.and_then(|key| {
+                self.cache
+                    .as_mut()
+                    .and_then(|cache| cache.get(key, &placements))
+            });
+            let plan = if let Some(plan) = reused {
+                plan
+            } else {
+                if let Some(cache) = self.cache.as_mut() {
+                    cache.constructed();
+                }
+                let plan = crate::plan_with_options(
+                    self.plot,
+                    self.inputs.hosts,
+                    &placements,
+                    self.inputs.bases,
+                    self.inputs.options,
+                )?;
+                let plan = crate::characteristic_sealing::seal_characteristics(
+                    plan,
+                    self.inputs.advertisements,
+                )?;
+                if let Some(key) = key {
+                    if let Some(cache) = self.cache.as_mut() {
+                        cache.retain(key, placements.clone(), &plan);
+                    }
+                }
+                plan
+            };
             observed_capacity(&plan, self.inputs.observations)?;
             Ok::<_, PlannerError>(plan)
         })();

@@ -1,4 +1,6 @@
 //! Connected ordinary Plan fixtures; supplied costs are not physical timings.
+#[path = "common/global_cache_transfer_oracle.rs"]
+mod cache_oracle;
 mod common;
 use conduit_core::*;
 use conduit_planner::{resource_cost::*, *};
@@ -240,7 +242,13 @@ fn connected(
             )
             .unwrap()
         } else {
-            windows[source_h].clone()
+            // The cached oracle advances to 102 while operation/resource facts
+            // remain valid until 1000; only edge estimates then expire.
+            CostObservationWindow::admit(
+                windows[source_h].observed().clone(),
+                MonotonicInstant::new(102, windows[source_h].observed().clock().clone()).unwrap(),
+            )
+            .unwrap()
         };
         edge_forecasts.push(
             CostTransferForecast::bind(
@@ -284,18 +292,21 @@ fn connected(
             line_offers: &lines,
         },
     };
-    plan_global_realizations_with_transfer_costs(
+    let transfer = GlobalTransferInputs {
+        demands: &demands,
+        forecasts: &edge_forecasts,
+    };
+    let result = plan_global_realizations_with_transfer_costs(
         &plot,
         inputs,
         GlobalPlacementBudget {
             maximum_states: 128,
         },
-        GlobalTransferInputs {
-            demands: &demands,
-            forecasts: &edge_forecasts,
-        },
+        transfer,
         &mut ExactNumericWork::new(100_000_000),
-    )
+    );
+    cache_oracle::check(&plot, inputs, transfer, &result);
+    result
 }
 #[test]
 fn connected_ordinary_plan_adds_scoped_edges_before_join() {

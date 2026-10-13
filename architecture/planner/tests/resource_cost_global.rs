@@ -1,4 +1,10 @@
 //! Adversarial joint assignments through ordinary hard checks and Plan sealing.
+#[path = "common/global_cache_heap.rs"]
+mod cache_heap;
+#[path = "common/global_cache_measurement.rs"]
+mod cache_measurement;
+#[path = "common/global_cache_oracle.rs"]
+mod cache_oracle;
 mod common;
 use conduit_core::*;
 use conduit_planner::{resource_cost::*, *};
@@ -51,6 +57,37 @@ fn exercise_objective(
     objective: GlobalPlacementObjective,
     critical_tradeoff: bool,
     extra_gear: bool,
+    inspect: impl FnOnce(
+        Result<GlobalPlacementResult, GlobalPlacementRefusal>,
+        Result<CostPlannedRealizations<'_>, CostPlanningError<'_>>,
+        &[HostAdvertisement],
+    ),
+) {
+    exercise_objective_cache(
+        constrained_b,
+        states,
+        objective,
+        critical_tradeoff,
+        extra_gear,
+        CacheCheck::Disabled,
+        inspect,
+    )
+}
+#[derive(Clone, Copy)]
+enum CacheCheck {
+    Disabled,
+    Oracle,
+    Measure,
+    Heap,
+}
+
+fn exercise_objective_cache(
+    constrained_b: bool,
+    states: u32,
+    objective: GlobalPlacementObjective,
+    critical_tradeoff: bool,
+    extra_gear: bool,
+    cache_checks: CacheCheck,
     inspect: impl FnOnce(
         Result<GlobalPlacementResult, GlobalPlacementRefusal>,
         Result<CostPlannedRealizations<'_>, CostPlanningError<'_>>,
@@ -210,6 +247,20 @@ fn exercise_objective(
             line_offers: &[],
         },
     };
+    if matches!(cache_checks, CacheCheck::Heap) {
+        cache_heap::check(&plot, inputs);
+    }
+    if matches!(cache_checks, CacheCheck::Measure) {
+        cache_measurement::measure(&plot, inputs);
+    }
+    if matches!(cache_checks, CacheCheck::Oracle) {
+        let changed_models = [
+            [forecast(1), forecast(100)],
+            [forecast(2), forecast(3)],
+            [forecast(3), forecast(3)],
+        ];
+        cache_oracle::check(&plot, inputs, &sources, &changed_models);
+    }
     let global = plan_global_realizations_with_objective(
         &plot,
         inputs,
@@ -351,6 +402,52 @@ fn overcommitted_prefixes_finish_exhaustively_below_the_unpruned_state_count() {
                     capacity_pruned_prefixes: 6,
                 })
             ));
+        },
+    );
+}
+
+#[test]
+fn cached_joint_plans_match_fresh_oracles_without_retaining_old_costs() {
+    exercise_objective_cache(
+        false,
+        64,
+        GlobalPlacementObjective::AggregateFulfillmentTime,
+        false,
+        false,
+        CacheCheck::Oracle,
+        |global, _, _| {
+            assert!(global.is_ok());
+        },
+    );
+}
+
+#[test]
+#[ignore = "internal finite planning measurement; run explicitly with retained output"]
+fn measure_cached_joint_planning_overhead() {
+    exercise_objective_cache(
+        false,
+        64,
+        GlobalPlacementObjective::AggregateFulfillmentTime,
+        false,
+        false,
+        CacheCheck::Measure,
+        |global, _, _| {
+            assert!(global.is_ok());
+        },
+    );
+}
+
+#[test]
+fn cached_joint_plan_heap_stabilizes_and_releases_on_drop() {
+    exercise_objective_cache(
+        false,
+        64,
+        GlobalPlacementObjective::AggregateFulfillmentTime,
+        false,
+        false,
+        CacheCheck::Heap,
+        |global, _, _| {
+            assert!(global.is_ok());
         },
     );
 }

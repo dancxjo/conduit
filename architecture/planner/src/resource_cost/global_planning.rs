@@ -5,6 +5,9 @@ use crate::{PlacementChoice, PlacementChoices, PlannerError, RealizationDecision
 use alloc::{collections::BTreeMap, vec::Vec};
 use conduit_core::{ExactNumericWork, ExactRational, Plan, ResourceObservation};
 use conduit_plot::CheckedPlot;
+mod cache;
+mod cache_fingerprint;
+pub use cache::{GlobalPlanCache, GlobalPlanCacheMetrics, GlobalPlanCachePolicy};
 mod objective;
 mod prefix_capacity;
 mod search;
@@ -98,7 +101,7 @@ pub fn plan_global_realizations_with_objective<'a>(
     objective: GlobalPlacementObjective,
     work: &mut ExactNumericWork,
 ) -> Result<GlobalPlacementResult, GlobalPlacementRefusal> {
-    plan_global(plot, inputs, budget, objective, None, work)
+    plan_global(plot, inputs, budget, objective, None, None, work)
 }
 
 /// Critical-path Time with separately scoped incremental Cord transfer costs.
@@ -117,6 +120,7 @@ pub fn plan_global_realizations_with_transfer_costs<'a>(
         budget,
         GlobalPlacementObjective::CriticalPathFulfillmentTime,
         Some(transfer),
+        None,
         work,
     )
 }
@@ -127,6 +131,7 @@ fn plan_global<'a>(
     budget: GlobalPlacementBudget,
     objective: GlobalPlacementObjective,
     transfer: Option<GlobalTransferInputs<'a>>,
+    cache: Option<&mut GlobalPlanCache>,
     work: &mut ExactNumericWork,
 ) -> Result<GlobalPlacementResult, GlobalPlacementRefusal> {
     use GlobalPlacementRefusal as R;
@@ -231,6 +236,7 @@ fn plan_global<'a>(
         objective,
         transfer,
         order: order.as_deref(),
+        cache,
         work,
     };
     search.visit(0, &mut Vec::with_capacity(plot.gears.len()));
