@@ -43,3 +43,10 @@ test('boundary admission retains allocation-feature kernel conformance', () => {
   runAdmission(['semantics/data/src/number.rs'], metadata, '/repo', (...args) => commands.push(args));
   assert.ok(commands.some(([program, args]) => program === 'cargo' && args.includes('alloc') && args.includes('conduit-kernel')));
 });
+
+test('numerical changes exercise the actual Plan/Play Back behind its feature gate', () => {
+  const model = { ...metadata, packages: [...metadata.packages, { name: 'conduit-semantic-catalog' }] };
+  const commands = [];
+  runAdmission(['architecture/core/src/exact_numeric/realization.rs'], model, '/repo', (...args) => commands.push(args));
+  assert.ok(commands.some(([program, args]) => program === 'cargo' && args.includes('kernel-step') && args.includes('numerical_realization')));
+});

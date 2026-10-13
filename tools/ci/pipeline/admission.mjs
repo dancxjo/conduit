@@ -39,5 +39,9 @@ export function runAdmission(paths, metadata, root, run) {
   run('cargo', ['clippy', '--locked', '--workspace', '--all-targets', '--', '-D', 'warnings']);
   if (plan.packages.length) run('cargo', ['test', '--locked', '--no-fail-fast', ...plan.packages.flatMap(name => ['-p', name]), '--', '--test-threads=1']);
   if (plan.packages.includes('conduit-kernel')) run('cargo', ['test', '--locked', '-p', 'conduit-kernel', '--features', 'alloc', '--', '--test-threads=1']);
+  if (paths.some(name => /(?:numerical|exact_numeric|binary64)/.test(name))
+      && metadata.packages.some(pkg => pkg.name === 'conduit-semantic-catalog')) {
+    run('cargo', ['test', '--locked', '-p', 'conduit-semantic-catalog', '--features', 'kernel-step', '--test', 'numerical_realization', '--', '--test-threads=1']);
+  }
   if (plan.smoke) run('cargo', ['xtask', 'integrate']);
 }

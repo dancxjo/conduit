@@ -25,7 +25,9 @@ Changes to architecture or hosted/browser implementations also run the ordinary
 
 Changes to admission, authority, kernel execution, planning, numerical data,
 USB, cancellation, certificates or isolation additionally select core, kernel,
-planner, assigned-plan, protected-line, composite and data tests. ConduitOS
+planner, assigned-plan, protected-line, composite and data tests, including
+alloc-feature kernel conformance. Numerical source/strategy changes also run the
+focused catalog numerical Plan/Play tests with the required `kernel-step` feature. ConduitOS
 kernel, domain, build and proof changes retain all five ConduitOS target lanes
 before merge because workspace tests cannot establish native isolation or device
 ownership. This conservative exception includes changes to those proof collectors.
