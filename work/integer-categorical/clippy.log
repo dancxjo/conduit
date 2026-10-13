@@ -1,0 +1,40 @@
+   Compiling conduit-assigned-plan v0.1.0 (/home/dancxjo/conduit-integer-categorical-foundation/architecture/assigned-plan)
+    Checking serde v1.0.229
+    Checking memchr v2.8.3
+   Compiling conduit-core v0.1.0 (/home/dancxjo/conduit-integer-categorical-foundation/architecture/core)
+    Checking serde_json v1.0.151
+    Checking heapless v0.7.17
+    Checking postcard v1.1.3
+    Checking conduit-kernel v0.1.0 (/home/dancxjo/conduit-integer-categorical-foundation/architecture/kernel)
+    Checking heapless v0.8.0
+    Checking serde-json-core v0.6.0
+    Checking conduit-plot v0.1.0 (/home/dancxjo/conduit-integer-categorical-foundation/architecture/plot)
+    Checking conduit-body v0.1.0 (/home/dancxjo/conduit-integer-categorical-foundation/architecture/body)
+    Checking conduit-plan-lowering v0.1.0 (/home/dancxjo/conduit-integer-categorical-foundation/architecture/plan-lowering)
+    Checking conduit-composite v0.1.0 (/home/dancxjo/conduit-integer-categorical-foundation/architecture/composite)
+   Compiling conduit-time v0.1.0 (/home/dancxjo/conduit-integer-categorical-foundation/semantics/time)
+   Compiling conduit-human v0.1.0 (/home/dancxjo/conduit-integer-categorical-foundation/semantics/human)
+   Compiling conduit-audio v0.1.0 (/home/dancxjo/conduit-integer-categorical-foundation/semantics/audio)
+   Compiling conduit-web v0.1.0 (/home/dancxjo/conduit-integer-categorical-foundation/semantics/web)
+   Compiling conduit-text v0.1.0 (/home/dancxjo/conduit-integer-categorical-foundation/semantics/text)
+   Compiling conduit-net v0.1.0 (/home/dancxjo/conduit-integer-categorical-foundation/semantics/net)
+   Compiling conduit-robotics v0.1.0 (/home/dancxjo/conduit-integer-categorical-foundation/semantics/robotics)
+   Compiling conduit-process v0.1.0 (/home/dancxjo/conduit-integer-categorical-foundation/semantics/process)
+   Compiling conduit-alife v0.1.0 (/home/dancxjo/conduit-integer-categorical-foundation/semantics/alife)
+   Compiling conduit-purpose v0.1.0 (/home/dancxjo/conduit-integer-categorical-foundation/semantics/purpose)
+   Compiling conduit-data v0.1.0 (/home/dancxjo/conduit-integer-categorical-foundation/semantics/data)
+   Compiling conduit-presentation v0.1.0 (/home/dancxjo/conduit-integer-categorical-foundation/semantics/presentation)
+   Compiling conduit-language v0.1.0 (/home/dancxjo/conduit-integer-categorical-foundation/semantics/language)
+   Compiling conduit-ai v0.1.0 (/home/dancxjo/conduit-integer-categorical-foundation/semantics/ai)
+    Checking conduit-midi v0.1.0 (/home/dancxjo/conduit-integer-categorical-foundation/mechanisms/protocols/midi)
+   Compiling conduit-signal v0.1.0 (/home/dancxjo/conduit-integer-categorical-foundation/semantics/signal)
+   Compiling conduit-chat v0.1.0 (/home/dancxjo/conduit-integer-categorical-foundation/semantics/chat)
+   Compiling conduit-wire v0.1.0 (/home/dancxjo/conduit-integer-categorical-foundation/architecture/wire)
+    Checking conduit-todo-plot v0.1.0 (/home/dancxjo/conduit-integer-categorical-foundation/plots/todo/model)
+    Checking conduit-bluetooth v0.1.0 (/home/dancxjo/conduit-integer-categorical-foundation/mechanisms/protocols/bluetooth)
+   Compiling conduit-education v0.1.0 (/home/dancxjo/conduit-integer-categorical-foundation/semantics/education)
+    Checking conduit-semantic-catalog v0.1.0 (/home/dancxjo/conduit-integer-categorical-foundation/semantics/catalog)
+    Checking conduit-planner v0.1.0 (/home/dancxjo/conduit-integer-categorical-foundation/architecture/planner)
+    Checking conduit-std-offers v0.1.0 (/home/dancxjo/conduit-integer-categorical-foundation/targets/std/offers)
+    Checking conduit-signal-conformance v0.1.0 (/home/dancxjo/conduit-integer-categorical-foundation/proof/conformance/signal)
+    Finished `dev` profile [unoptimized] target(s) in 35.21s

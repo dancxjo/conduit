@@ -1,0 +1,27 @@
+   Compiling conduit-ai v0.1.0 (/home/dancxjo/conduit-integer-categorical-foundation/semantics/ai)
+   Compiling conduit-chat v0.1.0 (/home/dancxjo/conduit-integer-categorical-foundation/semantics/chat)
+   Compiling conduit-std-offers v0.1.0 (/home/dancxjo/conduit-integer-categorical-foundation/targets/std/offers)
+   Compiling conduit-signal-conformance v0.1.0 (/home/dancxjo/conduit-integer-categorical-foundation/proof/conformance/signal)
+    Finished `test` profile [unoptimized] target(s) in 6.01s
+     Running tests/integer_categorical_step.rs (/home/dancxjo/conduit/target/debug/deps/integer_categorical_step-f37263a6fb3663a6)
+
+running 6 tests
+test value_operation_finishes_once_while_closing_flow_reports_exact_end_of_input ... ok
+test bad_indices_malformed_frame_pressure_and_cancel_do_not_consume_or_advance_model_progress ... ok
+test prepared_exact_integer_inference_is_allocation_free_and_commits_receipts_only_after_ack ... ok
+test ordinary_scheduler_reuses_adopted_model_for_three_frames_after_provider_drop ... ok
+test exact_resource_planning_and_model_adoption_refuse_missing_foreign_or_unsealed_selection ... ok
+test scheduler_pressure_cancel_and_storage_failure_do_not_publish_uncommitted_frames ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/model_artifact.rs (/home/dancxjo/conduit/target/debug/deps/model_artifact-da57c77d32157fd8)
+
+running 4 tests
+test artifact_state_checkpoint_and_runtime_are_distinct_exact_identities ... ok
+test immutable_model_custody_retains_exact_artifact_signature_and_one_storage ... ok
+test model_custody_refuses_changed_content_signature_extent_and_access ... ok
+test mismatched_signature_checkpoint_runtime_and_signal_shape_refuse_exactly ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
