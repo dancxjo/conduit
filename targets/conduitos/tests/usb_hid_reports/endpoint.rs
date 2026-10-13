@@ -235,12 +235,15 @@ fn class_proof_plan_retains_exact_endpoint_selection_and_source_identity() {
         assert!(verify_plan(plan));
         assert_eq!(plan.source_document_id, artifact.identity().source);
         let fragment = &plan.fragments[0];
-        assert!(
-            fragment
-                .fore_ports
-                .iter()
-                .all(|port| port.item_capacity == 1 && port.byte_capacity <= 4096)
-        );
+        assert!(fragment.fore_ports.iter().all(|port| {
+            let maximum = match port.direction {
+                PortDirection::Input => conduitos::protocol_source::MAXIMUM_PROTOCOL_FORE_BYTES,
+                PortDirection::Output => {
+                    conduitos::protocol_source::MAXIMUM_PROTOCOL_OUTPUT_FORE_BYTES
+                }
+            };
+            port.item_capacity == 1 && port.byte_capacity <= maximum
+        }));
         assert_eq!(fragment.host_id.as_str(), subject.host_id);
         assert_eq!(fragment.boot_id.as_str(), subject.boot_id);
         let endpoint = fragment
