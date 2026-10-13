@@ -76,7 +76,7 @@ fn execute_source(
     } else {
         source.expand_entry()?
     };
-    let mut context = product_execution::ProductExecutionContext::local_std()?;
+    let mut context = product_execution::ProductExecutionContext::local_std_for_plot(&plot)?;
     let plan = context.plan(&plot, None)?;
     let execution = match control {
         Some(control) => context.execute_attached(plan, output, control)?,

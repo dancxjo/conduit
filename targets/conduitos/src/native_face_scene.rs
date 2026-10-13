@@ -493,12 +493,12 @@ impl NativeFaceScene {
             .clone()
             .or_else(|| self.input.preview(self.focus))
             .unwrap_or_else(|| {
-                if !self.interaction_admitted && self.has_diagram() {
+                if self.showing_diagram {
+                    diagram::link_notice(&self.face, self.screen, self.page)
+                } else if !self.interaction_admitted && self.has_diagram() {
                     "Read only · PgUp/PgDn pages · F2 facts · F3 Patchbay".into()
                 } else if !self.interaction_admitted {
                     "Read only · PgUp/PgDn pages · F2 facts".into()
-                } else if self.showing_diagram {
-                    "Visible links only · F2 all facts · F3 return".into()
                 } else if self.showing_details {
                     "PgUp/PgDn pages · Tab next · F2 return".into()
                 } else if self.has_diagram() {

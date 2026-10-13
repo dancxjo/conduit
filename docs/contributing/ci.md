@@ -26,7 +26,10 @@ Plan/Play integration tests. Numerical registration edits run the full product/S
 library tests and their numerical integration tests, including actual CLI execution.
 Any other consumer source/test edit restores its complete package suite; global or
 unknown changes disable narrowing entirely.
-Architecture and hosted/browser changes run the Std journey; architecture changes
+Numerical libraries and integration targets share one feature-unified compiler
+context. Their actual numerical CLI tests provide the relevant Std smoke; they
+do not repeat a generic Hello journey. Other architecture and hosted/browser
+changes run the Std journey; architecture changes
 also run multi-placement and new-Plan recovery. Browser source changes build WASM.
 The broader `cargo xtask integrate` loop remains available locally and is not
 required for unrelated PR changes. Admission optimizes test execution while

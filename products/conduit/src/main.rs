@@ -134,7 +134,7 @@ fn run_with_placements(
     let body_product = body_path.map(body_product::prepare).transpose()?;
     let mut context = match body_product {
         Some(product) => product.context,
-        None => product_execution::ProductExecutionContext::local_std()?,
+        None => product_execution::ProductExecutionContext::local_std_for_plot(&plot)?,
     };
     let plan = context.plan(&plot, placements_path)?;
     let completion_policy = plan.completion_policy;

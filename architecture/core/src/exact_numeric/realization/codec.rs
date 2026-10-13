@@ -2,6 +2,7 @@
 use super::*;
 use crate::{kind_id, KindId, StructuredInfoType};
 use alloc::vec::Vec;
+mod float;
 const INFO: &str = "numeric/prepared-realization@1";
 fn ty() -> StructuredInfoType {
     StructuredInfoType::leaf(kind_id(INFO)).expect("reviewed numeric property Type")
@@ -27,7 +28,11 @@ pub(super) fn encode(
     bytes.push(match value.algorithm {
         NumericalAlgorithm::ExactRational => 0,
         NumericalAlgorithm::OutwardI64 => 1,
+        NumericalAlgorithm::Binary64 { .. } => 2,
     });
+    if let NumericalAlgorithm::Binary64 { rounding } = value.algorithm {
+        bytes.push(float::mode(rounding));
+    }
     bytes.extend_from_slice(&value.admitted_limb_work.to_le_bytes());
     bytes.extend_from_slice(&value.spent_limb_work.to_le_bytes());
     rational(
@@ -41,6 +46,7 @@ pub(super) fn encode(
     rational(&mut bytes, value.maximum_error)?;
     match &value.target {
         NumericalTarget::ExactRational(q) => rational(&mut bytes, **q)?,
+        NumericalTarget::Binary64(algorithm) => float::encode(&mut bytes, algorithm)?,
         NumericalTarget::OutwardI64(interval) => {
             for endpoint in [interval.lower(), interval.upper()] {
                 let (encoded, length) = endpoint.encode();
@@ -53,6 +59,9 @@ pub(super) fn encode(
     let canonical = value
         .canonical_bytes()
         .map_err(|_| NumericalRealizationRefusal::InvalidCertificate)?;
+    if canonical.len() > crate::MAXIMUM_REALIZATION_PROPERTY_BYTES {
+        return Err(NumericalRealizationRefusal::CertificateExtentExceeded);
+    }
     StructuredConfigurationValue::new(numerical_realization_profile(), canonical)
         .ok_or(NumericalRealizationRefusal::InvalidCertificate)
 }
@@ -93,6 +102,9 @@ pub(super) fn decode(
     work: &mut ExactNumericWork,
 ) -> Result<PreparedNumericalRealization, NumericalRealizationRefusal> {
     use NumericalRealizationRefusal as R;
+    if property.canonical_value().len() > crate::MAXIMUM_REALIZATION_PROPERTY_BYTES {
+        return Err(R::CertificateExtentExceeded);
+    }
     if *property.profile() != numerical_realization_profile() {
         return Err(R::InvalidCertificate);
     }
@@ -108,6 +120,9 @@ pub(super) fn decode(
     let algorithm = match cursor.take(1)? {
         [0] => NumericalAlgorithm::ExactRational,
         [1] => NumericalAlgorithm::OutwardI64,
+        [2] => NumericalAlgorithm::Binary64 {
+            rounding: float::read_mode(&mut cursor)?,
+        },
         _ => return Err(R::InvalidCertificate),
     };
     let admitted = cursor.u64()?;
@@ -117,10 +132,32 @@ pub(super) fn decode(
     let expected_error = cursor.rational(work)?;
     // The verifier has its own caller-admitted work ceiling. A forged offer
     // cannot grant itself unlimited validation work or skip recomputation.
+    let program = if matches!(algorithm, NumericalAlgorithm::Binary64 { .. }) {
+        Some(float::program(&mut cursor, work)?)
+    } else {
+        None
+    };
     let mut verification = ExactNumericWork::new(admitted.min(work.remaining()));
-    let mut prepared =
-        PreparedNumericalRealization::prepare(&source, algorithm, error_limit, &mut verification)?;
+    let attempt = match (algorithm, program) {
+        (NumericalAlgorithm::Binary64 { rounding }, Some((program, limits))) => {
+            PreparedNumericalRealization::prepare_binary64(
+                &source,
+                &program,
+                rounding,
+                error_limit,
+                limits,
+                &mut verification,
+            )
+        }
+        _ => PreparedNumericalRealization::prepare(
+            &source,
+            algorithm,
+            error_limit,
+            &mut verification,
+        ),
+    };
     work.charge(verification.spent())?;
+    let mut prepared = attempt?;
     if prepared.spent_limb_work != spent
         || spent > admitted
         || prepared.maximum_error != expected_error
@@ -128,6 +165,11 @@ pub(super) fn decode(
         return Err(R::InvalidCertificate);
     }
     match prepared.target() {
+        NumericalTarget::Binary64(algorithm) => {
+            if !float::matches(&mut cursor, algorithm)? {
+                return Err(R::InvalidCertificate);
+            }
+        }
         NumericalTarget::ExactRational(q) => {
             if cursor.rational(work)? != **q {
                 return Err(R::InvalidCertificate);
@@ -146,5 +188,8 @@ pub(super) fn decode(
         return Err(R::InvalidCertificate);
     }
     prepared.admitted_limb_work = admitted;
+    if let NumericalTarget::Binary64(algorithm) = &mut prepared.target {
+        algorithm.restore_admitted_work(admitted);
+    }
     Ok(prepared)
 }

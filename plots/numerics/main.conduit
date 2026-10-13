@@ -1,0 +1,9 @@
+# One exact source with independently declared consumer precision.
+plot numerics {
+    exact: math/realize(request={value:0.3,maximum-error:0})
+    loose: math/realize(request={value:0.3,maximum-error:0.000000000000001})
+    exact-show: presentation/numerical-result
+    loose-show: presentation/numerical-result
+    exact.result >> exact-show.input
+    loose.result >> loose-show.input
+}.

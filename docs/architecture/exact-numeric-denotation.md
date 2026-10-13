@@ -370,11 +370,37 @@ the entire executing kernel path, and isolated transactional tests cover pressur
 retry, commit, cancellation and inadequate output extent.
 
 These are portable prepared-Back and kernel proofs, with hosted receipt sinks as
-fixtures. Default product catalog installation, std offer/factory registration,
-certified binary64 algorithms, irrational realization strategies, physical Unit
+fixtures. Certified binary64 algorithms, irrational realization strategies, physical Unit
 projection and DSP/tensor consumers remain open. The repository acceptance
 entrance is `cargo xtask ci pipeline unit foundation`; candidate/integration CI
 retains its exact execution evidence.
+
+
+## Ordinary std product installation (development)
+
+The default product source catalog and repository Plot-checking catalog install
+`math/realize` and `presentation/numerical-result`. The local `conduit run` and
+library execution entrances initialize numerical offers from the checked,
+expanded source before invoking the ordinary planner. The presenter uses the
+existing admitted structured-presentation Host Call and typed presentation Signs.
+`plots/numerics/main.conduit` is the retained runnable specimen.
+
+Std initialization replaces only its own previous numerical source batch, with
+at most 32 requested instances. Offers carry deterministic source-certificate
+identities and compiled-code artifact evidence. Repeated preparation of the same
+batch preserves the advertisement; a changed batch advances its finite generation.
+Active reservations fence reconfiguration, and refusal leaves the previous
+advertisement and resource ledger intact. Unsupported symbolic sources remain
+valid mathematical meanings but refuse the presently installed rational strategies.
+
+The installed factories independently recreate their expected strategy offers
+and check the exact capability, implementation, profile, artifact, limits and
+certificate before allocating the immutable receipt Back. That Back uses the
+portable transactional execution implementation; its retained byte capacity
+participates in the std capacity account. Product tests exercise the ordinary
+source-to-Plan-to-Play path and compare typed presentation receipts with the
+selected certificates. These are hosted product proofs, not stable-main or
+hardware acceptance and not proofs of an IEEE arithmetic algorithm.
 
 ## Prepared finite binary64 algorithms (development)
 
@@ -420,3 +446,31 @@ policy/forgery refusal and independent native nearest-even operation comparisons
 These are portable core preparation proofs. Numerical offer/Plan/Play integration,
 irrational source strategies, dynamic DSP/tensor execution and their performance
 and exact-main acceptance gates remain open.
+
+## Float certificate admission and receipt transport (development)
+
+The existing numerical realization property now carries finite binary64 programs,
+rounding direction, step/storage/work bounds, raw IEEE result bits and error-claim
+kind. Its decoder reconstructs the full operation order and recomputes every
+rounding and end-to-end error under the verifier's independent work ceiling.
+Claimed source must match the program's mathematical denotation. Rejected
+recomputations spend the outer work meter as well as successful ones. Property
+extent limits also apply before allocating decoded contents.
+
+The ordinary std Host offers its initialized nearest-even point strategy along
+with rational and outward-integer strategies. Exact precision retains rational
+selection; the specimen's `10^-15` tolerance admits binary64 and excludes the
+coarser integer enclosure. The same mathematical source remains in every receipt.
+Native binary64 representation payloads retain the IEEE target, rounding mode,
+any inexact/tiny-inexact operation, step count and exact-distance/certified-bound
+classification. Mathematical endpoints alone do not replace those IEEE bits.
+
+The selected property is sealed in the ordinary Plan. The portable cached Back
+rechecks it before freezing its receipt; existing transactional kernel emission
+then delivers the selected typed value without allocation during Play. Product
+and actual CLI/report tests inspect the rational and binary64 selections and
+correlated presentation Signs. Closed multi-operation certificates transport
+through the property codec with their original order; the std factory currently
+installs the point strategy and refuses relabelling an arbitrary program as that
+initialized strategy. Dynamic IEEE execution, irrational strategies, angle/trig
+and DSP/tensor performance and stable-main acceptance remain separate open gates.
