@@ -159,3 +159,51 @@ fn missing_relationship_cannot_be_replaced_by_a_nearby_port() {
     );
     assert_eq!(scene.presentation(), &face);
 }
+
+#[test]
+fn missing_port_facts_are_not_inferred_from_misleading_wording() {
+    let (mut face, _, source, _) = fan_face();
+    face.subjects
+        .iter_mut()
+        .find(|s| s.identity == source)
+        .unwrap()
+        .name = "OUT value/text".into();
+    face.properties
+        .retain(|p| !(p.subject == source && p.name == "value-kind"));
+    face.properties
+        .iter_mut()
+        .find(|p| p.subject == source && p.name == "direction")
+        .unwrap()
+        .value = PresentationPropertyValue::Text("sideways".into());
+    let face = Presentation::new_with_semantics(
+        face.revision,
+        face.basis,
+        face.subjects,
+        face.relationships,
+        face.properties,
+        face.text,
+        face.actions,
+        face.disclosures,
+    )
+    .unwrap();
+    let mut scene = NativeFaceScene::prepare(face.clone(), 640, 720).unwrap();
+    scene.show_diagram(true);
+    let frame = scene.frame().unwrap();
+    assert!(
+        frame
+            .scene
+            .commands()
+            .iter()
+            .any(|c| c.payload().starts_with("PORT type unavailable"))
+    );
+    assert_eq!(
+        frame
+            .scene
+            .commands()
+            .iter()
+            .filter(|c| c.kind == GraphicsCommandKind::OrthogonalPath)
+            .count(),
+        1
+    );
+    assert_eq!(scene.presentation(), &face);
+}
