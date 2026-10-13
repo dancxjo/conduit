@@ -208,3 +208,8 @@ Unicode normalization, accent removal, transliteration, or locale-based lookup:
 `revolucion` and decomposed `revolución` remain undeclared and receive
 `CND-FRM-055`. An import cannot rebind `turn` or an already imported alias
 (`CND-FRM-058`). The canonical reference and existing checked values remain fixed.
+
+A checked catalogue import also rejects unsupported locale-import syntax
+(such as `import locale "fr_FR"`) with its original parser code, message,
+and source span. It never treats a malformed import as an empty overlay,
+including when the destination catalogue already contains checked Units.

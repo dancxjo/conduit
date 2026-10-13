@@ -133,6 +133,15 @@ pub fn checked_physical_catalog_for_document(
     document: &crate::SyntaxDocument,
     base: &StartupCatalog,
 ) -> Result<StartupCatalog, crate::SyntaxCheckDiagnostic> {
+    // A source without recognized declarations still has to be valid: do not
+    // silently treat unsupported import syntax as an empty catalogue overlay.
+    if let Some(diagnostic) = document.diagnostics.first() {
+        return Err(crate::SyntaxCheckDiagnostic {
+            code: diagnostic.code,
+            span: diagnostic.span,
+            message: diagnostic.message.clone(),
+        });
+    }
     super::context::install(document, base)
 }
 

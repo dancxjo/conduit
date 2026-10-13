@@ -93,3 +93,21 @@ fn imported_vocabulary_cannot_rebind_existing_units() {
         );
     }
 }
+
+#[test]
+fn unsupported_locale_import_is_not_silently_discarded() {
+    let document = parse_syntax_document("import locale \"fr_FR\"\n");
+    let diagnostic = document
+        .diagnostics
+        .first()
+        .expect("no locale import grammar");
+    let base = StartupCatalog::new();
+    let imported =
+        checked_physical_catalog_for_document(&parse_syntax_document(SOURCE), &base).unwrap();
+    for catalog in [base, imported] {
+        let refusal = checked_physical_catalog_for_document(&document, &catalog).unwrap_err();
+        assert_eq!(refusal.code, diagnostic.code);
+        assert_eq!(refusal.span, diagnostic.span);
+        assert_eq!(refusal.message, diagnostic.message);
+    }
+}
