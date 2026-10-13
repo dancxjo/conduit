@@ -341,3 +341,37 @@ enclosures; overlapping intervals remain unknown. These are core
 preparation/fidelity proofs. Ordinary Back offers, Planner selection,
 source requirement syntax, Plan/Play receipts and dimensioned symbolic Unit
 projections remain separate unfinished integration gates.
+
+## Source-specific rational realization admission (development)
+
+`math/realize` now declares a native `NumericalRequest` with `value` and
+`maximum-error` mathematical fields. The error must be a nonnegative rational;
+it bounds the absolute distance from the source to each realized endpoint.
+`NumericalResult` retains the exact source, lower and upper endpoints, actual
+maximum error and a representation tag. A rational point has zero error. For
+source `0.3`, the outward `i64` result `[0,1]` has maximum error `0.7`.
+
+An initialized source-specific Back advertises a prepared certificate through
+the existing typed realization-property contract. Both ordinary selection and
+direct placement recheck source and precision before policy ranking. Invalid
+certificates, mismatched sources and inadequate tolerances refuse before Play.
+The selected certificate is retained in the ordinary immutable Plan and its
+fingerprint; the same gate also supplies typed numerical rejection evidence in
+characteristics selection. This introduces no alternate planner or Plan schema.
+
+The portable kernel Back verifies the selected certificate, Kind contract,
+request Type and algorithm during preparation, then freezes one typed receipt.
+Play performs no numerical evaluation or allocation. Pressure waits, discarded
+transactions retry the same receipt, commit emits once, and cancellation ends
+without emission. The numerical catalog tests author two requests for one exact
+source, select rational and outward-integer implementations, lower their actual
+Plans, and deliver their receipts over kernel routes. Allocation counting covers
+the entire executing kernel path, and isolated transactional tests cover pressure,
+retry, commit, cancellation and inadequate output extent.
+
+These are portable prepared-Back and kernel proofs, with hosted receipt sinks as
+fixtures. Default product catalog installation, std offer/factory registration,
+certified binary64 algorithms, irrational realization strategies, physical Unit
+projection and DSP/tensor consumers remain open. The repository acceptance
+entrance is `cargo xtask ci pipeline unit foundation`; candidate/integration CI
+retains its exact execution evidence.
