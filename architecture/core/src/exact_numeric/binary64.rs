@@ -2,6 +2,8 @@
 use super::{ExactNumericRefusal, ExactNumericWork, ExactRational};
 use crate::IeeeF64;
 use core::cmp::Ordering;
+mod symbolic;
+pub use symbolic::*;
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Binary64Rounding {
     NearestTiesEven,
