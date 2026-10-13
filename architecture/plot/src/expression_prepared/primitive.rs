@@ -108,6 +108,15 @@ pub(super) fn evaluate_binary(
         };
         return PrimitiveValue::new(expected, &InfoBool::new(value).encode());
     }
+    if left.kind == PrimitiveInfoKind::MathematicalValue
+        && matches!(operator, BinaryOperator::Equal | BinaryOperator::NotEqual)
+    {
+        let equal = crate::mathematical_value::equal(left.as_slice(), right.as_slice())?;
+        return PrimitiveValue::new(
+            expected,
+            &InfoBool::new(equal != (operator == BinaryOperator::NotEqual)).encode(),
+        );
+    }
     if matches!(
         left.kind,
         PrimitiveInfoKind::F32
@@ -380,6 +389,7 @@ pub(super) const fn kind_name(kind: PrimitiveInfoKind) -> &'static str {
         PrimitiveInfoKind::I128 => "value/i128",
         PrimitiveInfoKind::Unit => conduit_core::UNIT_INFO_ID,
         PrimitiveInfoKind::Dimension => conduit_core::DIMENSION_INFO_ID,
+        PrimitiveInfoKind::MathematicalValue => conduit_core::MATHEMATICAL_VALUE_ID,
         PrimitiveInfoKind::Quantity => conduit_core::QUANTITY_INFO_ID,
         PrimitiveInfoKind::Distance => conduit_core::DISTANCE_INFO_ID,
         PrimitiveInfoKind::Frequency => conduit_core::FREQUENCY_INFO_ID,

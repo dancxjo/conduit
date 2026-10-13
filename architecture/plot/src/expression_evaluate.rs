@@ -28,6 +28,7 @@ pub enum PortableExpressionEvaluationRefusal {
     InvalidProgram,
     InvalidLiteral,
     Arithmetic,
+    UnprovedMathematicalComparison,
     UnsupportedSemanticCall(String),
     UnsupportedType(String),
 }
