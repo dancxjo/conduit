@@ -8,7 +8,7 @@ const plan = paths => admissionPlan(paths, metadata, '/repo');
 
 test('test corrections run their owning package without unrelated emulator proof', () => {
   const result = plan(['products/conduit/tests/installed_screen_free_birth.rs']);
-  assert.deepEqual(result, { packages: ['conduit'], native: false, smoke: false });
+  assert.deepEqual(result, { packages: ['conduit'], broad: false, native: false, smoke: false });
   const commands = [];
   runAdmission(['products/conduit/tests/installed_screen_free_birth.rs'], metadata, '/repo', (...args) => commands.push(args));
   assert.equal(commands.length, 2);
@@ -97,4 +97,12 @@ test('numerical consumer admission retains full library and actual CLI tests, wi
   runAdmission(['products/conduit/src/product_execution/numerical.rs','products/conduit/src/main.rs'], metadata, '/repo', (...args) => commands.push(args));
   assert.ok(commands.some(([,args]) => args.includes('--lib') && args.includes('conduit')));
   assert.ok(commands.some(([,args]) => args.includes('--test') && args.includes('numerical_realization')));
+});
+
+test('unknown or global changes disable narrowed numerical consumer admission', () => {
+  const model = {workspace_members:[...names,'catalog'],packages:[...metadata.packages,{id:'catalog',name:'conduit-semantic-catalog',manifest_path:'/repo/semantics/catalog/Cargo.toml'}]};
+  const commands = [];
+  runAdmission(['Cargo.toml','products/conduit/src/product_execution/numerical.rs','semantics/catalog/src/numerical_realization.rs'], model, '/repo', (...args)=>commands.push(args));
+  assert.ok(commands.some(([,args])=>args.includes('--no-fail-fast') && args.includes('conduit') && args.includes('conduit-semantic-catalog')));
+  assert.ok(!commands.some(([,args])=>args.includes('--lib')));
 });
