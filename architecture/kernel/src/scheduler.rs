@@ -757,6 +757,15 @@ impl<const PORTS: usize> StepIo<PORTS> {
         }
     }
 
+    /// Add an abnormal observation to an isolated conformance test frame.
+    pub fn test_with_input_abnormal(mut self, port: PortId, terminal: CanonicalValue) -> Self {
+        *self
+            .input_abnormal
+            .get_mut(usize::from(port.0))
+            .expect("test input port") = Some(terminal);
+        self
+    }
+
     pub fn test_consumed(&self, port: PortId) -> bool {
         self.consumed
             .get(usize::from(port.0))

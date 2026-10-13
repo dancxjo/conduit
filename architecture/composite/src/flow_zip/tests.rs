@@ -412,3 +412,6 @@ fn feedback_left_close_waits_for_delayed_right_payload_and_its_real_close() {
     });
     assert_eq!(allocations, 0);
 }
+
+#[path = "feedback_close_tests.rs"]
+mod feedback_close_tests;

@@ -131,3 +131,8 @@ Actual product composition checkpoint
 The revised graph passes all 15 Source regressions, including the expanded raw-input authorizer cut. Checked package f3b7f5392be44735c5cdba24038ee7eae740ef517f9b57b3029008c3460f3d8d runs on the x86_64 kernel recorded in bot-read-reentry-24d0b2ca. Independent canonical/wire validation proves the original stalled result, three exact recovery acknowledgments, fresh CBW tag two, completed exact 512-byte block, zero Play allocation attempts and matching Stop/retirement. Both independent storage owners retain semantic ordinal zero.
 
 A clear-IN STALL issues no fresh read and reaches acknowledged Stop with zero allocator attempts, but exhausts the bounded Root step budget. That failure-tail termination remains under investigation; it is not normal completed retirement or a successful settlement. Cross-architecture recovery and integration remain unproven.
+
+Failed-clear drainage resolved on x86_64
+---------------------------------------
+
+The feedback LEFT-first drain correction a783be376 retains the finite event producer until its actual close. All ten focused Zip tests pass, including buffered-pair pressure and abnormal closure. The prepared whole Kernel graph retires for one and two requests without fresh authority/effects/results. The actual product guest now also retires after clear-IN STALL, with exact wire correlation, no second command/result, zero allocations and matching acknowledged Stop. See bot-reentry-failed-clear-a783be37. This supersedes the earlier step-budget failure checkpoint; AArch64 and final integration remain required.
