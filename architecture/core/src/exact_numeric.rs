@@ -6,10 +6,12 @@ mod natural;
 mod projection;
 mod quantity;
 mod rational;
+mod root;
 pub use enclosure::*;
 pub use projection::*;
 pub use quantity::*;
 pub use rational::*;
+pub use root::*;
 
 pub const EXACT_NUMERIC_MAX_BITS: usize = 4096;
 pub const EXACT_NUMERIC_MAX_DECIMAL_BYTES: usize = 1236;
