@@ -8,67 +8,43 @@ through `cargo xtask ci pipeline`. Actions schedules work; xtask performs it.
 
 The pipeline scans the diff, checks patch hygiene, Rust formatting, locked
 workspace metadata and firmware lockfiles, artifact/publication invariants, and
-Actions syntax. This `candidate/quick` check runs on every PR update, including
-drafts. Draft PRs stop after quick checks; mark a PR ready for review to launch
-exhaustive proof for its current SHA. Returning it to draft cancels superseded
-proof and runs quick checks again. Keep actively changing work in draft.
+Actions syntax. This `candidate/quick` check runs on every PR update, including drafts.
 
-After preflight, unit and target proof start independently. Foundation and
-products retain their broad unit shards; hosts split into std providers,
-browser runtime, ConduitOS, and workbench fixtures. Workspace Clippy runs
-alongside them. Ordinary packages belong to exactly one group. The sustained
-ConduitOS proof is partitioned across the same runners: automatic Body cases
-with std, automatic Clock cases and HID reports with browser, USB protocol plots
-with workbench,
-and remaining library, default integration, and doc tests with ConduitOS.
-The native lane validates the compiled library inventory; Cargo metadata assigns
-every default integration target. Each group retains `--test-threads=1`.
-Isolated browser assets skip these native slices; Integration always proves them.
-A unit failure does not prevent independent targets from reporting defects.
-Reproduce a host group with `cargo xtask ci pipeline unit hosts-std` (or
-`hosts-browser`, `hosts-conduitos`, `hosts-workbench`). The full xtask check
-entrance also exposes `workspace-test-hosts-std` and the other named groups;
-`workspace-test-hosts` retains the aggregate local suite.
+Draft and ready PRs use the same admission checks. The required `candidate`
+result succeeds when all selected checks succeed; draft status itself is not a
+failure. GitHub still prevents merging a draft until it is marked ready.
 
-The `candidate` job is an AND gate over all selected proof for the exact PR SHA.
-It explicitly blocks admission on drafts while quick checks can pass; a skipped
-required check would count as successful in GitHub branch protection. Ready docs-only
-PRs require successful preflight. Integration always runs exhaustive proof for
-all targets and unit shards, with running work finishing and pending commits
-coalescing. Publication continues to consume those exact verified artifacts.
+PR admission runs workspace Clippy with warnings denied and the owning workspace
+packages' unit, integration and doc tests, with one test thread. Both sides of
+renames are scanned. Unknown paths, removed packages, shared files and empty
+diffs select all workspace packages. CI scripts and workflow changes run tooling
+package tests and the preflight pipeline tests. Recognized prose needs only preflight.
+Changes to architecture or hosted/browser implementations also run the ordinary
+`cargo xtask integrate` smoke loop. Reproduce with
+`cargo xtask ci pipeline admission BASE_SHA`.
 
-Selection is deliberately small and conservative:
+Changes to admission, authority, kernel execution, planning, numerical data,
+USB, cancellation, certificates or isolation additionally select core, kernel,
+planner, assigned-plan, protected-line, composite and data tests. ConduitOS
+kernel, domain, build and proof changes retain all five ConduitOS target lanes
+before merge because workspace tests cannot establish native isolation or device
+ownership. This conservative exception includes changes to those proof collectors.
+Browser/site changes retain the browser lane, and isolated firmware changes
+retain their owning target family. Ordinary package/test corrections do not require unrelated product journeys or
+cross-platform packaging.
 
-| Change | Target families |
-| --- | --- |
-| Prose documentation only | Preflight |
-| Browser, browser proof, site | Browser |
-| Isolated target firmware | Its family |
-| Hosted source | Hosted and browser |
-| Shared target runtime, offers, or make libraries | All |
-| ConduitOS | ConduitOS and Orange Pi |
-| Shared code, manifests, tools, workflows, unknown paths | All |
+The `candidate` job requires successful preflight, admission and any selected
+native target proof for the exact PR SHA. Integration remains exhaustive: all
+unit shards, workspace lint and every target run after a push to `dev`, even for
+prose-only changes. Failed integrated proof must be repaired before release;
+publication continues to require those exact verified artifacts. PR admission
+never establishes stable acceptance or supplies publication receipts.
 
-Unit selection is conservative too: isolated browser proof scripts and site
-assets select browser and workbench host fixtures, products/tooling tests, and
-workspace Clippy. Other source changes, dependency files, unknown paths, and
-mixed changes retain every unit shard. Integration always selects all shards.
-
-Both names of a rename are included. An empty diff selects all. There are no
-receipt-reuse fingerprints or path dependency controllers. The selection rules
-live in `tools/ci/pipeline/plan.mjs`.
-
-Every selected target owns setup, build, proof, packaging, and one final
-artifact upload on its runner. Targets never depend on an unrelated target.
-Compiler caches retain Cargo compiler directories and dependencies. Lanes with
-measured acquisition savings, including browser, Linux, ConduitOS, AVR, ESP32,
-and RP2040 targets, use a separate cache for verified tool downloads and
-pinned installations. Preflight, Windows, and macOS acquire their tool sets
-directly because their measured warm restores did not save time. Staged
-products and product proof always start fresh.
-Once the target matrix starts, a failure does not cancel siblings. Code tests
-have no retries. Acquisition may have one bounded infrastructure retry.
-Browser acceptance keeps pinned Chromium, one worker, and zero retries.
+The selection and execution rules live in `tools/ci/pipeline/admission.mjs`.
+The integration matrix remains in `plan.mjs` and `targets.mjs`. Target proof
+failures do not cancel sibling lanes. Code tests have no retries; acquisition
+may have one bounded infrastructure retry. Browser acceptance retains pinned
+Chromium, one worker and zero retries.
 
 ## Tool acquisition
 
