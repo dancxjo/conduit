@@ -49,3 +49,15 @@ implemented by that terminal path. Isochronous IN and unsupported target/board
 providers remain explicit unsupported dispositions. Physical/HIL evidence and
 multi-architecture class acceptance are separate scopes, not extra substrate
 closure gates invented by this ledger.
+
+## Standalone entry audit
+
+The exact standalone control entry now executes in the product guest: see
+[retained proof](standalone-control-21e596e3/README.md). Its typed18-byte descriptor
+matches the external fixture, with zero Play allocations and retirement.
+
+The exact standalone endpoint-read entry instead refuses preparation with
+`Possession(WrongSelection)`: [retained failure](standalone-endpoint-read-refusal-21e596e3/README.md).
+The current combined admission path unconditionally issues control possession,
+but this checked Plan has no control placement. The combined guest demonstration
+does not discharge this missing standalone acceptance item.
