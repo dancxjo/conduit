@@ -17,11 +17,17 @@ use std::{
     time::Duration,
 };
 
+#[path = "selected_speech/retention.rs"]
+mod retention;
+use retention::RetentionSelection;
+
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub(super) struct Selection {
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     artifact_only: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    artifact_retention: Option<RetentionSelection>,
     card_id: String,
     device: u16,
     speaker_base_identity: String,
@@ -36,7 +42,7 @@ pub(super) struct Selection {
 
 pub(super) enum Change {
     Preserve,
-    Replace(Selection),
+    Replace(Box<Selection>),
     Remove,
 }
 
@@ -127,6 +133,9 @@ impl Selection {
     }
 
     fn validate_inputs(&self) -> Result<(), String> {
+        if let Some(retention) = &self.artifact_retention {
+            retention.limits()?;
+        }
         if (!self.artifact_only && self.card_id.is_empty())
             || (self.artifact_only
                 && (!self.card_id.is_empty()
@@ -177,10 +186,17 @@ impl Selection {
         artifact_root: &Path,
     ) -> Result<Option<AttachedEquipment>, String> {
         let offer = host.advertisement();
-        let artifact = WavArtifactSelection::per_play_root(
+        let artifact = WavArtifactSelection::per_play_root_with_limits(
             artifact_root,
             offer.boot_id.clone(),
             offer.offer_generation,
+            self.artifact_retention
+                .as_ref()
+                .map(RetentionSelection::limits)
+                .transpose()?
+                .unwrap_or(
+                    conduit_std_host::hosted_wav_artifact::WavArtifactRetentionLimits::DEFAULT,
+                ),
         )?;
         self.validate()?;
         let observation = if self.artifact_only {
@@ -247,6 +263,7 @@ impl Selection {
 }
 
 pub(super) fn change(options: InstalledSpeechOptions) -> Result<Change, String> {
+    let artifact_retention = RetentionSelection::from_options(&options)?;
     if (options.selected_speech && options.selected_artifact_speech)
         || (options.without_selected_speech
             && (options.selected_speech || options.selected_artifact_speech))
@@ -270,6 +287,7 @@ pub(super) fn change(options: InstalledSpeechOptions) -> Result<Change, String> 
     let artifact_only = options.selected_artifact_speech;
     let selection = Selection {
         artifact_only,
+        artifact_retention,
         card_id: if artifact_only {
             String::new()
         } else {
@@ -317,10 +335,10 @@ pub(super) fn change(options: InstalledSpeechOptions) -> Result<Change, String> 
     let discovery = discovery
         .declare_language_coverage(coverage)
         .map_err(|error| format!("review selected eSpeak Language coverage: {error:?}"))?;
-    Ok(Change::Replace(selection.reviewed_with(
+    Ok(Change::Replace(Box::new(selection.reviewed_with(
         speaker_identity,
         discovery.provider_sha256,
-    )?))
+    )?)))
 }
 
 fn observe_speaker(card_id: &str, device: u16) -> Result<AlsaPlaybackObservation, String> {
@@ -342,6 +360,7 @@ fn observe_speaker(card_id: &str, device: u16) -> Result<AlsaPlaybackObservation
 pub(super) fn fixture_retained_selection() -> Selection {
     Selection {
         artifact_only: false,
+        artifact_retention: None,
         card_id: "missing-card".into(),
         device: 0,
         speaker_base_identity: "missing-card-identity".into(),
@@ -429,6 +448,7 @@ mod tests {
     fn reviewed_selection_pins_bare_provider_digest_and_speaker_identity() {
         let unreviewed = Selection {
             artifact_only: false,
+            artifact_retention: None,
             card_id: "card".into(),
             device: 0,
             speaker_base_identity: String::new(),

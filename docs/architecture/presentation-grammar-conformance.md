@@ -672,3 +672,15 @@ selection, speaker delivery, hearing or #5355 acceptance. Seven owner speech
 regressions, four focused CLI/IPC tests, lossless framing and explicit
 actual-Face preparation/staleness tests pass; exact committed-head repository
 validation and fresh installed cross-Mask execution remain required.
+
+Installed artifact retention can be explicitly selected with
+`--speech-artifact-maximum-artifacts` and
+`--speech-artifact-maximum-bytes` alongside an explicit speech equipment
+selection. Both bounds are required, retained in the installation record, and
+validated through the existing finite retention admission before a fresh Host
+Boot attaches the pool. Absent bounds preserve the ordinary 64-artifact
+default. This controls retained capacity without changing the per-Play audio
+limits or silently changing a running Host. Compilation and three focused compatibility/bounds/CLI tests of this
+additional installation path pass. Strict all-target product Clippy with warnings
+denied also passes. Fresh exact-source release/installed execution remains
+required.
