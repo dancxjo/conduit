@@ -1,0 +1,205 @@
+✔ already installed merged packages skip every privileged command (6.074759ms)
+✔ cold downloads then warm fresh baseline verifies and installs exact version without downloads (4.985109ms)
+✔ corrupt cache refuses before install (3.168492ms)
+✔ cached version absent from authenticated metadata fails closed (2.030932ms)
+✔ changed image baseline cannot silently reuse previous resolution (3.340835ms)
+✔ mixed requests acquire only missing packages and retain installed baseline versions (1.686792ms)
+✔ cold and warm fresh-machine runs retain identical tool identity (7.788859ms)
+✔ successful acquisition makes apt private working entries readable for runner cache archival (1.688798ms)
+✔ foreign architecture does not satisfy an unqualified native request (1.711099ms)
+✔ explicit native architecture does not use a foreign installed package (1.887304ms)
+✔ explicit installed foreign architecture is satisfied exactly (0.539172ms)
+✔ architecture-independent installed package satisfies a native request (0.453635ms)
+✔ unrelated vendor outage is excluded and host repository configuration is preserved (1.458749ms)
+✔ required source failure refuses both cold and warm acquisition before installation (1.810854ms)
+✔ selected signing keys and runner profile bind cache identity; unrelated sources do not (2.323682ms)
+✔ unsupported profile and vendor-only required package refuse without fallback (0.924712ms)
+✔ each warm attempt refreshes a distinct index directory with strict authentication (2.051371ms)
+✔ selected scope contains only exact Ubuntu suites, components, architecture and keyring (0.635559ms)
+✔ resolution permits authenticated same-version reinstalls but refuses actual downgrades and removals (0.687063ms)
+✔ cold and warm resolution reject version decreases before package effects (1.810476ms)
+✔ authentication enumerates archive records even when an installed same-version record has no digest (1.151141ms)
+✔ all covers each canonical runner/target plus unit and preflight; inputs cannot inject matrix entries (3.757945ms)
+✔ comparison includes cache overhead and preserves honest negative savings (0.844792ms)
+✔ cache population cost cannot conceal a regression against uncached setup (0.263261ms)
+✔ identity object ordering and tool ordering do not invalidate the same installed closure (8.205478ms)
+✔ rejects cold cache hit (1.146269ms)
+✔ rejects warm cache miss (0.361216ms)
+✔ rejects different source (0.560464ms)
+✔ rejects runner image drift (1.768413ms)
+✔ rejects tool binary drift (0.655666ms)
+✔ rejects specification drift (1.546262ms)
+✔ rejects failed actual setup (0.309078ms)
+✔ rejects failed acquisition receipt (0.242841ms)
+✔ rejects missing installed identities (0.236701ms)
+✔ rejects invalid measured duration (0.19986ms)
+✔ acquisition cache separates source-independent tools by platform, runner image and exact specification (8.005783ms)
+✔ curated caches exclude product evidence, installed system packages and arbitrary toolchains (8.28897ms)
+✔ RISC-V64 caches only verified emulator outputs and its receipt (0.500059ms)
+Acquisition spec-tools-stability-2038281: success in 77 ms; report target/acquisition/spec-tools-stability-2038281.json
+Acquisition spec-tools-stability-2038281: success in 61 ms; report target/acquisition/spec-tools-stability-2038281.json
+✔ each ConduitOS package set includes only its own emulator/firmware (3.761017ms)
+✔ pinned Playwright dry-run discovers missing libraries without swallowing refusal (0.512672ms)
+✔ Rust installed checks use selected toolchain and exact targets (0.509176ms)
+✔ LLVM tools install alias recognizes rustup canonical installed component (2.587411ms)
+✔ Cargo receipt rejects wrong version, source and executable (0.42067ms)
+✔ warm Cargo tool verifies receipt and executable; stale binary is reacquired (2.248835ms)
+✔ warm ESP RISC-V reuses toolchain but installs missing exact target only (0.384002ms)
+✔ actionlint archive trust is checked in rather than fetched beside archive (0.125613ms)
+✔ Rust acquisition refuses successful installer that left required target absent (0.775869ms)
+✔ cold and warm Rust acquisition retain identical actual tool identities (167.201444ms)
+✔ Pico setup verifies tracked radio assets instead of refreshing downloads (0.401265ms)
+✔ retired Tour and Creche products have no source trees (3.471703ms)
+✔ browser WebRTC realization is owned by the browser Host (0.712946ms)
+✔ generic browser membership is owned by the browser Host (0.336599ms)
+✔ Workspace package dependencies name real source owners (3.454482ms)
+✔ target source moves preserve declared browser resource URLs and relative dependencies (2.192347ms)
+✔ staged Workspace modules declare every static import (10.189081ms)
+✔ Pages composition publishes only the exact twelve-step QMP journey (201.473086ms)
+✔ Pages composition refuses a changed screenshot before writing pages (129.549041ms)
+✔ Pages composition refuses a transcript from another Body before writing pages (116.123528ms)
+✔ Pages composition refuses a journey missing protected-keyboard-canvas (112.256339ms)
+✔ Pages composition refuses a journey missing protected-memory-lantern (113.612384ms)
+✔ Pages composition refuses reordered captures (116.319585ms)
+✔ retained direct speech has 11 same-Play reading WAVs and one distinct opening (64.064131ms)
+✔ retained direct speech refuses changed PCM identity and inflated proof (55.054012ms)
+warning: templates not found in /home/dancxjo/share/git-core/templates
+warning: templates not found in /home/dancxjo/share/git-core/templates
+warning: templates not found in /home/dancxjo/share/git-core/templates
+warning: templates not found in /home/dancxjo/share/git-core/templates
+warning: templates not found in /home/dancxjo/share/git-core/templates
+warning: templates not found in /home/dancxjo/share/git-core/templates
+warning: templates not found in /home/dancxjo/share/git-core/templates
+✔ complete actual parent walk admits self, ordinary, merge and reversed timestamps (105.147709ms)
+✔ unrelated, missing, noncommit and noncanonical identities refuse (96.096281ms)
+✔ missing reachable parent refuses even when source equals publication (23.796162ms)
+✔ shallow repositories refuse (28.031896ms)
+✔ replacement refs cannot invent ancestry or hide genuine ancestry (40.158243ms)
+✔ graft files refuse even if empty (18.161225ms)
+✔ ordinary site builds omit absent One Body evidence (2.394649ms)
+✔ publication refuses incomplete or unrelated One Body evidence (3.207964ms)
+✔ publication refuses a linked evidence root, including a broken link (0.725768ms)
+✔ only recognized prose can omit target lanes (4.339662ms)
+✔ unknown, empty, and shared changes select every target (0.683604ms)
+✔ target-local changes select the owning family (0.617223ms)
+✔ other xtask evidence changes retain the full target matrix (0.221721ms)
+✔ renamed paths select both old and new owners in stable order (0.185011ms)
+✔ full integration always selects every family, even for prose (0.167088ms)
+✔ malformed path collections cannot silently become docs-only (0.448683ms)
+✔ shared target libraries retain every consuming platform proof (1.699996ms)
+✔ isolated firmware remains target-local despite shared target libraries (0.751369ms)
+✔ browser-only assets omit unrelated hosts but mixed and unknown changes fail closed (0.933005ms)
+✔ Integration scanner emits the complete unit matrix consumed by Actions (117.34925ms)
+warning: templates not found in /home/dancxjo/share/git-core/templates
+warning: templates not found in /home/dancxjo/share/git-core/templates
+Publication history: {"stage":"fixture-before","git":"git version 2.55.0","head":"a7dea626adce33b2f04c2ee81e53827f56633706","shallow":"true","commonDir":"/tmp/conduit-publication-history-Vjrvxo/shallow/.git","boundary":{"bytes":41,"mtimeMs":1791503156465.9326,"inode":674157,"capped":false,"count":1,"sha":["a7dea626adce33b2f04c2ee81e53827f56633706"]}}
+Publication history: {"stage":"before-acquisition","git":"git version 2.55.0","head":"a7dea626adce33b2f04c2ee81e53827f56633706","shallow":"true","commonDir":"/tmp/conduit-publication-history-Vjrvxo/shallow/.git","boundary":{"bytes":41,"mtimeMs":1791503156465.9326,"inode":674157,"capped":false,"count":1,"sha":["a7dea626adce33b2f04c2ee81e53827f56633706"]}}
+Publication history: {"stage":"post-acquisition","git":"git version 2.55.0","head":"a7dea626adce33b2f04c2ee81e53827f56633706","shallow":"false","commonDir":"/tmp/conduit-publication-history-Vjrvxo/shallow/.git","boundary":null}
+warning: templates not found in /home/dancxjo/share/git-core/templates
+warning: templates not found in /home/dancxjo/share/git-core/templates
+Publication history: {"stage":"before-acquisition","git":"git version 2.55.0","head":"a7dea626adce33b2f04c2ee81e53827f56633706","shallow":"true","commonDir":"/tmp/conduit-publication-history-Qh2MdA/shallow/.git","boundary":{"bytes":41,"mtimeMs":1791503156552.3992,"inode":674706,"capped":false,"count":1,"sha":["a7dea626adce33b2f04c2ee81e53827f56633706"]}}
+warning: templates not found in /home/dancxjo/share/git-core/templates
+warning: templates not found in /home/dancxjo/share/git-core/templates
+Publication history: {"stage":"before-acquisition","git":"git version 2.55.0","head":"a7dea626adce33b2f04c2ee81e53827f56633706","shallow":"true","commonDir":"/tmp/conduit-publication-history-iLsW6W/shallow/.git","boundary":{"bytes":41,"mtimeMs":1791503156591.0913,"inode":674923,"capped":false,"count":1,"sha":["a7dea626adce33b2f04c2ee81e53827f56633706"]}}
+warning: templates not found in /home/dancxjo/share/git-core/templates
+warning: templates not found in /home/dancxjo/share/git-core/templates
+Publication history: {"stage":"before-acquisition","git":"git version 2.55.0","head":"a7dea626adce33b2f04c2ee81e53827f56633706","shallow":"false","commonDir":"/tmp/conduit-publication-history-ZTsF6i/.git","boundary":null}
+Publication history: {"stage":"post-acquisition","git":"git version 2.55.0","head":"a7dea626adce33b2f04c2ee81e53827f56633706","shallow":"false","commonDir":"/tmp/conduit-publication-history-ZTsF6i/.git","boundary":null}
+warning: templates not found in /home/dancxjo/share/git-core/templates
+warning: templates not found in /home/dancxjo/share/git-core/templates
+Publication history: {"stage":"before-acquisition","git":"git version 2.55.0","head":"a7dea626adce33b2f04c2ee81e53827f56633706","shallow":"true","commonDir":"/tmp/conduit-publication-history-rWQSU0/shallow/.git","boundary":{"bytes":41,"mtimeMs":1791503156670.0657,"inode":675218,"capped":false,"count":1,"sha":["a7dea626adce33b2f04c2ee81e53827f56633706"]}}
+✔ genuine shallow file-origin restoration admits exact ancestor and retains HEAD (91.132082ms)
+✔ shallow missing origin refuses without changing HEAD (39.160555ms)
+✔ shallow invalid origin refuses without changing HEAD (38.703651ms)
+✔ complete repository with invalid origin performs no fetch (41.252806ms)
+✔ HEAD mismatch and noncanonical identity refuse before any fetch (33.816537ms)
+✔ promotes a release PR and publishes verified artifacts with separate source/main identities (29.037486ms)
+✔ uses Actions repository identity without a GraphQL repository lookup (7.355521ms)
+✔ refuses an Actions repository identity inconsistent with the integration run (2.296456ms)
+✔ refuses failed run before any GitHub mutation (1.875649ms)
+✔ refuses skipped run before any GitHub mutation (1.56202ms)
+✔ refuses cancelled run before any GitHub mutation (1.916373ms)
+✔ refuses unfinished run before any GitHub mutation (1.855577ms)
+✔ refuses PR run before any GitHub mutation (1.631292ms)
+✔ refuses wrong branch before any GitHub mutation (3.016589ms)
+✔ refuses wrong workflow before any GitHub mutation (1.461304ms)
+✔ refuses wrong repository before any GitHub mutation (1.094809ms)
+✔ refuses fork source before any GitHub mutation (1.501821ms)
+✔ refuses wrong checkout before any GitHub mutation (1.494129ms)
+✔ refuses diverged main before any GitHub mutation (2.571116ms)
+✔ refuses source removed from dev before any GitHub mutation (1.452698ms)
+✔ refuses another release before any GitHub mutation (1.833218ms)
+✔ refuses open synchronization before any GitHub mutation (2.131118ms)
+✔ tampered bundle cannot promote main (2.770963ms)
+✔ a merge tree mismatch refuses release publication (2.419057ms)
+✔ resumes a partially uploaded draft without merging or replacing verified assets (21.97497ms)
+✔ an existing different asset is never overwritten (11.78475ms)
+✔ a moved release tag is refused on rerun (10.332329ms)
+✔ a second release accepts the prior source lineage without syncing the main merge to dev (7.181609ms)
+✔ main-only content in a previous release merge blocks the next promotion (2.090369ms)
+✔ failed commit status prevents the release PR merge and publication (1.550166ms)
+✔ tag authorization failure leaves main accepted but creates no release or assets (5.543337ms)
+✔ pre-existing wrong tag is never replaced (5.127842ms)
+✔ tag movement while assets upload prevents publishing the draft (5.256221ms)
+✔ resuming a historical draft preserves the newer latest release (14.356221ms)
+✔ seals exact products and verifies a multi-target bundle with distinct proof classes (23.237702ms)
+✔ rejects changed bytes after successful proof (5.680626ms)
+✔ rejects extra file after successful proof (4.607459ms)
+✔ rejects missing file after successful proof (2.771885ms)
+✔ rejects renamed file after successful proof (4.333617ms)
+✔ rejects receipt with wrong commit (2.779248ms)
+✔ rejects receipt with wrong target (2.697429ms)
+✔ rejects receipt with wrong proof class (2.562002ms)
+✔ rejects receipt with unknown proof class (2.558581ms)
+✔ rejects receipt with wrong schema (2.738107ms)
+✔ rejects receipt with empty products (2.943067ms)
+✔ rejects receipt with duplicate products (2.574928ms)
+✔ rejects receipt with parent traversal (2.500771ms)
+✔ rejects receipt with absolute path (3.045269ms)
+✔ rejects receipt with Windows absolute path (4.911313ms)
+✔ rejects receipt with Windows traversal (2.431032ms)
+✔ rejects receipt with receipt as product (2.446569ms)
+✔ rejects receipt with invalid digest (2.438802ms)
+✔ requires exactly the authoritative target set (2.425657ms)
+✔ failed or absent target proof cannot verify without its receipt (1.411513ms)
+✔ empty products and invalid seal identities never write a receipt (1.182653ms)
+✔ rejects a symlink file (3.846775ms)
+✔ rejects a symlink directory (3.26377ms)
+✔ rejects a symlink receipt (2.958379ms)
+✔ rejects a symlink target (2.103409ms)
+✔ rejects a symlink bundle (4.028634ms)
+✔ independent proof starts after preflight and preserves complete aggregation (1.986534ms)
+✔ draft transitions run quick checks and ready transitions require exact-head proof (0.352828ms)
+✔ the actual AND gate rejects every failed, cancelled, or missing selected lane (36.24453ms)
+✔ required candidate never certifies a draft or unsuccessful proof (19.095709ms)
+✔ accepts local pages, media, anchors, and external links (4.153935ms)
+✔ rejects missing media and fragment targets before publication (0.826955ms)
+✔ catches commit-addressed back links that stop at a directory without an index (0.794676ms)
+✔ accepts exact clean source with ignored generated artifacts before and after proof (42.496165ms)
+✔ rejects unstaged tracked source changes (27.186791ms)
+✔ rejects staged tracked source changes (27.196207ms)
+✔ rejects nonignored untracked source before proof and introduced during proof (34.111229ms)
+✔ rejects a changed HEAD even when tracked source is clean (28.203653ms)
+✔ development evidence is absent until a retained diagnostic manifest exists (5.479314ms)
+✔ retains original Workspace captures and rejects incomplete or ambiguous runs (5.321261ms)
+Xtensa acquisition or verification failed; cleaning the pipeline toolchain before one final attempt: HTTP 503
+Xtensa acquisition or verification failed; cleaning the pipeline toolchain before one final attempt: GCC unavailable
+Xtensa acquisition or verification failed; cleaning the pipeline toolchain before one final attempt: HTTP 503
+Xtensa acquisition or verification failed; cleaning the pipeline toolchain before one final attempt: GCC unavailable
+Xtensa acquisition or verification failed; cleaning the pipeline toolchain before one final attempt: HTTP 503
+✔ successful Xtensa acquisition installs once (3.033651ms)
+✔ failed Xtensa acquisition removes its partial toolchain before retry (1.111176ms)
+✔ a successful but incomplete Xtensa install is cleaned before retry (0.334995ms)
+✔ Xtensa acquisition makes only one clean retry (0.601141ms)
+✔ a second incomplete Xtensa install fails rather than emitting a receipt (0.314536ms)
+✔ failed cleanup does not install on top of a partial toolchain (0.285392ms)
+✔ cleanup removes only the named Rustup toolchain and its own clang link (2.29578ms)
+✔ cleanup refuses a foreign clang link without changing it (0.511636ms)
+ℹ tests 165
+ℹ suites 0
+ℹ pass 165
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 931.222394

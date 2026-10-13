@@ -1,0 +1,21 @@
+warning: templates not found in /home/dancxjo/share/git-core/templates
+warning: templates not found in /home/dancxjo/share/git-core/templates
+warning: templates not found in /home/dancxjo/share/git-core/templates
+warning: templates not found in /home/dancxjo/share/git-core/templates
+warning: templates not found in /home/dancxjo/share/git-core/templates
+warning: templates not found in /home/dancxjo/share/git-core/templates
+warning: templates not found in /home/dancxjo/share/git-core/templates
+✔ complete actual parent walk admits self, ordinary, merge and reversed timestamps (232.110182ms)
+✔ unrelated, missing, noncommit and noncanonical identities refuse (435.064822ms)
+✔ missing reachable parent refuses even when source equals publication (92.593247ms)
+✔ shallow repositories refuse (130.239292ms)
+✔ replacement refs cannot invent ancestry or hide genuine ancestry (74.148279ms)
+✔ graft files refuse even if empty (53.835984ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1104.908698
