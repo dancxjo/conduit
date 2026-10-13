@@ -684,3 +684,30 @@ limits or silently changing a running Host. Compilation and three focused compat
 additional installation path pass. Strict all-target product Clippy with warnings
 denied also passes. Fresh exact-source release/installed execution remains
 required.
+
+### Current-request Parsec terminal instructions
+
+The private terminal prompt now evaluates the checked Parsec input policy over
+its acknowledged source map and current Face/Show, then verifies the exact
+accepted input descriptor against the issued Body Plan/Play and full Host
+advertisement. Prepared descriptors cannot enable an instruction. The installed
+Space-button realization uses the source label `Space`; the raw keyboard route
+uses `Enter`. Generic Fire proposals retain their separate semantic label.
+
+A bounded terminal write and flush precede private prompt availability and the
+captured input epoch. Production input rechecks original completion custody,
+the current prompt, control realization and epoch before the existing checked
+Mask typed return. Consumption, remap, cancellation, stale scope and terminal
+outcomes withdraw the instruction. Failed output attempts erase a possible
+partial instruction and retire authority. This sidecar effect creates no new
+Show and proves no physical controller activity.
+
+The contributing `cargo +stable check -p conduit-std-host --tests` passes.
+Four focused prompt tests, twelve input-custody regressions and the actual
+combined Body journey pass. The journey observes Space-to-Start, Space-to-Shoot,
+remap and Enter-to-Shoot instructions, current source effects and final prompt
+withdrawal. Strict all-target Clippy with burn-model and warnings denied passes,
+as do six checked-policy regressions, workspace formatting and patch hygiene.
+This is not #5369 or #5355 acceptance. The current instruction is a terminal
+sidecar; post-flush observation and cross-Mask instruction reconstruction remain
+required before the Parsec specimen is accepted.

@@ -224,7 +224,7 @@ fn prepared_policy_evaluates_exact_phase_remap_and_custody_without_allocation() 
             );
             assert_eq!(
                 proposal.control_label(),
-                if keyboard { "Enter" } else { "Fire" }
+                if keyboard { "Enter" } else { "Space" }
             );
             assert_eq!(*proposal.mapping_revision(), 2);
             assert_eq!(proposal.host_id(), "host/current");

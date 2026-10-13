@@ -16,6 +16,8 @@ impl ParsecTerminalOwner {
         &self.plan
     }
 
+    // Mechanism-only fixture: production epochs require an actual flushed prompt.
+    #[cfg(test)]
     pub(in crate::installed_std::body_kernel) fn input_view_epoch(
         &mut self,
         map: &ParsecAcknowledgedMap,

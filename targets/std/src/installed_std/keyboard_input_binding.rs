@@ -317,6 +317,52 @@ impl KeyboardRequestAdmission {
         ).ok_or_else(|| "input completion differs from exact accepted request".into())
     }
 
+    /// Standing input availability only after an actual scheduler request was
+    /// accepted. Prepared descriptors, proposals and caller identities confer none.
+    pub(super) fn require_current_input_scope(
+        &self,
+        realization: InputRealization,
+        plan: &conduit_body::BodyPlan,
+        play: &conduit_body::BodyPlayIdentity,
+        host: &HostAdvertisement,
+    ) -> Result<&conduit_core::PlanId, String> {
+        if self.revoked
+            || !self.issued
+            || !self.completions.enabled()
+            || host != &self.host
+            || self.body_plan.as_ref() != Some(plan)
+            || self.body_play.as_ref() != Some(play)
+        {
+            return Err("standing input differs from current issued Body Plan/Play/Host".into());
+        }
+        let descriptor = self
+            .descriptors
+            .iter()
+            .find(|descriptor| {
+                descriptor.realization == realization
+                    && matches!(descriptor.state, RequestAdmission::Current(_))
+            })
+            .ok_or("standing input request has not been accepted or was revoked")?;
+        if InputRealization::from_contract(descriptor.operation.contract_id.as_str())
+            != Some(realization)
+            || descriptor.placement.host_id != host.host_id
+            || descriptor.placement.boot_id != host.boot_id
+            || descriptor.placement.offer_generation != host.offer_generation
+            || !plan.plots.iter().any(|partition| {
+                partition.plan.plan_id == descriptor.input_plan
+                    && partition.plan.fragments.iter().any(|fragment| {
+                        fragment
+                            .placements
+                            .iter()
+                            .any(|placement| placement == &descriptor.placement)
+                    })
+            })
+        {
+            return Err("standing input differs from original admitted realization".into());
+        }
+        Ok(&descriptor.input_plan)
+    }
+
     /// Completed-event origin and current issued scope only. A captured view
     /// epoch, action map, Face/Show and typed command remain separate checks.
     /// Preparation already validates the Plan/Play derivation; exact retained

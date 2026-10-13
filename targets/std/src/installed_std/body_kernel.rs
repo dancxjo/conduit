@@ -696,6 +696,15 @@ impl<'a> BodyKernel<'a> {
                                 "Parsec completed event belongs to a different input Plan".into()
                             );
                         }
+                        if !owner.authorize_prompted_event(
+                            map,
+                            &attachment.host,
+                            &keys,
+                            &observed.event,
+                        )? {
+                            owner.sync_prompt(map, &attachment.host, &keys, attachment.output)?;
+                            continue;
+                        }
                         owner.admit_completed_input(
                             map,
                             &attachment.host,
@@ -703,6 +712,7 @@ impl<'a> BodyKernel<'a> {
                             self.fore.acknowledged_input_bytes(&observed),
                             attachment.queue,
                         )?;
+                        owner.sync_prompt(map, &attachment.host, &keys, attachment.output)?;
                     }
                 }
                 self.clock_observations.capture_new(
@@ -718,6 +728,12 @@ impl<'a> BodyKernel<'a> {
                     keys.cancel();
                     // No acknowledged map remains current while the owning
                     // Body Play is being cancelled.
+                    if let (Some(owner), Some(attachment)) =
+                        (self.parsec_terminal.as_mut(), terminal.as_mut())
+                    {
+                        owner.withdraw_prompt(attachment.output)?;
+                    }
+                    keys.set_input_view_epoch(None);
                     self.parsec_map = None;
                     self.parsec_terminal = None;
                     deadlines.clear();
@@ -1178,14 +1194,20 @@ impl<'a> BodyKernel<'a> {
                     match (
                         self.parsec_terminal.as_mut(),
                         self.parsec_map.as_ref(),
-                        terminal.as_ref(),
+                        terminal.as_mut(),
                     ) {
                         (Some(owner), Some(map), Some(attachment)) => {
-                            owner.input_view_epoch(map, &attachment.host)?
+                            owner.sync_prompt(map, &attachment.host, &keys, attachment.output)?;
+                            owner.prompt_input_view_epoch(map, &attachment.host, &keys)?
                         }
                         _ => None,
                     }
                 } else {
+                    if let (Some(owner), Some(attachment)) =
+                        (self.parsec_terminal.as_mut(), terminal.as_mut())
+                    {
+                        owner.withdraw_prompt(attachment.output)?;
+                    }
                     None
                 };
                 keys.set_input_view_epoch(input_view_epoch);
@@ -1233,6 +1255,14 @@ impl<'a> BodyKernel<'a> {
             host_id,
             boot_id,
         );
+        // Revoke the prompt on every terminal outcome, including failures
+        // before the next adapter poll. A withdrawal failure is itself a failure.
+        let withdrawal = match (self.parsec_terminal.as_mut(), terminal.as_mut()) {
+            (Some(owner), Some(attachment)) => owner.withdraw_prompt(attachment.output).map(|_| ()),
+            _ => Ok(()),
+        };
+        keys.set_input_view_epoch(None);
+        let result = result.and_then(|outcome| withdrawal.map(|()| outcome));
         let mut cleanup_failure = None;
         let (terminal, failure) = match result {
             Ok(terminal) => (terminal, None),

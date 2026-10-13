@@ -103,7 +103,7 @@ fn checked_phase_and_remap_policy_preserves_context_and_exact_action_semantics()
                 );
                 assert_eq!(
                     proposal.control_label(),
-                    if keyboard { "Enter" } else { "Fire" }
+                    if keyboard { "Enter" } else { "Space" }
                 );
                 assert_eq!(proposal.available(), context.available());
                 assert_eq!(proposal.boot_id(), context.boot_id());
@@ -195,7 +195,7 @@ fn checked_phase_and_remap_policy_preserves_context_and_exact_action_semantics()
         assert_eq!(proposal.offered_action().action_identity(), "game/shoot");
         assert_eq!(
             proposal.control_label(),
-            if keyboard { "Enter" } else { "Fire" }
+            if keyboard { "Enter" } else { "Space" }
         );
         assert_eq!(proposal.face_identity(), "face/gameplay");
         assert_eq!(*proposal.offered_action().source_presentation_revision(), 8);

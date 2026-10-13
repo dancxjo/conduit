@@ -171,7 +171,12 @@ fn combined_body_admits_start_shoot_and_remapped_enter_from_completed_input() {
     assert!(shows.0[1..]
         .iter()
         .all(|(face, _)| face.actions[0].identity == "game/shoot"));
-    assert!(!terminal.is_empty());
+    let instructions = std::str::from_utf8(&terminal).unwrap();
+    assert!(instructions.contains("Press Space to game/start."));
+    assert!(instructions.contains("Press Space to game/shoot."));
+    assert!(instructions.contains("Press Enter to game/shoot."));
+    assert!(instructions.contains("Input unavailable."));
+    assert!(instructions.ends_with("Input unavailable.\r\n"));
     let status = report.live_fore_status.unwrap();
     assert_eq!(
         (status.queue_accepted, status.kernel_admitted, status.queued),
