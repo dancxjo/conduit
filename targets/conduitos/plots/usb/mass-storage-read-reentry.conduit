@@ -60,6 +60,9 @@ type BotReentryState = {
  failed: Boolean
  terminal: Boolean
 }
+# A rejected active event terminates the physical state immediately. Its
+# original storage submission remains retained for Root acknowledged cancel;
+# this close never manufactures a settlement, permit or semantic result.
 # Raw request descendants terminate at a selected authorizer. This route never
 # sends raw payloads or closure observations into the physical state machine.
 type BotReentryAuthorizationRequest =
@@ -164,7 +167,7 @@ plot bot-reentry-accept (
 
 plot bot-reentry-advance (
     transition: BotReentryTransition...| >> state: BotReentryState...|
-) = ({ bank: .previous.bank, request: (.accepted && .event is permit ? { block_size: .event.permit.block_size, count: .event.permit.count, lba: .event.permit.lba } : .previous.request), permit: (.accepted && .event is permit ? .event.permit : .previous.permit), data: (.accepted && .previous.phase == 13 ? (.event is read ? .event.read.result : .previous.data) : .previous.data), phase: (.accepted && .event is closed ? 17 : (!.accepted || .previous.phase >= 16 ? 16 : (.previous.phase == 0 ? 2 : (.previous.phase == 10 ? 12 : .previous.phase + 1)))), failed: (.previous.failed || !.accepted), terminal: (.accepted && .event is closed) })
+) = ({ bank: .previous.bank, request: (.accepted && .event is permit ? { block_size: .event.permit.block_size, count: .event.permit.count, lba: .event.permit.lba } : .previous.request), permit: (.accepted && .event is permit ? .event.permit : .previous.permit), data: (.accepted && .previous.phase == 13 ? (.event is read ? .event.read.result : .previous.data) : .previous.data), phase: (.accepted && .event is closed ? 17 : (!.accepted || .previous.phase >= 16 ? 16 : (.previous.phase == 0 ? 2 : (.previous.phase == 10 ? 12 : .previous.phase + 1)))), failed: (.previous.failed || !.accepted), terminal: (!.accepted || (.accepted && .event is closed)) })
 plot bot-reentry-emission (
     transition: BotReentryTransition...| >> emission: BotReentryEmission...|
 ) = (.accepted && (.previous.phase == 9 || .previous.phase == 15) ? (.event is settled ? emit(empty) : absent(empty)) : absent(empty))

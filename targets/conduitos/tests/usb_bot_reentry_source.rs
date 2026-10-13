@@ -220,7 +220,7 @@ fn recovery_wire_order_and_cbw_tags_are_source_owned_without_replay() {
     }
 }
 #[test]
-fn failures_drain_without_recovery_effects_or_duplicate_settlement_emissions() {
+fn rejected_active_events_close_without_permit_settlement_or_reentry() {
     let source = source();
     let accept = program(&source, "bot-reentry-accept");
     let advance = program(&source, "bot-reentry-advance");
@@ -237,7 +237,7 @@ fn failures_drain_without_recovery_effects_or_duplicate_settlement_emissions() {
                 .unwrap()
                 .variant_tag()
                 .unwrap(),
-            "ready"
+            "stopped"
         );
         let next_bytes = next.canonical_bytes().unwrap();
         let next_ref = validate_canonical_structured_value(&next_bytes).unwrap();
@@ -257,7 +257,7 @@ fn failures_drain_without_recovery_effects_or_duplicate_settlement_emissions() {
                 .unwrap()
                 .primitive_bytes("value/bool")
                 .unwrap(),
-            [0]
+            [1]
         );
         let emitted = evaluate(&emission, &transition).canonical_bytes().unwrap();
         assert_eq!(
@@ -454,3 +454,6 @@ mod refinement;
 
 #[path = "usb_bot_reentry/ingress.rs"]
 mod ingress;
+
+#[path = "usb_bot_reentry/failure.rs"]
+mod failure;

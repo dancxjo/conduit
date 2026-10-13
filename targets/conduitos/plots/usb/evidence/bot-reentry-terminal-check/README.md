@@ -1,0 +1,1 @@
+All sixteen Source regressions pass. Revised terminal state retains original request/permit and emits no fake result. Successful two-request guest still passes independent canonical/wire validation. Failed clear-IN still reaches Root step budget, with zero allocation attempts and acknowledged Stop; finite failure termination remains unresolved.
