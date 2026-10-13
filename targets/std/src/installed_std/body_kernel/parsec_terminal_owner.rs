@@ -17,6 +17,8 @@ use std::io::Write;
 mod face;
 #[path = "parsec_terminal_input.rs"]
 mod input;
+#[path = "parsec_terminal_prompt.rs"]
+mod prompt;
 
 pub(super) struct ParsecTerminalOwner {
     plan: BodyPlan,
@@ -35,6 +37,8 @@ pub(super) struct ParsecTerminalOwner {
     scoped_play: Option<BodyPlayIdentity>,
     input_inflight: Option<u64>,
     refresh_after_input: bool,
+    prompt: Option<prompt::CurrentPrompt>,
+    prompt_visible: bool,
 }
 impl ParsecTerminalOwner {
     pub(super) fn prepare(
@@ -78,6 +82,8 @@ impl ParsecTerminalOwner {
             scoped_play: None,
             input_inflight: None,
             refresh_after_input: false,
+            prompt: None,
+            prompt_visible: false,
         })
     }
 
@@ -198,6 +204,7 @@ impl ParsecTerminalOwner {
             .evaluate(state, &context)
             .map_err(|e| format!("Parsec source policy: {e:?}"))?;
         let face = face::project(&self.plan, play, &proposal)?;
+        self.withdraw_prompt(output)?;
         // The old ordinary Mask Play is retired before a new Face can be shown.
         self.execution.cancel().map_err(|e| e.to_string())?;
         self.terminal = None;
@@ -274,6 +281,7 @@ impl ParsecTerminalOwner {
             .map_err(|e| e.to_string())
     }
     pub(super) fn retire(&mut self) {
+        self.prompt = None;
         self.retired = true;
         self.input_inflight = None;
         self.refresh_after_input = false;

@@ -173,6 +173,7 @@ fn body_boot_generation_partition_and_revoked_confirmation_refuse() {
         &operations,
     )
     .unwrap();
+    admission.enable_completed_event_custody().unwrap();
     admission
         .confirm_body_play(&advertisement, &prospective)
         .unwrap();
@@ -183,11 +184,56 @@ fn body_boot_generation_partition_and_revoked_confirmation_refuse() {
                 == Some(InputRealization::SpaceButton)
         })
         .unwrap();
+    assert!(admission
+        .require_current_input_scope(
+            InputRealization::SpaceButton,
+            &plan,
+            &prospective,
+            &advertisement
+        )
+        .is_err());
     admission
         .accept(InputRealization::SpaceButton, request(operation))
         .unwrap();
     assert!(admission.is_current(InputRealization::SpaceButton));
+    assert_eq!(
+        admission
+            .require_current_input_scope(
+                InputRealization::SpaceButton,
+                &plan,
+                &prospective,
+                &advertisement
+            )
+            .unwrap(),
+        &plan.plots[0].plan.plan_id
+    );
+    let mut changed_host = advertisement.clone();
+    changed_host.offer_generation.0 += 1;
+    assert!(admission
+        .require_current_input_scope(
+            InputRealization::SpaceButton,
+            &plan,
+            &prospective,
+            &changed_host
+        )
+        .is_err());
+    assert!(admission
+        .require_current_input_scope(
+            InputRealization::SpaceButton,
+            &plan,
+            &BodyPlayIdentity::bind(&plan, 1),
+            &advertisement
+        )
+        .is_err());
     admission.revoke();
+    assert!(admission
+        .require_current_input_scope(
+            InputRealization::SpaceButton,
+            &plan,
+            &prospective,
+            &advertisement
+        )
+        .is_err());
     assert!(!admission.is_current(InputRealization::SpaceButton));
     assert!(admission
         .confirm_body_play(&advertisement, &prospective)

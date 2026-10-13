@@ -108,6 +108,22 @@ impl<'a> KeyboardInputHost<'a> {
             .acknowledge(node, call, value)
     }
 
+    pub(super) fn require_current_input_scope(
+        &self,
+        realization: InputRealization,
+        plan: &conduit_body::BodyPlan,
+        play: &conduit_body::BodyPlayIdentity,
+        host: &conduit_core::HostAdvertisement,
+    ) -> Result<&conduit_core::PlanId, String> {
+        if self.terminal {
+            return Err("standing input Host has been retired".into());
+        }
+        self.request_admission
+            .as_ref()
+            .ok_or("standing input origin is absent")?
+            .require_current_input_scope(realization, plan, play, host)
+    }
+
     pub(super) fn require_completed_event_scope(
         &self,
         event: &CompletedInputEvent,
