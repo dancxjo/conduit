@@ -48,7 +48,7 @@ impl NumericalRealizationBack {
         {
             return Err("numeric request Type differs from the Kind Fore".into());
         }
-        if request.canonical_value().len() > super::NUMERICAL_RESULT_MAX_BYTES as usize {
+        if request.canonical_value().len() > super::NUMERICAL_REQUEST_MAX_BYTES as usize {
             return Err("numeric request extent".into());
         }
         if !conduit_core::valid_realization_properties(&gear.realization_properties) {

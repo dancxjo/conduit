@@ -4,6 +4,7 @@ use conduit_core::*;
 use conduit_plot::{ProfileCatalog, StartupCatalog};
 pub const NUMERICAL_REALIZE_KIND: &str = "math/realize";
 pub const NUMERICAL_REALIZE_REVISION: &str = "conduit.numeric/realize@1";
+pub const NUMERICAL_REQUEST_MAX_BYTES: u32 = 8192;
 pub const NUMERICAL_RESULT_MAX_BYTES: u32 = 8192;
 pub const NUMERICAL_TYPES_SOURCE: &str = include_str!("../numerical/types.conduit");
 fn types() -> Vec<conduit_plot::CheckedNativeType> {
@@ -106,7 +107,7 @@ pub fn numerical_realize_semantic_contract() -> Kind {
                     location: FrontValueLocation::Startup("request".into()),
                     contract: CheckedValueContract::new(
                         request.profile().unwrap().value_kind().clone(),
-                        NUMERICAL_RESULT_MAX_BYTES,
+                        NUMERICAL_REQUEST_MAX_BYTES,
                         vec![],
                     )
                     .unwrap(),
