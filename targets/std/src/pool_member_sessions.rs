@@ -141,7 +141,7 @@ impl PoolMemberSessions {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
     use conduit_core::{
         mandatory_sign_storage_requirement, seal_plan, AdmittedLine, ArtifactId, AuthorityGrantId,
@@ -251,7 +251,7 @@ mod tests {
         }
     }
 
-    fn exact_plan() -> (Plan, PoolSelectionEvidence, PlacementId) {
+    pub(crate) fn exact_plan() -> (Plan, PoolSelectionEvidence, PlacementId) {
         let consumer_id = PlacementId::from("placement/client");
         let input = PortDescriptor {
             port_id: PortId::from("prompt"),

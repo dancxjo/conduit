@@ -89,3 +89,6 @@ pub fn finish() -> Counts {
         phase_peak_heap_bytes: PEAK.load(Relaxed),
     }
 }
+
+#[cfg(test)]
+pub static TEST_MEASUREMENT: std::sync::Mutex<()> = std::sync::Mutex::new(());

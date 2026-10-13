@@ -12,6 +12,8 @@ mod cost_policy_explanation;
 mod evidence_lineage;
 mod execution_artifact;
 mod model;
+mod pool_cost_explanation;
+pub use pool_cost_explanation::render_pool_cost_selection;
 mod projection;
 mod render;
 mod sound;
@@ -49,3 +51,6 @@ mod cost_work_estimate_tests;
 
 #[cfg(test)]
 mod cost_plan_explanation_tests;
+
+#[cfg(test)]
+mod pool_cost_explanation_tests;

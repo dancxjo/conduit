@@ -275,3 +275,6 @@ fn selection_evidence_names_only_one_realization_from_the_immutable_plan() {
         Err(PoolSelectionEvidenceError::InvalidDisposition)
     );
 }
+
+#[path = "shared_pool/cost_preparation.rs"]
+mod cost_preparation;
