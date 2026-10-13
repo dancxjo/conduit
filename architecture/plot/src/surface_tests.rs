@@ -800,7 +800,7 @@ fn body_wardrobe_directives_are_role_specific_lossless_syntax() {
 
 #[test]
 fn canonical_clock_plot_round_trips_with_named_and_inline_gears() {
-    let source = "# canonical source\nplot clock-demo {\n    clock: time/every(1s)\n    clock >> face/tick\n}\n";
+    let source = "# canonical source\nplot clock-demo {\n    clock: time/every(1s)\n    clock >> face/tick(\"Clock tick\")\n}\n";
     let document = parse_syntax_document(source);
     let plots = document.plots().expect("canonical plot parses");
 
