@@ -1,0 +1,75 @@
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/conduit-4907-native-admission/architecture/plot)
+    Finished `test` profile [unoptimized] target(s) in 9.67s
+     Running unittests src/lib.rs (target/debug/deps/conduit_plot-2300a7f06de0e279)
+
+running 1 test
+test rust_binding::prepared_invariants_tests::actual_language_complete_native_bank_readiness has been running for over 60 seconds
+exact_language_closure_files=38 check_seconds=515.568
+native_bank=LanguageParserJointRuntimeHypothesis invariants=3
+law=0 prepared=true elapsed_us=391 refusal=None
+law=1 prepared=true elapsed_us=1580 refusal=None
+law=2 prepared=true elapsed_us=203 refusal=None
+complete_bank=true refusal=None
+native_bank=LanguageParserJointStableFact invariants=14
+law=0 prepared=true elapsed_us=257 refusal=None
+law=1 prepared=false elapsed_us=498 refusal=Some(InvalidProgram)
+law=2 prepared=false elapsed_us=282 refusal=Some(InvalidProgram)
+law=3 prepared=true elapsed_us=530 refusal=None
+law=4 prepared=true elapsed_us=628 refusal=None
+law=5 prepared=true elapsed_us=545 refusal=None
+law=6 prepared=true elapsed_us=3433 refusal=None
+law=7 prepared=true elapsed_us=724 refusal=None
+law=8 prepared=true elapsed_us=555 refusal=None
+law=9 prepared=true elapsed_us=3448 refusal=None
+law=10 prepared=true elapsed_us=713 refusal=None
+law=11 prepared=true elapsed_us=598 refusal=None
+law=12 prepared=true elapsed_us=3510 refusal=None
+law=13 prepared=true elapsed_us=711 refusal=None
+complete_bank=false refusal=Some(InvalidLaw { index: 1, refusal: InvalidProgram })
+native_bank=LanguageParserStableDependencyAdmission invariants=9
+law=0 prepared=true elapsed_us=402 refusal=None
+law=1 prepared=false elapsed_us=243 refusal=Some(UnsupportedType("structured expression runtime"))
+law=2 prepared=true elapsed_us=321 refusal=None
+law=3 prepared=true elapsed_us=321 refusal=None
+law=4 prepared=true elapsed_us=1245 refusal=None
+law=5 prepared=true elapsed_us=431 refusal=None
+law=6 prepared=true elapsed_us=948 refusal=None
+law=7 prepared=true elapsed_us=323 refusal=None
+law=8 prepared=false elapsed_us=167 refusal=Some(UnsupportedType("structured expression runtime"))
+complete_bank=false refusal=Some(InvalidLaw { index: 1, refusal: UnsupportedType("structured expression runtime") })
+native_bank=LanguageParserIndependentProtectedAdmission invariants=30
+law=0 prepared=true elapsed_us=1512 refusal=None
+law=1 prepared=true elapsed_us=1038 refusal=None
+law=2 prepared=false elapsed_us=576 refusal=Some(UnsupportedType("structured expression runtime"))
+law=3 prepared=false elapsed_us=568 refusal=Some(UnsupportedType("structured expression runtime"))
+law=4 prepared=true elapsed_us=1037 refusal=None
+law=5 prepared=true elapsed_us=1544 refusal=None
+law=6 prepared=true elapsed_us=1021 refusal=None
+law=7 prepared=false elapsed_us=571 refusal=Some(UnsupportedType("structured expression runtime"))
+law=8 prepared=false elapsed_us=560 refusal=Some(UnsupportedType("structured expression runtime"))
+law=9 prepared=true elapsed_us=1023 refusal=None
+law=10 prepared=true elapsed_us=1496 refusal=None
+law=11 prepared=true elapsed_us=1005 refusal=None
+law=12 prepared=false elapsed_us=567 refusal=Some(UnsupportedType("structured expression runtime"))
+law=13 prepared=false elapsed_us=546 refusal=Some(UnsupportedType("structured expression runtime"))
+law=14 prepared=true elapsed_us=1001 refusal=None
+law=15 prepared=true elapsed_us=1483 refusal=None
+law=16 prepared=true elapsed_us=1004 refusal=None
+law=17 prepared=false elapsed_us=570 refusal=Some(UnsupportedType("structured expression runtime"))
+law=18 prepared=false elapsed_us=527 refusal=Some(UnsupportedType("structured expression runtime"))
+law=19 prepared=true elapsed_us=1010 refusal=None
+law=20 prepared=false elapsed_us=662 refusal=Some(UnsupportedType("structured expression runtime"))
+law=21 prepared=false elapsed_us=646 refusal=Some(UnsupportedType("structured expression runtime"))
+law=22 prepared=false elapsed_us=649 refusal=Some(UnsupportedType("structured expression runtime"))
+law=23 prepared=false elapsed_us=653 refusal=Some(UnsupportedType("structured expression runtime"))
+law=24 prepared=true elapsed_us=742 refusal=None
+law=25 prepared=true elapsed_us=715 refusal=None
+law=26 prepared=true elapsed_us=718 refusal=None
+law=27 prepared=true elapsed_us=716 refusal=None
+law=28 prepared=false elapsed_us=358 refusal=Some(UnsupportedType("structured expression runtime"))
+law=29 prepared=false elapsed_us=345 refusal=Some(UnsupportedType("structured expression runtime"))
+complete_bank=false refusal=Some(InvalidLaw { index: 2, refusal: UnsupportedType("structured expression runtime") })
+test rust_binding::prepared_invariants_tests::actual_language_complete_native_bank_readiness ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 315 filtered out; finished in 516.51s
+
