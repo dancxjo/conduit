@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import { beginHandbookJourney } from "./handbook-journey.mjs";
 import { expect, test } from "@playwright/test";
 import { openStaticProfile, stageStaticApplications } from "./static-body-application-support.mjs";
@@ -390,7 +391,7 @@ test("malformed packaged Handbook Plot leaves an editable recovery route into a 
   }
 });
 
-test("a retained syntax refusal exposes original source without rewriting continuity", async ({}, testInfo) => {
+test("refused Handbook recovery preserves original state until explicit replacement consent", async ({}, testInfo) => {
   testInfo.setTimeout(120_000);
   const site = await stageStaticApplications();
   const session = await openStaticProfile(testInfo.outputPath("broken-retained-profile"), new URL(site.url).origin);
@@ -443,6 +444,28 @@ test("a retained syntax refusal exposes original source without rewriting contin
     expect(await continuity()).toEqual(retained.record);
     expect(await page.evaluate(() => Boolean(globalThis.__conduitApplication))).toBe(false);
     expect(original.bodyId).toBeTruthy();
+    const downloadEvent = page.waitForEvent("download");
+    await page.getByRole("button", { name: "Download original retained Body record", exact: true }).click();
+    const download = await downloadEvent;
+    expect(download.suggestedFilename()).toBe("conduit-handbook-retained-body.json");
+    expect(await readFile(await download.path(), "utf8")).toBe(JSON.stringify(retained.record, null, 2));
+    expect(await continuity()).toEqual(retained.record);
+    const consent = page.getByRole("checkbox", { name: "I have saved what I need", exact: false });
+    const replacement = page.getByRole("button", { name: "Start a new Handbook Body", exact: true });
+    await expect(consent).not.toBeChecked();
+    await expect(replacement).toBeDisabled();
+    await consent.check();
+    await expect(replacement).toBeEnabled();
+    await consent.uncheck();
+    await expect(replacement).toBeDisabled();
+    expect(await continuity()).toEqual(retained.record);
+    await consent.check();
+    await replacement.click();
+    const fresh = await ready(page);
+    expect(fresh.bodyId).not.toBe(original.bodyId);
+    expect(fresh.hostId).toBe(original.hostId);
+    const freshRecord = await continuity();
+    expect(freshRecord.source).not.toContain('source = \\"1kHz\\"');
     session.assertClean();
   } finally {
     await session.context.close();

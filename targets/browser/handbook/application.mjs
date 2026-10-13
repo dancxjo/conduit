@@ -438,7 +438,29 @@ export async function startApplication(application) {
       explanation.textContent = 'The original retained Body has not been reset or rewritten. '
         + 'The download preserves its continuity record, but may omit separately archived history. '
         + 'Recovering or migrating this Body requires explicit, checked compatibility.';
-      checkStatus.after(explanation, backup);
+      const consentLabel = document.createElement('label');
+      const consent = document.createElement('input');
+      consent.type = 'checkbox';
+      consentLabel.append(consent, ' I have saved what I need and understand that a new Body replaces this application’s retained state and separately archived history.');
+      const replacement = document.createElement('button');
+      replacement.type = 'button';
+      replacement.textContent = 'Start a new Handbook Body';
+      replacement.disabled = true;
+      consent.disabled = !host;
+      consent.addEventListener('change', () => {
+        replacement.disabled = !host || !consent.checked || busy;
+      });
+      replacement.addEventListener('click', async () => {
+        if (!host || !consent.checked || busy) return;
+        busy = true; replacement.disabled = true;
+        try { await host.forget(); location.reload(); }
+        catch (refusal) {
+          status.textContent = (refusal.code ?? 'ReplacementRefused') + ': ' + refusal.message;
+          busy = false; replacement.disabled = !consent.checked;
+        }
+      });
+      explanation.textContent += ' Starting a new Body removes this application’s retained state and archived history; it keeps the browser Host identity. Download the original record and save any edits you need before continuing.';
+      checkStatus.after(explanation, backup, consentLabel, replacement);
     }
   }
 }
