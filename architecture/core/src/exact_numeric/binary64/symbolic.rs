@@ -1,7 +1,9 @@
 //! Correctly rounded finite projection of an independently certified enclosure.
 //! Agreement of rounded endpoints proves rounding of every enclosed value.
+mod projection;
 use super::{error_claim, Binary64Refusal, Binary64Rounding};
 use crate::{ExactNumericWork, ExactRational, IeeeF64, PreparedMathematicalEnclosure};
+pub use projection::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SymbolicBinary64Refusal {
