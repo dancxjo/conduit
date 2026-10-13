@@ -1,7 +1,7 @@
 use conduit_core::{Quantity, Unit};
 use conduit_plot::{
-    CanonicalStartupValue, StartupCatalog, check_syntax_document,
-    checked_physical_catalog_for_document, parse_syntax_document,
+    check_syntax_document, checked_physical_catalog_for_document, parse_syntax_document,
+    CanonicalStartupValue, StartupCatalog,
 };
 
 const SOURCE: &str = include_str!("../../../plots/units/international-turns.conduit");
