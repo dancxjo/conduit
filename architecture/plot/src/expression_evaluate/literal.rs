@@ -41,6 +41,8 @@ pub(super) fn literal_value(
             .ok_or(PortableExpressionEvaluationRefusal::InvalidLiteral)?
             .encode()
             .to_vec(),
+        Some(PrimitiveInfoKind::MathematicalValue) => crate::mathematical_value::encode(literal)
+            .map_err(|_| PortableExpressionEvaluationRefusal::InvalidLiteral)?,
         Some(PrimitiveInfoKind::Unit) => conduit_core::Unit::resolve(literal)
             .map_err(|_| PortableExpressionEvaluationRefusal::InvalidLiteral)?
             .encode()

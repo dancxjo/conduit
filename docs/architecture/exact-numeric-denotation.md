@@ -261,3 +261,40 @@ introduce authored square-root syntax, a symbolic expression codec, physical
 Quantity root algebra, or an offered Planner/Plan/Play realization. Those
 #5392 integration gates remain open. The fixed-width arithmetic hot path is
 unchanged; bisection runs only at an explicitly requested preparation boundary.
+
+## Bounded mathematical values and symbolic transport in development
+
+`MathematicalValue` is a distinct typed magnitude carrier. A rational-only value
+uses a compact canonical literal encoding; symbolic values use a versioned DAG
+with at most 32 nodes and depth 16. The supported nodes are exact rationals,
+pinned mathematical π, exact τ = 2π, negation, addition, subtraction, multiplication,
+division by a proved nonzero rational, and the principal square root of a
+proved nonnegative rational. Unsupported root or divisor domain proofs refuse.
+This finite subset does not infer physical dimensions, families or roles: an
+Angle remains a separate Quantity contract.
+
+Preparation interns shared subexpressions, folds rational arithmetic exactly,
+removes unreachable staging nodes and emits deterministic child-first traversal.
+Structural identity commits to that normalized DAG; it is separate from a
+mathematical comparison. Identical structures prove equal, rational comparison
+proves equality or difference, and other symbolic comparisons return unknown.
+Ordinary `==`/`!=` on an unproved comparison refuse explicitly in both the
+allocating conformance evaluator and the prepared runtime evaluator.
+
+The primitive codec validates without allocation under a finite work profile.
+It rejects forward edges/cycles, bad lengths, duplicate/unreachable nodes,
+noncanonical traversal, unfolded rational operations, invalid domains and
+malformed rational literals. A borrowed view retains encoded storage rather
+than reconstructing the graph. Prepared transport through authored record
+fields and runtime connections preserves π and `sqrt(2)` with no per-operation
+allocation. Native generated bindings retain the same checked Type and codec.
+Closed `MathematicalValue` literals admit exact decimals, `π`/`pi` and `τ`/`tau`.
+Tau normalizes to the canonical product `2 × π`, so the checked relation is
+proved structurally rather than by rounded constants. This does
+not introduce a general symbolic source grammar or IEEE coercion.
+
+These proofs establish typed symbolic custody and bounded equality behavior.
+General arithmetic/trig source lowering, symbolic Quantity coordinates,
+certified π/compound-expression projection and ordinary numerical Back selection
+still require their own integration. Existing fixed-width arithmetic keeps its
+current carrier and prepared execution path.

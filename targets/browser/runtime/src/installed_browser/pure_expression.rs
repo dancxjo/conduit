@@ -265,6 +265,7 @@ fn failure(refusal: conduit_plot::PortableExpressionEvaluationRefusal) -> Failur
         conduit_plot::PortableExpressionEvaluationRefusal::Arithmetic => 4,
         conduit_plot::PortableExpressionEvaluationRefusal::UnsupportedSemanticCall(_) => 5,
         conduit_plot::PortableExpressionEvaluationRefusal::UnsupportedType(_) => 6,
+        conduit_plot::PortableExpressionEvaluationRefusal::UnprovedMathematicalComparison => 7,
     };
     Failure {
         code: FailureCode::InvalidInput,
