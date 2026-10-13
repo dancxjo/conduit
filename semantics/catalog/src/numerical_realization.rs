@@ -2,6 +2,7 @@
 use alloc::{format, string::String, vec, vec::Vec};
 use conduit_core::*;
 use conduit_plot::{ProfileCatalog, StartupCatalog};
+pub const NUMERICAL_PRESENTATION_KIND: &str = "presentation/numerical-result";
 pub const NUMERICAL_REALIZE_KIND: &str = "math/realize";
 pub const NUMERICAL_REALIZE_REVISION: &str = "conduit.numeric/realize@1";
 pub const NUMERICAL_REQUEST_MAX_BYTES: u32 = 8192;
@@ -138,6 +139,15 @@ pub fn numerical_realize_semantic_contract() -> Kind {
         },
     }
 }
+pub fn numerical_presentation_semantic_contract() -> Kind {
+    let mut kind = crate::structured_presentation_semantic_contract(
+        "NumericalResult",
+        &numerical_result_type(),
+    );
+    kind.kind_id = kind_id(NUMERICAL_PRESENTATION_KIND);
+    kind.kind_contract_revision = "numeric-result/presentation@1".into();
+    kind
+}
 pub fn install_numerical_catalogs(
     startup: &mut StartupCatalog,
     profile: &mut ProfileCatalog,
@@ -147,6 +157,19 @@ pub fn install_numerical_catalogs(
             .insert_structured_type(&ty.name, ty.value_type)
             .map_err(|why| format!("numeric Type: {why:?}"))?;
     }
+    let presenter = numerical_presentation_semantic_contract();
+    startup
+        .insert(conduit_plot::KindSignature {
+            kind: NUMERICAL_PRESENTATION_KIND.into(),
+            startup_parameters: vec![],
+        })
+        .map_err(|why| format!("numeric presentation: {why:?}"))?;
+    startup
+        .insert_fore(NUMERICAL_PRESENTATION_KIND, presenter.checked_front())
+        .map_err(|why| format!("numeric presentation Fore: {why:?}"))?;
+    profile
+        .insert_kind(presenter)
+        .map_err(|why| format!("numeric presentation Kind: {why:?}"))?;
     let kind = numerical_realize_semantic_contract();
     startup
         .insert(conduit_plot::KindSignature {
@@ -174,6 +197,14 @@ pub fn numerical_result_value(
     };
     let (lower, upper, tag) = match prepared.target() {
         NumericalTarget::ExactRational(q) => (**q, **q, "exact_rational"),
+        NumericalTarget::Binary64(algorithm) => {
+            let q = ExactRational::from_binary64(
+                algorithm.target(),
+                &mut ExactNumericWork::new(100_000_000),
+            )
+            .map_err(|why| format!("binary64 receipt denotation: {why:?}"))?;
+            (q, q, "binary64")
+        }
         NumericalTarget::OutwardI64(interval) => (
             ExactRational::from_i128(
                 interval
@@ -210,18 +241,103 @@ pub fn numerical_result_value(
         .iter()
         .find(|field| field.name() == "representation")
         .unwrap();
-    let empty = StructuredInfoValue::leaf(
-        StructuredInfoType::leaf(kind_id(EMPTY_INFO_ID)).unwrap(),
-        vec![],
-    )
-    .unwrap();
+    let payload = if let NumericalTarget::Binary64(algorithm) = prepared.target() {
+        binary64_receipt_payload(field.value_type(), algorithm)?
+    } else {
+        StructuredInfoValue::leaf(
+            StructuredInfoType::leaf(kind_id(EMPTY_INFO_ID)).unwrap(),
+            vec![],
+        )
+        .unwrap()
+    };
     values.push(
         StructuredFieldValue::new(
             "representation",
-            StructuredInfoValue::variant(field.value_type().clone(), tag, empty)
+            StructuredInfoValue::variant(field.value_type().clone(), tag, payload)
                 .map_err(|why| format!("numeric representation: {why:?}"))?,
         )
         .map_err(|why| format!("numeric result: {why:?}"))?,
     );
     StructuredInfoValue::record(ty, values).map_err(|why| format!("numeric result: {why:?}"))
+}
+fn binary64_receipt_payload(
+    ty: &StructuredInfoType,
+    algorithm: &PreparedBinary64Algorithm,
+) -> Result<StructuredInfoValue, String> {
+    let StructuredInfoTypeShape::Variant { cases, .. } = ty.shape() else {
+        return Err("numeric representation Type".into());
+    };
+    let ty = cases
+        .iter()
+        .find(|case| case.tag() == "binary64")
+        .ok_or("binary64 representation case")?
+        .payload_type()
+        .clone();
+    let StructuredInfoTypeShape::Record { fields, .. } = ty.shape() else {
+        return Err("binary64 representation payload".into());
+    };
+    let leaf = |name: &str, bytes: Vec<u8>| -> Result<StructuredFieldValue, String> {
+        let field = fields
+            .iter()
+            .find(|field| field.name() == name)
+            .ok_or("binary64 receipt field")?;
+        let value = StructuredInfoValue::leaf(field.value_type().clone(), bytes)
+            .map_err(|why| format!("binary64 receipt leaf: {why:?}"))?;
+        StructuredFieldValue::new(name, value)
+            .map_err(|why| format!("binary64 receipt field: {why:?}"))
+    };
+    let tag = |name: &str, tag: &str| -> Result<StructuredFieldValue, String> {
+        let field = fields
+            .iter()
+            .find(|field| field.name() == name)
+            .ok_or("binary64 receipt tag")?;
+        let empty = StructuredInfoValue::leaf(
+            StructuredInfoType::leaf(kind_id(EMPTY_INFO_ID)).unwrap(),
+            vec![],
+        )
+        .unwrap();
+        let value = StructuredInfoValue::variant(field.value_type().clone(), tag, empty)
+            .map_err(|why| format!("binary64 receipt tag: {why:?}"))?;
+        StructuredFieldValue::new(name, value)
+            .map_err(|why| format!("binary64 receipt field: {why:?}"))
+    };
+    let values = vec![
+        leaf("target", algorithm.target().encode().to_vec())?,
+        tag(
+            "rounding",
+            match algorithm.rounding() {
+                Binary64Rounding::NearestTiesEven => "nearest_ties_even",
+                Binary64Rounding::TowardZero => "toward_zero",
+                Binary64Rounding::TowardPositive => "toward_positive",
+                Binary64Rounding::TowardNegative => "toward_negative",
+            },
+        )?,
+        leaf(
+            "any-inexact",
+            vec![u8::from(
+                algorithm
+                    .steps()
+                    .iter()
+                    .any(|s| s.projection().status().inexact),
+            )],
+        )?,
+        leaf(
+            "any-tiny-inexact",
+            vec![u8::from(
+                algorithm
+                    .steps()
+                    .iter()
+                    .any(|s| s.projection().status().tiny_inexact),
+            )],
+        )?,
+        leaf("step-count", vec![algorithm.steps().len() as u8])?,
+        tag(
+            "error-claim",
+            match algorithm.error() {
+                Binary64ErrorClaim::ExactDistance(_) => "exact_distance",
+                Binary64ErrorClaim::CertifiedBound(_) => "certified_bound",
+            },
+        )?,
+    ];
+    StructuredInfoValue::record(ty, values).map_err(|why| format!("binary64 receipt: {why:?}"))
 }

@@ -8,7 +8,7 @@ const plan = paths => admissionPlan(paths, metadata, '/repo');
 
 test('test corrections run their owning package without unrelated emulator proof', () => {
   const result = plan(['products/conduit/tests/installed_screen_free_birth.rs']);
-  assert.deepEqual(result, { packages: ['conduit'], native: false, smoke: false });
+  assert.deepEqual(result, { packages: ['conduit'], broad: false, native: false, smoke: false });
   const commands = [];
   runAdmission(['products/conduit/tests/installed_screen_free_birth.rs'], metadata, '/repo', (...args) => commands.push(args));
   assert.equal(commands.length, 2);
@@ -49,4 +49,80 @@ test('numerical changes exercise the actual Plan/Play Back behind its feature ga
   const commands = [];
   runAdmission(['architecture/core/src/exact_numeric/realization.rs'], model, '/repo', (...args) => commands.push(args));
   assert.ok(commands.some(([program, args]) => program === 'cargo' && args.includes('kernel-step') && args.includes('numerical_realization')));
+});
+
+ test('plot inventories select their consumers without unrelated workspace tests', () => {
+  assert.deepEqual(plan(['plots/inventory.toml', 'plots/numerics/main.conduit', 'plots/numerics/README.md']).packages, ['conduit']);
+ });
+ test('lock updates with owned manifests select consumers; standalone locks remain broad', () => {
+  assert.deepEqual(plan(['Cargo.lock', 'products/conduit/Cargo.toml']).packages, ['conduit']);
+  assert.deepEqual(plan(['Cargo.lock']).packages, [...names].sort());
+ });
+
+test('Std changes use a hosted smoke without unrelated browser compilation', () => {
+  const commands = [];
+  runAdmission(['targets/std/src/lib.rs'], metadata, '/repo', (...args) => commands.push(args));
+  assert.ok(commands.some(([, args]) => args.join(' ') === 'xtask prove journey std'));
+  assert.ok(!commands.some(([, args]) => args.includes('integrate') || args.includes('wasm32-unknown-unknown')));
+});
+test('architecture smoke retains multi-placement and recovery; browser changes build WASM', () => {
+  for (const [path, expected] of [['architecture/kernel/src/lib.rs', 'r1-new-plan-recovery'], ['targets/browser/src/lib.rs', 'wasm32-unknown-unknown']]) {
+    const commands = [];
+    runAdmission([path], metadata, '/repo', (...args) => commands.push(args));
+    assert.ok(commands.some(([, args]) => args.includes(expected)));
+  }
+});
+test('numerical catalogue changes select numerical tests; other catalogue edits retain full tests', () => {
+  const model = {workspace_members: [...names, 'catalog'], packages: [...metadata.packages, {id: 'catalog', name:'conduit-semantic-catalog', manifest_path:'/repo/semantics/catalog/Cargo.toml'}]};
+  for (const [path, targeted] of [['semantics/catalog/src/numerical_realization_back.rs', true], ['semantics/catalog/src/lib.rs', false]]) {
+    const commands = [];
+    runAdmission([path], model, '/repo', (...args) => commands.push(args));
+    const tests = commands.filter(([, args]) => args[0] === 'test' && args.includes('conduit-semantic-catalog'));
+    assert.equal(tests.some(([, args]) => args.includes('--lib')), targeted);
+    assert.equal(tests.some(([, args]) => args.includes('--no-fail-fast') && !args.includes('--lib')), !targeted);
+    if (targeted) assert.ok(tests.some(([, args]) => args.some(arg => arg.endsWith('kernel-step'))));
+  }
+});
+
+test('numerical consumer admission retains full library and actual CLI tests, with broad fallback', () => {
+  const model = {workspace_members:['host'],packages:[{id:'host',name:'conduit-std-host',manifest_path:'/repo/targets/std/Cargo.toml'}]};
+  for (const [extra, narrow] of [ [[],true], [['targets/std/src/hosted_local_model/ollama.rs'],false], [['targets/std/tests/lifecycle.rs'],false] ]) {
+    const commands = [];
+    runAdmission(['targets/std/src/numerical_host.rs','targets/std/src/lib.rs',...extra], model, '/repo', (...args) => commands.push(args));
+    assert.equal(commands.some(([,args]) => args.includes('--lib') && args.includes('conduit-std-host')), narrow);
+    assert.equal(commands.some(([,args]) => args.includes('--test') && args.includes('numerical_offers')), narrow);
+    assert.equal(commands.some(([,args]) => args.includes('--no-fail-fast') && !args.includes('--lib')), !narrow);
+  }
+  const commands = [];
+  runAdmission(['products/conduit/src/product_execution/numerical.rs','products/conduit/src/main.rs'], metadata, '/repo', (...args) => commands.push(args));
+  assert.ok(commands.some(([,args]) => args.includes('--lib') && args.includes('conduit')));
+  assert.ok(commands.some(([,args]) => args.includes('--test') && args.includes('numerical_realization')));
+});
+
+test('unknown or global changes disable narrowed numerical consumer admission', () => {
+  const model = {workspace_members:[...names,'catalog'],packages:[...metadata.packages,{id:'catalog',name:'conduit-semantic-catalog',manifest_path:'/repo/semantics/catalog/Cargo.toml'}]};
+  const commands = [];
+  runAdmission(['Cargo.toml','products/conduit/src/product_execution/numerical.rs','semantics/catalog/src/numerical_realization.rs'], model, '/repo', (...args)=>commands.push(args));
+  assert.ok(commands.some(([,args])=>args.includes('--no-fail-fast') && args.includes('conduit') && args.includes('conduit-semantic-catalog')));
+  assert.ok(!commands.some(([,args])=>args.includes('--lib')));
+});
+
+test('numerical consumers share one compiler context and actual CLI smoke', () => {
+  const model = {workspace_members:[...names,'std','catalog','core'],packages:[...metadata.packages,
+    {id:'core',name:'conduit-core',manifest_path:'/repo/architecture/core/Cargo.toml'},
+    {id:'std',name:'conduit-std-host',manifest_path:'/repo/targets/std/Cargo.toml'},
+    {id:'catalog',name:'conduit-semantic-catalog',manifest_path:'/repo/semantics/catalog/Cargo.toml'}]};
+  const paths=['products/conduit/src/product_execution/numerical.rs','targets/std/src/numerical_host.rs','semantics/catalog/src/numerical_realization.rs','architecture/core/src/exact_numeric/realization.rs'];
+  for (const [extra, generic] of [[[],false],[['architecture/kernel/src/lib.rs'],true],[['targets/std/src/hosted_local_model/ollama.rs'],true]]) {
+    const commands=[];
+    runAdmission([...paths,...extra], model, '/repo', (...args)=>commands.push(args));
+    const library=commands.filter(([,args])=>args.includes('--lib'));
+    assert.equal(library.length,1);
+    const args=library[0][1];
+    assert.ok(args.includes('conduit') && args.includes('conduit-semantic-catalog'));
+    assert.ok(args.includes('conduit-semantic-catalog/kernel-step'));
+    assert.ok(args.includes('numerical_realization'));
+    assert.equal(commands.some(([,args])=>args.join(' ')==='xtask prove journey std'),generic);
+    assert.ok(commands.some(([,args])=>args.includes('alloc') && args.includes('conduit-kernel')));
+  }
 });

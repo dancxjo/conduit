@@ -17,7 +17,7 @@ jobs:
       sha: ${{ github.sha }}
       base: ${{ github.event.pull_request.base.sha }}
   candidate:
-    if: ${{ always() }}
+    if: ${{ always() && !cancelled() }}
     needs: proof
     runs-on: ubuntu-24.04
     steps:

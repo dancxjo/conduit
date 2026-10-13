@@ -332,6 +332,7 @@ installed_step_dispatch!(
     StructuredSelector,
     PureFilter,
     PureExpression,
+    Numerical,
     StructuredLiteral,
     StructuredPresentation,
     #[cfg(test)]

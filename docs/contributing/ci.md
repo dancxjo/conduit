@@ -16,12 +16,27 @@ failure. GitHub still prevents merging a draft until it is marked ready.
 
 PR admission runs workspace Clippy with warnings denied and the owning workspace
 packages' unit, integration and doc tests, with one test thread. Both sides of
-renames are scanned. Unknown paths, removed packages, shared files and empty
+renames are scanned against the actual dev parent of the tested merge preview;
+GitHub's PR metadata can retain an older base SHA after dev advances. Unknown paths, removed packages, shared files and empty
 diffs select all workspace packages. CI scripts and workflow changes run tooling
 package tests and the preflight pipeline tests. Recognized prose needs only preflight.
-Changes to architecture or hosted/browser implementations also run the ordinary
-`cargo xtask integrate` smoke loop. Reproduce with
-`cargo xtask ci pipeline admission BASE_SHA`.
+Authored plots and their inventory select the product and catalog tooling consumers.
+Numerical-only catalog edits run the full catalog library tests and numerical
+Plan/Play integration tests. Numerical registration edits run the full product/Std
+library tests and their numerical integration tests, including actual CLI execution.
+Any other consumer source/test edit restores its complete package suite; global or
+unknown changes disable narrowing entirely.
+Numerical libraries and integration targets share one feature-unified compiler
+context. Their actual numerical CLI tests provide the relevant Std smoke; they
+do not repeat a generic Hello journey. Other architecture and hosted/browser
+changes run the Std journey; architecture changes
+also run multi-placement and new-Plan recovery. Browser source changes build WASM.
+The broader `cargo xtask integrate` loop remains available locally and is not
+required for unrelated PR changes. Admission optimizes test execution while
+retaining debug assertions and overflow checks. Reproduce with
+`cargo xtask ci pipeline admission BASE_SHA`. Cancelled workflows skip their final
+gate jobs so obsolete runs cannot block replacement checks; ordinary failures still
+fail the required gate.
 
 Changes to admission, authority, kernel execution, planning, numerical data,
 USB, cancellation, certificates or isolation additionally select core, kernel,

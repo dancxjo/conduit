@@ -338,6 +338,14 @@ recognized, every admitted document page is bounded and fully visible, and
 supplied controls retain their action contracts. This is native layout proof,
 not scanout or installed-owner effect evidence.
 
+The native Patchbay diagram reports drawn Cords against the complete Face Cord
+count, including the exact omitted count. The drawing cap remains twelve paths;
+off-page, missing, ambiguous, and same-Gear endpoints do not produce invented
+paths. F2 retains the complete semantic facts and endpoint identities even when
+the diagram cannot draw them. The overflow regression compares the displayed
+count with actual path commands and keeps the authoritative Face unchanged.
+This is a bounded native scene mechanism, not QEMU or physical display proof.
+
 The checked browser Patchbay regression also compares every relationship
 source, target, and kind and executes each available supplied action through
 the checked interaction Fore with exact Face/Show correlation. Every stale,

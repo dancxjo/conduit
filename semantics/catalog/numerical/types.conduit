@@ -4,9 +4,28 @@ type NumericalRequest = {
     maximum-error: MathematicalValue
 }
 
+# The selected operation order uses these explicit rounding directions.
+type NumericalRounding =
+    nearest_ties_even
+    | toward_zero
+    | toward_positive
+    | toward_negative
+
+type NumericalErrorClaim =
+    exact_distance
+    | certified_bound
+
 type NumericalRepresentation =
     exact_rational
     | outward_i64
+    | binary64 {
+        target: F64 finite
+        rounding: NumericalRounding
+        any-inexact: Boolean
+        any-tiny-inexact: Boolean
+        step-count: U8
+        error-claim: NumericalErrorClaim
+    }
 
 type NumericalResult = {
     source: MathematicalValue

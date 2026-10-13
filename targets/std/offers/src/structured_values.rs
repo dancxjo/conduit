@@ -43,6 +43,15 @@ pub fn structured_presentation_std_offer(
     )
 }
 
+/// Inspect one typed numerical receipt through the shared presentation boundary.
+pub fn numerical_presentation_std_offer() -> CapabilityOffer {
+    offer(
+        conduit_semantic_catalog::numerical_presentation_semantic_contract(),
+        false,
+        Some(CapabilityId::from("std-numerical-result-presentation")),
+    )
+}
+
 /// Emit a canonical Scalar through the existing bounded literal executor.
 pub fn scalar_literal_std_offer() -> CapabilityOffer {
     offer(

@@ -27,6 +27,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     outputs:
+      base: ${{ steps.base.outputs.sha }}
       matrix: ${{ steps.scan.outputs.matrix }}
       unit-matrix: ${{ steps.scan.outputs.unit-matrix }}
       conduitos-proof: ${{ steps.scan.outputs.conduitos-proof }}
@@ -44,12 +45,28 @@ jobs:
       - uses: actions/setup-node@v7.0.0
         with:
           node-version: 22
+      - name: Resolve proof base
+        id: base
+        env:
+          BASE: ${{ inputs.base }}
+          SHA: ${{ inputs.sha }}
+          EXHAUSTIVE: ${{ inputs.exhaustive }}
+        run: |
+          proof_base="$BASE"
+          if test "$EXHAUSTIVE" != true; then
+            # PR metadata can retain an older base SHA after dev advances.
+            # The tested merge preview's first parent is its actual dev base.
+            test "$(git show -s --format=%P "$SHA" | wc -w)" -eq 2
+            proof_base=$(git rev-parse "$SHA^1")
+            git merge-base --is-ancestor "$BASE" "$proof_base"
+          fi
+          printf 'sha=%s\n' "$proof_base" >> "$GITHUB_OUTPUT"
       - name: Install CI validation tools
         run: cargo xtask ci pipeline setup-ci
       - name: Scan changed targets
         id: scan
         env:
-          BASE: ${{ inputs.base }}
+          BASE: ${{ steps.base.outputs.sha }}
           SHA: ${{ inputs.sha }}
           EXHAUSTIVE: ${{ inputs.exhaustive }}
         run: |
@@ -60,7 +77,7 @@ jobs:
           fi
       - name: Check patch, formatting, repository and CI invariants
         env:
-          BASE: ${{ inputs.base }}
+          BASE: ${{ steps.base.outputs.sha }}
           SHA: ${{ inputs.sha }}
         run: cargo xtask ci pipeline preflight "${BASE/all/$SHA}"
       - name: Retain acquisition measurements
@@ -116,7 +133,12 @@ jobs:
     needs: preflight
     if: ${{ !inputs.exhaustive && needs.preflight.outputs.docs-only != 'true' }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    # Admission can own the same cold ConduitOS tests as the 120-minute unit shard.
+    timeout-minutes: 120
+    env:
+      # Exact arithmetic reference matrices are prohibitively slow unoptimized.
+      # Preserve debug assertions and overflow checks while optimizing execution.
+      CARGO_PROFILE_TEST_OPT_LEVEL: 1
     steps:
       - uses: actions/checkout@v7.0.1
         with:
@@ -137,7 +159,7 @@ jobs:
       - run: cargo xtask ci pipeline setup-unit
       - name: Lint, affected tests and relevant integration smoke
         env:
-          BASE: ${{ inputs.base }}
+          BASE: ${{ needs.preflight.outputs.base }}
         run: cargo xtask ci pipeline admission "$BASE"
   target:
     needs: preflight
@@ -230,7 +252,7 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
   complete:
-    if: ${{ always() }}
+    if: ${{ always() && !cancelled() }}
     needs: [preflight, unit, admission, target]
     runs-on: ubuntu-24.04
     steps:

@@ -1,8 +1,10 @@
 //! Prepared, source-specific numerical offers for ordinary realization admission.
 //! A sealed certificate is an implementation fact, not a host precision label.
 use super::{
+    Binary64AlgorithmLimits, Binary64AlgorithmRefusal, Binary64Operation, Binary64Rounding,
     ExactNumericRefusal, ExactNumericWork, ExactRational, IntegerEnclosure,
-    IntegerEnclosureRefusal, MathematicalValue, PreparedIntegerEnclosure,
+    IntegerEnclosureRefusal, MathematicalValue, PreparedBinary64Algorithm,
+    PreparedIntegerEnclosure,
 };
 use crate::{
     PrimitiveInfoKind, StructuredConfigurationValue, StructuredInfoTypeShape, StructuredInfoValue,
@@ -17,22 +19,31 @@ pub use codec::numerical_realization_profile;
 pub enum NumericalAlgorithm {
     ExactRational,
     OutwardI64,
+    Binary64 { rounding: Binary64Rounding },
 }
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum NumericalTarget {
     ExactRational(Box<ExactRational>),
     OutwardI64(IntegerEnclosure),
+    Binary64(Box<PreparedBinary64Algorithm>),
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NumericalRealizationRefusal {
     Numeric(ExactNumericRefusal),
     Integer(IntegerEnclosureRefusal),
+    Binary64(Binary64AlgorithmRefusal),
+    CertificateExtentExceeded,
     InvalidRequest,
     UnsupportedDenotation,
     NegativeTolerance,
     SourceMismatch,
     ToleranceExceeded,
     InvalidCertificate,
+}
+impl From<Binary64AlgorithmRefusal> for NumericalRealizationRefusal {
+    fn from(value: Binary64AlgorithmRefusal) -> Self {
+        Self::Binary64(value)
+    }
 }
 impl From<ExactNumericRefusal> for NumericalRealizationRefusal {
     fn from(value: ExactNumericRefusal) -> Self {
@@ -123,6 +134,20 @@ impl PreparedNumericalRealization {
         work: &mut ExactNumericWork,
     ) -> Result<Self, NumericalRealizationRefusal> {
         use NumericalRealizationRefusal as R;
+        if let NumericalAlgorithm::Binary64 { rounding } = algorithm {
+            let value = source.as_rational().ok_or(R::UnsupportedDenotation)?;
+            return Self::prepare_binary64(
+                source,
+                &[Binary64Operation::Constant(Box::new(value))],
+                rounding,
+                maximum_outward_error,
+                Binary64AlgorithmLimits {
+                    maximum_steps: 32,
+                    maximum_retained_bytes: 1_000_000,
+                },
+                work,
+            );
+        }
         if maximum_outward_error.is_negative() {
             return Err(R::NegativeTolerance);
         }
@@ -130,6 +155,9 @@ impl PreparedNumericalRealization {
         let before = work.spent();
         let admitted_limb_work = work.remaining();
         let (target, maximum_error) = match algorithm {
+            NumericalAlgorithm::Binary64 { .. } => {
+                unreachable!("binary64 uses its operation-order preparation")
+            }
             NumericalAlgorithm::ExactRational => (
                 NumericalTarget::ExactRational(Box::new(value)),
                 ExactRational::ZERO,
@@ -163,6 +191,39 @@ impl PreparedNumericalRealization {
             prepared_error_limit: maximum_outward_error,
             spent_limb_work: work.spent() - before,
         })
+    }
+    /// A Back may retain a specific arithmetic program. Its exact denotation
+    /// must match the authored source, independently of its rounded result.
+    pub fn prepare_binary64(
+        source: &MathematicalValue,
+        program: &[Binary64Operation],
+        rounding: Binary64Rounding,
+        maximum_error: ExactRational,
+        limits: Binary64AlgorithmLimits,
+        work: &mut ExactNumericWork,
+    ) -> Result<Self, NumericalRealizationRefusal> {
+        let denotation = source
+            .as_rational()
+            .ok_or(NumericalRealizationRefusal::UnsupportedDenotation)?;
+        let before = work.spent();
+        let admitted_limb_work = work.remaining();
+        let prepared =
+            PreparedBinary64Algorithm::prepare(program, rounding, maximum_error, limits, work)?;
+        if prepared.source() != denotation {
+            return Err(NumericalRealizationRefusal::SourceMismatch);
+        }
+        Ok(Self {
+            source: source.clone(),
+            algorithm: NumericalAlgorithm::Binary64 { rounding },
+            maximum_error: prepared.error().maximum(),
+            prepared_error_limit: maximum_error,
+            target: NumericalTarget::Binary64(Box::new(prepared)),
+            admitted_limb_work,
+            spent_limb_work: work.spent() - before,
+        })
+    }
+    pub const fn prepared_error_limit(&self) -> ExactRational {
+        self.prepared_error_limit
     }
     pub fn admits(
         &self,
@@ -214,6 +275,7 @@ impl PreparedNumericalRealization {
         core::mem::size_of::<Self>()
             + match self.target {
                 NumericalTarget::ExactRational(_) => core::mem::size_of::<ExactRational>(),
+                NumericalTarget::Binary64(ref algorithm) => algorithm.retained_payload_bytes(),
                 _ => 0,
             }
     }
