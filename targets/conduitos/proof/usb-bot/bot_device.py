@@ -6,7 +6,7 @@ import sys
 import usbredir_transport as wire
 
 parser = argparse.ArgumentParser(add_help=False)
-parser.add_argument('--fault-mode', choices=['reset-only', 'reset-stall-in', 'read-reentry', 'read-reentry-stall-clear-in', 'none', 'stall-in', 'disconnect-in', 'stale-tag', 'bad-residue', 'command-failed', 'phase-error', 'short-in', 'hold-in', 'late-after-cancel'], required=True)
+parser.add_argument('--fault-mode', choices=['reset-only', 'reset-stall-in', 'read-reentry', 'read-reentry-stall-clear-in', 'read-reentry-phase-error', 'read-reentry-phase-error-stall-clear-in', 'none', 'stall-in', 'disconnect-in', 'stale-tag', 'bad-residue', 'command-failed', 'phase-error', 'short-in', 'hold-in', 'late-after-cancel'], required=True)
 options, remaining = parser.parse_known_args()
 sys.argv = [sys.argv[0]] + remaining
 wire.CONFIG = bytes.fromhex('09 02 20 00 01 01 05 c0 00 09 04 00 00 02 08 06 50 00 07 05 81 02 00 02 00 07 05 02 02 00 02 00')
@@ -55,7 +55,7 @@ class Device(Base):
                  (request_type, request, index) == expected[self.recovery_step] and
                  ep == 0 and value == 0 and length == 0 and len(body) == wire.CONTROL.size)
         status = wire.SUCCESS if valid else wire.STALL
-        if options.fault_mode in ('reset-stall-in', 'read-reentry-stall-clear-in') and self.recovery_step == 1:
+        if options.fault_mode in ('reset-stall-in', 'read-reentry-stall-clear-in', 'read-reentry-phase-error-stall-clear-in') and self.recovery_step == 1:
             status = wire.STALL
         if valid and status == wire.SUCCESS:
             self.recovery_step += 1
@@ -107,7 +107,7 @@ class Device(Base):
                 self.connected=False
                 print('BOT_DISCONNECT_AFTER_CBW '+str(self.tag),flush=True)
                 return
-            if options.fault_mode=='stall-in' or (options.fault_mode.startswith('read-reentry') and self.commands == 1):
+            if options.fault_mode=='stall-in' or (options.fault_mode.startswith('read-reentry') and 'phase-error' not in options.fault_mode and self.commands == 1):
                 self.stage='terminal'
                 print('BOT_STALL_AFTER_CBW '+str(self.tag),flush=True)
                 return self.bulk_reply(packet_id,ep,0,wire.STALL)
@@ -120,8 +120,11 @@ class Device(Base):
         tag=self.tag-1 if options.fault_mode=='stale-tag' else self.tag
         residue=1 if options.fault_mode=='bad-residue' else 0
         status={'command-failed':1,'phase-error':2}.get(options.fault_mode,0)
+        reentry_phase_error = 'read-reentry-phase-error' in options.fault_mode and self.commands == 1
+        if reentry_phase_error:
+            status, residue = 2, 0xdeadbeef
         data=b'USBS'+struct.pack('<IIB',tag,residue,status)
-        self.stage=None
+        self.stage='terminal' if reentry_phase_error else None
         self.bulk_reply(packet_id,ep,13,data=data)
 
     def dispatch(self, kind, packet_id, body):
