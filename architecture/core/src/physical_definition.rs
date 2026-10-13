@@ -146,7 +146,7 @@ mod tests {
     }
     #[test]
     fn all_generated_source_capsules_are_independently_checked() {
-        assert_eq!(BUILTIN_UNIT_DEFINITIONS.len(), 130);
+        assert_eq!(BUILTIN_UNIT_DEFINITIONS.len(), 134);
         for &(symbol, definition) in BUILTIN_UNIT_DEFINITIONS {
             assert_eq!(definition.symbol(), symbol);
             assert_eq!(
