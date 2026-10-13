@@ -63,10 +63,12 @@ fn project_view(
         mask_play_id: play.active_play_id.as_str().into(),
         route,
         show_id: show.show_id.as_str().into(),
-        show_state: if show.show.lifecycle == ManifestationLifecycle::Available {
-            "available"
-        } else {
-            "prepared"
+        show_state: match show.show.lifecycle {
+            ManifestationLifecycle::Prepared => "prepared",
+            ManifestationLifecycle::Available => "available",
+            ManifestationLifecycle::Replaced => "replaced",
+            ManifestationLifecycle::Closed => "closed",
+            ManifestationLifecycle::Failed => "failed",
         },
         interactions_admitted,
         subjects: face

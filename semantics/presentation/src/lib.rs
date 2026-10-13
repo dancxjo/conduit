@@ -17,6 +17,50 @@ pub mod application_canvas;
 mod generated {
     include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
 
+    pub(crate) fn generated_action_affordance_checked_type(
+    ) -> Result<conduit_plot::CheckedNativeType, conduit_plot::rust_binding::NativeBindingRefusal>
+    {
+        let value_type = GeneratedActionAffordance::semantic_type()?;
+        let conduit_core::StructuredInfoTypeShape::Record { schema, .. } = value_type.shape()
+        else {
+            return Err(
+                conduit_plot::rust_binding::NativeBindingRefusal::InvalidValue(
+                    conduit_core::StructuredInfoRefusal::WrongType,
+                ),
+            );
+        };
+        Ok(conduit_plot::CheckedNativeType {
+            name: "GeneratedActionAffordance".into(),
+            identity: schema.clone(),
+            value_type,
+            value_contracts: GeneratedActionAffordance::value_contracts(),
+            // build.rs fences any future nested owner where law.
+            invariants: alloc::vec::Vec::new(),
+        })
+    }
+
+    pub(crate) fn action_input_binding_checked_type(
+    ) -> Result<conduit_plot::CheckedNativeType, conduit_plot::rust_binding::NativeBindingRefusal>
+    {
+        let value_type = ActionInputBindingProposalInfo::semantic_type()?;
+        let conduit_core::StructuredInfoTypeShape::Record { schema, .. } = value_type.shape()
+        else {
+            return Err(
+                conduit_plot::rust_binding::NativeBindingRefusal::InvalidValue(
+                    conduit_core::StructuredInfoRefusal::WrongType,
+                ),
+            );
+        };
+        Ok(conduit_plot::CheckedNativeType {
+            name: "ActionInputBindingProposalInfo".into(),
+            identity: schema.clone(),
+            value_type,
+            value_contracts: ActionInputBindingProposalInfo::value_contracts(),
+            // build.rs refuses added owner/nested where laws until this import retains them.
+            invariants: alloc::vec::Vec::new(),
+        })
+    }
+
     impl ThemeColor {
         pub const fn from_rgb(red: u8, green: u8, blue: u8) -> Self {
             Self { red, green, blue }
@@ -28,13 +72,13 @@ mod generated {
     }
 }
 pub use generated::{
-    AdmittedNavigationDestination, ApplicationAction, ApplicationComponent,
-    ApplicationComponentForm, ApplicationEventKind, ApplicationEventKindForm, ApplicationNodeState,
-    ApplicationNodeStateForm, ApplicationViewRefusal, ChoiceMultiplicity, ComponentRecipeInfo,
-    ComponentRegionInfo, ComponentSubjectSelector, CompositionItemKind, CompositionItemKindForm,
-    CompositionRole, CompositionRoleForm, EvidenceDisposition, Extent2, FaceContributionRole,
-    FaceContributionRoleForm, FaceUtteranceClauseKind, FaceUtteranceProvenance,
-    FaceUtteranceProvenanceAction, FaceUtteranceProvenanceActionArgument,
+    ActionInputBindingProposalInfo, AdmittedNavigationDestination, ApplicationAction,
+    ApplicationComponent, ApplicationComponentForm, ApplicationEventKind, ApplicationEventKindForm,
+    ApplicationNodeState, ApplicationNodeStateForm, ApplicationViewRefusal, ChoiceMultiplicity,
+    ComponentRecipeInfo, ComponentRegionInfo, ComponentSubjectSelector, CompositionItemKind,
+    CompositionItemKindForm, CompositionRole, CompositionRoleForm, EvidenceDisposition, Extent2,
+    FaceContributionRole, FaceContributionRoleForm, FaceUtteranceClauseKind,
+    FaceUtteranceProvenance, FaceUtteranceProvenanceAction, FaceUtteranceProvenanceActionArgument,
     FaceUtteranceProvenanceComposition, FaceUtteranceProvenanceDisclosure,
     FaceUtteranceProvenanceProperty, FaceUtteranceProvenanceRelationship,
     FaceUtteranceProvenanceSubject, FaceUtteranceProvenanceTemporalFact,
@@ -206,3 +250,30 @@ mod visual_expression_info;
 pub use visual_expression_info::*;
 mod component_recipe;
 pub use component_recipe::*;
+
+mod checked_source_plan;
+pub use checked_source_plan::*;
+
+mod input_binding_producer;
+pub use input_binding_producer::*;
+
+mod input_binding_correlation;
+pub use input_binding_correlation::*;
+
+mod parsec_map_transition;
+pub use parsec_map_transition::*;
+
+mod spoken_template_artifact;
+pub use spoken_template_artifact::*;
+
+mod spoken_template_looks;
+pub use spoken_template_looks::*;
+
+mod parsec_input_policy_producer;
+pub use parsec_input_policy_producer::*;
+mod parsec_instruction_frame;
+pub use parsec_instruction_frame::{
+    InspectedParsecInstructionFrame, PreparedParsecInstructionFrameInspection,
+};
+mod parsec_input_instruction_producer;
+pub use parsec_input_instruction_producer::*;

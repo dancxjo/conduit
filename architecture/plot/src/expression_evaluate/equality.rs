@@ -10,6 +10,9 @@ pub(super) fn equal(
         return Err(PortableExpressionEvaluationRefusal::InvalidProgram);
     }
     if let Ok(kind) = leaf_kind(&left.value_type) {
+        if kind == conduit_core::MATHEMATICAL_VALUE_ID {
+            return crate::mathematical_value::equal(&left.encoded, &right.encoded);
+        }
         if kind == conduit_core::UNIT_INFO_ID {
             let left = conduit_core::Unit::decode(&left.encoded)
                 .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?;
@@ -44,6 +47,9 @@ fn equal_structured(
     match (left.shape(), right.shape()) {
         (StructuredInfoValueShape::Leaf(a), StructuredInfoValueShape::Leaf(b)) => {
             let kind = leaf_kind(left.value_type())?;
+            if kind == conduit_core::MATHEMATICAL_VALUE_ID {
+                return crate::mathematical_value::equal(a, b);
+            }
             if kind == conduit_core::UNIT_INFO_ID {
                 let left = conduit_core::Unit::decode(a)
                     .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?;

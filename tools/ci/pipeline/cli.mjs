@@ -2,6 +2,7 @@ import { appendFileSync, mkdirSync, readdirSync, existsSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { resolve } from 'node:path';
 import { planChanges } from './plan.mjs';
+import { nativeRisk, runAdmission } from './admission.mjs';
 import { sealTarget, verifyBundle } from './receipts.mjs';
 import { TARGETS, setupTarget, runTarget } from './targets.mjs';
 import { setupCi, setupUnit } from './setup.mjs';
@@ -49,11 +50,18 @@ try {
       emitAcquisitionKey(args[0]);
       break;
     case 'scan': {
-      if (args.length !== 2) throw new Error('usage: scan <base-sha|all> <head-sha>');
+      if (args.length < 2 || args.length > 3 || (args[2] && args[2] !== 'candidate')) throw new Error('usage: scan <base-sha|all> <head-sha> [candidate]');
       const [base, head] = args;
       exactSha(head);
       const paths = base === 'all' ? [] : run('git', ['diff', '--name-only', '--no-renames', '-z', `${exactSha(base)}...${head}`], true).split('\0').filter(Boolean);
       const plan = planChanges(paths, { full: base === 'all' });
+      if (args[2] === 'candidate') {
+        plan.families = plan.families.filter(family =>
+          (family === 'conduitos' && nativeRisk(paths))
+          || (family === 'browser' && paths.some(path => /^(?:site|proof\/browser|targets\/browser)\//.test(path)))
+          || paths.some(path => path.startsWith(`targets/${family}/firmware/`)));
+      }
+      output('has-targets', String(plan.families.length > 0));
       output('docs-only', String(plan.docsOnly));
       output('unit-matrix', { shard: plan.unitShards });
       output('conduitos-proof', String(plan.conduitosProof));
@@ -91,6 +99,13 @@ try {
       run(resolve('target/ci-tools/actionlint'), []);
       break;
     }
+    case 'admission': {
+      if (args.length !== 1) throw new Error('usage: admission <base-sha>');
+      const paths = run('git', ['diff', '--name-only', '--no-renames', '-z', `${exactSha(args[0])}...HEAD`], true).split('\0').filter(Boolean);
+      const metadata = JSON.parse(run('cargo', ['metadata', '--locked', '--no-deps', '--format-version', '1'], true));
+      runAdmission(paths, metadata, process.cwd(), run);
+      break;
+    }
     case 'setup':
       if (args.length !== 1) throw new Error('usage: setup <target>');
       target(args[0]);
@@ -121,7 +136,7 @@ try {
       await publish(args[0], resolve(args[1]));
       break;
     }
-    default: throw new Error('usage: cargo xtask ci pipeline <scan|preflight|unit|setup|target|verify|publish>');
+    default: throw new Error('usage: cargo xtask ci pipeline <scan|preflight|admission|unit|setup|target|verify|publish>');
   }
 } catch (error) {
   console.error(`FAILED: pipeline/${command}: ${error.message}`);

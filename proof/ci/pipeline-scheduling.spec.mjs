@@ -13,18 +13,18 @@ function job(source, name) {
 test('independent proof starts after preflight and preserves complete aggregation', () => {
   for (const name of ['unit', 'target']) {
     assert.match(job(ci, name), /needs: preflight\n/);
-    assert.match(job(ci, name), /if: inputs.exhaustive && needs.preflight.outputs.docs-only != 'true'/);
+
     assert.match(job(ci, name), /fail-fast: false/);
   }
   assert.match(job(ci, 'unit'), /matrix: \$\{\{ fromJSON\(needs.preflight.outputs.unit-matrix\) \}\}/);
-  assert.match(job(ci, 'complete'), /needs: \[preflight, unit, target\]/);
+  assert.match(job(ci, 'complete'), /needs: \[preflight, unit, admission, target\]/);
   assert.match(job(ci, 'complete'), /if: \$\{\{ always\(\) \}\}/);
 });
 
-test('draft transitions run quick checks and ready transitions require exact-head proof', () => {
+test('draft and ready transitions require the same exact merge-preview admission', () => {
   assert.match(candidate, /types: \[opened, synchronize, reopened, ready_for_review, converted_to_draft\]/);
-  assert.match(job(candidate, 'proof'), /exhaustive: \$\{\{ !github.event.pull_request.draft \}\}/);
-  assert.match(job(candidate, 'proof'), /sha: \$\{\{ github.event.pull_request.head.sha \}\}/);
+  assert.match(job(candidate, 'proof'), /exhaustive: false/);
+  assert.match(job(candidate, 'proof'), /sha: \$\{\{ github.sha \}\}/);
   assert.match(job(candidate, 'candidate'), /if: \$\{\{ always\(\) \}\}/);
   assert.match(job(candidate, 'candidate'), /needs: proof/);
   assert.match(job(candidate, 'candidate'), /test "\$RESULT" = success/);
@@ -37,7 +37,7 @@ test('draft transitions run quick checks and ready transitions require exact-hea
 
 test('the actual AND gate rejects every failed, cancelled, or missing selected lane', () => {
   const script = job(ci, 'complete').split('        run: |\n')[1].replace(/^          /gm, '');
-  const base = { PREFLIGHT: 'success', EXHAUSTIVE: 'true', DOCS_ONLY: 'false', UNIT: 'success', TARGET: 'success' };
+  const base = { PREFLIGHT: 'success', EXHAUSTIVE: 'true', DOCS_ONLY: 'false', UNIT: 'success', TARGET: 'success', ADMISSION: 'success', HAS_TARGETS: 'true' };
   function passes(overrides) {
     return spawnSync('bash', ['-e', '-c', script], { env: { ...process.env, ...base, ...overrides } }).status === 0;
   }
@@ -45,13 +45,17 @@ test('the actual AND gate rejects every failed, cancelled, or missing selected l
   for (const lane of ['PREFLIGHT', 'UNIT', 'TARGET']) {
     for (const result of ['failure', 'cancelled', 'skipped', '']) assert.equal(passes({ [lane]: result }), false, `${lane}=${result}`);
   }
-  assert.equal(passes({ DOCS_ONLY: 'true', UNIT: 'skipped', TARGET: 'skipped' }), true);
-  assert.equal(passes({ EXHAUSTIVE: 'false', UNIT: 'skipped', TARGET: 'skipped' }), true);
+  assert.equal(passes({ DOCS_ONLY: 'true', UNIT: 'skipped', TARGET: 'skipped', HAS_TARGETS: 'false' }), true);
+  assert.equal(passes({ EXHAUSTIVE: 'false', UNIT: 'skipped', TARGET: 'skipped', HAS_TARGETS: 'false' }), true);
   assert.equal(passes({ EXHAUSTIVE: 'false', PREFLIGHT: 'failure' }), false);
+  for (const result of ['failure', 'cancelled', 'skipped', '']) {
+    assert.equal(passes({ EXHAUSTIVE: 'false', ADMISSION: result }), false);
+    assert.equal(passes({ EXHAUSTIVE: 'false', TARGET: result }), false);
+  }
 });
 
 
-test('required candidate never certifies a draft or unsuccessful proof', () => {
+test('required candidate accepts healthy drafts and rejects unsuccessful proof', () => {
   const script = job(candidate, 'candidate').split('        run: |\n')[1].replace(/^          /gm, '');
   function passes(draft, result) {
     return spawnSync('bash', ['-e', '-c', script], {
@@ -59,7 +63,8 @@ test('required candidate never certifies a draft or unsuccessful proof', () => {
     }).status === 0;
   }
   assert.equal(passes('false', 'success'), true);
-  for (const result of ['success', 'failure', 'cancelled', 'skipped', '']) assert.equal(passes('true', result), false);
+  assert.equal(passes('true', 'success'), true);
+  for (const result of ['failure', 'cancelled', 'skipped', '']) assert.equal(passes('true', result), false);
   for (const result of ['failure', 'cancelled', 'skipped', '']) assert.equal(passes('false', result), false);
-  assert.equal(passes('', 'success'), false);
+
 });

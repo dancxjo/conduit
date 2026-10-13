@@ -1,5 +1,6 @@
 //! Bounded preparation of packaged Source and generic typed protocol Backs.
 //! Packages contain no native resource possession or controller selection.
+pub(crate) mod instances;
 use crate::protocol_operations::ProtocolOperations;
 use alloc::{string::String, vec, vec::Vec};
 use conduit_core::{CapabilityOffer, CheckedValueContract, StructuredInfoType};
@@ -13,7 +14,10 @@ pub const MAXIMUM_PACKAGE_BYTES: usize = 1024 * 1024;
 pub const MAXIMUM_SOURCE_BYTES: usize = 256 * 1024;
 pub const MAXIMUM_SPECIALIZATIONS: usize = 16;
 /// Native containing-machine storage budget per external Fore boundary.
+/// Finite native Root ingress ceiling, independent of output realization.
 pub const MAXIMUM_PROTOCOL_FORE_BYTES: u32 = 4096;
+/// Finite native output ceiling for checked structured transport receipts.
+pub const MAXIMUM_PROTOCOL_OUTPUT_FORE_BYTES: u32 = 32768;
 pub const PACKAGE_SCHEMA: &str = "conduit.conduitos/protocol-source@1";
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -24,33 +28,8 @@ pub struct ProtocolValue {
     pub contract: CheckedValueContract,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(tag = "kind", rename_all = "kebab-case", deny_unknown_fields)]
-pub enum ProtocolSpecialization {
-    Singleton {
-        value: ProtocolValue,
-    },
-    SeededFlow {
-        value: ProtocolValue,
-    },
-    SeededUntil {
-        value: ProtocolValue,
-    },
-    Concat {
-        value: ProtocolValue,
-    },
-    Merge {
-        value: ProtocolValue,
-    },
-    Zip {
-        left: ProtocolValue,
-        right: ProtocolValue,
-    },
-    FeedbackZip {
-        left: ProtocolValue,
-        right: ProtocolValue,
-    },
-}
+mod specialization;
+pub use specialization::ProtocolSpecialization;
 
 /// Exact checked realization selected by inert package metadata.
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -139,6 +118,7 @@ impl PreparedProtocolSource {
         install_clock(&mut startup, &mut profile)?;
         install_literal(&mut startup, &mut profile)?;
         usb_catalog::install(&mut startup, &mut profile)?;
+        storage_catalog::install(&mut startup, &mut profile)?;
         crate::serial_base::contract::SerialDuplexContract::prepare()
             .map_err(Error::Contract)?
             .install_catalogs(&mut startup, &mut profile)
@@ -190,6 +170,18 @@ impl PreparedProtocolSource {
                         .install_until(&value.contract, &value.schema)
                         .map_err(Error::Specialization)
                 }
+                ProtocolSpecialization::SeededUntilInstance { value } => {
+                    instances::install_until(value, &mut startup, &mut profile, &mut operations)
+                }
+                ProtocolSpecialization::FeedbackZipInstance { left, right } => {
+                    instances::install_feedback(
+                        left,
+                        right,
+                        &mut startup,
+                        &mut profile,
+                        &mut operations,
+                    )
+                }
                 ProtocolSpecialization::Concat { value } => {
                     conduit_semantic_catalog::install_flow_concat_finite_kind(
                         &value.contract,
@@ -215,6 +207,9 @@ impl PreparedProtocolSource {
                         .merges
                         .install(&value.contract, &value.schema)
                         .map_err(Error::Catalog)
+                }
+                ProtocolSpecialization::MergeInstance { value } => {
+                    instances::install_merge(value, &mut startup, &mut profile, &mut operations)
                 }
                 ProtocolSpecialization::Zip { left, right } => {
                     conduit_semantic_catalog::install_flow_zip_finite_kind(
@@ -381,6 +376,7 @@ mod schema_encoding {
 #[cfg(test)]
 mod tests;
 
+mod storage_catalog;
 mod usb_catalog;
 mod usb_hid;
 pub use usb_hid::{
@@ -403,6 +399,7 @@ mod issuer;
 pub use issuer::{NativeProtocolIssueRefusal, NativeProtocolIssuer, NativeProtocolPossession};
 
 mod body_play;
+pub(crate) use body_play::storage_preparation::StorageBodyPreparation;
 pub use body_play::{
     PreparedProtocolBodyPlay, ProtocolBodyPreparationRefusal, ProtocolBodyRefusal,
 };
@@ -432,12 +429,14 @@ pub use native_usb_preparation::prepare_native_usb_protocol;
 ))]
 pub(crate) use native_usb_preparation::prepare_native_usb_protocol_with_sign_storage;
 
+#[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
+pub(crate) use native_usb_preparation::NativeEthernetPreparation;
 #[cfg(any(
     target_arch = "x86_64",
     all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
 ))]
 pub(crate) use native_usb_preparation::{
-    prepare_native_usb_duplex_protocol, prepare_native_usb_endpoint_protocol,
+    NativeStoragePreparation, prepare_native_usb_duplex, prepare_native_usb_endpoint_protocol,
 };
 
 // A checked literal is inert Source configuration, not native I/O authority.
@@ -457,6 +456,19 @@ fn install_literal(
         .map_err(ProtocolSourceRefusal::Catalog)?;
     profile
         .insert_kind(conduit_text::text_literal_semantics().into_semantic_contract())
+        .map_err(|error| ProtocolSourceRefusal::Catalog(alloc::format!("{error:?}")))?;
+    startup
+        .insert(conduit_plot::KindSignature {
+            kind: conduit_data::bytes_literal::BYTES_LITERAL_KIND.into(),
+            startup_parameters: vec![conduit_plot::StartupParameterSignature {
+                name: "hex".into(),
+                value_type: "Text".into(),
+                default: None,
+            }],
+        })
+        .map_err(ProtocolSourceRefusal::Catalog)?;
+    profile
+        .insert_kind(conduit_data::bytes_literal::definition())
         .map_err(|error| ProtocolSourceRefusal::Catalog(alloc::format!("{error:?}")))
 }
 

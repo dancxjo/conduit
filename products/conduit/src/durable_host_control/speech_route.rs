@@ -23,10 +23,14 @@ pub(crate) enum SpeechRequest {
     DirectAdmit {
         protocol: u16,
         token: Vec<u8>,
+        #[serde(default)]
+        look: Option<conduit_std_host::direct_spoken_template_mask::DirectSpokenTemplateLook>,
     },
     DirectSelect {
         protocol: u16,
         token: Vec<u8>,
+        #[serde(default)]
+        look: Option<conduit_std_host::direct_spoken_template_mask::DirectSpokenTemplateLook>,
     },
     DirectStart {
         protocol: u16,
@@ -169,8 +173,12 @@ pub(super) fn serve(
         }
         let mut request: SpeechRequest = read_frame(stream)?;
         let (protocol, token) = match &mut request {
-            SpeechRequest::DirectAdmit { protocol, token }
-            | SpeechRequest::DirectSelect { protocol, token }
+            SpeechRequest::DirectAdmit {
+                protocol, token, ..
+            }
+            | SpeechRequest::DirectSelect {
+                protocol, token, ..
+            }
             | SpeechRequest::DirectStart { protocol, token }
             | SpeechRequest::DirectReadRemaining { protocol, token }
             | SpeechRequest::DirectStatus {
@@ -207,17 +215,17 @@ pub(super) fn serve(
             return Err("selected-speech-protocol".into());
         }
         match request {
-            SpeechRequest::DirectAdmit { .. } => {
+            SpeechRequest::DirectAdmit { look, .. } => {
                 runtime
-                    .admit_direct_spoken()
+                    .admit_direct_spoken(look)
                     .map(|report| SpeechReply::DirectRoute {
                         protocol: PROTOCOL,
                         report: Box::new(report),
                     })
             }
-            SpeechRequest::DirectSelect { .. } => {
+            SpeechRequest::DirectSelect { look, .. } => {
                 runtime
-                    .select_direct_spoken()
+                    .select_direct_spoken(look)
                     .map(|report| SpeechReply::DirectRoute {
                         protocol: PROTOCOL,
                         report: Box::new(report),
@@ -364,5 +372,43 @@ mod tests {
             matches!(roundtrip(&secret, vec![8;32]), SpeechReply::Refused { code, .. }
             if code == "unauthorized")
         );
+    }
+}
+
+#[cfg(test)]
+mod template_request_tests {
+    use super::SpeechRequest;
+    use conduit_std_host::direct_spoken_template_mask::DirectSpokenTemplateLook;
+
+    #[test]
+    fn older_direct_requests_default_to_ordinary_route_and_checked_look_roundtrips() {
+        let old: SpeechRequest =
+            serde_json::from_str(r#"{"kind":"direct-admit","protocol":1,"token":[]}"#).unwrap();
+        assert!(matches!(old, SpeechRequest::DirectAdmit { look: None, .. }));
+        let request = SpeechRequest::DirectSelect {
+            protocol: 1,
+            token: vec![],
+            look: Some(DirectSpokenTemplateLook::Expanded),
+        };
+        let encoded = serde_json::to_vec(&request).unwrap();
+        let decoded: SpeechRequest = serde_json::from_slice(&encoded).unwrap();
+        assert!(matches!(
+            decoded,
+            SpeechRequest::DirectSelect {
+                look: Some(DirectSpokenTemplateLook::Expanded),
+                ..
+            }
+        ));
+    }
+
+    #[test]
+    fn unknown_look_and_caller_wording_refuse_at_ipc_boundary() {
+        for request in [
+            r#"{"kind":"direct-select","protocol":1,"token":[],"look":"Custom"}"#,
+            r#"{"kind":"direct-select","protocol":1,"token":[],"wording":"Caller instruction"}"#,
+            r#"{"kind":"llm-select","protocol":1,"token":[],"look":"Brief"}"#,
+        ] {
+            assert!(serde_json::from_str::<SpeechRequest>(request).is_err());
+        }
     }
 }

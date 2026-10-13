@@ -1,0 +1,19 @@
+{
+  "source_commit": "3b7a39c93",
+  "tests_passed": 14,
+  "scope": "checked Source expansion and portable/prepared expression evaluation; actual canonical decoder bound16 retained",
+  "covered": [
+    "two distinct authorize/settle pairs with shared USB offers",
+    "all recovery acknowledgements and phase gates",
+    "retained permit identity separate from wire tags/native ordinals",
+    "failed recovery drains without fresh effects",
+    "fresh read native ordinals1,2 and wiretag2",
+    "exact canonical AST decoder roundtrip"
+  ],
+  "not_proven": [
+    "Root Plan/Body/native composition",
+    "guest recovery",
+    "zero Play allocation for recovered path",
+    "physical compatibility"
+  ]
+}

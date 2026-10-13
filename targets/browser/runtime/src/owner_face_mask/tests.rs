@@ -303,13 +303,48 @@ fn current_browser_mask_emits_one_exact_typed_clock_interaction() {
     let mut wrong_argument = proposed(&prepared.face_revision, "500");
     wrong_argument.arguments[0].name = "clock/other".into();
     assert!(mask.interact(wrong_argument).is_err());
+    // Exhaust the admitted twelve-slot store without completing the request.
+    // Refusal must preserve it so the same typed action can proceed after drain.
+    let pending = mask.pending_interaction;
+    let mut held = Vec::new();
+    for _ in 0..=12 {
+        match mask.scheduler.store_host_value(&[0]) {
+            Ok(value) => held.push(value),
+            Err(_) => break,
+        }
+    }
+    assert!(!held.is_empty() && held.len() <= 12);
+    match mask.interact(proposed(&prepared.face_revision, "500")) {
+        Err(reason) => assert_eq!(
+            reason,
+            "store owner browser interaction: Storage(ItemCapacityExceeded)"
+        ),
+        Ok(_) => panic!("pressured interaction consumed its request"),
+    }
+    assert_eq!(mask.pending_interaction, pending);
+    assert!(mask
+        .scheduler
+        .remote_egress_offer(
+            mask.interaction_boundary.endpoint,
+            mask.interaction_boundary.cord
+        )
+        .unwrap()
+        .is_none());
+    for value in held {
+        mask.scheduler.discard_host_value(value).unwrap();
+    }
     let emitted = mask
         .interact(proposed(&prepared.face_revision, "500"))
         .unwrap();
     assert_eq!(emitted.interaction.face_revision, revision);
     assert_eq!(emitted.interaction.arguments[0].value, b"500");
     assert_eq!(emitted.show.show_id.as_str(), prepared.show_id);
-    assert!(mask
-        .interact(proposed(&prepared.face_revision, "250"))
-        .is_err());
+    // A consumed Fore must stay terminal under repeated input, rather than
+    // allocating one undeliverable value per refusal until storage fills.
+    for _ in 0..16 {
+        match mask.interact(proposed(&prepared.face_revision, "250")) {
+            Err(reason) => assert_eq!(reason, "owner browser Mask interaction Fore is terminal"),
+            Ok(_) => panic!("consumed interaction Fore emitted twice"),
+        }
+    }
 }

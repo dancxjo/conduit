@@ -32,20 +32,11 @@ pub(crate) fn admit_minima(
             if requirement.compute.is_none() {
                 continue;
             }
-            let mut pools = host
-                .resources
-                .iter()
-                .filter(|pool| pool.class_id == requirement.class_id);
-            let pool = pools.next().ok_or_else(|| {
-                PlannerError::UnavailableResource(requirement.class_id.as_str().to_string())
-            })?;
-            if pools.next().is_some() {
-                return Err(PlannerError::InvalidResourceContract(format!(
-                    "host '{}' has multiple pools for class '{}' in the first planning profile",
-                    host.host_id.as_str(),
-                    requirement.class_id.as_str()
-                )));
-            }
+            let pool = crate::resource_binding::resolve_resource_pool(
+                host,
+                capability,
+                &requirement.class_id,
+            )?;
             let minimum = remaining
                 .entry((host.host_id.clone(), pool.pool_id.clone()))
                 .or_insert(0);

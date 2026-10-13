@@ -8,6 +8,10 @@ pub(super) fn canonical_leaf_literal(
     literal: &str,
     span: Span,
 ) -> Result<Vec<u8>, SyntaxCheckDiagnostic> {
+    if kind == conduit_core::MATHEMATICAL_VALUE_ID {
+        return crate::mathematical_value::encode(literal)
+            .map_err(|message| structured_diagnostic(span, &message));
+    }
     if kind == conduit_core::UNIT_INFO_ID {
         return conduit_core::Unit::resolve(literal)
             .map(|unit| unit.encode().to_vec())

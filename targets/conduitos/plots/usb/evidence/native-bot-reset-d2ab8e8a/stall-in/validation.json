@@ -1,0 +1,12 @@
+{
+  "proof_class": "native-x86_64-emulator-external-device",
+  "reset_acknowledged": true,
+  "clear_in_stalled": true,
+  "clear_out_submitted": false,
+  "canonical_outcome": "refused",
+  "play_allocations": 0,
+  "play_reallocations": 0,
+  "acknowledged_stop": true,
+  "normal_retirement": true,
+  "scope": "Standalone recovery refusal from quiescent attachment; no interrupted-transaction reentry or physical proof."
+}

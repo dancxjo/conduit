@@ -1,0 +1,17 @@
+# Exact source meaning and admitted absolute numerical error.
+type NumericalRequest = {
+    value: MathematicalValue
+    maximum-error: MathematicalValue
+}
+
+type NumericalRepresentation =
+    exact_rational
+    | outward_i64
+
+type NumericalResult = {
+    source: MathematicalValue
+    lower: MathematicalValue
+    upper: MathematicalValue
+    maximum-error: MathematicalValue
+    representation: NumericalRepresentation
+}

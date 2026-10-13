@@ -1,0 +1,15 @@
+{
+  "proof_class": "emulator-with-device",
+  "architectures": [
+    "x86_64",
+    "aarch64"
+  ],
+  "same_checked_package_bytes": true,
+  "same_root_request_bytes": true,
+  "source_sha256": "bea3a4f111c39a582784d487c272160a3adbba1f8c00400cb0941529ca52de06",
+  "root_sha256": "e202483137d4589067f71f09729f48846a796f3af996e2b8edc16ba1a7b759fb",
+  "success": "original stalled, three acknowledgments, fresh exact512-byte completed read, zero allocations and retired",
+  "failed_clear": "no fresh read/result, zero allocations and retired",
+  "physical_proof": false,
+  "integration": "pending"
+}

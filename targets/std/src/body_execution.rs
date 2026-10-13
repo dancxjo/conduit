@@ -14,7 +14,16 @@ use conduit_plan_lowering::lowering::KernelIdentityMap;
 use std::io::Write;
 use std::path::Path;
 
+mod parsec_instruction_observation;
+pub use parsec_instruction_observation::ParsecInputInstructionObservation;
+#[path = "body_execution/parsec_instruction_effect_observation.rs"]
+mod parsec_instruction_effect_observation;
+pub use parsec_instruction_effect_observation::ParsecInstructionEffectObservation;
+
+mod parsec_terminal;
 mod todo_checkpoint;
+pub(crate) use parsec_terminal::ParsecTerminalAttachment;
+pub use parsec_terminal::{BodyParsecShowObserver, BodyParsecTerminalRoute};
 
 #[derive(Debug, Clone)]
 pub struct ObservedKernelEvent {
@@ -168,6 +177,7 @@ impl StdHost {
             Some((inputs, sequential, fore_output)),
             None,
             None,
+            None,
             |_, _| Ok(()),
         )
     }
@@ -215,6 +225,7 @@ impl StdHost {
             None,
             Some((queue, fore_output)),
             None,
+            None,
             started,
         )
     }
@@ -233,7 +244,7 @@ impl StdHost {
         F: FnMut(&BodyPlayIdentity, &Wake) -> Result<(), String>,
     {
         self.run_body_plan_to_with_start_and_clock(
-            request, output, timer, None, None, None, None, None, started,
+            request, output, timer, None, None, None, None, None, None, started,
         )
     }
 
@@ -249,6 +260,7 @@ impl StdHost {
             output,
             timer,
             Some(correlation),
+            None,
             None,
             None,
             None,
@@ -272,6 +284,7 @@ impl StdHost {
             timer,
             Some(correlation),
             Some((transport_uncertainty, scheduler_uncertainty)),
+            None,
             None,
             None,
             None,
@@ -323,6 +336,7 @@ impl StdHost {
             None,
             None,
             None,
+            None,
             started,
         )
     }
@@ -342,6 +356,7 @@ impl StdHost {
         )>,
         live: Option<(&BodyLiveForeQueue, &'a mut dyn BodyForeOutputAdapter)>,
         checkpoint: Option<(&Path, crate::todo_durable_resource::CheckpointIdentity)>,
+        terminal: Option<parsec_terminal::ParsecTerminalAttachment<'a>>,
         mut started: F,
     ) -> Result<BodyRunReport, String>
     where
@@ -383,25 +398,34 @@ impl StdHost {
         let prospective_play = BodyPlayIdentity::bind(request.plan, self.next_kernel_play_sequence);
         let live_queue = live.as_ref().map(|(queue, _)| *queue);
         let mut kernel = if let Some((queue, _)) = &live {
-            if request.keyboard.is_some() {
-                return Err("live Body Fore cannot also claim keyboard ingress".into());
-            }
-            BodyKernel::prepare_live(
+            BodyKernel::prepare_live_on_host(
                 &request.plan.plots,
+                request.keyboard.is_some(),
                 &prospective_play.active_play_id,
                 queue,
                 request.control,
+                &self.advertisement,
             )?
         } else {
-            BodyKernel::prepare(
+            BodyKernel::prepare_on_host(
                 &request.plan.plots,
                 request.keyboard.is_some(),
                 &prospective_play.active_play_id,
                 fore_inputs,
                 sequential_fore,
                 has_fore_output,
+                &self.advertisement,
             )?
         };
+        kernel.prepare_input_origin(&self.advertisement, request.plan, &prospective_play)?;
+        if let Some(terminal) = &terminal {
+            kernel.attach_parsec_terminal(
+                request.plan,
+                &self.advertisement,
+                terminal.columns,
+                terminal.rows,
+            )?;
+        }
         if let Some((root, checkpoint)) = checkpoint {
             kernel.attach_todo_checkpoint(&request.plan.plots, root, checkpoint)?;
         }
@@ -424,6 +448,7 @@ impl StdHost {
             if play.play_sequence != sequence {
                 return Err("Body prospective Play identity changed before start".into());
             }
+            kernel.confirm_input_play(&self.advertisement, &play)?;
             // Body lifecycle signs are scoped by this unique admitted Play.
             // The shared lifecycle session and browser producer use 0/1/2;
             // reusing the Host-wide cursor would make a second genuine start
@@ -467,6 +492,7 @@ impl StdHost {
                 request.plan.body_time_requirement.as_ref().zip(correlation),
                 execution_bounds,
                 admitted_clock_quality,
+                terminal,
             );
             if let Some(queue) = live_queue {
                 queue.mark_play_terminal();

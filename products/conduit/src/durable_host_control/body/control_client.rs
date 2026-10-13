@@ -10,10 +10,7 @@ use std::{
 
 use socket2::{Domain, SockAddr, Socket, Type};
 
-use super::super::{
-    Request, Response, CONTROL_OUTCOME_UNKNOWN, MAXIMUM_CONTROL_FRAME_BYTES,
-    MAXIMUM_LOCAL_CONTROL_FRAME_BYTES,
-};
+use super::super::{Request, Response, CONTROL_OUTCOME_UNKNOWN, MAXIMUM_LOCAL_CONTROL_FRAME_BYTES};
 use super::{CONTROL_DEADLINE, TODO_ACTION_DEADLINE};
 
 pub(crate) fn call(state_dir: &Path, mut request: Request) -> Result<Response, String> {
@@ -35,7 +32,7 @@ pub(crate) fn call(state_dir: &Path, mut request: Request) -> Result<Response, S
     let mut bytes = serde_json::to_vec(&request)
         .map_err(|error| format!("encode local control request: {error}"))?;
     clear_token(&mut request);
-    if bytes.len() > MAXIMUM_CONTROL_FRAME_BYTES {
+    if bytes.len() > MAXIMUM_LOCAL_CONTROL_FRAME_BYTES {
         bytes.fill(0);
         return Err("local control request violates its finite bound".into());
     }
@@ -181,6 +178,56 @@ mod tests {
     }
 
     #[test]
+    fn local_control_request_uses_the_servers_finite_bound() {
+        // Transport fixture: application identity validation belongs to the owner.
+        let request = |size| Request::BodyBrowserStart {
+            protocol: 1,
+            token: vec![7; 32],
+            expected_host_id: "x".repeat(size),
+            new_host_verifying_key: None,
+            maximum_millis: 10,
+        };
+        let directory = std::env::temp_dir().join(format!(
+            "conduit-control-request-{}-{}",
+            std::process::id(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        fs::create_dir(&directory).unwrap();
+        let listener = UnixListener::bind(directory.join("control.sock")).unwrap();
+        let server = thread::spawn(move || {
+            let (mut stream, _) = listener.accept().unwrap();
+            let mut bytes = Vec::new();
+            stream.read_to_end(&mut bytes).unwrap();
+            assert!(bytes.len() > 512 * 1024 && bytes.len() < MAXIMUM_LOCAL_CONTROL_FRAME_BYTES);
+            let decoded: Request = serde_json::from_slice(&bytes).unwrap();
+            assert!(
+                matches!(decoded, Request::BodyBrowserStart { expected_host_id, .. }
+                if expected_host_id.len() == 600 * 1024)
+            );
+            let response = Response::BodyTruth {
+                protocol: 1,
+                truth: serde_json::json!({}),
+            };
+            stream
+                .write_all(&serde_json::to_vec(&response).unwrap())
+                .unwrap();
+        });
+        assert!(matches!(
+            call(&directory, request(600 * 1024)).unwrap(),
+            Response::BodyTruth { .. }
+        ));
+        server.join().unwrap();
+        assert!(
+            matches!(call(&directory, request(MAXIMUM_LOCAL_CONTROL_FRAME_BYTES)),
+            Err(code) if code == "local control request violates its finite bound")
+        );
+        fs::remove_dir_all(directory).unwrap();
+    }
+
+    #[test]
     fn local_control_reply_uses_its_distinct_finite_response_bound() {
         fn reply(payload_bytes: usize) -> Result<Response, String> {
             let directory = std::env::temp_dir().join(format!(
@@ -216,7 +263,7 @@ mod tests {
             result
         }
 
-        assert_eq!(MAXIMUM_CONTROL_FRAME_BYTES, 512 * 1024);
+        assert_eq!(super::super::super::MAXIMUM_CONTROL_FRAME_BYTES, 512 * 1024);
         assert_eq!(MAXIMUM_LOCAL_CONTROL_FRAME_BYTES, 2 * 1024 * 1024);
         match reply(600 * 1024).unwrap() {
             Response::BodyTruth { protocol, truth } => {

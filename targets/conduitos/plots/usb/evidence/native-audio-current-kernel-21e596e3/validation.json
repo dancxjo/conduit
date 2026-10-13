@@ -1,0 +1,34 @@
+{
+  "proof_class": "native-x86_64-emulator-external-device",
+  "kernel_build": {
+    "schema": "conduit.conduitos.build/v2",
+    "artifact_role": "product-host",
+    "base_commit": "21e596e341c025b0d541717dc8405030dcfee49c",
+    "architecture": "x86_64",
+    "rust_target": "x86_64-unknown-none",
+    "limine_crate": "0.5.0",
+    "elf_sha256": "8fa1f767f50907d0aec9b6f3b57b13f28c8329e9067c3f743e549e912fe978b4"
+  },
+  "source_package_sha256": "03de725b1218d7ba8a5d9d21b58fbb11ff14089b0353619ac782cc53af6d87ab",
+  "packets": 72,
+  "exact_pcm_bytes": 13824,
+  "public_terminal_phase": 3,
+  "original_pcm_retained": true,
+  "play_allocations": 0,
+  "play_reallocations": 0,
+  "acknowledged_stop": true,
+  "normal_retirement": true,
+  "physical_proof": false,
+  "files": {
+    "serial.log": "a9bde8b63f87636d57d877b67f71281722a660826f5e21d8668de322d30131fa",
+    "wire.jsonl": "1325a269fcaaeb2b15ed3b7ab37da7b4e500404e4d040240071ef69f8440ea78",
+    "receipt.json": "0a684c3a8250943cc794c811b3cebb3a6e8bd08a2c05b1e9343c03bdf7827a3d",
+    "protocol-image-receipt.json": "ce8777438327f91bb8a691719f4917f1abfe1b1f9c734475e0cf4532135d2434",
+    "build.json": "fe14bd3ea2c11cb82dffb5e29431a10aa2fcffb7bf979b8f576907ca47d0b030",
+    "original-pcm.bin": "80583a0c5cada4a15c9a6e7ce5a5ab03c1fc23e955ce685100faf11a8c285c81",
+    "root-request.json": "4acd344bc7b7bc49b76f198ea8ba0a949cf64b992e6cda2fe5bc904eb059f7c7",
+    "protocol-source.json": "03de725b1218d7ba8a5d9d21b58fbb11ff14089b0353619ac782cc53af6d87ab",
+    "verify_wire.py": "bc2931fcf65d2deef91b6423b2c0828563d4c10b8f4f30c067ceec130808a628",
+    "decode_public.rs": "60722b4b6285ad015a250cf135210634093f64b3ec63f5fea092bc8648f8b268"
+  }
+}

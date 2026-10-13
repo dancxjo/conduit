@@ -1,15 +1,23 @@
 //! Bounded exact mathematical integers and rationals. This is denotation, not a
 //! choice of machine realization. Multi-limb arithmetic spends explicit work;
 //! no operation allocates, rounds or changes existing Scalar/Quantity semantics.
+mod binary64;
 mod enclosure;
 mod natural;
 mod projection;
 mod quantity;
 mod rational;
+mod realization;
+mod root;
+mod symbolic;
+pub use binary64::*;
 pub use enclosure::*;
 pub use projection::*;
 pub use quantity::*;
 pub use rational::*;
+pub use realization::*;
+pub use root::*;
+pub use symbolic::*;
 
 pub const EXACT_NUMERIC_MAX_BITS: usize = 4096;
 pub const EXACT_NUMERIC_MAX_DECIMAL_BYTES: usize = 1236;

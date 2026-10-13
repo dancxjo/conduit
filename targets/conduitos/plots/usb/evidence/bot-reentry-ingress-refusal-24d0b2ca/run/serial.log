@@ -1,0 +1,19 @@
+limine: Loading executable `boot():/boot/conduitos`...
+limine: Loading module `boot():/boot/conduit-spore.bin`...
+limine: Loading module `boot():/boot/conduit-protocol-source.json`...
+limine: Loading module `boot():/boot/conduit-protocol-root.json`...
+CONDUIT_PROTOCOL_PREPARATION decoded live=65728 peak=241728
+CONDUIT_PROTOCOL_PREPARATION catalogs live=323264 peak=2827424
+CONDUIT_PROTOCOL_PREPARATION checked live=2378592 peak=7818880
+CONDUIT_PROTOCOL_PREPARATION prepared live=2378976 peak=7818880
+CONDUIT_PROTOCOL_PREPARATION expanded live=8029792 peak=12109024
+CONDUIT_BOOT_STAGE machine-gdt
+CONDUIT_BOOT_STAGE machine-idt
+CONDUIT_BOOT_STAGE machine-pic
+CONDUIT_BOOT_STAGE machine-acpi
+CONDUIT_DEADLINE_CLOCK hpet-ready
+CONDUIT_BOOT_STAGE machine-controller
+CONDUIT_BOOT_STAGE machine-ready
+CONDUIT_PROTOCOL_PLAN_REFUSAL stage=storage-ingress reason="request bypasses storage authorization"
+CONDUIT_PROTOCOL_PREPARATION_REFUSAL Body(Call(InvalidPlan))
+CONDUIT_KERNEL_SIGN {"schema":"conduit.conduitos.kernel-sign/v2","status":"refused","reason":"protocol-usb-plan-admission-refused"}

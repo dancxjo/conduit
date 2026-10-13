@@ -9,6 +9,9 @@ pub const MAXIMUM_REALIZATION_DECISION_RECORDS: usize = 256;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RealizationRejection {
+    Numerical {
+        reason: conduit_core::NumericalRealizationRefusal,
+    },
     LanguageCoverage {
         request: conduit_language::LanguageRequest,
         reason: conduit_language::LanguageCoverageRefusal,

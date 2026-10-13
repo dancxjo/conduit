@@ -1,0 +1,14 @@
+   Compiling conduit-composite v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/architecture/composite)
+   Compiling conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/targets/conduitos)
+   Compiling conduit-browser-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/targets/browser/runtime)
+   Compiling conduit-std-host v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/targets/std)
+    Finished `test` profile [unoptimized] target(s) in 19.49s
+     Running tests/usb_duplex_zip_progress.rs (../usb-target/debug/deps/usb_duplex_zip_progress-78ee43dbad3d3194)
+
+running 3 tests
+test finite_zip_discards_an_early_closed_request_before_delayed_completion ... ok
+test feedback_zip_retains_closed_request_until_delayed_completion_then_emits_once ... ok
+test duplex_source_places_two_independent_feedback_zips_of_one_specialization ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.96s
+

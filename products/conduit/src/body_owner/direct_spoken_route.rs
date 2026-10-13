@@ -19,8 +19,16 @@ impl Owner {
     /// is released through wardrobe actions; its worn policy is restored after
     /// the direct route becomes selected. All revisions are checked in this
     /// one owner control turn.
+    #[cfg(test)]
     pub(crate) fn select_direct_spoken_route(&mut self) -> Result<LocalOwnerMaskRouteSeal, String> {
-        let seal = self.admit_direct_spoken_route()?;
+        self.select_direct_spoken_look(None)
+    }
+
+    pub(crate) fn select_direct_spoken_look(
+        &mut self,
+        look: Option<conduit_std_host::direct_spoken_template_mask::DirectSpokenTemplateLook>,
+    ) -> Result<LocalOwnerMaskRouteSeal, String> {
+        let seal = self.admit_direct_spoken_look(look)?;
         let face = self.local_face_snapshot()?;
         let terminal = Self::current_attached_terminal_route(
             &self.host,
@@ -63,7 +71,10 @@ impl Owner {
 
     /// Admit the provider-held direct child before any Start. The owner Plan
     /// records this exact Mask Plan, current Boot offer, and selected grants.
-    pub(crate) fn admit_direct_spoken_route(&mut self) -> Result<LocalOwnerMaskRouteSeal, String> {
+    pub(crate) fn admit_direct_spoken_look(
+        &mut self,
+        look: Option<conduit_std_host::direct_spoken_template_mask::DirectSpokenTemplateLook>,
+    ) -> Result<LocalOwnerMaskRouteSeal, String> {
         if !self.selected_speech_host_is_idle()
             || !self.host.current().spoken_mask_artifact_route_is_current()
         {
@@ -73,7 +84,23 @@ impl Owner {
             );
         }
         let face = self.local_face_snapshot()?;
-        let prepared = self.host.current().prepare_direct_spoken_mask(&face)?;
+        let template = look
+            .map(|look| {
+                self.host
+                    .current()
+                    .prepare_direct_spoken_template_mask(&face, look)
+            })
+            .transpose()?;
+        let ordinary = if template.is_none() {
+            Some(self.host.current().prepare_direct_spoken_mask(&face)?)
+        } else {
+            None
+        };
+        let prepared = template
+            .as_ref()
+            .map(|template| template.mask())
+            .or(ordinary.as_ref())
+            .ok_or("direct spoken selection is missing")?;
         let seal = LocalOwnerMaskRouteSeal::seal_lulled_with_grants(
             &self.session,
             &face,
@@ -122,6 +149,7 @@ impl Owner {
                 .map_err(wardrobe_error)?,
             );
         }
+        self.direct_spoken_template = template;
         self.direct_spoken_route = Some(seal.clone());
         Ok(seal)
     }
@@ -131,6 +159,7 @@ impl Owner {
         let seal = Self::current_direct_spoken_route(
             &self.host,
             self.direct_spoken_route.as_ref(),
+            self.direct_spoken_template.as_ref(),
             &self.session,
             &face,
         )?
@@ -214,6 +243,46 @@ impl Owner {
     ) -> Result<DirectSpokenStart, String> {
         let seal = self.selected_direct_spoken_seal()?;
         let face = self.local_face_snapshot()?;
+        if let Some(selected) = self.direct_spoken_template.as_ref() {
+            selected.validate_current(self.host.current(), &face)?;
+            let prepared = self
+                .host
+                .current()
+                .prepare_direct_spoken_template_mask(&face, selected.look())?;
+            if prepared.mask().planned_mask != seal.planned_mask
+                || prepared.mask().authority_grants != seal.authority_grants
+                || prepared.wording() != selected.wording()
+            {
+                return Err("checked spoken selection changed before Start".into());
+            }
+            let front_subject = face
+                .subjects
+                .iter()
+                .find(|subject| subject.role == PresentationRole::Body)
+                .map(|subject| subject.identity.clone())
+                .ok_or("direct spoken Face has no Body subject")?;
+            let (fragment, preparation, reading) = prepared.into_preparation(
+                self.host.current(),
+                &face,
+                front_subject,
+                "artifact/owner-direct-spoken".into(),
+                SignId::from(format!("sign/{}/prepared", seal.route_plan_id.as_str())),
+                SignId::from(format!("sign/{}/available", seal.route_plan_id.as_str())),
+            )?;
+            let input = ExternalForeInput {
+                front_port_id: port_id("face"),
+                track: ConnectionTrack::Payload,
+                bytes: preparation.encoded_face().to_vec(),
+            };
+            return Ok(DirectSpokenStart {
+                seal,
+                face,
+                fragment,
+                preparation,
+                input,
+                template_reading: Some(reading),
+            });
+        }
         let prepared = self.host.current().prepare_direct_spoken_mask(&face)?;
         if prepared.planned_mask != seal.planned_mask
             || prepared.authority_grants != seal.authority_grants
@@ -242,6 +311,7 @@ impl Owner {
         Ok(DirectSpokenStart {
             seal,
             face,
+            template_reading: None,
             fragment: prepared.plan.fragments[0].clone(),
             preparation,
             input,
@@ -257,6 +327,7 @@ impl Owner {
         let current_seal = Self::current_direct_spoken_route(
             &self.host,
             self.direct_spoken_route.as_ref(),
+            self.direct_spoken_template.as_ref(),
             &self.session,
             &face,
         )?
@@ -302,4 +373,6 @@ pub(crate) struct DirectSpokenStart {
     pub(crate) fragment: conduit_core::PlanFragment,
     pub(crate) preparation: DirectSpokenMaskPreparation,
     pub(crate) input: ExternalForeInput,
+    pub(crate) template_reading:
+        Option<conduit_std_host::spoken_template_reading::PreparedSpokenTemplateReading>,
 }

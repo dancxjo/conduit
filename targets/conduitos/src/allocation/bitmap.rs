@@ -11,6 +11,9 @@ const UNIT: usize = 32;
 const WORD_BITS: usize = 64;
 const WORDS: usize = MAXIMUM_ARENA_BYTES / UNIT / WORD_BITS;
 
+#[cfg(test)]
+mod tests;
+
 pub(super) struct ArenaState {
     start: usize,
     units: usize,
@@ -19,6 +22,8 @@ pub(super) struct ArenaState {
     cursor: usize,
     allocated: [u64; WORDS],
     pub(super) sealed: bool,
+    pub(super) allocation_attempts: u64,
+    pub(super) reallocation_attempts: u64,
 }
 
 impl ArenaState {
@@ -31,6 +36,8 @@ impl ArenaState {
             cursor: 0,
             allocated: [0; WORDS],
             sealed: false,
+            allocation_attempts: 0,
+            reallocation_attempts: 0,
         }
     }
 
@@ -170,7 +177,23 @@ impl ArenaState {
             let end = candidate + needed;
             match self.first_occupied(candidate, end) {
                 None => return Some(candidate),
-                Some(occupied) => candidate = occupied + 1,
+                // Every start through the occupied unit is invalid. The next
+                // start must itself be free, so skip the rest of this occupied
+                // run by bitmap words instead of retrying each occupied bit.
+                Some(occupied) => candidate = self.first_free(occupied + 1, end_start)?,
+            }
+        }
+        None
+    }
+
+    fn first_free(&self, begin: usize, end: usize) -> Option<usize> {
+        if begin >= end {
+            return None;
+        }
+        for word in begin / WORD_BITS..=(end - 1) / WORD_BITS {
+            let bits = !self.allocated[word] & range_mask(word, begin, end);
+            if bits != 0 {
+                return Some(word * WORD_BITS + bits.trailing_zeros() as usize);
             }
         }
         None

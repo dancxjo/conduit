@@ -112,3 +112,78 @@ fn one_value_when_outputs_the_canonical_finite_optional_profile() {
     assert_eq!(filter.outputs[0].value_kind, optional);
     expanded.validate_expansion().unwrap();
 }
+
+#[test]
+fn finite_flow_filter_preserves_both_input_and_output_contracts() {
+    use conduit_core::{
+        CapabilityLimits, CheckedValueContract, FrontValueContract, FrontValueLocation, Kind,
+        KindSemanticLaw,
+    };
+    use conduit_plot::{pure_expression_semantic_laws, PortableExpressionProgram};
+    let temporal = PortTemporal::Flow { closes: true };
+    let (startup, mut profile) = catalogs(temporal);
+    let mut output = port("out", PortDirection::Output, temporal);
+    output.value_kind = kind_id("value/bytes");
+    profile
+        .insert_kind(Kind {
+            kind_id: kind_id("test/bounded-source"),
+            kind_contract_revision: KindIdentity::from("test/bounded-source@1"),
+            startup_parameters: vec![],
+            shorthand: None,
+            inputs: vec![],
+            outputs: vec![output],
+            configuration: vec![],
+            semantic_laws: vec![KindSemanticLaw::ValueContracts(vec![FrontValueContract {
+                location: FrontValueLocation::Output(port_id("out")),
+                contract: CheckedValueContract::new(kind_id("value/bytes"), 2048, vec![]).unwrap(),
+            }])],
+            limits: CapabilityLimits {
+                max_active_instances: 1,
+                max_queue_items: 1,
+                max_queue_bytes: 2048,
+            },
+        })
+        .unwrap();
+    let source =
+        "plot filter {\n source: test/bounded-source\n source >> when(bytes/length(.) > 0)\n}\n";
+    let mut startup = startup;
+    startup
+        .insert(KindSignature {
+            kind: "test/bounded-source".into(),
+            startup_parameters: vec![],
+        })
+        .unwrap();
+    let syntax = parse_syntax_document(source);
+    assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);
+    let checked = check_syntax_document(&syntax, &startup).unwrap();
+    let expanded = expand_canonical_plot(&checked, "filter", &profile).unwrap();
+    let filter = expanded
+        .gears
+        .iter()
+        .find(|gear| gear.kind_contract_revision.as_str() == PURE_FILTER_REVISION)
+        .unwrap();
+    let conduit_core::ConfigurationValue::Text(encoded) = &filter
+        .configuration
+        .iter()
+        .find(|entry| entry.key == "program")
+        .unwrap()
+        .value
+    else {
+        panic!("program")
+    };
+    let program = PortableExpressionProgram::from_canonical_hex(encoded).unwrap();
+    assert_eq!(program.input_maximum_bytes, Some(2048));
+    let contracts = filter.semantic_contract.value_contracts();
+    assert_eq!(contracts.len(), 2);
+    assert!(contracts
+        .iter()
+        .all(|contract| contract.contract.maximum_bytes == 2048));
+    assert_eq!(
+        filter.semantic_contract.laws,
+        program.filter_semantic_laws(temporal).unwrap()
+    );
+    assert_ne!(
+        filter.semantic_contract.laws,
+        pure_expression_semantic_laws()
+    );
+}

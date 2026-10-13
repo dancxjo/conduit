@@ -39,6 +39,7 @@ mod glyph_notation;
 #[cfg(test)]
 mod glyph_notation_test_support;
 mod integer_literal;
+mod mathematical_value;
 mod native_type;
 mod package_bundle;
 pub use glyph_notation::{

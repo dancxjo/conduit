@@ -51,6 +51,7 @@ impl PreparedStructuredExpression {
             }
             PortableExpressionOperation::Literal(_) | PortableExpressionOperation::Constant(_) => {
                 let constant = PortableExpressionProgram {
+                    input_maximum_bytes: None,
                     input_type: StructuredInfoType::leaf(conduit_core::kind_id(
                         conduit_core::EMPTY_INFO_ID,
                     ))
@@ -143,7 +144,7 @@ impl PreparedStructuredExpression {
             _ => {
                 return Err(Refusal::UnsupportedType(
                     "structured expression runtime".into(),
-                ))
+                ));
             }
         };
         Ok(Self {
@@ -160,10 +161,10 @@ impl PreparedStructuredExpression {
             PreparedShape::Input => return append(output, input),
             PreparedShape::Constant(bytes) => return append(output, bytes),
             PreparedShape::SequenceSelected(selection) => {
-                return append(output, selection.evaluate(input)?)
+                return append(output, selection.evaluate(input)?);
             }
             PreparedShape::Selected(selection) => {
-                return append(output, selection.evaluate(input)?)
+                return append(output, selection.evaluate(input)?);
             }
             _ => (),
         }
@@ -242,6 +243,7 @@ fn child(
     prepared_input: &PreparedInput,
 ) -> Result<PreparedChild, Refusal> {
     let child = ProgramView {
+        input_maximum_bytes: program.input_maximum_bytes,
         input_type: program.input_type,
         output_type: &node.value_type,
         root: node,

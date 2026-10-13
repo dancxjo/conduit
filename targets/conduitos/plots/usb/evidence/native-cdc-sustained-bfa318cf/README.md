@@ -1,0 +1,1 @@
+Actual native QEMU x86 CDC preflight15a4 package and unchanged Root on kernel bfa318. Exact five Source controls plus two discovery controls,16TX/16RX canonical and wire byte checks, acknowledged Root stop, alloc=0/realloc=0. Original partial-byte profile keeps binary octets separate from text. Not repeated disconnect/replacement or final issue closure proof.

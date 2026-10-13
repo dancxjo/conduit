@@ -2,6 +2,39 @@
 use super::*;
 
 impl NativeUsbDuplexHost {
+    pub(crate) fn discard_cancelled_terminals(&mut self) -> Result<(), UsbNativeProtocolRefusal> {
+        self.host
+            .discard_cancelled_terminals()
+            .map_err(native_refusal)
+    }
+
+    pub(crate) fn validate_cancelled_settlement(&self) -> Result<(), UsbNativeProtocolRefusal> {
+        self.host
+            .validate_cancelled_settlement()
+            .map_err(native_refusal)
+    }
+
+    pub(crate) fn bulk_subordinate_nodes(&self) -> [NodeId; 2] {
+        [self.read_node, self.write_node]
+    }
+
+    pub(crate) fn subordinate_nodes(&self) -> [NodeId; 3] {
+        [self.control_node, self.read_node, self.write_node]
+    }
+
+    pub(crate) fn validate_settlement_idle(&self) -> Result<(), UsbNativeProtocolRefusal> {
+        self.host.validate_settlement_idle().map_err(native_refusal)
+    }
+
+    /// # Safety
+    /// Original bulk Kernel obligations/tokens have all retired; dispatcher
+    /// checks this independently of native idle before any recovery control.
+    pub(crate) unsafe fn prepare_endpoint_recovery(
+        &mut self,
+    ) -> Result<(), UsbNativeProtocolRefusal> {
+        unsafe { self.host.prepare_endpoint_recovery() }.map_err(native_refusal)
+    }
+
     pub fn control_invoke(
         &mut self,
         node: NodeId,

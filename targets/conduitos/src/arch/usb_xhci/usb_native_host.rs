@@ -72,6 +72,7 @@ pub(crate) struct UsbNativeHost<'a> {
     isochronous_started: bool,
     uncertain_control: bool,
     uncertain_bulk: bool,
+    recovery_endpoint: Option<usize>,
     playing: bool,
     stop_acknowledged: bool,
     possessions_revoked: bool,
@@ -113,6 +114,7 @@ impl<'a> UsbNativeHost<'a> {
             isochronous_started: false,
             uncertain_control: false,
             uncertain_bulk: false,
+            recovery_endpoint: None,
             playing: false,
             stop_acknowledged: false,
             possessions_revoked: false,
@@ -295,6 +297,7 @@ impl<'a> UsbNativeHost<'a> {
                 .is_some_and(|slots| slots.iter().any(|slot| slot.index.is_some()))
             || self.uncertain_control
             || self.uncertain_bulk
+            || self.recovery_endpoint.is_some()
             || self.isochronous_started
         {
             return Err(UsbNativeHostRefusal::Pending);
@@ -303,6 +306,11 @@ impl<'a> UsbNativeHost<'a> {
     }
 }
 
+#[path = "usb_native_host/settlement.rs"]
+mod settlement;
+
+#[path = "usb_native_host/recovery.rs"]
+mod recovery;
 #[path = "usb_native_host/retirement.rs"]
 mod retirement;
 
@@ -349,3 +357,7 @@ impl UsbNativeHost<'_> {
 #[cfg(test)]
 #[path = "usb_native_host/paired_lease_tests.rs"]
 mod paired_lease_tests;
+
+#[cfg(all(test, target_arch = "x86_64"))]
+#[path = "usb_native_host/recovery_tests.rs"]
+mod recovery_tests;

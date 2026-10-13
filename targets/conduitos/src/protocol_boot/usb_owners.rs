@@ -19,31 +19,17 @@ mod duplex_resources;
 mod endpoint;
 #[path = "usb_isochronous_owners.rs"]
 mod isochronous;
+#[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
+#[path = "usb_network_owners.rs"]
+pub(super) mod network;
 #[path = "usb_endpoint_write_owners.rs"]
 mod outbound;
 
-pub(super) enum NativeUsbOwners {
-    Isochronous {
-        ready: Box<arch::ReadyUsbIsochronousHost>,
-        control_issuer: Box<NativeProtocolIssuer>,
-        isochronous_issuer: Box<NativeProtocolIssuer>,
-    },
-    Duplex {
-        ready: Box<arch::ReadyUsbDuplexHost>,
-        control_issuer: Box<NativeProtocolIssuer>,
-        read_issuer: Box<NativeProtocolIssuer>,
-        write_issuer: Box<NativeProtocolIssuer>,
-    },
-    Control {
-        ready: Box<arch::ReadyUsbControlBase>,
-        issuer: Box<NativeProtocolIssuer>,
-    },
-    Protocol {
-        ready: Box<arch::ReadyUsbProtocolHost>,
-        control_issuer: Box<NativeProtocolIssuer>,
-        endpoint_issuer: Box<NativeProtocolIssuer>,
-    },
-}
+#[path = "usb_owner_set.rs"]
+mod owner_set;
+pub(super) use owner_set::NativeUsbOwners;
+#[path = "usb_storage_owners.rs"]
+mod storage;
 
 /// # Safety
 /// The sole local Root has independently released firmware and approved the
@@ -63,6 +49,10 @@ pub(super) unsafe fn admit(
     ),
     &'static str,
 > {
+    #[cfg(not(all(target_arch = "x86_64", feature = "native-owner-network")))]
+    if request.ethernet_network.is_some() {
+        return Err("protocol-usb-network-unsupported");
+    }
     if request.endpoint_write.is_some() && request.endpoint_read.is_none() {
         return Err("protocol-usb-write-requires-read");
     }
@@ -224,7 +214,7 @@ pub(super) unsafe fn admit(
                 kind: ISOCHRONOUS_OUT_KIND,
                 capability: ISOCHRONOUS_OUT_IMPLEMENTATION,
                 bytes: ISOCHRONOUS_OUT_MAXIMUM_BYTES,
-                work: 8,
+                work: ISOCHRONOUS_OUT_MAXIMUM_PACKETS as u64,
                 operations: iso_request.maximum_operations,
             },
         );
@@ -392,6 +382,23 @@ pub(super) unsafe fn admit(
                     .map_err(|_| "protocol-usb-write-issuance-refused")?;
             return Ok((
                 NativeUsbOwners::Duplex {
+                    storage: request
+                        .storage
+                        .as_ref()
+                        .map(|scope| {
+                            // SAFETY: trusted Root independently validates read-only storage approval.
+                            unsafe { storage::admit(scope, host, boot_id, artifact) }.map(Box::new)
+                        })
+                        .transpose()?,
+                    #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
+                    network: request
+                        .ethernet_network
+                        .as_ref()
+                        .map(|scope| {
+                            // SAFETY: sole Root retains validated independent approval.
+                            unsafe { network::admit(scope, host, boot_id, artifact) }.map(Box::new)
+                        })
+                        .transpose()?,
                     ready: Box::new(ready),
                     control_issuer: Box::new(control_issuer),
                     read_issuer: Box::new(read_issuer),

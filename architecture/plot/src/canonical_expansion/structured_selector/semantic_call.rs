@@ -5,6 +5,7 @@ use super::*;
 pub(super) fn expand_semantic_call_graph(
     expression: &crate::ExpressionSyntax,
     input_kind: &conduit_core::KindId,
+    input_source: &StageSource,
     expected_kind: Option<&conduit_core::KindId>,
     source_span: crate::Span,
     source_plot: &CheckedCanonicalPlot,
@@ -27,6 +28,7 @@ pub(super) fn expand_semantic_call_graph(
         return expand_argument_expression(
             expression,
             input_kind,
+            input_source,
             expected_kind,
             source_span,
             source_plot,
@@ -84,6 +86,7 @@ pub(super) fn expand_semantic_call_graph(
             expand_semantic_call_graph(
                 argument,
                 input_kind,
+                input_source,
                 Some(&sink.port.value_kind),
                 source_span,
                 source_plot,
@@ -100,6 +103,7 @@ pub(super) fn expand_semantic_call_graph(
             expand_argument_expression(
                 argument,
                 input_kind,
+                input_source,
                 &sink.port.value_kind,
                 source_span,
                 source_plot,
@@ -132,6 +136,7 @@ pub(super) fn expand_semantic_call_graph(
 fn expand_argument_expression(
     expression: &crate::ExpressionSyntax,
     input_kind: &conduit_core::KindId,
+    input_source: &StageSource,
     expected_kind: &conduit_core::KindId,
     source_span: crate::Span,
     source_plot: &CheckedCanonicalPlot,
@@ -149,6 +154,7 @@ fn expand_argument_expression(
         let nested = expand_semantic_call_graph(
             &nested_call,
             input_kind,
+            input_source,
             None,
             source_span,
             source_plot,
@@ -171,6 +177,7 @@ fn expand_argument_expression(
         let outer = expand_argument_expression(
             &outer_expression,
             &nested_output.endpoint.port.value_kind,
+            &StageSource::Internal(nested_output.clone()),
             expected_kind,
             source_span,
             source_plot,
@@ -204,7 +211,7 @@ fn expand_argument_expression(
         .cloned()
         .map(|kind| (kind.kind_id.as_str().to_string(), kind))
         .collect::<BTreeMap<_, _>>();
-    let checked = crate::expression_check::check_expression_as(
+    let mut checked = crate::expression_check::check_expression_as(
         expression,
         Some(&expected_type),
         &crate::ExpressionTypeContext {
@@ -226,6 +233,8 @@ fn expand_argument_expression(
             ),
         )
     })?;
+    checked.input_maximum_bytes = input_bound::checked_bound(input_source, source_plot, gears)?;
+    let semantic_laws = input_bound::semantic_laws(&checked)?;
     let definition =
         crate::pure_expression_definition(&checked, PortTemporal::Value).map_err(|_| {
             CanonicalExpansionDiagnostic::new(
@@ -262,7 +271,7 @@ fn expand_argument_expression(
         outputs: vec![output.clone()],
         semantic_contract: conduit_core::KindSemanticContract {
             configuration: definition.configuration.clone(),
-            laws: crate::pure_expression_semantic_laws(),
+            laws: semantic_laws,
         },
         terminal_transductions: Vec::new(),
         resource_ports: Vec::new(),

@@ -1,0 +1,155 @@
+# Exact UAC1 USB2 FS: AC0, AS1 alt0 idle/alt1 PCM16LE stereo48000,
+# synchronous ISO OUT01 max192 interval1, no feedback, SamplingFreqControl.
+plot usb-audio-profile-supported (
+    completion: UsbControlResult...| >> supported: Boolean...|
+) = (!(. is completed) ? false : (.completed.transferred != 100 || .completed.short || sequence/length(.completed.input) != 100 ? false : (((((((sequence/at(.completed.input, 0) == 9 && sequence/at(.completed.input, 1) == 2) && (sequence/at(.completed.input, 2) == 100 && sequence/at(.completed.input, 3) == 0)) && ((sequence/at(.completed.input, 4) == 2 && sequence/at(.completed.input, 5) == 1) && (sequence/at(.completed.input, 6) == 0 && sequence/at(.completed.input, 7) == 128))) && (((sequence/at(.completed.input, 8) == 50 && sequence/at(.completed.input, 9) == 9) && (sequence/at(.completed.input, 10) == 4 && sequence/at(.completed.input, 11) == 0)) && ((sequence/at(.completed.input, 12) == 0 && sequence/at(.completed.input, 13) == 0) && (sequence/at(.completed.input, 14) == 1 && sequence/at(.completed.input, 15) == 1)))) && ((((sequence/at(.completed.input, 16) == 0 && sequence/at(.completed.input, 17) == 0) && (sequence/at(.completed.input, 18) == 9 && sequence/at(.completed.input, 19) == 36)) && ((sequence/at(.completed.input, 20) == 1 && sequence/at(.completed.input, 21) == 0) && (sequence/at(.completed.input, 22) == 1 && sequence/at(.completed.input, 23) == 30))) && (((sequence/at(.completed.input, 24) == 0 && sequence/at(.completed.input, 25) == 1) && (sequence/at(.completed.input, 26) == 1 && sequence/at(.completed.input, 27) == 12)) && ((sequence/at(.completed.input, 28) == 36 && sequence/at(.completed.input, 29) == 2) && (sequence/at(.completed.input, 30) == 1 && sequence/at(.completed.input, 31) == 1))))) && (((((sequence/at(.completed.input, 32) == 1 && sequence/at(.completed.input, 33) == 0) && (sequence/at(.completed.input, 34) == 2 && sequence/at(.completed.input, 35) == 3)) && ((sequence/at(.completed.input, 36) == 0 && sequence/at(.completed.input, 37) == 0) && (sequence/at(.completed.input, 38) == 0 && sequence/at(.completed.input, 39) == 9))) && (((sequence/at(.completed.input, 40) == 36 && sequence/at(.completed.input, 41) == 3) && (sequence/at(.completed.input, 42) == 2 && sequence/at(.completed.input, 43) == 1)) && ((sequence/at(.completed.input, 44) == 3 && sequence/at(.completed.input, 45) == 0) && (sequence/at(.completed.input, 46) == 1 && sequence/at(.completed.input, 47) == 0)))) && ((((sequence/at(.completed.input, 48) == 9 && sequence/at(.completed.input, 49) == 4) && (sequence/at(.completed.input, 50) == 1 && sequence/at(.completed.input, 51) == 0)) && ((sequence/at(.completed.input, 52) == 0 && sequence/at(.completed.input, 53) == 1) && (sequence/at(.completed.input, 54) == 2 && sequence/at(.completed.input, 55) == 0))) && (((sequence/at(.completed.input, 56) == 0 && sequence/at(.completed.input, 57) == 9) && (sequence/at(.completed.input, 58) == 4 && sequence/at(.completed.input, 59) == 1)) && ((sequence/at(.completed.input, 60) == 1 && sequence/at(.completed.input, 61) == 1) && (sequence/at(.completed.input, 62) == 1 && sequence/at(.completed.input, 63) == 2)))))) && ((((((sequence/at(.completed.input, 64) == 0 && sequence/at(.completed.input, 65) == 0) && (sequence/at(.completed.input, 66) == 7 && sequence/at(.completed.input, 67) == 36)) && ((sequence/at(.completed.input, 68) == 1 && sequence/at(.completed.input, 69) == 1) && (sequence/at(.completed.input, 70) == 1 && sequence/at(.completed.input, 71) == 1))) && (((sequence/at(.completed.input, 72) == 0 && sequence/at(.completed.input, 73) == 11) && (sequence/at(.completed.input, 74) == 36 && sequence/at(.completed.input, 75) == 2)) && ((sequence/at(.completed.input, 76) == 1 && sequence/at(.completed.input, 77) == 2) && (sequence/at(.completed.input, 78) == 2 && sequence/at(.completed.input, 79) == 16)))) && ((((sequence/at(.completed.input, 80) == 1 && sequence/at(.completed.input, 81) == 128) && (sequence/at(.completed.input, 82) == 187 && sequence/at(.completed.input, 83) == 0)) && ((sequence/at(.completed.input, 84) == 9 && sequence/at(.completed.input, 85) == 5) && (sequence/at(.completed.input, 86) == 1 && sequence/at(.completed.input, 87) == 13))) && (((sequence/at(.completed.input, 88) == 192 && sequence/at(.completed.input, 89) == 0) && (sequence/at(.completed.input, 90) == 1 && sequence/at(.completed.input, 91) == 0)) && ((sequence/at(.completed.input, 92) == 0 && sequence/at(.completed.input, 93) == 7) && (sequence/at(.completed.input, 94) == 37 && sequence/at(.completed.input, 95) == 1))))) && ((sequence/at(.completed.input, 96) == 1 && sequence/at(.completed.input, 97) == 0) && (sequence/at(.completed.input, 98) == 0 && sequence/at(.completed.input, 99) == 0))))))
+
+plot usb-audio-empty-ack (
+    completion: UsbControlResult...| >> supported: Boolean...|
+) = (!(. is completed) ? false : (.completed.transferred == 0 && !.completed.short && sequence/length(.completed.input) == 0))
+
+plot usb-audio-set-rate-ack (
+    completion: UsbControlResult...| >> supported: Boolean...|
+) = (!(. is completed) ? false : (.completed.transferred == 3 && !.completed.short && sequence/length(.completed.input) == 0))
+
+plot usb-audio-get-rate-ack (
+    completion: UsbControlResult...| >> supported: Boolean...|
+) = (!(. is completed) ? false : (.completed.transferred != 3 || .completed.short || sequence/length(.completed.input) != 3 ? false : (sequence/at(.completed.input, 0) == 128 && sequence/at(.completed.input, 1) == 187 && sequence/at(.completed.input, 2) == 0)))
+
+plot usb-audio-configuration-request (
+    start: Boolean...| >> request: UsbControlRequest...|
+) = ({ setup: 67840, output: [] })
+
+plot usb-audio-alternate-request (
+    start: Boolean...| >> request: UsbControlRequest...|
+) = ({ setup: 4295035649, output: [] })
+
+plot usb-audio-set-rate-request (
+    start: Boolean...| >> request: UsbControlRequest...|
+) = ({ setup: 844429241876770, output: [128, 187, 0] })
+
+plot usb-audio-get-rate-request (
+    start: Boolean...| >> request: UsbControlRequest...|
+) = ({ setup: 844429241909666, output: [] })
+
+plot usb-audio-pcm-cadence (
+    packet: UsbAudioPcmPacket...| >> cadence: UsbPcmCadence...|
+) = (.cadence)
+
+plot usb-audio-pcm-supported (
+    observation: UsbAudioPacketObservation...| >> supported: Boolean...|
+) = (.packet.header.representation is signed16-little-endian && .packet.header.sample-rate-hz == 48000 && .packet.header.layout is stereo-left-right && .packet.header.frame-count == 48 && .packet.header.payload-bytes == 192 && bytes/length(.packet.wire) == 192 && .cadence-bytes == 192 && !.packet.header.discontinuity)
+
+plot usb-audio-pcm-packet (
+    packet: UsbAudioPcmPacket...| >> request: UsbIsochronousPacket...|
+) = ({ frame: .frame, wire: .wire })
+
+plot usb-audio-terminal (
+    result: UsbIsochronousOutResult...| >> terminal: UsbAudioTerminal...|
+) = (. is completed ? completed(empty) : (. is short ? short(empty) : (. is missed-service ? missed-service(empty) : (. is underrun ? underrun(empty) : (. is provider-lost ? provider-lost(empty) : (. is drained ? drained(empty) : unsupported(empty)))))))
+
+# One finite native batch; this projection never claims continuous playback.
+# Header continuity and explicit controller-frame continuity must both hold.
+# Large policy is composed from bounded singlepacket and adjacentpair gears,
+# rather than one pure expression that exceeds canonical program node bounds.
+plot usb-audio-eight-packet-shape-supported (
+    pcm: UsbAudioPcmBatch...| >> supported: Boolean...|
+) = (!(.transfer is batch) ? false : sequence/length(.transfer.batch.packets) == 8)
+
+plot usb-audio-eight-packet-request (
+    pcm: UsbAudioPcmBatch...| >> request: UsbIsochronousOutRequest...|
+) = (.transfer)
+
+plot usb-audio-packet-supported (
+    packet: UsbAudioPcmPacket...| >> supported: Boolean...|
+) = (.header.representation is signed16-little-endian && .header.sample-rate-hz == 48000 && .header.layout is stereo-left-right && .header.frame-count == 48 && .header.payload-bytes == 192 && bytes/length(.wire) == 192 && !.header.discontinuity && .cadence.sample_rate == 48000 && .cadence.channels == 2 && .cadence.sample_bytes == 2 && .cadence.phase == (.header.start-frame / 48) % 1000)
+plot usb-audio-adjacent-pcm-supported (
+    pair: UsbAudioPcmPair...| >> supported: Boolean...|
+) = (.previous.header.start-frame > 18446744073709551567 ? false : (.next.header.clock-id == .previous.header.clock-id && .next.header.start-frame == .previous.header.start-frame + 48 && .next.frame == (.previous.frame + 1) % 2048))
+
+plot usb-audio-packet-0 (
+    pcm: UsbAudioPcmBatch...| >> packet: UsbAudioPcmPacket...|
+) = (sequence/at(.packets, 0))
+plot usb-audio-wire-0-supported (
+    pcm: UsbAudioPcmBatch...| >> supported: Boolean...|
+) = (!(.transfer is batch) ? false : (sequence/length(.transfer.batch.packets) != 8 ? false : (sequence/at(.transfer.batch.packets, 0).frame == sequence/at(.packets, 0).frame && sequence/at(.transfer.batch.packets, 0).wire == sequence/at(.packets, 0).wire)))
+
+plot usb-audio-packet-1 (
+    pcm: UsbAudioPcmBatch...| >> packet: UsbAudioPcmPacket...|
+) = (sequence/at(.packets, 1))
+plot usb-audio-wire-1-supported (
+    pcm: UsbAudioPcmBatch...| >> supported: Boolean...|
+) = (!(.transfer is batch) ? false : (sequence/length(.transfer.batch.packets) != 8 ? false : (sequence/at(.transfer.batch.packets, 1).frame == sequence/at(.packets, 1).frame && sequence/at(.transfer.batch.packets, 1).wire == sequence/at(.packets, 1).wire)))
+
+plot usb-audio-packet-2 (
+    pcm: UsbAudioPcmBatch...| >> packet: UsbAudioPcmPacket...|
+) = (sequence/at(.packets, 2))
+plot usb-audio-wire-2-supported (
+    pcm: UsbAudioPcmBatch...| >> supported: Boolean...|
+) = (!(.transfer is batch) ? false : (sequence/length(.transfer.batch.packets) != 8 ? false : (sequence/at(.transfer.batch.packets, 2).frame == sequence/at(.packets, 2).frame && sequence/at(.transfer.batch.packets, 2).wire == sequence/at(.packets, 2).wire)))
+
+plot usb-audio-packet-3 (
+    pcm: UsbAudioPcmBatch...| >> packet: UsbAudioPcmPacket...|
+) = (sequence/at(.packets, 3))
+plot usb-audio-wire-3-supported (
+    pcm: UsbAudioPcmBatch...| >> supported: Boolean...|
+) = (!(.transfer is batch) ? false : (sequence/length(.transfer.batch.packets) != 8 ? false : (sequence/at(.transfer.batch.packets, 3).frame == sequence/at(.packets, 3).frame && sequence/at(.transfer.batch.packets, 3).wire == sequence/at(.packets, 3).wire)))
+
+plot usb-audio-packet-4 (
+    pcm: UsbAudioPcmBatch...| >> packet: UsbAudioPcmPacket...|
+) = (sequence/at(.packets, 4))
+plot usb-audio-wire-4-supported (
+    pcm: UsbAudioPcmBatch...| >> supported: Boolean...|
+) = (!(.transfer is batch) ? false : (sequence/length(.transfer.batch.packets) != 8 ? false : (sequence/at(.transfer.batch.packets, 4).frame == sequence/at(.packets, 4).frame && sequence/at(.transfer.batch.packets, 4).wire == sequence/at(.packets, 4).wire)))
+
+plot usb-audio-packet-5 (
+    pcm: UsbAudioPcmBatch...| >> packet: UsbAudioPcmPacket...|
+) = (sequence/at(.packets, 5))
+plot usb-audio-wire-5-supported (
+    pcm: UsbAudioPcmBatch...| >> supported: Boolean...|
+) = (!(.transfer is batch) ? false : (sequence/length(.transfer.batch.packets) != 8 ? false : (sequence/at(.transfer.batch.packets, 5).frame == sequence/at(.packets, 5).frame && sequence/at(.transfer.batch.packets, 5).wire == sequence/at(.packets, 5).wire)))
+
+plot usb-audio-packet-6 (
+    pcm: UsbAudioPcmBatch...| >> packet: UsbAudioPcmPacket...|
+) = (sequence/at(.packets, 6))
+plot usb-audio-wire-6-supported (
+    pcm: UsbAudioPcmBatch...| >> supported: Boolean...|
+) = (!(.transfer is batch) ? false : (sequence/length(.transfer.batch.packets) != 8 ? false : (sequence/at(.transfer.batch.packets, 6).frame == sequence/at(.packets, 6).frame && sequence/at(.transfer.batch.packets, 6).wire == sequence/at(.packets, 6).wire)))
+
+plot usb-audio-packet-7 (
+    pcm: UsbAudioPcmBatch...| >> packet: UsbAudioPcmPacket...|
+) = (sequence/at(.packets, 7))
+plot usb-audio-wire-7-supported (
+    pcm: UsbAudioPcmBatch...| >> supported: Boolean...|
+) = (!(.transfer is batch) ? false : (sequence/length(.transfer.batch.packets) != 8 ? false : (sequence/at(.transfer.batch.packets, 7).frame == sequence/at(.packets, 7).frame && sequence/at(.transfer.batch.packets, 7).wire == sequence/at(.packets, 7).wire)))
+plot usb-audio-adjacent-0-supported (
+    pcm: UsbAudioPcmBatch...| >> supported: Boolean...|
+) = (sequence/at(.packets, 0).header.start-frame > 18446744073709551567 ? false : (sequence/at(.packets, 1).header.clock-id == sequence/at(.packets, 0).header.clock-id && sequence/at(.packets, 1).header.start-frame == sequence/at(.packets, 0).header.start-frame + 48 && sequence/at(.packets, 1).frame == (sequence/at(.packets, 0).frame + 1) % 2048))
+plot usb-audio-adjacent-1-supported (
+    pcm: UsbAudioPcmBatch...| >> supported: Boolean...|
+) = (sequence/at(.packets, 1).header.start-frame > 18446744073709551567 ? false : (sequence/at(.packets, 2).header.clock-id == sequence/at(.packets, 1).header.clock-id && sequence/at(.packets, 2).header.start-frame == sequence/at(.packets, 1).header.start-frame + 48 && sequence/at(.packets, 2).frame == (sequence/at(.packets, 1).frame + 1) % 2048))
+plot usb-audio-adjacent-2-supported (
+    pcm: UsbAudioPcmBatch...| >> supported: Boolean...|
+) = (sequence/at(.packets, 2).header.start-frame > 18446744073709551567 ? false : (sequence/at(.packets, 3).header.clock-id == sequence/at(.packets, 2).header.clock-id && sequence/at(.packets, 3).header.start-frame == sequence/at(.packets, 2).header.start-frame + 48 && sequence/at(.packets, 3).frame == (sequence/at(.packets, 2).frame + 1) % 2048))
+plot usb-audio-adjacent-3-supported (
+    pcm: UsbAudioPcmBatch...| >> supported: Boolean...|
+) = (sequence/at(.packets, 3).header.start-frame > 18446744073709551567 ? false : (sequence/at(.packets, 4).header.clock-id == sequence/at(.packets, 3).header.clock-id && sequence/at(.packets, 4).header.start-frame == sequence/at(.packets, 3).header.start-frame + 48 && sequence/at(.packets, 4).frame == (sequence/at(.packets, 3).frame + 1) % 2048))
+plot usb-audio-adjacent-4-supported (
+    pcm: UsbAudioPcmBatch...| >> supported: Boolean...|
+) = (sequence/at(.packets, 4).header.start-frame > 18446744073709551567 ? false : (sequence/at(.packets, 5).header.clock-id == sequence/at(.packets, 4).header.clock-id && sequence/at(.packets, 5).header.start-frame == sequence/at(.packets, 4).header.start-frame + 48 && sequence/at(.packets, 5).frame == (sequence/at(.packets, 4).frame + 1) % 2048))
+plot usb-audio-adjacent-5-supported (
+    pcm: UsbAudioPcmBatch...| >> supported: Boolean...|
+) = (sequence/at(.packets, 5).header.start-frame > 18446744073709551567 ? false : (sequence/at(.packets, 6).header.clock-id == sequence/at(.packets, 5).header.clock-id && sequence/at(.packets, 6).header.start-frame == sequence/at(.packets, 5).header.start-frame + 48 && sequence/at(.packets, 6).frame == (sequence/at(.packets, 5).frame + 1) % 2048))
+plot usb-audio-adjacent-6-supported (
+    pcm: UsbAudioPcmBatch...| >> supported: Boolean...|
+) = (sequence/at(.packets, 6).header.start-frame > 18446744073709551567 ? false : (sequence/at(.packets, 7).header.clock-id == sequence/at(.packets, 6).header.clock-id && sequence/at(.packets, 7).header.start-frame == sequence/at(.packets, 6).header.start-frame + 48 && sequence/at(.packets, 7).frame == (sequence/at(.packets, 6).frame + 1) % 2048))
+
+plot usb-audio-descriptor-request (
+    start: Boolean...| >> request: UsbControlRequest...|
+) = ({ setup: 0x0064000002000680, output: [] })
+
+# Explicit Source clock-domain projection:32ms initial margin,1ms service,
+# all eight frames retained in the generic request. Native rechecks deadlines.
+plot usb-audio-schedule-packet (
+    input: UsbAudioSchedulingInput...| >> request: UsbIsochronousOutRequest...|
+) = (batch({ packets: [{ frame: ((.clock.current-microframe / 8) + 32) % 2048, wire: .packet.wire }] }))

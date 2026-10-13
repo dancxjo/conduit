@@ -34,6 +34,34 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
             if self.pending_usb.is_some() || self.pending_usb_failed {
                 return Ok(false);
             }
+            if matches!(
+                binding.owner,
+                Owner::UsbDuplexControl | Owner::UsbDuplexRead | Owner::UsbDuplexWrite
+            ) && self
+                .storage
+                .as_ref()
+                .is_some_and(|storage| !storage.allows_usb(node))
+            {
+                return Ok(false);
+            }
+            // Native idle and an empty dispatcher map do not retire the
+            // original Kernel obligation. In particular, a recovery control
+            // must not cross an unacknowledged bulk result or retained token.
+            if matches!(binding.owner, Owner::UsbDuplexControl) {
+                let host = self
+                    .usb_duplex
+                    .as_ref()
+                    .ok_or(ProtocolCallRefusal::InvalidPlan)?;
+                if kernel
+                    .has_retained_host_call_for_nodes(
+                        &self.identity.host_id,
+                        &host.bulk_subordinate_nodes(),
+                    )
+                    .map_err(ProtocolCallRefusal::Kernel)?
+                {
+                    return Ok(false);
+                }
+            }
             let available = match binding.owner {
                 Owner::UsbDuplexRead => self.pending_duplex[0].is_none(),
                 Owner::UsbDuplexWrite => self.pending_duplex[1].is_none(),
@@ -93,6 +121,19 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
         let expected = match binding.owner {
             Owner::Pure(ref owner) => owner.contract(),
             Owner::I2c(_) => I2C_CALL,
+            #[cfg(feature = "native-owner-network")]
+            Owner::EthernetFrame(_) => crate::ethernet_frame::contract::FRAME_CALL,
+            #[cfg(any(
+                target_arch = "x86_64",
+                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+            ))]
+            Owner::StorageAuthorize => crate::storage_base::transaction_contract::AUTHORIZE_CALL,
+            #[cfg(any(
+                target_arch = "x86_64",
+                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+            ))]
+            Owner::StorageSettle => crate::storage_base::transaction_contract::SETTLE_CALL,
+
             #[cfg(any(
                 target_arch = "x86_64",
                 all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
@@ -136,6 +177,23 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
             .admitted_host_request_view(&admitted)
             .map_err(Refusal::Kernel)?
             .request;
+        #[cfg(any(
+            target_arch = "x86_64",
+            all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+        ))]
+        if matches!(
+            binding.owner,
+            Owner::StorageAuthorize | Owner::StorageSettle
+        ) {
+            let settle = matches!(binding.owner, Owner::StorageSettle);
+            let result =
+                self.dispatch_storage(kernel, &admitted, node, call.call, call.request, settle);
+            if let Err(error) = result {
+                Self::complete_failure(kernel, &admitted, &error)?;
+                return Err(error);
+            }
+            return Ok(());
+        }
         let input = kernel
             .host_request_input(&admitted)
             .map_err(Refusal::Kernel)?;
@@ -241,13 +299,18 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
                 target_arch = "x86_64",
                 all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
             ))]
-            Owner::UsbDuplexControl => self
-                .usb_duplex
-                .as_mut()
-                .ok_or(Refusal::InvalidPlan)?
-                .control_invoke(node, call.call, call.request, input)
-                .map(Some)
-                .map_err(Refusal::UsbProtocol),
+            Owner::UsbDuplexControl => {
+                let host = self.usb_duplex.as_mut().ok_or(Refusal::InvalidPlan)?;
+                // SAFETY: can_dispatch above independently checked original
+                // bulk Kernel obligations and dispatcher tokens before admission.
+                match unsafe { host.prepare_endpoint_recovery() } {
+                    Ok(()) => host
+                        .control_invoke(node, call.call, call.request, input)
+                        .map(Some)
+                        .map_err(Refusal::UsbProtocol),
+                    Err(error) => Err(Refusal::UsbProtocol(error)),
+                }
+            }
             #[cfg(any(
                 target_arch = "x86_64",
                 all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
@@ -267,6 +330,16 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
                 .invoke(node, call.call, call.request, input)
                 .map(Some)
                 .map_err(Refusal::Usb),
+            #[cfg(feature = "native-owner-network")]
+            Owner::EthernetFrame(owner) => owner
+                .invoke(node, call.call, call.request, input)
+                .map(Some)
+                .map_err(Refusal::EthernetFrame),
+            #[cfg(any(
+                target_arch = "x86_64",
+                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+            ))]
+            Owner::StorageAuthorize | Owner::StorageSettle => return Err(Refusal::InvalidPlan),
             Owner::Pure(owner) => owner.invoke(node, call.call, call.request, input),
             Owner::I2c(owner) => owner
                 .invoke(node, call.call, call.request, input)

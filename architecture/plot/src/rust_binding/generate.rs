@@ -1,3 +1,6 @@
+mod carrier_traits;
+pub(super) use carrier_traits::copy_type;
+use carrier_traits::hash_type;
 mod names;
 use crate::prelude::*;
 use crate::{CheckedNativeType, CheckedTypeForm};
@@ -598,56 +601,6 @@ fn emit_payload_struct(
     }
     writeln!(out, "}}\n").expect("String writing is infallible");
     Ok(())
-}
-
-pub(super) fn copy_type(value_type: &StructuredInfoType) -> bool {
-    match value_type.shape() {
-        StructuredInfoTypeShape::Leaf(kind) => !matches!(
-            conduit_core::primitive_info_kind(kind.as_str()),
-            Some(PrimitiveInfoKind::Text | PrimitiveInfoKind::Bytes) | None
-        ),
-        StructuredInfoTypeShape::Nominal { representation, .. } => copy_type(representation),
-        StructuredInfoTypeShape::Record { fields, .. } => {
-            fields.iter().all(|field| copy_type(field.value_type()))
-        }
-        StructuredInfoTypeShape::Variant { cases, .. } => {
-            cases.iter().all(|case| copy_type(case.payload_type()))
-        }
-        StructuredInfoTypeShape::Sequence { .. } => false,
-        StructuredInfoTypeShape::Collection { element, .. } => copy_type(element),
-    }
-}
-
-fn hash_type(value_type: &StructuredInfoType) -> bool {
-    match value_type.shape() {
-        StructuredInfoTypeShape::Leaf(kind) => matches!(
-            conduit_core::primitive_info_kind(kind.as_str()),
-            Some(
-                PrimitiveInfoKind::Empty
-                    | PrimitiveInfoKind::CancellationRequest
-                    | PrimitiveInfoKind::Bool
-                    | PrimitiveInfoKind::Count
-                    | PrimitiveInfoKind::Text
-                    | PrimitiveInfoKind::I8
-                    | PrimitiveInfoKind::U8
-                    | PrimitiveInfoKind::I16
-                    | PrimitiveInfoKind::U16
-                    | PrimitiveInfoKind::I32
-                    | PrimitiveInfoKind::U32
-                    | PrimitiveInfoKind::I64
-                    | PrimitiveInfoKind::U64
-                    | PrimitiveInfoKind::I128
-                    | PrimitiveInfoKind::U128
-                    | PrimitiveInfoKind::F32
-                    | PrimitiveInfoKind::F64
-            )
-        ),
-        StructuredInfoTypeShape::Nominal { representation, .. } => hash_type(representation),
-        StructuredInfoTypeShape::Collection { element, .. } => hash_type(element),
-        StructuredInfoTypeShape::Record { .. }
-        | StructuredInfoTypeShape::Variant { .. }
-        | StructuredInfoTypeShape::Sequence { .. } => false,
-    }
 }
 
 fn emit_semantic_type_impl(out: &mut String, rust_name: &str, constant: &str) {

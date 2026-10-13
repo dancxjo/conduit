@@ -81,6 +81,7 @@ fn validate_node(
                     // A closed constant can establish its own laws before Play.
                     // It must not disable the existing proof of input arithmetic.
                     let constant = PortableExpressionProgram {
+                        input_maximum_bytes: None,
                         input_type: conduit_core::StructuredInfoType::leaf(conduit_core::kind_id(
                             conduit_core::EMPTY_INFO_ID,
                         ))

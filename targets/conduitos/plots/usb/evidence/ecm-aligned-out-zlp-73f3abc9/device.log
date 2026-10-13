@@ -1,0 +1,3 @@
+ECM_DEVICE_LISTENING /dev/shm/conduit-ecm-o3rk3zk4/device.sock
+ECM_DEVICE_CONNECTED full-speed ffff:f118 IN81 OUT02 IRQ83
+ECM_DEVICE_PEER_CLOSED

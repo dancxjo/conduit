@@ -109,6 +109,7 @@ pub(super) fn execute(args: InputArgs, opts: &GlobalOpts) -> Result<(), Conduito
     let bytes = serde_json::to_vec_pretty(&ProtocolBootInput {
         port: args.port,
         canonical_bytes,
+        subsequent_values: Vec::new(),
     })
     .map_err(|error| refusal("protocol-input-record-refused", error))?;
     fs::OpenOptions::new()

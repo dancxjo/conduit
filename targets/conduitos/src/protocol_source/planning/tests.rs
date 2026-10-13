@@ -124,7 +124,9 @@ fn an_atomic_input_fanout_uses_the_smallest_selected_queue_envelope() {
     let entry =
         PreparedProtocolEntry::prepare(&serde_json::to_vec(&package).unwrap(), "fanout").unwrap();
     let exact_artifact = entry.artifact_id().clone();
+    let exact_package = *entry.package_digest();
     let prepared = entry.plan(&hosts, &placements, &bases, options).unwrap();
+    assert_eq!(prepared.package_digest(), Some(&exact_package));
     let artifact = prepared.artifact();
     assert_eq!(artifact.identity().artifact, exact_artifact);
     let partition = prepared.body_partition();
@@ -138,6 +140,25 @@ fn an_atomic_input_fanout_uses_the_smallest_selected_queue_envelope() {
     let body_plan = conduit_body::BodyPlan::seal(&wake, vec![partition.clone()]).unwrap();
     body_plan.validate_for(&wake).unwrap();
     assert_eq!(body_plan.plots[0], partition);
+    let play = conduit_body::BodyPlayIdentity::bind(&body_plan, 0);
+    let pin =
+        super::super::body_play::storage_preparation::commitment(&prepared, &body_plan, &play)
+            .unwrap()
+            .unwrap();
+    let next_play = conduit_body::BodyPlayIdentity::bind(&body_plan, 1);
+    assert_ne!(pin, super::super::body_play::storage_preparation::commitment(
+        &prepared, &body_plan, &next_play,
+    ).unwrap().unwrap());
+    let mut foreign_play = play;
+    foreign_play.plan_id = "foreign/body-plan".into();
+    assert!(
+        super::super::body_play::storage_preparation::commitment(
+            &prepared,
+            &body_plan,
+            &foreign_play,
+        )
+        .is_err()
+    );
 
     // A protocol partition cannot silently omit another resident Plot.
     let complete_workset = conduit_body::BodyWorkset::from_plots([
@@ -300,3 +321,6 @@ fn source_admission_requires_the_actual_retained_concat_owner() {
         }
     }
 }
+
+#[path = "tests/output_envelope.rs"]
+mod output_envelope;

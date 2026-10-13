@@ -1,0 +1,52 @@
+{
+  "proof_class": "native-qemu-two-supported-architectures",
+  "same_package_sha256": "35f2583c5a317aa8902217857a5aa2197a63614bebf539900a21282f5cf6fdfb",
+  "same_root_request": true,
+  "cases": [
+    {
+      "architecture": "x86_64",
+      "kernel_build": {
+        "schema": "conduit.conduitos.build/v2",
+        "artifact_role": "product-host",
+        "base_commit": "bfa318cf0128b5fcf223b3588f63ae68af0977b2",
+        "architecture": "x86_64",
+        "rust_target": "x86_64-unknown-none",
+        "limine_crate": "0.5.0",
+        "elf_sha256": "8b0900d2a57e2ff46950ed43f6006ce67ee0481000089a143deb8f4eb099d143"
+      },
+      "root_sha256": "cc4b3a55636c8239f62f03a8a11e19870a5066fd63de3bf56014288c7e97f21b",
+      "packets": 72,
+      "exact_pcm_bytes": 13824,
+      "terminal_phase": 3,
+      "acknowledged_stop": true,
+      "alloc_attempts": 0,
+      "realloc_attempts": 0,
+      "serial_sha256": "1b87f01728852ae976731a5a53cc539e0fff5ac46e4c8fd097e0a14a8fb46230"
+    },
+    {
+      "architecture": "aarch64",
+      "kernel_build": {
+        "schema": "conduit.conduitos.build/v2",
+        "artifact_role": "product-host",
+        "base_commit": "ef11f7034e17caa65a14209a44018241bc29cae9",
+        "architecture": "aarch64",
+        "rust_target": "aarch64-unknown-none",
+        "limine_crate": "0.5.0",
+        "elf_sha256": "ffbf3b439a633d5c2afef773d4a1af6109230c4a40af80cc1d1aed36ac537721"
+      },
+      "root_sha256": "cc4b3a55636c8239f62f03a8a11e19870a5066fd63de3bf56014288c7e97f21b",
+      "packets": 72,
+      "exact_pcm_bytes": 13824,
+      "terminal_phase": 3,
+      "acknowledged_stop": true,
+      "alloc_attempts": 0,
+      "realloc_attempts": 0,
+      "serial_sha256": "b3be6bcacadd0b07fbf07e650f09286f3ec019d1cbe09cb6ac73916b9ccd1d72"
+    }
+  ],
+  "limitations": [
+    "public observation output still needs output-boundary fix",
+    "not five-architecture acceptance",
+    "not physical audible output"
+  ]
+}

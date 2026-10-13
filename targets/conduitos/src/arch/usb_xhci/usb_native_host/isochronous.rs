@@ -233,3 +233,65 @@ impl<'a> UsbNativeHost<'a> {
         Ok(IsochronousOutObservation::Cancelled)
     }
 }
+
+#[cfg(test)]
+impl UsbNativeHost<'_> {
+    pub(crate) fn synthetic_iso_event(
+        &self,
+        code: u8,
+        residual: u32,
+        stop_code: Option<u8>,
+    ) -> crate::arch::xhci_mechanism::Event {
+        let event = self
+            .isochronous
+            .as_ref()
+            .expect("original ISO transfer")
+            .synthetic_original_event(code, residual);
+        // SAFETY: only called by the serialized original-controller fixture.
+        unsafe {
+            crate::arch::xhci_mechanism::synthetic_transfer_event(
+                &self.controller,
+                event,
+                stop_code,
+            );
+        }
+        event
+    }
+    pub(crate) fn synthetic_iso_late_event(&self, event: crate::arch::xhci_mechanism::Event) {
+        // SAFETY: serialized fixture; preserve the original late TRB identity.
+        unsafe {
+            crate::arch::xhci_mechanism::synthetic_transfer_event(&self.controller, event, None);
+        }
+    }
+    pub(crate) fn synthetic_iso_wire(&self) -> &[u8] {
+        self.isochronous
+            .as_ref()
+            .expect("original ISO transfer")
+            .synthetic_original_wire()
+    }
+    pub(crate) fn synthetic_iso_pending(&self) -> usize {
+        self.isochronous
+            .as_ref()
+            .map_or(0, |transfer| transfer.pending_count())
+    }
+    pub(crate) fn synthetic_original_stop_ack(&self) {
+        // SAFETY: fixture mutex held; acknowledgment names the original command.
+        unsafe {
+            crate::arch::xhci_mechanism::synthetic_late_original_stop_ack(&self.controller);
+        }
+    }
+    pub(crate) fn synthetic_next_stop_ack(&self) {
+        // SAFETY: fixture mutex held; names the exact next cancellation command.
+        unsafe {
+            crate::arch::xhci_mechanism::synthetic_next_stop_ack(&self.controller);
+        }
+    }
+}
+
+#[cfg(test)]
+impl UsbNativeCallIndex {
+    /// Placeholder for a fixture that never invokes or advertises control.
+    pub(crate) fn synthetic_unused() -> Self {
+        Self(usize::MAX)
+    }
+}

@@ -181,14 +181,30 @@ pub(crate) fn prepare_native_usb_endpoint_protocol<P: I2cProvider, C: MonotonicD
         // The composite kernel prepares one fragment Play with sequence zero.
         // Its identity remains distinct from the aggregate Body Play identity.
         let active = bind_active_play(&plan.plan_id, &hosts[0].host_id, &hosts[0].boot_id, 0);
-        let possession = issuer
-            .issue(
-                plan,
-                &active,
-                &ImplementationId::from(crate::usb_base::control_factory::CONTROL_IMPLEMENTATION),
-                work_units,
+        let has_control = plan
+            .fragments
+            .iter()
+            .flat_map(|fragment| &fragment.placements)
+            .any(|gear| {
+                gear.implementation_id.as_str()
+                    == crate::usb_base::control_factory::CONTROL_IMPLEMENTATION
+            });
+        let possession = if has_control {
+            Some(
+                issuer
+                    .issue(
+                        plan,
+                        &active,
+                        &ImplementationId::from(
+                            crate::usb_base::control_factory::CONTROL_IMPLEMENTATION,
+                        ),
+                        work_units,
+                    )
+                    .map_err(Reason::Possession)?,
             )
-            .map_err(Reason::Possession)?;
+        } else {
+            None
+        };
         let endpoint_possession = endpoint_issuer
             .issue(
                 plan,
@@ -208,21 +224,36 @@ pub(crate) fn prepare_native_usb_endpoint_protocol<P: I2cProvider, C: MonotonicD
                 &hosts[0].boot_id,
             )
             .map_err(Reason::Lifecycle)?;
-        match PreparedProtocolBodyPlay::prepare_usb_protocol(
-            artifact,
-            retained_session.take().expect("retained body"),
-            body_play_sequence,
-            crate::protocol_play::UsbProtocolAdmission {
-                additional_remote_sign_items,
-                ready,
-                control_table: possession.table,
-                control_handle: possession.handle,
-                control_claim: possession.claim,
-                endpoint_table: endpoint_possession.table,
-                endpoint_handle: endpoint_possession.handle,
-                endpoint_claim: endpoint_possession.claim,
-            },
-        ) {
+        let result = match possession {
+            Some(possession) => PreparedProtocolBodyPlay::prepare_usb_protocol(
+                artifact,
+                retained_session.take().expect("retained body"),
+                body_play_sequence,
+                crate::protocol_play::UsbProtocolAdmission {
+                    additional_remote_sign_items,
+                    ready,
+                    control_table: possession.table,
+                    control_handle: possession.handle,
+                    control_claim: possession.claim,
+                    endpoint_table: endpoint_possession.table,
+                    endpoint_handle: endpoint_possession.handle,
+                    endpoint_claim: endpoint_possession.claim,
+                },
+            ),
+            None => PreparedProtocolBodyPlay::prepare_usb_endpoint_only(
+                artifact,
+                retained_session.take().expect("retained body"),
+                body_play_sequence,
+                crate::protocol_play::UsbEndpointAdmission {
+                    additional_remote_sign_items,
+                    ready,
+                    endpoint_table: endpoint_possession.table,
+                    endpoint_handle: endpoint_possession.handle,
+                    endpoint_claim: endpoint_possession.claim,
+                },
+            ),
+        };
+        match result {
             Ok(play) => Ok(play),
             Err(refusal) => {
                 retained_session = Some(refusal.session);
@@ -238,140 +269,15 @@ pub(crate) fn prepare_native_usb_endpoint_protocol<P: I2cProvider, C: MonotonicD
     })
 }
 
-/// Plan and admit three transports with independently issued exact possession.
-#[allow(clippy::too_many_arguments)]
-pub(crate) fn prepare_native_usb_duplex_protocol<P: I2cProvider, C: MonotonicDeadlineProvider>(
-    entry: PreparedProtocolEntry,
-    session: BodyLifecycleSession,
-    mut advertisement: HostAdvertisement,
-    ready: crate::arch::ReadyUsbDuplexHost,
-    issuer: NativeProtocolIssuer,
-    endpoint_issuer: NativeProtocolIssuer,
-    write_issuer: NativeProtocolIssuer,
-    body_play_sequence: u64,
-    work_units: u64,
-    additional_remote_sign_items: u16,
-) -> Result<PreparedProtocolBodyPlay<P, C>, Box<NativeProtocolPreparationRefusal>> {
-    use NativeProtocolPreparationReason as Reason;
-    let mut retained_session = Some(session);
-    let prepared = (|| {
-        let contract = crate::usb_base::control_contract::ControlContract::prepare()
-            .map_err(Reason::Contract)?;
-        let endpoint_contract =
-            crate::usb_base::endpoint_read_contract::EndpointReadContract::prepare()
-                .map_err(Reason::Contract)?;
-        let write_contract =
-            crate::usb_base::endpoint_write_contract::EndpointWriteContract::prepare()
-                .map_err(Reason::Contract)?;
-        ready
-            .append_to_advertisement(
-                &mut advertisement,
-                &contract,
-                &endpoint_contract,
-                &write_contract,
-            )
-            .map_err(|error| {
-                Reason::Body(super::body_play::ProtocolBodyRefusal::Call(
-                    crate::protocol_host_calls::ProtocolCallRefusal::UsbProtocol(error),
-                ))
-            })?;
-        entry
-            .publish_pure_backs(&mut advertisement)
-            .map_err(Reason::Source)?;
-        let grants = [
-            issuer.grant().clone(),
-            endpoint_issuer.grant().clone(),
-            write_issuer.grant().clone(),
-        ];
-        let hosts = [advertisement];
-        let placements = entry.placements(&hosts).map_err(Reason::Source)?;
-        let empty = BTreeMap::new();
-        let artifact = entry
-            .plan(
-                &hosts,
-                &placements,
-                &[BaseImplementationId::from("conduit.base/local@1")],
-                PlanningOptions {
-                    connection_bases: &empty,
-                    line_candidates: &BTreeMap::new(),
-                    connection_item_capacity: 1,
-                    connection_byte_capacity: 512,
-                    authority_grants: &grants,
-                    protected_resource_grants: &[],
-                    line_offers: &[],
-                },
-            )
-            .map_err(Reason::Source)?;
-        let plan = &artifact.artifact().definition().internal_plan;
-        // The composite kernel prepares one fragment Play with sequence zero.
-        // Its identity remains distinct from the aggregate Body Play identity.
-        let active = bind_active_play(&plan.plan_id, &hosts[0].host_id, &hosts[0].boot_id, 0);
-        let possession = issuer
-            .issue(
-                plan,
-                &active,
-                &ImplementationId::from(crate::usb_base::control_factory::CONTROL_IMPLEMENTATION),
-                work_units,
-            )
-            .map_err(Reason::Possession)?;
-        let endpoint_possession = endpoint_issuer
-            .issue(
-                plan,
-                &active,
-                &ImplementationId::from(
-                    crate::usb_base::endpoint_read_factory::ENDPOINT_READ_IMPLEMENTATION,
-                ),
-                work_units,
-            )
-            .map_err(Reason::Possession)?;
-        let write_possession = write_issuer
-            .issue(
-                plan,
-                &active,
-                &ImplementationId::from(
-                    crate::usb_base::endpoint_write_factory::ENDPOINT_WRITE_IMPLEMENTATION,
-                ),
-                work_units,
-            )
-            .map_err(Reason::Possession)?;
-        retained_session
-            .as_mut()
-            .expect("retained body")
-            .propose(
-                vec![artifact.body_partition()],
-                &hosts[0].host_id,
-                &hosts[0].boot_id,
-            )
-            .map_err(Reason::Lifecycle)?;
-        match PreparedProtocolBodyPlay::prepare_usb_duplex(
-            artifact,
-            retained_session.take().expect("retained body"),
-            body_play_sequence,
-            crate::protocol_play::UsbDuplexAdmission {
-                additional_remote_sign_items,
-                ready,
-                control_table: possession.table,
-                control_handle: possession.handle,
-                control_claim: possession.claim,
-                endpoint_table: endpoint_possession.table,
-                endpoint_handle: endpoint_possession.handle,
-                endpoint_claim: endpoint_possession.claim,
-                write_table: write_possession.table,
-                write_handle: write_possession.handle,
-                write_claim: write_possession.claim,
-            },
-        ) {
-            Ok(play) => Ok(play),
-            Err(refusal) => {
-                retained_session = Some(refusal.session);
-                Err(Reason::Body(refusal.reason))
-            }
-        }
-    })();
-    prepared.map_err(|reason| {
-        Box::new(NativeProtocolPreparationRefusal {
-            session: retained_session.expect("refused body retained"),
-            reason,
-        })
-    })
-}
+#[path = "native_storage_preparation.rs"]
+mod storage;
+pub(crate) use storage::NativeStoragePreparation;
+#[path = "native_usb_duplex_preparation.rs"]
+mod duplex;
+#[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
+pub(crate) use duplex::NativeEthernetPreparation;
+pub(crate) use duplex::prepare_native_usb_duplex;
+
+#[cfg(all(test, target_arch = "x86_64"))]
+#[path = "native_usb_endpoint_tests.rs"]
+mod endpoint_tests;

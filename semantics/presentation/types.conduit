@@ -694,3 +694,20 @@ type ComponentRecipeInfo = {
     regions: sequence ComponentRegionInfo <= 8
     version: U16 in 1..=1
 }
+
+# Proposed current input mapping, outside Face and Look. Construction is not
+# admission: the checked input Plot, current Host offer, Face and Show must
+# establish the binding before its control label can become an instruction.
+type ActionInputBindingProposalInfo = {
+    available: Boolean
+    boot_id: Text <= 128B not in [""]
+    control_identity: Text <= 128B not in [""]
+    control_label: Text <= 64B not in [""]
+    face_identity: Text <= 128B not in [""]
+    host_id: Text <= 128B not in [""]
+    input_plan_id: Text <= 128B not in [""]
+    mapping_revision: U64 in 1..=18446744073709551615
+    offered_action: GeneratedActionAffordance
+    show_identity: Text <= 128B not in [""]
+    version: U16 in 1..=1
+}

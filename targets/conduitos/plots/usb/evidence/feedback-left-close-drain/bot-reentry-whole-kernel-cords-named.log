@@ -1,0 +1,101 @@
+warning: function `authorized_route` is never used
+ --> targets/conduitos/src/protocol_play/usb/storage_ingress.rs:2:15
+  |
+2 | pub(super) fn authorized_route<'a>(
+  |               ^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: function `backing` is never used
+  --> targets/conduitos/src/protocol_boot/usb_storage_owners.rs:16:4
+   |
+16 | fn backing(capacity: usize, live: usize) -> Result<u64, &'static str> {
+   |    ^^^^^^^
+
+warning: `conduitos` (lib) generated 2 warnings
+   Compiling conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/targets/conduitos)
+warning: function `source` is never used
+ --> targets/conduitos/tests/usb_bot_reentry/fixture.rs:7:15
+  |
+7 | pub(super) fn source() -> PreparedProtocolSource {
+  |               ^^^^^^
+  |
+  = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: function `source_with` is never used
+  --> targets/conduitos/tests/usb_bot_reentry/fixture.rs:10:15
+   |
+10 | pub(super) fn source_with(extra: &str) -> PreparedProtocolSource {
+   |               ^^^^^^^^^^^
+
+warning: function `program` is never used
+  --> targets/conduitos/tests/usb_bot_reentry/fixture.rs:23:15
+   |
+23 | pub(super) fn program(source: &PreparedProtocolSource, name: &str) -> PortableExpressionProgram {
+   |               ^^^^^^^
+
+warning: function `read_completed` is never used
+  --> targets/conduitos/tests/usb_bot_reentry/fixture.rs:92:15
+   |
+92 | pub(super) fn read_completed(
+   |               ^^^^^^^^^^^^^^
+
+warning: function `state` is never used
+   --> targets/conduitos/tests/usb_bot_reentry/fixture.rs:108:15
+    |
+108 | pub(super) fn state(ty: &StructuredInfoType, phase: u64) -> StructuredInfoValue {
+    |               ^^^^^
+
+warning: function `pair` is never used
+   --> targets/conduitos/tests/usb_bot_reentry/fixture.rs:134:15
+    |
+134 | pub(super) fn pair(
+    |               ^^^^
+
+warning: function `evaluate` is never used
+   --> targets/conduitos/tests/usb_bot_reentry/fixture.rs:160:15
+    |
+160 | pub(super) fn evaluate(
+    |               ^^^^^^^^
+
+warning: function `accepted` is never used
+   --> targets/conduitos/tests/usb_bot_reentry/fixture.rs:170:15
+    |
+170 | pub(super) fn accepted(
+    |               ^^^^^^^^
+
+warning: function `read_event` is never used
+   --> targets/conduitos/tests/usb_bot_reentry/fixture.rs:186:15
+    |
+186 | pub(super) fn read_event(
+    |               ^^^^^^^^^^
+
+warning: function `settled_event` is never used
+   --> targets/conduitos/tests/usb_bot_reentry/fixture.rs:202:15
+    |
+202 | pub(super) fn settled_event(
+    |               ^^^^^^^^^^^^^
+
+warning: `conduitos` (test "usb_bot_reentry_closure") generated 10 warnings
+    Finished `test` profile [unoptimized] target(s) in 0.56s
+     Running tests/usb_bot_reentry_closure.rs (../usb-target/debug/deps/usb_bot_reentry_closure-d34fee6048b39a92)
+
+running 1 test
+retained_host_calls=false external_terminal=Some(Normal)
+route_balance GearId("bot-storage-read-reentry/requests") port=PortId(0) routed=2 consumed=1 targets=[(ConnectionId("8db1b7fafaae85435cb5dfc4d1ec6178f3da7fd2c1d0794d322fc2458f694fd9"), Local { node: NodeId(4), port: PortId(1) }, Payload)]
+node4=Some(GearId("bot-storage-read-reentry/commands"))
+count=1 retired=false remaining=[]
+
+thread 'whole_kernel_failed_clear_has_no_fresh_authority_or_usb_effect' (694069) panicked at targets/conduitos/tests/usb_bot_reentry_closure.rs:118:9:
+graph closure witness: remaining=[]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test whole_kernel_failed_clear_has_no_fresh_authority_or_usb_effect ... FAILED
+
+failures:
+
+failures:
+    whole_kernel_failed_clear_has_no_fresh_authority_or_usb_effect
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 11.64s
+
+error: test failed, to rerun pass `-p conduitos --test usb_bot_reentry_closure`

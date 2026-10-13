@@ -24,12 +24,16 @@ fn encode(
     checked: &CheckedExpression,
     sink: &mut ProgramSink,
 ) -> Result<(), PortableExpressionProgramRefusal> {
-    sink.extend_from_slice(b"conduit.pure-expression.program.v2");
-    for ty in [&checked.input_type, &checked.value_type] {
-        push_type(
-            sink,
-            &ty.structured_info_type_with(&checked.semantic_structures)?,
-        )?;
+    input_bound::push_header(sink, checked.input_maximum_bytes);
+    for (index, ty) in [&checked.input_type, &checked.value_type]
+        .into_iter()
+        .enumerate()
+    {
+        let ty = ty.structured_info_type_with(&checked.semantic_structures)?;
+        if index == 0 {
+            input_bound::validate_bound(checked.input_maximum_bytes)?;
+        }
+        push_type(sink, &ty)?;
     }
     push_checked(sink, &checked.syntax, checked)?;
     if sink.length > MAXIMUM_PURE_EXPRESSION_PROGRAM_BYTES {

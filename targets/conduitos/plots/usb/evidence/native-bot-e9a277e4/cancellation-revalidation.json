@@ -1,0 +1,38 @@
+[
+  {
+    "architecture": "x86_64",
+    "mode": "hold-in",
+    "root_outcome": "protocol-step-budget-exhausted",
+    "block_outputs": 0,
+    "original_cancel_id": 515485696,
+    "device_response_after_cancel_status": 1,
+    "late_native_completion_proven": false
+  },
+  {
+    "architecture": "x86_64",
+    "mode": "late-after-cancel",
+    "root_outcome": "protocol-step-budget-exhausted",
+    "block_outputs": 0,
+    "original_cancel_id": 515485696,
+    "device_response_after_cancel_status": 0,
+    "late_native_completion_proven": false
+  },
+  {
+    "architecture": "aarch64",
+    "mode": "hold-in",
+    "root_outcome": "protocol-step-budget-exhausted",
+    "block_outputs": 0,
+    "original_cancel_id": 1510780928,
+    "device_response_after_cancel_status": 1,
+    "late_native_completion_proven": false
+  },
+  {
+    "architecture": "aarch64",
+    "mode": "late-after-cancel",
+    "root_outcome": "protocol-step-budget-exhausted",
+    "block_outputs": 0,
+    "original_cancel_id": 1510780928,
+    "device_response_after_cancel_status": 0,
+    "late_native_completion_proven": false
+  }
+]

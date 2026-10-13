@@ -1,0 +1,9 @@
+   Compiling conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/targets/conduitos)
+    Finished `test` profile [unoptimized] target(s) in 0.59s
+     Running tests/usb_bot_reentry_closure.rs (../usb-target/debug/deps/usb_bot_reentry_closure-d34fee6048b39a92)
+
+running 1 test
+test whole_kernel_failed_clear_has_no_fresh_authority_or_usb_effect ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 20.83s
+

@@ -29,6 +29,12 @@ pub(crate) struct InstalledSpeechOptions {
     /// Native LanguageCoverage bound to the exact selected provider source.
     #[arg(long, requires = "selected_speech_mode")]
     pub(crate) speech_language_coverage: Option<PathBuf>,
+    /// Maximum retained speech artifacts for the explicitly selected equipment.
+    #[arg(long, requires_all = ["selected_speech_mode", "speech_artifact_maximum_bytes"])]
+    pub(crate) speech_artifact_maximum_artifacts: Option<usize>,
+    /// Maximum retained WAV bytes; per-Play synthesis limits remain fixed.
+    #[arg(long, requires_all = ["selected_speech_mode", "speech_artifact_maximum_artifacts"])]
+    pub(crate) speech_artifact_maximum_bytes: Option<u64>,
 }
 
 /// Explicit local synthesis and speaker selection for a screen-free session.
@@ -106,5 +112,50 @@ mod tests {
             SelectionCommand::try_parse_from(["selection", "--selected-artifact-speech"]).is_err()
         );
         assert!(SelectionCommand::try_parse_from(["selection"]).is_ok());
+    }
+    #[test]
+    fn artifact_retention_cli_requires_selection_and_both_bounds() {
+        let base = [
+            "selection",
+            "--selected-artifact-speech",
+            "--speech-executable",
+            "/bin/espeak-ng",
+            "--speech-data",
+            "/data",
+            "--speech-engine",
+            "/lib/engine.so",
+            "--speech-language-coverage",
+            "coverage.native",
+        ];
+        let selected = SelectionCommand::try_parse_from(base.into_iter().chain([
+            "--speech-artifact-maximum-artifacts",
+            "128",
+            "--speech-artifact-maximum-bytes",
+            "800000000",
+        ]))
+        .unwrap()
+        .speech;
+        assert_eq!(selected.speech_artifact_maximum_artifacts, Some(128));
+        assert_eq!(selected.speech_artifact_maximum_bytes, Some(800_000_000));
+        assert!(SelectionCommand::try_parse_from(
+            base.into_iter()
+                .chain(["--speech-artifact-maximum-artifacts", "128"])
+        )
+        .is_err());
+        assert!(SelectionCommand::try_parse_from([
+            "selection",
+            "--speech-artifact-maximum-artifacts",
+            "128",
+            "--speech-artifact-maximum-bytes",
+            "800000000"
+        ])
+        .is_err());
+        assert!(SelectionCommand::try_parse_from(base.into_iter().chain([
+            "--speech-artifact-maximum-artifacts",
+            "-1",
+            "--speech-artifact-maximum-bytes",
+            "800000000"
+        ]))
+        .is_err());
     }
 }

@@ -9,6 +9,7 @@ use conduit_plot::ExpandedAuthoringPlot;
 pub struct PreparedProtocolArtifact {
     artifact: AdmittedProtocolArtifact,
     operations: ProtocolOperations,
+    package_digest: Option<[u8; 32]>,
 }
 
 impl PreparedProtocolSource {
@@ -92,11 +93,23 @@ impl PreparedProtocolSource {
         Ok(PreparedProtocolArtifact {
             artifact,
             operations: self.operations,
+            package_digest: None,
         })
     }
 }
 
 impl PreparedProtocolArtifact {
+    /// Exact packaged bytes are retained only through PreparedProtocolEntry.
+    /// The digest is correlation/provenance, never storage possession.
+    pub fn package_digest(&self) -> Option<&[u8; 32]> {
+        self.package_digest.as_ref()
+    }
+
+    pub(super) fn retain_package_digest(mut self, digest: [u8; 32]) -> Self {
+        self.package_digest = Some(digest);
+        self
+    }
+
     pub(crate) fn into_preparation_parts(
         self,
     ) -> (
@@ -108,6 +121,38 @@ impl PreparedProtocolArtifact {
 
     pub fn artifact(&self) -> &AdmittedProtocolArtifact {
         &self.artifact
+    }
+
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    pub(crate) fn prepare_storage_usb_duplex<P: crate::i2c_base::I2cProvider>(
+        self,
+        admission: crate::protocol_play::StorageUsbAdmission,
+    ) -> Result<crate::protocol_play::PreparedProtocolPlay<P>, ProtocolCallRefusal> {
+        crate::protocol_play::PreparedProtocolPlay::prepare_storage_usb_duplex(
+            self.artifact.into_definition(),
+            admission,
+            self.operations,
+        )
+    }
+
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    pub(crate) fn prepare_storage_usb_duplex_two_pairs<P: crate::i2c_base::I2cProvider>(
+        self,
+        admission: crate::protocol_play::StorageUsbAdmission,
+        additional: crate::protocol_host_calls::AdditionalStoragePairAdmission,
+    ) -> Result<crate::protocol_play::PreparedProtocolPlay<P>, ProtocolCallRefusal> {
+        crate::protocol_play::PreparedProtocolPlay::prepare_storage_usb_duplex_two_pairs(
+            self.artifact.into_definition(),
+            admission,
+            additional,
+            self.operations,
+        )
     }
 
     /// Consume the exact local Plan and retained generic operation owners.
@@ -164,6 +209,21 @@ impl PreparedProtocolArtifact {
         target_arch = "x86_64",
         all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
     ))]
+    pub(crate) fn prepare_usb_endpoint_only<P: crate::i2c_base::I2cProvider>(
+        self,
+        usb: crate::protocol_play::UsbEndpointAdmission,
+    ) -> Result<crate::protocol_play::PreparedProtocolPlay<P>, ProtocolCallRefusal> {
+        crate::protocol_play::PreparedProtocolPlay::prepare_usb_endpoint_only(
+            self.artifact.into_definition(),
+            usb,
+            self.operations,
+        )
+    }
+
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
     pub(crate) fn prepare_usb_protocol<P: crate::i2c_base::I2cProvider>(
         self,
         usb: crate::protocol_play::UsbProtocolAdmission,
@@ -201,6 +261,21 @@ impl PreparedProtocolArtifact {
         crate::protocol_play::PreparedProtocolPlay::prepare_usb_duplex(
             self.artifact.into_definition(),
             usb,
+            self.operations,
+        )
+    }
+
+    /// Consume the retained package owners together with actual native possession.
+    #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
+    pub(crate) fn prepare_usb_ethernet<P: crate::i2c_base::I2cProvider>(
+        self,
+        usb: crate::protocol_play::UsbDuplexAdmission,
+        network: crate::protocol_host_calls::EthernetFrameAdmission,
+    ) -> Result<crate::protocol_play::PreparedProtocolPlay<P>, ProtocolCallRefusal> {
+        crate::protocol_play::PreparedProtocolPlay::prepare_usb_ethernet(
+            self.artifact.into_definition(),
+            usb,
+            network,
             self.operations,
         )
     }

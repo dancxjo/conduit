@@ -120,10 +120,11 @@ it. Link the owning issue when there is one. Include a screenshot or retained
 evidence link when it helps review a visible change. GitHub already records
 commits and checks; you do not need to copy their identities into the prose.
 
-Keep active work in a draft PR for quick checks, then mark it ready for review
-to run exhaustive admission proof. Portable meaning and affected target lanes
-run in parallel after preflight. Automation
-runs all targets once for combined development, then publishes those tested
+Draft and ready PRs receive the same formatting, lint, affected package tests
+and relevant smoke checks. Native isolation and device ownership changes retain
+stronger targeted platform proof. Mark a healthy draft ready when it can be
+reviewed and merged. Automation runs exhaustive proof once for combined
+development, then publishes those tested
 products after verifying their identities; release does not rebuild them.
 Contributors do not need to assemble promotion receipts or manage release
 branches. See [CI for contributors](docs/contributing/ci.md) when a real

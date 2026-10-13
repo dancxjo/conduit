@@ -1,0 +1,17 @@
+{
+  "usb-wire.jsonl": "4e86c3e6e65fe37ee837cee23674717ba4e62f9ead7ecc30259fdcaa6a59be38",
+  "package.json": "1a341ecaf311abeb2a6cb1618134bcf77beb8cd0a17f2def05c99d05b6e205c6",
+  "canonical_decoder.py": "8da23349084b55e0b4e5b263e2517ec45948501ede5dce38d476036a456a5295",
+  "peer-receipt.json": "f6b3fccb601e7c3dddc1ecbf9c68f86fce6c851f2cda0567798ab8ce5d52abca",
+  "root-request.json": "f6587c4327676e10fbb24da54cf11715081ff5f2b6b1ae4432ed26dd3cb2645d",
+  "README.md": "16baffd7ec433f51f2301b4c1aee3ee791c6264fecf5896b7196275c47e8ab52",
+  "device.log": "60143e25035ca0cde295e95b1d3028301c3d7ec2848335aa35760f3a0c58e62b",
+  "check.py": "ef5ce2119046536661761e96a0ac0a83e7127967a3ea4b9d2e96b4223ac9eaf9",
+  "image-receipt.json": "b032c91b96f6fb01925b9fda68142b6b46363621d8fb8d9fbb1c8becb0f6437e",
+  "build.json": "9a1b428d6bebed30c1be6a264ddeb49877d60e841857dfd84ab1f03da736c9cc",
+  "tcp_peer.py": "41347ddec32b0fbcee79b0fddd573fd8ff36d0f4fa66f312d09a625950bf5457",
+  "network.log": "9d2ce2762b818109c15ada79e93aaefdb5ef7b62fcff4921d0c013880666d576",
+  "run/serial.log": "71378e4d09ffaa3688eee81f290f2548f155412a5a5fdfde0a9d828f70c646b2",
+  "run/qemu.log": "4328d04b6c547e1b4b54b9c101318f46554ed92398017f97ea5c91c8b4d64655",
+  "run/receipt.json": "6298d559f9a2b53aa98ebac2ffa32e6aa7dc6c2b88f23bccc2553dc7240a6bd6"
+}

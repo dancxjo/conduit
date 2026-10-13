@@ -85,6 +85,7 @@ mod fusion;
 mod generic_selection;
 mod incremental;
 mod locality;
+mod numerical_realization;
 mod observations;
 mod performance_policy;
 mod policy;

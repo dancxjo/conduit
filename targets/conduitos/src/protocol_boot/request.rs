@@ -13,6 +13,24 @@ pub struct ProtocolBootInput {
     pub port: String,
     /// Canonical typed bytes; the exact kind is taken from the checked Fore.
     pub canonical_bytes: Vec<u8>,
+    /// Additional ordered Flow values, admitted under ordinary boundary pressure.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub subsequent_values: Vec<Vec<u8>>,
+}
+
+impl ProtocolBootInput {
+    pub(super) fn valid(&self) -> bool {
+        !self.port.is_empty()
+            && self.port.len() <= 128
+            && self.subsequent_values.len() < 16
+            && core::iter::once(&self.canonical_bytes)
+                .chain(&self.subsequent_values)
+                .all(|bytes| {
+                    !bytes.is_empty()
+                        && bytes.len()
+                            <= crate::protocol_source::MAXIMUM_PROTOCOL_FORE_BYTES as usize
+                })
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -90,13 +108,7 @@ impl ProtocolBootRequest {
             || request.maximum_steps == 0
             || request.maximum_steps > 1000000
             || request.inputs.len() > 16
-            || request.inputs.iter().any(|input| {
-                input.port.is_empty()
-                    || input.port.len() > 128
-                    || input.canonical_bytes.is_empty()
-                    || input.canonical_bytes.len()
-                        > crate::protocol_source::MAXIMUM_PROTOCOL_FORE_BYTES as usize
-            })
+            || request.inputs.iter().any(|input| !input.valid())
             || request.inputs.iter().enumerate().any(|(index, input)| {
                 request.inputs[..index]
                     .iter()

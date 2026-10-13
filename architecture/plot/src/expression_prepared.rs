@@ -32,6 +32,7 @@ use structured::PreparedStructuredExpression;
 pub struct PreparedPortableExpressionEvaluator {
     root: PreparedRoot,
     input: PreparedInput,
+    input_maximum_bytes: Option<u32>,
     output: Vec<u8>,
 }
 
@@ -41,12 +42,24 @@ enum PreparedInput {
         kind: PrimitiveInfoKind,
         info_kind: String,
         nominal_type: Option<SharedBytes>,
+        maximum_bytes: Option<u32>,
     },
-    Structured(SharedBytes),
+    Structured(SharedBytes, Option<u32>),
+}
+
+impl PreparedInput {
+    fn maximum_bytes(&self) -> Option<u32> {
+        match self {
+            Self::Primitive { maximum_bytes, .. } | Self::Structured(_, maximum_bytes) => {
+                *maximum_bytes
+            }
+        }
+    }
 }
 
 #[derive(Clone, Copy)]
 struct ProgramView<'a> {
+    input_maximum_bytes: Option<u32>,
     input_type: &'a conduit_core::StructuredInfoType,
     output_type: &'a conduit_core::StructuredInfoType,
     root: &'a PortableExpressionNode,
@@ -93,22 +106,36 @@ enum PreparedOperation {
     Bytes(byte_observation::PreparedByteObservation),
 }
 
-/// Finite canonical frame ceiling from an exact checked Type, including leaf framing.
-pub fn maximum_prepared_canonical_value_bytes(
-    ty: &conduit_core::StructuredInfoType,
-) -> Result<u32, Refusal> {
-    Ok(storage_bound::canonical(ty)? as u32)
-}
+use storage_bound::maximum_input_type_bytes;
+pub use storage_bound::maximum_prepared_canonical_value_bytes;
 
 impl PortableExpressionProgram {
     /// Conservative canonical transport ceiling, computed before Play from the exact input Type.
     pub fn maximum_prepared_input_bytes(&self) -> Result<u32, Refusal> {
-        Ok(storage_bound::output(&self.input_type)? as u32)
+        self.validate_input_bound()
+            .map_err(|_| Refusal::InvalidProgram)?;
+        let structural = maximum_input_type_bytes(&self.input_type)?;
+        Ok(self
+            .input_maximum_bytes
+            .map_or(structural, |maximum| maximum.min(structural)))
     }
 
-    /// Conservative canonical transport ceiling, computed before Play from the exact output Type.
+    /// Conservative transport ceiling from the operation and admitted input.
+    /// Programs without an input envelope retain their structural Type ceiling.
     pub fn maximum_prepared_output_bytes(&self) -> Result<u32, Refusal> {
-        Ok(storage_bound::output(&self.output_type)? as u32)
+        if self.input_type == self.output_type
+            && matches!(self.root.operation, PortableExpressionOperation::Input)
+        {
+            return self.maximum_prepared_input_bytes();
+        }
+        self.validate_input_bound()
+            .map_err(|_| Refusal::InvalidProgram)?;
+        u32::try_from(storage_bound::expression(
+            &self.root,
+            &self.input_type,
+            self.input_maximum_bytes,
+        )?)
+        .map_err(|_| Refusal::InvalidProgram)
     }
 }
 
@@ -119,6 +146,7 @@ impl PreparedPortableExpressionEvaluator {
                 kind: leaf_kind(&program.input_type)?,
                 info_kind: leaf_info_kind(&program.input_type)?.into(),
                 nominal_type: None,
+                maximum_bytes: program.input_maximum_bytes,
             },
             StructuredInfoTypeShape::Nominal { representation, .. }
                 if matches!(representation.shape(), StructuredInfoTypeShape::Leaf(_)) =>
@@ -126,6 +154,7 @@ impl PreparedPortableExpressionEvaluator {
                 PreparedInput::Primitive {
                     kind: leaf_kind(&program.input_type)?,
                     info_kind: leaf_info_kind(&program.input_type)?.into(),
+                    maximum_bytes: program.input_maximum_bytes,
                     nominal_type: Some(
                         program
                             .input_type
@@ -141,19 +170,44 @@ impl PreparedPortableExpressionEvaluator {
                     .canonical_bytes()
                     .map_err(|_| Refusal::InvalidProgram)?
                     .into(),
+                program.input_maximum_bytes,
             ),
         };
-        Self::prepare(
+        program
+            .validate_input_bound()
+            .map_err(|_| Refusal::InvalidProgram)?;
+        let mut prepared = Self::prepare_with_output_capacity(
             ProgramView {
+                input_maximum_bytes: program.input_maximum_bytes,
                 input_type: &program.input_type,
                 output_type: &program.output_type,
                 root: &program.root,
             },
             input,
-        )
+            storage_bound::expression(
+                &program.root,
+                &program.input_type,
+                program.input_maximum_bytes,
+            )?,
+        )?;
+        prepared.input_maximum_bytes = program.input_maximum_bytes;
+        Ok(prepared)
     }
 
     fn prepare(program: ProgramView<'_>, input: PreparedInput) -> Result<Self, Refusal> {
+        let capacity = storage_bound::expression(
+            program.root,
+            program.input_type,
+            program.input_maximum_bytes,
+        )?;
+        Self::prepare_with_output_capacity(program, input, capacity)
+    }
+
+    fn prepare_with_output_capacity(
+        program: ProgramView<'_>,
+        input: PreparedInput,
+        capacity: usize,
+    ) -> Result<Self, Refusal> {
         let root = match program.output_type.shape() {
             StructuredInfoTypeShape::Leaf(_) | StructuredInfoTypeShape::Nominal { .. }
                 if leaf_kind(program.output_type).is_ok() =>
@@ -182,17 +236,25 @@ impl PreparedPortableExpressionEvaluator {
         Ok(Self {
             root,
             input,
-            output: Vec::with_capacity(storage_bound::output(program.output_type)?),
+            input_maximum_bytes: program.input_maximum_bytes,
+            output: Vec::with_capacity(capacity),
         })
     }
 
     pub fn evaluate(&mut self, input: &[u8]) -> Result<&[u8], Refusal> {
+        if self
+            .input_maximum_bytes
+            .is_some_and(|maximum| input.len() > maximum as usize)
+        {
+            return Err(Refusal::InvalidInput);
+        }
         let mut primitive_bytes = input;
         let primitive_input = match &self.input {
             PreparedInput::Primitive {
                 kind,
                 info_kind,
                 nominal_type,
+                ..
             } => {
                 if let Some(expected) = nominal_type {
                     primitive_bytes = nominal::input_payload(input, expected)?;
@@ -201,7 +263,7 @@ impl PreparedPortableExpressionEvaluator {
                     .map_err(|_| Refusal::InvalidInput)?;
                 Some(*kind)
             }
-            PreparedInput::Structured(expected) => {
+            PreparedInput::Structured(expected, _) => {
                 let validated = conduit_core::validate_canonical_structured_value(input)
                     .map_err(|_| Refusal::InvalidInput)?;
                 if validated.type_bytes() != expected.as_ref() {
@@ -334,8 +396,10 @@ fn prepare_node(
         PortableExpressionOperation::SemanticCall {
             kind: call,
             arguments,
-        } if matches!(call.as_str(), "bytes/length" | "bytes/at") => {
-            let expected = if call == "bytes/at" {
+        } if matches!(call.as_str(), "bytes/length" | "bytes/at" | "bytes/window") => {
+            let expected = if call == "bytes/window" {
+                PrimitiveInfoKind::Bytes
+            } else if call == "bytes/at" {
                 PrimitiveInfoKind::U8
             } else {
                 PrimitiveInfoKind::U64
@@ -365,7 +429,7 @@ fn prepare_node(
         _ => {
             return Err(Refusal::UnsupportedType(
                 "structured expression runtime".into(),
-            ))
+            ));
         }
     };
     Ok(PreparedNode {

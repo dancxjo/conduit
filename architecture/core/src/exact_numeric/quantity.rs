@@ -7,6 +7,7 @@ use crate::{
 };
 use core::cmp::Ordering;
 
+mod arithmetic;
 mod enclosure;
 mod projection;
 mod receipt;
@@ -104,6 +105,13 @@ impl RationalQuantity {
     ) -> Result<Self, RationalQuantityRefusal> {
         crate::quantity::compatible_units(self.unit, self.role, target)
             .map_err(RationalQuantityRefusal::Physical)?;
+        if self.unit == target {
+            // Preserve the already admitted coordinate instead of forming
+            // unnecessary scale/offset intermediates. Charge the fixed storage
+            // of both rational limbs; identity is bounded work, not free fuel.
+            work.charge((2 * super::EXACT_NUMERIC_MAX_BITS / 32) as u64)?;
+            return Ok(self);
+        }
         let offset = target
             .exact_offset(self.role)
             .map_err(|_| RationalQuantityRefusal::InvalidRole)?;

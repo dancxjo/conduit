@@ -83,6 +83,10 @@ impl PreparedProtocolSource {
             retain(offer.clone())?;
         }
         for gear in &expanded.expanded.gears {
+            if gear.kind_id.as_str() == conduit_data::bytes_literal::BYTES_LITERAL_KIND {
+                retain(crate::bytes_literal::offer())?;
+                continue;
+            }
             if gear.kind_id.as_str() == conduit_text::TEXT_LITERAL_KIND {
                 retain(crate::functional_offers::text_literal_offer())?;
                 continue;
@@ -185,10 +189,10 @@ impl PreparedProtocolSource {
                 };
                 let limit = ConnectionQueueLimits {
                     item_capacity: 1,
-                    byte_capacity: selected
-                        .limits
-                        .max_queue_bytes
-                        .min(super::MAXIMUM_PROTOCOL_FORE_BYTES),
+                    byte_capacity: selected.limits.max_queue_bytes.min(match direction {
+                        PortDirection::Input => super::MAXIMUM_PROTOCOL_FORE_BYTES,
+                        PortDirection::Output => super::MAXIMUM_PROTOCOL_OUTPUT_FORE_BYTES,
+                    }),
                 };
                 boundaries
                     .entry(key)

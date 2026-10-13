@@ -1,0 +1,12 @@
+{
+  "artifact_id": "conduitos/protocol-source/sha256/873c156e351413161f4a4f49a76b446323ae59471ea85251a7aec4ac256e1c50",
+  "checked_plot_id": "63099e0851407765ddd9cc281304682ed3d9a4394ea3249d912b5e3b7160664e",
+  "entry": "usb-control-call",
+  "expanded_plot_id": "6377ac192ebd3345edc8e7f057c3f55b25336a9549a1ada105e75c39676df188",
+  "gears": 1,
+  "package_bytes": 384,
+  "package_sha256": "sha256:873c156e351413161f4a4f49a76b446323ae59471ea85251a7aec4ac256e1c50",
+  "proof_class": "source-check-and-expansion",
+  "schema": "conduit.conduitos/protocol-source-receipt@1",
+  "source_document_id": "dc02722175c9568da4023685de8ab0da5436275c097420acf974206ab3eba1f7"
+}

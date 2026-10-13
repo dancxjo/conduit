@@ -1,0 +1,18 @@
+   Compiling conduit-composite v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/architecture/composite)
+    Finished `test` profile [unoptimized] target(s) in 0.98s
+     Running unittests src/lib.rs (../usb-target/debug/deps/conduit_composite-b34a5815d4967d40)
+
+running 10 tests
+test flow_zip::tests::finite_close_retires_queued_unmatched_values_one_per_step ... ok
+test flow_zip::tests::feedback_close_tests::formed_pair_left_close_preserves_pressure_then_drains_until_real_right_close ... ok
+test flow_zip::tests::normal_close_discards_one_unmatched_value_and_uses_exact_input_contract ... ok
+test flow_zip::tests::feedback_left_close_waits_for_delayed_right_payload_and_its_real_close ... ok
+test flow_zip::tests::finite_typed_pair_close_flush_is_bounded_under_pressure_without_allocation ... ok
+test flow_zip::tests::typed_pair_preparation_requires_exact_member_kind_contracts ... ok
+test flow_zip::tests::opposite_arrival_order_emits_one_exact_pair_and_clears_both_slots ... ok
+test flow_zip::tests::feedback_close_tests::right_abnormal_during_left_first_drain_is_failure_not_normal_completion ... ok
+test flow_zip::tests::empty_feedback_close_waits_for_initial_state_without_growth ... ok
+test flow_zip::tests::typed_pairing_preserves_nested_schema_under_pressure_without_play_allocation ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 31 filtered out; finished in 0.00s
+

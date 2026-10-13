@@ -12,7 +12,8 @@ use std::{
     thread,
     time::{Duration, Instant},
 };
-const MAXIMUM_TRANSCRIPT: u64 = 262144;
+
+mod storage_fixture;
 
 #[derive(Args, Debug)]
 pub(super) struct RunArgs {
@@ -24,6 +25,9 @@ pub(super) struct RunArgs {
     output_dir: PathBuf,
     #[arg(long, default_value_t = 120, value_parser = clap::value_parser!(u64).range(1..=120))]
     seconds: u64,
+    /// Finite byte admission for each retained serial or emulator transcript.
+    #[arg(long, default_value_t = 262144, value_parser = clap::value_parser!(u64).range(4096..=16777216))]
+    maximum_transcript_bytes: u64,
     /// Attach an isolated emulated mouse to xHCI for class-neutral control proof.
     /// This supplies hardware only; the checked Plot and Root still admit effects.
     #[arg(long)]
@@ -31,6 +35,9 @@ pub(super) struct RunArgs {
     /// Inject exactly one known mouse report after the guest begins product Play.
     #[arg(long, requires = "usb_control_mouse")]
     usb_mouse_report: bool,
+    /// Generate a new readonly 1 MiB USB storage fixture in output-dir.
+    #[arg(long, conflicts_with_all = ["usb_control_mouse", "usb_mouse_report"])]
+    usb_storage_fixture: bool,
     /// Optional local emulator executable for the receipt's exact architecture.
     #[arg(long)]
     emulator: Option<PathBuf>,
@@ -105,6 +112,14 @@ pub(super) fn execute(args: RunArgs, opts: &GlobalOpts) -> Result<(), ConduitosE
     }
     fs::create_dir(&args.output_dir)
         .map_err(|error| refusal("protocol-run-output-refused", error))?;
+    let emulator = args
+        .emulator
+        .as_deref()
+        .unwrap_or(Path::new(default_emulator));
+    let storage = args
+        .usb_storage_fixture
+        .then(|| storage_fixture::StorageFixture::create(&args.output_dir, emulator))
+        .transpose()?;
     let serial = args.output_dir.join("serial.log");
     let stderr = args.output_dir.join("qemu.log");
     let output_handle = if args.usb_mouse_report {
@@ -176,6 +191,9 @@ pub(super) fn execute(args: RunArgs, opts: &GlobalOpts) -> Result<(), ConduitosE
             fs::File::create(&stderr)
                 .map_err(|error| refusal("protocol-run-output-refused", error))?,
         );
+    if let Some(fixture) = &storage {
+        command.args(&fixture.arguments);
+    }
     if args.usb_mouse_report {
         command
             .current_dir(&args.output_dir)
@@ -188,14 +206,14 @@ pub(super) fn execute(args: RunArgs, opts: &GlobalOpts) -> Result<(), ConduitosE
     let mut injected = false;
     let observed = (|| loop {
         let bytes = if serial.exists() {
-            read(&serial, MAXIMUM_TRANSCRIPT)?
+            read(&serial, args.maximum_transcript_bytes)?
         } else {
             vec![]
         };
         if fs::metadata(&stderr)
             .map_err(|error| refusal("protocol-run-diagnostics-refused", error))?
             .len()
-            > MAXIMUM_TRANSCRIPT
+            > args.maximum_transcript_bytes
         {
             return Err(refusal(
                 "protocol-run-transcript-bound",
@@ -255,6 +273,7 @@ pub(super) fn execute(args: RunArgs, opts: &GlobalOpts) -> Result<(), ConduitosE
         "proof_class": "freestanding-emulator",
         "image_sha256": digest,
         "outcome": outcome,
+        "maximum_transcript_bytes": args.maximum_transcript_bytes,
         "serial_sha256": sha256_file(&serial)?,
         "qemu_profile": profile,
         "architecture": architecture,
@@ -262,6 +281,7 @@ pub(super) fn execute(args: RunArgs, opts: &GlobalOpts) -> Result<(), ConduitosE
         "aarch64_firmware_sha256": args.aarch64_firmware.as_deref().map(sha256_file).transpose()?,
         "physical_compatibility": "unverified",
         "usb_devices": usb_devices(args.usb_control_mouse),
+        "usb_storage_fixture": storage.as_ref().map(|fixture| fixture.receipt()).transpose()?,
         "fixture_input": {
             "requested": args.usb_mouse_report,
             "injected": injected,
@@ -376,6 +396,38 @@ fn refusal(reason: &'static str, detail: impl std::fmt::Display) -> ConduitosErr
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn transcript_admission_rejects_unbounded_or_too_small_cli_requests() {
+        use clap::Parser;
+        for budget in ["0", "4095", "16777217", "18446744073709551615"] {
+            assert!(crate::cli::Cli::try_parse_from([
+                "xtask",
+                "make",
+                "conduitos",
+                "protocol-run",
+                "--media",
+                "media",
+                "--output-dir",
+                "proof",
+                "--maximum-transcript-bytes",
+                budget,
+            ])
+            .is_err());
+        }
+        assert!(crate::cli::Cli::try_parse_from([
+            "xtask",
+            "make",
+            "conduitos",
+            "protocol-run",
+            "--media",
+            "media",
+            "--output-dir",
+            "proof",
+            "--maximum-transcript-bytes",
+            "2097152",
+        ])
+        .is_ok());
+    }
     #[test]
     fn mouse_fixture_is_one_exact_report_after_complete_play_observation() {
         assert!(!play_observed(b"CONDUIT_PROTOCOL_PLAN plan=p\n"));

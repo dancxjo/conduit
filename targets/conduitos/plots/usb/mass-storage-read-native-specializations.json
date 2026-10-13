@@ -1,0 +1,52 @@
+[
+  {
+    "kind": "singleton",
+    "value": {
+      "type_name": "BotStorageEvent",
+      "maximum_bytes": 4096
+    }
+  },
+  {
+    "kind": "seeded-until",
+    "value": {
+      "type_name": "BotStorageState",
+      "maximum_bytes": 4096
+    }
+  },
+  {
+    "kind": "concat",
+    "value": {
+      "type_name": "BotStorageEvent",
+      "maximum_bytes": 4096
+    }
+  },
+  {
+    "kind": "merge",
+    "value": {
+      "type_name": "BotStorageEvent",
+      "maximum_bytes": 4096
+    }
+  },
+  {
+    "kind": "feedback-zip",
+    "left": {
+      "type_name": "BotStorageState",
+      "maximum_bytes": 4096
+    },
+    "right": {
+      "type_name": "BotStorageEvent",
+      "maximum_bytes": 4096
+    }
+  },
+  {
+    "kind": "zip",
+    "left": {
+      "type_name": "UsbControlResult",
+      "maximum_bytes": 4096
+    },
+    "right": {
+      "type_name": "BotEvent",
+      "maximum_bytes": 4096
+    }
+  }
+]
