@@ -6,6 +6,7 @@ use super::{
 use crate::machine_membrane::selected_operation::{
     SelectedOperationContract, SelectedOperationPlan, bind_selected_operation,
 };
+use alloc::format;
 use conduit_core::*;
 use conduit_kernel::{HostCallId, NodeId, RequestId};
 use conduit_plan_lowering::lowering::LoweredPlanFragment;
@@ -17,6 +18,9 @@ pub const MAXIMUM_POLL_STEPS: u64 = 4096;
 /// Revocation quiesces its timer and prevents delivery of an old completion.
 pub trait MonotonicDeadlineProvider {
     fn poll_until(&mut self, deadline_ms: u64) -> Result<Option<u64>, ClockDisposition>;
+    fn sample_now(&mut self) -> Result<u64, ClockDisposition> {
+        Err(ClockDisposition::Unavailable)
+    }
     fn revoke(&mut self);
 }
 
@@ -37,6 +41,8 @@ pub enum ClockCallRefusal {
     Cancelled,
     Capability(BaseCapabilityRefusal),
     Canonical(StructuredInfoRefusal),
+    Provider(ClockDisposition),
+    Temporal(MonotonicTimeRefusal),
 }
 struct Pending {
     request: RequestId,
@@ -198,6 +204,49 @@ impl<P: MonotonicDeadlineProvider> MonotonicClockHostCall<P> {
             .complete(&mut self.handle, pending.lease, bytes)
             .map_err(ClockCallRefusal::Capability)?;
         encoded.map(Some).map_err(ClockCallRefusal::Canonical)
+    }
+    pub(crate) fn observe_monotonic(
+        &mut self,
+        node: NodeId,
+        call: HostCallId,
+    ) -> Result<MonotonicInstant, ClockCallRefusal> {
+        self.check_binding(node, call)?;
+        if self.cancelled {
+            return Err(ClockCallRefusal::Cancelled);
+        }
+        if self.pending.is_some() {
+            return Err(ClockCallRefusal::Pending);
+        }
+        let basis = format!(
+            "{}/{}/{}",
+            self.claim.base_instance_id.as_str(),
+            self.claim.base_provider_generation,
+            self.claim.resource_generation_id.0
+        );
+        let clock = MonotonicClockIdentity::new(
+            self.claim.host_id.clone(),
+            self.claim.boot_id.clone(),
+            basis,
+            TemporalScale::Milliseconds,
+            1,
+            1,
+        )
+        .map_err(ClockCallRefusal::Temporal)?;
+        let lease = self
+            .table
+            .authorize(&self.handle, &self.claim)
+            .map_err(ClockCallRefusal::Capability)?;
+        let sampled = self.provider.sample_now();
+        self.table
+            .complete(&mut self.handle, lease, 0)
+            .map_err(ClockCallRefusal::Capability)?;
+        let now = sampled.map_err(ClockCallRefusal::Provider)?;
+        if self.last_observed.is_some_and(|last| now < last) {
+            return Err(ClockCallRefusal::Provider(ClockDisposition::ProviderLost));
+        }
+        let instant = MonotonicInstant::new(now, clock).map_err(ClockCallRefusal::Temporal)?;
+        self.last_observed = Some(now);
+        Ok(instant)
     }
     pub fn revoke(&mut self, node: NodeId, call: HostCallId) -> Result<(), ClockCallRefusal> {
         self.check_binding(node, call)?;

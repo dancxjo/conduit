@@ -16,6 +16,46 @@ impl MonotonicDeadlineProvider for Provider {
     fn revoke(&mut self) {
         self.revoked = true;
     }
+    fn sample_now(&mut self) -> Result<u64, ClockDisposition> {
+        self.next.take().ok_or(ClockDisposition::Unavailable)
+    }
+}
+#[test]
+fn selected_observation_carries_exact_clock_identity_and_refuses_stale_reads() {
+    let mut owner = fixture::owner();
+    owner.provider.next = Some(12);
+    let observed = owner.observe_monotonic(NodeId(0), HostCallId(0)).unwrap();
+    assert_eq!(observed.ticks(), 12);
+    assert_eq!(observed.clock().host_id().as_str(), "host/one");
+    assert_eq!(observed.clock().boot_id().as_str(), "boot/one");
+    assert_eq!(
+        observed.clock().basis_id(),
+        "base/clock/instance/4/resource-generation/7"
+    );
+    assert_eq!(observed.clock().scale(), TemporalScale::Milliseconds);
+    owner
+        .start(NodeId(0), HostCallId(0), RequestId(0), &request(20))
+        .unwrap();
+    assert_eq!(
+        owner.observe_monotonic(NodeId(0), HostCallId(0)),
+        Err(ClockCallRefusal::Pending)
+    );
+    owner.provider.next = Some(20);
+    owner.poll(NodeId(0), HostCallId(0), RequestId(0)).unwrap();
+    owner.provider.next = Some(11);
+    assert_eq!(
+        owner.observe_monotonic(NodeId(0), HostCallId(0)),
+        Err(ClockCallRefusal::Provider(ClockDisposition::ProviderLost))
+    );
+    assert_eq!(
+        owner.observe_monotonic(NodeId(1), HostCallId(0)),
+        Err(ClockCallRefusal::WrongBinding)
+    );
+    owner.revoke(NodeId(0), HostCallId(0)).unwrap();
+    assert_eq!(
+        owner.observe_monotonic(NodeId(0), HostCallId(0)),
+        Err(ClockCallRefusal::Cancelled)
+    );
 }
 fn request(deadline: u64) -> alloc::vec::Vec<u8> {
     let contract = MonotonicClockContract::prepare().unwrap();
