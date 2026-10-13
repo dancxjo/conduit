@@ -1221,7 +1221,7 @@ mod tests {
         let first = install_configured(
             &manifest,
             &state,
-            selected_speech::Change::Replace(selection),
+            selected_speech::Change::Replace(Box::new(selection)),
             selected_model::Change::Preserve,
         )
         .unwrap();
