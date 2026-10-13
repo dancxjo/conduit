@@ -44,8 +44,12 @@ pass. Current-head Candidate and exact merged-tree Integration remain required;
 this ledger does not close #5253 by itself.
 
 Full-slot Stop permanently seals its current Host and revokes possession.
-Endpoint-only quiescence/rearm and interrupted BOT reset reentry are not
-implemented by that terminal path. Isochronous IN and unsupported target/board
+A separate exactly acknowledged single-endpoint STALL path now retains the
+attachment and retires its original Kernel obligation before rearm. The
+[composed BOT guest](bot-read-reentry-24d0b2ca/README.md) proves three checked
+recovery controls followed by an independently authorized fresh read. This does
+not revive the terminal full-slot Host. Failed-clear finite graph drainage remains
+unresolved; Root bounded cancellation preserves its original retirement. Isochronous IN and unsupported target/board
 providers remain explicit unsupported dispositions. Physical/HIL evidence and
 multi-architecture class acceptance are separate scopes, not extra substrate
 closure gates invented by this ledger.
@@ -56,17 +60,17 @@ The exact standalone control entry now executes in the product guest: see
 [retained proof](standalone-control-21e596e3/README.md). Its typed18-byte descriptor
 matches the external fixture, with zero Play allocations and retirement.
 
-The exact standalone endpoint-read entry instead refuses preparation with
+The earlier standalone endpoint-read entry refused preparation with
 `Possession(WrongSelection)`: [retained failure](standalone-endpoint-read-refusal-21e596e3/README.md).
-The current combined admission path unconditionally issues control possession,
+That combined admission path unconditionally issued control possession,
 but this checked Plan has no control placement. The combined guest demonstration
 does not discharge this missing standalone acceptance item.
 
 The endpoint-only admission correction73f3abc97 binds only the exact independently
 selected endpoint scope and refuses control invocation when control is absent.
 [Two production-path regressions and31 native lifecycle tests](endpoint-only-admission-73f3abc9/validation.json)
-pass. This removes the demonstrated preparation defect; a corrected guest rerun
-is still required before claiming the standalone endpoint acceptance item.
+pass. This removes the demonstrated preparation defect. The corrected guest evidence
+below supplies standalone execution, with its actual STALL outcome.
 
 The corrected standalone endpoint guest now executes and reports the device's
 actual STALL, with matching wire request/completion, zero Play allocations and
