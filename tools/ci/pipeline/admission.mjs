@@ -38,5 +38,6 @@ export function runAdmission(paths, metadata, root, run) {
   console.log(`Admission packages: ${plan.packages.join(', ')}`);
   run('cargo', ['clippy', '--locked', '--workspace', '--all-targets', '--', '-D', 'warnings']);
   if (plan.packages.length) run('cargo', ['test', '--locked', '--no-fail-fast', ...plan.packages.flatMap(name => ['-p', name]), '--', '--test-threads=1']);
+  if (plan.packages.includes('conduit-kernel')) run('cargo', ['test', '--locked', '-p', 'conduit-kernel', '--features', 'alloc', '--', '--test-threads=1']);
   if (plan.smoke) run('cargo', ['xtask', 'integrate']);
 }

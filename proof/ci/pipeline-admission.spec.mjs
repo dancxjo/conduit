@@ -37,3 +37,9 @@ test('recognized documentation needs preflight alone; runtime needs smoke', () =
 test('a failed lint cannot be converted into successful admission', () => {
   assert.throws(() => runAdmission(['products/conduit/src/main.rs'], metadata, '/repo', () => { throw new Error('lint failed'); }), /lint failed/);
 });
+
+test('boundary admission retains allocation-feature kernel conformance', () => {
+  const commands = [];
+  runAdmission(['semantics/data/src/number.rs'], metadata, '/repo', (...args) => commands.push(args));
+  assert.ok(commands.some(([program, args]) => program === 'cargo' && args.includes('alloc') && args.includes('conduit-kernel')));
+});
