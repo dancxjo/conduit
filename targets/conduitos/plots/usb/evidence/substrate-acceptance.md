@@ -67,3 +67,9 @@ selected endpoint scope and refuses control invocation when control is absent.
 [Two production-path regressions and31 native lifecycle tests](endpoint-only-admission-73f3abc9/validation.json)
 pass. This removes the demonstrated preparation defect; a corrected guest rerun
 is still required before claiming the standalone endpoint acceptance item.
+
+The corrected standalone endpoint guest now executes and reports the device's
+actual STALL, with matching wire request/completion, zero Play allocations and
+retirement: [retained proof](standalone-endpoint-read-73f3abc9/README.md). This
+proves exact standalone installed-offer execution. Successful byte transfers
+remain proved by the combined and class guests, not relabeled from this STALL.
