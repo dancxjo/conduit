@@ -50,3 +50,11 @@ test('numerical changes exercise the actual Plan/Play Back behind its feature ga
   runAdmission(['architecture/core/src/exact_numeric/realization.rs'], model, '/repo', (...args) => commands.push(args));
   assert.ok(commands.some(([program, args]) => program === 'cargo' && args.includes('kernel-step') && args.includes('numerical_realization')));
 });
+
+ test('plot inventories select their consumers without unrelated workspace tests', () => {
+  assert.deepEqual(plan(['plots/inventory.toml', 'plots/numerics/main.conduit', 'plots/numerics/README.md']).packages, ['conduit']);
+ });
+ test('lock updates with owned manifests select consumers; standalone locks remain broad', () => {
+  assert.deepEqual(plan(['Cargo.lock', 'products/conduit/Cargo.toml']).packages, ['conduit']);
+  assert.deepEqual(plan(['Cargo.lock']).packages, [...names].sort());
+ });

@@ -117,6 +117,10 @@ jobs:
     if: ${{ !inputs.exhaustive && needs.preflight.outputs.docs-only != 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 60
+    env:
+      # Exact arithmetic reference matrices are prohibitively slow unoptimized.
+      # Preserve debug assertions and overflow checks while optimizing execution.
+      CARGO_PROFILE_TEST_OPT_LEVEL: 1
     steps:
       - uses: actions/checkout@v7.0.1
         with:
