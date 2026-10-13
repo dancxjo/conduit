@@ -54,6 +54,9 @@ pub(crate) fn requirements(
         else {
             continue;
         };
+        if crate::numerical_realization::is_profile(property_profile) {
+            continue;
+        }
         if *property_profile != language_coverage_profile() {
             return Err(PlannerError::UnsupportedRealizationRequirement {
                 gear_id: gear.gear_id.clone(),
@@ -159,6 +162,7 @@ pub(crate) fn filter_candidates<T, F>(
 where
     F: for<'a> Fn(&'a T) -> (&'a HostAdvertisement, &'a CapabilityOffer),
 {
+    let candidates = crate::numerical_realization::filter_candidates(gear, candidates, &fields)?;
     let requests = requirements(gear)?;
     if requests.is_empty() {
         return Ok(candidates);
