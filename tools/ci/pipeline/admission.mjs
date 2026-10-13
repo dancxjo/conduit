@@ -13,12 +13,20 @@ export function admissionPlan(paths, metadata, root) {
   const selected = new Set();
   let broad = paths.length === 0;
   for (const name of paths) {
-    if (/^(?:docs\/.+\.md|[^/]+\.md|LICENSE)$/.test(name)) continue;
+    if (name.endsWith('.md') || name === 'LICENSE') continue;
+    // A dependency lock update accompanies its owning manifest; workspace lint
+    // still compiles every consumer. A standalone lock change remains broad.
+    if (name === 'Cargo.lock' && paths.some(item => item.endsWith('/Cargo.toml'))) continue;
     const owner = owners.filter(item => name.startsWith(`${item.directory}/`)).sort((a, b) => b.directory.length - a.directory.length)[0];
     if (/^(?:tools\/ci\/|proof\/ci\/|\.github\/)/.test(name)) {
       for (const item of owners.filter(item => item.directory.startsWith('tools/xtask'))) selected.add(item.pkg.name);
     }
     else if (owner) selected.add(owner.pkg.name);
+    else if (name.startsWith('plots/')) {
+      // Authored plots and their inventory are consumed by the product and
+      // xtask catalog commands, rather than every workspace package.
+      for (const item of owners.filter(item => item.directory === 'products/conduit' || item.directory.startsWith('tools/xtask'))) selected.add(item.pkg.name);
+    }
     else broad = true; // Deleted packages, shared source and unknown paths fail closed.
   }
   if (broad) for (const pkg of members) selected.add(pkg.name);
