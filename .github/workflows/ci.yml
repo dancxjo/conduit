@@ -234,7 +234,7 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
   complete:
-    if: ${{ always() }}
+    if: ${{ always() && !cancelled() }}
     needs: [preflight, unit, admission, target]
     runs-on: ubuntu-24.04
     steps:
