@@ -166,6 +166,13 @@ fn real_body_recovery_retains_exact_execution_evidence_without_a_semantic_termin
 }
 
 fn run_body(source: &str) -> (BodyPlan, BodyRunReport) {
+    run_body_with_timer(source, &mut RecordingTimer { waits: Vec::new() })
+}
+
+fn run_body_with_timer<T: crate::TimerAdapter>(
+    source: &str,
+    timer: &mut T,
+) -> (BodyPlan, BodyRunReport) {
     let mut std_host = host("body-causal-terminal-host");
     let checked = parse(source, &installed_std::test_catalog()).unwrap();
     let hosts = [std_host.advertisement().clone()];
@@ -217,10 +224,34 @@ fn run_body(source: &str) -> (BodyPlan, BodyRunReport) {
                 keyboard: None,
             },
             &mut Vec::with_capacity(2_048),
-            &mut RecordingTimer { waits: Vec::new() },
+            timer,
         )
         .unwrap();
     (body_plan, report)
+}
+
+#[test]
+fn production_timer_observes_retained_events_on_exact_host_boot_and_basis() {
+    let (plan, report) = run_body_with_timer(UNRECOVERED, &mut crate::ThreadTimer);
+    assert!(!report.clock_observations.is_empty());
+    for observed in &report.clock_observations {
+        assert!(report
+            .kernel_events
+            .iter()
+            .any(|event| event.sequence == observed.sequence));
+        let local = observed.time.local();
+        assert_eq!(local.clock().host_id(), &report.terminal_sign.host_id);
+        assert_eq!(local.clock().boot_id(), &report.terminal_sign.boot_id);
+        assert_eq!(local.clock().basis_id(), "std/thread-timer/process-epoch");
+        assert_eq!(observed.time.body(), None);
+    }
+    let evidence = BodyRunCausalRecord::from_run(&plan, &report).unwrap();
+    assert!(evidence.graph().edges().all(|edge| {
+        evidence.time_of(edge.effect).is_some() && evidence.time_of(edge.cause).is_some()
+    }));
+
+    let (_, unsupported) = run_body(UNRECOVERED);
+    assert!(unsupported.clock_observations.is_empty());
 }
 
 fn facts(
