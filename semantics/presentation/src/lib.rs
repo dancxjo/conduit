@@ -271,3 +271,5 @@ pub use spoken_template_looks::*;
 
 mod parsec_input_policy_producer;
 pub use parsec_input_policy_producer::*;
+mod parsec_input_instruction_producer;
+pub use parsec_input_instruction_producer::*;

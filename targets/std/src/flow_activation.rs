@@ -12,8 +12,12 @@ use conduit_core::{
 
 mod parsec_combine;
 mod parsec_combine_back;
+mod parsec_input_instruction_plan;
 mod parsec_scan_offer;
 mod parsec_source_plan;
+pub use parsec_input_instruction_plan::{
+    required_parsec_input_instruction_offer, ParsecInputInstructionSourcePlan,
+};
 mod spoken_template_plan;
 pub use spoken_template_plan::{required_spoken_template_offers, SpokenTemplateSourcePlan};
 mod pure_parsec_scan;
