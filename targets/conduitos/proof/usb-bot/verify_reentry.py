@@ -44,7 +44,9 @@ for index,item in enumerate(packets):
                 assert length==0 and not payload
                 stalled.append(index)
             elif length==512:
-                assert status==0 and payload==expected_block
+                assert status==0
+                expected_data = bytes((i*19+5)%256 for i in range(512)) if a.phase_error and len(cbws)==1 else expected_block
+                assert payload==expected_data
                 data.append(index)
             elif length==13:
                 assert status==0

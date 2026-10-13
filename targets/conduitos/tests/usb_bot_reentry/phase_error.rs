@@ -67,7 +67,7 @@ fn phase_error_requires_exact_csw_and_three_acks_before_original_failed_settleme
     let awaiting = step(
         &source,
         &first,
-        read_event(&source, event, Some(&[0x80; 512]), 0, false),
+        read_event(&source, event, Some(&[0x55; 512]), 0, false),
         true,
     );
     assert_eq!(number(member(&awaiting, "phase")), 18);
@@ -178,6 +178,20 @@ fn phase_error_requires_exact_csw_and_three_acks_before_original_failed_settleme
     );
     assert_eq!(number(member(&current, "phase")), 15);
     let fresh = evaluate(&program(&source, "bot-reentry-second-candidate"), &current);
+    let fresh_encoded = fresh.canonical_bytes().unwrap();
+    let completed = validate_canonical_structured_value(&fresh_encoded).unwrap();
+    assert_eq!(
+        completed
+            .variant_payload("completed")
+            .unwrap()
+            .unwrap()
+            .record_field("bytes")
+            .unwrap()
+            .unwrap()
+            .primitive_bytes("value/bytes")
+            .unwrap(),
+        &[0x80; 512]
+    );
     assert_eq!(
         validate_canonical_structured_value(&fresh.canonical_bytes().unwrap())
             .unwrap()

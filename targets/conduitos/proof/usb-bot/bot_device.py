@@ -112,7 +112,10 @@ class Device(Base):
                 print('BOT_STALL_AFTER_CBW '+str(self.tag),flush=True)
                 return self.bulk_reply(packet_id,ep,0,wire.STALL)
             self.stage='status'
-            data=bytes((i*37+11)%256 for i in range(512))
+            if 'read-reentry-phase-error' in options.fault_mode and self.commands == 1:
+                data=bytes((i*19+5)%256 for i in range(512))
+            else:
+                data=bytes((i*37+11)%256 for i in range(512))
             if options.fault_mode=='short-in':data=data[:500]
             return self.bulk_reply(packet_id,ep,len(data),data=data)
         if self.stage!='status' or length!=13:
