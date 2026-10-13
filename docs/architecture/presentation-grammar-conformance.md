@@ -791,3 +791,11 @@ its bytes and producer identities against the checked source; the whole-Body
 journey retains four original frames (1542/1544 bytes) through the remap. Both
 checks and strict all-target Std Clippy pass. These observations supply reusable
 fixture evidence; their serialization cannot grant an input or another Mask.
+
+A prepared frame inspector decodes the original ordinary instruction component
+under its checked native owner and value laws, preserving canonical binding and
+source segments in one fixed 256-byte buffer. All six component producer/
+inspection tests and strict presentation Clippy pass; all three Looks and
+withdrawal inspect without allocation. Wrong owner, malformed and overbound
+frames refuse. Inspection does not reproduce producer custody, establish current
+availability or acknowledge an effect; consumers must keep those checks separate.
