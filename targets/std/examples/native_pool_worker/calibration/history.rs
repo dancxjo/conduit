@@ -93,6 +93,7 @@ impl Retained {
         Ok(Prepared {
             forecast,
             window: self.window.clone(),
+            source: Some(CostSourceAttribution::from_source(&source)),
             origin: Some(sign),
         })
     }

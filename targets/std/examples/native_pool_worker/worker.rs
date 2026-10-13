@@ -4,6 +4,7 @@ mod calibration;
 mod completion;
 mod description;
 mod pool_observation;
+mod request;
 mod sampling;
 
 use conduit_ai::LocalModelKindProfile;
@@ -54,6 +55,11 @@ struct Operation {
 enum PreparationCommand {
     Observe,
     ObserveClock,
+    ObserveServiceForecast {
+        source: String,
+        entry: String,
+        input: ValuePayload,
+    },
     Describe {
         source: String,
         entry: String,
@@ -252,30 +258,20 @@ pub(super) fn run() -> Result<(), String> {
                 document(&mut writer, &reply)?;
                 continue;
             }
+            Some(PreparationCommand::ObserveServiceForecast {
+                source,
+                entry,
+                input,
+            }) => {
+                let value =
+                    calibration::query(&host, service_history.as_ref(), &source, &entry, &input);
+                document(&mut writer, &value)?;
+                continue;
+            }
             Some(PreparationCommand::Execute { operation }) => operation,
         };
-        let mut startup = conduit_plot::StartupCatalog::new();
-        let mut profiles = conduit_plot::ProfileCatalog::new();
-        conduit_ai::install_llm_semantic_catalog(&mut startup, &mut profiles)
-            .map_err(|e| e.to_string())?;
-        let checked = conduit_plot::check_syntax_document(
-            &conduit_plot::parse_syntax_document(&op.source),
-            &startup,
-        )
-        .map_err(|_| "operation Source failed checking")?;
-        let expanded =
-            conduit_plot::expand_canonical_plot_for_authoring(&checked, &op.plot, &profiles)
-                .map_err(|_| "operation Source failed expansion")?;
-        if expanded.expanded.gears.len() != 1 {
-            return Err("operation requires one checked model Gear".into());
-        }
-        let gear = &expanded.expanded.gears[0];
-        if gear.kind_id.as_str() != conduit_ai::LLM_GENERATE_KIND
-            || gear.inputs.len() != 1
-            || op.input.value_kind.as_str() != conduit_ai::GENERATION_REQUEST_VALUE_KIND
-        {
-            return Err("operation input semantic type refused".into());
-        }
+        let checked_gear = request::check(&op.source, &op.plot, &op.input)?;
+        let gear = &checked_gear;
         let inputs = [CostInput {
             port: &gear.inputs[0].port_id,
             value: &op.input,

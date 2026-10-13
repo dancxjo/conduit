@@ -1,9 +1,11 @@
 //! Optional adapter-service-only calibration; never a whole-fulfillment model.
 mod history;
+mod query;
 use conduit_core::*;
 use conduit_planner::resource_cost::*;
 use conduit_std_host::{AdmittedLocalModelPoolMember, StdHost, ThreadTimer, TimerAdapter};
 pub(super) use history::Retained;
+pub(super) use query::query;
 use serde::Deserialize;
 use serde_json::{json, Value};
 
@@ -17,6 +19,7 @@ pub(super) struct Prepared {
     forecast: FulfillmentCostForecast,
     window: CostObservationWindow,
     origin: Option<SignId>,
+    source: Option<CostSourceAttribution>,
 }
 fn quantity(value: &ValuePayload, work: &mut ExactNumericWork) -> Result<RationalQuantity, String> {
     if value.value_kind.as_str() != RATIONAL_QUANTITY_ID {
@@ -92,6 +95,7 @@ pub(super) fn prepare(
         forecast,
         window,
         origin: None,
+        source: None,
     }))
 }
 fn encoded(quantity: RationalQuantity) -> Result<Value, String> {
@@ -240,7 +244,9 @@ pub(super) fn finish(
 }
 
 fn attribution(source: &CostEvidenceSource<'_>) -> Value {
-    let value = CostSourceAttribution::from_source(source);
+    attribution_owned(&CostSourceAttribution::from_source(source))
+}
+fn attribution_owned(value: &CostSourceAttribution) -> Value {
     json!({"host_id":value.host_id,"boot_id":value.boot_id,"offer_generation":value.offer_generation,
         "host_profile":value.host_profile,"capability_id":value.capability_id,"kind_id":value.kind_id,
         "kind_contract_revision":value.kind_contract_revision,"execution_profile_id":value.execution_profile_id,
