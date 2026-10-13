@@ -133,7 +133,8 @@ jobs:
     needs: preflight
     if: ${{ !inputs.exhaustive && needs.preflight.outputs.docs-only != 'true' }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    # Admission can own the same cold ConduitOS tests as the 120-minute unit shard.
+    timeout-minutes: 120
     env:
       # Exact arithmetic reference matrices are prohibitively slow unoptimized.
       # Preserve debug assertions and overflow checks while optimizing execution.

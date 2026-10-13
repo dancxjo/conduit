@@ -44,6 +44,53 @@ pub(super) fn exists(face: &Presentation) -> bool {
         .any(|subject| subject.role == PresentationRole::Gear)
 }
 
+pub(super) fn link_notice(face: &Presentation, screen: LayoutRect, page: usize) -> String {
+    let columns = columns(screen.width);
+    let gear_count = face
+        .subjects
+        .iter()
+        .filter(|s| s.role == PresentationRole::Gear)
+        .count();
+    let rows = rows(screen.height, gear_count, columns);
+    let height = (screen.height - layout::HEADER - layout::FOOTER - 16 - GAP * (rows as u16 - 1))
+        / rows as u16;
+    let gears = face
+        .subjects
+        .iter()
+        .filter(|s| s.role == PresentationRole::Gear)
+        .skip(page * columns * rows)
+        .take(columns * rows)
+        .collect::<Vec<_>>();
+    let cords = face
+        .subjects
+        .iter()
+        .filter(|s| s.role == PresentationRole::Cord)
+        .collect::<Vec<_>>();
+    let eligible = cords
+        .iter()
+        .filter(|cord| endpoints(face, &gears, cord, height).is_some())
+        .count();
+    let shown = eligible.min(MAX_VISIBLE_LINKS);
+    alloc::format!(
+        "{shown}/{} cords shown · {} omitted · F2 all facts · F3 return",
+        cords.len(),
+        cords.len() - shown
+    )
+}
+
+fn endpoints(
+    face: &Presentation,
+    gears: &[&PresentationSubject],
+    cord: &PresentationSubject,
+    height: u16,
+) -> Option<((usize, usize), (usize, usize))> {
+    let source = property_identity(face, &cord.identity, "source-port")?;
+    let sink = property_identity(face, &cord.identity, "sink-port")?;
+    let from = port_location(face, gears, &cord.identity, source, "outgoing", height)?;
+    let to = port_location(face, gears, &cord.identity, sink, "receiving", height)?;
+    (from.0 != to.0).then_some((from, to))
+}
+
 pub(super) fn append(
     scene: &mut GraphicsScene,
     face: &Presentation,
@@ -82,21 +129,11 @@ pub(super) fn append(
         .iter()
         .filter(|subject| subject.role == PresentationRole::Cord)
     {
-        let (Some(source), Some(sink)) = (
-            property_identity(face, &cord.identity, "source-port"),
-            property_identity(face, &cord.identity, "sink-port"),
-        ) else {
+        let Some(((source_index, source_row), (sink_index, sink_row))) =
+            endpoints(face, &gears, cord, height)
+        else {
             continue;
         };
-        let (Some((source_index, source_row)), Some((sink_index, sink_row))) = (
-            port_location(face, &gears, &cord.identity, source, "outgoing", height),
-            port_location(face, &gears, &cord.identity, sink, "receiving", height),
-        ) else {
-            continue;
-        };
-        if source_index == sink_index {
-            continue;
-        }
         if visible_links == MAX_VISIBLE_LINKS {
             break;
         }
@@ -318,4 +355,128 @@ fn readable(value: &str) -> alloc::string::String {
     chars.next().map_or(plain.clone(), |first| {
         alloc::format!("{}{}", first.to_uppercase(), chars.as_str())
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn notice_counts_capped_links_and_missing_endpoints_without_changing_face() {
+        let mut face: Presentation = serde_json::from_str(include_str!(
+            "../../../../proof/conformance/presentation-waist/domain-derived/patchbay-face.json"
+        ))
+        .unwrap();
+        let cord = face
+            .subjects
+            .iter()
+            .find(|s| s.role == PresentationRole::Cord)
+            .unwrap()
+            .clone();
+        let properties = face
+            .properties
+            .iter()
+            .filter(|p| p.subject == cord.identity)
+            .cloned()
+            .collect::<Vec<_>>();
+        let relationships = face
+            .relationships
+            .iter()
+            .filter(|r| r.source == cord.identity)
+            .cloned()
+            .collect::<Vec<_>>();
+        for index in 0..13 {
+            let identity = alloc::format!("cord/overflow/{index}");
+            let mut subject = cord.clone();
+            subject.identity = identity.clone();
+            face.subjects.push(subject);
+            for property in &properties {
+                let mut property = property.clone();
+                property.subject = identity.clone();
+                face.properties.push(property);
+            }
+            for relationship in &relationships {
+                let mut relationship = relationship.clone();
+                relationship.source = identity.clone();
+                face.relationships.push(relationship);
+            }
+        }
+        let screen = LayoutRect {
+            x: 0,
+            y: 0,
+            width: 640,
+            height: 720,
+        };
+        let retained = face.clone();
+        assert_eq!(
+            link_notice(&face, screen, 0),
+            "12/15 cords shown · 3 omitted · F2 all facts · F3 return"
+        );
+        assert_eq!(face, retained);
+        let checked = Presentation::new_with_semantics(
+            face.revision,
+            face.basis.clone(),
+            face.subjects.clone(),
+            face.relationships.clone(),
+            face.properties.clone(),
+            face.text.clone(),
+            face.actions.clone(),
+            face.disclosures.clone(),
+        )
+        .unwrap();
+        let mut scene = NativeFaceScene::prepare(checked.clone(), 640, 720).unwrap();
+        scene.show_diagram(true);
+        let frame = scene.frame().unwrap();
+        assert_eq!(
+            frame
+                .scene
+                .commands()
+                .iter()
+                .filter(|command| command.kind
+                    == conduit_presentation::GraphicsCommandKind::OrthogonalPath)
+                .count(),
+            12
+        );
+        assert!(
+            frame
+                .scene
+                .commands()
+                .iter()
+                .any(|command| command.payload()
+                    == "12/15 cords shown · 3 omitted · F2 all facts · F3 return")
+        );
+        assert!(
+            frame.hits.is_empty(),
+            "drawing cords must not invent action mappings"
+        );
+        assert_eq!(scene.presentation(), &checked);
+        scene.show_details(true);
+        let details: String = scene.details.iter().map(|row| row.text.as_str()).collect();
+        for subject in checked
+            .subjects
+            .iter()
+            .filter(|subject| subject.role == PresentationRole::Cord)
+        {
+            assert!(details.contains(&subject.identity));
+        }
+        // A one-column page cannot draw a link to a Gear on another page.
+        assert_eq!(
+            link_notice(
+                &face,
+                LayoutRect {
+                    width: 320,
+                    height: 240,
+                    ..screen
+                },
+                0
+            ),
+            "0/15 cords shown · 15 omitted · F2 all facts · F3 return"
+        );
+        // Missing semantic endpoint facts never become geometry-invented links.
+        face.properties.retain(|p| p.name != "sink-port");
+        assert_eq!(
+            link_notice(&face, screen, 0),
+            "0/15 cords shown · 15 omitted · F2 all facts · F3 return"
+        );
+    }
 }
