@@ -168,9 +168,13 @@ unit gon : Angle = { reference: °, scale: 9/10 }
 # binding Turn
 unit turn : Angle = { reference: origin, scale: 1 }
 # Compact exact one-turn synonyms; turn remains the canonical Angle unit.
+# binding TurnTr
 unit tr : Angle = { reference: turn, scale: 1 }
+# binding TurnRev
 unit rev : Angle = { reference: turn, scale: 1 }
+# binding TurnRot
 unit rot : Angle = { reference: turn, scale: 1 }
+# binding TurnPla
 unit pla : Angle = { reference: turn, scale: 1 }
 # binding Radian
 unit rad : Angle = { reference: origin(radian), scale: 1, prefixes: si }

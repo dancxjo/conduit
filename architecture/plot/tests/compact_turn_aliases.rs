@@ -1,5 +1,5 @@
 //! Compact turn spellings preserve exact checked Angle meaning.
-use conduit_core::Quantity;
+use conduit_core::{Quantity, Unit};
 use conduit_plot::{
     check_syntax_document, parse_syntax_document, CanonicalStartupValue, StartupCatalog,
 };
@@ -12,6 +12,11 @@ fn compact_turn_aliases_are_units_and_exact_angle_quantities() {
     let values = &checked.plots[0].local_values;
     let get = |name: &str| &values.iter().find(|(n, _)| n == name).unwrap().1;
     let turn = conduit_core::builtin_angle_unit();
+    for name in ["tr", "rev", "rot", "pla"] {
+        let unit = Unit::resolve(name).unwrap();
+        assert!(unit.same_physical_definition(turn));
+        assert_eq!(Unit::decode(&unit.encode()).unwrap(), unit);
+    }
     for name in ["a", "b", "c", "d", "reference", "degrees", "gradians"] {
         let CanonicalStartupValue::Quantity(value) = get(name) else {
             panic!("{name} must be a Quantity")
