@@ -47,3 +47,14 @@ Linear and aural readers preserve Gear, Port, Cord, relationships, and action
 provenance. The checked browser Mask admits the complete serialized Face and
 preserves every subject identity, name, and role. Its Show acknowledgement is
 simulated; this does not establish a live DOM or installed-owner journey.
+
+The explicit `parsec_instruction_encounter_tests::actual_parsec_component_frames_survive_native_linear_and_aural_reconstruction`
+check requires `CONDUIT_CROSS_MASK_PARSEC_ARTIFACT` containing original Source
+frames captured after actual terminal supplement acknowledgement. It validates
+original component laws, independently reproduces checked Source wording, and
+compares recorded Source/effect routes against the lowered Mask before rendering.
+Native local notice, deterministic linear component records and bounded aural
+component readings preserve the unchanged Face and exact action provenance.
+Missing, stale, malformed and rewritten frames refuse before reconstruction.
+These are reconstructions of a captured occurrence: they grant no current input
+custody and establish neither browser DOM presentation nor speaker delivery.

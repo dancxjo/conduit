@@ -13,7 +13,7 @@ use sha2::{Digest, Sha256};
 
 /// Independent computational validation on an explicitly selected software Host.
 /// This fixture never supplies current input, Show custody or a runtime grant.
-fn prepared_instruction_wording() -> PreparedParsecInputInstruction {
+pub(super) fn prepared_instruction_wording() -> PreparedParsecInputInstruction {
     use conduit_std_host::flow_activation::{
         required_parsec_input_instruction_offer, ParsecInputInstructionSourcePlan,
     };
@@ -44,11 +44,11 @@ fn prepared_instruction_wording() -> PreparedParsecInputInstruction {
         .unwrap()
 }
 
-fn correlate(
+pub(super) fn correlate(
     exchange: &Value,
     index: usize,
     instruction: &mut PreparedParsecInputInstruction,
-) -> Result<Presentation, String> {
+) -> Result<(Presentation, Vec<u8>), String> {
     let observation = &exchange["instructions"][index];
     let face: Presentation = serde_json::from_value(observation["face"].clone())
         .map_err(|error| format!("{error:?}"))?;
@@ -183,7 +183,7 @@ fn correlate(
     {
         return Err("current source-map/prompt documentary correlation mismatch".into());
     }
-    Ok(face)
+    Ok((face, candidate.canonical_bytes().to_vec()))
 }
 
 fn face_json(face: &Presentation) -> Value {
@@ -292,7 +292,7 @@ fn actual_parsec_instruction_is_lost_at_face_only_mask_boundary() {
         assert_eq!(receipt["invocation"], index);
         assert!(receipt["sign_event_count"].as_u64().unwrap() > 0);
         assert_eq!(exchange["source_results"][index]["fore_sequence"], index);
-        let face = correlate(&exchange, index, &mut instruction).unwrap();
+        let (face, _) = correlate(&exchange, index, &mut instruction).unwrap();
         reconstruct_without_instruction(&face);
     }
     assert_eq!(

@@ -19,6 +19,8 @@ mod inspection;
 mod native_package_install;
 #[cfg(test)]
 mod parsec_cross_mask_counterexample_tests;
+#[cfg(test)]
+mod parsec_instruction_encounter_tests;
 mod plot_diagram;
 mod plot_source;
 mod product_execution;
