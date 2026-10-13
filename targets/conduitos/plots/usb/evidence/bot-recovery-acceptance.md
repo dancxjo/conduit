@@ -97,3 +97,14 @@ bindings to the four expanded authorize/settle placements before Plan sealing.
 Default offer order cannot prove pair affinity. The Source graph must not create
 that authority. Semantic result ordinals remain the retained permit ordinals;
 native completion ordinals and CBW tags are separate correlation domains.
+
+Trusted Root placement binding proof
+------------------------------------
+
+533c8bc11 requires four explicit, distinct bounded placement names when Root
+approves read-only reentry. Before Plan sealing, each exact expanded authorize
+or settle Gear is bound to its corresponding retained issuer capability; role,
+Host/Boot, offer and realization checks must all succeed before any placement
+override is applied. Existing single-pair requests retain their original path.
+Seven projection/placement tests and three Root request tests pass. These tests
+prove mapping/refusal semantics, not a composed Source/native two-read execution.
