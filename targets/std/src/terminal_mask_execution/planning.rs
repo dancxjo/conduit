@@ -24,6 +24,23 @@ pub(super) fn plan(host: &HostAdvertisement) -> Result<PlannedMaskPlot, Terminal
 /// The attached path must plan against the actual current Host advertisement.
 /// Merely copying its Host/Boot into a made-up terminal offer is insufficient.
 pub(super) fn plan_attached(host: &HostAdvertisement) -> Result<PlannedMaskPlot, TerminalError> {
+    validate_attached_host(host)?;
+    plan_on_host(host, host)
+}
+
+pub(crate) fn plan_attached_parsec(
+    host: &HostAdvertisement,
+) -> Result<PlannedMaskPlot, TerminalError> {
+    validate_attached_host(host)?;
+    plan_on_host_source(
+        host,
+        host,
+        include_str!("parsec_terminal.conduit"),
+        "parsec/terminal-mask",
+    )
+}
+
+fn validate_attached_host(host: &HostAdvertisement) -> Result<(), TerminalError> {
     for required in attached_terminal_capabilities() {
         if !host.capabilities.contains(&required) {
             return Err(error(
@@ -38,12 +55,26 @@ pub(super) fn plan_attached(host: &HostAdvertisement) -> Result<PlannedMaskPlot,
             ));
         }
     }
-    plan_on_host(host, host)
+    Ok(())
 }
 
 fn plan_on_host(
     host: &HostAdvertisement,
     planning_host: &HostAdvertisement,
+) -> Result<PlannedMaskPlot, TerminalError> {
+    plan_on_host_source(
+        host,
+        planning_host,
+        include_str!("terminal.conduit"),
+        "terminal",
+    )
+}
+
+fn plan_on_host_source(
+    host: &HostAdvertisement,
+    planning_host: &HostAdvertisement,
+    source: &str,
+    name: &str,
 ) -> Result<PlannedMaskPlot, TerminalError> {
     if host.protocol_version != PROTOCOL_VERSION
         || host.host_id.as_str().is_empty()
@@ -68,13 +99,19 @@ fn plan_on_host(
             .map_err(debug_error)?;
         catalog.insert(kind).map_err(debug_error)?;
     }
-    let checked = check_syntax_document(
-        &parse_syntax_document(include_str!("terminal.conduit")),
-        &startup,
-    )
-    .map_err(debug_error)?;
+    if name == "parsec/terminal-mask" {
+        crate::flow_activation::parsec_instruction_source_offer::install_catalogs(
+            &mut startup,
+            &mut catalog,
+        )
+        .map_err(error)?;
+        super::parsec_instruction_effect::install_catalogs(&mut startup, &mut catalog)
+            .map_err(error)?;
+    }
+    let checked =
+        check_syntax_document(&parse_syntax_document(source), &startup).map_err(debug_error)?;
     let authoring =
-        expand_canonical_plot_for_authoring(&checked, "terminal", &catalog).map_err(debug_error)?;
+        expand_canonical_plot_for_authoring(&checked, name, &catalog).map_err(debug_error)?;
     let mask = MaskPlot::admit(&authoring).map_err(debug_error)?;
     let hosts = [planning_host.clone()];
     let placements =
@@ -192,4 +229,72 @@ pub(crate) fn terminal_resources() -> Vec<ResourceOffer> {
 
 pub(crate) fn attached_terminal_resources() -> Vec<ResourceOffer> {
     terminal_resources()
+}
+
+/// Extra exact offers for the internal Parsec instruction encounter.
+/// These retain the existing single terminal-output reservation.
+pub(crate) fn parsec_instruction_capabilities() -> Result<Vec<CapabilityOffer>, String> {
+    Ok(vec![
+        crate::flow_activation::parsec_instruction_source_offer::offer()?,
+        super::parsec_instruction_effect::offer()?,
+        crate::flow_activation::required_parsec_input_instruction_offer()?,
+    ])
+}
+
+/// Actual attached-provider supplementary operation reservation.
+pub(crate) fn parsec_instruction_resources() -> Vec<ResourceOffer> {
+    vec![super::parsec_instruction_effect::resource()]
+}
+
+#[cfg(test)]
+mod parsec_instruction_tests {
+    use super::*;
+    #[test]
+    fn parsec_instruction_stays_internal_to_canonical_mask_front() {
+        let mut host = crate::StdHost::new_with_config(crate::StdHostConfig {
+            host_id: "proof/parsec-internal-instruction".into(),
+            boot_id: "proof/parsec-internal-instruction/boot".into(),
+            offer_generation: OfferGeneration(1),
+        })
+        .advertisement()
+        .clone();
+        host.capabilities.extend(attached_terminal_capabilities());
+        host.capabilities
+            .push(crate::flow_activation::parsec_instruction_source_offer::offer().unwrap());
+        host.capabilities
+            .push(super::super::parsec_instruction_effect::offer().unwrap());
+        host.resources.extend(attached_terminal_resources());
+        host.resources
+            .push(super::super::parsec_instruction_effect::resource());
+        host.capabilities
+            .sort_by(|a, b| a.capability_id.cmp(&b.capability_id));
+        host.resources.sort_by(|a, b| a.pool_id.cmp(&b.pool_id));
+        let planned = plan_attached_parsec(&host).unwrap();
+        assert_eq!(planned.plan.fragments.len(), 1);
+        let fragment = &planned.plan.fragments[0];
+        assert_eq!(fragment.placements.len(), 5);
+        let lowered = lower_plan_fragment(fragment).unwrap();
+        assert_eq!(lowered.cords.len(), 8);
+        assert_eq!(lowered.host_calls.len(), 4);
+        assert!(matches!(
+            super::super::kernel::prepare(fragment, &lowered).unwrap(),
+            super::super::kernel::Scheduler::Parsec(_)
+        ));
+        assert_eq!(
+            lowered
+                .fore_ports
+                .iter()
+                .filter(|p| p.direction == PortDirection::Input)
+                .count(),
+            1
+        );
+        assert_eq!(
+            lowered
+                .fore_ports
+                .iter()
+                .filter(|p| p.direction == PortDirection::Output)
+                .count(),
+            2
+        );
+    }
 }

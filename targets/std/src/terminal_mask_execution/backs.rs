@@ -6,9 +6,21 @@ use conduit_kernel::{BoundedValueRef, HostCallDisposition, HostCallId, PortId, R
 
 pub(super) enum MaskBack {
     Tee,
-    Renderer { pending: bool, emitted: bool },
-    Interaction { seen_face: bool, pending: bool },
-    InteractionClose { seen_face: bool },
+    InstructionSource(
+        crate::installed_std::parsec_instruction_source_back::ParsecInstructionSourceBack,
+    ),
+    InstructionEffect(super::parsec_instruction_effect::InstructionEffectBack),
+    Renderer {
+        pending: bool,
+        emitted: bool,
+    },
+    Interaction {
+        seen_face: bool,
+        pending: bool,
+    },
+    InteractionClose {
+        seen_face: bool,
+    },
 }
 
 impl StepBack<PORTS> for MaskBack {
@@ -19,9 +31,18 @@ impl StepBack<PORTS> for MaskBack {
     ) -> StepOutcome {
         match self {
             Self::Tee => pass_one(io),
-            Self::Renderer { pending, emitted } => render(pending, emitted, io),
+            Self::InstructionSource(back) => back.step(io, _input_bytes),
+            Self::InstructionEffect(back) => back.step(io, _input_bytes),
+            Self::Renderer { pending, emitted } => render(pending, emitted, io, HostCallId(0)),
             Self::Interaction { seen_face, pending } => interact(seen_face, pending, io),
             Self::InteractionClose { seen_face } => close_interaction(seen_face, io),
+        }
+    }
+    fn cancel(&mut self) {
+        match self {
+            Self::InstructionSource(back) => <crate::installed_std::parsec_instruction_source_back::ParsecInstructionSourceBack as StepBack<PORTS>>::cancel(back),
+            Self::InstructionEffect(back) => <super::parsec_instruction_effect::InstructionEffectBack as StepBack<PORTS>>::cancel(back),
+            _ => {}
         }
     }
 }
@@ -62,7 +83,12 @@ fn pass_one(io: &mut StepIo<PORTS>) -> StepOutcome {
     StepOutcome::Await
 }
 
-fn render(pending: &mut bool, emitted: &mut bool, io: &mut StepIo<PORTS>) -> StepOutcome {
+pub(super) fn render<const PORTS: usize>(
+    pending: &mut bool,
+    emitted: &mut bool,
+    io: &mut StepIo<PORTS>,
+    call: HostCallId,
+) -> StepOutcome {
     if *pending {
         let Some((request, outcome)) = io.host_completion() else {
             return StepOutcome::Await;
@@ -90,9 +116,7 @@ fn render(pending: &mut bool, emitted: &mut bool, io: &mut StepIo<PORTS>) -> Ste
             return failure();
         };
         if io.consume(PortId(0)).is_err()
-            || io
-                .request_host_call(RequestId(0), HostCallId(0), value)
-                .is_err()
+            || io.request_host_call(RequestId(0), call, value).is_err()
         {
             return failure();
         }

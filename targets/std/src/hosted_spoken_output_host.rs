@@ -245,6 +245,11 @@ impl crate::StdHost {
         advertisement
             .capabilities
             .extend(conduit_std_offers::spoken_mask_offers());
+        // Select checked template computation during this idle Host equipment
+        // attachment, before publishing its advertisement or preparing a Mask.
+        advertisement
+            .capabilities
+            .extend(crate::flow_activation::required_spoken_template_offers()?);
         if adapter.is_some() {
             let projection = conduit_std_offers::generated_stream_speech_offer();
             advertisement

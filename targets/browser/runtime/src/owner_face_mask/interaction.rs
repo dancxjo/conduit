@@ -56,27 +56,31 @@ impl OwnerBrowserMask {
         if bytes.len() > self.interaction_boundary.byte_capacity as usize {
             return Err("owner browser interaction exceeds its sealed Fore bound".into());
         }
+        let (node, request) = self
+            .pending_interaction
+            .ok_or("owner browser Mask interaction Fore is terminal")?;
         let value = self
             .scheduler
             .store_host_value(&bytes)
             .map_err(|error| format!("store owner browser interaction: {error:?}"))?;
-        let (node, request) = self
-            .pending_interaction
-            .take()
-            .ok_or("owner browser Mask interaction Fore is terminal")?;
-        self.scheduler
-            .complete_host_call(
-                node,
-                request,
-                HostCallOutcome {
-                    disposition: HostCallDisposition::Completed,
-                    output: Some(
-                        BoundedValueRef::new(value, MASK_BYTES).map_err(|_| "interaction bound")?,
-                    ),
-                    failure: None,
-                },
-            )
-            .map_err(|error| format!("complete owner browser interaction: {error:?}"))?;
+        let completion = self.scheduler.complete_host_call(
+            node,
+            request,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
+                output: Some(
+                    BoundedValueRef::new(value, MASK_BYTES).map_err(|_| "interaction bound")?,
+                ),
+                failure: None,
+            },
+        );
+        if let Err(error) = completion {
+            self.scheduler
+                .discard_host_value(value)
+                .map_err(|release| format!("release refused owner interaction: {release:?}"))?;
+            return Err(format!("complete owner browser interaction: {error:?}"));
+        }
+        self.pending_interaction = None;
         let offer = loop {
             if let Some(offer) = self
                 .scheduler

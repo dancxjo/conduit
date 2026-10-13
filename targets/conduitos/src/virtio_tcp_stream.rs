@@ -184,9 +184,8 @@ impl Read for VirtioTcpStream<'_> {
             self.maximum_polls
         };
         for _ in 0..read_poll_limit {
-            self.poll_io().map_err(|error| {
+            self.poll_io().inspect_err(|error| {
                 report_read_refusal(error.0.as_str());
-                error
             })?;
             let socket = self.sockets.get_mut::<tcp::Socket>(self.handle);
             if socket.can_recv() {

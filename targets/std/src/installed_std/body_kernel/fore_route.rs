@@ -6,6 +6,9 @@ use crate::{
 use conduit_core::PortDirection;
 use conduit_plan_lowering::lowering::{LoweredForePort, LoweredPlanFragment};
 
+use super::super::keyboard_input_completion::{CompletedInputEvent, MAX_COMPLETED_INPUT_EVENTS};
+use std::collections::VecDeque;
+
 use super::super::{
     external_fore_feeder::{self, PreparedForeInputs},
     InstalledScheduler,
@@ -17,11 +20,25 @@ pub(super) struct BodyForeRoute<'a> {
     output_slots: Vec<OutputSlots>,
     deliveries: Vec<ExternalForeDelivery>,
     started: bool,
+    acknowledged_inputs: VecDeque<AcknowledgedInput>,
+}
+
+pub(super) struct AcknowledgedInput {
+    pub(super) event: CompletedInputEvent,
+    delivery_index: usize,
 }
 
 struct OutputSlots {
     port: LoweredForePort,
+    source_node: Option<conduit_kernel::NodeId>,
     available: Vec<ExternalForeDelivery>,
+    input_origin: Option<(
+        conduit_kernel::NodeId,
+        conduit_kernel::HostCallId,
+        super::super::keyboard_input_binding::InputRealization,
+    )>,
+    acknowledged_descriptor: Option<usize>,
+    acknowledged_physical_event: Option<u64>,
 }
 
 impl<'a> BodyForeRoute<'a> {
@@ -120,7 +137,28 @@ impl<'a> BodyForeRoute<'a> {
             }
             output_slots.push(OutputSlots {
                 port: port.clone(),
+                source_node: partitions.iter().find_map(|part| {
+                    let cord = part.cords.iter().find(|cord| cord.spec.cord == port.cord)?;
+                    match cord.spec.source {
+                        conduit_kernel::CordEndpoint::Local { node, .. } => Some(node),
+                        conduit_kernel::CordEndpoint::Remote(_) => None,
+                    }
+                }),
                 available,
+                input_origin: partitions.iter().find_map(|part| {
+                    let cord = part.cords.iter().find(|cord| cord.spec.cord == port.cord)?;
+                    let conduit_kernel::CordEndpoint::Local { node, .. } = cord.spec.source else {
+                        return None;
+                    };
+                    part.host_calls.iter().find_map(|call| {
+                        (call.node == node).then(||
+                            super::super::keyboard_input_binding::InputRealization::from_contract(
+                                call.contract_id.as_str()).map(|realization| (node, call.call, realization)))
+                            .flatten()
+                    })
+                }),
+                acknowledged_descriptor: None,
+                acknowledged_physical_event: None,
             });
         }
         Ok(Self {
@@ -129,6 +167,7 @@ impl<'a> BodyForeRoute<'a> {
             output_slots,
             deliveries: Vec::with_capacity(delivery_capacity),
             started: false,
+            acknowledged_inputs: VecDeque::with_capacity(MAX_COMPLETED_INPUT_EVENTS),
         })
     }
 
@@ -170,6 +209,8 @@ impl<'a> BodyForeRoute<'a> {
         &mut self,
         scheduler: &mut InstalledScheduler,
         output: &mut Option<&mut dyn BodyForeOutputAdapter>,
+        mut input: Option<&mut super::super::keyboard_input_host::KeyboardInputHost<'_>>,
+        mut map: Option<&mut super::parsec_acknowledged_map::ParsecAcknowledgedMap>,
     ) -> Result<(), String> {
         for slots in &mut self.output_slots {
             let planned = &slots.port;
@@ -186,6 +227,30 @@ impl<'a> BodyForeRoute<'a> {
                 planned
                     .validate_value(bytes)
                     .map_err(|error| format!("Body Fore output contract: {error:?}"))?;
+                let completed = if let (Some(input), Some((node, call, realization))) =
+                    (input.as_deref_mut(), slots.input_origin)
+                {
+                    let event = input.claim_completed_event(node, call, offer.value)?;
+                    if event.realization != realization
+                        || slots
+                            .acknowledged_descriptor
+                            .is_some_and(|index| index != event.descriptor)
+                        || slots
+                            .acknowledged_physical_event
+                            .is_some_and(|prior| prior >= event.physical_event)
+                    {
+                        return Err(
+                            "Body input observation differs from its completed source custody"
+                                .into(),
+                        );
+                    }
+                    if self.acknowledged_inputs.len() == MAX_COMPLETED_INPUT_EVENTS {
+                        return Err("acknowledged input staging bound exceeded".into());
+                    }
+                    Some((node, call, event.descriptor, event.physical_event))
+                } else {
+                    None
+                };
                 let mut delivery = slots
                     .available
                     .pop()
@@ -203,10 +268,45 @@ impl<'a> BodyForeRoute<'a> {
                 scheduler
                     .remote_egress_delivered(planned.endpoint, planned.cord, offer.sequence)
                     .map_err(|error| format!("Body Fore acknowledge: {error:?}"))?;
+                if slots.input_origin.is_none() {
+                    if let Some(map) = map.as_deref_mut() {
+                        map.acknowledge_lowered(
+                            planned,
+                            slots
+                                .source_node
+                                .ok_or("Parsec states Fore lost its local source")?,
+                            offer.sequence,
+                            &delivery.bytes,
+                        )?;
+                    }
+                }
+                if let Some((node, call, descriptor, physical_event)) = completed {
+                    let event = input
+                        .as_deref_mut()
+                        .ok_or("Body input observation lost its custody")?
+                        .acknowledge_completed_event(node, call, offer.value)?;
+                    self.acknowledged_inputs.push_back(AcknowledgedInput {
+                        event,
+                        delivery_index: self.deliveries.len(),
+                    });
+                    slots.acknowledged_descriptor = Some(descriptor);
+                    slots.acknowledged_physical_event = Some(physical_event);
+                }
                 self.deliveries.push(delivery);
             }
         }
         Ok(())
+    }
+
+    /// Called only after the complete Fore drain, including state acknowledgements.
+    pub(super) fn take_acknowledged_input(&mut self) -> Option<AcknowledgedInput> {
+        self.acknowledged_inputs.pop_front()
+    }
+
+    pub(super) fn acknowledged_input_bytes(&self, input: &AcknowledgedInput) -> &[u8] {
+        // Delivery history is retained for the whole Play; the index is minted
+        // only after acknowledgement and before that exact delivery is appended.
+        &self.deliveries[input.delivery_index].bytes
     }
 
     pub(super) fn require_normal_terminal(
