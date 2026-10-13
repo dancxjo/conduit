@@ -729,3 +729,26 @@ transition frames, four child receipt identities and final prompt withdrawal.
 The export refuses to overwrite existing evidence. Std all-target Clippy with
 burn-model and warnings denied passes. This is software input/terminal evidence;
 it does not establish reconstruction of the instruction by other Masks.
+
+### Checked instruction component preparation
+
+The authored `parsec/input-instruction` producer now emits bounded ordinary
+component data outside Face. It forwards the exact input binding, checks
+phase/action and mapping-revision consistency, and authors Begin/Shoot wording
+for finite arcade, linear and spoken choices. Explicit withdrawal or an
+unavailable proposal yields only `Input unavailable.`. The original nonempty
+64-byte label contract is retained exactly; three source-emitted segments form
+one fixed 256-byte wording buffer without truncation or Rust-authored phrasing.
+
+Five checked-source tests pass: all policy phases/remaps/Looks, withdrawal,
+64-byte UTF-8 custom labels, malformed/overbound/stale/cross-action refusal and
+changed checked producer refusal. Evaluation/refusal retains prepared storage
+without allocation. The exact-offer Std source factory test and strict
+all-target presentation/Std Clippy with burn-model and warnings denied pass,
+as do workspace formatting and patch hygiene.
+
+These outputs establish computational custody and candidate consistency only.
+They do not decide current availability, correlate keyboard/control policy,
+grant input authority or certify a rendered instruction. Private accepted
+request ownership, internal Source Fore completion and each medium's actual
+supplementary effect acknowledgement remain required for the #5369 carrier.
